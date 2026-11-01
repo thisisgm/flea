@@ -60,7 +60,9 @@ impl Shell {
             return;
         }
         // Escape ends this window's own drag before any card or listing reads the key.
-        if event.keystroke.key == "escape" && self.escape_file_drag(window, cx) {
+        if event.keystroke.key == "escape"
+            && (self.escape_file_drag(window, cx) || self.escape_tab_drag(window, cx))
+        {
             cx.stop_propagation();
             return;
         }

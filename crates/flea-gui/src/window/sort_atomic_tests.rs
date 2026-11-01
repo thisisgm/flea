@@ -261,7 +261,7 @@ fn sort0400_scrolled_sort_keeps_complete_old_frames_until_atomic_top_replacement
 }
 
 #[gpui::test]
-fn sort0400_external_settings_change_still_relists_after_own_sort_echo(cx: &mut TestAppContext) {
+fn sort0400_external_settings_relists_without_replacing_explicit_sort(cx: &mut TestAppContext) {
     let (backend, mut requests) = Backend::test_lines();
     let (shell, cx) = mount(backend, cx, true);
     commands(&mut requests);
@@ -289,7 +289,7 @@ fn sort0400_external_settings_change_still_relists_after_own_sort_echo(cx: &mut 
         .iter()
         .find(|line| line.get("c").and_then(Json::as_str) == Some("list"))
         .unwrap();
-    assert_eq!(list.get("by").and_then(Json::as_str), Some("mtime"));
+    assert_eq!(list.get("by").and_then(Json::as_str), Some("size"));
     assert_eq!(list.get("hidden").and_then(Json::as_bool), Some(true));
     land(&shell, cx, "/work", 5, &["A", "Empty"]);
     assert_eq!(frame(&shell, cx), ["A", "Empty"]);
@@ -298,14 +298,17 @@ fn sort0400_external_settings_change_still_relists_after_own_sort_echo(cx: &mut 
         assert_eq!(
             host.nav.drawn_order(),
             crate::navigation::folder_state::Order {
-                key: "mtime",
-                desc: true
+                key: "size",
+                desc: false
             }
         );
         assert_eq!(host.pane.held.listing, 5);
         assert!(!host.pane.busy());
     });
 }
+
+#[path = "explicit_sort_tests.rs"]
+mod explicit;
 
 #[gpui::test]
 fn sort0400_failed_folder_save_keeps_retry_and_other_window_choices(cx: &mut TestAppContext) {

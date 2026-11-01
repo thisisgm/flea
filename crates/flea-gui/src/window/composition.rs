@@ -207,7 +207,7 @@ pub(crate) struct Content<'a> {
     pub pane_edge: Option<Div>,
 }
 
-/// ChromeBar.qml and the tab strip take the keyboard only from Tab, never from a press.
+/// ChromeBar.qml, the tab strip and the docked rail take the keyboard only from Tab, never from a press.
 fn keep_the_keys(_: &gpui::MouseDownEvent, window: &mut gpui::Window, _: &mut gpui::App) {
     window.prevent_default();
 }
@@ -280,6 +280,7 @@ pub(crate) fn render(
                 .rail
                 .element()
                 .track_focus(&focus.rail)
+                .on_any_mouse_down(keep_the_keys)
                 .child(view.clone()),
         );
     }

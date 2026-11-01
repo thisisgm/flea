@@ -398,3 +398,50 @@ fn a_duplicate_clipboard_publication_fails_the_menu_trace_check() {
     let expected = r#"{"c":"clipSet","op":"cut","paths":["/files/a.txt"]}"#.to_string();
     assert_menu_cut_sent(&[expected.clone(), expected]);
 }
+
+// EY-346: after a one-file copy lands, Ctrl+A then y asks for every selected row and publishes all three.
+#[gpui::test]
+fn ey346_select_all_then_copy_publishes_every_selected_path(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx);
+    lines();
+    key(cx, handle, "y");
+    assert_eq!(
+        lines().last().map(String::as_str),
+        Some(r#"{"c":"paths","rows":[0]}"#)
+    );
+    reply(cx, handle, r#"{"t":"paths","paths":["/files/a.txt"]}"#);
+    assert_eq!(
+        lines(),
+        vec![r#"{"c":"clipSet","op":"copy","paths":["/files/a.txt"]}"#.to_string()]
+    );
+    reply(
+        cx,
+        handle,
+        r#"{"t":"clip","op":"set","ok":true,"token":"T1"}"#,
+    );
+    reply(
+        cx,
+        handle,
+        r#"{"t":"clip","op":"changed","clip":"copy","paths":["/files/a.txt"],"token":"T1","skipped":0}"#,
+    );
+    key(cx, handle, "ctrl-a");
+    key(cx, handle, "y");
+    assert_eq!(
+        lines(),
+        vec![r#"{"c":"paths","rows":[0,1,2]}"#.to_string()],
+        "EY346_COPY_ASKS_EVERY_SELECTED_ROW"
+    );
+    reply(
+        cx,
+        handle,
+        r#"{"t":"paths","paths":["/files/a.txt","/files/b.txt","/files/c.txt"]}"#,
+    );
+    assert_eq!(
+        lines(),
+        vec![
+            r#"{"c":"clipSet","op":"copy","paths":["/files/a.txt","/files/b.txt","/files/c.txt"]}"#
+                .to_string()
+        ],
+        "EY346_COPY_PUBLISHES_ALL_THREE"
+    );
+}

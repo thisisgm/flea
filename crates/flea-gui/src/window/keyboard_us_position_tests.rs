@@ -263,3 +263,41 @@ fn altgr_presses_never_take_the_us_position() {
     assert!(position_input(&event, held).is_none());
     assert_eq!(action(Context::Listing, (event, held)), Match::Unbound);
 }
+
+#[test]
+fn ey346_a_partial_keymap_letter_matches_where_printed() {
+    // wtype uploads a keymap holding only the keys it sends, so the fork names y at keycode 10 by its US key 1.
+    let y = press("1", Some("y"), Some("1"), Modifiers::none());
+    assert!(position_input(&y.0, y.1).is_none());
+    assert_eq!(event_input(&y.0, y.1).key, "y");
+    assert_eq!(action(Context::Listing, y), Match::Action("copy"));
+    assert_eq!(
+        action(
+            Context::Listing,
+            press("1", Some("x"), Some("1"), Modifiers::none())
+        ),
+        Match::Action("cut")
+    );
+    // A Russian letter at the US 1 position still never reaches this path, and AZERTY's 1 stays tab1.
+    assert_eq!(
+        action(
+            Context::Listing,
+            press("&", Some("&"), Some("1"), Modifiers::none())
+        ),
+        Match::Action("tab1")
+    );
+}
+
+#[test]
+fn adv_f2_shifted_partial_map_letters_keep_text_and_key_bindings() {
+    for (context, letter, action_name) in [
+        (Context::Listing, "Y", "copydirpath"),
+        (Context::Preview, "F", "previewPageForward"),
+    ] {
+        let partial = press("1", Some(letter), Some("1"), shift());
+        let printed = letter.to_ascii_lowercase();
+        let complete = press(&printed, Some(letter), Some(&printed), shift());
+        assert_eq!(action(context, complete), Match::Action(action_name));
+        assert_eq!(action(context, partial), Match::Action(action_name));
+    }
+}

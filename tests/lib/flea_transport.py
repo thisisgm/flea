@@ -112,12 +112,12 @@ def sandbox_backend(override):
 
 
 def endpoint(record, supplied=None, timeout=None, discovering=False):
-    root = Path(record["root"])
+    runtime = Path(record.get("runtime_dir") or Path(record["root"]) / "runtime")
     path = Path(record["socket"])
     if supplied is not None and str(path) != str(supplied):
         raise TransportError("wrong socket path")
     info = path.lstat()
-    if not path.is_relative_to(root / "runtime") or not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
+    if not path.is_relative_to(runtime) or not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.geteuid():
         raise TransportError("foreign socket")
     if [info.st_dev, info.st_ino] != record["socket_identity"]:
         raise TransportError("socket was replaced")
@@ -126,7 +126,7 @@ def endpoint(record, supplied=None, timeout=None, discovering=False):
     connection = socket.socket(socket.AF_UNIX)
     connection.settimeout(record["timeout"] if timeout is None else timeout)
     try:
-        relative = path.relative_to(root / "runtime")
+        relative = path.relative_to(runtime)
         connection.connect(f"{record['runtime']}/{relative}")
         pid, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
         if discovering and record["wrap"] and uid == os.geteuid():
@@ -205,7 +205,7 @@ class Window:
 
     @classmethod
     def start(cls, path, *, parent=None, binary=None, backend=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None,
-              wrap=(), select=None):
+              wrap=(), select=None, share=None):
         frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "qml")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
@@ -221,6 +221,11 @@ class Window:
             raise TransportError("FLEA_IPC_NOT_PORTED qml.launch")
         if select is not None and not str(select):
             raise TransportError("select target is empty")
+        # A peer window's runtime is shared the way two real windows share /run/user/UID, so their IPC reaches each other.
+        if share is not None:
+            share = private(Path(share).absolute())
+            share = private(Path(json.loads((share / "options.json").read_text()).get("share") or share))
+            private(share / "runtime")
         if direct_qml and select is not None:
             raise TransportError(f"a select target needs the flea --gui launch, not a direct qs command: {select}")
         gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
@@ -240,7 +245,7 @@ class Window:
                        binary=binary, gui=gui,
                        frontend=frontend, picker=picker, ui=str(Path(ui or REPO / "ui").absolute()), timeout=float(timeout),
                        log=str(log or root / "window.log"), command=command if direct_qml else None, wrap=list(wrap),
-                       backend=backend,
+                       backend=backend, share=None if share is None else str(share),
                        owner=int(os.environ.get("FLEA_TEST_OWNER_PID", os.getpid())),
                        drain_timeout=float(os.environ.get("FLEA_TEST_DRAIN_TIMEOUT", "30")))
         if not all(0 < options[key] < float("inf") for key in ("timeout", "drain_timeout")):
@@ -266,10 +271,13 @@ class Window:
 
     @property
     def pid(self):
-        return load(self.root)["pid"]
+        return self.record()["pid"]
+
+    def record(self):
+        return load(self.root)
 
     def call(self, *arguments, pid=None, socket_path=None, timeout=None, drive=False, selector=None):
-        record = load(self.root)
+        record = self.record()
         if pid is not None and str(pid) != str(record["pid"]):
             raise TransportError(f"foreign PID {pid}")
         timeout = record["timeout"] if timeout is None else float(timeout)
@@ -354,13 +362,17 @@ def serve(root):
     outcome = dict(returncode=None, forced=False)
     try:
         subreaper()
-        runtime = Path(tempfile.mkdtemp(prefix="runtime", dir=root))
-        runtime.rename(root / "runtime")
-        (root / "runtime" / MARKER).touch()
-        real_runtime = os.environ.get("XDG_RUNTIME_DIR")
-        if real_runtime and (Path(real_runtime) / "hypr").is_dir():
-            (root / "runtime" / "hypr").symlink_to((Path(real_runtime) / "hypr").resolve(), target_is_directory=True)
-        fd = os.open(root / "runtime", os.O_RDONLY | os.O_DIRECTORY)
+        runtime_dir = root / "runtime"
+        if options.get("share"):
+            runtime_dir = private(Path(options["share"]) / "runtime")
+        else:
+            runtime = Path(tempfile.mkdtemp(prefix="runtime", dir=root))
+            runtime.rename(runtime_dir)
+            (runtime_dir / MARKER).touch()
+            real_runtime = os.environ.get("XDG_RUNTIME_DIR")
+            if real_runtime and (Path(real_runtime) / "hypr").is_dir():
+                (runtime_dir / "hypr").symlink_to((Path(real_runtime) / "hypr").resolve(), target_is_directory=True)
+        fd = os.open(runtime_dir, os.O_RDONLY | os.O_DIRECTORY)
         # Keep lstat's final component a directory while leaving room for Hyprland's event socket.
         alias = f"/proc/{os.getpid()}/fd/{fd}/."
         environment = dict(os.environ, XDG_RUNTIME_DIR=alias, FLEA_BIN=options["backend"],
@@ -397,18 +409,22 @@ def serve(root):
             child = subprocess.Popen(options["wrap"] + command, env=environment, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
                                      start_new_session=True)
         current = identity(child.pid)
-        record = dict(options, pid=child.pid, start=current["start"], runtime=alias,
+        record = dict(options, pid=child.pid, start=current["start"], runtime=alias, runtime_dir=str(runtime_dir),
                       group=child.pid, leader_start=current["start"])
         (root / "launch.json").write_text(json.dumps(record))
         deadline = time.monotonic() + options["timeout"]
+        refused = None
         while True:
             if (root / "stop").exists():
                 break
             if identity(child.pid)["state"] == "Z":
                 raise TransportError("window exited before IPC")
-            candidates = list((root / "runtime").rglob("*"))
+            candidates = list(runtime_dir.rglob("*"))
             for candidate in candidates:
-                info = candidate.lstat()
+                try:
+                    info = candidate.lstat()
+                except FileNotFoundError:
+                    continue
                 if stat.S_ISSOCK(info.st_mode):
                     record.update(socket=str(candidate), socket_identity=[info.st_dev, info.st_ino])
                     try:
@@ -416,12 +432,17 @@ def serve(root):
                             pass
                     except (ConnectionRefusedError, FileNotFoundError):
                         continue
+                    except TransportError as error:
+                        if not options.get("share"):
+                            raise
+                        refused = error
+                        continue
                     (root / "window.pending").write_text(json.dumps(record))
                     (root / "window.pending").rename(root / "window.json")
                     break
             else:
                 if time.monotonic() >= deadline:
-                    raise TransportError("window socket wait timed out")
+                    raise TransportError("window socket wait timed out" + (f": {refused}" if refused else ""))
                 time.sleep(0.02)
                 continue
             break

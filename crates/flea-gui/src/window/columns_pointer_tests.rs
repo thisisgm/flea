@@ -286,3 +286,25 @@ fn ey379_renaming_the_active_folders_ancestor_follows_its_new_path() {
         assert!(shell.rename.edit.is_none());
     });
 }
+
+// EY-347: Pane.qml focusPress, a press on a neighbour column takes the keyboard back from the rail as a list press does.
+#[test]
+fn ey347_a_parent_column_press_takes_the_keyboard_back_from_the_rail() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::peek(shell, "/srv/a/b", &[("c", true)], false, window, cx);
+        host::peek(shell, "/srv/a/b/c/d01", &[], false, window, cx);
+    });
+    host::frame(&mut cx, window);
+    host::change(&mut cx, window, |shell, window, cx| {
+        window.focus(&shell.dual_focus.rail, cx);
+        assert!(!shell.focus.is_focused(window));
+        click(shell, Slot::Parent, 10., MouseButton::Left, window, cx);
+        assert!(
+            shell.focus.is_focused(window),
+            "the parent press left the keyboard on the rail"
+        );
+        assert_eq!(shell.keyboard.context, flea::keys::Context::Listing);
+    });
+}

@@ -79,6 +79,11 @@ impl Shell {
         {
             return;
         }
+        // The window's focus-on-press stops here with the event, so a neighbour column takes the keyboard back as a list press does (Pane.qml focusPress).
+        if !self.focus.is_focused(window) {
+            window.focus(&self.focus, cx);
+            self.keyboard.context = flea::keys::Context::Listing;
+        }
         cx.stop_propagation();
         if host.pane.busy() || !view.enabled || host.nav.gate.owned() {
             return;

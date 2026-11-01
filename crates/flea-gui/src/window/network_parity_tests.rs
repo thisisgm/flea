@@ -110,6 +110,8 @@ fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut Test
     });
     press(cx, &centre, 1);
     frame(cx);
+    cx.simulate_keystrokes("tab");
+    frame(cx);
     cx.simulate_keystrokes("r");
     frame(cx);
     assert_eq!(

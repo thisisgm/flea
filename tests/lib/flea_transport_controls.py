@@ -17,6 +17,10 @@ from flea_native_harness_controls import check_harness
 from flea_native_envelope_controls import check_envelope
 from flea_transport_teardown_controls import check_teardown
 from flea_transport_log_controls import check_shared_log
+from flea_transport_race_controls import disappearing_peer
+from flea_transport_peers import PeerWindow
+from flea_transport_lifecycle import identity
+from flea_transport_peer_controls import vanishing_peer
 
 root = Path(tempfile.mkdtemp(prefix="controls.", dir=REPO / ".superpowers/g010t"))
 (root / MARKER).touch()
@@ -54,6 +58,11 @@ while True:
             reply.update(code=3, stdout="", stderr="FLEA_IPC_NOT_PORTED flea.palette\\n")
         if function == "backend":
             reply["stdout"] = os.environ["FLEA_BIN"] + "\\n"
+        if function == "spawn":
+            child = subprocess.Popen([sys.executable, __file__, *sys.argv[1:]], env=dict(os.environ, CONTROL_APP_CHILD="1"))
+            reply["stdout"] = str(child.pid) + "\\n"
+        if function == "path" and os.environ.get("CONTROL_APP_CHILD"):
+            reply["stdout"] = "child:" + str(os.getpid()) + "\\n"
         if function == "hypr-runtime":
             for name in (".socket.sock", ".socket2.sock"):
                 with socket.socket(socket.AF_UNIX) as compositor:
@@ -146,6 +155,18 @@ try:
     check(wrapped.call("call", "flea", "path").stdout == b"owned\n", "owned-wrapper-descendant")
     wrapped.stop()
     check((wrapped.root / "stopped").is_file(), "wrapper-group-drained")
+    shared_owner = start()
+    shared_wrapped = Window.start(root, parent=root, frontend="gpui", timeout=1,
+                                  wrap=[str(wrapper)], share=shared_owner.root)
+    windows.extend([shared_owner, shared_wrapped])
+    shared_record = load(shared_wrapped.root)
+    check(shared_record["pid"] != shared_record["group"], "shared-wrapper-discovers-gui-descendant")
+    check(Path(shared_record["runtime_dir"]) == shared_owner.root / "runtime", "shared-wrapper-uses-peer-runtime")
+    check(shared_wrapped.call("call", "flea", "path").stdout == b"owned\n", "shared-wrapper-owned-endpoint")
+    shared_wrapped.stop()
+    check(shared_owner.call("call", "flea", "path").stdout == b"owned\n", "shared-wrapper-stop-keeps-peer-alive")
+    shared_owner.quit()
+    disappearing_peer(root, start, check, windows)
     first = start()
     second = start()
     record = load(first.root)
@@ -202,6 +223,28 @@ try:
     check(shell("drive", "--pid", first.pid, "flea", "path").stdout == b"owned\n", "shell-drive-route")
     check(shell("wait", "--pid", first.pid, "flea", "path", "owned", "--timeout", "0").returncode == 0, "shell-wait-route")
     check(shell("--pid", os.getpid(), "call", "flea", "path").returncode == 255, "shell-foreign-pid-refused")
+    child_pid = int(first.call("call", "flea", "spawn").stdout)
+    child_socket = Path(load(first.root)["runtime_dir"]) / "flea-ipc" / f"{child_pid}.sock"
+    deadline = time.monotonic() + 2
+    while not child_socket.exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert child_socket.exists(), "fixture child never served its endpoint"
+    pids = subprocess.run([sys.executable, str(REPO / "tests/lib/flea_transport_cli.py"), "pids", str(root)],
+                          env=environment, capture_output=True, timeout=3)
+    check(pids.returncode == 0 and str(child_pid).encode() in pids.stdout.splitlines(), "shell-discovers-app-created-window")
+    check(shell("--pid", child_pid, "call", "flea", "path").stdout == f"child:{child_pid}\n".encode(), "shell-app-created-window-route")
+    check(any(row["pid"] == child_pid for row in json.loads(shell("list", "--all", "--json").stdout)), "shell-app-created-window-list")
+    child_record = dict(pid=child_pid, start="0", socket=str(child_socket),
+                        socket_identity=[child_socket.stat().st_dev, child_socket.stat().st_ino])
+    refuse("app-child-reused-pid", lambda: PeerWindow(first.root, child_record).call("call", "flea", "path"), "PID was reused")
+    parent_record = load(first.root)
+    child_record.update(start=parent_record["start"], pid=first.pid)
+    refuse("app-child-foreign-group", lambda: PeerWindow(second.root, child_record).record(), "foreign process group")
+    child_record.update(pid=child_pid, start=identity(child_pid)["start"],
+                        socket=parent_record["socket"], socket_identity=parent_record["socket_identity"])
+    refuse("app-child-other-endpoint", lambda: PeerWindow(first.root, child_record).call("call", "flea", "path"), "reply from another window")
+    check(shell("--pid", child_pid, "call", "flea", "quit").returncode == 0, "shell-app-created-window-quit")
+    vanishing_peer(first, second, environment, check)
     listing = shell("list", "--all", "--json")
     check(listing.returncode == 0 and len(json.loads(listing.stdout)) == 2, "shell-owned-list")
     ambiguous = shell("-p", REPO / "ui/boot", "call", "flea", "path")

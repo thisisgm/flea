@@ -363,6 +363,15 @@ impl Shell {
         self.strip.capacity.set(true);
         self.strip.drag_serial += 1;
         self.strip.catchers.open(&self.strip.bar.out_payload, cx);
+        super::trace::stage("drag-start", || {
+            let bar = &self.strip.bar;
+            let index = bar.out_index.map_or(-1, |index| index as i64);
+            format!(
+                "index={index} path={} mime={}",
+                bar.out_path,
+                transfer::TAB_MIME
+            )
+        });
         Some(gpui::ExternalDragPayload::Mime(gpui::NativeDragPayload {
             data: gpui::MimePayload::new(
                 [gpui::MimeRepresentation::new(

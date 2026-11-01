@@ -21,6 +21,7 @@ mod join_tests;
 mod landing;
 mod live;
 mod native;
+pub(crate) mod trace;
 mod view;
 
 #[cfg(test)]

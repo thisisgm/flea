@@ -13581,7 +13581,8 @@ xwdrag_count() {
 xwdrag_launch_second() {
     local start_path="$1" before after pid
     before=$(flea_pids | tr '\n' ' ')
-    flea_test_launch "$start_path" "$run_root/flea-second.log" --ui "$flea_ui" --binary "$flea_bin" \
+    # The second window shares the first one's runtime, as two windows of one session do, so the tab ack reaches it.
+    flea_test_launch "$start_path" "$run_root/flea-second.log" --ui "$flea_ui" --binary "$flea_bin" ${FLEA_TEST_WINDOW:+--share-runtime "$FLEA_TEST_WINDOW"} \
         || fail "xwdrag: owned second window launch failed"
     for i in $(seq 1 60); do
         after=$(flea_pids | tr '\n' ' ')
@@ -14025,6 +14026,28 @@ xwtab_wait_catcher() {
 xwtab_own_attempts=30 # Match the catcher wait's held-phase bound.
 xwtab_own_poll=0.1 # Match the catcher wait's trace polling interval.
 xwtab_own_trace_tail=10 # Keep the last source receipts in a timeout diagnostic.
+# The fork offers only at window entry; its own-strip return is proven by painted centres and the held pointer.
+xwtab_gpui_own_hit() {
+    local id ax ay bx by cursor cx cy step left right tolerance=3
+    [[ ${test_frontend:-qml} == gpui && ${xwtab_button_down:-false} == true ]] || return 1
+    flea_process_owned "$xwtab_source" && xwdrag_assert_focus "$xwtab_source" || return 1
+    id=$(xwdrag_qsid "$xwtab_source") || return 1
+    [[ $(xwdrag_qs "$id" tabBarVisible) == true && $(xwdrag_qs "$id" tabCount) == 2 ]] || return 1
+    read -r ax ay < <(xwtab_tab_point "$id" "$xwtab_source" 0) || return 1
+    read -r bx by < <(xwtab_tab_point "$id" "$xwtab_source" 1) || return 1
+    cursor=$(hyprctl cursorpos 2>/dev/null) || return 1
+    read -r cx cy <<< "${cursor//,/ }"
+    [[ $ax =~ ^-?[0-9]+$ && $ay =~ ^-?[0-9]+$ && $bx =~ ^-?[0-9]+$ && $by =~ ^-?[0-9]+$ \
+        && $cx =~ ^-?[0-9]+$ && $cy =~ ^-?[0-9]+$ ]] || return 1
+    step=$((bx - ax)); (( step >= 0 )) || step=$((-step))
+    (( step > 0 && ay == by )) || return 1
+    left=$(( (ax < bx ? ax : bx) - step / 2 ))
+    right=$(( (ax > bx ? ax : bx) + step / 2 ))
+    # The centre band tolerates the compositor's two-pixel drive offset while staying inside the HIG strip.
+    (( cx >= left && cx < right && cy >= ay - tolerance && cy <= ay + tolerance )) || return 1
+    printf 'XWTAB held own-strip pid=%s pointer=%s,%s centres=%s,%s/%s,%s\n' "$xwtab_source" "$cx" "$cy" "$ax" "$ay" "$bx" "$by"
+}
+
 # An own return may enter the catcher or re-enter the source strip while the button is held.
 xwtab_wait_own_enter() {
     local attempt lines source_lines
@@ -14041,6 +14064,7 @@ xwtab_wait_own_enter() {
         grep -aq 'TABDRAG drag-finished' <<< "$source_lines"$'\n'"$lines" && fail "xwtab: source $xwtab_source ended before catcher-enter or own enter-strip ok=true"
         if grep -aq 'TABDRAG catcher-enter' <<< "$lines" \
             || grep -aqE 'TABDRAG enter-strip .* ok=true( |$)' <<< "$lines"; then return 0; fi
+        if grep -aq 'TABDRAG drag-start' <<< "$source_lines" && xwtab_gpui_own_hit; then return 0; fi
         sleep "$xwtab_own_poll"
     done
     printf '%s\n' "${lines:-(no TABDRAG lines for source $xwtab_source since return)}" | tail -n "$xwtab_own_trace_tail" >&2
@@ -14733,7 +14757,7 @@ switch_view() {
     key -M ctrl -k "$chord" -m ctrl >/dev/null
     settle
     drew=$(ipc viewMode)
-    [[ "$drew" == "$want" ]] || fail "switch_view: ctrl-$chord left the view on '$drew', not $want"
+    [[ "$drew" == "$want" ]] || fail "switch_view: ctrl-$chord left the view on '$drew', not $want (focus $(ipc focusView))"
 }
 
 # rect_is "x y w h" ex ey ew eh tol: every edge of the box within tol pixels of the expected one.
@@ -15491,7 +15515,7 @@ case_clipboard() {
         state=$(clipboard_ipc "$aid" fileClipboard) || fail "clipboard: no source multi-file clipboard"
         jq -e --arg first "$adir/f1" --arg second "$adir/f2" --arg third "$adir/f3" \
             '.paths == [$first, $second, $third] and .moving == false and (.token | length) > 0' <<< "$state" >/dev/null && break
-        (( SECONDS < deadline )) || fail "clipboard: multi-file Copy never published"
+        (( SECONDS < deadline )) || fail "clipboard: multi-file Copy never published, A reads $state selected $(clipboard_ipc "$aid" selectedIndices) status $(clipboard_ipc "$aid" statusPrimary)"
         sleep "$clipboard_poll_interval_s"
     done
     xwdrag_kill_second "$bpid"
