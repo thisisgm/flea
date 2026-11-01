@@ -222,44 +222,25 @@ fn ey_tui_keycaps_a_language_change_never_selects_the_layout() {
 }
 
 #[test]
-fn ey_tui_keycaps_unknown_and_ambiguous_groups_keep_the_last_epoch() {
-    let map = Map::load();
-    let layouts = [
-        ("us", "dvorak"),
-        ("be", ""),
-        ("cz", "qwerty"),
-        ("dk", ""),
-        ("jp", ""),
-    ];
-    // A delivered layout whose policy marks a chord this preset shows as ambiguous.
-    let ambiguous = |preset: &str, code: &str, variant: &str| {
-        let mut m = model();
-        m.preset = preset.into();
-        let snapshot = KeycapSnapshot::new(code, Some(variant), Some(0), 1).unwrap();
-        matches!(
-            m.set_keycaps(snapshot, &map),
-            Err(KeycapError::AmbiguousChord(_))
-        )
-    };
-    let (preset, code, variant) = ["default", "vim", "mac", "windows", "yazi"]
-        .iter()
-        .flat_map(|preset| layouts.map(|(code, variant)| (*preset, code, variant)))
-        .find(|(preset, code, variant)| ambiguous(preset, code, variant))
-        .expect("the delivered table has an ambiguous chord for some preset");
-    let mut s = session(devices("ca", "", Some(0)), preset);
+fn ey_tui_keycaps_ambiguous_groups_relabel_and_unknown_groups_keep_the_last_epoch() {
+    // French marks "-" ambiguous; the yazi sheet shows it, so that chord keeps its canonical legend while the rest relabel.
+    let mut s = session(devices("ca", "", Some(0)), "yazi");
     let before = s.state();
     assert_eq!(before.0, Some(("ca", "", 0, 1)));
-    s.send(
-        Ok(devices(code, variant, Some(0))),
-        "activelayout>>kb,ambiguous",
-    );
-    s.pump(|status, _| {
-        matches!(
-            status,
-            Status::Failed(Fault::Keycap(KeycapError::AmbiguousChord(_)))
-        )
-    });
-    assert_eq!(s.state(), before);
+    let fr = KeycapSnapshot::new("fr", None, Some(0), 1).unwrap();
+    assert!(fr.ambiguous().contains(&"-"));
+    s.send(Ok(devices("fr", "", Some(0))), "activelayout>>kb,French");
+    s.pump(|_, m| m.keycaps.is_some_and(|k| k.generation() == 2));
+    assert_eq!(s.keycaps.status, Status::Active);
+    assert_eq!(group(&s), Some(("fr", "", 0, 2)));
+    assert!(s.whole() && s.relabelled() > 0);
+    let dash = |text: &str| text.split([' ', '/']).any(|part| part == "-");
+    assert!(s
+        .m
+        .keycap_labels
+        .iter()
+        .any(|(canonical, label)| dash(canonical) && dash(label)));
+    let published = s.state();
     s.send(Ok(devices("zz", "", Some(0))), "activelayout>>kb,unknown");
     s.pump(|status, _| {
         matches!(
@@ -267,7 +248,7 @@ fn ey_tui_keycaps_unknown_and_ambiguous_groups_keep_the_last_epoch() {
             Status::Failed(Fault::Keycap(KeycapError::UnknownLayout { .. }))
         )
     });
-    assert_eq!(s.state(), before);
+    assert_eq!(s.state(), published);
 }
 
 #[test]
