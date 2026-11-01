@@ -113,6 +113,7 @@ impl ListState {
             self.view.switched,
             self.view.stored,
         );
+        layout = super::git::reserve(layout, !self.view.git.label.is_empty(), metrics.gap);
         let leading = super::picker::leading(&self.view, &metrics);
         layout.name.x += leading;
         layout.name.width = (layout.name.width - leading).max(0.);

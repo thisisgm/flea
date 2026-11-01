@@ -37,7 +37,7 @@ impl Shell {
                 .edit
                 .as_ref()
                 .is_some_and(|edit| edit.side == side && edit.pending.is_some());
-        if self.tags_event(side, &event, window, cx) {
+        if self.git_event(side, &event, cx) || self.tags_event(side, &event, window, cx) {
             return;
         }
         let renamed = self.rename_event(side, &event, window, cx);

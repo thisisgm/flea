@@ -26,6 +26,7 @@ pub enum Face {
     Rail,
     Place,
     Locked,
+    Tab,
 }
 
 impl Face {

@@ -99,6 +99,7 @@ impl Shell {
         let path = chrome.read_with(cx, |view, _| view.path.clone());
         let host = self.panes[side].as_ref().expect("focused pane");
         let path_inputs = super::view::Inputs {
+            git_label: host.git.paint.label.clone(),
             paths: self.path_labels.clone(),
             home: self.chrome.home.clone(),
             aliases: self.chrome.aliases.clone(),

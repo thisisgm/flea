@@ -79,7 +79,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.rail_menu_outcome(&outcome, window, cx) {
+        if self.tab_menu_outcome(&outcome, window, cx)
+            || self.rail_menu_outcome(&outcome, window, cx)
+        {
             return;
         }
         match outcome {

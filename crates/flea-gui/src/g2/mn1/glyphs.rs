@@ -69,6 +69,8 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("zap", "flea-menu:zap", cut!("M13 2 3 14h9l-1 8 10-12h-9l1-8z")),
     // Send with rclone, the rclone-menu board's cloud-upload, the same cut st1 draws; appended so FILE keeps its index.
     ("cloud-upload", "flea-menu:cloud-upload", cut!("M12 13v8 M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242 M8 17l4-4 4 4")),
+    ("x", "flea-menu:x", cut!("M6 6l12 12 M18 6 6 18")),
+    ("copy-x", "flea-menu:copy-x", cut!("M9 8h12v13H9z M4 16V3h13 M12 11.5l6 6 M18 11.5l-6 6")),
 ];
 
 /// The atlas key and SVG for a named mark; an unknown name draws the plain file mark, as Icons.pathFor does.

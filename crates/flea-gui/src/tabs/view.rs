@@ -76,17 +76,9 @@ impl Render for Strip {
             )
             .on_mouse_down(
                 MouseButton::Right,
-                cx.listener(|strip, event: &gpui::MouseDownEvent, _, cx| {
+                cx.listener(|strip, event: &gpui::MouseDownEvent, window, cx| {
                     let _ = strip.shell.update(cx, |shell, cx| {
-                        shell.strip.menu = match shell.tab_hit(event.position) {
-                            Hit::Tab(index) | Hit::Close(index) => Some(super::bar::MenuAsk {
-                                index,
-                                x: shell.tab_x(event.position),
-                                y: super::bar::HEIGHT + super::bar::MENU_GAP,
-                            }),
-                            _ => None,
-                        };
-                        cx.notify();
+                        shell.open_tab_menu(event.position, window, cx)
                     });
                 }),
             )

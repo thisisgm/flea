@@ -52,7 +52,18 @@ impl Element for CrumbElement {
             );
         }
         let advance = paint.advance(Size::Caption, window);
-        let budget = ((f32::from(bounds.size.width) - 2. * pad) / f32::from(advance))
+        let label = &self.view.read(cx).inputs.git_label;
+        let git_width = if label.is_empty() {
+            0.
+        } else {
+            f32::from(
+                paint
+                    .shape(label, Size::Caption, false, window)
+                    .line()
+                    .width,
+            ) + 9.
+        };
+        let budget = ((f32::from(bounds.size.width) - 2. * pad - git_width) / f32::from(advance))
             .floor()
             .max(0.) as usize;
         let focused = self.view.update(cx, |view, _| view.fit(slot, budget));
@@ -88,7 +99,7 @@ impl Element for CrumbElement {
         }
         let slot = self.place.slot();
         let strip = &view.strips[slot];
-        let paint = view.paint.borrow();
+        let mut paint = view.paint.borrow_mut();
         let pane = self.place != Place::Chrome;
         if pane {
             window.paint_quad(fill(
@@ -128,6 +139,18 @@ impl Element for CrumbElement {
                     bounds.origin.y,
                     height,
                     if lit { ink.foreground } else { rest },
+                    window,
+                );
+            }
+            if !view.inputs.git_label.is_empty() {
+                let end = strip.end();
+                let run = paint.shape(&view.inputs.git_label, Size::Caption, false, window);
+                paint_run(
+                    &run,
+                    left + px(end + 9.),
+                    bounds.origin.y,
+                    height,
+                    ink.muted,
                     window,
                 );
             }
