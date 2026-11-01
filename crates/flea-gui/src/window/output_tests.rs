@@ -186,6 +186,7 @@ fn m9_integ_output_effects_use_real_pages_thumbnails_and_origin(cx: &mut TestApp
                 ready: true,
                 kinds: Vec::new(),
                 background: false,
+                target: None,
             },
             action: "convert".into(),
             leaf: String::new(),

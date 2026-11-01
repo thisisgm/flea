@@ -25,7 +25,7 @@ impl Shell {
             flea::ui_logic_mn2::rows::FIRE if !capture.background && !leaf.is_empty() => {
                 let cursor = self.panes[capture.side]
                     .as_ref()
-                    .and_then(|host| host.pane.held.row(capture.cursor))
+                    .and_then(|host| capture.row(host, capture.cursor))
                     .map(|row| Path::new(&capture.path).join(&row.name))
                     .map(|path| path.to_string_lossy().into_owned())
                     .unwrap_or_default();

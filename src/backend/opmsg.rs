@@ -58,6 +58,8 @@ pub enum OpMsg {
     Trashed { id: usize, request: usize, ok: usize, failed: usize, entry: Entry, reason: String, announced: bool },
     Linked { ok: usize, failed: usize, skipped: usize, entry: Entry, note: String, first_err: String, dest: String },
     Duplicated { ok: bool, path: String, err: String, entry: Entry },
+    // The legacy operation still owns its journal and slot; the optional GUI receipt is published with it.
+    CreationReceipt { request: usize, inner: Box<OpMsg> },
     RedoDone { journal: Box<crate::backend::undo::Journal>, result: Result<String, FleaError>, touched: crate::backend::undo::Reached },
     MenuDeleteDone { line: String },
     // Legacy archive worker receipt used by archivequit_tests and archivepass_tests.

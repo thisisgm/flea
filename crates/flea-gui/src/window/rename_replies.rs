@@ -132,6 +132,17 @@ impl Shell {
         let Some(edit) = self.rename.edit.take() else {
             return;
         };
+        if self.rename.neighbour.take().is_some() {
+            if edit.menu != 0 {
+                self.menu_send(
+                    side,
+                    format!(r#"{{"c":"menuaction","op":"close","id":{}}}"#, edit.menu),
+                    cx,
+                );
+            }
+            self.rename_neighbour_landed(side, &edit.source, destination.as_deref(), window, cx);
+            return;
+        }
         // Nav.js renameRefreshTarget: a cursor moved off the row meanwhile keeps its own row.
         let moved = self.panes[side]
             .as_ref()

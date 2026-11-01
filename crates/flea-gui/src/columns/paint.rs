@@ -107,6 +107,8 @@ pub struct Focus {
     pub hover: Option<(Slot, usize)>,
     /// The listing row a rename edits, and the rename band's Grow on the active track.
     pub renaming: Option<usize>,
+    pub rename_slot: Option<Slot>,
+    pub menu_target: Option<(Slot, usize)>,
     pub grow: crate::list::pane::Grow,
 }
 

@@ -44,7 +44,14 @@ impl Shell {
         };
         let list = host.list.borrow();
         match host.drawn_view {
-            Some(View::Columns) => columns_place(host, &list, index),
+            Some(View::Columns) => {
+                let (slot, index, chevron) = self.rename_neighbour_row(side).unwrap_or((
+                    Slot::Active,
+                    index,
+                    host.pane.held.row(index).is_some_and(|row| row.dir),
+                ));
+                columns_place(host, &list, slot, index, chevron)
+            }
             Some(View::Grid) => grid_place(host, &list, index),
             _ if host.drawn_list => list_place(&list, index),
             _ => Spot::Unready,
@@ -91,11 +98,17 @@ fn list_place(list: &ListState, index: usize) -> Spot {
 }
 
 // The active track's name cell, from its mark to the size cell, as RenameField.qml spans the Columns name.
-fn columns_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
+fn columns_place(
+    host: &PaneHost,
+    list: &ListState,
+    slot: Slot,
+    index: usize,
+    chevron: bool,
+) -> Spot {
     let Some(paint) = host
         .columns
         .as_ref()
-        .and_then(|columns| columns.painters.get(Slot::Active))
+        .and_then(|columns| columns.painters.get(slot))
     else {
         return Spot::Unready;
     };
@@ -107,18 +120,24 @@ fn columns_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
         return Spot::Out;
     };
     let metrics = Metrics::for_typeface(&list.typeface);
-    let slot = metrics.slot.min(ROW_HEIGHT);
+    let field_height = metrics.slot.min(ROW_HEIGHT);
     let top =
         drawn.bounds.origin.y + px(drawn.grow.top(position, ROW_HEIGHT) - drawn.scroll.max(0.));
     // The track draws a folder cursor row with its chevron, which narrows the name cell.
-    let chevron = host.pane.held.row(index).is_some_and(|row| row.dir);
-    let name = cells(f32::from(drawn.bounds.size.width), true, chevron);
+    let name = cells(
+        f32::from(drawn.bounds.size.width),
+        slot == Slot::Active,
+        chevron,
+    );
     let frame = Bounds::new(
         point(
             drawn.bounds.origin.x + px(name.name_x),
-            top + px((ROW_HEIGHT - slot) / 2.),
+            top + px((ROW_HEIGHT - field_height) / 2.),
         ),
-        size(px((name.name_right - name.name_x).max(0.)), px(slot)),
+        size(
+            px((name.name_right - name.name_x).max(0.)),
+            px(field_height),
+        ),
     );
     let place = Place {
         frame,

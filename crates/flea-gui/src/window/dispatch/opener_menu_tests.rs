@@ -6,6 +6,8 @@ use crate::g2::mn1::join::{Captured, Chosen};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::rc::Rc;
 
+const REGULAR_FILE_KIND: u32 = 0o100000;
+
 // The menu's Open chosen on the left pane's cursor row with these marked paths; answers whether the opener claimed it.
 fn menu_open(
     shell: &Entity<crate::state::Shell>,
@@ -41,6 +43,7 @@ fn menu_open_on(
             ready: true,
             kinds: Vec::new(),
             background: false,
+            target: None,
         },
         action: "open".into(),
         leaf: String::new(),
@@ -225,5 +228,131 @@ fn gh350_menu_open_keeps_its_single_validated_target_when_cursor_is_an_archive(
         "false",
         "the unrelated cursor archive opens no Quick Look"
     );
+    quit(&shell, cx);
+}
+
+#[gpui::test]
+fn ey379_neighbour_archive_open_waits_for_its_own_row_and_never_opens_a_replacement(
+    cx: &mut TestAppContext,
+) {
+    for missing in [false, true] {
+        let (shell, cx, _, _keep) = shell(cx);
+        let mut archive = home().remove(2);
+        archive.name = "neighbour.zip".into();
+        let chosen = Chosen {
+            captured: Captured {
+                side: 0,
+                listing: 1,
+                rows: vec![0],
+                cursor: 0,
+                path: "/parent".into(),
+                identity: String::new(),
+                id: 7,
+                ready: true,
+                kinds: vec![REGULAR_FILE_KIND],
+                background: false,
+                target: Some(archive.clone()),
+            },
+            action: "open".into(),
+            leaf: String::new(),
+            paths: vec!["/parent/neighbour.zip".into()],
+            claimed: Rc::new(std::cell::Cell::new(false)),
+        };
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                shell.menu.context.row_is_file = true;
+                shell.dispatch(Order::Menu(chosen), window, cx);
+            })
+        });
+        assert_eq!(asked(&shell, cx), "/parent");
+        assert_eq!(launched(), Vec::<String>::new());
+        let rows = if missing {
+            vec![row("replacement.txt", false)]
+        } else {
+            vec![archive]
+        };
+        land(&shell, cx, "/parent", rows, 2);
+        assert_eq!(looking(&shell, cx), (!missing).to_string());
+        assert_eq!(launched(), Vec::<String>::new());
+        quit(&shell, cx);
+    }
+}
+
+#[gpui::test]
+fn ey379_neighbour_image_open_requests_its_own_folder_gallery(cx: &mut TestAppContext) {
+    let (shell, cx, _, _keep) = shell(cx);
+    let mut image = row("neighbour.png", false);
+    image.icon = "image-x-generic".into();
+    let chosen = Chosen {
+        captured: Captured {
+            side: 0,
+            listing: 1,
+            rows: vec![0],
+            cursor: 0,
+            path: "/parent".into(),
+            identity: String::new(),
+            id: 7,
+            ready: true,
+            kinds: vec![REGULAR_FILE_KIND],
+            background: false,
+            target: Some(image.clone()),
+        },
+        action: "open".into(),
+        leaf: String::new(),
+        paths: vec!["/parent/neighbour.png".into()],
+        claimed: Rc::new(std::cell::Cell::new(false)),
+    };
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.menu.context.row_is_file = true;
+            shell.dispatch(Order::Menu(chosen), window, cx);
+        })
+    });
+    assert_eq!(
+        asked(&shell, cx),
+        "/parent",
+        "the explicit Open adopts its own folder"
+    );
+    assert!(
+        launched().is_empty(),
+        "the gallery resolves its directory order before launch"
+    );
+    super::test_shell::sent();
+    land(
+        &shell,
+        cx,
+        "/parent",
+        vec![
+            flea::protocol::RowFacts {
+                name: "second.png".into(),
+                ..image.clone()
+            },
+            image,
+        ],
+        2,
+    );
+    let requests = super::test_shell::sent();
+    assert!(
+        requests.iter().any(|line| line.contains(r#""c":"paths""#)
+            && flea::json::field_usize(line, "images") == Some(1)),
+        "{requests:?}"
+    );
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive(
+                0,
+                crate::backend::Event::Paths(vec![
+                    "/parent/second.png".into(),
+                    "/parent/neighbour.png".into(),
+                ]),
+                window,
+                cx,
+            )
+        })
+    });
+    cx.run_until_parked();
+    let paths = launched();
+    assert_eq!(paths.len(), 1);
+    assert!(paths[0].contains("/parent/second.png") && paths[0].contains("/parent/neighbour.png"));
     quit(&shell, cx);
 }

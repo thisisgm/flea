@@ -397,9 +397,14 @@ fn handle_line(
             ops.picker.get_or_insert_with(|| super::picker::Picker::new(replies)).request(line);
         }
         Request::MenuAction { line, rows } => {
-            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
-            let cursor = crate::json::field_usize(&line, "cursor").map(|index|
-                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default());
+            if matches!(crate::json::field_str(&line, "op").as_deref(), Some("tagstates" | "settags")) {
+                let changed = super::tagsreq::menu(out, ops, st, &line);
+                note_tag_writes(st, &changed);
+                return Control::Continue;
+            }
+            let paths = resolve_rows(crate::json::field_str_array(&line, "paths"), &rows, &st.base, &st.listing);
+            let cursor = crate::json::field_str(&line, "cursorPath").or_else(|| crate::json::field_usize(&line, "cursor").map(|index|
+                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default()));
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
@@ -710,9 +715,18 @@ fn handle_line(
             patch_session_paths(st, touched);
         }
         Request::BulkRename { paths, names } => patch_session_paths(st, super::bulkrename::do_bulkrename(out, ops, paths, names)),
-        Request::MkDir { path, name } => patch_session_paths(st, do_mkdir(out, ops, &path, &name)),
+        Request::MkDir { path, name } => {
+            let request = crate::json::field_usize(line, "request").unwrap_or(0);
+            let touched = if request == 0 { do_mkdir(out, ops, &path, &name) }
+                else { super::opsdispatch::do_mkdir_requested(out, ops, &path, &name, request) };
+            patch_session_paths(st, touched);
+        }
         Request::NewFile { path, name, id } => patch_session_paths(st, do_newfile(out, ops, &path, &name, id)),
-        Request::Duplicate { path, menu_id } => start_duplicate(out, ops, &path, menu_id),
+        Request::Duplicate { path, menu_id } => {
+            let request = crate::json::field_usize(line, "request").unwrap_or(0);
+            if request == 0 { start_duplicate(out, ops, &path, menu_id) }
+            else { super::opsdispatch::created_request::duplicate(out, ops, &path, menu_id, request) }
+        }
         Request::Undo => {
             // An undo is an own write: its reversal patches the index with no walk.
             let reached = do_undo(out, ops);
@@ -1198,3 +1212,7 @@ mod emptytrash_tests;
 #[cfg(test)]
 #[path = "run_searchorder_tests.rs"]
 mod searchorder_tests;
+
+#[cfg(test)]
+#[path = "run_menu_targets_tests.rs"]
+mod menu_targets_tests;

@@ -190,6 +190,8 @@ pub mod rowguard;
 pub mod tags;
 mod tagsedit;
 pub mod tagsreq;
+mod menutags_states;
+mod menutags_io;
 pub mod tagsundo;
 pub mod filegen;
 pub mod run;

@@ -18,6 +18,7 @@ fn choose(cx: &mut TestAppContext, handle: WindowHandle<Root>, action: &str, nam
                 ready: true,
                 kinds: Vec::new(),
                 background: false,
+                target: None,
             },
             action: action.into(),
             leaf: String::new(),

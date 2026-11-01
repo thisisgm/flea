@@ -26,6 +26,7 @@ pub struct Captured {
     pub ready: bool,
     pub kinds: Vec<u32>,
     pub background: bool,
+    pub target: Option<flea::protocol::RowFacts>,
 }
 
 /// A checked choice handed to the producer that owns the action; every target remains captured.
@@ -62,6 +63,7 @@ pub struct Joined {
     pub(crate) place: Option<super::place_host::Place>,
     pub menu: Rc<RefCell<Menu>>,
     pub captured: Option<Captured>,
+    pub(crate) after_navigation: Option<super::target_action::AfterNavigation>,
     pub(crate) rail: Option<crate::window::dispatch::rail_menu::Target>,
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
@@ -106,24 +108,6 @@ pub(super) fn flag(data: &Json, key: &str) -> bool {
 impl Shell {
     pub(crate) fn menu_opened(&self) -> bool {
         self.menu.menu.borrow().opened()
-    }
-
-    pub(crate) fn menu_identity(&self) -> String {
-        if self.menu.rail.is_some() {
-            return String::new();
-        }
-        if let Some(place) = &self.menu.place {
-            return place.key.clone();
-        }
-        self.menu
-            .captured
-            .as_ref()
-            .and_then(|capture| {
-                self.panes[capture.side]
-                    .as_ref()
-                    .map(|host| identity(host, capture.side, capture.background))
-            })
-            .unwrap_or_default()
     }
 
     /// Nav.js lockedTarget: the denied folder and its mode while the pane draws the Locked state, else None.
@@ -187,7 +171,12 @@ impl Shell {
             return Vec::new();
         };
         if background {
-            if let Some((_, mode)) = self.locked_folder(side) {
+            if let Some((_, mode)) = self.locked_folder(side).filter(|_| {
+                self.menu
+                    .captured
+                    .as_ref()
+                    .is_none_or(|capture| capture.path == host.path)
+            }) {
                 return flea::ui_logic_mn1::places::locked_entries(mode, &hidden);
             }
         }
@@ -196,7 +185,12 @@ impl Shell {
             context.hidden.push("tags".into());
         }
         if !background {
-            self.provider_context(side, &host.path, &mut context);
+            let base = self
+                .menu
+                .captured
+                .as_ref()
+                .map_or(host.path.as_str(), |capture| capture.path.as_str());
+            self.provider_context(side, base, &mut context);
             context.rclone_remotes = self.menu.rclone[side]
                 .borrow()
                 .flyout()
@@ -205,9 +199,7 @@ impl Shell {
                 .collect();
         }
         context.show_hidden = host.nav.folders.borrow().hidden;
-        context.sort_by = host.nav.order.key.into();
-        context.has_folder_sort =
-            !host.pane.swap.session.open && host.nav.folders.borrow().has(&host.path);
+        self.menu_folder_facts(host, &mut context);
         self.menu_live_facts(side, &mut context);
         // Actions takes Run Script's place under Run Script's switch, so the build is asked for that row whenever the listing holds an action.
         let actions = (!background)
@@ -258,18 +250,30 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.begin_menu(side, row, at, (header, None), window, cx);
+    }
+
+    pub(crate) fn begin_menu(
+        &mut self,
+        side: usize,
+        row: Option<usize>,
+        at: (f32, f32),
+        (header, target): (bool, Option<super::target::PathMenu>),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
         self.menu.header = header;
         // A locked pane draws the hero, never rows, so its menu is the folder's whatever rows it still holds.
-        let row = row.filter(|_| self.locked_folder(side).is_none());
+        let row = row.filter(|_| target.is_some() || self.locked_folder(side).is_none());
         let Some(host) = &mut self.panes[side] else {
             return;
         };
         if host.stopped || host.pane.busy() {
             return;
         }
-        if let Some(row) = row {
+        if let Some(row) = row.filter(|_| target.is_none()) {
             if host.pane.held.row(row).is_none() {
                 return;
             }
@@ -277,7 +281,7 @@ impl Shell {
         }
         let background = row.is_none();
         // ContextMenu.qml openLocked: with every locked row hidden no frame opens, and the status line names the switch.
-        if background {
+        if background && target.is_none() {
             if let Some((_, mode)) = self.locked_folder(side) {
                 let hidden = self.menu_hidden();
                 if let Some(key) = flea::ui_logic_mn1::places::locked_refusal(mode, &hidden) {
@@ -291,10 +295,15 @@ impl Shell {
             return;
         };
         // Tap.js tappedMenu: a right click opens the menu on its own pane and leaves the focus where it was.
+        let cursor = if target.is_some() {
+            0
+        } else {
+            host.pane.cursor
+        };
         let rows = if background {
             Vec::new()
-        } else if host.selected.is_empty() {
-            vec![host.pane.cursor]
+        } else if target.is_some() || host.selected.is_empty() {
+            vec![cursor]
         } else {
             host.selected.clone()
         };
@@ -304,16 +313,18 @@ impl Shell {
             side,
             listing: host.pane.held.listing,
             rows,
-            cursor: host.pane.cursor,
-            path: host.path.clone(),
+            cursor,
+            path: target
+                .as_ref()
+                .map_or_else(|| host.path.clone(), |target| target.base.clone()),
             identity: identity(host, side, background),
             id: self.menu.sequence,
             ready: false,
             kinds: Vec::new(),
             background,
+            target: target.and_then(|target| target.row),
         };
-        self.menu.context =
-            self.listing_menu_context(side, &capture.rows, capture.cursor, background);
+        self.menu.context = self.captured_menu_context(&capture);
         self.menu.captured = Some(capture.clone());
         self.ask_tag_states(false, cx);
         self.check_menu_shebang(window, cx);
@@ -332,13 +343,7 @@ impl Shell {
             host.nav.gate.menu_open = true;
         }
         if !background {
-            let rows = capture
-                .rows
-                .iter()
-                .map(usize::to_string)
-                .collect::<Vec<_>>()
-                .join(",");
-            self.menu_send(side, format!("{{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":{},\"listing\":{},\"rows\":[{rows}],\"cursor\":{}}}", capture.id, capture.listing, capture.cursor), cx);
+            self.menu_send(side, capture.snapshot_request(), cx);
             if self.menu.captured.is_some() {
                 self.providers_menu_opened(side, capture.id, window, cx);
             }

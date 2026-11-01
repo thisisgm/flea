@@ -135,13 +135,19 @@ batch handoff. These checks do not make subsequent external-helper filesystem op
 atomic. Omitting `menuId` preserves the existing keyboard and protocol entry paths.
 
 `{"c":"menuaction","op":"snapshot","id":4,"rows":[0,2]}` captures the selected identities
-from the active listing and returns `count` and `kinds`, an array of each captured item's own file
+from the active listing. A Columns neighbour menu instead sends explicit absolute `paths` and
+`cursorPath`, without navigating or changing that listing. Both forms accept the active `listing`
+stamp and return `count`, `modes` (complete mode bits), and `kinds`, an array of each captured item's own file
 type bits in request order, including symlinks without following them. `prepareDelete` with that
 `id` reviews the captured trees and returns a
 fresh `token`, selected `count`, and total `bytes`. `checkDelete` with the `id` and `token` returns
 `valid` without mutating files. A changed set requires `refreshDelete`: it reviews only the same
 captured paths, drops missing paths, captures replacement identities, and issues a fresh token.
-Unrelated paths cannot widen that confirmation. The client shows this new confirmation with
+Unrelated paths cannot widen that confirmation.
+`menuaction` operations `tagstates` (with a client `tagId`) and `settags` (with `change` and `tag`)
+read and update the identities retained by `id`. They return the existing `tagstates` and `settagged`
+replies. A changed or replaced source refuses before writing; successful writes retain tag undo.
+ The client shows this new confirmation with
 Cancel initially focused; no prior destructive activation authorizes the replacement token.
 
 `{"c":"menuaction","op":"delete","id":4,"token":12}` consumes that exact token and reserves
@@ -1488,6 +1494,16 @@ Copies one path to a free sibling name and answers one `duplicated` line. The na
 `"<stem> copy<ext>"`, `"<stem> copy 2<ext>"` and so on until one is free; `Path`'s own stem and
 extension split the last dot only, so `backup.tar.zst` becomes `backup.tar copy.zst` and a dotfile keeps
 its whole name as the stem. A directory row duplicates its whole tree.
+
+`duplicate` and `mkdir` also accept an optional positive integer `request`. Without it, or with
+zero, their existing operation and error lines are unchanged. An opted-in request keeps that
+payload and adds `request` to its successful `duplicated` or `made` line, followed by one
+`{"t":"menuaction","op":"creation","id":<request>,"kind":"duplicated|made","ok":true,"path":"<created path>"}`.
+A refusal instead keeps its original `error` line and adds the same receipt with `ok:false` and
+`error` in place of `path`. Busy refusals and slow completions carry the exact original request,
+so concurrent results need not arrive in request order. Correlation changes no operation slot,
+pending mount claim, journal entry or creation-name rule; independent request fields retain their
+meaning. Both completion lines are published together before quit can observe a finished slot.
 
 ### mkdir
 

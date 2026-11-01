@@ -34,7 +34,7 @@ impl Shell {
         }
         self.panes[capture.side]
             .as_ref()
-            .and_then(|host| host.pane.held.row(capture.cursor))
+            .and_then(|host| capture.row(host, capture.cursor))
             .map(|row| {
                 Path::new(&capture.path)
                     .join(&row.name)
@@ -213,6 +213,18 @@ impl Shell {
             tag: name,
             listing: capture.listing,
         });
+        if capture.target.is_some() {
+            self.menu_send(
+                side,
+                format!(
+                    r#"{{"c":"menuaction","op":"settags","id":{},"change":"{op}","tag":"{}"}}"#,
+                    capture.id,
+                    escape(name)
+                ),
+                cx,
+            );
+            return;
+        }
         self.menu_send(
             side,
             format!(

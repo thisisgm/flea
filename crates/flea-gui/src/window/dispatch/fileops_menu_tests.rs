@@ -196,8 +196,10 @@ fn menu_move_to_trash_and_duplicate_run_on_the_captured_snapshot(cx: &mut TestAp
     validated(&shell, cx, &mut sent, id, "duplicate");
     assert_eq!(
         sent(),
-        [format!(
-            r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id}}}"#
+        [super::fileops_tests::creation_request(
+            &shell,
+            cx,
+            &format!(r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id}}}"#)
         )]
     );
     assert_ne!(status(&shell, cx), unavailable);
@@ -288,7 +290,14 @@ fn background_new_folder_makes_a_folder_in_the_menu_folder(cx: &mut TestAppConte
     );
     cx.run_until_parked();
     choose(&shell, cx, "newFolder");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
+    assert_eq!(
+        sent(),
+        [super::fileops_tests::creation_request(
+            &shell,
+            cx,
+            r#"{"c":"mkdir","path":"/files"}"#
+        )]
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

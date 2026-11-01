@@ -1,13 +1,13 @@
 // Write dispatch: destination-keyed jobs share workers; other mutations retain their existing slot.
-use crate::backend::iomount::{internal_failure, mount_body, mount_key, slow_sentence, slow_write_with, CALL_DEADLINE, SlowWrite, SLOW_MKDIR};
+use crate::backend::iomount::{mount_body, mount_key, CALL_DEADLINE};
 use crate::backend::ops;
 use crate::backend::opsreq::{
-    duplicated_line, made_line, op_err, run_duplicate_checked, run_trash,
+    duplicated_line, made_line, op_err, run_trash,
     transferdone_line, transferitem_line, transferprogress_line, transferstarted_line, undone_line, usable_dest,
     LinkOutcome, OpMsg,
 };
 use crate::backend::listing::Listing;
-use crate::backend::proto::{error_line, slow_line};
+use crate::backend::proto::error_line;
 use crate::backend::undo::{Entry, ItemIdentity, Journal, Step};
 use crate::error::FleaError;
 use std::io::Write;
@@ -17,6 +17,9 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+
+#[path = "created_request.rs"]
+pub(crate) mod created_request;
 
 // The answer for a menu route whose captured selection is gone or differs from the request; a path outside a held selection gets selected_path's own sentence.
 pub(crate) const SELECTION_CHANGED: &str = "Selected items changed; reopen the menu.";
@@ -255,26 +258,7 @@ pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String
 }
 
 pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, menu_id: usize) {
-    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
-        busy(out, "duplicate");
-        return;
-    }
-    let selection = match menu_sources(ops, menu_id) {
-        Ok(selection) => selection,
-        Err(message) => { writeln!(out, "{}", error_line(&op_err("duplicate", path, &message))).ok(); out.flush().ok(); return; }
-    };
-    // The source's mount waits while its slow write is pending; writes elsewhere run.
-    let mut sources = vec![PathBuf::from(path)];
-    if let Some(items) = &selection {
-        sources.extend(items.iter().map(|item| item.path.clone()));
-    }
-    if pending_busy_for(out, ops, "duplicate", &sources, &[]) {
-        return;
-    }
-    ops.claim_transfer();
-    let tx = ops.tx.clone();
-    let owned = path.to_string();
-    thread::spawn(move || run_duplicate_checked(owned, tx, selection));
+    created_request::duplicate(out, ops, path, menu_id, 0);
 }
 
 // A menu rename captures the selected identity before its worker outlives the menu and listing.
@@ -320,44 +304,27 @@ where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 
 // A local mkdir answers inline; a remote mkdir uses the bounded slow-write worker.
 pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) -> Vec<PathBuf> {
+    do_mkdir_requested(out, ops, parent, name, 0)
+}
+pub(crate) fn do_mkdir_requested(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, request: usize) -> Vec<PathBuf> {
     if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
-        busy(out, "mkdir");
+        let mut legacy = Vec::new();
+        busy(&mut legacy, "mkdir");
+        created_request::refused(out, request, "made", legacy);
         return Vec::new();
     }
     let base = parent.to_string();
     let given = name.to_string();
-    do_mkdir_with(out, ops, parent, CALL_DEADLINE, move || ops::mkdir(Path::new(&base), &given))
+    let work = move || ops::mkdir(Path::new(&base), &given);
+    if request == 0 { do_mkdir_with(out, ops, parent, CALL_DEADLINE, work) }
+    else { created_request::mkdir_with(out, ops, parent, request, CALL_DEADLINE, work) }
 }
 // The work is a parameter so tests hold it on a channel while production runs the real mkdir.
 pub(crate) fn do_mkdir_with<F>(out: &mut impl Write, ops: &mut Ops, parent: &str, deadline: Duration, work: F) -> Vec<PathBuf>
 where
     F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 {
-    let key = PathBuf::from(parent);
-    // The new folder lands in its parent, so the parent is the whole gate; writes elsewhere run beside the held write.
-    let gate = key.clone();
-    if pending_busy_for(out, ops, "mkdir", &[gate], &[]) {
-        return Vec::new();
-    }
-    let body = mount_body();
-    match slow_write_with(&key, &body, "mkdir", deadline, work) {
-        SlowWrite::Ready(result) => land_mkdir(out, ops, result),
-        SlowWrite::Slow { mount, rx } => {
-            writeln!(out, "{}", slow_line("mkdir", parent, &slow_sentence(&mount, SLOW_MKDIR))).ok();
-            out.flush().ok();
-            // The pending id is only a number: the slot stays with whatever holds it, so a transfer beside this write keeps its id and its cancel.
-            let id = ops.claim_id();
-            ops.pending.push(SlowClaim { id, path: parent.to_string(), mount });
-            let tx = ops.tx.clone();
-            let failed = internal_failure("mkdir", Path::new(parent));
-            thread::spawn(move || {
-                let result = rx.recv().unwrap_or(Err(failed));
-                let _ = tx.send(OpMsg::MkdirDone { id, result });
-            });
-            // The slow path lands later through MkdirDone, which the session patches on arrival.
-            Vec::new()
-        }
-    }
+    created_request::mkdir_with(out, ops, parent, 0, deadline, work)
 }
 // One journal entry per request, so one undo reverses the in-time answer and the late one alike.
 fn land_mkdir(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec<Step>), FleaError>) -> Vec<PathBuf> {
@@ -816,6 +783,10 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
     }
     super::jobevents::observe(out, ops, &msg);
     match msg {
+        OpMsg::CreationReceipt { request, inner } => {
+            created_request::report(out, ops, request, *inner);
+            return;
+        }
         OpMsg::SendStatus { .. }
         | OpMsg::JobEntries { .. }
         | OpMsg::JobReady { .. }

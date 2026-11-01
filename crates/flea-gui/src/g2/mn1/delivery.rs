@@ -165,7 +165,10 @@ impl Shell {
             return false;
         };
         let operation = string(&reply, "op");
-        if !matches!(operation, "snapshot" | "validate" | "applications") {
+        if !matches!(
+            operation,
+            "snapshot" | "validate" | "applications" | "tagstates"
+        ) {
             return false;
         }
         if capture.identity != self.menu_identity() {
@@ -199,6 +202,7 @@ impl Shell {
                     })
                     .collect();
                 self.menu.context.compare_kinds = Some(capture.kinds.clone());
+                self.menu_target_modes(&reply, window, cx);
                 self.menu.context.tag_submenu = None;
                 if self.menu.tags.asking.is_none() {
                     self.ask_tag_states(true, cx);
@@ -297,6 +301,12 @@ impl Shell {
         if self.deliver_actions(&capture, &action, &leaf, paths.clone(), window, cx) {
             return;
         }
+        if self.neighbour_selection(&capture, &action, window, cx) {
+            return;
+        }
+        if action == "sort" && self.neighbour_sort(&capture, &leaf, window, cx) {
+            return;
+        }
         let step = match action.as_str() {
             "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
@@ -309,6 +319,8 @@ impl Shell {
         if let Some(step) = step {
             self.retire_menu(window, cx);
             let _ = self.step(side, step, window, cx);
+        } else if action == "openWith" && capture.target.is_some() {
+            self.neighbour_open_with(&capture, &leaf, window, cx);
         } else if action == "makeExecutable" {
             self.make_executable(&capture, &paths, window, cx);
         } else if action == "addToShelf" {

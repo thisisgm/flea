@@ -530,6 +530,10 @@ pub fn run_duplicate(path: String, tx: Sender<OpMsg>) {
 }
 
 pub(crate) fn run_duplicate_checked(path: String, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>) {
+    run_duplicate_requested(path, tx, selection, 0)
+}
+
+pub(crate) fn run_duplicate_requested(path: String, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>, request: usize) {
     let (outcome, steps) = match super::menu_actions::validate_sources(selection.as_deref(), &[PathBuf::from(&path)]) {
         Ok(()) => ops::duplicate(Path::new(&path)),
         Err(error) => (Err(op_err("duplicate", &path, &error)), Vec::new()),
@@ -540,7 +544,7 @@ pub(crate) fn run_duplicate_checked(path: String, tx: Sender<OpMsg>, selection: 
         Ok(dst) => OpMsg::Duplicated { ok: true, path: dst.to_string_lossy().to_string(), err: String::new(), entry },
         Err(e) => OpMsg::Duplicated { ok: false, path: String::new(), err: e.msg, entry },
     };
-    let _ = tx.send(msg);
+    let _ = tx.send(super::opsdispatch::created_request::wrap(request, msg));
 }
 
 #[cfg(test)]

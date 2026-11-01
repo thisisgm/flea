@@ -103,7 +103,7 @@ impl Shell {
             !host.pane.busy()
                 && !host.stopped
                 && host.pane.held.listing == chosen.captured.listing
-                && host.pane.path() == chosen.captured.path
+                && (chosen.captured.target.is_some() || host.pane.path() == chosen.captured.path)
         });
         if current && chosen.captured.ready && !chosen.paths.is_empty() {
             self.open_paths(side, chosen.paths.clone(), true, window, cx);
@@ -132,8 +132,28 @@ impl Shell {
             self.open_cursor_file(side, path, archive, window, cx);
             return;
         }
+        let action = chosen.captured.target.as_ref().and_then(|row| {
+            if archive_path(target) {
+                Some("preview")
+            } else if quick_look_kind(&row.icon, &row.name, false) == State::Image {
+                Some("open")
+            } else {
+                None
+            }
+        });
+        if let Some(action) = action {
+            self.navigate_menu_action(
+                side,
+                chosen.captured.path.clone(),
+                action,
+                Some(target.clone()),
+                window,
+                cx,
+            );
+            return;
+        }
         match chosen.captured.rows.first() {
-            Some(&index) if archive_path(target) => {
+            Some(&index) if chosen.captured.target.is_none() && archive_path(target) => {
                 self.open_archive_path(side, index, target.clone(), window, cx)
             }
             _ => self.open_file(side, target.clone(), window, cx),

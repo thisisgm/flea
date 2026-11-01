@@ -163,6 +163,7 @@ pub(crate) struct Selected {
     dev: u64,
     ino: u64,
     kind: u32,
+    mode: u32,
     retry: Option<super::undo::ItemIdentity>,
 }
 impl Selected {
@@ -183,6 +184,7 @@ impl Selected {
             dev: meta.dev(),
             ino: meta.ino(),
             kind: meta.mode() & 0o170000,
+            mode: meta.mode(),
             retry: None,
         })
     }
@@ -193,6 +195,7 @@ impl Selected {
             dev,
             ino,
             kind,
+            mode: kind,
             retry: Some(identity),
         }
     }
@@ -225,37 +228,9 @@ pub(crate) fn validate_sources(items: Option<&[Selected]>, paths: &[PathBuf]) ->
     for item in items { item.current().map_err(|error| format!("{}: {}", item.path.display(), error))?; }
     Ok(())
 }
+mod snapshot;
+
 impl Snapshot {
-    // Sample input: {"c":"menuaction","op":"snapshot","id":3}; paths are resolved from the active listing by run.rs.
-    fn handle_request(&mut self, line: &str, paths: Vec<String>, cursor: Option<&str>, registry: &Registry, cancel: &Cancellation) -> String {
-        let id = field_usize(line, "id").unwrap_or(0);
-        let op = field_str(line, "op").unwrap_or_default();
-        let result = if op == "snapshot" {
-            self.id = 0;
-            self.items.clear();
-            self.cursor = None;
-            self.deletion = None;
-            self.provider_destination = None;
-            self.provider_transfer = false;
-            if id == 0 || paths.is_empty() {
-                Err("There are no selected items to inspect.".into())
-            } else {
-                paths.iter().map(|path| Selected::inspect(path)).collect::<Result<Vec<_>, _>>().and_then(|items| {
-                    self.cursor = cursor.map(Selected::inspect).transpose()?;
-                    self.items = items;
-                    self.id = id;
-                    let kinds = self.items.iter().map(|item| item.kind.to_string()).collect::<Vec<_>>().join(",");
-                    Ok(format!(r#""count":{},"kinds":[{}]"#, self.items.len(), kinds))
-                })
-            }
-        } else if op == "close" {
-            if self.id == id { *self = Self::default(); }
-            Ok(String::new())
-        } else {
-            self.perform(id, &op, line, registry, cancel)
-        };
-        response(line, result)
-    }
     fn perform(&mut self, id: usize, op: &str, line: &str, registry: &Registry, cancel: &Cancellation) -> Result<String, String> {
         if id == 0 || id != self.id || self.items.is_empty() {
             return Err(SELECTION_CHANGED.into());

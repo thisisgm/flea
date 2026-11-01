@@ -210,6 +210,7 @@ fn captured() -> crate::g2::mn1::join::Captured {
         ready: true,
         kinds: vec![0o100000; 3],
         background: false,
+        target: None,
     }
 }
 

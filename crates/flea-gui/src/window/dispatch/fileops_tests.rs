@@ -48,6 +48,19 @@ pub(super) fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &st
     cx.run_until_parked();
 }
 
+pub(crate) fn creation_request(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    line: &str,
+) -> String {
+    let request = shell.read_with(cx, |shell, _| shell.menu.sequence);
+    assert!(request > 0);
+    format!(
+        "{},\"request\":{request}}}",
+        line.strip_suffix('}').unwrap()
+    )
+}
+
 // The keystroke a preset binds to an action, as the platform delivers it.
 fn hit(cx: &mut VisualTestContext, preset: &str, action: &str) {
     let binding = keys::binding_rows(preset, Frontend::Gui)
@@ -76,7 +89,14 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     let catalog = catalog(&shell, cx);
     // Ops.js newFolder: the folder itself, no name.
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
+    assert_eq!(
+        sent(),
+        [creation_request(
+            &shell,
+            cx,
+            r#"{"c":"mkdir","path":"/files"}"#
+        )]
+    );
     let before = lists(&shell, cx);
     reply(
         &shell,
@@ -156,7 +176,11 @@ fn duplicate_sends_the_cursor_row_and_lands_on_the_copy(cx: &mut TestAppContext)
     hit(cx, "mac", "duplicate");
     assert_eq!(
         sent(),
-        [r#"{"c":"duplicate","path":"/files/notes.txt","menuId":0}"#]
+        [creation_request(
+            &shell,
+            cx,
+            r#"{"c":"duplicate","path":"/files/notes.txt","menuId":0}"#
+        )]
     );
     reply(
         &shell,

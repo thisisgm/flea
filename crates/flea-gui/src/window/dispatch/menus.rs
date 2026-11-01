@@ -58,7 +58,7 @@ pub(super) fn run(
                         .captured
                         .rows
                         .first()
-                        .and_then(|&row| host.pane.held.row(row).cloned())
+                        .and_then(|&row| chosen.captured.row(host, row).cloned())
                 })
                 .unwrap_or_else(|| flea::protocol::RowFacts {
                     mode: chosen.captured.kinds.first().copied().unwrap_or(0),

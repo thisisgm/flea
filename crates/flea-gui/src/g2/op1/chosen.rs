@@ -32,9 +32,10 @@ impl Shell {
         if !chosen.claim() {
             return;
         }
-        self.menu.sequence += 1;
-        let id = self.menu.sequence;
         let folder = chosen.captured.path.clone();
+        let Some(id) = self.fileops_creation_requested(side, "newFile", &folder, cx) else {
+            return;
+        };
         view.update(cx, |overlay, cx| overlay.new_file(id, &folder, cx));
         self.show_operation(&view, cx);
         self.flush_operations(side, cx);

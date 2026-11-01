@@ -44,6 +44,41 @@ pub fn handle(out: &mut impl Write, ops: &mut Ops, st: &State, request: Request)
     Vec::new()
 }
 
+// Sample input: {"c":"menuaction","op":"settags","id":7,"change":"add","tag":"Red"}
+pub(super) fn menu(out: &mut impl Write, ops: &mut Ops, st: &State, line: &str) -> Vec<PathBuf> {
+    let id = crate::json::field_usize(line, "id").unwrap_or(0);
+    let selected = ops.menuactions.as_ref().ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
+        .and_then(|menus| menus.selection(id));
+    let selected = match selected {
+        Ok(paths) => paths,
+        Err(msg) => {
+            if crate::json::field_str(line, "op").as_deref() == Some("tagstates") {
+                writeln!(out, "{}", super::menu_actions::response(line, Err(msg))).ok();
+                out.flush().ok();
+                return Vec::new();
+            }
+            refuse(out, &FleaError { where_: "settags".into(), path: String::new(), msg });
+            return Vec::new();
+        }
+    };
+    if crate::json::field_str(line, "op").as_deref() == Some("tagstates") {
+        super::menutags_states::ask(st.generation, line.to_owned(), selected, ops.tx.clone());
+        return Vec::new();
+    }
+    let op = crate::json::field_str(line, "change").unwrap_or_default();
+    let tag = crate::json::field_str(line, "tag").unwrap_or_default();
+    if ops.live.running().is_some() {
+        refuse(out, &FleaError { where_: "settags".into(), path: String::new(), msg: "an operation is already running".into() });
+        return Vec::new();
+    }
+    if let Err(error) = super::tags::apply(&[], &op, &tag) {
+        refuse(out, &error);
+        return Vec::new();
+    }
+    let paths = selected.iter().map(|item| item.path.to_string_lossy().into_owned()).collect();
+    apply_targets(out, ops, &st.base, paths, &op, &tag, Some(selected))
+}
+
 fn carries(names: &[String], tag: &str) -> bool {
     names.iter().any(|name| name.eq_ignore_ascii_case(tag.trim()))
 }
@@ -63,7 +98,10 @@ pub(crate) fn resolved(op: &str, tag: &str, carried: &[Vec<String>]) -> &'static
 // Read on a thread as shebang is, because a getxattr on a hung mount never returns.
 pub fn ask_states(st: &State, rows: &[usize], id: usize, tx: Sender<OpMsg>) {
     let paths: Vec<PathBuf> = resolve_rows(Vec::new(), rows, &st.base, &st.listing).into_iter().map(PathBuf::from).collect();
-    let generation = st.generation;
+    ask_paths(paths, st.generation, id, tx);
+}
+
+fn ask_paths(paths: Vec<PathBuf>, generation: u64, id: usize, tx: Sender<OpMsg>) {
     let body = mount_body();
     // A stuck mount answers untagged at once, so no menu open parks a reader thread on it.
     if let Some(first) = paths.first() {
@@ -92,7 +130,7 @@ pub fn states_line(id: usize, paths: &[PathBuf]) -> String {
     states_line_for(id, &carried)
 }
 
-fn states_line_for(id: usize, carried: &[Vec<String>]) -> String {
+pub(super) fn states_line_for(id: usize, carried: &[Vec<String>]) -> String {
     let (mut applied, mut mixed) = (Vec::new(), Vec::new());
     for name in super::tags::NAMES {
         match carried.iter().filter(|names| carries(names, name)).count() {
@@ -121,14 +159,22 @@ pub fn apply_tags(out: &mut impl Write, ops: &mut Ops, st: &State, rows: Vec<usi
         return Vec::new();
     }
     let targets = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
+    apply_targets(out, ops, &st.base, targets, op, tag, None)
+}
+
+fn apply_targets(out: &mut impl Write, ops: &mut Ops, base: &Path, targets: Vec<String>, op: &str, tag: &str, selected: Option<Vec<super::menu_actions::Selected>>) -> Vec<PathBuf> {
     if targets.is_empty() {
         writeln!(out, "{}", settagged_line(0, resolved(op, tag, &[]))).ok();
         out.flush().ok();
         return Vec::new();
     }
     let paths: Vec<PathBuf> = targets.iter().map(PathBuf::from).collect();
-    let (base, work_paths, op, tag) = (st.base.clone(), paths.clone(), op.to_string(), tag.to_string());
-    apply_tags_with(out, ops, paths, CALL_DEADLINE, move || write_all(&base, &work_paths, &op, &tag))
+    let (base, work_paths, op, tag) = (base.to_path_buf(), paths.clone(), op.to_string(), tag.to_string());
+    apply_tags_with(out, ops, paths, CALL_DEADLINE, move || {
+        let targets = targets::capture(work_paths, selected)?;
+        menu_swap_hook(targets.first().map_or(Path::new("/"), |target| target.path.as_path()));
+        targets::write(&base, targets, &op, &tag)
+    })
 }
 
 // A local change answers inline; a remote one past the deadline answers slow and journals when its worker lands.
@@ -182,72 +228,13 @@ pub(crate) fn land(out: &mut impl Write, ops: &mut Ops, result: Written) -> Vec<
     changed
 }
 
-// Every file or none: each filesystem is probed and every attribute read before the first write, and a failed write puts back exactly the files written.
+#[cfg(test)]
 fn write_all(base: &Path, paths: &[PathBuf], op: &str, tag: &str) -> Written {
-    // A link cannot carry a user attribute, so the pre-pass leaves out every row that is neither a file nor a folder and names it in the answer's skipped array.
-    let mut skipped = Vec::new();
-    let mut kept = Vec::with_capacity(paths.len());
-    for path in paths {
-        // symlink_metadata never follows, so a link to a folder still reads as a link; a vanished row fails later with its own sentence.
-        let taggable = match path.symlink_metadata() {
-            Ok(meta) => meta.file_type().is_file() || meta.file_type().is_dir(),
-            Err(_) => true,
-        };
-        if taggable {
-            kept.push(path.clone());
-        } else {
-            skipped.push(row_name(base, path));
-        }
-    }
-    let paths = &kept;
-    let mut devs = HashSet::new();
-    let mut befores = Vec::with_capacity(paths.len());
-    for path in paths {
-        let missing = |e: FleaError| FleaError { where_: "settags".into(), path: path.to_string_lossy().into(), msg: e.msg };
-        let (dev, ino) = super::tagsundo::identity(path).map_err(missing)?;
-        // One probe per filesystem the targets sit on, so a search row under another mount refuses by name too.
-        if devs.insert(dev) {
-            if let Some(refused) = super::tags::support_error(path) {
-                return Err(refused);
-            }
-        }
-        let born = path.symlink_metadata().ok().and_then(|meta| super::permissions::born_of(&meta));
-        befores.push((super::tags::read_raw(path).map_err(missing)?, dev, ino, (born, super::filegen::of_path(path))));
-    }
-    let carried: Vec<Vec<String>> =
-        befores.iter().map(|(before, ..)| before.as_ref().map(|raw| super::tags::parse(raw)).unwrap_or_default()).collect();
-    let op = resolved(op, tag, &carried);
-    let mut steps = Vec::new();
-    for ((path, (before, dev, ino, (born, generation))), names) in paths.iter().zip(befores).zip(carried) {
-        let after = match super::tags::apply(&names, op, tag) {
-            Ok(after) => after,
-            // Unreachable after the caller's validation; rolls back rather than half-applying anyway.
-            Err(e) => {
-                rollback(&steps);
-                return Err(e);
-            }
-        };
-        if names == after {
-            continue;
-        }
-        if let Err(e) = super::tags::write_names(path, &after) {
-            rollback(&steps);
-            return Err(FleaError { where_: "settags".into(), path: path.to_string_lossy().into(), msg: e.msg });
-        }
-        let after = (!after.is_empty()).then(|| super::tags::join(&after));
-        steps.push(Step::Tags { path: path.clone(), before, after, dev, ino, born, generation });
-    }
-    Ok((steps.len(), steps, op, skipped))
+    targets::write(base, targets::capture(paths.to_vec(), None)?, op, tag)
 }
 
-// Puts back exactly the files this request wrote, newest first and best effort; the error names the failure, not this.
-fn rollback(steps: &[Step]) {
-    for step in steps.iter().rev() {
-        if let Step::Tags { path, before, .. } = step {
-            let _ = super::tags::restore(path, before);
-        }
-    }
-}
+#[path = "tagsreq_targets.rs"]
+mod targets;
 
 #[cfg(test)]
 #[path = "tagsreq_tests.rs"]
@@ -256,3 +243,17 @@ mod tests;
 #[cfg(test)]
 #[path = "tagsundo_tests.rs"]
 mod undo_tests;
+
+#[cfg(test)]
+thread_local! {
+    static MENU_SWAP_HOOK: std::cell::Cell<Option<fn(&Path)>> = const { std::cell::Cell::new(None) };
+}
+
+fn menu_swap_hook(_path: &Path) {
+    #[cfg(test)]
+    if let Some(hook) = MENU_SWAP_HOOK.with(|slot| slot.get()) { hook(_path); }
+}
+
+#[cfg(test)]
+#[path = "tagsreq_menu_tests.rs"]
+mod menu_tests;
