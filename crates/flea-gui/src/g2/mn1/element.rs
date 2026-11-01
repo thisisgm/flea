@@ -237,11 +237,11 @@ fn paint_row(
         }
         edge -= px(metrics.chevron + metrics.gap);
     }
-    for (part, width) in line
+    for (part, width, state) in line
         .key
         .iter()
-        .map(|key| (key, key.width()))
-        .chain(line.word.iter().map(|word| (word, line.word_width())))
+        .map(|key| (key, key.width(), false))
+        .chain(line.word.iter().map(|word| (word, line.word_width(), true)))
     {
         let x = edge - px(width);
         if let Some(caption) = &line.wrapped {
@@ -254,12 +254,27 @@ fn paint_row(
             paint_text(
                 part,
                 point(x, top),
-                ink.muted.opacity(dim),
+                if state && line.hint_square {
+                    label_ink
+                } else {
+                    ink.muted.opacity(dim)
+                },
                 metrics.row,
                 window,
             );
         }
         edge = x - px(metrics.gap);
+    }
+    if line.hint_square {
+        let side = metrics.of(super::lines::STATUS_SQUARE);
+        let x = edge + px(metrics.gap) - px(line.status_width());
+        window.paint_quad(fill(
+            Bounds::new(
+                point(x, top + px((metrics.row as f32 - side) / 2.)),
+                size(px(side), px(side)),
+            ),
+            ink.accent.opacity(dim),
+        ));
     }
     if let Some(state) = line.tag_state {
         super::tag_checks::paint(state, edge, top, label_ink, metrics, window, cx);
