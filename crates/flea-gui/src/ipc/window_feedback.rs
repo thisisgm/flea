@@ -33,15 +33,18 @@ impl Adapter for FeedbackAdapter<'_> {
                     browser.map_or_else(String::new, |browser| browser.names.join("\n"))
                 }
             }
-            // The ShareBrowser overlay is never opened or painted in GPUI (g2/sd1/mod.rs browser_open and browser_element have no production caller), so only active, from the card shareBrowserOpen reads, and paneRects carry state here.
+            // The live browser is network.shares (g2/sd1's has no production caller); it answers active and cursor, while rect, owner and baseUri stay unported.
             "shareBrowserRect" => String::new(),
             "shareBrowserState" => {
-                let active = self
+                let (active, cursor) = self
                     .shell
                     .rail
                     .as_ref()
                     .and_then(|rail| rail.network.as_ref())
-                    .is_some_and(|network| network.shares.read(self.cx).model.open);
+                    .map_or((false, -1), |network| {
+                        let model = &network.shares.read(self.cx).model;
+                        (model.open, model.cursor_ipc())
+                    });
                 let panes = self
                     .shell
                     .panes
@@ -54,7 +57,7 @@ impl Adapter for FeedbackAdapter<'_> {
                     })
                     .collect::<Vec<_>>()
                     .join(",");
-                format!("{{\"active\":{active},\"owner\":-1,\"rect\":\"\",\"baseUri\":\"\",\"cursor\":-1,\"paneRects\":[{panes}]}}")
+                format!("{{\"active\":{active},\"owner\":-1,\"rect\":\"\",\"baseUri\":\"\",\"cursor\":{cursor},\"paneRects\":[{panes}]}}")
             }
             // Browser.close keeps the cursor, so a closed browser still answers the row it was left on.
             "shareBrowserCursor" => self
@@ -62,7 +65,9 @@ impl Adapter for FeedbackAdapter<'_> {
                 .rail
                 .as_ref()
                 .and_then(|rail| rail.network.as_ref())
-                .map_or(0, |network| network.shares.read(self.cx).model.cursor)
+                .map_or(-1, |network| {
+                    network.shares.read(self.cx).model.cursor_ipc()
+                })
                 .to_string(),
             "statusBusy" | "statusSecondary" => {
                 let Some(footer) = &self.shell.surfaces[0].footer else {

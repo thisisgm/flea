@@ -6,7 +6,9 @@ use gpui::{point, px, Entity, Modifiers, Pixels, Point, TestAppContext, VisualTe
 #[gpui::test]
 fn pb_ipc_share_browser_cursor_follows_the_live_browser(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx);
-    assert_eq!(read(&shell, cx, "shareBrowserCursor", &[]), "0");
+    // EY-242: v0.3.12 answered -1 until its ShareBrowser Loader first loaded, and shareBrowserState agrees.
+    assert_eq!(read(&shell, cx, "shareBrowserCursor", &[]), "-1");
+    assert!(read(&shell, cx, "shareBrowserState", &[]).contains("\"cursor\":-1,"));
     shell.update_in(cx, |shell, window, cx| {
         let origin = shell.network_origin(0);
         let shares = shell
@@ -34,6 +36,7 @@ fn pb_ipc_share_browser_cursor_follows_the_live_browser(cx: &mut TestAppContext)
     cx.simulate_keystrokes("down");
     draw(cx);
     assert_eq!(read(&shell, cx, "shareBrowserCursor", &[]), "1");
+    assert!(read(&shell, cx, "shareBrowserState", &[]).contains("\"cursor\":1,"));
     assert_eq!(read(&shell, cx, "shareBrowserOpen", &[]), "true");
     cx.simulate_keystrokes("escape");
     draw(cx);

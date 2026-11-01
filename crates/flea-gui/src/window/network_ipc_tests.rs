@@ -367,3 +367,6 @@ fn the_add_share_card_takes_typed_text_through_the_window(cx: &mut TestAppContex
         "a typed . never reaches the listing's toggleHidden while the card holds the keyboard"
     );
 }
+
+#[path = "network_cards_tests.rs"]
+mod cards_tests;

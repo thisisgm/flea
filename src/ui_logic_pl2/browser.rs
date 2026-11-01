@@ -24,6 +24,14 @@ impl Browser {
     pub fn close(&mut self) {
         self.open = false;
     }
+    /// The IPC cursor: -1 until the first show (v0.3.12's unloaded ShareBrowser); a closed browser keeps its row.
+    pub fn cursor_ipc(&self) -> i64 {
+        if self.generation == 0 {
+            -1
+        } else {
+            self.cursor as i64
+        }
+    }
     pub fn step(&mut self, delta: isize, visible: usize) {
         self.cursor = self
             .cursor

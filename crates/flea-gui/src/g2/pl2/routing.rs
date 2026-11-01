@@ -16,10 +16,11 @@ pub fn address(input: &str, origin: u64) -> AddressRoute {
         return AddressRoute::Local;
     }
     match networkaddress::parse(typed).or_else(|error| incomplete(typed).ok_or(error)) {
+        // v0.3.12's onPathEntered opened a typed address with no label: its card suggests the share name and its bar keeps the mounted path.
         Ok(address) => AddressRoute::Network(Request {
             id: 0,
             uri: address.uri,
-            label: address.host,
+            label: String::new(),
             origin,
             mounted: false,
             authenticated: false,

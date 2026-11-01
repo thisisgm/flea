@@ -36,7 +36,7 @@ fn m9_g2rows_29_shorthand_commits_as_network_and_routes_to_the_shared_opener() {
     };
     assert_eq!(
         (request.uri.as_str(), request.label.as_str()),
-        ("sftp://user@east/work", "east")
+        ("sftp://user@east/work", "")
     );
     assert_eq!(
         completion_dir("user@east:/wo", CURRENT, HOME),
