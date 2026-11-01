@@ -208145,7 +208145,7 @@
     },
     {
       "excerpt": "errors += [f'{scene}: more than one undriven line ({\", \".join(names)})' for scene, names in sorted(lines.items())",
-      "line": 320,
+      "line": 321,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208154,7 +208154,7 @@
     },
     {
       "excerpt": "errors.append(f'{ident}: {case[\"kind\"]} evidence adapter OWED: {\", \".join(KIND_ADAPTERS[case[\"kind\"]])}')",
-      "line": 369,
+      "line": 370,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208163,7 +208163,7 @@
     },
     {
       "excerpt": "errors.append(f'plan owes {row[\"dependency\"]}: {row[\"missing\"]}')",
-      "line": 423,
+      "line": 424,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208172,7 +208172,7 @@
     },
     {
       "excerpt": "\"\"\"prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone.\"\"\"",
-      "line": 535,
+      "line": 536,
       "literal": "prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone.",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208181,7 +208181,7 @@
     },
     {
       "excerpt": "require(not changed, f'{\" \".join(argv)} changed host locale or language files: {\", \".join(changed)}')",
-      "line": 562,
+      "line": 563,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208190,7 +208190,7 @@
     },
     {
       "excerpt": "f'TUI language cases must be \"all\" or distinct ids from {\", \".join(known)}')",
-      "line": 583,
+      "line": 584,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -243479,7 +243479,7 @@
     "tools/flea-i18n-extract": "66a05ca01f1435fc5a7a39e452eb7abdc9844f840417eb83ded3d3def9d93c89",
     "tools/flea-i18n-layouts": "5449af8bef2f30336eef621422982418e88f9b085934a2a181c3270e1c52a11a",
     "tools/flea-i18n-manifest": "c693ffbb0438691c753cd998ccf30697da1eda13afdbcc412709bf4e009e211e",
-    "tools/flea-i18n-native": "1295f78c876548497f139ba3e64c9bfaef58d5a0ec45ab867011921038919e3a",
+    "tools/flea-i18n-native": "680f34834883050390a70d8d9ab3a0a971c70480509c0aed849e2120a744d135",
     "tools/flea-i18n-quality": "f38eff8ea84188f921dc5efe5d1e5f481e1214a4c91d49d70be30d3a930e5f72",
     "tools/flea-i18n-roster": "15ebc5b098f014643154e00a5a2c3f9f0f08568a09ccd254dcf2935bfc2d6783",
     "tools/flea-ipc": "b6907958280b1adf40602eb46c89a2e493fe4858ae086552446c569d8cf422fc",
