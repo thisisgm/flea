@@ -2,6 +2,7 @@
 mod host;
 pub(crate) mod input;
 mod join;
+pub(crate) mod limits;
 mod shelf;
 pub(crate) use host::{service, Closed, Host, Response, WireLine};
 pub(crate) use join::Join;

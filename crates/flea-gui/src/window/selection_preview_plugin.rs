@@ -15,6 +15,7 @@ pub(crate) fn previewers(host: &crate::g2::plugins::Host) -> Vec<String> {
 
 impl SelectionPreview {
     // Only a local file whose built-in frame is the plain facts frame asks; the frame holds until the answer.
+    // Sample input: {"op":"preview","text":"Title: Notes"} or {"op":"preview","png":"/run/user/1000/flea/preview.png"}
     pub(super) fn ask_previewer(
         &mut self,
         frame: &mut Frame,
@@ -108,6 +109,7 @@ impl SelectionPreview {
         }
     }
 
+    // Sample input, the owner's answer with its picture moved out of the jail: {"op":"preview","text":"Title: Notes"} or {"op":"preview","png":"/run/user/1000/flea/preview.png"}
     fn previewer_answered(
         &mut self,
         generation: u64,

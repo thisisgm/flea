@@ -52,6 +52,7 @@ impl Shell {
             .collect()
     }
 
+    // Sample input, one plugin's stored answer: {"op":"targets","targets":[{"id":"receiver","label":"Local Receiver","state":"ready"}]}
     pub(crate) fn plugin_send_rows(
         &self,
         entries: &mut Vec<Entry>,
@@ -111,7 +112,8 @@ impl Shell {
                         ["id", "label", "state"].iter().all(|key| {
                             target.get(key).and_then(Json::as_str).is_some_and(|text| {
                                 !text.is_empty()
-                                    && text.chars().count() <= 512
+                                    && text.chars().count()
+                                        <= crate::g2::plugins::limits::TARGET_TEXT
                                     && !text.chars().any(char::is_control)
                             })
                         })
@@ -180,8 +182,11 @@ impl Shell {
                         .and_then(|b| b.get("refreshSec"))
                         .and_then(Json::as_f64)
                         .filter(|v| v.is_finite())
-                        .unwrap_or(10.)
-                        .clamp(1., 3600.),
+                        .unwrap_or(crate::g2::plugins::limits::REFRESH_SECONDS)
+                        .clamp(
+                            crate::g2::plugins::limits::REFRESH_RANGE.0,
+                            crate::g2::plugins::limits::REFRESH_RANGE.1,
+                        ),
                 )
             })
             .collect::<Vec<_>>();

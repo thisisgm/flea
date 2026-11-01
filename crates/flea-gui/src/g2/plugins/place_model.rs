@@ -1,5 +1,5 @@
 //! Validated plugin-relative listings projected into Flea's normal viewport protocol.
-use flea::{jsondoc::Json, protocol::RowFacts};
+use flea::{jsondoc::Json, protocol::RowFacts, ui_logic_mn1::build};
 use std::collections::{HashMap, HashSet};
 
 pub(super) fn text<'a>(doc: &'a Json, key: &str) -> &'a str {
@@ -28,7 +28,7 @@ pub(super) fn number(value: impl ToString) -> Json {
 pub(super) fn path(uri: &str) -> Option<(&str, &str)> {
     let (id, tail) = uri.strip_prefix("plugin://")?.split_once('/')?;
     if !flea::ui_logic_st2::manifest::is_id(id)
-        || tail.len() > 4096
+        || tail.len() > super::limits::TEXT
         || tail.chars().any(char::is_control)
         || tail.split('/').any(|p| p == "." || p == "..")
     {
@@ -67,7 +67,7 @@ impl Model {
         let mut rows = Vec::new();
         for entry in entries {
             let name = text(entry, "name");
-            if name.chars().any(|c| c.is_control() || matches!(c, '\u{61c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')) || name.len() > 255 || name.contains('\\') {
+            if name.chars().any(|c| c.is_control() || matches!(c, '\u{61c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')) || name.len() > super::limits::NAME_BYTES || name.contains('\\') {
                 return Err("invalid plugin entry name".into());
             }
             let dir = match text(entry, "kind") {
@@ -92,7 +92,11 @@ impl Model {
                 dir,
                 size,
                 mtime,
-                mode: if dir { 0o40755 } else { 0o100644 },
+                mode: if dir {
+                    build::S_IFDIR | 0o755
+                } else {
+                    build::S_IFREG | 0o644
+                },
                 icon: if dir { "folder" } else { "file" }.into(),
                 real_modes: false,
                 ..Default::default()
@@ -168,7 +172,7 @@ impl Model {
             .rows
             .iter()
             .skip(start)
-            .take(count.min(1024))
+            .take(count.min(super::limits::WINDOW_ROWS))
             .map(|r| {
                 object(&[
                     ("n", string(&r.name)),
@@ -190,7 +194,7 @@ impl Model {
     }
     pub fn targets(&self, request: &Json) -> Result<Vec<String>, String> {
         if let Some(paths) = request.get("paths").and_then(Json::as_array) {
-            if paths.is_empty() || paths.len() > 512 {
+            if paths.is_empty() || paths.len() > super::limits::SELECTION {
                 return Err("no plugin operation paths".into());
             }
             return paths
@@ -210,7 +214,7 @@ impl Model {
             .get("rows")
             .and_then(Json::as_array)
             .ok_or("missing plugin rows")?;
-        if rows.is_empty() || rows.len() > 512 {
+        if rows.is_empty() || rows.len() > super::limits::SELECTION {
             return Err("no plugin operation rows".into());
         }
         rows.iter()

@@ -34,7 +34,7 @@ impl Drop for Open {
 
 impl Shell {
     pub(crate) fn cancel_plugin_input(&mut self, cx: &mut Context<Self>) {
-        if self.plugin_input.take().is_some() {
+        if self.plugins.input.take().is_some() {
             self.rename.ime.close();
             cx.notify();
         }
@@ -45,11 +45,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<async_channel::Receiver<Option<String>>> {
-        if self.plugin_input.is_some() || self.card_holds_keyboard(cx) {
+        if self.plugins.input.is_some() || self.card_holds_keyboard(cx) {
             return None;
         }
         let (sender, receiver) = async_channel::bounded(1);
-        self.plugin_input = Some(Open {
+        self.plugins.input = Some(Open {
             descriptor: descriptor.clone(),
             value: String::new(),
             focus: 0,
@@ -67,10 +67,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if submit && !self.plugin_input.as_ref().is_some_and(Open::valid) {
+        if submit && !self.plugins.input.as_ref().is_some_and(Open::valid) {
             return;
         }
-        if let Some(mut open) = self.plugin_input.take() {
+        if let Some(mut open) = self.plugins.input.take() {
             if let Some(sender) = open.sender.take() {
                 let _ = sender.try_send(submit.then(|| open.value.clone()));
             }
@@ -86,20 +86,20 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if self.plugin_input.is_none() {
+        if self.plugins.input.is_none() {
             return false;
         }
         if self.dialog_key(event, cx) {
             return true;
         }
         let key = event.keystroke.key.as_str();
-        let focus = self.plugin_input.as_ref().unwrap().focus;
+        let focus = self.plugins.input.as_ref().unwrap().focus;
         match key {
             "escape" => self.finish_plugin_input(false, window, cx),
             "enter" | "return" | "kp_enter" => self.finish_plugin_input(focus != 1, window, cx),
             "tab" | "backtab" => {
                 let backwards = key == "backtab" || event.keystroke.modifiers.shift;
-                self.plugin_input.as_mut().unwrap().focus =
+                self.plugins.input.as_mut().unwrap().focus =
                     (focus + if backwards { 2 } else { 1 }) % 3;
                 self.sync_dialog_editor();
                 cx.notify();
@@ -115,9 +115,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
-        self.plugin_input.as_ref()?;
+        self.plugins.input.as_ref()?;
         self.sync_dialog_editor();
-        let open = self.plugin_input.as_ref()?;
+        let open = self.plugins.input.as_ref()?;
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -166,7 +166,7 @@ impl Shell {
                 move |_: &gpui::MouseDownEvent, window, cx| {
                     let _ = entity.update(cx, |shell, cx| match control {
                         shell::Control::Field => {
-                            if let Some(open) = &mut shell.plugin_input {
+                            if let Some(open) = &mut shell.plugins.input {
                                 open.focus = 0;
                             }
                             shell.sync_dialog_editor();

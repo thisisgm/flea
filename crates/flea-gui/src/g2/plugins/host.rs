@@ -141,7 +141,7 @@ impl Host {
     }
 
     pub fn request(&mut self, plugin: &str, request: Json, _cx: &mut Context<Self>) -> Option<u64> {
-        if self.pending.len() >= 16 {
+        if self.pending.len() >= super::limits::PENDING {
             return None;
         }
         self.next = self.next.checked_add(1)?;
@@ -267,3 +267,7 @@ impl Host {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+#[path = "host_tests.rs"]
+mod tests;

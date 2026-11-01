@@ -11,7 +11,7 @@ impl Shell {
     fn ime_entry(&self, window: &Window) -> Option<&Entry> {
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             return (self.dialog_active(window)
                 && self
@@ -32,7 +32,7 @@ impl Shell {
     fn ime_entry_mut(&mut self) -> &mut Entry {
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             &mut self.rename.ime.entry
         } else {
@@ -42,7 +42,7 @@ impl Shell {
     fn ime_changed(&mut self, cx: &mut Context<Self>) {
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             self.dialog_edited(cx);
         } else {
@@ -116,7 +116,7 @@ impl EntityInputHandler for Shell {
         let entry = self.ime_entry(window)?;
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             let drawn = self.rename.ime.drawn.borrow();
             return Some(crate::g2::op1::field_view::bounds(
@@ -139,7 +139,7 @@ impl EntityInputHandler for Shell {
         let entry = self.ime_entry(window)?;
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             let drawn = self.rename.ime.drawn.borrow();
             let byte = crate::g2::op1::field_view::index(self, at.x - drawn.bounds?.left());

@@ -1,6 +1,6 @@
 //! The backend's captured filenames let MIME rules cover selected rows outside the held viewport.
 use crate::state::Shell;
-use flea::{jsondoc::Json, ui_logic_mn2::plugins::Item};
+use flea::{jsondoc::Json, ui_logic_mn1::build, ui_logic_mn2::plugins::Item};
 
 pub(super) struct Selection {
     side: usize,
@@ -11,6 +11,7 @@ pub(super) struct Selection {
 
 impl Shell {
     /// True when a current capture's selected names were stored, so the open card must rebuild its rows.
+    // Sample input: {"t":"menuaction","op":"snapshot","id":7,"ok":true,"names":["notes.txt","Photos"],"kinds":[33188,16877]}
     pub(crate) fn plugin_selection_reply(&mut self, side: usize, reply: &Json) -> bool {
         if reply.get("t").and_then(Json::as_str) != Some("menuaction")
             || reply.get("op").and_then(Json::as_str) != Some("snapshot")
@@ -24,12 +25,12 @@ impl Shell {
         }) else {
             return false;
         };
-        let Some(capture) = self
-            .menu
-            .captured
-            .as_ref()
-            .filter(|c| c.id == id && c.side == side && !c.background && c.rows.len() <= 512)
-        else {
+        let Some(capture) = self.menu.captured.as_ref().filter(|c| {
+            c.id == id
+                && c.side == side
+                && !c.background
+                && c.rows.len() <= crate::g2::plugins::limits::SELECTION
+        }) else {
             return false;
         };
         let Some(names) = reply
@@ -52,7 +53,7 @@ impl Shell {
                 name.as_str()
                     .filter(|name| {
                         !name.is_empty()
-                            && name.len() <= 4096
+                            && name.len() <= crate::g2::plugins::limits::TEXT
                             && !name.contains(['/', '\0'])
                             && !matches!(*name, "." | "..")
                     })
@@ -94,7 +95,7 @@ impl Shell {
                 .iter()
                 .zip(&selection.modes)
                 .map(|(name, mode)| {
-                    let folder = mode & 0o170000 == 0o040000;
+                    let folder = mode & build::S_IFMT == build::S_IFDIR;
                     Item {
                         folder,
                         mime: if folder {

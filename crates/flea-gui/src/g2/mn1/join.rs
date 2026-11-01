@@ -89,8 +89,6 @@ pub struct Joined {
     pub flyout: Option<&'static str>,
     pub header: bool,
     pub tags_reading: bool,
-    // A test's stand-in for the `flea shelf add` call; None runs the real one.
-    pub shelve: Option<super::owners::ShelfAdd>,
     // Open With flyout launches still waiting on their answer: the side and the menu id whose snapshot they hold.
     pub(crate) launching: Vec<(usize, u64)>,
 }

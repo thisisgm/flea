@@ -9,9 +9,23 @@ pub(crate) struct Join {
     observers: Vec<Subscription>,
     pub(super) rail: super::rail::Rail,
     pub(super) routes: [Option<gpui::Task<()>>; 2],
+    /// A plugin action's open input card.
+    pub(crate) input: Option<super::input::Open>,
 }
 
+/// How long a new window waits before it starts the plugin owner, so the owner's start never runs inside the window's first build.
+const START_DELAY: std::time::Duration = std::time::Duration::from_millis(1);
+
 impl Shell {
+    /// A new window follows the app-wide owner once its own build has returned.
+    pub(crate) fn start_plugins(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor().timer(START_DELAY).await;
+            let _ = this.update_in(cx, |shell, window, cx| shell.follow_plugins(window, cx));
+        })
+        .detach();
+    }
+
     pub(crate) fn follow_plugins(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.plugins.host.is_some() {
             return;

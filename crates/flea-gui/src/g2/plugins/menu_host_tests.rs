@@ -60,7 +60,7 @@ fn attach(
         ),
     )
     .unwrap();
-    let mut command = Command::new(backend::binary(root));
+    let mut command = Command::new(backend::binary());
     command
         .arg("--plugin-host")
         .env_clear()

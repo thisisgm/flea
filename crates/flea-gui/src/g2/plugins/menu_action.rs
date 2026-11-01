@@ -95,7 +95,7 @@ impl Shell {
             self.menu_notice(side, self.locale.catalog.tr("menu.refusal.unavailable"), cx);
             return;
         }
-        if self.menu.plugin_runtime.pending.len() >= 16 {
+        if self.menu.plugin_runtime.pending.len() >= crate::g2::plugins::limits::PENDING {
             self.menu_notice(side, self.locale.catalog.tr("menu.refusal.unavailable"), cx);
             return;
         }
