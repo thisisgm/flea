@@ -93,20 +93,33 @@ fn band_swallows_keys(cx: &mut TestAppContext, view: View) {
         assert!(host.input.band.is_none());
         assert_eq!(host.selected, before);
     });
-    // The button stays held after Escape, so the drag continues back over the ground before the release.
-    cx.simulate_mouse_move(ground, Some(MouseButton::Left), Modifiers::none());
-    draw(cx);
-    cx.simulate_mouse_up(ground, MouseButton::Left, Modifiers::none());
+    // The button stays held after Escape: the drag goes back to the ground and out over the rows again.
+    for at in [ground, end] {
+        cx.simulate_mouse_move(at, Some(MouseButton::Left), Modifiers::none());
+        draw(cx);
+        shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(
+                host.input.band.is_none(),
+                "a held move after Escape draws no band"
+            );
+            assert_eq!(
+                host.selected, before,
+                "a held move after Escape keeps the rollback"
+            );
+        });
+    }
+    cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
     draw(cx);
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(
             host.input.band.is_none(),
-            "the held move and release after Escape draw no band"
+            "the release after Escape draws no band"
         );
         assert_eq!(
             host.selected, before,
-            "the held move and release after Escape keep the rollback"
+            "the release over the rows keeps the rollback"
         );
     });
     cx.simulate_keystrokes("/");
