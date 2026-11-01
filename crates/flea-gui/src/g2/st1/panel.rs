@@ -369,8 +369,11 @@ impl Panel {
         let row = self.rows.get(self.cursor).cloned();
         let favourite =
             self.side == Side::Pane && row.as_ref().is_some_and(|row| row.kind == Kind::Favourite);
-        if favourite && shift && matches!(text, "J" | "K") {
-            return self.press(self.cursor, Press::Drag(if text == "J" { 1 } else { -1 }));
+        // Shift+J and Shift+K by key, since a layout or a synthetic press can hand over the unshifted "j" as the text.
+        let letter = if matches!(text, "J" | "K") { text } else { key };
+        if favourite && shift && matches!(letter, "j" | "k" | "J" | "K") {
+            let down = letter.eq_ignore_ascii_case("j");
+            return self.press(self.cursor, Press::Drag(if down { 1 } else { -1 }));
         }
         if favourite && (text == "x" || key == "delete") {
             return self.press(self.cursor, Press::Remove);

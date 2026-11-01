@@ -265,6 +265,8 @@ pub(crate) mod test_shell;
 mod trash_ipc_tests;
 #[cfg(test)]
 mod trash_parity_tests;
+#[cfg(test)]
+mod u_settings_tests;
 
 #[cfg(test)]
 mod tags_races_tests;
