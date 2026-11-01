@@ -1,11 +1,11 @@
 # GPUI overrides for UISH: the HIG boards' title-case menus and wording; seeded from the unchanged oracle at 4d09bd7f5.
 menus_visit() {
-    local path="$1" count="$2" observed="" deadline=$((SECONDS + 10))
+    local path="$1" count="$2" observed="" deadline=$(( $(date +%s%3N) + async_wait_ms ))
     menus_guard "$path"
     key -M ctrl -k l -m ctrl >/dev/null || fail 'menus: the address shortcut failed'
     menus_expect pathBarOpen '. == true' 'the address field opens before typing'
     key "$path" >/dev/null || fail 'menus: address text delivery failed'
-    while (( SECONDS < deadline )); do
+    while (( $(date +%s%3N) < deadline )); do
         observed=$(ipc pathBarText) || fail 'menus: the address text reader failed'
         [[ "$observed" == "$path" ]] && break
         sleep 0.05
@@ -216,12 +216,10 @@ case_background() {
     [[ "$(ipc contextMenuSubmenuEntries)" == "Name|Size|Modified|Kind" ]] \
         || fail "background: the Sort by flyout is $(ipc contextMenuSubmenuEntries)"
     # The background-menu board (CHANGES.md, APL-MENU-22) marks only the order in effect, with a checkmark.
-    local sort_glyphs field
-    for field in name size modified kind; do
-        [[ "$(ipc sortMark)" == "$field:"* ]] && sort_glyphs+="checkmark|" || sort_glyphs+="|"
-    done
-    [[ "$(ipc contextMenuSubmenuGlyphs)" == "${sort_glyphs%|}" ]] \
-        || fail "background: the sort flyout drew $(ipc contextMenuSubmenuGlyphs), not ${sort_glyphs%|}"
+    [[ "$(ipc sortMark)" == "name:asc" ]] \
+        || fail "background: the case expects name:asc before the flyout, read $(ipc sortMark)"
+    [[ "$(ipc contextMenuSubmenuGlyphs)" == "checkmark|||" ]] \
+        || fail "background: the sort flyout drew $(ipc contextMenuSubmenuGlyphs), not checkmark|||"
     key -k Down >/dev/null
     key -k Return >/dev/null
     settle
@@ -619,7 +617,9 @@ case_columnsbackground() {
 
 # Sample statusActivityState: {"errors":2}; Escape acknowledges exactly the currently displayed error.
 menus_acknowledge() {
-    if [[ "$(ipc statusError)" == true ]]; then
+    local shown
+    shown=$(ipc statusError) || fail 'menus: the statusError reader failed'
+    if [[ "$shown" == true ]]; then
         local before
         before=$(ipc statusActivityState | jq -er '.errors') || fail "menus: error count unavailable"
         (( before > 0 )) || fail "menus: displayed error is absent from its queue"
