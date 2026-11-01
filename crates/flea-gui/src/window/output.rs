@@ -22,6 +22,8 @@ use gpui::{App, AppContext, Context, Entity, FocusHandle, Subscription, Task, Wi
 use std::path::Path;
 #[path = "output_effects.rs"]
 mod effects;
+#[path = "output_thumbnails.rs"]
+mod thumbnails;
 
 // The footer activity owner for a running output, apart from the two panes' own transfer owners.
 const ACTIVITY: u64 = 1 << 32;
@@ -145,6 +147,7 @@ impl Shell {
         }
         self.output.owner = side;
         self.output.origin = origin;
+        self.sync_output_thumbnails(cx);
         cx.notify();
         true
     }

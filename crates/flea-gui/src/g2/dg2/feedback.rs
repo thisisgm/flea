@@ -297,11 +297,7 @@ impl Shell {
         cx.default_global::<Drags>()
             .cue_lines
             .insert(window_key(window));
-        self.status_messages(cx, |messages, now| {
-            if !messages.activities().iter().any(|entry| entry.running) {
-                messages.set_activity(LINE, &line, 0, false, false, now);
-            }
-        });
+        self.publish_file_line(window, line, cx);
         cx.notify();
     }
 
@@ -330,10 +326,85 @@ impl Shell {
                 .cue_lines
                 .remove(&window_key(window))
         {
-            self.status_messages(cx, |messages, now| {
-                messages.set_activity(LINE, "", 0, false, false, now)
-            });
+            self.publish_file_line(window, String::new(), cx);
             cx.notify();
         }
+    }
+}
+
+impl Shell {
+    fn publish_file_line(&mut self, window: &Window, line: String, cx: &mut Context<Self>) {
+        let key = window_key(window);
+        let drags = cx.default_global::<Drags>();
+        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line {
+            return;
+        }
+        let published = self.status_messages(cx, |messages, now| {
+            if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
+                messages.set_activity(LINE, &line, 0, false, false, now);
+                true
+            } else {
+                false
+            }
+        });
+        if !published {
+            return;
+        }
+        let drags = cx.default_global::<Drags>();
+        if line.is_empty() {
+            drags.said.remove(&key);
+        } else {
+            drags.said.insert(key, line);
+        }
+        cx.notify();
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::g2::dg2::mounted_tests::{open, Root};
+    use gpui::TestAppContext;
+
+    #[gpui::test]
+    fn vf_look_review_drag_hint_retries_after_running_activity(cx: &mut TestAppContext) {
+        let root = Root::new("hint-retry");
+        let (handle, _) = open(cx, root.src());
+        handle
+            .update(cx, |shell, window, cx| {
+                shell.status_messages(cx, |messages, now| {
+                    messages.set_activity(9, "Copying file", 9, true, false, now);
+                });
+                let hint = "Move 1 item to alpha";
+                shell.publish_file_line(window, hint.into(), cx);
+                assert!(!shell.status_messages(cx, |messages, _| {
+                    messages.activities().iter().any(|entry| entry.text == hint)
+                }));
+                shell.status_messages(cx, |messages, now| {
+                    messages.set_activity(9, "", 9, false, false, now);
+                });
+                shell.publish_file_line(window, hint.into(), cx);
+                assert!(
+                    shell.status_messages(cx, |messages, _| {
+                        messages.activities().iter().any(|entry| entry.text == hint)
+                    }),
+                    "a suppressed hint must be published when the transfer ends"
+                );
+            })
+            .unwrap();
+    }
+
+    #[gpui::test]
+    fn vf_look_review_window_teardown_removes_cached_drag_hint(cx: &mut TestAppContext) {
+        let root = Root::new("hint-teardown");
+        let (handle, _) = open(cx, root.src());
+        handle
+            .update(cx, |shell, window, cx| {
+                let key = window_key(window);
+                shell.publish_file_line(window, "Move 1 item to alpha".into(), cx);
+                assert!(cx.global::<Drags>().said.contains_key(&key));
+                shell.forget_file_drags(window, cx);
+                assert!(!cx.global::<Drags>().said.contains_key(&key));
+            })
+            .unwrap();
     }
 }

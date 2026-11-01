@@ -543,14 +543,5 @@ impl Render for PluginsPane {
             .on_key_down(cx.listener(Self::on_key))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .child(rows)
-            .children(self.card().map(|card| {
-                div()
-                    .absolute()
-                    .inset_0()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .child(card)
-            }))
     }
 }

@@ -7,6 +7,8 @@ use super::view::SettingsView;
 use gpui::{Focusable, TestAppContext};
 use std::cell::RefCell;
 use std::rc::Rc;
+#[path = "plugin_layout_tests.rs"]
+mod plugin_layout;
 
 impl Focusable for SettingsView {
     fn focus_handle(&self, _: &gpui::App) -> gpui::FocusHandle {

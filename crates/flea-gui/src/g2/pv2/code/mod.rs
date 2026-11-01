@@ -3,6 +3,7 @@
 pub mod bar;
 pub mod paint;
 mod scroll;
+mod search_match;
 mod selection;
 mod selection_source;
 pub mod shape;
@@ -103,6 +104,7 @@ pub struct CodeView {
     laid: Option<(paint::FrameKey, Rc<paint::Frame>)>,
     scroll: crate::g2::pv1::scroller::Scroll,
     scroll_timer: Option<gpui::Task<()>>,
+    matched: Option<search_match::Match>,
 }
 
 impl CodeView {
@@ -145,6 +147,7 @@ impl CodeView {
             laid: None,
             scroll: Default::default(),
             scroll_timer: None,
+            matched: None,
         }
     }
 
@@ -182,6 +185,7 @@ impl CodeView {
         self.size = size;
         self.read_failed = false;
         self.top = 0;
+        self.matched = None;
         self.offset = 0.;
         self.scroll = Default::default();
         self.scroll_timer = None;

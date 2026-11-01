@@ -18,6 +18,7 @@ pub(super) struct NameCache {
 }
 
 /// The translucent flock beside the pointer, board carry.html: each mark on its own ground plate, the front row's name after it.
+#[derive(Clone)]
 pub struct FlockElement {
     pub flock: Rc<Flock>,
     pub(super) name: Rc<RefCell<NameCache>>,
@@ -27,6 +28,15 @@ pub struct FlockElement {
 }
 
 impl FlockElement {
+    pub fn new(flock: Rc<Flock>, at: Point<Pixels>, ground: Hsla, ink: Hsla) -> Self {
+        Self {
+            flock,
+            name: Rc::default(),
+            at,
+            ground,
+            ink,
+        }
+    }
     /// Each painted layer, back first: its mark, its glyph origin and its opacity under the flock's own.
     pub fn layers(
         &self,

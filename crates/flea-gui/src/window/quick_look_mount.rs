@@ -155,6 +155,16 @@ impl Shell {
         let Some(mut doc) = prepared.or_else(|| mounting.mount(kind, window, cx)) else {
             return false;
         };
+        if let View::Code(code) = &doc.view {
+            if let Some(hit) = self.panes[side]
+                .as_ref()
+                .and_then(|host| host.search.owner.match_line(host.pane.held.listing, index))
+            {
+                code.update(cx, |code, cx| {
+                    code.reveal_match(hit.number, &hit.text, hit.run, theme.accent, cx)
+                });
+            }
+        }
         if was_prepared {
             if let crate::g2::pv1::doc::View::Markdown(view) = &doc.view {
                 let wire = self.quick_look.as_ref().unwrap().wire.clone();
