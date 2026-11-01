@@ -69,7 +69,8 @@ def drain(child, record, members, verify, *, terminate, grace, kill_grace=5, on_
         for pid in targets:
             try:
                 send(pid, signal.SIGTERM)
-            except FileNotFoundError:
+            # ESRCH from the ownership read means the target exited between the two reads.
+            except (FileNotFoundError, ProcessLookupError):
                 continue
     deadline = time.monotonic() + grace
     phase = "term" if terminate else "natural"
@@ -88,7 +89,7 @@ def drain(child, record, members, verify, *, terminate, grace, kill_grace=5, on_
             for pid in pending:
                 try:
                     send(pid, signum)
-                except FileNotFoundError:
+                except (FileNotFoundError, ProcessLookupError):
                     continue
             phase = 'term' if phase == 'natural' else 'kill'
             deadline = time.monotonic() + (grace if phase == 'term' else kill_grace)
