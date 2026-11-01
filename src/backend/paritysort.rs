@@ -4,12 +4,7 @@ use super::{
     listing::Listing,
     sort::{cmp_extension, name_order},
 };
-use std::{
-    cmp::Ordering,
-    hash::BuildHasher,
-    path::Path,
-    time::Instant,
-};
+use std::{cmp::Ordering, hash::BuildHasher, path::Path, time::Instant};
 
 pub fn sort(
     l: &mut Listing,
@@ -37,9 +32,7 @@ pub fn sort(
     let random = std::collections::hash_map::RandomState::new();
     // A rank is fixed before comparison, so this is a total order and window reads never reshuffle.
     let ranks: Vec<_> = if by == "random" {
-        (0..l.len())
-            .map(|i| random.hash_one(l.name(i)))
-            .collect()
+        (0..l.len()).map(|i| random.hash_one(l.name(i))).collect()
     } else {
         Vec::new()
     };
