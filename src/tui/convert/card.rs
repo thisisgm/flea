@@ -174,7 +174,10 @@ fn body(m: &Model, width: usize) -> Vec<Line> {
 }
 // The range's last file goes by its name alone, under the first path, as the convert-pdf board prints it.
 fn last_name(path: &str) -> String {
-    std::path::Path::new(path).file_name().map_or_else(|| path.to_owned(), |name| name.to_string_lossy().into_owned())
+    std::path::Path::new(path).file_name().map_or_else(
+        || path.to_owned(),
+        |name| name.to_string_lossy().into_owned(),
+    )
 }
 pub fn geometry(m: &Model) -> Card {
     let f = m.converting.card.as_ref().unwrap();
@@ -224,7 +227,11 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
         .take(card.shown)
     {
         // A format row's wash spans the card's air and its ▎ edge takes the first air cell, so its mark sits on Output's column as the boards draw it.
-        let column = if row.kind == 1 { card.left() + 1 - card.air } else { card.left() + 1 };
+        let column = if row.kind == 1 {
+            card.left() + 1 - card.air
+        } else {
+            card.left() + 1
+        };
         let at = format!("\x1b[{};{}H", card.y + 4 + i - card.top, column);
         out.push_str(&format!("{at}{base}"));
         match row.kind {
@@ -250,7 +257,11 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 if cards::rtl(m) {
                     out.push_str(&format!(
                         "{fill}{} {ink}{}{}{edge}{}",
-                        cards::field_text(m, &row.text, (card.content() + 2 * card.air).saturating_sub(3 + lead)),
+                        cards::field_text(
+                            m,
+                            &row.text,
+                            (card.content() + 2 * card.air).saturating_sub(3 + lead)
+                        ),
                         if m.marks() { mark } else { " " },
                         theme.accent,
                         " ".repeat(lead)
@@ -262,7 +273,10 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                         " ".repeat(lead),
                         if m.marks() { mark } else { " " },
                         theme.foreground,
-                        fit(&row.text, (card.content() + 2 * card.air).saturating_sub(3 + lead))
+                        fit(
+                            &row.text,
+                            (card.content() + 2 * card.air).saturating_sub(3 + lead)
+                        )
                     ));
                 }
             }

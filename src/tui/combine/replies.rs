@@ -127,9 +127,15 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         } else if text(value, "err") == "cancelled" {
             m.say_text(Text::Key("tui.combine.cancelled"));
         } else if !flag(value, "ok") {
-            m.fail_text(Text::Args("dialogs.output.error.operation", vec![text(value, "err").into()]));
+            m.fail_text(Text::Args(
+                "dialogs.output.error.operation",
+                vec![text(value, "err").into()],
+            ));
         } else {
-            m.say_text(Text::Args("dialogs.output.completed", vec![text(value, "path").into()]));
+            m.say_text(Text::Args(
+                "dialogs.output.completed",
+                vec![text(value, "path").into()],
+            ));
         }
         if run.folder == m.path {
             m.refresh(w)?;

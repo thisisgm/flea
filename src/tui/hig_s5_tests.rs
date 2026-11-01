@@ -1,4 +1,7 @@
-use crate::{jsondoc, tui::{icons, pane, render::frame_tests, theme::Theme, wire}};
+use crate::{
+    jsondoc,
+    tui::{icons, pane, render::frame_tests, theme::Theme, wire},
+};
 
 #[test]
 fn tui_parity17_hig_properties_uses_the_listings_mime_description() {
@@ -9,20 +12,39 @@ fn tui_parity17_hig_properties_uses_the_listings_mime_description() {
     let (mut w, reader) = wire::echo_wire();
     let reply = jsondoc::parse(r#"{"t":"menuaction","op":"properties","id":8,"ok":true,"path":"/fx/v/work/notes.txt","kind":"File","bytes":99,"mode":"0644"}"#).unwrap();
     m.receive(reply, &mut w).unwrap();
-    assert!(m.properties.as_ref().unwrap().iter().any(|(key, value)| key == "Kind" && value == "Plain text document"));
+    assert!(m
+        .properties
+        .as_ref()
+        .unwrap()
+        .iter()
+        .any(|(key, value)| key == "Kind" && value == "Plain text document"));
     m.rows.clear();
     crate::tui::render::cards::refresh_locale(&mut m);
-    assert!(m.properties.as_ref().unwrap().iter().any(|(key, value)| key == "Kind" && value == "Plain text document"));
+    assert!(m
+        .properties
+        .as_ref()
+        .unwrap()
+        .iter()
+        .any(|(key, value)| key == "Kind" && value == "Plain text document"));
     wire::finish(w, reader);
 }
 
 #[test]
 fn properties_keep_the_shared_folder_link_and_special_descriptions() {
     let i18n = crate::i18n::I18n::default();
-    for (kind, directory, expected) in [("Directory", true, "Folder"), ("Symbolic link", false, "Symbolic link"), ("Special file", false, "Special file")] {
-        let reply = jsondoc::parse(&format!(r#"{{"kind":"{kind}","directory":{directory},"mimeKind":"Plain text document"}}"#)).unwrap();
+    for (kind, directory, expected) in [
+        ("Directory", true, "Folder"),
+        ("Symbolic link", false, "Symbolic link"),
+        ("Special file", false, "Special file"),
+    ] {
+        let reply = jsondoc::parse(&format!(
+            r#"{{"kind":"{kind}","directory":{directory},"mimeKind":"Plain text document"}}"#
+        ))
+        .unwrap();
         let facts = crate::tui::render::cards::properties(&reply, &i18n);
-        assert!(facts.iter().any(|(key, value)| key == "Kind" && value == expected));
+        assert!(facts
+            .iter()
+            .any(|(key, value)| key == "Kind" && value == expected));
     }
 }
 
@@ -38,7 +60,12 @@ fn properties_use_the_selected_identity_outside_the_visible_window() {
     m.properties = Some(Vec::new());
     let (mut w, reader) = wire::echo_wire();
     m.receive(jsondoc::parse(r#"{"t":"menuaction","op":"properties","id":8,"ok":true,"path":"/fx/v/work/notes.txt","kind":"File"}"#).unwrap(), &mut w).unwrap();
-    assert!(m.properties.as_ref().unwrap().iter().any(|(key, value)| key == "Kind" && value == "Plain text document"));
+    assert!(m
+        .properties
+        .as_ref()
+        .unwrap()
+        .iter()
+        .any(|(key, value)| key == "Kind" && value == "Plain text document"));
     wire::finish(w, reader);
 }
 
@@ -55,5 +82,8 @@ fn tui_parity17_hig_binary_data_keeps_the_binary_glyph_in_list_and_preview() {
     let head = pane::preview(&m, 0, 50, 27, &theme);
     assert!(head.contains("\u{eae8}"));
     assert!(!head.contains("\u{ec5e}"));
-    assert_eq!(icons::row(&frame_tests::entry("notes.txt", false, 99), true), icons::TEXT);
+    assert_eq!(
+        icons::row(&frame_tests::entry("notes.txt", false, 99), true),
+        icons::TEXT
+    );
 }

@@ -121,7 +121,8 @@ pub(super) fn row(name: &str, kind: &str, icon: &str) -> Row {
         link: String::new(),
         kind: kind.into(),
         thumbnail: false,
-        modified: 0, birth: None,
+        modified: 0,
+        birth: None,
         icon: icon.into(),
     }
 }
@@ -335,7 +336,11 @@ fn tui_office_cache_tracks_changed_source() {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
         m.preview_state.office.source.is_some()
     });
-    std::fs::write(&source, container(b"docx bytes, edited in place with more bytes")).unwrap();
+    std::fs::write(
+        &source,
+        container(b"docx bytes, edited in place with more bytes"),
+    )
+    .unwrap();
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
         m.pdf.is_none()

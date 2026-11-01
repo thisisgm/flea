@@ -1,6 +1,11 @@
 //! Valid ZIP container envelopes keep the existing mocked-conversion tests independent of container rejection.
 pub(crate) fn container(body: &[u8]) -> Vec<u8> {
-    let xml = [b"<?xml version=\"1.0\"?><test>".as_slice(), body, b"</test>"].concat();
+    let xml = [
+        b"<?xml version=\"1.0\"?><test>".as_slice(),
+        body,
+        b"</test>",
+    ]
+    .concat();
     let entries: [(&str, &[u8]); 3] = [
         ("mimetype", b"application/vnd.oasis.opendocument.text"),
         ("[Content_Types].xml", b"<Types/>"),

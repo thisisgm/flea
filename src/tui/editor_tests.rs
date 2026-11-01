@@ -167,9 +167,7 @@ fn rename_preserves_extension_unicode_and_changed_identity() {
     assert!(editor.valid());
     let moved = sandbox.join("old");
     assert!(
-        path.is_absolute()
-            && path.starts_with(sandbox.path())
-            && moved.starts_with(sandbox.path())
+        path.is_absolute() && path.starts_with(sandbox.path()) && moved.starts_with(sandbox.path())
     );
     std::fs::rename(&path, moved).unwrap();
     sandbox.file("café.txt", "replacement");
