@@ -202,7 +202,7 @@ impl super::model::Model {
             &mut hints.undo,
         ] {
             if !hint.is_empty() {
-                *hint = flea::keys::display::chord_label(
+                *hint = flea::keys::display::chord_legend(
                     &super::render::key_sheet::lowercase(hint),
                     &snapshot,
                 )?
