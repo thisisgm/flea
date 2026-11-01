@@ -69,11 +69,12 @@ impl Render for ChromeView {
                 let now = cx.background_executor().now();
                 pressed.update(cx, |picker, _| picker.chrome.pressed_at = Some(now));
             });
+            // Enter and Space act on their press in control_key; gpui's keyboard click on the release would step a second time (EY-355).
             controls.push(control.on_click(move |event, window, cx| {
                 let held = handle.read(cx).chrome.pressed_at;
                 let long = matches!(event, gpui::ClickEvent::Mouse(_))
                     && !crate::path::tap::short_press(held, cx.background_executor().now());
-                if !enabled || long {
+                if !enabled || long || event.is_keyboard() {
                     return;
                 }
                 handle.update(cx, |picker, cx| {
