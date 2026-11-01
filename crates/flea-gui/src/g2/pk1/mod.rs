@@ -88,6 +88,8 @@ mod save_enabled_tests;
 #[cfg(test)]
 mod board_parity_tests;
 #[cfg(test)]
+mod ey_chooser_tests;
+#[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
 mod gm338_hidden_tests;

@@ -131,7 +131,12 @@ impl Picker {
                         )),
                 )
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                .on_click(cx.listener(|picker, _, window, cx| picker.open_filter(window, cx))),
+                // Enter, Space and Down open the menu on their press in control_key; gpui's keyboard click on the release would reopen it after a pick.
+                .on_click(cx.listener(|picker, event: &gpui::ClickEvent, window, cx| {
+                    if !event.is_keyboard() {
+                        picker.open_filter(window, cx);
+                    }
+                })),
         )
     }
 
