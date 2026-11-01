@@ -296,3 +296,14 @@ fn a_tag_term_lists_a_typo_row_only_when_no_tagged_basename_holds_the_query() {
         assert_eq!(names(&tagged(&mut s, &rx, 2, "tag:Red flea")), listed, "flea.txt tagged: {hit_tagged}");
     }
 }
+
+#[test]
+fn a_tagged_narrowing_answers_on_the_worker() {
+    let d = fixture("tagsinline");
+    let (mut s, rx) = opened(&d);
+    tagged(&mut s, &rx, 1, "tag:Red");
+    assert!(s.last_typos && !s.answers_small("tag:Red h"), "a tag term keeps the answer off the loop");
+    let previous = s.last_matches.len();
+    s.query(2, "tag:Red h", 50).expect("answers");
+    assert_eq!(s.counters.rows_scored, previous, "answer() narrowed the tagged extension");
+}

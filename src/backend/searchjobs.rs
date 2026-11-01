@@ -44,65 +44,70 @@ impl Worker {
         let (tx, jobs) = sync_channel::<(Session, Work)>(1);
         let (done, rx) = channel();
         let handle = std::thread::spawn(move || {
-            while let Ok((mut session, work)) = jobs.recv() {
-                let mut cancelled = None;
-                let mut empty = None;
-                let ran = catch_unwind(AssertUnwindSafe(|| match work {
-                    Work::Query(query, gen, count, sizes) => {
-                        session.wish_sizes(sizes);
-                        session.ask(gen, &query, count, &events)
-                    }
-                    Work::Walked => {
-                        if session.poll_walked() {
-                            let answer = session.answer_held().or_else(|| session.re_answer_standing());
-                            if answer.is_none() { empty = session.landing_empty(); }
-                            answer
-                        } else { None }
-                    }
-                    Work::Held => {
-                        if session.hold_until.is_some_and(|until| until <= std::time::Instant::now()) {
-                            session.answer_held()
-                        } else { None }
-                    }
-                    Work::Refresh => session.re_answer_now(),
-                    // A recursive watch delta is reconciled before its standing query is re-run, as on the loop before.
-                    Work::Delta(token) => {
-                        if session.apply_watch_token(token) {
-                            let answer = session.re_answer_now();
-                            if answer.is_none() {
-                                empty = session.landing_empty();
-                            }
-                            answer
-                        } else {
-                            None
-                        }
-                    }
-                    Work::Cancel => {
-                        cancelled = session.cancel_walk();
-                        None
-                    }
-                }));
-                // A panic answers nothing, but Done and SearchReady still go out, so the loop's gate frees and says why.
-                let (answer, failed) = match ran {
-                    Ok(answer) => (answer, None),
-                    Err(_) => {
-                        let error = super::iomount::internal_failure("search", &session.scope);
-                        let (scope, folder, hidden) = (session.scope.clone(), session.folder.clone(), session.hidden);
-                        session.probes.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-                        // A poisoned watch can panic on drop too; none of the failed session's state is reused.
-                        let _ = catch_unwind(AssertUnwindSafe(|| drop(session)));
-                        session = Session::open_async(&scope.to_string_lossy(), &folder.to_string_lossy(), hidden, events.clone());
-                        cancelled = None;
-                        empty = None;
-                        (None, Some(error))
-                    }
-                };
-                if done.send(Done { session, answer, cancelled, empty, failed }).is_err() { break; }
+            while let Ok((session, work)) = jobs.recv() {
+                if done.send(execute(session, work, &events)).is_err() { break; }
                 if events.send(Event::SearchReady).is_err() { break; }
             }
         });
         Self { tx, rx, handle }
     }
+}
+
+// One piece of work on the session, on the worker or, for an answer bounded by its few narrowed matches, on the loop.
+fn execute(mut session: Session, work: Work, events: &Sender<Event>) -> Done {
+    let mut cancelled = None;
+    let mut empty = None;
+    let ran = catch_unwind(AssertUnwindSafe(|| match work {
+        Work::Query(query, gen, count, sizes) => {
+            session.wish_sizes(sizes);
+            session.ask(gen, &query, count, events)
+        }
+        Work::Walked => {
+            if session.poll_walked() {
+                let answer = session.answer_held().or_else(|| session.re_answer_standing());
+                if answer.is_none() { empty = session.landing_empty(); }
+                answer
+            } else { None }
+        }
+        Work::Held => {
+            if session.hold_until.is_some_and(|until| until <= std::time::Instant::now()) {
+                session.answer_held()
+            } else { None }
+        }
+        Work::Refresh => session.re_answer_now(),
+        // A recursive watch delta is reconciled before its standing query is re-run, as on the loop before.
+        Work::Delta(token) => {
+            if session.apply_watch_token(token) {
+                let answer = session.re_answer_now();
+                if answer.is_none() {
+                    empty = session.landing_empty();
+                }
+                answer
+            } else {
+                None
+            }
+        }
+        Work::Cancel => {
+            cancelled = session.cancel_walk();
+            None
+        }
+    }));
+    // A panic answers nothing, but Done and SearchReady still go out, so the loop's gate frees and says why.
+    let (answer, failed) = match ran {
+        Ok(answer) => (answer, None),
+        Err(_) => {
+            let error = super::iomount::internal_failure("search", &session.scope);
+            let (scope, folder, hidden) = (session.scope.clone(), session.folder.clone(), session.hidden);
+            session.probes.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            // A poisoned watch can panic on drop too; none of the failed session's state is reused.
+            let _ = catch_unwind(AssertUnwindSafe(|| drop(session)));
+            session = Session::open_async(&scope.to_string_lossy(), &folder.to_string_lossy(), hidden, events.clone());
+            cancelled = None;
+            empty = None;
+            (None, Some(error))
+        }
+    };
+    Done { session, answer, cancelled, empty, failed }
 }
 
 struct Previous {
@@ -190,6 +195,12 @@ impl Gate {
                 announced: session.announced,
             });
             self.discard = false;
+            // A few narrowed matches answer sooner on the loop than a worker hop and a doorbell wake take.
+            if matches!(&work, Work::Query(query, ..) if session.answers_small(query)) {
+                let done = execute(session, work, events);
+                self.publish(done, st, out, tb, pool, buffered);
+                return None;
+            }
             let worker = self.worker.get_or_insert_with(|| Worker::new(events.clone()));
             worker.tx.send((session, work)).unwrap_or_else(|_| panic!("search execution worker stopped"));
             None
@@ -205,7 +216,11 @@ impl Gate {
 
     fn finish(&mut self, st: &mut State, out: &mut impl Write, tb: &Tables, pool: &Pool, buffered: &mut VecDeque<Event>) {
         if !self.busy() { return; }
-        let mut done = self.worker.as_ref().unwrap().rx.recv().expect("search result before its wake");
+        let done = self.worker.as_ref().unwrap().rx.recv().expect("search result before its wake");
+        self.publish(done, st, out, tb, pool, buffered);
+    }
+
+    fn publish(&mut self, mut done: Done, st: &mut State, out: &mut impl Write, tb: &Tables, pool: &Pool, buffered: &mut VecDeque<Event>) {
         let previous = self.previous.take().unwrap();
         // Pending patches, a landing's watch deltas and a delta job all renumber through the same epoch.
         let rest_ids_valid = done.failed.is_none() && done.session.index.lock().unwrap().epoch == previous.epoch;
@@ -301,3 +316,7 @@ mod delta_tests;
 #[cfg(test)]
 #[path = "searchjobs_fix_tests.rs"]
 mod fix_tests;
+
+#[cfg(test)]
+#[path = "searchjobs_inline_tests.rs"]
+mod inline_tests;

@@ -153,11 +153,11 @@ impl Session {
         answer.gen = gen;
         self.last_query = query.to_string();
         #[cfg(test)]
-        let clone_started = Instant::now();
-        self.last_matches = answer.all.clone();
+        let store_started = Instant::now();
+        self.last_matches = std::mem::take(&mut answer.all);
         self.last_typos = answer.typos;
         #[cfg(test)]
-        { self.counters.phases.last_matches = clone_started.elapsed(); }
+        { self.counters.phases.last_matches = store_started.elapsed(); }
         self.last_answered_gen = gen;
         self.standing = Some((gen, query.to_string(), count));
         self.standing_while_walking = answer.walking;
@@ -198,7 +198,7 @@ impl Session {
         // A tagged query whose names are still being read stands for one more re-run.
         self.standing_while_walking = answer.walking;
         self.last_query = query;
-        self.last_matches = answer.all.clone();
+        self.last_matches = std::mem::take(&mut answer.all);
         self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)
@@ -213,7 +213,7 @@ impl Session {
         let mut answer = self.answer(&query, count);
         answer.gen = gen;
         self.last_query = query;
-        self.last_matches = answer.all.clone();
+        self.last_matches = std::mem::take(&mut answer.all);
         self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)

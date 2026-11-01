@@ -2,21 +2,38 @@
 use super::*;
 
 impl Session {
+    // An extension of the last query scores only its matches, unless a walk, a tag rewrite or a typo budget step forbids it.
+    fn narrows(&self, query: &str, terms: &crate::backend::searchtags::Terms) -> bool {
+        self.tags.narrows(&self.last_query, query) && !self.walking() && !self.standing_while_walking
+            && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text)
+    }
+
+    // The last matches stand for the whole index only while it is complete and has not grown since they were scored.
+    fn index_unchanged(&self, index: &Index) -> bool {
+        index.partial.is_none() && index.len() == self.matched_index_len
+    }
+
+    // A tagless narrowing of fewer matches than one parallel pass, whose last matches hold every typo row, costs less than the worker hop.
+    pub(crate) fn answers_small(&self, query: &str) -> bool {
+        let terms = crate::backend::searchtags::Tags::terms(query);
+        terms.tags.is_empty() && self.last_typos && self.last_matches.len() < searchindex::PARALLEL_SCORE_AT
+            && self.narrows(query, &terms) && self.index_unchanged(&self.index.lock().unwrap())
+    }
+
     // Scores the index and ranks only the first window; the callers own the generations.
     pub(crate) fn answer(&mut self, query: &str, count: usize) -> Answer {
         let started = Instant::now();
         let terms = crate::backend::searchtags::Tags::terms(query);
-        let narrow = self.tags.narrows(&self.last_query, query)
-            && !self.walking() && !self.standing_while_walking
-            && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
+        let narrow = self.narrows(query, &terms);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
         // Without tag terms the match set is final after pass 1, so only the classes the window reaches get their DP.
         let fuzzy = if terms.tags.is_empty() { Matcher::deferred(&terms.text) } else { Matcher::new(&terms.text) };
         let priors = self.priors;
         let index = self.index.lock().unwrap();
         // Only complete, unchanged extensions with stable matching rules can reuse their previous candidates.
-        let narrowed = narrow && index.partial.is_none() && index.len() == self.matched_index_len;
-        let candidates: Vec<usize> = if narrowed { self.last_matches.clone() } else { (0..index.len()).collect() };
+        let narrowed = narrow && self.index_unchanged(&index);
+        // Every caller replaces the last matches with this answer's, so a narrowed pass moves them out instead of copying.
+        let candidates: Vec<usize> = if narrowed { std::mem::take(&mut self.last_matches) } else { (0..index.len()).collect() };
         #[cfg(test)]
         let mut scored = candidates.len();
         #[cfg(test)]

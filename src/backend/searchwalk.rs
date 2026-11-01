@@ -351,7 +351,7 @@ impl Session {
                 answer.gen = gen;
                 answer.walking = false;
                 self.last_query = query;
-                self.last_matches = answer.all.clone();
+                self.last_matches = std::mem::take(&mut answer.all);
                 self.last_typos = answer.typos;
                 self.last_batch = Instant::now();
                 Some(answer)

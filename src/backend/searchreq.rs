@@ -173,7 +173,8 @@ pub fn emit_session_answer_cancelled(
     cancelled: bool,
 ) {
     st.base = answer.scope.clone();
-    st.listing = crate::backend::listing::Listing::new();
+    let names = answer.rows.iter().map(|(path, _)| path.len()).sum();
+    st.listing = crate::backend::listing::Listing::with_reserve(names, answer.rows.len());
     for (path, is_dir) in &answer.rows {
         st.listing.push(path, *is_dir);
     }
