@@ -1,15 +1,12 @@
 //! The empty folder's hero on a caller's millisecond clock. Captions loop while shown; the QML front end is not the reference.
 use super::{out_cubic, CLOSE_MS, OPEN_MS, TRANSLATE_UP_PX};
 
-/// The rotating phrases in order; each appearance starts with the first phrase.
-pub const PHRASES: [&str; 7] = [
-    "feedback.empty.phrase_1",
-    "feedback.empty.phrase_2",
-    "feedback.empty.phrase_3",
-    "feedback.empty.phrase_4",
-    "feedback.empty.phrase_5",
-    "feedback.empty.phrase_6",
-    "feedback.empty.phrase_7",
+/// The rotating beats in order, the catalog's own keys; each appearance starts with the first and the loop runs while shown.
+pub const PHRASES: [&str; 4] = [
+    "pane.empty.initial",
+    "pane.empty.beat_one",
+    "pane.empty.beat_two",
+    "pane.empty.rest",
 ];
 /// The OEM phrase timer's interval.
 pub const ROTATE_MS: u64 = 2800;

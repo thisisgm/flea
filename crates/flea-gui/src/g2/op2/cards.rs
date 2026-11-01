@@ -215,6 +215,8 @@ pub(super) struct Tokens {
     pub(super) ground: Hsla,
     pub(super) fg: Hsla,
     pub(super) muted: Hsla,
+    /// Theme.color.muted itself, the ink v0.3.12's DialogButton labels an unavailable button in.
+    pub(super) quiet: Hsla,
     pub(super) muted_frame: Hsla,
     pub(super) accent: Hsla,
     pub(super) accent_frame: Hsla,
@@ -230,6 +232,7 @@ impl Tokens {
             ground: palette.background,
             fg: palette.foreground,
             muted: palette.muted,
+            quiet: palette.muted,
             muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             accent: palette.accent,
             accent_frame: palette.accent_frame,

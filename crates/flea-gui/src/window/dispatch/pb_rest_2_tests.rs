@@ -124,7 +124,8 @@ fn pb_rest_2_escape_deselects_without_clearing_a_standing_filter(cx: &mut TestAp
         cx,
         r#"{"t":"filtered","id":1,"query":"a","n":1000,"rows":[0,1],"ms":0.01,"listing":1}"#,
     );
-    cx.simulate_keystrokes("ctrl-a escape");
+    // Enter hands the keyboard to the list, whose Ctrl+A marks the matches (EY-115: the typed line keeps it).
+    cx.simulate_keystrokes("enter ctrl-a escape");
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(host.selected.is_empty(), "Escape clears marks first");

@@ -47,7 +47,7 @@ pub(super) fn root() -> Root {
     Root(root)
 }
 
-/// Japanese with no Japanese catalog: Latin fallback text under a caseless language pins case and tracking to the language.
+/// Japanese whose first beat is mixed-case Latin: a caseless language must draw it as written, never uppercased.
 pub(super) fn caseless(root: &Path) -> I18n {
     std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
     std::fs::write(
@@ -55,10 +55,19 @@ pub(super) fn caseless(root: &Path) -> I18n {
         r#"{"en":{},"ja":{"name":"Japanese"}}"#,
     )
     .unwrap();
+    std::fs::create_dir_all(root.join("catalog/ja")).unwrap();
+    std::fs::write(
+        root.join("catalog/ja/flea.json"),
+        format!(r#"{{"pane.empty.initial":"{CASELESS_BEAT}"}}"#),
+    )
+    .unwrap();
     std::fs::write(root.join("language"), "ja").unwrap();
     I18n::load(Paths {
         omarchy: root.join("omarchy"),
         language_file: root.join("language"),
-        catalogs: vec![crate::test_catalogs::english_only()],
+        catalogs: vec![root.join("catalog"), crate::test_catalogs::english_only()],
     })
 }
+
+/// The caseless catalog's first beat, in mixed case so an uppercased draw shows.
+pub(super) const CASELESS_BEAT: &str = "Nothing here yet";

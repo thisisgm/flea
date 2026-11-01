@@ -162,7 +162,7 @@ fn a_caseless_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
     let phrase = handle
         .update(cx, |hero, _, _| hero.phrases()[0].clone())
         .unwrap();
-    assert_eq!(phrase.as_ref(), "Nothing here yet");
+    assert_eq!(phrase.as_ref(), super::test_root::CASELESS_BEAT);
     let line = shaped(cx, handle, phrase);
     assert_eq!(painted(cx, handle), origins(&line, px(0.)));
     let caption = handle

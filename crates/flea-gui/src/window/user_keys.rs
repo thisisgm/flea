@@ -270,7 +270,7 @@ impl Shell {
         }
     }
 
-    fn key_preset(&self) -> &str {
+    pub(crate) fn key_preset(&self) -> &str {
         self.launch
             .settings
             .data

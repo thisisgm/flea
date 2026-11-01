@@ -9,6 +9,12 @@ use std::{cell::RefCell, rc::Rc};
 // picker-path: each bare chrome mark takes a 24 px slot the strip's height.
 const MARK_WIDTH: f32 = 24.;
 
+#[cfg(test)]
+thread_local! {
+    /// The marks the last render drew, for a test that reads each mark's painted ink.
+    pub(crate) static DRAWN: std::cell::Cell<Option<Rc<RefCell<crate::path::chrome::Frame>>>> = const { std::cell::Cell::new(None) };
+}
+
 pub struct ChromeView {
     pub picker: WeakEntity<Picker>,
     pub path: Entity<PathBar>,
@@ -27,6 +33,8 @@ impl Render for ChromeView {
         let palette = Palette::inherited(&window.text_style(), theme);
         let size = super::size::Size::of(window, cx);
         let frame = Rc::new(RefCell::new(crate::path::chrome::Frame::default()));
+        #[cfg(test)]
+        DRAWN.set(Some(frame.clone()));
         let mode = owner.browse.listing.read(cx).view_mode();
         let buttons = [
             (

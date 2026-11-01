@@ -338,3 +338,6 @@ mod pointer;
 
 #[path = "draw_flash_look_tests.rs"]
 mod look;
+
+#[path = "fixchrome_ey297_tests.rs"]
+mod fixchrome_ey297;

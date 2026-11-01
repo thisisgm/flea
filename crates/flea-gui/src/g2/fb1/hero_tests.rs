@@ -298,7 +298,14 @@ fn caption_observer_uses_the_painted_font_size_and_tracking(cx: &mut TestAppCont
             1.2,
             "NOTHING HERE YET",
         ),
-        (caseless, changed, 16., 13., 0., "Nothing here yet"),
+        (
+            caseless,
+            changed,
+            16.,
+            13.,
+            0.,
+            super::test_root::CASELESS_BEAT,
+        ),
     ] {
         handle
             .update(cx, |host, window, cx| {

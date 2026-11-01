@@ -72,6 +72,8 @@ mod filter_fade_tests;
 #[cfg(test)]
 mod fixlogic_ey485_tests;
 #[cfg(test)]
+mod fixchrome_tests;
+#[cfg(test)]
 mod header_tests;
 #[cfg(test)]
 mod parity_tests;
