@@ -270,6 +270,40 @@ mod tests {
         assert_eq!(isolate_auto("/בית/2025"), "\u{2068}/בית/2025\u{2069}");
     }
 
+    // The shaper takes a line's direction from its first strong letter, so a hint opening on a keycap must still read right to left.
+    #[test]
+    fn i50_keycap_keeps_the_rtl_paragraph() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .map(|dir| dir.join("src/keys/fixtures/keycaps"))
+            .find(|dir| dir.is_dir())
+            .expect("the repo's src/keys/fixtures/keycaps");
+        let fa = flea::i18n::I18n::load(flea::i18n::Paths {
+            omarchy: root.clone(),
+            language_file: root.join("language-fa"),
+            catalogs: vec![root.join("catalogs")],
+        });
+        let actions = ["textSizeUp", "textSizeDown", "textSizeReset"];
+        let rtl = |text: &str| {
+            unicode_bidi::BidiInfo::new(text, None).paragraphs[0]
+                .level
+                .is_rtl()
+        };
+        let hint = flea::keys::presentation::hinted_all(
+            &fa,
+            "settings.hint.text_keys",
+            "default",
+            &actions,
+        );
+        assert!(rtl(&hint), "{hint:?}");
+        let raw = actions.map(|action| flea::keys::presentation::key_for("default", action));
+        let raw = fa.tr_args(
+            "settings.hint.text_keys",
+            &raw.each_ref().map(String::as_str),
+        );
+        assert!(!rtl(&raw), "{raw:?}");
+    }
+
     #[test]
     fn i50_rtl_nondirectional_icon_kept() {
         assert!(!rtl().mirrors_icon(IconRole::NonDirectional));
