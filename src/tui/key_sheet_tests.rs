@@ -269,6 +269,7 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
             language_file: root.join(format!("language-{code}")),
             catalogs: vec![root.join("catalogs")],
         });
+        assert_eq!((m.i18n.language(), m.i18n.locale().right_to_left), (code, code == "fa"), "the {code} fixture loaded");
         let rows = screen(&m, &theme).0.join("\n");
         for (keys, label) in [
             ("z / ctrl-z", "keys.undo"),
@@ -279,7 +280,7 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
             assert_ne!(words, label, "{code} {label} is translated in the fixture");
             // The base sheet mirrors its columns in a right-to-left language, so the words lead there.
             let beside = rows.lines().any(|line| match (line.find(keys), line.find(words.as_str())) {
-                (Some(at_keys), Some(at_words)) if m.i18n.locale().right_to_left => at_words < at_keys,
+                (Some(at_keys), Some(at_words)) if m.i18n.locale().right_to_left => at_words + words.len() <= at_keys,
                 _ => line.contains(&format!("{keys}  {words}")),
             });
             assert!(beside, "{code}: {keys} beside {words}\n{rows}");
