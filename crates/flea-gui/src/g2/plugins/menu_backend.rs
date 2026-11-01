@@ -1,4 +1,4 @@
-//! Compile the production plugin host inside the cargo-west test sandbox, as the menu backend fixtures do.
+//! Compile the production plugin host for the tests that drive the real owner process.
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -7,10 +7,10 @@ use std::{
 
 use crate::g2::mn1::foldhash;
 
-pub(super) fn binary(root: &Path) -> &'static Path {
+// Each test process owns its cached executable so concurrent suites cannot replace it.
+pub(super) fn binary() -> &'static Path {
     static BINARY: OnceLock<PathBuf> = OnceLock::new();
     BINARY.get_or_init(|| {
-        assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let executable = std::env::current_exe().unwrap();
         let dependencies = executable.parent().unwrap();
@@ -27,7 +27,7 @@ pub(super) fn binary(root: &Path) -> &'static Path {
             })
             .max_by_key(|path| path.metadata().unwrap().modified().unwrap())
             .expect("cargo built flea");
-        let binary = root.join("flea-plugin-host");
+        let binary = dependencies.join(format!("flea-plugin-host-{}", std::process::id()));
         let output = Command::new("rustc")
             .arg("--edition=2021")
             .arg("--crate-name=flea")
@@ -52,3 +52,6 @@ pub(super) fn binary(root: &Path) -> &'static Path {
         binary
     })
 }
+
+#[path = "menu_backend_process_tests.rs"]
+mod process_tests;

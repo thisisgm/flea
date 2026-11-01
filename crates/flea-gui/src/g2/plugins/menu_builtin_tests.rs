@@ -131,6 +131,7 @@ fn plugin_menu_runtime_builtin_unavailable_rows_have_no_state_word_and_keep_the_
             .map(|(row, line)| (row.id.to_string(), line.wanted))
             .collect::<Vec<_>>()
     });
+    assert!(!widths.is_empty(), "the menu draws the built-in send rows");
     update(cx, fixture.handle, |shell, window, cx| {
         let sender = &mut shell.menu.providers.sides[0];
         sender.menu_opened(
@@ -165,12 +166,18 @@ fn plugin_menu_runtime_builtin_unavailable_rows_have_no_state_word_and_keep_the_
     update(cx, fixture.handle, |shell, _, _| {
         let menu = shell.menu.menu.borrow();
         let card = menu.card.as_ref().unwrap();
-        for (row, line) in card
+        let brands: Vec<_> = card
             .entries
             .iter()
             .zip(&card.built.lines)
             .filter(|(row, _)| row.brand.is_some())
-        {
+            .collect();
+        assert_eq!(
+            brands.len(),
+            widths.len(),
+            "every unavailable row stays in the menu"
+        );
+        for (row, line) in brands {
             assert!(row.disabled, "{} remains unavailable", row.id);
             assert!(line.word.is_none(), "{} has no state word", row.id);
             assert_eq!(line.ink, crate::g2::mn1::lines::Ink::Errored);

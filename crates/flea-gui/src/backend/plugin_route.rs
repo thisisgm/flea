@@ -9,7 +9,7 @@ pub(crate) struct Route {
     sender: async_channel::Sender<(u64, String)>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 struct State {
     active: bool,
     epoch: u64,
@@ -29,7 +29,7 @@ impl Backend {
         if self.plugin_route.get().is_some() {
             return None;
         }
-        let (sender, receiver) = async_channel::bounded(64);
+        let (sender, receiver) = async_channel::bounded(crate::g2::plugins::limits::ROUTE_QUEUE);
         let route = Route {
             state: Default::default(),
             sender,
@@ -115,29 +115,45 @@ impl Route {
                     .any(|p| p.as_str().is_some_and(|s| s.starts_with("plugin://")))
             });
         let mut state = self.state.lock().unwrap();
-        if command == "list" {
-            state.active = virtual_path("path");
-            state.epoch += 1;
-        } else if command == "listpaths" {
-            state.active = false;
-            state.epoch += 1;
-        }
-        if matches!(
+        // A list or listpaths moves the route only once its line is placed, so a refused list keeps the pane's last route.
+        let next = match command {
+            "list" => State {
+                active: virtual_path("path"),
+                epoch: state.epoch + 1,
+            },
+            "listpaths" => State {
+                active: false,
+                epoch: state.epoch + 1,
+            },
+            _ => *state,
+        };
+        let passthrough = matches!(
             command,
             "clipGet" | "clipSet" | "clipClear" | "clipWatch" | "plugins"
-        ) {
+        );
+        if passthrough
+            || (!next.active && !virtual_path("path") && !virtual_path("dest") && !virtual_paths)
+        {
+            *state = next;
             return Ok(false);
         }
-        if !state.active && !virtual_path("path") && !virtual_path("dest") && !virtual_paths {
-            return Ok(false);
-        }
-        let epoch = state.epoch;
-        if self.sender.try_send((epoch, line)).is_err() {
-            return Err(super::failure(
+        match self.sender.try_send((next.epoch, line)) {
+            Ok(()) => {
+                *state = next;
+                Ok(true)
+            }
+            Err(async_channel::TrySendError::Full(_)) => Err(super::failure(
                 "pane.row_request",
                 "Plugin request queue is full.",
-            ));
+            )),
+            Err(async_channel::TrySendError::Closed(_)) => Err(super::failure(
+                "pane.row_request",
+                "Plugin place owner has stopped.",
+            )),
         }
-        Ok(true)
     }
 }
+
+#[cfg(test)]
+#[path = "plugin_route_tests.rs"]
+mod tests;

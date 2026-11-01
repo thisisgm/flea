@@ -1,11 +1,11 @@
 //! Typed place operations retain the originating listing and menu confirmation.
 use super::{place::refusal, place_model::*};
-use flea::jsondoc::Json;
+use flea::{jsondoc::Json, ui_logic_mn1::build};
 
 pub(super) enum Completion {
     List,
     Rename(String),
-    Transfer(usize),
+    Transfer { count: usize, moving: bool },
     Delete(u64, usize),
 }
 pub(super) enum Action {
@@ -171,7 +171,7 @@ impl Model {
                 if id == 0 {
                     return Err("invalid plugin menu".into());
                 }
-                if self.snapshots.len() >= 32 {
+                if self.snapshots.len() >= super::limits::SNAPSHOTS {
                     self.snapshots.clear();
                     self.delete_tokens.clear();
                 }
@@ -182,7 +182,13 @@ impl Model {
                             self.rows
                                 .iter()
                                 .find(|r| p.ends_with(&format!("/{}", r.name)))
-                                .map_or(0, |r| if r.dir { 0o040000 } else { 0o100000 }),
+                                .map_or(0, |r| {
+                                    if r.dir {
+                                        build::S_IFDIR
+                                    } else {
+                                        build::S_IFREG
+                                    }
+                                }),
                         )
                     })
                     .collect();
@@ -236,13 +242,13 @@ impl Model {
                     return Err("Delete confirmation expired. Review the selection again.".into());
                 }
                 let (plugin, _) = path(&snapshot.path).ok_or("invalid plugin place")?;
+                // Only the place's own items are deleted, as a transfer only moves its owner's.
                 let paths: Vec<_> = snapshot
                     .paths
                     .iter()
-                    .map(|p| {
-                        path(p)
-                            .map(|(_, p)| p.to_owned())
-                            .ok_or("invalid plugin delete path")
+                    .map(|p| match path(p) {
+                        Some((id, relative)) if id == plugin => Ok(relative.to_owned()),
+                        _ => Err("invalid plugin delete path"),
                     })
                     .collect::<Result<_, _>>()?;
                 Ok(Action::Runtime {
@@ -319,7 +325,10 @@ impl Model {
                 ),
                 ("overwrite", Json::Bool(false)),
             ]),
-            completion: Completion::Transfer(paths.len()),
+            completion: Completion::Transfer {
+                count: paths.len(),
+                moving: op == "move",
+            },
         })
     }
     pub fn complete(&mut self, doc: &Json, message: &Json, completion: Completion) -> Vec<Json> {
@@ -335,12 +344,12 @@ impl Model {
                 ("ok", Json::Bool(true)),
                 ("path", string(dest)),
             ])],
-            Completion::Transfer(n) => vec![
+            Completion::Transfer { count: n, moving } => vec![
                 object(&[
                     ("t", string("transferstarted")),
                     ("id", number(num(doc, "id"))),
                     ("n", number(n)),
-                    ("moving", Json::Bool(text(doc, "op") == "move")),
+                    ("moving", Json::Bool(moving)),
                 ]),
                 object(&[
                     ("t", string("transferdone")),

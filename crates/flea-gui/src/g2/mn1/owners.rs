@@ -8,9 +8,6 @@ use flea::{
 use gpui::{Context, Window};
 use std::path::Path;
 
-/// Runs one shelf add over its paths: Ok, or the shelf's own last stderr line ("" when it said nothing).
-pub type ShelfAdd = fn(&[String]) -> Result<(), String>;
-
 impl Shell {
     // PaneMenuActions.qml targets: a menu without a selection means the cursor row under the listing's base.
     fn menu_targets(&self, capture: &Captured, paths: &[String]) -> Vec<String> {
@@ -38,43 +35,14 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let side = capture.side;
-        let paths = if self.menu.shelve.is_some() {
-            self.menu_targets(capture, paths)
-        } else {
-            paths.to_vec()
-        };
+        let paths = self.menu_targets(capture, paths);
         self.retire_menu(window, cx);
         if paths.is_empty() {
             let sentence = self.locale.catalog.tr("menu.shelf.nothing");
             self.owner_notice(side, &sentence, true, Hint::None, cx);
             return;
         }
-        if self.menu.shelve.is_none() {
-            self.plugin_shelve(side, paths, window, cx);
-            return;
-        }
-        let add = self.menu.shelve.unwrap();
-        let count = paths.len();
-        cx.spawn_in(window, async move |this, cx| {
-            let result = cx
-                .background_executor()
-                .spawn(async move { add(&paths) })
-                .await;
-            let _ = this.update(cx, |shell, cx| {
-                let catalog = &shell.locale.catalog;
-                let (sentence, error) = match result {
-                    Ok(()) if count == 1 => (catalog.tr("menu.shelf.added_one"), false),
-                    Ok(()) => (
-                        catalog.tr_args("menu.shelf.added_many", &[&count.to_string()]),
-                        false,
-                    ),
-                    Err(said) if !said.is_empty() => (said, true),
-                    Err(_) => (catalog.tr("menu.shelf.refused"), true),
-                };
-                shell.owner_notice(side, &sentence, error, Hint::None, cx);
-            });
-        })
-        .detach();
+        self.plugin_shelve(side, paths, window, cx);
     }
 
     // PaneMenuActions.qml validateActivation: a flyout application launches through the registry op the card submits, and the tail row opens the card.

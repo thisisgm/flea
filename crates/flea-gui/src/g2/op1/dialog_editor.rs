@@ -35,7 +35,7 @@ impl DialogEditor {
 
 impl Shell {
     pub(crate) fn dialog_value(&self) -> Option<(Slot, &str)> {
-        if let Some(open) = self.plugin_input.as_ref().filter(|open| open.focus == 0) {
+        if let Some(open) = self.plugins.input.as_ref().filter(|open| open.focus == 0) {
             return Some((Slot::PluginAction, &open.value));
         }
         let archive = &self.operations.archive;
@@ -54,7 +54,7 @@ impl Shell {
     pub(crate) fn sync_dialog_editor(&mut self) {
         if self.operations.archive.showing()
             || self.rename.bulk.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
         {
             if let Some(edit) = &mut self.rename.edit {
                 edit.entry.ime_unmark();
@@ -93,7 +93,8 @@ impl Shell {
         if let Some(slot) = editor.owner {
             let text = &editor.entry.text;
             if let Some(open) = self
-                .plugin_input
+                .plugins
+                .input
                 .as_mut()
                 .filter(|_| slot == Slot::PluginAction)
             {

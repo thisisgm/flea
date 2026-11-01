@@ -17,7 +17,7 @@ fn prompt(cx: &mut TestAppContext) -> (Fixture, Runtime, Rc<RefCell<Vec<Json>>>,
     fixture.validated(cx, &validate, &[root.join("notes.txt")]);
     update(cx, fixture.handle, |shell, _, _| {
         assert!(
-            shell.plugin_input.is_some(),
+            shell.plugins.input.is_some(),
             "the native field, Cancel and Verify surface is mounted"
         );
         assert_eq!(
@@ -53,7 +53,7 @@ fn plugin_menu_runtime_input_cancel_retires_its_original_capture_and_sends_no_ru
             && r.get("id") == first.get("id")));
     assert!(requests.borrow().is_empty());
     update(cx, fixture.handle, |shell, _, _| {
-        assert!(shell.menu.captured.is_none() && shell.plugin_input.is_none())
+        assert!(shell.menu.captured.is_none() && shell.plugins.input.is_none())
     });
     runtime.shutdown();
 }
@@ -131,7 +131,7 @@ fn plugin_menu_runtime_input_blank_and_oversized_values_stay_in_the_native_field
     for value in [" ".into(), "x".repeat(129)] {
         assert!(fixture.submit_input(cx, &value).is_none());
         update(cx, fixture.handle, |shell, _, _| {
-            assert!(shell.plugin_input.is_some() && shell.menu.captured.is_some())
+            assert!(shell.plugins.input.is_some() && shell.menu.captured.is_some())
         });
     }
     fixture.cancel_input(cx);
@@ -143,6 +143,7 @@ fn plugin_menu_runtime_input_blank_and_oversized_values_stay_in_the_native_field
 fn plugin_menu_runtime_input_mismatch_is_an_operation_error_and_the_same_process_can_verify_again()
 {
     let root = scratch();
+    let _scratch = Scratch(root.clone());
     let (_, runtime) = plugin("checksums", &root);
     let request = |value: &str| {
         Json::Obj(vec![
@@ -233,7 +234,7 @@ fn plugin_menu_runtime_input_backend_death_cancels_the_native_card_and_lease(
     });
     cx.run_until_parked();
     update(cx, fixture.handle, |shell, _, _| {
-        assert!(shell.plugin_input.is_none() && shell.menu.captured.is_none())
+        assert!(shell.plugins.input.is_none() && shell.menu.captured.is_none())
     });
     assert!(requests.borrow().is_empty());
     runtime.shutdown();

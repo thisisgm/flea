@@ -28,7 +28,7 @@ impl Shell {
             || self.properties.is_some()
             || self.run_card.is_some()
             || self.open_with.is_some()
-            || self.plugin_input.is_some()
+            || self.plugins.input.is_some()
             || self.unlock_holds_keyboard(cx)
             || self
                 .overlay

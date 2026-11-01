@@ -11,7 +11,7 @@ use gpui::{Context, Subscription, Task, Window};
 use std::{
     collections::{HashMap, HashSet},
     sync::{Arc, OnceLock},
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 #[path = "menu_layout.rs"]
@@ -80,7 +80,8 @@ impl Shell {
             .as_ref()
             .filter(|c| c.side == side && !c.background)?;
         let host = self.panes.get(side)?.as_ref()?;
-        if capture.identity != self.menu_identity() || capture.rows.len() > 512 {
+        if capture.identity != self.menu_identity() || capture.rows.len() > super::limits::SELECTION
+        {
             return None;
         }
         if let Some(items) = self.captured_plugin_items(side, capture.id) {
@@ -222,7 +223,7 @@ impl Shell {
                             let said: String = said
                                 .chars()
                                 .filter(|c| !c.is_control())
-                                .take(4096)
+                                .take(super::limits::TEXT)
                                 .collect();
                             let sentence = if response.ok {
                                 said
@@ -270,7 +271,7 @@ impl Shell {
         self.load_menu_mimes(window, cx);
         let id = self.menu.captured.as_ref().map(|c| c.id);
         self.menu.plugin_runtime.refresh = Some(cx.spawn_in(window, async move |this, cx| loop {
-            cx.background_executor().timer(Duration::from_secs(1)).await;
+            cx.background_executor().timer(super::limits::RETRY).await;
             let active = this
                 .update_in(cx, |shell, _, cx| {
                     if shell.menu.captured.as_ref().map(|c| c.id) != id {

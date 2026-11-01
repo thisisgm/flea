@@ -80,11 +80,14 @@ pub fn trim_slash(path: &str) -> &str {
 
 pub fn parent_of(path: &str) -> &str {
     let text = trim_slash(path);
+    // A plugin place's root is its own parent, as "/" is, and its first level climbs to that root.
     if let Some(rest) = text.strip_prefix("plugin://") {
-        if let Some(slash) = rest.find('/') {
-            if !rest[slash + 1..].contains('/') {
+        match rest.find('/') {
+            None => return path,
+            Some(slash) if !rest[slash + 1..].contains('/') => {
                 return &path[.."plugin://".len() + slash + 1];
             }
+            Some(_) => {}
         }
     }
     match text.rfind('/') {
@@ -121,3 +124,7 @@ pub fn select_match<'a>(
     };
     names.into_iter().position(|name| name == leaf)
 }
+
+#[cfg(test)]
+#[path = "history_tests.rs"]
+mod tests;

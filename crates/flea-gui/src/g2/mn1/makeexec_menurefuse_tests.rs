@@ -235,14 +235,7 @@ fn ey222_paste_as_letters_send_the_link(cx: &mut TestAppContext) {
     }
 }
 
-static SHELVED: std::sync::Mutex<Vec<Vec<String>>> = std::sync::Mutex::new(Vec::new());
-
-fn record_shelf(paths: &[String]) -> Result<(), String> {
-    SHELVED.lock().unwrap().push(paths.to_vec());
-    Ok(())
-}
-
-// EY-195: Add to Shelf on a file, a folder and in Columns runs one `flea shelf add` over the item and says "Added it to the shelf".
+// EY-195: Add to Shelf on a file, a folder, in Columns and from the cursor row asks the shelf plugin once over the item and says "Added it to the shelf".
 fn shelf_plugin() -> flea::ui_logic_st2::wire::Plugin {
     let (manifest, _) = flea::ui_logic_st2::builtin::manifests()
         .into_iter()
@@ -261,8 +254,7 @@ fn shelf_plugin() -> flea::ui_logic_st2::wire::Plugin {
 
 #[gpui::test]
 fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
-    for case in ["file", "folder", "columns"] {
-        SHELVED.lock().unwrap().clear();
+    for case in ["file", "folder", "columns", "cursor"] {
         let mut fixture = Fixture::new(cx, 0o644);
         settings(cx, &fixture, r#"{"shelf":{"enabled":true}}"#);
         let name = if case == "folder" {
@@ -270,12 +262,16 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         } else {
             "notes.txt"
         };
+        let (owner, mut owner_lines) = crate::backend::Backend::test_lines();
+        let answers = owner.test_output();
         update(cx, fixture.handle, |shell, window, cx| {
-            shell.menu.shelve = Some(record_shelf);
             // The row shows only while the owner lists an enabled shelf plugin.
             shell.follow_plugins(window, cx);
             let host = shell.plugins.host.clone().unwrap();
-            host.update(cx, |host, _| host.plugins = vec![shelf_plugin()]);
+            host.update(cx, |host, cx| {
+                host.test_attach(owner, cx);
+                host.plugins = vec![shelf_plugin()];
+            });
             if case == "columns" {
                 shell.view = crate::window::startup::View::Columns;
             }
@@ -297,22 +293,40 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         });
         fixture.open(cx, 1, vec![]);
         let path = fixture.root.join(name).to_string_lossy().into_owned();
-        fire(
-            cx,
-            &mut fixture,
-            "addToShelf",
-            "",
-            std::slice::from_ref(&path),
+        // The cursor case validates no paths, so the cursor row under the listing's base is the target.
+        let validated = if case == "cursor" {
+            Vec::new()
+        } else {
+            vec![path.clone()]
+        };
+        fire(cx, &mut fixture, "addToShelf", "", &validated);
+        let asked: Vec<Json> = std::iter::from_fn(&mut owner_lines)
+            .map(|line| jsondoc::parse(&line).unwrap())
+            .filter(|line| line.get("op").and_then(Json::as_str) == Some("runtime"))
+            .collect();
+        assert_eq!(asked.len(), 1, "{case} asked the owner once: {asked:?}");
+        let request = asked[0].get("request").unwrap();
+        assert_eq!(
+            asked[0].get("plugin").and_then(Json::as_str),
+            Some(flea::ui_logic_st2::builtin::SHELF)
         );
+        assert_eq!(request.get("action").and_then(Json::as_str), Some("add"));
+        assert_eq!(
+            request.get("paths"),
+            Some(&Json::Arr(vec![Json::Str(path)])),
+            "{case} shelved the item"
+        );
+        answers
+            .send_blocking(crate::backend::Backend::test_reply_line(&format!(
+                r#"{{"t":"pluginruntime","id":{},"plugin":"flea.shelf","ok":true,"message":{{"op":"shelf"}},"progress":[],"code":"","error":""}}"#,
+                number(&asked[0])
+            )))
+            .unwrap();
+        cx.run_until_parked();
         let words = said(cx, &fixture);
         assert!(
             !words.contains("no longer available"),
             "{case} refused: {words:?}"
-        );
-        assert_eq!(
-            *SHELVED.lock().unwrap(),
-            vec![vec![path]],
-            "{case} shelved the item"
         );
         assert_eq!(words, "Added it to the shelf", "{case}");
     }

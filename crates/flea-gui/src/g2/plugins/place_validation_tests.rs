@@ -116,6 +116,38 @@ fn plugin_runtime_place_stale_rows_cross_plugin_transfer_and_overwrite_are_refus
         .is_err());
 }
 #[test]
+fn plugin_runtime_place_delete_names_only_its_own_items_and_move_to_says_moving() {
+    let mut model = model();
+    model
+        .command(&doc(
+            r#"{"c":"menuaction","op":"snapshot","id":4,"paths":["plugin://other.owner/notes.txt"]}"#,
+        ))
+        .unwrap();
+    model
+        .command(&doc(r#"{"c":"menuaction","op":"prepareDelete","id":4}"#))
+        .unwrap();
+    assert!(
+        model
+            .command(&doc(r#"{"c":"menuaction","op":"delete","id":4,"token":4}"#))
+            .is_err(),
+        "another place's item is never deleted here"
+    );
+    for (c, op, moving) in [
+        ("menuaction", "copyTo", false),
+        ("menuaction", "moveTo", true),
+        ("transfer", "move", true),
+    ] {
+        let command = doc(&format!(
+            r#"{{"c":"{c}","op":"{op}","paths":["plugin://example.virtual-place/notes.txt"],"dest":"/sandbox/destination","id":6}}"#
+        ));
+        let Action::Runtime { completion, .. } = model.command(&command).unwrap() else {
+            panic!("transfer runtime route required")
+        };
+        let replies = model.complete(&command, &doc(r#"{"op":"done"}"#), completion);
+        assert_eq!(replies[0].get("moving"), Some(&Json::Bool(moving)), "{op}");
+    }
+}
+#[test]
 fn plugin_runtime_place_literal_text_window_bound_and_sort_use_the_normal_wire() {
     let mut model = model();
     model
@@ -129,6 +161,19 @@ fn plugin_runtime_place_literal_text_window_bound_and_sort_use_the_normal_wire()
     let window = model.window(20, 7);
     assert_eq!(window.get("rows").unwrap().as_array().unwrap().len(), 7);
     assert_eq!(num(&window, "start"), 20);
+    model.entries.extend(
+        (0..super::limits::WINDOW_ROWS).map(|i| flea::protocol::RowFacts {
+            name: format!("more {i:04}.txt"),
+            ..Default::default()
+        }),
+    );
+    model.publish(&doc("{}")).unwrap();
+    let whole = model.window(0, super::limits::WINDOW_ROWS * 2);
+    assert_eq!(
+        whole.get("rows").unwrap().as_array().unwrap().len(),
+        super::limits::WINDOW_ROWS,
+        "one window answers at most its bound"
+    );
     let Action::Replies(sorted) = model
         .command(&doc(
             r#"{"c":"sort","by":"name","desc":true,"first":4,"foldersFirst":false}"#,

@@ -301,7 +301,6 @@ impl SelectionPreview {
         true
     }
 
-    // An animated GIF's frames, from the original over its still: asked while the frame waits and after it lands.
     // A drawn frame loads too: a previewer plugin's picture can land after its frame was shown.
     fn load_source(frame: &mut Frame, window: &mut Window, cx: &mut Context<Self>) {
         let Some(source) = frame.source.as_ref().filter(|_| frame.image.is_none()) else {
@@ -320,6 +319,7 @@ impl SelectionPreview {
         }
     }
 
+    // An animated GIF's frames, from the original over its still: asked while the frame waits and after it lands.
     fn load_animation(frame: &mut Frame, window: &mut Window, cx: &mut Context<Self>) {
         if frame.animation.is_some() || !frame.animated_gif() {
             return;

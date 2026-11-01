@@ -22,6 +22,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
     rc::Rc,
+    time::Duration,
 };
 
 struct Fixture {
@@ -30,7 +31,27 @@ struct Fixture {
     plugins: Vec<Plugin>,
     real_host: bool,
     drained: Option<async_channel::Receiver<()>>,
+    _scratch: Scratch,
 }
+
+/// Removes a scratch root when its test ends, pass or fail, and only a root `scratch` made.
+struct Scratch(PathBuf);
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let made = self.0.is_absolute()
+            && self.0.parent() == Some(Path::new("/tmp"))
+            && self
+                .0
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with("flea-plugin-menu."))
+            && std::fs::read(self.0.join(".flea-test-sandbox")).is_ok_and(|m| m == SANDBOX_MARK);
+        if made {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+}
+
+const SANDBOX_MARK: &[u8] = b"plugin menu fixture\n";
 
 const CHECKSUM: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
@@ -54,7 +75,7 @@ fn scratch() -> PathBuf {
     assert!(made.status.success());
     let root = PathBuf::from(String::from_utf8(made.stdout).unwrap().trim());
     assert!(root.is_absolute() && root.starts_with("/tmp") && root.as_os_str().len() > 1);
-    std::fs::write(root.join(".flea-test-sandbox"), "plugin menu fixture\n").unwrap();
+    std::fs::write(root.join(".flea-test-sandbox"), SANDBOX_MARK).unwrap();
     for home in ["data", "config", "cache", "state", "home"] {
         std::fs::create_dir(root.join(home)).unwrap();
     }
@@ -190,6 +211,7 @@ fn open(cx: &mut TestAppContext, root: PathBuf, plugin: Plugin) -> Fixture {
         plugins,
         real_host: false,
         drained: None,
+        _scratch: Scratch(root),
     }
 }
 
@@ -308,7 +330,8 @@ impl Fixture {
     fn submit_input(&mut self, cx: &mut TestAppContext, value: &str) -> Option<Json> {
         update(cx, self.handle, |shell, window, cx| {
             let open = shell
-                .plugin_input
+                .plugins
+                .input
                 .as_mut()
                 .expect("Flea's native input card is open");
             assert_eq!(open.descriptor.title, "Verify Checksum");

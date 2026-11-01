@@ -112,7 +112,7 @@ impl Shell {
                 {
                     *due = now + Duration::from_secs(seconds as u64);
                 } else {
-                    *due = now + Duration::from_secs(1);
+                    *due = now + super::limits::RETRY;
                 }
             }
         }
