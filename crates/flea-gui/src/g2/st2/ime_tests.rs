@@ -27,7 +27,7 @@ fn input<R>(cx: &mut VisualTestContext, f: impl FnOnce(&mut PlatformInputHandler
     result
 }
 
-fn mounted(cx: &mut TestAppContext) -> (Entity<PluginsPane>, Rc<Recorder>, &mut VisualTestContext) {
+pub(super) fn mounted(cx: &mut TestAppContext) -> (Entity<PluginsPane>, Rc<Recorder>, &mut VisualTestContext) {
     let wire = Rc::new(Recorder::default());
     let sent = wire.clone();
     let (view, cx) = cx.add_window_view(move |window, cx| {
