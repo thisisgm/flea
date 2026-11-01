@@ -197,3 +197,46 @@ fn ey11_a_filter_that_matches_nothing_draws_the_headline_in_list_and_grid(cx: &m
         "a match takes the headline away"
     );
 }
+
+#[gpui::test]
+fn ey390_grid_captions_mark_the_filter_run(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    edit(cx, handle, |shell, _, _| {
+        let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+        pane.held = std::rc::Rc::new(crate::pane::Held {
+            listing: 2,
+            total: 1000,
+            start: 0,
+            rows: (0..320)
+                .map(|row| flea::protocol::RowFacts {
+                    name: format!("image-{row:03}.png"),
+                    ..Default::default()
+                })
+                .collect(),
+        });
+        shell.view = View::Grid;
+    });
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, cx| {
+        filter(shell, "image", 1000, 2, "3,5,7", cx)
+    });
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, _| {
+        let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().unwrap();
+        let state = grid.state.borrow();
+        let marked: Vec<_> = state
+            .drawn()
+            .iter()
+            .filter(|tile| {
+                tile.caption_text()
+                    .is_some_and(|caption| caption.contains("image"))
+            })
+            .map(|tile| (tile.cursor, tile.washes[0].is_some()))
+            .collect();
+        assert!(!marked.is_empty(), "the filter's rows draw tiles");
+        assert!(
+            marked.iter().all(|&(cursor, washed)| cursor || washed),
+            "HIG grid-filter-matches.png and v0.3.12 wash the typed run in every other tile: {marked:?}"
+        );
+    });
+}

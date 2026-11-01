@@ -7,6 +7,8 @@ use std::time::Duration;
 mod cards;
 #[path = "status_disk_tests.rs"]
 mod disk;
+#[path = "status_elide_tests.rs"]
+mod elide;
 #[path = "status_failure_tests.rs"]
 mod failures;
 #[path = "status_fsunknown_tests.rs"]

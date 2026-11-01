@@ -23,6 +23,16 @@ impl Default for MediaSound {
 }
 
 impl MediaSound {
+    /// ViewState.mediaVolume: the state file's preview.volume, full scale when it has none.
+    pub fn stored(data: &flea::jsondoc::Json) -> u8 {
+        data.get("preview")
+            .and_then(|preview| preview.get("volume"))
+            .and_then(flea::jsondoc::Json::as_f64)
+            .map_or(FULL_LEVEL, |level| {
+                level.clamp(0., f64::from(FULL_LEVEL)).round() as u8
+            })
+    }
+
     /// Seeds the level from the state file and names where a kept one is written.
     pub fn install(stored: u8, keep: Option<KeepVolume>, cx: &mut App) {
         cx.set_global(Self {
