@@ -311,11 +311,12 @@ impl Pane {
             return false;
         };
         let held = pending.following.take().unwrap_or(held);
+        let cursor = self.landing_cursor(&pending, &held);
         self.scroll_extent = None;
         self.path = pending.path;
         self.swap.listing_first = pending.first;
         self.greatest_listing = held.listing;
-        self.cursor = held.start;
+        self.cursor = cursor;
         self.scroll_y = held.start as f32 * self.row_height;
         self.state = State {
             kind: if held.total == 0 {

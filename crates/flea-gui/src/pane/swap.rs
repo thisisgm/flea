@@ -254,6 +254,24 @@ impl Swap {
 }
 
 impl super::Pane {
+    // A live search re-answer keeps the cursor's file, as PaneSwap.qml does; any other landing starts at the window.
+    pub(crate) fn landing_cursor(
+        &self,
+        pending: &Pending,
+        held: &crate::list::pane::Held,
+    ) -> usize {
+        let reanswer = pending.options.search
+            && self.state.search
+            && self.path() == pending.path
+            && self.state.query == pending.options.kept_query;
+        let kept = reanswer.then(|| self.held.row(self.cursor)).flatten();
+        flea::ui_logic_sr1::Session::kept_index(
+            kept.map(|row| row.name.as_str()),
+            held.rows.iter().map(|row| row.name.as_str()),
+            held.start,
+        )
+    }
+
     pub fn receive_session(
         &mut self,
         reply: flea::protocol::Reply,

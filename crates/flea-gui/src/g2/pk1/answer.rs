@@ -36,6 +36,23 @@ impl Picker {
         logic::can_accept(&self.accept_state())
     }
 
+    // PickerSave.qml's status line in the collision review, with the wrap joints it draws.
+    pub fn collision_line(&self) -> Option<String> {
+        self.accept_state().collision_review().then(|| {
+            let jointed = flea::ui_logic_pk2::joint_name(&self.listing.save_name);
+            flea::ui_logic_pk2::collision_short(&self.locale.catalog, &jointed)
+        })
+    }
+
+    // PickerSave.qml's statusLine: the backend's refusal first, else the review's sentence.
+    pub fn save_status(&self) -> Option<String> {
+        if self.save_error.is_empty() {
+            self.collision_line()
+        } else {
+            Some(self.save_error.clone())
+        }
+    }
+
     pub fn accept(&mut self, cx: &mut Context<Self>) {
         if self.answered() || self.composing(cx) {
             return;

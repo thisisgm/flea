@@ -8,6 +8,8 @@ pub mod strip;
 #[cfg(test)]
 mod contents_tests;
 #[cfg(test)]
+mod fixlogic_ey505_tests;
+#[cfg(test)]
 mod pane_tests;
 #[cfg(test)]
 mod presented_tests;

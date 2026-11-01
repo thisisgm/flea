@@ -166,3 +166,15 @@ fn a_fresh_install_counts_open_and_inspect_five_of_fourteen() {
         "hidden {hidden:?}"
     );
 }
+
+// EY-08: the fresh install's hidden set ticks Open With and Print... and leaves Copy To... off, as settings-menus.png draws.
+#[test]
+fn fixlogic_ey08_fresh_install_open_and_inspect_counts_five_of_fourteen_with_copy_to_off() {
+    let rows = rows(&super::super::pages::hidden(&crate::uischema::defaults()), false);
+    let head = rows.iter().find(|row| row.master && row.id == "openInspect").expect("openInspect");
+    assert_eq!(say(&head.value), "5 of 14");
+    assert_eq!(head.state, Master::Some);
+    for (id, on) in [("openwith", true), ("print", true), ("copyto", false), ("openAgent", false)] {
+        assert_eq!(find(&rows, id).on, on, "{id}");
+    }
+}

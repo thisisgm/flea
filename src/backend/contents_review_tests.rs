@@ -338,8 +338,8 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     f.finish();
     std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
     assert_eq!(f.st.listing.len(), 2);
-    assert_eq!(f.st.listing.name(0), "Docs/notes.txt");
-    assert_eq!(f.st.listing.name(1), "notes.txt");
+    assert_eq!(f.st.listing.name(0), "notes.txt");
+    assert_eq!(f.st.listing.name(1), "Docs/notes.txt");
     assert!(f.text().contains(r#""lineNo":2,"line":"nested needle""#));
     let line = searched(&f);
     assert!(
