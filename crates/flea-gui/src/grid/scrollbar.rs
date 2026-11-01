@@ -142,9 +142,10 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let released = event.button == MouseButton::Left
-            && self.panes[side]
-                .as_mut()
-                .is_some_and(|host| host.input.grab.take().is_some());
+            && self.panes[side].as_mut().is_some_and(|host| {
+                host.input.press = None;
+                host.input.grab.take().is_some()
+            });
         if released {
             self.arm_input_tick(side, window, cx);
             cx.notify();

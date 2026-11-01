@@ -11,7 +11,7 @@ mod locale;
 mod measure;
 mod metrics;
 pub(crate) mod outline;
-mod painted_row;
+pub(crate) mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;

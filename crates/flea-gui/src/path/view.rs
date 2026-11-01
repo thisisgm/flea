@@ -47,6 +47,7 @@ pub enum Out {
 }
 
 pub struct PathView {
+    pub(crate) drop_target: Option<(usize, usize)>,
     pub inputs: Inputs,
     pub entry: Entry,
     pub jump: Jump,
@@ -87,6 +88,7 @@ impl PathView {
             paint: Rc::new(RefCell::new(Paint::new())),
             line: RefCell::new(Line::default()),
             built: false,
+            drop_target: None,
             corner: 0.,
             probe: None,
             pointer: Pointer::default(),

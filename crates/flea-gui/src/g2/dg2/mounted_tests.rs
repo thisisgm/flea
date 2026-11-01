@@ -131,7 +131,7 @@ pub(super) fn drain(lines: &mut impl FnMut() -> Option<String>) -> Vec<String> {
 }
 
 // op1 asks the backend for collisions first; an empty answer releases the transfer line itself.
-fn transfer(
+pub(super) fn transfer(
     vcx: &mut VisualTestContext,
     handle: WindowHandle<Shell>,
     lines: &mut impl FnMut() -> Option<String>,

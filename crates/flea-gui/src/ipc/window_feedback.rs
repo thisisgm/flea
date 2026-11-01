@@ -33,18 +33,16 @@ impl Adapter for FeedbackAdapter<'_> {
                     browser.map_or_else(String::new, |browser| browser.names.join("\n"))
                 }
             }
-            // The live browser is network.shares (g2/sd1's has no production caller); it answers active and cursor, while rect, owner and baseUri stay unported.
-            "shareBrowserRect" => String::new(),
+            "shareBrowserRect" => self.browser_rect(),
             "shareBrowserState" => {
-                let (active, cursor) = self
+                let browser = self
                     .shell
                     .rail
                     .as_ref()
                     .and_then(|rail| rail.network.as_ref())
-                    .map_or((false, -1), |network| {
-                        let model = &network.shares.read(self.cx).model;
-                        (model.open, model.cursor_ipc())
-                    });
+                    .map(|network| &network.shares.read(self.cx).model);
+                let owner = browser.and_then(|browser| self.shell.network_side(browser.origin));
+                let active = browser.is_some_and(|browser| browser.open) && owner.is_some();
                 let panes = self
                     .shell
                     .panes
@@ -57,7 +55,13 @@ impl Adapter for FeedbackAdapter<'_> {
                     })
                     .collect::<Vec<_>>()
                     .join(",");
-                format!("{{\"active\":{active},\"owner\":-1,\"rect\":\"\",\"baseUri\":\"\",\"cursor\":{cursor},\"paneRects\":[{panes}]}}")
+                let uri = browser.map_or("", |browser| browser.uri.as_str());
+                let cursor = browser
+                    .filter(|browser| browser.generation > 0)
+                    .map_or(-1, |browser| browser.cursor as i64);
+                let owner = owner.map_or(-1, |side| side as i32);
+                let rect = self.browser_rect();
+                format!("{{\"active\":{active},\"owner\":{owner},\"rect\":\"{rect}\",\"baseUri\":\"{}\",\"cursor\":{cursor},\"paneRects\":[{panes}]}}", flea::json::escape(uri))
             }
             // Browser.close keeps the cursor, so a closed browser still answers the row it was left on.
             "shareBrowserCursor" => self
@@ -107,5 +111,31 @@ impl Adapter for FeedbackAdapter<'_> {
             _ => return None,
         };
         Some(Reply::value(value))
+    }
+}
+
+impl FeedbackAdapter<'_> {
+    fn browser_rect(&self) -> String {
+        let Some(network) = self
+            .shell
+            .rail
+            .as_ref()
+            .and_then(|rail| rail.network.as_ref())
+        else {
+            return String::new();
+        };
+        let browser = network.shares.read(self.cx);
+        if self.shell.network_side(browser.model.origin).is_none() {
+            return String::new();
+        }
+        browser.painted_bounds().map_or_else(String::new, |bounds| {
+            format!(
+                "{} {} {} {}",
+                f32::from(bounds.left()).round(),
+                f32::from(bounds.top()).round(),
+                f32::from(bounds.size.width).round(),
+                f32::from(bounds.size.height).round()
+            )
+        })
     }
 }

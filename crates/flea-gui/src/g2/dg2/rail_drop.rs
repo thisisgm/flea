@@ -366,7 +366,9 @@ impl Shell {
 
     /// A frame with no drag in flight drops a cue the release did not reach, as a release over the chrome.
     pub(crate) fn settle_rail_drag(&mut self, window: &Window, cx: &mut Context<Self>) {
+        self.settle_file_feedback(window, cx);
         if !cx.has_active_drag() {
+            self.clear_file_rest(window, cx);
             self.clear_rail_aim(window, cx);
         }
     }
@@ -414,27 +416,29 @@ impl Shell {
         let Some((_, side, _, place)) = self.rail_target(point, &lift, cx) else {
             return;
         };
-        match place {
-            Place::Trash => {
-                let Some(paths) = lift.paths.clone() else {
-                    return;
-                };
-                let line = dropping::Request::Paths(paths).line();
-                // dd's cursor anchor only while the source pane still lists the rows it lifted.
-                let current = self.panes[lift.side]
-                    .as_ref()
-                    .is_some_and(|host| host.pane.held.listing == lift.listing);
-                self.trash_dropped(lift.side, line, &lift.rows, current, cx);
-            }
-            Place::Folder(dest) => {
-                let modifiers = window.modifiers();
-                let owned = Owned::Own {
-                    lift,
-                    ctrl: modifiers.control,
-                    shift: modifiers.shift,
-                };
-                self.land_into(side, dest, owned, window, cx);
-            }
-        }
+        let modifiers = window.modifiers();
+        let then = match place {
+            Place::Trash => super::wide::Then::Trash,
+            Place::Folder(dest) => super::wide::Then::Into(dest),
+        };
+        let owned = Owned::Own {
+            lift,
+            ctrl: modifiers.control,
+            shift: modifiers.shift,
+        };
+        self.land_then(side, then, owned, window, cx);
+    }
+
+    /// A rail Trash drop of a resolved lift.
+    pub(super) fn trash_lift(&mut self, lift: &Lift, cx: &mut Context<Self>) {
+        let Some(paths) = lift.paths.clone() else {
+            return;
+        };
+        let line = dropping::Request::Paths(paths).line();
+        // dd's cursor anchor only while the source pane still lists the rows it lifted.
+        let current = self.panes[lift.side]
+            .as_ref()
+            .is_some_and(|host| host.pane.held.listing == lift.listing);
+        self.trash_dropped(lift.side, line, &lift.rows, current, cx);
     }
 }

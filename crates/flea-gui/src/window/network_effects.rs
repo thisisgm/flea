@@ -69,6 +69,7 @@ impl Shell {
                     shares.update(cx, |shares, cx| {
                         shares.show(uri, label, names, *origin, window, cx)
                     });
+                    cx.notify();
                 } else {
                     service.update(cx, |service, _| service.close_browser(*origin));
                 }

@@ -32,6 +32,7 @@ pub struct ShareView {
     cache: RefCell<Option<Cache>>,
     visible: usize,
     bounds: Option<Bounds<Pixels>>,
+    slot_bounds: Option<Bounds<Pixels>>,
     hovered: Option<usize>,
     pressed: Option<usize>,
 }
@@ -54,6 +55,7 @@ impl ShareView {
             cache: RefCell::default(),
             visible: 1,
             bounds: None,
+            slot_bounds: None,
             hovered: None,
             pressed: None,
         }
@@ -78,6 +80,8 @@ impl ShareView {
         cx: &mut Context<Self>,
     ) {
         self.model.show(uri, label, names, origin);
+        self.bounds = None;
+        self.slot_bounds = None;
         self.hovered = None;
         self.pressed = None;
         window.focus(&self.focus, cx);
@@ -92,6 +96,9 @@ impl ShareView {
     }
     pub(crate) fn visible(&self) -> bool {
         self.model.open || self.motion.visible()
+    }
+    pub(crate) fn painted_bounds(&self) -> Option<Bounds<Pixels>> {
+        self.slot_bounds.filter(|_| self.model.open)
     }
     // G1 dispatch passes the generated action name and retains ownership of the keymap.
     pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> bool {
@@ -140,12 +147,24 @@ impl gpui::Render for ShareView {
         }
         let root = div()
             .id("g2-pl2-shares")
+            .relative()
             .size_full()
             .track_focus(&self.focus);
         if !motion.visible {
             return root;
         }
+        let view = cx.entity();
         root.child(
+            gpui::canvas(
+                |_, _, _| {},
+                move |bounds, _, _, cx| {
+                    view.update(cx, |view, _| view.slot_bounds = Some(bounds));
+                },
+            )
+            .absolute()
+            .size_full(),
+        )
+        .child(
             div()
                 .debug_selector(|| "share-motion".into())
                 .size_full()

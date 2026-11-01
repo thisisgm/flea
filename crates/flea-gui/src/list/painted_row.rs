@@ -12,11 +12,11 @@ pub struct DropLine {
     label: SharedString,
     font: Font,
     size: Pixels,
-    pub(super) run: GlyphRun,
+    pub(crate) run: GlyphRun,
 }
 
 impl DropLine {
-    pub(super) fn shaped<'a>(
+    pub(crate) fn shaped<'a>(
         slot: &'a mut Option<DropLine>,
         label: &SharedString,
         font: &Font,

@@ -76,9 +76,10 @@ impl Shell {
 
     pub(crate) fn list_states(&self, side: usize, window: &Window, cx: &App) -> RowStates {
         let host = self.panes[side].as_ref().expect("a mounted pane");
-        let (drop_target, drop_label) =
-            crate::g2::dg2::join::rail_drop::row_cue(window, cx, side).unzip();
+        let cue = self.file_row_cue(side, window, cx);
         RowStates {
+            drop_target: cue.as_ref().map(|cue| cue.0),
+            drop_label: cue.map(|cue| cue.1),
             focused: side == self.focus_side
                 && self.focus.is_focused(window)
                 && !self.wheel_blocked(cx)

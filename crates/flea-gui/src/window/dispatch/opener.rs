@@ -31,6 +31,13 @@ pub(crate) struct Lane {
     wait: Option<Task<()>>,
 }
 
+impl Lane {
+    /// A selection, gallery or archive wait holds this side's paths answer.
+    pub(crate) fn waiting(&self) -> bool {
+        self.pending.is_some()
+    }
+}
+
 impl Default for Lane {
     fn default() -> Self {
         Self {

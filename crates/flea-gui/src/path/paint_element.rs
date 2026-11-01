@@ -133,6 +133,22 @@ impl Element for CrumbElement {
             for (index, (crumb, run)) in strip.crumbs().iter().zip(&paint.runs[slot]).enumerate() {
                 let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
                 let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
+                if view.drop_target == Some((slot, index)) && cx.has_active_drag() {
+                    let end = crumb
+                        .text
+                        .strip_suffix('/')
+                        .filter(|name| !name.is_empty())
+                        .map_or(crumb.text.len(), str::len);
+                    let target = Bounds::new(
+                        point(x, bounds.top()),
+                        size(run.line().x_for_index(end), height),
+                    );
+                    window.paint_quad(fill(target, ink.accent.opacity(crate::list::CURSOR_WASH)));
+                    window.paint_quad(fill(
+                        Bounds::new(target.origin, size(px(2.), height)),
+                        ink.accent_frame,
+                    ));
+                }
                 paint_run(
                     run,
                     x,

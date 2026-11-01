@@ -160,10 +160,27 @@ pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<Hover> {
     })
 }
 
+pub(crate) fn spring_spot(
+    host: &PaneHost,
+    point: Point<Pixels>,
+    carried: &[usize],
+) -> Option<String> {
+    destination(host, point, carried, true)
+}
+
 pub(crate) fn drop_spot(
     host: &PaneHost,
     point: Point<Pixels>,
     carried: &[usize],
+) -> Option<String> {
+    destination(host, point, carried, false)
+}
+
+fn destination(
+    host: &PaneHost,
+    point: Point<Pixels>,
+    carried: &[usize],
+    spring: bool,
 ) -> Option<String> {
     let columns = host.columns.as_ref()?;
     let tracks = columns.area.tracks();
@@ -190,7 +207,8 @@ pub(crate) fn drop_spot(
             .then_some(drawn.row_at(position))
             .flatten();
         if view.slot == Slot::Active {
-            return Some(crate::g2::dg2::join::row_spot(host, row, carried));
+            let dest = crate::g2::dg2::join::row_spot(host, row, carried);
+            return (!spring || dest != host.path).then_some(dest);
         }
         let target = match &view.rows {
             TrackRows::Peek(rows) => row
@@ -199,6 +217,6 @@ pub(crate) fn drop_spot(
                 .map(|row| crate::navigation::history::join(&view.path, &row.name)),
             _ => None,
         };
-        Some(target.unwrap_or_else(|| view.path.clone()))
+        target.or_else(|| (!spring).then(|| view.path.clone()))
     })
 }

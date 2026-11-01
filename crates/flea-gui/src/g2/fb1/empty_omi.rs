@@ -33,7 +33,7 @@ pub(crate) fn heroes(shell: &Shell, cx: &App) -> [Option<Entity<EmptyHero>>; 12]
         if let Some(hero) = shell.surfaces[side]
             .hero
             .as_ref()
-            .filter(|_| shell.slots.states[side].is_some())
+            .filter(|_| shell.pane_state_view(side, cx).is_some())
         {
             if hero.read(cx).rotation().visible() {
                 heroes[side * 6] = Some(hero.clone());

@@ -33,6 +33,8 @@ impl Shell {
         let tag_slot = self.panes[side]
             .as_ref()
             .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
+        let dropping = self.file_column_cue(side, window, cx);
+        let state_view = self.pane_state_view(side, cx);
         let (menu_target, rename_slot) = self.column_menu_focus(side);
         let host = self.panes[side].as_mut()?;
         let active = host.columns.as_mut()?;
@@ -83,6 +85,7 @@ impl Shell {
         }
         .into();
         let focus = Rc::new(Focus {
+            drop: dropping,
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
             renaming,
@@ -280,7 +283,7 @@ impl Shell {
                     .debug_selector(|| "columns-no-match".into())
                     .child(hero),
             );
-        } else if let Some(state) = self.slots.states[side].clone() {
+        } else if let Some(state) = state_view {
             if let Some(natural) = self.surfaces[side].natural_width(window, cx) {
                 let (x, width) = crate::pane::states::hero_span(
                     columns.area.layout.width,
