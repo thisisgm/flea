@@ -126,7 +126,7 @@ impl Drawn {
             );
             x += cw + 4.;
         }
-        let derived_name = d.form.name();
+        let derived_name = view.derived_name();
         let fields = [
             (Focus::Label, 0, &d.form.label),
             (Focus::Host, 1, &d.form.host),

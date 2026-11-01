@@ -47,6 +47,8 @@ pub struct Entry {
     pub generation: u64,
     /// A password: the platform never reads its text, and paint shows one bullet per character.
     pub private: bool,
+    /// A number: only ASCII digits enter the line.
+    pub digits: bool,
     history: Vec<(String, Range<usize>, bool)>,
 }
 
@@ -77,6 +79,7 @@ impl Entry {
             editing: true,
             text: text.into(),
             private: self.private,
+            digits: self.digits,
             revision: self.revision + 1,
             generation: SESSIONS.fetch_add(1, Ordering::Relaxed),
             ..Entry::default()

@@ -198,6 +198,7 @@ impl NetworkView {
             }
         };
         self.input.private = false;
+        self.input.digits = self.model.focus == Focus::Port;
         self.input.begin(text);
         self.input.move_to(text.len());
         self.input_owner = Some(self.model.focus);
@@ -224,6 +225,19 @@ impl NetworkView {
         self.scroll = self
             .scroll
             .clamp(0., (self.content_height() - height).max(0.));
+    }
+    /// The LABEL hint names the share from committed text, never from a HOST or SHARE preedit.
+    pub(super) fn derived_name(&self) -> String {
+        let mut form = std::borrow::Cow::Borrowed(&self.model.form);
+        if self.input.marked.is_some() {
+            let committed = self.input.committed().into_owned();
+            match self.input_owner {
+                Some(Focus::Host) => form.to_mut().host = committed,
+                Some(Focus::Path) => form.to_mut().path = committed,
+                _ => {}
+            }
+        }
+        form.name()
     }
     pub fn edited(&mut self, cx: &mut Context<Self>) {
         let target = match self.model.focus {

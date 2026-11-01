@@ -5,6 +5,9 @@ use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, W
 use std::ops::Range;
 
 impl EntityInputHandler for OutputView {
+    fn accepts_text_input(&self, _: &mut Window, _: &mut Context<Self>) -> bool {
+        self.editor.entry.composes()
+    }
     fn text_for_range(
         &mut self,
         range: Range<usize>,

@@ -71,6 +71,6 @@ pub fn replace(
 ) -> std::ops::Range<usize> {
     let mut entry = crate::path::entry::Entry::default();
     crate::g2::pl1::private_entry::begin(&mut entry, secret);
-    crate::g2::pl1::private_entry::replace(&mut entry, secret, Some(range), text, None, false);
+    crate::g2::pl1::private_entry::replace(&mut entry, secret, Some(range), text, false);
     entry.ime_selection().range
 }

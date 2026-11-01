@@ -1,4 +1,4 @@
-//! The Open With search composes through the window's shared entry: a composition shows in the field, filters once it commits, and never launches.
+//! The Open With search composes through the window's shared entry: a composition shows only in the field, the query and list follow the commit, and it never launches.
 use super::{answer, opened, quit, sent};
 use crate::{
     g2::{
@@ -84,7 +84,7 @@ fn i50_openwith_catalogue_arrival_keeps_preedit_unfiltered(cx: &mut TestAppConte
     draw(cx);
     mark(&shell, cx, "bt");
     answer(&shell, cx, id);
-    assert_eq!(listed(&shell, cx), ("bt".into(), both()));
+    assert_eq!(listed(&shell, cx), (String::new(), both()));
     input(&shell, cx, |s, w, cx| {
         assert_eq!(s.marked_text_range(w, cx), Some(0..2));
         s.replace_text_in_range(None, "bt", w, cx);
@@ -97,7 +97,7 @@ fn i50_openwith_catalogue_arrival_keeps_preedit_unfiltered(cx: &mut TestAppConte
 fn i50_openwith_unmark_commits_and_filters_the_query(cx: &mut TestAppContext) {
     let (shell, cx, _) = ready(cx);
     mark(&shell, cx, "bt");
-    assert_eq!(listed(&shell, cx), ("bt".into(), both()));
+    assert_eq!(listed(&shell, cx), (String::new(), both()));
     input(&shell, cx, |s, w, cx| s.unmark_text(w, cx));
     assert_eq!(listed(&shell, cx), ("bt".into(), vec!["btop++".into()]));
     input(&shell, cx, |s, w, cx| {
@@ -123,7 +123,7 @@ fn i50_openwith_search_composition_filters_on_commit_and_never_launches(cx: &mut
     mark(&shell, cx, "bt");
     assert_eq!(
         listed(&shell, cx),
-        ("bt".into(), both()),
+        (String::new(), both()),
         "a composition shows in the field but does not filter"
     );
     input(&shell, cx, |s, w, cx| {

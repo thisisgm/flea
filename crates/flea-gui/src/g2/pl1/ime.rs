@@ -45,7 +45,6 @@ impl UnlockView {
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
-        selected: Option<Range<usize>>,
         marked: bool,
         cx: &mut Context<Self>,
     ) {
@@ -53,14 +52,7 @@ impl UnlockView {
             return;
         };
         let field = &mut card.field;
-        if private_entry::replace(
-            &mut field.entry,
-            &mut field.text,
-            range,
-            text,
-            selected,
-            marked,
-        ) {
+        if private_entry::replace(&mut field.entry, &mut field.text, range, text, marked) {
             field.held_mask = 0;
             card.edited();
             self.changed_input(cx);
@@ -90,7 +82,7 @@ impl UnlockView {
         let held = event.keystroke.modifiers;
         let command = held.control || held.platform;
         let mut handled = true;
-        if !private_entry::key(&mut field.entry, &mut field.text, key) {
+        if !field.entry.ime_key(key) {
             let entry = &mut field.entry;
             let at = entry.cursor();
             match key {
@@ -114,13 +106,7 @@ impl UnlockView {
                 "c" | "x" if command => {}
                 _ if crate::window::input::paste_key(event) => {
                     if let Some(text) = cx.read_from_clipboard().and_then(|c| c.text()) {
-                        self.replace(
-                            None,
-                            &crate::window::input::clean_paste(&text),
-                            None,
-                            false,
-                            cx,
-                        );
+                        self.replace(None, &crate::window::input::clean_paste(&text), false, cx);
                     }
                 }
                 "enter" | "return" | "kp_enter" | "escape" | "tab" | "backtab" => handled = false,
@@ -209,6 +195,10 @@ impl FieldView for UnlockView {
 }
 
 impl EntityInputHandler for UnlockView {
+    // The only field is the passphrase, so the input method never serves this view.
+    fn accepts_text_input(&self, _: &mut Window, _: &mut Context<Self>) -> bool {
+        false
+    }
     fn text_for_range(
         &mut self,
         _: Range<usize>,
@@ -250,19 +240,19 @@ impl EntityInputHandler for UnlockView {
         cx: &mut Context<Self>,
     ) {
         if self.active(window) {
-            self.replace(range, text, None, false, cx);
+            self.replace(range, text, false, cx);
         }
     }
     fn replace_and_mark_text_in_range(
         &mut self,
         range: Option<Range<usize>>,
         text: &str,
-        selected: Option<Range<usize>>,
+        _: Option<Range<usize>>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         if self.active(window) {
-            self.replace(range, text, selected, true, cx);
+            self.replace(range, text, true, cx);
         }
     }
     fn bounds_for_range(

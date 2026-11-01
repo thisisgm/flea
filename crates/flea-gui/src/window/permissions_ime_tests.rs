@@ -1,4 +1,4 @@
-//! The octal field composes through its own mounted entry: candidate keys stay with the input method and late callbacks miss.
+//! The octal field keeps the input method off and takes digits only, and late callbacks miss.
 use super::fixture::{choose, click, edit, inspect, model, next, setup};
 use crate::{
     g2::op3::permissions::{host::View, Stop},
@@ -50,7 +50,7 @@ fn octal(cx: &mut TestAppContext) -> (WindowHandle<Root>, impl FnMut() -> Option
 }
 
 #[gpui::test]
-fn i50_permissions_octal_composes_and_its_candidate_keys_never_apply(cx: &mut TestAppContext) {
+fn i50_permissions_octal_keeps_the_input_method_off_and_takes_digits_only(cx: &mut TestAppContext) {
     let (handle, mut requests) = octal(cx);
     keys(cx, handle, "ctrl-a");
     typed(cx, handle, "07");
@@ -60,42 +60,22 @@ fn i50_permissions_octal_composes_and_its_candidate_keys_never_apply(cx: &mut Te
         "the field takes platform text"
     );
     ime(cx, handle, |view, window, cx| {
-        view.replace_and_mark_text_in_range(None, "5", Some(1..1), window, cx);
-        assert_eq!(view.marked_text_range(window, cx), Some(2..3));
-    });
-    draw(cx, handle);
-    let slot = VisualTestContext::from_window(handle.into(), cx)
-        .debug_bounds("op1-destination")
-        .expect("the octal field mounts the shared painter");
-    ime(cx, handle, |view, window, cx| {
-        let band = view.bounds_for_range(2..3, slot, window, cx).unwrap();
-        assert!(band.size.width > gpui::px(0.));
-        assert!(band.left() >= slot.left() && band.right() <= slot.right());
-        assert_eq!(
-            view.character_index_for_point(band.origin, window, cx),
-            Some(2)
+        assert!(
+            !view.accepts_text_input(window, cx),
+            "a number keeps the input method off"
         );
-    });
-    assert_eq!(model(cx, handle).text, "075");
-    keys(cx, handle, "enter");
-    assert_eq!(
-        model(cx, handle).focus,
-        Stop::Octal,
-        "candidate Enter stays in the field"
-    );
-    keys(cx, handle, "escape");
-    assert!(
-        edit(cx, handle, |shell, _, cx| shell.card_holds_keyboard(cx)),
-        "first Escape drops only the composition"
-    );
-    assert_eq!(model(cx, handle).text, "07");
-    ime(cx, handle, |view, window, cx| {
-        view.replace_and_mark_text_in_range(None, "5", None, window, cx);
-        view.replace_text_in_range(None, "5", window, cx);
+        view.replace_and_mark_text_in_range(None, "5", Some(1..1), window, cx);
+        assert_eq!(view.marked_text_range(window, cx), None);
+        view.replace_text_in_range(None, "日本語", window, cx);
         view.replace_text_in_range(None, "\u{7}", window, cx);
         assert_eq!(view.marked_text_range(window, cx), None);
     });
-    typed(cx, handle, "5");
+    assert_eq!(
+        model(cx, handle).text,
+        "07",
+        "no composition and no CJK text"
+    );
+    typed(cx, handle, "55");
     assert_eq!(model(cx, handle).text, "0755");
     assert!(!std::iter::from_fn(&mut requests).any(|line| line.contains(r#""op":"apply""#)));
     keys(cx, handle, "enter enter");
@@ -122,7 +102,7 @@ fn i50_permissions_octal_late_callbacks_miss_once_the_field_or_card_goes(cx: &mu
     );
     draw(cx, handle);
     ime(cx, handle, |view, window, cx| {
-        view.replace_and_mark_text_in_range(None, "7", None, window, cx)
+        view.replace_text_in_range(None, "7", window, cx)
     });
     keys(cx, handle, "tab");
     assert_eq!(model(cx, handle).focus, Stop::Cancel);
@@ -133,7 +113,7 @@ fn i50_permissions_octal_late_callbacks_miss_once_the_field_or_card_goes(cx: &mu
     assert_eq!(
         model(cx, handle).text,
         "7",
-        "Tab committed the composition and a late callback misses"
+        "Tab moved on and a late callback misses"
     );
     ime(cx, handle, |view, window, cx| {
         let backtab = gpui::KeyDownEvent {
