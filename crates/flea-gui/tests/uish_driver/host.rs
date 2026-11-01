@@ -9,6 +9,7 @@ use flea_gui::{
     palette::Theme,
     window::{
         self,
+        lifecycle::Phase,
         locale::Snapshot,
         root::Root,
         startup::{Arguments, Launch, Settings},
@@ -51,6 +52,13 @@ pub(super) struct Host {
     directory: File,
     pub(super) windows: BTreeMap<String, Mounted>,
     next: u64,
+}
+
+impl Drop for Host {
+    fn drop(&mut self) {
+        // Server shutdown must wake its listener before the directory alias closes.
+        self.windows.clear();
+    }
 }
 
 impl Host {
@@ -182,15 +190,7 @@ impl Host {
             "close" => {
                 self.cx
                     .dispatch_keystroke(window.into(), Keystroke::parse("ctrl-q").unwrap());
-                let deadline = Instant::now() + WAIT;
-                while self.cx.windows().contains(&window.into()) {
-                    if Instant::now() >= deadline {
-                        return Err("owned window close timed out".into());
-                    }
-                    self.pump();
-                    thread::sleep(STEP);
-                }
-                return self.forget(identity);
+                return self.wait_closed(identity, window);
             }
             _ => {
                 if !input::deliver(&mut self.cx, window, op, command)? {
@@ -203,7 +203,28 @@ impl Host {
         if !self.cx.windows().contains(&window.into()) {
             return self.forget(identity);
         }
+        if window
+            .update(&mut self.cx, |root, _, cx| {
+                root.shell.read(cx).lifecycle.phase()
+            })
+            .map_err(|error| error.to_string())?
+            != Phase::Open
+        {
+            return self.wait_closed(identity, window);
+        }
         self.describe(identity)
+    }
+
+    fn wait_closed(&mut self, identity: &str, window: WindowHandle<Root>) -> Result<Json, String> {
+        let deadline = Instant::now() + WAIT;
+        while self.cx.windows().contains(&window.into()) {
+            if Instant::now() >= deadline {
+                return Err("owned window close timed out".into());
+            }
+            self.pump();
+            thread::sleep(STEP);
+        }
+        self.forget(identity)
     }
 
     // Removes a window behind the host's back, as a crash or a compositor close would.
@@ -237,5 +258,99 @@ impl Host {
             return Err("owned socket survived teardown".into());
         }
         Ok(object([("closed", Json::Bool(true))]))
+    }
+}
+
+#[cfg(test)]
+mod cleanup_tests {
+    use super::*;
+    use std::{cell::Cell, panic::AssertUnwindSafe, rc::Rc, sync::mpsc};
+
+    #[test]
+    fn uish_driver_key_close_waits_for_a_later_drain() {
+        let sandbox = super::super::Sandbox::new("delayed-close");
+        let fixture = sandbox.0.join("fixture");
+        fs::create_dir(&fixture).unwrap();
+        fs::write(fixture.join("a.txt"), "a").unwrap();
+        let mut host = Host::at(&sandbox.0);
+        let opened = host
+            .command(&object([
+                ("op", text("open")),
+                ("path", text(fixture.display())),
+            ]))
+            .unwrap();
+        let identity = word(&opened, "window").unwrap();
+        let socket = PathBuf::from(word(&opened, "socket").unwrap());
+        let window = host.windows[identity].window;
+        window
+            .update(&mut host.cx, |root, _, cx| {
+                root.shell.update(cx, |shell, _| {
+                    assert!(shell.lifecycle.attach(1));
+                });
+            })
+            .unwrap();
+        let released = Rc::new(Cell::new(false));
+        let observed = released.clone();
+        // The extra drain slot keeps the window mounted beyond command's first pump.
+        let later = host.cx.executor().timer(STEP * 3);
+        host.cx
+            .spawn(|mut cx| async move {
+                later.await;
+                window
+                    .update(&mut cx, |root, window, cx| {
+                        root.shell.update(cx, |shell, cx| {
+                            assert_eq!(shell.lifecycle.phase(), Phase::Draining);
+                            observed.set(true);
+                            shell.lifecycle.drained(1);
+                            shell.close(window, cx);
+                        });
+                    })
+                    .unwrap();
+            })
+            .detach();
+        host.cx.run_until_parked();
+        let closed = host
+            .command(&object([
+                ("op", text("key")),
+                ("key", text("ctrl-q")),
+                ("window", text(identity)),
+            ]))
+            .unwrap();
+        assert_eq!(closed, object([("closed", Json::Bool(true))]));
+        assert!(released.get(), "close must await the later drain");
+        assert!(host.windows.is_empty());
+        assert!(!socket.exists(), "the socket must retire with its window");
+    }
+
+    #[test]
+    fn uish_driver_panicking_host_retires_its_socket_within_the_close_bound() {
+        let (send, receive) = mpsc::sync_channel(1);
+        let worker = thread::spawn(move || {
+            let sandbox = super::super::Sandbox::new("panic-close");
+            let fixture = sandbox.0.join("fixture");
+            fs::create_dir(&fixture).unwrap();
+            fs::write(fixture.join("a.txt"), "a").unwrap();
+            let mut socket = None;
+            let panic = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                let mut host = Host::at(&sandbox.0);
+                let opened = host
+                    .command(&object([
+                        ("op", text("open")),
+                        ("path", text(fixture.display())),
+                    ]))
+                    .unwrap();
+                socket = Some(PathBuf::from(
+                    opened.get("socket").and_then(Json::as_str).unwrap(),
+                ));
+                panic!("exercise mounted-host unwinding");
+            }));
+            let _ = send.send((panic.is_err(), socket.is_some_and(|path| !path.exists())));
+        });
+        let (panicked, socket_gone) = receive
+            .recv_timeout(WAIT)
+            .expect("mounted-host unwind exceeded its existing close bound");
+        assert!(panicked, "the regression must exercise unwinding");
+        assert!(socket_gone, "unwinding must retire the mounted IPC socket");
+        worker.join().unwrap();
     }
 }
