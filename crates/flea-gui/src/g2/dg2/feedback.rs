@@ -363,7 +363,7 @@ mod tests {
                     shell.status_messages(cx, |messages, _| {
                         messages.activities().iter().any(|entry| entry.text == hint)
                     }),
-                    "a suppressed hint must be published when the transfer ends"
+                    "a hint suppressed during a transfer publishes on the next refresh after it ends"
                 );
             })
             .unwrap();
