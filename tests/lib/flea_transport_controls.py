@@ -15,6 +15,7 @@ from flea_transport import MARKER, REPO, TransportError, Window, load, sandbox_b
 from flea_native_inputs_controls import check_inputs, check_launch_inputs
 from flea_native_harness_controls import check_harness
 from flea_native_envelope_controls import check_envelope
+from flea_transport_teardown_controls import check_teardown
 
 root = Path(tempfile.mkdtemp(prefix="controls.", dir=REPO / ".superpowers/g010t"))
 (root / MARKER).touch()
@@ -115,6 +116,7 @@ try:
     check_launch_inputs(root, Window)
     check_harness(root)
     check_envelope(root)
+    check_teardown(root, check)
     stub = root / "clients"
     stub.mkdir()
     for name in ("qs", "omarchy-drive"):

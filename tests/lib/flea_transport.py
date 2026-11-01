@@ -338,7 +338,8 @@ def group_members(record):
             if current["group"] == record["group"] and current["state"] != "Z":
                 if owned(int(process.name), record)["state"] != "Z":
                     members.append(int(process.name))
-        except FileNotFoundError:
+        # ESRCH on its environ means the process exited between the two reads, the same as a vanished stat.
+        except (FileNotFoundError, ProcessLookupError):
             continue
     return members
 
@@ -455,8 +456,10 @@ def serve(root):
                 if not terminate and (outcome["forced"] or outcome["returncode"] != 0):
                     failure = failure or "natural exit failed or required forced termination"
             except BaseException as error:
-                (root / "error").write_text(failure or str(error))
-                outcome = None
+                # The supervisor still records its end: a window without stopped stays on the books after its
+                # processes are gone, and every later enumeration fails reading its /proc entry.
+                failure = failure or f"teardown failed: {error}"
+                outcome = dict(returncode=None, forced=True)
         if outcome is not None:
             outcome["error"] = failure
             if failure:
