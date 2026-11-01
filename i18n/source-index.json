@@ -208022,9 +208022,9 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"\"\"Plan and verify the all-language native checks; capture is controller-only and today only reports what blocks it.\"\"\"",
+      "excerpt": "\"\"\"Plan, prepare and verify the all-language native checks; capture is controller-only and today only reports what blocks it.\"\"\"",
       "line": 2,
-      "literal": "Plan and verify the all-language native checks; capture is controller-only and today only reports what blocks it.",
+      "literal": "Plan, prepare and verify the all-language native checks; capture is controller-only and today only reports what blocks it.",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -208032,7 +208032,7 @@
     },
     {
       "excerpt": "'missing': f'{len(hostless)} entries without a mounted host: {\", \".join(hostless)}'}",
-      "line": 197,
+      "line": 209,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208041,7 +208041,7 @@
     },
     {
       "excerpt": "'missing': f'{len(absent)} catalogs absent: {\", \".join(absent)}'}",
-      "line": 201,
+      "line": 213,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208050,7 +208050,7 @@
     },
     {
       "excerpt": "errors.append(f'{ident}: {case[\"kind\"]} evidence adapter OWED: {\", \".join(KIND_ADAPTERS[case[\"kind\"]])}')",
-      "line": 333,
+      "line": 345,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
@@ -208059,8 +208059,35 @@
     },
     {
       "excerpt": "errors.append(f'plan owes {row[\"dependency\"]}: {row[\"missing\"]}')",
-      "line": 387,
+      "line": 399,
       "literal": "missing",
+      "owner": "controller",
+      "path": "tools/flea-i18n-native",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone.\"\"\"",
+      "line": 511,
+      "literal": "prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone.",
+      "owner": "controller",
+      "path": "tools/flea-i18n-native",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "require(not changed, f'{\" \".join(argv)} changed host locale or language files: {\", \".join(changed)}')",
+      "line": 538,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-i18n-native",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "f'TUI language cases must be \"all\" or distinct ids from {\", \".join(known)}')",
+      "line": 559,
+      "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-i18n-native",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -242106,8 +242133,8 @@
     "crates/flea-gui/src/path/mark.rs": "cb902bbad347b4b34f53ee0a8a2eb51a4227db11984f7eda85ff3cf91cbb7e38",
     "crates/flea-gui/src/path/menu.rs": "5618be153e8faf8f2d2cb7fd25e907c0b95a9a4e9a0257b79d6d66b353bc12bf",
     "crates/flea-gui/src/path/mod.rs": "392baf609757f08fe280717c4965213f6e6c9214cca7a3c67ae67651f4dac814",
-    "crates/flea-gui/src/path/paint.rs": "494b7187a5d6139671565935fc2bd94b5950f56bab43b6fe09e5cb914773ce2f",
-    "crates/flea-gui/src/path/paint_element.rs": "897639def508eddf6e0592ec4a48424af5d73a7e193d2d2dec8b5e0570c41472",
+    "crates/flea-gui/src/path/paint.rs": "1b5db9256038f3296d6f7a8e0d7e6e631f807a3283a1b04019b9c93b86f0c1ec",
+    "crates/flea-gui/src/path/paint_element.rs": "50ac4be35645f01e7317499875df334da3322ec8968d1f150a3aa5fab29a1a37",
     "crates/flea-gui/src/path/probe.rs": "cff329372cd8b05ddf1e27304ed61a8161f5adb218ba37110cec4ac93f2af859",
     "crates/flea-gui/src/path/rank.rs": "108bd92778782595349306aa92a3894cf579a9b715acd838cb2a44af45f50f8a",
     "crates/flea-gui/src/path/render.rs": "0ca86f8c337f0fa011c49e5cc1920360f5153d78c55396361ff55cadee5f1f50",
@@ -243348,7 +243375,7 @@
     "tools/flea-i18n-extract": "66a05ca01f1435fc5a7a39e452eb7abdc9844f840417eb83ded3d3def9d93c89",
     "tools/flea-i18n-layouts": "5449af8bef2f30336eef621422982418e88f9b085934a2a181c3270e1c52a11a",
     "tools/flea-i18n-manifest": "c693ffbb0438691c753cd998ccf30697da1eda13afdbcc412709bf4e009e211e",
-    "tools/flea-i18n-native": "9de06a8d8b9c8c4fef68db8498e62946c4ef7bf21605b373ee1b83c73a7c9d14",
+    "tools/flea-i18n-native": "8bbe675f06526e21818aaf89091fd8feff19270bcb787ab5603fd5b5162fc89a",
     "tools/flea-i18n-quality": "f38eff8ea84188f921dc5efe5d1e5f481e1214a4c91d49d70be30d3a930e5f72",
     "tools/flea-i18n-roster": "15ebc5b098f014643154e00a5a2c3f9f0f08568a09ccd254dcf2935bfc2d6783",
     "tools/flea-ipc": "b6907958280b1adf40602eb46c89a2e493fe4858ae086552446c569d8cf422fc",
@@ -243877,7 +243904,7 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 152,
-      "missing_literal_candidates": 4827,
+      "missing_literal_candidates": 4830,
       "source_files": 147
     },
     "gui": {
