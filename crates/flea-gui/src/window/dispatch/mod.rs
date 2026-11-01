@@ -142,7 +142,11 @@ mod guard_tests;
 #[cfg(test)]
 mod key_delivery_preview_tests;
 #[cfg(test)]
+mod key_rows_focus_tests;
+#[cfg(test)]
 mod key_rows_tests;
+#[cfg(test)]
+mod key_rows_trash_tests;
 #[cfg(test)]
 mod listing_marks_tests;
 #[cfg(test)]
