@@ -153,15 +153,32 @@ fn tui_fix_1101_trashed_text_previews_its_first_line() {
     assert_eq!(rows[6].chars().skip(81).collect::<String>().trim(), "", "a blank row follows the Trash facts");
     assert_eq!(rows[7].chars().skip(81).collect::<String>().trim_end(), "1 first draft");
     assert_eq!(m.current_path(), None, "the backing file never becomes a path actions reach");
-    // A row whose backing the backend could not review previews nothing, never the text of the row before it.
-    let unbacked = LISTED.replace("old-draft", "gone").replace(r#""id":1"#, r#""id":2"#);
-    open(&mut m, &mut w).unwrap();
-    m.receive(parse(&unbacked).unwrap(), &mut w).unwrap();
+    finish(w, reader);
+}
+// A row whose backing the backend could not review previews nothing, never the text of the row the cursor left.
+#[test]
+fn tui_fix_1101_unbacked_trash_row_never_shows_the_previous_text() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-unbacked");
+    let backing = root.file("old-draft.txt", "first draft\n");
+    let theme = Theme::from_text("");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    m.preview_visible = true;
+    let listed = page(1, "list", 2, 0, 2, "b").replace("b0.txt\",\"size", &format!("b0.txt\",\"content\":\"{}\",\"size", backing.display()));
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    crate::tui::preview::load(&mut m, false);
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+        crate::tui::preview::poll(&mut m);
+    }
+    assert_eq!(m.preview_body.lines().next(), Some("first draft"));
+    press(&mut m, &mut w, Key::character('j', ""));
     crate::tui::preview::load(&mut m, false);
     crate::tui::preview::layout(&mut m);
     let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
-    assert_eq!(rows[2].chars().skip(83).take(8).collect::<String>(), "gone.txt");
-    assert_eq!(rows[7].chars().skip(81).collect::<String>().trim(), "");
+    assert_eq!(rows[2].chars().skip(83).take(6).collect::<String>(), "b1.txt");
+    assert_eq!(rows[7].chars().skip(81).collect::<String>().trim(), "", "the text read for b0 stays off b1");
     finish(w, reader);
 }
 // With previews loaded on demand, the load key reads a trashed file's text instead of being refused as a change.
