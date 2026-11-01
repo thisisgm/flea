@@ -3,6 +3,8 @@ use flea::ipc::wire::{Reply, Request};
 use gpui::{TestAppContext, WindowHandle};
 use std::time::Duration;
 
+#[path = "status_backend_fault_tests.rs"]
+mod backend_faults;
 #[path = "status_card_tests.rs"]
 mod cards;
 #[path = "status_disk_tests.rs"]

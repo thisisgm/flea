@@ -41,6 +41,22 @@ impl Shell {
         });
     }
 
+    /// Sidebar.qml onFailed: an open Trash says it on its own bar, else the window's bar says it while the rail shows the count.
+    pub(super) fn trash_monitor_failed(&mut self, text: &str, cx: &mut Context<Self>) {
+        if self.trash_opened(cx) {
+            self.trash_say_detail(text, "", true, cx);
+        } else if self
+            .rail
+            .as_ref()
+            .is_some_and(|rail| rail.places.read(cx).model.borrow().trash_count_shown)
+        {
+            self.status_messages(cx, |messages, now| {
+                messages.say(text, true, "", Hint::None, now)
+            });
+            cx.notify();
+        }
+    }
+
     pub(super) fn trash_arm(&mut self, text: &str, cx: &mut Context<Self>) {
         let Some(host) = &self.trash else {
             return;

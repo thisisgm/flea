@@ -205,9 +205,19 @@ impl Shell {
                 String::new(),
             )
         } else {
+            // StatusBar.qml keyHint compares against the sentence the state slot draws, a refusal's own when there is one.
+            let drawn = matches!(
+                host.pane.state.kind,
+                crate::pane::states::Kind::Error | crate::pane::states::Kind::Locked
+            )
+            .then(|| self.surfaces[self.focus_side].refused(catalog))
+            .flatten();
             (
                 host.path.clone(),
-                host.state_text.message.clone(),
+                drawn.map_or_else(
+                    || host.state_text.message.clone(),
+                    |facts| facts.sentence.to_string(),
+                ),
                 host.retry_text(),
                 crate::g2::sr1::Search::status(&host.search.owner, catalog).0,
             )

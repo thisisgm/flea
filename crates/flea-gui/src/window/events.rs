@@ -4,6 +4,8 @@ use crate::{
     state::Shell,
 };
 use gpui::{Context, Window};
+#[path = "events_backend.rs"]
+mod backend;
 #[path = "events_filesystem.rs"]
 mod filesystem;
 #[path = "events_ipc.rs"]
@@ -26,7 +28,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let event = self.backend_line(event);
         let event = self.filesystem_flags(side, event);
+        // PaneWire.qml onFailed: a dead backend with a rename out names the rename, in the state slot and the bar.
+        let rename_out = matches!(event, BackendEvent::Failed(_))
+            && self
+                .rename
+                .edit
+                .as_ref()
+                .is_some_and(|edit| edit.side == side && edit.pending.is_some());
         if self.tags_event(side, &event, window, cx) {
             return;
         }
@@ -195,6 +205,7 @@ impl Shell {
                 unreachable!("producer handled above")
             }
             BackendEvent::Session { .. } => unreachable!(),
+            BackendEvent::Garbled(_) => unreachable!("refused as parse above"),
             BackendEvent::ListDetails(reply) => {
                 self.list_details(side, reply, cx);
                 return;
@@ -218,20 +229,7 @@ impl Shell {
                 }
             }
             BackendEvent::Failed(error) => {
-                if host.pane.fail("backend", "", "", 0, host.pane.now()) {
-                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
-                        operation: "backend".into(),
-                        message: String::new(),
-                        mode: 0,
-                    });
-                }
-                host.input.queued = None;
-                host.changed(&self.locale);
-                host.record_error(error, &self.locale);
-                self.surfaces[side].filesystem.settle_without_facts();
-                self.chrome.jumps[side] = 0;
-                self.retire_status_owner(side, window, cx);
-                self.status_refused("backend", "", "", cx);
+                self.backend_failed(side, error, rename_out, window, cx);
             }
             BackendEvent::Refused {
                 operation,

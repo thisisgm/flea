@@ -34,6 +34,10 @@ pub trait Outside {
         self.status(text, false);
     }
     fn result(&mut self, headline: String, detail: String, error: bool);
+    /// TrashMonitor onFailed: the watch or its count failed; the window decides where the sentence shows.
+    fn monitor_failed(&mut self, text: String) {
+        self.status(text, true);
+    }
     /// G1.13 status slot: Escape is offered here first; true when it dismissed a showing message, so Trash stays open.
     fn escape_taken(&mut self) -> bool;
     /// G1.11 rail host: the Trash row's count and the Tab hop into the rail.

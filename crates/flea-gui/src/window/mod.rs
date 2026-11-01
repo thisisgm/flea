@@ -175,6 +175,8 @@ mod surfaces_tests;
 mod text_size_keys_tests;
 #[cfg(test)]
 mod transition_tests;
+#[cfg(test)]
+mod trash_monitor_status_tests;
 
 #[cfg(test)]
 mod dual_join_tests;
