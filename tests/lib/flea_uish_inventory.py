@@ -143,7 +143,9 @@ BATCHES = {'tests/ui-uish/common-observers.sh': ['scroll', 'colour', 'lifted', '
  'tests/ui-uish/tabs.sh': ['tabs', 'tabdrag', 'middleclick', 'opentab', 'folderviews'],
  'tests/ui-uish/operations.sh': ['dd', 'ddclick', 'operations', 'transferlive', 'xwundo'],
  'tests/ui-uish/open-with.sh': ['openterminal', 'makeexec', 'openwithdesign'],
- 'tests/ui-uish/drag.sh': ['griddrop', 'railpointer', 'dualautohidereveal', 'dualdivider']}
+ 'tests/ui-uish/drag.sh': ['griddrop', 'railpointer', 'dualautohidereveal', 'dualdivider'],
+ 'tests/ui-uish/menus.sh': ['querypaste', 'runscript', 'background', 'hidden', 'reload', 'focus', 'columnsbackground'],
+ 'tests/ui-uish/backend.sh': ['terminal']}
 FUNCTION = re.compile(r"^case_([A-Za-z0-9_]+)\(\) (?:\{[^\n]*\}|\{\n.*?^\}|\(\n.*?^\))(?=\n|$)", re.M | re.S)
 DEFINITION = re.compile(r"^[ \t]*(?:function[ \t]+case_([A-Za-z0-9_]+)(?:[ \t]*\([ \t]*\))?|case_([A-Za-z0-9_]+)[ \t]*\([ \t]*\))[ \t]*[({]", re.M)
 WANTED = re.compile(r"wanted=\((cursor [^\n]+)\)")

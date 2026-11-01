@@ -79,14 +79,8 @@ impl Adapter for NativeWindowAdapter<'_> {
                     metrics.nominal_row
                 )
             }
-            "fileRowHeight" => {
-                let row = if self.list.drawn.frames == 0 {
-                    crate::list::Metrics::for_typeface(&self.list.typeface).row
-                } else {
-                    self.list.drawn.metrics.row
-                };
-                row.round().to_string()
-            }
+            // Grid and Columns retain stale list paints, so Theme.qml fileRowHeight follows current density.
+            "fileRowHeight" => self.list.file_metrics().row.round().to_string(),
             "themeLoaded" => self.parsed.0.to_string(),
             "themeForeground" => super::rows::colour(self.theme.foreground),
             "windowSize" => format!(

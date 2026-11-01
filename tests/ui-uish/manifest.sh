@@ -28,6 +28,8 @@ flea_uish_module tests/ui-uish/tabs.sh tabs tabdrag middleclick opentab foldervi
 flea_uish_module tests/ui-uish/operations.sh dd ddclick operations transferlive xwundo
 flea_uish_module tests/ui-uish/open-with.sh openterminal makeexec openwithdesign
 flea_uish_module tests/ui-uish/drag.sh griddrop railpointer dualautohidereveal dualdivider
+flea_uish_module tests/ui-uish/menus.sh querypaste runscript background hidden reload focus columnsbackground
+flea_uish_module tests/ui-uish/backend.sh terminal
 
 flea_uish_load() {
     [[ "$test_frontend" == gpui ]] || return 0

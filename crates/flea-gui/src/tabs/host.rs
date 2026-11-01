@@ -44,6 +44,7 @@ pub(crate) struct Host {
     pub frames: Rc<RefCell<super::held::StripFrames>>,
     pub clients: super::geometry::Clients,
     pub launch_started: bool,
+    pub adopted_view: Option<&'static str>,
 }
 
 impl Host {
@@ -75,6 +76,7 @@ impl Host {
             frames: Default::default(),
             clients: super::geometry::hyprland(),
             launch_started: false,
+            adopted_view: None,
         }
     }
 }
@@ -88,6 +90,7 @@ struct World<'a> {
     catalog: &'a flea::i18n::I18n,
     notice: &'a mut [Notice; 2],
     trash_dropped: &'a mut [bool; 2],
+    adopted_view: &'a mut Option<&'static str>,
 }
 
 impl Panes for World<'_> {
@@ -105,6 +108,7 @@ impl Panes for World<'_> {
                 catalog: self.catalog,
                 notice: &mut self.notice[side],
                 trash_dropped: &mut self.trash_dropped[side],
+                adopted_view: self.adopted_view,
             },
         );
         true
@@ -136,28 +140,12 @@ impl Shell {
             catalog: &self.locale.catalog,
             notice: &mut strip.notice,
             trash_dropped: &mut strip.trash_dropped,
+            adopted_view: &mut strip.adopted_view,
         };
         strip.bar.set_pane(&mut world, Some(self.focus_side));
         let value = f(&mut strip.bar, &mut world);
         self.bind_tab_landings();
         value
-    }
-
-    pub(crate) fn restore_tabs(&mut self) {
-        if self.view != View::Dual {
-            if let Some(plan) = &self.launch.tabs {
-                let side = self.focus_side;
-                let plan = plan.clone();
-                self.with_tabs(|_, panes| {
-                    panes.visit(side, &mut |tabs, pane| tabs.restore(pane, &plan));
-                });
-            }
-            let cursor = self.strip.launch.cursor.clone();
-            let side = self.focus_side;
-            self.with_tabs(|_, panes| {
-                panes.visit(side, &mut |tabs, pane| tabs.prepare_cursor(pane, &cursor));
-            });
-        }
     }
 
     /// Row and rail owners use this after validating their directory target; it uses the same tab model as t.
@@ -214,36 +202,10 @@ impl Shell {
             self.run_navigation(side, window, cx);
         }
         self.remember_tabs();
-        self.adopt_standing_view(window, cx);
+        self.adopt_tab_view(window, cx);
         self.tab_timer(window, cx);
         self.publish_tab_notices(cx);
         cx.notify();
-    }
-
-    // Pane.qml adoptView: a tab's view becomes the standing one unless its folder keeps its own, so a relaunch opens the view the window was left on.
-    fn adopt_standing_view(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.view == View::Dual
-            || self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
-        {
-            return;
-        }
-        let Some(host) = &self.panes[self.focus_side] else {
-            return;
-        };
-        let shown = super::live::view_name(self.view);
-        let stored = flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["view"], "list");
-        let stored = ["list", "columns", "grid"]
-            .into_iter()
-            .find(|view| *view == stored)
-            .unwrap_or("list");
-        if host.nav.folders.borrow().view_for(&host.path, stored) == shown {
-            return;
-        }
-        let patch = flea::jsondoc::Json::Obj(vec![(
-            "view".into(),
-            flea::jsondoc::Json::Str(shown.into()),
-        )]);
-        self.change_settings(patch, window, cx);
     }
 
     // Tabs.js sayCount: a verdict is a footer notice, and a count change withdraws the one standing.
@@ -317,6 +279,7 @@ impl Shell {
         self.settle_tear_off_launch(side);
         self.run_navigation(side, window, cx);
         self.remember_tabs();
+        self.adopt_tab_view(window, cx);
         self.pump_tab_acks(cx);
         self.publish_tab_notices(cx);
     }

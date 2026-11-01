@@ -3,12 +3,15 @@ use super::state::{Live, Open, Row, Say};
 use crate::{
     navigation::{folder_state::Order, history::Entry, Command},
     pane::swap::Options,
+    state::Shell,
     window::{
         pane::PaneHost,
         startup::{Settings, View},
     },
 };
 use flea::i18n::I18n;
+use flea::{jsondoc::Json, ui_logic_st1::pages};
+use gpui::{Context, Window};
 
 #[derive(Default)]
 pub struct Notice {
@@ -28,6 +31,8 @@ pub(crate) struct Pane<'a> {
     pub catalog: &'a I18n,
     pub notice: &'a mut Notice,
     pub trash_dropped: &'a mut bool,
+    /// Pane.qml adoptView: the view a tab brought back that the window now owes to the stored view.
+    pub adopted_view: &'a mut Option<&'static str>,
 }
 
 pub fn view_name(view: View) -> &'static str {
@@ -96,12 +101,19 @@ impl Live for Pane<'_> {
         if *self.view == View::Dual {
             return;
         }
-        let view = self.host.nav.folders.borrow().view_for(path, view);
+        let folders = self.host.nav.folders.borrow();
+        let own = folders.owns_view(path);
+        let view = folders.view_for(path, view);
+        drop(folders);
         *self.view = match view {
             "grid" => View::Grid,
             "columns" => View::Columns,
             _ => View::List,
         };
+        // A folder that keeps its own view leaves the standing view alone; any other view becomes it.
+        if !own {
+            *self.adopted_view = Some(view);
+        }
     }
     fn hidden(&self) -> bool {
         self.host.nav.folders.borrow().hidden
@@ -272,5 +284,41 @@ impl Live for Pane<'_> {
             self.notice.owed = None;
             self.notice.withdraw = true;
         }
+    }
+}
+
+impl Shell {
+    pub(crate) fn restore_tabs(&mut self) {
+        if self.view != View::Dual {
+            if let Some(plan) = &self.launch.tabs {
+                let side = self.focus_side;
+                let plan = plan.clone();
+                self.with_tabs(|_, panes| {
+                    panes.visit(side, &mut |tabs, pane| tabs.restore(pane, &plan));
+                });
+            }
+            let cursor = self.strip.launch.cursor.clone();
+            let side = self.focus_side;
+            self.with_tabs(|_, panes| {
+                panes.visit(side, &mut |tabs, pane| tabs.prepare_cursor(pane, &cursor));
+            });
+        }
+    }
+
+    /// Pane.qml adoptView: a tab that brings back a view the folder does not own makes it the standing view.
+    pub(crate) fn adopt_tab_view(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(name) = self.strip.adopted_view.take() else {
+            return;
+        };
+        if self.view == View::Dual
+            || pages::word(&self.launch.settings.data, &["view"], "list") == name
+        {
+            return;
+        }
+        self.change_settings(
+            Json::Obj(vec![("view".into(), Json::Str(name.into()))]),
+            window,
+            cx,
+        );
     }
 }

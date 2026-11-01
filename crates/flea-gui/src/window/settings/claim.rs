@@ -1,13 +1,19 @@
 use crate::{g2::st1::claim::Claim, state::Shell};
 use flea::ui_logic_st1::{rows::Role, Text};
 use gpui::{Context, Window};
-use std::{path::PathBuf, process::Command};
+use std::{path::PathBuf, process::Command, sync::Mutex};
 
 #[cfg(test)]
 #[path = "claim_tests.rs"]
 mod tests;
 
+// DefaultClaim.qml readBusy/readAgain: a claim's fresh read waits for the outstanding About read.
+static READ: Mutex<()> = Mutex::new(());
+
 fn handler() -> String {
+    let _one = READ
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     Command::new("xdg-mime")
         .args(["query", "default", "inode/directory"])
         .output()
@@ -125,19 +131,29 @@ impl Shell {
         self.settings.about_open = true;
         self.settings_update(false, window, cx);
         let revision = self.settings.claim.revision;
+        // The entry probe lands on its own, so a handler read still out never keeps the row from About.
         cx.spawn_in(window, async move |this, cx| {
-            let (handler, packaged, (owner, package)) = cx
-                .background_executor()
-                .spawn(async { (handler(), packaged(), super::provenance::probe()) })
-                .await;
+            let packaged = cx.background_executor().spawn(async { packaged() }).await;
             let _ = this.update(cx, |shell, cx| {
                 if shell.settings.claim.revision != revision {
                     return;
                 }
-                shell.settings.claim.handler = handler;
                 shell.settings.claim.packaged = packaged;
                 shell.settings.claim.probed = true;
+                shell.sync_settings_claim(cx);
+            });
+        })
+        .detach();
+        cx.spawn_in(window, async move |this, cx| {
+            let (handler, (owner, package)) = cx
+                .background_executor()
+                .spawn(async { (handler(), super::provenance::probe()) })
+                .await;
+            let _ = this.update(cx, |shell, cx| {
                 shell.settings_owner(&owner, &package, cx);
+                if shell.settings.claim.revision == revision {
+                    shell.settings.claim.handler = handler;
+                }
                 shell.sync_settings_claim(cx);
             });
         })

@@ -48,6 +48,38 @@ fn u01_file_row_height_reads_the_last_painted_frame(cx: &mut TestAppContext) {
     assert_ne!(rows[0], rows[1], "both sizes painted one row: {rows:?}");
 }
 
+// EY-451: Theme.qml fileRowHeight follows density even while Grid retains an older list paint.
+#[gpui::test]
+fn ey451_file_row_height_follows_a_density_change_the_list_has_not_painted(
+    cx: &mut TestAppContext,
+) {
+    let (backend, _requests) = Backend::test_channel();
+    let handle = cx.add_window(|_, cx| super::root::Root {
+        shell: cx.new(|cx| shell_with(backend, cx)),
+    });
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    handle
+        .update(cx, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| {
+                let painted = shell.panes[0].as_ref().unwrap().list.borrow().drawn;
+                assert!(painted.frames > 0, "the root painted the list");
+                let list = &shell.panes[0].as_ref().unwrap().list;
+                list.borrow_mut().density = crate::list::Density::Normal;
+                let now = list.borrow().file_metrics().row;
+                assert_ne!(now, painted.metrics.row, "normal density moves the row");
+                assert_eq!(
+                    call(shell, "fileRowHeight", window, cx),
+                    Reply::value(now.round().to_string())
+                );
+            });
+        })
+        .unwrap();
+}
+
 fn call(
     shell: &mut Shell,
     function: &str,
