@@ -83,14 +83,13 @@ fn asking_b() -> ListPane {
     pane
 }
 
-/// Both deferred menus armed for /b: the background tap's and the neighbour row's.
+/// The deferred background menu armed for /b; a neighbour row's menu opens in place and defers nothing.
 fn armed() -> Deferred {
     Deferred {
         background: Background {
             target: "/b".into(),
             at: Some((1., 1.)),
         },
-        row_menu: true,
     }
 }
 
@@ -164,7 +163,7 @@ fn a_neighbour_background_routes_only_a_drawn_column() {
 }
 
 #[test]
-fn a_listing_end_drops_both_deferred_menus() {
+fn a_listing_end_drops_the_deferred_menu() {
     let mut c = Checks::new("tests/js/columns.js");
     let stale = failed("stale", "trash [0]", "rows out of date");
     c.eq(
@@ -173,20 +172,13 @@ fn a_listing_end_drops_both_deferred_menus() {
         stale.background.target.as_str(),
         "/b",
     );
-    c.eq(
-        575,
-        "and keeps the row intent with it",
-        stale.row_menu,
-        true,
-    );
     let sort = failed("sort", "mode", "no such order");
     c.eq(
         579,
-        "a refused sort keeps both intents too",
+        "a refused sort keeps the intent too",
         sort.background.target.as_str(),
         "/b",
     );
-    c.eq(580, "and the row one beside it", sort.row_menu, true);
     let scan = failed("scan", "/b", "permission denied");
     c.eq(
         583,
@@ -194,15 +186,13 @@ fn a_listing_end_drops_both_deferred_menus() {
         scan.background.target.as_str(),
         "",
     );
-    c.eq(584, "and the row intent with it", scan.row_menu, false);
     let backend = failed("backend", "", "child is gone");
     c.eq(
         588,
-        "a dead backend drops both intents at once",
+        "a dead backend drops the intent at once",
         backend.background.target.as_str(),
         "",
     );
-    c.eq(589, "with the row one beside it", backend.row_menu, false);
     c.eq(
         671,
         "a failed listing drops the intent",
@@ -216,23 +206,20 @@ fn a_listing_end_drops_both_deferred_menus() {
         "unrelated errors keep the intent until the listing ends",
         window == armed() && elsewhere == armed(),
     );
-    // A dead backend or a dead read ends every listing, so it drops both before the listing's own answer.
+    // A dead backend or a dead read ends every listing, so it drops the menu before the listing's own answer.
     let mut terminal = armed();
     terminal.failed("backend", false);
     let mut unread = armed();
     unread.failed("read", false);
     c.ok(
         676,
-        "a dead backend still drops both deferred menus",
-        terminal.background == Background::default()
-            && !terminal.row_menu
-            && unread.background == Background::default()
-            && !unread.row_menu,
+        "a dead backend still drops the deferred menu",
+        terminal.background == Background::default() && unread.background == Background::default(),
     );
     c.ok(
         679,
-        "the ended listing drops both deferred menus",
-        scan.background == Background::default() && !scan.row_menu,
+        "the ended listing drops the deferred menu",
+        scan.background == Background::default(),
     );
     c.finish();
 }
