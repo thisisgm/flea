@@ -186,6 +186,7 @@ impl Shell {
     }
 
     pub(crate) fn tabs_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.reset_tab_overlays(window, cx);
         for side in 0..2 {
             if std::mem::take(&mut self.strip.trash_dropped[side]) {
                 self.drop_trash(side, window, cx);

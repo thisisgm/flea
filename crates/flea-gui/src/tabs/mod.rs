@@ -24,6 +24,7 @@ mod join_tests;
 mod landing;
 mod live;
 mod native;
+mod overlays;
 pub(crate) mod trace;
 mod view;
 
