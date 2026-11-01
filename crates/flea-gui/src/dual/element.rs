@@ -73,11 +73,14 @@ impl Shell {
     pub(crate) fn dual_events(div: Div, cx: &mut Context<Self>) -> Div {
         div.on_mouse_move(cx.listener(|shell, event: &MouseMoveEvent, window, cx| {
             shell.dual_move(f32::from(event.position.x), window, cx);
+            let pressed = event.pressed_button == Some(MouseButton::Left);
+            shell.sidebar_move(f32::from(event.position.x), pressed, window, cx);
         }))
         .on_mouse_up(
             MouseButton::Left,
             cx.listener(|shell, _, window, cx| {
                 shell.dual_end(true, window, cx);
+                shell.sidebar_end(window, cx);
             }),
         )
         .on_mouse_up_out(
@@ -85,6 +88,7 @@ impl Shell {
             cx.listener(|shell, event: &MouseUpEvent, window, cx| {
                 shell.dual_move(f32::from(event.position.x), window, cx);
                 shell.dual_end(true, window, cx);
+                shell.sidebar_end(window, cx);
             }),
         )
     }

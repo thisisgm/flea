@@ -52,8 +52,12 @@ fn pb_columns2_edge_hover_and_drag_reach_the_mounted_surface() {
                 .area;
             assert!(area.host.edge.hovered, "the painted edge receives hover");
             assert!(area.edge_paint().line.is_some() && area.edge_paint().mark.is_some());
-            let (x, _, width, _) = area.edge_paint().line.unwrap();
-            let (mark_x, _, mark_width) = area.edge_paint().mark.unwrap();
+            let (x, _, width, height) = area.edge_paint().line.unwrap();
+            let (mark_x, mark_y, mark_width) = area.edge_paint().mark.unwrap();
+            assert!(
+                (mark_y + mark_width / 2. - height / 2.).abs() <= 0.5,
+                "the move mark is centred on the hairline's middle row"
+            );
             assert_eq!(
                 mark_x + mark_width / 2.,
                 x + width / 2.,
@@ -173,10 +177,26 @@ fn pb_columns2_neighbour_double_click_runs_the_file_opener() {
                 assert_eq!(&paths[0][1..], ["--open", "/srv/a/b/neighbour.txt"]);
             }
         });
+        if count == 1 {
+            handle
+                .read_with(&vcx, |shell, _| {
+                    let host = shell.panes[0].as_ref().unwrap();
+                    assert_eq!(
+                        host.pane.place(),
+                        "/srv/a/b",
+                        "the first tap lists the file's folder"
+                    );
+                    assert_eq!(
+                        host.nav.pending_select.as_deref(),
+                        Some("/srv/a/b/neighbour.txt")
+                    );
+                })
+                .unwrap();
+        }
     }
     handle
         .read_with(&vcx, |shell, _| {
-            assert_eq!(shell.panes[0].as_ref().unwrap().pane.path(), "/srv/a/b/c")
+            assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/srv/a/b")
         })
         .unwrap();
 }
@@ -231,5 +251,91 @@ fn pb_columns2_named_preview_readers_are_mounted_even_without_a_preview() {
                 .trim()
                 .is_empty());
         }
+    });
+}
+
+#[test]
+fn finder_neighbour_file_tap_lands_its_cursor_and_the_second_tap_opens_only_it() {
+    assert_eq!(
+        flea::keys::pointer("neighbour", "file", "left", 0, 1).map(|binding| binding.effect),
+        Some("reveal")
+    );
+    let mut cx = host::context();
+    let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, handle, |shell, window, cx| {
+        shell.opener[0].launch = record;
+        host::peek(
+            shell,
+            "/srv/a/b",
+            &[("neighbour.txt", false), ("c", true)],
+            false,
+            window,
+            cx,
+        );
+        host::settle(shell, window, cx);
+    });
+    host::frame(&mut cx, handle);
+    let at = handle
+        .update(&mut cx, |shell, _, _| {
+            let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+            let paint = columns.painters.get(Slot::Parent).unwrap().borrow();
+            let bounds = paint.drawn.as_ref().unwrap().bounds;
+            point(bounds.left() + px(70.), bounds.top() + px(15.))
+        })
+        .unwrap();
+    OPENED.with(|paths| paths.borrow_mut().clear());
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    vcx.simulate_event(MouseDownEvent {
+        position: at,
+        button: MouseButton::Left,
+        click_count: 1,
+        ..Default::default()
+    });
+    vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+    vcx.run_until_parked();
+    handle
+        .update(&mut vcx, |shell, window, cx| {
+            for reply in [
+                flea::protocol::Reply::Listed {
+                    path: "/srv/a/b".into(),
+                    total: 2,
+                },
+                flea::protocol::Reply::Rows {
+                    start: 0,
+                    listing: 4,
+                    rows: vec![host::row("neighbour.txt", false), host::row("c", true)],
+                },
+            ] {
+                shell.receive(0, crate::backend::Event::Reply(reply), window, cx);
+            }
+            let host = shell.panes[0].as_ref().unwrap();
+            assert_eq!(host.pane.place(), "/srv/a/b");
+            assert_eq!(
+                host.pane
+                    .held
+                    .row(host.pane.cursor)
+                    .map(|row| row.name.as_str()),
+                Some("neighbour.txt"),
+                "the tapped file holds the cursor once its folder lands"
+            );
+        })
+        .unwrap();
+    vcx.run_until_parked();
+    assert!(
+        OPENED.with(|paths| paths.borrow().is_empty()),
+        "one tap opens nothing"
+    );
+    vcx.simulate_event(MouseDownEvent {
+        position: at,
+        button: MouseButton::Left,
+        click_count: 2,
+        ..Default::default()
+    });
+    vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+    vcx.run_until_parked();
+    OPENED.with(|paths| {
+        let paths = paths.borrow();
+        assert_eq!(paths.len(), 1, "the second tap opens one file: {paths:?}");
+        assert_eq!(&paths[0][1..], ["--open", "/srv/a/b/neighbour.txt"]);
     });
 }

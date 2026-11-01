@@ -10,6 +10,7 @@ pub mod menu;
 pub mod paint;
 pub mod peeks;
 pub mod preview_host;
+mod resize;
 pub mod sets;
 mod tracks;
 pub(crate) mod walks;
@@ -88,6 +89,10 @@ pub struct Area {
     pub outbox: Vec<String>,
     /// Every previewWidth share the edge stored, in order, drained by the shell into View settings.
     pub stored: Vec<u32>,
+    /// preview.tracks as weights, empty for equal columns left of the third.
+    pub weights: Vec<f32>,
+    /// The weights a column hairline stored last, drained by the shell into View settings.
+    pub stored_tracks: Option<Vec<u32>>,
     pub peek_requests: usize,
     /// The child path whose empty reply landed settled, so its hero skips the entrance.
     pub hero_settled: Option<String>,
@@ -118,6 +123,8 @@ impl Area {
             drawn: Vec::new(),
             outbox: Vec::new(),
             stored: Vec::new(),
+            weights: Vec::new(),
+            stored_tracks: None,
             peek_requests: 0,
             hero_settled: None,
             settle_later: None,
@@ -149,7 +156,8 @@ impl Area {
 
     fn relayout(&mut self) {
         let drag = self.host.edge.last;
-        self.layout = Layout::new(self.layout.width, self.limit, self.share, drag);
+        let weights = self.host.edge.widths.as_deref().unwrap_or(&self.weights);
+        self.layout = Layout::weighted(self.layout.width, self.limit, self.share, drag, weights);
         self.tracks.place(&self.layout);
     }
 
@@ -162,12 +170,6 @@ impl Area {
 
     pub fn set_limit(&mut self, limit: Option<f64>) {
         self.limit = limit;
-        self.relayout();
-    }
-
-    /// Settings View's previewWidth, the third column's share in percent, 0 for the default third.
-    pub fn set_share(&mut self, share: f64) {
-        self.share = share;
         self.relayout();
     }
 
@@ -286,12 +288,11 @@ impl Area {
         if pane.cursor_row.is_some() != self.host.shown.has_row {
             self.move_third(pane, ports, false, now);
         }
-        // The edge hidden under a held button ends the drag like a release.
-        if !self.host.third_shown(self.settings) {
+        // The edge hidden under a held button ends the drag like a release; a column hairline stays.
+        if !self.host.third_shown(self.settings) && self.host.edge.at == geometry::Line::Preview {
             self.host.edge.hovered = false;
             if self.host.edge.dragging {
-                let store = self.host.edge.release(self.layout.width);
-                self.store_edge(store);
+                self.edge_release();
             }
         }
         self.seen = Seen {
@@ -365,8 +366,7 @@ impl Area {
         if !visible {
             self.host.edge.hovered = false;
             if self.host.edge.dragging {
-                let store = self.host.edge.release(self.layout.width);
-                self.store_edge(store);
+                self.edge_release();
             }
         }
         self.sync(pane, ports, now);

@@ -250,7 +250,7 @@ pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("listing", "middle", "file", "nothing", "keys.label.18bfdfc84ab4", "middle", 0, 1),
     PointerBinding::new("column", "left", "dir", "open", "keys.label.c5f15f85156b", "left", 0, 1),
     PointerBinding::new("neighbour", "left", "dir", "reveal", "keys.label.0b225601d6bd", "left", 0, 1),
-    PointerBinding::new("neighbour", "left", "file", "nothing", "keys.label.88fb4bdca0d6", "left", 0, 1),
+    PointerBinding::new("neighbour", "left", "file", "reveal", "keys.label.bfa65befcad0", "left", 0, 1),
     PointerBinding::new("neighbour", "left x2", "file", "open", "keys.label.cc5b682e634f", "left", 0, 2),
     PointerBinding::new("neighbour", "right", "any", "nothing", "keys.label.c7ad88ff7f52", "right", 0, 1),
     PointerBinding::new("neighbour", "middle", "dir", "openTab", "keys.label.a942ae0af51b", "middle", 0, 1),

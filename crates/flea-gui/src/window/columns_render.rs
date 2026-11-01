@@ -302,6 +302,9 @@ impl Shell {
         area = area.children(super::edge::surface(self, side, cx));
         Some(
             super::gestures::draggable(area, side, cx)
+                .capture_any_mouse_down(cx.listener(move |shell, event, window, cx| {
+                    shell.columns_file_tap(side, event, window, cx)
+                }))
                 .on_mouse_down(
                     gpui::MouseButton::Left,
                     cx.listener(move |shell, event, window, cx| {

@@ -5499,6 +5499,197 @@ case_reclick() {
     kill_flea
 }
 
+# A GPUI neighbour-file tap reveals and selects without opening (COLUMNS-FINDER item 1).
+case_finderneighbour() {
+    local dir="$fixture_root/finderneighbour" fx fy wx wy _ww _wh row
+    local bindir="$fixture_root/finderneighbour-open-bin" opened="$fixture_root/finderneighbour-opened.log"
+    sandbox_scratch "$dir"
+    sandbox_scratch "$bindir"
+    mkdir -p "$dir/inner" || fail "finderneighbour: could not create fixtures"
+    printf 'neighbour body\n' > "$dir/note.txt" || fail "finderneighbour: could not seed note.txt"
+    printf 'inner body\n' > "$dir/inner/a.txt" || fail "finderneighbour: could not seed a.txt"
+    : > "$opened"
+    {
+        printf '#!/bin/sh\n'
+        printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+        printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$bindir/$open_handoff"
+    chmod +x "$bindir/$open_handoff"
+    seed_ui_state "$fixture_root/finderneighbour-state" '{"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    PATH="$bindir:$PATH" launch "$dir/inner"
+    xwdrag_place "$(flea_pid)" 80 80 1100 700
+    switch_view columns
+    wait_path "$dir/inner"
+    shot finderneighbour-before
+    # Dirs sort first, so the parent column lists inner at row 0 and note.txt at row 1.
+    read -r fx fy <<< "$(ipc columnParentRowCentre 1)"
+    [[ -n "$fy" ]] || fail "finderneighbour: the parent column shows no row 1 for note.txt"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    omarchy-drive click "$((wx + fx))" "$((wy + fy))" left >/dev/null
+    wait_path "$dir"
+    settle
+    row=$(ipc rowAt "$(ipc cursor)")
+    [[ "$row" == note.txt\|* ]] || fail "finderneighbour: one tap on note.txt left the cursor on '$row'"
+    [[ "$(ipc viewMode)" == "columns" ]] || fail "finderneighbour: the tap left Columns for $(ipc viewMode)"
+    [[ ! -s "$opened" ]] || fail "finderneighbour: one tap unexpectedly ran the opener"
+    shot finderneighbour-after
+    key -k Return >/dev/null || fail "finderneighbour: Enter was rejected"
+    for _attempt in $(seq 1 100); do
+        [[ -s "$opened" ]] && break
+        sleep 0.05
+    done
+    [[ "$(cat "$opened")" == "OPENED $dir/note.txt" ]] \
+        || fail "finderneighbour: Enter did not reach the monitored opener for note.txt"
+    printf 'FINDERNEIGHBOUR path=%s cursor=%s one_tap_open=none enter_open=%s\n' "$(ipc path)" "$row" "$dir/note.txt"
+    # The view is saved state, so the List goes back before the next case launches.
+    switch_view list
+    kill_flea
+}
+
+# GPUI Columns right-click targets its row while preserving cursor, marks and columns through Escape.
+case_finderrightclick() {
+    local dir="$fixture_root/finderrightclick" ax ay aw _ah wx wy _ww _wh cursor pid id
+    sandbox_scratch "$dir"
+    printf 'a\n' > "$dir/a.txt" || fail "finderrightclick: could not seed a.txt"
+    printf 'b\n' > "$dir/b.txt" || fail "finderrightclick: could not seed b.txt"
+    seed_ui_state "$fixture_root/finderrightclick-state" '{"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    launch "$dir"
+    xwdrag_place "$(flea_pid)" 80 80 1100 700
+    switch_view columns
+    wait_path "$dir"
+    key j >/dev/null
+    settle
+    cursor=$(ipc cursor)
+    [[ "$(ipc rowAt "$cursor")" == b.txt\|* ]] || fail "finderrightclick: j left the cursor on row $cursor"
+    read -r ax ay aw _ah <<< "$(ipc columnActiveRect)"
+    [[ -n "$aw" ]] || fail "finderrightclick: the active column has no rect"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    # Row 0, a.txt, is the active column's first row, so 8 px under its top is inside it at any text size.
+    omarchy-drive click "$((wx + ax + aw / 3))" "$((wy + ay + 8))" right >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "finderrightclick: the right click opened no menu"
+    [[ "$(ipc cursor)" == "$cursor" ]] || fail "finderrightclick: the right click moved the cursor to $(ipc cursor)"
+    [[ "$(ipc selectionCount)" == "0" ]] || fail "finderrightclick: the right click selected $(ipc selectionCount) rows"
+    [[ "$(ipc path)" == "$dir" ]] || fail "finderrightclick: the right click moved the columns to $(ipc path)"
+    shot finderrightclick-menu
+    key -k Escape >/dev/null || fail "finderrightclick: key Escape was rejected"
+    settle
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "finderrightclick: Escape left the menu open"
+    [[ "$(ipc cursor)" == "$cursor" ]] || fail "finderrightclick: Escape left the cursor on $(ipc cursor)"
+    [[ "$(ipc selectionCount)" == "0" && "$(ipc path)" == "$dir" ]] \
+        || fail "finderrightclick: Escape changed the selection or columns"
+    shot finderrightclick-after
+    omarchy-drive click "$((wx + ax + aw / 3))" "$((wy + ay + 8))" right >/dev/null
+    settle
+    menu_seek "Copy"
+    key -k Return >/dev/null || fail "finderrightclick: Copy was rejected"
+    pid=$(flea_pid) || fail "finderrightclick: no owned window"
+    id=$(xwdrag_qsid "$pid") || fail "finderrightclick: no instance id"
+    clipboard_wait "$id" copy "$dir/a.txt"
+    [[ "$(ipc cursor)" == "$cursor" && "$(ipc selectionCount)" == "0" && "$(ipc path)" == "$dir" ]] \
+        || fail "finderrightclick: Copy changed the cursor, selection or columns"
+    printf 'FINDERRIGHTCLICK cursor=%s path=%s copied=%s\n' "$cursor" "$(ipc path)" "$dir/a.txt"
+    switch_view list
+    kill_flea
+}
+
+# Column and sidebar hairlines drag; the docked rail uses its existing width stops.
+case_finderhairlines() {
+    local dir="$fixture_root/finderhairlines" ax ay aw _ah bx _by _bw _bh wx wy _ww _wh line y left
+    local rx ry rw rh px py pw ph parent_shift preview_shift stored default_edge
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/inner" || fail "finderhairlines: could not create fixtures"
+    printf 'a\n' > "$dir/inner/a.txt" || fail "finderhairlines: could not seed a.txt"
+    seed_ui_state "$fixture_root/finderhairlines-state" '{"view":"columns","places":{"sidebarWidth":192},"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    launch "$dir/inner"
+    xwdrag_place "$(flea_pid)" 80 80 1400 800
+    wait_path "$dir/inner"
+    settle
+    read -r ax ay aw _ah <<< "$(ipc columnActiveRect)"
+    [[ -n "$aw" ]] || fail "finderhairlines: the active column has no rect"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    # Equal tracks at rest: the pane's left edge is the active column's left less every ancestor track.
+    left=$((ax - ($(ipc columnCount) - 2) * aw))
+    default_edge=$((ax + aw))
+    line=$((wx + ax - 1))
+    y=$((wy + ay + 120))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the column hairline"
+    settle
+    shot finderhairlines-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the hairline press failed"
+    column_drag_absolute "$line" "$y" 60 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the hairline release failed"
+    settle
+    read -r bx _by _bw _bh <<< "$(ipc columnActiveRect)"
+    (( bx - ax >= 55 && bx - ax <= 65 )) \
+        || fail "finderhairlines: the active column moved from x $ax to $bx, not about 60 px right"
+    parent_shift=$((bx - ax))
+    shot finderhairlines-column
+    omarchy-drive click "$((wx + bx - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the column reset double click failed"
+    settle
+    read -r rx ry rw rh <<< "$(ipc columnActiveRect)"
+    (( rx - ax >= -2 && rx - ax <= 2 )) || fail "finderhairlines: column reset left x $rx, expected $ax"
+    shot finderhairlines-column-reset
+    line=$((wx + rx + rw - 1))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the preview hairline"
+    settle
+    shot finderhairlines-preview-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the preview press failed"
+    column_drag_absolute "$line" "$y" -40 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the preview release failed"
+    settle
+    read -r px py pw ph <<< "$(ipc columnActiveRect)"
+    preview_shift=$((px + pw - rx - rw))
+    (( preview_shift >= -50 && preview_shift <= -30 )) \
+        || fail "finderhairlines: preview edge moved $preview_shift, expected about -40 px"
+    shot finderhairlines-preview-drag
+    omarchy-drive click "$((wx + px + pw - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the preview reset double click failed"
+    settle
+    read -r px py pw ph <<< "$(ipc columnActiveRect)"
+    shot finderhairlines-preview-reset
+    (( px + pw - default_edge >= -2 && px + pw - default_edge <= 2 )) \
+        || fail "finderhairlines: preview reset left edge $((px + pw)), expected seeded default $default_edge"
+    # The sidebar hairline is the rail's last pixel column, just left of the pane.
+    line=$((wx + left - 1))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the sidebar hairline"
+    settle
+    shot finderhairlines-sidebar-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the sidebar press failed"
+    column_drag_absolute "$line" "$y" 40 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the sidebar release failed"
+    settle
+    for _attempt in $(seq 1 100); do
+        stored=$(jq -r '.places.sidebarWidth' "$XDG_STATE_HOME/flea/ui.json" 2>/dev/null)
+        [[ "$stored" == "224" ]] && break
+        sleep 0.05
+    done
+    [[ "$stored" == "224" ]] || fail "finderhairlines: the sidebar drag stored [$stored], not the 224 stop"
+    shot finderhairlines-sidebar
+    omarchy-drive click "$((wx + left + 224 - 192 - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the sidebar reset double click failed"
+    for _attempt in $(seq 1 100); do
+        stored=$(jq -r '.places.sidebarWidth' "$XDG_STATE_HOME/flea/ui.json" 2>/dev/null)
+        [[ "$stored" == "192" ]] && break
+        sleep 0.05
+    done
+    [[ "$stored" == "192" ]] || fail "finderhairlines: sidebar reset stored [$stored], not 192"
+    shot finderhairlines-sidebar-reset
+    printf 'FINDERHAIRLINES text_size=14 column=%s preview=%s sidebar_drag=224 sidebar_reset=%s\n' "$parent_shift" "$preview_shift" "$stored"
+    switch_view list
+    kill_flea
+}
+
 # At / the climb stops, so every shown ancestor slot stays blank and keeps its width
 # instead of repeating / one and two levels down. Left at / is a silent no-op, and the
 # parent column lists / again once /usr is opened. JS pins the climb in tests/js/columns.js.
@@ -16103,7 +16294,7 @@ case_readme() {
     printf 'README done\n'
 }
 
-# Native items ui:capsweep, ui:capsweeplow and ui:cap_columns14 run only by name, outside the default wanted list; so do ui:cap_markdown, ui:cap_markdown_kinds, ui:cap_markdown_tables, ui:cap_markdown_picline, ui:cap_markdown_fences, ui:cap_markdown_fences14 and ui:cap_markdown_pele, sourced above; so do cap_merge, cap_drops and cap_dropmods, sourced above, and cap_tags, sourced from ui-captures-tags.sh, and ui:cap_flasher and ui:cap_filter, sourced above; so do ui:cap_archives_format_live and ui:cap_archives_format_kanagawa, sourced above; so do ui:cap_heldcolumns, ui:cap_sysrefusal, ui:cap_gridreveal, ui:cap_columnsrename and ui:cap_gridhover, sourced above; ui:cap_railmotion runs only by name, sourced from ui-railpointer.sh; ui:cap_mountfail runs only by name, sourced from ui-captures-mountfail.sh; ui:readme runs only by name, defined in this file; ui:cap_html_failed and ui:cap_html_large run only by name, sourced from ui-captures-html.sh above.
+# Native items ui:capsweep, ui:capsweeplow and ui:cap_columns14 run only by name, outside the default wanted list; so do ui:cap_markdown, ui:cap_markdown_kinds, ui:cap_markdown_tables, ui:cap_markdown_picline, ui:cap_markdown_fences, ui:cap_markdown_fences14 and ui:cap_markdown_pele, sourced above; so do cap_merge, cap_drops and cap_dropmods, sourced above, and cap_tags, sourced from ui-captures-tags.sh, and ui:cap_flasher and ui:cap_filter, sourced above; so do ui:cap_archives_format_live and ui:cap_archives_format_kanagawa, sourced above; so do ui:cap_heldcolumns, ui:cap_sysrefusal, ui:cap_gridreveal, ui:cap_columnsrename and ui:cap_gridhover, sourced above; ui:cap_railmotion runs only by name, sourced from ui-railpointer.sh; ui:cap_mountfail runs only by name, sourced from ui-captures-mountfail.sh; ui:readme, ui:finderneighbour, ui:finderrightclick and ui:finderhairlines run only by name, defined in this file; ui:cap_html_failed and ui:cap_html_large run only by name, sourced from ui-captures-html.sh above.
 # ui:cap_raw_grid, ui:cap_raw_columns, ui:cap_raw_quicklook and ui:cap_raw_properties run only by name, sourced from ui-captures-raw.sh.
 . "$repo/tests/ui-captures-sweep.sh"
 # Native items ui:cap_cohesion, ui:cap_cohesion_live, ui:cap_cohesion_gruvbox, ui:cap_cohesion_latte, ui:cap_cohesion_kanagawa, ui:cap_listfocus, ui:cap_cohesion_kgprim and ui:cap_cohesion_pdfmarks run only by name, sourced from ui-captures-cohesion.sh.

@@ -208,11 +208,32 @@ pub struct Layout {
     pub column_width: f32,
     pub third_width: f32,
     pub min_column: f32,
+    /// Each track left of the third, left to right; equal unless a hairline drag gave them weights.
+    pub widths: Vec<f32>,
+}
+
+/// A hairline in Columns: the right edge of the track at this position left of the third, or the preview edge.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Line {
+    #[default]
+    Preview,
+    Column(usize),
 }
 
 impl Layout {
     /// share is Settings View's previewWidth percent, 0 for the default third; drag is the live edge while held.
     pub fn new(width: f32, limit: Option<f64>, share: f64, drag: Option<f32>) -> Self {
+        Self::weighted(width, limit, share, drag, &[])
+    }
+
+    /// weights share the room left of the third out per track; any other length than the tracks draw keeps them equal.
+    pub fn weighted(
+        width: f32,
+        limit: Option<f64>,
+        share: f64,
+        drag: Option<f32>,
+        weights: &[f32],
+    ) -> Self {
         let width = width.max(0.).floor();
         let count = count_for_width(width, limit);
         let shown_before = count - 1;
@@ -228,13 +249,69 @@ impl Layout {
             column_width: default,
             third_width: 0.,
             min_column,
+            widths: Vec::new(),
         };
+        let mut room = shown_before as f32 * default;
         if stored > 0. {
             let last = layout.clamp_last(stored);
             layout.column_width = ((width - last) / shown_before as f32).floor().max(1.);
+            room = width - last;
         }
-        layout.third_width = width - shown_before as f32 * layout.column_width;
+        let sum: f32 = weights.iter().sum();
+        let weighted = weights.len() == shown_before && sum > 0.;
+        if !weighted {
+            room = shown_before as f32 * layout.column_width;
+        }
+        layout.third_width = width - room;
+        layout.widths = if weighted {
+            let mut widths = vec![0.; shown_before];
+            let (mut available, mut remaining) = (room, sum);
+            while let Some(at) = weights.iter().enumerate().find_map(|(at, weight)| {
+                (widths[at] == 0. && available * weight / remaining < min_column).then_some(at)
+            }) {
+                widths[at] = min_column;
+                available -= min_column;
+                remaining -= weights[at];
+            }
+            let mut left = available;
+            let mut open = widths.iter().filter(|&&width| width == 0.).count();
+            for (at, weight) in weights.iter().enumerate() {
+                if widths[at] != 0. {
+                    continue;
+                }
+                open -= 1;
+                let px = (available * weight / remaining)
+                    .round()
+                    .clamp(min_column, left - open as f32 * min_column);
+                widths[at] = if open == 0 { left } else { px };
+                left -= widths[at];
+            }
+            widths
+        } else {
+            vec![layout.column_width; shown_before]
+        };
         layout
+    }
+
+    /// The x of a track's left edge, the third's at the room's end.
+    fn left_of(&self, at: usize) -> f32 {
+        self.widths.iter().take(at).sum()
+    }
+
+    /// The x just past a hairline's track, where the next track starts; None for a column the count does not draw.
+    pub fn line_x(&self, line: Line) -> Option<f32> {
+        match line {
+            Line::Preview => Some(self.edge()),
+            Line::Column(at) if at + 1 < self.shown_before => Some(self.left_of(at + 1)),
+            Line::Column(_) => None,
+        }
+    }
+
+    /// Every hairline that drags, left to right, the preview edge last.
+    pub fn lines(&self) -> impl Iterator<Item = Line> {
+        (0..self.shown_before.saturating_sub(1))
+            .map(Line::Column)
+            .chain(std::iter::once(Line::Preview))
     }
 
     pub fn clamp_last(&self, px: f32) -> f32 {
@@ -243,12 +320,12 @@ impl Layout {
     }
 
     pub fn active_x(&self) -> f32 {
-        (self.shown_before - 1) as f32 * self.column_width
+        self.left_of(self.shown_before - 1)
     }
 
     /// The preview edge's x, the third column's left.
     pub fn edge(&self) -> f32 {
-        self.shown_before as f32 * self.column_width
+        self.left_of(self.shown_before)
     }
 
     /// Every drawn track left to right; an ancestor slot past the climb still keeps its width, blank.
@@ -265,12 +342,8 @@ impl Layout {
             .enumerate()
             .map(move |(at, &slot)| Track {
                 slot,
-                x: at as f32 * self.column_width,
-                width: if slot == Slot::Child {
-                    self.third_width
-                } else {
-                    self.column_width
-                },
+                x: self.left_of(at),
+                width: self.widths.get(at).copied().unwrap_or(self.third_width),
             })
     }
 

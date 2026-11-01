@@ -103,6 +103,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         dual_written: None,
         dual_drag: None,
         dual_hover: false,
+        sidebar: Default::default(),
         dual_blur: None,
     }
 }

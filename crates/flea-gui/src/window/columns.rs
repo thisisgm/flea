@@ -53,6 +53,8 @@ mod review_r2;
 
 pub(crate) struct Columns {
     pub row_menu: Option<crate::columns::menu::NeighbourMenu>,
+    /// The neighbour file a first tap selected, which the same gesture's second tap opens wherever the tracks moved.
+    pub file_tap: Option<String>,
     pub area: Area,
     pub preview_hosted: bool,
     pub painters: Painters,
@@ -104,15 +106,18 @@ struct Seen {
 impl Columns {
     fn new(width: f32, height: f32, settings: &super::startup::Settings) -> Self {
         let share = f64::from(super::selection_preview::host::share(&settings.data));
+        let mut area = Area::new(
+            width,
+            height,
+            Some(settings.columns as f64),
+            share,
+            super::selection_preview::host::settings(&settings.data),
+        );
+        area.set_weights(super::selection_preview::host::tracks(&settings.data));
         Self {
             row_menu: None,
-            area: Area::new(
-                width,
-                height,
-                Some(settings.columns as f64),
-                share,
-                super::selection_preview::host::settings(&settings.data),
-            ),
+            file_tap: None,
+            area,
             preview_hosted: false,
             painters: Painters::default(),
             scroll: Default::default(),
@@ -285,6 +290,7 @@ impl Shell {
         let preview_share = f64::from(super::selection_preview::host::share(
             &self.launch.settings.data,
         ));
+        let preview_tracks = super::selection_preview::host::tracks(&self.launch.settings.data);
         let limit = Some(self.launch.settings.columns as f64);
         let width = geometry.panes[0].width;
         let height =
@@ -311,6 +317,10 @@ impl Shell {
         if let Some(columns) = &mut host.columns {
             if columns.area.share != preview_share {
                 columns.area.set_share(preview_share);
+                columns.seen = None;
+            }
+            if columns.area.weights != preview_tracks {
+                columns.area.set_weights(preview_tracks);
                 columns.seen = None;
             }
             // ColumnsArea.columnsLimit: a Settings change re-lays the drawn columns live.

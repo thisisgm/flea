@@ -274,12 +274,35 @@ impl Shell {
         self.begin_menu(side, row, at, (header, None), window, cx);
     }
 
+    pub(crate) fn open_menu_in_place(
+        &mut self,
+        side: usize,
+        row: usize,
+        at: (f32, f32),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.begin_menu_kept(side, Some(row), at, (false, None, true), window, cx);
+    }
+
     pub(crate) fn begin_menu(
         &mut self,
         side: usize,
         row: Option<usize>,
         at: (f32, f32),
         (header, target): (bool, Option<super::target::PathMenu>),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.begin_menu_kept(side, row, at, (header, target, false), window, cx);
+    }
+
+    fn begin_menu_kept(
+        &mut self,
+        side: usize,
+        row: Option<usize>,
+        at: (f32, f32),
+        (header, target, keep): (bool, Option<super::target::PathMenu>, bool),
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -298,7 +321,9 @@ impl Shell {
             if host.pane.held.row(row).is_none() {
                 return;
             }
-            host.pane.cursor = row;
+            if !keep {
+                host.pane.cursor = row;
+            }
         }
         let background = row.is_none();
         // ContextMenu.qml openLocked: with every locked row hidden no frame opens, and the status line names the switch.
@@ -319,11 +344,14 @@ impl Shell {
         let cursor = if target.is_some() {
             0
         } else {
-            host.pane.cursor
+            row.filter(|_| keep).unwrap_or(host.pane.cursor)
         };
         let rows = if background {
             Vec::new()
-        } else if target.is_some() || host.selected.is_empty() {
+        } else if target.is_some()
+            || host.selected.is_empty()
+            || (keep && !host.selected.contains(&cursor))
+        {
             vec![cursor]
         } else {
             host.selected.clone()
@@ -375,6 +403,22 @@ impl Shell {
             self.refresh_menu(window, cx);
         }
         cx.notify();
+    }
+
+    /// A row action that reads the listing's own cursor first takes the target a Columns right click left unselected.
+    pub(crate) fn adopt_menu_target(&mut self, captured: &Captured) {
+        let Some(host) = self.panes[captured.side].as_mut() else {
+            return;
+        };
+        if captured.background || host.pane.held.listing != captured.listing {
+            return;
+        }
+        host.pane.cursor = captured.cursor;
+        if captured.rows.len() > 1 {
+            host.selected = captured.rows.clone();
+        } else if host.selected != captured.rows {
+            host.selected.clear();
+        }
     }
 
     pub(crate) fn menu_env<'a>(&'a self, typeface: &'a crate::list::Typeface) -> Env<'a> {

@@ -74,6 +74,7 @@ pub struct Shell {
     pub(crate) dual_written: Option<String>,
     pub(crate) dual_drag: Option<crate::dual::Drag>,
     pub(crate) dual_hover: bool,
+    pub(crate) sidebar: crate::window::sidebar_edge::SidebarEdge,
     pub(crate) dual_blur: Option<gpui::Subscription>,
     pub(crate) deadlines: [Option<Task<()>>; 2],
     pub(crate) opener: [crate::window::dispatch::opener::Lane; 2],
@@ -166,6 +167,7 @@ impl Shell {
             dual_written: None,
             dual_drag: None,
             dual_hover: false,
+            sidebar: Default::default(),
             dual_blur: None,
         };
         // Returns at once: no kill and no wait inside the platform's shutdown budget.
