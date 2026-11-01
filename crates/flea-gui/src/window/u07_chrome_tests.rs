@@ -347,3 +347,54 @@ fn u07_button_size_reads_the_drawn_box_of_a_visible_glyph(cx: &mut TestAppContex
     assert_eq!(rect.len(), 4);
     assert!(read(&shell, cx, "chromeButtonSize", &["no-such-glyph"]).is_empty());
 }
+
+// EY-400: the mounted toolbar and its painted mark follow a real text-size change.
+#[gpui::test]
+fn ey400_the_toolbar_band_and_marks_follow_the_text_size(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.change_settings(
+                flea::jsondoc::parse(r#"{"display":{"textSize":{"mode":14}}}"#).unwrap(),
+                window,
+                cx,
+            );
+        })
+    });
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let chrome = shell.read_with(cx, |shell, _| shell.chrome.view.clone().expect("mounted"));
+    chrome.read_with(cx, |view, _| {
+        let frame = view.frame.borrow();
+        assert_eq!(
+            f32::from(frame.controls[2].bounds.unwrap().size.height),
+            27.
+        );
+        assert_eq!(
+            f32::from(frame.controls[2].mark_bounds.unwrap().size.width),
+            16.
+        );
+    });
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert!(shell.settings_action("textSizeUp", window, cx));
+            assert!(shell.settings_action("textSizeUp", window, cx));
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    chrome.read_with(cx, |view, _| {
+        let frame = view.frame.borrow();
+        let button = frame.controls[2]
+            .bounds
+            .expect("search drew after the text-size change");
+        let mark = frame.controls[2].mark_bounds.expect("search mark painted");
+        assert_eq!(
+            (f32::from(button.size.width), f32::from(button.size.height)),
+            (24., 37.)
+        );
+        assert_eq!(
+            (f32::from(mark.size.width), f32::from(mark.size.height)),
+            (23., 23.)
+        );
+    });
+}

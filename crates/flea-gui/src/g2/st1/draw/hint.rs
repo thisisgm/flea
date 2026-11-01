@@ -1,5 +1,5 @@
 //! Hint rows preserve the producer's wrapping or one-line elision policy.
-use super::{g, Line, Rows, LABEL_X, PAD_X};
+use super::{g, Line, Rows, PAD_X};
 use gpui::{div, prelude::*, px, Div, SharedString};
 
 impl Rows<'_> {
@@ -32,21 +32,21 @@ impl Rows<'_> {
         if row.footer {
             return base.child(
                 div()
-                    .mt(px(10.))
+                    .mt(self.px(10.))
                     .border_t_1()
                     .border_color(self.ink.hair)
-                    .pt(px(10.))
-                    .px(px(PAD_X))
-                    .pb(px(12.))
-                    .line_height(px(g::FOOTER_LINE))
+                    .pt(self.px(10.))
+                    .px(self.px(PAD_X))
+                    .pb(self.px(12.))
+                    .line_height(self.px(g::FOOTER_LINE))
                     .child(text),
             );
         }
-        base.pt(px(4.))
-            .pl(px(LABEL_X))
-            .pr(px(PAD_X))
-            .pb(px(2.))
-            .line_height(px(g::HINT_LINE))
+        base.pt(self.px(4.))
+            .pl(px(self.s().label_x()))
+            .pr(self.px(PAD_X))
+            .pb(self.px(2.))
+            .line_height(self.px(g::HINT_LINE))
             .child(text)
     }
 }

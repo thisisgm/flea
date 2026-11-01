@@ -16,13 +16,39 @@ use crate::{
 use flea::{
     i18n::{I18n, Paths},
     jsondoc::{self, Json},
-    ui_logic_mn1::{
-        fit::{self, Rect},
-        Entry, Text,
-    },
+    ui_logic_mn1::{fit::Rect, Entry, Text},
 };
 use gpui::{div, font, prelude::*, px, Context, Render, TestAppContext, Window, WindowHandle};
 use std::{cell::RefCell, rc::Rc};
+
+// Independent Theme.space tokens at the matrix's body sizes, including native EY-380 size20.
+pub(super) struct FrozenTokens {
+    pub minimum: f32,
+    pub padding: f32,
+    pub slot: f32,
+    pub gap: f32,
+    pub chevron: f32,
+    pub row: f32,
+}
+
+pub(super) fn frozen_tokens(body: f32) -> FrozenTokens {
+    let (minimum, padding, slot, gap, chevron, row) = match body as u32 {
+        12 => (220., 12., 15., 8., 10., 32.),
+        14 => (257., 14., 18., 9., 12., 37.),
+        18 => (330., 18., 23., 12., 15., 48.),
+        20 => (367., 20., 26., 13., 17., 53.),
+        24 => (441., 24., 31., 15., 21., 63.),
+        _ => panic!("unlisted frozen body size {body}"),
+    };
+    FrozenTokens {
+        minimum,
+        padding,
+        slot,
+        gap,
+        chevron,
+        row,
+    }
+}
 
 struct Host(Rc<RefCell<Menu>>);
 
@@ -99,7 +125,10 @@ fn check_width(menu: &Rc<RefCell<Menu>>, catalog: &I18n, work_width: f32) {
             .ceil()
         })
         .fold(0., f64::max);
-    let expected = f64::from(fit::MENU_W)
+    let tokens = frozen_tokens(f32::from(
+        menu.borrow().card.as_ref().unwrap().built.typeface.body,
+    ));
+    let expected = f64::from(tokens.minimum)
         .max(needed)
         .min(f64::from(work_width))
         .round();
@@ -120,12 +149,13 @@ fn check_painted(card: &super::menu::Card, row: usize, vertical: bool) {
     let painted = caption
         .painted_bounds()
         .expect("the actual painter must receive this caption");
+    let tokens = frozen_tokens(f32::from(card.built.typeface.body));
     let column = if line.chevron {
-        fit::CHEVRON + fit::GAP
+        tokens.chevron + tokens.gap
     } else {
         0.
     };
-    let right = card.frame.x + card.frame.w - fit::PAD_X - column;
+    let right = card.frame.x + card.frame.w - tokens.padding - column;
     assert!((f32::from(painted.origin.x + painted.size.width) - right).abs() < 0.001);
     assert!((f32::from(painted.origin.x) - (right - caption.width)).abs() < 0.001);
     assert!((f32::from(painted.size.width) - caption.width).abs() < 0.001);
@@ -146,7 +176,7 @@ fn check_painted(card: &super::menu::Card, row: usize, vertical: bool) {
         assert_eq!(caption.lines.len(), 2);
         let top = card.row_screen_top(row);
         assert!(f32::from(painted.origin.y) >= top);
-        assert!(f32::from(painted.origin.y + painted.size.height) <= top + fit::ROW as f32);
+        assert!(f32::from(painted.origin.y + painted.size.height) <= top + tokens.row);
     }
 }
 
@@ -159,7 +189,7 @@ fn fix3_real_font_columns_with_and_without_submenu_follow_the_frozen_recipe() {
     let catalog = catalog();
     let mut cases = 0;
     for family in ["JetBrains Mono", "DejaVu Sans"] {
-        for body in [14., 18., 24.] {
+        for body in [12., 14., 18., 20., 24.] {
             let typeface = Typeface {
                 font: font(family),
                 body: px(body),
@@ -195,20 +225,34 @@ fn fix3_real_font_columns_with_and_without_submenu_follow_the_frozen_recipe() {
                             let card = held.card.as_ref().unwrap();
                             let line = &card.built.lines[0];
                             let word = line.word.as_ref().unwrap();
-                            let column = if chevron { fit::CHEVRON + fit::GAP } else { 0. };
+                            let tokens = frozen_tokens(body);
+                            let column = if chevron {
+                                tokens.chevron + tokens.gap
+                            } else {
+                                0.
+                            };
                             let frozen = (card.frame.w
-                                - 2. * fit::PAD_X
-                                - fit::SLOT
-                                - 2. * fit::GAP
+                                - 2. * tokens.padding
+                                - tokens.slot
+                                - 2. * tokens.gap
                                 - line.label.as_ref().unwrap().width()
                                 - column)
                                 .max(0.)
                                 .min(word.width());
                             let caption = line.wrapped.as_ref().unwrap();
                             assert!((caption.width - frozen).abs() < 0.001);
-                            assert_eq!(card.frame.w, fit::MENU_W.min(work_width));
+                            assert_eq!(card.frame.w, tokens.minimum.min(work_width));
                             assert_eq!(line.has_trailing_column(), chevron);
                             assert!(line.key.is_none());
+                            drop(held);
+                            let mut changed = refusal(chevron);
+                            changed.disabled = false;
+                            assert!(menu.borrow_mut().refresh(vec![changed], &env, window));
+                            let held = menu.borrow();
+                            let refreshed = held.card.as_ref().unwrap();
+                            assert_eq!(refreshed.frame.w, tokens.minimum.min(work_width));
+                            let caption = refreshed.built.lines[0].wrapped.as_ref().unwrap();
+                            assert!((caption.width - frozen).abs() < 0.001);
                         })
                         .unwrap();
                     check_width(&menu, &catalog, work_width);
@@ -219,7 +263,7 @@ fn fix3_real_font_columns_with_and_without_submenu_follow_the_frozen_recipe() {
             }
         }
     }
-    assert_eq!(cases, 72);
+    assert_eq!(cases, 120);
     println!("FIX3 real-font column/paint matrix: {cases} cases passed");
 }
 

@@ -1,5 +1,5 @@
-//! The Trash rows as one custom Element: fixed 31 rows, a glyph or its thumbnail, the name, the location and the date.
-use super::board::{DELETED_W, EDGE, GAP, GLYPH, HOVER, LOCATION_W, PAD_X, ROW_H, SLOT, WASH};
+//! The Trash rows as one custom Element: the list's rows at the text size, a glyph or its thumbnail, the name, the location and the date.
+use super::board::{Board, HOVER, WASH};
 use super::elide;
 use super::ink::Ink;
 use crate::row::marks::Mark;
@@ -30,7 +30,7 @@ struct Shaped {
 /// Paint state the pane keeps across frames.
 pub struct ListPaint {
     pub font: Font,
-    pub body: Pixels,
+    pub board: Board,
     pub ink: Ink,
     pub first: usize,
     pub total: usize,
@@ -62,10 +62,10 @@ pub struct ListPaint {
 }
 
 impl ListPaint {
-    pub fn new(font: Font, body: Pixels, ink: Ink) -> Self {
+    pub fn new(font: Font, board: Board, ink: Ink) -> Self {
         Self {
             font,
-            body,
+            board,
             ink,
             first: 0,
             total: 0,
@@ -128,10 +128,11 @@ impl ListPaint {
         }
     }
 
-    /// The window's system font; a change reshapes every row and measures the digit advance again.
-    pub fn set_font(&mut self, font: Font) {
-        if self.font != font {
+    /// The window's system font and text size; a change reshapes every row and measures the digit advance again.
+    pub fn set_face(&mut self, font: Font, board: Board) {
+        if self.font != font || self.board != board {
             self.font = font;
+            self.board = board;
             self.revision += 1;
             self.advance = None;
         }
@@ -144,19 +145,24 @@ impl ListPaint {
         let text = window.text_system();
         let id = text.resolve_font(&self.font);
         let advance = text
-            .advance(id, self.body, '0')
-            .map_or(self.body * 0.6, |a| a.width);
+            .advance(id, self.board.body, '0')
+            .map_or(self.board.body * 0.6, |a| a.width);
         self.advance = Some(advance);
         advance
     }
 }
 
 /// Columns measured from the row's left edge, as `.trashv .row` lays them out.
-pub fn columns(width: f32) -> (f32, f32, f32, f32) {
-    let deleted = width - PAD_X - DELETED_W;
-    let location = deleted - GAP - LOCATION_W;
-    let name = PAD_X + SLOT + GAP;
-    (name, (location - GAP - name).max(0.), location, deleted)
+pub fn columns(board: &Board, width: f32) -> (f32, f32, f32, f32) {
+    let deleted = width - board.pad_x - board.deleted_w;
+    let location = deleted - board.gap - board.location_w;
+    let name = board.pad_x + board.slot + board.gap;
+    (
+        name,
+        (location - board.gap - name).max(0.),
+        location,
+        deleted,
+    )
 }
 
 pub struct TrashList(pub Rc<RefCell<ListPaint>>);
@@ -180,10 +186,10 @@ fn shape(text: &str, font: &Font, body: Pixels, window: &Window) -> GlyphRun {
     GlyphRun::new(window.text_system().layout_line(text, body, &[run], None))
 }
 
-fn paint_text(run: &GlyphRun, x: Pixels, top: Pixels, ink: Hsla, window: &mut Window) {
+fn paint_text(run: &GlyphRun, x: Pixels, top: Pixels, row: f32, ink: Hsla, window: &mut Window) {
     let line = run.line();
     let baseline =
-        window.pixel_snap(top + (px(ROW_H) - line.ascent - line.descent) / 2. + line.ascent);
+        window.pixel_snap(top + (px(row) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, ink);
 }
 
@@ -236,7 +242,8 @@ impl Element for TrashList {
         }
         state.laid_out = state.committed;
         let advance = state.advance(window);
-        let (_, name_w, _, _) = columns(f32::from(bounds.size.width));
+        let board = state.board;
+        let (_, name_w, _, _) = columns(&board, f32::from(bounds.size.width));
         let name_cells = (px(name_w) / advance).floor().max(0.) as usize;
         if state.shaped_for != (state.revision, name_cells) {
             state.shaped_for = (state.revision, name_cells);
@@ -244,12 +251,13 @@ impl Element for TrashList {
             let count = state.lines.len();
             state.shaped.resize_with(count, || None);
         }
-        let first = (state.scroll_y / ROW_H).floor() as usize;
-        let last = (((state.scroll_y + f32::from(bounds.size.height)) / ROW_H).ceil() as usize)
+        let first = (state.scroll_y / board.row_h).floor() as usize;
+        let last = (((state.scroll_y + f32::from(bounds.size.height)) / board.row_h).ceil()
+            as usize)
             .min(state.total);
         let (location_cells, deleted_cells) = (
-            (px(LOCATION_W) / advance) as usize,
-            (px(DELETED_W) / advance) as usize,
+            (px(board.location_w) / advance) as usize,
+            (px(board.deleted_w) / advance) as usize,
         );
         let ListPaint {
             lines,
@@ -258,7 +266,6 @@ impl Element for TrashList {
             images,
             drawn_images,
             font,
-            body,
             first: held_first,
             shapes,
             ..
@@ -278,17 +285,22 @@ impl Element for TrashList {
             if shaped[at].is_none() {
                 *shapes += 1;
                 shaped[at] = Some(Shaped {
-                    name: shape(&elide::right(&line.name, name_cells), font, *body, window),
+                    name: shape(
+                        &elide::right(&line.name, name_cells),
+                        font,
+                        board.body,
+                        window,
+                    ),
                     location: shape(
                         &elide::left(&line.location, location_cells),
                         font,
-                        *body,
+                        board.body,
                         window,
                     ),
                     deleted: shape(
                         &elide::right(&line.deleted, deleted_cells),
                         font,
-                        *body,
+                        board.body,
                         window,
                     ),
                 });
@@ -318,18 +330,19 @@ impl Element for TrashList {
         let state = self.0.borrow();
         let ink = state.ink;
         let (left, width) = (bounds.origin.x, f32::from(bounds.size.width));
-        let (name_x, name_w, location_x, deleted_x) = columns(width);
+        let board = state.board;
+        let (name_x, name_w, location_x, deleted_x) = columns(&board, width);
         window.paint_quad(fill(bounds, ink.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (slot, index) in state.painted.iter().enumerate() {
-                let top = bounds.origin.y + px(*index as f32 * ROW_H - state.scroll_y);
-                let row = Bounds::new(point(left, top), size(bounds.size.width, px(ROW_H)));
+                let top = bounds.origin.y + px(*index as f32 * board.row_h - state.scroll_y);
+                let row = Bounds::new(point(left, top), size(bounds.size.width, px(board.row_h)));
                 if let Some(ground) = state.ground(*index) {
                     window.paint_quad(fill(row, ground));
                 }
                 if state.edge_at(*index) {
                     window.paint_quad(fill(
-                        Bounds::new(point(left, top), size(px(EDGE), px(ROW_H))),
+                        Bounds::new(point(left, top), size(px(board.edge), px(board.row_h))),
                         ink.edge(),
                     ));
                 }
@@ -338,10 +351,10 @@ impl Element for TrashList {
                 };
                 let glyph = Bounds::new(
                     point(
-                        left + px(PAD_X + (SLOT - GLYPH) / 2.),
-                        top + px((ROW_H - GLYPH) / 2.),
+                        left + px(board.pad_x + (board.slot - board.glyph) / 2.),
+                        top + px((board.row_h - board.glyph) / 2.),
                     ),
-                    size(px(GLYPH), px(GLYPH)),
+                    size(px(board.glyph), px(board.glyph)),
                 );
                 match &state.images[slot] {
                     Some(image) => {
@@ -374,23 +387,29 @@ impl Element for TrashList {
                 else {
                     continue;
                 };
-                let names = Bounds::new(point(left + px(name_x), top), size(px(name_w), px(ROW_H)));
+                let names = Bounds::new(
+                    point(left + px(name_x), top),
+                    size(px(name_w), px(board.row_h)),
+                );
                 window.with_content_mask(Some(ContentMask { bounds: names }), |window| {
-                    paint_text(&shaped.name, names.origin.x, top, ink.foreground, window);
+                    let x = names.origin.x;
+                    paint_text(&shaped.name, x, top, board.row_h, ink.foreground, window);
                 });
-                let location_right = left + px(location_x + LOCATION_W);
+                let location_right = left + px(location_x + board.location_w);
                 paint_text(
                     &shaped.location,
                     location_right - shaped.location.line().width,
                     top,
+                    board.row_h,
                     ink.foreground,
                     window,
                 );
-                let deleted_right = left + px(deleted_x + DELETED_W);
+                let deleted_right = left + px(deleted_x + board.deleted_w);
                 paint_text(
                     &shaped.deleted,
                     deleted_right - shaped.deleted.line().width,
                     top,
+                    board.row_h,
                     ink.foreground,
                     window,
                 );

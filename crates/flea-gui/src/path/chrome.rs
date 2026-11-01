@@ -1,14 +1,20 @@
 //! The native toolbar owns its painted controls and hosts the existing path surface.
 use super::{
-    mark::{divider, mark, mark_ink, press_scale, Press},
+    mark::{divider, press_scale, Press, MARK},
     view::PathView,
 };
-use crate::{list::Palette, palette::Theme, window::startup::View};
+use crate::{
+    list::{Metrics, Palette, Typeface},
+    palette::Theme,
+    window::startup::View,
+};
 use gpui::{
-    canvas, div, prelude::*, px, Bounds, Context, Entity, EventEmitter, FocusHandle, MouseButton,
-    Pixels, Point, Window,
+    canvas, div, prelude::*, px, Bounds, Context, Entity, EventEmitter, FocusHandle, Pixels, Point,
+    Window,
 };
 use std::{cell::RefCell, rc::Rc, time::Instant};
+
+mod button;
 
 pub const GLYPHS: [&str; 10] = [
     "arrow-left",
@@ -38,6 +44,8 @@ pub const ACTIONS: [&str; 10] = [
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Control {
     pub bounds: Option<Bounds<Pixels>>,
+    #[cfg(test)]
+    pub mark_bounds: Option<Bounds<Pixels>>,
     pub visible: bool,
     pub enabled: bool,
     pub focused: bool,
@@ -65,6 +73,46 @@ impl Control {
             });
             self.pressed = down;
         }
+    }
+}
+
+/// Theme.hitMin: a chrome button's hit box is at least this wide.
+const HIT_MIN: f32 = 24.;
+
+/// ChromeBar.qml and ChromeButton.qml at a text size: the band, the mark, its slot and focus ring, gaps and padding.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Sizes {
+    pub band: f32,
+    pub mark: f32,
+    pub slot: f32,
+    pub ring: f32,
+    pub gap: f32,
+    pub pad: f32,
+}
+
+impl Sizes {
+    pub fn at(face: &Typeface) -> Self {
+        let metrics = Metrics::for_typeface(face);
+        let mark = (MARK * f32::from(face.body) / 14.).round();
+        let slot = HIT_MIN.max(mark);
+        // Theme.chromeControlInset; the ring keeps the mark's parity so the mark sits centred in it.
+        let inset = (f32::from(face.caption) / 4.)
+            .round()
+            .max(2. * metrics.hairline);
+        let room = slot.min(metrics.header - metrics.hairline - 2. * inset);
+        Self {
+            band: metrics.header,
+            mark,
+            slot,
+            ring: room - (room - mark).rem_euclid(2.),
+            gap: metrics.gap,
+            pad: metrics.pad,
+        }
+    }
+
+    /// The controls' height: the band less its rule.
+    pub fn inner(&self) -> f32 {
+        self.band - 1.
     }
 }
 
@@ -103,133 +151,6 @@ impl ChromeView {
             focus: std::array::from_fn(|_| cx.focus_handle()),
         }
     }
-
-    fn button(
-        &self,
-        index: usize,
-        enabled: bool,
-        resting: gpui::Hsla,
-        foreground: gpui::Hsla,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let frame = self.frame.clone();
-        let glyph = GLYPHS[index];
-        {
-            let mut frame = frame.borrow_mut();
-            frame.controls[index].visible = true;
-            frame.controls[index].enabled = enabled;
-        }
-        let focused = self.frame.borrow().controls[index].focused && enabled;
-        let ink = mark_ink(enabled, focused, resting, foreground);
-        let hoverable = self.inputs.live;
-        let live = enabled && hoverable;
-        div()
-            .id(("chrome-button", index))
-            .w(px(24.))
-            .h(px(27.))
-            .flex_none()
-            .cursor_pointer()
-            .relative()
-            .flex()
-            .justify_center()
-            .track_focus(&self.focus[index])
-            .hover_listener_mode(gpui::HoverListenerMode::InputModalityIndependent)
-            .on_hover(cx.listener(move |view, hovered: &bool, _, cx| {
-                let mut frame = view.frame.borrow_mut();
-                let control = &mut frame.controls[index];
-                control.pointer_over = *hovered;
-                control.hovered = control.pointer_over && view.inputs.live;
-                let down = control.pointer_down && control.hovered && control.enabled;
-                if control.pressed != down {
-                    control.set_pressed(down, cx.background_executor().now(), cx.reduce_motion());
-                    cx.notify();
-                }
-            }))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(move |view, event: &gpui::MouseDownEvent, _, cx| {
-                    if live && view.inputs.live {
-                        let mut frame = view.frame.borrow_mut();
-                        let control = &mut frame.controls[index];
-                        control.pointer_down = true;
-                        control.press_origin = Some(event.position);
-                        control.set_pressed(
-                            true,
-                            cx.background_executor().now(),
-                            cx.reduce_motion(),
-                        );
-                        drop(frame);
-                        cx.notify();
-                    }
-                    cx.stop_propagation();
-                }),
-            )
-            .on_mouse_up(
-                MouseButton::Left,
-                cx.listener(move |view, event: &gpui::MouseUpEvent, _, cx| {
-                    let mut frame = view.frame.borrow_mut();
-                    let control = &mut frame.controls[index];
-                    let activate = live
-                        && view.inputs.live
-                        && control.pointer_down
-                        && super::tap::within_threshold(control.press_origin, event.position)
-                        && control.pressed
-                        && control
-                            .bounds
-                            .is_some_and(|bounds| bounds.contains(&event.position));
-                    control.pointer_down = false;
-                    control.set_pressed(false, cx.background_executor().now(), cx.reduce_motion());
-                    drop(frame);
-                    cx.notify();
-                    if activate {
-                        cx.emit(ACTIONS[index]);
-                    }
-                    cx.stop_propagation();
-                }),
-            )
-            .on_mouse_up_out(
-                MouseButton::Left,
-                cx.listener(move |view, _, _, cx| {
-                    let mut frame = view.frame.borrow_mut();
-                    let control = &mut frame.controls[index];
-                    if control.pointer_down {
-                        control.pointer_down = false;
-                        control.set_pressed(
-                            false,
-                            cx.background_executor().now(),
-                            cx.reduce_motion(),
-                        );
-                        cx.notify();
-                    }
-                }),
-            )
-            .child(div().h(px(26.)).flex().items_center().child(mark(
-                glyph,
-                ink,
-                self.frame.clone(),
-                index,
-            )))
-            .child(
-                canvas(
-                    move |bounds, _, _| frame.borrow_mut().controls[index].bounds = Some(bounds),
-                    |_, _, _, _| {},
-                )
-                .absolute()
-                .size_full(),
-            )
-            .when(focused, |button| {
-                button.child(
-                    div()
-                        .absolute()
-                        .left(px(2.))
-                        .top(px(3.))
-                        .size(px(20.))
-                        .rounded(px(self.inputs.corner / 2.))
-                        .border_1()
-                        .border_color(foreground),
-                )
-            })
-    }
 }
 
 impl Render for ChromeView {
@@ -246,6 +167,7 @@ impl Render for ChromeView {
         for (index, focus) in self.focus.iter().enumerate() {
             self.frame.borrow_mut().controls[index].focused = focus.is_focused(window);
         }
+        let sizes = Sizes::at(&Typeface::for_window(window, cx));
         let ink = |enabled| {
             if enabled {
                 palette.foreground
@@ -253,10 +175,16 @@ impl Render for ChromeView {
                 palette.metadata_frame.opacity(0.55)
             }
         };
-        let mut right = div().h_full().flex().items_center().gap(px(9.)).flex_none();
+        let mut right = div()
+            .h_full()
+            .flex()
+            .items_center()
+            .gap(px(sizes.gap))
+            .flex_none();
         if self.inputs.view == View::Grid {
             right = right
                 .child(self.button(
+                    sizes,
                     3,
                     self.inputs.filter,
                     ink(self.inputs.filter),
@@ -264,6 +192,7 @@ impl Render for ChromeView {
                     cx,
                 ))
                 .child(self.button(
+                    sizes,
                     4,
                     self.inputs.sort,
                     ink(self.inputs.sort),
@@ -271,9 +200,16 @@ impl Render for ChromeView {
                     cx,
                 ));
         } else {
-            right = right.child(self.button(2, true, palette.foreground, palette.foreground, cx));
+            right = right.child(self.button(
+                sizes,
+                2,
+                true,
+                palette.foreground,
+                palette.foreground,
+                cx,
+            ));
         }
-        right = right.child(divider(palette.foreground));
+        right = right.child(divider(palette.foreground, sizes.mark));
         for (index, mode) in [
             (5, View::List),
             (6, View::Columns),
@@ -281,6 +217,7 @@ impl Render for ChromeView {
             (8, View::Dual),
         ] {
             right = right.child(self.button(
+                sizes,
                 index,
                 true,
                 if self.inputs.view == mode {
@@ -292,13 +229,9 @@ impl Render for ChromeView {
                 cx,
             ));
         }
-        right = right.child(divider(palette.foreground)).child(self.button(
-            9,
-            true,
-            palette.foreground,
-            palette.foreground,
-            cx,
-        ));
+        right = right
+            .child(divider(palette.foreground, sizes.mark))
+            .child(self.button(sizes, 9, true, palette.foreground, palette.foreground, cx));
         let frame = self.frame.clone();
         let pointer_frame = self.frame.clone();
         let toolbar = div()
@@ -309,14 +242,15 @@ impl Render for ChromeView {
                 div()
                     .size_full()
                     .flex()
-                    .gap(px(9.))
-                    .px(px(14.))
+                    .gap(px(sizes.gap))
+                    .px(px(sizes.pad))
                     .child(
                         div()
                             .flex()
-                            .gap(px(9.))
+                            .gap(px(sizes.gap))
                             .flex_none()
                             .child(self.button(
+                                sizes,
                                 0,
                                 self.inputs.back,
                                 ink(self.inputs.back),
@@ -324,6 +258,7 @@ impl Render for ChromeView {
                                 cx,
                             ))
                             .child(self.button(
+                                sizes,
                                 1,
                                 self.inputs.up,
                                 ink(self.inputs.up),
@@ -331,7 +266,13 @@ impl Render for ChromeView {
                                 cx,
                             )),
                     )
-                    .child(div().h(px(26.)).flex_1().min_w_0().child(self.path.clone()))
+                    .child(
+                        div()
+                            .h(px(sizes.inner()))
+                            .flex_1()
+                            .min_w_0()
+                            .child(self.path.clone()),
+                    )
                     .child(right),
             );
         for control in &mut self.frame.borrow_mut().controls {

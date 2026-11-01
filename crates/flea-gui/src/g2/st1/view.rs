@@ -1,6 +1,6 @@
 //! Draws the Settings card over its ground: the head, the rail with its search field, and the pane's rows or results.
 use super::draw::{Line, Rows};
-use super::geometry::{self as g, BORDER, FADE, PAD_X, RAIL_W};
+use super::geometry::{self as g, Scale, BORDER, FADE, PAD_X, RAIL_W};
 use super::marks::{self, mark, washed};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
@@ -62,49 +62,24 @@ impl SettingsView {
         cx.notify();
     }
 
-    /// The search field the sheet uses: magnifier, the typed text and caret, and the clear mark at its end.
-    pub(super) fn field(text: &str, ink: &Ink, corner: f32, typeface: &Typeface) -> Div {
-        div()
-            .h(px(g::FIELD_H))
-            .flex()
-            .items_center()
-            .gap(px(8.))
-            .px(px(g::GAP))
-            .border_1()
-            .border_color(ink.accent_frame)
-            .rounded(px(corner))
-            .bg(ink.background)
-            .text_size(typeface.body)
-            .text_color(ink.foreground)
-            .child(mark("search", 14., ink.muted))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .child(SharedString::from(text.to_owned()))
-                    .child(div().ml(px(1.)).w(px(1.)).h(px(16.)).bg(ink.foreground)),
-            )
-            .child(div().flex_1())
-            .child(mark("x", 12., ink.muted))
-    }
-
     fn rail(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
+        let s = self.panel.scale;
         let searching = self.panel.searching();
         let mut rail = self
             .probe
             .attach(div(), "rail")
-            .w(px(RAIL_W))
+            .w(px(s.of(RAIL_W)))
             .h_full()
             .flex_none()
-            .pt(px(g::RAIL_PAD_TOP))
+            .pt(px(s.of(g::RAIL_PAD_TOP)))
             .border_r_1()
             .border_color(ink.rule)
             .flex()
             .flex_col();
         if let Some(query) = &self.panel.query {
             rail = rail.child(
-                div().px(px(PAD_X)).pb(px(g::GAP)).child(
-                    Self::field(query, ink, self.panel.facts.corner, &self.typeface)
+                div().px(px(s.of(PAD_X))).pb(px(s.of(g::GAP))).child(
+                    Self::field(query, ink, self.panel.facts.corner, &self.typeface, s)
                         .relative()
                         .child(self.search_clear(cx)),
                 ),
@@ -121,11 +96,11 @@ impl SettingsView {
                 .attach(div(), format!("rail:{id}"))
                 .id(SharedString::from(format!("settings-rail-{id}")))
                 .relative()
-                .h(px(g::RAIL_ROW_H))
+                .h(px(s.rail_row))
                 .flex()
                 .items_center()
-                .gap(px(g::GAP))
-                .px(px(PAD_X))
+                .gap(px(s.of(g::GAP)))
+                .px(px(s.of(PAD_X)))
                 .cursor_pointer()
                 .when(keys, |row| {
                     row.bg(ink.wash18)
@@ -145,7 +120,7 @@ impl SettingsView {
                 })
                 .child(mark(
                     section.glyph,
-                    g::RAIL_MARK,
+                    s.of(g::RAIL_MARK),
                     if current {
                         ink.foreground
                     } else {
@@ -256,10 +231,11 @@ impl SettingsView {
                 if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
+                let s = self.panel.scale;
                 let inset = if row.footer {
-                    2. * PAD_X
+                    2. * s.of(PAD_X)
                 } else {
-                    g::LABEL_X + PAD_X
+                    s.label_x() + s.of(PAD_X)
                 };
                 // Each unit is shaped whole, as the pane places it, and packed into lines.
                 let text = row.label.resolve(&self.panel.catalog);
@@ -307,7 +283,7 @@ impl SettingsView {
         }
         let heights = if searching {
             let rows: Vec<Row> = lines.iter().map(|line| line.row.clone()).collect();
-            g::heights(&rows, &self.measure(&rows, width, window))
+            g::heights(&rows, &self.measure(&rows, width, window), self.panel.scale)
         } else {
             self.panel.heights()
         };
@@ -338,7 +314,7 @@ impl SettingsView {
             .relative()
             .flex_1()
             .h_full()
-            .pb(px(g::PANE_FOOT))
+            .pb(px(self.panel.scale.of(g::PANE_FOOT)))
             .on_scroll_wheel(cx.listener(|view, event: &ScrollWheelEvent, _, cx| {
                 view.panel.wheel(super::wheel::travel(event.delta));
                 cx.notify();
@@ -365,7 +341,7 @@ impl SettingsView {
                                 .left_0()
                                 .right_0()
                                 .bottom_0()
-                                .h(px(FADE))
+                                .h(px(self.panel.scale.of(FADE)))
                                 .bg(linear_gradient(
                                     180.,
                                     linear_color_stop(ink.surface.opacity(0.), 0.),
@@ -423,12 +399,15 @@ impl Render for SettingsView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let viewport = window.viewport_size();
+        let s = Scale::at(&self.typeface);
+        self.panel.set_scale(s);
         let (card_w, card_h) = g::card_size(
             f32::from(viewport.width),
             f32::from(viewport.height),
             self.panel.view_height,
+            s,
         );
-        let pane = g::pane_size(card_w, card_h);
+        let pane = g::pane_size(card_w, card_h, s);
         let lines = self.measure(&self.panel.rows, pane.0, window);
         self.panel.laid_out(pane, lines);
         let corner = self.panel.facts.corner;
@@ -456,8 +435,9 @@ impl Render for SettingsView {
             MouseButton::Left,
             cx.listener(|view, event: &MouseUpEvent, _, cx| {
                 if let Some((index, from)) = view.panel.grip.take() {
-                    let rows =
-                        ((f32::from(event.position.y) - from) / g::FAVOURITE_H).round() as isize;
+                    let rows = ((f32::from(event.position.y) - from)
+                        / view.panel.scale.of(g::FAVOURITE_H))
+                    .round() as isize;
                     view.panel.press(index, Press::Drag(rows));
                     view.flush(cx);
                 }

@@ -3,10 +3,7 @@ use super::geometry::Metrics;
 use super::model::Dialog;
 use super::press::Press;
 use super::view::{button, caption, mark, shell, state, Scene};
-use flea::ui_logic_op1::{
-    card::{self, Kind},
-    collide,
-};
+use flea::ui_logic_op1::{card::Kind, collide};
 use gpui::{div, prelude::*, px};
 
 pub(super) fn draw(dialog: &Dialog, scene: &Scene, window: (f32, f32)) -> gpui::Div {
@@ -23,6 +20,7 @@ pub(super) fn draw(dialog: &Dialog, scene: &Scene, window: (f32, f32)) -> gpui::
     let (palette, catalog) = (scene.palette, scene.catalog);
 
     // The names and the count of the rest sit together; the explanation takes the card's gap below them.
+    let m = Metrics::new(scene.typeface);
     let mut list = div().flex().flex_col();
     for (at, name) in names.iter().enumerate() {
         list = list.child(
@@ -31,15 +29,15 @@ pub(super) fn draw(dialog: &Dialog, scene: &Scene, window: (f32, f32)) -> gpui::
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(card::NAME_GAP))
-                .child(mark(&name.icon, name.dir, palette.foreground))
+                .gap(px(m.name_gap))
+                .child(mark(&name.icon, name.dir, m.name_mark, palette.foreground))
                 .child(div().flex_1().min_w_0().truncate().child(name.name.clone())),
         );
     }
     if !more.is_empty() {
         list = list.child(
             div()
-                .text_size(px(Metrics::new(scene.typeface).caption))
+                .text_size(px(m.caption))
                 .truncate()
                 .child(more.clone()),
         );

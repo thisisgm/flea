@@ -63,8 +63,9 @@ impl Shell {
         };
         let pane = host.pane.read(cx);
         let paint = pane.paint.borrow();
-        let top = (paint.scroll_y / super::board::ROW_H).floor() as usize;
-        let end = ((paint.scroll_y + pane.view().height) / super::board::ROW_H).ceil() as usize;
+        let row = paint.board.row_h;
+        let top = (paint.scroll_y / row).floor() as usize;
+        let end = ((paint.scroll_y + pane.view().height) / row).ceil() as usize;
         let blank = (top..end.min(paint.total)).any(|index| paint.line(index).is_none());
         host.presentation
             .frame(frames.committed + 1, blank, paint.source_request);

@@ -1,6 +1,6 @@
 //! tests/settings-columns.qml and settings-tail.qml: band heights, and the pane's reveal at every host height.
 use super::geometry::{
-    estimated_lines, fade_shown, hint_line_count, hint_units, row_height, FADE, FOOTER_LINE,
+    estimated_lines, fade_shown, hint_line_count, hint_units, row_height, Scale, FADE, FOOTER_LINE,
     HINT_LINE,
 };
 use super::panel::Panel;
@@ -12,18 +12,39 @@ use flea::ui_logic_st1::{
 };
 
 #[test]
+fn adv_text_size_key_preview_at_11_keeps_both_rounded_padding_edges() {
+    let row = Row {
+        kind: Kind::KeyPreview,
+        items: vec![Default::default(); 2],
+        ..Row::default()
+    };
+    let scale = Scale::at(&crate::list::Typeface::omarchy_default().at_base(11));
+    assert_eq!(
+        row_height(&row, false, 1, scale),
+        31.,
+        "19 px chip plus the two independently rounded 6 px padding edges"
+    );
+}
+
+#[test]
 fn a_hint_band_is_4_over_18_a_line_and_2_under_and_the_footer_is_49_at_one_line() {
     let hint = Row::hint(Text::data("a"));
     assert_eq!(
-        (row_height(&hint, false, 1), row_height(&hint, false, 3)),
+        (
+            row_height(&hint, false, 1, Scale::default()),
+            row_height(&hint, false, 3, Scale::default())
+        ),
         (24., 4. + 3. * HINT_LINE + 2.)
     );
     let footer = Row {
         footer: true,
         ..Row::hint(Text::data("Saved"))
     };
-    assert_eq!(row_height(&footer, false, 1), 49.);
-    assert_eq!(row_height(&footer, false, 2), 49. + FOOTER_LINE);
+    assert_eq!(row_height(&footer, false, 1, Scale::default()), 49.);
+    assert_eq!(
+        row_height(&footer, false, 2, Scale::default()),
+        49. + FOOTER_LINE
+    );
 }
 
 // Where the row's first ink starts under its top, as the reveal rule reads it.
@@ -163,4 +184,22 @@ fn every_section_reveals_its_cursor_at_every_host_height() {
         }
     }
     assert!(cut.contains(&"menus") && cut.len() > 1, "{cut:?}");
+}
+
+#[test]
+fn ey422_the_settings_measures_follow_the_text_size() {
+    let board = Scale::default();
+    assert_eq!(
+        [
+            board.head,
+            board.rail_row,
+            board.row,
+            board.of(super::geometry::CARD_W)
+        ],
+        [27., 29., 37., 630.],
+        "at text size 14 the scale is the boards' own numbers"
+    );
+    let s = Scale::at(&crate::list::Typeface::omarchy_default().at_base(16));
+    // v0.3.12 at 16: chromeHeight 31, railRowHeight 34, rowHeight 43.
+    assert_eq!([s.head, s.rail_row, s.row], [31., 34., 43.]);
 }

@@ -227,3 +227,33 @@ fn the_sheet_draws_its_groups_and_its_query(cx: &mut TestAppContext) {
     view.update(cx, |view, _| assert_eq!(view.sheet.ranked.len(), 1));
     cx.update(|window, cx| window.draw(cx).clear(cx));
 }
+
+// EY-422: at text size 16 the card grows with the text as v0.3.12's does, so the Scale hint keeps one line.
+#[gpui::test]
+fn ey422_the_card_grows_with_the_text_size_and_the_scale_hint_keeps_one_line(
+    cx: &mut TestAppContext,
+) {
+    use gpui::{px, size};
+    let (view, cx) = cx.add_window_view(|_, cx| SettingsView::new(panel("{}"), cx));
+    view.update(cx, |view, cx| {
+        view.typeface = crate::list::Typeface::omarchy_default().at_base(16);
+        view.panel.show_section("display");
+        cx.notify();
+    });
+    cx.simulate_resize(size(px(1100.), px(900.)));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let first = cx
+        .debug_bounds("st1-hint-unit-Flea")
+        .expect("the Scale hint's first word is drawn");
+    let last = cx
+        .debug_bounds("st1-hint-unit-it.")
+        .expect("the Scale hint's last word is drawn");
+    assert_eq!(
+        last.origin.y, first.origin.y,
+        "the hint wraps it. onto a second line"
+    );
+    // 630 and 168 at 14 grow to 720 and 192 at 16: the pane is the card less its frame and the rail.
+    view.update(cx, |view, _| {
+        assert_eq!(view.panel.pane.0, 720. - 2. - 192.)
+    });
+}

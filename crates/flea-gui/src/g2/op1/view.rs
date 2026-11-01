@@ -101,11 +101,11 @@ fn rule(palette: &CardPalette) -> Div {
         .bg(palette.muted_frame.opacity(card::RULE_ALPHA))
 }
 
-pub(super) fn mark(icon: &str, dir: bool, ink: Hsla) -> Glyph {
+pub(super) fn mark(icon: &str, dir: bool, side: f32, ink: Hsla) -> Glyph {
     let (key, data) = Mark::for_row(if dir { "folder" } else { icon }, 0).svg();
     Glyph {
         paint: Paint::Svg(key, data),
-        side: card::NAME_MARK,
+        side,
         ink,
     }
 }
@@ -282,14 +282,15 @@ pub(super) fn dialog_snapshot(
             note,
             focus,
         } => {
+            let m = Metrics::new(scene.typeface);
             let list = renames.iter().fold(div().flex().flex_col(), |list, r| {
                 list.child(
                     div()
                         .flex()
                         .flex_row()
                         .items_center()
-                        .gap(px(card::NAME_GAP))
-                        .child(mark(&r.icon, r.dir, palette.foreground))
+                        .gap(px(m.name_gap))
+                        .child(mark(&r.icon, r.dir, m.name_mark, palette.foreground))
                         .child(
                             div()
                                 .flex_1()

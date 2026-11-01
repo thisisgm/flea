@@ -4,7 +4,7 @@ use super::menu::{Card, Menu};
 use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
-use flea::ui_logic_mn1::{fit, Brand};
+use flea::ui_logic_mn1::Brand;
 mod joined;
 pub(crate) use joined::JoinedAdapter;
 
@@ -75,14 +75,15 @@ impl MenuAdapter<'_> {
             return String::new();
         };
         let top = card.row_screen_top(index) - card.frame.y;
-        if top + fit::height(&card.entries[index]) as f32 <= fit::PAD as f32
-            || top >= (fit::PAD + card.view_h) as f32
+        if top + card.built.metrics.height(&card.entries[index]) as f32
+            <= card.built.metrics.pad as f32
+            || top >= (card.built.metrics.pad + card.view_h) as f32
         {
             return String::new();
         }
         let x = card.frame.x + card.frame.w / 2. + self.origin.0;
         let y = card.row_screen_top(index)
-            + fit::height(&card.entries[index]) as f32 / 2.
+            + card.built.metrics.height(&card.entries[index]) as f32 / 2.
             + self.origin.1;
         format!("{} {}", x.round(), y.round())
     }

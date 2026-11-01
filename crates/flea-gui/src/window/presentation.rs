@@ -158,6 +158,9 @@ impl Shell {
             trash.pane.update(cx, |_, cx| cx.notify());
             trash.messages.update(cx, |_, cx| cx.notify());
         }
+        if let Some(chrome) = &self.chrome.view {
+            chrome.update(cx, |_, cx| cx.notify());
+        }
         for surface in &self.surfaces {
             if let Some(footer) = surface.footer.clone() {
                 let line = footer.read(cx).line.clone();

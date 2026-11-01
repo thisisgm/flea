@@ -1,6 +1,6 @@
 //! Wrapped refusal captions prepared with the card, retaining glyph runs for every painted line.
 use super::lines::{shape, Env, Shaped};
-use flea::ui_logic_mn1::fit::ROW;
+use flea::ui_logic_mn1::fit::Metrics;
 use gpui::{
     point, px, size, Bounds, ContentMask, Hsla, IndentAdjustment, LineFragment, Pixels, Window,
 };
@@ -9,6 +9,7 @@ pub struct Caption {
     pub width: f32,
     pub lines: Vec<Shaped>,
     line_height: Pixels,
+    row_height: Pixels,
     #[cfg(test)]
     painted: std::cell::Cell<Option<Bounds<Pixels>>>,
 }
@@ -42,6 +43,7 @@ impl Caption {
             width,
             lines,
             line_height: layout.ascent + layout.descent,
+            row_height: px(Metrics::at(f32::from(env.typeface.body)).row as f32),
             #[cfg(test)]
             painted: std::cell::Cell::new(None),
         }
@@ -49,7 +51,7 @@ impl Caption {
 
     pub fn paint(&self, at: gpui::Point<Pixels>, color: Hsla, window: &mut Window) {
         let height = self.line_height * self.lines.len();
-        let top = at.y + (px(ROW as f32) - height) / 2.;
+        let top = at.y + (self.row_height - height) / 2.;
         let bounds = Bounds::new(point(at.x, top), size(px(self.width), height));
         #[cfg(test)]
         self.painted.set(Some(bounds));

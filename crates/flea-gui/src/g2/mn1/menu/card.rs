@@ -1,5 +1,5 @@
 //! Retained card geometry, scrolling and row hit testing.
-use super::{fit, rows, Built, Entry, Rect, PAD};
+use super::{rows, Built, Entry, Rect};
 
 pub struct Card {
     pub entries: Vec<Entry>,
@@ -22,7 +22,7 @@ impl Card {
         frame: Rect,
         cursor: Option<usize>,
     ) -> Self {
-        let full_h = frame.h as i32 - 2 * PAD;
+        let full_h = frame.h as i32 - 2 * built.metrics.pad;
         let mut card = Self {
             entries,
             built,
@@ -46,12 +46,19 @@ impl Card {
     pub(super) fn settle(&mut self) {
         let full = self.full_h;
         let (y, h) = match self.cursor {
-            Some(cursor) => fit::scroll_for(&self.entries, cursor, self.content_y, full),
-            None => fit::menu_cut(&self.entries, self.content_y, full, None),
+            Some(cursor) => {
+                self.built
+                    .metrics
+                    .scroll_for(&self.entries, cursor, self.content_y, full)
+            }
+            None => self
+                .built
+                .metrics
+                .menu_cut(&self.entries, self.content_y, full, None),
         };
         self.content_y = y;
         self.view_h = h;
-        self.frame.h = (h + 2 * PAD) as f32;
+        self.frame.h = (h + 2 * self.built.metrics.pad) as f32;
     }
 
     pub(super) fn step(&mut self, delta: isize) {
@@ -72,22 +79,24 @@ impl Card {
     }
 
     pub fn row_screen_top(&self, index: usize) -> f32 {
-        self.frame.y + (PAD + fit::row_top(&self.entries, index) - self.content_y) as f32
+        self.frame.y
+            + (self.built.metrics.pad + self.built.metrics.row_top(&self.entries, index)
+                - self.content_y) as f32
     }
 
     pub fn row_at(&self, x: f32, y: f32) -> Option<usize> {
         let f = self.frame;
         if x < f.x
             || x >= f.x + f.w
-            || y < f.y + PAD as f32
-            || y >= f.y + (PAD + self.view_h) as f32
+            || y < f.y + self.built.metrics.pad as f32
+            || y >= f.y + (self.built.metrics.pad + self.view_h) as f32
         {
             return None;
         }
-        let content = (y - f.y) as i32 - PAD + self.content_y;
+        let content = (y - f.y) as i32 - self.built.metrics.pad + self.content_y;
         let mut top = 0;
         for (index, entry) in self.entries.iter().enumerate() {
-            top += fit::height(entry);
+            top += self.built.metrics.height(entry);
             if content < top {
                 return entry.steppable().then_some(index);
             }

@@ -1,5 +1,10 @@
 //! The small drawing pieces every Settings and sheet row shares: a mark, a spaced capital heading, a washed run.
-use super::glyphs;
+use super::{
+    geometry::{Scale, CHECK},
+    glyphs,
+    seams::Ink,
+};
+use flea::ui_logic_st1::rows::Master;
 use gpui::{
     canvas, div, prelude::*, px, App, ClickEvent, Div, FontWeight, Hsla, MouseButton, SharedString,
     TransformationMatrix, Window,
@@ -115,4 +120,29 @@ pub fn card<E: InteractiveElement>(element: E) -> E {
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
         .on_mouse_down(MouseButton::Right, |_, _, cx| cx.stop_propagation())
         .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
+}
+
+/// The checkbox every surface draws: empty against filled, the tick and the mixed bar cut in the surface.
+pub fn check(state: Master, ink: &Ink, corner: f32, s: Scale) -> Div {
+    let filled = matches!(state, Master::All | Master::Some);
+    div()
+        .size(px(s.of(CHECK)))
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .border_2()
+        .rounded(px(corner / 2.))
+        .border_color(if filled {
+            ink.foreground
+        } else {
+            ink.muted_frame
+        })
+        .when(filled, |box_| box_.bg(ink.foreground))
+        .when(state == Master::All, |box_| {
+            box_.child(mark("checkmark-bold", s.of(12.), ink.surface))
+        })
+        .when(state == Master::Some, |box_| {
+            box_.child(div().w(px(s.of(8.))).h(px(2.)).bg(ink.surface))
+        })
 }

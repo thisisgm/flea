@@ -22,7 +22,7 @@ impl GridAdapter<'_> {
             .map_or(-1, |at| name[..at].encode_utf16().count() as i64);
         let shaped = name.split('\n').count();
         let truncated = drawn.truncated();
-        let text_height = drawn.lines as f32 * layout.metrics.caption_line;
+        let text_height = drawn.text_height(layout.metrics.caption_line);
         let slot_height = drawn.caption.height.max(text_height.ceil());
         format!(
             "{{\"name\":\"{}\",\"wrapAt\":{},\"broken\":{},\"lines\":{},\"truncated\":{},\"textHeight\":{},\"slotHeight\":{},\"bottom\":{},\"tileHeight\":{},\"tip\":{}}}",

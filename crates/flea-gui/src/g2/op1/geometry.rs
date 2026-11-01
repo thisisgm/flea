@@ -1,5 +1,5 @@
 //! The card rhythm at the live Theme.font stop; hairlines keep their physical width.
-use crate::list::Typeface;
+use crate::list::{Typeface, MARK_RATIO};
 use flea::ui_logic_op1::card::{self, Kind};
 
 pub struct Metrics {
@@ -17,6 +17,9 @@ pub struct Metrics {
     pub field_gap: f32,
     pub selection: f32,
     pub caret: f32,
+    /// A named file's row: Theme.markSize beside the name, the gap between.
+    pub name_mark: f32,
+    pub name_gap: f32,
 }
 
 impl Metrics {
@@ -41,6 +44,8 @@ impl Metrics {
             field_gap: scale(card::FIELD_GAP),
             selection: scale(card::FIELD_SELECTION),
             caret: scale(card::CARET_HEIGHT),
+            name_mark: (small * MARK_RATIO as f32).round(),
+            name_gap: scale(card::NAME_GAP),
         }
     }
 

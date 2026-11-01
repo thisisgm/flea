@@ -1,5 +1,5 @@
 //! The panel and sheet state, driven by key names the way the window delivers them.
-use super::geometry::{fade_shown, reveal, FADE};
+use super::geometry::{fade_shown, reveal, Scale, FADE};
 use super::panel::{Panel, Press, Side};
 use super::seams::{merge, Facts, MemoryStore, Request};
 use super::sheet::{Sheet, Sources};
@@ -328,8 +328,14 @@ fn every_section_keeps_its_cursor_inside_the_pane_and_clear_of_the_fade() {
 fn reveal_moves_only_as_far_as_the_cursor_needs() {
     let panel = panel("{}");
     let (rows, heights, viewport) = (&panel.rows, panel.heights(), panel.pane.1);
-    assert_eq!(reveal(rows, &heights, 1, 0., viewport), 0.);
-    assert_eq!(reveal(rows, &heights, 1, 200., viewport), heights[0]);
+    assert_eq!(
+        reveal(rows, &heights, 1, 0., viewport, Scale::default()),
+        0.
+    );
+    assert_eq!(
+        reveal(rows, &heights, 1, 200., viewport, Scale::default()),
+        heights[0]
+    );
 }
 
 #[test]

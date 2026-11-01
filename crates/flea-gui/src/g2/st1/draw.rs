@@ -1,5 +1,5 @@
 //! One Settings pane row per kind, as ui/SettingsRow.qml draws it at the settings boards' measures.
-use super::geometry::{self as g, CHECK, CHIP_GAP, CHIP_H, GAP, LABEL_X, MARK_SLOT, PAD_X};
+use super::geometry::{self as g, Scale, CHIP_GAP, CHIP_H, GAP, MARK_SLOT, PAD_X};
 use super::marks::{mark, washed};
 use super::panel::Press;
 use super::seams::Ink;
@@ -55,30 +55,7 @@ impl<'a> Line<'a> {
     }
 }
 
-/// The checkbox every surface draws: empty against filled, the tick and the mixed bar cut in the surface.
-pub fn check(state: Master, ink: &Ink, corner: f32) -> Div {
-    let filled = matches!(state, Master::All | Master::Some);
-    div()
-        .size(px(CHECK))
-        .flex_none()
-        .flex()
-        .items_center()
-        .justify_center()
-        .border_2()
-        .rounded(px(corner / 2.))
-        .border_color(if filled {
-            ink.foreground
-        } else {
-            ink.muted_frame
-        })
-        .when(filled, |box_| box_.bg(ink.foreground))
-        .when(state == Master::All, |box_| {
-            box_.child(mark("checkmark-bold", 12., ink.surface))
-        })
-        .when(state == Master::Some, |box_| {
-            box_.child(div().w(px(8.)).h(px(2.)).bg(ink.surface))
-        })
-}
+pub use super::marks::check;
 
 fn row_state(row: &Row) -> Master {
     if row.on {
@@ -103,6 +80,16 @@ impl Rows<'_> {
         self.view.panel.facts.corner
     }
 
+    /// The text size the pane measures at.
+    fn s(&self) -> Scale {
+        self.view.panel.scale
+    }
+
+    /// A board measure at the text size.
+    fn px(&self, board: f32) -> gpui::Pixels {
+        px(self.s().of(board))
+    }
+
     fn label(&self, line: &Line<'_>, ink: Hsla) -> Div {
         let run = line.run.map(|run| (run.start, run.length));
         washed(&self.text(line.row), run, line.lifted, self.ink.wash14, 0.).text_color(ink)
@@ -118,7 +105,7 @@ impl Rows<'_> {
 
     fn line(&self, line: &Line<'_>, at: usize, cx: &mut Context<SettingsView>) -> AnyElement {
         let row = line.row;
-        let height = self.heights.get(at).copied().unwrap_or(g::ROW_H);
+        let height = self.heights.get(at).copied().unwrap_or(self.s().row);
         let greyed = !row.available || (row.kind == Kind::Check && row.inert);
         let base = super::probe::row_probe(self.view, &row.id)
             .id(("settings-line", at))
@@ -151,7 +138,11 @@ impl Rows<'_> {
         let ink = self.ink;
         let catalog = &self.view.panel.catalog;
         let run = line.run.map(|run| (run.start, run.length));
-        let mut end = div().h(px(14.)).flex().items_center().gap(px(GAP));
+        let mut end = div()
+            .h(self.px(14.))
+            .flex()
+            .items_center()
+            .gap(self.px(GAP));
         if let Some(section) = &line.section {
             end = end.child(SharedString::from(section.clone()));
         } else if row.master {
@@ -164,15 +155,15 @@ impl Rows<'_> {
                     ink.wash14,
                     spacing,
                 ))
-                .child(check(row.state, ink, self.corner()));
+                .child(check(row.state, ink, self.corner(), self.s()));
         } else if !row.action.is_empty() {
             end = end.child(
                 div()
                     .flex()
                     .items_center()
-                    .gap(px(8.))
+                    .gap(self.px(8.))
                     .text_color(ink.foreground)
-                    .child(mark("plus", 12., ink.foreground))
+                    .child(mark("plus", self.s().of(12.), ink.foreground))
                     .child(SharedString::from(row.value.resolve(catalog))),
             );
         }
@@ -180,16 +171,16 @@ impl Rows<'_> {
         base.flex()
             .flex_col()
             .when(!first, |group| {
-                group.child(div().mt(px(7.)).h(px(1.)).bg(ink.rule))
+                group.child(div().mt(self.px(7.)).h(px(1.)).bg(ink.rule))
             })
             .child(
                 div()
                     .flex()
                     .items_center()
-                    .px(px(PAD_X))
-                    .pt(px(if first { 16. } else { 19. }))
-                    .pb(px(7.8))
-                    .line_height(px(g::GROUP_LINE))
+                    .px(self.px(PAD_X))
+                    .pt(self.px(if first { 16. } else { 19. }))
+                    .pb(px(self.s().line(7.8)))
+                    .line_height(px(self.s().line(g::GROUP_LINE)))
                     .text_size(self.view.typeface.caption)
                     .text_color(ink.muted)
                     .child(
@@ -222,10 +213,10 @@ impl Rows<'_> {
         let index = line.index.or(line.hit);
         let hit = line.hit;
         base.flex()
-            .gap(px(2.))
-            .pt(px(7.))
-            .pl(px(LABEL_X))
-            .pr(px(PAD_X))
+            .gap(self.px(2.))
+            .pt(self.px(7.))
+            .pl(px(self.s().label_x()))
+            .pr(self.px(PAD_X))
             .text_size(self.view.typeface.caption)
             .children(row.stops.iter().enumerate().map(|(stop, size)| {
                 let marked = stop == row.index;
@@ -238,15 +229,15 @@ impl Rows<'_> {
                     .opacity(if marked { 1. } else { 0.4 })
                     .child(
                         div()
-                            .h(px(18.))
-                            .line_height(px(18.))
+                            .h(self.px(18.))
+                            .line_height(self.px(18.))
                             .text_color(if marked { ink.foreground } else { ink.muted })
                             .child(SharedString::from(size.to_string())),
                     )
                     .child(
                         div()
-                            .w(px(if marked { 3. } else { 2. }))
-                            .h(px(if marked { 5. } else { 3. }))
+                            .w(self.px(if marked { 3. } else { 2. }))
+                            .h(self.px(if marked { 5. } else { 3. }))
                             .bg(if row.on && marked {
                                 ink.accent
                             } else {
@@ -266,31 +257,32 @@ impl Rows<'_> {
 
     fn key_preview(&self, base: gpui::Stateful<Div>, row: &Row) -> gpui::Stateful<Div> {
         let ink = self.ink;
-        let cell = (self.view.panel.pane.0 - 2. * PAD_X - GAP) / 2.;
+        let s = self.s();
+        let cell = (self.view.panel.pane.0 - 2. * s.of(PAD_X) - s.of(GAP)) / 2.;
         base.flex()
             .flex_wrap()
-            .gap(px(GAP))
-            .py(px(7.))
-            .px(px(PAD_X))
+            .gap(self.px(GAP))
+            .py(self.px(7.))
+            .px(self.px(PAD_X))
             .text_size(self.view.typeface.caption)
             .children(row.items.iter().map(|item| {
                 div()
                     .w(px(cell))
-                    .h(px(CHIP_H))
+                    .h(self.px(CHIP_H))
                     .flex()
                     .items_center()
-                    .gap(px(GAP))
+                    .gap(self.px(GAP))
                     .child(
                         div()
-                            .w(px(48.))
-                            .mr(px(5.))
+                            .w(self.px(48.))
+                            .mr(self.px(5.))
                             .flex()
                             .justify_end()
                             .text_color(ink.foreground)
                             .child(SharedString::from(item.keys.clone())),
                     )
                     .when(!item.glyph.is_empty(), |cell| {
-                        cell.child(mark(item.glyph, 16., ink.muted_frame))
+                        cell.child(mark(item.glyph, s.of(16.), ink.muted_frame))
                     })
                     .child(div().whitespace_nowrap().text_color(ink.foreground).child(
                         SharedString::from(item.label.resolve(&self.view.panel.catalog)),
@@ -300,22 +292,22 @@ impl Rows<'_> {
 
     fn hero(&self, base: gpui::Stateful<Div>, row: &Row) -> gpui::Stateful<Div> {
         let catalog = &self.view.panel.catalog;
-        base.pt(px(14.))
+        base.pt(self.px(14.))
             .flex()
             .flex_col()
             .items_center()
-            .gap(px(GAP))
+            .gap(self.px(GAP))
             .text_color(self.ink.foreground)
-            .child(mark("flea", 38., self.ink.accent))
+            .child(mark("flea", self.s().of(38.), self.ink.accent))
             .child(
                 div()
-                    .line_height(px(20.))
+                    .line_height(self.px(20.))
                     .font_weight(FontWeight::BOLD)
                     .child(SharedString::from(row.label.resolve(catalog))),
             )
             .child(
                 div()
-                    .line_height(px(16.))
+                    .line_height(self.px(16.))
                     .text_size(self.view.typeface.caption)
                     .child(SharedString::from(row.value.resolve(catalog))),
             )
@@ -329,15 +321,16 @@ impl Rows<'_> {
         } else {
             self.ink.muted_frame
         };
+        let s = self.s();
         let drawn = match (row.mark, row.glyph) {
             ("", "") => None,
-            ("", glyph) => Some(mark(glyph, g::ROW_MARK, ink)),
-            ("flea", _) => Some(mark("flea", g::ROW_MARK, ink)),
-            (brand, _) => Some(mark(brand, g::BRAND_MARK, ink)),
+            ("", glyph) => Some(mark(glyph, s.of(g::ROW_MARK), ink)),
+            ("flea", _) => Some(mark("flea", s.of(g::ROW_MARK), ink)),
+            (brand, _) => Some(mark(brand, s.of(g::BRAND_MARK), ink)),
         };
         div()
-            .w(px(MARK_SLOT))
-            .h(px(g::ROW_MARK))
+            .w(self.px(MARK_SLOT))
+            .h(self.px(g::ROW_MARK))
             .flex_none()
             .flex()
             .items_center()
@@ -363,28 +356,34 @@ impl Rows<'_> {
         let button = |id: &'static str, glyph: &'static str| {
             div()
                 .id((id, index.unwrap_or(0)))
-                .size(px(24.))
+                .size(self.px(24.))
                 .flex_none()
                 .flex()
                 .items_center()
                 .justify_center()
                 .cursor_pointer()
-                .child(mark(glyph, 19., ink.muted_frame))
+                .child(mark(glyph, self.s().of(19.), ink.muted_frame))
         };
         let width = self.view.panel.pane.0;
         base.flex()
             .items_center()
-            .gap(px(GAP))
-            .px(px(PAD_X))
-            .child(div().w(px(MARK_SLOT)).flex().justify_center().child(mark(
-                if row.glyph.is_empty() {
-                    "folder"
-                } else {
-                    row.glyph
-                },
-                g::ROW_MARK,
-                if error { ink.error } else { ink.muted_frame },
-            )))
+            .gap(self.px(GAP))
+            .px(self.px(PAD_X))
+            .child(
+                div()
+                    .w(self.px(MARK_SLOT))
+                    .flex()
+                    .justify_center()
+                    .child(mark(
+                        if row.glyph.is_empty() {
+                            "folder"
+                        } else {
+                            row.glyph
+                        },
+                        self.s().of(g::ROW_MARK),
+                        if error { ink.error } else { ink.muted_frame },
+                    )),
+            )
             .child(
                 self.label(line, if error { ink.error } else { ink.foreground })
                     .flex_1()
@@ -495,8 +494,8 @@ impl Rows<'_> {
             .child(SharedString::from(row.value.resolve(catalog)));
         base.flex()
             .items_center()
-            .gap(px(GAP))
-            .px(px(PAD_X))
+            .gap(self.px(GAP))
+            .px(self.px(PAD_X))
             .child(self.slot(row))
             .child(
                 self.label(line, label_ink)
@@ -523,7 +522,11 @@ impl Rows<'_> {
                 line.child(
                     div()
                         .id(("settings-chevron", index.unwrap_or(0)))
-                        .child(mark("chevron-right", MARK_SLOT, ink.muted_frame))
+                        .child(mark(
+                            "chevron-right",
+                            self.s().of(MARK_SLOT),
+                            ink.muted_frame,
+                        ))
                         .when_some(index.filter(|_| steps), |chevron, index| {
                             chevron.on_click(cx.listener(move |view, _, _, cx| {
                                 view.panel.press_shown(index, hit, Press::Step);
@@ -534,10 +537,10 @@ impl Rows<'_> {
                 )
             })
             .when(row.kind == Kind::Lock, |line| {
-                line.child(mark("lock", MARK_SLOT, ink.muted_frame))
+                line.child(mark("lock", self.s().of(MARK_SLOT), ink.muted_frame))
             })
             .when(row.kind == Kind::Check, |line| {
-                line.child(check(row_state(row), ink, self.corner()))
+                line.child(check(row_state(row), ink, self.corner(), self.s()))
             })
     }
 
@@ -570,13 +573,13 @@ impl Rows<'_> {
                     row.values
                         .get(stop)
                         .map_or("file", |value| view_mark(value)),
-                    16.,
+                    self.s().of(16.),
                     tone,
                 ))
             } else {
-                cell.h(px(CHIP_H))
-                    .min_w(px(CHIP_H))
-                    .px(px(7.))
+                cell.h(self.px(CHIP_H))
+                    .min_w(self.px(CHIP_H))
+                    .px(self.px(7.))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -592,8 +595,8 @@ impl Rows<'_> {
         let mut out = div()
             .flex()
             .items_center()
-            .gap(px(if glyphs { 17. } else { CHIP_GAP }))
-            .when(glyphs, |strip| strip.mr(px(GAP)).mt(px(-2.)));
+            .gap(self.px(if glyphs { 17. } else { CHIP_GAP }))
+            .when(glyphs, |strip| strip.mr(self.px(GAP)).mt(self.px(-2.)));
         for (cell, stop, current) in cells {
             out = out.child(cell.when_some(index, |cell, index| {
                 cell.when(!current, |cell| cell.cursor_pointer())

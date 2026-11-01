@@ -1,7 +1,7 @@
 //! The one menu every face opens through: its card, its flyout, the cursor, keys, pointer, wheel and a choice's check.
 use super::lines::{self, Built, Env};
 use flea::ui_logic_mn1::{
-    fit::{self, Rect, PAD},
+    fit::Rect,
     places,
     refresh::{self, Refusal, EMPTY_CLIPBOARD},
     rows::{self, Lone, Submenu},
@@ -89,9 +89,10 @@ impl Menu {
         if entries.is_empty() {
             return Outcome::Nothing;
         }
-        let built = lines::build(&entries, env, window, fit::MENU_W, work.w);
-        let width = fit::fit_width(built.widest, work.w);
-        let frame = fit::place(at, width, fit::content_height(&entries), work, env.inset);
+        let built = lines::build(&entries, env, window, 0., work.w);
+        let metrics = built.metrics;
+        let width = metrics.fit_width(built.widest, work.w);
+        let frame = metrics.place(at, width, metrics.content_height(&entries), work, env.inset);
         // Every open lands on the first live row, the pointer's included, as v0.3.12 place() does.
         let cursor = Card::first(&entries);
         self.card = Some(Card::new(entries, built, frame, cursor));
@@ -157,12 +158,15 @@ impl Menu {
             return;
         }
         let built = lines::build(&leaves, env, window, card.frame.w, self.work.w);
-        let width = fit::flyout_width(card.frame.w, built.widest, self.work.w);
-        let top = parent.map_or(card.frame.y + PAD as f32, |row| card.row_screen_top(row));
-        let frame = fit::place_flyout(
+        let metrics = built.metrics;
+        let width = metrics.flyout_width(card.frame.w, built.widest, self.work.w);
+        let top = parent.map_or(card.frame.y + metrics.pad as f32, |row| {
+            card.row_screen_top(row)
+        });
+        let frame = metrics.place_flyout(
             card.frame,
             width,
-            fit::content_height(&leaves),
+            metrics.content_height(&leaves),
             top,
             self.work,
             env.inset,
@@ -170,11 +174,13 @@ impl Menu {
         let cursor = Card::first(&leaves);
         let mut fly = Card::new(leaves, built, frame, cursor);
         // A view trimmed to a half row keeps its foot where the work area put it, level with a parent that reaches it.
-        fly.frame.y = fit::place_flyout(card.frame, width, fly.view_h, top, self.work, env.inset).y;
+        fly.frame.y = metrics
+            .place_flyout(card.frame, width, fly.view_h, top, self.work, env.inset)
+            .y;
         // Later cursor moves settle inside the room left under that top, so the foot row never runs off the work area.
         fly.full_h = fly
             .full_h
-            .min((self.work.y + self.work.h - env.inset - fly.frame.y) as i32 - 2 * PAD);
+            .min((self.work.y + self.work.h - env.inset - fly.frame.y) as i32 - 2 * metrics.pad);
         fly.settle();
         self.faded = None;
         self.flyout = Some(Flyout {
@@ -322,13 +328,14 @@ impl Menu {
             sub_cursor,
         );
         let pointer = card.cursor.is_none();
-        let built = lines::build(&entries, env, window, fit::MENU_W, self.work.w);
-        let width = fit::fit_width(built.widest, self.work.w);
+        let built = lines::build(&entries, env, window, 0., self.work.w);
+        let metrics = built.metrics;
+        let width = metrics.fit_width(built.widest, self.work.w);
         // A new width or height places the card again from its opening point, as v0.3.12 clampFrame does.
-        let frame = fit::place(
+        let frame = metrics.place(
             self.at,
             width,
-            fit::content_height(&entries),
+            metrics.content_height(&entries),
             self.work,
             env.inset,
         );

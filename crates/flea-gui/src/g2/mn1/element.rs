@@ -6,7 +6,7 @@ use super::lines::{Ink, Lead, Line, Shaped};
 use super::menu::{Card, Menu};
 use crate::list::Palette;
 use crate::palette::Theme;
-use flea::ui_logic_mn1::fit::{self, CHEVRON, CLEAR, GAP, PAD, PAD_X, ROW, SEP, SLOT};
+use flea::ui_logic_mn1::fit::Metrics;
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, size, App, BorderStyle, Bounds,
     ContentMask, Element, ElementId, GlobalElementId, Hsla, InspectorElementId, IntoElement,
@@ -18,8 +18,6 @@ use std::{cell::RefCell, rc::Rc};
 const WASH: f32 = 0.08;
 const RULE: f32 = 0.4;
 const DIM: f32 = 0.55;
-// The fade crosses the row padding and reaches round(37 x 0.7) into the cut row, inside the 1 pixel frame.
-const FADE_H: i32 = PAD + CLEAR - 1;
 const TAG: f32 = 14.;
 const CHECK: f32 = 16.;
 
@@ -35,38 +33,11 @@ mod fade_tests;
 thread_local! {
     // Test-only receipt of each card frame a MenuElement painted in a real draw.
     pub(crate) static PAINTED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
+    pub(crate) static MARKED: RefCell<Vec<Bounds<Pixels>>> = const { RefCell::new(Vec::new()) };
 }
 
-/// The roles a menu paints with, read from the pane's palette until the theme tokens land.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct MenuInk {
-    pub surface: Hsla,
-    pub frame: Hsla,
-    pub rule: Hsla,
-    pub wash: Hsla,
-    pub label: Hsla,
-    pub muted: Hsla,
-    pub mark: Hsla,
-    pub error: Hsla,
-    pub tags: [Hsla; 7],
-}
-
-impl MenuInk {
-    pub fn from_palette(palette: &Palette) -> Self {
-        let frames = crate::presentation::frames::Frames::from_palette(palette, 0.);
-        Self {
-            surface: palette.background,
-            frame: frames.ink,
-            rule: frames.ink.opacity(RULE),
-            wash: palette.foreground.opacity(WASH),
-            label: palette.foreground,
-            muted: palette.muted,
-            mark: frames.ink,
-            error: palette.error,
-            tags: [palette.foreground; 7],
-        }
-    }
-}
+mod ink;
+pub use ink::MenuInk;
 
 pub struct MenuElement {
     menu: Rc<RefCell<Menu>>,
@@ -99,11 +70,17 @@ impl IntoElement for MenuElement {
     }
 }
 
-fn paint_text(shaped: &Shaped, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+fn paint_text(
+    shaped: &Shaped,
+    at: gpui::Point<Pixels>,
+    color: Hsla,
+    row: i32,
+    window: &mut Window,
+) {
     let line = shaped.run.line();
     let baseline =
-        window.pixel_snap(top + (px(ROW as f32) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(x, baseline), &shaped.run, color);
+        window.pixel_snap(at.y + (px(row as f32) - line.ascent - line.descent) / 2. + line.ascent);
+    let _ = window.paint_glyph_run(point(at.x, baseline), &shaped.run, color);
 }
 
 fn paint_mark(
@@ -114,6 +91,8 @@ fn paint_mark(
     window: &mut Window,
     cx: &mut App,
 ) {
+    #[cfg(test)]
+    MARKED.with(|marks| marks.borrow_mut().push(bounds));
     let _ = window.paint_svg(
         bounds,
         key,
@@ -124,10 +103,10 @@ fn paint_mark(
     );
 }
 
-fn slot(left: Pixels, top: Pixels, w: f32, h: f32) -> Bounds<Pixels> {
-    let x = left + px(PAD_X + (SLOT - w) / 2.);
+fn slot(at: gpui::Point<Pixels>, w: f32, h: f32, metrics: Metrics) -> Bounds<Pixels> {
+    let x = at.x + px(metrics.pad_x + (metrics.slot - w) / 2.);
     Bounds::new(
-        point(x, top + px((ROW as f32 - h) / 2.)),
+        point(x, at.y + px((metrics.row as f32 - h) / 2.)),
         size(px(w), px(h)),
     )
 }
@@ -136,8 +115,8 @@ fn paint_lead(
     lead: &Lead,
     mark: Hsla,
     ink: &MenuInk,
-    left: Pixels,
-    top: Pixels,
+    at: gpui::Point<Pixels>,
+    metrics: Metrics,
     window: &mut Window,
     cx: &mut App,
 ) {
@@ -145,18 +124,32 @@ fn paint_lead(
         Lead::None | Lead::Check(false) => {}
         Lead::Cut(name) => {
             let (key, data) = glyphs::mark(name);
-            paint_mark(key, data, slot(left, top, SLOT, SLOT), mark, window, cx);
+            paint_mark(
+                key,
+                data,
+                slot(at, metrics.slot, metrics.slot, metrics),
+                mark,
+                window,
+                cx,
+            );
         }
         Lead::Check(true) => {
             let (key, data) = glyphs::mark("checkmark");
-            paint_mark(key, data, slot(left, top, CHECK, CHECK), mark, window, cx);
+            paint_mark(
+                key,
+                data,
+                slot(at, metrics.of(CHECK), metrics.of(CHECK), metrics),
+                mark,
+                window,
+                cx,
+            );
         }
         Lead::Brand(brand) => {
             let (key, data, ratio) = glyphs::brand(*brand);
             paint_mark(
                 key,
                 data,
-                slot(left, top, (SLOT * ratio).round(), SLOT),
+                slot(at, (metrics.slot * ratio).round(), metrics.slot, metrics),
                 mark,
                 window,
                 cx,
@@ -168,7 +161,10 @@ fn paint_lead(
                 .and_then(|at| ink.tags.get(usize::from(at)))
                 .copied()
                 .unwrap_or(ink.label);
-            window.paint_quad(fill(slot(left, top, TAG, TAG), color));
+            window.paint_quad(fill(
+                slot(at, metrics.of(TAG), metrics.of(TAG), metrics),
+                color,
+            ));
         }
         Lead::Icon(name) => {
             let side = 16.;
@@ -180,7 +176,14 @@ fn paint_lead(
                 return;
             }
             let (key, data) = glyphs::mark("app-window");
-            paint_mark(key, data, slot(left, top, SLOT, SLOT), mark, window, cx);
+            paint_mark(
+                key,
+                data,
+                slot(at, metrics.slot, metrics.slot, metrics),
+                mark,
+                window,
+                cx,
+            );
         }
     }
 }
@@ -194,9 +197,10 @@ fn paint_row(
     window: &mut Window,
     cx: &mut App,
 ) {
+    let metrics = line.metrics;
     let (left, top, right) = (at.x, at.y, at.x + width);
     if line.separator {
-        let y = top + px(((SEP - 1) / 2) as f32);
+        let y = top + px(((metrics.sep - 1) / 2) as f32);
         window.paint_quad(fill(
             Bounds::new(point(left, y), size(width, px(1.))),
             ink.rule,
@@ -205,7 +209,7 @@ fn paint_row(
     }
     if lit {
         window.paint_quad(fill(
-            Bounds::new(point(left, top), size(width, px(ROW as f32))),
+            Bounds::new(point(left, top), size(width, px(metrics.row as f32))),
             ink.wash,
         ));
     }
@@ -215,21 +219,32 @@ fn paint_row(
     let red = matches!(line.ink, Ink::Errored | Ink::Danger);
     let label_ink = if red { ink.error } else { ink.label }.opacity(dim);
     let mark_ink = if red { ink.error } else { ink.mark }.opacity(dim);
-    paint_lead(&line.lead, mark_ink, ink, left, top, window, cx);
+    paint_lead(
+        &line.lead,
+        mark_ink,
+        ink,
+        point(left, top),
+        metrics,
+        window,
+        cx,
+    );
     #[cfg(test)]
     crate::presentation::frame_gate::mark(&line.id, mark_ink, cx);
     // Trailing parts end on one edge: the chevron's column, which a state word keeps, then the key, then the word.
-    let mut edge = right - px(PAD_X);
+    let mut edge = right - px(metrics.pad_x);
     if line.has_trailing_column() {
         if line.chevron {
             let (key, data) = glyphs::mark("chevron-right");
             let bounds = Bounds::new(
-                point(edge - px(CHEVRON), top + px((ROW as f32 - CHEVRON) / 2.)),
-                size(px(CHEVRON), px(CHEVRON)),
+                point(
+                    edge - px(metrics.chevron),
+                    top + px((metrics.row as f32 - metrics.chevron) / 2.),
+                ),
+                size(px(metrics.chevron), px(metrics.chevron)),
             );
             paint_mark(key, data, bounds, ink.frame.opacity(dim), window, cx);
         }
-        edge -= px(CHEVRON + GAP);
+        edge -= px(metrics.chevron + metrics.gap);
     }
     for (part, width) in line
         .key
@@ -245,23 +260,29 @@ fn paint_row(
                 window,
             );
         } else {
-            paint_text(part, x, top, ink.muted.opacity(dim), window);
+            paint_text(
+                part,
+                point(x, top),
+                ink.muted.opacity(dim),
+                metrics.row,
+                window,
+            );
         }
-        edge = x - px(GAP);
+        edge = x - px(metrics.gap);
     }
     if let Some(state) = line.tag_state {
-        super::tag_checks::paint(state, edge, top, label_ink, window, cx);
+        super::tag_checks::paint(state, edge, top, label_ink, metrics, window, cx);
     }
     let Some(label) = line.painted_label() else {
         return;
     };
-    let start = left + px(PAD_X + SLOT + GAP);
+    let start = left + px(metrics.pad_x + metrics.slot + metrics.gap);
     let column = Bounds::new(
         point(start, top),
-        size(px(line.label_room(width.into())), px(ROW as f32)),
+        size(px(line.label_room(width.into())), px(metrics.row as f32)),
     );
     window.with_content_mask(Some(ContentMask { bounds: column }), |window| {
-        paint_text(label, start, top, label_ink, window)
+        paint_text(label, point(start, top), label_ink, metrics.row, window)
     });
 }
 
@@ -274,6 +295,7 @@ fn paint_card(
     window: &mut Window,
     cx: &mut App,
 ) {
+    let metrics = card.built.metrics;
     let f = card.frame;
     let frame = Bounds::new(origin + point(px(f.x), px(f.y)), size(px(f.w), px(f.h)));
     #[cfg(test)]
@@ -283,7 +305,7 @@ fn paint_card(
         size(frame.size.width - px(2.), frame.size.height - px(2.)),
     );
     let view = Bounds::new(
-        frame.origin + point(px(1.), px(PAD as f32)),
+        frame.origin + point(px(1.), px(metrics.pad as f32)),
         size(inner.size.width, px(card.view_h as f32)),
     );
     window.paint_layer(frame, |window| {
@@ -298,7 +320,7 @@ fn paint_card(
         window.with_content_mask(Some(ContentMask { bounds: view }), |window| {
             let mut y = 0;
             for (index, line) in card.built.lines.iter().enumerate() {
-                let h = fit::height(&card.entries[index]);
+                let h = metrics.height(&card.entries[index]);
                 let top = y - card.content_y;
                 y += h;
                 if top + h <= 0 || top >= card.view_h {
@@ -317,11 +339,13 @@ fn paint_card(
             }
         });
     });
-    let (top, bottom) = fit::fades(&card.entries, card.content_y, card.view_h);
+    let (top, bottom) = metrics.fades(&card.entries, card.content_y, card.view_h);
+    // Fades cross the padding and the cursor clearance, inside the one-pixel frame.
+    let fade_h = metrics.pad + metrics.clear - 1;
     let fade = |at: Pixels, angle: f32| {
         let bounds = Bounds::new(
             point(inner.origin.x, at),
-            size(inner.size.width, px(FADE_H as f32)),
+            size(inner.size.width, px(fade_h as f32)),
         );
         fill(
             bounds,
@@ -339,7 +363,7 @@ fn paint_card(
         }
         if bottom {
             window.paint_quad(fade(
-                inner.origin.y + inner.size.height - px(FADE_H as f32),
+                inner.origin.y + inner.size.height - px(fade_h as f32),
                 0.,
             ));
         }

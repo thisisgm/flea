@@ -337,3 +337,20 @@ fn a_press_released_elsewhere_or_on_an_unavailable_button_does_nothing(cx: &mut 
         assert_eq!(o.pointer.pressed, None);
     });
 }
+
+// EY-400: at text size 20 the collision card's file mark is Theme.markSize, bodySmall 18 times 1.45, as v0.3.12 draws.
+#[gpui::test]
+fn ey400_the_collision_mark_follows_the_text_size(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_global(crate::list::Typeface::omarchy_default().at_base(20)));
+    let (_, vcx) = open_card(cx, 1100., 700., |o| {
+        let cat = o.catalog.clone();
+        o.model.ask(&cat, &request(), &[], false);
+        o.model.line(&cat, r#"{"t":"collisions","id":1,"total":1,"names":[{"n":"notes.txt","d":false,"i":"text-x-generic"}],"mergeable":false}"#, 0);
+    });
+    let name = measured(vcx, "op1-name-0");
+    assert_eq!(
+        f32::from(name.size.height),
+        26.,
+        "a 26 px mark sets the row"
+    );
+}

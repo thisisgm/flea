@@ -7,15 +7,14 @@ pub(super) fn paint(
     edge: Pixels,
     top: Pixels,
     ink: Hsla,
+    metrics: flea::ui_logic_mn1::fit::Metrics,
     window: &mut Window,
     cx: &mut App,
 ) {
+    let side = metrics.of(SWATCH_SIZE);
     let at = Bounds::new(
-        point(
-            edge - px(SWATCH_SIZE),
-            top + px((flea::ui_logic_mn1::fit::ROW as f32 - SWATCH_SIZE) / 2.),
-        ),
-        size(px(SWATCH_SIZE), px(SWATCH_SIZE)),
+        point(edge - px(side), top + px((metrics.row as f32 - side) / 2.)),
+        size(px(side), px(side)),
     );
     match state {
         State::Absent => {}

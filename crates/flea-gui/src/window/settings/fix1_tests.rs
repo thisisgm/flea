@@ -141,7 +141,12 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
         );
         assert_eq!(panel.heights()[at], 24.);
         assert_eq!(
-            crate::g2::st1::geometry::row_height(&panel.rows[at], false, 80),
+            crate::g2::st1::geometry::row_height(
+                &panel.rows[at],
+                false,
+                80,
+                crate::g2::st1::geometry::Scale::default(),
+            ),
             24.
         );
         assert!(

@@ -672,3 +672,6 @@ fn marks_and_a_trimmed_flyout_follow_the_boards(cx: &mut TestAppContext) {
         );
     });
 }
+
+#[path = "text_size_tests.rs"]
+mod text_size;

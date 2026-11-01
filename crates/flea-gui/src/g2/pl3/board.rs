@@ -1,29 +1,88 @@
 //! design-hig boards trash, trash-strip-focus, trash-strip-hover, trash-menu and trash-emptying, as numbers.
-use gpui::SharedString;
+use crate::list::{Metrics, Typeface};
+use gpui::{Pixels, SharedString};
 
-/// The strip, `.chrome`: 27 tall, 14 padding, 9 gap, caption 12, a hairline under it.
+/// The flash card scales this 27 px board strip height with its type.
 pub const STRIP_H: f32 = 27.;
-pub const PAD_X: f32 = 14.;
-pub const GAP: f32 = 9.;
-/// `.cbtn`: a 24 by 27 slot around a 16 glyph.
+/// `.cbtn`: a slot at least 24 wide around a 16 glyph.
 pub const CBTN_W: f32 = 24.;
 pub const CBTN_GLYPH: f32 = 16.;
-/// Empty Trash…: 20 tall, caption 12, 9 padding, a hairline frame, half the compositor radius.
-pub const BUTTON_H: f32 = 20.;
-pub const BUTTON_PAD: f32 = 9.;
-/// The column header: 27 tall, caption 12 in foreground, a 19 mark slot, Original Location 210, Deleted 135.
-pub const HEADER_H: f32 = 27.;
-pub const SLOT: f32 = 19.;
+/// The column header's Original Location 210 at bodySmall 13 and Deleted 135.
 pub const LOCATION_W: f32 = 210.;
 pub const DELETED_W: f32 = 135.;
-/// `.trashv .row`: 31 tall, a 19 glyph in a 19 slot, body 14 name and cells, each cell 9 after the last.
-pub const ROW_H: f32 = 31.;
-pub const GLYPH: f32 = 19.;
-pub const EDGE: f32 = 2.;
 /// The trash-menu board opens the item's menu 3 under its row.
 pub const MENU_DROP: f32 = 3.;
-pub const BODY: f32 = 14.;
-pub const CAPTION: f32 = 12.;
+const BOARD_BODY: f32 = 14.;
+const BOARD_BODY_SMALL: f32 = 13.;
+
+/// The Trash view's measures at a text size, as TrashView.qml takes them from Theme.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Board {
+    /// The strip, `.chrome`: 27 tall at 14, row padding, the gap, caption type, a hairline under it.
+    pub strip_h: f32,
+    pub pad_x: f32,
+    pub gap: f32,
+    pub cbtn_w: f32,
+    pub cbtn_glyph: f32,
+    /// Empty Trash…: Theme.chromeControlHeight, 20 tall at 14, with the gap as its padding.
+    pub button_h: f32,
+    pub button_pad: f32,
+    /// The column header, the strip's height again, a mark slot, then Original Location and Deleted.
+    pub header_h: f32,
+    pub slot: f32,
+    pub location_w: f32,
+    pub deleted_w: f32,
+    /// `.trashv .row`: the list's row and mark, a two-hairline accent edge, body type.
+    pub row_h: f32,
+    pub glyph: f32,
+    pub edge: f32,
+    pub menu_drop: f32,
+    pub body: Pixels,
+    pub caption: Pixels,
+}
+
+impl Board {
+    pub fn at(face: &Typeface) -> Self {
+        let metrics = Metrics::for_typeface(face);
+        let body = f32::from(face.body);
+        let board = |value: f32| (value * body / BOARD_BODY).round();
+        let inset = (f32::from(face.caption) / 4.).round().max(2.);
+        let cbtn_glyph = board(CBTN_GLYPH);
+        let mark = metrics.mark.round();
+        Self {
+            strip_h: metrics.header,
+            pad_x: metrics.pad,
+            gap: metrics.gap,
+            cbtn_w: CBTN_W.max(cbtn_glyph),
+            cbtn_glyph,
+            button_h: metrics.header - metrics.hairline - 2. * inset,
+            button_pad: metrics.gap,
+            header_h: metrics.header,
+            slot: mark,
+            location_w: (LOCATION_W * f32::from(face.body_small) / BOARD_BODY_SMALL).round(),
+            deleted_w: board(DELETED_W),
+            row_h: metrics.row,
+            glyph: mark,
+            // TrashView.qml: the marked row's edge is two hairlines at every size.
+            edge: 2. * metrics.hairline,
+            menu_drop: board(MENU_DROP),
+            body: face.body,
+            caption: face.caption,
+        }
+    }
+
+    /// The strip and the header above the rows.
+    pub fn top(&self) -> f32 {
+        self.strip_h + self.header_h
+    }
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::at(&Typeface::omarchy_default())
+    }
+}
+
 /// Washes over foreground or accent: hairline 12%, pointer 8%, a press 14% (Buttons.js), the cursor 18%.
 pub const HAIR: f32 = 0.12;
 pub const HOVER: f32 = 0.08;

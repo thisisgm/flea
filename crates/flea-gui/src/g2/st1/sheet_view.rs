@@ -337,8 +337,14 @@ impl Render for SheetView {
             .child(div().h(px(1.)).flex_none().bg(ink.rule));
         card = if searching {
             card.child(
-                SettingsView::field(&self.sheet.query, &ink, self.corner, &self.typeface)
-                    .flex_none(),
+                SettingsView::field(
+                    &self.sheet.query,
+                    &ink,
+                    self.corner,
+                    &self.typeface,
+                    super::geometry::Scale::default(),
+                )
+                .flex_none(),
             )
             .child(self.results(&ink, cx))
         } else {
