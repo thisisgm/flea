@@ -73,6 +73,7 @@ pub(crate) mod graphics;
 mod input;
 mod job;
 mod jobstatus;
+mod keycaps;
 mod keymap;
 mod media;
 mod model;
@@ -134,6 +135,8 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         store.settle().map_err(io::Error::other)?;
         let settings = store.read();
         let mut wire = wire::Wire::start(gvfs.as_ref())?;
+        // The keyboard group readback runs beside the listing and terminal setup.
+        let mut keycaps = keycaps::Keycaps::start();
         let mut model = model::Model::new(path.clone(), &settings);
         if let Some(preset) = &options.keymap { model.preset = preset.clone(); }
         model.choosing = options.chooser_file.is_some();
@@ -150,6 +153,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         model.capabilities = terminal.decoder.negotiation.detected;
         let map = keymap::Map::load();
         model.hints = keymap::Hints::new(&map, &model.preset);
+        keycaps.settle(&mut model, &map, keycaps::FIRST_WAIT);
         let mut style = layout::Live::new(&mut model);
         let started = std::time::Instant::now();
         let mut frame = String::new();
@@ -164,6 +168,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         render::cards::refresh_locale(&mut model);
         while !model.quit && !terminal.stopped() {
             model.refresh_frame_locale();
+            keycaps.apply(&mut model, &map);
             hold.sync(&model, std::time::Instant::now());
             while let Ok(event) = wire.events.try_recv() {
                 match event {
@@ -281,7 +286,10 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             let input_wait = hold.wait_ms(&model, now, started, input_wait);
             if std::mem::take(&mut model.parity17.suspend) { terminal.request_suspend(); }
             let bytes = terminal.read(wire.wake_fd(), wait::next_wait_ms(&model, size, now, input_wait))?;
-            if terminal.take_resumed() { frame.clear(); }
+            if terminal.take_resumed() {
+                frame.clear();
+                keycaps.resume();
+            }
             wire.drain_wake();
             if !bytes.is_empty() {
                 last_input = std::time::Instant::now();
