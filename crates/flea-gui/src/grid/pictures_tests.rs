@@ -336,3 +336,31 @@ mod centering;
 
 #[path = "pictures_relist_tests.rs"]
 mod relist;
+
+// ui.sh nosweep: a folder of text files sends no thumb line in either view, as v0.3.12 Thumbs.allowed reads "t":false.
+#[gpui::test]
+fn a_folder_of_text_files_sends_no_thumb_request_in_list_or_grid(cx: &mut TestAppContext) {
+    for view in [View::List, View::Grid] {
+        let (backend, mut lines) = Backend::test_lines();
+        let handle = cx.add_window(|_, cx| {
+            let mut shell = named_shell(backend, cx);
+            let held = &mut shell.panes[0].as_mut().unwrap().pane.held;
+            for row in &mut Rc::get_mut(held).unwrap().rows {
+                row.thumbless = true;
+            }
+            shell
+        });
+        handle
+            .update(cx, |shell, window, cx| shell.set_view(view, window, cx))
+            .unwrap();
+        first_settle(cx, handle, &mut lines);
+        settle(cx, handle, 200);
+        let sent = drained(&mut lines);
+        assert!(
+            sent.iter()
+                .all(|line| !line.starts_with(r#"{"c":"thumb","#)),
+            "{view:?}: {sent:?}"
+        );
+        assert_eq!(thumb_requests(cx, handle), "0", "{view:?}");
+    }
+}

@@ -44,6 +44,7 @@ pub fn list_rows(dir: &str, n: usize) -> Vec<RowFacts> {
             icon: if i == 0 { "folder" } else { "text-x-generic" }.into(),
             link: None,
             real_modes: true,
+            thumbless: false,
             kind: String::new(),
             inline: None,
             tags: None,

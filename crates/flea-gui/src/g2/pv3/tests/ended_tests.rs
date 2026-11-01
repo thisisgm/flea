@@ -206,3 +206,55 @@ fn pv3_audio_end_keeps_its_existing_clock_and_transport(cx: &mut TestAppContext)
         (3_000, Status::Stopped)
     );
 }
+
+#[gpui::test]
+fn pv3_columns_ended_video_draws_its_film_strip_still_again(cx: &mut TestAppContext) {
+    use crate::window::selection_preview::render::column_media;
+    let script = Rc::new(Script::default());
+    let (player, _) = player(cx, &script, None);
+    let catalog = crate::test_catalogs::english();
+    // The cached thumbnail carries the film-strip edges; the decoder's own frames never do.
+    let still = picture(9);
+    player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
+    send(
+        cx,
+        &script,
+        Event::Loaded {
+            video: true,
+            duration_ms: 3_000,
+        },
+    );
+    send(cx, &script, Event::Playing);
+    let playing = picture(2);
+    script.sender().frame(playing.clone());
+    send(cx, &script, Event::Position(1_000));
+    player.read_with(cx, |player, _| {
+        assert_eq!(
+            column_media(Some(player), Some(still.clone()), &catalog),
+            Picture::Video {
+                frame: Some(playing),
+                poster: false
+            },
+            "a playing clip draws the decoder's frame"
+        );
+    });
+    send(cx, &script, Event::Ended);
+    send(cx, &script, Event::Stopped);
+    script.sender().frame(picture(1));
+    send(cx, &script, Event::Position(0));
+    player.read_with(cx, |player, _| {
+        assert_eq!(
+            column_media(Some(player), Some(still.clone()), &catalog),
+            Picture::Video {
+                frame: Some(still.clone()),
+                poster: false
+            },
+            "an ended clip returns to the rest poster, not the rewound first frame"
+        );
+        assert_eq!(
+            column_media(None, Some(still.clone()), &catalog),
+            column_media(Some(player), Some(still.clone()), &catalog),
+            "the ended picture is the one drawn before Play"
+        );
+    });
+}

@@ -31,6 +31,7 @@ impl SelectionPreview {
             caches: Default::default(),
             epoch: cx.background_executor().now(),
             timer: None,
+            gif: None,
             retired: Vec::new(),
             focus: cx.focus_handle(),
             frames: Rc::default(),

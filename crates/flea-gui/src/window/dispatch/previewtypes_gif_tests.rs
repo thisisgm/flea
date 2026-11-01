@@ -3,6 +3,7 @@ use super::previewtypes_kinds_tests::Root;
 use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
 use crate::window::u07_tests::read;
 use gpui::{TestAppContext, VisualTestContext};
+use std::{cell::Cell, rc::Rc};
 
 /// A two-frame GIF, red then blue, half a second a frame.
 const ANIMATED_GIF: [u8; 101] = [
@@ -31,6 +32,31 @@ fn settle_pictures(cx: &mut VisualTestContext) {
         cx.run_until_parked();
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
+}
+
+/// The two-frame fixture's canvas container, tagged with the frame passed to its painter.
+fn shown_frame(cx: &mut VisualTestContext) -> Option<usize> {
+    [
+        (0, "column-preview-animation-image-0"),
+        (1, "column-preview-animation-image-1"),
+    ]
+    .into_iter()
+    .find_map(|(at, selector)| cx.debug_bounds(selector).map(|_| at))
+}
+
+/// A draw after the executor clock moves on, the way the preview's wake timer fires.
+fn after(cx: &mut VisualTestContext, ms: u64, wakes: &Cell<usize>) {
+    let before = wakes.get();
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(ms));
+    cx.run_until_parked();
+    assert!(
+        wakes.get() > before,
+        "the GIF timer notifies its unfocused preview without a forced refresh"
+    );
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
 }
 
 #[gpui::test]
@@ -76,9 +102,33 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
         cx.debug_bounds("column-preview-animation").is_some(),
         "the moving layer draws in the frame"
     );
+    // The fixture's two frames hold 500 ms each; the column steps them on its own clock, focused or not, as v0.3.12 does.
+    cx.deactivate_window();
+    assert!(!cx.update(|window, _| window.is_window_active()));
+    let preview = shell.read_with(cx, |shell, _| shell.selection_preview(0).unwrap());
+    let wakes = Rc::new(Cell::new(0));
+    let _subscription = cx.update(|_, cx| {
+        let wakes = Rc::clone(&wakes);
+        cx.observe(&preview, move |_, _| wakes.set(wakes.get() + 1))
+    });
+    cx.run_until_parked();
+    let first = shown_frame(cx).expect("the drawn GIF paints a frame");
+    after(cx, 550, &wakes);
+    let second = shown_frame(cx);
+    assert_eq!(
+        second,
+        Some((first + 1) % 2),
+        "the GIF advances to its next frame"
+    );
+    after(cx, 500, &wakes);
+    assert_eq!(shown_frame(cx), Some(first), "and loops back");
     // The moving layer takes the still's place, so it keeps the still's never-enlarge fit for a raster GIF.
     let layer = cx
-        .debug_bounds("column-preview-animation-image")
+        .debug_bounds(if first == 0 {
+            "column-preview-animation-image-0"
+        } else {
+            "column-preview-animation-image-1"
+        })
         .expect("the moving layer draws its image");
     assert_eq!(
         (f32::from(layer.size.width), f32::from(layer.size.height)),
@@ -121,6 +171,7 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
         cx.debug_bounds("column-preview-animation").is_none(),
         "no moving layer draws for the next file"
     );
+    assert_eq!(shown_frame(cx), None, "a still paints no GIF frame");
     assert!(
         moving.upgrade().is_none(),
         "the retired GIF frame releases its decoded frames from the asset cache"
@@ -163,5 +214,18 @@ fn a_gif_past_the_raster_budget_stays_a_still_in_the_column(cx: &mut TestAppCont
     assert!(
         cx.debug_bounds("column-preview-animation").is_none(),
         "the still stands alone"
+    );
+}
+
+#[test]
+fn gif_frames_follow_their_delays_and_loop() {
+    use crate::window::selection_preview::picture::frame_at;
+    assert_eq!(frame_at(&[100, 300], 0), (0, 100));
+    assert_eq!(frame_at(&[100, 300], 150), (1, 250));
+    assert_eq!(frame_at(&[100, 300], 400), (0, 100), "the loop starts over");
+    assert_eq!(
+        frame_at(&[0, 0], 50),
+        (0, 100),
+        "no delay at all still waits"
     );
 }

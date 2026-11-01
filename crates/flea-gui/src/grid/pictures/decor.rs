@@ -44,6 +44,20 @@ fn fade(image: &RenderImage, level: f32) -> Option<Arc<RenderImage>> {
     Some(Arc::new(RenderImage::new(vec![image::Frame::new(buffer)])))
 }
 
+// The GPU samples a texture linearly with no mipmaps, so a picture several times its slot steps; a Catmull-Rom reduction draws it smooth, as v0.3.12 does.
+fn reduce(image: &RenderImage, width: u32, height: u32) -> Option<Arc<RenderImage>> {
+    let size = image.size(0);
+    let bytes = image.as_bytes(0)?.to_vec();
+    let buffer = image::RgbaImage::from_raw(size.width.0 as u32, size.height.0 as u32, bytes)?;
+    let reduced = image::imageops::resize(
+        &buffer,
+        width,
+        height,
+        image::imageops::FilterType::CatmullRom,
+    );
+    Some(Arc::new(RenderImage::new(vec![image::Frame::new(reduced)])))
+}
+
 impl Pictures {
     /// Hands the tiles their clipboard marks, which outlive every picture this decor lends.
     pub fn set_clip(&self, marks: Rc<dyn Decor>) {
@@ -65,16 +79,36 @@ impl Pictures {
     pub fn waiting(&self) -> Vec<usize> {
         self.map.borrow().pending().collect()
     }
-    /// A cut row's picture at the row's dimmed share, made once per picture and level and retired with its source.
-    pub fn faded(&self, picture: Arc<Thumbnail>, level: f32) -> Arc<Thumbnail> {
+    /// A row's picture as its mark slot draws it: filtered down to the slot's device side and, for a cut row, at its dimmed share; made once and retired with its source.
+    pub fn slotted(&self, picture: Arc<Thumbnail>, side: u32, level: f32) -> Arc<Thumbnail> {
+        let (w, h) = picture.decoded();
+        let fit =
+            (f64::from(side) / f64::from(w.max(1))).min(f64::from(side) / f64::from(h.max(1)));
+        if fit >= 1. && level >= 1. {
+            return picture;
+        }
         let mut map = self.map.borrow_mut();
         let key = image_key(&picture.image);
         if let Some(faded) = map.faded.get(&key).filter(|faded| {
-            faded.level == level.to_bits() && Arc::ptr_eq(&faded.source, &picture.image)
+            faded.level == level.to_bits()
+                && faded.side == side
+                && Arc::ptr_eq(&faded.source, &picture.image)
         }) {
             return Arc::clone(&faded.copy);
         }
-        let Some(image) = fade(&picture.image, level) else {
+        let sized = if fit < 1. {
+            let to = |edge: u32| ((f64::from(edge) * fit).round() as u32).max(1);
+            reduce(&picture.image, to(w), to(h))
+        } else {
+            Some(Arc::clone(&picture.image))
+        };
+        let Some(image) = sized.and_then(|image| {
+            if level < 1. {
+                fade(&image, level)
+            } else {
+                Some(image)
+            }
+        }) else {
             return picture;
         };
         let faded = Arc::new(Thumbnail {
@@ -84,6 +118,7 @@ impl Pictures {
         });
         let kept = Faded {
             level: level.to_bits(),
+            side,
             source: Arc::clone(&picture.image),
             copy: Arc::clone(&faded),
         };

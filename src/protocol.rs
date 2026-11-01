@@ -61,6 +61,8 @@ pub struct RowFacts {
     pub link: Option<String>,
     /// False only when the backend sends `"x":false`: the mount has no real modes, so `mode` marks no executable.
     pub real_modes: bool,
+    /// True only when the backend sends `"t":false`: no thumbnailer can picture this row, so no view asks for one.
+    pub thumbless: bool,
     /// The row's Kind description, `kinds[k]` of its reply; empty when the reply names none.
     pub kind: String,
     /// The folder size the live answer walked inline for this row, from its `z` pairs; None when it named none.
@@ -185,6 +187,7 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
         icon: string(row, "i")?.to_owned(),
         link,
         real_modes,
+        thumbless: row.get("t").and_then(Json::as_bool) == Some(false),
         // k is an index into kinds; anything but an unsigned integer in range names no kind, as uint() reads one.
         kind: match row.get("k") {
             Some(Json::Num(k)) => k.parse::<usize>().ok(),

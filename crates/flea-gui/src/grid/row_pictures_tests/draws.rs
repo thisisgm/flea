@@ -1,6 +1,30 @@
 //! A thumbnail answer draws in place of the kind mark in List, Columns and Dual rows, and a cut row draws its faded copy.
 use super::*;
 
+// The 1280 by 64 answer must fill the actual painted mark slot at device scale, preserving its aspect.
+fn slot_size(cx: &mut TestAppContext, handle: WindowHandle<Shell>, view: View) -> (u32, u32) {
+    handle
+        .update(cx, |shell, window, _| {
+            let metrics = shell.panes[0]
+                .as_ref()
+                .unwrap()
+                .list
+                .borrow()
+                .file_metrics();
+            let side = match view {
+                View::Columns => crate::columns::geometry::picture_box().2,
+                View::Dual => metrics.mark,
+                _ => metrics.slot,
+            };
+            let width = (side * window.scale_factor()).ceil() as u32;
+            (
+                width,
+                ((64. * f64::from(width) / 1280.).round() as u32).max(1),
+            )
+        })
+        .unwrap()
+}
+
 fn draws_the_answer_in_place_of_the_kind_mark(cx: &mut TestAppContext, view: View) {
     let (handle, mut lines) = open(cx, view, "{}");
     let first = first_settle(cx, handle, &mut lines);
@@ -23,11 +47,12 @@ fn draws_the_answer_in_place_of_the_kind_mark(cx: &mut TestAppContext, view: Vie
     );
     cx.run_until_parked();
     step(cx, handle);
+    let expected = slot_size(cx, handle, view);
     for row in [1, 5] {
+        let drawn = read(cx, handle, |shell| picture_at(shell, view, row));
         assert_eq!(
-            read(cx, handle, |shell| picture_at(shell, view, row)),
-            Some((1280, 64)),
-            "{view:?}: row {row} draws its thumbnail answer, not its kind glyph"
+            drawn, Some(expected),
+            "{view:?}: row {row} draws its thumbnail answer filtered to its mark slot, not its kind glyph: {drawn:?}"
         );
     }
     for row in [0, 2, 3] {
@@ -76,7 +101,7 @@ fn a_cut_row_draws_its_picture_faded_once_and_reuses_the_copy() {
         image: std::sync::Arc::new(gpui::RenderImage::new(vec![image::Frame::new(buffer)])),
     });
     let pictures = Pictures::default();
-    let faded = pictures.faded(std::sync::Arc::clone(&picture), 0.5);
+    let faded = pictures.slotted(std::sync::Arc::clone(&picture), 64, 0.5);
     assert_eq!(
         faded.image.as_bytes(0).unwrap(),
         &[10, 20, 30, 128, 40, 50, 60, 50],
@@ -87,7 +112,7 @@ fn a_cut_row_draws_its_picture_faded_once_and_reuses_the_copy() {
         255,
         "the lent picture is untouched"
     );
-    let again = pictures.faded(std::sync::Arc::clone(&picture), 0.5);
+    let again = pictures.slotted(std::sync::Arc::clone(&picture), 64, 0.5);
     assert!(
         std::sync::Arc::ptr_eq(&faded, &again),
         "a still frame reuses the faded copy"
@@ -144,9 +169,10 @@ fn a_columns_cursor_row_draws_its_thumbnail_beside_the_preview(cx: &mut TestAppC
     step(cx, handle);
     cx.run_until_parked();
     step(cx, handle);
+    let drawn = read(cx, handle, |shell| picture_at(shell, View::Columns, 1));
     assert_eq!(
-        read(cx, handle, |shell| picture_at(shell, View::Columns, 1)),
-        Some((1280, 64)),
-        "the cursor row draws its thumbnail, not its kind glyph"
+        drawn,
+        Some(slot_size(cx, handle, View::Columns)),
+        "the cursor row draws its thumbnail, not its kind glyph: {drawn:?}"
     );
 }

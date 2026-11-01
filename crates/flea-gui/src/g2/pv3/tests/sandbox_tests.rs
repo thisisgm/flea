@@ -55,6 +55,26 @@ fn pv3_the_sandbox_shares_nothing_but_one_read_only_input() {
     );
 }
 
+// EY-461: fontconfig reads its cache read-only, only where the box has one, so a video preview logs no cache error.
+#[test]
+fn pv3_the_sandbox_binds_the_fontconfig_cache_read_only_when_present() {
+    let words = arguments(&request(), Path::new("/b"), 3, None);
+    let at = words
+        .iter()
+        .position(|word| word == "/var/cache/fontconfig")
+        .expect("the fontconfig cache is named");
+    assert_eq!(
+        (words[at - 1].as_str(), words[at + 1].as_str()),
+        ("--ro-bind-try", "/var/cache/fontconfig"),
+        "a read-only bind that bwrap skips when the path is absent"
+    );
+    assert_eq!(
+        words.iter().filter(|word| word.starts_with("/var")).count(),
+        2,
+        "nothing else of /var is mounted: {words:?}"
+    );
+}
+
 // mpv plays into the sound server through exactly its socket; nothing else of the runtime directory is mounted.
 #[test]
 fn pv3_the_sandbox_binds_only_the_pulse_socket_from_the_runtime_dir() {

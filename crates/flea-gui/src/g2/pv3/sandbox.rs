@@ -64,6 +64,10 @@ pub fn arguments(
         "--ro-bind",
         "/etc",
         "/etc",
+        // fontconfig finds its cache instead of logging an error per font dir; -try skips a box without one.
+        "--ro-bind-try",
+        "/var/cache/fontconfig",
+        "/var/cache/fontconfig",
         "--symlink",
         "usr/lib",
         "/lib",
