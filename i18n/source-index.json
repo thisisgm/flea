@@ -242954,7 +242954,7 @@
     "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
     "src/tui/contents.rs": "c52db6f4b4567caf96f12354a24a897b9516602d30d2ce0a922ed365f2ecb2ec",
     "src/tui/convert.rs": "cac577640a064368ebe30b53444d209c7232341004b3af8cac187e053b2bb7ce",
-    "src/tui/convert/card.rs": "7f4bcffe78e21ae6436ac7b8fd23a26de0e47c884e32febbf768b0c3d8f9c0ac",
+    "src/tui/convert/card.rs": "484a014133b67f068d06f3a7d5ae5abeb38bc6eda234b0e3585b34da9b7cd3b1",
     "src/tui/convert/input.rs": "0e102c2c5c1afe0d1d4290ba7f6ccfb1883b30d207cf79c50f9da1c5205bb154",
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
     "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
@@ -243923,8 +243923,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "284845ad40a6be1faebd85db922c72c17efb1b45",
-  "source_sha": "284845ad40a6be1faebd85db922c72c17efb1b45",
+  "source_ref_sha": "31eeeef6c18d995c7fb0637600ccb54f58185205",
+  "source_sha": "31eeeef6c18d995c7fb0637600ccb54f58185205",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
