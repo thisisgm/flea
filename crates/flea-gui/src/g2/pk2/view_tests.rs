@@ -236,3 +236,46 @@ fn ey377_fractional_scroll_fetches_the_trailing_partial_row(cx: &mut TestAppCont
         );
     });
 }
+
+// EY-511: a tagged row in the chooser's List reserves the folder-wide tag slot, so its squares draw as the window's do.
+#[gpui::test]
+fn fix_picker_2b_tagged_rows_draw_the_tag_slot_in_the_chooser_list(cx: &mut TestAppContext) {
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    cx.simulate_resize(size(px(800.), px(600.)));
+    let tagged = |listing: u64| {
+        format!(
+            r#"{{"t":"rows","start":0,"listing":{listing},"rows":[{{"n":"notes.txt","d":false,"s":0,"m":0,"p":420,"i":"","tg":["Red","Blue"]}},{{"n":"todo.md","d":false,"s":0,"m":0,"p":420,"i":""}}]}}"#
+        )
+    };
+    let shown = |view: &gpui::Entity<ListingView>, cx: &mut gpui::VisualTestContext| {
+        cx.run_until_parked();
+        view.update(cx, |view, _| view.drawn().view.tags_shown)
+    };
+    view.update(cx, |view, cx| {
+        view.open("/work");
+        let gen = view.generation();
+        assert!(view.receive(gen, &listed(4)));
+        assert!(view.receive(gen, &tagged(gen)));
+        cx.notify();
+    });
+    assert!(shown(&view, cx), "a tagged row reserves the tag slot");
+    view.update(cx, |view, cx| {
+        let gen = view.generation();
+        let later = rows(gen).replace(r#""start":0"#, r#""start":2"#);
+        assert!(view.receive(gen, &later));
+        cx.notify();
+    });
+    assert!(
+        shown(&view, cx),
+        "the slot stays for the folder once a held window without tags replaces the tagged one"
+    );
+    view.update(cx, |view, cx| {
+        view.open("/plain");
+        let gen = view.generation();
+        assert!(view.receive(gen, &listed(2)));
+        assert!(view.receive(gen, &rows(gen)));
+        cx.notify();
+    });
+    assert!(!shown(&view, cx), "an untagged folder draws no tag slot");
+}

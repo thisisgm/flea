@@ -2,6 +2,7 @@
 use super::drawn::{Painted, Slot};
 use super::filename::FieldKey;
 use super::picker::Picker;
+use super::size::Size;
 use crate::list::Palette;
 use flea::ui_logic_pk1 as logic;
 use gpui::{
@@ -17,8 +18,6 @@ pub(super) const BUTTON_HEIGHT: f32 = 30.;
 pub(super) const SIDE: f32 = 14.;
 pub(super) const GAP: f32 = 9.;
 pub(super) const BUTTON_SIDE: f32 = 9.;
-pub(super) const TEXT: f32 = 14.;
-pub(super) const STATUS_TEXT: f32 = 12.;
 // The bands' rules: foreground at 24%; a refused button draws its muted ink at 55%, as DialogButton.qml does; the default carries a 14% accent wash.
 const RULE: f32 = 0.24;
 const REFUSED: f32 = 0.55;
@@ -30,7 +29,7 @@ fn answer(
     label: SharedString,
     default: bool,
     available: bool,
-    palette: &Palette,
+    (palette, size): (&Palette, Size),
     drawn: &super::drawn::Drawn,
     slot: Slot,
 ) -> Stateful<Div> {
@@ -56,9 +55,9 @@ fn answer(
         .flex_none()
         .flex()
         .items_center()
-        .h(px(BUTTON_HEIGHT))
-        .px(px(BUTTON_SIDE))
-        .text_size(px(TEXT))
+        .h(size.px(BUTTON_HEIGHT))
+        .px(size.px(BUTTON_SIDE))
+        .text_size(px(size.body))
         .text_color(if available {
             palette.foreground
         } else {
@@ -184,6 +183,7 @@ impl Picker {
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let face = crate::list::Typeface::for_window(window, cx);
+        let size = Size::of(window, cx);
         self.place_focus(window, cx);
         self.submission_focus(window, cx);
         self.read_control_focus(window);
@@ -214,7 +214,7 @@ impl Render for Picker {
             themed: cx
                 .try_global::<crate::palette::ParsedTheme>()
                 .is_some_and(|loaded| loaded.0),
-            sizes: (TEXT, STATUS_TEXT + 1.),
+            sizes: (size.body, size.body_small),
         });
         let rule = palette.foreground.opacity(RULE);
         // Only a portal identity follows the title, in caption size after a muted dot, the way PickerChrome.qml draws it.
@@ -223,7 +223,7 @@ impl Render for Picker {
                 .flex()
                 .items_baseline()
                 .min_w_0()
-                .text_size(px(STATUS_TEXT))
+                .text_size(px(size.caption))
                 .child(
                     div()
                         .flex_none()
@@ -241,8 +241,8 @@ impl Render for Picker {
             .flex_none()
             .flex()
             .items_center()
-            .h(px(TITLE_HEIGHT))
-            .px(px(SIDE))
+            .h(size.px(TITLE_HEIGHT))
+            .px(size.px(SIDE))
             .bg(surface)
             .border_b_1()
             .border_color(rule)
@@ -252,7 +252,7 @@ impl Render for Picker {
                     .items_baseline()
                     .min_w_0()
                     .whitespace_nowrap()
-                    .text_size(px(TEXT))
+                    .text_size(px(size.body))
                     .child(
                         div()
                             .min_w_0()
@@ -269,8 +269,8 @@ impl Render for Picker {
                     .flex_none()
                     .flex()
                     .items_center()
-                    .h(px(ANSWERS_HEIGHT))
-                    .px(px(SIDE))
+                    .h(size.px(ANSWERS_HEIGHT))
+                    .px(size.px(SIDE))
                     .bg(surface)
                     .border_t_1()
                     .border_color(rule)
@@ -284,12 +284,12 @@ impl Render for Picker {
             div()
                 .debug_selector(|| "picker-save-line".into())
                 .flex_none()
-                .px(px(SIDE))
-                .pt(px(GAP))
+                .px(size.px(SIDE))
+                .pt(size.px(GAP))
                 .bg(surface)
                 .border_t_1()
                 .border_color(rule)
-                .text_size(px(STATUS_TEXT))
+                .text_size(px(size.caption))
                 .text_color(palette.error_on_surface)
                 .child(line)
         });
@@ -300,9 +300,9 @@ impl Render for Picker {
             .flex_row()
             .items_center()
             .justify_end()
-            .gap(px(GAP))
-            .h(px(ANSWERS_HEIGHT))
-            .px(px(SIDE))
+            .gap(size.px(GAP))
+            .h(size.px(ANSWERS_HEIGHT))
+            .px(size.px(SIDE))
             .bg(surface)
             .when(save_line.is_none(), |band| {
                 band.border_t_1().border_color(rule)
@@ -314,7 +314,7 @@ impl Render for Picker {
                     self.labels.cancel.clone(),
                     false,
                     true,
-                    &palette,
+                    (&palette, size),
                     &self.drawn,
                     Slot::Cancel,
                 )
@@ -331,7 +331,7 @@ impl Render for Picker {
                     self.answer_label(),
                     self.answer_is_default(),
                     available,
-                    &palette,
+                    (&palette, size),
                     &self.drawn,
                     Slot::Answer,
                 )
