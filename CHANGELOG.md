@@ -1,3 +1,44 @@
+# Flea 0.4.0
+
+- Flea's window is drawn by a new GPU renderer built on GPUI, with every view, card, menu, preview and dialog of 0.3.12 carried over. Machines without a working Vulkan driver fall back to software Vulkan and then OpenGL, and when no renderer can open a window Flea says so and points to flea --tui.
+- Flea speaks every language Omarchy offers, 50 in all, including right-to-left scripts, and follows the system language. Missing strings fall back to Omarchy's English words.
+- On non-Latin keyboard layouts, digits and letter keys reach their bindings by their position on a US keyboard, while Latin layouts keep the printed key and typed text is unchanged.
+- Theme and Window Transparency changes reach an open window at once, glass panes included, and window and card corners follow Hyprland's rounding.
+- The whole window follows the Omarchy system font, and search and the filter follow a live font change.
+- Ctrl+G searches the contents of files in the open folder, and search tolerates typos without listing a near match beside a real hit.
+- Text in Markdown, Source and code previews can be selected and copied (#358, @avillagran; #332, @axelfontaine).
+- 3D models and toolpaths, such as STL, OBJ, PLY, 3MF, STEP and G-code, preview in the preview column and Quick Look.
+- A tab can be dragged out into its own window or onto another window, and files drag between panes and windows.
+- Dragging the window's top bar moves the window, and a user@host:/path location opens as a network share.
+- Properties on several items shows their combined size, kinds and counts (#316, @muellan).
+- The filter matches every name in a large folder, not only the rows on screen (#315, @muellan; #362, @hegjon).
+- Folder sizes and size sorting no longer walk into an rclone or network mount (#368, @group6digital).
+- Properties waits for a folder's full size and says unknown when none could be read (#172, @nerdislb).
+- Emptying a large Trash starts at once as a job that can be cancelled, and the window stays responsive (#321, @muellan).
+- Delete on a location without Trash offers permanent deletion instead of stopping (#325, @tko76).
+- The extract card shows progress while 7z unpacks (#264, @MISTERNEGATIVE21).
+- Navigation stays responsive after a rename (#265, @mubshrx).
+- Enter and Open open every selected file, each with its default app (#350, @OldJobobo; #288, @murilocb).
+- Opening a program on a noexec volume, or one without its run bit, says why instead of reporting a missing application (#330, @jesusalcaladev).
+- F and B page text, Markdown, PDF and office documents in Quick Look and the preview column alike (#320, @muellan).
+- The bulk rename card's buttons take a click, Edit in Terminal included (#305, @muellan).
+- Copy and cut marks line up in List, Columns and Grid (#242, @muellan), and the Kind column stays on the right while its divider is dragged (#348 and #349, @felixzsh).
+- A narrow List pane drops Kind, Modified and Size in turn with headers and rows aligned (#333, @razmikb).
+- Quick Look draws images sharply on HiDPI displays (#336, @gjouret).
+- A FUSE folder is read again when the window comes back to it (#324, @gjouret).
+- CSV and TSV previews keep their headers aligned after a byte-order mark (#355 and #356, @AksharP5).
+- A match late in a long name no longer paints over the next column (#326, @joebaus).
+- The text size keys work with Ctrl alone as well as with Ctrl+Shift, so Ctrl+Plus makes text larger (#302, @root1945).
+- An .otf font that the system types as an office file previews as a font (#314, @avillagran).
+- The file picker rail lists the same places as the main rail (#205, @akitaonrails), and app rows that cannot act draw their label in the theme's red.
+- An internal NTFS volume stays listed with Show unmounted drives off, and an idle HFS+ drive unmounts cleanly (#232, @MiguelDebruyne).
+- Previews release their images when you move on, so selection no longer grows memory, and a crashed window is no longer relaunched in a loop (#151, @marvreichmann).
+- Markdown tables size their columns to their contents.
+- Flea checks for and installs updates only through the Omarchy Package Repository.
+- The terminal interface previews office documents and 3D models, finds files by name and contents, and gains Print and Convert cards.
+
+Thanks to @avillagran, @axelfontaine, @muellan, @hegjon, @group6digital, @nerdislb, @tko76, @MISTERNEGATIVE21, @mubshrx, @OldJobobo, @murilocb, @jesusalcaladev, @felixzsh, @razmikb, @gjouret, @AksharP5, @joebaus, @root1945, @akitaonrails, @MiguelDebruyne and @marvreichmann.
+
 # Flea 0.3.10
 
 - Tags in Omarchy's colours, shared with Dolphin. T tags the selection, 1 to 7 pick a colour, the menus gain a Tags row and flyout, a TAGS section can show in the sidebar (off by default), and search finds files by tag, such as the red tag.
