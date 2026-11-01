@@ -198,6 +198,8 @@ ShellRoot {
             win.reviewRequest = staleId
             click(otherName)
             check("submitting disables row adoption", win.saveName, firstName)
+            win.adoptSaveName(rowIndex(otherName))
+            check("submitting guard refuses a direct adoption", win.saveName, firstName)
             win.saveName = "edited-after-review.txt"
             backend.pickerResult({id: staleId, ok: true, path: staleReview.path})
             check("stale reviewed target cannot answer", [win.answered, win.reviewRequest, win.saveReady], [false, 0, false])
