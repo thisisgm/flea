@@ -13,6 +13,7 @@ mod doc_keys;
 pub mod glyph;
 mod lifetime;
 pub mod look;
+mod media_strip;
 pub(crate) mod observations;
 pub(crate) mod observed_frames;
 pub(crate) mod photo;
@@ -95,6 +96,7 @@ struct SvgPicture {
     image: Option<Arc<RenderImage>>,
     refusal: Option<RasterRefusal>,
     quality: crate::preview_quality::Refinement,
+    interim: bool,
 }
 
 impl SvgPicture {
@@ -129,11 +131,15 @@ pub struct QuickLook {
     /// The window the card last drew in; a retired tile is freed there even after the host unmounts.
     window: Option<AnyWindowHandle>,
     retired: Vec<Arc<RenderImage>>,
+    /// Every tile freed from the atlas, so a test can tell a freed interim from a kept one.
+    #[cfg(test)]
+    pub(crate) retired_ids: Vec<gpui::ImageId>,
     retire_scheduled: bool,
     ground: Ground,
     pub(crate) revealed: bool,
     pub(crate) expanded: bool,
     pub(crate) strip_shown: bool,
+    strip_hide_task: Option<gpui::Task<()>>,
     pub(crate) focused: Option<Hit>,
     pub(crate) hovered: Option<Hit>,
     pub(crate) pressed: Option<Hit>,
@@ -168,11 +174,14 @@ impl QuickLook {
             raster_in_flight: false,
             window: None,
             retired: Vec::new(),
+            #[cfg(test)]
+            retired_ids: Vec::new(),
             retire_scheduled: false,
             ground: Ground::default(),
             revealed: false,
             expanded: false,
             strip_shown: false,
+            strip_hide_task: None,
             focused: None,
             hovered: None,
             pressed: None,
@@ -242,6 +251,11 @@ impl QuickLook {
         })
     }
 
+    #[doc(hidden)]
+    pub fn svg_refused(&self) -> bool {
+        self.svg.as_ref().is_some_and(|s| s.refusal.is_some())
+    }
+
     /// An injected rasterizer for #336's tests; unset, the app's SVG renderer runs.
     #[doc(hidden)]
     pub fn set_svg_raster(&mut self, raster: Rasterizer) {
@@ -279,6 +293,9 @@ impl QuickLook {
         self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
         self.trace = crate::preview_trace::Trace::begin("look", &subject.name);
         self.subject = Some(subject);
+        self.strip_hide_task = None;
+        self.strip_shown = false;
+        self.reveal_strip(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
         self.revealed = revealed;
@@ -342,12 +359,7 @@ impl QuickLook {
         match self.ground.handle(pointer, inside, self.revealed) {
             Effect::Swallow => {}
             Effect::Reveal => self.reveal(cx),
-            Effect::RevealStrip => {
-                if !self.strip_shown {
-                    self.strip_shown = true;
-                    cx.notify();
-                }
-            }
+            Effect::RevealStrip => self.reveal_strip(cx),
             Effect::Close => self.close(cx),
         }
     }

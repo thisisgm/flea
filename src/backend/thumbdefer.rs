@@ -55,12 +55,14 @@ fn submit_waiting(out: &mut impl Write, st: &mut State, pool: &Pool, mut room: u
         for dropped in pool.submit(job) {
             st.outstanding = st.outstanding.saturating_sub(1);
             super::trashthumb::answer(out, st, &dropped.path, dropped.mtime, dropped.trash_identity.as_deref(), "");
-            if let Some(at) = st.asked.iter().position(|(p, _)| dropped.trash_identity.is_none() && *p == dropped.path && st.thumb_mtimes.get(p) == Some(&dropped.mtime)) {
+            let legacy = if let Some(at) = st.asked.iter().position(|(p, _)| dropped.trash_identity.is_none() && *p == dropped.path && st.thumb_mtimes.get(p) == Some(&dropped.mtime)) {
                 st.thumb_mtimes.remove(&dropped.path);
                 let row = st.asked.remove(at).1;
                 writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
-                out.flush().ok();
-            }
+                true
+            } else { false };
+            let observed = super::thumbreq::identity::complete(out, st, &dropped.replies, "", 0.0);
+            if legacy || observed { out.flush().ok(); }
         }
         room -= 1;
     }
@@ -83,7 +85,7 @@ mod tests {
             st.asked.push((path.clone(), row));
             st.thumb_mtimes.insert(path.clone(), 0);
             st.outstanding += 1;
-            let job = Job { path, mtime: 0, trash_identity: None, mime: "image/jpeg".to_string(), trace: None };
+            let job = Job { replies: None, path, mtime: 0, trash_identity: None, mime: "image/jpeg".to_string(), trace: None };
             if row < MAX_QUEUE {
                 assert!(pool.submit(job).is_empty());
             } else {
@@ -102,3 +104,7 @@ mod tests {
         assert!(st.deferred.take_all().is_empty(), "both waiting jobs reached submit");
     }
 }
+
+#[cfg(test)]
+#[path = "thumbidentity_drop_tests.rs"]
+mod observation_tests;

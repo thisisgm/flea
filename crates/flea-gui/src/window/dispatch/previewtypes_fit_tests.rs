@@ -1,5 +1,5 @@
 //! A tall preview keeps its name and whole facts inside the column at every window height (P11).
-use super::previewtypes_tests::{answer, ask, field, file, local, meta, open_at, pump};
+use super::previewtypes_tests::{answer, ask, field, file, local, meta, open_at, pump, thumbed};
 use crate::window::u07_tests::read;
 use gpui::{px, size, Bounds, Pixels, TestAppContext, VisualTestContext};
 
@@ -102,7 +102,7 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let lines = local(&shell, cx, "/files");
     meta(&shell, cx, &lines, r#","w":640,"h":360,"ms":4000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     cx.simulate_resize(size(px(1500.), px(1013.)));
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");

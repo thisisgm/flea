@@ -237,11 +237,10 @@ fn punctuation_takes_the_printed_key_first_only_on_a_latin_group() {
 
 #[test]
 fn every_command_lookup_reads_the_us_position() {
-    // search_keys.rs and sr2/keys.rs classify typing, so they keep the printed key on purpose.
+    // Typing classifiers keep printed keys; Quick Look resolves through the keyboard's own route (EY-438).
     let sites = [
         ("rail_keys.rs", include_str!("rail_keys.rs")),
         ("network_menu.rs", include_str!("network_menu.rs")),
-        ("quick_look_keys.rs", include_str!("quick_look_keys.rs")),
         ("pl3/join_input.rs", include_str!("../g2/pl3/join_input.rs")),
     ];
     for (name, source) in sites {

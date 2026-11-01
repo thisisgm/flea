@@ -262,10 +262,10 @@ impl Shell {
                 };
                 let thumbnails = crate::ipc::thumbnails::Thumbnails {
                     host,
-                    mode: crate::grid::element::pictures::policy::Policy::read(
+                    policy: crate::grid::element::pictures::policy::Policy::read(
                         &self.launch.settings.data,
-                    )
-                    .mode,
+                    ),
+                    preview: preview.thumbnail_policy(host),
                 };
                 let preview_text = crate::ipc::preview_text::PreviewText {
                     shell: self,

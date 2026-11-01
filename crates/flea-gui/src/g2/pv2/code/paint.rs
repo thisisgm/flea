@@ -57,6 +57,13 @@ impl CodeView {
         }
         let text = window.text_system();
         let id = text.resolve_font(&self.typeface.font);
+        if self.slot == "look" {
+            // CodeLines measures its body font for row pitch, including while wrapped (EY-170).
+            let run = shape::glyphs(window, "0", &self.typeface.font, self.typeface.body);
+            self.metrics.row = f32::from(run.line().ascent + run.line().descent)
+                .ceil()
+                .max(1.);
+        }
         let advance = text
             .advance(id, self.typeface.body, '0')
             .map_or(self.typeface.body * 0.6, |a| a.width);
@@ -71,20 +78,21 @@ impl CodeView {
         window: &Window,
         cx: &mut Context<Self>,
     ) -> Rc<Frame> {
+        // Quick Look keeps its top pad under the last line too, as v0.3.12's CodeLines margins do (EY-428).
+        let inset = self.scroll_inset();
         let frame = (
             f32::from(bounds.size.width),
-            f32::from(bounds.size.height) - self.metrics.top,
+            (f32::from(bounds.size.height) - self.metrics.top - inset).max(0.),
         );
         let moved = frame != self.frame;
         self.frame = frame;
         self.center_match(cx);
         let advance = self.advance(window);
-        let inset = self.scroll_inset();
         self.fit_scroll(Bounds::new(
             bounds.origin + point(px(inset), px(self.metrics.top)),
             size(
                 (bounds.size.width - px(2. * inset)).max(px(0.)),
-                px((self.frame.1 - inset).max(0.)),
+                px(self.frame.1),
             ),
         ));
         if moved {
@@ -177,10 +185,7 @@ impl CodeView {
         }
         let row = px(self.metrics.row);
         let (gutter, text_left) = (px(self.gutter_right(advance)), px(self.text_left(advance)));
-        let clip = Bounds::new(
-            origin,
-            size(bounds.size.width, bounds.size.height - px(self.metrics.top)),
-        );
+        let clip = Bounds::new(origin, size(bounds.size.width, px(self.frame.1)));
         window.with_content_mask(Some(ContentMask { bounds: clip }), |window| {
             for (top, shaped) in &frame.rows {
                 let top = origin.y + px(*top);

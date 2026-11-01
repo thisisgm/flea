@@ -119,9 +119,9 @@ pub fn parse_request(line: &str) -> Request {
             sizes: field_usize(line, "sizes"),
         },
         Some("searchclose") => Request::SearchClose,
-        Some("thumb") => Request::Thumb {
-            rows: field_usize_array(line, "rows"),
-            cache_only: field_bool(line, "cacheOnly"),
+        Some("thumb") => match crate::backend::thumbreq::identity::Tag::parse(line) {
+            Ok(identity) => Request::Thumb { rows: field_usize_array(line, "rows"), cache_only: field_bool(line, "cacheOnly"), identity },
+            Err(_) => Request::Unknown,
         },
         Some("thumbcancel") => Request::ThumbCancel {
             rows: field_usize_array(line, "rows"),

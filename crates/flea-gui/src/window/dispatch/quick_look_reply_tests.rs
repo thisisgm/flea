@@ -1,6 +1,9 @@
 //! Each answer the open Quick Look card takes or leaves: the reveal cap, stale and foreign replies, pages, refusals and a lost backend.
 use super::{
-    preview_tests::{answer, close, code_reply, context, draw, opened, press, rows, sent, token},
+    preview_tests::{
+        answer, close, code_reply, context, drain, draw, opened, press, rows, sent, thumbed_reply,
+        token,
+    },
     test_shell::{land, set_cursor},
 };
 use crate::{backend::Event as BackendEvent, g2::pv1::Body, state::Shell, window::u07_tests::read};
@@ -77,11 +80,15 @@ fn an_unanswered_card_reveals_at_the_cap_and_a_follow_restarts_it(cx: &mut TestA
         "before the cap"
     );
     advance(cx, 10);
-    assert_eq!(
-        read(&shell, cx, "previewState", &[]),
-        "text",
-        "revealed at the cap"
-    );
+    let revealed = shell.read_with(cx, |shell, cx| {
+        shell
+            .quick_look
+            .as_ref()
+            .is_some_and(|host| host.view.read(cx).is_revealed())
+    });
+    assert!(revealed, "revealed at the cap");
+    // EY-447: PreviewText.status stays loading until the lines land, as v0.3.12 reports it.
+    assert_eq!(read(&shell, cx, "previewState", &[]), "loading");
     assert_eq!(sent(&mut requests, "code").len(), 1);
     press(cx, "escape");
     // Open, wait part of the cap, follow onto the picture: the first cap passing reveals nothing.
@@ -170,7 +177,7 @@ fn a_two_page_read_asks_from_the_next_line_and_joins_the_pages(cx: &mut TestAppC
     answer(&shell, cx, page(token(&asked[0]), first, count, 401));
     assert_eq!(
         read(&shell, cx, "previewState", &[]),
-        "text",
+        "ready",
         "the first page reveals the card"
     );
     let code = code(&shell, cx);
@@ -343,14 +350,15 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
         })
     });
     advance(cx, 400);
-    let asked = sent(&mut requests, "meta");
+    let asked = drain(&mut requests);
     let generation = asked
         .iter()
+        .filter(|ask| ask.get("c").and_then(Json::as_str) == Some("meta"))
         .find(|ask| ask.get("media").and_then(Json::as_bool) == Some(true))
         .map(token)
         .expect("the column asks for the clip's meta");
     answer(&shell, cx, meta_reply(generation));
-    answer(&shell, cx, r#"{"t":"thumbed","row":4,"file":""}"#.into());
+    answer(&shell, cx, thumbed_reply(&asked, 4, ""));
     for _ in 0..4 {
         advance(cx, 400);
     }

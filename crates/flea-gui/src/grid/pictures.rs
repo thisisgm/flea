@@ -68,9 +68,13 @@ enum Slot {
         file: String,
     },
     // Answered with nothing, or with a file that would not decode: the mark stays.
-    Refused,
+    Refused {
+        observed: Identity,
+    },
     // A cache-only ask the shared cache could not answer.
-    Missed,
+    Missed {
+        observed: Identity,
+    },
 }
 
 impl Slot {
@@ -80,7 +84,7 @@ impl Slot {
             | Self::Decoding { identity, .. }
             | Self::Failed { identity, .. } => Some(identity),
             Self::Ready { picture, .. } => Some(&picture.identity),
-            Self::Refused | Self::Missed => None,
+            Self::Refused { .. } | Self::Missed { .. } => None,
         }
     }
 }

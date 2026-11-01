@@ -1,5 +1,5 @@
 //! Physical pixels must arrive through the production column and Grid, replacing a deliberately tiny thumbnail.
-use super::previewtypes_tests::{answer, file, local, meta, open};
+use super::previewtypes_tests::{answer, file, local, meta, open, thumbed};
 use crate::{
     state::Shell,
     window::{startup::View, u07_tests::read},
@@ -93,13 +93,12 @@ fn preview_quality_column_replaces_upscaled_thumbnail_at_each_output_scale(
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":1200,"h":800"#);
-    answer(
+    thumbed(
         &shell,
         cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            root.0.join("thumb.png").display()
-        ),
+        &lines,
+        0,
+        &root.0.join("thumb.png").display().to_string(),
     );
     for scale in [1., 1.25, 1.5, 2.] {
         cx.simulate_scale_factor_change(scale);
@@ -140,13 +139,12 @@ fn preview_quality_column_request_settles_after_its_refinement(cx: &mut TestAppC
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":1200,"h":800"#);
-    answer(
+    thumbed(
         &shell,
         cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            root.0.join("thumb.png").display()
-        ),
+        &lines,
+        0,
+        &root.0.join("thumb.png").display().to_string(),
     );
     // Fractional windows give the column fractional boxes, where a picture's own refinement could resize its request.
     for (width, height) in [(1001.3, 703.7), (987.6, 655.1), (1013.9, 690.45)] {

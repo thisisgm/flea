@@ -54,7 +54,7 @@ fn cancel_after_an_older_completion_orphans_the_new_job(deferred: bool) {
     assert_eq!(st.thumb_mtimes.get(&path), Some(&old.mtime));
     trash_request(&mut out, &mut st, &tb, &pool, &cache, &control, 11);
     assert_eq!(st.trash_asked.len(), 2, "Trash and ordinary jobs use the same two paths");
-    report_done(&mut out, &mut st, &pool, Done { path: old.path, mtime: old.mtime, trash_identity: old.trash_identity,
+    report_done(&mut out, &mut st, &pool, Done { replies: None, path: old.path, mtime: old.mtime, trash_identity: old.trash_identity,
         result: Outcome::Failed, ms: 0.0, trace: None });
     assert!(st.asked.iter().all(|(p, _)| p != &path), "the predecessor consumed the new same-stamp mapping");
     assert!(!st.thumb_mtimes.contains_key(&path));
@@ -78,7 +78,7 @@ fn cancel_after_an_older_completion_orphans_the_new_job(deferred: bool) {
     for job in queued { assert!(pool.submit(job).is_empty()); }
     for job in waiting { st.deferred.enqueue(job); }
     out.clear();
-    report_done(&mut out, &mut st, &pool, Done { path: running.path, mtime: running.mtime, trash_identity: running.trash_identity,
+    report_done(&mut out, &mut st, &pool, Done { replies: None, path: running.path, mtime: running.mtime, trash_identity: running.trash_identity,
         result: Outcome::Failed, ms: 0.0, trace: None });
     assert_eq!(String::from_utf8(out).unwrap(), format!("{}\n", thumbed_line(1, "", 0.0)));
     assert_eq!(st.outstanding, 2);

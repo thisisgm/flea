@@ -24,6 +24,8 @@ impl StripElement {
             {
                 return;
             }
+            // Transport clicks handle their input without entering the preview's keyboard context.
+            window.prevent_default();
             let x = local(event.position.x);
             let part = part_at(&layout, x);
             cache.borrow_mut().pressed = part;

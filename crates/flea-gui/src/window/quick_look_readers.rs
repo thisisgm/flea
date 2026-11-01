@@ -18,6 +18,9 @@ use flea::{
 };
 use gpui::{App, Bounds, Pixels, Size};
 
+#[path = "quick_look_reader_geometry.rs"]
+mod geometry;
+
 pub(crate) struct Reader<'a> {
     pub host: Option<&'a Host>,
     pub view: Option<&'a QuickLook>,
@@ -85,7 +88,28 @@ impl Reader<'_> {
             Some(Body::Doc(_)) if self.failure.is_some() => {
                 self.failure.clone().unwrap_or_default()
             }
+            Some(Body::Doc(doc)) => self.doc_state(doc),
             _ => self.kind().into(),
+        }
+    }
+
+    /// Each Preview.qml pane's own status: the player's word for media, ready once a text kind's lines landed (EY-447).
+    fn doc_state(&self, doc: &Doc) -> String {
+        let ready = |landed: bool| if landed { "ready" } else { "loading" };
+        match &doc.view {
+            View::Media(media) => media.player.read(self.cx).status().word().into(),
+            View::Code(code) => ready(code.read(self.cx).lines.answer.settled()).into(),
+            View::Markdown(view) => ready(view.read(self.cx).doc.content_ready()).into(),
+            View::Html(_) | View::Table(_) => "ready".into(),
+            _ => doc.kind().into(),
+        }
+    }
+
+    /// IpcPreviewState previewText: the open card's text as shown, or None so the column answers.
+    fn text(&self) -> Option<String> {
+        match self.view()? {
+            View::Code(code) => Some(code.read(self.cx).lines.plain_lines().join("\n")),
+            _ => None,
         }
     }
 
@@ -261,7 +285,7 @@ impl Reader<'_> {
 }
 
 impl Adapter for Reader<'_> {
-    fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         Some(Reply::value(match function {
             "previewOpen" => self.open().is_some().to_string(),
             "previewKind" => self.kind().into(),
@@ -308,9 +332,15 @@ impl Adapter for Reader<'_> {
                 .and_then(|viewer| viewer.control)
                 .map_or(-1, |index| index as i64)
                 .to_string(),
+            "previewText" => self.text()?,
             "previewArchiveNames" => self.archive_names(),
             "previewSliderCentre" => self.strip_centre(|cache| cache.seek),
             "previewStrip" => self.strip()?,
+            "previewSurfaceRect" => self.surface_rect(false),
+            "previewPictureRect" => self.surface_rect(true),
+            "pdfState" if arguments.first().is_some_and(|overlay| overlay == "true") => {
+                self.pdf_state()
+            }
             "compareState" => self.compare(),
             _ => return None,
         }))

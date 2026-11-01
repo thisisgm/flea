@@ -21,7 +21,9 @@ fn strip_slot(
     };
     let ring = item.focused || (hit.is_some() && state.focused == hit);
     let index = item.index;
+    let hover = state.observations.clone();
     div()
+        .id(SharedString::from(format!("pv1-strip-observe-{index}")))
         .relative()
         .flex_none()
         .child(ring_slot(
@@ -41,6 +43,11 @@ fn strip_slot(
                 }
             },
         ))
+        .on_hover(move |over, _, _| {
+            if let Some(slot) = hover.borrow_mut().strip_hovered.get_mut(index) {
+                *slot = *over;
+            }
+        })
         .into_any_element()
 }
 

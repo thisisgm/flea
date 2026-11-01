@@ -340,3 +340,15 @@ fn pv3_ey42_audio_facts_name_the_kind_and_the_size() {
         "an empty kind falls back to the suffix and no size is left out"
     );
 }
+
+// EY-429, EY-436: MediaStrip fills with Theme.color.surface, the darker well, never the pane's own ground.
+#[test]
+fn pv3_the_strip_well_is_the_theme_surface() {
+    let theme = crate::palette::Theme::from_text("background='#1c120d'\ndark_background='#150d0a'");
+    let ink = MediaInk::inherited(&gpui::TextStyle::default(), theme);
+    assert_eq!(ink.surface, theme.surface, "the strip well");
+    assert_ne!(
+        ink.surface, ink.background,
+        "the well differs from the pane"
+    );
+}

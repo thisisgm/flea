@@ -121,7 +121,7 @@ fn advloop_f1_protocol_reuses_cancelled_id_and_shares_the_running_job() {
         &mut out,
         &mut st,
         &pool,
-        super::super::thumbs::Done {
+        super::super::thumbs::Done { replies: None,
             path: running.path,
             mtime: running.mtime,
             trash_identity: running.trash_identity,
@@ -178,7 +178,7 @@ fn advloop_f1_protocol_keeps_live_duplicates_and_requeues_a_different_cancelled_
         &mut out,
         &mut st,
         &pool,
-        super::super::thumbs::Done {
+        super::super::thumbs::Done { replies: None,
             path: old.path,
             mtime: old.mtime,
             trash_identity: old.trash_identity,
@@ -197,7 +197,7 @@ fn advloop_f1_protocol_keeps_live_duplicates_and_requeues_a_different_cancelled_
         &mut out,
         &mut st,
         &pool,
-        super::super::thumbs::Done {
+        super::super::thumbs::Done { replies: None,
             path: new.path,
             mtime: new.mtime,
             trash_identity: new.trash_identity,

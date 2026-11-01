@@ -1,5 +1,5 @@
 //! A local JPEG reaches sharp device pixels from one read of the file, in the column and in Quick Look.
-use super::previewtypes_tests::{answer, file, local, meta, open, pump};
+use super::previewtypes_tests::{file, local, meta, open, pump, thumbed};
 use crate::{state::Shell, window::u07_tests::read};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{
@@ -78,7 +78,7 @@ fn preview_quality_reuse_decode_count_rejects_numeric_prefixes() {
     assert_ne!(decode_count(r#"{"decodes":10}"#), Some(1.));
 }
 
-fn landed(cx: &mut TestAppContext) -> (Root, Entity<Shell>, &mut VisualTestContext) {
+fn landed(cx: &mut TestAppContext) -> (Root, Entity<Shell>, &mut VisualTestContext, Vec<String>) {
     cx.executor().allow_parking();
     let root = Root::new();
     let dir = root.0.to_string_lossy().into_owned();
@@ -92,12 +92,12 @@ fn landed(cx: &mut TestAppContext) -> (Root, Entity<Shell>, &mut VisualTestConte
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":1500,"h":1000"#);
-    (root, shell, cx)
+    (root, shell, cx, lines)
 }
 
 #[gpui::test]
 fn preview_quality_reuse_column_jpeg_draws_sharp_before_any_thumbnail(cx: &mut TestAppContext) {
-    let (root, shell, cx) = landed(cx);
+    let (root, shell, cx, lines) = landed(cx);
     // No thumbed reply yet: the frame lands on the refinement the meta reply started.
     let first = wait(&shell, cx, r#""refined":true"#);
     assert!(
@@ -105,13 +105,12 @@ fn preview_quality_reuse_column_jpeg_draws_sharp_before_any_thumbnail(cx: &mut T
             && decode_count(&first) == Some(1.),
         "{first}"
     );
-    answer(
+    thumbed(
         &shell,
         cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            root.0.join("thumb.png").display()
-        ),
+        &lines,
+        0,
+        &root.0.join("thumb.png").display().to_string(),
     );
     for _ in 0..5 {
         draw(cx);
@@ -141,13 +140,12 @@ fn preview_quality_reuse_column_thumbnail_drawn_first_keeps_its_geometry(cx: &mu
         1,
     );
     let lines = local(&shell, cx, &dir);
-    answer(
+    thumbed(
         &shell,
         cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            root.0.join("wide.png").display()
-        ),
+        &lines,
+        0,
+        &root.0.join("wide.png").display().to_string(),
     );
     draw(cx);
     meta(&shell, cx, &lines, r#","w":1500,"h":1000"#);

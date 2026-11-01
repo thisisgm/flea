@@ -21,9 +21,7 @@ impl Render for QuickLook {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.window = Some(window.window_handle());
         self.forget_painted_bounds();
-        for image in std::mem::take(&mut self.retired) {
-            let _ = window.drop_image(image);
-        }
+        self.drop_retired(window);
         if !self.visible() {
             return div().into_any_element();
         }
@@ -74,7 +72,13 @@ impl Render for QuickLook {
                 .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()))
         });
         // A mounted view lays out unseen while held back, so it can ask for its first screen before the reveal.
-        let laying = self.has_doc();
+        let laying = self.has_doc()
+            || self.subject.as_ref().is_some_and(|subject| {
+                matches!(
+                    subject.body,
+                    Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
+                )
+            });
         if self.revealed || laying || !active {
             let shown = motion.opacity;
             let surface = self.surface(card, &look, window, cx);
@@ -85,7 +89,7 @@ impl Render for QuickLook {
         }
         let ready = self.content_ready(cx);
         let landed = self.observations.borrow().landed;
-        if self.revealed && ready && !landed {
+        if self.revealed && self.content_landed(cx) && !landed {
             self.observe_reveal(false, cx);
         }
         let trace = self.trace.clone();
@@ -175,8 +179,14 @@ impl QuickLook {
             .h(card.size.height)
             .flex()
             .flex_col()
-            .overflow_hidden();
-        surface = if shown.framed() {
+            .overflow_hidden()
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| {
+                    observed.surface = Some(bounds);
+                },
+            ));
+        surface = if shown.framed(cx) {
             surface
                 .bg(look.surface)
                 .border_1()

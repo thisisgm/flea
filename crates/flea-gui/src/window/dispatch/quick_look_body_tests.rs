@@ -25,7 +25,7 @@ pub(super) struct Script {
     pub(super) feeds: RefCell<Vec<FeedSender>>,
 }
 
-struct Fake(Rc<Script>);
+pub(super) struct Fake(pub(super) Rc<Script>);
 struct Decoder(Rc<RefCell<Vec<Command>>>);
 
 impl Playback for Decoder {
@@ -264,7 +264,7 @@ fn a_blob_keeps_the_calm_refusal_as_the_negative_control(cx: &mut TestAppContext
 }
 
 #[gpui::test]
-fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContext) {
+fn w_wraps_the_open_text_and_tab_keys_stay_in_the_card(cx: &mut TestAppContext) {
     let (shell, cx, _requests, _) = mounted(cx);
     // A middle tab of three tells tabNext (to 2) from tabPrevious (to 0) and from a close.
     for (action, listing) in [("tabNew", 2), ("tabNew", 3), ("tabPrevious", 4)] {
@@ -294,19 +294,17 @@ fn w_wraps_the_open_text_and_a_tab_switch_closes_the_card(cx: &mut TestAppContex
         "true",
         "w never closes the card"
     );
-    cx.simulate_keystrokes("ctrl-pagedown");
-    draw(cx);
-    assert_eq!(
-        read(&shell, cx, "previewOpen", &[]),
-        "false",
-        "a tab switch closes the card"
-    );
-    assert_eq!(context(&shell, cx), Context::Listing);
-    assert_eq!(
-        strip(&shell, cx),
-        (3, 2),
-        "tabNext switches the real tab after closing the card"
-    );
+    // EY-438: v0.3.12 keeps every tab key inside Quick Look, so the card stays and no tab opens or moves.
+    for key in ["t", "ctrl-pagedown", "ctrl-t", "2"] {
+        cx.simulate_keystrokes(key);
+        draw(cx);
+        assert_eq!(
+            read(&shell, cx, "previewOpen", &[]),
+            "true",
+            "{key} keeps the card open"
+        );
+        assert_eq!(strip(&shell, cx), (3, 1), "{key} opens or moves no tab");
+    }
     close(&shell, cx);
 }
 
@@ -334,6 +332,8 @@ fn media_plays_and_p_m_and_the_arrows_reach_the_player(cx: &mut TestAppContext) 
         assert!(script.feeds.borrow()[0].event(event));
     }
     draw(cx);
+    // EY-447: previewState is the player's word, as PreviewMedia.status, never the kind.
+    assert_eq!(read(&shell, cx, "previewState", &[]), "playing");
     let muted = shell.read_with(cx, |_, cx| crate::g2::pv3::sound::MediaSound::get(cx).muted);
     for (key, command) in [
         ("p", Command::Pause),

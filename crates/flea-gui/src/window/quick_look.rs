@@ -20,6 +20,8 @@ use std::time::Duration;
 mod compare_open;
 #[path = "quick_look_docs.rs"]
 mod docs;
+#[path = "quick_look_interim.rs"]
+mod interim;
 #[path = "quick_look_keys.rs"]
 mod keys;
 #[path = "quick_look_mount.rs"]
@@ -191,7 +193,6 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let state = kinds::quick_look_kind(&row.icon, &row.name, false);
-        let token = token();
         let subject = |state, body| Subject {
             name: row.name.clone(),
             icon: row.icon.clone(),
@@ -205,6 +206,11 @@ impl Shell {
                 return;
             }
         }
+        if state == State::Image {
+            self.show_picture(side, index, row, path, window, cx);
+            return;
+        }
+        let token = token();
         let (subject, revealed, line, ask) = match state {
             State::Text => {
                 let state = if kinds::is_code(&row.name) {
@@ -218,25 +224,6 @@ impl Shell {
                 };
                 let line = code_line(token, &path, 1);
                 (subject(state, body), false, Some(line), Ask::Code { path })
-            }
-            State::Image => {
-                let body = Body::Image {
-                    path: path.clone().into(),
-                    w: 0.,
-                    h: 0.,
-                };
-                let line = format!(
-                    r#"{{"c":"meta","row":{index},"token":{token},"text":false,"media":false,"archive":false}}"#
-                );
-                (
-                    subject(state, body),
-                    false,
-                    Some(line),
-                    Ask::Meta {
-                        path,
-                        link: row.link.clone(),
-                    },
-                )
             }
             _ => {
                 let body = self.quick_look_unsupported(row, &path, token, window, cx);
@@ -271,17 +258,15 @@ impl Shell {
         host.view
             .update(cx, |view, cx| view.open(subject, revealed, cx));
         // PreviewSwap's cap: a card still waiting on its answer shows what it has, never a ground with nothing on it.
-        let (token, view) = (host.token, host.view.clone());
+        let view = host.view.clone();
+        let generation = view.read(cx).observations.borrow().shown_seq;
         host.cap = (!revealed).then(|| {
             cx.spawn(async move |this, cx| {
                 cx.background_executor()
                     .timer(Duration::from_millis(crate::pane::swap::CAP_MS))
                     .await;
-                let _ = this.update(cx, |shell, cx| {
-                    let current = shell
-                        .quick_look
-                        .as_ref()
-                        .is_some_and(|host| host.token == token);
+                let _ = this.update(cx, |_, cx| {
+                    let current = view.read(cx).observations.borrow().shown_seq == generation;
                     if current && view.read(cx).is_open() && !view.read(cx).is_revealed() {
                         view.update(cx, |view, cx| view.reveal_cap(cx));
                     }
@@ -360,7 +345,7 @@ impl Shell {
 
     fn quick_look_event(&mut self, event: Event, window: &mut Window, cx: &mut Context<Self>) {
         match event {
-            Event::Closed => self.quick_look_closed(window, cx),
+            Event::Closed if !self.quick_look_open(cx) => self.quick_look_closed(window, cx),
             // CompareView copyPatch: the whole patch, headers included, goes to the clipboard.
             Event::CopyPatch => {
                 if let Some(host) = self.quick_look.as_ref().filter(|h| !h.patch.is_empty()) {
@@ -368,8 +353,8 @@ impl Shell {
                 }
             }
             Event::OpenWith => self.quick_look_open_with(cx),
-            // The cursor keys reach the card through quick_look_action, which follows there.
-            Event::Follow(_) => {}
+            // Follow runs at dispatch; a queued close cannot retire a reopened subject.
+            Event::Follow(_) | Event::Closed => {}
         }
     }
 

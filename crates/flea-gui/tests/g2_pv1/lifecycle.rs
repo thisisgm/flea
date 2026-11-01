@@ -3,10 +3,11 @@ use super::*;
 
 #[gpui::test]
 fn the_hold_shield_reveals_on_a_press_and_its_release_closes_nothing(cx: &mut TestAppContext) {
-    let (cx, seen, look, events) = host(cx, image(), Arm::Fix);
+    // A picture reveals once its raster lands, so the held card is one still waiting on its reply.
+    let (cx, seen, look, events) = host(cx, json(), Arm::Fix);
     look.update(cx, |look, cx| {
         look.close(cx);
-        look.open(image(), false, cx);
+        look.open(json(), false, cx);
     });
     cx.run_until_parked();
     events.borrow_mut().clear();

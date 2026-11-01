@@ -81,8 +81,10 @@ for line in sys.stdin:
     elif command == 'code':
         send(dict(t='code', token=request['token'], slot=request['slot'], state='plain', lines=[[0, 'first actual line'], [0, 'second actual line']], total=2))
     elif command == 'thumb':
+        # The backend echoes a tagged request's identity, as src/backend/thumbidentity.rs does.
+        identity = {key: request[key] for key in ('thumbToken', 'thumbPath', 'thumbListing') if key in request}
         for row in request['rows']:
-            send(dict(t='thumbed', row=row, file=str(root / 'poster.png')))
+            send(dict(t='thumbed', row=row, file=str(root / 'poster.png'), **identity))
     elif command == 'model3d' and not request.get('cancel'):
         send(dict(t='model3d', slot=request['slot'], token=request['token'], state='ready', file=str(root / 'cached.fl3d'), thumbnail='', data=dict(format='stl', facts=dict(triangles=1, dimensions_mm=[20,20,10]), metadata={}, plates=[])))
     elif command == 'quit':

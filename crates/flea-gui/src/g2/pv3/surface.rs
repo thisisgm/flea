@@ -116,12 +116,31 @@ pub struct QuickLook<'a> {
     pub touched: Option<Touched>,
 }
 
+/// Quick Look alone leaves ended clips empty at full duration, as ql-video.png and v0.3.12 draw them (EY-52).
+pub fn look_view(
+    player: &MediaPlayer,
+    known: &Facts,
+    catalog: &I18n,
+    cx: &App,
+) -> (Picture, StripView) {
+    let mut shown = picture(player, known, catalog);
+    let mut view = player.strip_view(false, cx);
+    if player.state.has_video && player.state.media == Media::Ended {
+        if let Picture::Video { frame, .. } = &mut shown {
+            *frame = None;
+        }
+        if player.duration > 0 {
+            view.position = player.duration;
+        }
+    }
+    (shown, view)
+}
+
 impl QuickLook<'_> {
     pub fn build(self, cx: &mut App) -> impl IntoElement {
         let state = self.player.read(cx);
-        let picture = picture(state, self.known, self.catalog);
+        let (picture, view) = look_view(state, self.known, self.catalog, cx);
         let audio = matches!(picture, Picture::Audio { .. });
-        let view = state.strip_view(false, cx);
         let shown = state.subject.is_some() && (audio || self.strip_shown);
         if !shown {
             let mut strip = self.caches.strip.borrow_mut();
