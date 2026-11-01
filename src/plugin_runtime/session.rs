@@ -1,7 +1,6 @@
 use super::{process::Process, protocol};
 use crate::jsondoc::Json;
 use crate::ui_logic_st2::manifest::{self, Manifest};
-use std::collections::VecDeque;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::{
@@ -193,15 +192,12 @@ fn work(
     stop: Arc<AtomicBool>,
     failure: Arc<Mutex<Option<String>>>,
 ) {
+    // No restart budget: the owner marks a plugin failed on its first failure, so only a new request starts it again.
     let mut process: Option<Process> = None;
-    let mut failures = VecDeque::new();
     let mut last_use = Instant::now();
     while !stop.load(Ordering::Acquire) {
         if process.as_mut().is_some_and(Process::exited) {
             process = None;
-            if failures.len() < 3 {
-                failures.push_back(Instant::now());
-            }
             *failure.lock().unwrap_or_else(|p| p.into_inner()) = Some("plugin exited".into());
         }
         if process.is_some() && last_use.elapsed() >= config.idle_timeout {
@@ -237,40 +233,25 @@ fn work(
                 continue;
             }
         };
-        let result = {
-            while failures
-                .front()
-                .is_some_and(|at| at.elapsed() > Duration::from_secs(60))
-            {
-                failures.pop_front();
-            }
-            if process.is_none() && failures.len() >= 3 {
-                Err("plugin restart budget exhausted".into())
-            } else {
-                let started = if process.is_none() {
-                    Process::start(&config, &stop).map(|p| {
-                        process = Some(p);
-                    })
-                } else {
-                    Ok(())
-                };
-                started.and_then(|_| {
-                    exchange(
-                        process.as_mut().unwrap(),
-                        call.message.as_ref(),
-                        expected,
-                        &config,
-                        &stop,
-                        &call.answer,
-                    )
-                })
-            }
+        let started = if process.is_none() {
+            Process::start(&config, &stop).map(|p| {
+                process = Some(p);
+            })
+        } else {
+            Ok(())
         };
+        let result = started.and_then(|_| {
+            exchange(
+                process.as_mut().unwrap(),
+                call.message.as_ref(),
+                expected,
+                &config,
+                &stop,
+                &call.answer,
+            )
+        });
         if let Err(error) = &result {
             process = None;
-            if failures.len() < 3 {
-                failures.push_back(Instant::now());
-            }
             *failure.lock().unwrap_or_else(|p| p.into_inner()) = Some(error.clone());
         } else {
             *failure.lock().unwrap_or_else(|p| p.into_inner()) = None;
