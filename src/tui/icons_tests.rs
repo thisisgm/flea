@@ -45,3 +45,10 @@ fn t3_builtin_marks_survive_missing_font_but_forced_test_fallback_is_explicit() 
 }
 #[path = "icons_signal_tests.rs"]
 mod signal_tests;
+// tui-3d-column: G-code, which the preview draws as a 3D toolpath, takes the 3D mark beside the model files.
+#[test]
+fn gcode_takes_the_3d_mark_as_the_board_draws_it() {
+    for name in ["benchy.gcode", "benchy.bgcode", "bracket.stl", "shelf-kit.3mf"] {
+        assert_eq!(row(&entry(name, false, 0), true), "\u{eb29}", "{name}");
+    }
+}

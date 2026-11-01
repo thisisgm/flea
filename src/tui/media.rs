@@ -328,8 +328,35 @@ impl Player {
 }
 impl Drop for Player {
     fn drop(&mut self) {
-        let _ = self.command(vec![word("quit")]);
+        if let Some(delete) = self.quit() {
+            answer(delete);
+        }
     }
+}
+// mpv's kitty frames carry no id, so only a delete of every placement reaches them; lowercase keeps the TUI's stored pictures.
+const MPV_FRAMES_DELETE: &[u8] = b"\x1b_Ga=d,d=a,q=2\x1b\\";
+impl Player {
+    // What a dropped player must still send: the delete for frames a running mpv drew through the kitty protocol.
+    pub(super) fn leftover_delete(&self) -> Option<&'static [u8]> {
+        (self.protocol == Protocol::Kitty && !self.at_rest() && !self.handing_off()).then_some(MPV_FRAMES_DELETE)
+    }
+    // The kill beats mpv's own delete-all on quit, so the delete for its last frame is answered only once mpv is gone.
+    fn quit(&mut self) -> Option<&'static [u8]> {
+        let _ = self.command(vec![word("quit")]);
+        let leftover = self.leftover_delete();
+        drop(self.process.take());
+        leftover
+    }
+}
+#[cfg(not(test))]
+fn answer(delete: &[u8]) {
+    let mut out = std::io::stdout().lock();
+    let _ = super::tmux::write_graphics(&mut out, delete).and_then(|()| out.flush());
+}
+// Under test the delete is kept before the tmux transport, so the terminal running cargo changes nothing.
+#[cfg(test)]
+fn answer(delete: &[u8]) {
+    tests::answered(delete);
 }
 // Only the file that was playing picks up its place; any other file starts at the top.
 pub fn resume_for(playback: Option<&(PathBuf, f64, bool)>, path: &Path) -> Option<(f64, bool)> {

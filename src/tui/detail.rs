@@ -57,6 +57,8 @@ pub fn value(model: &Model, index: usize, row: &Row) -> String {
     match model.detail.mode {
         Column::Off => String::new(),
         Column::Birth => row.birth.and_then(|time| model.i18n.locale().format_date(time)).unwrap_or_else(|| model.i18n.tr("pane.unavailable")),
+        // A link names its target instead of a size, as v0.3.12 and the TUI boards draw it.
+        Column::Size if !row.link.is_empty() => String::new(),
         Column::Size => model.row_size(index, row),
         Column::Modified => model.i18n.locale().format_date(row.modified).filter(|_| row.modified > 0).unwrap_or_default(),
         Column::Mode => model.i18n.locale().localize_number(&format!("{:04o}", row.mode & 0o7777)),

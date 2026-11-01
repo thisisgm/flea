@@ -201,8 +201,11 @@ fn detail_receipt_expires_at_four_seconds_without_changing_mode_or_error() {
     model.expire_message(time + Duration::from_secs(4));
     assert!(model.message.is_empty()); assert_eq!(model.error, "Denied");
     assert_eq!(model.detail.mode, Column::Modified);
-    model.hints.undo = "z".into(); model.say(crate::tui::prompts::undoable(&model, "Renamed".into())); model.expire_message(time + Duration::from_secs(60));
+    model.hints.undo = "z".into(); model.say(crate::tui::prompts::undoable(&model, "Renamed".into()));
+    model.expire_message(model.message_at + Duration::from_secs(7));
     assert_eq!(model.message, "Renamed · z undoes");
+    model.expire_message(model.message_at + Duration::from_secs(8));
+    assert!(model.message.is_empty(), "an undo receipt clears on its own after the error time");
 }
 
 #[test]
@@ -271,4 +274,19 @@ fn owner_metadata_cannot_emit_terminal_commands() {
     let frame = render::frame(&model, &Theme::from_text(""), &Map::load(), 130, 31, Duration::ZERO);
     assert!(!frame.contains("\x1b]52") && !frame.contains('\x07') && !frame.contains('\u{202e}'));
     assert!(frame.contains("gm]52;c;payload"));
+}
+
+#[test]
+fn a_link_rests_without_a_size_as_the_board_and_v0312_draw_it() {
+    let mut model = frame_tests::model();
+    let row = model.rows.get_mut(&8).unwrap();
+    row.link = "photo.png".into(); row.size = 9; row.mode = 0o120777;
+    let name = row.name.clone();
+    assert!(value(&model, 8, &model.rows[&8]).is_empty());
+    let output = render::frame(&model, &Theme::from_text(""), &Map::load(), 130, 31, Duration::ZERO);
+    let line = frame_tests::grid(&output, 130, 31).into_iter().find(|line| line.contains(&name)).unwrap();
+    assert!(line.contains("→ photo.png") && !line.contains("9 B"), "{line}");
+    model.detail.mode = Column::Modified;
+    model.rows.get_mut(&8).unwrap().modified = 1790158470;
+    assert_eq!(value(&model, 8, &model.rows[&8]), super::super::calendar::modified(1790158470));
 }

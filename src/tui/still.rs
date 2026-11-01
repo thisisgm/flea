@@ -246,7 +246,7 @@ pub struct ModelStill {
     pub image: Spooled,
     scene: std::sync::Arc<flea::ui_logic_pv4::scene::Scene>,
     raster: flea::ui_logic_pv4::raster::Raster,
-    rgba: Vec<u8>,
+    pub rgba: Vec<u8>,
 }
 
 pub fn render_model(held: std::sync::Arc<super::model3d::Held>, file: PathBuf, key: super::model3d::Key, old: Option<ModelStill>, directory: Option<PathBuf>, cancel: &AtomicBool) -> Result<ModelStill, String> {
@@ -278,6 +278,26 @@ pub fn render_model(held: std::sync::Arc<super::model3d::Held>, file: PathBuf, k
     for pixel in rgba.chunks_exact(4) { ppm.extend_from_slice(&pixel[..3]); }
     let (_, image) = spool(&ppm, directory).map_err(|e| e.to_string())?;
     Ok(ModelStill { key, image, scene, raster, rgba })
+}
+
+// The QOI specification's framing: magic, then width and height, three channels in sRGB, one RGB op per pixel, the end marker.
+const QOI_MAGIC: &[u8; 4] = b"qoif";
+const QOI_CHANNELS_SRGB: [u8; 2] = [3, 0];
+const QOI_OP_RGB: u8 = 0xfe;
+const QOI_END: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
+const QOI_HEADER_BYTES: usize = 14;
+// RGBA pixels as an uncompressed QOI, every pixel one QOI_OP_RGB, a format chafa decodes where it refuses PPM.
+pub(super) fn qoi(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(QOI_HEADER_BYTES + width * height * 4 + QOI_END.len());
+    out.extend_from_slice(QOI_MAGIC);
+    out.extend_from_slice(&(width as u32).to_be_bytes());
+    out.extend_from_slice(&(height as u32).to_be_bytes());
+    out.extend_from_slice(&QOI_CHANNELS_SRGB);
+    for pixel in rgba.chunks_exact(4).take(width * height) {
+        out.extend_from_slice(&[QOI_OP_RGB, pixel[0], pixel[1], pixel[2]]);
+    }
+    out.extend_from_slice(&QOI_END);
+    out
 }
 
 // One picture row in cells: only chafa's validated symbols and colours, padded with the ground to width.

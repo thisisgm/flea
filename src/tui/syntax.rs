@@ -80,7 +80,9 @@ pub fn receive(m: &mut Model, value: &Json) {
         let parts = reply.as_array().unwrap_or(&[]);
         for pair in parts.chunks(2) {
             let (Some(Json::Num(role)), Some(Json::Str(run))) = (pair.first(), pair.get(1)) else { break };
-            runs.push((role.parse::<u8>().unwrap_or(0).min(SYNTAX_INKS as u8), run.len()));
+            let role = role.parse::<u8>().unwrap_or(0).min(SYNTAX_INKS as u8);
+            let role = if role == KEYWORD_ROLE && operator(run) { 0 } else { role };
+            runs.push((role, run.len()));
             spelled.push_str(run);
         }
         code.lines.push(if spelled == line { runs } else { Vec::new() });
@@ -114,6 +116,13 @@ pub fn paint(m: &Model, index: usize, row: &str, width: usize, theme: &Theme) ->
     out.push_str(&theme.foreground);
     out.push_str(&" ".repeat(width - used));
     out
+}
+
+// bat's ansi theme inks keywords and operators alike in magenta; a diff's `+` and a comment's `*` take other roles.
+const KEYWORD_ROLE: u8 = 5;
+// An operator alone keeps the foreground, as the tui-list-code board draws `=` (CTL2 ruling Q2, 2026-10-30).
+fn operator(run: &str) -> bool {
+    run.chars().any(|c| !c.is_whitespace()) && run.chars().all(|c| c.is_whitespace() || "=+-*%<>!&|^~?:".contains(c))
 }
 
 fn role_at(runs: &[(u8, usize)], at: usize) -> u8 {

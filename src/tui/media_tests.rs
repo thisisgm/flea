@@ -99,3 +99,46 @@ fn tui_preview_media_failures_retain_semantic_words() {
     assert!(matches!(stopped.failure,Some(Text::Key("tui.preview.media_stopped"))));
     assert!(!stopped.error.is_empty());
 }
+
+// What dropped players answered under test, one buffer per test thread.
+thread_local! { static WRITTEN: std::cell::RefCell<Vec<u8>> = const { std::cell::RefCell::new(Vec::new()) }; }
+// The mpv a test watches, and whether it was still running when the delete was answered.
+thread_local! { static WATCHED: std::cell::Cell<Option<(u32, bool)>> = const { std::cell::Cell::new(None) }; }
+pub fn answered(delete: &[u8]) {
+    WRITTEN.with(|written| written.borrow_mut().extend_from_slice(delete));
+    WATCHED.with(|watched| if let Some((mpv, _)) = watched.get() { watched.set(Some((mpv, Path::new(&format!("/proc/{mpv}")).exists()))) });
+}
+pub fn written() -> Vec<u8> {
+    WRITTEN.with(|written| std::mem::take(&mut *written.borrow_mut()))
+}
+
+// D7: a running mpv's kitty frames have no id and its own quit delete loses the race with the kill, so the dropped player deletes them.
+#[test]
+fn a_dropped_running_player_deletes_the_frames_mpv_left_in_a_kitty_terminal() {
+    let delete = &b"\x1b_Ga=d,d=a,q=2\x1b\\"[..];
+    drop(resting());
+    assert!(written().is_empty(), "a resting player drew nothing");
+    let mut player = resting();
+    player.force_starting_for_test();
+    assert_eq!(player.quit(), Some(delete));
+    assert!(player.at_rest(), "the delete was answered before mpv was killed");
+    drop(player);
+    assert!(written().is_empty(), "a player already quit deleted again");
+    let mut player = resting();
+    player.force_starting_for_test();
+    let mpv = player.process.as_ref().unwrap().id();
+    assert!(Path::new(&format!("/proc/{mpv}")).exists(), "the stand-in mpv was gone before the drop");
+    WATCHED.with(|watched| watched.set(Some((mpv, true))));
+    drop(player);
+    assert_eq!(written(), delete, "the dropped player wrote no delete");
+    assert_eq!(WATCHED.with(|watched| watched.take()), Some((mpv, false)), "the delete went out while mpv could still draw a frame");
+    let mut handing = resting();
+    handing.force_starting_for_test();
+    handing.process.as_ref().unwrap().poster.store(true, std::sync::atomic::Ordering::Relaxed);
+    drop(handing);
+    assert!(written().is_empty(), "mpv still behind the poster drew no frame of its own");
+    let mut sixel = Player::resting(Path::new("/nonexistent/clip.mp4"), Protocol::Sixel, true, (40, 30, 81, 3), (160, 50), (800, 600));
+    sixel.force_starting_for_test();
+    drop(sixel);
+    assert!(written().is_empty(), "sixel frames are cells the next draw overwrites");
+}

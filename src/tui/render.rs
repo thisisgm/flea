@@ -83,7 +83,9 @@ pub(super) fn frame_at(m: &Model, theme: &Theme, map: &Map, columns: usize, line
         }
     }
     if let Some((top, height)) = layout::thumb(m, body, std::time::Instant::now()) {
-        for y in top..top + height { out.push_str(&format!("\x1b[{};{}H{}▐{}", BODY_ROW + y, layout::visual_start(m, left + middle, 1) + 1, theme.muted, base)); }
+        // The heavy thumb rides the listing's separator in the frame ink, as the tui-long board draws it; with no preview, the last cell.
+        let column = left + middle + if m.preview_visible { 2 } else { 1 };
+        for y in top..top + height { out.push_str(&format!("\x1b[{};{}H{}┃{}", BODY_ROW + y, layout::visual_start(m, column - 1, 1) + 1, theme.frame, base)); }
     }
     out.push_str(&format!("\x1b[{};1H{}\x1b[{};1H{} ", lines - 1, layout::rule_for(m, columns, true, theme), lines, base));
     let (status, caret) = super::prompts::status(m, theme, columns.saturating_sub(2), elapsed);

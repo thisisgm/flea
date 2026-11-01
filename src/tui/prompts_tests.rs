@@ -2,6 +2,8 @@
 use super::*;
 #[path = "prompts_find_tests.rs"]
 mod find_tests;
+#[path = "prompts_collision_tests.rs"]
+mod collision_tests;
 use crate::backend::testdir::TestDir;
 use crate::jsondoc::parse;
 use crate::tui::{actions, keymap::{Hints, Map}, render::{self, frame_tests}, wire::{echo_wire, finish}};
@@ -185,8 +187,8 @@ fn trash_keeps_the_scroll_and_its_undo_lands_on_the_restored_file() {
     let footer = inks(&crate::tui::layout::footer(&m, &theme, 128, Duration::ZERO));
     assert_eq!(span(&footer, 10, "Moved 1 item to Trash").0, theme.foreground);
     assert_eq!(span(&footer, 32, "· z undoes").0, theme.muted);
-    m.expire_message(m.message_at + Duration::from_secs(60));
-    assert_eq!(m.message, "Moved 1 item to Trash · z undoes", "a receipt that names its undo stays");
+    m.expire_message(m.message_at + Duration::from_secs(7));
+    assert_eq!(m.message, "Moved 1 item to Trash · z undoes", "a receipt that names its undo stays for the error time");
     // The watcher's change relists the folder; the scroll and the cursor's index stay, and the gone file's locate clears.
     event(&mut m, &mut w, r#"{"t":"changed","path":"/listing"}"#);
     assert_eq!(requests(&drain(&mut w), "list").len(), 1);
@@ -312,7 +314,7 @@ fn paste_without_collisions_refuses_late_names_and_a_second_paste_waits() {
     assert_eq!((text(transfer, "collide"), text(transfer, "fat"), count(transfer, "collideId")), ("refuse", "rename", id));
     finish(w, reader);
 }
-// The undo key's receipt stays; any other message goes after four seconds.
+// The undo key's receipt stays for the error time and then clears; any other message goes after four seconds.
 #[test]
 fn only_a_receipt_that_names_its_undo_outlasts_the_message_time() {
     let mut m = frame_tests::model();
@@ -320,8 +322,10 @@ fn only_a_receipt_that_names_its_undo_outlasts_the_message_time() {
     m.expire_message(m.message_at + Duration::from_secs(4));
     assert!(m.message.is_empty());
     m.say(undoable(&m, "Renamed".into()));
-    m.expire_message(m.message_at + Duration::from_secs(60));
+    m.expire_message(m.message_at + Duration::from_secs(7));
     assert_eq!(m.message, "Renamed · z undoes");
+    m.expire_message(m.message_at + Duration::from_secs(8));
+    assert!(m.message.is_empty(), "the receipt clears on its own");
     m.hints.undo.clear();
     m.say(undoable(&m, "Renamed".into()));
     m.expire_message(m.message_at + Duration::from_secs(4));

@@ -60,6 +60,10 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
             if !player.at_rest() {
                 model.playback = Some((player.path.clone(), player.position, player.paused));
             }
+            // Dropping it deletes every placement, so the next draw places the TUI's own picture again.
+            if player.leftover_delete().is_some() {
+                frame.clear();
+            }
         }
     }
     if !visible || !preview_allowed || !graphics_ready || !paged || model.pdf.as_ref().is_some_and(|p| Some(&p.source) != content.as_ref()) {
@@ -87,7 +91,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
                         model.player = Some(player);
                     }
                     Err(e) => {
-                        words::fail(model, Text::Args("tui.preview.media_error", vec![words::from_io(&e)]));
+                        model.fail_preview_text(Text::Args("tui.preview.media_error", vec![words::from_io(&e)]));
                         model.preview_failed = Some(path.clone());
                     }
                 }
@@ -153,7 +157,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         player.poster_up = player.at_rest() && graphics.shows(&player.path);
     }
     if visible && graphics.protocol != Protocol::None && pixels.is_none() && (is_media || paged || model.image_file.is_some()) && model.preview_failed != current {
-        words::fail(model, Text::Key("tui.preview.no_pixels"));
+        model.fail_preview_text(Text::Key("tui.preview.no_pixels"));
         model.preview_failed = current.clone();
     }
     if graphics.accept() {
@@ -162,7 +166,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
     if !graphics.error.is_empty() {
         let raw = std::mem::take(&mut graphics.error);
         let error = graphics.failure.take().unwrap_or(Text::Data(raw));
-        words::fail(model, Text::Args("preview.imageError", vec![error]));
+        model.fail_preview_text(Text::Args("preview.imageError", vec![error]));
     }
     if let Some(player) = &mut model.player {
         player.poll();
@@ -173,7 +177,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
     if model.player.as_ref().is_some_and(|p| !p.error.is_empty()) {
         let mut player = model.player.take().unwrap();
         let error = player.failure.take().unwrap_or(Text::Data(player.error.clone()));
-        words::fail(model, error);
+        model.fail_preview_text(error);
     }
     let mut polled = false;
     let mut page_failure = None;
@@ -192,7 +196,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
             page_failure = Some(pdf.failure.take().unwrap_or(Text::Data(error)));
         }
     }
-    if let Some(error) = page_failure { words::fail(model, error); }
+    if let Some(error) = page_failure { model.fail_page_text(error); }
     if polled {
         super::office::facts(model);
     }
@@ -231,7 +235,7 @@ fn still(model: &mut Model, protocol: Protocol, shown: bool, room: (usize, usize
         let failure = model.preview_state.still.failure.take();
         let error = if error == super::still::UNSHOWN { Text::Key(super::still::UNSHOWN) }
             else { failure.unwrap_or(Text::Data(error)) };
-        words::fail(model, Text::Args("preview.imageError", vec![error]));
+        model.fail_preview_text(Text::Args("preview.imageError", vec![error]));
     }
 }
 

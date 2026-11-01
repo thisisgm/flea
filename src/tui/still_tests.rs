@@ -269,3 +269,14 @@ fn tui_model3d_chafa_quit_waits_for_reap() {
     drop(still);
     assert!(shells(&script).is_empty(), "chafa remained after the preview owner quit");
 }
+
+// D10: two RGBA pixels as the QOI bytes chafa reads, byte for byte against the QOI specification.
+#[test]
+fn qoi_frames_each_pixel_as_one_rgb_op_between_the_header_and_end_marker() {
+    let bytes = qoi(&[1, 2, 3, 255, 4, 5, 6, 128], 2, 1);
+    let mut expected = b"qoif".to_vec();
+    expected.extend_from_slice(&[0, 0, 0, 2, 0, 0, 0, 1, 3, 0]);
+    expected.extend_from_slice(&[0xfe, 1, 2, 3, 0xfe, 4, 5, 6]);
+    expected.extend_from_slice(&[0, 0, 0, 0, 0, 0, 0, 1]);
+    assert_eq!(bytes, expected);
+}

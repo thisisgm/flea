@@ -113,6 +113,9 @@ pub struct Model {
     pub tab: usize,
     pub error: String,
     pub errors: VecDeque<String>,
+    pub error_at: std::time::Instant,
+    // The errors the shown preview posted, each marked when its page posted it, taken back when the preview moves on.
+    pub preview_errors: Vec<(String, bool)>,
     pub message: String,
     pub message_at: std::time::Instant,
     pub find: super::contents::State,
@@ -296,6 +299,8 @@ impl Model {
             tab: 0,
             error: String::new(),
             errors: VecDeque::new(),
+            error_at: std::time::Instant::now(),
+            preview_errors: Vec::new(),
             message: String::new(),
             message_at: std::time::Instant::now(),
             find: Default::default(),
@@ -665,26 +670,12 @@ impl Model {
         self.message_at = std::time::Instant::now();
     }
     pub fn expire_message(&mut self, now: std::time::Instant) {
+        let time = if super::prompts::lasting(self) { super::footer_errors::ERROR_TIME } else { MESSAGE_TIME };
         if !matches!(self.menu_action.as_str(), "taildropRefresh" | "taildrop")
-            && !super::prompts::lasting(self)
-            && now.saturating_duration_since(self.message_at) >= MESSAGE_TIME {
+            && now.saturating_duration_since(self.message_at) >= time {
             self.message.clear();
         }
-    }
-    pub fn fail(&mut self, error: String) {
-        if let Some(slot) = self.enqueue_error(error) { self.words.error(slot, None); }
-    }
-    pub(super) fn enqueue_error(&mut self, error: String) -> Option<super::words::ErrorSlot> {
-        self.words.sync_errors(self.errors.len());
-        if error.is_empty() { return None; }
-        if self.error.is_empty() { self.error = error; Some(super::words::ErrorSlot::Current) }
-        else if error != self.error && !self.errors.contains(&error) { self.errors.push_back(error); Some(super::words::ErrorSlot::Queued) }
-        else { None }
-    }
-    pub fn dismiss_error(&mut self) {
-        self.words.sync_errors(self.errors.len());
-        self.error = self.errors.pop_front().unwrap_or_default();
-        self.words.dismiss_error();
+        self.expire_error(now);
     }
     pub fn shown(&self) -> Vec<usize> { super::filter::shown(self) }
     pub fn filter_count(&self) -> usize { super::filter::count_shown(self) }
@@ -716,6 +707,7 @@ impl Model {
         self.selected.clear();
         self.selected_rows.clear();
         self.preview_path.clear();
+        self.retract_preview_errors(true);
         self.preview_reader.cancel();
         self.preview.clear();
         self.preview_body.clear();

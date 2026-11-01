@@ -24,7 +24,7 @@ pub fn row(row: &Row, available: bool) -> &'static str {
         "html" | "htm" => "\u{e60e}", "css" | "scss" => "\u{e614}", "lua" => "\u{e620}",
         "toml" => "\u{e615}", "yaml" | "yml" => "\u{e6a8}", "pdf" => "\u{eaeb}",
         "xls" | "xlsx" | "ods" | "csv" => "\u{ebb7}", "ppt" | "pptx" | "odp" => "\u{f0428}",
-        "stl" | "obj" | "3mf" | "step" | "stp" => "\u{eb29}",
+        "stl" | "obj" | "3mf" | "step" | "stp" | "gcode" | "bgcode" => "\u{eb29}",
         "dat" | "bin" => "\u{eae8}",
         _ if row.icon.starts_with("audio") => "\u{ec1b}",
         _ if row.icon.starts_with("video") => "\u{ead9}",

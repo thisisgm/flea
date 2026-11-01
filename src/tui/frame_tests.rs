@@ -385,3 +385,24 @@ pub fn isolated_test(name: &str, extra: &[(&str, &str)]) -> bool {
 
 #[path = "frame_isolate_join_tests.rs"]
 mod isolate_join;
+// tui-long: while the list scrolls a heavy thumb in the frame ink rides the listing's separator, rows 18 to 26 for 54 to 80 of 80.
+#[test]
+fn the_scroll_thumb_rides_the_listing_separator_in_the_frame_ink() {
+    let mut m = model();
+    m.total = 80; m.top = 53; m.cursor = 79; m.scrolled_at = Some(std::time::Instant::now());
+    let theme = Theme::from_text("");
+    let out = render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO);
+    let rows = grid(&out, 130, 31);
+    let separator = |y: usize| rows[y].chars().nth(79).unwrap();
+    let inside = |y: usize| rows[y].chars().nth(78).unwrap();
+    for y in 2..2 + 27 {
+        assert_eq!(separator(y), if (20..29).contains(&y) { '┃' } else { '│' }, "row {y}");
+        assert_eq!(inside(y), ' ', "row {y}");
+    }
+    assert!(out.contains(&format!("{}┃", theme.frame)));
+    m.preview_visible = false;
+    let rows = grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+    for (y, row) in rows.iter().enumerate().take(2 + 27).skip(2) {
+        assert_eq!(row.chars().nth(129) == Some('┃'), (20..29).contains(&y), "row {y} with no preview takes the last cell");
+    }
+}

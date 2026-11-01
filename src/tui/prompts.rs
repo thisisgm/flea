@@ -120,7 +120,7 @@ fn hint(m: &Model) -> String {
 }
 // A receipt for a step Undo can take back names the undo key after it.
 pub fn undoable(m: &Model, line: String) -> String { format!("{line}{}", hint(m)) }
-// A receipt that names the undo key stays until something replaces it.
+// A receipt that names the undo key stays for the error time, then clears like every message.
 pub fn lasting(m: &Model) -> bool {
     let hint = hint(m);
     !hint.is_empty() && m.message.ends_with(&hint)
@@ -292,6 +292,17 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
     paste.total = count(value, "total");
     if paste.total == 0 { return transfer(paste, "refuse", w); }
     paste.name = value.get("names").and_then(Json::as_array).and_then(|names| names.first()).map(|first| text(first, "n").to_owned()).unwrap_or_default();
+    // The cursor waits on the name the paste meets, as the tui-collision board points at it behind the question; a name past the held rows is located.
+    if paste.dest == m.path && m.filter.is_empty() {
+        match m.rows.iter().find(|(_, row)| row.name == paste.name).map(|(index, _)| *index) {
+            Some(index) => m.move_by(index as isize - m.cursor as isize, false, w)?,
+            None => {
+                let path = paste.dest.join(&paste.name);
+                w.send(vec![("c", word("locate")), ("path", word(&path.to_string_lossy()))])?;
+                m.restore_path = Some(path);
+            }
+        }
+    }
     m.prompts.question = Some(paste);
     Ok(())
 }

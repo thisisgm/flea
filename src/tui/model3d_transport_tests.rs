@@ -305,3 +305,26 @@ finally:
         child.wait()
     os.close(master)
 "#;
+
+// D10: chafa 1.18 refuses PPM as an unknown format, so the half-block model still must reach it as a format it decodes.
+#[test]
+fn tui_model3d_half_blocks_reach_chafa_in_a_format_it_decodes() {
+    if chafa_child("tui_model3d_half_blocks_reach_chafa_in_a_format_it_decodes",
+        "for a; do last=$a; done\n[ \"$(/usr/bin/head -c 4 \"$last\")\" = qoif ] || { echo 'Unknown file format' >&2; exit 2; }\nprintf '\\033[38;2;1;2;3m\\342\\226\\200\\033[0m\\n'") { return; }
+    assert!(crate::tui::chafa::test_support::sandboxed());
+    let root = Fixture::new();
+    let mut m = model(&root);
+    let (mut wire, reader) = wire::echo_wire();
+    let (mut graphics, mut shown) = (Graphics::new(), stage::Shown::default());
+    graphics.protocol = Protocol::None;
+    m.capabilities.graphics = Protocol::None;
+    prime(&mut m, &root, &mut graphics, &mut shown, &mut wire);
+    settle(|| {
+        step(&mut m, &mut graphics, &mut shown, &mut wire, false);
+        m.model3d.failed || m.preview_state.still.key().cloned().is_some_and(|key| m.preview_state.still.grid(&key).is_some())
+    });
+    assert!(!m.model3d.failed, "chafa refused the model's still, so the pane said it cannot preview the model");
+    m.model3d.stop(&mut wire).unwrap();
+    drop(graphics);
+    wire::finish(wire, reader);
+}
