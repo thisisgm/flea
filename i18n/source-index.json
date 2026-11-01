@@ -41,7 +41,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 327,
+      "line": 329,
       "path": "crates/flea-gui/src/g2/mn1/join.rs",
       "pattern": null,
       "possible_keys": [],
@@ -107591,7 +107591,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\"),",
-      "line": 429,
+      "line": 431,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/mn1/join.rs",
@@ -123197,7 +123197,7 @@
     },
     {
       "excerpt": ".is_some_and(|(_, class)| matches!(class.as_str(), \"network\" | \"phone\"));",
-      "line": 63,
+      "line": 62,
       "literal": "network",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/selection_preview_load.rs",
@@ -123206,7 +123206,7 @@
     },
     {
       "excerpt": ".is_some_and(|(_, class)| matches!(class.as_str(), \"network\" | \"phone\"));",
-      "line": 63,
+      "line": 62,
       "literal": "phone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/selection_preview_load.rs",
@@ -123215,7 +123215,7 @@
     },
     {
       "excerpt": "remote: matches!(storage, \"network\" | \"phone\"),",
-      "line": 221,
+      "line": 220,
       "literal": "network",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/selection_preview_load.rs",
@@ -123224,7 +123224,7 @@
     },
     {
       "excerpt": "remote: matches!(storage, \"network\" | \"phone\"),",
-      "line": 221,
+      "line": 220,
       "literal": "phone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/selection_preview_load.rs",
@@ -130118,7 +130118,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(\"absent\", root.join(\"link\")).unwrap();",
-      "line": 73,
+      "line": 80,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -130127,7 +130127,7 @@
     },
     {
       "excerpt": "let link = get(&root.join(\"link\"));",
-      "line": 74,
+      "line": 81,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -130136,7 +130136,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(\"absent\", root.join(\"link\")).unwrap();",
-      "line": 84,
+      "line": 102,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -130144,8 +130144,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "\"the test root reports a birth time\"",
+      "line": 105,
+      "literal": "the test root reports a birth time",
+      "owner": "controller",
+      "path": "src/backend/birthtime.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "for path in [root.join(\"link\"), root.path().to_path_buf()] {",
-      "line": 85,
+      "line": 107,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/birthtime.rs",
@@ -241466,7 +241475,7 @@
     "crates/flea-gui/src/g2/mn1/host_input.rs": "f49c9e24b34aa68f448277ffb94abc8ca5b80ee1d8c1eeb10297515cb6785ad1",
     "crates/flea-gui/src/g2/mn1/ipc.rs": "c3340fab6c5a5147427a2aea5399e5f17b4cb8f85d9d7d6b8be139597debdf10",
     "crates/flea-gui/src/g2/mn1/ipc/joined.rs": "a5751a6372dc0b7e471da41e32dba710c66df743dd690f415bd407f4d52a057a",
-    "crates/flea-gui/src/g2/mn1/join.rs": "ed7c8e5d5cac5621190f310df8a37e39b1b5d3703656104841aea1fe6fe26e12",
+    "crates/flea-gui/src/g2/mn1/join.rs": "883e739f8c2d03c6a4363769136f7764887ea737855e7664521e8761204bf30b",
     "crates/flea-gui/src/g2/mn1/keys.rs": "af26196bb01c4a80f84cfb7d66e9ff7b8bddab659d390ef1c65faba463b88387",
     "crates/flea-gui/src/g2/mn1/lines.rs": "847024a1b0bc79f64bb0e0a2c234ffb02f88a7ee10475f66a968b03d5813b00b",
     "crates/flea-gui/src/g2/mn1/makeexec.rs": "3e6db1dd2bf98f9e0ecb68d5d834520e591d14901ecd2e5135b6f8b3c1cefd57",
@@ -242024,7 +242033,7 @@
     "crates/flea-gui/src/ipc/path.rs": "d479c395eb8b4392aa3ef6ec9d9685cd2b34d48079c9168ed843ee2938319ecd",
     "crates/flea-gui/src/ipc/pb_ipc_fixture.rs": "6467b1af2c662e8781cd45f0431e0f06b5dff650c595c8fa131f882feebd04a3",
     "crates/flea-gui/src/ipc/preview_html.rs": "281f9b24aa9ec40803e5856a1d4300fa942dfb19177a6d94a707d727da584397",
-    "crates/flea-gui/src/ipc/preview_look.rs": "474d6c34a25528f0232151da662799aaff41d06fc96d660711834227649fdbd5",
+    "crates/flea-gui/src/ipc/preview_look.rs": "3e0f5c001415b704e0d3105934800b8e240ab2b4208659b4805c21b9352dece0",
     "crates/flea-gui/src/ipc/preview_quality.rs": "915dbfc822f998ee9d333f63a8e2b6c826906bfeefb1c220dae0374b0c296f71",
     "crates/flea-gui/src/ipc/preview_scroll.rs": "471a5b9007b8cb86adf2536499f7920c9d1ecfd10eabf084383f1eb63ef20310",
     "crates/flea-gui/src/ipc/preview_state.rs": "f373783185c7277df00b807244a4584d26af8725648817be36367deb2ab5de38",
@@ -242369,7 +242378,7 @@
     "crates/flea-gui/src/window/selection_preview_frames.rs": "6ac5a4cbd61b4e87230a487db3c8f1750cd61af15872aa82a3887fd3937293c8",
     "crates/flea-gui/src/window/selection_preview_host.rs": "7c2c3a2379f8ac5bc995b5708befb07bb6cc487a49570a0c8e2d4bbbc92740eb",
     "crates/flea-gui/src/window/selection_preview_lifetime.rs": "c3975ecd7065173af41d51f743fccf6a7891dde7f2d27c63ed6f95d65096b52a",
-    "crates/flea-gui/src/window/selection_preview_load.rs": "5c16553037b43e54c1691e12352d60cb7c5a7a856c80bd46856f4df9c67cfecd",
+    "crates/flea-gui/src/window/selection_preview_load.rs": "2da0a792ba805acd5cd6474ca14658ff446d6997298d23cb028118a112219a21",
     "crates/flea-gui/src/window/selection_preview_loading.rs": "dda23b8068a0a7f3d1287f7643b203087b834b9b0a2f801c04066778028c5110",
     "crates/flea-gui/src/window/selection_preview_multi.rs": "402e1a3adeca1e9e55b5d09c4b878260826ca6d08e990eb7cc5a109ac12481bf",
     "crates/flea-gui/src/window/selection_preview_observation.rs": "a624396b6e6c5c845d65ddc6d91388c38325dc94509a476109a66ec28b1b8d21",
@@ -242426,7 +242435,7 @@
     "src/backend/archivereq.rs": "820e4b6c7ca564a6ac7d566dc3cc198a4e2d459b670bdc2c86b2c14e0644a8c1",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
     "src/backend/archivework.rs": "ef6da55536164ff5ccafbf4aca1f19a4750b15d4a1f67a19871c07d4ec01a14a",
-    "src/backend/birthtime.rs": "37044ae66d3fcfa27cd7a70612ee68c485336c555eb9817f1823f4ebd4845baf",
+    "src/backend/birthtime.rs": "07c40980d1dddede61b9a8eec177762195e71dc71ba262e8157cf6bd2a1d77bd",
     "src/backend/bulkrename.rs": "dee03d179cfaa66deea1afeadcae922ee4b072ef5060c0105521a33274fde7e6",
     "src/backend/child.rs": "d15fb999aa1540c66feabf5f8c53618ed0cfe0bf00fc6421cc8ae95b36ffa919",
     "src/backend/clipreq.rs": "d3b67ba002230d2573d0581172dcb2841487aec730a9d97411c88a030a47d301",
@@ -243875,12 +243884,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "627281d7be05a3239b3ca56aca16fcf45112101c",
-  "source_sha": "627281d7be05a3239b3ca56aca16fcf45112101c",
+  "source_ref_sha": "81365805c39e04081e69e67b87c73fc1b7492a09",
+  "source_sha": "81365805c39e04081e69e67b87c73fc1b7492a09",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
-      "missing_literal_candidates": 5757,
+      "missing_literal_candidates": 5758,
       "source_files": 827
     },
     "generated/tooling": {
