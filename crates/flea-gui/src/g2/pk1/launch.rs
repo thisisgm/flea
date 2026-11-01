@@ -207,6 +207,7 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
     let (fonts, presentation) = crate::presentation::Service::start();
     gpui_platform::application().run(move |cx: &mut App| {
         presentation.install(cx);
+        crate::presentation::epoch::launch(&locale.catalog, &presentation.fonts.family, cx);
         cx.set_global(presentation.fonts.typeface(&settings));
         follow_corner(
             corner_source(crate::compositor::socket(), "hyprctl".into()),

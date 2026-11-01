@@ -97,6 +97,7 @@ fn main() {
     gpui_platform::application().run(move |cx: &mut App| {
         cx.set_text_rendering_mode(gpui::TextRenderingMode::Grayscale);
         presentation.install(cx);
+        presentation::epoch::launch(&locale.catalog, &presentation.fonts.family, cx);
         cx.on_window_closed(|cx, _| {
             if cx.windows().is_empty() {
                 cx.quit();
