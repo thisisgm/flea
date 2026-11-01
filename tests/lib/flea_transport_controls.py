@@ -15,7 +15,7 @@ from flea_transport import MARKER, REPO, TransportError, Window, load, sandbox_b
 from flea_native_inputs_controls import check_inputs, check_launch_inputs
 from flea_native_harness_controls import check_harness
 from flea_native_envelope_controls import check_envelope
-from flea_transport_teardown_controls import check_teardown
+from flea_transport_teardown_controls import check_teardown, check_teardown_past_an_unwritable_error
 from flea_transport_log_controls import check_shared_log
 from flea_transport_race_controls import disappearing_peer
 from flea_transport_peers import PeerWindow
@@ -127,6 +127,7 @@ try:
     check_harness(root)
     check_envelope(root)
     check_teardown(root, check)
+    check_teardown_past_an_unwritable_error(root, check)
     check_shared_log(root)
     stub = root / "clients"
     stub.mkdir()

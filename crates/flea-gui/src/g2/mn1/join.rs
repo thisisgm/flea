@@ -267,6 +267,7 @@ impl Shell {
         self.begin_menu(side, row, at, (header, None), window, cx);
     }
 
+    /// Finder's right click in Columns: the menu takes the row, or the selection it is in, and the cursor stays.
     pub(crate) fn open_menu_in_place(
         &mut self,
         side: usize,
@@ -290,6 +291,7 @@ impl Shell {
         self.begin_menu_kept(side, row, at, (header, target, false), window, cx);
     }
 
+    /// keep holds the cursor and the selection, the menu taking the row or the selection it is in.
     fn begin_menu_kept(
         &mut self,
         side: usize,
