@@ -9,7 +9,7 @@ const LOOKS: &[&str] = &["cursorUp", "cursorDown", "cursorFirst", "cursorLast", 
     "halfPageUp", "halfPageDown", "keymapSheet", "togglePreview", "loadPreview", "focusPreview", "focusNext", "quit", "quitNoCwd", "pathBar", "goHome", "goConfig", "goDownloads"];
 
 // The Trash preview's head rows: name, kind and size, Deleted, Original Location, and a blank row.
-const TRASH_HEAD: usize = 5;
+pub const TRASH_HEAD: usize = 5;
 
 pub struct TrashView {
     id: usize,

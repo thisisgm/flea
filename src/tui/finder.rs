@@ -73,13 +73,16 @@ pub fn next(m: &mut Model, previous: bool, wire: &mut Wire) -> io::Result<()> {
     }
     Ok(())
 }
+// Sample input: {"t":"found","id":1,"query":"a","rows":[0,2],"listing":3}
+// A folder's listed line carries no listing stamp, so a find asked in one is judged by navigation alone.
 pub fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Result<()> {
     let finder = &mut m.parity17.finder;
     if !finder.waiting
         || finder.id != count(value, "id")
         || finder.query != text(value, "query")
         || finder.listing != wire.listing
-        || value.get("listing").map(|_| count(value, "listing")) != wire.listing
+        || (wire.listing.is_some()
+            && value.get("listing").map(|_| count(value, "listing")) != wire.listing)
         || m.pending.is_some()
     {
         return Ok(());

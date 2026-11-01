@@ -247,9 +247,9 @@ pub fn metadata_visible(m: &Model, index: usize, _line: &str) -> bool {
     m.preview_state.facts.get(index).map_or(true, |fact| fact.key != "preview.fact.modified")
 }
 
-// The rows a body scrolls through, in the pane or the Quick Look card.
+// The rows a body scrolls through, in the pane or the Quick Look card; Trash's head takes two rows more than a folder's.
 pub fn rows(m: &Model) -> usize {
-    if m.quicklook { super::look::text_rows(m.height) } else { m.height.saturating_sub(3) }
+    if m.quicklook { super::look::text_rows(m.height) } else { m.height.saturating_sub(if super::trashview::hides(m) { super::trashview::TRASH_HEAD } else { 3 }) }
 }
 pub fn preview_scroll_limit(m: &Model) -> usize {
     let rows = rows(m);
