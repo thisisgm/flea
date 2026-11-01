@@ -95,6 +95,7 @@ impl ListState {
     /// The drawn columns for a list this wide: the row is the list less its scroll lane.
     pub fn layout(&mut self, width: f32, window: &Window) -> (Metrics, Tokens, Layout) {
         let (metrics, mut tokens) = self.measure(window);
+        tokens.flush_size = self.view.dual;
         if self.view.picker.is_some() {
             tokens.measured[super::columns::Column::Size.slot()] = 70.;
             tokens.measured[super::columns::Column::Date.slot()] = 80.;

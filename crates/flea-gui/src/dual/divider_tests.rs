@@ -396,3 +396,51 @@ fn leaving_dual_mid_drag_writes_no_leaf(cx: &mut TestAppContext) {
         "a drag whose divider left with Dual wrote a leaf"
     );
 }
+
+/// EY-258: after a drag, a double click on the moved divider restores the equal split.
+#[gpui::test]
+fn double_click_on_the_moved_divider_restores_equal_panes(cx: &mut TestAppContext) {
+    let (entity, cx) = dual_window(cx, false);
+    let (left, middle) = divider_at(&entity, cx);
+    let equal = cx.update(|window, cx| entity.read(cx).geometry(window).panes[0].width);
+    let at = point(px(left + 4.), px(middle));
+    let to = point(px(left + 104.), px(middle));
+    cx.simulate_mouse_move(at, None, Modifiers::none());
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    let widened = cx.update(|window, cx| entity.read(cx).geometry(window).panes[0].width);
+    assert!(
+        (widened - equal - 100.).abs() < 1.,
+        "the drag widened {equal} to {widened}"
+    );
+    for click_count in [1, 2] {
+        cx.simulate_event(gpui::MouseDownEvent {
+            button: MouseButton::Left,
+            position: to,
+            modifiers: Modifiers::none(),
+            click_count,
+            first_mouse: false,
+        });
+        cx.simulate_event(gpui::MouseUpEvent {
+            button: MouseButton::Left,
+            position: to,
+            modifiers: Modifiers::none(),
+            click_count,
+        });
+        cx.run_until_parked();
+    }
+    let (split, reset) = cx.update(|window, cx| {
+        let shell = entity.read(cx);
+        (
+            shell.launch.settings.split,
+            shell.geometry(window).panes[0].width,
+        )
+    });
+    assert_eq!(split, 0.5, "the double click left split {split}");
+    assert!(
+        (reset - equal).abs() < 0.5,
+        "the double click left the left pane {reset}, not {equal}"
+    );
+}

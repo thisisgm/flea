@@ -79,6 +79,27 @@ fn ey159_reverse_tab_enters_chrome_before_rail(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn ey247_escape_from_a_panel_stop_keeps_the_listing_selection(cx: &mut TestAppContext) {
+    let handle = listing(cx);
+    key(cx, handle, "t");
+    for (tabs, stop) in [(1, "rail"), (2, "chrome"), (3, "strip")] {
+        key(cx, handle, "ctrl-a");
+        assert_eq!(call(cx, handle, "selectionCount"), Reply::value("8"));
+        for _ in 0..tabs {
+            key(cx, handle, "tab");
+        }
+        assert_eq!(call(cx, handle, "focusView"), Reply::value(stop));
+        key(cx, handle, "escape");
+        assert_eq!(call(cx, handle, "focusView"), Reply::value("list"));
+        assert_eq!(
+            call(cx, handle, "selectionCount"),
+            Reply::value("8"),
+            "Escape from the {stop} cleared the listing selection"
+        );
+    }
+}
+
+#[gpui::test]
 fn ey143_columns_wrap_only_when_enabled(cx: &mut TestAppContext) {
     let handle = cx.add_window(|window, cx| Root {
         shell: cx.new(|cx| {
