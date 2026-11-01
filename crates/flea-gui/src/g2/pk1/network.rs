@@ -191,7 +191,7 @@ impl Picker {
                         cx,
                     );
                 } else {
-                    self.open_folder(path, cx);
+                    self.rail_open(path, cx);
                 }
             }
             Effect::RefreshMounts => self.refresh_mounts(cx),

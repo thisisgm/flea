@@ -58,6 +58,8 @@ pub struct Rail {
     // The drive a press is waiting on, so only its own mount opens the folder.
     pub(super) awaiting: String,
     pub(super) recent_read: Option<Task<()>>,
+    // A place the rail opened hands the keyboard to the files on the next frame, as PickerWindow.qml onChosen does.
+    pub(super) hand_off: bool,
     _devices: Option<Subscription>,
     _dirs: Option<Task<()>>,
 }
@@ -77,6 +79,7 @@ impl Rail {
             network: None,
             awaiting: String::new(),
             recent_read: None,
+            hand_off: false,
             _devices: None,
             _dirs: None,
         }
@@ -192,7 +195,7 @@ impl Picker {
                 // Only the drive this dialog pressed answers it, by device and path, as v0.3.12 deviceOpened matches them.
                 Event::Device(Effect::Opened(path)) if self.awaits(&source, &path, cx) => {
                     self.rail.awaiting.clear();
-                    self.open_folder(&path, cx);
+                    self.rail_open(&path, cx);
                 }
                 Event::Device(Effect::Message(note, error)) => {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, &note);
@@ -240,7 +243,7 @@ impl Picker {
         }
         if entry.group == Group::Network || entry.kind == Kind::Phone {
             if entry.kind != Kind::Phone && entry.path.starts_with('/') {
-                self.open_folder(&entry.path, cx);
+                self.rail_open(&entry.path, cx);
             } else {
                 self.open_network(&entry, cx);
             }
@@ -248,7 +251,7 @@ impl Picker {
         }
         if entry.group == Group::Device {
             if entry.mounted == Some(true) && entry.path.starts_with('/') {
-                return self.open_folder(&entry.path, cx);
+                return self.rail_open(&entry.path, cx);
             }
             if let Some(source) = self.rail.devices.clone() {
                 self.rail.awaiting = entry.device.clone();
@@ -261,13 +264,18 @@ impl Picker {
             return;
         }
         if entry.kind == Kind::Recent {
-            return self.open_folder(logic::RECENT, cx);
+            return self.rail_open(logic::RECENT, cx);
         }
         if let Some(path) = local_path(&entry.path) {
-            self.open_folder(&path, cx);
+            self.rail_open(&path, cx);
         } else if entry.path.contains("://") {
             self.open_network(&entry, cx);
         }
+    }
+
+    pub(super) fn rail_open(&mut self, path: &str, cx: &mut Context<Self>) {
+        self.rail.hand_off = true;
+        self.open_folder(path, cx);
     }
 
     /// Up, Down, Home and End walk the rail's cursor; Enter, Space and Right open its row, as PickerPlaces.qml's keys do.
