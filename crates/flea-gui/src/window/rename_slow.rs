@@ -155,4 +155,18 @@ impl Shell {
         self.rename_open(side, 0, window, cx);
         self.rename_sync_gate(window, cx);
     }
+
+    /// A press outside the editor commits it first (Tap.js), except on the tab strip, which never commits (Tabs.js tearRefusal reads the editor).
+    pub(crate) fn rename_press_away(
+        &mut self,
+        at: gpui::Point<gpui::Pixels>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.strip.bounds.get().is_some_and(|strip| strip.contains(&at)) {
+            return;
+        }
+        self.rename_commit(cx);
+        self.rename_sync_gate(window, cx);
+    }
 }

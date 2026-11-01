@@ -161,20 +161,6 @@ impl Shell {
         cx.notify();
     }
 
-    /// A press outside the editor commits it first (Tap.js), except on the tab strip, which never commits (Tabs.js tearRefusal reads the editor).
-    pub(crate) fn rename_press_away(
-        &mut self,
-        at: gpui::Point<gpui::Pixels>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if self.strip.bounds.get().is_some_and(|strip| strip.contains(&at)) {
-            return;
-        }
-        self.rename_commit(cx);
-        self.rename_sync_gate(window, cx);
-    }
-
     /// Escape: the draft goes and the row shows its name again.
     pub(crate) fn rename_abandon(&mut self, cx: &mut Context<Self>) {
         let neighbour = self.rename.neighbour.take().is_some();
