@@ -1,9 +1,6 @@
 //! Crumb Element rendering; shaping and palette ownership stay in paint.
 use super::*;
 
-/// The room between the path's last crumb and its Git label, in pixels.
-const GIT_GAP: f32 = 9.;
-
 impl Element for CrumbElement {
     type RequestLayoutState = ();
     type PrepaintState = (Hitbox, Ink, bool);
