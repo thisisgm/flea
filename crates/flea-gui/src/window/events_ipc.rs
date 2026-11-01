@@ -86,6 +86,16 @@ impl Shell {
                                     })
                                 })
                                 .map(|_| "list")
+                        })
+                        // TrashView takes the list stop in v0.3.12, its strip and its rows alike.
+                        .or_else(|| {
+                            self.trash
+                                .as_ref()
+                                .filter(|trash| {
+                                    let pane = trash.pane.read(cx);
+                                    pane.view().opened && pane.focus.contains_focused(window, cx)
+                                })
+                                .map(|_| "list")
                         }),
                     input: &host.input,
                     chrome_glyph,
