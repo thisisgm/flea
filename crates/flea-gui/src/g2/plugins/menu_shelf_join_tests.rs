@@ -16,7 +16,7 @@ fn add_to_shelf_adds_a_file_and_a_folder(cx: &mut TestAppContext) {
         .unwrap()
         .enabled = true;
     attach(cx, &mut fixture, &root, "checksums", &plugin);
-    update(cx, fixture.handle, |shell, _, cx| {
+    update(cx, fixture.handle, |shell, _, _| {
         shell.launch.settings.data = flea::uistate::from_file(r#"{"shelf":{"enabled":true}}"#);
     });
     wait(cx, |cx| {
