@@ -205,8 +205,13 @@ pub(crate) fn extract_reporting(
     if let Some((id, tx)) = report {
         progress.sample(&staged, id, tx, true);
     }
-    rename_noreplace(&staged, dest)?;
+    publish_extract(&staged, dest)?;
     Ok(verified)
+}
+
+// The staged tree is a directory, so fuse.rclone's EINVAL (issue 370) takes the issue-282 copy fallback, still no-clobber.
+fn publish_extract(staged: &Path, dest: &Path) -> Result<(), FleaError> {
+    crate::backend::renamecompat::rename_path(staged, dest)
 }
 
 pub fn convert_one(input: &Path, dest: &Path, strip: bool, cancel: &AtomicBool) -> Result<(), FleaError> {
@@ -256,6 +261,10 @@ mod tests;
 #[cfg(test)]
 #[path = "archiveopscancel_tests.rs"]
 mod cancel_tests;
+
+#[cfg(test)]
+#[path = "archiveopsrclone_tests.rs"]
+mod rclone_tests;
 
 #[cfg(test)]
 #[path = "archivepassword_tests.rs"]
