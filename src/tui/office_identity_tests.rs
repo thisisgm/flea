@@ -33,7 +33,7 @@ fn tui_office_vfix1_capture_precedes_request_and_refuses_early_ready() {
     let source = root.path(DOCX);
     let old_pdf = root.path("a.pdf");
     let new_pdf = root.path("b.pdf");
-    std::fs::write(&source, b"source A").unwrap();
+    std::fs::write(&source, container(b"source A")).unwrap();
     std::fs::write(&old_pdf, pdf(1, "", "")).unwrap();
     std::fs::write(&new_pdf, pdf(2, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -49,7 +49,7 @@ fn tui_office_vfix1_capture_precedes_request_and_refuses_early_ready() {
     receive(&mut m, &mut wire, &ready(1, &old_pdf));
     assert!(m.preview_state.office.doc.pdf.is_none());
     assert!(m.preview_state.office.converted_open.is_none());
-    std::fs::write(&source, b"source B with new bytes").unwrap();
+    std::fs::write(&source, container(b"source B with new bytes")).unwrap();
     held.release();
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
@@ -78,7 +78,7 @@ fn tui_office_vfix1_rewrite_after_capture_never_adopts_old_page() {
     let source = root.path(DOCX);
     let old_pdf = root.path("a.pdf");
     let new_pdf = root.path("b.pdf");
-    std::fs::write(&source, b"source A").unwrap();
+    std::fs::write(&source, container(b"source A")).unwrap();
     std::fs::write(&old_pdf, pdf(1, "", "")).unwrap();
     std::fs::write(&new_pdf, pdf(2, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -90,7 +90,7 @@ fn tui_office_vfix1_rewrite_after_capture_never_adopts_old_page() {
         m.preview_state.office.source.is_some() && m.preview_state.office.checked.is_some()
     });
     let (first, _) = ask(&wire);
-    std::fs::write(&source, b"source B with new bytes").unwrap();
+    std::fs::write(&source, container(b"source B with new bytes")).unwrap();
     receive(&mut m, &mut wire, &ready(first, &old_pdf));
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
@@ -117,7 +117,7 @@ fn tui_office_vfix1_replaced_request_recaptures_before_retry() {
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("b.pdf");
-    std::fs::write(&source, b"source A").unwrap();
+    std::fs::write(&source, container(b"source A")).unwrap();
     std::fs::write(&converted, pdf(2, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
     let (mut wire, reader) = wire::echo_wire();
@@ -143,7 +143,7 @@ fn tui_office_vfix1_replaced_request_recaptures_before_retry() {
     receive(&mut m, &mut wire, &ready(first, &converted));
     receive(&mut m, &mut wire, &ready(first + 1, &converted));
     assert!(m.preview_state.office.doc.pdf.is_none());
-    std::fs::write(&source, b"source B with new bytes").unwrap();
+    std::fs::write(&source, container(b"source B with new bytes")).unwrap();
     held.release();
     settle(|| {
         step(&mut m, &mut graphics, &mut shown, &mut wire);
@@ -170,7 +170,7 @@ fn tui_office_stalled_identity_never_holds_the_loop() {
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("stall.pdf");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
     let gate = Arc::new(AtomicBool::new(false));
@@ -248,7 +248,7 @@ fn tui_office_rewritten_pdf_asks_again() {
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
     let (mut wire, reader) = wire::echo_wire();

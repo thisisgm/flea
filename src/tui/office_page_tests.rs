@@ -82,7 +82,7 @@ fn tui_office_thumbnail_shows_until_the_page_replaces_it() {
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
     let thumb = root.path("thumb.png");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     std::fs::write(&thumb, b"thumbnail bytes").unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -138,7 +138,7 @@ fn tui_office_thumbnail_holds_until_the_page_is_drawn() {
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
     let thumb = root.path("thumb.png");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     std::fs::write(&thumb, b"thumbnail bytes").unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -257,7 +257,7 @@ fn tui_office_r3_handoff_keeps_the_page_image() {
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
     let thumb = root.path("thumb.png");
-    std::fs::write(&source, b"docx bytes").unwrap();
+    std::fs::write(&source, container(b"docx bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     std::fs::write(&thumb, b"thumbnail bytes").unwrap();
     let mut m = model(&root, DOCX, "Word 2007 document");
@@ -314,7 +314,7 @@ fn tui_office_count_label_follows_the_group() {
     let root = Fixture::new();
     let source = root.path("deck.odp");
     let converted = root.path("deck.pdf");
-    std::fs::write(&source, b"odp bytes").unwrap();
+    std::fs::write(&source, container(b"odp bytes")).unwrap();
     std::fs::write(&converted, pdf(3, "", "")).unwrap();
     let mut m = model(&root, "deck.odp", "OpenDocument presentation");
     let (mut wire, reader) = wire::echo_wire();

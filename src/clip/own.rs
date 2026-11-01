@@ -123,7 +123,7 @@ fn split_payload(payload: &[u8]) -> Result<(String, String, Vec<String>), String
         return Err("the clipboard payload names no operation".to_string());
     };
     let op = std::str::from_utf8(op).map_err(|_| "the clipboard operation is not text".to_string())?;
-    if !format::is_op(op) {
+    if op != "text" && !format::is_op(op) {
         return Err("the clipboard operation is copy or cut".to_string());
     }
     let token = std::str::from_utf8(token).map_err(|_| "the clipboard token is not text".to_string())?;

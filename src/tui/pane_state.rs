@@ -174,7 +174,7 @@ pub fn meta(m: &mut Model, value: &Json) {
             link: String::new(),
             kind: String::new(),
             thumbnail: false,
-            modified: 0,
+            modified: 0, birth: None,
             icon: if directory { "folder".into() } else { String::new() },
         };
         (row, size)

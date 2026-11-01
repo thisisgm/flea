@@ -180,6 +180,7 @@ impl Terminal {
         if previous != self.decoder.negotiation.detected { self.trace_capabilities(); }
         Ok(keys)
     }
+    pub fn request_suspend(&mut self) { JOB_CONTROL.store(1, Ordering::Relaxed); }
     pub fn take_resumed(&mut self) -> bool { std::mem::take(&mut self.resumed) }
     fn service_job_control(&mut self) -> io::Result<bool> {
         if JOB_CONTROL.swap(0, Ordering::Relaxed) != 1 || self.stopped() { return Ok(false); }

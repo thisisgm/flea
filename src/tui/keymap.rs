@@ -313,6 +313,10 @@ pub(super) fn supported(action: &str) -> bool {
             | "goHome"
             | "goConfig"
             | "goDownloads"
+            | "wordBackward" | "wordForward" | "killBol" | "killEol" | "killBackward" | "killForward"
+            | "suspend" | "pasteAbsoluteLink" | "pasteLink" | "pasteHardLink" | "detailBirth" | "detailOff"
+            | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem"
+            | "findPrevious" | "findNext" | "sortBirth" | "sortBirthReverse" | "sortExtension" | "sortRandom" | "followLink"
             | "openTrash"
     )
 }

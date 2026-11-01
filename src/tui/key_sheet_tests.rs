@@ -52,10 +52,10 @@ fn keys_sheet_matches_its_board_cells_and_inks() {
 fn every_printed_key_reaches_its_action_in_every_preset() {
     let map = Map::load();
     for preset in PRESETS {
-        for row in ROWS.iter().filter(|row| row.1 != ["tab1"]) {
+        for row in ROWS.iter().filter(|row| listed(row, preset) && row.1 != ["tab1"]) {
             let printed = spelling(&map, preset, row);
             if printed.is_empty() {
-                assert!(row.1.iter().all(|action| map.chord(action, preset, "listing").is_none()), "{preset} {:?} binds a key the sheet leaves out", row.1);
+                assert!(row.1.iter().all(|action| map.chord(action, preset, context(row.1)).is_none()), "{preset} {:?} binds a key the sheet leaves out", row.1);
             }
             for spelled in printed.split(" / ").filter(|spelled| !spelled.is_empty()) {
                 if spelled.contains(' ') {
@@ -71,7 +71,7 @@ fn every_printed_key_reaches_its_action_in_every_preset() {
                 let first = spelled.chars().next().unwrap();
                 let doubled = spelled.chars().count() == 2 && spelled.chars().all(|c| c == first);
                 let probe = if doubled { first.to_string() } else { spelled.to_owned() };
-                let found: Vec<String> = keys(&probe).iter().map(|key| map.action(key, preset)).collect();
+                let found: Vec<String> = keys(&probe).iter().map(|key| map.in_context(key, preset, context(row.1))).collect();
                 let reaches = found.iter().any(|action| row.1.iter().any(|want| if doubled { *action == format!("{want}Arm") } else { action == want || *action == format!("{want}Arm") }));
                 assert!(reaches, "{preset}: {spelled} printed for {:?} resolves to {found:?}", row.1);
             }
@@ -88,7 +88,7 @@ fn a_key_that_needs_the_kitty_protocol_prints_beside_one_that_does_not() {
         for (action, pair) in [("openTab", "ctrl-enter / O"), ("redo", "ctrl-shift-z / ctrl-y"), ("newFolder", "ctrl-shift-n / N"), ("focusPreview", "tab / ctrl-tab")] {
             assert_eq!(spelling(&map, preset, row(action)), pair, "{preset}");
         }
-        for row in ROWS {
+        for row in ROWS.iter().filter(|row| listed(row, preset)) {
             let printed = spelling(&map, preset, row);
             if printed.split(" / ").any(protocol) { assert!(printed.split(" / ").any(|spelled| !protocol(spelled)), "{preset} {printed}"); }
         }
@@ -212,11 +212,11 @@ fn explicit_layout_snapshots_keep_sequence_parts_and_protocol_pairs_complete() {
             match m.set_keycaps(snapshot, &map) {
                 Ok(()) => {
                     usable += 1;
-                    for row in ROWS {
+                    for row in ROWS.iter().filter(|row| listed(row, preset)) {
                         let canonical = spelling(&map, preset, row);
                         if canonical.is_empty() { continue; }
                         let expected = if canonical == "1–9" { format!("{}–{}", snapshot.label("1").unwrap(), snapshot.label("9").unwrap()) }
-                            else { flea::keys::display::chord_label(&canonical, &snapshot).unwrap().text };
+                            else { label(&canonical, &snapshot).unwrap() };
                         assert_eq!(m.keycap_labels[&canonical], expected, "{preset} {layout} {canonical}");
                     }
                 }
@@ -243,5 +243,14 @@ fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
         m.preset = "yazi".into();
         m.set_keycaps(snapshot, &comma).unwrap();
         assert_eq!(m.keycap_labels[", ,"], tail, "{layout}");
+    }
+}
+
+#[test]
+fn yazi_editor_labels_compose_the_snapshots_actual_letter_and_named_key_atoms() {
+    for layout in ["us","ru"] {
+        let snapshot=flea::keys::display::KeycapSnapshot::new(layout,None,Some(0),9).unwrap();
+        assert_eq!(label("alt-b / ctrl-left",&snapshot).unwrap(),format!("alt-{} / ctrl-{}",snapshot.label("b").unwrap(),snapshot.label("left").unwrap()));
+        assert_eq!(label("alt-d / ctrl-delete",&snapshot).unwrap(),format!("alt-{} / {}",snapshot.label("d").unwrap(),snapshot.label("ctrl-delete").unwrap()));
     }
 }

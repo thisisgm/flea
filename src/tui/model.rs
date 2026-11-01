@@ -18,6 +18,7 @@ pub struct Row {
     pub kind: String,
     pub thumbnail: bool,
     pub modified: i64,
+    pub birth: Option<i64>,
     pub icon: String,
 }
 impl Row {
@@ -37,6 +38,7 @@ impl Row {
             link: text(row, "l").into(),
             thumbnail: flag(row, "t"),
             modified: row.get("m").and_then(Json::as_f64).unwrap_or(0.0) as i64,
+            birth: row.get("b").and_then(Json::as_f64).map(|v| v as i64),
             icon: text(row, "i").into(),
             kind: kinds
                 .get(count(row, "k"))
@@ -86,6 +88,7 @@ pub struct Model {
     pub chosen: Option<Vec<String>>,
     pub no_cwd: bool,
     pub edit_file: Option<PathBuf>,
+    pub parity17: super::parity17::State,
     pub capabilities: super::capabilities::Capabilities,
     pub path: PathBuf,
     pub pending: Option<PathBuf>,
@@ -256,6 +259,7 @@ impl Model {
             chosen: None,
             no_cwd: false,
             edit_file: None,
+            parity17: super::parity17::State::default(),
             capabilities: super::capabilities::Capabilities::default(),
             path: path.clone(),
             pending: None,
@@ -437,6 +441,8 @@ impl Model {
             self.restore_cursor.get_or_insert(self.cursor);
             if self.restore_path.is_none() && self.menu_action != "deleteRestore" { self.restore_path = self.current_path(); }
         }
+        self.parity17.copy_text = None;
+        self.discard_clipboard |= self.pending_clipboard;
         self.pending = Some(path.clone());
         let result = wire.send(vec![
             ("c", word("list")),
@@ -699,6 +705,7 @@ impl Model {
         }
     }
     pub fn invalidate_rows(&mut self) {
+        self.parity17.follow = None;
         self.name_filter.reset();
         self.cancel_taildrop();
         self.rows.clear();
@@ -772,6 +779,7 @@ impl Model {
         }
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
+        if super::parity17::receive(self, &value, wire)? { return Ok(()); }
         if super::combine::receive(self, &value, wire)? { return Ok(()); }
         if super::convert::receive(self, &value, wire)? { return Ok(()); }
         if super::print::receive(self, &value, wire)? { return Ok(()); }
@@ -989,6 +997,7 @@ impl Model {
                 }
             }
             "paths" => {
+                let choosing = self.choose_pending;
                 if std::mem::take(&mut self.discard_clipboard) {
                     self.pending_clipboard = false;
                     return Ok(());
@@ -1010,7 +1019,7 @@ impl Model {
                         self.quit = true;
                     }
                 }
-                if self.pending_clipboard {
+                if self.pending_clipboard && !choosing {
                     self.pending_clipboard = false;
                     self.clipboard = paths;
                     self.say_text(super::prompts::clipboard_text(self));

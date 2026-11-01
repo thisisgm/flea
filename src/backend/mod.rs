@@ -1,3 +1,9 @@
+mod findnames;
+mod findnormalizer;
+pub mod linkheld;
+mod paritysort;
+pub mod birthtime;
+mod peekdetail;
 pub(crate) mod locale;
 mod actionmanifest;
 mod actionpreview;

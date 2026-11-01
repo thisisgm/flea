@@ -24,6 +24,8 @@ mod contents_fix_tests;
 mod contents_fix2_tests;
 mod cells;
 mod filter;
+mod finder;
+mod parity17;
 mod layout;
 mod look;
 mod pane;
@@ -34,6 +36,9 @@ mod still;
 mod syntax;
 mod icons;
 mod editor;
+mod editor_words;
+mod editor_input;
+mod sort_actions;
 mod empty;
 mod prompts;
 mod combine;
@@ -273,6 +278,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             let input_wait = terminal.decoder.negotiation.wait_ms(std::time::Instant::now(), input_wait);
             let now = std::time::Instant::now();
             let input_wait = hold.wait_ms(&model, now, started, input_wait);
+            if std::mem::take(&mut model.parity17.suspend) { terminal.request_suspend(); }
             let bytes = terminal.read(wire.wake_fd(), wait::next_wait_ms(&model, size, now, input_wait))?;
             if terminal.take_resumed() { frame.clear(); }
             wire.drain_wake();
@@ -320,3 +326,12 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         }
     }
 }
+
+#[cfg(test)]
+mod parity17_tests;
+
+#[cfg(test)]
+mod cells_hig_tests;
+
+#[cfg(test)]
+mod hig_s5_tests;

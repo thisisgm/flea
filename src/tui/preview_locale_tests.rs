@@ -15,7 +15,7 @@ fn language(root: &TestDir, code: &str) -> I18n {
 }
 fn model(root: &TestDir, name: &str, icon: &str) -> Model {
     let mut m = Model::new(root.path().into(), &Json::Null);
-    m.rows.insert(0, Row { name: name.into(), directory: icon == "folder", size: 4, mode: 0o100644, link: String::new(), kind: "literal MIME kind".into(), thumbnail: false, modified: 1750000000, icon: icon.into() });
+    m.rows.insert(0, Row { name: name.into(), directory: icon == "folder", size: 4, mode: 0o100644, link: String::new(), kind: "literal MIME kind".into(), thumbnail: false, modified: 1750000000, birth: None, icon: icon.into() });
     m.columns = 100; m.height = 25; m.preview_visible = true;
     m
 }

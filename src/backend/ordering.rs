@@ -51,6 +51,10 @@ pub fn ordered(
     hidden_last: bool,
 ) -> Result<(f64, f64, Vec<Option<DirSize>>), &'static str> {
     let by = if by == "date" { "mtime" } else { by };
+    if matches!(by, "btime" | "extension" | "random") {
+        let (pass, sort) = super::paritysort::sort(l, base, by, desc, folders, hidden_last);
+        return Ok((pass, sort, Vec::new()));
+    }
     if !["name", "size", "mtime", "kind"].contains(&by) {
         return Err("no such sort key; send name, size, mtime or kind");
     }

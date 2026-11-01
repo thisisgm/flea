@@ -326,7 +326,7 @@ pub fn row(
         return out;
     }
     let mark = format!("{meta}{} {ink}", icons::row(entry, marks));
-    let size = size.filter(|s| text_width(s) + 6 + usize::from(style.rtl) <= columns);
+    let size = size.filter(|s| !s.is_empty() && text_width(s) + 6 + usize::from(style.rtl) <= columns);
     let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3) - usize::from(style.rtl);
     // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
     let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
@@ -344,7 +344,6 @@ pub fn row(
     if let Some((start, end)) = match_range(&name, query) {
         label.push_str(&name[..start]);
         label.push_str("\x1b[1m");
-        label.push_str(&theme.match_fill);
         label.push_str(&name[start..end]);
         label.push_str(&reset);
         label.push_str(&name[end..]);

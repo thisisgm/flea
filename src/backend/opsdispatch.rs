@@ -423,6 +423,10 @@ pub(crate) fn start_link(
     dest: &str,
     collide: super::collide::Ask,
 ) {
+    start_link_held(out, ops, op, paths, dest, collide, None);
+}
+pub(crate) fn start_link_held(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str,
+    collide: super::collide::Ask, held: Option<Vec<super::linkheld::Identity>>) {
     if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "link");
         return;
@@ -448,7 +452,7 @@ pub(crate) fn start_link(
     let owned_op = op.to_string();
     let owned_dest = dest.to_string();
     thread::spawn(move || {
-        let done = run_link(&owned_op, paths, dest_path, policy);
+        let done = run_link_held(&owned_op, paths, dest_path, policy, held.as_deref());
         let entry = Entry { op: "link".to_string(), steps: done.steps };
         let _ = tx.send(OpMsg::Linked { ok: done.ok, failed: done.failed, skipped: done.skipped,
             entry, note: done.note, first_err: done.first_err, dest: owned_dest });
@@ -473,7 +477,12 @@ pub(crate) fn test_hold_link(dest: &Path) -> (Sender<()>, std::sync::mpsc::Recei
 }
 
 // One exclusive link per source, replacing through the trash when the card chose it.
+#[cfg(test)]
 pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: super::collide::Policy) -> LinkOutcome {
+    run_link_held(op, paths, dest, policy, None)
+}
+fn run_link_held(op: &str, paths: Vec<String>, dest: PathBuf, policy: super::collide::Policy,
+    held: Option<&[super::linkheld::Identity]>) -> LinkOutcome {
     #[cfg(test)]
     {
         let held = {
@@ -499,9 +508,9 @@ pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: supe
     let mut note = String::new();
     for source in &paths {
         let src = Path::new(source);
-        if src.symlink_metadata().is_err() {
+        if !super::linkheld::matches(held, src) || src.symlink_metadata().is_err() {
             failed += 1;
-            if first_err.is_empty() { first_err = format!("the link source {source} no longer exists"); }
+            if first_err.is_empty() { first_err = format!("the link source {source} changed or no longer exists"); }
             continue;
         }
         let Some(dst) = super::link::dest_path(&dest, src) else {
@@ -528,11 +537,13 @@ pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: supe
                         }
                     }
                 }
-                let made = match &kind {
+                let made = if !super::linkheld::matches(held, src) {
+                    Err(op_err("link", source, "the held link source changed before creation"))
+                } else { match &kind {
                     super::link::LinkKind::Absolute => super::link::create_absolute(src, &to),
                     super::link::LinkKind::Hard => super::link::create_hard(src, &to),
                     super::link::LinkKind::Relative => super::link::create_relative(src, &to),
-                };
+                }};
                 match made {
                     Ok(()) => {
                         match inspect_made_link(&to) {
@@ -614,6 +625,9 @@ pub(crate) fn start_link_target(ops: &Ops, path: &str, id: usize) {
 
 // Show original: reveal the symlink target in its own folder, never resolve a non-link.
 pub(crate) fn do_link_target(out: &mut impl Write, path: &str, id: usize) {
+    do_link_target_held(out, path, id, None);
+}
+pub(crate) fn do_link_target_held(out: &mut impl Write, path: &str, id: usize, expected: Option<&str>) {
     let target = Path::new(path);
     let text = match std::fs::read_link(target) {
         Ok(t) => t,
@@ -623,6 +637,11 @@ pub(crate) fn do_link_target(out: &mut impl Write, path: &str, id: usize) {
             return;
         }
     };
+    if expected.is_some_and(|expected| text.as_os_str() != expected) {
+        writeln!(out, "{}", error_line(&op_err("linktarget", path, "the selected link changed before Follow could run"))).ok();
+        out.flush().ok();
+        return;
+    }
     let absolute = if text.is_absolute() {
         text.clone()
     } else {

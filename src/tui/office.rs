@@ -27,6 +27,8 @@ const AUTHOR: &str = "document.office_author";
 // How long a checked identity waits before the next freshness check, which runs on a worker.
 const CHECK_EVERY: Duration = Duration::from_millis(250);
 type Gate = Option<Arc<AtomicBool>>;
+#[path = "office_container.rs"]
+mod container;
 
 // Test seam: a held open or sniff read waits for the test's gate, bounded so a failing run still ends.
 #[cfg(test)]
@@ -50,7 +52,11 @@ impl Identity {
     fn open(path: &Path, gate: &Gate) -> io::Result<Self> {
         hold(gate);
         let file = job::held(path)?;
-        let stamp = stamp(&file.metadata()?);
+        let metadata = file.metadata()?;
+        if !container::real(&file, path, metadata.len()) {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "the Office container is malformed"));
+        }
+        let stamp = stamp(&metadata);
         Ok(Self {
             file,
             path: path.into(),
@@ -380,3 +386,7 @@ mod page_tests;
 #[cfg(test)]
 #[path = "office_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "office_invalid_tests.rs"]
+mod invalid_tests;

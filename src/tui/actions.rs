@@ -61,7 +61,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         return pointer_key(model, key, pointer, map, wire);
     }
     if model.editor.is_some() {
-        return edit(model, key, wire);
+        return super::editor_input::edit(model, key, wire);
     }
     if super::contents::holding(model) && map.action(key, &model.preset) == "print" {
         return super::print::open(model, wire, false);
@@ -279,7 +279,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     if (m.pending.is_some() || m.held || m.name_filter.waiting)
-        && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet")
+        && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet" | "suspend")
     {
         return Ok(());
     }
@@ -301,6 +301,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "menu"
                 | "properties"
                 | "factsToggle"
+                | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" | "followLink"
                 | "toggleSelect"
                 | "selectNext"
                 | "selectAll"
@@ -322,6 +323,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "rename"
                 | "copy"
                 | "cut"
+                | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink"
+                | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" | "followLink"
         )
     {
         m.fail_key("tui.operation.search_busy");
@@ -342,6 +345,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "reveal"
                 | "toggleSelect"
                 | "editFile"
+                | "copyPath" | "copyUri" | "copyName" | "copyStem" | "followLink"
         )
     {
         return Ok(());
@@ -365,6 +369,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     ) {
         m.sort_anchor = None;
     }
+    if super::parity17::act(m, action, w)? { return Ok(()); }
     match action {
         "print" => super::print::open(m, w, false)?,
         "convert" => super::convert::open(m, w, false)?,
@@ -524,15 +529,18 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             ))
         }
         "copy" | "cut" => {
-            if m.pending_clipboard || m.taildrop_target.is_some() {
+            if m.pending_clipboard || m.parity17.copy_text.is_some() || m.taildrop_target.is_some() {
                 return Ok(());
             }
             m.cut = action == "cut";
             m.pending_clipboard = true;
-            w.send(vec![("c", word("paths")), ("rows", m.indices())])?;
+            m.parity17.copy_id = m.parity17.copy_id.wrapping_add(1).max(1);
+            m.parity17.copy_listing = w.listing;
+            w.send(vec![("c", word("paths")), ("rows", m.indices()), ("hold", Json::Bool(true)), ("id", super::wire::number(m.parity17.copy_id))])?;
         }
         "clearClipboard" => {
             m.clipboard.clear();
+            m.parity17.copied.clear();
             m.cut = false;
             m.discard_clipboard |= m.pending_clipboard;
             m.say_key("tui.actions.clipboard_cleared");
@@ -584,53 +592,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "detailNext" => super::detail::cycle(m),
         "sortNext" | "sortReverse" | "sortName" | "sortNameReverse" | "sortDate"
-        | "sortDateReverse" | "sortSize" | "sortSizeReverse" => {
-            // The cursor's logical row: the loaded row, or in a listed/rows gap the anchor still waited for.
-            let anchor = m.current_path().or_else(|| m.sort_anchor.clone());
-            if action == "sortReverse" {
-                m.reverse = !m.reverse;
-            } else if action != "sortNext" {
-                m.sort = if action.starts_with("sortDate") {
-                    "date"
-                } else if action.starts_with("sortSize") {
-                    "size"
-                } else {
-                    "name"
-                }
-                .into();
-                m.reverse = action.ends_with("Reverse");
-            } else {
-                m.sort = match m.sort.as_str() {
-                    "name" => "size",
-                    "size" => "date",
-                    "date" => "kind",
-                    _ => "name",
-                }
-                .into();
-                m.reverse = false;
-            }
-            let mut request = vec![
-                ("c", word("sort")),
-                ("by", word(&m.sort)),
-                ("foldersByName", Json::Bool(m.sort == "size")),
-                ("desc", Json::Bool(m.reverse)),
-                ("foldersFirst", Json::Bool(m.folders_first)),
-                ("groupByKind", Json::Bool(m.group_by_kind)),
-            ];
-            if let Some(anchor) = anchor.as_ref() {
-                request.push(("anchor", word(&anchor.to_string_lossy())));
-            }
-            w.send(request)?;
-            m.sort_anchor = anchor;
-            m.invalidate_rows();
-            save(
-                "sort",
-                Json::Obj(vec![
-                    ("key".into(), word(&m.sort)),
-                    ("reverse".into(), Json::Bool(m.reverse)),
-                ]),
-                m,
-            );
+        | "sortDateReverse" | "sortSize" | "sortSizeReverse" | "sortBirth" | "sortBirthReverse" | "sortExtension" | "sortRandom" => {
+            super::sort_actions::act(m, action, w)?;
         }
         "tabNew" => {
             if tab_full(m) {
@@ -876,7 +839,7 @@ fn tab(m: &mut Model, index: usize, w: &mut Wire) -> io::Result<()> {
     m.forward = next.forward;
     m.open(next.path, w)
 }
-fn save(key: &str, value: Json, m: &mut Model) {
+pub(super) fn save(key: &str, value: Json, m: &mut Model) {
     let saved = match m.store.as_ref() {
         Some(store) => store.update(&Json::Obj(vec![(key.into(), value)])),
         None => return,
@@ -895,94 +858,6 @@ fn save_preview_column(m: &mut Model) {
         m,
     );
 }
-fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
-    let mut editor = m.editor.take().unwrap();
-    let kind = editor.kind;
-    if editor.pending {
-        m.editor = Some(editor);
-        return Ok(());
-    }
-    if key.name == "Escape"
-        || (m.preset == "yazi"
-            && key.mods == "ctrl"
-            && matches!(key.name.as_str(), "C" | "BracketLeft"))
-    {
-        if kind == "filter" {
-            m.apply_filter(String::new(), w)?;
-        }
-        if kind == "search" {
-            if let Some(active) = &m.find.active {
-                m.find.mode = active.contents;
-                m.find.session.scope = active.scope;
-            }
-        }
-        return Ok(());
-    }
-    if key.name == "Return" || key.name == "Enter" {
-        if !editor.valid_localized(&m.i18n) {
-            m.editor = Some(editor);
-            return Ok(());
-        }
-        let value = &editor.value;
-        match kind {
-            "path" => {
-                let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
-                let p = super::completion::expand(value, &home, &editor.path);
-                navigate(m, p, w)?;
-            }
-            "filter" => m.apply_filter(value.clone(), w)?,
-            "search" => {
-                if value.is_empty() {
-                    return Ok(());
-                }
-                let started = super::contents::start(m, value.clone(), editor.path.clone(), w)?;
-                if !started {
-                    m.editor = Some(editor);
-                    return Ok(());
-                }
-            }
-            "rename" => {
-                w.send(vec![
-                    ("c", word("rename")),
-                    ("path", word(&editor.path.to_string_lossy())),
-                    ("to", word(value)),
-                ])?;
-            }
-            "mkdir" | "newfile" => w.send(vec![
-                ("c", word(kind)),
-                ("op", word("newFile")),
-                ("id", super::wire::number(m.action_id)),
-                ("path", word(&editor.path.to_string_lossy())),
-                ("name", word(value)),
-            ])?,
-            _ => {}
-        }
-        if matches!(kind, "rename" | "mkdir" | "newfile") {
-            editor.pending = true;
-            m.editor = Some(editor);
-        }
-        return Ok(());
-    } else if key.name == "Tab" && kind == "path" {
-        if !m.completion.is_empty() {
-            editor.replace(m.completion.clone());
-        }
-    } else if key.name == "G" && key.mods == "ctrl" && kind == "search" {
-        m.find.mode = !m.find.mode;
-    } else if key.name == "Tab" && kind == "search" {
-        m.find.session.scope = m.find.session.next_scope();
-    } else {
-        editor.update(key);
-    }
-    if kind == "filter" {
-        m.apply_filter(editor.value.clone(), w)?;
-    }
-    if kind == "path" {
-        m.completion = m.completer.request(&editor.value, &editor.path);
-    }
-    m.editor = Some(editor);
-    Ok(())
-}
-
 // A held frame has a presentation path, but only navigation, query editing and cancellation may act on it.
 fn find_holds(m: &Model, action: &str) -> bool {
     super::contents::holding(m)

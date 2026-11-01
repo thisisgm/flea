@@ -34,6 +34,7 @@ impl Session {
         let saved = mode(&slave);
         let mut command = pty_test_command();
         command.args(["--exact", "tui::terminal::tests::review_suspend_child", "--nocapture"])
+            .env("XDG_DATA_HOME", root.join("data")).env("XDG_CONFIG_HOME", root.join("config")).env("XDG_CACHE_HOME", root.join("cache"))
             .env("FLEA_T1_REVIEW_SUSPEND_ROOT", root).env("FLEA_T1_REVIEW_SUSPEND_MODE", child_mode).env_remove("TMUX")
             .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap());
         // The PTY is the child's controlling terminal, as a shell's is, so the editor handoff can move its foreground.

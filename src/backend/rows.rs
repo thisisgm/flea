@@ -197,12 +197,14 @@ fn rows_line_body(
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
         let row_at = s.len();
         let outline = super::outline::row_fields(l, start + i);
+        let born = m.birth.map_or_else(|| "null".to_string(), |time| time.to_string());
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
             m.mtime,
+            born,
             m.mode,
             escape(icon),
             can_thumb,

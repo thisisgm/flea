@@ -168,3 +168,16 @@ fn a_foreign_gnome_trailing_newline_is_not_a_refused_file() {
     assert_eq!(paths, vec!["/tmp/a"]);
     assert_eq!(skipped, 0, "a formatting line is not a refused URI");
 }
+
+#[test]
+fn tui17_text_payload_offers_no_file_identity_or_uri_list() {
+    assert!(check_selection("text", &["é\nfilename".into()]).is_ok());
+    let payload=payloads("text", &["é\nfilename".into()], "unused");
+    assert_eq!(payload.len(),3);
+    for (mime, bytes) in payload {
+        assert!(matches!(mime, PLAIN_UTF8 | PLAIN | UTF8_STRING));
+        assert_eq!(bytes,"é\nfilename".as_bytes());
+    }
+    assert!(check_selection("text",&["nul\0byte".into()]).is_err());
+    assert!(check_selection("text",&["a".into(),"b".into()]).is_err());
+}
