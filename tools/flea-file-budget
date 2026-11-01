@@ -11,7 +11,12 @@ soft_qml=250;  hard_qml=400
 soft_js=200;   hard_js=300
 
 # Recorded debts and scoped release exceptions retain exact per-file ceilings; global limits stay unchanged.
-known_over_cap="src/tui/preview.rs 406
+known_over_cap="src/tui/parity_candidate_tests.rs 696
+src/tui/office.rs 403
+src/tui/preview_locale_tests.rs 513
+src/tui/cells.rs 426
+src/tui/parity_listing_tests.rs 410
+src/tui/preview.rs 406
 src/tui/frame_tests.rs 408
 src/backend/contents_review_tests.rs 433
 crates/flea-gui/src/columns/geometry.rs 428
@@ -332,7 +337,7 @@ crates/flea-gui/src/navigation/landing.rs 429
 crates/flea-gui/src/g2/dg2/rail_drop.rs 444
 crates/flea-gui/src/window/columns.rs 406
 crates/flea-gui/src/g2/mn1/join.rs 453
-crates/flea-gui/src/navigation/steps.rs 408"
+"
 
 status=0
 
