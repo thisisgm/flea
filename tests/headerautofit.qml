@@ -90,6 +90,8 @@ ShellRoot {
         Focus.act("autofitColumns", pane)
         var recentWritten = Flea.ViewState.commits.length === 1 ? Object.keys(Flea.ViewState.commits[0].entries).sort().join(",") : ""
         check("Recent fits only the columns it draws", recentWritten, "date,size")
+        check("Recent fits Size to its measured text", Flea.ViewState.state.columnWidths.size, root.measured("size"))
+        check("Recent fits Modified to its measured text", Flea.ViewState.state.columnWidths.date, root.measured("date"))
         listHeader.recent = false
         pane.viewMode = "grid"
         Flea.ViewState.reset()
