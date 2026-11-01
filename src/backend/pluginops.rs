@@ -12,13 +12,16 @@ pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, Strin
     write(env, &store::enable_patch(plugin, on))?;
     record_start(plugin, Ok(()));
     let mut shelf_failure = None;
-    if found.plugin.manifest.block("shelf").is_some() && (was != on || found.plugin.failure.is_some()) {
+    if found.plugin.manifest.block("shelf").is_some()
+        && (was != on || found.plugin.failure.is_some())
+    {
         // The ui.json write is the switch; a bar that could not follow is said on stderr, as `flea --ui-state` says it.
         if let Err(e) = super::pluginshelf::switch(env, &found, on) {
             shelf_failure = Some(e);
         }
     }
-    if on && shelf_failure.is_none()
+    if on
+        && shelf_failure.is_none()
         && found
             .plugin
             .failure
@@ -31,7 +34,9 @@ pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, Strin
         super::pluginruntime::stop(env, plugin);
         record_start(plugin, Ok(()));
     }
-    if let Some(error) = shelf_failure { record_start(plugin, Err(error)); }
+    if let Some(error) = shelf_failure {
+        record_start(plugin, Err(error));
+    }
     Ok((plugin.to_string(), found.plugin.manifest.version))
 }
 

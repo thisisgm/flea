@@ -13,7 +13,10 @@ struct Registry {
     live: Option<HashMap<PathBuf, Runtime>>,
 }
 
-static RUNNING: Mutex<Registry> = Mutex::new(Registry { closed: false, live: None });
+static RUNNING: Mutex<Registry> = Mutex::new(Registry {
+    closed: false,
+    live: None,
+});
 const MAX_PLUGINS: usize = 64;
 
 fn key(env: &Env, id: &str) -> PathBuf {
@@ -33,7 +36,11 @@ fn session(env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
     session_at(&RUNNING, env, found)
 }
 
-fn session_at(registry: &Mutex<Registry>, env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
+fn session_at(
+    registry: &Mutex<Registry>,
+    env: &Env,
+    found: &Installed,
+) -> Result<Runtime, Invalid> {
     let manifest = &found.plugin.manifest;
     if manifest.kinds.iter().all(|kind| kind == "previewer") {
         return Err(Invalid::new(

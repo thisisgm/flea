@@ -156,16 +156,31 @@ fn plugin_runtime_progress_arrives_before_completion_and_shutdown_cancels_a_hang
 #[test]
 fn plugin_runtime_invalid_requests_do_not_kill_the_child_or_charge_restart_budget() {
     let dir = TestDir::new("plugin-request-refusals");
-    let script = format!("#!/bin/sh\necho $$ >> '{}/starts'\n{}", dir.path().display(), ECHO.trim_start_matches("#!/bin/sh\n"));
+    let script = format!(
+        "#!/bin/sh\necho $$ >> '{}/starts'\n{}",
+        dir.path().display(),
+        ECHO.trim_start_matches("#!/bin/sh\n")
+    );
     let runtime = Runtime::new(config(&dir, &script));
     runtime.ensure_ready().unwrap();
     let pid = std::fs::read_to_string(dir.join("starts")).unwrap();
     for _ in 0..4 {
-        assert_eq!(runtime.request(json(r#"{"op":"unknown"}"#)).unwrap_err(), "unknown plugin operation");
+        assert_eq!(
+            runtime.request(json(r#"{"op":"unknown"}"#)).unwrap_err(),
+            "unknown plugin operation"
+        );
         assert!(runtime.failure().is_none());
         assert!(std::path::Path::new(&format!("/proc/{}", pid.trim())).exists());
     }
-    assert_eq!(runtime.request(json(r#"{"op":"run","action":"run","paths":[]}"#)).unwrap().message.get("op").and_then(Json::as_str), Some("done"));
+    assert_eq!(
+        runtime
+            .request(json(r#"{"op":"run","action":"run","paths":[]}"#))
+            .unwrap()
+            .message
+            .get("op")
+            .and_then(Json::as_str),
+        Some("done")
+    );
     assert_eq!(std::fs::read_to_string(dir.join("starts")).unwrap(), pid);
 }
 

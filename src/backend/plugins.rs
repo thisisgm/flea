@@ -235,7 +235,10 @@ pub(super) fn hello(env: &Env, m: &Manifest) -> String {
     let settings = schema::settings(&m.schema, store::stored_settings(&state(env), &m.id));
     wire::compact(&Json::Obj(vec![
         ("op".into(), Json::Str("hello".into())),
-        ("protocolVersion".into(), Json::Num(flea::plugin_runtime::protocol::VERSION.to_string())),
+        (
+            "protocolVersion".into(),
+            Json::Num(flea::plugin_runtime::protocol::VERSION.to_string()),
+        ),
         ("flea".into(), Json::Str(env!("CARGO_PKG_VERSION").into())),
         ("language".into(), Json::Str(i18n.language().into())),
         ("decimal".into(), Json::Str(i18n.locale().decimal.clone())),
@@ -259,10 +262,7 @@ pub(super) fn hello(env: &Env, m: &Manifest) -> String {
 pub fn check_start(env: &Env, found: &Installed) {
     if found.folder.is_some() {
         let m = &found.plugin.manifest;
-        record_start(
-            &m.id,
-            super::pluginruntime::start(env, found),
-        );
+        record_start(&m.id, super::pluginruntime::start(env, found));
     }
 }
 
@@ -291,7 +291,11 @@ pub fn handle(line: &str, env: &Env) -> Vec<String> {
     handle_stream(line, env, &mut |_| {})
 }
 
-pub(super) fn handle_stream(line: &str, env: &Env, progress: &mut dyn FnMut(String)) -> Vec<String> {
+pub(super) fn handle_stream(
+    line: &str,
+    env: &Env,
+    progress: &mut dyn FnMut(String),
+) -> Vec<String> {
     let doc = match jsondoc::parse(line) {
         Ok(doc) => doc,
         Err(e) => return vec![refusal(line, Invalid::new("request", e))],
