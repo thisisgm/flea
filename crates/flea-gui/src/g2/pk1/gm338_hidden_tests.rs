@@ -68,12 +68,20 @@ fn gm338_a_changed_setting_relists_the_chooser(cx: &mut TestAppContext) {
 #[gpui::test]
 fn gm338_a_portal_flag_outranks_the_seed(cx: &mut TestAppContext) {
     cx.update(|cx| cx.set_global(HiddenSeed(true)));
-    let f = fixture(cx, r#"{"folder":"/d","hidden":false}"#, None);
+    let mut f = fixture(cx, r#"{"folder":"/d","hidden":false}"#, None);
     f.cx.run_until_parked();
     assert_eq!(
         last_hidden(&f, "list"),
         Some(false),
         "the caller's flag wins"
+    );
+    apply(&mut f, r#"{"hidden":false}"#);
+    apply(&mut f, r#"{"hidden":true}"#);
+    assert_eq!(lists(&f), 1, "a changed Show Hidden Files relists nothing");
+    assert_eq!(
+        last_hidden(&f, "list"),
+        Some(false),
+        "the caller's flag still wins over Show Hidden Files"
     );
 }
 
@@ -91,15 +99,18 @@ fn gm338_the_key_toggle_flips_the_chooser_only(cx: &mut TestAppContext) {
         Some(true),
         "the keys.toml toggle shows hidden files"
     );
+    assert!(
+        !f.read(|picker| picker.preferences.followed.hidden),
+        "the app's setting is not changed by the toggle"
+    );
+    let count = lists(&f);
+    apply(&mut f, r#"{"hidden":true}"#);
     apply(&mut f, r#"{"hidden":false}"#);
+    assert_eq!(lists(&f), count, "a changed setting leaves the toggled window alone");
     assert_eq!(
         last_hidden(&f, "list"),
         Some(true),
         "the toggle outranks the setting in this window"
-    );
-    assert!(
-        !f.read(|picker| picker.preferences.followed.hidden),
-        "the app's setting is not changed by the toggle"
     );
     f.cx.simulate_keystrokes("ctrl-shift-.");
     f.cx.run_until_parked();
