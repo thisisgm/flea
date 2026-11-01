@@ -342,3 +342,6 @@ fn drawn_picture(shell: &Shell, view: View) -> std::sync::Arc<crate::grid::eleme
         std::sync::Arc::clone(shown.picture.as_ref().unwrap())
     }
 }
+
+#[path = "fixreaders_thumbnail_readers_tests.rs"]
+mod fixreaders;

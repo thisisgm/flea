@@ -155,6 +155,10 @@ impl QuickLook {
                 .debug_selector(|| "pv1-media".into())
                 .size_full()
                 .child(card)
+                .child(super::observations::bounds(
+                    &self.observations,
+                    |observed, bounds| observed.surface = Some(bounds),
+                ))
                 .into_any_element()];
         }
         // ql-archive: no bar over the card; its own heading opens it, and a failure recipe sits at the top.
@@ -180,6 +184,10 @@ impl QuickLook {
                 .w_full()
                 .overflow_hidden()
                 .child(doc.element())
+                .child(super::observations::bounds(
+                    &self.observations,
+                    |observed, bounds| observed.surface = Some(bounds),
+                ))
                 .into_any_element(),
         };
         if is_archive {

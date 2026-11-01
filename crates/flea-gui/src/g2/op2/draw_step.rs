@@ -210,6 +210,18 @@ impl StandIn {
             frame_div.border_1()
         };
         button = button.child(frame_div);
+        if let Some(probe) = taps.action_probe.clone() {
+            button = button.child(
+                gpui::canvas(
+                    |_, _, _| {},
+                    move |painted, _, _, _| probe.set(Some((action, painted))),
+                )
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full(),
+            );
+        }
         if let Some((color, probe)) = wash {
             button = button.child(
                 div()

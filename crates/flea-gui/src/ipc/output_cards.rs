@@ -9,6 +9,64 @@ pub(crate) struct OutputAdapter<'a> {
     pub cx: &'a App,
 }
 
+impl OutputAdapter<'_> {
+    /// GPUI-only (v0.3.12 has no Combine card): the open card's settings, the focused field and image, in drawing order.
+    fn combine_state(&self) -> String {
+        use flea::jsondoc::Json;
+        let Some(model) = self
+            .shell
+            .output
+            .view
+            .as_ref()
+            .map(|view| &view.read(self.cx).model)
+        else {
+            return r#"{"opened":false}"#.into();
+        };
+        let Some(Card::Combine(combine)) = &model.card else {
+            return r#"{"opened":false}"#.into();
+        };
+        let word = |debug: String| Json::Str(debug.to_lowercase());
+        let settings = &combine.settings;
+        let images = model.selection.as_ref().map_or_else(Vec::new, |selection| {
+            selection
+                .files
+                .iter()
+                .map(|file| {
+                    let name = std::path::Path::new(&file.path)
+                        .file_name()
+                        .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
+                    Json::Str(name)
+                })
+                .collect()
+        });
+        flea::jsondoc::render(&Json::Obj(vec![
+            ("opened".into(), Json::Bool(true)),
+            ("layout".into(), word(format!("{:?}", settings.layout))),
+            ("spacing".into(), word(format!("{:?}", settings.spacing))),
+            (
+                "background".into(),
+                word(format!("{:?}", settings.background)),
+            ),
+            ("columns".into(), Json::Num(settings.columns.to_string())),
+            ("format".into(), Json::Str(combine.format.clone())),
+            ("name".into(), Json::Str(combine.name.clone())),
+            (
+                "focus".into(),
+                model
+                    .focus
+                    .map_or(Json::Null, |focus| word(format!("{focus:?}"))),
+            ),
+            (
+                "focusedImage".into(),
+                Json::Num(combine.focused.map_or(-1, |at| at as i64).to_string()),
+            ),
+            ("images".into(), Json::Arr(images)),
+            ("collision".into(), Json::Bool(combine.collision)),
+            ("busy".into(), Json::Bool(model.busy)),
+        ]))
+    }
+}
+
 impl Adapter for OutputAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         if function == "canConvert" {
@@ -17,6 +75,9 @@ impl Adapter for OutputAdapter<'_> {
                     .unwrap_or(false)
                     .to_string(),
             ));
+        }
+        if function == "combineState" {
+            return Some(Reply::value(self.combine_state()));
         }
         if !matches!(
             function,

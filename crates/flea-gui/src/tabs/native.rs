@@ -116,6 +116,11 @@ impl Shell {
                 .as_ref()
                 .map_or(&[], |snapshot| snapshot.identities.as_slice()),
             bounds,
+            tearoff: [
+                self.strip.catchers.count(),
+                self.strip.lifts,
+                self.strip.client_queries,
+            ],
             model: crate::ipc::tabs::TabsAdapter {
                 state: &self.strip.tabs[side],
                 bar: &self.strip.bar,

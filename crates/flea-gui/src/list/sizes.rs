@@ -114,6 +114,8 @@ pub(crate) struct State {
     task: Option<Task<()>>,
     /// Backend.qml dirSizeRequests: every non-empty dirsize line this pane's backend was sent.
     pub requests: usize,
+    /// Every dirsizecancel line the backend took, so a scroll that drops waiting walks can be counted (GPUI-only dirSizeCancels).
+    pub cancels: usize,
 }
 
 #[cfg(test)]
@@ -150,6 +152,11 @@ impl State {
             .map(|size| size.bytes)
     }
 
+    /// The pane's asked and answered folder walks, which the dirSizeState reader writes out.
+    pub(crate) fn dir_sizes(&self) -> &DirSizes {
+        &self.sizes
+    }
+
     /// The shown folder's filesystem class word, once the backend has answered for it.
     pub(crate) fn class(&self) -> Option<&str> {
         self.class.as_deref()
@@ -159,7 +166,9 @@ impl State {
         self.task = None;
         self.key = None;
         if !self.waiting.is_empty() {
-            let _ = backend.list_details(r#"{"c":"dirsizecancel"}"#);
+            if backend.list_details(r#"{"c":"dirsizecancel"}"#).is_ok() {
+                self.cancels += 1;
+            }
             self.waiting.clear();
             self.sizes.cancelled();
         }

@@ -315,6 +315,7 @@ impl Render for LiveFlash {
             down: Some(down),
             up: Some(up),
             cancel: Some(cancel),
+            action_probe: None,
         };
         StandIn.present_flash(FlashFrame {
             view: &seen,

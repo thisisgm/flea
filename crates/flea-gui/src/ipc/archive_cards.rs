@@ -8,7 +8,7 @@ pub(crate) struct ArchiveAdapter<'a> {
 }
 
 impl Adapter for ArchiveAdapter<'_> {
-    fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let archive = &self.shell.operations.archive;
         let value = match function {
             "archiveFormats" => archive.formats[self.shell.focus_side].archive.join("|"),
@@ -33,8 +33,9 @@ impl Adapter for ArchiveAdapter<'_> {
             }
             "flashState" => {
                 let flash = &archive.flash;
-                if !flash.shown() && !flash.running() && flash.image_path().is_none() {
-                    return Some(Reply::error(3, "FLEA_IPC_ERROR flea.flashState unavailable field: view lifetime (an unbuilt host and an empty closed view share the same model state)"));
+                // FlashHost.describe: an unbuilt host answers closed alone, a built view its whole state, closed or not.
+                if !flash.built() {
+                    return Some(Reply::value("{\"opened\":false}"));
                 }
                 format!(
                     "{{\"opened\":{},\"cursor\":{},\"image\":\"{}\",\"drives\":{},\"selected\":{},\"live\":{},\"running\":{},\"phase\":\"{}\",\"ending\":\"{}\"}}",
@@ -48,6 +49,28 @@ impl Adapter for ArchiveAdapter<'_> {
                     escape(flash.phase()),
                     escape(flash.ending().map_or("", |ending| ending.headline.as_str())),
                 )
+            }
+            // FlashHost.controlItem: flash, cancel or end, centred where the step row painted it, "" while another or none shows.
+            "flashControlCentre" => {
+                use crate::g2::op2::flash::StepAction;
+                let wanted = match arguments.first().map(String::as_str) {
+                    Some("flash") => Some(StepAction::Flash),
+                    Some("cancel") => Some(StepAction::Cancel),
+                    Some("end") => Some(StepAction::End),
+                    _ => None,
+                };
+                archive
+                    .flash_action
+                    .get()
+                    .filter(|(action, _)| archive.flash.shown() && Some(*action) == wanted)
+                    .map_or_else(String::new, |(_, b)| {
+                        super::rows::centre_of(
+                            f32::from(b.origin.x),
+                            f32::from(b.origin.y),
+                            f32::from(b.size.width),
+                            f32::from(b.size.height),
+                        )
+                    })
             }
             _ => return None,
         };

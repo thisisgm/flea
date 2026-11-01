@@ -92,6 +92,8 @@ pub struct Flash {
     request_id: u64,
     ejected: bool,
     shown: bool,
+    /// The view has opened once, as FlashHost builds its FlashView on first use and keeps it.
+    built: bool,
     action_hover: bool,
     action_pressed: bool,
     press: PressAnim,
@@ -111,6 +113,7 @@ impl Flash {
             request_id: 0,
             ejected: false,
             shown: false,
+            built: false,
             action_hover: false,
             action_pressed: false,
             press: PressAnim::settled(false),
@@ -155,6 +158,10 @@ impl Flash {
         self.shown
     }
 
+    pub fn built(&self) -> bool {
+        self.built
+    }
+
     pub fn running(&self) -> bool {
         self.runner.transfer.is_some()
     }
@@ -184,6 +191,7 @@ impl Flash {
         self.action_pressed = false;
         self.press = PressAnim::settled(false);
         self.shown = true;
+        self.built = true;
         self.ejected = false;
         if self.running() {
             return vec![Effect::TakeBack];

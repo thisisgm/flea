@@ -1,4 +1,4 @@
-//! Legacy Columns preview readers project only the currently mounted document.
+//! Legacy Columns preview readers, and previewBlockKinds(true), project only the currently mounted document.
 use super::Adapter;
 use crate::window::selection_preview::{docs::Doc, readers::Reader, Mounted};
 use flea::ipc::wire::Reply;
@@ -8,11 +8,13 @@ pub(crate) struct ColumnsPreview<'a, 'b> {
 }
 
 impl Adapter for ColumnsPreview<'_, '_> {
-    fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        let column = arguments.first().is_some_and(|flag| flag == "true");
         if !matches!(
             function,
             "columnMarkdownText" | "columnMarkdownView" | "columnArchiveRect"
-        ) {
+        ) && !(function == "previewBlockKinds" && column)
+        {
             return None;
         }
         let view = self
@@ -43,6 +45,10 @@ impl Adapter for ColumnsPreview<'_, '_> {
                     }
                     .to_owned()
                 }
+            }
+            // IpcPreviewState.previewBlockKinds(true): the visible column's Markdown, "" while it loads or shows none.
+            ("previewBlockKinds", Some(Mounted::Doc(Doc::Markdown(markdown)))) => {
+                crate::ipc::preview_look::block_kinds(markdown.read(self.preview.cx))
             }
             ("columnArchiveRect", Some(Mounted::Doc(Doc::Archive(archive)))) => {
                 let archive = archive.read(self.preview.cx);

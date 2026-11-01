@@ -278,6 +278,8 @@ pub struct ListState {
     pub drawn: Drawn,
     /// The bounded snapshot the last frame drew, retained until its replacement is painted.
     pub drawn_rows: Rc<pane::Held>,
+    /// The listing rows a standing filter left that frame, at their view positions; None with no filter up.
+    pub drawn_filter: Option<Rc<[usize]>>,
     pub header: header::HeaderState,
     // The one empty line every hidden cell shares, so a column that is not drawn shapes nothing.
     blank: Arc<LineLayout>,
@@ -312,6 +314,7 @@ impl ListState {
             view: ListView::default(),
             drawn: Drawn::default(),
             drawn_rows: Rc::default(),
+            drawn_filter: None,
             header: header::HeaderState::default(),
             blank: Arc::new(LineLayout::default()),
             palette_reads: 0,
@@ -361,6 +364,7 @@ impl ListState {
         self.rows = RowCache::default();
         self.visible = Vec::new();
         self.drawn_rows = Rc::default();
+        self.drawn_filter = None;
         self.header.forget_titles();
     }
 }

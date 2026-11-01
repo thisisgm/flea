@@ -50,7 +50,8 @@ impl Adapter for PreviewText<'_> {
                     Some(state(
                         code.read(self.cx),
                         view.visible,
-                        view.focus.is_focused(self.window),
+                        // Preview.qml activeFocus: the column or a view inside it holds the keyboard.
+                        view.focus.contains_focused(self.window, self.cx),
                         !held && view.pending.is_none(),
                     ))
                 })

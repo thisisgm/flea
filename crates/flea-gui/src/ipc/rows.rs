@@ -387,6 +387,7 @@ impl Adapter for RowsAdapter<'_> {
                     .ok()
                     .and_then(|at| usize::try_from(at).ok())
                     .unwrap_or(usize::MAX);
+                let index = super::view::listing_row(function, index, list.drawn_filter.as_deref());
                 return self.row_value(function, index).map(Reply::value);
             }
         };

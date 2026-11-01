@@ -28,22 +28,25 @@ case_thumbs() {
     shot thumbs-first-screen
     [[ "$(ipc thumbRequests)" == "1" ]] || fail "the first screen took $(ipc thumbRequests) requests, not one"
     [[ "$(ipc thumbFile 0)" == "$cache_large/"*.png ]] || fail "row 0 has no cached thumbnail: $(ipc thumbFile 0)"
-    local screen_rows icon0 icon_next glyph_next y0 y1 pitch
+    local screen_rows icon0 icon_next file_next glyph_last y0 y1 pitch
     screen_rows=$(ipc visibleRows)
     icon0=$(ipc rowIcon 0)
-    # The first row past the requested screen is still built by the cache buffer, so it witnesses the scoping.
+    # GPUI builds no row past the viewport (QML's cacheBuffer row does not exist), so the last row inside it witnesses that the row readers see built rows.
+    glyph_last=$(ipc rowGlyph "$((screen_rows - 1))")
+    # The first row past the screen was never requested: it has no cached file and draws no thumbnail.
     icon_next=$(ipc rowIcon "$screen_rows")
-    glyph_next=$(ipc rowGlyph "$screen_rows")
+    file_next=$(ipc thumbFile "$screen_rows")
     read -r _thumb_x0 y0 <<< "$(ipc rowCentre 0)"
     read -r _thumb_x1 y1 <<< "$(ipc rowCentre 1)"
     [[ -n "$y0" && -n "$y1" ]] || fail "row 0 or row 1 reported no on-screen centre, so no pitch was ever rendered to measure"
     pitch=$(( y1 - y0 ))
-    printf 'THUMBS icon0=%q screenRows=%s iconNext=%q glyphNext=%q pitch=%s rowHeight=%s\n' \
-        "$icon0" "$screen_rows" "$icon_next" "$glyph_next" "$pitch" "$row_height"
+    printf 'THUMBS icon0=%q screenRows=%s iconNext=%q fileNext=%q glyphLast=%q pitch=%s rowHeight=%s\n' \
+        "$icon0" "$screen_rows" "$icon_next" "$file_next" "$glyph_last" "$pitch" "$row_height"
     # The mtime query is part of the shape, so cutting it reddens here as well as in case_stale.
     [[ "$icon0" == "file://$cache_large/"*".png?m="* ]] || fail "row 0 still draws its icon: $icon0"
-    # The glyph, not the thumbnail URL, proves the row was built: an unrequested row carries no thumbnail at all.
-    [[ -n "$glyph_next" ]] || fail "row $screen_rows was never built, so no unrequested row was looked at"
+    # The glyph, not the thumbnail URL, proves the row readers see a built row; an unrequested row carries no thumbnail at all.
+    [[ -n "$glyph_last" ]] || fail "row $((screen_rows - 1)) inside the viewport reads as never built, so the row readers prove nothing"
+    [[ -z "$file_next" ]] || fail "row $screen_rows past the screen was asked for a thumbnail: $file_next"
     [[ -z "$icon_next" ]] || fail "row $screen_rows was never requested and still draws a thumbnail: $icon_next"
     # The pitch comes off itemRect and not off a Theme token, so a thumbnail that grew its row reddens here.
     [[ "$pitch" == "$row_height" ]] || fail "a thumbnail made the rendered pitch $pitch, not the $row_height the theme asks for"

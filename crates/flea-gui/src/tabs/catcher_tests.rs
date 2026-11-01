@@ -263,3 +263,62 @@ fn u25_finished_and_cancelled_tab_drags_close_the_desktop_catchers(cx: &mut Test
         cx.run_until_parked();
     }
 }
+
+// SCN-PROOF-4: tabTearoffState reads one compositor client query per lift, and the catcher layer's namespace.
+#[gpui::test]
+fn fixreaders_tab_tearoff_state_counts_one_client_query_per_lift(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    let line = format!(
+        r#"[{{"pid":{pid},"at":[10,20],"size":[900,500],"mapped":true,"hidden":false}}]"#,
+        pid = std::process::id()
+    );
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.strip.clients = std::sync::Arc::new(move || line.clone());
+            key(shell, "t", window, cx);
+        })
+    });
+    cx.run_until_parked();
+    let state = |shell: &gpui::Entity<crate::state::Shell>, cx: &mut gpui::VisualTestContext| {
+        let (answer, receive) = std::sync::mpsc::sync_channel(1);
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                shell.ipc(
+                    crate::ipc::server::Event::Call {
+                        request: flea::ipc::wire::Request::Call {
+                            target: "flea".into(),
+                            function: "tabTearoffState".into(),
+                            arguments: Vec::new(),
+                        },
+                        answer,
+                    },
+                    window,
+                    cx,
+                )
+            })
+        });
+        flea::jsondoc::parse(receive.try_recv().unwrap().reply.stdout.trim()).unwrap()
+    };
+    let before = state(&shell, cx);
+    assert_eq!(before.get("lifts").and_then(|v| v.as_f64()), Some(0.));
+    assert_eq!(
+        before.get("namespace").and_then(|v| v.as_str()),
+        Some("flea-tab-tearoff")
+    );
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            let now = shell.tab_now();
+            shell.with_tabs(|bar, panes| bar.tab_lift_began(panes, 0, now));
+            shell.begin_tab_geometry(cx);
+            shell.begin_tab_geometry(cx);
+        })
+    });
+    cx.run_until_parked();
+    let after = state(&shell, cx);
+    assert_eq!(after.get("lifts").and_then(|v| v.as_f64()), Some(1.));
+    assert_eq!(
+        after.get("clientQueries").and_then(|v| v.as_f64()),
+        Some(1.)
+    );
+}

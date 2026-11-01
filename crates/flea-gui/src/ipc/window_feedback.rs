@@ -13,13 +13,19 @@ pub(crate) struct FeedbackAdapter<'a> {
     pub pane_focused: bool,
     /// The list's keyboard focus, Pane.qml's listArea.activeFocus.
     pub list_focused: bool,
-    /// The list draws a drop target this frame, so a drag is over one of its rows.
+    /// IpcPreviewState.listingDropActive: a drag is over the listing's floor, past or between folder rows, landing in the shown folder.
     pub drop_active: bool,
 }
 
 impl Adapter for FeedbackAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         let value = match function {
+            // GPUI-only: v0.3.12 kept Pane.clipboardText off IPC; this answers the system clipboard's text, "" with none.
+            "clipboardText" => self
+                .cx
+                .read_from_clipboard()
+                .and_then(|item| item.text())
+                .unwrap_or_default(),
             "shareBrowserOpen" | "shareBrowserEntries" => {
                 let browser = self
                     .shell
@@ -137,5 +143,28 @@ impl FeedbackAdapter<'_> {
                 f32::from(bounds.size.height).round()
             )
         })
+    }
+}
+
+impl Shell {
+    /// PaneWire.qml's floor DropInto: List and Grid only, under the rows, so a folder row's own target hides it.
+    pub(crate) fn listing_floor_active(
+        &self,
+        host: &crate::window::pane::PaneHost,
+        list: &crate::list::ListState,
+        states: &crate::list::RowStates,
+        window: &gpui::Window,
+        cx: &App,
+    ) -> bool {
+        let floor = match host.drawn_view {
+            Some(crate::window::startup::View::List) => Some(list.drawn.bounds),
+            Some(crate::window::startup::View::Grid) => {
+                host.grid.as_ref().map(|grid| grid.state.borrow().bounds)
+            }
+            _ => None,
+        };
+        cx.has_active_drag()
+            && states.drop_target.is_none()
+            && floor.is_some_and(|bounds| bounds.contains(&window.mouse_position()))
     }
 }

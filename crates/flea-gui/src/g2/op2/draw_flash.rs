@@ -26,6 +26,9 @@ pub type UpTap = Rc<dyn Fn(&MouseUpEvent, &mut Window, &mut App)>;
 pub type StepTap = Rc<dyn Fn(&MouseUpEvent, &mut Window, &mut App)>;
 /// Cancel a pointer gesture without turning cancellation into an activating release.
 pub type CancelTap = Rc<dyn Fn(&mut Window, &mut App)>;
+/// Which step action last painted and where, for flashControlCentre.
+pub type ActionProbe =
+    Rc<std::cell::Cell<Option<(super::flash::StepAction, gpui::Bounds<gpui::Pixels>)>>>;
 
 /// The pointer entries op2 installs itself: Back, the image tap, one tap per drive row, and the step action's own hover, press and tap.
 #[derive(Clone, Default)]
@@ -38,6 +41,7 @@ pub struct FlashTaps {
     pub down: Option<DownTap>,
     pub up: Option<UpTap>,
     pub cancel: Option<CancelTap>,
+    pub action_probe: Option<ActionProbe>,
 }
 
 /// The flash view's per-frame inputs: the model view, the press clock and the window it measures with.

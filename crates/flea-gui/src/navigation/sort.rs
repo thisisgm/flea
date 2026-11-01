@@ -387,6 +387,9 @@ impl super::Navigator {
     }
 }
 
+#[path = "sort_json.rs"]
+mod json;
+
 #[cfg(test)]
 #[path = "sort_inline_tests.rs"]
 mod inline_tests;

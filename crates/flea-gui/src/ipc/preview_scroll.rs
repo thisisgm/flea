@@ -31,8 +31,9 @@ impl Adapter for PreviewScroll<'_> {
                 shown.map_or_else(|| "{}".into(), |view| view.table_state()),
             ));
         }
+        // PreviewMarkdown.qml scrollY is the body's contentY, which rests at minus its top inset; GPUI's scroll rests at 0.
         let at = shown.map(|view| match view.shown_view() {
-            markdown::View::Rendered => view.scroll,
+            markdown::View::Rendered => view.scroll - view.tokens.inset_y(),
             markdown::View::Source => view.source.scroll_y(),
         });
         Some(Reply::value(at.map_or_else(

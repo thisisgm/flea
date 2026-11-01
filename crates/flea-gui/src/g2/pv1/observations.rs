@@ -60,10 +60,16 @@ impl Swap {
     }
 }
 
+/// One painted box per PDF strip control, the only strip pdfState reads.
+pub(crate) const STRIP_SLOTS: usize = flea::ui_logic_pv2::viewer::CONTROLS.len();
+
 #[derive(Default)]
 pub(crate) struct Observations {
     pub close: Option<Bounds<Pixels>>,
     pub close_hovered: bool,
+    pub surface: Option<Bounds<Pixels>>,
+    pub picture: Option<Bounds<Pixels>>,
+    pub strip: [Option<Bounds<Pixels>>; STRIP_SLOTS],
     pub swap: Swap,
     pub revealed_early: bool,
     pub landed: bool,
@@ -148,7 +154,33 @@ pub(super) fn close_slot(
     .on_hover(move |over, _, _| hover.borrow_mut().close_hovered = *over)
 }
 
+/// Bounds from the actual laid-out element, for passive IPC readers.
+pub(super) fn bounds(
+    observations: &Shared,
+    record: impl Fn(&mut Observations, Bounds<Pixels>) + 'static,
+) -> gpui::AnyElement {
+    use gpui::{canvas, prelude::*};
+    let observations = observations.clone();
+    canvas(
+        |bounds, _, _| bounds,
+        move |_, bounds, _, _| record(&mut observations.borrow_mut(), bounds),
+    )
+    .absolute()
+    .top_0()
+    .left_0()
+    .size_full()
+    .into_any_element()
+}
+
 impl super::QuickLook {
+    /// Clears the painted boxes before a render, so a box reads only while this frame draws its element.
+    pub(crate) fn forget_painted_bounds(&self) {
+        let mut observed = self.observations.borrow_mut();
+        observed.surface = None;
+        observed.picture = None;
+        observed.strip = [None; STRIP_SLOTS];
+    }
+
     pub(crate) fn observation_time(&mut self, cx: &gpui::App) -> u64 {
         let now = cx.background_executor().now();
         let origin = self.observation_origin.get_or_insert(now);

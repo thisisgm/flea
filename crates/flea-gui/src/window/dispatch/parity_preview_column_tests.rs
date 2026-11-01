@@ -154,3 +154,42 @@ fn pb_preview_text_state_column_answers_the_empty_shape_before_any_frame(cx: &mu
     );
     assert_eq!(read(&shell, cx, "previewTextState", &["true"]), "{}");
 }
+
+// Judge S batch 3241: Ctrl+Tab hands the keyboard to the column, and previewTextState(true) reads it focused, then not after Ctrl+Tab back.
+#[gpui::test]
+fn fixreaders_preview_text_state_column_reads_the_focused_preview(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![file("main.rs", "text-x-rust", "Rust source code", 0o100644)],
+        1,
+    );
+    let lines = local(&shell, cx, "/files");
+    let code = ask(&lines, "code").to_owned();
+    meta(&shell, cx, &lines, r#","lines":1"#);
+    answer(
+        &shell,
+        cx,
+        &reply(field(&code, "token"), field(&code, "first"), "drawn"),
+    );
+    pump(cx);
+    let focused = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        state(shell, cx).get("focused").and_then(Json::as_bool)
+    };
+    assert_eq!(focused(&shell, cx), Some(false));
+    cx.simulate_keystrokes("ctrl-tab");
+    pump(cx);
+    assert_eq!(
+        focused(&shell, cx),
+        Some(true),
+        "Ctrl+Tab focuses the column"
+    );
+    cx.simulate_keystrokes("ctrl-tab");
+    pump(cx);
+    assert_eq!(focused(&shell, cx), Some(false), "Ctrl+Tab hands it back");
+    // A missing column flag is refused in Quickshell's words, never read as the Quick Look arm.
+    assert!(read(&shell, cx, "previewTextState", &[])
+        .starts_with("Too few arguments provided (1 required but 0 were provided.)"));
+}

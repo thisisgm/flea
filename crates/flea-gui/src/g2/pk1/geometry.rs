@@ -266,6 +266,35 @@ impl PickerGeometry for Live<'_> {
             members.retain(|(key, _)| key != "controls");
             members.push(("controls".into(), Json::Arr(self.controls_value())));
             members.push(("pathBarOpen".into(), Json::Bool(self.path_bar_open())));
+            // PickerWindow.qml snapshot.jump: the shared path view's dropdown, its rows, drawn rows, scroll, cursor and paths.
+            let path = self.picker.browse.path_view(self.cx).read(self.cx);
+            let number = |n: f64| Json::Num(n.to_string());
+            members.push((
+                "jump".into(),
+                Json::Obj(vec![
+                    ("open".into(), Json::Bool(path.jump.shown())),
+                    ("rows".into(), number(path.jump.entries.len() as f64)),
+                    (
+                        "visibleRows".into(),
+                        number(path.paint.borrow().drawn as f64),
+                    ),
+                    ("contentY".into(), number(f64::from(path.scroll))),
+                    (
+                        "cursor".into(),
+                        number(path.jump.cursor.map_or(-1., |at| at as f64)),
+                    ),
+                    (
+                        "paths".into(),
+                        Json::Arr(
+                            path.jump
+                                .entries
+                                .iter()
+                                .map(|entry| Json::Str(entry.path.clone()))
+                                .collect(),
+                        ),
+                    ),
+                ]),
+            ));
             let order = self.picker.browse.listing.read(self.cx).listing().order();
             members.push(("sortBy".into(), Json::Str(order.key.into())));
             members.push(("sortDesc".into(), Json::Bool(order.desc)));
