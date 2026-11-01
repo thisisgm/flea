@@ -307,3 +307,9 @@ mod shelf_drop_tests;
 
 #[cfg(test)]
 mod floor_drop_tests;
+
+#[cfg(test)]
+mod edge_tests;
+
+#[cfg(test)]
+mod xwindow_tests;
