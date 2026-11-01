@@ -141,7 +141,7 @@ fn figure_line(blocks: &[Block], state: impl Fn(usize) -> &'static str) -> Strin
         .join(",")
 }
 
-/// PreviewMarkdown.qml figureInfo's word: a figure laid out or asked for waits on its drawing, any other is deferred.
+/// PreviewMarkdown.qml figureInfo's word: a figure waiting, laid out or asked for is working; one with no state and neither is deferred.
 fn figure_word(state: Option<FigureState>, busy: bool) -> &'static str {
     match state {
         Some(FigureState::Drawn { .. }) => "ready",
@@ -220,6 +220,7 @@ mod tests {
         assert_eq!(figure_word(Some(drawn), false), "ready");
         assert_eq!(figure_word(Some(FigureState::Failed), true), "failed");
         assert_eq!(figure_word(Some(FigureState::Waiting), true), "working");
+        assert_eq!(figure_word(Some(FigureState::Waiting), false), "working");
         assert_eq!(figure_word(None, true), "working");
         assert_eq!(figure_word(None, false), "deferred");
     }
