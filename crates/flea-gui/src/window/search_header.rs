@@ -1,18 +1,26 @@
 //! The search strip and its pointer scope control.
-use crate::{g2::sr1, state::Shell};
+use crate::{g2::sr1, state::Shell, window::startup::View};
 use gpui::{div, prelude::*, Context, IntoElement, MouseButton, Window};
 use std::rc::Rc;
 
 impl Shell {
+    /// The strip's height over Grid, which has no list header to take it; v0.3.12 GridArea keeps the tiles under it.
+    pub(crate) fn grid_search_strip(&self, side: usize) -> f32 {
+        self.panes[side]
+            .as_ref()
+            .filter(|host| self.view == View::Grid && host.search.owner.active())
+            .map_or(0., |host| {
+                crate::list::Metrics::for_typeface(&host.list.borrow().typeface).header
+            })
+    }
+
     pub(crate) fn search_header(
         &mut self,
         side: usize,
         window: &Window,
         cx: &mut Context<Self>,
     ) -> Option<(gpui::AnyElement, f32)> {
-        if (side == 1 && self.view != crate::window::startup::View::Dual)
-            || self.slots.covers[side].is_some()
-        {
+        if (side == 1 && self.view != View::Dual) || self.slots.covers[side].is_some() {
             return None;
         }
         let host = self.panes[side].as_ref()?;

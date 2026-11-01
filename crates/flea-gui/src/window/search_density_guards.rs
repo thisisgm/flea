@@ -46,12 +46,8 @@ pub(super) fn start_search(cx: &mut TestAppContext, handle: Handle, side: usize,
         );
         assert!(host.pane.swap.session.open);
         assert_eq!(
-            shell.view,
-            if matches!(origin, View::Dual | View::Columns) {
-                origin
-            } else {
-                View::List
-            }
+            shell.view, origin,
+            "a names search keeps the view it opened in"
         );
         assert!(shell.focus.is_focused(window));
     });

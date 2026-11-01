@@ -103,10 +103,10 @@ impl Render for Shell {
         let heights = std::array::from_fn(|side| {
             viewport.map_or_else(
                 || {
-                    let search = if view == View::Columns {
-                        self.columns_search_strip(side)
-                    } else {
-                        0.
+                    let search = match view {
+                        View::Columns => self.columns_search_strip(side),
+                        View::Grid => self.grid_search_strip(side),
+                        View::List | View::Dual => 0.,
                     };
                     let strip = self.slots.strip_height_for(side) + search;
                     geometry.content_height_for(side, view, strip)

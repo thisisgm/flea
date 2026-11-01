@@ -4,7 +4,7 @@ use crate::navigation::sort::Size;
 use crate::row::{self, marks::Mark};
 use flea::protocol::RowFacts;
 use gpui::{Font, GlyphRun, Hsla, Pixels, TextRun, Window};
-use std::{cell::OnceCell, collections::HashMap, rc::Rc};
+use std::{borrow::Cow, cell::OnceCell, collections::HashMap, rc::Rc};
 
 /// One row either track kind draws: a peek answers name, folder flag and icon, a listing row its whole facts.
 #[derive(Clone, Copy, Debug)]
@@ -171,24 +171,16 @@ fn shape(text: &str, font: &Font, size: Pixels, window: &Window) -> GlyphRun {
 }
 
 fn shape_name(
-    label: std::borrow::Cow<'_, str>,
-    run: Option<(usize, usize)>,
+    (label, run): (Cow<'_, str>, Option<(usize, usize)>),
     shaping: &Shaping,
     window: &Window,
 ) -> (GlyphRun, Option<MatchedName>) {
     let glyphs = shape(&label, &shaping.font, shaping.body, window);
-    let kept = if matches!(label, std::borrow::Cow::Owned(_)) {
-        label.len() - '\u{2026}'.len_utf8()
-    } else {
-        label.len()
-    };
-    let matched = run
-        .filter(|&(start, _)| start < kept)
-        .map(|(start, end)| MatchedName {
-            label: label.into_owned(),
-            run: (start, end.min(kept)),
-            bold: OnceCell::new(),
-        });
+    let matched = run.map(|run| MatchedName {
+        label: label.into_owned(),
+        run,
+        bold: OnceCell::new(),
+    });
     (glyphs, matched)
 }
 
@@ -237,19 +229,21 @@ fn prepare(
     };
     let budget = |cells: usize| cells.saturating_sub(take).saturating_sub(reserved);
     let run = crate::g2::sr1::run::run_in(name, &shaping.query);
-    let elide = if run.is_some() {
-        row::right_elide
-    } else {
-        row::middle_elide
+    let elide = |cells: usize| match run {
+        Some(run) => {
+            let (label, (start, end)) = row::elide_around(name, budget(cells), run);
+            (label, (start < end).then_some((start, end)))
+        }
+        None => (row::middle_elide(name, budget(cells)), None),
     };
-    let label = elide(name, budget(plain_cells));
+    let label = elide(plain_cells);
     let chevron = row
         .dir()
-        .then(|| elide(name, budget(shaping.chevron_cells)))
-        .filter(|text| *text != label);
-    let plain_label = label.clone().into_owned();
-    let (plain, plain_match) = shape_name(label, run, shaping, window);
-    let chevron = chevron.map(|text| shape_name(text, run, shaping, window));
+        .then(|| elide(shaping.chevron_cells))
+        .filter(|text| text.0 != label.0);
+    let plain_label = label.0.clone().into_owned();
+    let (plain, plain_match) = shape_name(label, shaping, window);
+    let chevron = chevron.map(|text| shape_name(text, shaping, window));
     let (chevron, chevron_match) =
         chevron.map_or((None, None), |(glyphs, matched)| (Some(glyphs), matched));
     let size_label = match row {
@@ -353,3 +347,7 @@ impl TrackCache {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "cache_tests.rs"]
+mod tests;

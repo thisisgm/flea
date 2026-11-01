@@ -24,7 +24,7 @@ pub(super) fn run_of(len: usize, font: &Font) -> TextRun {
     }
 }
 
-/// The name as drawn: middle-elided to its budget, or right-elided around a match run so the run stays in its head.
+/// The name as drawn: middle-elided to its budget, or elided around a match run so the run stays drawn whole.
 pub fn drawn_name(
     facts: &RowFacts,
     extra: Extra,
@@ -39,17 +39,11 @@ pub fn drawn_name(
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let Some((start, end)) = format::match_run(&display.name, query) else {
+    let Some(run) = format::match_run(&display.name, query) else {
         return (row::middle_elide(&name, budget).into_owned(), None);
     };
-    let (drawn, kept) = match row::right_elide(&name, budget) {
-        Cow::Borrowed(_) => (name.clone(), name.len()),
-        Cow::Owned(text) => {
-            let kept = text.len() - '\u{2026}'.len_utf8();
-            (text, kept)
-        }
-    };
-    (drawn, (start < kept).then_some((start, end.min(kept))))
+    let (drawn, (start, end)) = row::elide_around(&name, budget, run);
+    (drawn.into_owned(), (start < end).then_some((start, end)))
 }
 
 /// Shapes one row's cells once, each elided to its own budget, so no long name is shaped whole and no hidden column at all.
