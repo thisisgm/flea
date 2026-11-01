@@ -272,7 +272,7 @@ fn the_pane_describe_reports_the_marks_counters(cx: &mut TestAppContext) {
     let described = data.get("mark").unwrap();
     assert_eq!(
         described.get("mode").and_then(flea::jsondoc::Json::as_str),
-        Some("thinking")
+        Some("spiral")
     );
     assert_eq!(
         described.get("label").and_then(flea::jsondoc::Json::as_str),
@@ -354,3 +354,21 @@ fn inside(bounds: Bounds<ScaledPixels>, pane: Bounds<ScaledPixels>) -> bool {
 
 #[path = "spinner_surface_tests.rs"]
 mod surfaces;
+
+// EY-354: Spinner.qml holds its first second, then walks one 57 unit dash period per 1.6 s, and the dash covers 60 of 114 units.
+#[test]
+fn ey354_spiral_crawl_matches_spinner_qml() {
+    use super::spinner::spiral_phase;
+    assert_eq!(spiral_phase(0.), 0.);
+    assert_eq!(spiral_phase(1.), 0.);
+    assert!((spiral_phase(1.8) - 28.5).abs() < 1e-3);
+    assert!(spiral_phase(2.6).abs() < 1e-3 || (spiral_phase(2.6) - 57.).abs() < 1e-3);
+    for phase in [0., 20., 40., 56.] {
+        let mut area = 0.;
+        crate::g2::fb1::brand::dashed(phase, 1., |[x0, y0, x1, y1], coverage| {
+            area += (x1 - x0) * (y1 - y0) * coverage;
+        });
+        // A 2 unit stroke 60 units long, plus square caps, give or take the corners it turns.
+        assert!(area > 100. && area < 140., "phase {phase}: {area}");
+    }
+}

@@ -275,7 +275,9 @@ fn gcomp_batch_u09_loading_uses_omi_preparation_and_paint_then_stops_when_hidden
             assert!(mark.offset() > 0.);
         }
         assert_eq!(mark.counters.writes.get(), mark.counters.frames.get());
-        assert_eq!(mark.ink(), crate::palette::Theme::default().accent_frame);
+        // EY-354: the loading spiral draws in v0.3.12 Spinner.qml's mutedFrame.
+        assert!(mark.is_spiral());
+        assert_eq!(mark.ink(), crate::palette::Theme::default().muted_frame);
         let before = (
             mark.counters.writes.get(),
             mark.counters.frames.get(),

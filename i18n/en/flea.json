@@ -430,7 +430,7 @@
   "tabs.close": "Close Tab",
   "tabs.close_others": "Close Other Tabs",
   "window.loading": "Loading",
-  "window.waiting": "Still waiting for this folder",
+  "window.waiting": "That folder is not responding.",
   "window.select_required": "--select needs a target",
   "window.one_directory": "Only one start directory is accepted",
   "window.unknown_flag": "Unknown flag %1",

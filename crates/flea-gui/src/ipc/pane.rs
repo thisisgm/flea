@@ -34,7 +34,7 @@ impl Adapter for PaneAdapter<'_> {
                 swap.holding, swap.fell_back, count.holds, count.fallbacks, count.waits,
                 count.blank_frames + swap.frames.blank.get(), count.loading_frames + swap.frames.loading.get(),
                 count.blank_frames + swap.frames.blank.get(), count.loading_frames + swap.frames.loading.get(), count.last_ms, escape(count.last_end),
-                count.shown_ms, count.commits, mark.shown(), mark.offset(), mark.mode().id(), escape(mark.label()), mark.counters.frames.get(),
+                count.shown_ms, count.commits, mark.shown(), mark.offset(), if mark.is_spiral() { "spiral" } else { mark.mode().id() }, escape(mark.label()), mark.counters.frames.get(),
                 mark.counters.writes.get(), mark.counters.requests.get(), mark.counters.others.get(),
                 flea::jsondoc::render(&swap.observed.borrow().json()).trim()),
             _ => return None,

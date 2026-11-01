@@ -44,7 +44,10 @@ fn nonblocking(fd: i32) -> std::io::Result<()> {
 
 /// rg's line for a path it could not open or read names the path, then the OS error: "rg: ./Locked: Permission denied (os error 13)".
 fn skipped_path(line: &[u8]) -> bool {
-    let Some(code) = line.strip_prefix(b"rg: ").and_then(|rest| rest.strip_suffix(b")")) else {
+    let Some(code) = line
+        .strip_prefix(b"rg: ")
+        .and_then(|rest| rest.strip_suffix(b")"))
+    else {
         return false;
     };
     let Some(at) = code.windows(10).rposition(|part| part == b"(os error ") else {
@@ -52,7 +55,10 @@ fn skipped_path(line: &[u8]) -> bool {
     };
     let digits = &code[at + 10..];
     // A line with no path before its first ": ", as "rg: No space left on device (os error 28)", is rg's own failure.
-    let named = code[..at].windows(2).position(|part| part == b": ").is_some_and(|end| end > 0);
+    let named = code[..at]
+        .windows(2)
+        .position(|part| part == b": ")
+        .is_some_and(|end| end > 0);
     named && !digits.is_empty() && digits.iter().all(u8::is_ascii_digit)
 }
 
@@ -309,11 +315,13 @@ fn collect(
                 foreign |= !line.is_empty() && !skipped_path(&line);
                 // Exit 2 after the summary, with only skipped-path lines, is a finished walk that skipped what it could not read, as the names walk does.
                 let skipped = match status.code() {
-                    Some(0 | 1) if errors.is_empty() => Some(false),
+                    Some(0 | 1) => Some(false),
                     Some(2) if !errors.is_empty() && !foreign => Some(true),
                     _ => None,
                 };
-                if let (Some(skipped), Some(searches), true) = (skipped, summary, pending.is_empty()) {
+                if let (Some(skipped), Some(searches), true) =
+                    (skipped, summary, pending.is_empty())
+                {
                     return Ok(Some((hits.into_values().collect(), searches, skipped)));
                 }
                 return Err(format!(

@@ -50,7 +50,16 @@ pub struct Crawl {
     slot: Cell<Bounds<Pixels>>,
     mask: Cell<ContentMask<Pixels>>,
     ink: Cell<Hsla>,
+    /// A listing's loading mark: v0.3.12's Spinner.qml spiral crawl at the hero mark side, never the Omi.
+    spiral: Cell<bool>,
+    spiral_side: Cell<f32>,
+    since: Cell<Option<std::time::Instant>>,
     pub counters: Counters,
+}
+
+/// Spinner.qml holds still for its first second, then walks one 57 unit dash period per 1.6 s.
+pub fn spiral_phase(seconds: f32) -> f32 {
+    ((seconds - 1.).max(0.) / 1.6 * 57.).rem_euclid(57.)
 }
 
 impl Crawl {
@@ -90,7 +99,16 @@ impl Crawl {
         if was && !shown {
             *self.motion.borrow_mut() = None;
             self.offset.set(0.);
+            self.since.set(None);
         }
+    }
+    /// The listing loading mark, drawn as v0.3.12's spiral crawl (EY-354).
+    pub fn show_spiral(&self, shown: bool, ink: Hsla) {
+        self.spiral.set(true);
+        self.show(shown, ink);
+    }
+    pub fn is_spiral(&self) -> bool {
+        self.spiral.get()
     }
     pub fn rendered(&self) {
         if self.shown.get() {
@@ -104,6 +122,31 @@ impl Crawl {
         }
         self.reduced.set(cx.reduce_motion());
         let pinned = if cx.reduce_motion() { None } else { pinned };
+        if self.spiral.get() {
+            let face = crate::list::Typeface::for_window(window, cx);
+            self.spiral_side
+                .set((f32::from(face.body_small) * 3.7).round());
+            let seconds = match pinned {
+                Some(seconds) => seconds.max(0.),
+                None if moving && !cx.reduce_motion() => {
+                    let now = cx.background_executor().now();
+                    let since = self.since.get().unwrap_or(now);
+                    self.since.set(Some(since));
+                    now.saturating_duration_since(since).as_secs_f32()
+                }
+                None => {
+                    self.since.set(None);
+                    0.
+                }
+            };
+            self.offset.set(seconds);
+            bump(&self.counters.writes);
+            if moving && pinned.is_none() && !cx.reduce_motion() {
+                bump(&self.counters.requests);
+                player::request_frame(window, cx);
+            }
+            return;
+        }
         let slot = self.slot.get();
         let side =
             device_side(f32::from(slot.size.width.min(slot.size.height)) * window.scale_factor());
@@ -127,6 +170,11 @@ impl Crawl {
         if !self.shown.get() || !window.is_visible() {
             return;
         }
+        if self.spiral.get() {
+            bump(&self.counters.frames);
+            window.with_content_mask(Some(self.mask.get()), |window| self.paint_spiral(window));
+            return;
+        }
         let motion = self.motion.borrow();
         let Some(motion) = motion.as_ref() else {
             return;
@@ -135,6 +183,32 @@ impl Crawl {
         window.with_content_mask(Some(self.mask.get()), |window| {
             paint_rects(motion, self.slot.get(), self.ink.get(), window);
         });
+    }
+    fn paint_spiral(&self, window: &mut Window) {
+        let ink = self.ink.get();
+        self.spiral_rects(window.scale_factor(), |quad, coverage| {
+            window.paint_quad(fill(quad, ink.opacity(coverage)));
+        });
+    }
+    /// The spiral's dash at the current phase, as logical bounds and pixel coverage, without allocating.
+    pub(crate) fn spiral_rects(&self, scale: f32, mut emit: impl FnMut(Bounds<Pixels>, f32)) {
+        use crate::g2::fb1::brand::{dashed, GRID};
+        let slot = self.slot.get();
+        let side = px(self.spiral_side.get()).min(slot.size.width.min(slot.size.height));
+        let unit = f32::from(side) * scale / GRID;
+        let left = (f32::from(slot.origin.x + (slot.size.width - side) / 2.) * scale).round();
+        let top = (f32::from(slot.origin.y + (slot.size.height - side) / 2.) * scale).round();
+        dashed(
+            spiral_phase(self.offset.get()),
+            unit,
+            |[x0, y0, x1, y1], coverage| {
+                let quad = Bounds::from_corners(
+                    point(px((left + x0) / scale), px((top + y0) / scale)),
+                    point(px((left + x1) / scale), px((top + y1) / scale)),
+                );
+                emit(quad, coverage);
+            },
+        );
     }
     pub fn place(&self, bounds: Bounds<Pixels>, window: &Window) {
         self.slot.set(bounds);

@@ -83640,15 +83640,15 @@
       ],
       "context": "window.waiting: crates/flea-gui/src/g2/fb1/state.rs:97",
       "coverage": "existing-translated-call",
-      "english": "Still waiting for this folder",
+      "english": "That folder is not responding.",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "Still waiting for this folder",
+      "resolved_english": "That folder is not responding.",
       "resolved_sha256": "57372881cacb8536635d94305e37212a017cde6a15df38083a2548b96cbbfd08",
-      "resolved_source_hash": "2c288e77af6a",
-      "source_hash": "2c288e77af6a"
+      "resolved_source_hash": "ed09556ef862",
+      "source_hash": "ed09556ef862"
     }
   },
   "missing_callsite_handoffs": [

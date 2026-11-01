@@ -332,7 +332,11 @@ fn a_hidden_mark_can_retarget_without_samples_paints_or_frame_requests(cx: &mut 
                 all.push(all[0]);
             }
             "extra_outside" | "extra_crossing" => {
-                let mut extra = all[0];
+                // The widest quad, so a crossing extra still crosses when the first quad is one pixel of a dash edge.
+                let mut extra = *all
+                    .iter()
+                    .max_by(|a, b| a.bounds.size.width.0.total_cmp(&b.bounds.size.width.0))
+                    .unwrap();
                 extra.bounds.origin.x.0 =
                     footprint.right().0 + if control == "extra_outside" { 10. } else { -1. };
                 assert_ne!(extra.bounds.intersect(&footprint), extra.bounds);
@@ -349,6 +353,23 @@ fn a_hidden_mark_can_retarget_without_samples_paints_or_frame_requests(cx: &mut 
 
 fn complete_rest_matches(mut quads: Vec<gpui::Quad>, mark: &Crawl, scale: f32) -> bool {
     let slot = mark.slot();
+    // A listing mark rests as v0.3.12's spiral (EY-354): exactly its dash quads in the mark's ink.
+    if mark.is_spiral() {
+        let mut matched = true;
+        mark.spiral_rects(scale, |bounds, coverage| {
+            let bounds = bounds.scale(scale);
+            match quads.iter().position(|quad| {
+                quad.bounds == bounds
+                    && quad.background.as_solid() == Some(mark.ink().opacity(coverage))
+            }) {
+                Some(index) => {
+                    quads.remove(index);
+                }
+                None => matched = false,
+            }
+        });
+        return matched && quads.is_empty();
+    }
     let side = crate::feedback::spinner::device_side(f32::from(slot.size.width) * scale);
     let expected = omi::Player::with_options(
         &omi::Kit::bundled(),

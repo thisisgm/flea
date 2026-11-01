@@ -1,10 +1,10 @@
 //! The file operations family: duplicate, Move to Trash, the dd pair, Delete permanently and New Folder, from keys and menu rows.
 use super::Order;
 use crate::{g2::mn1::join::Chosen, state::Shell, window::input::Dispatch};
+use flea::ui_logic_fb1::status::Hint;
 use flea::{
     json::escape,
     keys::{sequence::Seat, Context as Keys},
-    ui_logic_fb1::status::Hint,
     ui_logic_op1::trash,
 };
 use gpui::{Context, Window};
@@ -370,9 +370,9 @@ impl Shell {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();
         }
-        let (text, hint) = self.split_undo(text, error);
+        let catalog = self.locale.catalog.clone();
         self.status_messages(cx, |messages, now| {
-            messages.say(&text, error, "", hint, now)
+            messages.say_receipt(&catalog, text, error, "", now)
         });
         cx.notify();
     }

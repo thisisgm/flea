@@ -175,3 +175,71 @@ fn ey254_the_collision_body_line_grows_with_the_text_size(cx: &mut TestAppContex
         );
     }
 }
+
+struct Sentence(Rc<RefCell<Option<TextStyle>>>);
+
+impl Render for Sentence {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let typeface = Typeface::for_window(window, cx);
+        let palette = CardPalette::from_theme(&window.text_style(), Theme::default(), 8.);
+        let scene = Scene {
+            copy_field: None,
+            frame: None,
+            typeface: &typeface,
+            palette: &palette,
+            catalog: &crate::test_catalogs::english(),
+            pointer: &Pointer::default(),
+            wire: &|_, button| button,
+            pinned: None,
+            feedback: None,
+        };
+        let line = view::sentence(
+            "1 item, 99 B. This deletes it from disk. This cannot be undone.".into(),
+        )
+        .child(Probe(self.0.clone()).into_any_element());
+        view::shell(
+            &scene,
+            Kind::Delete,
+            (1100., 700.),
+            "Empty Trash?".into(),
+            vec![line.into_any_element()],
+            Vec::new(),
+        )
+    }
+}
+
+// EY-350: the Delete card's sentence is drawn at the buttons' live body size at every text size, never a fixed 14.
+#[gpui::test]
+fn ey350_the_delete_sentence_takes_the_live_body_size(cx: &mut TestAppContext) {
+    let seen = Rc::new(RefCell::new(None));
+    let view = cx.add_window(|window, _| {
+        window.set_rem_size(px(14.));
+        Sentence(seen.clone())
+    });
+    cx.simulate_window_resize(view.into(), size(px(1100.), px(700.)));
+    for base in [12., 14., 20.] {
+        view.update(cx, |_, window, cx| {
+            window.set_rem_size(px(base));
+            cx.notify();
+        })
+        .unwrap();
+        cx.run_until_parked();
+        cx.update_window(view.into(), |_, window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+        let style = seen.borrow().clone().expect("the sentence laid out");
+        assert_eq!(
+            style.font_size.to_pixels(px(base)),
+            px(base),
+            "the Delete sentence at text size {base}"
+        );
+        let line = style.line_height_in_pixels(px(base));
+        // GPUI snaps the line to whole pixels, so the 20/14 ratio holds within one.
+        assert!(
+            (f32::from(line) - base * 20. / 14.).abs() < 1.,
+            "its line at text size {base}: {line:?}"
+        );
+    }
+}

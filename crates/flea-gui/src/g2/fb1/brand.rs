@@ -13,13 +13,23 @@ const SPIRAL: [(f32, f32); 10] = [
 ];
 /// Distance along the centreline to each vertex; the whole spiral is 114 units.
 const AT: [f32; 10] = [0., 18., 36., 54., 68., 82., 92., 102., 108., 114.];
-pub(super) const GRID: f32 = 24.;
+pub(crate) const GRID: f32 = 24.;
 const LENGTH: f32 = 114.;
 const HALF: f32 = 1.;
 const QUANTUM: f32 = 256.;
 
 pub(super) fn drawn(length: f32, unit: f32, mut emit: impl FnMut([f32; 4], f32)) {
     run(0., length.clamp(0., LENGTH), unit, &mut emit);
+}
+
+/// Spinner.qml's crawl: a 30 on, 27 off dash in stroke units, so one 60 unit dash per 114 unit period, `phase` stroke units along.
+pub(crate) fn dashed(phase: f32, unit: f32, mut emit: impl FnMut([f32; 4], f32)) {
+    let start = (2. * phase).rem_euclid(LENGTH);
+    let end = start + 60.;
+    run(start, end.min(LENGTH), unit, &mut emit);
+    if end > LENGTH {
+        run(0., end - LENGTH, unit, &mut emit);
+    }
 }
 
 // Square caps and miter corners are one more half stroke at each end; a run carried over a corner starts past the square its predecessor drew.

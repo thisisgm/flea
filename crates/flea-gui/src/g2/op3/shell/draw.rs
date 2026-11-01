@@ -321,8 +321,10 @@ fn present(
         draw.t.surface = surface;
     }
     let t = draw.t;
+    let facts = super::facts::is_card(card);
     let head = draw
         .text(TITLE)
+        .when(facts, |d| d.flex_none())
         .flex()
         .items_center()
         .gap(draw.px(ROW_GAP))
@@ -342,9 +344,10 @@ fn present(
                 .text_color(t.muted)
                 .child(card.esc.clone()),
         );
-    let mut frame = div()
+    let frame = div()
         .id("op3-frame")
         .debug_selector(|| "op3-card".into())
+        .when(facts, |d| d.max_h_full())
         .w(px(scaled(card.width, f32::from(typeface.body), room)))
         .flex()
         .flex_col()
@@ -362,10 +365,9 @@ fn present(
         .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
         .child(head)
         .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
-    for block in &card.body {
-        frame = frame.child(draw.block(block));
-    }
+    let frame = draw.card_body(card, frame);
     let mut buttons = div()
+        .when(facts, |d| d.flex_none())
         .mt(draw.px(ABOVE_BUTTONS))
         .flex()
         .justify_end()
@@ -383,6 +385,7 @@ fn present(
     }
     div()
         .size_full()
+        .when(facts, |d| d.p(draw.px(GAP)))
         .flex()
         .items_center()
         .justify_center()
