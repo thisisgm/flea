@@ -61,3 +61,16 @@ fn defaults_follow_the_first_format_and_jpeg_refuses_transparency() {
     let bad = Ask::parse(r#"{"layout":"Grid","columns":0}"#);
     assert!(Settings::parse(&bad.layout, &bad.spacing, &bad.background, &bad.format, bad.columns).is_err());
 }
+
+#[test]
+fn pdf_is_a_combine_format_that_keeps_transparency() {
+    let ask = Ask::parse(r#"{"paths":["/photos/first.png","/photos/next.png"],"format":"pdf"}"#);
+    assert_eq!(ask.background, "Transparent");
+    assert!(Settings::parse(&ask.layout, &ask.spacing, &ask.background, &ask.format, ask.columns).is_ok());
+    assert_eq!(printconvert::combined_name(&ask.paths[0], &ask.format), "first (combined).pdf");
+    let row = join_argv(&[PathBuf::from("/work/a.png"), PathBuf::from("/work/b.png")], Path::new("/work/output.pdf"), (800, 600), &settings(Layout::Row, Spacing::None));
+    assert_eq!(row[row.len() - 3..], ["+repage", "+gravity", "/work/output.pdf"], "the page is the whole composite, not the first image's canvas or a Letter sheet");
+    let grid = join_commands(&[PathBuf::from("/work/a.png"), PathBuf::from("/work/b.png")], Path::new("/work/output.pdf"), (800, 600), &settings(Layout::Grid, Spacing::Small));
+    assert_eq!(grid[1][grid[1].len() - 3..], ["+repage", "+gravity", "/work/output.pdf"]);
+    assert!(!row.contains(&"remove".into()), "only JPEG flattens its alpha");
+}

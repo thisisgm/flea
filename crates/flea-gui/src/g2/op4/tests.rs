@@ -288,6 +288,30 @@ fn op4_combining_reorders_paths_and_name_and_keeps_jpeg_transparency_valid() {
 }
 
 #[test]
+fn op4_combining_offers_pdf_last_and_keeps_a_transparent_ground() {
+    let c = crate::test_catalogs::english();
+    let mut m = draft(Action::Combine, Kind::Image, &["a.png", "b.png"]);
+    m.setting(Focus::Format, 3, &c);
+    checked(&mut m);
+    assert!(
+        matches!(&m.card, Some(Card::Combine(c)) if c.format == "pdf" && c.name == "a (combined).pdf" && c.settings.background == flea::ui_logic_op4::composition::Background::Transparent)
+    );
+    assert!(m.can_submit());
+    m.submit(&c);
+    let line = m
+        .effects
+        .iter()
+        .rev()
+        .find_map(|e| match e {
+            Effect::Send(s) => Some(s),
+            _ => None,
+        })
+        .unwrap();
+    let json = flea::jsondoc::parse(line).unwrap();
+    assert_eq!(json.get("format").and_then(|v| v.as_str()), Some("pdf"));
+}
+
+#[test]
 fn op4_locale_switch_preserves_diagnostic_and_per_string_english_fallback() {
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/g2/op4/fixtures");
     let de = I18n::load(flea::i18n::Paths {

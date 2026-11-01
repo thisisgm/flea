@@ -224,3 +224,42 @@ case_convertdesign() (
     kill_flea
     printf 'CONVERT_DESIGN native_checks=%s collision=ok selection=ok keyboard=ok pending=ok late_collision=ok success=ok metadata=ok backend_death=ok source_preserved=ok\n' "$menus_checks"
 )
+
+# Runs by name: Combine Images writes PDF, the last Format chip, as one page holding the composed row.
+case_combinepdf() (
+    local menu_box menus_checks=0 listing pdf name info ww wh
+    sandbox_require "$fixture_root"
+    menu_box=$(mktemp -d "$fixture_root/combine-pdf.XXXXXXXX") || fail "combine: fixture creation failed"
+    printf 'native Combine fixture\n' > "$menu_box/.flea-test-sandbox"
+    [[ "$menu_box" == "$(realpath -e "$menu_box")" ]] || fail "combine: fixture is not canonical"
+    for name in state config cache data pictures; do menus_guard "$menu_box/$name"; mkdir "$menu_box/$name"; done
+    listing="$menu_box/pictures"
+    pdf="$listing/a (combined).pdf"
+    magick -size 120x80 xc:steelblue "$listing/a.png" && magick -size 80x80 xc:orange "$listing/b.png" \
+        && magick -size 80x120 xc:seagreen "$listing/c.png" || fail "combine: real image fixture creation failed"
+    export XDG_STATE_HOME="$menu_box/state" XDG_CONFIG_HOME="$menu_box/config" XDG_CACHE_HOME="$menu_box/cache" XDG_DATA_HOME="$menu_box/data"
+    "$flea_bin" --ui-state '{"view":"list","keys":"default","menu":{"hidden":[]}}' >/dev/null || fail "combine: fixture settings failed"
+    launch "$listing"
+    wait_listing 3
+    key -M ctrl -k a -m ctrl >/dev/null
+    menus_expect dualState '.panes[.focused].selected | length == 3' 'Select All marks the three images'
+    key -M shift -k F10 -m shift >/dev/null
+    menus_expect menuState '.opened and .hasRow and .snapshotReady' 'file menu opens over the three images'
+    menus_choose combineImages
+    settle
+    # The card is centred and has no state reader yet, so its PDF chip and Combine button are clicked at the board's offsets from the centre.
+    read -r _ _ ww wh < <(window_box) || fail "combine: native window coordinates unavailable"
+    menus_point "$((ww / 2 + 227)) $((wh / 2 + 88))"
+    settle
+    shot combine-pdf-chosen
+    menus_point "$((ww / 2 + 222)) $((wh / 2 + 270))"
+    for _ in $(seq 1 100); do [[ -s "$pdf" ]] && break; sleep 0.1; done
+    printf "COMBINE_LISTING %s\n" "$(ls -- "$listing" | tr "\n" " ")"
+    [[ -s "$pdf" && "$(head -c 4 "$pdf")" == %PDF ]] || fail "combine: a (combined).pdf was not written as a PDF"
+    info=$(pdfinfo -- "$pdf") || fail "combine: pdfinfo cannot read the output"
+    grep -Eq '^Pages: +1$' <<< "$info" || fail "combine: the PDF is not one page: $info"
+    grep -Eq '^Page size: +253 x 80 pts' <<< "$info" || fail "combine: the page is not the 253x80 row: $info"
+    shot combine-pdf-written
+    kill_flea
+    printf 'COMBINE_PDF native_checks=%s pages=1 size=253x80 written=ok\n' "$menus_checks"
+)
