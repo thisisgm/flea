@@ -146,6 +146,8 @@ mod key_rows_focus_tests;
 #[cfg(test)]
 mod key_rows_tests;
 #[cfg(test)]
+mod key_rows_trash_reload_tests;
+#[cfg(test)]
 mod key_rows_trash_tests;
 #[cfg(test)]
 mod listing_marks_tests;

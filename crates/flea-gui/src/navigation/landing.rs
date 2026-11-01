@@ -49,7 +49,14 @@ impl Navigator {
                     preference.apply(pane, selected);
                 }
             }
-            if self.relist_owed {
+            // An own delete answered while this listing was out re-reads now, so its replacement row is selected.
+            if self
+                .deletion_anchor
+                .as_ref()
+                .is_some_and(|anchor| anchor.path == pane.path())
+            {
+                let _ = self.reread(pane, &[], false, true);
+            } else if self.relist_owed {
                 let path = pane.path().to_owned();
                 let _ = self.open(pane, &path);
             }
@@ -221,6 +228,7 @@ impl Navigator {
                 self.pending_select = None;
             }
             self.relist_owed = false;
+            self.deletion_anchor = None;
             if self
                 .anchor
                 .as_ref()
