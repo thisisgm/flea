@@ -242,7 +242,7 @@ static KEYCAP_LAYOUTS: &[KeycapLayout] = &[
     KeycapLayout { layout: "is", variant: "", name: "Icelandic", overrides: &[(":", "shift-Æ"), ("?", "shift-Þ"), ("[", "ð"), ("]", "'"), ("ctrl-[", "ctrl-ð"), ("ctrl-equal", "ctrl--"), ("ctrl-minus", "ctrl-ö"), ("super-[", "super-ð"), ("super-]", "super-'"), ("super-bracketleft", "super-ð"), ("super-bracketright", "super-'"), ("{", "shift-Ð"), ("}", "shift-?"), ("~", "shift-¨")], ambiguous: &["-"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "ie", variant: "", name: "Irish", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "it", variant: "", name: "Italian", overrides: &[(":", "shift-ç"), ("?", "shift-_"), ("[", "è"), ("]", "+"), ("_", "shift-?"), ("ctrl-[", "ctrl-è"), ("ctrl-equal", "ctrl-ì"), ("ctrl-minus", "ctrl-'"), ("super-[", "super-è"), ("super-]", "super-+"), ("super-bracketleft", "super-è"), ("super-bracketright", "super-+"), ("{", "shift-é"), ("}", "shift-*"), ("~", "shift-|")], ambiguous: &["+", "-"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
-    KeycapLayout { layout: "jp", variant: "", name: "Japanese", overrides: &[(":", "shift-+")], ambiguous: &["+"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus", "~"], unavailable: &["~"] },
+    KeycapLayout { layout: "jp", variant: "", name: "Japanese", overrides: &[(":", "shift-+")], ambiguous: &["+"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus", "~"], unavailable: &[] },
     KeycapLayout { layout: "kz", variant: "", name: "Kazakh", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "kr", variant: "kr104", name: "Korean (101/104-key compatible)", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "kg", variant: "", name: "Kyrgyz", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
@@ -359,10 +359,7 @@ mod tests {
         }
         let jp = snapshot("jp", 4);
         assert_eq!(jp.legend("+"), Ok("+"));
-        assert_eq!(
-            jp.legend("~"),
-            Err(KeycapError::UnavailableChord("~".into()))
-        );
+        assert_eq!(jp.legend("~"), Ok("~"));
         for row in KEYCAP_LAYOUTS {
             let s = KeycapSnapshot::new(row.layout, Some(row.variant), None, 5).unwrap();
             for (canonical, legend) in KEYCAP_DEFAULTS {
@@ -374,5 +371,13 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn i50_keycap_printed_shift_paths_are_available() {
+        // jp AE12 is [asciicircum, asciitilde]: "~" is Shift on the "^" key, printed as "~".
+        let s = KeycapSnapshot::new("jp", Some(""), None, 11).unwrap();
+        assert_eq!(s.label("~"), Ok("~"));
+        assert_eq!(chord_label("~", &s).unwrap().text, "~");
     }
 }

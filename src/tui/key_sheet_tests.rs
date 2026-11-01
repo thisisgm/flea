@@ -343,7 +343,7 @@ fn i50_ambig_sequence_parts_relabel_independently() {
 }
 
 #[test]
-fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unavailable_chord_still_keeps_the_last_epoch() {
+fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unknown_chord_still_keeps_the_last_epoch() {
     let map = Map::load();
     for preset in PRESETS {
         let mut m = model();
@@ -355,14 +355,32 @@ fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unavailable_chord_still_keep
             assert_eq!(m.keycap_labels.keys().cloned().collect::<std::collections::BTreeSet<_>>(), ids, "{preset} {layout}");
         }
     }
-    // The delivered I50-11 table marks '~' unavailable on jp, the one unavailable chord it holds, so a sheet showing it still refuses the whole epoch.
-    let tilde = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"~\"\naction = \"tabNew\"\ncontext = \"listing\"\n");
+    // No layout holds an unavailable chord now, so a chord no layout knows is the one that refuses the epoch.
+    let unknown = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"§\"\naction = \"tabNew\"\ncontext = \"listing\"\n");
     let mut m = model();
     m.preset = "yazi".into();
-    m.set_keycaps(flea::keys::display::KeycapSnapshot::new("fr", None, Some(0), 3).unwrap(), &tilde).unwrap();
+    m.set_keycaps(flea::keys::display::KeycapSnapshot::new("fr", None, Some(0), 3).unwrap(), &map).unwrap();
     let before = (m.keycaps, m.keycap_labels.clone(), m.hints.keys.clone());
     let jp = flea::keys::display::KeycapSnapshot::new("jp", None, Some(0), 4).unwrap();
-    assert_eq!(jp.label("~"), Err(flea::keys::display::KeycapError::UnavailableChord("~".into())), "precondition: the table's unavailable chord");
-    assert_eq!(m.set_keycaps(jp, &tilde), Err(flea::keys::display::KeycapError::UnavailableChord("~".into())));
+    assert_eq!(jp.label("§"), Err(flea::keys::display::KeycapError::UnknownChord("§".into())), "precondition: no layout knows the chord");
+    assert_eq!(m.set_keycaps(jp, &unknown), Err(flea::keys::display::KeycapError::UnknownChord("§".into())));
     assert_eq!((m.keycaps, m.keycap_labels.clone(), m.hints.keys.clone()), before, "a failed snapshot keeps its complete epoch");
+}
+
+#[test]
+fn a_japanese_group_relabels_the_yazi_tilde_instead_of_refusing_the_epoch() {
+    let tilde = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"~\"\naction = \"keymapSheet\"\ncontext = \"listing\"\n");
+    let snapshot = flea::keys::display::KeycapSnapshot::new("jp", None, Some(0), 7).unwrap();
+    let mut m = model();
+    m.preset = "yazi".into();
+    assert_eq!(m.set_keycaps(snapshot, &tilde), Ok(()));
+    assert_eq!(m.keycap_labels["~"], "~");
+    let map = Map::load();
+    for preset in PRESETS {
+        let mut m = model();
+        m.preset = preset.into();
+        // jp "+" is still policy-ambiguous, so a preset showing it may refuse on "+" and nothing else.
+        let result = m.set_keycaps(snapshot, &map);
+        assert!(result.is_ok() || matches!(&result, Err(flea::keys::display::KeycapError::AmbiguousChord(c)) if c == "+"), "{preset}: {result:?}");
+    }
 }
