@@ -26,6 +26,7 @@ pub(crate) const TOUCH_GAIN: f32 = 2.5;
 pub(crate) use element::grid_surface;
 pub use element::{surface, surface_with, Painted};
 use gpui::{Bounds, Pixels, Point};
+#[cfg(test)]
 pub(crate) use pointer::Press;
 use selection::Selection;
 

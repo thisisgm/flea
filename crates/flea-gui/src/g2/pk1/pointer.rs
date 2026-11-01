@@ -19,7 +19,7 @@ impl Picker {
 
     // Single-click mode suppresses repeat taps on one row but activates a different row; double-click mode requires the same target twice.
     fn row_activates(&self, clicks: usize, first_path: &str, path: &str) -> bool {
-        if self.preferences.single_click {
+        if self.preferences.followed.single_click {
             clicks == 1 || !logic::same_tap(first_path, path)
         } else {
             clicks == 2 && logic::same_tap(first_path, path)
