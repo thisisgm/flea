@@ -1,5 +1,6 @@
 //! Preview Copy and Escape keep the listing's focus; without a range every key keeps its table's meaning.
 use crate::{g2::pv2::selection, state::Shell};
+use flea::keys::Context as Keys;
 use gpui::{Context, KeyDownEvent, MouseButton, MouseDownEvent, Window};
 
 impl Shell {
@@ -9,6 +10,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.column_keys_follow_focus(window, cx);
         let eligible = !self.card_holds_keyboard(cx)
             && !self.menu_opened()
             && self.rename.edit.is_none()
@@ -23,6 +25,23 @@ impl Shell {
         self.key(event, window, cx);
         if look != self.quick_look_open(cx) {
             selection::clear_window(window, cx);
+        }
+    }
+
+    /// GPUI moves focus on an outside press without changing the key table; route the next key to the listing.
+    fn column_keys_follow_focus(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let column = matches!(
+            self.keyboard.context,
+            Keys::Preview | Keys::Pdf | Keys::Media
+        );
+        if !column || self.quick_look_open(cx) {
+            return;
+        }
+        let focused = (0..2)
+            .filter_map(|side| self.selection_preview(side))
+            .any(|preview| preview.read(cx).focus.is_focused(window));
+        if !focused {
+            self.keyboard.context = Keys::Listing;
         }
     }
 

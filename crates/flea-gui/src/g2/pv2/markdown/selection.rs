@@ -27,18 +27,35 @@ fn text(laid: &Laid) -> String {
     out
 }
 
+/// A table row's rule, which only a table draws in the faint wash.
+fn row_rule(item: &Item) -> bool {
+    matches!(item, Item::Rule { wash: true, .. })
+}
+
+/// What follows a text item: a tab before the next cell of its table row, else a line break.
+fn after(rest: &[Item]) -> char {
+    let next = rest
+        .iter()
+        .find(|item| matches!(item, Item::Text { .. }) || row_rule(item));
+    if matches!(next, Some(Item::Text { .. })) && rest.iter().any(row_rule) {
+        '\t'
+    } else {
+        '\n'
+    }
+}
+
 fn chunks(
     items: &[Item],
     id: usize,
     ordinal: &mut usize,
     out: &mut std::collections::BTreeMap<usize, Chunk>,
 ) {
-    for item in items {
+    for (i, item) in items.iter().enumerate() {
         match item {
             Item::Text { laid, .. } => {
                 out.entry(chunk(id, *ordinal)).or_insert_with(|| {
                     let mut value = text(laid);
-                    value.push('\n');
+                    value.push(after(&items[i + 1..]));
                     Chunk::new(value)
                 });
                 *ordinal += 1;
@@ -166,6 +183,10 @@ impl MarkdownView {
             return;
         };
         if let Some(part) = self.selection.part(span.chunk, span.start, span.len) {
+            let reach = self
+                .selection
+                .wash_end(span, part.clone())
+                .map(|reach| origin.x + (reach - span.bounds.left()));
             let band = Bounds::new(
                 origin - point(px(0.), run.line().ascent),
                 size(span.bounds.size.width, span.bounds.size.height),
@@ -175,8 +196,8 @@ impl MarkdownView {
                 origin,
                 band,
                 part,
-                accent,
-                self.palette.foreground,
+                reach,
+                (accent, self.palette.foreground),
                 window,
             );
         }
@@ -193,19 +214,18 @@ pub(super) fn span(
 ) -> usize {
     let index = selection.spans.len();
     let line = run.line();
+    let bounds = Bounds::new(
+        point(px(x), px(baseline) - line.ascent),
+        size(line.width.max(px(1.)), line.ascent + line.descent),
+    );
     selection.spans.push(Span {
         chunk: id,
         start,
         len: line.len,
-        bounds: Bounds::new(
-            point(px(x), px(baseline) - line.ascent),
-            size(line.width.max(px(1.)), line.ascent + line.descent),
-        ),
-        clip: selection.clip.intersect(&Bounds::new(
-            point(px(x), px(baseline) - line.ascent),
-            size(line.width.max(px(1.)), line.ascent + line.descent),
-        )),
+        bounds,
+        clip: selection.clip.intersect(&bounds),
         line: Arc::clone(line),
+        reach: bounds.right(),
     });
     index
 }

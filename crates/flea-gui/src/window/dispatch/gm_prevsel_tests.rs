@@ -238,44 +238,6 @@ fn gm_prevsel_quick_look_escape_clears_before_closing_and_copy_keeps_the_key_tab
 }
 
 #[gpui::test]
-fn gm_prevsel_a_preview_press_takes_the_keyboard_back_from_the_path_bar(cx: &mut TestAppContext) {
-    let (shell, cx, _, start, end) = code_preview(cx, false);
-    cx.simulate_keystrokes("ctrl-l");
-    assert_eq!(
-        crate::window::u07_tests::read(&shell, cx, "pathBarOpen", &[]),
-        "true"
-    );
-    drag(cx, start, end);
-    cx.simulate_keystrokes("ctrl-c");
-    pump(cx);
-    assert_eq!(
-        cx.update(|_, cx| cx.read_from_clipboard().and_then(|item| item.text())),
-        Some("héllo world\n第二 line".into()),
-        "a press in the preview leaves the path bar, as any press in the pane does"
-    );
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
-
-#[gpui::test]
-fn gm_prevsel_copy_in_the_path_bar_keeps_the_field_text(cx: &mut TestAppContext) {
-    let (shell, cx, _, start, end) = code_preview(cx, false);
-    drag(cx, start, end);
-    cx.simulate_keystrokes("ctrl-l");
-    assert_eq!(
-        crate::window::u07_tests::read(&shell, cx, "pathBarOpen", &[]),
-        "true"
-    );
-    cx.simulate_keystrokes("ctrl-c");
-    pump(cx);
-    assert_eq!(
-        cx.update(|_, cx| cx.read_from_clipboard().and_then(|item| item.text())),
-        Some("/files/".into()),
-        "the path field copies its own text, never the preview range"
-    );
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
-
-#[gpui::test]
 fn gm_prevsel_markdown_drag_copies_through_the_shell_in_both_views(cx: &mut TestAppContext) {
     use crate::g2::pv2::markdown::View;
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -383,3 +345,6 @@ fn gm_prevsel_markdown_drag_copies_through_the_shell_in_both_views(cx: &mut Test
     drop(cleanup);
     assert!(!root.exists(), "the test root is removed");
 }
+
+#[path = "gm_prevsel_tests/focus.rs"]
+mod focus;
