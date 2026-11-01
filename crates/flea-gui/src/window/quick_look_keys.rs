@@ -142,6 +142,15 @@ impl Shell {
         };
         let command = view.update(cx, |view, cx| view.action(event.action, cx));
         self.quick_look_drain();
+        // Preview.qml toggleWrap: ui.json keeps the choice for the next card (EY-570).
+        let wrapped = (event.action == "toggleWrap")
+            .then(|| view.read(cx).subject()?.body.doc()?.wrap(cx))
+            .flatten();
+        if let Some(wrap) = wrapped {
+            let leaf = Json::Obj(vec![("wrap".into(), Json::Bool(wrap))]);
+            let patch = Json::Obj(vec![("preview".into(), leaf)]);
+            self.change_settings(patch, window, cx);
+        }
         match command {
             Command::Close => self.quick_look_closed(window, cx),
             // PreviewKeys.act cursorDown: the cursor moves under the card and the card follows a file row.
