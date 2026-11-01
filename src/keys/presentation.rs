@@ -96,12 +96,15 @@ pub fn hinted(catalog: &I18n, template: &str, name: &str, action: &str) -> Strin
     if key.is_empty() {
         String::new()
     } else {
-        catalog.tr_args(template, &[&key])
+        catalog.tr_args(template, &[&catalog.keycap(&key)])
     }
 }
 
 pub fn hinted_all(catalog: &I18n, template: &str, name: &str, actions: &[&str]) -> String {
-    let keys: Vec<_> = actions.iter().map(|action| key_for(name, action)).collect();
+    let keys: Vec<_> = actions
+        .iter()
+        .map(|action| catalog.keycap(&key_for(name, action)))
+        .collect();
     if keys.iter().any(String::is_empty) {
         return String::new();
     }
@@ -202,3 +205,7 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
     }
     result
 }
+
+#[cfg(test)]
+#[path = "presentation_keycap_tests.rs"]
+pub(crate) mod keycap_tests;

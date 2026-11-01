@@ -1,0 +1,10 @@
+{
+  "feedback.hint.undo": "⁨%1⁩ للتراجع",
+  "keys.escape": "إغلاق أو عودة",
+  "keys.redo": "إعادة",
+  "keys.title": "اختصارات المفاتيح",
+  "keys.undo": "تراجع",
+  "settings.hint.load_key": "يحمّل ⁨%1⁩ العناصر المختارة حاليًا.",
+  "settings.hint.text_keys": "ينتقل ⁨%1⁩ و⁨%2⁩ بينها؛ يعيد ⁨%3⁩ اتباع ⁦Omarchy⁩.",
+  "settings.textsize.override": "حجم النص ⁨%1⁩. يعيد ⁨%2⁩ اتباع ⁦Omarchy⁩"
+}

@@ -149,3 +149,32 @@ fn turkish_headings_keep_the_dotted_capital_i() {
     // Plain to_uppercase draws DEĞIŞTIR.
     assert_eq!(headings, ["HAREKET", "GÖRÜNÜM", "BUL", "DEĞİŞTİR"]);
 }
+
+// Keycaps keep Omarchy's own key words in every language; only the words beside them follow the language.
+#[test]
+fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
+    let theme = Theme::from_text(PALETTE);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/keys/fixtures/keycaps");
+    for code in ["ru", "fa"] {
+        let mut m = model();
+        m.sheet = true;
+        m.i18n = crate::i18n::I18n::load(crate::i18n::Paths {
+            omarchy: root.clone(),
+            language_file: root.join(format!("language-{code}")),
+            catalogs: vec![root.join("catalogs")],
+        });
+        let rows = screen(&m, &theme).0.join("\n");
+        for (keys, label) in [
+            ("z / ctrl-z", "keys.undo"),
+            ("ctrl-shift-z / ctrl-y", "keys.redo"),
+            ("escape", "keys.escape"),
+        ] {
+            let words = m.i18n.tr(label);
+            assert_ne!(words, label, "{code} {label} is translated in the fixture");
+            assert!(
+                rows.contains(&format!("{keys}  {words}")),
+                "{code}: {keys} beside {words}\n{rows}"
+            );
+        }
+    }
+}

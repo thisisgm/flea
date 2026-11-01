@@ -27,7 +27,9 @@ impl MarkdownView {
         }
         let at = self.local(event.position);
         let table = self.hits.iter().find_map(|hit| match hit {
-            Hit::Table { rect, id, most } if *most > 0. && inside(*rect, at) => Some((*id, *most)),
+            Hit::Table { rect, id, most, .. } if *most > 0. && inside(*rect, at) => {
+                Some((*id, *most))
+            }
             _ => None,
         });
         let (shift, control) = (event.modifiers.shift, event.modifiers.control);

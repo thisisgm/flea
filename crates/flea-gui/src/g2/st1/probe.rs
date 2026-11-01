@@ -6,11 +6,15 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 pub struct Probe(Rc<RefCell<BTreeMap<String, Bounds<Pixels>>>>);
 
 impl Probe {
+    pub(crate) fn record(&self, id: &str, bounds: Bounds<Pixels>) {
+        self.0.borrow_mut().insert(id.into(), bounds);
+    }
+
     pub fn clear(&self) {
         self.0.borrow_mut().clear();
     }
 
-    pub fn attach(&self, div: Div, id: impl Into<String>) -> Div {
+    pub fn attach<E: ParentElement>(&self, div: E, id: impl Into<String>) -> E {
         div.child(self.mark(id))
     }
 

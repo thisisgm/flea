@@ -41,6 +41,11 @@ impl Adapter for DialogAdapter<'_> {
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
             // The menu actions' card is Open With or the run card; with neither open the Root has no dialog to describe.
             "menuDialogState" => {
+                if let Some(open) = &self.shell.properties {
+                    return Some(Reply::value(
+                        open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
+                    ));
+                }
                 if self.shell.open_with.is_some() || self.shell.run_card.is_some() {
                     return Some(open_card(function, "rect, controls, confirmation"));
                 }
@@ -51,12 +56,13 @@ impl Adapter for DialogAdapter<'_> {
                 Some(open) => open_with_state(&open.card),
                 None => "{\"opened\":false}".into(),
             },
-            "runCardState" => {
-                if self.shell.run_card.is_some() {
-                    return Some(open_card(function, "rect, controls"));
-                }
-                "{\"opened\":false}".into()
-            }
+            "runCardState" => self.shell.run_card.as_ref().map_or_else(
+                || "{\"opened\":false}".into(),
+                |open| {
+                    open.card
+                        .ipc_state(&self.shell.locale.catalog, &open.probe.probe)
+                },
+            ),
             // An open card answers its own state; a closed one only the list's rest input state.
             "permissionsState" => match self.shell.permissions_state(self.cx) {
                 Some(state) => flea::jsondoc::render(&state).trim_end().to_owned(),

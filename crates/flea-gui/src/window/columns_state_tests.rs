@@ -164,3 +164,68 @@ fn m9_columns_rows_wear_language_marks_while_lang_marks_is_on() {
         );
     }
 }
+
+// EY-373: four 592 px columns centre the hero right of them (cols4-hero-empty.png); three keep the whole-pane centre.
+#[test]
+fn ey373_columns_empty_hero_at_2560_follows_the_board_for_its_column_count() {
+    for count in [3, 4] {
+        let mut cx = host::context();
+        let (window, _requests) = host::open_at(&mut cx, "/srv/a/b/c", 2560., count);
+        host::change(&mut cx, window, |shell, window, cx| {
+            shell.receive(
+                0,
+                Event::Reply(Reply::Listed {
+                    path: "/srv/a/b/c".into(),
+                    total: 0,
+                }),
+                window,
+                cx,
+            );
+            shell.receive(
+                0,
+                Event::Reply(Reply::Rows {
+                    start: 0,
+                    listing: 4,
+                    rows: Vec::new(),
+                }),
+                window,
+                cx,
+            );
+            host::settle(shell, window, cx);
+        });
+        host::frame(&mut cx, window);
+        let (pane, layout) = window
+            .update(&mut cx, |shell, window, _| {
+                let host = shell.panes[0].as_ref().unwrap();
+                (
+                    shell.geometry(window).panes[0],
+                    host.columns.as_ref().unwrap().area.layout.clone(),
+                )
+            })
+            .unwrap();
+        assert_eq!(layout.count, count);
+        let mut visual = VisualTestContext::from_window(window.into(), &cx);
+        let slot = visual
+            .debug_bounds("columns-state-slot")
+            .expect("the state producer mounted");
+        let mark = visual
+            .debug_bounds("fb1-hero-mark")
+            .expect("the hero mark painted");
+        let start = if count == 4 {
+            assert_eq!(
+                layout.column_width, 592.,
+                "the board's columns are 592 wide"
+            );
+            layout.active_x()
+        } else {
+            0.
+        };
+        assert_eq!(f32::from(slot.origin.x), pane.x + start);
+        assert_eq!(f32::from(slot.size.width), pane.width - start);
+        assert!((f32::from(mark.center().x - slot.center().x)).abs() < 1.);
+        assert!(
+            f32::from(mark.origin.x) > pane.x + layout.active_x(),
+            "the hero stands clear of every drawn column"
+        );
+    }
+}

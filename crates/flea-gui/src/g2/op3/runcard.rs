@@ -137,3 +137,43 @@ impl RunCard {
         }
     }
 }
+
+impl RunCard {
+    /// RunCard.qml's runCardState: what the card asks, its buttons, and where the latest frame laid them out.
+    pub fn ipc_state(&self, i18n: &I18n, probe: &crate::g2::st1::probe::Probe) -> String {
+        use flea::jsondoc::Json;
+        let card = self.card(i18n);
+        let text = |value: &str| Json::Str(value.into());
+        let controls =
+            card.buttons
+                .iter()
+                .zip(&self.buttons)
+                .enumerate()
+                .map(|(at, (drawn, button))| {
+                    let id = format!("button:{at}");
+                    crate::visual::object([
+                        ("name", text(button.name())),
+                        ("label", text(&drawn.label)),
+                        ("primary", Json::Bool(drawn.primary)),
+                        ("focused", Json::Bool(drawn.focused)),
+                        ("centre", Json::Str(probe.centre(&id, &id))),
+                        ("rect", Json::Str(probe.rect(&id))),
+                    ])
+                });
+        let default = logic::default_button(self.ask.kind, self.ask.has_handler());
+        let state = crate::visual::object([
+            ("opened", Json::Bool(true)),
+            ("title", Json::Str(card.title.clone())),
+            ("kind", text(self.ask.kind.name())),
+            (
+                "buttons",
+                Json::Arr(self.buttons.iter().map(|b| text(b.name())).collect()),
+            ),
+            ("focus", text(self.focus.name())),
+            ("default", text(default.name())),
+            ("rect", Json::Str(probe.rect("card"))),
+            ("controls", Json::Arr(controls.collect())),
+        ]);
+        flea::jsondoc::render(&state).trim_end().into()
+    }
+}

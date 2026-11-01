@@ -171,14 +171,16 @@ fn play(
                     }
                     set(api, handle, "pause", "no")?;
                 }
-                Command::Pause => set(api, handle, "pause", "yes")?,
+                Command::Pause => {
+                    state.transport.pause();
+                    set(api, handle, "pause", "yes")?;
+                }
                 Command::Stop => {
-                    let stopped = state.transport.stop();
                     set(api, handle, "pause", "yes")?;
                     seek(api, handle, &mut state, 0);
                     // A stop's rewind is not a user seek, so it reports no Seeked.
                     state.seeking = None;
-                    io(out.event(stopped))?;
+                    io(out.event(state.transport.stop()))?;
                 }
                 Command::Seek(target) => seek(api, handle, &mut state, target),
                 Command::Mute(muted) => set(api, handle, "mute", if muted { "yes" } else { "no" })?,
@@ -218,11 +220,18 @@ fn play(
                     }
                 }
                 EVENT_PLAYBACK_RESTART => {
-                    if let Some(target) = state.seeking.take() {
-                        io(out.event(Event::Seeked(target)))?;
+                    if let Some(target) = state.seeking {
+                        if let Some((paused, eof, at_end)) = completed_seek(api, handle, target) {
+                            state.seeking = None;
+                            io(out.event(Event::Seeked(target)))?;
+                            if let Some(news) = state.transport.seek_completed(paused, eof, at_end)
+                            {
+                                io(out.event(news))?;
+                            }
+                        }
                     }
                 }
-                EVENT_PROPERTY_CHANGE => property(event, &mut state, options, out)?,
+                EVENT_PROPERTY_CHANGE => property(api, handle, event, &mut state, options, out)?,
                 _ => {}
             }
         }
@@ -248,12 +257,17 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
     };
     let seconds = format!("{:.3}", target.max(0) as f64 / 1000.);
     match command(api, handle, &["seek", &seconds, "absolute+exact"]) {
-        Ok(()) => state.seeking = Some(target),
+        Ok(()) => {
+            state.transport.seek_accepted();
+            state.seeking = Some(target);
+        }
         Err(error) => eprintln!("flea-media: seek dropped: {error}"),
     }
 }
 
 fn property(
+    api: &Api,
+    handle: Handle,
     event: &MpvEvent,
     state: &mut State,
     options: &Options,
@@ -266,12 +280,14 @@ fn property(
     }
     let io = |result: std::io::Result<()>| result.map_err(|error| error.to_string());
     // SAFETY: each id was observed with the format read here.
-    let flag = || unsafe { *(changed.data as *const c_int) } != 0;
     let double = || unsafe { *(changed.data as *const f64) };
     let int = || unsafe { *(changed.data as *const i64) };
     match event.userdata {
         PAUSE => {
-            if let Some(news) = state.transport.paused(flag()) {
+            // Queued flags can predate a completed seek; classify the current native state.
+            if let Some(news) =
+                get_flag(api, handle, "pause").and_then(|p| state.transport.paused(p))
+            {
                 io(out.event(news))?;
             }
         }
@@ -293,7 +309,9 @@ fn property(
             }
         }
         EOF => {
-            if let Some(news) = state.transport.ended(flag()) {
+            if let Some(news) =
+                get_flag(api, handle, "eof-reached").and_then(|e| state.transport.ended(e))
+            {
                 io(out.event(news))?;
             }
         }

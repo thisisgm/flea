@@ -285,6 +285,32 @@ source = "{SOURCE}"
         self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
+    def test_conditional_product_path_keeps_shared_code_visible(self):
+        self.write("crates/flea-gui/src/shared.rs", "fn shape() { replies.recv_blocking(); }")
+        for attribute in ('#[cfg_attr(unix, path="shared.rs")]',
+                          '#[cfg_attr(unix, allow(dead_code), path="shared.rs")]',
+                          '#[cfg_attr(unix, cfg_attr(feature="live", path="shared.rs"))]'):
+            with self.subTest(attribute=attribute):
+                self.write("crates/flea-gui/src/lib.rs", attribute + ' mod live; #[cfg(test)] #[path="shared.rs"] mod fixture;')
+                self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
+    def test_conditional_test_path_stays_test_only(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg_attr(test, path="fixture.rs")] mod live;')
+        self.write("crates/flea-gui/src/live.rs", "fn harmless() {}")
+        self.write("crates/flea-gui/src/fixture.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_conditional_product_path_keeps_its_fallback_test_only(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg_attr(not(test), path="live.rs")] mod fixture;')
+        self.write("crates/flea-gui/src/live.rs", "fn harmless() {}")
+        self.write("crates/flea-gui/src/fixture.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_conditional_inline_path_keeps_product_child_visible(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg_attr(unix, path="live")] mod owner { mod shared; } #[cfg(test)] #[path="live/shared.rs"] mod fixture;')
+        self.write("crates/flea-gui/src/live/shared.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
     def test_inline_test_path_cannot_hide_a_sibling_product_file(self):
         self.write("crates/flea-gui/src/lib.rs", 'mod probe;\n#[cfg(test)]\nmod support { #[path = "probe.rs"] mod fake; }')
         self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
@@ -371,6 +397,28 @@ source = "{SOURCE}"
         body = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "")
         self.write("crates/flea-gui/src/list.rs", "const ROW_HEIGHT: f32 = 31.;\n#[cfg(test)] mod tests {\n" + body + "\n}")
         self.assertTrue(any("registered hot surface has no custom Element" in e for e in self.errors()))
+
+    def test_inner_test_attributes_cannot_supply_product_elements(self):
+        body = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "")
+        for source in ("const ROW_HEIGHT: f32 = 31.;\nmod tests { #![cfg(test)]\n" + body + "\n}",
+                       "#![cfg(test)]\n" + LIST):
+            with self.subTest(source=source):
+                self.write("crates/flea-gui/src/list.rs", source)
+                self.assertTrue(any("registered hot surface has no custom Element" in e for e in self.errors()))
+
+    def test_inner_test_scope_excludes_its_blocking_callback(self):
+        self.write("crates/flea-gui/src/list.rs", LIST + "\nmod tests { #![allow(dead_code)] #![cfg(test)] fn paint() { std::thread::park(); } }")
+        self.assertEqual([], self.errors())
+
+    def test_inner_test_function_is_not_a_product_callback_or_method(self):
+        self.write("crates/flea-gui/src/list.rs", LIST + "\nmod tests { fn paint() { #![allow(dead_code)] #![cfg(test)] std::thread::park(); } }")
+        self.assertEqual([], self.errors())
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("fn paint() {", "fn paint() { #![cfg(test)]"))
+        self.assertTrue(any("custom Element must implement layout, prepaint and paint" in e for e in self.errors()))
+
+    def test_test_attribute_function_is_not_a_product_callback(self):
+        self.write("crates/flea-gui/src/list.rs", LIST + "\nmod tests { #[test] fn paint() { std::thread::park(); } }")
+        self.assertEqual([], self.errors())
 
     def test_test_only_method_cannot_satisfy_product_registration(self):
         self.write("crates/flea-gui/src/list.rs", LIST.replace("fn paint()", "#[cfg(test)] fn paint()"))

@@ -5,7 +5,7 @@ use flea::ui_logic_pl3::dropping;
 use flea::ui_logic_pl4::rail::Kind;
 
 // The status line's activity owner for the held drag's line (FileDrag.qml dragFeedbackOwner).
-const DRAG_LINE: u64 = 1 << 33;
+pub(super) const DRAG_LINE: u64 = 1 << 33;
 
 /// Where a rail row sends a drop: a place's folder, or the Trash.
 #[derive(Clone, Debug, PartialEq)]
@@ -183,7 +183,7 @@ impl Shell {
                     .or_else(|| self.pane_target(point, lift))
             });
         let Some((spot, side, name, place)) = target else {
-            self.clear_rail_aim(window, cx);
+            self.miss_rail_aim(point, window, cx);
             return;
         };
         let drags = cx.default_global::<Drags>();
@@ -326,6 +326,7 @@ impl Shell {
     pub(crate) fn settle_rail_drag(&mut self, window: &Window, cx: &mut Context<Self>) {
         if !cx.has_active_drag() {
             self.clear_rail_aim(window, cx);
+            self.settle_row_drag(window, cx);
         }
     }
 

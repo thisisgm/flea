@@ -146,13 +146,6 @@ impl Reader<'_> {
                     .collect::<Vec<_>>()
                     .join("|")
             }),
-            "previewTable" => frame.zip(view).map_or(String::new(), |(f, v)| {
-                v.facts(f, self.cx)
-                    .iter()
-                    .map(|(k, v)| format!("{k}: {v}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            }),
             // Without a preview class the pane's own fsinfo class answers, so the reader falls through.
             "storageClass" => view
                 .and_then(|v| v.class.as_ref())

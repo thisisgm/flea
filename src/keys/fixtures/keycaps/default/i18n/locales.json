@@ -1,0 +1,36 @@
+{
+  "en": {
+    "name": "English",
+    "englishName": "English",
+    "formatLocale": "en-US",
+    "locale": "en_US.UTF-8",
+    "decimal": ".",
+    "zeroDigit": "0"
+  },
+  "ru": {
+    "name": "Русский",
+    "englishName": "Russian",
+    "formatLocale": "ru-RU",
+    "locale": "ru_RU.UTF-8",
+    "decimal": ",",
+    "zeroDigit": "0"
+  },
+  "fa": {
+    "name": "فارسی",
+    "englishName": "Persian",
+    "formatLocale": "fa-IR",
+    "locale": "fa_IR.UTF-8",
+    "direction": "rtl",
+    "decimal": "٫",
+    "zeroDigit": "۰"
+  },
+  "ar": {
+    "name": "العربية",
+    "englishName": "Arabic",
+    "formatLocale": "ar-AE",
+    "locale": "ar_AE.UTF-8",
+    "direction": "rtl",
+    "decimal": ".",
+    "zeroDigit": "0"
+  }
+}

@@ -6,7 +6,7 @@ use crate::{
         op3::{
             keys::{key_of, Key},
             properties::Properties,
-            shell::{DialogShell, StandIn},
+            shell::StandIn,
             Effect,
         },
     },
@@ -19,7 +19,8 @@ use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Subs
 /// The open card, the side whose rows it inspects, and the reply subscription held while it shows.
 pub(crate) struct Open {
     side: usize,
-    card: Properties,
+    pub(crate) card: Properties,
+    pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
     _reply: Subscription,
 }
 
@@ -114,6 +115,7 @@ impl Shell {
         self.properties = Some(Open {
             side,
             card,
+            probe: Default::default(),
             _reply: reply,
         });
         self.properties_effects(effects, window, cx);
@@ -210,7 +212,14 @@ impl Shell {
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let card = open.card.card(&self.locale.catalog);
         let room = f32::from(window.viewport_size().width);
-        let drawn = StandIn.present(&card, &palette, &self.active_typeface(), self.corner, room);
+        let drawn = StandIn.present_observed(
+            &card,
+            &palette,
+            &self.active_typeface(),
+            self.corner,
+            room,
+            &open.probe,
+        );
         let scrim = cx.listener(|shell: &mut Shell, _: &gpui::MouseDownEvent, window, cx| {
             if shell.properties.is_some() {
                 let effects = shell

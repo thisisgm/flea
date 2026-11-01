@@ -159,12 +159,22 @@ fn picture(
 pub struct Decoder {
     jobs: mpsc::Sender<Job>,
     pub decoded: async_channel::Receiver<Decoded>,
+    #[cfg(test)]
+    _inert: Option<async_channel::Sender<Decoded>>,
 }
 
 impl Decoder {
     pub fn spawn(svg: SvgRenderer) -> Self {
         let (jobs, inbox) = mpsc::channel::<Job>();
         let (outbox, decoded) = async_channel::unbounded();
+        #[cfg(test)]
+        if crate::g2::pv2::render::MARKDOWN_INERT.get() {
+            return Decoder {
+                jobs,
+                decoded,
+                _inert: Some(outbox),
+            };
+        }
         let _ = thread::Builder::new()
             .name("flea-md-pictures".into())
             .spawn(move || {
@@ -197,7 +207,12 @@ impl Decoder {
                     }
                 }
             });
-        Decoder { jobs, decoded }
+        Decoder {
+            jobs,
+            decoded,
+            #[cfg(test)]
+            _inert: None,
+        }
     }
 
     pub fn picture(&self, seq: u64, url: String, path: PathBuf, scale: f32) {
@@ -223,6 +238,9 @@ impl Decoder {
         });
     }
 }
+
+#[path = "figure_states.rs"]
+mod figure_states;
 
 #[cfg(test)]
 #[path = "assets_tests.rs"]

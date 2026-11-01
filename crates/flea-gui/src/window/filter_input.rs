@@ -43,6 +43,13 @@ impl Shell {
             );
             return true;
         }
+        if self.filter_entry_key(event, cx) {
+            return true;
+        }
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
+        let owner = &host.filter.owner;
         let preset = self
             .launch
             .settings
@@ -64,6 +71,7 @@ impl Shell {
         };
         // Enter on the line opens a single exact match, so one keystroke after the query reaches the file.
         let single = matches!(key, LineKey::Enter)
+            && owner.entry.borrow().marked.is_none()
             && owner.asked().is_none()
             && owner
                 .drawn(host.pane.held.listing)
@@ -92,7 +100,7 @@ impl Shell {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return false;
         };
-        match wire::read(line, host.filter.owner.live()) {
+        match wire::read(line, host.filter.owner.oldest()) {
             Ok(Line::Other) => false,
             Ok(Line::Stale) => true,
             Ok(Line::Answer(answer)) => {

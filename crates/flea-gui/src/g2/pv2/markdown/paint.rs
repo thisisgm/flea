@@ -137,6 +137,8 @@ pub enum Hit {
         rect: (f32, f32, f32, f32),
         id: TableId,
         most: f32,
+        shift: f32,
+        row: Option<(f32, f32, f32, f32)>,
     },
 }
 

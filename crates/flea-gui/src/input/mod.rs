@@ -171,6 +171,8 @@ pub struct Band {
     pub cursor: usize,
     pub active: bool,
     pub additive: bool,
+    /// A Shift press: like Ctrl, a tap that never travels keeps the selection (Finder, v0.3.12 SelectionBand.qml).
+    pub shift: bool,
     pub direction: f32,
     pub last: Option<usize>,
     pub cells: Option<(usize, usize, usize, usize)>,

@@ -88,8 +88,33 @@ def mapped_surface(server, surface_id):
     if xdg is None:
         return False
     top = re.search(rf"xdg_surface[#@]{xdg[1]}\.get_toplevel\(new id xdg_toplevel[#@](\d+)\)", server)
-    return bool(top and re.search(surface + r"\.attach\(wl_buffer", server) and
-                re.search(rf'xdg_toplevel[#@]{top[1]}\.set_app_id\("{re.escape(APP_ID)}"\)', server))
+    if top is None or not re.search(rf'xdg_toplevel[#@]{top[1]}\.set_app_id\("{re.escape(APP_ID)}"\)', server):
+        return False
+    attached = False
+    # Sample input: wl_surface#23.attach(wl_buffer#8, 0, 0), then wl_surface#23.commit().
+    for operation, arguments in re.findall(surface + r"\.(attach|commit)\(([^)]*)\)", server):
+        if operation == "attach":
+            attached = arguments.lstrip().startswith("wl_buffer")
+        elif attached:
+            return True
+    return False
+
+
+def mapped_surface_controls():
+    role = ("get_xdg_surface(new id xdg_surface#29, wl_surface#23)\n"
+            "xdg_surface#29.get_toplevel(new id xdg_toplevel#30)\n"
+            f'xdg_toplevel#30.set_app_id("{APP_ID}")\n')
+    attach = "wl_surface#23.attach(wl_buffer#8, 0, 0)\n"
+    commit = "wl_surface#23.commit()\n"
+    cases = (("committed buffer", role + attach + commit, True),
+             ("attachment only", role + attach, False),
+             ("commit before attachment", role + commit + attach, False),
+             ("other surface commit", role + attach + "wl_surface#24.commit()\n", False),
+             ("detached before commit", role + attach + "wl_surface#23.attach(nil, 0, 0)\n" + commit, False),
+             ("other app", role.replace(APP_ID, "other.app") + attach + commit, False))
+    for name, trace, expected in cases:
+        assert mapped_surface(trace, 23) is expected, name
+    assert mapped_surface((role + attach + commit).replace("#", "@"), 23)
 
 
 def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
@@ -198,6 +223,7 @@ def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
 
 
 def main():
+    mapped_surface_controls()
     for directory in ("empty", "runtime", "tmp"):
         (ROOT / directory).mkdir(mode=0o700)
     (ROOT / "empty/.flea-test-sandbox").touch()

@@ -57,6 +57,7 @@ fn active_band(host: &mut PaneHost, saved_cursor: usize, cx: &mut TestAppContext
         cursor: saved_cursor,
         active: true,
         additive: false,
+        shift: false,
         direction: 1.,
         last: Some(8),
         cells: None,
