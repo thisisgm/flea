@@ -163,6 +163,14 @@ class Plan(Scratch):
         plan = json.loads(out.read_text())
         self.assertIn('2 catalogs absent: en, de', [row['missing'] for row in plan['owed'] if row['dependency'] == 'CATALOGS'])
         self.assertIn('CATALOGS', next(c for c in plan['cases'] if c['id'] == 'catalog.en.gui')['missing'])
+        # A registered scene never plans a fit case whose language has no catalog.
+        tool = load_tool()
+        contract, roster = tool.load_contract(tool.CONTRACT), tool.load_roster(ROSTER)
+        inputs = tool.load_inputs(contract, roster)
+        bare = tool.build_plan(contract, roster, ['en', 'de'], catalog_root=empty, inputs=inputs)
+        fit = [case for case in bare['cases'] if case['kind'] == 'fit']
+        self.assertTrue(any(case.get('scene') in inputs['scenes'] for case in fit))
+        self.assertTrue(fit and all(case['status'] == 'OWED' and 'CATALOGS' in case['missing'] for case in fit))
 
     def test_i50_native_gui_cases_owe_registered_scenes(self):
         tool = load_tool()
