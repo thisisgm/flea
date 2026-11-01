@@ -324,3 +324,90 @@ fn trashview_comma_then_escape_keeps_trash_and_m_targets_the_trash_row() {
         );
     });
 }
+
+#[test]
+fn ey262_focus_view_names_the_list_stop_while_trash_holds_the_keyboard() {
+    let mut cx = real_cx();
+    let window = mounted(&mut cx);
+    cx.simulate_keystrokes(window.into(), "delete");
+    draw(&mut cx, window);
+    enter(&mut cx, window);
+    settle(&mut cx, window, 2);
+    assert_eq!(call(&mut cx, window, "trashFocusEmpty", &[]), "true");
+    assert_eq!(call(&mut cx, window, "focusView", &[]), "list");
+    assert_eq!(call(&mut cx, window, "trashFocusListing", &[]), "true");
+    assert_eq!(call(&mut cx, window, "focusView", &[]), "list");
+}
+
+fn menu_inks(
+    cx: &mut TestAppContext,
+    window: WindowHandle<Root>,
+) -> Vec<(String, bool, crate::g2::mn1::lines::Ink)> {
+    cx.simulate_keystrokes(window.into(), "m");
+    draw(cx, window);
+    shell(cx, window, |shell, _, _| {
+        let menu = shell.trash.as_ref().unwrap().menu.borrow();
+        let card = menu.card.as_ref().expect("m opens the Trash menu");
+        card.built
+            .lines
+            .iter()
+            .filter(|line| !line.separator)
+            .map(|line| (line.id.clone(), line.disabled, line.ink))
+            .collect()
+    })
+}
+
+#[test]
+fn ey198_an_unavailable_empty_trash_row_drops_the_destructive_ink() {
+    use crate::g2::mn1::lines::Ink;
+    let mut cx = real_cx();
+    let window = mounted(&mut cx);
+    enter(&mut cx, window);
+    settle(&mut cx, window, 0);
+    let empty = menu_inks(&mut cx, window);
+    let row = empty
+        .iter()
+        .find(|(id, ..)| id == "emptyTrash")
+        .expect("Empty Trash… row");
+    assert!(row.1, "an empty Trash disables Empty Trash…");
+    assert_eq!(
+        row.2,
+        Ink::Plain,
+        "MenuRow.qml draws an unavailable row muted, never red"
+    );
+}
+
+#[test]
+fn ey198_an_available_empty_trash_row_keeps_the_destructive_ink() {
+    use crate::g2::mn1::lines::Ink;
+    let mut cx = real_cx();
+    let window = mounted(&mut cx);
+    enter(&mut cx, window);
+    settle(&mut cx, window, 2);
+    shell(&mut cx, window, |shell, window, cx| {
+        let pane = shell.trash.as_ref().unwrap().pane.clone();
+        pane.update(cx, |pane, cx| {
+            pane.action("toggleSelect", false, cx);
+            pane.right_click(None, 40., 200., cx);
+        });
+        shell.flush_trash(window, cx);
+    });
+    draw(&mut cx, window);
+    shell(&mut cx, window, |shell, _, _| {
+        let menu = shell.trash.as_ref().unwrap().menu.borrow();
+        let card = menu
+            .card
+            .as_ref()
+            .expect("a right click on the blank area opens the Trash menu");
+        let row = card
+            .built
+            .lines
+            .iter()
+            .find(|line| line.id == "emptyTrash")
+            .expect("Empty Trash… row");
+        assert!(
+            !row.disabled && row.ink == Ink::Danger,
+            "Empty Trash… keeps the destructive ink while it can act"
+        );
+    });
+}

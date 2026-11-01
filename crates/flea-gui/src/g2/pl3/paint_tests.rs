@@ -131,3 +131,41 @@ fn a_trash_image_row_keeps_the_generic_icon() {
         })
         .unwrap();
 }
+
+#[test]
+fn ey388_v_toggling_the_cursor_row_off_drops_its_plate() {
+    let mut cx = real_cx();
+    let (window, _) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    let ink = ink();
+    window
+        .update(&mut cx, |pane, _, cx| {
+            assert_eq!(pane.paint.borrow().ground(0), Some(ink.accent.opacity(WASH)));
+            pane.action("toggleSelect", false, cx);
+            assert_eq!(pane.view().selected_count(), 0, "v unmarks the only marked row");
+            let paint = pane.paint.borrow();
+            assert_eq!(
+                (paint.ground(0), paint.edge_at(0)),
+                (None, false),
+                "TrashView.qml grounds only marked rows, so an unmarked cursor row draws no plate and no edge"
+            );
+        })
+        .unwrap();
+}
+
+#[test]
+fn ey405_a_marked_row_under_its_menu_keeps_the_readable_marked_plate() {
+    let mut cx = real_cx();
+    let (window, _) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    let ink = ink();
+    window
+        .update(&mut cx, |pane, _, cx| {
+            pane.right_click(Some(0), 40., 80., cx);
+            assert!(pane.menu_open);
+            assert_eq!(
+                pane.paint.borrow().ground(0),
+                Some(ink.foreground.opacity(0.35)),
+                "trash-menu: the row keeps the list's translucent marked plate while its menu is open"
+            );
+        })
+        .unwrap();
+}

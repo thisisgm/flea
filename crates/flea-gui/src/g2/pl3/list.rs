@@ -108,10 +108,16 @@ impl ListPaint {
             .and_then(|at| self.lines.get(at))
     }
 
+    /// The marked cursor row's rung and accent edge, drawn only while the list has the keyboard.
+    pub fn edge_at(&self, index: usize) -> bool {
+        // TrashView.qml grounds marked rows only, so a cursor row v unmarked draws no rung (EY-388).
+        index == self.cursor && self.edge && self.line(index).is_some_and(|line| line.marked)
+    }
+
     /// The row's ground: the cursor rung while the list has the keyboard, the marked plate, or the pointer wash.
     pub fn ground(&self, index: usize) -> Option<Hsla> {
         let marked = self.line(index).is_some_and(|line| line.marked);
-        if index == self.cursor && self.edge {
+        if self.edge_at(index) {
             Some(self.ink.accent.opacity(WASH))
         } else if marked {
             Some(self.ink.mark_fill)
@@ -321,7 +327,7 @@ impl Element for TrashList {
                 if let Some(ground) = state.ground(*index) {
                     window.paint_quad(fill(row, ground));
                 }
-                if *index == state.cursor && state.edge {
+                if state.edge_at(*index) {
                     window.paint_quad(fill(
                         Bounds::new(point(left, top), size(px(EDGE), px(ROW_H))),
                         ink.edge(),

@@ -72,7 +72,8 @@ impl Shell {
                 Item::Entry(item) => Entry {
                     action: item.action.into(),
                     disabled: item.disabled,
-                    danger: item.danger,
+                    // MenuRow.qml: an unavailable row takes the muted ink before the destructive one (EY-198).
+                    danger: item.danger && !item.disabled,
                     ..Entry::row(item.id, Text::Key(item.label_key), item.glyph)
                 },
             })
