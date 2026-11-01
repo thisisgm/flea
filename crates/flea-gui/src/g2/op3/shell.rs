@@ -65,6 +65,7 @@ pub enum Glyph {
     Alert,
     Drive,
     Cross,
+    Folder,
     FolderOpen,
 }
 
@@ -184,6 +185,8 @@ pub enum Block {
         name: String,
         kind: String,
     },
+    /// Permissions' scope box for a folder: the accent check and the wrapped sentence in a framed ground.
+    Scope(String),
     /// The run card's line: the mark in foreground and the kind and size.
     Program {
         glyph: Glyph,
@@ -347,6 +350,7 @@ mod facts;
 mod facts_tests;
 mod field;
 mod glyph;
+mod scope;
 pub use draw::{Probed, StandIn};
 pub use glyph::glyph;
 

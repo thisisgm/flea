@@ -225,3 +225,51 @@ fn convert_result_reloads_and_selects_the_created_file(cx: &mut TestAppContext) 
         );
     });
 }
+
+#[gpui::test]
+fn fixcards_ey255_compress_result_lands_on_the_first_row_with_nothing_marked(
+    cx: &mut TestAppContext,
+) {
+    // EY-255: after "Archive written." v0.3.12 resets to the first row with nothing selected; no re-read is in flight here.
+    let (backend, mut requests) = Backend::test_lines();
+    let handle = open(cx, backend);
+    let notes = row("notes.txt", "text-x-generic");
+    let mut folder = row("A", "folder");
+    folder.dir = true;
+    shell(cx, handle, |shell, window, cx| {
+        hold(shell, vec![folder.clone(), notes.clone()]);
+        shell.receive(0, Event::Reply(Reply::Other), window, cx);
+        let host = shell.panes[0].as_mut().unwrap();
+        host.pane.cursor = 1;
+        host.selected = vec![1];
+    });
+    frame(cx, handle);
+    while requests().is_some() {}
+    choose(cx, handle, "compress", "notes.txt");
+    receive(cx, handle, r#"{"t":"archivestarted","id":9}"#);
+    receive(
+        cx,
+        handle,
+        r#"{"t":"archivedone","id":9,"ok":true,"verified":true,"err":""}"#,
+    );
+    assert!(
+        sent(&mut requests, "list").is_some(),
+        "Compress re-reads its folder"
+    );
+    land(
+        cx,
+        handle,
+        vec![folder, notes, row("notes.zip", "package-x-generic")],
+    );
+    shell(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(!host.pane.busy());
+        assert_eq!(host.pane.held.total, 3);
+        assert_eq!(host.pane.cursor, 0, "the cursor goes back to A");
+        assert!(
+            host.selected.is_empty(),
+            "nothing stays marked: {:?}",
+            host.selected
+        );
+    });
+}

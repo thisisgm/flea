@@ -228,6 +228,7 @@ impl Draw<'_> {
                 )
                 .child(self.text(CAPTION).child(kind.clone()))
                 .into_any_element(),
+            Block::Scope(text) => self.scope(text).into_any_element(),
             Block::Program { glyph: mark, text } => self
                 .text(BOARD_BODY)
                 .flex()

@@ -229,7 +229,7 @@ impl Tokens {
             surface: palette.background,
             ground: palette.background,
             fg: palette.foreground,
-            muted: palette.metadata,
+            muted: palette.muted,
             muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             accent: palette.accent,
             accent_frame: palette.accent_frame,

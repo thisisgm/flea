@@ -1544,6 +1544,7 @@
   "dialogs.file.permissions.path": "Path %1",
   "dialogs.file.permissions.scope_item": "Scope this item only · ownership unchanged",
   "dialogs.file.permissions.scope_folder": "Scope this folder only · enclosed items unchanged · ownership unchanged",
+  "dialogs.file.permissions.scope_folder_note": "Scope: this folder only. Items inside it keep their permissions.",
   "dialogs.file.permissions.mixed": "Mixed boxes keep each item's setting unless you change them.",
   "dialogs.file.permissions.reading": "Reading permissions…",
   "dialogs.file.permissions.applying": "Applying permissions…",
