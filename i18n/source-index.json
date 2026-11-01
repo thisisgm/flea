@@ -61606,7 +61606,7 @@
         },
         {
           "excerpt": "let count = self.i18n.trn(\"jobs.count\", self.count as i64);",
-          "line": 189,
+          "line": 209,
           "path": "src/tui/jobstatus.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -64051,7 +64051,7 @@
         },
         {
           "excerpt": "self.i18n.tr_args(\"jobs.suffix\", &[&count])",
-          "line": 190,
+          "line": 210,
           "path": "src/tui/jobstatus.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -89079,7 +89079,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"progress.percent\", &[&i18n.locale().format_count(percent as i64)]),",
-          "line": 125,
+          "line": 145,
           "path": "src/tui/jobstatus.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -172247,6 +172247,87 @@
       "surface": "tui"
     },
     {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":7,\"kind\":\"copy\",\"state\":\"waiting\",\"head\":\"Copy 5 items to fx\"}],\"newest\":7,\"unfinished\":1,\"head\":\"Copy 5 items to fx\"}\"#, \"Copy 5 items\"),",
+      "line": 101,
+      "literal": "{\"t\":\"jobs\",\"jobs\":[{\"id\":7,\"kind\":\"copy\",\"state\":\"waiting\",\"head\":\"Copy 5 items to fx\"}],\"newest\":7,\"unfinished\":1,\"head\":\"Copy 5 items to fx\"}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":9,\"kind\":\"move\",\"state\":\"done\",\"head\":\"Moving 2 of 2 to fx\"},{\"id\":7,\"kind\":\"copy\",\"state\":\"running\",\"head\":\"Copying 2 of 5 to fx\"},{\"id\":6,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 1 to fx\"}],\"newest\":7,\"unfinished\":2,\"head\":\"Copying 2 of 5 to fx\"}\"#, \"Copying 2 of 5 · 2 jobs\"),",
+      "line": 103,
+      "literal": "{\"t\":\"jobs\",\"jobs\":[{\"id\":9,\"kind\":\"move\",\"state\":\"done\",\"head\":\"Moving 2 of 2 to fx\"},{\"id\":7,\"kind\":\"copy\",\"state\":\"running\",\"head\":\"Copying 2 of 5 to fx\"},{\"id\":6,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 1 to fx\"}],\"newest\":7,\"unfinished\":2,\"head\":\"Copying 2 of 5 to fx\"}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"job\",\"job\":{\"id\":7,\"kind\":\"copy\",\"state\":\"failed\",\"head\":\"Copy failed\"},\"unfinished\":1}\"#, \"\"),",
+      "line": 105,
+      "literal": "{\"t\":\"job\",\"job\":{\"id\":7,\"kind\":\"copy\",\"state\":\"failed\",\"head\":\"Copy failed\"},\"unfinished\":1}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":9,\"kind\":\"move\",\"state\":\"done\",\"head\":\"Moving 2 of 2 to fx\"},{\"id\":7,\"kind\":\"copy\",\"state\":\"failed\",\"head\":\"Copy failed\"},{\"id\":6,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 1 to fx\"}],\"newest\":6,\"unfinished\":1,\"head\":\"Moving 1 of 1 to fx\"}\"#, \"Moving 1 of 1 to fx\"),",
+      "line": 106,
+      "literal": "{\"t\":\"jobs\",\"jobs\":[{\"id\":9,\"kind\":\"move\",\"state\":\"done\",\"head\":\"Moving 2 of 2 to fx\"},{\"id\":7,\"kind\":\"copy\",\"state\":\"failed\",\"head\":\"Copy failed\"},{\"id\":6,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 1 to fx\"}],\"newest\":6,\"unfinished\":1,\"head\":\"Moving 1 of 1 to fx\"}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":9,\"kind\":\"move\",\"state\":\"done\",\"head\":\"Moving 2 of 2 to fx\"},{\"id\":7,\"kind\":\"copy\",\"state\":\"failed\",\"head\":\"Copy failed\"},{\"id\":6,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 1 to fx\"}],\"newest\":6,\"unfinished\":1,\"head\":\"Moving 1 of 1 to fx\"}\"#, \"Moving 1 of 1 to fx\"),",
+      "line": 106,
+      "literal": "Moving 1 of 1 to fx",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 2 to fx\"},{\"id\":10,\"kind\":\"copy\",\"state\":\"running\",\"head\":\"Copying 1 of 4 to fx\"}],\"newest\":11,\"unfinished\":2,\"head\":\"Moving 1 of 2 to fx\"}\"#, \"Moving 1 of 2 to fx · 2 jobs\"),",
+      "line": 107,
+      "literal": "{\"t\":\"jobs\",\"jobs\":[{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 2 to fx\"},{\"id\":10,\"kind\":\"copy\",\"state\":\"running\",\"head\":\"Copying 1 of 4 to fx\"}],\"newest\":11,\"unfinished\":2,\"head\":\"Moving 1 of 2 to fx\"}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"jobs\",\"jobs\":[{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 1 of 2 to fx\"},{\"id\":10,\"kind\":\"copy\",\"state\":\"running\",\"head\":\"Copying 1 of 4 to fx\"}],\"newest\":11,\"unfinished\":2,\"head\":\"Moving 1 of 2 to fx\"}\"#, \"Moving 1 of 2 to fx · 2 jobs\"),",
+      "line": 107,
+      "literal": "Moving 1 of 2 to fx · 2 jobs",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"job\",\"job\":{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 2 of 2 to fx\"},\"unfinished\":2}\"#, \"Moving 2 of 2 to fx · 2 jobs\"),",
+      "line": 108,
+      "literal": "{\"t\":\"job\",\"job\":{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 2 of 2 to fx\"},\"unfinished\":2}",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "(r#\"{\"t\":\"job\",\"job\":{\"id\":11,\"kind\":\"move\",\"state\":\"running\",\"head\":\"Moving 2 of 2 to fx\"},\"unfinished\":2}\"#, \"Moving 2 of 2 to fx · 2 jobs\"),",
+      "line": 108,
+      "literal": "Moving 2 of 2 to fx · 2 jobs",
+      "owner": "t11",
+      "path": "src/tui/jobstatus.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "_ if name == \"enter\" => vec![Key::named(\"Return\", mods), Key::named(\"Enter\", mods)],",
       "line": 98,
       "literal": "Return",
@@ -242940,7 +243021,7 @@
     "src/tui/icons.rs": "085c14d17aecd28c7caf4de44c36405d01d7318512b1b33a412cabe2945c9b90",
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
-    "src/tui/jobstatus.rs": "bd8d2060ac8375ef73ab9199bd7a46a06ca3fe41e4380eab960aa502fb9ab4be",
+    "src/tui/jobstatus.rs": "969480bbe62dbc75e775e1acbb14ca55d0a06068ed0b6995951c3bd3f6709864",
     "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
@@ -243919,7 +244000,7 @@
     },
     "tui": {
       "keys_with_occurrences": 481,
-      "missing_literal_candidates": 369,
+      "missing_literal_candidates": 378,
       "source_files": 85
     }
   },
