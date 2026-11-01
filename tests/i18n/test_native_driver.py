@@ -119,7 +119,7 @@ class Plan(Scratch):
         # Nothing whose producer has not handed off may read as planned work.
         self.assertFalse(plan['complete'])
         owed = {row['dependency'] for row in plan['owed']}
-        # The source index, RTL policy, entry inventory, catalogs, TUI-16 callable and its private preparation are integrated; the rest stays owed by name.
+        # The source index, RTL policy, entry inventory, catalogs, TUI-16 callable, its private preparation and SCENE-LANG's language scenes are integrated; the rest stays owed by name.
         self.assertTrue({'TUI-RECEIPT', 'SCENES', 'I50-09', 'I50-28'} <= owed, owed)
         self.assertFalse({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'TUI-PREPARE', 'CATALOGS', 'SCENE-LANG'} & owed, owed)
         self.assertTrue(all(row['missing'] for row in plan['owed']))
