@@ -318,7 +318,7 @@ impl Render for SelectionPreview {
                 }),
         );
         if full {
-            let (line, label_width, gap) = self.fact_grid();
+            let (line, label_width, gap) = self.fact_grid(frame.kind);
             let mut table = div()
                 .debug_selector(|| "column-preview-facts".into())
                 .flex()
@@ -356,7 +356,7 @@ impl Render for SelectionPreview {
             root = root.child(table);
         } else {
             let (kind, tail) = self.compact(frame, cx);
-            let line = self.fact_grid().0;
+            let line = self.fact_grid(frame.kind).0;
             root = root.child(super::super::preview_facts::compact_facts_line(
                 kind, tail, row, line, &roles,
             ));

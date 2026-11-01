@@ -170,6 +170,11 @@ impl Strip {
         Some((left, right - left))
     }
 
+    /// The placed strip's right edge from its first crumb, where the Git label's gap starts.
+    pub fn end(&self) -> f32 {
+        self.edges.last().copied().unwrap_or(0.)
+    }
+
     /// x is measured from the strip's first crumb in pixels; an unplaced strip is all ground.
     pub fn hit(&self, x: f32) -> Hit {
         if x < 0. {

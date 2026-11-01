@@ -1,6 +1,6 @@
 //! Runtime join for the tab state, one painted strip and the window's existing pane transport.
 use super::{
-    bar::{Bar, Labels, MenuAsk, Panes},
+    bar::{Bar, Labels, Panes},
     live::{Notice, Pane},
     state::{Live, Remember, TabState},
     transfer,
@@ -27,7 +27,7 @@ pub(crate) struct Host {
     pub drop_zone: Rc<Cell<Option<Bounds<Pixels>>>>,
     pub home: String,
     pub remember: Remember,
-    pub menu: Option<MenuAsk>,
+    pub menu: Option<super::context::Target>,
     pub notice: [Notice; 2],
     /// Tabs.js dropOverlay closes a side's Trash; the shell closes it once the tab action lands.
     pub trash_dropped: [bool; 2],

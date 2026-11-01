@@ -205,4 +205,5 @@ mod glass_tests;
 #[cfg(test)]
 mod pb_tags_tests;
 
+pub(crate) mod git_status;
 mod preview_text_selection;

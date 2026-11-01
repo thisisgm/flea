@@ -321,6 +321,10 @@ impl Doc {
 
     /// The card's shape: a page kind sizes to its first page once known, the rest to their kind.
     pub fn shape(&self, state: State, cx: &App) -> Shape {
+        if matches!(&self.view, View::Code(view) if view.read(cx).refusal() == Some(Refusal::Binary))
+        {
+            return Shape::unknown(State::Unsupported);
+        }
         let pdf = match &self.view {
             View::Pdf(v) => Some(v.clone()),
             View::Office(v) if !v.read(cx).office.wants_sheets() => Some(v.read(cx).pdf.clone()),

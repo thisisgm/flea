@@ -33,11 +33,17 @@ impl SelectionPreview {
     }
 
     /// The board's 16 px text line inside a fact row, its 71 px label column, and FactsTable.qml's hairline * 3 row gap.
-    pub(crate) fn fact_grid(&self) -> (f32, f32, f32) {
+    /// A 3D model takes cols-preview-3mf.html's wider column, as wide as Layer height and its 15 px gap.
+    pub(crate) fn fact_grid(&self, kind: Kind) -> (f32, f32, f32) {
         let caption = f32::from(self.face.caption);
+        let label = if kind == Kind::Model {
+            crate::g2::pv4::parts::LABEL_COLUMN
+        } else {
+            FACT_LABEL
+        };
         (
             (caption * FACT_TEXT / BOARD_CAPTION).round(),
-            (caption * FACT_LABEL / BOARD_CAPTION).round(),
+            (caption * label / BOARD_CAPTION).round(),
             FACT_GAP,
         )
     }
@@ -52,7 +58,8 @@ impl SelectionPreview {
                 self.height as f64,
                 metrics.pad as f64,
                 name as f64,
-                (row * facts as f32 + self.fact_grid().2 * facts.saturating_sub(1) as f32) as f64,
+                (row * facts as f32 + self.fact_grid(kind).2 * facts.saturating_sub(1) as f32)
+                    as f64,
                 metrics.gap as f64,
             )
             .max(1.) as f32

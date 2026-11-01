@@ -40,3 +40,66 @@ impl GridView {
         Some(next)
     }
 }
+
+impl crate::state::Shell {
+    pub(crate) fn grid_wheel(
+        &mut self,
+        event: &gpui::ScrollWheelEvent,
+        window: &mut gpui::Window,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        let enabled = self
+            .launch
+            .settings
+            .data
+            .get("preview")
+            .and_then(|v| v.get("ctrlZoom"))
+            .and_then(flea::jsondoc::Json::as_bool)
+            != Some(false);
+        if event.modifiers.control && enabled {
+            let input = match event.delta {
+                gpui::ScrollDelta::Pixels(delta) => ZoomInput {
+                    touchpad: true,
+                    pixels: delta.y.into(),
+                    angle: 0.,
+                },
+                gpui::ScrollDelta::Lines(delta) => ZoomInput {
+                    touchpad: false,
+                    pixels: 0.,
+                    angle: delta.y * 40.,
+                },
+            };
+            let next = self.panes[self.focus_side]
+                .as_mut()
+                .filter(|host| !host.pane.busy())
+                .and_then(|host| {
+                    let grid = host.grid.as_mut()?;
+                    if grid.next_view.is_some() {
+                        return None;
+                    }
+                    grid.view.zoom(
+                        Shown::All(host.pane.held.total),
+                        &super::host::GridHost::focus(&host.pane),
+                        input,
+                    )
+                });
+            if let Some(next) = next {
+                use flea::jsondoc::Json;
+                self.change_settings(
+                    Json::Obj(vec![(
+                        "preview".into(),
+                        Json::Obj(vec![("thumbSize".into(), Json::Str(next.name().into()))]),
+                    )]),
+                    window,
+                    cx,
+                );
+            }
+            cx.notify();
+            return;
+        }
+        let delta = -f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
+        let glide_at = (matches!(event.delta, gpui::ScrollDelta::Lines(_)) && !cx.reduce_motion())
+            .then(|| cx.background_executor().now());
+        self.grid_scroll_at(delta, glide_at, cx);
+    }
+}

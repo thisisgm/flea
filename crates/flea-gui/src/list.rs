@@ -3,6 +3,7 @@
 pub(crate) mod bench;
 pub mod columns;
 pub mod element;
+mod git;
 pub mod header;
 mod hit;
 mod loading;
@@ -145,6 +146,7 @@ impl RowStates {
 
 /// What the pane's owners set outside paint: the words, the switched columns and stored widths, and the decorations they own.
 pub struct ListView {
+    pub(crate) git: Rc<crate::window::git_status::Paint>,
     pub words: Rc<Words>,
     pub switched: Switched,
     pub stored: StoredWidths,
@@ -176,6 +178,7 @@ pub struct ListView {
 impl Default for ListView {
     fn default() -> Self {
         Self {
+            git: Rc::default(),
             words: Rc::default(),
             switched: Switched::default(),
             stored: StoredWidths::default(),
@@ -356,10 +359,6 @@ impl ListState {
         self.visible = Vec::new();
         self.drawn_rows = Rc::default();
         self.header.forget_titles();
-    }
-
-    pub fn visible(&self) -> &[Shown] {
-        &self.visible
     }
 }
 

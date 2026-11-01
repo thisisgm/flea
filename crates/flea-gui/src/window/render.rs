@@ -80,6 +80,7 @@ impl Render for Shell {
                 host.list.borrow_mut().view.tags_shown = shown;
             }
         }
+        self.sync_git();
         self.sync_clip_marks();
         self.carry_sync(window, cx);
         self.finish_grid_view(window, cx);

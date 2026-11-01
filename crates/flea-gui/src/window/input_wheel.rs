@@ -27,10 +27,6 @@ impl Shell {
         {
             return;
         }
-        let delta = -f32::from(crate::input::scroll::wheel_delta(&event.delta).y);
-        // A notch glides as List's does; a touchpad delta, or reduced motion, lands at once.
-        let glide_at = (matches!(event.delta, gpui::ScrollDelta::Lines(_)) && !cx.reduce_motion())
-            .then(|| cx.background_executor().now());
-        self.grid_scroll_at(delta, glide_at, cx);
+        self.grid_wheel(event, window, cx);
     }
 }

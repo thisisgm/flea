@@ -555,6 +555,7 @@ impl Element for ListElement {
                         }
                     });
                     super::tags::paint(&state, &self.held, bounds, &theme, window);
+                    super::git::paint(&state, &self.held, bounds, &theme, window);
                     // RowDropTarget.qml: the label is an accent caption at the row's right padding, in place of the hidden cells.
                     if let (Some((_, caption)), Some(line)) = (state.drawn.drop, &state.drop_line) {
                         paint_line(

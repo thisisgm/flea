@@ -332,3 +332,10 @@ mod outline_tests;
 
 #[cfg(test)]
 mod outline_mode_tests;
+mod vf5_tests;
+
+#[cfg(test)]
+mod vf5_git_tests;
+
+#[cfg(test)]
+mod vf5_zoom_tests;

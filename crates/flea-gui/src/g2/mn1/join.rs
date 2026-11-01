@@ -110,6 +110,24 @@ impl Shell {
         self.menu.menu.borrow().opened()
     }
 
+    pub(crate) fn menu_identity(&self) -> String {
+        if self.menu.rail.is_some() || self.strip.menu.is_some() {
+            return String::new();
+        }
+        if let Some(place) = &self.menu.place {
+            return place.key.clone();
+        }
+        self.menu
+            .captured
+            .as_ref()
+            .and_then(|capture| {
+                self.panes[capture.side]
+                    .as_ref()
+                    .map(|host| identity(host, capture.side, capture.background))
+            })
+            .unwrap_or_default()
+    }
+
     /// Nav.js lockedTarget: the denied folder and its mode while the pane draws the Locked state, else None.
     pub(crate) fn locked_folder(&self, side: usize) -> Option<(String, u32)> {
         let host = self.panes.get(side)?.as_ref()?;
@@ -133,6 +151,9 @@ impl Shell {
     }
 
     fn menu_entries_keeping(&self, keep: &str) -> Vec<Entry> {
+        if let Some(rows) = self.tab_menu_entries() {
+            return rows;
+        }
         if let Some(target) = &self.menu.rail {
             return target.rows();
         }

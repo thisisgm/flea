@@ -17,6 +17,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 /// What the window tells the path surface: each pane's drawn path and the facts a commit is judged by.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Inputs {
+    pub git_label: String,
     /// Shared strings, so the window hands them over every frame without allocating.
     pub paths: [SharedString; 2],
     pub home: SharedString,
