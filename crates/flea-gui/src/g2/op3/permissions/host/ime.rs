@@ -24,6 +24,9 @@ impl View {
 }
 
 impl EntityInputHandler for View {
+    fn accepts_text_input(&self, _: &mut Window, _: &mut Context<Self>) -> bool {
+        self.editor.composes()
+    }
     fn text_for_range(
         &mut self,
         range: Range<usize>,

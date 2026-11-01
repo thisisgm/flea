@@ -204,7 +204,7 @@ fn pl2_field_pointer_places_the_caret_and_drag_replaces_only_its_selection(
 }
 
 #[gpui::test]
-fn pl2_password_ime_keeps_selection_positions_and_ignores_closed_composition(
+fn pl2_password_ime_refuses_composition_and_ignores_closed_callbacks(
     cx: &mut gpui::TestAppContext,
 ) {
     use gpui::EntityInputHandler;
@@ -227,12 +227,16 @@ fn pl2_password_ime_keeps_selection_positions_and_ignores_closed_composition(
     })
     .unwrap();
     view.update(cx, |v, window, cx| {
+        assert!(!v.accepts_text_input(window, cx));
         v.replace_and_mark_text_in_range(None, "a\u{1d11e}z", Some(1..3), window, cx);
-        assert_eq!(v.password_selection, 1..3);
+        assert!(v.model.password.is_empty() && v.password_marked.is_none());
+        v.replace_text_in_range(None, "a\u{1d11e}z", window, cx);
+        assert_eq!(v.password_selection, 4..4);
         assert!(v.text_for_range(0..4, &mut None, window, cx).is_none());
         v.close(cx);
         v.replace_and_mark_text_in_range(None, "closed", None, window, cx);
-        assert!(v.model.password.is_empty());
+        v.replace_text_in_range(None, "closed", window, cx);
+        assert!(v.model.password.is_empty() && !v.input.text.contains("closed"));
         assert!(v.password_marked.is_none());
     })
     .unwrap();

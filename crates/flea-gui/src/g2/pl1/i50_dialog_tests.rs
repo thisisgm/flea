@@ -1,4 +1,4 @@
-//! The mounted unlock input never exposes surrounding text or submits a marked passphrase.
+//! The mounted unlock input keeps the input method off, refuses composition and never exposes surrounding text.
 use super::{
     process::{Handle, Job, Runner},
     view::UnlockView,
@@ -31,8 +31,11 @@ fn i50_dialog_password_private_unlock(cx: &mut TestAppContext) {
         w.draw(cx).clear(cx);
     });
     view.update_in(cx, |v, w, cx| {
+        assert!(!v.accepts_text_input(w, cx));
         v.replace_and_mark_text_in_range(None, "\u{1d11e}猫", Some(2..3), w, cx);
-        assert_eq!(v.marked_text_range(w, cx), Some(0..3));
+        assert_eq!(v.marked_text_range(w, cx), None);
+        assert!(v.host.card.as_ref().unwrap().field.text.is_empty());
+        v.replace_text_in_range(None, "\u{1d11e}猫", w, cx);
         let mut adjusted = Some(7..8);
         assert!(v.text_for_range(0..3, &mut adjusted, w, cx).is_none());
         assert_eq!(adjusted, Some(7..8));
@@ -54,7 +57,7 @@ fn i50_dialog_password_private_unlock(cx: &mut TestAppContext) {
         let bounds = v.drawn.borrow().bounds.unwrap();
         let candidate = v.bounds_for_range(0..3, bounds, w, cx).unwrap();
         assert!(candidate.size.width > gpui::px(0.));
-        assert!(v.drawn.borrow().paint.as_ref().unwrap().marked.is_some());
+        assert!(v.drawn.borrow().paint.as_ref().unwrap().marked.is_none());
         assert!(v
             .drawn
             .borrow()
@@ -65,8 +68,6 @@ fn i50_dialog_password_private_unlock(cx: &mut TestAppContext) {
             .chars()
             .all(|c| c == '\u{2022}'));
     });
-    cx.simulate_keystrokes("enter");
-    assert_eq!(probe.0.get(), 0);
     view.update_in(cx, |v, w, cx| v.replace_text_in_range(None, "zz", w, cx));
     cx.simulate_keystrokes("ctrl-a");
     cx.simulate_input("ab");

@@ -16,6 +16,7 @@ pub(crate) fn shadow(text: &str) -> String {
 
 pub(crate) fn begin(entry: &mut Entry, secret: &Secret) {
     entry.private = true;
+    entry.digits = false;
     entry.begin(&shadow(std::str::from_utf8(secret.expose()).unwrap_or("")));
 }
 
@@ -24,10 +25,10 @@ pub(crate) fn replace(
     secret: &mut Secret,
     range: Option<Range<usize>>,
     text: &str,
-    selected: Option<Range<usize>>,
     marked: bool,
 ) -> bool {
-    if text.chars().any(char::is_control) {
+    // A password takes no composition: the input method would show and learn the secret.
+    if marked || text.chars().any(char::is_control) {
         return false;
     }
     let target = range
@@ -42,22 +43,9 @@ pub(crate) fn replace(
     let mut next = Secret::from_bytes(&current[..target.start]);
     next.push_str(text);
     next.push_str(std::str::from_utf8(&current[target.end..]).unwrap_or(""));
-    let metadata = shadow(text);
-    if marked {
-        entry.ime_mark(range, &metadata, selected);
-    } else {
-        entry.ime_replace(range, &metadata);
-    }
+    entry.ime_replace(range, &shadow(text));
     *secret = next;
     true
-}
-
-pub(crate) fn key(entry: &mut Entry, secret: &mut Secret, key: &str) -> bool {
-    if key == "escape" && entry.marked.is_some() {
-        replace(entry, secret, None, "", None, false);
-        return true;
-    }
-    entry.ime_key(key)
 }
 
 pub(crate) fn erase(entry: &mut Entry, secret: &mut Secret, forward: bool) {
@@ -73,5 +61,5 @@ pub(crate) fn erase(entry: &mut Entry, secret: &mut Secret, forward: bool) {
         };
         entry.select_to(to);
     }
-    replace(entry, secret, None, "", None, false);
+    replace(entry, secret, None, "", false);
 }

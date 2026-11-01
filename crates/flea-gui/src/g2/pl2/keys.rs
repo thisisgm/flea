@@ -13,12 +13,7 @@ impl NetworkView {
             return;
         }
         let k = &event.keystroke;
-        let composing = if self.model.focus == Focus::Password {
-            crate::g2::pl1::private_entry::key(&mut self.input, &mut self.model.password, &k.key)
-        } else {
-            self.input.ime_key(&k.key)
-        };
-        if composing {
+        if self.input.ime_key(&k.key) {
             self.sync_password_state();
             self.edited(cx);
             self.changed(cx);

@@ -76,7 +76,7 @@ impl Shell {
         };
         if self.rename.ime.owner != Some(slot)
             || !self.rename.ime.entry.editing
-            || self.rename.ime.entry.text != value
+            || self.rename.ime.entry.committed() != value
         {
             let value = value.to_owned();
             let editor = &mut self.rename.ime;
@@ -100,7 +100,9 @@ impl Shell {
     pub(crate) fn dialog_edited(&mut self, cx: &mut Context<Self>) {
         let editor = &self.rename.ime;
         if let Some(slot) = editor.owner {
-            let text = &editor.entry.text;
+            // Cards act on committed text only; the field itself still paints the preedit.
+            let committed = editor.entry.committed();
+            let text = &*committed;
             if let Some(open) = self
                 .plugins
                 .input

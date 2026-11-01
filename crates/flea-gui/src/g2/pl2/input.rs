@@ -41,7 +41,6 @@ impl NetworkView {
                 &mut self.model.password,
                 range,
                 text,
-                selected,
                 marked,
             )
         } else if marked {
@@ -55,6 +54,9 @@ impl NetworkView {
     }
 }
 impl EntityInputHandler for NetworkView {
+    fn accepts_text_input(&self, _: &mut Window, _: &mut Context<Self>) -> bool {
+        self.input.composes()
+    }
     fn text_for_range(
         &mut self,
         range: Range<usize>,

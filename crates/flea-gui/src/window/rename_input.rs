@@ -43,6 +43,9 @@ impl Shell {
 }
 
 impl EntityInputHandler for Shell {
+    fn accepts_text_input(&self, _: &mut Window, _: &mut Context<Self>) -> bool {
+        !self.dialog_showing() || self.rename.ime.entry.composes()
+    }
     fn text_for_range(
         &mut self,
         range: Range<usize>,
