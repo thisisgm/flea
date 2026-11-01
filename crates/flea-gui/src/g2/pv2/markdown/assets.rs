@@ -239,9 +239,6 @@ impl Decoder {
     }
 }
 
-#[path = "figure_states.rs"]
-mod figure_states;
-
 #[cfg(test)]
 #[path = "assets_tests.rs"]
 mod tests;
