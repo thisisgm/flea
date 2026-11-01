@@ -141,6 +141,12 @@ impl Shell {
                     self.panes[side].as_ref(),
                     flea::jsondoc::parse(line),
                 ) {
+                    if ["thumbToken", "thumbPath", "thumbListing"]
+                        .iter()
+                        .any(|key| document.get(key).is_some())
+                    {
+                        return true;
+                    }
                     let row = document.get("row").and_then(|row| match row {
                         flea::jsondoc::Json::Num(value) => value.parse::<usize>().ok(),
                         _ => None,

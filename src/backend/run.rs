@@ -650,8 +650,8 @@ fn handle_line(
             }
             out.flush().ok();
         }
-        Request::Thumb { rows, cache_only } => {
-            thumb_rows(out, &rows, st, tb, pool, cache, cache_only);
+        Request::Thumb { rows, cache_only, identity } => {
+            thumb_rows(out, &rows, st, tb, pool, cache, super::thumbreq::identity::Options { cache_only, identity });
             out.flush().ok();
         }
         Request::ThumbCancel { rows } => {
@@ -906,6 +906,7 @@ pub fn forget_rows(st: &mut State, pool: &Pool) {
     cancel_all(st, pool);
     st.asked.clear();
     st.thumb_mtimes.clear();
+    st.thumb_replies.clear();
     st.window_meta.clear();
     // A list or a sort changes which row an index names, the same reason thumbnails clear their map.
     st.dirsizes.clear();
@@ -997,6 +998,7 @@ pub(crate) fn drain(
     if let Some(journal) = ops.journal.get_mut() {
         journal.release_held();
     }
+    let thumb_replies: Vec<_> = st.thumb_replies.iter().filter_map(|weak| weak.upgrade()).collect();
     pool.cancel_all();
     // The queue is empty now, so no worker can start a new job and the temps still on disk are exactly the abandoned ones.
     if st.outstanding > 0 {
@@ -1005,6 +1007,10 @@ pub(crate) fn drain(
     // corner: a row the deadline cut short is answered empty rather than left unanswered, see AGENTS.md "Thumbnail requests".
     for (_, row) in std::mem::take(&mut st.asked) {
         writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
+    }
+    st.thumb_replies.clear();
+    for shared in thumb_replies {
+        super::thumbreq::identity::complete(out, st, &Some(shared), "", 0.0);
     }
     st.thumb_mtimes.clear();
     super::trashthumb::drain(out, st);

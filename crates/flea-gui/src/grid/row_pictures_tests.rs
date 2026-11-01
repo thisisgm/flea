@@ -249,3 +249,6 @@ mod draws;
 
 #[path = "row_thumbnail_readers_tests.rs"]
 mod readers_tests;
+
+#[path = "row_policy_readers_tests.rs"]
+mod policy_readers_tests;

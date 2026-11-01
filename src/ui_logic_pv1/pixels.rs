@@ -27,7 +27,9 @@ pub const MAX_RASTER_EDGE: u32 = 8192;
 pub const MAX_RASTER_PIXELS: u64 = 16_777_216;
 
 // Whether a vector file's length is inside the byte bound a crafted file cannot pass.
-pub fn svg_within_byte_bound(len: u64) -> bool { len <= MAX_SVG_BYTES }
+pub fn svg_within_byte_bound(len: u64) -> bool {
+    len <= MAX_SVG_BYTES
+}
 
 // Clamps a request to the raster bounds, keeping its aspect; a request is never padded.
 pub fn bounded_raster(w: u32, h: u32) -> (u32, u32) {
@@ -46,18 +48,22 @@ pub fn bounded_raster(w: u32, h: u32) -> (u32, u32) {
 }
 
 // A scale change (a monitor move, a rescale) requests a new decode at the new size.
-pub fn needs_redecode(old_scale: f64, new_scale: f64) -> bool { old_scale != new_scale }
+pub fn needs_redecode(old_scale: f64, new_scale: f64) -> bool {
+    old_scale != new_scale
+}
 
 // An SVG rasterizes; anything else decodes from its own pixels. v0.3.12 treats .svgz as a vector.
 pub fn is_vector_name(name: &str) -> bool {
-    name.rsplit('.').next().is_some_and(|ext| {
-        ext.eq_ignore_ascii_case("svg") || ext.eq_ignore_ascii_case("svgz")
-    })
+    name.rsplit('.')
+        .next()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("svg") || ext.eq_ignore_ascii_case("svgz"))
 }
 
 // Whether the vector is gzip-compressed, inflated under the byte bound before parsing.
 pub fn is_compressed_vector(name: &str) -> bool {
-    name.rsplit('.').next().is_some_and(|ext| ext.eq_ignore_ascii_case("svgz"))
+    name.rsplit('.')
+        .next()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("svgz"))
 }
 
 // A raster kind the card decodes itself reads up to this many bytes; past it the card says the file is too large.
@@ -75,9 +81,14 @@ pub fn is_avif_name(name: &str) -> bool {
     extension_is(name, &["avif"])
 }
 
-// Decoded in the card's raster job at the drawn size, never handed to img(path): vectors, AVIF, TIFF and ICO.
+// AVIF and HEIC/HEIF share the system libheif decoder and its bounded raster job.
+pub fn is_heif_name(name: &str) -> bool {
+    is_avif_name(name) || extension_is(name, &["heic", "heif"])
+}
+
+// Decoded in the card's raster job at the drawn size: vectors, HEIF containers, TIFF and ICO.
 pub fn is_host_decoded(name: &str) -> bool {
-    is_vector_name(name) || extension_is(name, &["avif", "tif", "tiff", "ico"])
+    is_vector_name(name) || is_heif_name(name) || extension_is(name, &["tif", "tiff", "ico"])
 }
 
 // The most bytes a host-decoded file's kind reads: a vector's parse bound, or the raster bound.

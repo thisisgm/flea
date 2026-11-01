@@ -70,6 +70,7 @@ pub(crate) struct Observations {
     pub surface: Option<Bounds<Pixels>>,
     pub picture: Option<Bounds<Pixels>>,
     pub strip: [Option<Bounds<Pixels>>; STRIP_SLOTS],
+    pub strip_hovered: [bool; STRIP_SLOTS],
     pub swap: Swap,
     pub revealed_early: bool,
     pub landed: bool,
@@ -89,6 +90,10 @@ impl Observations {
         }
         self.close = None;
         self.close_hovered = false;
+        self.surface = None;
+        self.picture = None;
+        self.strip = [None; STRIP_SLOTS];
+        self.strip_hovered = [false; STRIP_SLOTS];
         self.revealed_early = false;
         self.landed = ready;
         self.sequence += 1;
@@ -204,10 +209,26 @@ impl super::QuickLook {
         })
     }
 
+    /// An interim is drawable, but only the original raster (or its refusal) lands the picture.
+    pub(crate) fn content_landed(&self, cx: &gpui::App) -> bool {
+        let image = self.subject.as_ref().is_some_and(|subject| {
+            matches!(
+                subject.body,
+                super::Body::Image { .. } | super::Body::Link { .. } | super::Body::Raw { .. }
+            )
+        });
+        self.content_ready(cx)
+            && (!image || self.svg.as_ref().is_none_or(|picture| !picture.interim))
+    }
+
     pub(crate) fn observe_reveal(&mut self, cap: bool, cx: &gpui::App) {
         let now = self.observation_time(cx);
-        let ready = self.content_ready(cx);
-        self.observations.borrow_mut().revealed(now, ready, cap);
+        let drawable = self.content_ready(cx);
+        let final_ready = self.content_landed(cx);
+        let mut observed = self.observations.borrow_mut();
+        let landed = observed.landed;
+        observed.revealed(now, drawable, cap);
+        observed.landed = landed || final_ready;
     }
 
     pub(crate) fn reveal_cap(&mut self, cx: &mut gpui::Context<Self>) {

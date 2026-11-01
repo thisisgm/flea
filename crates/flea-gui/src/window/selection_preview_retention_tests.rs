@@ -47,6 +47,7 @@ fn frame(step: usize, image: Arc<RenderImage>) -> Frame {
         meta: None,
         facts: None,
         thumb_answered: true,
+        thumb_observation: None,
         source: None,
         image: Some(image),
         animation: None,

@@ -1,6 +1,6 @@
 //! The live Columns preview fills its frame with a small vector and keeps a small raster at its own device pixels.
 use super::previewtypes_kinds_tests::Root;
-use super::previewtypes_tests::{answer, file, local, meta, open};
+use super::previewtypes_tests::{file, local, meta, open, thumbed};
 use crate::window::u07_tests::read;
 use gpui::{TestAppContext, VisualTestContext};
 use std::time::Duration;
@@ -42,14 +42,7 @@ fn drawn(
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":60,"h":40"#);
-    answer(
-        &shell,
-        cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            picture.display()
-        ),
-    );
+    thumbed(&shell, cx, &lines, 0, &picture.to_string_lossy());
     settle(cx);
     assert_eq!(
         read(&shell, cx, "previewColumnState", &[]),

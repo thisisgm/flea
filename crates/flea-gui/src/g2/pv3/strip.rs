@@ -68,6 +68,12 @@ pub struct StripCache {
     pub mute: Option<Bounds<Pixels>>,
 }
 
+impl StripCache {
+    pub(crate) fn held(&self) -> bool {
+        matches!(self.pressed, Some(Part::Seek | Part::Volume))
+    }
+}
+
 pub type OnInput = Rc<dyn Fn(StripInput, &mut Window, &mut App)>;
 
 pub struct StripElement {

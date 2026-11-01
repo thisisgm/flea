@@ -212,15 +212,16 @@ impl Doc {
                 let folder = crate::row::marks::Mark::Folder.svg();
                 let file = crate::row::marks::Mark::File.svg();
                 let mut view = ArchiveView::new(
+                    // PreviewArchive draws Theme.color.muted on a caption line box of 1.8, 22 px at 12 (EY-406).
                     pv2::archive::Palette {
                         foreground: look.theme.foreground,
-                        muted: look.muted,
+                        muted: look.theme.muted,
                         muted_frame: look.theme.muted_frame,
                     },
                     pv2::archive::Metrics {
                         inset: m.gap,
                         gap: m.gap,
-                        row: look.row(),
+                        row: (f32::from(look.face.caption) * 1.8).round(),
                         glyph: f32::from(look.face.caption),
                         font: look.face.font.clone(),
                         name: look.face.body,

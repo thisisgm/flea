@@ -55,6 +55,7 @@ impl SelectionPreview {
         if let Some(image) = frame.animation.take() {
             window.defer(cx, move |window, cx| cx.drop_image(image, Some(window)));
         }
+        frame.thumb_observation = None;
         self.retired.push(frame);
         let entity = cx.entity().downgrade();
         window.defer(cx, move |_, cx| {

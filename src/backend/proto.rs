@@ -53,7 +53,7 @@ pub enum Request {
     SearchClose,
     // cacheOnly answers from the shared cache alone and never starts a decoder, for a
     // storage class whose switch is off; absent is today's full path, see docs/protocol.md "thumb".
-    Thumb { rows: Vec<usize>, cache_only: bool },
+    Thumb { rows: Vec<usize>, cache_only: bool, identity: Option<super::thumbreq::identity::Tag> },
     ThumbCancel { rows: Vec<usize> },
     TrashThumb { line: String },
     TrashThumbCancel { ids: Vec<usize> },

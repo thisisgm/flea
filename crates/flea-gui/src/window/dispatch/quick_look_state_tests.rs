@@ -205,6 +205,8 @@ fn quick_look_state_video_strip_retires_hidden_paint_geometry(cx: &mut TestAppCo
     assert!(paused.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
     assert!(!paused.contains(r#""mute":"""#));
     assert!(script.feeds.borrow()[0].event(Event::Playing));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_secs(4));
     draw(cx);
     let hidden = read(&shell, cx, "previewStrip", &[]);
     assert!(

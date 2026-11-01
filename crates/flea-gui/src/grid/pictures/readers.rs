@@ -79,23 +79,6 @@ impl Pictures {
             })
     }
 
-    /// Ipc.qml thumbnailPolicyState's thumbState.file: each current row's answer by row, None while its ask waits, "cache-asked" for a cache-only ask.
-    pub(crate) fn policy_files(&self, held: &Held) -> Vec<(usize, Option<String>)> {
-        let map = self.map.borrow();
-        let mut rows: Vec<usize> = map.slots.keys().copied().collect();
-        rows.sort_unstable();
-        rows.into_iter()
-            .filter_map(|row| match map.current(held, row)? {
-                Slot::Asked { cache: true, .. } => Some((row, Some("cache-asked".into()))),
-                Slot::Asked { .. } => Some((row, None)),
-                Slot::Decoding { file, .. }
-                | Slot::Ready { file, .. }
-                | Slot::Failed { file, .. } => Some((row, Some(file.clone()))),
-                Slot::Refused | Slot::Missed => None,
-            })
-            .collect()
-    }
-
     pub(crate) fn file(&self, held: &Held, row: usize) -> String {
         let map = self.map.borrow();
         match map.current(held, row) {
@@ -119,5 +102,54 @@ impl Pictures {
             Some(Slot::Failed { .. }) => ImageStatus::Error,
             _ => ImageStatus::Null,
         }) as i32
+    }
+}
+
+impl Pictures {
+    pub(crate) fn policy_files(
+        &self,
+        held: &Held,
+        path: &str,
+        policy: super::Policy,
+    ) -> std::collections::BTreeMap<usize, Option<String>> {
+        let map = self.map.borrow();
+        if map.path != path {
+            return Default::default();
+        }
+        map.order
+            .iter()
+            .filter_map(|&row| {
+                if !held.row(row).is_some_and(|facts| policy.allowed(facts)) {
+                    return None;
+                }
+                let slot = map.slots.get(&row)?;
+                let terminal = match slot {
+                    Slot::Refused { observed } | Slot::Missed { observed } => Some(observed),
+                    _ => None,
+                };
+                if let Some(identity) = terminal {
+                    if map.listing != held.listing
+                        || !map
+                            .policy
+                            .is_some_and(|policy| policy.allowed(held.row(row).unwrap()))
+                        || !identity.is(held.row(row).unwrap())
+                    {
+                        return None;
+                    }
+                } else {
+                    map.current(held, row)?;
+                }
+                let value = match slot {
+                    Slot::Asked { cache: false, .. } => None,
+                    Slot::Asked { cache: true, .. } => Some("cache-asked".into()),
+                    Slot::Decoding { file, .. }
+                    | Slot::Ready { file, .. }
+                    | Slot::Failed { file, .. } => Some(file.clone()),
+                    Slot::Refused { .. } => Some(String::new()),
+                    Slot::Missed { .. } => Some("cache-missed".into()),
+                };
+                Some((row, value))
+            })
+            .collect()
     }
 }

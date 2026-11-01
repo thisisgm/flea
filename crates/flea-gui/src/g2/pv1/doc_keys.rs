@@ -65,7 +65,7 @@ fn pdf_press(pdf: &Entity<PdfView>, index: usize, cx: &mut App) -> Outcome {
 
 impl Doc {
     // An office document's pages, once they stand; its sheets and its idle states are not a PDF.
-    fn pages(&self, cx: &App) -> Option<Entity<PdfView>> {
+    pub(super) fn pages(&self, cx: &App) -> Option<Entity<PdfView>> {
         match &self.view {
             View::Pdf(pdf) => Some(pdf.clone()),
             View::Office(office) => {

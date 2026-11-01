@@ -195,6 +195,36 @@ fn ispe(w: u32, h: u32) -> Vec<u8> {
 }
 
 #[test]
+fn a_heif_meta_reply_uses_the_primary_image_dimensions() {
+    let dir = TestDir::new("imageformats-heif");
+    let mut bytes = avif(
+        9,
+        &[ispe(64, 32), ispe(400, 300)],
+        &[(1, vec![1]), (9, vec![2])],
+    );
+    bytes[8..12].copy_from_slice(b"heic");
+    bytes[16..20].copy_from_slice(b"heic");
+    for name in ["a.heic", "b.HEIF"] {
+        let path = on_disk(&dir, name, &bytes);
+        assert_eq!(header(&path), sized(400, 300, 1), "{name}");
+        let meta = crate::backend::metareq::read(&path, true, false, None);
+        assert_eq!(
+            (meta.width, meta.height, meta.orientation, meta.lines),
+            (400, 300, 1, 0)
+        );
+    }
+    let mut disguised = bytes;
+    disguised[8..12].copy_from_slice(b"mp42");
+    disguised[12..16].copy_from_slice(b"heic");
+    disguised[16..24].copy_from_slice(b"mp42mp42");
+    assert_eq!(
+        header(&on_disk(&dir, "minor.heic", &disguised)),
+        None,
+        "minor version bytes are not compatible brands"
+    );
+}
+
+#[test]
 fn an_avif_answers_its_primary_items_size_turned_by_irot() {
     let dir = TestDir::new("imageformats-avif");
     let plain = avif(

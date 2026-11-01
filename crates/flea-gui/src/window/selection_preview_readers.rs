@@ -2,6 +2,7 @@
 use super::*;
 use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
+use flea::ui_logic_pv2::refusal::Refusal;
 use gpui::{App, Bounds, Pixels};
 
 pub(crate) struct Reader<'a> {
@@ -105,7 +106,14 @@ impl Reader<'_> {
                 .zip(view)
                 .and_then(|(f, v)| v.failure(f, self.cx))
                 .unwrap_or_default(),
-            "columnTextLines" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("|")),
+            "columnTextLines" => frame.map_or(String::new(), |frame| {
+                if let Mounted::Doc(docs::Doc::Code(code)) = &frame.mounted {
+                    if code.read(self.cx).refusal() == Some(Refusal::TooLarge) {
+                        return "too large".into();
+                    }
+                }
+                doc_lines(frame, self.cx).join("|")
+            }),
             "previewText" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("\n")),
             "columnArchiveNames" => {
                 frame
@@ -120,11 +128,11 @@ impl Reader<'_> {
             }
             "previewSurfaceRect" => rect(view.and_then(|v| *v.rect.borrow())),
             "columnFrameRect" => rect(view.and_then(|v| *v.frame_rect.borrow())),
-            "columnPictureRect" | "previewPictureRect" => rect(
-                frame
-                    .zip(view)
-                    .and_then(|(frame, view)| picture_rect(view, frame, self.cx)),
-            ),
+            "columnPictureRect" | "previewPictureRect" => {
+                rect(frame.zip(view).and_then(|(frame, view)| {
+                    picture_rect(view, frame, self.window.scale_factor(), self.cx)
+                }))
+            }
             "columnLinesRect" => rect(
                 frame
                     .filter(|f| matches!(f.mounted, Mounted::Doc(_)))
@@ -261,7 +269,12 @@ fn swap_state(view: &SelectionPreview) -> String {
     ]))
 }
 
-fn picture_rect(view: &SelectionPreview, frame: &Frame, cx: &App) -> Option<Bounds<Pixels>> {
+fn picture_rect(
+    view: &SelectionPreview,
+    frame: &Frame,
+    device: f32,
+    cx: &App,
+) -> Option<Bounds<Pixels>> {
     let bounds = (*view.frame_rect.borrow())?;
     let player = match &frame.mounted {
         Mounted::Media(Some(player)) => player.read(cx).frame.as_ref(),
@@ -269,12 +282,23 @@ fn picture_rect(view: &SelectionPreview, frame: &Frame, cx: &App) -> Option<Boun
     };
     let image = player.or(frame.image.as_ref())?;
     let size = image.size(0);
-    let [x, y, width, height] = flea::ui_logic_pv3::picture::fit(
-        size.width.0 as f32,
-        size.height.0 as f32,
-        (f32::from(bounds.size.width) - 2.).max(0.),
-        (f32::from(bounds.size.height) - 2.).max(0.),
+    let (room_w, room_h) = (
+        (f32::from(bounds.size.width) - 2.).max(1.),
+        (f32::from(bounds.size.height) - 2.).max(1.),
     );
+    let [x, y, width, height] = if frame.kind == Kind::Image {
+        // The same size the column paints, own pixels included, centred inside the border.
+        let (width, height) = super::fitted::drawn(
+            frame,
+            (size.width.0 as f64, size.height.0 as f64),
+            f32::from(bounds.size.width),
+            f32::from(bounds.size.height),
+            device,
+        );
+        [(room_w - width) / 2., (room_h - height) / 2., width, height]
+    } else {
+        flea::ui_logic_pv3::picture::fit(size.width.0 as f32, size.height.0 as f32, room_w, room_h)
+    };
     Some(Bounds::new(
         bounds.origin + gpui::point(gpui::px(1. + x), gpui::px(1. + y)),
         gpui::size(gpui::px(width), gpui::px(height)),

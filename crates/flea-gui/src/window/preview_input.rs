@@ -80,9 +80,15 @@ impl Shell {
                 self.change_settings(patch, window, cx);
                 return true;
             }
-            // ql-pdf: e on the column's PDF opens Quick Look on the page the column shows.
+            // e opens the column's PDF expanded; Escape from that mode returns to the listing.
             "expand" if column_pdf(&preview, cx).is_some() => {
-                return self.open_quick_look(side, window, cx);
+                if !self.open_quick_look(side, window, cx) {
+                    return false;
+                }
+                if let Some(look) = self.quick_look.as_mut() {
+                    look.prior = flea::keys::Context::Listing;
+                }
+                return self.quick_look_action(event, window, cx);
             }
             // The focused column PDF: Return opens Quick Look, Up and Down scroll the pages (PreviewKeys.js columnPdfAction).
             "open" | "cursorDown" | "cursorUp"

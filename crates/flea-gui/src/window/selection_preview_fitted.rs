@@ -11,38 +11,13 @@ use std::sync::Arc;
 pub(super) fn fitted(frame: &Frame, width: f32, height: f32, device: f32) -> Option<gpui::Div> {
     frame.image.clone().map(|image| {
         let size = image.size(0);
-        let (w, h) = (size.width.0 as f64, size.height.0 as f64);
-        let original = frame
-            .facts
-            .as_ref()
-            .map_or((0., 0.), |m| (m.w as f64, m.h as f64));
-        let vector = is_vector_name(&frame.subject.row.name);
-        // A raster never draws past one source pixel per device pixel.
-        let limit = thumbs::preview_limit(
-            frame.kind == Kind::Video,
-            vector,
-            w,
-            h,
-            original.0,
-            original.1,
-        ) / f64::from(device);
-        let fit = thumbs::fit_scale(
-            (width - 2. * FRAME_BORDER).max(1.) as f64,
-            (height - 2. * FRAME_BORDER).max(1.) as f64,
-            w,
-            h,
-            limit,
+        let (logical_w, logical_h) = drawn(
+            frame,
+            (size.width.0 as f64, size.height.0 as f64),
+            width,
+            height,
+            device,
         );
-        let scale = fit as f32;
-        let (logical_w, logical_h) =
-            match crate::preview_quality::fitted_pixels(w, h, fit, limit, device.into()) {
-                Some(own) => crate::preview_quality::own_size(own, device.into()),
-                None => crate::preview_quality::logical_size(
-                    (w * scale as f64).round(),
-                    (h * scale as f64).round(),
-                    device.into(),
-                ),
-            };
         div()
             .debug_selector(|| "column-preview-picture".into())
             .size_full()
@@ -57,6 +32,46 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32, device: f32) -> Opt
                     .object_fit(gpui::ObjectFit::Fill),
             )
     })
+}
+
+/// The logical size a still of `w`x`h` pixels draws at in a frame of `width`x`height`, border included.
+pub(super) fn drawn(
+    frame: &Frame,
+    (w, h): (f64, f64),
+    width: f32,
+    height: f32,
+    device: f32,
+) -> (f32, f32) {
+    let original = frame
+        .facts
+        .as_ref()
+        .map_or((0., 0.), |m| (m.w as f64, m.h as f64));
+    let vector = is_vector_name(&frame.subject.row.name);
+    // A raster never draws past one source pixel per device pixel.
+    let limit = thumbs::preview_limit(
+        frame.kind == Kind::Video,
+        vector,
+        w,
+        h,
+        original.0,
+        original.1,
+    ) / f64::from(device);
+    let fit = thumbs::fit_scale(
+        (width - 2. * FRAME_BORDER).max(1.) as f64,
+        (height - 2. * FRAME_BORDER).max(1.) as f64,
+        w,
+        h,
+        limit,
+    );
+    let scale = f64::from(fit as f32);
+    match crate::preview_quality::fitted_pixels(w, h, fit, limit, device.into()) {
+        Some(own) => crate::preview_quality::own_size(own, device.into()),
+        None => crate::preview_quality::logical_size(
+            (w * scale).round(),
+            (h * scale).round(),
+            device.into(),
+        ),
+    }
 }
 
 /// cols-preview-video.html draws no play mark over the frame; the strip under it carries play.

@@ -209,7 +209,13 @@ impl Shell {
         let view = self.quick_look.as_ref()?.view.clone();
         view.update(cx, |view, cx| {
             let changed = view.subject.as_mut().map(change);
-            if view.is_revealed() {
+            let picture = view.subject.as_ref().is_some_and(|subject| {
+                matches!(
+                    subject.body,
+                    Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
+                )
+            });
+            if view.is_revealed() || picture {
                 cx.notify();
             } else {
                 view.reveal(cx);

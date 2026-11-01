@@ -1,6 +1,6 @@
 //! The column preview animates a GIF and keeps a GIF past the raster budget a still.
 use super::previewtypes_kinds_tests::Root;
-use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
+use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump, thumbed};
 use crate::window::u07_tests::read;
 use gpui::{TestAppContext, VisualTestContext};
 use std::{cell::Cell, rc::Rc};
@@ -78,11 +78,7 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
     super::test_shell::land(&shell, cx, &dir, rows, 1);
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","frames":4,"w":8,"h":8"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, still.display()),
-    );
+    thumbed(&shell, cx, &lines, 0, &still.to_string_lossy());
     settle_pictures(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image");
     let frames = shell.read_with(cx, |shell, cx| {
@@ -194,11 +190,7 @@ fn a_gif_past_the_raster_budget_stays_a_still_in_the_column(cx: &mut TestAppCont
     super::test_shell::land(&shell, cx, &dir, rows, 1);
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","frames":4,"w":4000,"h":4000"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, still.display()),
-    );
+    thumbed(&shell, cx, &lines, 0, &still.to_string_lossy());
     settle_pictures(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image");
     let moving = shell.read_with(cx, |shell, cx| {

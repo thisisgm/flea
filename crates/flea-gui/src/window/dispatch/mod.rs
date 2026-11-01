@@ -394,3 +394,9 @@ mod vf5_git_tests;
 mod quick_look_plugin_tests;
 #[cfg(test)]
 mod vf5_zoom_tests;
+
+#[cfg(test)]
+mod thumbnail_policy_tests;
+
+#[cfg(test)]
+mod quick_look_interim_tests;

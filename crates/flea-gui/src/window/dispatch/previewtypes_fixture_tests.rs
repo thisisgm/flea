@@ -171,3 +171,37 @@ pub(super) fn meta(
         &format!(r#"{{"t":"meta","row":{row},"token":{token}{extra}}}"#),
     );
 }
+
+/// A valid simulated producer answer echoes the identity on its recorded actual request.
+pub(super) fn thumbed(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    lines: &[String],
+    row: usize,
+    file: &str,
+) {
+    use flea::{
+        json::escape,
+        jsondoc::{self, Json},
+    };
+    let request = lines.iter().rev().filter_map(|line| jsondoc::parse(line).ok()).find(|doc| {
+        doc.get("c").and_then(Json::as_str) == Some("thumb")
+            && doc.get("thumbToken").is_some()
+            && doc.get("rows").and_then(Json::as_array).is_some_and(|rows| rows.iter().any(|value| matches!(value, Json::Num(value) if value.parse::<usize>().ok() == Some(row))))
+    }).expect("recorded tagged preview request");
+    let token = request.get("thumbToken").and_then(Json::as_str).unwrap();
+    let path = request.get("thumbPath").and_then(Json::as_str).unwrap();
+    let Some(Json::Num(listing)) = request.get("thumbListing") else {
+        panic!("listing identity")
+    };
+    answer(
+        shell,
+        cx,
+        &format!(
+            r#"{{"t":"thumbed","row":{row},"file":"{}","thumbToken":"{}","thumbPath":"{}","thumbListing":{listing}}}"#,
+            escape(file),
+            escape(token),
+            escape(path)
+        ),
+    );
+}

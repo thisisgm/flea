@@ -222,7 +222,8 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
                     .and_then(flea::jsondoc::Json::as_bool),
                 Some(false)
             );
-            press(cx, handle, "tab", true);
+            // Tab walks the PDF strip; Ctrl+Tab would close the card, as PdfViewer.qml does at v0.3.12 (EY-438).
+            press(cx, handle, "tab", false);
         }
         press(cx, handle, "escape", false);
         let state = keyboard(cx, handle);

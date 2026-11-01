@@ -1,6 +1,6 @@
 //! An audio file's cover stays in the column frame through play, pause and seek, as v0.3.12 keeps it.
 use super::previewtypes_kinds_tests::Root;
-use super::previewtypes_tests::{answer, file, local, meta, open};
+use super::previewtypes_tests::{file, local, meta, open, thumbed};
 use crate::{
     g2::pv3::engine::{self, FeedSender, Playback, Request},
     window::u07_tests::read,
@@ -87,11 +87,7 @@ fn an_mp3_cover_stays_in_the_frame_through_play_pause_and_seek(cx: &mut TestAppC
     });
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","ms":4000"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, cover.display()),
-    );
+    thumbed(&shell, cx, &lines, 0, &cover.to_string_lossy());
     settle(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "audio");
     assert!(cover_drawn(cx), "the cover draws before play");
@@ -139,7 +135,7 @@ fn an_audio_file_without_a_cover_draws_one_centred_mark(cx: &mut TestAppContext)
     });
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","ms":3000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     settle(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "audio");
     let mark = |cx: &mut VisualTestContext| cx.debug_bounds("column-audio-mark");
@@ -186,7 +182,7 @@ fn a_failed_audio_player_draws_its_failure_not_the_note(cx: &mut TestAppContext)
     });
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","ms":3000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     settle(cx);
     assert!(cx.debug_bounds("column-audio-mark").is_some());
     cx.simulate_keystrokes("ctrl-tab");

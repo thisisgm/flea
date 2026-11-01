@@ -113,7 +113,7 @@ pub(crate) fn request(
     });
     if !shared {
         st.outstanding += 1;
-        st.deferred.enqueue(Job {
+        st.deferred.enqueue(Job { replies: None,
             path,
             mtime,
             trash_identity: Some(identity),
