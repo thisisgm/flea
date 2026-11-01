@@ -36,6 +36,11 @@ impl State {
     pub fn english() -> Self {
         Self {
             i18n: crate::i18n::test_catalogs::english(),
+            text: None,
+            refusal: None,
+            unshown_key: None,
+            media: None,
+            facts: Vec::new(),
             archive: None,
             unshown: None,
             unshown_mark: None,

@@ -9,8 +9,14 @@ mod gui;
 mod heap;
 mod hyprkeys;
 // GPUI L units wire the catalog API after their surfaces land.
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(not(test))]
 use flea::i18n;
+#[cfg(test)]
+mod i18n {
+    pub use flea::i18n::{substitute, I18n, Locale, Paths};
+    #[path = "test_catalogs.rs"]
+    pub(crate) mod test_catalogs;
+}
 mod icdexclude;
 mod imageopen;
 mod json;

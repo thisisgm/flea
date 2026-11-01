@@ -182,7 +182,7 @@ impl Status {
     // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
     #[cfg(test)]
     pub fn english() -> Self {
-        Self { id: 0, percent: None, count: 0, i18n: crate::i18n::test_catalogs::english() }
+        Self { id: 0, percent: None, count: 0, i18n: crate::i18n::test_catalogs::english(), head: String::new() }
     }
 
     pub fn suffix(&self) -> String {

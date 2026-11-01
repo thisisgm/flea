@@ -77,7 +77,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
     let mut groups: Vec<Vec<Entry>> = Vec::new();
     match v.sub {
         Sub::Taildrop => groups.push(if m.taildrop.peers.is_empty() {
-            vec![Entry::new("", MACHINE, state(m), Ink::Unavailable)]
+            vec![Entry::new("", MACHINE, m.i18n.tr(m.taildrop.state_key()), Ink::Unavailable)]
         } else {
             m.taildrop.peers.iter().enumerate().map(|(i, peer)| Entry::new(&format!("peer:{i}"), MACHINE, peer.label.clone(),
                 if m.taildrop.loading() { Ink::Dim } else { wait(Ink::Plain) })).collect()
