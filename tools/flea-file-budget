@@ -18,7 +18,7 @@ src/tui/cells.rs 426
 src/tui/parity_listing_tests.rs 410
 src/tui/preview.rs 406
 src/tui/frame_tests.rs 408
-src/backend/contents_review_tests.rs 433
+src/backend/contents_review_tests.rs 446
 crates/flea-gui/src/columns/geometry.rs 428
 crates/flea-gui/src/dual/divider_tests.rs 446
 crates/flea-gui/src/g2/dg2/feedback.rs 420
@@ -29,7 +29,7 @@ crates/flea-gui/src/g2/sr2/tests_flow.rs 408
 crates/flea-gui/src/navigation/steps.rs 409
 crates/flea-gui/src/window/dispatch/fileops.rs 406
 crates/flea-gui/src/window/dispatch/openwith_tests.rs 444
-crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 422
+crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 427
 crates/flea-gui/src/window/events_ipc.rs 425
 crates/flea-gui/src/window/network.rs 402
 crates/flea-gui/src/window/status.rs 408
