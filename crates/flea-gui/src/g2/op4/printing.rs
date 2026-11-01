@@ -133,7 +133,10 @@ impl Model {
         destinations.sort_by_key(|d| !d.default);
         p.destinations = destinations;
         p.printer = printer.into();
-        p.printer_name = printer.into();
+        p.printer_name = text(line, "printerName")
+            .filter(|name| !name.trim().is_empty())
+            .unwrap_or(printer)
+            .into();
         p.capabilities = Capabilities {
             duplex,
             two_sided,

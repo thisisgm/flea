@@ -40,7 +40,10 @@ impl SelectionPreview {
                 autoplay: true,
             };
             frame._watch = Some(cx.observe(&entity, |_, _, cx| cx.notify()));
-            entity.update(cx, |player, cx| player.open(subject, cx));
+            entity.update(cx, |player, cx| {
+                player.rewind_on_end = true;
+                player.open(subject, cx);
+            });
             *player = Some(entity);
         } else if let Some(player) = player {
             player.update(cx, |player, cx| player.strip_input(input, window, cx));

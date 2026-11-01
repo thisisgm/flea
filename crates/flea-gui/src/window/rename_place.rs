@@ -56,6 +56,7 @@ fn list_place(list: &ListState, index: usize) -> Spot {
     let drawn = &list.drawn;
     let metrics = drawn.metrics;
     let row = metrics.row;
+    let slot = Metrics::for_typeface(&list.typeface).slot;
     let position = list
         .visible()
         .iter()
@@ -69,12 +70,9 @@ fn list_place(list: &ListState, index: usize) -> Spot {
     let frame = Bounds::new(
         point(
             drawn.bounds.origin.x + px(drawn.layout.name.x + depth),
-            top + px((row - metrics.slot) / 2.),
+            top + px((row - slot) / 2.),
         ),
-        size(
-            px((drawn.layout.name.width - depth).max(0.)),
-            px(metrics.slot),
-        ),
+        size(px((drawn.layout.name.width - depth).max(0.)), px(slot)),
     );
     let place = Place {
         frame,
@@ -175,4 +173,50 @@ fn grid_place(host: &PaneHost, list: &ListState, index: usize) -> Spot {
         below: frame.bottom() + px(gap),
     };
     Spot::of(place, cell)
+}
+
+#[cfg(test)]
+mod vf4_tests {
+    use super::*;
+    use crate::list::{
+        columns::{resolve, StoredWidths, Switched, Tokens},
+        Typeface,
+    };
+
+    #[test]
+    fn vf4_dual_rename_uses_the_list_height_and_gapless_dual_name_span() {
+        let mut list = ListState::new(Typeface::omarchy_default());
+        list.view.dual = true;
+        list.drawn.metrics = list.file_metrics();
+        list.drawn.bounds = Bounds::new(point(px(0.), px(0.)), size(px(454.), px(620.)));
+        list.drawn.layout = resolve(
+            440.,
+            &Tokens {
+                pad: 14.,
+                icon: 19.,
+                gap: 9.,
+                name_min: 100.,
+                measured: [70., 70., 125., 120.],
+            }
+            .for_dual(true),
+            Switched::default().for_dual(true),
+            StoredWidths::default(),
+        );
+        let Spot::At(place) = list_place(&list, 0) else {
+            panic!("field must be in view")
+        };
+        assert_eq!(place.frame.size.height, px(23.));
+        assert_eq!(place.frame.size.width, px(189.));
+        assert_eq!(place.frame.origin.x, px(42.));
+        let size = list
+            .drawn
+            .layout
+            .cell(crate::list::columns::Column::Size)
+            .unwrap();
+        assert_eq!(
+            place.frame.right(),
+            px(size.x),
+            "the editor cannot cover size text"
+        );
+    }
 }

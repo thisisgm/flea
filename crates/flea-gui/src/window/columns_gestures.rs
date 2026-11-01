@@ -35,7 +35,7 @@ pub(super) fn surface(
         };
         host.input
             .prepare(frame, &mut host.selected, &mut host.pane.cursor);
-        host.input.shown = host.filter.shown.clone();
+        host.input.set_shown(host.filter.shown.clone());
         host.input.hit_boxes = None;
         Some((frame, palette))
     })

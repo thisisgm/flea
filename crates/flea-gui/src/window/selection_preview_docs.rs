@@ -62,7 +62,7 @@ impl Look {
             },
             pv2::code::Metrics {
                 inset: m.gap,
-                top: m.gap,
+                top: m.gap + m.hairline,
                 right: m.gap,
                 row: self.row(),
                 gap: m.gap,
@@ -78,7 +78,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: self.face.caption,
-                line: self.row(),
+                line: pv2::table_line_pitch(f32::from(self.face.caption)),
                 row_padding_x: self.metrics.pad,
                 hairline: 1.,
             },

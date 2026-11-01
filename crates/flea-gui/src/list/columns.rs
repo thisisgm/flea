@@ -180,6 +180,15 @@ impl Tokens {
         }
     }
 
+    /// Dual metadata cells abut; the mark-to-name gap remains in the leading slot.
+    pub fn for_dual(mut self, dual: bool) -> Self {
+        if dual {
+            self.icon += self.gap;
+            self.gap = 0.;
+        }
+        self
+    }
+
     /// The width a column wants: the stored one, else the measured one.
     pub fn wanted(&self, column: Column, stored: StoredWidths) -> f32 {
         stored

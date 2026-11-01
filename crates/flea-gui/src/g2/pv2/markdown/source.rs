@@ -377,7 +377,10 @@ impl MarkdownView {
             height: (height - 2. * t.source_inset_y()).max(0.),
             body: t.body,
             caption: t.caption,
-            line: t.source_line.map_or(face_line, |row| row.max(face_line)),
+            line: t.source_line.map_or_else(
+                || super::super::line_pitch(t.body).max((ascent + descent).ceil()),
+                |row| row.max(face_line),
+            ),
             advance,
             notice: (cap_ascent + cap_descent).round() + self.tokens.metrics().block_gap(),
             wrap: self.wrap,

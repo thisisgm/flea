@@ -200,6 +200,7 @@ impl PluginsPane {
                 m::HEADING_TOP
             }))
             .pb(px(m::HEADING_BOTTOM))
+            .line_height(gpui::relative(1.2))
             .text_size(px(m::CAPTION))
             .text_color(t.muted)
             .child(tracked(&label.to_uppercase(), m::TRACKING).font_weight(FontWeight::BOLD))

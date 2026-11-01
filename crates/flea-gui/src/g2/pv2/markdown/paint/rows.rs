@@ -99,10 +99,10 @@ impl MarkdownView {
         let clip = (x0, y0, f.width, f.height);
         let at = build.ops.len();
         build.ops.push(Op::Clip { rect: clip, len: 0 });
-        let (ascent, cap_ascent) = (
-            src.measure().extent(Face::Regular, f.body).0,
-            src.measure().extent(Face::Regular, f.caption).0,
-        );
+        let (ascent, descent) = src.measure().extent(Face::Regular, f.body);
+        let (cap_ascent, cap_descent) = src.measure().extent(Face::Regular, f.caption);
+        let body_base = (f.line - ascent - descent) / 2. + ascent;
+        let number_base = (f.line - cap_ascent - cap_descent) / 2. + cap_ascent - 1.;
         let (gutter, text_x) = (src.gutter(), src.gutter() + 2. * f.advance);
         let mut y = y0 - src.offset;
         let mut row = src.top;
@@ -124,7 +124,7 @@ impl MarkdownView {
                     build.ops.push(Op::Text {
                         selected: None,
                         x,
-                        baseline: y + cap_ascent,
+                        baseline: y + number_base,
                         run,
                         color: muted,
                     });
@@ -146,7 +146,7 @@ impl MarkdownView {
                         for piece in line {
                             chars += piece.text.chars().count();
                             let color = build.palette.ink(&Ink::Code(piece.role));
-                            let baseline = y + k as f32 * f.line + ascent;
+                            let baseline = y + k as f32 * f.line + body_base;
                             build.text(
                                 &piece.text,
                                 Face::Regular,

@@ -60,6 +60,7 @@ fn active_band(host: &mut PaneHost, saved_cursor: usize, cx: &mut TestAppContext
         direction: 1.,
         last: Some(8),
         cells: None,
+        basis: None,
         pointer: point(px(30.), px(40.)),
     });
     host.input.grab = Some(2.);

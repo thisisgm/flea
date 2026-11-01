@@ -171,3 +171,47 @@ impl SelectionPreview {
         )
     }
 }
+
+/// The compact facts line, in the name's ink as the board and v0.3.12 draw it.
+pub(super) fn compact_facts_line(
+    kind: String,
+    tail: String,
+    row: f32,
+    line: f32,
+    roles: &crate::list::Palette,
+) -> gpui::Div {
+    use gpui::{div, prelude::*, px};
+    div()
+        .debug_selector(|| "column-preview-facts".into())
+        .flex()
+        .flex_none()
+        .w_full()
+        .h(px(row))
+        .line_height(px(line))
+        .text_color(roles.foreground)
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .whitespace_nowrap()
+                .text_ellipsis()
+                .child(kind),
+        )
+        .child(div().flex_none().whitespace_nowrap().child(tail))
+}
+
+#[test]
+fn vf4_r1_compact_facts_line_draws_in_the_name_ink() {
+    use gpui::Styled;
+    let theme = crate::palette::Theme::default();
+    let roles = crate::list::Palette::inherited(&gpui::TextStyle::default(), theme);
+    assert_ne!(roles.foreground, roles.metadata);
+    let mut line = compact_facts_line(
+        "Markdown document".into(),
+        " · 193 B".into(),
+        17.,
+        17.,
+        &roles,
+    );
+    assert_eq!(line.style().text.color, Some(roles.foreground));
+}

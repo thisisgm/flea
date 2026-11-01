@@ -11,7 +11,10 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
     let script = Rc::new(Script::default());
     let (player, awake) = player(cx, &script, None);
     let catalog = crate::test_catalogs::english();
-    player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
+    player.update(cx, |player, cx| {
+        player.rewind_on_end = column;
+        player.open(subject("clip.mp4", true), cx);
+    });
     send(
         cx,
         &script,
@@ -30,8 +33,8 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
     send(cx, &script, Event::Ended);
     assert_eq!(
         script.take_commands(),
-        [Command::Stop],
-        "the decoder must rewind while stopped"
+        if column { vec![Command::Stop] } else { vec![] },
+        "only the column rewinds; Quick Look holds its ended frame"
     );
     send(cx, &script, Event::Position(3_000));
     player.read_with(cx, |player, cx| {
@@ -42,7 +45,7 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
         };
         assert_eq!(
             (strip.position, strip.duration, strip.playing),
-            (0, 3_000, false)
+            (if column { 0 } else { 3_000 }, 3_000, false)
         );
         assert_eq!(
             shown(player, &Facts::default(), &catalog),
@@ -53,6 +56,10 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
             "the current picture holds until the rewind draws"
         );
     });
+    if !column {
+        assert_eq!(*awake.borrow(), [true, false]);
+        return;
+    }
     // Stop rewinds the real decoder without a user Seeked event; its first frame replaces the held picture.
     send(cx, &script, Event::Stopped);
     script.sender().frame(poster.clone());
@@ -85,7 +92,7 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
 }
 
 #[gpui::test]
-fn pv3_quick_look_video_end_returns_to_poster_and_zero_clock(cx: &mut TestAppContext) {
+fn vf4_quick_look_video_end_holds_last_frame_and_duration(cx: &mut TestAppContext) {
     video_end(cx, false);
 }
 
@@ -94,12 +101,14 @@ fn pv3_columns_video_end_returns_to_poster_and_zero_clock(cx: &mut TestAppContex
     video_end(cx, true);
 }
 
-#[gpui::test]
-fn pv3_video_end_still_allows_seeking_replay_and_pause(cx: &mut TestAppContext) {
+fn replay(cx: &mut TestAppContext, column: bool) {
     let script = Rc::new(Script::default());
     let (player, _) = player(cx, &script, None);
     let catalog = crate::test_catalogs::english();
-    player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
+    player.update(cx, |player, cx| {
+        player.rewind_on_end = column;
+        player.open(subject("clip.mp4", true), cx);
+    });
     send(
         cx,
         &script,
@@ -127,9 +136,17 @@ fn pv3_video_end_still_allows_seeking_replay_and_pause(cx: &mut TestAppContext) 
         );
     });
     send(cx, &script, Event::Ended);
-    send(cx, &script, Event::Stopped);
+    if column {
+        // The column rewinds at the end; the helper answers its Stop with Stopped.
+        assert_eq!(script.take_commands(), [Command::Stop]);
+        send(cx, &script, Event::Stopped);
+    }
     player.update(cx, |player, cx| player.toggle(cx));
-    assert_eq!(script.take_commands(), [Command::Stop, Command::Play]);
+    assert_eq!(script.take_commands(), [Command::Play]);
+    if !column {
+        // Quick Look holds the end; the helper's Play there seeks to 0 first and reports it.
+        send(cx, &script, Event::Seeked(0));
+    }
     send(cx, &script, Event::Playing);
     let replay = picture(3);
     script.sender().frame(replay.clone());
@@ -155,6 +172,16 @@ fn pv3_video_end_still_allows_seeking_replay_and_pause(cx: &mut TestAppContext) 
             }
         );
     });
+}
+
+#[gpui::test]
+fn pv3_video_end_still_allows_seeking_replay_and_pause(cx: &mut TestAppContext) {
+    replay(cx, false);
+}
+
+#[gpui::test]
+fn vf4_r1_column_video_replays_after_its_end_rewind(cx: &mut TestAppContext) {
+    replay(cx, true);
 }
 
 #[gpui::test]

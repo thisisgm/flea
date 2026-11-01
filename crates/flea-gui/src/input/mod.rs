@@ -175,6 +175,8 @@ pub struct Band {
     pub direction: f32,
     pub last: Option<usize>,
     pub cells: Option<(usize, usize, usize, usize)>,
+    /// The columns and row count `cells` were selected under; None until the next update rebuilds from `before`.
+    pub basis: Option<(usize, usize)>,
     pub pointer: Point<Pixels>,
 }
 
@@ -300,6 +302,17 @@ impl PaneInput {
             ((1300. - elapsed) / 300.).clamp(0., 1.)
         })
     }
+    /// A new filter answer renumbers the view rows, so a band in flight rebuilds from its starting marks.
+    pub fn set_shown(&mut self, shown: Option<std::rc::Rc<[usize]>>) {
+        let same = match (&self.shown, &shown) {
+            (Some(old), Some(new)) => std::rc::Rc::ptr_eq(old, new),
+            (old, new) => old.is_none() && new.is_none(),
+        };
+        if let Some(band) = self.band.as_mut().filter(|_| !same) {
+            band.basis = None;
+        }
+        self.shown = shown;
+    }
     pub fn cancel(&mut self, selected: &mut Vec<usize>, cursor: &mut usize) {
         if let Some(band) = self.band.take().filter(|band| band.active) {
             *selected = band.before;
@@ -311,3 +324,6 @@ impl PaneInput {
         self.stepped_at = None;
     }
 }
+
+#[cfg(test)]
+mod band_delta_tests;

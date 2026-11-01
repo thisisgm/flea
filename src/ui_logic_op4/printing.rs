@@ -35,6 +35,18 @@ pub fn destinations(list: &str, default: &str) -> Vec<Destination> {
     result
 }
 
+// lpstat -l -p supplies the human name as Description, while the destination remains the queue ID.
+// Sample input: "printer Brother is idle.  enabled since Sat 31 Oct\n\tDescription: Brother HL-L3270CDW\n".
+pub fn printer_name(details: &str, queue: &str) -> String {
+    details
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("Description:"))
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .unwrap_or(queue)
+        .into()
+}
+
 pub fn valid_destination(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= MAX_DESTINATION_BYTES
@@ -185,6 +197,16 @@ mod tests {
                 caps.two_sided,
                 "the duplex default must survive either option order: {text}"
             );
+        }
+    }
+
+    #[test]
+    fn vf4_r1_printer_name_falls_back_to_the_queue_without_a_description() {
+        let named =
+            "printer Brother is idle.  enabled since Sat\n\tDescription: Brother HL-L3270CDW \n";
+        assert_eq!(printer_name(named, "Brother"), "Brother HL-L3270CDW");
+        for details in ["", "printer Brother is idle.\n", "\tDescription:   \n"] {
+            assert_eq!(printer_name(details, "Brother"), "Brother", "{details:?}");
         }
     }
 
