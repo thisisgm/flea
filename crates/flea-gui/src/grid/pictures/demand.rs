@@ -161,7 +161,9 @@ impl Pictures {
             .filter(|row| !map.slots.contains_key(row) && allowed(*row))
             .collect();
         for &row in &ask {
-            let facts = held.row(row).expect("an allowed row is held");
+            let Some(facts) = held.row(row) else {
+                continue;
+            };
             let slot = Slot::Asked {
                 identity: Identity::of(facts),
                 image: is_image(facts),

@@ -357,6 +357,12 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
     let column = shell
         .read_with(cx, |shell, _| shell.selection_preview(0))
         .expect("Columns hosts the preview column");
+    let decoder = super::previewtypes_tests::Decoder::default();
+    cx.update(|_, cx| {
+        column.update(cx, |column, _| {
+            column.set_media_backend(std::rc::Rc::new(decoder.clone()));
+        });
+    });
     let video = cx.update(|_, cx| matches!(column.read(cx).mounted_kind(), Some((Kind::Video, _))));
     assert!(video, "the column mounted the clip");
     press(cx, "ctrl-tab");
@@ -367,6 +373,11 @@ fn space_in_the_focused_preview_column_on_a_clip_opens_no_card(cx: &mut TestAppC
     );
     sent(&mut requests, "code");
     press(cx, "space");
+    assert_eq!(
+        *decoder.started.borrow(),
+        1,
+        "Space reaches the in-process decoder"
+    );
     assert_eq!(
         read(&shell, cx, "previewOpen", &[]),
         "false",

@@ -328,6 +328,23 @@ class LayoutTests(unittest.TestCase):
         self.assertTrue(any(cell["current_gui_forbidden_altgr_paths"]))
         self.assertEqual(cell["current_gui_status"], "unreachable")
 
+    def test_i50_current_gui_altgr_counts_only_core_keycodes(self):
+        # xkeyboard-config 2.48 symbols/inet types 1 on every level of <I521> (KEY_NUMERIC_1), AltGr included.
+        def numeric(name, code):
+            return [dict(code=code, physical=name, held=held, effective=held, consumed_xkb=0, consumed_gtk=0,
+                         keysym="XF86Numeric1", text="1", symbol_text="1", dead=False, group=0, id=f"{name}:{held}")
+                    for held in (0, 1, 16, 17)]
+        base = [e for e in self.events["fr"] if e["physical"] not in ("I521", "I255")]
+        row = self.row("1", action="tab1", layer="digits")
+        cell = layouts.measure([row], base + numeric("I521", 521), self.events["us"], self.policy)["cells"][0]
+        self.assertIn("I521:16", cell["current_gui_paths"][0])
+        self.assertFalse(any(cell["current_gui_forbidden_altgr_paths"]))
+        self.assertEqual(cell["current_gui_status"], "reachable")
+        # The same key at a core keycode is still an AltGr chord that dispatches.
+        cell = layouts.measure([row], base + numeric("I255", 255), self.events["us"], self.policy)["cells"][0]
+        self.assertEqual(cell["current_gui_forbidden_altgr_paths"], [["I255:16", "I255:17"]])
+        self.assertEqual(cell["current_gui_status"], "unreachable")
+
     def test_i50_layout_canonical_inventory_required(self):
         matrix = self.valid_matrix()
         matrix["bindings"].pop()

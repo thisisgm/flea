@@ -79,8 +79,8 @@ fn a_code_row_asks_the_code_engine_and_f_and_b_page_it(cx: &mut TestAppContext) 
 
 /// A decoder that plays what it is told and keeps its feed, so the test moves the clock the way playback does.
 #[derive(Clone, Default)]
-struct Decoder {
-    started: Rc<RefCell<usize>>,
+pub(super) struct Decoder {
+    pub(super) started: Rc<RefCell<usize>>,
     commands: Rc<RefCell<Vec<Command>>>,
     feed: Rc<RefCell<Option<FeedSender>>>,
 }

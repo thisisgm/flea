@@ -139,7 +139,7 @@ impl Picker {
         let (filter, chip, hidden) = (
             self.chip_filter(),
             self.listing.chip,
-            self.req.hidden.unwrap_or(self.preferences.hidden),
+            self.req.hidden.unwrap_or(self.preferences.followed.hidden),
         );
         let line = self.browse.listing.update(cx, |view, _| {
             view.open(path);
@@ -285,7 +285,7 @@ impl Picker {
             paths: [self.listing.location.clone().into(), Default::default()],
             home: self.browse.home.clone().into(),
             failed: self.listing.failed,
-            show_hidden: self.req.hidden.unwrap_or(self.preferences.hidden),
+            show_hidden: self.req.hidden.unwrap_or(self.preferences.followed.hidden),
             first: FIRST,
             aliases: self.recent_alias(),
             elide_start: true,
