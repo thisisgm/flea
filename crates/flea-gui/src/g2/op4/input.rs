@@ -226,7 +226,10 @@ impl OutputView {
         let (Some(Card::Combine(c)), Some(focus)) = (&self.model.card, self.model.focus) else {
             return;
         };
-        use flea::ui_logic_op4::composition::{Background, Layout, Spacing};
+        use flea::ui_logic_op4::{
+            composition::{Background, Layout, Spacing},
+            output,
+        };
         let (at, count) = match focus {
             Focus::Layout => (
                 match c.settings.layout {
@@ -245,11 +248,11 @@ impl OutputView {
                 3,
             ),
             Focus::Format => (
-                ["png", "jpg", "webp"]
+                output::COMBINE_FORMATS
                     .iter()
                     .position(|f| *f == c.format)
                     .unwrap_or(0),
-                3,
+                output::COMBINE_FORMATS.len(),
             ),
             Focus::Background => {
                 let grounds: &[Background] = if c.format == "jpg" {

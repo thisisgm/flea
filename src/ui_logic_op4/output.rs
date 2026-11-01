@@ -3,7 +3,7 @@ use std::path::Path;
 
 pub const IMAGE_FORMATS: &[&str] = &["jpg", "png", "webp", "avif", "heic", "tiff", "bmp", "pdf"];
 pub const PDF_FORMATS: &[&str] = &["png", "jpg", "webp", "tiff"];
-pub const COMBINE_FORMATS: &[&str] = &["png", "jpg", "webp"];
+pub const COMBINE_FORMATS: &[&str] = &["png", "jpg", "webp", "pdf"];
 pub const MAX_ITEMS: usize = 256;
 pub const MIN_ITEMS: usize = 1;
 

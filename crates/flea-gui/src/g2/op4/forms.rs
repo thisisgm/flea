@@ -7,7 +7,10 @@ use super::{
     view::CHEVRON,
 };
 use crate::g2::op1::glyph::Glyph;
-use flea::ui_logic_op4::composition::{Layout, Spacing};
+use flea::ui_logic_op4::{
+    composition::{Layout, Spacing},
+    output,
+};
 use gpui::{div, prelude::*, px, AnyElement, Context};
 pub(super) fn print(
     view: &OutputView,
@@ -195,7 +198,7 @@ pub(super) fn combine(
         Spacing::Small => 1,
         Spacing::Large => 2,
     };
-    let format = ["png", "jpg", "webp"]
+    let format = output::COMBINE_FORMATS
         .iter()
         .position(|f| *f == s.format)
         .unwrap_or(0);
@@ -255,7 +258,7 @@ pub(super) fn combine(
         c::choices(
             view,
             Focus::Format,
-            &["png", "jpg", "webp"],
+            output::COMBINE_FORMATS,
             format,
             enabled,
             cx,

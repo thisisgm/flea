@@ -69,11 +69,20 @@ fn print_real_magick_and_montage_match_the_layout_geometry() {
             tool(&d, combine::scale_argv(input, &out, size, &settings, n == 0));
             out
         }).collect();
+        let expected = match layout { Layout::Row => (209, 106), Layout::Column => (106, 276), Layout::Grid => (312, 208) };
         for format in ["png", "jpg", "webp"] {
             let out = d.join(&format!("combined-{index}.{format}"));
             for command in combine::join_commands(&scaled, &out, size, &settings) { tool(&d, command); }
-            let dimensions = crate::backend::imagesize::dimensions(&out).unwrap();
-            assert_eq!(dimensions, match layout { Layout::Row => (209, 106), Layout::Column => (106, 276), Layout::Grid => (312, 208) });
+            assert_eq!(crate::backend::imagesize::dimensions(&out).unwrap(), expected);
+        }
+        if ready(&["pdftoppm"]) {
+            let out = d.join(&format!("combined-{index}.pdf"));
+            for command in combine::join_commands(&scaled, &out, size, &settings) { tool(&d, command); }
+            assert!(std::fs::read(&out).unwrap().starts_with(b"%PDF"));
+            // ImageMagick writes the composite as one 72 dpi page, so a 72 dpi render returns its pixels.
+            let prefix = d.join(&format!("combined-{index}-page"));
+            tool(&d, vec!["pdftoppm".into(), "-r".into(), "72".into(), "-f".into(), "1".into(), "-singlefile".into(), "-png".into(), "--".into(), out.to_string_lossy().into_owned(), prefix.to_string_lossy().into_owned()]);
+            assert_eq!(crate::backend::imagesize::dimensions(&prefix.with_extension("png")), Some(expected));
         }
     }
     let out = d.join("converted.png");
@@ -134,6 +143,14 @@ fn print_real_protocol_converters_run_in_the_production_jail() {
     let replies = rig.ask(&command, "combinedone");
     assert!(field_bool(replies.last().unwrap(), "ok"), "{replies:?}");
     assert_eq!(crate::backend::imagesize::dimensions(&rig.dir.join("first (combined).png")), Some((209, 106)));
+    let command = format!(r#"{{"c":"combine","paths":["{}","{}"],"format":"pdf","layout":"Row","spacing":"Small","background":"White"}}"#, first.display(), second.display());
+    let replies = rig.ask(&command, "combinedone");
+    assert!(field_bool(replies.last().unwrap(), "ok"), "{replies:?}");
+    let combined = rig.dir.join("first (combined).pdf");
+    assert!(std::fs::read(&combined).unwrap().starts_with(b"%PDF"));
+    let info = tool(&rig.dir, vec!["pdfinfo".into(), "--".into(), combined.to_string_lossy().into_owned()]);
+    assert!(info.lines().any(|l| l.strip_prefix("Pages:").is_some_and(|s| s.trim() == "1")), "{info}");
+    assert!(info.lines().any(|l| l.strip_prefix("Page size:").is_some_and(|s| s.trim().starts_with("209 x 106 pts"))), "{info}");
     let input = pdf(&rig.dir);
     let command = format!(r#"{{"c":"convertbatch","path":"{}","format":"png","pages":"1, 3"}}"#, input.display());
     let replies = rig.ask(&command, "convertdone");

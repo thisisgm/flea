@@ -123,7 +123,7 @@ impl Settings {
             _ => return Err("Choose Transparent, White or Black.".into()),
         };
         if !output::COMBINE_FORMATS.contains(&format) {
-            return Err("Choose PNG, JPEG or WebP.".into());
+            return Err("Choose PNG, JPEG, WebP or PDF.".into());
         }
         if background == Background::Transparent && format == "jpg" {
             return Err("JPEG does not support a transparent background.".into());
@@ -240,16 +240,24 @@ pub fn join_argv(
             spacing.to_string(),
         ]);
     }
-    if output::extension(output) == "jpg" {
-        args.extend([
+    finish_format(&mut args, output);
+    args.push(output.to_string_lossy().into_owned());
+    args
+}
+
+// JPEG has no alpha. A PDF page takes the virtual canvas, which +append leaves at the first image's size,
+// and a gravity still set places the image on a Letter page, so both are reset.
+fn finish_format(args: &mut Vec<String>, output: &Path) {
+    match output::extension(output).as_str() {
+        "jpg" => args.extend([
             "-alpha".into(),
             "remove".into(),
             "-alpha".into(),
             "off".into(),
-        ]);
+        ]),
+        "pdf" => args.extend(["+repage".into(), "+gravity".into()]),
+        _ => {}
     }
-    args.push(output.to_string_lossy().into_owned());
-    args
 }
 
 pub fn join_commands(
@@ -277,14 +285,7 @@ pub fn join_commands(
         "-splice".into(),
         format!("{spacing}x{spacing}"),
     ];
-    if output::extension(output) == "jpg" {
-        finish.extend([
-            "-alpha".into(),
-            "remove".into(),
-            "-alpha".into(),
-            "off".into(),
-        ]);
-    }
+    finish_format(&mut finish, output);
     finish.push(output.to_string_lossy().into_owned());
     vec![join_argv(inputs, &intermediate, size, settings), finish]
 }
