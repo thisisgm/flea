@@ -383,7 +383,7 @@ impl Element for ListElement {
         let focused = self.states.focused;
         window.paint_quad(fill(
             bounds,
-            crate::window::glass::list_ground(palette.background, window, cx),
+            crate::window::glass::ground(palette.background, window, cx),
         ));
         window.with_content_mask(
             Some(ContentMask {

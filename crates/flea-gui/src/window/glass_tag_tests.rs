@@ -337,7 +337,6 @@ fn glass_tag_follows_a_live_alpha_edit_without_a_hyprland_event() {
     tagger.follow(super::glass::Inputs {
         automatic: false,
         wanted_alpha: 153,
-        wanted_list_alpha: 153,
         ..automatic
     });
     passes

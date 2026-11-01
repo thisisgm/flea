@@ -215,6 +215,8 @@ mod native31_tests;
 mod caption_loop_tests;
 #[cfg(test)]
 mod glass_tag_tests;
+#[cfg(test)]
+mod glass_rule_tests;
 
 #[cfg(test)]
 mod glass_tests;
