@@ -306,3 +306,6 @@ fn invert_selection_flips_the_marks_when_settings_shows_it(cx: &mut gpui::TestAp
 
 #[path = "menus_formats_tests.rs"]
 mod extracted;
+
+#[path = "menus_refuse_tests.rs"]
+mod refuse;

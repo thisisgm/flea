@@ -44,14 +44,7 @@ impl Shell {
                     cx,
                 );
             }
-            if let Some(host) = &self.panes[capture.side] {
-                let gate = crate::navigation::watch::Gate {
-                    menu_open: false,
-                    menu_pending: false,
-                    ..host.nav.gate
-                };
-                self.set_gate(capture.side, gate, window, cx);
-            }
+            self.free_menu_gate(capture.side, window, cx);
         }
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
@@ -160,6 +153,9 @@ impl Shell {
             return false;
         }
         let id = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
+        if string(&reply, "op") == "openWith" && self.menu_launched(side, id, &reply, cx) {
+            return true;
+        }
         let Some(capture) = self
             .menu
             .captured
@@ -266,6 +262,23 @@ impl Shell {
         true
     }
 
+    // The pane's keys and watch go back to the listing once its menu has no snapshot left to answer.
+    pub(super) fn free_menu_gate(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(host) = &self.panes[side] {
+            let gate = crate::navigation::watch::Gate {
+                menu_open: false,
+                menu_pending: false,
+                ..host.nav.gate
+            };
+            self.set_gate(side, gate, window, cx);
+        }
+    }
+
     fn deliver_menu(&mut self, paths: Vec<String>, window: &mut Window, cx: &mut Context<Self>) {
         let Some((action, leaf)) = self.menu.pending.take() else {
             return;
@@ -300,6 +313,8 @@ impl Shell {
             self.make_executable(&capture, &paths, window, cx);
         } else if action == "addToShelf" {
             self.menu_shelve(&capture, &paths, window, cx);
+        } else if action == "openWith" && !capture.background {
+            self.menu_open_with(&capture, &leaf, &paths, window, cx);
         } else if action == "tags" && !capture.background {
             self.menu_tag(&capture, &leaf, window, cx);
         } else if self.clipboard_menu(&capture, &action, &leaf, &paths, window, cx) {
@@ -359,14 +374,7 @@ impl Shell {
                         cx,
                     );
                 }
-                if let Some(host) = &shell.panes[side] {
-                    let gate = crate::navigation::watch::Gate {
-                        menu_open: false,
-                        menu_pending: false,
-                        ..host.nav.gate
-                    };
-                    shell.set_gate(side, gate, window, cx);
-                }
+                shell.free_menu_gate(side, window, cx);
                 cx.notify();
             });
         }
