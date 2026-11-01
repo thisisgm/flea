@@ -1,5 +1,4 @@
 use super::*;
-use flea::i18n::I18n;
 use flea::ui_logic_pv2::markdown::markdown_flow::{Face, Measure};
 use gpui::{point, px, size, Bounds, TestAppContext};
 
@@ -46,7 +45,7 @@ fn vf4_markdown_source_uses_the_body_line_box(cx: &mut TestAppContext) {
             tokens(false),
             Faces::omarchy_default(),
             "look",
-            &I18n::default(),
+            &crate::test_catalogs::english(),
             cx,
         );
         view._tasks.clear();
