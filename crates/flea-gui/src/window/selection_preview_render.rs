@@ -1,4 +1,6 @@
 //! The approved media frame, optional transport, name and compact or full facts.
+pub(crate) use super::fitted::column_media;
+#[cfg(test)]
 pub(crate) use super::fitted::column_picture;
 use super::*;
 use crate::g2::pv3::{
@@ -99,6 +101,7 @@ impl Render for SelectionPreview {
         if loading || self.drawn.is_none() {
             return root.child(self.loading_view(roles.metadata));
         }
+        let gif_at = self.gif_frame(cx);
         let frame = self.drawn.as_ref().unwrap();
         if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {
             *self.play_rect.borrow_mut() = None;
@@ -184,7 +187,7 @@ impl Render for SelectionPreview {
             );
         } else {
             let fitted = super::fitted::fitted(frame, width, height);
-            let moving = super::picture::moving(frame, width, height);
+            let moving = super::picture::moving(frame, gif_at, width, height);
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
@@ -205,19 +208,12 @@ impl Render for SelectionPreview {
                     .debug_selector(|| "column-audio-mark".into()),
                 ),
                 Mounted::Media(player) => {
-                    let picture = column_picture(if let Some(player) = player {
-                        pv3::surface::picture(
-                            player.read(cx),
-                            &pv3::surface::Facts::default(),
-                            &self.catalog,
-                        )
-                    } else {
-                        // Audio took its mark above, so a frame with no player yet is a video's poster.
-                        Picture::Video {
-                            frame: frame.image.clone(),
-                            poster: true,
-                        }
-                    });
+                    // Audio took its mark above, so a frame with no player yet is a video's poster.
+                    let picture = column_media(
+                        player.as_ref().map(|player| player.read(cx)),
+                        frame.image.clone(),
+                        &self.catalog,
+                    );
                     let failed = matches!(picture, Picture::Failed { .. });
                     let element = MediaElement {
                         picture,

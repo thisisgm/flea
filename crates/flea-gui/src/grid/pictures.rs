@@ -93,6 +93,7 @@ pub(crate) struct Key {
 
 struct Faded {
     level: u32,
+    side: u32,
     source: Arc<RenderImage>,
     copy: Arc<Thumbnail>,
 }

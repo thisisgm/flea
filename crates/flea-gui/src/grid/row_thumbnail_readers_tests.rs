@@ -159,22 +159,16 @@ fn cut_list_and_columns_rows_paint_the_faded_copy(cx: &mut TestAppContext) {
                     .unwrap()
                     .borrow();
                 assert_eq!(paint.clip(1), crate::columns::paint::Clip::Cut);
-                std::sync::Arc::clone(paint.picture(1).unwrap())
             } else {
                 let list = host.list.borrow();
                 let shown = list.visible().iter().find(|row| row.index == 1).unwrap();
                 assert_eq!(shown.clip, Some(crate::row::marks::ClipMark::Cut));
-                std::sync::Arc::clone(shown.picture.as_ref().unwrap())
             }
+            drawn_picture(shell, view)
         };
-        let source = read(cx, handle, |shell| {
-            pictures(shell)
-                .lend(
-                    1,
-                    shell.panes[0].as_ref().unwrap().pane.held.row(1).unwrap(),
-                )
-                .unwrap()
-        });
+        // The row draws its picture filtered to the mark slot, so the faded copy is compared with that uncut drawing.
+        step(cx, handle);
+        let source = read(cx, handle, |shell| drawn_picture(shell, view));
         handle.update(cx, |shell, window, cx| {
             shell.receive(0, Backend::test_reply_line(r#"{"t":"clip","op":"changed","clip":"cut","paths":["/files/photo.png"],"token":"cut-row","skipped":0}"#), window, cx);
             shell.sync_clip_marks();
@@ -326,5 +320,25 @@ fn ey188_row_clip_mark_answers_in_grid_and_columns(cx: &mut TestAppContext) {
             Reply::value("unavailable"),
             "{view:?}: a row the frame did not draw"
         );
+    }
+}
+
+// The picture row 1 of the active List or Columns track holds for its paint.
+fn drawn_picture(shell: &Shell, view: View) -> std::sync::Arc<crate::grid::element::Thumbnail> {
+    let host = shell.panes[0].as_ref().unwrap();
+    if view == View::Columns {
+        let paint = host
+            .columns
+            .as_ref()
+            .unwrap()
+            .painters
+            .get(Slot::Active)
+            .unwrap()
+            .borrow();
+        std::sync::Arc::clone(paint.picture(1).unwrap())
+    } else {
+        let list = host.list.borrow();
+        let shown = list.visible().iter().find(|row| row.index == 1).unwrap();
+        std::sync::Arc::clone(shown.picture.as_ref().unwrap())
     }
 }

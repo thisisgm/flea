@@ -20,6 +20,7 @@ pub fn row(name: &str, dir: bool) -> RowFacts {
         icon: if dir { "folder" } else { "text-plain" }.into(),
         link: None,
         real_modes: true,
+        thumbless: false,
         kind: String::new(),
         inline: None,
         tags: None,

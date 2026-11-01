@@ -52,9 +52,10 @@ impl Policy {
         off && self.mode != Mode::Off
     }
 
-    /// Thumbs.allowed; RowFacts carries no t flag, so a file the backend cannot picture is asked and answers empty.
+    /// Thumbs.allowed: a row the backend flagged "t":false has no thumbnailer, so it is never asked.
     pub fn allowed(&self, row: &RowFacts) -> bool {
         !row.dir
+            && !row.thumbless
             && match self.mode {
                 Mode::Off => false,
                 Mode::Images => is_image(row),

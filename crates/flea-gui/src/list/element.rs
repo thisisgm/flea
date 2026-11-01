@@ -254,6 +254,13 @@ impl Element for ListElement {
         visible.clear();
         let revision = view.mark_revision(held.listing);
         let mut loading = 0;
+        // A thumbnail is filtered to the mark slot's device pixels, the side super::picker::paint_icon draws it at.
+        let side = if view.dual {
+            metrics.mark
+        } else {
+            metrics.slot
+        };
+        let slot_pixels = (side * window.scale_factor()).ceil() as u32;
         for view_at in first..last.max(first) {
             let index = self.shown.as_ref().map_or(view_at, |rows| rows[view_at]);
             let marks = self.states.row(index, held.listing);
@@ -304,9 +311,13 @@ impl Element for ListElement {
                 clip,
                 state: marks,
                 // Row.qml dims a cut row's thumbnail with the rest of its mark.
-                picture: pictures.lend(index, facts).map(|picture| match clip {
-                    Some(ClipMark::Cut) => pictures.faded(picture, CUT_DIM),
-                    _ => picture,
+                picture: pictures.lend(index, facts).map(|picture| {
+                    let dim = if clip == Some(ClipMark::Cut) {
+                        CUT_DIM
+                    } else {
+                        1.
+                    };
+                    pictures.slotted(picture, slot_pixels, dim)
                 }),
             });
         }

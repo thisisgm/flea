@@ -1,8 +1,11 @@
 //! The column preview's poster or still, fitted inside the frame's border.
 use super::{render::FRAME_BORDER, Frame, Kind};
-use crate::g2::pv3::view::Picture;
+use crate::g2::pv3::{player::MediaPlayer, surface, view::Picture};
+use flea::i18n::I18n;
 use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
-use gpui::{div, img, prelude::*, px};
+use flea::ui_logic_pv3::player::{Media, Status};
+use gpui::{div, img, prelude::*, px, RenderImage};
+use std::sync::Arc;
 
 /// The poster or still fits inside the border; vectors fill the room and rasters keep their pixel limit.
 pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div> {
@@ -54,4 +57,26 @@ pub(crate) fn column_picture(picture: Picture) -> Picture {
         },
         other => other,
     }
+}
+
+/// A video frame's picture: the still before Play and again once the clip has ended, as v0.3.12 returns to its film-strip poster.
+pub(crate) fn column_media(
+    player: Option<&MediaPlayer>,
+    still: Option<Arc<RenderImage>>,
+    catalog: &I18n,
+) -> Picture {
+    let ended = |player: &MediaPlayer| {
+        player.state.has_video
+            && player.state.media == Media::Ended
+            && player.status() != Status::Failed
+    };
+    column_picture(match player {
+        Some(player) if still.is_none() || !ended(player) => {
+            surface::picture(player, &surface::Facts::default(), catalog)
+        }
+        _ => Picture::Video {
+            frame: still,
+            poster: true,
+        },
+    })
 }

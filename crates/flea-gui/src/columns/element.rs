@@ -221,6 +221,8 @@ impl Element for TrackElement {
             .pictures
             .as_deref()
             .filter(|_| view.slot == Slot::Active);
+        // A thumbnail is filtered to the mark slot's device pixels, the side paint draws it at.
+        let slot_pixels = (picture_box().2 * window.scale_factor()).ceil() as u32;
         *start = first;
         for position in first..last.max(first) {
             let index = self.shown.as_ref().map_or(position, |rows| rows[position]);
@@ -268,11 +270,8 @@ impl Element for TrackElement {
             pictures.push(match (lender, row) {
                 (Some(lender), Some(Row::Listing(facts))) => {
                     lender.lend(index, facts).map(|picture| {
-                        if mark == Clip::Cut {
-                            lender.faded(picture, CUT)
-                        } else {
-                            picture
-                        }
+                        let dim = if mark == Clip::Cut { CUT } else { 1. };
+                        lender.slotted(picture, slot_pixels, dim)
                     })
                 }
                 _ => None,

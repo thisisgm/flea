@@ -93,6 +93,7 @@ fn parses_the_initial_pair_and_preserves_escaped_names() {
             icon: "text-x-script".into(),
             link: Some("../t\"x".into()),
             real_modes: true,
+            thumbless: true,
             kind: "Script".into(),
             ..RowFacts::default()
         },
