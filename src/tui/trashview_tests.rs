@@ -186,6 +186,7 @@ fn tui_fix_1101_unbacked_trash_row_never_shows_the_previous_text() {
     // Trash listed again under an unmoved cursor, its row now unbacked, keeps the old text off too.
     open(&mut m, &mut w).unwrap();
     m.receive(parse(&page(2, "list", 2, 0, 2, "b")).unwrap(), &mut w).unwrap();
+    assert!(m.preview_body.is_empty() && m.preview_path.as_os_str().is_empty(), "the relist itself drops b0's text");
     assert_eq!(shown(&mut m), ("b0.txt".into(), "".into()));
     finish(w, reader);
 }
