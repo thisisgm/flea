@@ -127,7 +127,7 @@ fn walk_to(
             .iter()
             .find(|row| row.label == label)
             .cloned()
-            .expect("the rail paints the row")
+            .unwrap_or_else(|| panic!("the rail paints the {label} row"))
     });
     for _ in 0..16 {
         if producer.read_with(cx, |p, _| p.cursor()) == Some(stick.index) {
