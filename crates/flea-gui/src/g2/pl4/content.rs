@@ -43,6 +43,8 @@ pub struct DrawnRow {
 pub struct DrawnSection {
     /// Empty when the section draws no heading, as PLACES over a lone Recent row.
     pub heading: SharedString,
+    /// A caseless language's heading draws untracked, as its capitals are none.
+    pub caseless: bool,
     pub rows: Vec<DrawnRow>,
 }
 
@@ -78,14 +80,26 @@ pub fn tag_mark(theme: &TagTheme, name: &str, ground: Ground) -> TagMark {
     }
 }
 
-/// Section titles keep Omarchy's OEM capitals, so a plugin title reads like a built-in one; an empty title draws no heading.
+/// Section titles keep Omarchy's OEM capitals in the language's own rules, none in a caseless language, so a plugin title reads like a built-in one; an empty title draws no heading.
 pub fn heading_text(catalog: &I18n, heading: &Heading) -> SharedString {
+    let language = catalog.language();
+    let upper = |text: &str| {
+        if crate::g2::fb1::caption::caseless(language) {
+            text.to_owned()
+        } else {
+            flea::ui_logic_st1::caps::heading(text, language)
+        }
+    };
     match heading {
         Heading::None => SharedString::default(),
-        Heading::Key(key) => catalog.tr(key).to_uppercase().into(),
-        Heading::Plugin(title) => title.to_uppercase().into(),
+        Heading::Key(key) => upper(&catalog.tr(key)).into(),
+        Heading::Plugin(title) => upper(title).into(),
     }
 }
+
+#[cfg(test)]
+#[path = "content_caps_tests.rs"]
+mod caps_tests;
 
 pub fn row_label(catalog: &I18n, entry: &RailEntry) -> SharedString {
     if entry.label_key.is_empty() {
@@ -135,6 +149,7 @@ pub fn build(catalog: &I18n, sections: &[RailSection], theme: &TagTheme) -> Vec<
         .iter()
         .map(|s| DrawnSection {
             heading: heading_text(catalog, &s.heading),
+            caseless: crate::g2::fb1::caption::caseless(catalog.language()),
             rows: s.rows.iter().map(|e| row(catalog, theme, e)).collect(),
         })
         .collect()

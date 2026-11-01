@@ -203,45 +203,40 @@ impl SettingsView {
     }
 
     /// The segment rule from the shaped widths: every option beside the label, or the chevron walk.
-    fn fits(&self, row: &Row, width: f32, window: &Window) -> bool {
-        let shaped = |text: String, size| {
-            let text = SharedString::from(text);
-            let run = TextRun {
-                len: text.len(),
-                font: self.typeface.font.clone(),
-                color: Default::default(),
-                background_color: None,
-                underline: None,
-                strikethrough: None,
-            };
-            f32::from(
-                window
-                    .text_system()
-                    .shape_line(text, size, &[run], None)
-                    .width,
-            )
-        };
+    pub(super) fn fits(&self, row: &Row, width: f32, window: &Window) -> bool {
         let catalog = &self.panel.catalog;
         let options: Vec<f32> = row
             .labels
             .iter()
-            .map(|label| shaped(label.resolve(catalog), self.typeface.caption))
+            .map(|label| self.shaped(label.resolve(catalog), self.typeface.caption, window))
             .collect();
         if visible::marks(row) {
             return true;
         }
         visible::segment_fits(
-            shaped(row.label.resolve(catalog), self.typeface.body),
+            self.shaped(row.label.resolve(catalog), self.typeface.body, window),
             &options,
             width,
         )
     }
 
-    /// Shapes every hint at the pane's width, so heights match the drawn wraps in any language and size.
-    fn measure(&self, rows: &[Row], width: f32, window: &Window) -> Vec<usize> {
+    /// Shapes every hint and colliding label at the pane's width, with each row's bold search run, so heights match the drawn wraps in any language and size.
+    fn measure<'r>(
+        &self,
+        rows: impl IntoIterator<Item = (&'r Row, Option<(usize, usize)>)>,
+        width: f32,
+        window: &Window,
+    ) -> Vec<usize> {
         let font = self.typeface.font.clone();
-        rows.iter()
-            .map(|row| {
+        rows.into_iter()
+            .map(|(row, bold)| {
+                if matches!(
+                    row.kind,
+                    Kind::Fact | Kind::Lock | Kind::Check | Kind::Choice | Kind::Action
+                ) && !row.elide_right
+                {
+                    return self.label_lines(row, bold, width, window);
+                }
                 if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
@@ -301,11 +296,17 @@ impl SettingsView {
         let width = self.panel.pane.0;
         for line in &mut lines {
             line.segment = line.row.kind == Kind::Choice && self.fits(line.row, width, window);
+            line.room = Some(self.room(line.row, line.segment, width, window));
             super::draw::user_keys::measure(line, &self.typeface, window);
         }
         let heights = if searching {
             let rows: Vec<Row> = lines.iter().map(|line| line.row.clone()).collect();
-            g::heights(&rows, &self.measure(&rows, width, window), self.panel.scale)
+            let measured = self.measure(
+                lines.iter().map(|line| (line.row, line.bold_run())),
+                width,
+                window,
+            );
+            g::heights(&rows, &measured, self.panel.scale)
         } else {
             self.panel.heights()
         };
@@ -395,7 +396,11 @@ impl Render for SettingsView {
             s,
         );
         let pane = g::pane_size(card_w, card_h, s);
-        let lines = self.measure(&self.panel.rows, pane.0, window);
+        let lines = self.measure(
+            self.panel.rows.iter().map(|row| (row, None)),
+            pane.0,
+            window,
+        );
         self.panel.laid_out(pane, lines);
         let corner = self.panel.facts.corner;
         let left = ((f32::from(viewport.width) - card_w) / 2.).round();

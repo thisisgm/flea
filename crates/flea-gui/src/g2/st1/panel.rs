@@ -191,7 +191,7 @@ impl Panel {
         self.reveal();
     }
 
-    /// Each row's height: shaped hint lines once drawn, a monospace estimate before.
+    /// Each row's height: shaped hint and colliding label lines once drawn, a monospace estimate before.
     pub fn heights(&self) -> Vec<f32> {
         if self.lines.len() == self.rows.len() {
             return geometry::heights(&self.rows, &self.lines, self.scale);

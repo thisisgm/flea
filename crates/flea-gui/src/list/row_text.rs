@@ -24,12 +24,13 @@ pub(super) fn run_of(len: usize, font: &Font) -> TextRun {
     }
 }
 
-/// The name as drawn: middle-elided to its budget, or elided around a match run so the run stays drawn whole.
+/// The name as drawn: middle-elided, or elided around a match run kept whole, at the budget its shaped `width` fits in the cells' pixels when one is given.
 pub fn drawn_name(
     facts: &RowFacts,
     extra: Extra,
     shaping: &Shaping,
     query: &str,
+    width: Option<&dyn Fn(&str) -> f32>,
 ) -> (String, Option<(usize, usize)>) {
     let display = super::outline::display(facts);
     let name = row::decorated_name(&display);
@@ -39,11 +40,16 @@ pub fn drawn_name(
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let Some(run) = format::match_run(&display.name, query) else {
-        return (row::middle_elide(&name, budget).into_owned(), None);
+    let run = format::match_run(&display.name, query);
+    let elide = |cells: usize| match run {
+        None => (row::middle_elide(&name, cells), None),
+        Some(run) => {
+            let (drawn, (start, end)) = row::elide_around(&name, cells, run);
+            (drawn, (start < end).then_some((start, end)))
+        }
     };
-    let (drawn, (start, end)) = row::elide_around(&name, budget, run);
-    (drawn.into_owned(), (start < end).then_some((start, end)))
+    let (drawn, run) = row::fitted(&name, budget, shaping.advance, width, elide);
+    (drawn.into_owned(), run)
 }
 
 /// Shapes one row's cells once, each elided to its own budget, so no long name is shaped whole and no hidden column at all.
@@ -100,7 +106,8 @@ pub(super) fn prepare(
         }
         String::new()
     };
-    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query);
+    let width = |value: &str| f32::from(shape(value, shaping.body).line().width);
+    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query, Some(&width));
     let words = &view.words;
     let date = || {
         let full = format::date_text(facts.mtime, words);

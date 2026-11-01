@@ -206,6 +206,7 @@ impl Element for ListElement {
             body: typeface.body,
             caption: typeface.caption,
             name_cells: cells(layout.name.width, advance.body),
+            advance: advance.body,
             clip_cells: cells(layout.name.width - metrics.gap - metrics.clip, advance.body),
             cells: Column::ALL.map(|column| {
                 layout

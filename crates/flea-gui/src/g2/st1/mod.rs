@@ -26,6 +26,8 @@ pub mod panel;
 mod plugins;
 pub mod probe;
 #[cfg(test)]
+mod room_tests;
+#[cfg(test)]
 mod scroll_mounted_tests;
 #[cfg(test)]
 mod scroll_tests;
@@ -50,6 +52,7 @@ mod view_head;
 #[cfg(test)]
 mod view_tests;
 pub(crate) mod wheel;
+mod wrap;
 
 pub use panel::{Panel, Press, Side};
 pub use seams::{Facts, Ink, MemoryStore, Request, Store};
