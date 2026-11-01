@@ -70,9 +70,25 @@ impl Sheet {
     }
 
     pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
+        let (cursor, scroll) = (self.cursor, self.scroll);
+        let selected = self.ranked.get(cursor).cloned();
         self.rows = presentation::sheet(&self.preset, Frontend::Gui, &catalog);
         self.catalog = catalog;
         self.requery();
+        self.cursor = selected
+            .and_then(|selected| {
+                self.ranked.iter().position(|row| {
+                    row.section == selected.section
+                        && row.action == selected.action
+                        && row.menu_action == selected.menu_action
+                        && row.parent_action == selected.parent_action
+                        && row.path == selected.path
+                        && row.place == selected.place
+                        && row.rail_index == selected.rail_index
+                })
+            })
+            .unwrap_or_else(|| cursor.min(self.ranked.len().saturating_sub(1)));
+        self.scroll = scroll;
     }
 
     pub fn set_preset(&mut self, preset: &str) {
@@ -123,6 +139,11 @@ impl Sheet {
             &self.sources.home,
         ));
         all
+    }
+
+    pub(super) fn query_changed(&mut self, query: String) {
+        self.query = query;
+        self.requery();
     }
 
     fn requery(&mut self) {

@@ -164,8 +164,10 @@ impl Panel {
     }
 
     pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
+        let selected = self.search_selection();
         self.catalog = catalog;
         self.rebuild();
+        self.restore_search_selection(selected);
     }
 
     /// The title names the pane; while a query stands no section is current, so it reads Settings.
