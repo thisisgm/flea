@@ -246,6 +246,8 @@ mod asks;
 mod capture;
 #[path = "row_pictures_tests/draws.rs"]
 mod draws;
+#[path = "row_pictures_tests/fix_preview_2.rs"]
+mod fix_preview_2;
 
 #[path = "row_thumbnail_readers_tests.rs"]
 mod readers_tests;

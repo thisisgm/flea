@@ -78,6 +78,16 @@ impl Doc {
         }
     }
 
+    /// The wrap w toggles on this view; None for a view without one.
+    pub fn wrap(&self, cx: &App) -> Option<bool> {
+        match &self.view {
+            View::Code(code) => Some(code.read(cx).wrap),
+            View::Html(html) => Some(html.read(cx).wrap),
+            View::Markdown(markdown) => Some(markdown.read(cx).wrap),
+            _ => None,
+        }
+    }
+
     /// One key-table action the card did not keep for itself.
     pub fn action(&self, name: &str, cx: &mut App) -> Outcome {
         if let Some(pdf) = self.pages(cx) {

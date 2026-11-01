@@ -90,6 +90,8 @@ impl Shell {
                 }
                 return self.quick_look_action(event, window, cx);
             }
+            // Focus.js:127: e expands a PDF only; on any other shown preview it is quiet, never refused (EY-518).
+            "expand" => return true,
             // The focused column PDF: Return opens Quick Look, Up and Down scroll the pages (PreviewKeys.js columnPdfAction).
             "open" | "cursorDown" | "cursorUp"
                 if preview.read(cx).focus.is_focused(window)

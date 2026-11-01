@@ -1,5 +1,5 @@
 //! Space mounts every kind's own view in the Quick Look card, its first ask on slot "look"; a blob keeps the calm refusal.
-use super::preview_tests::{body, close, context, draw, file, opened, sent, Lines};
+use super::preview_tests::{body, close, context, draw, file, opened, press, sent, Lines};
 use super::test_shell::{land, row, set_cursor};
 use crate::{
     g2::{
@@ -286,8 +286,7 @@ fn w_wraps_the_open_text_and_tab_keys_stay_in_the_card(cx: &mut TestAppContext) 
         other => panic!("no mounted view: {other:?}"),
     };
     assert!(!wrap(&shell, cx));
-    cx.simulate_keystrokes("w");
-    draw(cx);
+    press(cx, "w");
     assert!(wrap(&shell, cx), "w toggles wrap in the card");
     assert_eq!(
         read(&shell, cx, "previewOpen", &[]),

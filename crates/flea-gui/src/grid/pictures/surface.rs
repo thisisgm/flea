@@ -70,6 +70,11 @@ fn list_rows(host: &PaneHost) -> Option<Want> {
     let shown = host.filter.shown.as_ref();
     let total = shown.map_or(host.pane.held.total, |rows| rows.len());
     let end = (((scroll + height) / row).ceil().max(0.) as usize).min(total);
+    drawn_want(first, end, shown)
+}
+
+// The listing rows at drawn positions first..end: the positions themselves, or a filter's rows there (Filter.cut).
+fn drawn_want(first: usize, end: usize, shown: Option<&Rc<[usize]>>) -> Option<Want> {
     match shown {
         None => (end > first).then(|| Want {
             span: (first, end - 1),
@@ -102,11 +107,11 @@ fn columns_rows(host: &PaneHost) -> Option<Want> {
     let height = f32::from(drawn.bounds.size.height);
     let scroll = host.pane.scroll_y.max(0.);
     let first = (scroll / ROW_HEIGHT).floor() as usize;
-    let end = (((scroll + height) / ROW_HEIGHT).ceil() as usize).min(host.pane.held.total);
-    (end > first).then(|| Want {
-        span: (first, end - 1),
-        only: None,
-    })
+    // The track draws a standing filter's rows, so its pictures are asked for those rows, as the List's are (SW-14).
+    let shown = drawn.shown.as_ref();
+    let total = shown.map_or(host.pane.held.total, |rows| rows.len());
+    let end = (((scroll + height) / ROW_HEIGHT).ceil() as usize).min(total);
+    drawn_want(first, end, shown)
 }
 
 impl Shell {
