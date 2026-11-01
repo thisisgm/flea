@@ -216917,7 +216917,7 @@
     },
     {
       "excerpt": "lines = [f\"total clone_lines {dup} {total}\"] + [f\"total {k} {sum(m[k].values())}\" for k in METRICS if k != \"clone_lines\"]",
-      "line": 267,
+      "line": 273,
       "literal": "total clone_lines {dup} {total}",
       "owner": "controller",
       "path": "tools/flea-slop-ratchet",
@@ -216926,7 +216926,7 @@
     },
     {
       "excerpt": "print(f\"NO BASELINE {base}: run with --write-baseline\")",
-      "line": 287,
+      "line": 293,
       "literal": "NO BASELINE {base}: run with --write-baseline",
       "owner": "controller",
       "path": "tools/flea-slop-ratchet",
@@ -216935,7 +216935,7 @@
     },
     {
       "excerpt": "print(f\"{'GREW' if up else 'ok'} {k} {shown}\")",
-      "line": 299,
+      "line": 305,
       "literal": "{'GREW' if up else 'ok'} {k} {shown}",
       "owner": "controller",
       "path": "tools/flea-slop-ratchet",
@@ -216944,7 +216944,7 @@
     },
     {
       "excerpt": "print(\"  no new duplicated lines: the share rose because other lines went; --write-baseline accepts this\")",
-      "line": 306,
+      "line": 312,
       "literal": "  no new duplicated lines: the share rose because other lines went; --write-baseline accepts this",
       "owner": "controller",
       "path": "tools/flea-slop-ratchet",
@@ -216953,7 +216953,7 @@
     },
     {
       "excerpt": "print(f\"REFUSED: --write-baseline would raise {', '.join(refused)}\")",
-      "line": 310,
+      "line": 316,
       "literal": "REFUSED: --write-baseline would raise {', '.join(refused)}",
       "owner": "controller",
       "path": "tools/flea-slop-ratchet",
@@ -243474,7 +243474,7 @@
     "tools/flea-share-route": "a1cfe728c637ce2d3224c745b5e80c379a4031f9e81e971f927b1a36e3d42ad4",
     "tools/flea-showcase": "7348bbcf337ed364cf08c9ee06f27a723497c63b05a516e36b06a4489f5e894f",
     "tools/flea-showcase-content": "f9414cf9db21524ad4ffd69d24c7e66fabda41e0274c51c1150cb68dbc8d9c52",
-    "tools/flea-slop-ratchet": "a5bd4d6a166a591e3c3fe495cdc4765ee2044be00606953f275a40e167b600ad",
+    "tools/flea-slop-ratchet": "6a8200a522875713d553ddd315738d7556842de18d767831bb23128891d5fd21",
     "tools/flea-strata-bench": "cfc452cd6529365157d52f3bd51cf00ce41c1cd599dc62138d83154a3427f0c6",
     "tools/flea-suite-inventory": "9751cde0f819aec52cd87626a458b66c5462c007ac422c4e5dff52679e51dd34",
     "tools/flea-third-party-licenses": "5ceb29a9b5aaa44b6126b4a32eee37709797b777b054b0b85fc980eaa5a5d4c0",
@@ -243923,8 +243923,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "79cba3961ba663d758baf7a16f1d9ecae56e1578",
-  "source_sha": "79cba3961ba663d758baf7a16f1d9ecae56e1578",
+  "source_ref_sha": "4b9988bd03fb5ec59542efe85c5117d6295e170c",
+  "source_sha": "4b9988bd03fb5ec59542efe85c5117d6295e170c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
