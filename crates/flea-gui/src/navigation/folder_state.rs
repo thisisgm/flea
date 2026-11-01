@@ -343,3 +343,7 @@ mod window_tests {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "folder_sorts_tests.rs"]
+mod folder_sorts_tests;

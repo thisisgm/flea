@@ -264,3 +264,25 @@ fn a_strip_too_narrow_collapses_whole_crumbs_and_elides_only_the_leaf() {
     );
     check(129, drawn(&fit_crumbs(four, 6)), "~/\u{2026}/four".into());
 }
+
+// Crumb.qml cursorShape keys on parent; this pins only Crumb::parent(), the predicate paint_element maps to the pointing hand.
+#[test]
+fn noscene_parent_is_true_only_for_a_real_parent_crumb() {
+    let whole = crumbs("/home/gm/one/two/three/four/five", HOME, None);
+    let leaf = whole.last().unwrap();
+    assert!(leaf.last && !leaf.parent(), "the leaf is no parent");
+    assert!(
+        whole[..whole.len() - 1].iter().all(Crumb::parent),
+        "every other crumb of a whole path is a parent"
+    );
+    let fitted = fit_crumbs(whole, 16);
+    let marker = fitted
+        .iter()
+        .find(|crumb| crumb.elided)
+        .expect("a narrow strip collapses into a marker");
+    assert!(!marker.parent(), "the marker is no parent");
+    assert!(fitted
+        .iter()
+        .filter(|crumb| !crumb.last && !crumb.elided)
+        .all(Crumb::parent));
+}
