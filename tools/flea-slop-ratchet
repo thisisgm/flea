@@ -131,10 +131,9 @@ def children(f, raw, code, spans):
 
 
 def sources(root):
-    listed = subprocess.run(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"],
-                            capture_output=True, text=True)
-    if listed.returncode == 0:
-        names = listed.stdout.split("\0")
+    if (root / ".git").exists():
+        out = subprocess.check_output(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"], text=True)
+        names = out.split("\0")
     else:
         # A tree without git (a CI lane's extracted tree.tar): every .rs file outside target/ and dot directories.
         names = [str(p.relative_to(root)) for p in root.rglob("*.rs")
