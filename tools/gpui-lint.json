@@ -30,6 +30,11 @@
       "caller": "flea_gui::window::network_cloud::Sources::load_rows",
       "symbol": "read_to_string",
       "reason": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure"
+    },
+    {
+      "caller": "flea_gui::tabs::geometry::hyprland",
+      "symbol": "output",
+      "reason": "Builds the clients closure only; ask_tab_geometry calls it inside cx.background_executor().spawn, and the call-graph walk does not see the stored closure"
     }
   ],
   "non_color_hex_constants": [],

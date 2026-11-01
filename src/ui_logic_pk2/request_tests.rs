@@ -25,7 +25,7 @@ fn title_fallbacks_name_the_window_purpose() {
     let i18n = english();
     assert_eq!(title_of(&i18n, &req("{}")), "Choose file");
     assert_eq!(title_of(&i18n, &req("{\"directory\":true}")), "Choose folder");
-    assert_eq!(title_of(&i18n, &req("{\"mode\":\"save\"}")), "Save file");
+    assert_eq!(title_of(&i18n, &req("{\"mode\":\"save\"}")), "Save File");
     assert_eq!(title_of(&i18n, &req("{\"title\":\"Send to unraid\"}")), "Send to unraid");
 }
 

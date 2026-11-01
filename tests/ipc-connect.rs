@@ -18,12 +18,10 @@ extern "C" {
     fn listen(fd: i32, backlog: i32) -> i32;
 }
 
+// A short root of its own: a socket path over SUN_LEN fails to bind, so it must not depend on where the source lives.
 fn root() -> PathBuf {
-    let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".superpowers/g04e");
-    fs::create_dir_all(&parent).unwrap();
     let output = Command::new("mktemp")
-        .arg("-d")
-        .arg(parent.join("connect.XXXXXX"))
+        .args(["-d", "/tmp/flea-ipc-connect.XXXXXX"])
         .output()
         .unwrap();
     assert!(output.status.success());

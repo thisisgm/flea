@@ -58,7 +58,8 @@ source = "{SOURCE}"
         self.metadata = {"workspace_root": str(self.root), "workspace_members": ["native"],
                          "resolve": {"nodes": [{"id": "native"}]}, "packages": [
                              {"id": "native", "name": "flea-gui", "version": "0.4.0", "source": None,
-                              "manifest_path": str(self.root / "crates/flea-gui/Cargo.toml")},
+                              "manifest_path": str(self.root / "crates/flea-gui/Cargo.toml"),
+                              "targets": [{"kind": ["lib"], "src_path": str(self.root / "crates/flea-gui/src/lib.rs")}]},
                              {"id": "gpui", "name": "gpui-pre", "version": "0.3.9", "source": SOURCE}]}
 
     def write(self, path, text):
@@ -225,7 +226,8 @@ source = "{SOURCE}"
         self.write("crates/helper/src/lib.rs", "pub fn next() { replies.recv_blocking(); }")
         self.metadata["workspace_members"].append("helper")
         self.metadata["packages"].append({"id": "helper", "name": "helper", "version": "0.4.0", "source": None,
-                                          "manifest_path": str(self.root / "crates/helper/Cargo.toml")})
+                                          "manifest_path": str(self.root / "crates/helper/Cargo.toml"),
+                                          "targets": [{"kind": ["lib"], "src_path": str(self.root / "crates/helper/src/lib.rs")}]})
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
         # The same helper in that package's integration test crate or binaries is not.
         (self.root / "crates/helper/src/lib.rs").unlink()
@@ -237,6 +239,200 @@ source = "{SOURCE}"
         # The lint treats one package's src/ files as one target (a path cannot tell a binary's module from the library's), so this reach is followed.
         self.write("crates/flea-gui/src/main.rs", "fn next() { replies.recv_blocking(); }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
+
+    def test_test_only_items_join_no_ui_reach(self):
+        # A #[cfg(test)] fn, impl, file module or #[path] module is never compiled into the paint path.
+        self.write("crates/flea-gui/src/lib.rs", "mod list; mod probe;")
+        blocking = "replies.recv_blocking();"
+        self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\npub(super) fn shape() {{ {blocking} }}")
+        self.assertEqual([], self.check_body("text.shape();"))
+        self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\nimpl Recorder {{ fn shape(&self) {{ {blocking} }} }}")
+        self.assertEqual([], self.check_body("text.shape();"))
+        self.write("crates/flea-gui/src/probe.rs", f"impl Recorder {{ fn shape(&self) {{ {blocking} }} }}")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+        self.write("crates/flea-gui/src/probe.rs", "mod support { mod fake; }")
+        self.write("crates/flea-gui/src/probe/support/fake.rs", f"fn shape() {{ {blocking} }}")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+        self.write("crates/flea-gui/src/probe.rs", "#[cfg(test)]\nmod support { mod fake; }")
+        self.assertEqual([], self.check_body("text.shape();"))
+        (self.root / "crates/flea-gui/src/probe/support/fake.rs").unlink()
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)]\nmod gate;\nmod probe;")
+        self.write("crates/flea-gui/src/gate.rs", "mod receipt;")
+        self.write("crates/flea-gui/src/probe.rs", "#[cfg(test)]\n#[path = \"other/bridge.rs\"]\nmod bridge;")
+        self.write("crates/flea-gui/src/gate/receipt.rs", f"fn shape() {{ {blocking} }}")
+        self.assertEqual([], self.check_body("text.shape();"))
+        (self.root / "crates/flea-gui/src/gate/receipt.rs").unlink()
+        self.write("crates/flea-gui/src/other/bridge.rs", f"fn shape() {{ {blocking} }}")
+        self.assertEqual([], self.check_body("text.shape();"))
+        # Without the attribute the same file is product code and is reached.
+        self.write("crates/flea-gui/src/probe.rs", "#[path = \"other/bridge.rs\"]\nmod bridge;")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+        # The attribute ends with its item, and a test-only twin never hides the product function.
+        (self.root / "crates/flea-gui/src/other/bridge.rs").unlink()
+        for item in ("use std::fs;", "fn helper() {}", "struct Fake {}"):
+            self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\n{item}\nfn shape() {{ {blocking} }}")
+            self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")), item)
+        self.write("crates/flea-gui/src/probe.rs", f"#[cfg(not(test))]\npub fn hold() {{ {blocking} }}\n#[cfg(test)]\npub fn hold() {{}}")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("crate::probe::hold();")))
+
+    def test_product_and_test_declarations_keep_shared_code_visible(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(not(test))]\nmod probe;\n#[cfg(test)]\nmod probe;")
+        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
+    def test_product_and_test_path_alias_keep_shared_code_visible(self):
+        self.write("crates/flea-gui/src/lib.rs", 'mod probe;\n#[cfg(test)]\n#[path = "probe.rs"]\nmod probe_tests;')
+        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
+    def test_inline_test_path_cannot_hide_a_sibling_product_file(self):
+        self.write("crates/flea-gui/src/lib.rs", 'mod probe;\n#[cfg(test)]\nmod support { #[path = "probe.rs"] mod fake; }')
+        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/support/probe.rs", "fn harmless() {}")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
+    def test_inline_test_path_excludes_the_actual_nested_file(self):
+        self.write("crates/flea-gui/src/lib.rs", 'mod support { #[cfg(test)] #[path = "fake.rs"] mod fake; }')
+        self.write("crates/flea-gui/src/support/fake.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertEqual([], self.check_body("text.shape();"))
+
+    def test_non_mod_rs_inline_test_path_uses_its_module_directory(self):
+        self.write("crates/flea-gui/src/lib.rs", "mod probe;")
+        self.write("crates/flea-gui/src/probe.rs", 'mod support { #[cfg(test)] #[path = "fake.rs"] mod fake; }')
+        self.write("crates/flea-gui/src/probe/support/fake.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertEqual([], self.check_body("text.shape();"))
+
+    def test_external_test_module_propagates_to_its_path_child(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)]\nmod gate;")
+        self.write("crates/flea-gui/src/gate.rs", '#[path = "helper.rs"]\nmod helper;')
+        self.write("crates/flea-gui/src/helper.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertEqual([], self.check_body("text.shape();"))
+
+    def test_shared_external_module_keeps_its_path_child_in_product(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(not(test))]\nmod gate;\n#[cfg(test)]\nmod gate;")
+        self.write("crates/flea-gui/src/gate.rs", '#[path = "helper.rs"]\nmod helper;')
+        self.write("crates/flea-gui/src/helper.rs", "fn shape() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
+
+    def test_path_owned_module_uses_containing_directory_for_child(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg(test)] #[path="support/entry.rs"] mod fixture;')
+        self.write("crates/flea-gui/src/support/entry.rs", "mod helper;")
+        self.write("crates/flea-gui/src/support/helper.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_path_owned_module_uses_containing_directory_for_inline_child(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg(test)] #[path="fixtures/gate.rs"] mod gate;')
+        self.write("crates/flea-gui/src/fixtures/gate.rs", 'mod support { #[path="helper.rs"] mod helper; }')
+        self.write("crates/flea-gui/src/fixtures/support/helper.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_shared_file_keeps_product_normal_and_test_owned_children_separate(self):
+        self.write("crates/flea-gui/src/lib.rs", 'mod entry; #[cfg(test)] #[path="entry.rs"] mod fixture;')
+        self.write("crates/flea-gui/src/entry.rs", "mod helper;")
+        self.write("crates/flea-gui/src/entry/helper.rs", "fn product() {}")
+        self.write("crates/flea-gui/src/helper.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_shared_file_keeps_product_owned_and_test_normal_children_separate(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[path="entry.rs"] mod live; #[cfg(test)] mod entry;')
+        self.write("crates/flea-gui/src/entry.rs", "mod helper;")
+        self.write("crates/flea-gui/src/entry/helper.rs", "fn paint() { std::thread::park(); }")
+        self.write("crates/flea-gui/src/helper.rs", "fn product() {}")
+        self.assertEqual([], self.errors())
+
+    def test_custom_cargo_target_owns_its_containing_directory(self):
+        target = self.root / "crates/flea-gui/src/app.rs"
+        self.metadata["packages"][0]["targets"][0]["src_path"] = str(target)
+        manifest = self.root / "crates/flea-gui/Cargo.toml"
+        self.write("crates/flea-gui/Cargo.toml", manifest.read_text() + '\n[lib]\npath="src/app.rs"\n')
+        self.write("crates/flea-gui/src/app.rs", "#[cfg(test)] mod helper;")
+        self.write("crates/flea-gui/src/helper.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_test_descendant_named_lib_is_no_cargo_root(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)] mod gate;")
+        self.write("crates/flea-gui/src/gate.rs", '#[path="fixtures/lib.rs"] mod helper;')
+        self.write("crates/flea-gui/src/fixtures/lib.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_test_descendant_named_main_is_no_cargo_root(self):
+        self.write("crates/flea-gui/src/lib.rs", '#[cfg(test)] #[path="support/main.rs"] mod fixture;')
+        self.write("crates/flea-gui/src/support/main.rs", 'fn paint() { std::fs::read("x"); }')
+        self.assertEqual([], self.errors())
+
+    def test_normal_module_named_lib_keeps_its_stem_directory(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)] mod outer;")
+        self.write("crates/flea-gui/src/outer/mod.rs", "mod lib;")
+        self.write("crates/flea-gui/src/outer/lib.rs", "mod helper;")
+        self.write("crates/flea-gui/src/outer/lib/helper.rs", "fn paint() { std::thread::park(); }")
+        self.assertEqual([], self.errors())
+
+    def test_test_only_element_cannot_satisfy_product_registration(self):
+        body = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "")
+        self.write("crates/flea-gui/src/list.rs", "const ROW_HEIGHT: f32 = 31.;\n#[cfg(test)] mod tests {\n" + body + "\n}")
+        self.assertTrue(any("registered hot surface has no custom Element" in e for e in self.errors()))
+
+    def test_test_only_method_cannot_satisfy_product_registration(self):
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("fn paint()", "#[cfg(test)] fn paint()"))
+        self.assertTrue(any("custom Element must implement layout, prepaint and paint" in e for e in self.errors()))
+
+    def test_test_only_file_cannot_satisfy_product_registration(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)] mod list;")
+        self.assertTrue(any("registered hot surface has no custom Element" in e for e in self.errors()))
+
+    def test_test_element_twin_keeps_product_registration(self):
+        body = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "")
+        self.write("crates/flea-gui/src/list.rs", LIST + "\n#[cfg(test)] mod tests {\n" + body + "\n}")
+        self.assertEqual([], self.errors())
+
+    def test_cargo_test_targets_cannot_supply_product_elements(self):
+        self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)] mod list;")
+        targets = self.metadata["packages"][0]["targets"]
+        for kind in ("test", "bench"):
+            with self.subTest(kind=kind):
+                targets[1:] = [{"kind": [kind], "src_path": str(self.root / "crates/flea-gui/src/list.rs")}]
+                self.assertTrue(any("registered hot surface has no custom Element" in e for e in self.errors()))
+
+    def test_cargo_test_target_descendants_stay_test_only(self):
+        self.write("crates/flea-gui/src/probe.rs", '#[path="fixtures/helper.rs"] mod helper;')
+        self.write("crates/flea-gui/src/fixtures/helper.rs", "fn paint() { std::thread::park(); }")
+        targets = self.metadata["packages"][0]["targets"]
+        for kind in ("test", "bench"):
+            with self.subTest(kind=kind):
+                targets[1:] = [{"kind": [kind], "src_path": str(self.root / "crates/flea-gui/src/probe.rs")}]
+                self.assertEqual([], self.errors())
+
+    def test_cargo_test_target_keeps_its_product_module_alias(self):
+        self.write("crates/flea-gui/src/lib.rs", "mod list;")
+        targets = self.metadata["packages"][0]["targets"]
+        for kind in ("test", "bench"):
+            with self.subTest(kind=kind):
+                targets[1:] = [{"kind": [kind], "src_path": str(self.root / "crates/flea-gui/src/list.rs")}]
+                self.assertEqual([], self.errors())
+                self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("replies.recv_blocking();")))
+                self.check_body("theme.background;")
+
+    def test_cargo_test_target_keeps_its_product_target_alias(self):
+        targets = self.metadata["packages"][0]["targets"]
+        targets[0]["src_path"] = str(self.root / "crates/flea-gui/src/list.rs")
+        targets[0]["test"] = True
+        for kind in ("test", "bench"):
+            with self.subTest(kind=kind):
+                targets[1:] = [{"kind": [kind], "src_path": targets[0]["src_path"]}]
+                self.assertEqual([], self.errors())
+                self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("replies.recv_blocking();")))
+                self.check_body("theme.background;")
+
+    def test_cargo_product_target_with_test_enabled_stays_product(self):
+        target = self.metadata["packages"][0]["targets"][0]
+        target["src_path"] = str(self.root / "crates/flea-gui/src/list.rs")
+        target["test"] = True
+        for kind in ("lib", "bin", "example", "proc-macro"):
+            with self.subTest(kind=kind):
+                target["kind"] = [kind]
+                self.assertEqual([], self.errors())
+                self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("replies.recv_blocking();")))
+                self.check_body("theme.background;")
 
     def test_row_height_may_live_in_a_sibling_the_element_uses(self):
         self.policy["hot_surfaces"][0]["row_height_path"] = "crates/flea-gui/src/list/pane.rs"

@@ -106,7 +106,9 @@ def source_checks(units, policy):
     errors, known = [], {}
     for unit in units:
         for function in unit["functions"]:
-            known[function.symbol] = function
+            # A test-only twin never shadows the product function of the same name.
+            if not function.test:
+                known[function.symbol] = function
     roots = set(policy["ui_callbacks"])
     for name in roots - known.keys():
         errors.append(f"callback registration names no function: {name}")
@@ -193,7 +195,7 @@ def source_checks(units, policy):
             errors.append(f"{entry['path']}: registered hot surface has no custom Element {entry['element']}")
             continue
         methods = {f.symbol.rsplit("::", 1)[-1] for f in unit["functions"]
-                   if f.symbol.rsplit("::", 2)[-2] == entry["element"]}
+                   if not f.test and f.symbol.rsplit("::", 2)[-2] == entry["element"]}
         if not {"request_layout", "prepaint", "paint"} <= methods:
             errors.append(f"{entry['path']}: custom Element must implement layout, prepaint and paint")
         # The constant may live in a sibling module the Element file names, recorded as row_height_path.
