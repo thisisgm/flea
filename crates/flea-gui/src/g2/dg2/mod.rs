@@ -57,6 +57,8 @@ pub struct Lift {
     pub marker: Marker,
     pub origin: (f32, f32),
     pub serial: u64,
+    /// True once the pointer has left the slop, so a release back on the origin is still a drop (Qt's DragHandler stays active).
+    pub left: bool,
 }
 
 /// The lift for a press on row index, or None when that row is gone.
@@ -96,12 +98,13 @@ pub fn lift(
         paths,
         origin,
         serial,
+        left: false,
     })
 }
 
 impl Lift {
     pub fn travelled(&self, at: (f32, f32)) -> bool {
-        (at.0 - self.origin.0).hypot(at.1 - self.origin.1) >= SLOP
+        self.left || (at.0 - self.origin.0).hypot(at.1 - self.origin.1) >= SLOP
     }
 
     pub fn representations(&self) -> Vec<(&'static str, Vec<u8>)> {
@@ -292,3 +295,9 @@ mod vf3_spring_cases;
 
 #[cfg(test)]
 mod vf3_wide_tests;
+
+#[cfg(test)]
+mod u_drag_drop_tests;
+
+#[cfg(test)]
+mod u_drag_drop_more_tests;

@@ -374,8 +374,7 @@ impl Element for FieldElement {
                     return;
                 };
                 if !frame.intersect(&clip).contains(&event.position) {
-                    shell.rename_commit(cx);
-                    shell.rename_sync_gate(window, cx);
+                    shell.rename_press_away(event.position, window, cx);
                     return;
                 }
                 let at = edit

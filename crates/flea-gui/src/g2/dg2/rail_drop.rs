@@ -176,6 +176,9 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let key = window_key(window);
+        if let Some(lift) = cx.default_global::<Drags>().lifts.get_mut(&key) {
+            lift.left = lift.travelled(at(point));
+        }
         let target = cx
             .try_global::<Drags>()
             .and_then(|drags| drags.lifts.get(&key))

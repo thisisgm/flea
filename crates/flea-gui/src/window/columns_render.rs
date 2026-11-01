@@ -27,7 +27,7 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
-        let blocked = self.input_blocked(cx);
+        let blocked = self.input_blocked(cx) || cx.has_active_drag(); // No hover under a held drag, as List.
         let renaming = self.renaming_row(side);
         let grow = self.grows[side];
         let tag_slot = self.panes[side]
