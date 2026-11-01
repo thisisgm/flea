@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Plan and verify the all-language native checks; capture is controller-only and today only reports what blocks it."""
+"""Plan, prepare and verify the all-language native checks; capture is controller-only and today only reports what blocks it."""
 import argparse
 import ast
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 REPO = Path(__file__).resolve().parents[1]
 ROSTER = REPO / 'src/i18n/fixtures/locales.json'
@@ -32,12 +35,21 @@ QUEUE = '/home/gm/flea-work/ctl-gates/minipc-q.sh'
 # Evidence for these kinds needs fields only their producers define, so verify refuses it until each adapter lands.
 KIND_ADAPTERS = {'fit': ['SCENE-LANG geometry'], 'ime': ['SCENE-LANG preedit and candidate geometry'],
                  'fonts': ['I50-09', 'SCENE-LANG'], 'rtl': ['SCENE-LANG geometry'], 'live': ['I50-28', 'SCENE-LANG']}
-# catalog_case validates prepare(fx) but supplies none; driving omarchy-language in a private root is still owed.
-TUI_PREPARE = {'id': 'TUI-PREPARE', 'provides': 'prepare(fx) for tui_battery.candidate.catalog_case',
-               'missing': 'no accepted private Omarchy locale and keyboard group preparation: omarchy-language must run against '
-                          'OMARCHY_LOCALES_JSON, OMARCHY_LANGUAGE_FILE and OMARCHY_LOCALE_GEN in the fixture root with the '
-                          'session hyprctl and font restart unreachable, returning language, keyboard_group, candidate_inputs '
-                          'and artifact sha256s'}
+# tui_prepare supplies catalog_case's prepare(fx); verify still has no reader for the evidence a TUI case leaves.
+TUI_RECEIPT = {'id': 'TUI-RECEIPT', 'provides': 'a verify reader for tui_battery.candidate.catalog_case evidence',
+               'missing': 'check_record refuses every TUI record: no reader for catalog-case.json and its capture yet'}
+TUI_STATES = REPO / 'tests/tui_battery/states.json'
+STDERR_TAIL = 300
+SANDBOX = '.flea-test-sandbox'
+# The paths omarchy-language sees inside the namespace; /fx is the case fixture, the same mount the TUI arm uses.
+PRIVATE_ENV = {'OMARCHY_LOCALES_JSON': '/fx/omarchy/locales.json', 'OMARCHY_LOCALE_REGISTRY': '/fx/omarchy/locales.json',
+               'OMARCHY_LOCALE_GEN': '/fx/omarchy/locale.gen', 'OMARCHY_LANGUAGE_FILE': '/fx/config/omarchy/language'}
+# Omarchy's unprivileged test convention (test/shell.d/locale-sudoers-test.sh): the generator runs as the user on private files.
+SHIMS = {'sudo': 'exit 1', 'pkexec': 'exec "$@"', 'locale-gen': 'exit 0', 'hyprctl': 'exit 1',
+         'omarchy-restart-shell': 'exit 0', 'omarchy-notification-send': 'exit 0'}
+# What omarchy-language and its CJK seeding write for the real user; each must read the same after a preparation.
+HOST_FILES = ('/etc/locale.gen', '/etc/locale.conf', '~/.config/omarchy/language', '~/.config/uwsm/env.d/50-omarchy-language',
+              '~/.config/fontconfig/conf.d/50-omarchy-input-method.conf', '~/.config/fcitx5/profile')
 
 
 def require(condition, message):
@@ -190,7 +202,7 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
         if given:
             owed.pop(dep)
     if tui:
-        owed['TUI-PREPARE'] = TUI_PREPARE
+        owed['TUI-RECEIPT'] = TUI_RECEIPT
     hostless = sorted({row['entry'] for row in inventory['cases'] if row['host'] != 'mounted'}) if inventory else []
     if hostless:
         owed['IME-HOSTS'] = {'id': 'IME-HOSTS', 'provides': 'mounted hosts for ime entries',
@@ -205,7 +217,7 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
         missing = [dep for dep in missing if dep in owed]
         cases.append(dict(id=ident, kind=kind, frontend=frontend, status='OWED' if missing else 'planned', missing=missing, **fields))
 
-    view = {'gui': 'SCENE-LANG', 'tui': 'TUI-PREPARE' if tui else 'TUI-16'}
+    view = {'gui': 'SCENE-LANG', 'tui': 'TUI-RECEIPT' if tui else 'TUI-16'}
     for code in codes:
         catalog = ['CATALOGS'] if code in absent else []
         for end in contract['frontends']:
@@ -246,7 +258,7 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
         'rtl_policy': policy and {key: policy[key] for key in ('path', 'sha256', 'status')},
         'ime_inventory': inventory and {'path': inventory['path'], 'sha256': inventory['sha256'], 'cases': len(inventory['cases'])},
         'capture_protocol': {'queue': QUEUE, 'lease': 'TUI-16', 'own_lock': False, 'viewport': contract['viewport'],
-                             'tui_callable': tui,
+                             'tui_callable': tui, 'tui_prepare': {'callable': 'tui_prepare', 'environment': sorted(PRIVATE_ENV)},
                              'restores': ['omarchy language file', 'omarchy font cjk', 'keyboard group', 'theme']},
         'owed': [{'dependency': dep, 'provides': owed[dep]['provides'], 'missing': owed[dep]['missing']} for dep in used],
         'complete': not used, 'cases': cases,
@@ -327,7 +339,7 @@ def check_record(case, record, catalog_root, errors):
     if 'approved' in record:
         errors.append(f'{ident}: evidence may not carry approval')
     if case['frontend'] == 'tui':
-        errors.append(f'{ident}: TUI receipt adapter OWED until TUI-PREPARE lands')
+        errors.append(f'{ident}: TUI receipt adapter OWED: TUI-RECEIPT')
         return
     if case['kind'] != 'catalog':
         errors.append(f'{ident}: {case["kind"]} evidence adapter OWED: {", ".join(KIND_ADAPTERS[case["kind"]])}')
@@ -462,6 +474,92 @@ def marked_output(path):
     return path
 
 
+def host_state(files=HOST_FILES):
+    # Sample: {"/etc/locale.gen": "<sha256>", "/home/gm/.config/omarchy/language": null}
+    paths = [Path(os.path.expanduser(name)) for name in files]
+    return {str(path): sha(path) if path.is_file() else None for path in paths}
+
+
+def omarchy_root(path=None):
+    root = Path(path or os.environ.get('OMARCHY_PATH') or '/usr/share/omarchy').resolve()
+    require((root / 'bin/omarchy-language').is_file() and (root / 'default/i18n/locales.json').is_file(),
+            f'{root}: no bin/omarchy-language and default/i18n/locales.json')
+    return root
+
+
+def fixture_files(fx):
+    # The fixture tree under v/ is the battery's and can be large; a preparation never writes there.
+    tops = [path for path in fx.iterdir() if path.name != 'v']
+    found = [path for top in tops for path in ([top] if top.is_file() else sorted(top.rglob('*')))]
+    return {str(path.relative_to(fx)): sha(path) for path in found if path.is_file() and not path.is_symlink()}
+
+
+def private_namespace(fx, omarchy, argv):
+    # The TUI arm's recipe (tests/tui_battery/fixtures.py namespace), so no Hyprland signature, session bus or network.
+    env = {'PATH': '/fx/omarchy/bin:/opt/omarchy/bin:/usr/bin:/bin', 'HOME': '/fx/home', 'XDG_CONFIG_HOME': '/fx/config',
+           'XDG_DATA_HOME': '/fx/data', 'XDG_STATE_HOME': '/fx/state', 'XDG_CACHE_HOME': '/fx/cache',
+           'XDG_RUNTIME_DIR': '/fx/runtime', 'TMPDIR': '/fx/tmp', 'LANG': 'C.UTF-8', 'TZ': 'UTC',
+           'OMARCHY_PATH': '/opt/omarchy', **PRIVATE_ENV}
+    system = [arg for path in ('/usr', '/bin', '/lib', '/lib64', '/etc') if Path(path).exists()
+              for arg in ('--ro-bind', path, path)]
+    return ['bwrap', '--die-with-parent', '--unshare-all', '--tmpfs', '/', *system, '--proc', '/proc', '--dev', '/dev',
+            '--ro-bind', str(omarchy), '/opt/omarchy', '--bind', str(fx), '/fx', '--bind', str(fx / 'tmp'), '/tmp',
+            '--clearenv', *[arg for key, value in env.items() for arg in ('--setenv', key, value)], '--chdir', '/fx', *argv]
+
+
+def tui_prepare(language, keyboard_group, candidate_inputs, omarchy=None, timeout=60):
+    """prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone."""
+    root = omarchy_root(omarchy)
+
+    def prepare(fx):
+        fx = Path(fx).resolve()
+        marker = fx.parent / SANDBOX
+        require(marker.is_file() and marker.stat().st_size > 0, f'{fx.parent}: no nonempty {SANDBOX} marker')
+        require(shutil.which('bwrap'), 'bwrap is required for the private omarchy-language namespace')
+        host, before = host_state(), fixture_files(fx)
+        private = fx / 'omarchy'
+        (private / 'bin').mkdir(parents=True)
+        for name in ('home', 'config', 'data', 'state', 'cache', 'runtime', 'tmp'):
+            (fx / name).mkdir(mode=0o700, exist_ok=True)
+        shutil.copyfile(root / 'default/i18n/locales.json', private / 'locales.json')
+        system_gen = Path('/etc/locale.gen')
+        (private / 'locale.gen').write_bytes(system_gen.read_bytes() if system_gen.is_file() else b'')
+        for name, body in SHIMS.items():
+            shim = private / 'bin' / name
+            shim.write_text(f'#!/bin/bash\nprintf \'%s\\n\' "${{0##*/}} $*" >>/fx/omarchy/calls.log\n{body}\n')
+            shim.chmod(0o755)
+        runs = []
+        for argv in (['omarchy-language', language], ['omarchy-language']):
+            done = subprocess.run(private_namespace(fx, root, argv), stdin=subprocess.DEVNULL, capture_output=True,
+                                  text=True, timeout=timeout)
+            runs.append({'argv': argv, 'exit': done.returncode, 'stdout': done.stdout, 'stderr': done.stderr})
+            now = host_state()
+            changed = sorted(path for path in host.keys() | now.keys() if host.get(path) != now.get(path))
+            require(not changed, f'{" ".join(argv)} changed host locale or language files: {", ".join(changed)}')
+            require(done.returncode == 0, f'{" ".join(argv)} exit {done.returncode}: {done.stderr.strip()[-STDERR_TAIL:]}')
+        require(runs[1]['stdout'].strip() == language, f'omarchy-language reads {runs[1]["stdout"].strip()!r}, not {language}')
+        after = fixture_files(fx)
+        artifacts = {name: digest for name, digest in after.items() if before.get(name) != digest}
+        require('config/omarchy/language' in artifacts, 'omarchy-language wrote no private language file')
+        calls = private / 'calls.log'
+        # keyboard_group is the lease's group: the capture sets and restores it (capture_protocol restores), never this.
+        return {'language': language, 'keyboard_group': keyboard_group, 'candidate_inputs': candidate_inputs,
+                'artifacts': artifacts, 'locale': json.loads((private / 'locales.json').read_text())[language]['locale'],
+                'environment': PRIVATE_ENV, 'omarchy': {'path': str(root), 'omarchy-language': sha(root / 'bin/omarchy-language')},
+                'runs': runs, 'calls': calls.read_text().splitlines() if calls.is_file() else [], 'host_files': host}
+    return prepare
+
+
+def tui_language_cases(text, states=TUI_STATES):
+    # Sample: "all" or "tui-lang-ja,tui-lang-ru-keys"; a case's language is its catalog-<code> requirement.
+    rows = json.loads(Path(states).read_text(encoding='utf-8'))['states']
+    known = {row['id']: need[len('catalog-'):] for row in rows for need in row.get('requires', []) if need.startswith('catalog-')}
+    chosen = list(known) if text == 'all' else [ident for ident in text.split(',') if ident]
+    require(chosen and len(set(chosen)) == len(chosen) and all(ident in known for ident in chosen),
+            f'TUI language cases must be "all" or distinct ids from {", ".join(known)}')
+    return [(ident, known[ident]) for ident in chosen]
+
+
 def languages_arg(text, roster):
     # Sample: "all" or "de,ar,zh-CN"
     if text == 'all':
@@ -490,6 +588,11 @@ def main():
     capture.add_argument('--languages', required=True)
     capture.add_argument('--cases', required=True)
     capture.add_argument('--output', type=Path, required=True)
+    prepare = sub.add_parser('prepare')
+    prepare.add_argument('--cases', default='all')
+    prepare.add_argument('--keyboard-group', required=True)
+    prepare.add_argument('--omarchy', type=Path)
+    prepare.add_argument('--output', type=Path, required=True)
     verify = sub.add_parser('verify')
     verify.add_argument('--input', type=Path, required=True)
     verify.add_argument('--source-index', type=Path, required=True)
@@ -510,6 +613,19 @@ def main():
         out.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
         print(f'I50_NATIVE_PLAN scope={doc["scope"]} languages={len(doc["languages"])} cases={len(doc["cases"])} '
               f'owed={len(doc["owed"])} complete={str(doc["complete"]).lower()}')
+        return 0
+    if args.command == 'prepare':
+        # A dry run of the preparation alone: each case gets its own marked root, kept so its contents can be read.
+        out, rows = marked_output(args.output), []
+        for ident, code in tui_language_cases(args.cases):
+            root = Path(tempfile.mkdtemp(prefix='flea-i18n-prepare.'))
+            (root / SANDBOX).write_text(f'flea-i18n-native prepare {ident} {os.getpid()}\n')
+            (root / 'fx').mkdir()
+            print(f'I50_TUI_PREPARE {ident} language={code} root={root}', flush=True)
+            receipt = tui_prepare(code, args.keyboard_group, {'dry_run': ident}, args.omarchy)(root / 'fx')
+            rows.append({'case': ident, 'root': str(root), 'receipt': receipt})
+            print(f'I50_TUI_PREPARE {ident} done locale={receipt["locale"]} artifacts={len(receipt["artifacts"])}')
+        out.write_text(json.dumps({'schema': 'flea-i18n-tui-prepare/1', 'cases': rows}, indent=1, ensure_ascii=False) + '\n')
         return 0
     if args.command == 'capture':
         roster = load_roster(ROSTER)
@@ -544,6 +660,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.SubprocessError) as error:
         print(f'flea-i18n-native: {error}', file=sys.stderr)
         sys.exit(2)

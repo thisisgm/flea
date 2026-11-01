@@ -119,9 +119,9 @@ class Plan(Scratch):
         # Nothing whose producer has not handed off may read as planned work.
         self.assertFalse(plan['complete'])
         owed = {row['dependency'] for row in plan['owed']}
-        # The source index, RTL policy, entry inventory, catalogs and TUI-16 callable are integrated; the rest stays owed by name.
-        self.assertTrue({'TUI-PREPARE', 'SCENE-LANG', 'I50-09', 'I50-28'} <= owed, owed)
-        self.assertFalse({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'CATALOGS'} & owed, owed)
+        # The source index, RTL policy, entry inventory, catalogs, TUI-16 callable and its private preparation are integrated; the rest stays owed by name.
+        self.assertTrue({'TUI-RECEIPT', 'SCENE-LANG', 'I50-09', 'I50-28'} <= owed, owed)
+        self.assertFalse({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'TUI-PREPARE', 'CATALOGS'} & owed, owed)
         self.assertTrue(all(row['missing'] for row in plan['owed']))
         for case in plan['cases']:
             self.assertEqual(case['status'], 'OWED', case['id'])
@@ -379,7 +379,9 @@ class Lease(Scratch):
         done = self.run_tool('capture', '--candidate', ROSTER, '--languages', 'all', '--cases', 'catalog', '--output', out)
         self.assertEqual(done.returncode, 3, done.stderr)
         self.assertIn('BLOCKED', done.stderr)
-        self.assertIn('BLOCKED TUI-PREPARE', done.stderr)
+        self.assertIn('BLOCKED SCENE-LANG', done.stderr)
+        self.assertIn('BLOCKED TUI-RECEIPT', done.stderr)
+        self.assertNotIn('TUI-PREPARE', done.stderr)
         self.assertIn('no capture adapter exists yet', done.stderr)
         self.assertEqual(before, sorted(p.name for p in self.root.iterdir()))
         # The driver joins the existing queue; it never opens a lock of its own.
@@ -393,7 +395,7 @@ class Lease(Scratch):
         done = self.run_tool('verify', '--input', self.root, '--source-index', INDEX)
         self.assertEqual(done.returncode, 1, done.stdout)
         self.assertIn('I50_NATIVE_VERIFY REFUSED', done.stdout)
-        self.assertIn('plan owes TUI-PREPARE', done.stdout)
+        self.assertIn('plan owes SCENE-LANG', done.stdout)
         self.assertFalse(plan['complete'])
 
     def test_i50_native_verify_refuses_a_forged_plan(self):
@@ -535,7 +537,7 @@ class Adapters(Scratch):
                 done = self.run_tool('verify', '--input', output, *source_args, *inputs)
                 self.assertEqual(done.returncode, 1, done.stderr)
                 self.assertNotIn('plan differs from the plan this tree computes', done.stdout)
-                self.assertIn('plan owes TUI-PREPARE', done.stdout)
+                self.assertIn('plan owes SCENE-LANG', done.stdout)
 
     def test_i50_native_ime_inventory_adapter(self):
         plan = self.plan()
@@ -576,11 +578,13 @@ class Adapters(Scratch):
         self.assertEqual(callable_['sha256'], sha(TUI_CANDIDATE.read_bytes()))
         self.assertEqual(tuple(callable_['keywords']), load_tool().TUI_SIGNATURE)
         owed = {row['dependency'] for row in plan['owed']}
-        self.assertIn('TUI-PREPARE', owed)
+        self.assertNotIn('TUI-PREPARE', owed)
         self.assertNotIn('TUI-16', owed)
+        self.assertIn('TUI-RECEIPT', owed)
         for case in plan['cases']:
+            # The callable and its private preparation are in the tree; only the verify reader is still owed.
             if case['frontend'] == 'tui':
-                self.assertIn('TUI-PREPARE', case['missing'], case['id'])
+                self.assertEqual((case['status'], case['missing']), ('OWED', ['TUI-RECEIPT']), case['id'])
         text = TUI_CANDIDATE.read_text()
         head = 'def catalog_case(*, args,'
         self.assertIn(head, text)
