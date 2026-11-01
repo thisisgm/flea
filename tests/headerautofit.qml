@@ -6,10 +6,13 @@ import "flea" as Flea
 import "flea/js/Menu.js" as Menu
 import "flea/js/Keymap.js" as Keymap
 import "flea/js/Focus.js" as Focus
+import "flea/js/ColumnFit.js" as CellRef
+import "flea/js/Columns.js" as ClampRef
 
 // Headerautofit (#333): the report's stored widths leave Modified and Kind switched on but undrawn in a
 // 1388 px list. The header menu's Autofit columns row, run through Focus.act as Pane.act runs a chosen
-// row, brings both back in one widths update; outside the list it writes nothing and says where it lives.
+// row, brings both back in one widths update at their measured text; Recent never fits its absent Mode
+// and Kind, and outside the list the row writes nothing and says where it lives.
 ShellRoot {
     id: root
 
@@ -23,7 +26,7 @@ ShellRoot {
         id: listHeader
         width: 1388
         hiddenCols: ["mode"]
-        pane: ({ rows: [root.row], kindNames: ["Text"], dirSizeState: { file: {}, order: [] }, held: 0 })
+        pane: ({ rows: [root.row], kindNames: ["Plain text document"], dirSizeState: { file: {}, order: [] }, held: 0 })
     }
 
     // The members Focus.act reads for this action on a real Pane.
@@ -32,6 +35,17 @@ ShellRoot {
         property string viewMode: "list"
         property var header: null
         function message(text, isError) { root.said = text }
+    }
+
+    // The caption face FitMetrics measures in, read independently of that file.
+    TextMetrics { id: refText }
+
+    // Sample input: measured("kind") is the clamped advance of "Plain text document" in the caption face.
+    function measured(key) {
+        refText.font.family = Flea.Theme.font.family
+        refText.font.pixelSize = Flea.Theme.font.caption
+        refText.text = CellRef.cellText(key, root.row, listHeader.pane.kindNames, null)
+        return ClampRef.clampListWidth(Math.max(ClampRef.MIN_LIST_WIDTH, Math.ceil(refText.advanceWidth)))
     }
 
     // One counted check; a mismatch names what the row or the fit did.
@@ -65,6 +79,18 @@ ShellRoot {
         check("the update fits every switched-on column", written, "date,kind,size")
         check("Modified and Kind are drawn again", root.drawn(), "size,date,kind")
         check("the hidden Mode is not fitted", Flea.ViewState.state.columnWidths.mode, 480)
+        check("Modified is fitted to its measured text", Flea.ViewState.state.columnWidths.date, root.measured("date"))
+        check("Kind is fitted to its measured text", Flea.ViewState.state.columnWidths.kind, root.measured("kind"))
+        check("Kind's text is wider than the column minimum", root.measured("kind") > ClampRef.MIN_LIST_WIDTH, true)
+        // Recent never draws Mode or Kind, so its fit leaves both widths for the folder lists.
+        listHeader.hiddenCols = []
+        listHeader.recent = true
+        Flea.ViewState.seed({ size: 480, kind: 295, date: 480, mode: 480 })
+        Flea.ViewState.reset()
+        Focus.act("autofitColumns", pane)
+        var recentWritten = Flea.ViewState.commits.length === 1 ? Object.keys(Flea.ViewState.commits[0].entries).sort().join(",") : ""
+        check("Recent fits only the columns it draws", recentWritten, "date,size")
+        listHeader.recent = false
         pane.viewMode = "grid"
         Flea.ViewState.reset()
         Focus.act("autofitColumns", pane)
