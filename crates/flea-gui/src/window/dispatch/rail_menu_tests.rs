@@ -8,7 +8,7 @@ use gpui::{
     VisualTestContext,
 };
 
-fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = open_root_with(
         cx,
         if full {
@@ -42,7 +42,7 @@ fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestC
     (shell, cx)
 }
 
-fn row(
+pub(super) fn row(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     kind: Kind,

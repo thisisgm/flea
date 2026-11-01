@@ -111,6 +111,22 @@ impl Shell {
             None
         };
         let Some((key, entries)) = self.rail_place_menu(entry, device.as_ref()) else {
+            // Mounts.raiseMenu: the sheet advertises m on every rail row, so a row without a menu says so; a right click stays quiet.
+            let keyboard = self
+                .rail
+                .as_ref()
+                .is_some_and(|rail| !rail.places.read(cx).model.borrow().pointer_focus);
+            if keyboard {
+                let label = crate::g2::pl4::content::row_label(&self.locale.catalog, entry);
+                let note =
+                    flea::ui_logic_pl1::Note::new("device.nothing_to_release", &[label.as_ref()]);
+                let text = crate::g2::pl1::words::say(&self.locale.catalog, &note);
+                let hint = flea::ui_logic_fb1::status::Hint::None;
+                self.status_messages(cx, |messages, now| {
+                    messages.say(&text, false, "", hint, now)
+                });
+                cx.notify();
+            }
             return;
         };
         let face = if device.is_some() {

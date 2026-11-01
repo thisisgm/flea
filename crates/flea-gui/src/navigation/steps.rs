@@ -210,19 +210,6 @@ impl Navigator {
         self.open_without_history(pane, &path, options, None, false)
     }
 
-    // Hidden is a scan filter, so changing it is a fresh list back at row 0, never a sort.
-    pub fn toggle_hidden(&mut self, pane: &mut Pane, failure: String) -> Result<bool, Refusal> {
-        let patch = self.folders.borrow_mut().toggle_hidden();
-        self.persist(patch, failure);
-        let path = pane.path().to_owned();
-        // A re-list of this folder is out and the pane cannot tell its answer from a newer one, so the new flag lists once it lands.
-        if pane.busy() && pane.place() == path {
-            self.relist_owed = true;
-            return Ok(false);
-        }
-        self.open(pane, &path)
-    }
-
     pub(crate) fn persist(&mut self, patch: String, failure: String) {
         self.writer.borrow_mut().write(patch.clone(), failure);
         self.emit(Command::Persist(patch));

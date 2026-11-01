@@ -16,7 +16,7 @@ use gpui::{
 };
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
-struct Host {
+pub(super) struct Host {
     menu: Rc<RefCell<Menu>>,
 }
 
@@ -60,7 +60,7 @@ impl Fixture {
     }
 }
 
-const WIDE: Rect = Rect {
+pub(super) const WIDE: Rect = Rect {
     x: 0.,
     y: 0.,
     w: 1100.,
@@ -73,13 +73,13 @@ const SMALL: Rect = Rect {
     h: 240.,
 };
 
-fn window(cx: &mut TestAppContext) -> (WindowHandle<Host>, Rc<RefCell<Menu>>) {
+pub(super) fn window(cx: &mut TestAppContext) -> (WindowHandle<Host>, Rc<RefCell<Menu>>) {
     let menu = Rc::new(RefCell::new(Menu::default()));
     let shared = Rc::clone(&menu);
     (cx.add_window(move |_, _| Host { menu: shared }), menu)
 }
 
-fn with<R>(
+pub(super) fn with<R>(
     cx: &mut TestAppContext,
     handle: WindowHandle<Host>,
     f: impl FnOnce(&mut Menu, &Env, &Window) -> R,
@@ -101,7 +101,7 @@ fn draw(cx: &mut TestAppContext, handle: WindowHandle<Host>) {
     .unwrap();
 }
 
-fn file_rows() -> Vec<Entry> {
+pub(super) fn file_rows() -> Vec<Entry> {
     listing_entries(&Context {
         row_mode: 0o100644,
         row_is_file: true,

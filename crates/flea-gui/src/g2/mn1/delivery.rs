@@ -324,7 +324,6 @@ impl Shell {
             "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
             }
-            "toggleHidden" => Some(Step::ToggleHidden),
             "sort" if leaf == flea::ui_logic_mn1::rows::SORT_DEFAULT => Some(Step::ForgetSort),
             "sort" => Some(Step::SortColumn(leaf.clone())),
             _ => None,

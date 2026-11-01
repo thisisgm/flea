@@ -121,7 +121,6 @@ pub struct Navigator {
     orders: Orders,
     seen: usize,
     locate_seq: u64,
-    relist_owed: bool,
     relisting: bool,
 }
 
@@ -313,7 +312,6 @@ impl Navigator {
         self.relisting = relisting;
         self.restore = restore;
         self.pending_sort = None;
-        self.relist_owed = false;
         let listing = self.listing(pane, path, want_changed);
         self.emit(Command::List(listing));
         Ok(true)

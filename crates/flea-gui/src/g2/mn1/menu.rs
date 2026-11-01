@@ -75,6 +75,12 @@ impl Menu {
         self.card.is_some()
     }
 
+    /// Where the menu was asked to open, before the fit moves its frame.
+    #[cfg(test)]
+    pub fn anchor(&self) -> (f32, f32) {
+        self.at
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn open(
         &mut self,
@@ -223,6 +229,10 @@ impl Menu {
                 Outcome::Redraw
             }
             Submenu::Lone => {
+                // No main row is its parent, so none stays lit beside it, as v0.3.12 lights only the leaf.
+                if let Some(card) = &mut self.card {
+                    card.cursor = None;
+                }
                 self.open_flyout(None, action, rows::flyout_entries(action), env, window);
                 Outcome::Redraw
             }

@@ -21,7 +21,6 @@ pub enum Step {
     Reread,
     Reload,
     Retry,
-    ToggleHidden,
     SortColumn(String),
     SortNext,
     SortReverse,
@@ -63,12 +62,6 @@ impl Shell {
         if leaves {
             self.search_leave(side, window, cx);
         }
-        // Pane.qml:553: Recent shows every item it lists, so the hidden toggle refuses before any write.
-        if step == Step::ToggleHidden
-            && self.recent_refuses(side, "places.recent.hidden_refused", cx)
-        {
-            return Ok(false);
-        }
         let failure = self.locale.catalog.tr("navigation.save_failed");
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return Ok(false);
@@ -91,7 +84,6 @@ impl Shell {
             Step::Reread => Ok(nav.reread(pane, selected, false, false)),
             Step::Reload => nav.reload(pane, selected),
             Step::Retry => nav.retry(pane, selected),
-            Step::ToggleHidden => nav.toggle_hidden(pane, failure),
             Step::SortColumn(key) => nav.sort_column(pane, &key, selected, failure),
             Step::SortNext => nav.sort_next(pane, selected, failure),
             Step::SortReverse => nav.sort_reverse(pane, selected, failure),

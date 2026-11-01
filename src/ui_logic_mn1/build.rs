@@ -451,6 +451,10 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             &[]
         };
         provider(e, Brand::Tailscale, peers, p.taildrop_refreshing);
+        // Menu.js submenuGlyph: a Taildrop peer is a machine, so its row draws the server mark.
+        for leaf in e.submenu.iter_mut().flatten() {
+            leaf.glyph = Some(rows::submenu_glyph(action));
+        }
     }
     if action == "localsend" {
         if !p.localsend_installed {

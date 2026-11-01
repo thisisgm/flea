@@ -9,6 +9,8 @@ pub mod element;
 mod elide_tests;
 mod facts;
 #[cfg(test)]
+mod fixmenus_tests;
+#[cfg(test)]
 #[path = "makeexec_foldhash.rs"]
 pub(crate) mod foldhash;
 pub mod glyphs;
@@ -48,6 +50,7 @@ mod target_tests;
 #[cfg(test)]
 mod tests;
 mod wrap;
+mod zip;
 
 #[cfg(test)]
 mod join_delivery_tests;
