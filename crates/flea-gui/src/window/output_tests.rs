@@ -270,3 +270,29 @@ fn menu_context_reads_output_kinds_from_held_rows(cx: &mut TestAppContext) {
         assert!(!shell.menu.context.can_convert);
     });
 }
+
+#[gpui::test]
+fn a_pdf_or_office_row_offers_convert(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_lines();
+    let handle = open(cx, backend);
+    shell(cx, handle, |shell, window, cx| {
+        hold(
+            shell,
+            vec![
+                row("garden-report.pdf", "x-office-document"),
+                row("garden-report.docx", "x-office-document"),
+            ],
+        );
+        for (index, name) in [(0, "garden-report.pdf"), (1, "garden-report.docx")] {
+            shell.panes[0].as_mut().unwrap().selected = vec![index];
+            shell.open_menu(0, Some(index), (10., 10.), window, cx);
+            assert_eq!(shell.menu.context.row_name, name);
+            assert!(shell.menu.context.row_is_document);
+            let entries = flea::ui_logic_mn1::build::listing_entries(&shell.menu.context);
+            assert!(
+                entries.iter().any(|e| e.action == "convert"),
+                "row {index} offers Convert"
+            );
+        }
+    });
+}

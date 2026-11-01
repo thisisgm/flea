@@ -5,6 +5,8 @@ mod board_tests;
 pub mod build;
 #[cfg(test)]
 mod build_tests;
+#[cfg(test)]
+mod convert_gate_tests;
 pub mod copyas;
 pub mod entry;
 #[cfg(test)]

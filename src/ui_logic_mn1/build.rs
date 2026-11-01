@@ -86,6 +86,8 @@ pub struct Context {
     pub row_is_file: bool,
     pub row_is_symlink: bool,
     pub row_is_image: bool,
+    // A PDF or an office document, which Convert takes alone.
+    pub row_is_document: bool,
     pub row_is_archive: bool,
     pub row_name: String,
     pub archive_name: String,
@@ -147,6 +149,7 @@ impl Default for Context {
             row_is_file: false,
             row_is_symlink: false,
             row_is_image: false,
+            row_is_document: false,
             row_is_archive: false,
             row_name: String::new(),
             archive_name: String::new(),
@@ -404,12 +407,12 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
     if action == "extract" && !rows::extract_entry(e, p, count) {
         return false;
     }
-    // Convert takes one image or a selection of images only.
+    // Convert takes one image, one PDF, one office document or a selection of images only.
     if action == "convert"
         && !(p.can_convert
             && count >= 1
             && (if count == 1 {
-                p.row_is_image
+                p.row_is_image || p.row_is_document
             } else {
                 p.selection_images == count
             }))

@@ -68,6 +68,7 @@ impl Shell {
                 .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
             archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
             row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
+            row_is_document: facts.is_some_and(|r| crate::window::output::kind(r).paged()),
             selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
             printable: kinds.len() == rows.len() && flea::ui_logic_op4::output::can_print(&kinds),
             can_convert: self.output.convert[side] != Some(false),

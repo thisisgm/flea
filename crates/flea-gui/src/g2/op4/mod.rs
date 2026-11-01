@@ -7,6 +7,8 @@ pub mod combine;
 mod controls;
 pub mod convert;
 #[cfg(test)]
+mod convert_document_tests;
+#[cfg(test)]
 mod draw_tests;
 #[cfg(test)]
 mod fix1_tests;
