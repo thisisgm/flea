@@ -81,3 +81,6 @@ mod routes;
 
 #[path = "rtl_settings_key_tests.rs"]
 mod settings_keys;
+
+#[path = "rtl_crumb_tests.rs"]
+mod crumbs;
