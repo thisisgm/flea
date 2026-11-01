@@ -94,7 +94,7 @@ impl Element for StripElement {
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let width = px(frame.tab_width);
         let count = frame.labels.len();
-        // Under glass the strip is theme.surface; the current plate always paints the background.
+        // The strip is theme.surface; the current plate always paints the background.
         let current_ground =
             (frame.current < count && frame.ghost != Some(frame.current)).then(|| {
                 Bounds::new(
@@ -105,7 +105,7 @@ impl Element for StripElement {
                     size(width, px(TAB_HEIGHT)),
                 )
             });
-        crate::window::glass::tab_ground(bounds, current_ground, palette.background, window, cx);
+        crate::window::glass::tab_ground(bounds, current_ground, window, cx);
         let rule = Bounds::new(
             point(left, top + bounds.size.height - px(1.)),
             size(bounds.size.width, px(1.)),

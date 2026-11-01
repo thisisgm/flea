@@ -57,3 +57,74 @@ fn pb_tabs_glass_strip_ground_is_split_around_the_current_plate(cx: &mut TestApp
         .unwrap();
     fixture.cleanup();
 }
+
+// EY-430: an opaque strip is theme.surface, so the current tab's background plate stands out of it.
+#[gpui::test]
+fn ey430_opaque_strip_paints_surface_under_a_background_plate(cx: &mut TestAppContext) {
+    let fixture = install(
+        cx,
+        "ey430-opaque-strip",
+        &[(
+            0,
+            "background='#101315'\nforeground='#cacccc'\ndark_background='#08090a'",
+        )],
+    );
+    let handle = launch(cx);
+    handle
+        .update(cx, |root, window, cx| {
+            root.shell.update(cx, |shell, cx| {
+                assert!(shell.tab_action("tabNew", window, cx));
+            })
+        })
+        .unwrap();
+    cx.run_until_parked();
+    draw(handle, cx);
+    draw(handle, cx);
+    handle
+        .update(cx, |root, window, cx| {
+            assert!(crate::window::glass::alpha(window, cx) >= 1., "the control: no glass");
+            let theme = cx
+                .try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default();
+            assert_ne!(
+                gpui::Rgba::from(theme.surface),
+                gpui::Rgba::from(theme.background),
+                "the fixture theme must tell surface from background"
+            );
+            let shell = root.shell.read(cx);
+            let strip = shell.strip.bounds.get().expect("two tabs mount the strip");
+            let frame = &shell.strip.snapshot.as_ref().unwrap().frame;
+            let plate_x = f32::from(strip.left())
+                + crate::tabs::bar::PAD_X
+                + frame.slots[frame.current] as f32 * frame.tab_width;
+            let scale = window.scale_factor();
+            let quads = window.painted_quads();
+            let painted = |x: f32, width: f32, color: gpui::Hsla| {
+                quads.iter().any(|quad| {
+                    (quad.bounds.origin.x.as_f32() - x * scale).abs() < 0.5
+                        && (quad.bounds.origin.y.as_f32() - f32::from(strip.top()) * scale).abs()
+                            < 0.5
+                        && (quad.bounds.size.width.as_f32() - width * scale).abs() < 0.5
+                        && quad.background.as_solid().is_some_and(|got| {
+                            gpui::Rgba::from(got) == gpui::Rgba::from(color)
+                        })
+                })
+            };
+            assert!(
+                painted(f32::from(strip.left()), f32::from(strip.size.width), theme.surface),
+                "the whole strip is theme.surface"
+            );
+            assert!(
+                !painted(f32::from(strip.left()), f32::from(strip.size.width), theme.background),
+                "the strip is never the window background"
+            );
+            assert!(
+                painted(plate_x, frame.tab_width, theme.background),
+                "the current tab paints its own background plate"
+            );
+            root.shell.update(cx, |shell, _| shell.stop_for_app_quit());
+        })
+        .unwrap();
+    fixture.cleanup();
+}

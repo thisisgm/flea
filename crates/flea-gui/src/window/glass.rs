@@ -240,14 +240,10 @@ pub(crate) fn rail_ground(color: gpui::Hsla, window: &Window, cx: &App) -> gpui:
 pub(crate) fn tab_ground(
     bounds: gpui::Bounds<gpui::Pixels>,
     current: Option<gpui::Bounds<gpui::Pixels>>,
-    color: gpui::Hsla,
     window: &mut Window,
     cx: &App,
 ) {
-    if alpha(window, cx) >= 1. {
-        window.paint_quad(gpui::fill(bounds, color));
-        return;
-    }
+    // TabBar.qml: the strip is Glass.surface, opaque or not; the current tab paints its own background plate.
     let color = ground(
         cx.try_global::<Theme>()
             .copied()
@@ -256,19 +252,20 @@ pub(crate) fn tab_ground(
         window,
         cx,
     );
-    if let Some(tab) = current {
-        let left = tab.left().max(bounds.left()).min(bounds.right());
-        let right = tab.right().max(left).min(bounds.right());
-        window.paint_quad(gpui::fill(
-            gpui::Bounds::from_corners(bounds.origin, gpui::point(left, bounds.bottom())),
-            color,
-        ));
-        window.paint_quad(gpui::fill(
-            gpui::Bounds::from_corners(gpui::point(right, bounds.top()), bounds.bottom_right()),
-            color,
-        ));
-    } else {
-        window.paint_quad(gpui::fill(bounds, color));
+    match current.filter(|_| alpha(window, cx) < 1.) {
+        Some(tab) => {
+            let left = tab.left().max(bounds.left()).min(bounds.right());
+            let right = tab.right().max(left).min(bounds.right());
+            window.paint_quad(gpui::fill(
+                gpui::Bounds::from_corners(bounds.origin, gpui::point(left, bounds.bottom())),
+                color,
+            ));
+            window.paint_quad(gpui::fill(
+                gpui::Bounds::from_corners(gpui::point(right, bounds.top()), bounds.bottom_right()),
+                color,
+            ));
+        }
+        None => window.paint_quad(gpui::fill(bounds, color)),
     }
 }
 
