@@ -99,7 +99,7 @@ impl StandIn {
         if available {
             t.fg
         } else {
-            t.quiet
+            t.muted
         }
     }
 

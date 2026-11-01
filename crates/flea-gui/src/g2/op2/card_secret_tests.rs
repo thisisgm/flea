@@ -137,7 +137,6 @@ fn focused_chip_frames_in_the_accent() {
         ground: theme.surface,
         fg: theme.foreground,
         muted: theme.muted,
-        quiet: theme.muted,
         muted_frame: theme.muted_frame,
         accent: theme.accent,
         accent_frame: theme.accent_frame,

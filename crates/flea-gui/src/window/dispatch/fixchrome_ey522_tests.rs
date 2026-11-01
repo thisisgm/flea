@@ -50,6 +50,13 @@ fn fixchrome_ey522_a_running_copy_keeps_the_selected_row_focused(cx: &mut TestAp
         let focus = shell.read(cx).focus.clone();
         focus.focus(window, cx);
     });
+    draw(cx);
+    cx.update(|window, cx| {
+        let shell = shell.read(cx);
+        assert!(shell.focus.is_focused(window), "the window has its focus back");
+        let list = shell.panes[0].as_ref().unwrap().list.borrow();
+        assert!(list.drawn_focused, "refocused, the row draws focused again beside the card");
+    });
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.open_overlay_copy_to(false, "/files", window, cx)
@@ -59,6 +66,7 @@ fn fixchrome_ey522_a_running_copy_keeps_the_selected_row_focused(cx: &mut TestAp
     cx.update(|window, cx| {
         let shell = shell.read(cx);
         assert!(shell.jobs_card_showing(cx), "the copy's card still shows");
+        assert!(shell.modal_card_holds_keyboard(cx), "the Copy To card is open");
         assert!(
             !shell.focus.is_focused(window),
             "the Copy To field holds the keyboard"
