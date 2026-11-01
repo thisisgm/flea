@@ -108,6 +108,6 @@ pub(super) fn load_hint(manual: bool, key: String) -> Option<Row> {
     } else if key.is_empty() {
         None
     } else {
-        Some(Row::hint(Text::args("settings.hint.load_key", vec![Text::data(key)])))
+        Some(Row::hint(Text::args("settings.hint.load_key", vec![Text::Keycap(key)])))
     }
 }

@@ -329,3 +329,14 @@ fn the_skip_fragment_rides_only_on_a_z_undo_hint_as_v0312_done_line() {
         "a skip with no change still says only the skip"
     );
 }
+
+// In right-to-left text the undo hint carries an isolated z, and the skip still rides on it.
+#[test]
+fn i50_keycap_rtl_skip_still_rides_on_the_isolated_z_undo_hint() {
+    let fa = crate::keys::presentation::keycap_tests::language("fa");
+    let hint = undo_hint(&fa, "default");
+    assert_eq!(hint, " · \u{2066}z\u{2069} واگرد می‌کند");
+    let line = done_line(&fa, "default", Op::Add, 2, "Blue", 1);
+    assert!(line.contains(&skipped_line(&fa, 1)), "{line:?}");
+    assert!(line.ends_with(&hint), "{line:?}");
+}
