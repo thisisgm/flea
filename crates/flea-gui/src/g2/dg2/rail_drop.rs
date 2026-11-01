@@ -5,7 +5,7 @@ use flea::ui_logic_pl3::dropping;
 use flea::ui_logic_pl4::rail::Kind;
 
 // The status line's activity owner for the held drag's line (FileDrag.qml dragFeedbackOwner).
-const DRAG_LINE: u64 = 1 << 33;
+pub(super) const DRAG_LINE: u64 = 1 << 33;
 
 /// Where a rail row sends a drop: a place's folder, or the Trash.
 #[derive(Clone, Debug, PartialEq)]

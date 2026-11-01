@@ -335,12 +335,22 @@ impl Shell {
 impl Shell {
     fn publish_file_line(&mut self, window: &Window, line: String, cx: &mut Context<Self>) {
         let key = window_key(window);
+        let legacy = self.status_messages(cx, |messages, _| {
+            messages
+                .activities()
+                .iter()
+                .any(|entry| entry.owner == super::rail_drop::DRAG_LINE)
+        });
         let drags = cx.default_global::<Drags>();
-        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line {
+        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line && !legacy {
             return;
         }
         let published = self.status_messages(cx, |messages, now| {
             if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
+                // The shared file cue supersedes the legacy rail fallback for this held drag.
+                if !line.is_empty() {
+                    messages.set_activity(super::rail_drop::DRAG_LINE, "", 0, false, false, now);
+                }
                 messages.set_activity(LINE, &line, 0, false, false, now);
                 true
             } else {

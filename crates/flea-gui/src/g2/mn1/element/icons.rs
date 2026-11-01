@@ -216,7 +216,7 @@ mod tests {
         handle
             .update(cx, |_, window, _| {
                 let font = Typeface::omarchy_default();
-                let catalog = flea::i18n::I18n::default();
+                let catalog = crate::test_catalogs::english();
                 let env = Env {
                     catalog: &catalog,
                     preset: "default",
