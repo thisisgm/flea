@@ -118,8 +118,13 @@ pub(crate) fn build_dir() -> PathBuf {
 }
 
 pub(crate) fn rustc(args: &[&std::ffi::OsStr]) {
+    let executable = std::env::current_exe().unwrap();
+    let dependencies = executable.parent().unwrap();
     let output = Command::new("rustc")
         .args(args)
+        .args(foldhash::backend_extern_args(&workspace(), dependencies))
+        .arg("-L")
+        .arg(format!("dependency={}", dependencies.display()))
         .env("CARGO_MANIFEST_DIR", workspace())
         .env("CARGO_PKG_VERSION", env!("CARGO_PKG_VERSION"))
         .output()
@@ -143,15 +148,11 @@ pub(crate) fn binary() -> &'static Path {
             build_dir().join("libflea.rlib"),
             build_dir().join("flea-backend"),
         );
-        let executable = std::env::current_exe().unwrap();
-        let foldhash = foldhash::extern_arg(&workspace(), executable.parent().unwrap());
         rustc(&[
             "--edition=2021".as_ref(),
             "--crate-type=rlib".as_ref(),
             "--crate-name=flea".as_ref(),
             lib.as_os_str(),
-            "--extern".as_ref(),
-            foldhash.as_ref(),
             "-o".as_ref(),
             library.as_os_str(),
         ]);
@@ -162,8 +163,6 @@ pub(crate) fn binary() -> &'static Path {
             main.as_os_str(),
             "--extern".as_ref(),
             external.as_ref(),
-            "--extern".as_ref(),
-            foldhash.as_ref(),
             "-o".as_ref(),
             binary.as_os_str(),
         ]);
