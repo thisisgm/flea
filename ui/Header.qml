@@ -326,7 +326,7 @@ Item {
         return Columns.autofitWidth(widths, root.currentWidthOf(key))
     }
 
-    // A double click fits one column and ends the drag, so the release after doubleClicked writes nothing back; F4 fits every drawn one.
+    // A double click fits one column and ends the drag, so the release after doubleClicked writes nothing back; F4 fits every switched-on one, a column dropped for width included (#333).
     function autofitColumn(key) {
         root.dragKey = ""
         root.dragMoved = false
@@ -354,7 +354,7 @@ Item {
             return
         }
         for (var i = 0; i < keys.length; i++) {
-            if (!root.cols[keys[i]])
+            if (root.hiddenCols.indexOf(keys[i]) >= 0)
                 continue
             var next = root.fittedWidth(keys[i])
             if (next >= 0 && obj[keys[i]] !== Columns.clampListWidth(next)) {

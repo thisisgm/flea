@@ -256,7 +256,7 @@ function act(action, root, menuId, paths) {
     // The header answers the same two through ui/Pane.qml, so the key and the click share one route.
     case "sortNext": Sort.next(root); return
     case "sortReverse": Sort.reverse(root); return
-    // F4 fits every drawn list column; anywhere but the list view it says where that lives.
+    // F4 fits every switched-on list column; anywhere but the list view it says where that lives.
     case "autofitColumns":
         if (root.viewMode === "list") root.header.autofitAll()
         else root.message("Autofit needs the list view.", false)

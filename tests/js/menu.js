@@ -315,7 +315,7 @@ function run(check) {
     check("submenu array is recognized even when empty", Menu.hasSubmenu({ submenu: [] }), true)
     check("ordinary entry has no submenu", Menu.hasSubmenu({ action: "open" }), false)
     check("missing entry has no submenu", Menu.hasSubmenu(undefined), false)
-    check("header keeps required Name column outside toggles", actions(Menu.headerEntries([], false)), "col:mode,col:size,col:date,col:kind,toggleHidden")
+    check("header keeps Name outside toggles and offers F4's autofit", actions(Menu.headerEntries([], false)), "col:mode,col:size,col:date,col:kind,autofitColumns,toggleHidden")
     check("sort submenu uses real backend order ids", Menu.sortEntries().map(function (r) { return r.id }).join(","), "name,size,mtime,kind")
     providerRefresh(check)
 }

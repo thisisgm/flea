@@ -496,8 +496,8 @@ function headerEntries(hiddenCols, showHidden) {
             glyph: glyphs[key]
         })
     }
-    out.push({ separator: true })
-    out.push(hiddenRow(showHidden))
+    // F4's own row: a column turned on but dropped for width has a visible way back here (#333).
+    out.push({ label: "Autofit columns", action: "autofitColumns", glyph: "move-horizontal" }, { separator: true }, hiddenRow(showHidden))
     return out
 }
 
