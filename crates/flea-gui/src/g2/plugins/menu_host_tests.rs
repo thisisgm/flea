@@ -58,8 +58,12 @@ pub(super) fn attach(
     std::fs::write(
         root.join("state/flea/ui.json"),
         format!(
-            r#"{{"plugins":{{"{}":{{"enabled":true}}}}}}"#,
-            plugin.manifest.id
+            r#"{{"plugins":{{"{}":{{"enabled":true}}}},"shelf":{{"enabled":{}}}}}"#,
+            plugin.manifest.id,
+            fixture
+                .plugins
+                .iter()
+                .any(|plugin| plugin.manifest.id == "flea.shelf" && plugin.enabled)
         ),
     )
     .unwrap();
