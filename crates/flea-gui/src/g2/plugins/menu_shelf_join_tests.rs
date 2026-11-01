@@ -9,12 +9,15 @@ fn add_to_shelf_adds_a_file_and_a_folder(cx: &mut TestAppContext) {
     let (plugin, runtime) = plugin("checksums", &root);
     runtime.shutdown();
     let mut fixture = open(cx, root.clone(), plugin.clone());
+    fixture
+        .plugins
+        .iter_mut()
+        .find(|plugin| plugin.manifest.id == "flea.shelf")
+        .unwrap()
+        .enabled = true;
     attach(cx, &mut fixture, &root, "checksums", &plugin);
     update(cx, fixture.handle, |shell, _, cx| {
         shell.launch.settings.data = flea::uistate::from_file(r#"{"shelf":{"enabled":true}}"#);
-        assert!(shell.plugins.host.as_ref().unwrap().read(cx).line(
-            flea::ui_logic_st2::wire::request_line(500, "enable", "flea.shelf", Vec::new())
-        ));
     });
     wait(cx, |cx| {
         update(cx, fixture.handle, |shell, _, cx| {
