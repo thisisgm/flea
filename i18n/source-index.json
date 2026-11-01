@@ -242893,7 +242893,7 @@
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
     "src/lib.rs": "d8815dcab81a337089c6b04c8ece69ea1387cd5ff663668446a7b9388b89016a",
-    "src/main.rs": "f16786f9a08ab670f9db6a6c5dd42b70b18e253d276337102e42b4238ad21396",
+    "src/main.rs": "7f0ce1b600d98579176a19714f685e199e728d7401e6b64120c0c012cb331298",
     "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
     "src/open.rs": "5b8bc6ab8ca9ff891268a98ec8c92a3c8a25a2e6b0e55c708109bfc4e66c7732",
     "src/open_selection.rs": "7a6b0089d5b7a04ebd19af24665f43fd89d6aa2be6820b147601ee55382dca87",
@@ -243923,8 +243923,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "31eeeef6c18d995c7fb0637600ccb54f58185205",
-  "source_sha": "31eeeef6c18d995c7fb0637600ccb54f58185205",
+  "source_ref_sha": "11fe504b37b76da9509dc8f6a581ae160a9e7df5",
+  "source_sha": "11fe504b37b76da9509dc8f6a581ae160a9e7df5",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1287,
