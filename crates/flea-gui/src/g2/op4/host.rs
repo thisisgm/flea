@@ -332,6 +332,8 @@ impl Render for OutputView {
         }
         if self.printer_menu.opened() {
             root = root.child(super::printer_menu::overlay(self, cx));
+        } else {
+            root = root.children(super::printer_menu::closing(self));
         }
         root.text_size(px(14.))
     }

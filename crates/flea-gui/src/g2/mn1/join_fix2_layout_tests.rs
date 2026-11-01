@@ -37,6 +37,7 @@ fn refusal(wrap: bool) -> Entry {
 fn fix2_wrapped_caption_is_fitted_then_painted_without_rebuild_or_allocation(
     cx: &mut TestAppContext,
 ) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let catalog = I18n::load(Paths {
         omarchy: "/nonexistent".into(),
         language_file: "/nonexistent".into(),

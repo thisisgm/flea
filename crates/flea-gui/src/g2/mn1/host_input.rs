@@ -16,6 +16,7 @@ pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Opt
     let state = shell.read(cx);
     let fading = state.menu.menu.borrow().faded.as_ref().map(|faded| {
         let id = faded.id;
+        let from = faded.from;
         let painted = faded.painted.clone();
         let element = MenuElement::fading(state.menu.menu.clone(), px(state.corner));
         div()
@@ -29,15 +30,28 @@ pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Opt
                 ("flyout-fade", id as usize),
                 Animation::new(super::menu::fade::CLOSE).with_easing(|t| 1. - (1. - t).powi(3)),
                 move |element, delta| {
-                    painted.set(1. - delta);
-                    element.opacity(1. - delta)
+                    painted.set(from * (1. - delta));
+                    element.opacity(from * (1. - delta))
                 },
             )
     });
-    if !state.menu_opened() && state.menu.presentation.at.is_none() {
-        return fading.map(|fading| div().absolute().top_0().left_0().size_full().child(fading));
-    }
     let element = MenuElement::new(state.menu.menu.clone(), px(state.corner));
+    if !state.menu_opened() && state.menu.presentation.at.is_none() {
+        // A closing card still fades out, but the listing under it takes the pointer at once.
+        let closing = state.menu.menu.borrow().visible().then_some(element);
+        if closing.is_none() && fading.is_none() {
+            return None;
+        }
+        return Some(
+            div()
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full()
+                .children(closing)
+                .children(fading),
+        );
+    }
     let loading = state.menu.presentation.loading.then(|| {
         let at = state.menu.presentation.at.unwrap_or_default();
         let viewport = window.viewport_size();

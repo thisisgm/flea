@@ -1,14 +1,13 @@
 //! The menu card as one custom Element: the frame, each row's wash, mark, label and trailing parts, and the edge fades.
+pub(super) mod frames;
+
 use super::lines::{Ink, Lead, Line, Shaped};
 use super::menu::{Card, Menu};
 use super::{app_icons, glyphs};
-use crate::list::Palette;
-use crate::palette::Theme;
 use flea::ui_logic_mn1::fit::Metrics;
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, size, App, BorderStyle, Bounds,
-    ContentMask, Element, ElementId, GlobalElementId, Hsla, InspectorElementId, IntoElement,
-    LayoutId, Pixels, Position, Style, TransformationMatrix, Window,
+    ContentMask, Hsla, IntoElement, Pixels, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -37,6 +36,7 @@ thread_local! {
 mod ink;
 pub use ink::MenuInk;
 
+#[derive(IntoElement)]
 pub struct MenuElement {
     menu: Rc<RefCell<Menu>>,
     // The compositor's corner radius, which the window module reads from Hyprland.
@@ -58,13 +58,6 @@ impl MenuElement {
             radius,
             faded: true,
         }
-    }
-}
-
-impl IntoElement for MenuElement {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
     }
 }
 
@@ -366,84 +359,4 @@ fn paint_card(
             ));
         }
     });
-}
-
-impl Element for MenuElement {
-    type RequestLayoutState = ();
-    type PrepaintState = MenuInk;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let style = Style {
-            position: Position::Absolute,
-            size: size(gpui::relative(1.).into(), gpui::relative(1.).into()),
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) -> MenuInk {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        // A failed provider and a destructive row read in the theme's error role.
-        let mut ink = MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme));
-        ink.surface = theme.surface;
-        ink.error = theme.error;
-        ink.tags = theme.tag_menu_inks;
-        ink
-    }
-
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        ink: &mut MenuInk,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        let menu = self.menu.borrow();
-        let card = if self.faded {
-            menu.faded.as_ref().map(|faded| &faded.flyout.card)
-        } else {
-            menu.card.as_ref()
-        };
-        let Some(card) = card else { return };
-        let ink = *ink;
-        let lit = (!self.faded)
-            .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
-            .flatten();
-        paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
-        if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
-            paint_card(
-                &flyout.card,
-                None,
-                self.radius,
-                &ink,
-                bounds.origin,
-                window,
-                cx,
-            );
-        }
-    }
 }

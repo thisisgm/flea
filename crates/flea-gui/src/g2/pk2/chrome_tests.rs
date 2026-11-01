@@ -92,6 +92,7 @@ fn the_tile_grid_draws_the_held_window_of_a_hundred_thousand_row_folder(cx: &mut
 
 #[gpui::test]
 fn the_chip_menu_opens_over_every_chip_then_all_files(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (menu, cx) =
         cx.add_window_view(|_, _| ChipMenu::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));

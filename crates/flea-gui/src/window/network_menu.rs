@@ -254,8 +254,21 @@ impl Shell {
     }
 
     fn network_menu_layer(&self, network: &Network, cx: &mut Context<Self>) -> Option<AnyElement> {
-        if !network.menu.borrow().opened() {
+        if !network.menu.borrow().visible() {
             return None;
+        }
+        // A closing card fades out without taking the pointer.
+        if !network.menu.borrow().opened() {
+            return Some(
+                gpui::deferred(
+                    div()
+                        .absolute()
+                        .inset_0()
+                        .child(MenuElement::new(network.menu.clone(), px(self.corner))),
+                )
+                .with_priority(3)
+                .into_any_element(),
+            );
         }
         Some(
             gpui::deferred(

@@ -213,6 +213,20 @@ impl OutputView {
     }
 }
 
+// A closing card fades out without taking the pointer.
+pub(super) fn closing(view: &OutputView) -> Option<Div> {
+    view.printer_menu.menu.borrow().visible().then(|| {
+        div()
+            .absolute()
+            .size_full()
+            .text_color(view.palette.foreground)
+            .child(MenuElement::new(
+                Rc::clone(&view.printer_menu.menu),
+                px(view.palette.radius),
+            ))
+    })
+}
+
 pub(super) fn overlay(view: &OutputView, cx: &mut Context<OutputView>) -> gpui::Stateful<Div> {
     let mut layer = div()
         .id("op4-printer-popup")
