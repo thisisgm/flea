@@ -8,10 +8,19 @@ use flea::i18n::I18n;
 use flea::jsondoc::Json;
 use flea::ui_logic_op3::openwith::{self as logic, Catalogue, Row as Seat};
 
+#[path = "openwith_pointer.rs"]
+mod pointer;
+
 /// The board's card width at its 14 body.
 pub const WIDTH: f32 = 630.;
 /// Seven applications set the list height.
 pub const VIEWPORT_ROWS: usize = 7;
+/// Filtering keeps the HIG viewport fixed, including both eyebrows, their air and its two hairlines.
+pub const VIEWPORT_HEIGHT: f32 = VIEWPORT_ROWS as f32 * shell::APP_ROW
+    + 2. * shell::EYEBROW
+    + shell::FIRST_EYEBROW_AIR
+    + shell::LATER_EYEBROW_AIR
+    + 2.;
 
 /// Search opens holding the keys, the cursor row grey behind it; the list, the checkbox and the two buttons follow.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -40,6 +49,9 @@ pub struct OpenWith {
     pub query: String,
     pub cursor: usize,
     top: usize,
+    notch: i32,
+    touch: f32,
+    stroke: bool,
     pub always: bool,
     pub focus: Stop,
     opening: bool,
@@ -59,6 +71,9 @@ impl OpenWith {
             query: String::new(),
             cursor: 0,
             top: 0,
+            notch: 0,
+            touch: 0.,
+            stroke: false,
             always: false,
             focus: Stop::Search,
             opening: false,
@@ -227,18 +242,18 @@ impl OpenWith {
         };
         let mut body = vec![Block::Field(search)];
         if self.catalogue.is_some() && self.rows.is_empty() {
-            body.push(Block::Note {
-                text: logic::no_match(i18n, &self.query),
-                inset: 0.,
-                ink: Ink::Muted,
-                lift: 0.,
-            });
+            body.push(Block::Apps(
+                vec![AppRow::Empty {
+                    text: logic::no_match(i18n, &self.query),
+                    height: VIEWPORT_HEIGHT - 1.,
+                }],
+                0.,
+            ));
         } else {
             let (rows, shown) = self.shown(i18n, kind);
-            body.push(Block::Apps(
-                rows,
-                VIEWPORT_ROWS.saturating_sub(shown) as f32 * shell::APP_ROW,
-            ));
+            let chrome: f32 = rows.iter().map(AppRow::chrome).sum();
+            let filler = (VIEWPORT_HEIGHT - 1. - shown as f32 * shell::APP_ROW - chrome).max(0.);
+            body.push(Block::Apps(rows, filler));
         }
         let always = Check {
             value: if self.always { Tri::On } else { Tri::Off },
@@ -358,13 +373,12 @@ impl OpenWith {
                         (true, Stop::List) => Cursor::Focused,
                         (true, _) => Cursor::Waiting,
                     };
-                    let mark = app.icon.is_empty().then_some(Glyph::AppWindow);
                     AppRow::App {
+                        at: *seat,
+                        icon: app.icon,
                         label: app.label,
                         tail,
                         cursor,
-                        mark,
-                        icon: app.icon,
                     }
                 }
             });

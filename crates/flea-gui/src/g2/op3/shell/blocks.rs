@@ -1,97 +1,14 @@
 //! The stand-in's body blocks: Open With's list, bulk rename's names, the permission grid, the facts and every other part.
 use super::*;
-use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight};
+use gpui::{div, prelude::*, px, relative, AnyElement, Div};
 
 impl Draw<'_> {
-    fn apps(&self, rows: &[AppRow], filler: f32) -> Div {
-        let t = self.t;
-        let mut list = div().flex().flex_col().mx(self.px(-PAD));
-        for row in rows {
-            list = match row {
-                AppRow::Eyebrow { text, first } => {
-                    let air = if *first {
-                        FIRST_EYEBROW_AIR
-                    } else {
-                        LATER_EYEBROW_AIR
-                    };
-                    let list = if *first {
-                        list
-                    } else {
-                        list.child(self.hairline())
-                    };
-                    list.child(
-                        self.text(CAPTION)
-                            .h(self.px(EYEBROW))
-                            .mt(self.px(air))
-                            .px(self.px(ROW_INSET))
-                            .flex()
-                            .items_center()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(t.muted)
-                            .child(text.to_uppercase()),
-                    )
-                }
-                AppRow::App {
-                    label,
-                    tail,
-                    cursor,
-                    mark,
-                    icon,
-                } => {
-                    let mut line = self
-                        .text(BOARD_BODY)
-                        .relative()
-                        .h(self.px(APP_ROW))
-                        .flex()
-                        .items_center()
-                        .gap(self.px(ROW_GAP))
-                        .px(self.px(ROW_INSET))
-                        .text_color(t.fg);
-                    line = match cursor {
-                        Cursor::None => line,
-                        Cursor::Waiting => line.bg(t.fg.opacity(HOVER)),
-                        Cursor::Focused => line.bg(t.accent.opacity(WASH_CURSOR)).child(
-                            div()
-                                .absolute()
-                                .left_0()
-                                .top_0()
-                                .bottom_0()
-                                .w(px(2.))
-                                .bg(t.accent_frame),
-                        ),
-                    };
-                    let slot = if icon.is_empty() {
-                        match mark {
-                            Some(mark) => glyph(*mark, MARK * self.s, t.fg).into_any_element(),
-                            None => div().size(self.px(MARK)).flex_none().into_any_element(),
-                        }
-                    } else {
-                        crate::g2::mn1::element::icons::Icon::new(
-                            icon,
-                            MARK * self.s,
-                            t.muted_frame,
-                        )
-                        .into_any_element()
-                    };
-                    let line = line.child(slot).child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .overflow_hidden()
-                            .text_ellipsis()
-                            .child(label.clone()),
-                    );
-                    let line = if tail.is_empty() {
-                        line
-                    } else {
-                        line.child(self.text(CAPTION).text_color(t.muted).child(tail.clone()))
-                    };
-                    list.child(line)
-                }
-            };
+    /// Records the part's painted bounds under `name` when the card is measured, as Open With's readers ask.
+    pub(super) fn track<E: ParentElement>(&self, element: E, name: &str) -> E {
+        match self.measure {
+            Some(frame) => frame.track(element, name.to_owned(), String::new()),
+            None => element,
         }
-        list.child(div().h(self.px(filler)).flex_none())
-            .child(self.hairline())
     }
 
     fn names(
@@ -234,7 +151,7 @@ impl Draw<'_> {
             Block::Field(field) => self
                 .wired(
                     Control::Field,
-                    self.field(field)
+                    self.track(self.field(field), "search")
                         .id("op3-field")
                         .debug_selector(|| "op3-field".into()),
                 )
@@ -257,21 +174,27 @@ impl Draw<'_> {
                 .into_any_element(),
             Block::Apps(rows, filler) => self.apps(rows, *filler).into_any_element(),
             Block::CheckLine { check, label } => self
-                .text(BOARD_BODY)
-                .mt(self.px(-4.))
-                .flex()
-                .items_center()
-                .gap(self.px(ROW_GAP))
-                .text_color(t.fg)
-                .child(self.check(*check))
-                .child(label.clone())
+                .wired(
+                    Control::Check(0),
+                    self.text(BOARD_BODY)
+                        .mt(self.px(-4.))
+                        .flex()
+                        .items_center()
+                        .gap(self.px(ROW_GAP))
+                        .text_color(t.fg)
+                        .child(self.check(*check))
+                        .child(label.clone())
+                        .id("op3-always")
+                        .debug_selector(|| "op3-always".into()),
+                )
                 .into_any_element(),
             Block::Note {
                 text,
                 inset,
                 ink,
                 lift,
-            } => div()
+            } => self
+                .track(div(), &format!("note:{text}"))
                 .debug_selector({
                     let text = text.clone();
                     move || format!("op3-note:{text}")

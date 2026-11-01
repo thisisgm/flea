@@ -1,9 +1,7 @@
 //! The menu card as one custom Element: the frame, each row's wash, mark, label and trailing parts, and the edge fades.
-pub(crate) mod icons;
-
-use super::glyphs;
 use super::lines::{Ink, Lead, Line, Shaped};
 use super::menu::{Card, Menu};
+use super::{app_icons, glyphs};
 use crate::list::Palette;
 use crate::palette::Theme;
 use flea::ui_logic_mn1::fit::Metrics;
@@ -83,7 +81,7 @@ fn paint_text(
     let _ = window.paint_glyph_run(point(at.x, baseline), &shaped.run, color);
 }
 
-fn paint_mark(
+pub(super) fn paint_mark(
     key: gpui::SharedString,
     data: &'static [u8],
     bounds: Bounds<Pixels>,
@@ -166,15 +164,15 @@ fn paint_lead(
                 color,
             ));
         }
-        Lead::Icon(name) => {
-            let side = metrics.of(16.);
-            let scale = window.scale_factor().ceil().max(1.) as u32;
-            if let Some(image) = icons::image(name, side as u32, scale, window, cx) {
-                let bounds = slot(at, side, side, metrics);
-                let fit = gpui::ObjectFit::Contain.get_bounds(bounds, image.size(0));
-                let _ = window.paint_image(bounds, fit, gpui::Corners::default(), image, 0, false);
-                return;
-            }
+        Lead::Icon(path)
+            if app_icons::paint(
+                path,
+                metrics.slot,
+                slot(at, metrics.slot, metrics.slot, metrics),
+                window,
+                cx,
+            ) => {}
+        Lead::Icon(_) => {
             let (key, data) = glyphs::mark("app-window");
             paint_mark(
                 key,
@@ -407,11 +405,11 @@ impl Element for MenuElement {
     ) -> MenuInk {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         // A failed provider and a destructive row read in the theme's error role.
-        MenuInk {
-            error: theme.error,
-            tags: theme.tag_menu_inks,
-            ..MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
-        }
+        let mut ink = MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme));
+        ink.surface = theme.surface;
+        ink.error = theme.error;
+        ink.tags = theme.tag_menu_inks;
+        ink
     }
 
     fn paint(

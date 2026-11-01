@@ -187,6 +187,7 @@ mod menu_snapshot_names_tests;
 mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
+mod menu_many;
 mod menucontents;
 mod menuproperties;
 #[cfg(test)]

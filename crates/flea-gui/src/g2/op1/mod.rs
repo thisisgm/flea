@@ -58,7 +58,7 @@ mod input;
 
 pub mod join;
 
-mod measured;
+pub(crate) mod measured;
 
 mod progress;
 mod transfer_status;

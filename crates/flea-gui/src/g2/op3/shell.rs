@@ -101,7 +101,7 @@ pub struct Field {
     pub focused: bool,
 }
 
-/// Where Open With's cursor row stands: grey while the search holds the keys, the accent wash and edge while the list does.
+/// Where Open With's cursor row stands: the accent wash and edge while the list holds the keys, grey while any other part does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cursor {
     None,
@@ -111,17 +111,22 @@ pub enum Cursor {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppRow {
+    /// v0.3.12 centres the no-match caption inside the unchanged application viewport.
+    Empty {
+        text: String,
+        height: f32,
+    },
     Eyebrow {
         text: String,
         first: bool,
     },
-    /// `mark` is the window mark the board draws for an entry with no themed icon; a themed icon is the icon service's.
+    /// The shared icon service paints each application's icon or the board's window fallback.
     App {
+        at: usize,
+        icon: String,
         label: String,
         tail: String,
         cursor: Cursor,
-        mark: Option<Glyph>,
-        icon: String,
     },
 }
 
@@ -302,12 +307,16 @@ struct Draw<'a> {
     wire: Option<&'a Wire>,
     entry: Option<&'a crate::path::entry::Entry>,
     probe: Option<&'a crate::g2::st1::probe::Probe>,
+    measure: Option<&'a crate::g2::op1::measured::Frame>,
 }
 
 /// The controls whose pointer activation a live card serves through its model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Control {
     Field,
+    Clear,
+    Applications,
+    Application(usize),
     Check(usize),
     Button(usize),
 }
@@ -321,6 +330,14 @@ pub struct Interactive<'a> {
     pub entry: &'a crate::path::entry::Entry,
 }
 
+/// Open With reuses the live control wire and records its parts on the theme's card surface.
+pub struct OpenWithShell<'a> {
+    pub wire: &'a Wire,
+    pub surface: Hsla,
+    pub measure: &'a crate::g2::op1::measured::Frame,
+}
+
+mod apps;
 mod blocks;
 #[cfg(test)]
 mod caption_tests;
@@ -328,6 +345,7 @@ mod draw;
 mod facts;
 #[cfg(test)]
 mod facts_tests;
+mod field;
 mod glyph;
 pub use draw::{Probed, StandIn};
 pub use glyph::glyph;

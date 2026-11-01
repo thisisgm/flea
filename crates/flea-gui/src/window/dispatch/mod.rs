@@ -190,7 +190,19 @@ mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
+mod openwith_card_icons_tests;
+#[cfg(test)]
+mod openwith_controls_tests;
+#[cfg(test)]
+mod openwith_icon_tests;
+#[cfg(test)]
+mod openwith_multi_tests;
+#[cfg(test)]
+mod openwith_painted_tests;
+#[cfg(test)]
 mod openwith_tests;
+#[cfg(test)]
+mod openwith_wheel_tests;
 #[cfg(test)]
 mod pb_fileops_tests;
 #[cfg(test)]

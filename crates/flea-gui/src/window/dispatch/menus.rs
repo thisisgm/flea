@@ -26,12 +26,14 @@ pub(super) fn run(
         "properties" => {
             chosen.captured.ready && !chosen.captured.background && !chosen.captured.rows.is_empty()
         }
-        // Menu.js OPEN_WITH_OTHER opens the Open With card on the one row; any other leaf names the application to launch.
+        // Menu.js OPEN_WITH_OTHER opens the Open With card on the one row; any other leaf launches on every captured row.
         "openWith" => {
             !chosen.leaf.is_empty()
                 && chosen.captured.ready
                 && !chosen.captured.background
-                && chosen.captured.rows.len() == 1
+                && (chosen.captured.rows.len() == 1
+                    || (!chosen.captured.rows.is_empty()
+                        && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER))
         }
         "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
         | "extThumbs" | "addFavourite" => true,

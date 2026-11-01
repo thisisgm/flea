@@ -20,6 +20,7 @@ impl StandIn {
             surface: None,
             entry: None,
             probe: None,
+            measure: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
     }
@@ -44,6 +45,7 @@ impl Probed<'_> {
             surface: None,
             entry: None,
             probe: Some(self.0),
+            measure: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
     }

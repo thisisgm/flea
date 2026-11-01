@@ -37,7 +37,10 @@ pub mod shield;
 mod svg;
 mod viewport;
 
-pub use raster::{RasterRefusal, RasterState, Rasterizer};
+pub use raster::{
+    for_path as raster_for_path, run as raster_run, Job as RasterJob, RasterOutcome, RasterRefusal,
+    RasterState, Rasterizer,
+};
 
 use flea::i18n::I18n;
 use flea::ui_logic_pv1::{

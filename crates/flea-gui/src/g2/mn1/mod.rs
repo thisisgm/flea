@@ -1,6 +1,7 @@
 //! The menu primitive every Flea menu opens through: file, background, header, rail, tags, Copy As and Paste As.
 #[cfg(test)]
 mod app_icon_tests;
+pub(crate) mod app_icons;
 mod delivery;
 mod discovery;
 pub mod element;
@@ -35,6 +36,8 @@ mod review_r2_tests;
 #[cfg(test)]
 mod review_tests;
 pub mod shebang;
+#[cfg(test)]
+mod surface_tests;
 mod tag_checks;
 pub(crate) mod tags;
 mod tags_wire;

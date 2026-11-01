@@ -299,6 +299,7 @@ impl Snapshot {
                 escape(&action), paths.join(","),
                 escape(&field_str(line, "dest").unwrap_or_default())));
         }
+        if self.items.len() > 1 && matches!(op, "applications" | "openWith") { return super::menu_many::perform(op, &self.items, line, registry, cancel); }
         if self.items.len() != 1 { return Err("This action requires one selected item.".into()); }
         let item = &self.items[0];
         let meta = item.current()?;
@@ -313,7 +314,7 @@ impl Snapshot {
             "openWith" => {
                 let app = menu_registry::resolve(&field_str(line, "application").unwrap_or_default(), cancel)?;
                 item.current()?;
-                registry.launch(&app.path, &item.path, cancel)?;
+                registry.launch(&app.path, &[&item.path], cancel)?;
                 // OpenWith.html rule 1: the dialog is the one place a default is written, and it is
                 // written after the launch so a launcher that refuses outright leaves nothing behind.
                 // The file is already open by this point, so a failure here says only what failed.
@@ -350,7 +351,7 @@ impl Snapshot {
 }
 
 // One application row, the shape ui/js/Menu.js and ui/OpenWithDialog.qml both read.
-fn application_entries(apps: &[menu_registry::Application]) -> String {
+pub(super) fn application_entries(apps: &[menu_registry::Application]) -> String {
     apps.iter().map(|a| format!(r#"{{"id":"{}","label":"{}","icon":"{}","default":{}}}"#,
         escape(&a.id), escape(&a.label), escape(&a.icon), a.default))
         .collect::<Vec<String>>().join(",")
