@@ -368,5 +368,23 @@ fn the_add_share_card_takes_typed_text_through_the_window(cx: &mut TestAppContex
     );
 }
 
+#[gpui::test]
+fn uishfix_p2f_dialog_open_tracks_the_mounted_network_card(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = open(Rc::new(Recorder::default()), cx);
+    assert_eq!(call(&shell, "dialogOpen", &[], cx), "false");
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.network_add(0, window, cx)));
+    frame(cx);
+    assert_eq!(call(&shell, "dialogOpen", &[], cx), "true");
+    let view = card(&shell, cx);
+    cx.update(|_, cx| view.update(cx, |card, cx| card.close(cx)));
+    frame(cx);
+    assert_eq!(call(&shell, "dialogOpen", &[], cx), "false");
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.network_add(0, window, cx)));
+    frame(cx);
+    assert_eq!(call(&shell, "dialogOpen", &[], cx), "true");
+    cx.update(|_, cx| shell.update(cx, |shell, _| shell.rail = None));
+    assert_eq!(call(&shell, "dialogOpen", &[], cx), "false");
+}
+
 #[path = "network_cards_tests.rs"]
 mod cards_tests;
