@@ -42,6 +42,12 @@ def owned(pid, record):
             return current
         try:
             environment = Path(f"/proc/{pid}/environ").read_bytes().split(b"\0")
+        except ProcessLookupError:
+            # An exiting process answers ESRCH here; identity() raises FileNotFoundError once it is gone.
+            current = identity(pid)
+            if current["state"] == "Z":
+                return current
+            continue
         except PermissionError:
             if attempt < 3:
                 time.sleep(0.05)
@@ -49,12 +55,28 @@ def owned(pid, record):
             if identity(pid)["state"] == "Z":
                 return identity(pid)
             raise TransportError(f"unreadable ownership for PID {pid}")
-        if f"FLEA_TEST_WINDOW={record['root']}".encode() in environment:
+        if f"FLEA_TEST_WINDOW={record['root']}".encode() in environment or descends(pid, record):
             return current
         if identity(pid)["state"] == "Z":
             return identity(pid)
         raise TransportError(f"foreign PID {pid}")
     raise TransportError(f"unreadable ownership for PID {pid}")
+
+
+def descends(pid, record):
+    # A helper that clears its environment (bwrap --clearenv) is still ours when its parents lead to this launch.
+    roots = {(record["pid"], record["start"]), (record.get("supervisor"), record.get("supervisor_start"))}
+    for _ in range(64):
+        parent = identity(pid)["parent"]
+        if parent <= 1:
+            return False
+        try:
+            if (parent, identity(parent)["start"]) in roots:
+                return True
+        except FileNotFoundError:
+            return False
+        pid = parent
+    return False
 
 
 def load(root, exited=False):
@@ -410,7 +432,8 @@ def serve(root):
                                      start_new_session=True)
         current = identity(child.pid)
         record = dict(options, pid=child.pid, start=current["start"], runtime=alias, runtime_dir=str(runtime_dir),
-                      group=child.pid, leader_start=current["start"])
+                      group=child.pid, leader_start=current["start"],
+                      supervisor=os.getpid(), supervisor_start=identity(os.getpid())["start"])
         (root / "launch.json").write_text(json.dumps(record))
         deadline = time.monotonic() + options["timeout"]
         refused = None
@@ -477,10 +500,16 @@ def serve(root):
                 if not terminate and (outcome["forced"] or outcome["returncode"] != 0):
                     failure = failure or "natural exit failed or required forced termination"
             except BaseException as error:
-                # The supervisor still records its end: a window without stopped stays on the books after its
-                # processes are gone, and every later enumeration fails reading its /proc entry.
                 failure = failure or f"teardown failed: {error}"
+                (root / "error").write_text(failure)
                 outcome = dict(returncode=None, forced=True)
+                # A failed drain still ends the window's own group while its leader is the one launched, then reports stopped.
+                try:
+                    if identity(record["group"])["start"] == record["leader_start"]:
+                        os.killpg(record["group"], signal.SIGKILL)
+                    outcome = dict(returncode=child.wait(timeout=options["drain_timeout"]), forced=True)
+                except BaseException:
+                    outcome = dict(returncode=None, forced=True)
         if outcome is not None:
             outcome["error"] = failure
             if failure:

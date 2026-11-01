@@ -151,7 +151,7 @@ case_placemenu() {
     click_rail_row "$favourite_index" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "placemenu: the favourite's right click opened no menu"
-    [[ "$(ipc contextMenuEntries)" == "Open|New tab|-|Open in terminal|Copy path|Remove from Favorites" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|Open in New Tab|-|Open in Terminal|Copy Path|Remove from Favorites" ]] \
         || fail "placemenu: the favourite offers $(ipc contextMenuEntries)"
     key -k Escape >/dev/null
     for _attempt in $(seq 1 20); do
@@ -168,13 +168,13 @@ case_placemenu() {
     # Read visible before entries: the menu keeps its last rows, so a row that opens nothing would
     # otherwise answer with the menu before it, which is exactly how this case first read green.
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "placemenu: the Home row's right click opened no menu"
-    [[ "$(ipc contextMenuEntries)" == "Open|New tab|-|Open in terminal|Copy path|Add to Favorites" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|Open in New Tab|-|Open in Terminal|Copy Path|Add to Favorites" ]] \
         || fail "placemenu: the Home row offers $(ipc contextMenuEntries)"
 
     echo "-- and a row acts on its own path, not on the listing's cursor --"
     local tabs_before
     tabs_before=$(ipc tabCount)
-    menu_seek "New tab"
+    menu_seek "Open in New Tab"
     key -k Return >/dev/null
     for _attempt in $(seq 1 40); do
         [[ "$(ipc tabCount)" == "$((tabs_before + 1))" ]] && break
@@ -182,7 +182,7 @@ case_placemenu() {
     done
     [[ "$(ipc tabCount)" == "$((tabs_before + 1))" ]] \
         || fail "placemenu: New tab left $(ipc tabCount) tabs"
-    wait_path "$HOME"
+    wait_path "$(window_home)"
     printf 'PLACEMENU tabs=%s path=%s labels=%s\n' "$(ipc tabCount)" "$(ipc path)" "$(ipc tabLabels)"
 
     echo "-- with the switch off it is the menu it was --"

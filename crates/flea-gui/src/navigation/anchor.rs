@@ -150,6 +150,8 @@ impl Anchor {
         }
         selected.clear();
         selected.extend(std::mem::take(&mut self.kept));
+        // Anchor.js finishAnchor: a lone mark comes back lone, so a plain move still carries it.
+        self.lone = self.lone && selected.len() == 1;
     }
 
     // Runs on the landing; returns the locate batch still owed, or None when the anchor resolved.

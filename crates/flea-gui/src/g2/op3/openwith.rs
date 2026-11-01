@@ -307,6 +307,23 @@ impl OpenWith {
         self.opening
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn catalogue(&self) -> Option<&Catalogue> {
+        self.catalogue.as_ref()
+    }
+
+    /// The filtered rows, eyebrows included, as ui/OpenWithDialog.qml's rows model holds them.
+    pub fn rows(&self) -> &[Seat] {
+        &self.rows
+    }
+
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_deref()
+    }
+
     /// Only the rows the viewport shows are built, seven applications from the first row the cursor keeps in view.
     fn shown(&self, i18n: &I18n, kind: &str) -> (Vec<AppRow>, usize) {
         let Some(catalogue) = &self.catalogue else {

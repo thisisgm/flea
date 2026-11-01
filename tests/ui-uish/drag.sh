@@ -1,7 +1,7 @@
 # GPUI overrides for UISH-23; seeded from the unchanged oracle at 2faf8d099.
 case_griddrop() {
     local dir="$fixture_root/griddrop" hov="$fixture_root/griddrop-hover" name i ax ay aw ah wx wy ww wh cx cy
-    local folder="Move 1 item to a folder · Ctrl copies, Shift moves" lit after first pt
+    local folder="Move 1 item to a folder · ctrl copies, shift moves" lit after first pt
     sandbox_scratch "$dir"
     sandbox_scratch "$hov"
     mkdir -p "$dir/box" "$dir/side"
@@ -13,14 +13,14 @@ case_griddrop() {
     [[ "$(ipc viewMode)" == grid ]] || fail "griddrop: the seeded view is $(ipc viewMode), not grid"
 
     echo "-- a file dropped on a folder tile moves, the tile named while held --"
-    griddrop_hold a.txt box "Move 1 item to box · Ctrl copies, Shift moves"
+    griddrop_hold a.txt box "Move 1 item to box · ctrl copies, shift moves"
     cap_drops_release
     wait_message "Moved 1 item · z undoes"
     [[ ! -e "$dir/a.txt" && -f "$dir/box/a.txt" ]] || fail "griddrop: a.txt did not move into box"
     wait_listing 8
 
     echo "-- the target follows the pointer over a file tile and two folders, and the drop lands on the last --"
-    griddrop_hold b.txt c.txt "$folder" box "Move 1 item to box · Ctrl copies, Shift moves" d.txt "$folder" side "Move 1 item to side · Ctrl copies, Shift moves"
+    griddrop_hold b.txt c.txt "$folder" box "Move 1 item to box · ctrl copies, shift moves" d.txt "$folder" side "Move 1 item to side · ctrl copies, shift moves"
     cap_drops_release
     wait_message "Moved 1 item · z undoes"
     [[ ! -e "$dir/b.txt" && -f "$dir/side/b.txt" && ! -e "$dir/box/b.txt" ]] || fail "griddrop: b.txt did not land on side alone"
@@ -47,12 +47,24 @@ case_griddrop() {
     YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 29:1 >/dev/null 2>&1 || fail "griddrop: ctrl down refused"
     sleep 0.3
     griddrop_hold f.txt box "Copy 1 item to box"
-    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 29:0 >/dev/null 2>&1 || true
+    shot "griddrop-ctrl-held"
+    # v0.3.12 Drag.js:27 and dropHeld read keys again at drop, so Copy keeps Ctrl through the release.
     cap_drops_release
-    if [[ -n "$griddrop_saved_exit" ]]; then trap -- "$griddrop_saved_exit" EXIT; else trap - EXIT; fi
     wait_message "Copied 1 item · z undoes"
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 29:0 >/dev/null 2>&1 || true
     [[ -f "$dir/f.txt" && -f "$dir/box/f.txt" ]] || fail "griddrop: ctrl at the lift did not copy f.txt"
-    printf 'GRIDDROP move=box follow=side empty=refused copy=ctrl\n'
+
+    echo "-- ctrl released before the drop clears the lift's copy bit --"
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 29:1 >/dev/null 2>&1 || fail "griddrop: second ctrl down refused"
+    sleep 0.3
+    griddrop_hold g.txt side "Copy 1 item to side"
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 29:0 >/dev/null 2>&1 || fail "griddrop: ctrl release refused"
+    cap_drops_release
+    wait_message "Moved 1 item · z undoes"
+    [[ ! -e "$dir/g.txt" && -f "$dir/side/g.txt" && ! -e "$dir/box/g.txt" ]] || fail "griddrop: released Ctrl did not move g.txt into side alone"
+    shot "griddrop-ctrl-released-result"
+    if [[ -n "$griddrop_saved_exit" ]]; then trap -- "$griddrop_saved_exit" EXIT; else trap - EXIT; fi
+    printf 'GRIDDROP move=box follow=side empty=refused copy=ctrl released-ctrl=move\n'
     kill_flea
 
     echo "-- hover: a resting pointer lights its tile, the wheel moves the light, leaving the tiles puts it out --"

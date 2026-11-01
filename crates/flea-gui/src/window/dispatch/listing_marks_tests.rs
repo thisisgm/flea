@@ -132,3 +132,64 @@ fn escape_in_the_list_still_clears_the_selection(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// A watch re-read of /files, landed as listing 2 with the same rows.
+fn reread_lands(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let selected = host.selected.clone();
+            assert!(host.nav.reread(&mut host.pane, &selected, false, false));
+            shell.run_navigation(0, window, cx);
+        })
+    });
+    let rows = ["alpha", "beta", "gamma", "delta"]
+        .map(|name| row(name, false))
+        .to_vec();
+    land(shell, cx, "/files", rows, 2);
+}
+
+fn cursor(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
+    shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor)
+}
+
+// EY-440, Anchor.js finishAnchor: a lone mark a re-read carries comes back lone, so Enter still names the cursor row.
+#[gpui::test]
+fn a_reread_keeps_the_lone_mark_following_the_cursor(cx: &mut TestAppContext) {
+    let (shell, cx) = launched_on_beta(cx, "list");
+    cx.simulate_keystrokes("k");
+    assert_eq!(selected(&shell, cx), vec![0], "the lone mark follows k");
+    reread_lands(&shell, cx);
+    assert_eq!(
+        selected(&shell, cx),
+        vec![0],
+        "the re-read marks the same file"
+    );
+    cx.simulate_keystrokes("j j");
+    assert_eq!(cursor(&shell, cx), 2);
+    assert_eq!(
+        selected(&shell, cx),
+        vec![2],
+        "the mark still follows the cursor after the re-read"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// Selection.js toggle: a mark the user made stays where it was across the re-read.
+#[gpui::test]
+fn a_reread_keeps_a_deliberate_mark_in_place(cx: &mut TestAppContext) {
+    let (shell, cx) = launched_on_beta(cx, "list");
+    cx.simulate_keystrokes("v v");
+    assert_eq!(selected(&shell, cx), Vec::<usize>::new());
+    cx.simulate_keystrokes("v");
+    assert_eq!(selected(&shell, cx), vec![1], "v marks beta");
+    reread_lands(&shell, cx);
+    cx.simulate_keystrokes("j j");
+    assert_eq!(cursor(&shell, cx), 3);
+    assert_eq!(
+        selected(&shell, cx),
+        vec![1],
+        "the deliberate mark stays on beta"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

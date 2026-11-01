@@ -56,6 +56,17 @@ pub(crate) fn grid_hit_boxes(host: &PaneHost, bounds: Bounds<Pixels>) -> Option<
     ))
 }
 
+/// Only a painted Grid caption can arm a slow rename tap.
+pub(crate) fn grid_on_name(host: &PaneHost, row: usize, point: gpui::Point<Pixels>) -> bool {
+    host.grid.as_ref().is_some_and(|grid| {
+        let state = grid.state.borrow();
+        let at = point - state.bounds.origin;
+        state
+            .drawn_row(row)
+            .is_some_and(|tile| tile.painted.contains(f32::from(at.x), f32::from(at.y)))
+    })
+}
+
 impl Shell {
     /// An empty-ground left press between Grid tiles: not on a tile, not in the lane, no carry, the pane idle and landed.
     pub(crate) fn band_press(

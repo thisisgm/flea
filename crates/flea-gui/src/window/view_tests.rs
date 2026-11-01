@@ -379,3 +379,27 @@ fn u02_view_mode_follows_the_drawn_frame_while_selection_changes() {
         "the hidden pane kept its dual record"
     );
 }
+
+// EY-441, Ipc.qml drawnCount is listArea.count: a standing filter answers the rows it narrowed to.
+#[test]
+fn drawn_count_answers_the_filter_rows_the_list_drew() {
+    let mut cx = context();
+    let (backend, _requests) = Backend::test_channel();
+    let window = open(&mut cx, backend);
+    draw(&mut cx, window);
+    assert_eq!(value(&mut cx, window, "drawnCount"), "100000");
+    window
+        .update(&mut cx, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().filter.shown = Some(Rc::from([1usize, 3]));
+        })
+        .unwrap();
+    draw(&mut cx, window);
+    assert_eq!(value(&mut cx, window, "drawnCount"), "2");
+    window
+        .update(&mut cx, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().filter.shown = None;
+        })
+        .unwrap();
+    draw(&mut cx, window);
+    assert_eq!(value(&mut cx, window, "drawnCount"), "100000");
+}

@@ -1,6 +1,8 @@
 //! One custom Element per drawn track: fixed rows painted as quads, marks and prepared glyph runs, no layout node per row.
 use super::cache::{Row, Shaping};
-use super::geometry::{cells, mark_box, name_budget, picture_box, Slot, CHEVRON, DIVIDER, GAP};
+use super::geometry::{
+    cells_in, mark_box, name_budget_in, picture_box, Slot, CHEVRON, DIVIDER, GAP,
+};
 use super::glyphs::{paint_line, paint_svg, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
@@ -144,6 +146,7 @@ impl Element for TrackElement {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let mut paint = self.paint.borrow_mut();
         let advance = f32::from(paint.body_advance(window));
+        let lane = super::geometry::lane(&paint.typeface);
         let view = &self.tracks[self.at];
         // A refused rename grows the active track's edited row and moves the rows below it down.
         let grow = if view.slot == self.focus.rename_slot.unwrap_or(Slot::Active) {
@@ -161,6 +164,7 @@ impl Element for TrackElement {
             shown: self.shown.clone(),
             grow,
             row_height: self.row_height,
+            lane,
         });
         let width = f32::from(bounds.size.width);
         let shows_size = view.slot == Slot::Active;
@@ -168,9 +172,9 @@ impl Element for TrackElement {
             font: paint.typeface.font.clone(),
             body: paint.typeface.body,
             caption: paint.typeface.caption,
-            plain_cells: name_budget(width, shows_size, false, advance)
+            plain_cells: name_budget_in(width, lane, shows_size, false, advance)
                 .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
-            chevron_cells: name_budget(width, shows_size, true, advance)
+            chevron_cells: name_budget_in(width, lane, shows_size, true, advance)
                 .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
@@ -261,6 +265,7 @@ impl Element for TrackElement {
         let held = self.held.as_deref();
         let active = view.slot == Slot::Active;
         let width = f32::from(bounds.size.width);
+        let lane = super::geometry::lane(&paint.typeface);
         let left = bounds.origin.x;
         let grow = paint
             .drawn
@@ -298,7 +303,7 @@ impl Element for TrackElement {
                     let chevron = prepared.dir && (cursor || lifted);
                     if let Some((from, to)) = prepared.wash_span(chevron, cursor) {
                         let line = prepared.name(chevron).line();
-                        let x = left + px(cells(width, active, chevron).name_x);
+                        let x = left + px(cells_in(width, lane, active, chevron).name_x);
                         let y = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2.;
                         window.paint_quad(fill(
                             Bounds::new(
@@ -322,7 +327,7 @@ impl Element for TrackElement {
                     let lifted = !cursor && lifted_row(view, held, *index);
                     let chevron = prepared.dir && (cursor || lifted);
                     let inks = palette.row_ink(*clip, cursor, lifted, view.dim);
-                    let geometry = cells(width, active, chevron);
+                    let geometry = cells_in(width, lane, active, chevron);
                     // ColumnRow.qml: a thumbnail fills the whole mark slot, fitted whole, in place of the glyph.
                     if let Some(picture) = picture {
                         let (slot_x, slot_y, side) = picture_box();

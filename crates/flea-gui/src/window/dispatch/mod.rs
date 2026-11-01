@@ -125,6 +125,8 @@ mod gh_rename_proof_lane;
 #[cfg(test)]
 mod gh_rename_proof_tests;
 #[cfg(test)]
+mod grid_select_tests;
+#[cfg(test)]
 mod guard_tests;
 #[cfg(test)]
 mod key_delivery_preview_tests;

@@ -505,6 +505,10 @@ transferlive_settled() {
 # From the leg's source listing into its to folder, which is where every paste in this case lands.
 transferlive_enter_to() {
     local dir="$1" count="$2"
+    if [[ "$test_frontend" == gpui ]]; then
+        key -k Escape >/dev/null
+        [[ -z "$(ipc selectedIndices)" ]] || fail "transferlive: marks survived Escape before entering to"
+    fi
     seek_row_named to
     key -k Return >/dev/null
     wait_path "$dir/to"

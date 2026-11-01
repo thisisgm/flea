@@ -231,6 +231,8 @@ pub struct Drawn {
     pub loading: usize,
     /// The refused rename's band this frame: the edited row's grown height and the rows below it moved down.
     pub grow: pane::Grow,
+    /// Rows this frame laid out: the filter's narrowed count while one stands, else the listing's total.
+    pub count: usize,
 }
 
 impl Default for Drawn {
@@ -247,6 +249,7 @@ impl Default for Drawn {
             drop: None,
             loading: 0,
             grow: pane::Grow::default(),
+            count: 0,
         }
     }
 }

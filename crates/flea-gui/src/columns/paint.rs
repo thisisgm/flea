@@ -272,6 +272,8 @@ pub struct Drawn {
     /// The refused rename's band this track drew with; only the active track ever grows.
     pub grow: crate::list::pane::Grow,
     pub row_height: f32,
+    /// The scroll lane this frame kept clear at the track's right edge.
+    pub lane: f32,
 }
 
 impl Drawn {
@@ -307,6 +309,13 @@ pub struct Painters {
 impl Painters {
     pub fn painter(&mut self, slot: Slot, typeface: &Typeface) -> Rc<RefCell<TrackPaint>> {
         let held = &mut self.slots[slot.index()];
+        // A new text size rebuilds the track, so its rows, mark slot and lane follow the face (Theme.qml sizeRatio).
+        if held
+            .as_ref()
+            .is_some_and(|paint| paint.borrow().typeface != *typeface)
+        {
+            *held = None;
+        }
         if held.is_none() {
             self.constructed += 1;
         }

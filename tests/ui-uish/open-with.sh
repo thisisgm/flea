@@ -55,9 +55,9 @@ case_openterminal() {
     # the only one left now that the chrome carries no terminal button.
     click_row "$(ipc cursor)" right
     settle
-    [[ "$(ipc contextMenuEntries)" == *"Open in terminal"* ]] \
+    [[ "$(ipc contextMenuEntries)" == *"Open in Terminal"* ]] \
         || fail "openterminal: the menu offers no terminal row, got $(ipc contextMenuEntries)"
-    menu_seek "Open in terminal"
+    menu_seek "Open in Terminal"
     key -k Return >/dev/null
     wait_terminal "$ran" "$dir" "the context menu"
     printf 'OPENTERMINAL menu log=%q\n' "$(cat "$ran")"
@@ -141,23 +141,21 @@ case_makeexec() {
     launch "$dir"
     wait_listing 2
 
-    # build.sh: the row is present after Move to Trash's group, in the board's specimen g order.
+    # build.sh: the row is present after Move to Trash's group; the menu-row board hides Add to Favorites on files.
     seek_row_named "build.sh"
     click_row "$(ipc cursor)" right
     local entries="" deadline=$(( $(date +%s%3N) + async_wait_ms ))
     while (( $(date +%s%3N) < deadline )); do
         entries=$(ipc contextMenuEntries)
-        [[ "$entries" == *"Make executable"* ]] && break
+        [[ "$entries" == *"Make Executable"* ]] && break
         sleep 0.1
     done
     printf 'MAKEEXEC build entries=%s\n' "$entries"
-    [[ "$entries" == *"Make executable"* ]] \
-        || fail "makeexec: build.sh offers no Make executable row, got $entries"
-    [[ "${entries%%Make executable*}" == *"Move to Trash"* ]] \
-        || fail "makeexec: Make executable is not after Move to Trash's group in $entries"
-    [[ "${entries##*Make executable}" == "|Add to Favorites"* ]] \
-        || fail "makeexec: Make executable is not before Add to Favorites in $entries"
-    menu_seek "Make executable"
+    [[ "$entries" == *"Make Executable"* ]] \
+        || fail "makeexec: build.sh offers no Make Executable row, got $entries"
+    [[ "${entries%%Make Executable*}" == *"Move to Trash"* ]] \
+        || fail "makeexec: Make Executable is not after Move to Trash's group in $entries"
+    menu_seek "Make Executable"
     key -k Return >/dev/null
     local mode="" deadline2=$(( $(date +%s%3N) + async_wait_ms ))
     while (( $(date +%s%3N) < deadline2 )); do
@@ -190,8 +188,8 @@ case_makeexec() {
     local plain=""
     plain=$(ipc contextMenuEntries)
     printf 'MAKEEXEC notes entries=%s\n' "$plain"
-    [[ "$plain" != *"Make executable"* ]] \
-        || fail "makeexec: notes.txt offers Make executable in $plain"
+    [[ "$plain" != *"Make Executable"* ]] \
+        || fail "makeexec: notes.txt offers Make Executable in $plain"
     key -k Escape >/dev/null
     settle
     if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi

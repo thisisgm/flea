@@ -25,7 +25,12 @@ pub(super) fn run(
     // Reload.js begin: a listing past its wait is let go, so a reload asks for its folder again.
     let waited = busy && host.waiting;
     let searching = host.search.owner.active();
-    let folder = host.pane.held.row(host.pane.cursor).map(|row| row.dir);
+    // Focus.js pageForward: a symlink drawn as a folder browses in like one.
+    let folder = host
+        .pane
+        .held
+        .row(host.pane.cursor)
+        .map(|row| flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon));
     if event.action == "open"
         && !busy
         && folder.is_some()

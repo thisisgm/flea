@@ -337,7 +337,7 @@ fn the_cursor_frame_selection_and_hover_are_read_from_their_owner() {
         host.focus = Rc::new(FocusSnapshot {
             cursor: 3,
             selected: vec![4, 5],
-            band: false,
+            ..Default::default()
         });
         host.view.hovered = Some(9);
     });
@@ -362,8 +362,8 @@ fn the_cursor_frame_selection_and_hover_are_read_from_their_owner() {
     with(&mut cx, window, |host| {
         host.focus = Rc::new(FocusSnapshot {
             cursor: 3,
-            selected: vec![],
             band: true,
+            ..Default::default()
         })
     });
     frame(&mut cx, window);

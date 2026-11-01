@@ -34,6 +34,17 @@ pub(super) struct Aim {
     label: Option<gpui::SharedString>,
 }
 
+// Drag.js feedbackLine with no name: the lift's own device stands in for the folder's, so a plain drag reads move.
+fn held_line(catalog: &flea::i18n::I18n, count: usize, ctrl: bool, shift: bool) -> String {
+    let items = catalog.trn("items.count", count as i64);
+    let key = match (ctrl, shift) {
+        (true, true) => core::LINK_TO_FOLDER,
+        (true, false) => core::COPY_TO_FOLDER,
+        _ => core::MOVE_TO_FOLDER,
+    };
+    catalog.tr_args(key, &[&items])
+}
+
 /// The folder row of `side` a held drag rests on in this window, with its caption.
 pub(crate) fn row_cue(
     window: &Window,
@@ -132,7 +143,11 @@ impl Shell {
         if host.pane.busy()
             || !matches!(
                 host.drawn_view,
-                Some(crate::window::startup::View::List | crate::window::startup::View::Dual)
+                Some(
+                    crate::window::startup::View::List
+                        | crate::window::startup::View::Dual
+                        | crate::window::startup::View::Grid
+                )
             )
         {
             return None;
@@ -184,6 +199,7 @@ impl Shell {
             });
         let Some((spot, side, name, place)) = target else {
             self.clear_rail_aim(window, cx);
+            self.say_held_drag(window, cx);
             return;
         };
         let drags = cx.default_global::<Drags>();
@@ -309,6 +325,24 @@ impl Shell {
         .detach();
     }
 
+    /// FileDrag.leaveTarget: this window's own drag off every target says its line with no folder name.
+    pub(crate) fn say_held_drag(&mut self, window: &Window, cx: &mut Context<Self>) {
+        let count = cx
+            .try_global::<Drags>()
+            .and_then(|drags| drags.lifts.get(&window_key(window)))
+            .map(|lift| lift.rows.len());
+        if let Some(count) = count {
+            let modifiers = window.modifiers();
+            let line = held_line(
+                &self.locale.catalog,
+                count,
+                modifiers.control,
+                modifiers.shift,
+            );
+            self.show_rail_cue(None, Some((String::new(), line)), cx);
+        }
+    }
+
     /// The drag left the rail or ended: no row stays lit and the drag's line leaves the status bar.
     pub(crate) fn clear_rail_aim(&mut self, window: &Window, cx: &mut Context<Self>) {
         let key = window_key(window);
@@ -318,6 +352,14 @@ impl Shell {
         if held {
             cx.global_mut::<Drags>().aims.remove(&key);
             self.strip.bar.hover_exited();
+        }
+        let said = self.status_messages(cx, |messages, _| {
+            messages
+                .activities()
+                .iter()
+                .any(|entry| entry.owner == DRAG_LINE)
+        });
+        if held || said {
             self.show_rail_cue(None, None, cx);
         }
     }

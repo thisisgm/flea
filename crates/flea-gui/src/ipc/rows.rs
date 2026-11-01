@@ -14,6 +14,9 @@ use crate::{
 };
 use flea::ipc::wire::Reply;
 use gpui::{Bounds, Hsla, Pixels};
+#[cfg(test)]
+#[path = "row_centres_tests.rs"]
+mod centres_tests;
 #[path = "rows_format.rs"]
 mod geometry_text;
 pub(crate) use geometry_text::round;
@@ -52,6 +55,19 @@ pub(crate) fn drawn_row_rect(list: &ListState, held: &Held, index: usize) -> Str
     };
     let (x, y, w, h) = drawn_row_box(list, shown.view);
     rect_of(x, y, w, h)
+}
+
+/// click_row's reported centre must lie inside both the painted viewport and its rounded IPC rectangle.
+pub(crate) fn centre_inside(area: Bounds<Pixels>, (x, y, w, h): (f32, f32, f32, f32)) -> bool {
+    let (cx, cy) = (round(x + w / 2.), round(y + h / 2.));
+    let centre = gpui::point(gpui::px(cx as f32), gpui::px(cy as f32));
+    let (left, top) = (
+        round(f32::from(area.origin.x)),
+        round(f32::from(area.origin.y)),
+    );
+    let right = round(f32::from(area.origin.x + area.size.width));
+    let bottom = round(f32::from(area.origin.y + area.size.height));
+    area.contains(&centre) && cx >= left && cx < right && cy >= top && cy < bottom
 }
 
 /// Ipc.qml listAreaRect for any pane's list.
@@ -129,8 +145,8 @@ impl RowsAdapter<'_> {
 
     // The row's box in window pixels: the list's left, its slot under the scroll, the row width less the lane.
     fn row_box(&self, index: usize) -> Option<(f32, f32, f32, f32)> {
-        self.shown(index)?;
-        Some(drawn_row_box(self.list, index))
+        let shown = self.shown(index)?;
+        Some(drawn_row_box(self.list, shown.view))
     }
 
     // Ipc.rowNameItem(): the name label of a drawn row, absent while the row is its own rename editor.
@@ -300,9 +316,11 @@ impl RowsAdapter<'_> {
                 .row_box(index)
                 .map(|(x, y, w, h)| rect_of(x, y, w, h))
                 .unwrap_or_default(),
+            // A part-drawn edge row's centre lies outside the list area; it names no row a click can reach.
             "rowCentre" => self
                 .row_box(index)
                 .filter(|_| facts.is_some())
+                .filter(|&row| centre_inside(self.list.drawn.bounds, row))
                 .map(|(x, y, w, h)| centre_of(x, y, w, h))
                 .unwrap_or_default(),
             "rowLeft" => self

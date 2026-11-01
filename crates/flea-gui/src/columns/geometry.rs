@@ -20,9 +20,30 @@ pub const GAP: f32 = 9.;
 pub const SIZE_W: f32 = 70.;
 pub const CHEVRON: f32 = 12.;
 pub const NAME_X: f32 = PAD_X + MARK_SLOT + GAP;
-// Scroll.lane: every column keeps a lane as wide as its row padding clear at its right edge.
+// Scroll.lane: every column keeps a lane as wide as its row padding clear at its right edge; LANE is body 14's.
 pub const LANE: f32 = PAD_X;
+
+/// ColumnPane.qml's Scroll.contentWidth lane, Theme.spacing.rowPaddingX at the face's size.
+pub fn lane(face: &crate::list::Typeface) -> f32 {
+    crate::list::Metrics::for_typeface(face).lane
+}
 pub const DIVIDER: f32 = 1.;
+
+// The body-14 footer expected by the fixed-size geometry fixtures.
+#[cfg(test)]
+pub const FOOTER: f32 = 7.;
+
+/// The active track's scroll content: its rows, the refused rename's band and the footer.
+pub fn active_content(
+    grow: crate::list::pane::Grow,
+    total: usize,
+    row: f32,
+    face: &crate::list::Typeface,
+) -> f32 {
+    let metrics = crate::list::Metrics::for_typeface(face);
+    let footer = (metrics.nominal_row - metrics.slot) / 2.;
+    grow.content(total, row) + footer
+}
 
 /// The row mark's square from the row's left and top: centred in its slot and on the row, as Glyph centres it.
 pub fn mark_box() -> (f32, f32, f32) {
@@ -268,8 +289,14 @@ pub struct Cells {
     pub chevron_x: Option<f32>,
 }
 
+/// A row's cells at body 14's lane.
 pub fn cells(track_width: f32, shows_size: bool, chevron: bool) -> Cells {
-    let content = (track_width - LANE).max(0.);
+    cells_in(track_width, LANE, shows_size, chevron)
+}
+
+/// A row's cells in a track that keeps `lane` clear at its right edge.
+pub fn cells_in(track_width: f32, lane: f32, shows_size: bool, chevron: bool) -> Cells {
+    let content = (track_width - lane).max(0.);
     let chevron_w = if chevron { CHEVRON } else { 0. };
     let size_right = content - PAD_X - chevron_w - if shows_size { GAP } else { 0. };
     Cells {
@@ -296,10 +323,21 @@ impl Cells {
 
 /// nameBudgetPlain and nameBudgetChevron: whole body advances between the mark and the size cell.
 pub fn name_budget(track_width: f32, shows_size: bool, chevron: bool, advance: f32) -> usize {
+    name_budget_in(track_width, LANE, shows_size, chevron, advance)
+}
+
+/// name_budget in a track that keeps `lane` clear at its right edge.
+pub fn name_budget_in(
+    track_width: f32,
+    lane: f32,
+    shows_size: bool,
+    chevron: bool,
+    advance: f32,
+) -> usize {
     if advance <= 0. {
         return 0;
     }
-    let c = cells(track_width, shows_size, chevron);
+    let c = cells_in(track_width, lane, shows_size, chevron);
     ((c.name_right - c.name_x) / advance).floor().max(0.) as usize
 }
 

@@ -296,3 +296,36 @@ fn enter_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
 
 #[path = "opener_folder_kind_tests.rs"]
 mod folder_kind;
+#[gpui::test]
+fn l_and_enter_browse_into_a_symlink_drawn_as_a_folder(cx: &mut TestAppContext) {
+    // Focus.js:139: a symlink whose icon is a folder browses in like one, never reaching the opener.
+    let mut link = row("linkdir", false);
+    link.mode = 0o120777;
+    link.icon = "folder".into();
+    for key in ["l", "enter"] {
+        let (shell, cx) = open(cx, "default");
+        land(
+            &shell,
+            cx,
+            "/files",
+            vec![link.clone(), row("notes.txt", false)],
+            1,
+        );
+        shell.update(cx, |shell, _| shell.opener[0].launch = record);
+        launched();
+        cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
+        set_cursor(&shell, cx, 0);
+        cx.simulate_keystrokes(key);
+        assert_eq!(
+            launched(),
+            Vec::<String>::new(),
+            "{key} hands nothing to flea --open"
+        );
+        assert_eq!(
+            asked(&shell, cx),
+            "/files/linkdir",
+            "{key} browses into the link"
+        );
+        quit(&shell, cx);
+    }
+}

@@ -180,10 +180,23 @@ impl PaneHost {
         }
     }
 
+    /// The re-read's lone mark, taken as a lone mark again so a plain move carries it.
+    pub(crate) fn take_lone_mark(&mut self) {
+        if let Some(row) = self.nav.lone_mark.take() {
+            if self.selected == [row] {
+                self.input.selection.only(&mut self.selected, row);
+            }
+        }
+    }
+
     pub fn changed(&mut self, locale: &Snapshot) {
         let generation = self.pane.held.listing;
         let before = std::mem::take(&mut self.path);
         if generation != self.applied_listing {
+            // Anchor.js anchoredRefresh: only a mark that follows the cursor comes back lone.
+            if let Some(anchor) = self.nav.anchor.as_mut() {
+                anchor.lone = anchor.lone && self.input.selection.is_lone();
+            }
             // A replacement listing cannot restore the previous band's cursor.
             self.input.band = None;
             self.input.cancel(&mut self.selected, &mut self.pane.cursor);

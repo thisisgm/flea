@@ -101,6 +101,8 @@ pub struct Navigator {
     pub pending_select: Option<String>,
     /// The listing and row a navigation selected on landing, which Escape climbs through as no mark.
     pub landed: Option<(usize, usize)>,
+    /// The row a re-read marked again from a lone mark, owed a lone take by the selection.
+    pub(crate) lone_mark: Option<usize>,
     /// A manual reload out: its folder and the count it left, then the changed count the backend named.
     pub reload_from: Option<(String, usize)>,
     pub reload_changed: Option<usize>,

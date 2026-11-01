@@ -102,8 +102,9 @@ impl Shell {
                             let lifted =
                                 !cursor && lifted_row(drawn.view(), drawn.held.as_deref(), index);
                             let chevron = prepared.dir && (cursor || lifted);
-                            let cells = geometry::cells(
+                            let cells = geometry::cells_in(
                                 f32::from(drawn.bounds.size.width),
+                                drawn.lane,
                                 active,
                                 chevron,
                             );

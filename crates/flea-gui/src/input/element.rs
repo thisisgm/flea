@@ -222,15 +222,10 @@ fn viewport(
                     });
                 } else if phase == DispatchPhase::Bubble {
                     let _ = up.update(cx, |shell, cx| {
-                        let band = shell.panes[side]
-                            .as_ref()
-                            .is_some_and(|host| host.input.band.is_some());
                         if grid {
                             shell.grid_bar_up(side, event, window, cx);
                         }
-                        if !grid || band {
-                            shell.pointer_up(side, event, window, cx);
-                        }
+                        shell.pointer_up(side, event, window, cx);
                         shell.hold_pointer(side, false, window, cx);
                     });
                 }

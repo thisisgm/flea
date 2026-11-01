@@ -31,6 +31,9 @@ flea_uish_module tests/ui-uish/drag.sh griddrop railpointer dualautohidereveal d
 flea_uish_module tests/ui-uish/menus.sh querypaste runscript background hidden reload focus columnsbackground
 flea_uish_module tests/ui-uish/backend.sh terminal
 
+flea_uish_module tests/ui-uish/autofit.sh columnautofit
+flea_uish_module tests/ui-uish/input.sh shiftscroll overlays
+
 flea_uish_load() {
     [[ "$test_frontend" == gpui ]] || return 0
     python3 -B "$repo/tests/lib/flea_uish_inventory.py" --repo "$repo" --check >/dev/null || return 1
