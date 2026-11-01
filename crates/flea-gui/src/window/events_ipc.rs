@@ -30,6 +30,17 @@ impl Shell {
 
     pub(crate) fn ipc(&mut self, event: Event, window: &mut Window, cx: &mut Context<Self>) {
         match event {
+            // Ahead of the cold answer, because an outside action needs a refusal it can read, never "Target not found."
+            Event::Call { request, answer }
+                if crate::window::external_action_ipc::is_action_call(&request) =>
+            {
+                if self.ipc_cold {
+                    let reply = self.action_refused("menu.refusal.unavailable");
+                    let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+                } else {
+                    self.action_call(request, answer, window, cx);
+                }
+            }
             Event::Call { answer, .. } if self.ipc_cold => {
                 let _ = answer.try_send(crate::ipc::server::Answer {
                     reply: flea::ipc::registry::no_target(),

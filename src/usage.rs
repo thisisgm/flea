@@ -19,6 +19,7 @@ pub(crate) fn usage(message: &str) -> ! {
     eprintln!("       flea --clip get|set copy|cut|clear TOKEN");
     eprintln!("       flea flash choose [start]");
     eprintln!("       flea plugin list [--json] | add <git url|folder> | enable|disable|update|remove <id> | validate <folder>");
+    eprintln!("       flea --action <id> [--window <pid>] | --actions [--window <pid>]");
     eprintln!("       flea ipc [--pid N|--any] call <target> <function> [args...] | show");
     eprintln!("       flea --version");
     exit(2)

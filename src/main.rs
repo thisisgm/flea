@@ -115,6 +115,11 @@ fn main() {
         exit(flea::ipc::client::run(&args[2..]));
     }
 
+    // flea --action <id> and flea --actions: one request to a running window's IPC socket, never a new window.
+    if matches!(args.get(1).map(String::as_str), Some("--action" | "--actions")) {
+        exit(flea::ipc::action::run(&args[1..]));
+    }
+
     // A bare version query needs no display or path parsing.
     if args.len() == 2 && args[1] == "--version" {
         println!("{}", env!("CARGO_PKG_VERSION"));

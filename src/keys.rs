@@ -2,6 +2,7 @@
 pub mod display;
 #[path = "keys_generated.rs"]
 mod generated;
+pub mod actions;
 pub mod presentation;
 pub mod sequence;
 pub mod user;

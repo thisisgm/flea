@@ -63,8 +63,14 @@ pub const VISUAL: &[Function] = &[
     function!("flea", "previewQuality", "string", &[]),
 ];
 
+/// The action entry point behind `flea --action` and `flea --actions`; see PLUGINS.md "Run an action from outside".
+pub const ACTIONS: &[Function] = &[
+    function!("flea", "runAction", "string", &[("id", "string")]),
+    function!("flea", "actionIds", "string", &[]),
+];
+
 pub fn functions() -> impl Iterator<Item = &'static Function> {
-    ORACLE.iter().chain(LIFECYCLE).chain(VISUAL)
+    ORACLE.iter().chain(LIFECYCLE).chain(VISUAL).chain(ACTIONS)
 }
 
 /// Quickshell's answer for a target with no seam loaded, which v0.3.12 gave until its first listing settled.

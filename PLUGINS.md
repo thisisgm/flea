@@ -428,6 +428,49 @@ The built-in Shelf keeps its own pile adapter.
 "shelf":{"omarchyPlugin":"pile"},"access":[]}
 ```
 
+### Run an action from outside
+
+`flea --action <id>` runs one action in a running Flea window, the same way a key or a menu row runs it.
+Scripts, launchers and Omarchy shell plugins use it. It sends one request over the window's existing IPC socket,
+and it never starts Flea: with no window running it fails with status `5`.
+
+```sh action
+flea --actions
+flea --action viewGrid
+flea --action example.checksums:sha256
+```
+
+`flea --actions` prints one id per line: Flea's built-in actions, then the menu actions of every enabled plugin.
+A built-in id is an `action` from Flea's key table, `keys.toml`, such as `viewGrid`, `selectAll` or `newFolder`.
+A plugin id is `<plugin id>:<action id>`, so the checksums example's action is `example.checksums:sha256`.
+A plugin's ids are listed and accepted only while the plugin is installed, enabled and not failed.
+
+The action runs in the Flea window Hyprland focused most recently. To choose a window, add `--window <pid>` with
+the window's process id as `hyprctl clients` reports it. Without Hyprland, or when no Flea window has been focused,
+the newest window runs it.
+
+A built-in runs as if its key were pressed in the window's current state. A listing action needs the listing to
+hold the keys, so it is refused while a menu, card, field or rename editor has them.
+A plugin action runs as if it were chosen from the file menu at the cursor, or from the selection when there is one.
+An action that declares only the background menu runs from the folder's background menu.
+It goes through the same `when` checks, backend validation and text input card as a click on the row.
+
+| Exit status | Meaning |
+| --- | --- |
+| `0` | The window ran the action. |
+| `2` | The command line is not one of the two forms above. |
+| `3` | No action has that id. |
+| `4` | The window did not run the action: it is not available in the window's current state, the window is an older Flea, or the window did not answer. stderr says which. |
+| `5` | No Flea window is running, or none has the `--window` process id. |
+
+Every failure prints one line on stderr and nothing on stdout. A script can test the status:
+
+```sh action
+if ! flea --action example.checksums:sha256 --window "$flea_pid"; then
+  echo "the checksum action did not run" >&2
+fi
+```
+
 ## 5. Runtime protocol
 
 The versioned contract is [docs/plugin-protocol.json](docs/plugin-protocol.json).
