@@ -164,7 +164,21 @@ impl Shell {
             .as_ref()
             .map(|network| section(&network.rows, shown(&state)))
             .unwrap_or_default();
+        if let Some(host) = &self.plugins.host {
+            let host = host.read(cx);
+            if !host.plugins.is_empty() && !crate::g2::plugins::rail::dropbox_enabled(host) {
+                for section in &mut tail {
+                    section
+                        .rows
+                        .retain(|row| row.kind != flea::ui_logic_pl4::rail::Kind::Dropbox);
+                }
+                tail.retain(|section| !section.rows.is_empty());
+            }
+        }
         tail.extend(join.devices.read(cx).sections.iter().cloned());
+        if let Some(host) = &self.plugins.host {
+            tail.extend(crate::g2::plugins::rail::sections(host.read(cx)));
+        }
         join.places
             .update(cx, |producer, cx| producer.set_tail(tail, cx));
     }

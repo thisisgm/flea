@@ -231,11 +231,16 @@ impl Pane {
         if self.busy() && path == self.place() {
             return false;
         }
+        let crossing = path.starts_with("plugin://") != self.path.starts_with("plugin://");
         if !self
             .swap
             .begin(path, self.first_count(), &self.state, options, now)
         {
             return false;
+        }
+        // A plugin place numbers its own listings; the route drops the other producer's late replies.
+        if crossing {
+            self.greatest_listing = 0;
         }
         self.list_requests += 1;
         self.requests.cancel();

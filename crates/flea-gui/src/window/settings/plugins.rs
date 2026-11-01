@@ -27,6 +27,9 @@ impl Shell {
                 .panel
                 .as_ref()
                 .is_some_and(|view| view.read(cx).panel.section == "plugins");
+        if showing {
+            self.follow_plugins(window, cx);
+        }
         if showing && self.settings.plugins.is_none() {
             let theme = cx
                 .try_global::<crate::palette::Theme>()
@@ -94,13 +97,12 @@ impl Shell {
     fn flush_settings_plugins(&mut self, cx: &mut Context<Self>) {
         let lines = std::mem::take(&mut *self.settings.plugin_queue.borrow_mut());
         for line in lines {
-            let sent = self.panes[self.focus_side]
+            let sent = self
+                .plugins
+                .host
                 .as_ref()
-                .and_then(|p| p.backend.as_ref())
-                .is_some_and(|backend| backend.plugins(line).is_ok());
-            if sent {
-                self.settings.plugin_backends[self.focus_side] = true;
-            } else {
+                .is_some_and(|host| host.read(cx).line(line));
+            if !sent {
                 if let Some(view) = &self.settings.plugins {
                     view.update(cx, |view, cx| view.backend_failed(cx));
                 }

@@ -180,7 +180,11 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
     cx: &mut TestAppContext,
 ) {
     let (backend, _requests) = Backend::test_channel();
+    // Settings > Plugins talks to the app-wide plugin owner, so its end is what resets a busy card.
+    let (owner, _owner_lines) = Backend::test_lines();
+    let owner_output = owner.test_output();
     let (entity, cx) = cx.add_window_view(|window, cx| {
+        crate::g2::plugins::service(cx).update(cx, |host, cx| host.test_attach(owner, cx));
         let mut shell = shell(backend, cx);
         shell.open_settings(window, cx);
         shell
@@ -230,7 +234,14 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
     entity.update_in(cx, |shell, window, cx| {
         let plugin = shell.settings.plugins.as_ref().unwrap().clone();
         assert!(matches!(plugin.read(cx).page().card(), Card::Add(card) if card.busy));
+        // A pane backend's end is not the plugin owner's, so the card stays busy.
         shell.receive(0, Event::Drained, window, cx);
+        assert!(matches!(plugin.read(cx).page().card(), Card::Add(card) if card.busy));
+    });
+    owner_output.try_send(Event::Drained).unwrap();
+    cx.run_until_parked();
+    entity.read_with(cx, |shell, cx| {
+        let plugin = shell.settings.plugins.as_ref().unwrap();
         assert!(matches!(plugin.read(cx).page().card(), Card::Add(card) if !card.busy));
     });
 }

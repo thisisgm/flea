@@ -16,6 +16,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.deliver_plugin_action(capture, action, &paths, window, cx) {
+            return true;
+        }
+        if self.deliver_plugin_send(capture, action, leaf, &paths, window, cx) {
+            self.retire_menu(window, cx);
+            return true;
+        }
         match action {
             flea::ui_logic_mn2::agent::ID => {
                 self.retire_menu(window, cx);

@@ -243,6 +243,22 @@ fn record_shelf(paths: &[String]) -> Result<(), String> {
 }
 
 // EY-195: Add to Shelf on a file, a folder and in Columns runs one `flea shelf add` over the item and says "Added it to the shelf".
+fn shelf_plugin() -> flea::ui_logic_st2::wire::Plugin {
+    let (manifest, _) = flea::ui_logic_st2::builtin::manifests()
+        .into_iter()
+        .find(|(m, _)| m.id == flea::ui_logic_st2::builtin::SHELF)
+        .unwrap();
+    flea::ui_logic_st2::wire::Plugin {
+        manifest,
+        enabled: true,
+        source: flea::ui_logic_st2::wire::Source::Builtin,
+        failure: None,
+        mark_path: String::new(),
+        settings: Vec::new(),
+        shelf: None,
+    }
+}
+
 #[gpui::test]
 fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
     for case in ["file", "folder", "columns"] {
@@ -254,8 +270,12 @@ fn ey195_add_to_shelf_adds_the_item(cx: &mut TestAppContext) {
         } else {
             "notes.txt"
         };
-        update(cx, fixture.handle, |shell, _, _| {
+        update(cx, fixture.handle, |shell, window, cx| {
             shell.menu.shelve = Some(record_shelf);
+            // The row shows only while the owner lists an enabled shelf plugin.
+            shell.follow_plugins(window, cx);
+            let host = shell.plugins.host.clone().unwrap();
+            host.update(cx, |host, _| host.plugins = vec![shelf_plugin()]);
             if case == "columns" {
                 shell.view = crate::window::startup::View::Columns;
             }

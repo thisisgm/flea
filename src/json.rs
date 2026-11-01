@@ -20,6 +20,15 @@ pub fn escape(s: &str) -> String {
     out
 }
 
+// `, "names":[...]` with each path's file name, or nothing past `cap` paths so a huge selection stays one short line.
+pub fn names_field<'a>(paths: impl ExactSizeIterator<Item = &'a std::path::Path>, cap: usize) -> String {
+    if paths.len() > cap {
+        return String::new();
+    }
+    let names: Vec<String> = paths.map(|p| format!("\"{}\"", escape(p.file_name().and_then(|n| n.to_str()).unwrap_or("")))).collect();
+    format!(r#", "names":[{}]"#, names.join(","))
+}
+
 // Skips any "<key>": that falls inside a string value.
 fn value_start(line: &str, key: &str) -> Option<usize> {
     let bytes = line.as_bytes();

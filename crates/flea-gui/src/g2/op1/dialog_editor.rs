@@ -13,6 +13,7 @@ pub(crate) enum Slot {
     BulkFind,
     BulkReplace,
     BulkLine(usize),
+    PluginAction,
 }
 
 #[derive(Default)]
@@ -34,6 +35,9 @@ impl DialogEditor {
 
 impl Shell {
     pub(crate) fn dialog_value(&self) -> Option<(Slot, &str)> {
+        if let Some(open) = self.plugin_input.as_ref().filter(|open| open.focus == 0) {
+            return Some((Slot::PluginAction, &open.value));
+        }
         let archive = &self.operations.archive;
         if let Some(card) = archive.compress.as_ref().filter(|c| c.opened()) {
             return card.ime_value();
@@ -48,7 +52,10 @@ impl Shell {
     }
 
     pub(crate) fn sync_dialog_editor(&mut self) {
-        if self.operations.archive.showing() || self.rename.bulk.is_some() {
+        if self.operations.archive.showing()
+            || self.rename.bulk.is_some()
+            || self.plugin_input.is_some()
+        {
             if let Some(edit) = &mut self.rename.edit {
                 edit.entry.ime_unmark();
                 edit.line.line.registered = None;
@@ -85,7 +92,13 @@ impl Shell {
         let editor = &self.rename.ime;
         if let Some(slot) = editor.owner {
             let text = &editor.entry.text;
-            if let Some(card) = self
+            if let Some(open) = self
+                .plugin_input
+                .as_mut()
+                .filter(|_| slot == Slot::PluginAction)
+            {
+                open.value = text.chars().take(open.descriptor.max_chars).collect();
+            } else if let Some(card) = self
                 .operations
                 .archive
                 .compress

@@ -87,7 +87,7 @@ impl Look {
         view
     }
 
-    fn code(&self, numbered: bool) -> CodeView {
+    pub(super) fn code(&self, numbered: bool) -> CodeView {
         let t = &self.theme;
         let mut view = CodeView::new(
             SLOT,

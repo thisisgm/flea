@@ -18,6 +18,7 @@ pub struct Env {
     pub store: crate::uistore::Store,
     pub pile: PathBuf,
     pub shelf_sync: fn(bool) -> Result<(), String>,
+    pub plugin_manager: PathBuf,
     pub ready_deadline: Duration,
     pub git_deadline: Duration,
 }
@@ -29,6 +30,7 @@ impl Env {
             store: crate::uistore::Store::user()?,
             pile: crate::shelf::Shelf::user()?.pile_file().to_path_buf(),
             shelf_sync: crate::shelfplugin::sync,
+            plugin_manager: PathBuf::from("omarchy"),
             ready_deadline: READY_DEADLINE,
             git_deadline: plugingit::GIT_DEADLINE,
         })
@@ -61,7 +63,9 @@ fn start_failure(id: &str) -> Option<Invalid> {
 pub fn request(line: String, replies: std::sync::mpsc::Sender<super::opsreq::OpMsg>) {
     std::thread::spawn(move || {
         let lines = match Env::user() {
-            Ok(env) => handle(&line, &env),
+            Ok(env) => handle_stream(&line, &env, &mut |line| {
+                let _ = replies.send(super::opsreq::OpMsg::Meta { line });
+            }),
             Err(e) => vec![refusal(&line, Invalid::new("write", e))],
         };
         for line in lines {
@@ -91,6 +95,7 @@ fn discovered(env: &Env) -> Vec<(PathBuf, Result<Manifest, Invalid>)> {
                 .flatten()
                 .filter_map(|e| e.file_name().into_string().ok().map(|n| (n, e.path())))
                 .filter(|(name, path)| !name.starts_with('.') && path.is_dir())
+                .take(256)
                 .collect()
         })
         .unwrap_or_default();
@@ -136,6 +141,7 @@ fn named_after(folder: &Path) -> Manifest {
         glyph: String::new(),
         access: Vec::new(),
         schema: Vec::new(),
+        blocks: Vec::new(),
     }
 }
 
@@ -172,7 +178,7 @@ pub fn installed(env: &Env) -> Vec<Installed> {
                 plugin: Plugin {
                     source: Source::Builtin,
                     enabled,
-                    failure: None,
+                    failure: enabled.then(|| start_failure(&m.id)).flatten(),
                     mark_path: String::new(),
                     settings: Vec::new(),
                     shelf,
@@ -194,6 +200,7 @@ pub fn installed(env: &Env) -> Vec<Installed> {
         if enabled && failure.is_none() {
             failure = pluginfs::entry(&folder, &manifest.run)
                 .err()
+                .or_else(|| super::pluginruntime::failure(env, &manifest.id))
                 .or_else(|| start_failure(&manifest.id));
         }
         let settings = schema::settings(
@@ -223,11 +230,12 @@ pub fn installed(env: &Env) -> Vec<Installed> {
     out
 }
 
-fn hello(env: &Env, m: &Manifest) -> String {
+pub(super) fn hello(env: &Env, m: &Manifest) -> String {
     let i18n = flea::i18n::I18n::default();
     let settings = schema::settings(&m.schema, store::stored_settings(&state(env), &m.id));
     wire::compact(&Json::Obj(vec![
         ("op".into(), Json::Str("hello".into())),
+        ("protocolVersion".into(), Json::Num(flea::plugin_runtime::protocol::VERSION.to_string())),
         ("flea".into(), Json::Str(env!("CARGO_PKG_VERSION").into())),
         ("language".into(), Json::Str(i18n.language().into())),
         ("decimal".into(), Json::Str(i18n.locale().decimal.clone())),
@@ -249,11 +257,11 @@ fn hello(env: &Env, m: &Manifest) -> String {
 
 // Built-ins run inside Flea, so only a plugin with a folder is asked to start.
 pub fn check_start(env: &Env, found: &Installed) {
-    if let Some(folder) = &found.folder {
+    if found.folder.is_some() {
         let m = &found.plugin.manifest;
         record_start(
             &m.id,
-            pluginfs::start_check(folder, &m.run, &hello(env, m), env.ready_deadline),
+            super::pluginruntime::start(env, found),
         );
     }
 }
@@ -277,6 +285,10 @@ fn refusal(line: &str, error: Invalid) -> String {
 
 // One request line in, its answer lines out: an outcome for a change, then the listing every change ends in.
 pub fn handle(line: &str, env: &Env) -> Vec<String> {
+    handle_stream(line, env, &mut |_| {})
+}
+
+pub(super) fn handle_stream(line: &str, env: &Env, progress: &mut dyn FnMut(String)) -> Vec<String> {
     let doc = match jsondoc::parse(line) {
         Ok(doc) => doc,
         Err(e) => return vec![refusal(line, Invalid::new("request", e))],
@@ -288,6 +300,9 @@ pub fn handle(line: &str, env: &Env) -> Vec<String> {
         .filter(|n| *n >= 0.0 && n.fract() == 0.0)
         .unwrap_or(0.0) as u64;
     let op = text("op");
+    if op == "runtime" {
+        return vec![super::pluginruntime::reply_stream(env, &doc, progress)];
+    }
     let listing = |env: &Env| {
         wire::listing_line(&Listing {
             id,
@@ -295,6 +310,7 @@ pub fn handle(line: &str, env: &Env) -> Vec<String> {
         })
     };
     if op == "list" {
+        super::pluginruntime::reconcile(env);
         return vec![listing(env)];
     }
     if !wire::OPS.contains(&op.as_str()) {

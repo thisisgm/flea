@@ -1,0 +1,272 @@
+//! One supervised session per installed identity in this host process.
+use super::plugins::{self, Env, Installed};
+use flea::jsondoc::Json;
+use flea::plugin_runtime::{protocol, Config, Reply, Runtime};
+use flea::ui_logic_st2::{manifest::Invalid, wire};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::Duration;
+
+static RUNNING: Mutex<Option<HashMap<PathBuf, Runtime>>> = Mutex::new(None);
+const MAX_PLUGINS: usize = 64;
+
+fn key(env: &Env, id: &str) -> PathBuf {
+    env.dir.join(id)
+}
+
+pub(super) fn start(env: &Env, found: &Installed) -> Result<(), Invalid> {
+    if found.plugin.manifest.block("previewer").is_some() {
+        return super::pluginpreview::check(env, found);
+    }
+    session(env, found)?
+        .ensure_ready()
+        .map_err(|e| Invalid::new("start", e))
+}
+
+fn session(env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
+    let manifest = &found.plugin.manifest;
+    if manifest.block("previewer").is_some() {
+        return Err(Invalid::new(
+            "start",
+            "a previewer runs only in the thumbnail sandbox",
+        ));
+    }
+    let folder = found
+        .folder
+        .clone()
+        .ok_or_else(|| Invalid::new("builtin", &manifest.id))?;
+    let key = key(env, &manifest.id);
+    let mut running = RUNNING.lock().unwrap_or_else(|p| p.into_inner());
+    let running = running.get_or_insert_with(HashMap::new);
+    running.retain(|key, runtime| {
+        let present = key.parent().is_some_and(std::path::Path::is_dir);
+        if !present {
+            runtime.shutdown();
+        }
+        present
+    });
+    if let Some(runtime) = running.get(&key) {
+        return Ok(runtime.clone());
+    }
+    if running.len() >= MAX_PLUGINS {
+        return Err(Invalid::new("start", "too many running plugins"));
+    }
+    let hello = flea::jsondoc::parse(&plugins::hello(env, manifest))
+        .map_err(|e| Invalid::new("start", e))?;
+    let runtime = Runtime::new(Config {
+        folder,
+        manifest: manifest.clone(),
+        hello,
+        ready_timeout: env.ready_deadline,
+        request_timeout: Duration::from_secs(30),
+        idle_timeout: Duration::from_secs(30),
+    });
+    running.insert(key, runtime.clone());
+    Ok(runtime)
+}
+
+pub(super) fn failure(env: &Env, id: &str) -> Option<Invalid> {
+    RUNNING
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()?
+        .get(&key(env, id))?
+        .failure()
+        .map(|e| Invalid::new("start", e))
+}
+
+pub(super) fn stop(env: &Env, id: &str) {
+    let removed = RUNNING
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_mut()
+        .and_then(|m| m.remove(&key(env, id)));
+    if let Some(runtime) = removed {
+        runtime.shutdown();
+    }
+}
+
+pub(crate) fn shutdown() {
+    let running = RUNNING
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .take()
+        .unwrap_or_default();
+    for runtime in running.values() {
+        runtime.shutdown();
+    }
+    drop(running);
+}
+
+pub(super) fn reconcile(env: &Env) {
+    let installed = plugins::installed(env);
+    for found in &installed {
+        if let Some(error) = found.plugin.failure.as_ref().filter(|e| e.code == "start") {
+            plugins::record_start(&found.plugin.manifest.id, Err(error.clone()));
+        }
+    }
+    let enabled: Vec<_> = installed
+        .iter()
+        .filter(|p| p.plugin.enabled && p.plugin.failure.is_none())
+        .map(|p| key(env, &p.plugin.manifest.id))
+        .collect();
+    let removed = {
+        let mut held = RUNNING.lock().unwrap_or_else(|p| p.into_inner());
+        let Some(running) = held.as_mut() else {
+            return;
+        };
+        let stale: Vec<_> = running
+            .keys()
+            .filter(|key| key.parent() == Some(env.dir.as_path()) && !enabled.contains(key))
+            .cloned()
+            .collect();
+        stale
+            .into_iter()
+            .filter_map(|key| running.remove(&key))
+            .collect::<Vec<_>>()
+    };
+    for runtime in &removed {
+        runtime.shutdown();
+    }
+}
+
+fn request_with_progress(
+    env: &Env,
+    id: &str,
+    message: &Json,
+    progress: &mut dyn FnMut(Json),
+) -> Result<Reply, Invalid> {
+    let found = plugins::find(env, id)?;
+    if message.get("op").and_then(Json::as_str) == Some("cancel") {
+        stop(env, id);
+        return Ok(Reply {
+            message: Json::Obj(vec![("op".into(), Json::Str("done".into()))]),
+            progress: Vec::new(),
+        });
+    }
+    if !found.plugin.enabled || found.plugin.failure.is_some() {
+        return Err(Invalid::new("start", id));
+    }
+    if found.folder.is_none() {
+        return super::pluginshelf::builtin(env, &found, message);
+    }
+    if message.get("op").and_then(Json::as_str) == Some("ready") {
+        start(env, &found)?;
+        return Ok(Reply {
+            message: Json::Obj(vec![("op".into(), Json::Str("ready".into()))]),
+            progress: Vec::new(),
+        });
+    }
+    protocol::operation(&found.plugin.manifest, message).map_err(|e| Invalid::new("request", e))?;
+    let result = if message.get("op").and_then(Json::as_str) == Some("preview") {
+        super::pluginpreview::preview(env, &found, message)
+    } else {
+        session(env, &found)?
+            .request_stream(message.clone(), progress)
+            .map_err(|e| Invalid::new(if e == "plugin busy" { "busy" } else { "start" }, e))
+    };
+    if let Err(error) = &result {
+        if !matches!(error.code, "busy" | "request") && error.detail != "plugin stopped" {
+            plugins::record_start(id, Err(error.clone()));
+        }
+    }
+    result
+}
+
+pub(super) fn settings(env: &Env, id: &str) {
+    let runtime = RUNNING
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .as_ref()
+        .and_then(|m| m.get(&key(env, id)).cloned());
+    let Some(runtime) = runtime else {
+        return;
+    };
+    let Ok(found) = plugins::find(env, id) else {
+        return;
+    };
+    let settings = Json::Obj(
+        found
+            .plugin
+            .settings
+            .iter()
+            .map(|(k, v)| (k.clone(), v.to_json()))
+            .collect(),
+    );
+    if let Err(e) = runtime.request(Json::Obj(vec![
+        ("op".into(), Json::Str("settings".into())),
+        ("settings".into(), settings),
+    ])) {
+        if e != "plugin busy" {
+            plugins::record_start(id, Err(Invalid::new("start", e)));
+        }
+    }
+    stop(env, id);
+}
+
+pub(super) fn reply_stream(env: &Env, request: &Json, progress: &mut dyn FnMut(String)) -> String {
+    let plugin = request.get("plugin").and_then(Json::as_str).unwrap_or("");
+    let result = request_with_progress(
+        env,
+        plugin,
+        request.get("request").unwrap_or(&Json::Null),
+        &mut |message| {
+            progress(wire::compact(&Json::Obj(vec![
+                ("t".into(), Json::Str("pluginprogress".into())),
+                (
+                    "id".into(),
+                    request.get("id").cloned().unwrap_or(Json::Num("0".into())),
+                ),
+                ("plugin".into(), Json::Str(plugin.into())),
+                ("message".into(), message),
+            ])));
+        },
+    );
+    let (ok, message, progress, code, error) = match result {
+        Ok(reply) => {
+            let error = reply.message.get("op").and_then(Json::as_str) == Some("error");
+            let detail = if error {
+                reply
+                    .message
+                    .get("message")
+                    .and_then(Json::as_str)
+                    .unwrap_or("")
+                    .to_owned()
+            } else {
+                String::new()
+            };
+            (
+                !error,
+                reply.message,
+                Json::Arr(reply.progress),
+                if error {
+                    "operation".into()
+                } else {
+                    String::new()
+                },
+                detail,
+            )
+        }
+        Err(error) => (
+            false,
+            Json::Null,
+            Json::Arr(Vec::new()),
+            error.code.to_owned(),
+            error.detail,
+        ),
+    };
+    wire::compact(&Json::Obj(vec![
+        ("t".into(), Json::Str("pluginruntime".into())),
+        (
+            "id".into(),
+            request.get("id").cloned().unwrap_or(Json::Num("0".into())),
+        ),
+        ("plugin".into(), Json::Str(plugin.into())),
+        ("ok".into(), Json::Bool(ok)),
+        ("message".into(), message),
+        ("progress".into(), progress),
+        ("code".into(), Json::Str(code)),
+        ("error".into(), Json::Str(error)),
+    ]))
+}

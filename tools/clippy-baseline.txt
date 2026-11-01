@@ -8,16 +8,14 @@ clippy::collapsible_match|style|1
 clippy::comparison_to_empty|style|2
 clippy::field_reassign_with_default|style|1
 clippy::io_other_error|style|6
-clippy::items_after_test_module|style|1
 clippy::len_zero|style|1
 clippy::manual_pattern_char_comparison|style|1
 clippy::manual_range_contains|style|1
 clippy::map_identity|complexity|1
 clippy::reserve_after_initialization|complexity|1
 clippy::single_match|style|2
-clippy::too_many_arguments|complexity|18
+clippy::too_many_arguments|complexity|17
 clippy::type_complexity|complexity|3
 clippy::unnecessary_cast|complexity|3
 clippy::unnecessary_sort_by|complexity|3
-clippy::unnecessary_unwrap|complexity|1
 clippy::useless_format|complexity|2

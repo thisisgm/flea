@@ -7,6 +7,9 @@ pub mod element;
 #[cfg(test)]
 mod elide_tests;
 mod facts;
+#[cfg(test)]
+#[path = "makeexec_foldhash.rs"]
+pub(crate) mod foldhash;
 pub mod glyphs;
 #[cfg(test)]
 mod grow_tests;

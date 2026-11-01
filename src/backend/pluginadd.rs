@@ -100,6 +100,7 @@ pub fn update(env: &Env, plugin: &str) -> Result<(String, String), Invalid> {
     let Source::Git(origin) = &found.plugin.source else {
         return Err(Invalid::new("git", plugin));
     };
+    super::pluginruntime::stop(env, plugin);
     plugingit::pull(&folder, env.git_deadline).map_err(|_| Invalid::new("git", origin.as_str()))?;
     plugins::record_start(plugin, Ok(()));
     let fresh = plugins::find(env, plugin)?;

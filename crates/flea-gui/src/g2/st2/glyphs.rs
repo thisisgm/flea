@@ -91,6 +91,10 @@ pub fn glyph(name: &str) -> Option<(SharedString, &'static [u8])> {
         "chevron-right" => ("flea-st2:chevron-right", cut!("M9 18l6-6-6-6")),
         "folder" => ("flea-st2:folder", cut!("M2 20V3h6l2 3h12v14H2z")),
         "file" => ("flea-st2:file", cut!("M4 22V2h10l6 6v14H4z M14 2v6h6")),
+        // A menu action's mark (Checksums' hash) names the plugin's row with the menu's own cut.
+        menu if crate::g2::mn1::glyphs::known(menu) => {
+            return Some(crate::g2::mn1::glyphs::mark(menu))
+        }
         _ => return None,
     };
     Some((SharedString::new_static(key), data))

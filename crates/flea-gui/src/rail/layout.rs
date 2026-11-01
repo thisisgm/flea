@@ -86,7 +86,10 @@ pub(super) fn layout(
                 .filter(|(target, _)| *target == index)
                 .map(|(_, label)| label.to_string());
             let dropbox = row.kind == flea::ui_logic_pl4::rail::Kind::Dropbox;
-            let dot = cue.is_none() && !dropbox && indicator_slot(row.group, row.kind);
+            let plugin_state =
+                row.kind == flea::ui_logic_pl4::rail::Kind::PluginRow && row.mounted.is_some();
+            let dot =
+                cue.is_none() && !dropbox && (indicator_slot(row.group, row.kind) || plugin_state);
             // RailDetails: a drive size ends on one x for every device row, the slot kept after it with or without a square.
             let size = cue.is_none()
                 && model.drive_size_shown

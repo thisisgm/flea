@@ -23,6 +23,7 @@ pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;
+pub mod plugin_runtime;
 pub mod qscrash;
 pub mod preview_model;
 pub mod theme;

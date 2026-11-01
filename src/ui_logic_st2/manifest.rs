@@ -33,6 +33,7 @@ pub struct Manifest {
     pub glyph: String,
     pub access: Vec<String>,
     pub schema: Vec<Field>,
+    pub blocks: Vec<(String, Json)>,
 }
 
 // The machine identity of a refusal: `code` selects the plugins.invalid.* sentence and `detail` is its one argument.
@@ -146,6 +147,7 @@ pub fn parse(text_in: &str, builtin: bool) -> Result<Manifest, Invalid> {
             return Err(Invalid::new("field", field.key.as_str()));
         }
     }
+    let blocks = super::contributions::validate(&doc, &kinds)?;
     Ok(Manifest {
         id: id.into(),
         name: name.into(),
@@ -159,7 +161,15 @@ pub fn parse(text_in: &str, builtin: bool) -> Result<Manifest, Invalid> {
         glyph: glyph(&doc),
         access: strings(&doc, "access")?,
         schema,
+        blocks,
     })
+}
+
+impl Manifest {
+    pub fn block(&self, kind: &str) -> Option<&Json> {
+        let (_, name) = KINDS.iter().find(|(name, _)| *name == kind)?;
+        self.kinds.iter().any(|k| k == kind).then(|| self.blocks.iter().find(|(key, _)| key == name).map(|(_, v)| v)).flatten()
+    }
 }
 
 // The row mark a plugin without its own SVG names: the first glyph any of its blocks gives.

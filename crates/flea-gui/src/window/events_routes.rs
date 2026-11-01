@@ -19,6 +19,24 @@ impl Shell {
             || self.clipboard_receive(side, event, window, cx)
     }
 
+    // A Trash line goes to the operation view first when one is open, then to the Trash pane.
+    pub(super) fn trash_event(
+        &mut self,
+        side: usize,
+        event: &Event,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let Event::TrashLine(line) = event else {
+            return false;
+        };
+        if self.operation_view(side).is_some() {
+            self.operation_line(side, line, window, cx);
+        }
+        self.trash_line(side, line, cx);
+        true
+    }
+
     fn opener_wire(
         &mut self,
         side: usize,

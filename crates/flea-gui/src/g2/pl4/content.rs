@@ -96,10 +96,18 @@ pub fn row_label(catalog: &I18n, entry: &RailEntry) -> SharedString {
 }
 
 fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
+    // A plugin row keeps its glyph and shows its state in the trailing slot, as a share row does.
+    let plugin = entry.kind == flea::ui_logic_pl4::rail::Kind::PluginRow;
     let mark = match (entry.tag, entry.square) {
         (Some(name), _) => RowMark::Tag(tag_mark(theme, name, Ground::Surface)),
         (None, Square::None) => RowMark::None,
+        (None, _) if plugin => RowMark::None,
         (None, square) => RowMark::Square(square),
+    };
+    let mounted = match entry.square {
+        Square::On if plugin => Some(true),
+        Square::Off if plugin => Some(false),
+        _ => entry.mounted,
     };
     let error = entry.error.as_ref().map(|error| match error {
         flea::ui_logic_pl4::rail::FavouriteError::Record(record) => catalog.tr(record.key()).into(),
@@ -111,7 +119,7 @@ fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
         mark,
         group: entry.group,
         kind: entry.kind,
-        mounted: entry.mounted,
+        mounted,
         releasable: entry.releasable,
         error,
         size: entry

@@ -10,23 +10,28 @@ pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, Strin
     let found = find(env, plugin)?;
     let was = found.plugin.enabled;
     write(env, &store::enable_patch(plugin, on))?;
-    if plugin == builtin::SHELF && was != on {
+    record_start(plugin, Ok(()));
+    let mut shelf_failure = None;
+    if found.plugin.manifest.block("shelf").is_some() && was != on {
         // The ui.json write is the switch; a bar that could not follow is said on stderr, as `flea --ui-state` says it.
-        if let Err(e) = (env.shelf_sync)(on) {
-            eprintln!("flea: the shelf plugin did not follow its switch ({e})");
+        if let Err(e) = super::pluginshelf::switch(env, &found, on) {
+            shelf_failure = Some(e);
         }
     }
-    if on
+    if on && shelf_failure.is_none()
         && found
             .plugin
             .failure
             .as_ref()
             .map_or(true, |f| f.code == "start")
     {
+        super::pluginruntime::stop(env, plugin);
         check_start(env, &found);
     } else if !on {
+        super::pluginruntime::stop(env, plugin);
         record_start(plugin, Ok(()));
     }
+    if let Some(error) = shelf_failure { record_start(plugin, Err(error)); }
     Ok((plugin.to_string(), found.plugin.manifest.version))
 }
 
@@ -51,14 +56,19 @@ pub(super) fn set(
         schema::clamp(field, Some(raw))
     };
     write(env, &store::setting_patch(plugin, key, &value))?;
+    super::pluginruntime::settings(env, plugin);
     Ok((plugin.to_string(), found.plugin.manifest.version))
 }
 
 pub(super) fn remove(env: &Env, plugin: &str) -> Result<(String, String), Invalid> {
     let found = find(env, plugin)?;
+    if found.folder.is_some() && found.plugin.enabled {
+        super::pluginshelf::switch(env, &found, false)?;
+    }
     let folder = found
         .folder
         .ok_or_else(|| Invalid::new("builtin", plugin))?;
+    super::pluginruntime::stop(env, plugin);
     pluginfs::remove(&env.dir, &folder).map_err(|e| Invalid::new("write", e))?;
     pluginfs::forget_source(&env.dir, plugin).map_err(|e| Invalid::new("write", e))?;
     record_start(plugin, Ok(()));

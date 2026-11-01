@@ -20,6 +20,9 @@ use flea::{
 };
 use gpui::{App, Context, Window};
 
+#[path = "quick_look_plugin.rs"]
+mod plugin;
+
 /// Which view a row mounts in the card; None leaves it to the card's own bodies (image, symlink, compare, cannot preview).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Mount {

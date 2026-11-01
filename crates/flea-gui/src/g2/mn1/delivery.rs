@@ -19,6 +19,7 @@ impl Shell {
     pub(crate) fn retire_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.strip.menu = None;
         self.menu.text = None;
+        self.cancel_plugin_input(cx);
         self.menu.tags.retire();
         let place = self.menu.place.take().is_some();
         let rail = self.menu.rail.take().is_some();

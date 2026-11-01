@@ -28,7 +28,8 @@ impl Shell {
                 .settings
                 .data
                 .get("shelf")
-                .is_some_and(|s| flag(s, "enabled")),
+                .is_some_and(|s| flag(s, "enabled"))
+                && self.declared_menu_plugins("shelf").next().is_some(),
         )
     }
 

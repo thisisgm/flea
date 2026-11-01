@@ -148,18 +148,7 @@ impl SelectionPreview {
             }
             Kind::Audio | Kind::Video => Mounted::Media(None),
             _ if !manual => {
-                let storage = self.class.as_ref().map_or("", |(_, class)| class.as_str());
-                let look = docs::Look {
-                    text_limit: flea::ui_logic_pv1::ask::text_limit(storage),
-                    remote: matches!(storage, "network" | "phone"),
-                    theme,
-                    face: self.face.clone(),
-                    metrics,
-                    muted: crate::list::Palette::inherited(&window.text_style(), theme)
-                        .caption(false),
-                    mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode)
-                        .svg(),
-                };
+                let look = self.doc_look(&subject, window, cx);
                 let wire = wire::Wire(self.outbox.clone());
                 match docs::Doc::mount(kind, &subject, &look, &wire, &self.catalog, window, cx) {
                     Some(doc) => {
@@ -209,8 +198,33 @@ impl SelectionPreview {
                 ));
             }
         }
+        let mut frame = frame;
+        self.ask_previewer(&mut frame, window, cx);
         self.pending = Some(frame);
         self.poll(window, cx);
+    }
+
+    // The theme and type a mounted document view draws with, read once per mount.
+    pub(super) fn doc_look(
+        &self,
+        subject: &Subject,
+        window: &Window,
+        cx: &Context<Self>,
+    ) -> docs::Look {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let storage = self.class.as_ref().map_or("", |(_, class)| class.as_str());
+        docs::Look {
+            text_limit: flea::ui_logic_pv1::ask::text_limit(storage),
+            remote: matches!(storage, "network" | "phone"),
+            theme,
+            face: self.face.clone(),
+            metrics: crate::list::Metrics::for_typeface(&self.face),
+            muted: crate::list::Palette::inherited(&window.text_style(), theme).caption(false),
+            mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode).svg(),
+        }
     }
 
     pub(crate) fn on_line(
@@ -288,6 +302,24 @@ impl SelectionPreview {
     }
 
     // An animated GIF's frames, from the original over its still: asked while the frame waits and after it lands.
+    // A drawn frame loads too: a previewer plugin's picture can land after its frame was shown.
+    fn load_source(frame: &mut Frame, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(source) = frame.source.as_ref().filter(|_| frame.image.is_none()) else {
+            return;
+        };
+        if let Some(loaded) = window.use_asset::<ImageAssetLoader>(source, cx) {
+            frame.failed |= loaded.is_err();
+            frame.image = loaded.ok();
+            if frame.image.is_none() {
+                frame.source = None;
+                if let Mounted::Model(model) = &frame.mounted {
+                    model.read(cx).live.borrow_mut().thumbnail = false;
+                    frame.failed = false;
+                }
+            }
+        }
+    }
+
     fn load_animation(frame: &mut Frame, window: &mut Window, cx: &mut Context<Self>) {
         if frame.animation.is_some() || !frame.animated_gif() {
             return;
@@ -307,6 +339,7 @@ impl SelectionPreview {
 
     pub(crate) fn poll(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(frame) = self.drawn.as_mut() {
+            Self::load_source(frame, window, cx);
             Self::load_animation(frame, window, cx);
         }
         let now = self.now(cx);
@@ -317,23 +350,8 @@ impl SelectionPreview {
         let Some(frame) = self.pending.as_mut() else {
             return;
         };
-        // A sharp picture that is already decoded wins over a thumbnail that lands in the same poll.
         Self::early_picture(frame, (width, height), window, cx);
-        if frame.image.is_none() {
-            if let Some(source) = &frame.source {
-                if let Some(loaded) = window.use_asset::<ImageAssetLoader>(source, cx) {
-                    frame.failed |= loaded.is_err();
-                    frame.image = loaded.ok();
-                    if frame.image.is_none() {
-                        frame.source = None;
-                        if let Mounted::Model(model) = &frame.mounted {
-                            model.read(cx).live.borrow_mut().thumbnail = false;
-                            frame.failed = false;
-                        }
-                    }
-                }
-            }
-        }
+        Self::load_source(frame, window, cx);
         Self::load_animation(frame, window, cx);
         let renderer_ready = match &frame.mounted {
             Mounted::Pdf(pdf) => {
