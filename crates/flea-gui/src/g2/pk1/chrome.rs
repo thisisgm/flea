@@ -27,6 +27,8 @@ pub struct Chrome {
     pub was_submitting: bool,
     pub restore_path: Option<String>,
     pub reopen_path: bool,
+    // The last left press on a chrome mark, so a release after a long press never navigates (EY-200).
+    pub pressed_at: Option<std::time::Instant>,
 }
 
 impl Chrome {
@@ -56,6 +58,7 @@ impl Chrome {
             was_submitting: false,
             restore_path: None,
             reopen_path: false,
+            pressed_at: None,
         }
     }
 }

@@ -71,16 +71,34 @@ impl Render for Body {
                                     picker.update(cx, |picker, cx| picker.listing_wheel(event, cx));
                             })
                             .child(self.listing.clone())
+                            // Pinned to the top left: an unplaced absolute child would sit below the full-height listing, outside the window (EY-313).
                             .children(hero.map(|hero| {
+                                let mark = hero.read(cx).omi.clone();
+                                let painted = mark.clone();
                                 div()
                                     .debug_selector(|| "picker-empty-hero".into())
                                     .absolute()
+                                    .top_0()
+                                    .left_0()
                                     .size_full()
                                     .child(hero)
+                                    // This chooser has no browser-root overlay to sample and paint the hero's mark.
+                                    .child(
+                                        gpui::canvas(
+                                            move |_, window, cx| {
+                                                mark.prepare(!cx.reduce_motion(), None, window, cx);
+                                            },
+                                            move |_, _, window, _| painted.paint(window),
+                                        )
+                                        .absolute()
+                                        .top_0()
+                                        .left_0()
+                                        .size_full(),
+                                    )
                             }))
-                            .children(
-                                shares.map(|shares| div().absolute().size_full().child(shares)),
-                            ),
+                            .children(shares.map(|shares| {
+                                div().absolute().top_0().left_0().size_full().child(shares)
+                            })),
                     ),
             )
     }

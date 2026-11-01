@@ -51,11 +51,17 @@ mod cohesion_tests;
 #[cfg(test)]
 mod corner_tests;
 #[cfg(test)]
+mod ey200_chrome_tests;
+#[cfg(test)]
 mod ey263_field_tests;
 #[cfg(test)]
 mod ey302_footer_tests;
 #[cfg(test)]
 mod ey313_tests;
+#[cfg(test)]
+mod ey372_single_click_tests;
+#[cfg(test)]
+mod ey377_list_wheel_tests;
 #[cfg(test)]
 mod face_tests;
 #[cfg(test)]

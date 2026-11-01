@@ -17,6 +17,15 @@ impl Picker {
             || !self.browse.route.asked.is_empty()
     }
 
+    // Single-click mode suppresses repeat taps on one row but activates a different row; double-click mode requires the same target twice.
+    fn row_activates(&self, clicks: usize, first_path: &str, path: &str) -> bool {
+        if self.preferences.single_click {
+            clicks == 1 || !logic::same_tap(first_path, path)
+        } else {
+            clicks == 2 && logic::same_tap(first_path, path)
+        }
+    }
+
     pub(super) fn row_pointer(
         &mut self,
         event: &MouseDownEvent,
@@ -53,8 +62,8 @@ impl Picker {
             self.activate_row(hit.index, cx);
             // A row click names Filename but keeps the keyboard on the listing, as v0.3.12 does.
             self.browse.focus_filename = false;
-        } else if event.click_count == 2 && logic::same_tap(&hit.first_path, &hit.path) {
-            match self.double_activate(Some(hit.directory), &hit.path, &hit.first_path, cx) {
+        } else if self.row_activates(event.click_count, &hit.first_path, &hit.path) {
+            match self.double_activate(Some(hit.directory), &hit.path, &hit.path, cx) {
                 DoubleAction::Open => self.open_folder(&hit.path, cx),
                 DoubleAction::Mark => self.toggle_mark(hit.index, cx),
                 _ => {}
@@ -93,8 +102,11 @@ impl Picker {
             return;
         }
         let view = self.browse.listing.read(cx);
-        if view.view_mode() != "grid" || view.listing().is_pending() {
+        if view.listing().is_pending() {
             return;
+        }
+        if view.view_mode() == "list" {
+            return self.list_wheel(event, cx);
         }
         let state = view.grid_state();
         let state = state.borrow();
@@ -142,6 +154,30 @@ impl Picker {
             self.refill_grid(cx);
             cx.notify();
         }
+        cx.stop_propagation();
+    }
+
+    fn list_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
+        let bounds = self.browse.listing.read(cx).drawn().drawn.bounds;
+        let Some(delivery) = wheel_delivery(event, true) else {
+            return;
+        };
+        if !bounds.contains(&event.position) || (delivery.pixel == 0. && delivery.angle == 0.) {
+            return;
+        }
+        let delta = match event.delta {
+            ScrollDelta::Pixels(_) => scroll::touch_distance(delivery.pixel) as f32,
+            _ => f32::from(scroll::wheel_delta(&event.delta).y),
+        };
+        let ask = self.browse.listing.update(cx, |view, cx| {
+            view.list_scroll_by(delta);
+            cx.notify();
+            view.list_window_request()
+        });
+        if let Some(line) = ask {
+            self.send_listing(&line);
+        }
+        cx.notify();
         cx.stop_propagation();
     }
 

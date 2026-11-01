@@ -20,6 +20,8 @@ pub(super) struct Preferences {
 pub(super) struct Followed {
     pub(super) hidden: bool,
     pub(super) ctrl_zoom: bool,
+    // Settings > View "Open items with": "single" activates a row on one click, as the browser does (#372).
+    pub(super) single_click: bool,
 }
 
 impl Default for Preferences {
@@ -36,6 +38,8 @@ impl Default for Preferences {
             pending: None,
             pending_thumb: None,
             unsaved_thumb: None,
+            ctrl_zoom: true,
+            single_click: false,
         }
     }
 }
@@ -49,6 +53,8 @@ impl Picker {
             .and_then(Json::as_str)
             .unwrap_or("default")
             .to_owned();
+        self.preferences.single_click =
+            data.get("openMode").and_then(Json::as_str) == Some("single");
         let preview = data.get("preview");
         self.preferences.followed.ctrl_zoom = preview
             .and_then(|preview| preview.get("ctrlZoom"))

@@ -51,6 +51,23 @@ fn list_line(f: &Fixture, from: usize) -> String {
 }
 
 #[gpui::test]
+fn ey455_j_and_k_walk_the_focused_list(cx: &mut TestAppContext) {
+    let mut f = three(cx);
+    f.cx.simulate_keystrokes("j");
+    assert_eq!(
+        f.read(|picker| picker.listing.cursor),
+        1,
+        "j moves onto beta.md"
+    );
+    f.cx.simulate_keystrokes("k");
+    assert_eq!(
+        f.read(|picker| picker.listing.cursor),
+        0,
+        "k returns to alpha.txt"
+    );
+}
+
+#[gpui::test]
 fn ey314_g_goes_to_the_first_row_and_shift_g_to_the_last(cx: &mut TestAppContext) {
     let mut f = three(cx);
     f.cx.simulate_keystrokes("end");
@@ -204,6 +221,20 @@ fn ey313_the_hero_stands_over_an_empty_folder_and_leaves_with_it(cx: &mut TestAp
     assert!(
         f.cx.debug_bounds("picker-empty-hero").is_some(),
         "PickerWindow.qml's EmptyState stands over an empty listing"
+    );
+    let viewport = f.cx.update(|window, _| window.viewport_size());
+    let caption = f.cx.debug_bounds("fb1-hero-caption").unwrap();
+    assert!(
+        caption.bottom() <= viewport.height && caption.right() <= viewport.width,
+        "the hero's caption {caption:?} draws inside the {viewport:?} window, over the listing and not below it"
+    );
+    let mark = f.cx.debug_bounds("fb1-hero-mark").unwrap();
+    assert!(
+        f.cx.update(|window, _| window.painted_quads().iter().any(|quad| {
+            quad.bounds
+                .is_contained_within(&mark.scale(window.scale_factor()))
+        })),
+        "the empty hero paints its mark, beyond reserving its slot"
     );
     f.update(|picker, cx| picker.open_folder("/e", cx));
     f.listing.say(Line::Reply(

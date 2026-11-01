@@ -88,6 +88,7 @@ impl ListingView {
     }
 
     pub fn open(&mut self, path: &str) {
+        self.set_scroll_y(0.);
         self.listing.open(path);
         self.state.borrow_mut().view.order = self.listing.order();
     }
@@ -171,7 +172,12 @@ impl Render for ListingView {
                 .set_typeface(Typeface::for_window(window, cx));
         }
         self.sync_pictures(window, cx);
-        let failure = self.listing.failure_line(&self.i18n);
+        // A dead backend keeps usable rows; the chooser status already names its failure (EY-479).
+        let failure = if self.listing.state() == "dead" && !self.listing.held().rows.is_empty() {
+            String::new()
+        } else {
+            self.listing.failure_line(&self.i18n)
+        };
         let body = self.surface_element();
         div()
             .size_full()
