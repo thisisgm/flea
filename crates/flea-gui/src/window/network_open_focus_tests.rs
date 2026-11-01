@@ -327,6 +327,11 @@ fn railnet_older_bridge_open_cannot_take_new_origin_claim(cx: &mut TestAppContex
         .find("-d")
         .last()
         .expect("real service checked its GVFS bridge");
+    // The mount's Info exit re-lists from the real bookmarks, which do not hold this fixture row, so the rail gets it back.
+    shell.update(cx, |shell, cx| {
+        shell.network_publish(Some(vec![saved(false)]), cx)
+    });
+    frame(cx);
     enter_share(&shell, cx);
     let (_, second) = flight(&shell, cx);
     assert_ne!(first, second);
