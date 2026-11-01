@@ -8,10 +8,17 @@ const CATALOG: &str = include_str!("../i18n/en/flea.json");
 #[test]
 fn plugins_doc_repository_examples_obey_runtime_bounds_and_place_mutations() {
     let output = std::process::Command::new("python3")
-        .args(["-B", concat!(env!("CARGO_MANIFEST_DIR"), "/tests/plugins_examples.py")])
+        .args([
+            "-B",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/tests/plugins_examples.py"),
+        ])
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 #[test]
@@ -19,7 +26,12 @@ fn plugins_doc_owner_answers_runtime_and_list_when_user_paths_cannot_resolve() {
     use std::io::Write;
     use std::process::{Command, Stdio};
     let mut child = Command::new("timeout")
-        .args(["--signal=KILL", "3s", env!("CARGO_BIN_EXE_flea"), "--plugin-host"])
+        .args([
+            "--signal=KILL",
+            "3s",
+            env!("CARGO_BIN_EXE_flea"),
+            "--plugin-host",
+        ])
         .env_remove("HOME")
         .env_remove("XDG_CONFIG_HOME")
         .env_remove("XDG_STATE_HOME")
@@ -30,12 +42,26 @@ fn plugins_doc_owner_answers_runtime_and_list_when_user_paths_cannot_resolve() {
         .unwrap();
     child.stdin.take().unwrap().write_all(b"{\"c\":\"plugins\",\"op\":\"runtime\",\"id\":5,\"plugin\":\"example.paths\",\"request\":{\"op\":\"run\"}}\n{\"c\":\"plugins\",\"op\":\"list\",\"id\":6}\n").unwrap();
     let result = child.wait_with_output().unwrap();
-    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
-    let lines: Vec<_> = String::from_utf8(result.stdout).unwrap().lines()
-        .map(|line| jsondoc::parse(line).unwrap()).collect();
-    assert_eq!(lines.len(), 2, "every accepted request needs a correlated terminal refusal");
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let lines: Vec<_> = String::from_utf8(result.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| jsondoc::parse(line).unwrap())
+        .collect();
+    assert_eq!(
+        lines.len(),
+        2,
+        "every accepted request needs a correlated terminal refusal"
+    );
     for (id, kind) in [(5.0, "pluginruntime"), (6.0, "pluginop")] {
-        let reply = lines.iter().find(|line| line.get("id").and_then(Json::as_f64) == Some(id)).unwrap();
+        let reply = lines
+            .iter()
+            .find(|line| line.get("id").and_then(Json::as_f64) == Some(id))
+            .unwrap();
         assert_eq!(reply.get("t").and_then(Json::as_str), Some(kind));
         assert_eq!(reply.get("code").and_then(Json::as_str), Some("write"));
     }
@@ -237,7 +263,11 @@ fn action_lines(guide: &str) -> Vec<Vec<String>> {
             let words: Vec<String> = words
                 .split_whitespace()
                 .take_while(|word| !matches!(*word, ";" | "then" | "&&" | "||"))
-                .map(|word| word.trim_end_matches(';').trim_matches('"').replace("$flea_pid", "4242"))
+                .map(|word| {
+                    word.trim_end_matches(';')
+                        .trim_matches('"')
+                        .replace("$flea_pid", "4242")
+                })
                 .collect();
             lines.push(words);
         }
@@ -250,7 +280,9 @@ fn example_plugin_actions() -> BTreeSet<String> {
     let mut ids = BTreeSet::new();
     for entry in std::fs::read_dir(root).unwrap() {
         let path = entry.unwrap().path().join("manifest.json");
-        let Ok(text) = std::fs::read_to_string(&path) else { continue };
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
         let parsed = manifest::parse(&text, false).unwrap();
         for c in flea::ui_logic_st2::contributions::menu_actions(&parsed).unwrap() {
             ids.insert(flea::ui_logic_mn2::plugins::leaf(&c));
@@ -268,7 +300,14 @@ fn plugins_doc_action_examples_parse_and_name_real_ids() {
     let (mut builtin, mut plugin, mut list) = (0, 0, 0);
     for words in &lines {
         let options = action::parse(words).unwrap_or_else(|e| panic!("{words:?}: {}", e.stderr));
-        let Request::Call { function, arguments, .. } = options.request else { unreachable!() };
+        let Request::Call {
+            function,
+            arguments,
+            ..
+        } = options.request
+        else {
+            unreachable!()
+        };
         if function == "actionIds" {
             list += 1;
             continue;
@@ -279,9 +318,25 @@ fn plugins_doc_action_examples_parse_and_name_real_ids() {
             other => panic!("{} names no real action ({other:?})", arguments[0]),
         }
     }
-    assert!(builtin > 0 && plugin > 0 && list > 0, "the guide shows a built-in, a plugin action and the list");
-    for code in [action::RAN, action::USAGE, action::UNKNOWN, action::UNAVAILABLE, action::NO_WINDOW] {
-        assert!(GUIDE.contains(&format!("| `{code}` |")), "exit status {code} is documented");
+    assert!(
+        builtin > 0 && plugin > 0 && list > 0,
+        "the guide shows a built-in, a plugin action and the list"
+    );
+    for code in [
+        action::RAN,
+        action::USAGE,
+        action::UNKNOWN,
+        action::UNAVAILABLE,
+        action::NO_WINDOW,
+    ] {
+        assert!(
+            GUIDE.contains(&format!("| `{code}` |")),
+            "exit status {code} is documented"
+        );
     }
-    assert!(action_lines("```sh action\nflea --action noSuchAction\n```\n").iter().all(|w| parse(&w[1]).is_none()));
+    assert!(
+        action_lines("```sh action\nflea --action noSuchAction\n```\n")
+            .iter()
+            .all(|w| parse(&w[1]).is_none())
+    );
 }
