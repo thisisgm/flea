@@ -209,3 +209,120 @@ mod rows;
 
 #[path = "rail_drive_focus_tests.rs"]
 mod focus;
+
+fn ipc(
+    shell: &Entity<Shell>,
+    name: &str,
+    args: &[&str],
+    cx: &mut VisualTestContext,
+) -> flea::ipc::wire::Reply {
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            // The fixture backend never answers its first List, so the readers are opened as a landed listing opens them.
+            shell.ipc_cold = false;
+            shell.ipc(
+                crate::ipc::server::Event::Call {
+                    request: flea::ipc::wire::Request::Call {
+                        target: "flea".into(),
+                        function: name.into(),
+                        arguments: args.iter().map(|arg| (*arg).into()).collect(),
+                    },
+                    answer,
+                },
+                window,
+                cx,
+            )
+        })
+    });
+    receive
+        .try_recv()
+        .expect("the mounted shell answered")
+        .reply
+}
+
+// EY-338: railEntries carries v0.3.12's volume facts (Devices.js volumeRow), so a scene can tell a locked container's row.
+#[gpui::test]
+fn raildrive_rail_entries_carry_locked_fstype_and_size(cx: &mut TestAppContext) {
+    const LOCKED: &str = r#"{"blockdevices":[
+{"name":"nvme0n1","path":"/dev/nvme0n1","type":"disk","size":512000000000,"children":[{"name":"nvme0n1p1","type":"part","mountpoints":["/"],"fstype":"ext4"}]},
+{"name":"sda1","path":"/dev/sda1","type":"part","label":"128GB","mountpoints":["/run/media/gm/128GB"],"fstype":"exfat","rm":true,"size":128000000000},
+{"name":"sdb1","path":"/dev/sdb1","type":"part","label":"FLEALUKS","mountpoints":[null],"fstype":"crypto_LUKS","fsver":"2","rm":true,"size":64000000}
+]}"#;
+    let (shell, _service, cx) = root_with(cx, r#"{"rail":"shown","sidebarWidth":192}"#, LOCKED);
+    let reply = ipc(&shell, "railEntries", &[], cx);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let entries = jsondoc::parse(reply.stdout.trim()).unwrap();
+    let row = |label: &str| {
+        entries
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| entry.get("label").and_then(jsondoc::Json::as_str) == Some(label))
+            .unwrap_or_else(|| panic!("{label} in {}", reply.stdout))
+            .clone()
+    };
+    let locked = row("FLEALUKS");
+    assert_eq!(
+        locked.get("glyph").and_then(jsondoc::Json::as_str),
+        Some("lock")
+    );
+    assert_eq!(locked.get("locked"), Some(&jsondoc::Json::Bool(true)));
+    assert_eq!(
+        locked.get("fstype").and_then(jsondoc::Json::as_str),
+        Some("crypto_LUKS")
+    );
+    assert_eq!(
+        locked.get("size").and_then(jsondoc::Json::as_f64),
+        Some(64000000.)
+    );
+    let stick = row("128GB");
+    assert_eq!(stick.get("locked"), Some(&jsondoc::Json::Bool(false)));
+    assert_eq!(
+        stick.get("fstype").and_then(jsondoc::Json::as_str),
+        Some("exfat")
+    );
+    assert_eq!(
+        stick.get("size").and_then(jsondoc::Json::as_f64),
+        Some(128000000000.)
+    );
+    assert!(
+        !reply.stdout.trim_end().contains('\n'),
+        "one line, as before"
+    );
+}
+
+// EY-338: railIconSize answers the rail icon slot, the value tokens already names railIconSize.
+#[gpui::test]
+fn raildrive_rail_icon_size_answers_the_token(cx: &mut TestAppContext) {
+    let (shell, _service, cx) = root_at(cx);
+    let (theme, parsed) =
+        crate::palette::Theme::from_text_observed("background='#101315'\nforeground='#eeeeee'");
+    assert!(parsed.0);
+    let snapshot = crate::presentation::Snapshot {
+        theme,
+        parsed,
+        fonts: crate::presentation::Fonts::from_sources("", "", "monospace".into()),
+    };
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.apply_presentation(snapshot, window, cx)
+        });
+    });
+    frame(cx);
+    let reply = ipc(&shell, "railIconSize", &[], cx);
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let size: f64 = reply.stdout.trim().parse().unwrap();
+    assert!(size > 0., "{size}");
+    let tokens = ipc(&shell, "tokens", &[], cx);
+    assert_eq!(tokens.code, 0, "{tokens:?}");
+    // Sample token line: railIconSize=16
+    let token_size = tokens
+        .stdout
+        .lines()
+        .find_map(|line| line.strip_prefix("railIconSize="))
+        .expect("tokens includes railIconSize")
+        .parse::<f64>()
+        .expect("railIconSize token is numeric");
+    assert_eq!(token_size, size);
+}

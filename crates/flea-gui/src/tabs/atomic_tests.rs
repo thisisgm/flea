@@ -201,3 +201,71 @@ fn u25_press_identity_survives_removal_before_the_drag_threshold(cx: &mut TestAp
     cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
     cx.run_until_parked();
 }
+
+// EY-394: a tab whose listing stays held past the cap is drawn and aimable, so a tear-off can be refused on it.
+#[gpui::test]
+fn u25_a_tab_held_past_the_cap_draws_and_answers_its_centre(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.open_tab(0, "/held".into(), window, cx)
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, _| {
+            let home = shell.locale.catalog.tr("tabs.home");
+            assert_eq!(shell.strip.tabs[0].count(), 2);
+            assert!(shell.panes[0].as_ref().unwrap().pane.busy());
+            assert_eq!(
+                shell
+                    .tab_adapter(&home)
+                    .call("tabCentre", &["1".into()])
+                    .unwrap(),
+                Reply::value(""),
+                "inside the cap the completed frame still holds"
+            );
+        })
+    });
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let now = host.pane.now() + crate::pane::swap::CAP_MS + 1;
+            assert!(
+                host.pane.tick(now),
+                "the held listing falls back at the cap"
+            );
+            host.changed(&shell.locale);
+            cx.notify();
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, _| {
+            assert!(
+                shell.panes[0].as_ref().unwrap().pane.busy(),
+                "still loading"
+            );
+            let home = shell.locale.catalog.tr("tabs.home");
+            let adapter = shell.tab_adapter(&home);
+            assert_eq!(
+                adapter.call("tabLabels", &[]).unwrap(),
+                Reply::value("files|held")
+            );
+            let bounds = shell.strip.bounds.get().expect("the strip is drawn");
+            let width = shell.strip.snapshot.as_ref().unwrap().frame.tab_width;
+            let x = f32::from(bounds.origin.x) + crate::tabs::bar::PAD_X + 1.5 * width;
+            let y = f32::from(bounds.origin.y) + crate::tabs::bar::HEIGHT / 2.;
+            assert_eq!(
+                adapter.call("tabCentre", &["1".into()]).unwrap(),
+                Reply::value(format!(
+                    "{} {}",
+                    (x + 0.5).floor() as i64,
+                    (y + 0.5).floor() as i64
+                ))
+            );
+            assert_eq!(shell.geometry(window).tabs.height, 27.);
+        })
+    });
+}

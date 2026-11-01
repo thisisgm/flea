@@ -119,6 +119,13 @@ impl Picker {
                 quit: false,
             };
         };
+        // Only fleapicker is loaded, so absent flea targets precede function and argument validation.
+        if target == "flea" {
+            return Answer {
+                reply: registry::no_target(),
+                quit: false,
+            };
+        }
         let function = match registry::validate(&target, &function, &arguments) {
             Ok(function) if function.target == "fleapicker" => function,
             Ok(function) => {

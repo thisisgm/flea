@@ -5,6 +5,7 @@ pub mod columns;
 pub(crate) mod columns_preview;
 pub mod devices;
 pub(crate) mod dialog_cards;
+pub(crate) mod drag_state;
 pub mod dual;
 pub(crate) mod favourites;
 pub(crate) mod fileops_preview;
@@ -25,6 +26,7 @@ pub(crate) mod preview_look;
 pub(crate) mod preview_scroll;
 pub(crate) mod preview_state;
 pub mod rail;
+pub(crate) mod rail_devices;
 pub(crate) mod recent;
 pub mod rows;
 pub mod server;
@@ -57,5 +59,7 @@ mod reader_port_a_tests;
 mod reader_port_c_tests;
 #[cfg(test)]
 mod readers3_tests;
+#[cfg(test)]
+mod readers_nav_tests;
 #[cfg(test)]
 mod vf3_tests;

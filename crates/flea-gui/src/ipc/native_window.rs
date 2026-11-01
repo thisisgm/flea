@@ -40,6 +40,8 @@ impl Adapter for NativeWindowAdapter<'_> {
         let value = match function {
             "tokens" => return Some(self.tokens()),
             "wheelLines" => crate::input::WHEEL_LINES.to_string(),
+            // Theme.railIconSize, the slot a rail row's icon draws in; the same value tokens names railIconSize.
+            "railIconSize" => self.rail_icon_size().to_string(),
             "palette" => {
                 if !self.parsed.0 {
                     return Some(Reply::error(
@@ -95,6 +97,13 @@ impl Adapter for NativeWindowAdapter<'_> {
 }
 
 impl NativeWindowAdapter<'_> {
+    fn rail_icon_size(&self) -> f64 {
+        let metrics = crate::list::Metrics::for_typeface(&self.list.typeface);
+        let row = f64::from(metrics.nominal_row);
+        let padding = f64::from((metrics.nominal_row - metrics.slot) / 2.);
+        (row * RAIL_ROW_SCALE).round() - 2. * padding
+    }
+
     fn tokens(&self) -> Reply {
         if !self.parsed.0 {
             return Reply::error(3, "FLEA_IPC_UNAVAILABLE flea.tokens: theme not loaded");
@@ -138,7 +147,7 @@ impl NativeWindowAdapter<'_> {
             ),
             ("strokeWidth", STROKE_WIDTH.into()),
             ("railRowHeight", rail_row.to_string()),
-            ("railIconSize", (rail_row - 2. * padding).to_string()),
+            ("railIconSize", self.rail_icon_size().to_string()),
             ("chromeHeight", metrics.header.to_string()),
             (
                 "chromeMarkSize",

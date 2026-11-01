@@ -318,7 +318,16 @@ impl Shell {
                     window,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 44] = [
+                let rail_facts = crate::ipc::rail_devices::RailDeviceFacts {
+                    rail: &rail,
+                    devices: devices.source,
+                };
+                let drag_state = crate::ipc::drag_state::DragState {
+                    shell: self,
+                    window,
+                    cx,
+                };
+                let adapters: [&dyn crate::ipc::Adapter; 45] = [
                     &glass,
                     &column_preview,
                     &preview_state,
@@ -336,7 +345,7 @@ impl Shell {
                     &recent,
                     &browse_state,
                     &delivery,
-                    &rail,
+                    &rail_facts,
                     &focus,
                     &pane,
                     &navigation,
@@ -362,6 +371,7 @@ impl Shell {
                     &dialog_cards,
                     &feedback,
                     &archive_preview,
+                    &drag_state,
                     &rows,
                 ];
                 let count = if matches!(

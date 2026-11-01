@@ -57,6 +57,9 @@ pub const VISUAL: &[Function] = &[
     function!("flea", "previewReadiness", "string", &[]),
     function!("flea", "sceneState", "string", &[]),
     function!("flea", "presentedFrame", "string", &[]),
+    function!("flea", "crumbCentreOf", "string", &[("label", "string")]),
+    function!("flea", "dragState", "string", &[]),
+    function!("flea", "railIconSize", "int", &[]),
 ];
 
 pub fn functions() -> impl Iterator<Item = &'static Function> {

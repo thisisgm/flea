@@ -1,12 +1,16 @@
 //! Dialog readers distinguish observable closed cards from unavailable window owners.
 use super::Adapter;
+use crate::g2::op1::{host::Overlay, model::Dialog, press::Press};
+use crate::visual::{number, object};
 use crate::{
     g2::op3::openwith::{OpenWith, Stop},
     state::Shell,
 };
 use flea::ipc::wire::Reply;
+use flea::jsondoc::Json;
+use flea::ui_logic_op1::{confirm::Source, trash::Button};
 use flea::ui_logic_op3::openwith::{self as logic, Catalogue, Row as Seat};
-use gpui::App;
+use gpui::{App, Bounds, Pixels};
 
 pub(crate) struct DialogAdapter<'a> {
     pub shell: &'a Shell,
@@ -40,12 +44,16 @@ impl Adapter for DialogAdapter<'_> {
                 .and_then(|rail| rail.unlock.as_ref())
                 .and_then(|unlock| unlock.view.read(self.cx).reading())
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
-            // The menu actions' card is Open With or the run card; with neither open the Root has no dialog to describe.
+            // The menu actions' card is Open With, the run card or Delete permanently's review; with none open the Root has no dialog to describe.
             "menuDialogState" => {
                 if self.shell.open_with.is_some() || self.shell.run_card.is_some() {
                     return Some(open_card(function, "rect, controls, confirmation"));
                 }
-                "{\"opened\":false}".into()
+                self.shell
+                    .overlay
+                    .as_ref()
+                    .and_then(|overlay| menu_delete_state(overlay.read(self.cx)))
+                    .unwrap_or_else(|| "{\"opened\":false}".into())
             }
             // The card's model facts the design CI drives; every other ui/Ipc.qml field is named under unavailable, as a refusal would.
             "openWithState" => match &self.shell.open_with {
@@ -130,4 +138,126 @@ fn open_with_state(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
         card.cursor,
         open_with_rows(card, i18n)
     )
+}
+
+fn rect(bounds: Option<Bounds<Pixels>>) -> String {
+    bounds.map_or_else(String::new, |b| {
+        [b.origin.x, b.origin.y, b.size.width, b.size.height]
+            .map(|value| f32::from(value).round().to_string())
+            .join(" ")
+    })
+}
+
+fn centre(bounds: Option<Bounds<Pixels>>) -> String {
+    bounds.map_or_else(String::new, |b| {
+        format!(
+            "{} {}",
+            f32::from(b.origin.x + b.size.width / 2.).round(),
+            f32::from(b.origin.y + b.size.height / 2.).round()
+        )
+    })
+}
+
+/// The menu Delete permanently card uses v0.3.12 state and measured bounds; Trash answers through trashState.
+fn menu_delete_state(overlay: &Overlay) -> Option<String> {
+    let model = &overlay.model;
+    let Source::Menu(id) = model.confirm.as_ref()?.source else {
+        return None;
+    };
+    if model.external_delete.is_some() {
+        return None;
+    }
+    let Some(Dialog::Delete {
+        review,
+        scope,
+        focus,
+        busy,
+        ..
+    }) = overlay.drawn_dialog()
+    else {
+        return None;
+    };
+    let control = |name: &'static str, button: Button| {
+        let press = Press::Delete(button);
+        let bounds = overlay
+            .frame
+            .part(&format!("button-{}", press.code()))
+            .map(|part| part.bounds);
+        let visible =
+            bounds.is_some_and(|b| b.size.width > gpui::px(0.) && b.size.height > gpui::px(0.));
+        object([
+            ("name", Json::Str(name.into())),
+            ("visible", Json::Bool(visible)),
+            (
+                "enabled",
+                Json::Bool(visible && !(*busy && button == Button::Delete)),
+            ),
+            ("focused", Json::Bool(visible && *focus == button)),
+            (
+                "hovered",
+                Json::Bool(visible && overlay.pointer.hovered == Some(press)),
+            ),
+            (
+                "pressed",
+                Json::Bool(visible && overlay.pointer.pressed == Some(press)),
+            ),
+            ("centre", Json::Str(centre(bounds))),
+            ("rect", Json::Str(rect(bounds))),
+        ])
+    };
+    // v0.3.12 hands the reply's numeric token through; a token that is not a number stays a string.
+    let token = review
+        .token
+        .parse::<u64>()
+        .map_or_else(|_| Json::Str(review.token.clone()), number);
+    let count = review.count.unwrap_or(0);
+    let catalog = &overlay.catalog;
+    let card = Json::Str(rect(overlay.frame.part("card").map(|part| part.bounds)));
+    let value = object([
+        ("opened", Json::Bool(true)),
+        ("action", Json::Str("deletePermanently".into())),
+        ("busy", Json::Bool(*busy)),
+        (
+            "committing",
+            Json::Bool(model.confirm.as_ref().is_some_and(|confirm| !confirm.shown)),
+        ),
+        ("error", Json::Str(String::new())),
+        (
+            "facts",
+            object([
+                ("bytes", number(review.bytes)),
+                ("count", number(count)),
+                ("id", number(id)),
+                ("ok", Json::Bool(true)),
+                ("op", Json::Str("prepareDelete".into())),
+                ("t", Json::Str("menuaction".into())),
+                ("token", token.clone()),
+            ]),
+        ),
+        ("rect", card.clone()),
+        (
+            "confirmation",
+            object([
+                ("opened", Json::Bool(true)),
+                ("token", token),
+                ("count", number(count)),
+                ("all", Json::Bool(review.all)),
+                ("destructiveFocus", Json::Bool(*focus == Button::Delete)),
+                (
+                    "title",
+                    Json::Str(crate::g2::op1::view::delete_title(catalog, review, *busy)),
+                ),
+                (
+                    "body",
+                    Json::Str(crate::g2::op1::view::delete_body(
+                        catalog, review, *scope, *busy,
+                    )),
+                ),
+                ("rect", card),
+                ("cancel", control("Cancel", Button::Cancel)),
+                ("danger", control("Delete", Button::Delete)),
+            ]),
+        ),
+    ]);
+    Some(flea::jsondoc::render(&value).trim_end().to_owned())
 }
