@@ -44,16 +44,50 @@ class Coverage(unittest.TestCase):
         text = UNDRIVEN.read_text()
         scenes = self.tool.fit_scene_ids(self.plan)
         self.assertTrue(scenes)
-        dropped = '\n'.join(line for line in text.splitlines() if not line.startswith(scenes[0] + ' '))
-        self.assertIn(f'{scenes[0]}: no registered scene and no undriven reason', self.tool.coverage_errors(self.plan, dropped))
-        bare = text.replace(f'{scenes[1]} BLOCKED ', f'{scenes[1]} OK ', 1)
-        self.assertIn(f'{scenes[1]}: no registered scene and no undriven reason', self.tool.coverage_errors(self.plan, bare))
-        stale = text + 'i50.fit.xx.menu BLOCKED I50-27: gone\n'
-        self.assertIn('i50.fit.xx.menu: undriven line names no planned scene', self.tool.coverage_errors(self.plan, stale))
-        twice = text + f'{scenes[2]} BLOCKED I50-27: again\n'
-        self.assertIn(f'{scenes[2]}: duplicate undriven line', self.tool.coverage_errors(self.plan, twice))
-        self.assertIn(f'{scenes[3]}: registered scene still has an undriven line',
-                      self.tool.coverage_errors(self.plan, text, registered={scenes[3]}))
+        menu = [scene for scene in scenes if scene.startswith('i50.fit.ar.menu.')]
+        self.assertEqual(len(menu), 20)
+        dropped = '\n'.join(line for line in text.splitlines() if not line.startswith('i50.fit.ar.menu '))
+        errors = self.tool.coverage_errors(self.plan, dropped)
+        for scene in menu:
+            self.assertIn(f'{scene}: no registered scene and no undriven reason', errors)
+        bare = text.replace('i50.fit.ar.caps BLOCKED ', 'i50.fit.ar.caps OK ', 1)
+        self.assertIn('i50.fit.ar.caps.rest.gm.r0: no registered scene and no undriven reason', self.tool.coverage_errors(self.plan, bare))
+        # A group ends at a dot: a cut-off name or a spelled field that matches nothing names no planned scene.
+        for stale in ('i50.fit.xx.menu', 'i50.fit.ar.men', 'i50.fit.ar.menu.rest.gm.r4'):
+            self.assertIn(f'{stale}: undriven line names no planned scene',
+                          self.tool.coverage_errors(self.plan, text + f'{stale} BLOCKED I50-27: gone\n'))
+        twice = text + 'i50.fit.ar.menu BLOCKED I50-27: again\n'
+        self.assertIn('i50.fit.ar.menu: duplicate undriven line', self.tool.coverage_errors(self.plan, twice))
+        nested = text + 'i50.fit.ar.menu.hover.gm.r0 BLOCKED I50-27: again\n'
+        self.assertIn('i50.fit.ar.menu.hover.gm.r0: more than one undriven line (i50.fit.ar.menu, i50.fit.ar.menu.hover.gm.r0)',
+                      self.tool.coverage_errors(self.plan, nested))
+        caps = [scene for scene in scenes if scene.startswith('i50.fit.ar.caps.')]
+        self.assertIn('i50.fit.ar.caps: registered scene still has an undriven line',
+                      self.tool.coverage_errors(self.plan, text, registered=set(caps)))
+        # A group with one scene still unregistered keeps its reason line.
+        self.assertNotIn('i50.fit.ar.caps: registered scene still has an undriven line',
+                         self.tool.coverage_errors(self.plan, text, registered=set(caps[1:])))
+
+    def test_i50_visual_list_rest_is_registered_and_other_states_have_reasons(self):
+        text = UNDRIVEN.read_text()
+        registered = self.tool.registered_scenes()
+        scenes = self.tool.fit_scene_ids(self.plan)
+        self.assertEqual(sorted(scene for scene in registered if scene.startswith('i50.fit.')),
+                         [scene for scene in scenes if '.list.rest.' in scene])
+        for code in FIT:
+            self.assertNotIn(f'i50.fit.{code}.list BLOCKED', text)
+            for state in ('hover', 'focus'):
+                self.assertIn(f'i50.fit.{code}.list.{state} BLOCKED SCENE-LANG: list registers rest only; '
+                              f'{state} needs a drawn-state readback\n', text)
+        # The ruling's old shape, a list group line, now has every rest scene registered under a line that still names it.
+        old = text + 'i50.fit.de.list.rest BLOCKED I50-27: old\n'
+        self.assertIn('i50.fit.de.list.rest: registered scene still has an undriven line', self.tool.coverage_errors(self.plan, old))
+        exact = text + 'i50.fit.de.list.rest.gm.r0 BLOCKED I50-27: old\n'
+        self.assertIn('i50.fit.de.list.rest.gm.r0: registered scene still has an undriven line',
+                      self.tool.coverage_errors(self.plan, exact))
+        dropped = text.replace('i50.fit.de.list.hover BLOCKED', 'x BLOCKED', 1)
+        self.assertIn('i50.fit.de.list.hover.gm.r0: no registered scene and no undriven reason',
+                      self.tool.coverage_errors(self.plan, dropped))
         contract = copy.deepcopy(self.tool.load_contract(CONTRACT))
         contract['fit_languages'] = FIT[:-1]
         with self.assertRaisesRegex(ValueError, 'fit languages must include hi'):

@@ -120,12 +120,18 @@ class Plan(Scratch):
         self.assertFalse(plan['complete'])
         owed = {row['dependency'] for row in plan['owed']}
         # The source index, RTL policy, entry inventory, catalogs, TUI-16 callable and its private preparation are integrated; the rest stays owed by name.
-        self.assertTrue({'TUI-RECEIPT', 'SCENE-LANG', 'I50-09', 'I50-28'} <= owed, owed)
-        self.assertFalse({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'TUI-PREPARE', 'CATALOGS'} & owed, owed)
+        self.assertTrue({'TUI-RECEIPT', 'SCENES', 'I50-09', 'I50-28'} <= owed, owed)
+        self.assertFalse({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'TUI-PREPARE', 'CATALOGS', 'SCENE-LANG'} & owed, owed)
         self.assertTrue(all(row['missing'] for row in plan['owed']))
+        # Only a gui fit case whose spelled scene is registered is planned; every other case stays owed by name.
+        registered = load_tool().registered_scenes()
         for case in plan['cases']:
+            if case.get('scene') in registered:
+                self.assertEqual((case['status'], case['missing']), ('planned', []), case['id'])
+                continue
             self.assertEqual(case['status'], 'OWED', case['id'])
             self.assertTrue(set(case['missing']) <= owed and case['missing'], case['id'])
+        self.assertEqual(len([case for case in plan['cases'] if case['status'] == 'planned']), 24)
         # The engines come only from I50-07's accepted inventory, never from a list in the contract.
         self.assertNotIn('ime_engines', json.loads((REPO / 'ci/visual/i50/contract.json').read_text()))
         # Font values and the live switch sequence are I50-09's and I50-28's to publish: one owed slot each, no stand-in list.
@@ -157,6 +163,37 @@ class Plan(Scratch):
         plan = json.loads(out.read_text())
         self.assertIn('2 catalogs absent: en, de', [row['missing'] for row in plan['owed'] if row['dependency'] == 'CATALOGS'])
         self.assertIn('CATALOGS', next(c for c in plan['cases'] if c['id'] == 'catalog.en.gui')['missing'])
+
+    def test_i50_native_gui_cases_owe_registered_scenes(self):
+        tool = load_tool()
+        contract, roster = tool.load_contract(tool.CONTRACT), tool.load_roster(ROSTER)
+        inputs = tool.load_inputs(contract, roster)
+        plan = tool.build_plan(contract, roster, 'all', inputs=inputs)
+        fit = [case for case in plan['cases'] if case['kind'] == 'fit' and case['frontend'] == 'gui']
+        # The driver points at the spelled ids the case id already carries, the ids SCENE-LANG registers.
+        self.assertTrue(all(case['scene'] == 'i50.' + case['id'] for case in fit))
+        self.assertIn('i50.fit.de.list.rest.gm.r0', {case['scene'] for case in fit})
+        registered = {case['scene'] for case in fit if case['scene'] in inputs['scenes']}
+        self.assertEqual({scene for scene in inputs['scenes'] if scene.startswith('i50.fit.')}, registered)
+        sceneless = [case for case in plan['cases'] if case['frontend'] == 'gui' and case['kind'] != 'fit']
+        self.assertTrue(sceneless and all('SCENES' in case['missing'] for case in sceneless))
+        owed = {row['dependency']: row['missing'] for row in plan['owed']}
+        self.assertEqual(owed['SCENES'], f'{len(fit) - len(registered)} of {len(fit)} gui fit cases name a scene that '
+                         f'ci/visual/scenes does not register; {len(sceneless)} catalog, ime, fonts, rtl and live gui cases '
+                         'have no scene id yet')
+        # A registry with every fit scene leaves only the sceneless cases on SCENES, still counted.
+        every = dict(inputs, scenes={case['scene'] for case in fit})
+        full = tool.build_plan(contract, roster, 'all', inputs=every)
+        self.assertTrue(all(case['status'] == 'planned' for case in full['cases'] if case['kind'] == 'fit' and case['frontend'] == 'gui'))
+        self.assertIn(f'0 of {len(fit)} gui fit cases', {row['dependency']: row['missing'] for row in full['owed']}['SCENES'])
+        # No registry, or one without an i50 scene, keeps SCENE-LANG owed on every gui case and never names SCENES.
+        for scenes in (None, {'g1-01-list-r0'}):
+            bare = tool.build_plan(contract, roster, 'all', inputs=dict(inputs, scenes=scenes))
+            deps = {row['dependency'] for row in bare['owed']}
+            self.assertIn('SCENE-LANG', deps)
+            self.assertNotIn('SCENES', deps)
+            for case in bare['cases']:
+                self.assertEqual('SCENE-LANG' in case['missing'], case['frontend'] == 'gui', case['id'])
 
     def test_i50_native_plan_output_needs_a_marked_root(self):
         bare = Path(tempfile.mkdtemp(prefix='native-unmarked.', dir=self.root.parent))
@@ -379,7 +416,8 @@ class Lease(Scratch):
         done = self.run_tool('capture', '--candidate', ROSTER, '--languages', 'all', '--cases', 'catalog', '--output', out)
         self.assertEqual(done.returncode, 3, done.stderr)
         self.assertIn('BLOCKED', done.stderr)
-        self.assertIn('BLOCKED SCENE-LANG', done.stderr)
+        self.assertIn('BLOCKED SCENES', done.stderr)
+        self.assertNotIn('BLOCKED SCENE-LANG', done.stderr)
         self.assertIn('BLOCKED TUI-RECEIPT', done.stderr)
         self.assertNotIn('TUI-PREPARE', done.stderr)
         self.assertIn('no capture adapter exists yet', done.stderr)
@@ -395,7 +433,7 @@ class Lease(Scratch):
         done = self.run_tool('verify', '--input', self.root, '--source-index', INDEX)
         self.assertEqual(done.returncode, 1, done.stdout)
         self.assertIn('I50_NATIVE_VERIFY REFUSED', done.stdout)
-        self.assertIn('plan owes SCENE-LANG', done.stdout)
+        self.assertIn('plan owes SCENES', done.stdout)
         self.assertFalse(plan['complete'])
 
     def test_i50_native_verify_refuses_a_forged_plan(self):
@@ -537,7 +575,7 @@ class Adapters(Scratch):
                 done = self.run_tool('verify', '--input', output, *source_args, *inputs)
                 self.assertEqual(done.returncode, 1, done.stderr)
                 self.assertNotIn('plan differs from the plan this tree computes', done.stdout)
-                self.assertIn('plan owes SCENE-LANG', done.stdout)
+                self.assertIn('plan owes SCENES', done.stdout)
 
     def test_i50_native_ime_inventory_adapter(self):
         plan = self.plan()
@@ -552,7 +590,7 @@ class Adapters(Scratch):
         hosted = {c['entry'] for c in ime if c['host'] == 'mounted'}
         for case in ime:
             self.assertEqual('IME-HOSTS' in case['missing'], case['host'] != 'mounted', case['id'])
-            self.assertIn('SCENE-LANG', case['missing'])
+            self.assertIn('SCENES', case['missing'])
         self.assertIn(f'{56 - len(hosted)} entries', owed['IME-HOSTS'])
         self.assertEqual(plan['ime_inventory']['sha256'], sha(INVENTORY.read_bytes()))
         lines = INVENTORY.read_text().splitlines(keepends=True)

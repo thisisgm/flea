@@ -186,7 +186,8 @@ def load_inputs(contract, roster, source_index=None, rtl_policy=None, entry_inve
     source_index, rtl_policy, entry_inventory = (default_input(source_index, INDEX), default_input(rtl_policy, POLICY),
                                                  default_input(entry_inventory, INVENTORY))
     tui_candidate = default_input(tui_candidate, TUI_CANDIDATE)
-    return {'tui_callable': tui_candidate and load_tui_callable(tui_candidate),
+    return {'scenes': registered_scenes() if SCENES.is_dir() else None,
+            'tui_callable': tui_candidate and load_tui_callable(tui_candidate),
             'source_index': source_index and load_source_index(source_index, roster, contract['source_index']['sha256']),
             'rtl_policy': rtl_policy and load_rtl_policy(rtl_policy, roster, contract['rtl_policy']['sha256']),
             'ime_inventory': entry_inventory and load_inventory(entry_inventory, contract['ime_inventory']['sha256'])}
@@ -211,13 +212,19 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
     if absent:
         owed['CATALOGS'] = {'id': 'CATALOGS', 'provides': 'target catalogs',
                             'missing': f'{len(absent)} catalogs absent: {", ".join(absent)}'}
+    # SCENE-LANG is delivered once the registry holds an i50 scene; each gui case then owes its own registered scene.
+    scenes = inputs.get('scenes')
+    if scenes is not None and any(scene.startswith('i50.') for scene in scenes):
+        owed.pop('SCENE-LANG')
     cases = []
 
     def case(ident, kind, frontend, missing, **fields):
         missing = [dep for dep in missing if dep in owed]
         cases.append(dict(id=ident, kind=kind, frontend=frontend, status='OWED' if missing else 'planned', missing=missing, **fields))
 
-    view = {'gui': 'SCENE-LANG', 'tui': 'TUI-RECEIPT' if tui else 'TUI-16'}
+    gui = 'SCENE-LANG' if 'SCENE-LANG' in owed else 'SCENES'
+    owed['SCENES'] = {'id': 'SCENES', 'provides': 'a registered visual scene for every gui case'}
+    view = {'gui': gui, 'tui': 'TUI-RECEIPT' if tui else 'TUI-16'}
     for code in codes:
         catalog = ['CATALOGS'] if code in absent else []
         for end in contract['frontends']:
@@ -232,22 +239,30 @@ def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=N
                     continue
                 for theme in contract['themes']:
                     for rounding in contract['rounding']:
-                        case(f'fit.{code}.{surface["id"]}.{state}.{theme}.r{rounding}', 'fit', 'gui', ['SCENE-LANG'], language=code,
-                             surface=surface['id'], state=state, theme=theme, rounding=rounding, scene=f'i50.fit.{code}.{surface["id"]}')
+                        spelled = f'{code}.{surface["id"]}.{state}.{theme}.r{rounding}'
+                        unregistered = gui == 'SCENE-LANG' or f'i50.fit.{spelled}' not in scenes
+                        case(f'fit.{spelled}', 'fit', 'gui', [gui] if unregistered else [], language=code,
+                             surface=surface['id'], state=state, theme=theme, rounding=rounding, scene=f'i50.fit.{spelled}')
     # I50-07 publishes every entry and engine case; without its inventory the plan holds one owed slot, never a guess.
     if inventory:
         for row in inventory['cases']:
             hosted = [] if row['host'] == 'mounted' else ['IME-HOSTS']
-            case(f'ime.{row["entry"]}.{row["engine"]}', 'ime', 'gui', ['SCENE-LANG', *hosted], language=None, **row)
+            case(f'ime.{row["entry"]}.{row["engine"]}', 'ime', 'gui', [gui, *hosted], language=None, **row)
     else:
-        case('ime.entry-inventory', 'ime', 'gui', ['I50-07', 'SCENE-LANG'], language=None)
+        case('ime.entry-inventory', 'ime', 'gui', ['I50-07', gui], language=None)
     # I50-09 publishes the font values and I50-28 the switch sequence; each is one owed slot until its handoff.
-    case('fonts.font-inventory', 'fonts', 'gui', ['I50-09', 'SCENE-LANG'], language=None)
+    case('fonts.font-inventory', 'fonts', 'gui', ['I50-09', gui], language=None)
     for code in (c for c in roster['rtl'] if c in codes):
         for end in contract['frontends']:
             roles = {'roles': policy['roles']} if policy else {}
             case(f'rtl.{code}.{end}', 'rtl', end, ['I50-04', view[end]], language=code, **roles)
-    case('live.switch-sequence', 'live', 'gui', ['I50-28', 'SCENE-LANG'], language=None)
+    case('live.switch-sequence', 'live', 'gui', ['I50-28', gui], language=None)
+    # Counted from the cases, in the style of IME-HOSTS, so the row says exactly which gui work still has no scene.
+    fit = [row for row in cases if row['kind'] == 'fit' and row['frontend'] == 'gui']
+    unscened = [row for row in fit if 'SCENES' in row['missing']]
+    sceneless = [row for row in cases if row['frontend'] == 'gui' and row['kind'] != 'fit']
+    owed['SCENES']['missing'] = (f'{len(unscened)} of {len(fit)} gui fit cases name a scene that ci/visual/scenes does not register; '
+                                 f'{len(sceneless)} catalog, ime, fonts, rtl and live gui cases have no scene id yet')
     used = sorted({dep for row in cases for dep in row['missing']})
     return {
         'schema': PLAN_SCHEMA, 'scope': 'all' if languages == 'all' else 'subset', 'languages': codes,
@@ -288,18 +303,27 @@ def coverage_errors(plan, undriven, registered=None):
     wanted = fit_scene_ids(plan)
     reasons, errors = {}, []
     for line in undriven.splitlines():
-        # Sample line: i50.fit.de.menu BLOCKED I50-27: SCENE-LANG, scene settings cannot set language
+        # Sample lines: i50.fit.de.menu BLOCKED I50-27: <reason> (a group), i50.fit.de.list.hover.gm.r0 BLOCKED ... (one scene)
         match = re.fullmatch(r'(i50\.\S+) BLOCKED ([A-Za-z0-9-]+): (\S.*)', line)
         if not line.startswith('i50.'):
             continue
-        scene = match[1] if match else line.split()[0]
-        if scene in reasons:
-            errors.append(f'{scene}: duplicate undriven line')
-        reasons[scene] = match[3] if match else None
+        name = match[1] if match else line.split()[0]
+        if name in reasons:
+            errors.append(f'{name}: duplicate undriven line')
+        reasons[name] = match[3] if match else None
+    # A line covers the scene it spells or, as a group, every scene below it at a dot boundary.
+    covers = {name: [scene for scene in wanted if scene == name or scene.startswith(name + '.')] for name in reasons}
+    lines = {}
+    for name, scenes in covers.items():
+        for scene in scenes:
+            lines.setdefault(scene, []).append(name)
+    errors += [f'{scene}: more than one undriven line ({", ".join(names)})' for scene, names in sorted(lines.items())
+               if len(names) > 1]
     errors += [f'{scene}: no registered scene and no undriven reason' for scene in wanted
-               if scene not in registered and not reasons.get(scene)]
-    errors += [f'{scene}: undriven line names no planned scene' for scene in sorted(reasons) if scene not in wanted]
-    errors += [f'{scene}: registered scene still has an undriven line' for scene in sorted(reasons) if scene in registered]
+               if scene not in registered and not any(reasons[name] for name in lines.get(scene, []))]
+    errors += [f'{name}: undriven line names no planned scene' for name in sorted(reasons) if not covers[name]]
+    errors += [f'{name}: registered scene still has an undriven line' for name in sorted(reasons)
+               if covers[name] and all(scene in registered for scene in covers[name])]
     return errors
 
 
