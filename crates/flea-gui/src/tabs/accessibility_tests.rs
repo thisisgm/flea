@@ -96,4 +96,29 @@ fn pb_tabs_a_press_on_each_control_taps_that_tab_or_new_tab(cx: &mut gpui::TestA
             assert_eq!(shell.strip.tabs[0].current(), current, "control {index}");
         });
     }
+    // Presses built before a close resolve by identity: control 2's tab sits at 1 once tab 0 closes.
+    let stale = cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let stale = accessibility::Controls::new(weak.clone(), shell)
+                .expect("a strip of four tabs has controls");
+            shell.tab_a11y_press(stale.press(0), window, cx);
+            stale
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert_eq!(shell.strip.tabs[0].current(), 0, "control 0 before the close");
+            assert!(shell.tab_action("tabClose", window, cx));
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| shell.tab_a11y_press(stale.press(2), window, cx))
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.strip.tabs[0].count(), 3, "the close took one tab");
+        assert_eq!(shell.strip.tabs[0].current(), 1, "the stale press follows its tab");
+    });
 }

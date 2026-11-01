@@ -98,8 +98,12 @@ fn pb_tabs_an_accepted_tab_change_closes_quick_look_from_any_source(cx: &mut Tes
 #[gpui::test]
 fn pb_tabs_an_accepted_tab_change_leaves_a_typed_search(cx: &mut TestAppContext) {
     use flea::ui_logic_sr1::{Kind, Scope, Wire};
-    // (keys, Everywhere contents, live): an erased query only owes a relist; Everywhere contents is live and owes none.
-    for (keys, everywhere, live) in [("x backspace", false, false), ("x", true, true)] {
+    // (keys, Everywhere contents, live): erased owes a relist only, Everywhere contents is live only, local x is both.
+    for (keys, everywhere, live) in [
+        ("x backspace", false, false),
+        ("x", true, true),
+        ("x", false, true),
+    ] {
         let (shell, cx) = open_root(cx, "default");
         land(&shell, cx, "/files", vec![row("a.txt", false)], 1);
         act(&shell, cx, |shell, window, cx| {
