@@ -3,7 +3,7 @@ use flea::protocol::Request;
 use std::io::{self, Read, Write};
 use std::os::{fd::AsRawFd, unix::net::UnixStream};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::{mpsc::Receiver, Arc, Mutex};
+use std::sync::{mpsc::Receiver, Arc, Mutex, PoisonError};
 use std::time::Instant;
 
 #[repr(C)]
@@ -298,7 +298,10 @@ impl<'a> Worker<'a> {
         };
         // The folder fact lands before its listed event, so a menu built on that landing reads it.
         if let Some((folder, writable)) = transport::listed_folder(&event, line) {
-            self.folders.lock().unwrap().record(folder, writable);
+            self.folders
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .record(folder, writable);
         }
         if let Some(changed) = transport::reload_changed(&event, line) {
             let _ = self.output.try_send(Event::ReloadChanged(changed));

@@ -262,3 +262,10 @@ mod sheet_tests;
 #[cfg(test)]
 #[path = "cards_corner_tests.rs"]
 mod corner_tests;
+
+impl Model {
+    /// A catalog string as a heading in capitals, cased the way the active language writes them (Turkish dotted I).
+    pub fn heading(&self, key: &str) -> String {
+        flea::ui_logic_st1::caps::heading(&self.i18n.tr(key), self.i18n.language())
+    }
+}

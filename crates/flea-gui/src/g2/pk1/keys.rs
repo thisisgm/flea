@@ -20,11 +20,9 @@ impl Picker {
                     key: order.key.into(),
                     desc: false,
                 });
-                let key = sort::PICKER_ORDERS
-                    .into_iter()
-                    .find(|key| *key == next.key)
-                    .expect("picker_next_order names one of PICKER_ORDERS");
-                self.request_sort(Order { key, desc: false }, cx);
+                if let Some(key) = sort::PICKER_ORDERS.into_iter().find(|key| *key == next.key) {
+                    self.request_sort(Order { key, desc: false }, cx);
+                }
             }
             "sortReverse" => {
                 let order = current();
@@ -38,7 +36,8 @@ impl Picker {
             }
             // PickerList.qml is disabled while submitting or without a backend, so the period re-lists nothing then.
             "toggleHidden" if !self.backend_unavailable() && !self.accept_state().submitting() => {
-                self.req.hidden = Some(!self.req.hidden.unwrap_or(self.preferences.hidden));
+                self.req.hidden =
+                    Some(!self.req.hidden.unwrap_or(self.preferences.followed.hidden));
                 let path = self.listing.location.clone();
                 self.open_folder(&path, cx);
             }

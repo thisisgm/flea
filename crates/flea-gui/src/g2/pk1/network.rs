@@ -178,7 +178,9 @@ impl Picker {
             Effect::Open { path, origin, .. } | Effect::OpenFile { path, origin, .. }
                 if self.network_waits(*origin) =>
             {
-                self.rail.network.as_mut().unwrap().waiting = None;
+                if let Some(network) = self.rail.network.as_mut() {
+                    network.waiting = None;
+                }
                 self.refresh_mounts(cx);
                 if matches!(effect, Effect::OpenFile { .. }) {
                     self.path_out(
@@ -207,7 +209,9 @@ impl Picker {
                 args,
                 ..
             } if self.network_waits(*origin) => {
-                self.rail.network.as_mut().unwrap().waiting = None;
+                if let Some(network) = self.rail.network.as_mut() {
+                    network.waiting = None;
+                }
                 let text = self
                     .locale
                     .catalog
@@ -229,8 +233,10 @@ impl Picker {
                 names,
                 origin,
             } if self.network_waits(*origin) => {
-                if let Some(window) = self.browse.window {
-                    let shares = self.rail.network.as_ref().unwrap().shares.clone();
+                if let (Some(window), Some(network)) =
+                    (self.browse.window, self.rail.network.as_ref())
+                {
+                    let shares = network.shares.clone();
                     let (uri, label, names, origin) =
                         (uri.clone(), label.clone(), names.clone(), *origin);
                     let _ = window.update(cx, |_, window, cx| {

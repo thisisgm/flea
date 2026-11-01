@@ -8,7 +8,7 @@ use std::process::Command;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     mpsc::{self, Sender},
-    Arc, Mutex,
+    Arc, Mutex, PoisonError,
 };
 use std::thread;
 use std::time::{Duration, Instant};
@@ -174,7 +174,10 @@ impl Backend {
     }
     /// Backend.qml dirWritable for this folder; a folder no listed line has named yet reads writable.
     pub fn dir_writable(&self, path: &str) -> bool {
-        self.folders.lock().unwrap().of(path)
+        self.folders
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .of(path)
     }
     pub(crate) fn formats_requests(&self) -> usize {
         self.formats_requests.load(Ordering::Relaxed)

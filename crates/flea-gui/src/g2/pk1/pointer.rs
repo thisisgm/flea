@@ -102,7 +102,7 @@ impl Picker {
             return;
         }
         drop(state);
-        let zooming = event.modifiers.control && self.preferences.ctrl_zoom;
+        let zooming = event.modifiers.control && self.preferences.followed.ctrl_zoom;
         let Some(delivery) = wheel_delivery(event, true) else {
             return;
         };

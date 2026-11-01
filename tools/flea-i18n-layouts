@@ -334,6 +334,10 @@ def current_gui(event):
             "mods": held & 15}
 
 
+# Language layouts map only X core keycodes; above 255 only model files such as symbols/inet map keys (KEY_NUMERIC_1 at <I521>).
+LAST_CORE_KEYCODE = 255
+
+
 # X keycodes of the US digit row AE01 to AE12, and of the letter rows AD01 to AD10, AC01 to AC09 and AB01 to AB07.
 US_DIGIT_ROW = range(10, 22)
 US_LETTER_KEYS = [*range(24, 34), *range(38, 47), *range(52, 59)]
@@ -528,6 +532,7 @@ def measure_scope(rows, events, us_events, policy, fixed_prefix=None, precedence
     us_events = us_events if isinstance(us_events, Events) else Events(us_events)
     script = letter_group(events)
     has_altgr = any(event["keysym"] in ("ISO_Level3_Shift", "Mode_switch") for event in events)
+    core = {event["id"] for event in events if event["code"] <= LAST_CORE_KEYCODE}
     current_key, current_text = defaultdict(list), defaultdict(list)
     for event, tried in fork_forms(rows, events):
         for actual in tried:
@@ -571,7 +576,7 @@ def measure_scope(rows, events, us_events, policy, fixed_prefix=None, precedence
                    current_key.get((modmask(s["mods"]), SPECIAL.get(character(s["key"]).lower(), character(s["key"]).lower())), [])
                    for s in row["strokes"]]
         missing = [sorted(set(path) - set(actual)) for (path, _), actual in zip(chosen, current)]
-        forbidden = [[path for path in actual if int(path.rpartition(":")[2]) & MODS["altgr"]]
+        forbidden = [[path for path in actual if int(path.rpartition(":")[2]) & MODS["altgr"] and path in core]
                      if has_altgr else [] for actual in current]
         cells.append(dict(binding=row["id"], paths=[p for p, _ in chosen], rules=[r for _, r in chosen],
                           status="punctuation-conflict" if failing else ("reachable" if reachable else "unreachable"),

@@ -6,7 +6,7 @@ use flea::jsondoc::Json;
 use gpui::Context;
 
 pub(super) struct Preferences {
-    pub(super) hidden: bool,
+    pub(super) followed: Followed,
     pub(super) view_chosen: bool,
     relist: bool,
     writes: Option<std::sync::mpsc::Sender<(u64, Json, Option<Json>)>>,
@@ -14,13 +14,21 @@ pub(super) struct Preferences {
     pending: Option<String>,
     pending_thumb: Option<(u64, ThumbSize)>,
     unsaved_thumb: Option<ThumbSize>,
+}
+
+/// What the browser's shared settings say, read again on every settings change.
+pub(super) struct Followed {
+    pub(super) hidden: bool,
     pub(super) ctrl_zoom: bool,
 }
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            hidden: false,
+            followed: Followed {
+                hidden: false,
+                ctrl_zoom: true,
+            },
             view_chosen: false,
             relist: false,
             writes: None,
@@ -28,7 +36,6 @@ impl Default for Preferences {
             pending: None,
             pending_thumb: None,
             unsaved_thumb: None,
-            ctrl_zoom: true,
         }
     }
 }
@@ -43,7 +50,7 @@ impl Picker {
             .unwrap_or("default")
             .to_owned();
         let preview = data.get("preview");
-        self.preferences.ctrl_zoom = preview
+        self.preferences.followed.ctrl_zoom = preview
             .and_then(|preview| preview.get("ctrlZoom"))
             .and_then(Json::as_bool)
             != Some(false);
@@ -60,8 +67,8 @@ impl Picker {
                         .unwrap_or("medium"),
                 )
             });
-        let hidden = self.req.hidden.unwrap_or(self.preferences.hidden);
-        self.preferences.hidden = data.get("hidden").and_then(Json::as_bool) == Some(true);
+        let hidden = self.req.hidden.unwrap_or(self.preferences.followed.hidden);
+        self.preferences.followed.hidden = data.get("hidden").and_then(Json::as_bool) == Some(true);
         if !self.preferences.view_chosen && self.preferences.pending.is_none() {
             self.set_view(
                 data.get("pickerView")
@@ -74,7 +81,7 @@ impl Picker {
             listing.set_thumbnail(size);
             listing.apply_settings(data, cx)
         });
-        if changed || hidden != self.req.hidden.unwrap_or(self.preferences.hidden) {
+        if changed || hidden != self.req.hidden.unwrap_or(self.preferences.followed.hidden) {
             self.preferences.relist = true;
         }
         self.relist_settings(cx);
