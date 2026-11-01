@@ -129,7 +129,9 @@ impl I18n {
         let mut chars = BTreeSet::new();
         for locale in &self.roster {
             chars.extend(locale.name.chars());
-            chars.insert(locale.zero_digit);
+            // Numbers shift every ASCII digit from zero_digit, so all ten are drawn, beside the decimal and group marks.
+            chars.extend((0..10).filter_map(|n| char::from_u32(locale.zero_digit as u32 + n)));
+            chars.extend(locale.decimal.chars().chain(locale.separator.chars()));
         }
         for catalog in std::iter::once(&self.translated).chain(self.omarchy_translated.values()) {
             catalog.values().for_each(|value| walk(value, &mut chars));
