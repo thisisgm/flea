@@ -91,6 +91,7 @@ impl Shell {
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settle_rail_drag(window, cx);
+        self.reaim_rail_drag(window, cx);
         self.route_device_events(window, cx);
         self.hold_rail_for_release(cx);
         if let Some(held) = self
