@@ -8,7 +8,7 @@ use flea::error;
 mod gui;
 mod heap;
 mod hyprkeys;
-// GPUI L units wire the catalog API after their surfaces land.
+// Tests swap in a catalog module that also carries the fixture catalogs.
 #[cfg(not(test))]
 use flea::i18n;
 #[cfg(test)]
