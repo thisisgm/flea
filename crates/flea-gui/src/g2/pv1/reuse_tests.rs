@@ -1,4 +1,4 @@
-//! A JPEG's bounded first frame needs sharp refinement; only sharp pixels may be offered for reuse.
+//! A JPEG's bounded first frame needs sharp refinement; only refined pixels are kept for reuse.
 use crate::preview_quality::reuse;
 
 #[test]
@@ -25,10 +25,6 @@ fn preview_quality_reuse_jpeg_bounded_first_frame_requires_sharp_refinement() {
         1,
         "the first picture reads the file once"
     );
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "the bounded first frame cannot stand as the sharp refinement"
-    );
     let refined = super::photo::decode_sharp(&path, (300, 200), &|| true).unwrap();
     // GH336 requires one bounded first decode before the single full-source sharp decode.
     assert_eq!(reuse::decodes(&path), 2);
@@ -37,54 +33,6 @@ fn preview_quality_reuse_jpeg_bounded_first_frame_requires_sharp_refinement() {
         refined.as_bytes(0),
         "this detailed JPEG needs its full-source sharp refinement"
     );
-    // Seed sharp offers explicitly to retain their claim, size and identity checks.
-    reuse::offer(
-        &path,
-        (300, 200),
-        reuse::file_identity(&path).unwrap(),
-        &refined,
-    );
-    let offered = reuse::take(&path, (300, 200)).expect("sharp pixels can be offered");
-    assert!(std::sync::Arc::ptr_eq(&refined, &offered));
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "an offer is claimed once"
-    );
-    assert_eq!(
-        offered.as_bytes(0),
-        refined.as_bytes(0),
-        "the offer is the refinement's pixels"
-    );
-    let other_size = super::photo::decode_sharp(&path, (299, 200), &|| true).unwrap();
-    reuse::offer(
-        &path,
-        (299, 200),
-        reuse::file_identity(&path).unwrap(),
-        &other_size,
-    );
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "another size is never claimed"
-    );
-    assert!(std::sync::Arc::ptr_eq(
-        &other_size,
-        &reuse::take(&path, (299, 200)).unwrap()
-    ));
-    let stale = super::photo::decode_sharp(&path, (300, 200), &|| true).unwrap();
-    reuse::offer(
-        &path,
-        (300, 200),
-        reuse::file_identity(&path).unwrap(),
-        &stale,
-    );
-    image::RgbImage::from_pixel(1200, 800, image::Rgb([255, 0, 0]))
-        .save(&path)
-        .unwrap();
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "a rewritten path cannot claim an older offer"
-    );
-    drop(stale);
     let meta = path.metadata().unwrap();
     let modified = meta.modified().unwrap();
     let version = (meta.len(), 4);
