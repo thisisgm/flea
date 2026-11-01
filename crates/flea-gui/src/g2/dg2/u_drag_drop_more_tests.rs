@@ -82,6 +82,7 @@ fn pb_drag_1_a_lift_or_a_ground_press_cancels_the_pending_slow_click() {
     armed_record(&mut vcx, handle);
     vcx.simulate_mouse_move(row, None, Modifiers::default());
     vcx.simulate_mouse_down(row, MouseButton::Left, Modifiers::default());
+    assert!(recorded(&mut vcx, handle), "a row press keeps the record");
     handle
         .update(&mut vcx, |shell, window, cx| {
             assert!(shell.begin_file_drag(0, window, cx));

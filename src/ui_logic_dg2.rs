@@ -21,6 +21,7 @@ pub const ROWS_MIME: &str = "application/x-flea-rows";
 pub const SHELF_MIME: &str = "application/x-flea-shelf";
 
 /// A shelf drag's token and whether its intent copies (Drag.shelfToken, shelfCopying); None when it carries no token.
+/// Sample input: "opaque-token\ncopy"
 pub fn shelf(payload: &str) -> Option<(&str, bool)> {
     let mut lines = payload.split('\n');
     let token = lines.next().filter(|token| !token.is_empty())?;

@@ -1,5 +1,4 @@
-//! EY-288 (PB-DRAG-1 edge scroll): a row lift held in a List listing's bottom band scrolls it about a row each 100 ms
-//! with the hover-open setting off (HoverTimers.qml), through M3's Shell::advance_row_drag, and stops off the band.
+//! EY-288 (PB-DRAG-1): a row lift resting in a List bottom band scrolls about a row each 100 ms and stops off the band.
 use super::mounted_tests::{frame, open_with, Root};
 use crate::list::bench;
 use gpui::{point, px, Modifiers, MouseButton, VisualTestContext};
