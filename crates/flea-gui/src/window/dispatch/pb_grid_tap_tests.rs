@@ -34,7 +34,7 @@ fn ready_single<'a>(
     (shell, cx, Box::new(lines))
 }
 
-// Past the slow-click interval, so an armed rename would have fired; the caption control is rename_slow_tests.
+// Past the slow-click interval, so an armed rename would have fired.
 const PAST_SLOW: Duration = Duration::from_millis(crate::input::slow::DOUBLE_CLICK_MS + 200);
 
 #[gpui::test]
@@ -65,6 +65,14 @@ fn pb_grid_icon_and_drag_releases_never_arm_slow_rename(cx: &mut TestAppContext)
     cx.executor().advance_clock(PAST_SLOW);
     draw(cx);
     assert_eq!(editing(&shell, cx), None, "a drag release never renames");
+    tap(cx, name, 1, Modifiers::none());
+    cx.executor().advance_clock(PAST_SLOW);
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx).map(|edit| edit.0),
+        Some(2),
+        "a plain second caption tap renames, so the slow path above is live"
+    );
     close(&shell, cx);
 }
 
