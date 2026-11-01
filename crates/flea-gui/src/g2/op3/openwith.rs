@@ -38,6 +38,8 @@ pub struct OpenWith {
     catalogue: Option<Catalogue>,
     rows: Vec<Seat>,
     pub query: String,
+    /// The query the rows were filtered by; a composition shows in the field but filters once it commits.
+    filtered: String,
     pub cursor: usize,
     top: usize,
     pub always: bool,
@@ -57,6 +59,7 @@ impl OpenWith {
             catalogue: None,
             rows: Vec::new(),
             query: String::new(),
+            filtered: String::new(),
             cursor: 0,
             top: 0,
             always: false,
@@ -72,10 +75,15 @@ impl OpenWith {
     }
 
     fn refilter(&mut self) {
+        self.filtered.clone_from(&self.query);
+        self.refresh_rows();
+    }
+
+    fn refresh_rows(&mut self) {
         self.rows = self
             .catalogue
             .as_ref()
-            .map_or_else(Vec::new, |c| logic::rows(c, &self.query));
+            .map_or_else(Vec::new, |c| logic::rows(c, &self.filtered));
         self.cursor = self.cursor.min(self.applications().saturating_sub(1));
         self.top = 0;
         self.follow();
@@ -179,6 +187,21 @@ impl OpenWith {
         Vec::new()
     }
 
+    /// The search line the window's shared entry edits while Search holds the keys.
+    pub(crate) fn ime_value(&self) -> Option<(crate::g2::op1::dialog_editor::Slot, &str)> {
+        (self.focus == Stop::Search).then_some((
+            crate::g2::op1::dialog_editor::Slot::OpenWithSearch,
+            self.query.as_str(),
+        ))
+    }
+
+    pub(crate) fn ime_set(&mut self, text: &str, composing: bool) {
+        text.clone_into(&mut self.query);
+        if !composing && self.filtered != self.query {
+            self.refilter();
+        }
+    }
+
     /// Sample input: the applications reply fills the list; an openWith reply closes the card or says why not. Another request's reply is not this card's.
     pub fn reply(&mut self, i18n: &I18n, reply: &Json) -> Vec<Effect> {
         if reply.get("id").and_then(Json::as_f64) != Some(self.id as f64) {
@@ -200,7 +223,7 @@ impl OpenWith {
                     .position(|a| a.default)
                     .unwrap_or(0);
                 self.catalogue = Some(catalogue);
-                self.refilter();
+                self.refresh_rows();
             }
             Some("applications") => self.error = Some(i18n.tr("dialogs.file.openwith.list_failed")),
             Some("openWith") if ok => return vec![Effect::Close],
@@ -228,7 +251,7 @@ impl OpenWith {
         let mut body = vec![Block::Field(search)];
         if self.catalogue.is_some() && self.rows.is_empty() {
             body.push(Block::Note {
-                text: logic::no_match(i18n, &self.query),
+                text: logic::no_match(i18n, &self.filtered),
                 inset: 0.,
                 ink: Ink::Muted,
                 lift: 0.,

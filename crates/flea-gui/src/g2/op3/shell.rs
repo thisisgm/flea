@@ -300,7 +300,7 @@ struct Draw<'a> {
     typeface: &'a Typeface,
     language: &'a str,
     wire: Option<&'a Wire>,
-    entry: Option<&'a crate::path::entry::Entry>,
+    mount: Option<&'a Mount>,
     probe: Option<&'a crate::g2::st1::probe::Probe>,
 }
 
@@ -313,12 +313,14 @@ pub enum Control {
 }
 
 pub type Wire = dyn Fn(Control, Stateful<Div>) -> Stateful<Div>;
+/// Mounts a card's own text input into the focused field's slot.
+pub type Mount = dyn Fn(Div) -> AnyElement;
 
 /// The same board drawing with live controls and the window's card surface role.
 pub struct Interactive<'a> {
     pub wire: &'a Wire,
     pub surface: Hsla,
-    pub entry: &'a crate::path::entry::Entry,
+    pub mount: Option<&'a Mount>,
 }
 
 mod blocks;

@@ -185,7 +185,7 @@ impl Shell {
             &shell::Interactive {
                 wire: &wire,
                 surface: theme.surface,
-                entry: &self.rename.ime.entry,
+                mount: None,
             },
             &card,
             &palette,

@@ -9,10 +9,7 @@ use std::ops::Range;
 
 impl Shell {
     fn ime_entry(&self, window: &Window) -> Option<&Entry> {
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             return (self.dialog_active(window)
                 && self
                     .rename
@@ -30,20 +27,14 @@ impl Shell {
         .then_some(&edit.entry)
     }
     fn ime_entry_mut(&mut self) -> &mut Entry {
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             &mut self.rename.ime.entry
         } else {
             &mut self.rename.edit.as_mut().expect("active inline name").entry
         }
     }
     fn ime_changed(&mut self, cx: &mut Context<Self>) {
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             self.dialog_edited(cx);
         } else {
             cx.notify();
@@ -114,10 +105,7 @@ impl EntityInputHandler for Shell {
         _: &mut Context<Self>,
     ) -> Option<Bounds<Pixels>> {
         let entry = self.ime_entry(window)?;
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             let drawn = self.rename.ime.drawn.borrow();
             return Some(crate::g2::op1::field_view::bounds(
                 self,
@@ -137,10 +125,7 @@ impl EntityInputHandler for Shell {
         _: &mut Context<Self>,
     ) -> Option<usize> {
         let entry = self.ime_entry(window)?;
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             let drawn = self.rename.ime.drawn.borrow();
             let byte = crate::g2::op1::field_view::index(self, at.x - drawn.bounds?.left());
             return Some(entry.offset_to_utf16(byte));

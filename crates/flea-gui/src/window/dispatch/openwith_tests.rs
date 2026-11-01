@@ -442,3 +442,6 @@ fn the_open_with_card_draws_each_applications_own_icon(cx: &mut TestAppContext) 
     });
     quit(&shell, cx);
 }
+
+#[path = "openwith_ime_tests.rs"]
+mod ime;
