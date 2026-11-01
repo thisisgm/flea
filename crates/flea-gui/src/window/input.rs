@@ -59,6 +59,7 @@ impl Shell {
         if self.lifecycle.phase() != Phase::Open {
             return;
         }
+        self.refresh_user_keys_layout(window, cx);
         // Escape ends this window's own drag before any card or listing reads the key.
         if event.keystroke.key == "escape"
             && (self.escape_file_drag(window, cx) || self.escape_tab_drag(window, cx))
@@ -260,31 +261,22 @@ impl Shell {
             .end_for_listing_key(listing, &dispatch);
         let action = match dispatch {
             Dispatch::Unbound => {
-                if self.keyboard.context == flea::keys::Context::Listing
-                    && host.filter.shown.is_none()
-                    && printable(event.keystroke.key_char.as_deref().unwrap_or(""))
-                {
-                    let hint = flea::keys::presentation::hinted(
-                        &self.locale.catalog,
-                        "keys.hint.filter",
-                        name,
-                        "filter",
-                    );
-                    if !hint.is_empty() {
-                        self.status_messages(cx, |messages, now| {
-                            messages.say(
-                                &hint,
-                                false,
-                                "",
-                                flea::ui_logic_fb1::status::Hint::None,
-                                now,
-                            )
-                        });
-                        cx.notify();
+                let bound = if listing {
+                    self.user_key(name, event, window.modifiers())
+                } else {
+                    None
+                };
+                match bound {
+                    Some(crate::window::user_keys::Bound::Builtin(action)) => action,
+                    Some(crate::window::user_keys::Bound::Plugin(id)) => {
+                        self.run_user_plugin_key(&id, event, window, cx);
+                        return;
                     }
-                    cx.stop_propagation();
+                    None => {
+                        self.unbound_listing_key(event, cx);
+                        return;
+                    }
                 }
-                return;
             }
             Dispatch::Composition => return,
             Dispatch::Suppressed | Dispatch::Armed => {

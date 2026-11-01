@@ -274,6 +274,7 @@ impl Shell {
                 },
             ));
             self.settings.panel = Some(view);
+            self.sync_settings_user_keys(cx);
         }
         self.settings.opened = true;
         let view = self.settings.panel.clone().expect("settings built");

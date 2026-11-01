@@ -15,6 +15,10 @@ use gpui::{
 };
 
 mod hint;
+pub(super) mod user_keys;
+
+/// The key column of the Settings > Keys board's preview.
+pub const KEYS_W: f32 = 48.;
 
 /// One pane line: a section row at its index, or a search result with its typed run and its hit number.
 pub struct Line<'a> {
@@ -27,6 +31,8 @@ pub struct Line<'a> {
     pub section: Option<String>,
     /// Whether every option of a choice fits beside its label, decided from shaped widths.
     pub segment: bool,
+    /// A key preview's key column, widened from shaped widths only where a user chord outgrows the board's 48.
+    pub keys_w: f32,
 }
 
 impl<'a> Line<'a> {
@@ -39,6 +45,7 @@ impl<'a> Line<'a> {
             lifted,
             section: None,
             segment: false,
+            keys_w: KEYS_W,
         }
     }
 
@@ -51,6 +58,7 @@ impl<'a> Line<'a> {
             lifted,
             section: None,
             segment: false,
+            keys_w: KEYS_W,
         }
     }
 }
@@ -119,7 +127,7 @@ impl Rows<'_> {
             Kind::Group => self.group(base, line, at == 0, cx),
             Kind::Hint => self.hint(base, line),
             Kind::Ruler => self.ruler(base, line, cx),
-            Kind::KeyPreview => self.key_preview(base, row),
+            Kind::KeyPreview => self.key_preview(base, row, line.keys_w),
             Kind::Hero => self.hero(base, row),
             Kind::Favourite => self.favourite(base, line, cx),
             _ => self.control(base, line, cx),
@@ -252,41 +260,6 @@ impl Rows<'_> {
                                 cx.stop_propagation();
                             }))
                     })
-            }))
-    }
-
-    fn key_preview(&self, base: gpui::Stateful<Div>, row: &Row) -> gpui::Stateful<Div> {
-        let ink = self.ink;
-        let s = self.s();
-        let cell = (self.view.panel.pane.0 - 2. * s.of(PAD_X) - s.of(GAP)) / 2.;
-        base.flex()
-            .flex_wrap()
-            .gap(self.px(GAP))
-            .py(self.px(7.))
-            .px(self.px(PAD_X))
-            .text_size(self.view.typeface.caption)
-            .children(row.items.iter().map(|item| {
-                div()
-                    .w(px(cell))
-                    .h(self.px(CHIP_H))
-                    .flex()
-                    .items_center()
-                    .gap(self.px(GAP))
-                    .child(
-                        div()
-                            .w(self.px(48.))
-                            .mr(self.px(5.))
-                            .flex()
-                            .justify_end()
-                            .text_color(ink.foreground)
-                            .child(SharedString::from(item.keys.clone())),
-                    )
-                    .when(!item.glyph.is_empty(), |cell| {
-                        cell.child(mark(item.glyph, s.of(16.), ink.muted_frame))
-                    })
-                    .child(div().whitespace_nowrap().text_color(ink.foreground).child(
-                        SharedString::from(item.label.resolve(&self.view.panel.catalog)),
-                    ))
             }))
     }
 

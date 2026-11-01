@@ -280,6 +280,7 @@ impl SettingsView {
         let width = self.panel.pane.0;
         for line in &mut lines {
             line.segment = line.row.kind == Kind::Choice && self.fits(line.row, width, window);
+            super::draw::user_keys::measure(line, &self.typeface, window);
         }
         let heights = if searching {
             let rows: Vec<Row> = lines.iter().map(|line| line.row.clone()).collect();

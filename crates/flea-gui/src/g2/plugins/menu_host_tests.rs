@@ -355,3 +355,6 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
     });
     stop(cx, &fixture);
 }
+
+#[path = "menu_key_tests.rs"]
+mod key_tests;

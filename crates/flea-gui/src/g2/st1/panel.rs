@@ -52,6 +52,8 @@ pub struct Panel {
     pub results: Vec<Group>,
     pub save_error: Option<Text>,
     pub make_default: Vec<Row>,
+    /// The user's key file and the plugin actions it may bind, for the Keys pane's Your Keys group.
+    pub user_keys: Option<pages::UserKeyFacts>,
     pub requests: Vec<Request>,
     pub catalog: Arc<I18n>,
     pub facts: Facts,
@@ -84,6 +86,7 @@ impl Panel {
             results: Vec::new(),
             save_error: None,
             make_default: Vec::new(),
+            user_keys: None,
             requests: Vec::new(),
             catalog,
             facts,
@@ -123,6 +126,7 @@ impl Panel {
             base_size: self.facts.base_size,
             monitor_scale: self.facts.monitor_scale,
             save_error: self.save_error.clone(),
+            user_keys: self.user_keys.as_ref(),
             ..State::new(data)
         };
         let checks = pages::at(data, &["updates", "autoCheck"]).and_then(Json::as_bool);

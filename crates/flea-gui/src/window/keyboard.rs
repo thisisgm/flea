@@ -95,18 +95,19 @@ pub fn modifiers(modifiers: Modifiers) -> u8 {
 
 /// The event's binding in i18n/keyboard-policy.json order: the US position first for digits and non-Latin groups, else the printed key.
 pub fn event_lookup(name: &str, context: Context, event: &KeyDownEvent, held: Modifiers) -> Match {
+    let [first, second] = event_inputs(event, held);
+    match first {
+        Some(first) => keys::lookup_either(name, context, Frontend::Gui, first, second),
+        None => Match::Unbound,
+    }
+}
+
+/// The event's two inputs in the order `event_lookup` tries them, so a user binding matches on every layout the table does.
+pub fn event_inputs(event: &KeyDownEvent, held: Modifiers) -> [Option<Input<'_>>; 2] {
     let printed = event_input(event, held);
     match position_input(event, held) {
-        Some((position, true)) => {
-            keys::lookup_either(name, context, Frontend::Gui, position, Some(printed))
-        }
-        position => keys::lookup_either(
-            name,
-            context,
-            Frontend::Gui,
-            printed,
-            position.map(|(input, _)| input),
-        ),
+        Some((position, true)) => [Some(position), Some(printed)],
+        position => [Some(printed), position.map(|(input, _)| input)],
     }
 }
 

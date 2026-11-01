@@ -286,6 +286,31 @@ It does not substitute a newer selection. The run request adds exactly one `inpu
 The executable compares that value with its computed sum and answers `done` or an ordinary operation `error`.
 An operation error does not mark a healthy executable as failed.
 
+### Keys for menu actions
+
+A user can bind a key to any enabled plugin's menu action, or to a built-in action, in
+`$XDG_CONFIG_HOME/flea/keys.toml` (`~/.config/flea/keys.toml` when the variable is unset). The file uses the
+table shape of Flea's own `keys.toml`. A `[[ctrl]]`, `[[ctrlshift]]`, `[[shift]]`, `[[code]]` or `[[text]]` block
+holds `key` and `action` and applies to every preset. A `[[preset]]` block adds `name` (`default`, `vim`, `mac`,
+`windows` or `all`) and `mods` (`none`, `text`, `ctrl`, `shift`, `ctrlshift`, `alt`, `super`, `supershift` or
+`superalt`). A plugin action is named `plugin-id:action-id`. This binds Ctrl+Shift+K to the checksums example's
+Verify Checksum action:
+
+```toml keys=keys.toml
+[[ctrlshift]]
+key = "K"
+action = "example.checksums:sha256"
+```
+
+Flea reads the file at start and again within two seconds of a change. A bound key runs the action exactly as
+choosing its menu row does, on the focused pane's selection or cursor row, with the same `when` check, input card
+and refusals. An action offered only in the background menu runs on the open folder.
+
+Settings > Keys lists each live binding under Your Keys, with the plugin's own label. A binding whose chord the
+active preset already uses, that repeats an earlier chord in the file, or that names no built-in or installed plugin action stays
+unbound. Settings > Keys and stderr each state why in one line. Ctrl+Q and Ctrl+P are reserved. A binding to a
+disabled or removed plugin is dropped from the list and from the keyboard until the plugin is enabled again.
+
 ### Kind reference
 
 Every example below is checked by the repository documentation test. Flea sends each request only to a plugin that
