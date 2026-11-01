@@ -112,3 +112,129 @@ fn tui_convert_collision_cancel_preserve_sources() {
     assert!(!super::layout::focused(&m));
     wire::finish(w, reader);
 }
+// The card's borders on the option row, and whether a format row above draws its edge against the left or the right one.
+fn edge_sides(rows: &[String]) -> (bool, bool) {
+    let cells: Vec<Vec<char>> = rows.iter().map(|row| row.chars().collect()).collect();
+    let y = rows
+        .iter()
+        .position(|row| row.contains("[ ]") || row.contains("[x]"))
+        .unwrap();
+    let x = cells[y]
+        .windows(3)
+        .position(|run| run[0] == '[' && run[2] == ']')
+        .unwrap();
+    let left = (0..x).rev().find(|&i| cells[y][i] == '│').unwrap();
+    let right = (x..cells[y].len()).find(|&i| cells[y][i] == '│').unwrap();
+    let above = &cells[..y];
+    (
+        above.iter().any(|row| row[left + 1] == '▎'),
+        above.iter().any(|row| row[right - 1] == '▕'),
+    )
+}
+// Cells from the card's left border to the word, and from the word's end to the right border, on the word's first row.
+fn border_gaps(rows: &[String], word: &str) -> (usize, usize) {
+    let y = rows.iter().position(|row| row.contains(word)).unwrap();
+    let cells: Vec<char> = rows[y].chars().collect();
+    let x = rows[y][..rows[y].find(word).unwrap()].chars().count();
+    let end = x + word.chars().count();
+    let left = (0..x).rev().find(|&i| cells[i] == '│').unwrap();
+    let right = (end..cells.len()).find(|&i| cells[i] == '│').unwrap();
+    (x - left - 1, right - end)
+}
+#[test]
+fn tui_convert_rtl_rows_mirror_the_format_edge_and_the_option_brackets() {
+    let root = crate::backend::testdir::TestDir::new("convert-rtl");
+    root.dir("catalog/en");
+    root.dir("omarchy/default/i18n");
+    root.file(
+        "omarchy/default/i18n/locales.json",
+        include_str!("../i18n/fixtures/locales.json"),
+    );
+    root.file(
+        "catalog/en/flea.json",
+        include_str!("../../i18n/en/flea.json"),
+    );
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = opened(&mut w, "photo.png");
+    let theme = Theme::from_text(render::cards::tests::PALETTE);
+    let draw = |m: &Model| {
+        let out = render::frame(m, &theme, &Map::load(), 130, 31, Duration::ZERO);
+        (
+            grid(&out, 130, 31),
+            render::cards::tests::inks(&out, 130, 31),
+            out,
+        )
+    };
+    let bracket = |rows: &[String], ink: &[Vec<render::cards::tests::Ink>]| {
+        let y = rows
+            .iter()
+            .position(|row| row.contains("[ ]") || row.contains("[x]"))
+            .unwrap();
+        let x = rows[y]
+            .chars()
+            .collect::<Vec<_>>()
+            .windows(3)
+            .position(|run| run[0] == '[' && run[2] == ']')
+            .unwrap();
+        ink[y][x].0.clone()
+    };
+    let (rows, ink, _) = draw(&m);
+    assert_eq!(
+        edge_sides(&rows),
+        (true, false),
+        "left to right, the chosen format's edge takes the outer air cell"
+    );
+    let ltr_bracket = bracket(&rows, &ink);
+    // An enabled option inks its label apart from its brackets, so only the frame branch keeps them equal.
+    assert!(m.converting.card.as_ref().unwrap().option_enabled());
+    let y = rows.iter().position(|row| row.contains("[ ]")).unwrap();
+    let label = rows[y][..rows[y].find("Remove").unwrap()].chars().count();
+    assert_ne!(ink[y][label].0, ltr_bracket);
+    let ltr_output = border_gaps(&rows, "Output");
+    let arabic = crate::i18n::I18n::load(crate::i18n::Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.file("language", "ar"),
+        catalogs: vec![root.join("catalog")],
+    });
+    m.i18n = arabic.clone();
+    assert!(m.i18n.locale().right_to_left);
+    assert_eq!(
+        border_gaps(&draw(&m).0, "Output").1,
+        ltr_output.0,
+        "the output label mirrors onto the right border"
+    );
+    let mut pdf = opened(&mut w, "garden-report.pdf");
+    let ltr_pages = border_gaps(&draw(&pdf).0, "All");
+    pdf.i18n = arabic;
+    let rows = draw(&pdf).0;
+    assert_eq!(
+        border_gaps(&rows, "All").1,
+        ltr_pages.0,
+        "the pages field mirrors onto the right border\n{}",
+        rows.join("\n")
+    );
+    // Before the fix the right-to-left edge sat one cell in from the border, behind the lead air.
+    assert_eq!(
+        edge_sides(&draw(&m).0),
+        (false, true),
+        "right to left, the edge mirrors onto the outer air cell"
+    );
+    m.converting.card.as_mut().unwrap().focus = 1;
+    let (rows, ink, out) = draw(&m);
+    assert_eq!(
+        bracket(&rows, &ink),
+        ltr_bracket,
+        "the brackets keep the left-to-right ink"
+    );
+    let checkbox = out.find(" [ ]").or_else(|| out.find(" [x]")).unwrap();
+    let underline = out[..checkbox].rfind("\x1b[4m").unwrap();
+    assert!(
+        out[underline..checkbox].contains("\x1b[24m"),
+        "the underline ends with the label"
+    );
+    assert!(
+        !out[underline + "\x1b[4m".len()..].starts_with(' '),
+        "the underline starts with the label, not its padding"
+    );
+    wire::finish(w, reader);
+}
