@@ -531,3 +531,4 @@ bench-raw-corpus-contract|^PASS bench-raw-corpus-contract: all offline checks pa
 prove-ci-runner|^PROVE_02_PASS checks=[1-9][0-9]* failed=0$|1
 tool-preflight|^tool-preflight: PASS$|1
 opr-recipe|^opr-recipe: PASS recipes match outside release metadata and Maintainer$|1
+slop-ratchet|^slop-ratchet: PASS$|1

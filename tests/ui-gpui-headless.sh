@@ -17,7 +17,7 @@ setsid -w env -i PATH="$PATH" HOME="$root/home" \
     CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only \
     /bin/bash -euo pipefail -c '
         test ! -t 0 && test ! -t 1
-        cargo build --locked -p flea
-        cargo test --locked -p flea-gui --test uish_driver -- --nocapture
-    ' < /dev/null
+        cargo build --locked --target-dir "$1" -p flea
+        FLEA_BIN="$1/debug/flea" cargo test --locked -p flea-gui --test uish_driver -- --nocapture
+    ' headless-backend "$root/backend" < /dev/null
 printf 'UI_GPUI_HEADLESS PASS mounted Window input, production IPC, identity, refusal, deadlines and teardown\n'
