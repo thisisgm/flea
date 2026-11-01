@@ -108,7 +108,11 @@ impl SheetView {
                     .child(self.keys(&row.keys, None, false, ink))
                     .child(
                         div()
+                            .debug_selector(move || format!("sheet-label-{index}-{at}"))
+                            .min_w_0()
+                            .overflow_hidden()
                             .whitespace_nowrap()
+                            .text_ellipsis()
                             .child(SharedString::from(row.label.clone())),
                     );
                 let line = if last[side] == Some(index) && at + 1 == rows.len() {

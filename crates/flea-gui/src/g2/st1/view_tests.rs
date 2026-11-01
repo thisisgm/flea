@@ -259,3 +259,43 @@ fn ey422_the_card_grows_with_the_text_size_and_the_scale_hint_keeps_one_line(
         assert_eq!(view.panel.pane.0, 720. - 2. - 192.)
     });
 }
+
+/// KeymapSheet.qml elides a description to its half of the card; one too long for it ends inside its column, never at the edge.
+#[gpui::test]
+fn a_description_wider_than_its_column_ends_inside_it(cx: &mut TestAppContext) {
+    let (view, cx) = cx.add_window_view(|_, cx| {
+        SheetView::new(Sheet::new("default", english(), Sources::default()), cx)
+    });
+    cx.simulate_resize(gpui::size(gpui::px(420.), gpui::px(700.)));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let (text, face) = view.read_with(cx, |view, _| {
+        (
+            view.sheet.groups()[0].2[0].label.clone(),
+            view.typeface.clone(),
+        )
+    });
+    let whole = cx.update(|window, _| {
+        let font = face.font.clone();
+        crate::g2::fb1::caption::measure(
+            text.clone().into(),
+            font,
+            face.caption,
+            gpui::px(0.),
+            window,
+        )
+    });
+    let column = cx
+        .debug_bounds("sheet-column-0")
+        .expect("the left column is drawn");
+    let label = cx
+        .debug_bounds("sheet-label-0-0")
+        .expect("the first description is drawn");
+    assert!(
+        whole > f32::from(column.right() - label.left()),
+        "{text:?} must not fit its column at 420 px, so this test proves something"
+    );
+    assert!(
+        label.right() <= column.right(),
+        "{text:?} runs past its column: {label:?} in {column:?}"
+    );
+}
