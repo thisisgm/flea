@@ -42,6 +42,14 @@ pub(super) fn run(
         _ => None,
     };
     if let Some(step) = pointer {
+        // WindowBody.qml: over Trash, Back closes it and Forward is refused, as Pane.qml goForward refuses the key.
+        let trash = shell.trash.as_ref().is_some_and(|host| host.side == side);
+        if trash && shell.trash_opened(cx) {
+            if step == Step::MouseBack {
+                shell.drop_trash(side, window, cx);
+            }
+            return true;
+        }
         let _ = shell.step(side, step, window, cx);
         return true;
     }

@@ -303,3 +303,70 @@ fn pb_rail_2_changed_favourite_refuses_remove_from_an_old_menu(cx: &mut TestAppC
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// EY-358: with the rail on auto-hide, Escape on a favourite's menu returns the keyboard to that row and the rail stays up.
+#[gpui::test]
+fn ey358_escape_on_an_auto_hidden_favourite_menu_returns_to_the_rail_row(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, true);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let mut state = shell.launch.settings.data.clone();
+            crate::g2::st1::seams::merge(
+                &mut state,
+                &jsondoc::parse(r#"{"places":{"autoHide":true}}"#).unwrap(),
+            );
+            shell.apply_settings(state, window, cx);
+        })
+    });
+    settle(cx);
+    let index = shell.read_with(cx, |shell, cx| {
+        let producer = shell.rail.as_ref().unwrap().places.read(cx);
+        assert_eq!(
+            shell.rail.as_ref().unwrap().host.read(cx).rail.mode(),
+            crate::rail::Mode::Overlay
+        );
+        producer
+            .entries()
+            .iter()
+            .position(|entry| entry.kind == Kind::Favourite)
+            .unwrap()
+    });
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.rail_focus(true, cx);
+            shell
+                .rail
+                .as_ref()
+                .unwrap()
+                .places
+                .update(cx, |producer, cx| producer.set_cursor(index, cx));
+            window.focus(&shell.dual_focus.rail, cx);
+        })
+    });
+    settle(cx);
+    cx.simulate_keystrokes("m");
+    settle(cx);
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
+    cx.simulate_keystrokes("escape");
+    settle(cx);
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "false");
+    cx.update(|window, cx| {
+        let shell = shell.read(cx);
+        assert!(
+            shell.dual_focus.rail.contains_focused(window, cx),
+            "the keyboard is back on the rail"
+        );
+        assert_eq!(shell.keyboard.context, flea::keys::Context::Rail);
+        let join = shell.rail.as_ref().unwrap();
+        assert!(
+            join.host.read(cx).rail.revealed(),
+            "the rail stays revealed"
+        );
+        assert_eq!(
+            join.places.read(cx).cursor(),
+            Some(index),
+            "the cursor is on the row the menu opened from"
+        );
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

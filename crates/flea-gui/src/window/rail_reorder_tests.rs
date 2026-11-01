@@ -237,3 +237,95 @@ fn ey311_a_still_press_released_past_the_rail_opens_nothing(cx: &mut TestAppCont
         "the held favourite is let go"
     );
 }
+
+// EY-364: the drag counts from the press, as DragHandler's translation does, so a short drag down onto the lower half of the next row moves it.
+#[gpui::test]
+fn ey364_dragging_a_favourite_down_onto_the_next_row_moves_it_below(cx: &mut TestAppContext) {
+    let (shell, cx, recorder) = favourites(cx);
+    let (_, at, row) = centre(&shell, "Docs", cx);
+    let (a, _, _) = centre(&shell, "A", cx);
+    cx.simulate_mouse_move(at, None, Modifiers::none());
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+    // A step under the drag distance, then the step that starts the drag, then the lower half of A.
+    for dy in [9., row * 0.7, row * 1.1] {
+        cx.simulate_mouse_move(
+            at + point(px(0.), px(dy)),
+            Some(MouseButton::Left),
+            Modifiers::none(),
+        );
+    }
+    frame(cx);
+    let boundary = producer(&shell, cx).read_with(cx, |producer, _| {
+        producer
+            .model
+            .borrow()
+            .reorder
+            .and_then(|held| held.boundary())
+    });
+    assert_eq!(
+        boundary,
+        Some((a, true)),
+        "the bar lies under A while Docs is held over A's lower half"
+    );
+    let over = at + point(px(0.), px(row * 1.1));
+    cx.simulate_mouse_up(over, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    frame(cx);
+    let wire = recorder.wire();
+    assert!(
+        wire.contains(r#""op":"move""#)
+            && wire.contains(r#""index":0"#)
+            && wire.contains(r#""to":1"#),
+        "the release moves favourite 0 to 1 through the store: {wire:?}"
+    );
+    assert_ne!(
+        place(&shell, cx),
+        "/w/Docs",
+        "a reorder drag never opens its row"
+    );
+}
+
+// EY-364: the next row's live bounds decide the drop despite delivered or coalesced motion events.
+#[gpui::test]
+fn ey364_the_lower_half_decision_does_not_depend_on_which_motion_events_arrived(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, recorder) = favourites(cx);
+    let (_, at, _) = centre(&shell, "Docs", cx);
+    let (a, a_centre, a_height) = centre(&shell, "A", cx);
+    // The lower half of A as A is drawn now, a quarter row under its centre.
+    let target = a_centre.y + px(a_height / 4.);
+    let gap = f32::from(target - at.y);
+    // Delivered, coalesced and late first-motion sequences; the last one starts the drag 1 px short of the target.
+    let sequences: [&[f32]; 4] = [&[], &[9.], &[9., 11.], &[9., gap - 1.]];
+    for steps in sequences {
+        cx.simulate_mouse_move(at, None, Modifiers::none());
+        cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
+        for dy in steps.iter().copied().chain([gap]) {
+            cx.simulate_mouse_move(
+                point(at.x, at.y + px(dy)),
+                Some(MouseButton::Left),
+                Modifiers::none(),
+            );
+        }
+        frame(cx);
+        let boundary = producer(&shell, cx).read_with(cx, |producer, _| {
+            producer
+                .model
+                .borrow()
+                .reorder
+                .and_then(|held| held.boundary())
+        });
+        assert_eq!(
+            boundary,
+            Some((a, true)),
+            "after motions {steps:?} the bar lies under A"
+        );
+        // Back to the press and let go: a drag that lands where it started moves nothing.
+        cx.simulate_mouse_move(at, Some(MouseButton::Left), Modifiers::none());
+        cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+        cx.run_until_parked();
+        frame(cx);
+    }
+    assert_eq!(recorder.wire(), "", "no sequence wrote a move");
+}
