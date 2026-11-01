@@ -18,12 +18,25 @@ fn creation_receipts_keep_legacy_mkdir_payload_and_exact_failure_identity() {
     let (tx, _) = channel();
     let mut ops = Ops::new(tx);
     let mut out = Vec::new();
-    super::super::do_mkdir(&mut out, &mut ops, root.path().to_str().unwrap(), "legacy", None);
+    super::super::do_mkdir(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "legacy",
+        None,
+    );
     let legacy = String::from_utf8(out).unwrap();
     assert!(legacy.contains(r#""t":"made","ok":true,"path":"#));
     assert!(!legacy.contains(r#""request":"#) && !legacy.contains(r#""op":"creation""#));
     let mut out = Vec::new();
-    super::super::do_mkdir_requested(&mut out, &mut ops, root.path().to_str().unwrap(), "new", None, 47);
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "new",
+        None,
+        47,
+    );
     let text = String::from_utf8(out).unwrap();
     let made = text
         .lines()
@@ -35,7 +48,14 @@ fn creation_receipts_keep_legacy_mkdir_payload_and_exact_failure_identity() {
         root.join("new").to_str()
     );
     let mut out = Vec::new();
-    super::super::do_mkdir_requested(&mut out, &mut ops, root.path().to_str().unwrap(), "new", None, 48);
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "new",
+        None,
+        48,
+    );
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains(r#""t":"error","where":"mkdir""#));
     assert!(receipt(&text, 48).contains(r#""ok":false"#));

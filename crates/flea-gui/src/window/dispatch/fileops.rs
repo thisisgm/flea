@@ -310,7 +310,11 @@ impl Shell {
             },
         };
         let base = self.locale.catalog.tr("prompt.newFolder");
-        let line = format!("{{\"c\":\"mkdir\",\"path\":\"{}\",\"defaultBase\":\"{}\"}}", escape(&path), escape(&base));
+        let line = format!(
+            "{{\"c\":\"mkdir\",\"path\":\"{}\",\"defaultBase\":\"{}\"}}",
+            escape(&path),
+            escape(&base)
+        );
         self.fileops_send(side, line, cx);
     }
 
