@@ -49,13 +49,18 @@ pub(super) fn root() -> Root {
 
 /// Japanese with no Japanese catalog: Latin fallback text under a caseless language pins case and tracking to the language.
 pub(super) fn caseless(root: &Path) -> I18n {
+    fallback(root, "ja")
+}
+
+/// `code` with no catalog of its own, so the text is the Latin fallback and only the language decides case and tracking.
+pub(super) fn fallback(root: &Path, code: &str) -> I18n {
     std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
     std::fs::write(
         root.join("omarchy/default/i18n/locales.json"),
-        r#"{"en":{},"ja":{"name":"Japanese"}}"#,
+        format!(r#"{{"en":{{}},"{code}":{{"name":"{code}"}}}}"#),
     )
     .unwrap();
-    std::fs::write(root.join("language"), "ja").unwrap();
+    std::fs::write(root.join("language"), code).unwrap();
     I18n::load(Paths {
         omarchy: root.join("omarchy"),
         language_file: root.join("language"),
