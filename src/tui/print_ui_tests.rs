@@ -230,3 +230,86 @@ fn tui_print_overlay_clears_picture_and_keeps_listing_in_scrim() {
     assert!(graphics.bytes.is_empty() && m.image_file.is_none());
     wire::finish(w, reader);
 }
+
+// tui-print and tui-print-sent: the card and the receipt name the printer by the backend's printer-info, the queue ID only when it gives none.
+#[test]
+fn tui_fix_1101_print_card_names_the_printer_by_its_backend_name() {
+    let theme = Theme::from_text("");
+    for (field, shown) in [
+        (
+            r#","printerName":"Brother HL-L3270CDW""#,
+            "Brother HL-L3270CDW",
+        ),
+        ("", "flea-private"),
+        (r#","printerName":"   ""#, "flea-private"),
+    ] {
+        let (mut w, reader) = wire::echo_wire();
+        let mut m = model();
+        press(&mut m, &mut w, Key::character('P', "ctrl"));
+        let id = m.action_id;
+        answer(
+            &mut m,
+            &mut w,
+            &format!(r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":true}}"#),
+        );
+        let path = m.current_path().unwrap();
+        answer(
+            &mut m,
+            &mut w,
+            &format!(
+                r#"{{"t":"menuaction","op":"validate","action":"print","id":{id},"ok":true,"paths":["{}"]}}"#,
+                path.display()
+            ),
+        );
+        let query = m.printing.card.as_ref().unwrap().query.unwrap();
+        answer(
+            &mut m,
+            &mut w,
+            &format!(
+                r#"{{"t":"printoptions","id":{query},"ok":true,"destinations":[{{"name":"flea-private","default":true}}],"printer":"flea-private"{field},"duplex":true,"twoSided":false,"color":true,"grayscale":false,"setupArgv":[]}}"#
+            ),
+        );
+        drain(&mut w);
+        let rows = grid(
+            &render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO),
+            130,
+            31,
+        );
+        let line = rows.iter().find(|line| line.contains("default")).unwrap();
+        assert!(
+            line.contains(&format!("{shown}  default  ⌄")),
+            "{field}: {line}"
+        );
+        press(&mut m, &mut w, Key::named("Return", ""));
+        let sent = drain(&mut w);
+        let request = sent.iter().find(|v| text(v, "c") == "print").unwrap();
+        assert_eq!(text(request, "printer"), "flea-private", "{field}");
+        assert_eq!(text(request, "printerName"), shown, "{field}");
+        let request = count(request, "requestId");
+        answer(
+            &mut m,
+            &mut w,
+            &format!(r#"{{"t":"printstarted","id":9,"requestId":{request},"title":"Print"}}"#),
+        );
+        answer(
+            &mut m,
+            &mut w,
+            &format!(
+                r#"{{"t":"printed","id":9,"requestId":{request},"path":"{}","ok":true,"message":""}}"#,
+                path.display()
+            ),
+        );
+        let rows = grid(
+            &render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO),
+            130,
+            31,
+        );
+        let name = path.file_name().unwrap().to_string_lossy();
+        assert!(
+            rows[30].contains(&format!("Sent {name} to {shown}")),
+            "{field}: {}",
+            rows[30]
+        );
+        wire::finish(w, reader);
+    }
+}

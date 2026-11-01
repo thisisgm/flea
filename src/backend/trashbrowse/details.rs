@@ -66,6 +66,13 @@ fn parse(items: &[Item], text: &str) -> Result<Vec<Detail>, Refusal> {
         .collect()
 }
 
+// The row member naming the regular file a text preview reads, checked against gio's review as the window is listed; a folder, a changed backing or a name JSON cannot carry names nothing.
+pub(super) fn content(item: &Detail) -> String {
+    let path = item.backing.as_ref().filter(|_| !item.directory).and_then(Reviewed::thumbnail)
+        .and_then(|(path, _)| path.to_str().map(str::to_owned)).unwrap_or_default();
+    format!(r#""content":"{}""#, escape(&path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

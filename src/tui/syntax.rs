@@ -39,7 +39,7 @@ pub fn request(m: &mut Model, wire: &mut Wire) -> io::Result<()> {
     let code = &m.preview_state.code;
     let (Some(top), Some(bottom)) = (code.parts.first().map(|part| part.0), code.parts.last().map(|part| part.0)) else { return Ok(()) };
     let covered = code.token != 0 && code.generation == m.preview_generation && top >= code.asked && bottom < code.asked + WINDOW;
-    let Some(name) = super::pane_state::content(m).and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned())) else { return Ok(()) };
+    let Some(name) = super::pane_state::content(m).or_else(|| super::trashview::content(m)).and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned())) else { return Ok(()) };
     if covered {
         return Ok(());
     }

@@ -223,6 +223,13 @@ fn options(m: &mut Model, value: &Json) {
     destinations.sort_by_key(|d| !d.default);
     form.destinations = destinations;
     form.printer = printer.into();
+    let name = text(value, "printerName");
+    form.printer_name = if name.trim().is_empty() {
+        printer
+    } else {
+        name
+    }
+    .into();
     form.caps = caps;
     form.two_sided = two_sided;
     form.grayscale = grayscale;
@@ -243,7 +250,7 @@ fn options(m: &mut Model, value: &Json) {
         .unwrap_or(0);
 }
 
-// Sample input: {"t":"printoptions","id":1,"ok":true,"destinations":[{"name":"Brother","default":true}],"printer":"Brother","duplex":true,"twoSided":false,"color":true,"grayscale":false,"setupArgv":["system-config-printer"]}
+// Sample input: {"t":"printoptions","id":1,"ok":true,"destinations":[{"name":"Brother","default":true}],"printer":"Brother","printerName":"Brother HL-L3270CDW","duplex":true,"twoSided":false,"color":true,"grayscale":false,"setupArgv":["system-config-printer"]}
 fn parsed_options<'a>(
     value: &'a Json,
     pending_printer: &str,
