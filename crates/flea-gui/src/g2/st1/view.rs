@@ -488,5 +488,6 @@ impl Render for SettingsView {
                         .child(self.pane(&ink, window, cx)),
                 ),
         ))
+        .child(self.probe.attach(div().absolute().inset_0(), "ground"))
     }
 }

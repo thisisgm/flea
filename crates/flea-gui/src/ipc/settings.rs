@@ -13,6 +13,8 @@ use flea::{
     },
 };
 use gpui::App;
+#[path = "settings_cohesion.rs"]
+mod cohesion;
 #[path = "settings_plugins.rs"]
 mod plugins;
 
@@ -329,6 +331,9 @@ impl Adapter for SettingsAdapter<'_> {
                 }
                 _ => "{}".into(),
             },
+            "cohesionControls" if self.host.opened && sheet.is_none() => {
+                json(view.and_then(cohesion::controls)?)
+            }
             "settingsCardRect" => view
                 .filter(|_| self.host.opened)
                 .map_or_else(String::new, |v| v.probe.rect("card")),

@@ -183,6 +183,51 @@ fn ey207_settings_title_centre_is_the_drawn_title_not_the_card_middle(cx: &mut T
     });
 }
 
+// EY-150: after comma, Tab, Tab the reader names v0.3.12's focus (the panel's window-filling keys item) and each drawn row.
+#[gpui::test]
+fn ey150_cohesion_controls_reads_settings_focus_and_rows(cx: &mut TestAppContext) {
+    use gpui::{px, size};
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|window, cx| {
+        let shell = configured(backend, cx);
+        window.focus(&shell.focus, cx);
+        shell
+    });
+    cx.simulate_keystrokes(", tab tab");
+    cx.simulate_resize(size(px(800.), px(500.)));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    shell.update_in(cx, |shell, window, cx| {
+        let reply = read(shell, "cohesionControls", window, cx);
+        assert!(reply.stderr.is_empty(), "{}", reply.stderr);
+        let doc = flea::jsondoc::parse(&reply.stdout).expect("a JSON document");
+        let focus = doc.get("focus").expect("a focus member");
+        let field = |key: &str| focus.get(key).and_then(|v| v.as_f64());
+        assert_eq!(
+            focus.get("kind").and_then(|v| v.as_str()),
+            Some("QQuickItem")
+        );
+        assert_eq!(focus.get("via").and_then(|v| v.as_str()), Some("item"));
+        assert_eq!(focus.get("focused").and_then(|v| v.as_bool()), Some(true));
+        let whole = [field("x"), field("y"), field("w"), field("h")];
+        assert_eq!(whole, [Some(0.), Some(0.), Some(800.), Some(500.)]);
+        let controls = doc.get("controls").and_then(|v| v.as_array()).unwrap();
+        assert!(!controls.is_empty(), "the View pane's rows are drawn");
+        let card = read(shell, "settingsCardRect", window, cx).stdout;
+        let card: Vec<f64> = card
+            .split_whitespace()
+            .map(|v| v.parse().unwrap())
+            .collect();
+        for control in controls {
+            assert_eq!(
+                control.get("kind").and_then(|v| v.as_str()),
+                Some("SettingsRow")
+            );
+            let x = control.get("x").and_then(|v| v.as_f64()).unwrap();
+            assert!(x >= card[0] && x < card[0] + card[2], "{x} in {card:?}");
+        }
+    });
+}
+
 #[gpui::test]
 fn u11_live_preset_and_density_have_real_consumers(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();
