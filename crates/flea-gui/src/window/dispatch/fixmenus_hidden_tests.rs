@@ -33,11 +33,11 @@ fn fixmenus_ey385_background_show_hidden_keeps_the_cursor_row_as_the_key_does(
     shell.read_with(cx, |shell, _| {
         assert!(pages::is_true(&shell.launch.settings.data, &["hidden"]));
         let host = shell.panes[0].as_ref().unwrap();
-        let anchor =
-            host.nav.anchor.as_ref().expect(
-                "the relist anchors on the cursor row, as the . key's settings relist does",
-            );
-        assert_eq!(anchor.name, "file-2.txt");
+        // v0.3.12 Pane.qml toggleHidden re-opens the folder, which clears the cursor, as the . key's settings relist does.
+        assert!(
+            host.nav.anchor.is_none(),
+            "the relist is a fresh listing, never anchored on the cursor row"
+        );
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
