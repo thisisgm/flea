@@ -116,3 +116,27 @@ pub(super) fn folder(host: &PaneHost, catalog: &I18n) -> Snapshot {
         ),
     }
 }
+
+/// StatusBar.qml's ElideRight keeps the space before the ellipsis, which GPUI's own truncation trims.
+pub(super) fn elided(
+    text: &gpui::SharedString,
+    room: f32,
+    measure: impl Fn(&str) -> f32,
+) -> gpui::StyledText {
+    if measure(text) <= room {
+        return gpui::StyledText::new(text.clone());
+    }
+    // ends[k] is where the first k + 1 characters end.
+    let ends: Vec<usize> = text.char_indices().skip(1).map(|(at, _)| at).collect();
+    let (mut low, mut high) = (0, ends.len());
+    while low < high {
+        let mid = (low + high).div_ceil(2);
+        if measure(&format!("{}\u{2026}", &text[..ends[mid - 1]])) <= room {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    let head = if low == 0 { "" } else { &text[..ends[low - 1]] };
+    gpui::StyledText::new(format!("{head}\u{2026}"))
+}

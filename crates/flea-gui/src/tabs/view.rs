@@ -246,7 +246,8 @@ impl Shell {
         self.strip.bar.caption = f32::from(host.list.borrow().typeface.caption);
         let frame = self.strip.bar.frame(
             &self.strip.tabs[side],
-            host.pane.place(),
+            // TabBar.qml titles the current tab from the pane's live path, the one the path bar reads.
+            host.pane.path(),
             &self.strip.home,
             &self.locale.catalog.tr("tabs.home"),
         );

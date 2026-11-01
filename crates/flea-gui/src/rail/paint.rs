@@ -31,8 +31,8 @@ pub(super) fn paint_ground(
             palette.foreground.opacity(crate::list::GREY_CURSOR)
         };
         window.paint_quad(fill(box_of(row.rect), plate));
-        // HIG rail-favorites: only the rail keyboard cursor draws the accent edge.
-        if wash {
+        // HIG rail-favorites and SidebarRow.qml: the keyboard cursor keeps its accent edge, eject focus included.
+        if keyboard {
             window.paint_quad(fill(
                 Bounds::new(
                     point(px(row.rect.x), px(row.rect.y)),

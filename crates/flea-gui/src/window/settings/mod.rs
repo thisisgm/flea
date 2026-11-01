@@ -65,6 +65,8 @@ pub(crate) struct Host {
     updating: bool,
     poll: Option<Task<()>>,
     pub about_open: bool,
+    // The keyboard context Settings or the key sheet opened from, so closing can return to the rail.
+    pub opened_from: flea::keys::Context,
     pub listed_paths: [String; 2],
     pub relist: [bool; 2],
     /// Hidden changed, so the owed re-list is a fresh one back at row 0 (Pane.qml re-opens the folder).
@@ -235,6 +237,7 @@ impl Shell {
         self.settings.sheet_subscription = None;
         self.settings.sheet_sources_subscription = None;
         self.settings.about_open = false;
+        self.settings.opened_from = self.keyboard.context;
         self.keyboard.disarm();
         let pane_path = self.panes[self.focus_side]
             .as_ref()
@@ -307,7 +310,20 @@ impl Shell {
                 self.settings.sheet = None;
                 self.settings.sheet_subscription = None;
                 self.settings.sheet_sources_subscription = None;
-                let focus = self.overlay_return_focus(cx);
+                let from = std::mem::take(&mut self.settings.opened_from);
+                let mut focus = self.overlay_return_focus(cx);
+                // v0.3.12 closes Settings and the key sheet opened from the shown rail back to its row.
+                if focus == self.focus
+                    && from == flea::keys::Context::Rail
+                    && self.rail.as_ref().is_some_and(|join| {
+                        join.host.read(cx).rail.mode() != crate::rail::Mode::Hidden
+                    })
+                {
+                    focus = self.dual_focus.rail.clone();
+                    // Synchronous, so a key sheet Settings hands over to keeps the keyboard.
+                    self.focus_rail(true, cx);
+                    self.keyboard.context = flea::keys::Context::Rail;
+                }
                 window.focus(&focus, cx);
                 self.focus_trash_after_sheet(window, cx);
                 if let Some(decision) = decision {
