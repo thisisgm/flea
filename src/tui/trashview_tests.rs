@@ -243,6 +243,20 @@ fn tui_fix_1101_p2_trashed_long_text_scrolls_to_its_last_line() {
 #[test]
 fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
     let theme = Theme::from_text("");
+    let placed = |m: &mut Model, w: &mut Wire| {
+        let mut graphics = crate::tui::graphics::Graphics::new();
+        crate::tui::stage::step(m, &mut graphics, &mut crate::tui::stage::Shown::default(), w, (130, 31), false, &mut String::new()).unwrap();
+        m.image_file.is_some() || !graphics.bytes.is_empty()
+    };
+    // Positive control: this stage call places a png outside Trash, so its absence below is the Trash gate's doing.
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    m.preview_visible = true;
+    let row = m.rows.get_mut(&7).unwrap();
+    (row.name, row.icon, row.thumbnail) = ("pic.png".into(), "image-png".into(), true);
+    crate::tui::preview::load(&mut m, false);
+    assert!(placed(&mut m, &mut w), "a png outside Trash is placed");
+    finish(w, reader);
     for (name, icon) in [("pic.png", "image-png"), ("chair.stl", "model-stl"), ("pack.zip", "application-x-package")] {
         let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-non-text");
         let backing = root.file(name, "\u{89}PNG\r\n\u{1a}\n");
@@ -256,9 +270,7 @@ fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
         assert_eq!(m.preview_path, backing, "{name}");
         assert!(!m.preview_reader.outstanding(m.preview_generation), "{name}: the kind gate reads nothing");
         drain(&mut w);
-        let mut graphics = crate::tui::graphics::Graphics::new();
-        crate::tui::stage::step(&mut m, &mut graphics, &mut crate::tui::stage::Shown::default(), &mut w, (130, 31), false, &mut String::new()).unwrap();
-        assert!(m.image_file.is_none() && graphics.bytes.is_empty(), "{name}: no picture is placed in Trash");
+        assert!(!placed(&mut m, &mut w), "{name}: no picture is placed in Trash");
         assert!(requests(&drain(&mut w), "thumb").is_empty(), "{name}: no thumbnail is asked for");
         crate::tui::preview::layout(&mut m);
         let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
