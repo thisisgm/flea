@@ -1,18 +1,11 @@
-//! A first decode that already drew sharp device pixels stands as its refinement, the last refined pictures are kept
-//! for going back to a file, and source decodes are counted.
+//! The last refined pictures are kept for going back to a file, and source decodes are counted.
 use gpui::RenderImage;
 use std::{
     collections::VecDeque,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Mutex},
 };
 
-type Offer = (
-    PathBuf,
-    (u32, u32),
-    crate::g2::pv1::photo_source::Identity,
-    Weak<RenderImage>,
-);
 type Kept = (
     PathBuf,
     (u64, i64),
@@ -20,46 +13,16 @@ type Kept = (
     Arc<RenderImage>,
     Option<crate::g2::pv1::photo_source::Identity>,
 );
-static OFFERS: Mutex<Vec<Offer>> = Mutex::new(Vec::new());
 static KEPT: Mutex<VecDeque<Kept>> = Mutex::new(VecDeque::new());
 const KEPT_PICTURES: usize = 8;
 const KEPT_BYTES: usize = 16 << 20;
 static DECODES: Mutex<VecDeque<PathBuf>> = Mutex::new(VecDeque::new());
-const OPEN_OFFERS: usize = 8;
 const LEDGER: usize = 64;
 
 pub(crate) fn file_identity(path: &Path) -> Option<crate::g2::pv1::photo_source::Identity> {
     path.metadata()
         .ok()
         .map(|meta| crate::g2::pv1::photo_source::identity(&meta))
-}
-
-/// The sharp picture one decode made for `path` at `size`; held weakly, so an unclaimed one frees with its card.
-pub(crate) fn offer(
-    path: &Path,
-    size: (u32, u32),
-    identity: crate::g2::pv1::photo_source::Identity,
-    image: &Arc<RenderImage>,
-) {
-    if let Ok(mut offers) = OFFERS.lock() {
-        offers.retain(|(at, want, _, held)| {
-            held.strong_count() > 0 && !(at == path && *want == size)
-        });
-        if offers.len() == OPEN_OFFERS {
-            offers.remove(0);
-        }
-        offers.push((path.to_path_buf(), size, identity, Arc::downgrade(image)));
-    }
-}
-
-/// Claims the offered picture once, only for the same path and device size.
-pub(crate) fn take(path: &Path, size: (u32, u32)) -> Option<Arc<RenderImage>> {
-    let identity = crate::g2::pv1::photo_source::identity(&path.metadata().ok()?);
-    let mut offers = OFFERS.lock().ok()?;
-    let at = offers
-        .iter()
-        .position(|(at, want, held, _)| at == path && *want == size && *held == identity)?;
-    offers.swap_remove(at).3.upgrade()
 }
 
 fn bytes(image: &RenderImage) -> usize {
