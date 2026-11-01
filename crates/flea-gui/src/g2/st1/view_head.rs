@@ -1,46 +1,13 @@
 use super::{
-    geometry::{self as g, Scale, PAD_X},
+    geometry::{self as g, PAD_X},
     marks::{mark, washed},
     seams::{Ink, Request},
     view::SettingsView,
 };
-use crate::list::Typeface;
 use flea::ui_logic_st1::caps;
 use gpui::{div, prelude::*, px, Context, Div, FontWeight, MouseButton, SharedString};
 
 impl SettingsView {
-    /// The search field the sheet uses: magnifier, the typed text and caret, and the clear mark at its end.
-    pub(super) fn field(text: &str, ink: &Ink, corner: f32, typeface: &Typeface, s: Scale) -> Div {
-        div()
-            .h(px(s.of(g::FIELD_H)))
-            .flex()
-            .items_center()
-            .gap(px(s.of(8.)))
-            .px(px(s.of(g::GAP)))
-            .border_1()
-            .border_color(ink.accent_frame)
-            .rounded(px(corner))
-            .bg(ink.background)
-            .text_size(typeface.body)
-            .text_color(ink.foreground)
-            .child(mark("search", s.of(14.), ink.muted))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .child(SharedString::from(text.to_owned()))
-                    .child(
-                        div()
-                            .ml(px(1.))
-                            .w(px(1.))
-                            .h(px(s.of(16.)))
-                            .bg(ink.foreground),
-                    ),
-            )
-            .child(div().flex_1())
-            .child(mark("x", s.of(12.), ink.muted))
-    }
-
     /// The head: the title's sliders mark in its own ink, the pane's name, esc and the close mark.
     pub(super) fn head(&self, ink: &Ink, cx: &mut Context<Self>) -> Div {
         let s = self.panel.scale;
@@ -140,7 +107,7 @@ impl SettingsView {
         self.plugins
             .as_ref()
             .filter(|_| self.panel.section == "plugins" && !self.panel.searching())
-            .and_then(|plugin| plugin.read(cx).card())
+            .and_then(|plugin| plugin.read(cx).card(plugin.clone()))
             .map(|card| {
                 div()
                     .absolute()

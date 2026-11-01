@@ -10,6 +10,10 @@ pub mod geometry;
 mod geometry_tests;
 pub(crate) mod glyphs;
 #[cfg(test)]
+mod ime_tests;
+pub(crate) mod input;
+mod input_host;
+#[cfg(test)]
 mod keymap_sheet_activation_tests;
 #[cfg(test)]
 mod keymap_sheet_menu_tests;
@@ -26,6 +30,8 @@ mod scroll_mounted_tests;
 #[cfg(test)]
 mod scroll_tests;
 pub mod seams;
+#[cfg(test)]
+mod session_tests;
 pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;

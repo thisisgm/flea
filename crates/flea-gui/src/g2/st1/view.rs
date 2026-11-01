@@ -1,6 +1,7 @@
 //! Draws the Settings card over its ground: the head, the rail with its search field, and the pane's rows or results.
 use super::draw::{Line, Rows};
 use super::geometry::{self as g, Scale, BORDER, FADE, PAD_X, RAIL_W};
+use super::input::{Editor, Host};
 use super::marks::{self, mark};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
@@ -22,6 +23,7 @@ use gpui::{
 mod m9_g2rows_02;
 
 pub struct SettingsView {
+    pub(super) editor: Editor,
     pub panel: Panel,
     pub focus: FocusHandle,
     pub typeface: Typeface,
@@ -35,6 +37,7 @@ impl SettingsView {
     pub fn new(panel: Panel, cx: &mut Context<Self>) -> Self {
         Self {
             panel,
+            editor: Editor::default(),
             plugins: None,
             probe: super::probe::Probe::default(),
             focus: cx.focus_handle(),
@@ -43,8 +46,10 @@ impl SettingsView {
     }
 
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        if super::plugins::key(self, event, window.layout_mirrored(), cx) {
-            cx.stop_propagation();
+        if self.query_key(event, window, cx) {
+            return;
+        }
+        if super::plugins::key(self, event, window, cx) {
             return;
         }
         let stroke = &event.keystroke;
@@ -59,7 +64,13 @@ impl SettingsView {
 
     /// Hands every request the panel queued to the host and redraws.
     pub(super) fn flush(&mut self, cx: &mut Context<Self>) {
-        for request in self.panel.take_requests() {
+        let requests = self.panel.take_requests();
+        if requests.contains(&Request::Close) {
+            self.editor.retire();
+        }
+        self.sync_editor();
+        self.sync_plugin_input(cx);
+        for request in requests {
             cx.emit(request);
         }
         cx.notify();
@@ -79,10 +90,10 @@ impl SettingsView {
             .border_color(ink.rule)
             .flex()
             .flex_col();
-        if let Some(query) = &self.panel.query {
+        if self.panel.query.is_some() {
             rail = rail.child(
                 div().px(px(s.of(PAD_X))).pb(px(s.of(g::GAP))).child(
-                    Self::field(query, ink, self.panel.facts.corner, &self.typeface, s)
+                    Self::field(cx.entity(), ink, self.panel.facts.corner, &self.typeface, s)
                         .relative()
                         .child(self.search_clear(cx)),
                 ),
@@ -272,6 +283,13 @@ impl SettingsView {
             if let Some(view) = &self.plugins {
                 return div()
                     .id("settings-pane")
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|view, _, _, cx| {
+                            view.panel.side = Side::Pane;
+                            view.sync_plugin_input(cx);
+                        }),
+                    )
                     .relative()
                     .flex_1()
                     .h_full()
@@ -359,6 +377,8 @@ impl SettingsView {
 
 impl Render for SettingsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_editor();
+        self.sync_plugin_input(cx);
         self.probe.clear();
         let theme = cx
             .try_global::<crate::palette::Theme>()

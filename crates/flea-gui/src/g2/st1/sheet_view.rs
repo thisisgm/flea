@@ -1,5 +1,6 @@
 //! Draws the keyboard sheet to the keymap boards: two columns of groups, or the query field over ranked results.
 use super::geometry::{CLAMP, GAP};
+use super::input::{Editor, Field, Host};
 use super::marks::{self, spaced, washed};
 use super::probe::Probe;
 use super::seams::{Ink, Request};
@@ -9,7 +10,7 @@ use crate::list::Typeface;
 use flea::ui_logic_st1::{caps, sheet::match_of};
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, AnyElement, Context, Div,
-    EventEmitter, FocusHandle, FontWeight, KeyDownEvent, Render, SharedString, Stateful, Window,
+    EventEmitter, FocusHandle, FontWeight, Render, SharedString, Stateful, Window,
 };
 
 mod scroll;
@@ -30,6 +31,7 @@ const FIELD_H: f32 = 30.;
 const STACK_GAP: f32 = 12.;
 
 pub struct SheetView {
+    pub(super) editor: Editor,
     pub sheet: Sheet,
     pub focus: FocusHandle,
     pub typeface: Typeface,
@@ -45,26 +47,12 @@ impl SheetView {
     pub fn new(sheet: Sheet, cx: &mut Context<Self>) -> Self {
         Self {
             sheet,
+            editor: Editor::default(),
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
             corner: super::seams::COMPOSITOR_CORNER_DEFAULT,
             probe: Probe::default(),
         }
-    }
-
-    fn key_down(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        let stroke = &event.keystroke;
-        self.sheet
-            .key(&stroke.key, stroke.key_char.as_deref().unwrap_or(""));
-        self.flush(cx);
-        cx.stop_propagation();
-    }
-
-    fn flush(&mut self, cx: &mut Context<Self>) {
-        for request in std::mem::take(&mut self.sheet.requests) {
-            cx.emit(request);
-        }
-        cx.notify();
     }
 
     /// The key column: alternatives split by a muted slash, the typed run washed when only the keys match.
@@ -280,12 +268,13 @@ fn card_size(window: &Window) -> (f32, f32) {
 
 impl Render for SheetView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_editor();
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
-        let searching = !self.sheet.query.is_empty();
+        let searching = !self.sheet.query.is_empty() || !self.editor.entry.text.is_empty();
         let measured = self.laid_out(window, cx);
         let viewport = window.viewport_size();
         let (left, top, card_w, card_h) =
@@ -338,17 +327,43 @@ impl Render for SheetView {
         card = if searching {
             card.child(
                 SettingsView::field(
-                    &self.sheet.query,
+                    cx.entity(),
                     &ink,
                     self.corner,
                     &self.typeface,
                     super::geometry::Scale::default(),
                 )
-                .flex_none(),
+                .flex_none()
+                .relative()
+                .child(
+                    div()
+                        .id("sheet-query-clear")
+                        .debug_selector(|| "sheet-query-clear".into())
+                        .absolute()
+                        .right_0()
+                        .top_0()
+                        .bottom_0()
+                        .w(px(30.))
+                        .cursor_pointer()
+                        .on_click(cx.listener(|view, _, _, cx| {
+                            view.editor.clear();
+                            view.sheet.query_changed(String::new());
+                            cx.notify();
+                            cx.stop_propagation();
+                        })),
+                ),
             )
             .child(self.results(&ink, cx))
         } else {
-            card.child(self.columns(&measured, &ink, cx))
+            card.child(self.columns(&measured, &ink, cx)).child(
+                div()
+                    .absolute()
+                    .left(px(PAD + 32.))
+                    .right(px(PAD + 30.))
+                    .top(px(PAD + TITLE_H + 1. + 2. * STACK_GAP))
+                    .h(px(FIELD_H))
+                    .child(Field::mount(cx.entity(), &self.typeface, false)),
+            )
         };
         let card = marks::card(card);
         marks::ground(
