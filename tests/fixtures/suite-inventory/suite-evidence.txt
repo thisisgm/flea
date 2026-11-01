@@ -3,7 +3,6 @@ js|^qml: (js: )?[1-9][0-9]* checks, 0 failed$|1
 keymap-gen|^ok   ui/js/Keymap\.js matches keys\.toml$|1
 charts|^ok   the [1-9][0-9]* charts in docs/images match the bench CSVs$|1
 budget|^ok   |3
-aurpush|^aurpush: [1-9][0-9]* check\(s\), 0 failed$|1
 signalarity|^signalarity: [1-9][0-9]* signal\(s\), [1-9][0-9]* emit\(s\) checked, 0 failed$|1
 empty-state|^empty-state: search hint always, new-folder tip gated, column hint absent$|1
 sandbox|^sandbox\.sh: all checks passed$|1
@@ -91,7 +90,6 @@ statusbar-hint|^STATUSHINT STATUS qs_exit=(0|124) metrics=hint12,hint14$|1
 listhidden|^LISTHIDDEN PASS rows=60 cursor=45$|1
 preview-settle-live|^PREVIEWSETTLE STATUS phase=(auto|manual) qs_exit=143 done=1 pass=[1-9][0-9]* fail=0$|2
 pkgrel-check|^pkgrel-check: all [1-9][0-9]* checks passed$|1
-aur-versions|^aur-versions: [1-9][0-9]* check\(s\), 0 failed$|1
 preview-geometry|^GEOMETRY cells=(3[6-9]|[4-9][0-9]) ok=(3[6-9]|[4-9][0-9]) fail=0$|1
 preview-select|^PREVIEWSELECT PASS |6
 clickedge-origin|^CLICKEDGE_ORIGIN PASS row=[0-9]+ contentY=[0-9]+ originY=-?[1-9][0-9]*$|1

@@ -115,10 +115,9 @@ else
         printf 'FAIL package removal hook %s is absent or not root:root 0644\n' "$hook_path"
         failed=$((failed + 1))
     fi
-    # Sample input, packaging/flea.hook's own lines: [Trigger], Operation = Remove, Target = flea-bin, When = PreTransaction.
+    # Sample input, packaging/flea.hook's own lines: [Trigger], Operation = Remove, Target = flea, When = PreTransaction.
     if bsdtar -xf "$package_file" -C "$extract_root" "$hook_path" 2>/dev/null && [ -f "$extract_root/$hook_path" ]; then
-        for hook_line in '[Trigger]' 'Type = Package' 'Operation = Remove' 'Target = flea' 'Target = flea-bin' \
-                         'Target = flea-git' '[Action]' 'When = PreTransaction'; do
+        for hook_line in '[Trigger]' 'Type = Package' 'Operation = Remove' '[Action]' 'When = PreTransaction'; do
             if grep -Fxq -- "$hook_line" "$extract_root/$hook_path"; then
                 printf 'PASS package removal hook has %s\n' "$hook_line"
             else
@@ -126,6 +125,14 @@ else
                 failed=$((failed + 1))
             fi
         done
+        # Only flea, the one package Flea publishes, triggers the note.
+        hook_targets=$(grep '^Target = ' "$extract_root/$hook_path")
+        if [ "$hook_targets" = 'Target = flea' ]; then
+            printf 'PASS package removal hook targets flea alone\n'
+        else
+            printf 'FAIL package removal hook targets %s, not flea alone\n' "$(printf '%s' "$hook_targets" | tr '\n' ' ')"
+            failed=$((failed + 1))
+        fi
         # Sample input: Exec = /usr/bin/printf %s\n "Flea: ..." "Flea: ...", whose first word pacman executes.
         hook_program=$(sed -n 's/^Exec = \([^ ]*\).*$/\1/p' "$extract_root/$hook_path")
         if [ -n "$hook_program" ] && [ "${hook_program#/}" != "$hook_program" ] && [ -x "$hook_program" ]; then
