@@ -1363,6 +1363,7 @@
   "network.retry": "ניסיון חוזר",
   "network.retry_title": "התחברות לשיתוף רשת",
   "network.save_committed": "⁨%1⁩",
+  "network.save_busy": "שינוי במועדפים עדיין נשמר. נסו שוב כדי לשמור את המיקום הזה.",
   "network.save_failed": "⁨%1⁩",
   "network.saved_read_failed": "לא ניתן היה לקרוא את המיקומים השמורים, ולכן דבר לא השתנה.",
   "network.saved_remove_read_failed": "לא ניתן היה לקרוא את המיקומים השמורים, ולכן דבר לא הוסר.",

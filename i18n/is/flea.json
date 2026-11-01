@@ -1315,6 +1315,7 @@
   "network.retry": "Reyna aftur",
   "network.retry_title": "Tengjast samnýtingu á neti",
   "network.save_committed": "%1",
+  "network.save_busy": "Enn er verið að vista breytingu á eftirlæti. Reyndu aftur til að vista þessa staðsetningu.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Ekki tókst að lesa vistaða staði og því var engu breytt.",
   "network.saved_remove_read_failed": "Ekki tókst að lesa vistaða staði og því var engu gleymt.",

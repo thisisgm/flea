@@ -1347,6 +1347,7 @@
   "network.retry": "නැවත උත්සාහ කරන්න",
   "network.retry_title": "ජාල හවුලකට සම්බන්ධ වන්න",
   "network.save_committed": "%1",
+  "network.save_busy": "ප්‍රියතමයන්ගේ වෙනසක් තවම සුරකිමින් පවතී. මෙම ස්ථානය සුරැකීමට නැවත උත්සාහ කරන්න.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "සුරැකි ස්ථාන කියවිය නොහැකි වූ නිසා කිසිවක් වෙනස් නොවීය.",
   "network.saved_remove_read_failed": "සුරැකි ස්ථාන කියවිය නොහැකි වූ නිසා කිසිවක් අමතක කළේ නැත.",

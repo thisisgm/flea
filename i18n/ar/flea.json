@@ -1539,6 +1539,7 @@
   "network.retry": "إعادة المحاولة",
   "network.retry_title": "الاتصال بمورد شبكة مشترك",
   "network.save_committed": "⁨%1⁩",
+  "network.save_busy": "لا يزال حفظ تغيير في المفضلة جاريًا. أعد المحاولة لحفظ هذا الموقع.",
   "network.save_failed": "⁨%1⁩",
   "network.saved_read_failed": "تعذّرت قراءة الأماكن المحفوظة، لذا لم يتغيّر شيء.",
   "network.saved_remove_read_failed": "تعذّرت قراءة الأماكن المحفوظة، لذا لم يُنسَ شيء.",

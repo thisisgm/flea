@@ -1363,6 +1363,7 @@
   "network.retry": "Reîncearcă",
   "network.retry_title": "Conectează-te la o resursă partajată din rețea",
   "network.save_committed": "%1",
+  "network.save_busy": "O modificare a Favoritelor este încă în curs de salvare. Reîncearcă pentru a salva această locație.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Locațiile salvate nu au putut fi citite, deci nu s-a schimbat nimic.",
   "network.saved_remove_read_failed": "Locațiile salvate nu au putut fi citite, deci nu s-a uitat nicio locație.",

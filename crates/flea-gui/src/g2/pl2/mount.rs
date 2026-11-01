@@ -118,6 +118,7 @@ pub struct Mounts {
     pub(super) flight: Option<Flight>,
     pub(super) bridges: Vec<BridgeWait>,
     pub(super) browsers: HashMap<u64, super::child::BrowserSession>,
+    pub(super) passwords: HashMap<String, Secret>,
 }
 
 impl Mounts {
@@ -125,6 +126,7 @@ impl Mounts {
         self.flight = None;
         self.bridges.clear();
         self.browsers.clear();
+        self.passwords.clear();
         self.generation += 1;
     }
     pub fn busy(&self) -> bool {
@@ -162,6 +164,7 @@ impl Mounts {
             };
         }
         request.uri = logic::mounts::normalize(&request.uri);
+        self.recall(&mut request);
         self.browsers.remove(&request.origin);
         self.generation += 1;
         let phase = if request.mounted {

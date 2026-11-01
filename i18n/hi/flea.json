@@ -1315,6 +1315,7 @@
   "network.retry": "दोबारा प्रयास करें",
   "network.retry_title": "नेटवर्क के साझा स्थान से कनेक्ट करें",
   "network.save_committed": "%1",
+  "network.save_busy": "पसंदीदा का परिवर्तन अभी सहेजा जा रहा है। इस स्थान को सहेजने के लिए दोबारा प्रयास करें।",
   "network.save_failed": "%1",
   "network.saved_read_failed": "सहेजे गए स्थान पढ़े नहीं जा सके, इसलिए कुछ नहीं बदला।",
   "network.saved_remove_read_failed": "सहेजे गए स्थान पढ़े नहीं जा सके, इसलिए कुछ नहीं भुलाया गया।",

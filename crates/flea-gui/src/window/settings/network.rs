@@ -26,6 +26,13 @@ impl Shell {
             self.network_favourite_result(id, false, &detail, cx);
             return;
         }
+        // A save during another Favorites write is refused at once, as Favourites.add was in v0.3.12.
+        if !self.settings.favourite_writes.is_empty() {
+            self.settings_error("places.favorite.busy", cx);
+            let detail = self.locale.catalog.tr("network.save_busy");
+            self.network_favourite_result(id, false, &detail, cx);
+            return;
+        }
         let delayed = self.settings.worker.is_some();
         if delayed {
             self.settings.network_favourite = Some((self.settings.revision + 1, id));
@@ -89,3 +96,7 @@ impl Shell {
 #[cfg(test)]
 #[path = "network_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "network_busy_tests.rs"]
+mod busy_tests;

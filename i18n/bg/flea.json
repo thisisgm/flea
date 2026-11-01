@@ -1347,6 +1347,7 @@
   "network.retry": "Опитай отново",
   "network.retry_title": "Свържи се с мрежов ресурс",
   "network.save_committed": "%1",
+  "network.save_busy": "Все още се запазва промяна в любими. Опитай отново, за да запазиш това място.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Запазените места не могат да бъдат прочетени, затова нищо не бе променено.",
   "network.saved_remove_read_failed": "Запазените места не могат да бъдат прочетени, затова нищо не бе забравено.",

@@ -1363,6 +1363,7 @@
   "network.retry": "Pokušaj ponovno",
   "network.retry_title": "Poveži se s dijeljenim resursom",
   "network.save_committed": "%1",
+  "network.save_busy": "Spremanje promjene favorita još traje. Pokušajte ponovno da biste spremili ovu lokaciju.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Nije moguće pročitati spremljene lokacije pa ništa nije promijenjeno.",
   "network.saved_remove_read_failed": "Nije moguće pročitati spremljene lokacije pa ništa nije zaboravljeno.",

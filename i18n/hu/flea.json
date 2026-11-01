@@ -1869,6 +1869,7 @@
   "network.password_needed": "Add meg a jelszót a hely csatolásához.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "A Kedvencek módosításának mentése még folyamatban van. A hely mentéséhez próbáld újra.",
   "network.backend_died": "Nem sikerült csatlakozni: a hálózati hely nem nyitható meg.",
   "network.another_opening": "Egy másik hálózati hely megnyitása még folyamatban van. Utána próbáld újra",
   "network.refused": "Nem sikerült csatlakozni: a kiszolgáló elutasította a kapcsolatot.",

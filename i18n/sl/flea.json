@@ -1443,6 +1443,7 @@
   "network.retry": "Poskusi znova",
   "network.retry_title": "Poveži se z omrežno skupno rabo",
   "network.save_committed": "%1",
+  "network.save_busy": "Sprememba priljubljenih se še shranjuje. Poskusite znova, da shranite to mesto.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Shranjenih mest ni bilo mogoče prebrati, zato ni bilo nič spremenjeno.",
   "network.saved_remove_read_failed": "Shranjenih mest ni bilo mogoče prebrati, zato ni bilo nič odstranjeno.",

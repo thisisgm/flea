@@ -1363,6 +1363,7 @@
   "network.retry": "Bandyti dar kartą",
   "network.retry_title": "Prisijungti prie bendrinamo tinklo ištekliaus",
   "network.save_committed": "%1",
+  "network.save_busy": "Parankinių pakeitimas dar įrašomas. Bandykite dar kartą, kad įrašytumėte šią vietą.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Nepavyko perskaityti įrašytų vietų, todėl nieko nepakeista.",
   "network.saved_remove_read_failed": "Nepavyko perskaityti įrašytų vietų, todėl nieko nepašalinta.",

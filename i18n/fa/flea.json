@@ -1315,6 +1315,7 @@
   "network.retry": "تلاش دوباره",
   "network.retry_title": "اتصال به اشتراک شبکه",
   "network.save_committed": "⁨%1⁩",
+  "network.save_busy": "ذخیرهٔ تغییر علاقه‌مندی‌ها هنوز ادامه دارد. برای ذخیرهٔ این مکان دوباره تلاش کنید.",
   "network.save_failed": "⁨%1⁩",
   "network.saved_read_failed": "خواندن مکان‌های ذخیره‌شده ممکن نشد، بنابراین چیزی تغییر نکرد.",
   "network.saved_remove_read_failed": "خواندن مکان‌های ذخیره‌شده ممکن نشد، بنابراین چیزی فراموش نشد.",

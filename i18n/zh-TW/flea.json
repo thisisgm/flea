@@ -1299,6 +1299,7 @@
   "network.retry": "重試",
   "network.retry_title": "連線至網路共用位置",
   "network.save_committed": "%1",
+  "network.save_busy": "喜好項目的變更仍在儲存中。請重試以儲存此位置。",
   "network.save_failed": "%1",
   "network.saved_read_failed": "無法讀取已儲存的位置，因此未變更任何項目。",
   "network.saved_remove_read_failed": "無法讀取已儲存的位置，因此未移除任何紀錄。",

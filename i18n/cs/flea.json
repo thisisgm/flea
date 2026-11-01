@@ -1363,6 +1363,7 @@
   "network.retry": "Zkusit znovu",
   "network.retry_title": "Připojit k síťovému sdílení",
   "network.save_committed": "%1",
+  "network.save_busy": "Změna oblíbených se stále ukládá. Toto umístění uložíte opakováním.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Uložená umístění nelze načíst, proto nebylo nic změněno.",
   "network.saved_remove_read_failed": "Uložená umístění nelze načíst, proto nebylo nic odebráno.",

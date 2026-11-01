@@ -1315,6 +1315,7 @@
   "network.retry": "Prøv igen",
   "network.retry_title": "Opret forbindelse til en netværksdeling",
   "network.save_committed": "%1",
+  "network.save_busy": "En ændring af favoritter gemmes stadig. Prøv igen for at gemme denne placering.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Gemte placeringer kunne ikke læses, så intet blev ændret.",
   "network.saved_remove_read_failed": "Gemte placeringer kunne ikke læses, så intet blev glemt.",

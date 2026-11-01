@@ -1315,6 +1315,7 @@
   "network.retry": "Prøv igjen",
   "network.retry_title": "Koble til en nettverksdeling",
   "network.save_committed": "%1",
+  "network.save_busy": "En endring i favoritter lagres fortsatt. Prøv igjen for å lagre denne plasseringen.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Kunne ikke lese lagrede plasseringer, så ingenting ble endret.",
   "network.saved_remove_read_failed": "Kunne ikke lese lagrede plasseringer, så ingenting ble glemt.",

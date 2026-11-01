@@ -1411,6 +1411,7 @@
   "network.retry": "Ponów",
   "network.retry_title": "Połącz z udziałem sieciowym",
   "network.save_committed": "%1",
+  "network.save_busy": "Trwa zapisywanie zmiany Ulubionych. Ponów, aby zapisać tę lokalizację.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Nie udało się odczytać zapisanych lokalizacji, więc nic nie zmieniono.",
   "network.saved_remove_read_failed": "Nie udało się odczytać zapisanych lokalizacji, więc żadnej nie usunięto.",

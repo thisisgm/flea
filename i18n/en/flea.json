@@ -1903,6 +1903,7 @@
   "network.password_needed": "Enter the password to mount this location.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "A Favorites change is still being saved. Retry to save this location.",
   "network.backend_died": "Could not connect: the network location could not be opened.",
   "network.another_opening": "Another network location is still opening. Try again when it opens",
   "network.refused": "Could not connect: the server refused the connection.",

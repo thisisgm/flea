@@ -57,6 +57,11 @@ mod mount_process;
 
 mod mount_lifetime;
 
+mod session;
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;
+
 mod view_observe;
 mod view_render;
 

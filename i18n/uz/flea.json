@@ -1350,6 +1350,7 @@
   "network.retry": "Qayta urinish",
   "network.retry_title": "Tarmoq resursiga ulanish",
   "network.save_committed": "%1",
+  "network.save_busy": "Sevimlilardagi oʻzgarish hali saqlanmoqda. Bu joylashuvni saqlash uchun qayta urinib koʻring.",
   "network.save_failed": "%1",
   "network.saved_read_failed": "Saqlangan manzillarni oʻqib boʻlmagani uchun hech narsa oʻzgarmadi.",
   "network.saved_remove_read_failed": "Saqlangan manzillarni oʻqib boʻlmagani uchun hech narsa unutilmadi.",

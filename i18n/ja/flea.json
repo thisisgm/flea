@@ -1246,6 +1246,7 @@
   "network.retry": "再試行",
   "network.retry_title": "ネットワーク共有に接続",
   "network.save_committed": "%1",
+  "network.save_busy": "お気に入りの変更を保存中です。この場所を保存するには再試行してください。",
   "network.save_failed": "%1",
   "network.saved_read_failed": "保存された場所を読み取れなかったため、何も変更しませんでした。",
   "network.saved_remove_read_failed": "保存された場所を読み取れなかったため、何も削除しませんでした。",

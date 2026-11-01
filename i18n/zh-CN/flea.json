@@ -1762,6 +1762,7 @@
   "network.password_needed": "请输入密码以挂载此位置。",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "仍在保存对收藏夹的更改。请重试以保存此位置。",
   "network.backend_died": "无法连接：无法打开该网络位置。",
   "network.another_opening": "另一个网络位置仍在打开中。请在其打开后再试",
   "network.refused": "无法连接：服务器拒绝了连接。",
