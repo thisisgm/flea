@@ -31,6 +31,7 @@ impl Shell {
             } => {
                 self.network_list(cx);
                 let Some(side) = self.network_side(*origin) else {
+                    self.drop_rail_network_open(*origin);
                     return;
                 };
                 if matches!(effect, Effect::Open { .. }) {
@@ -43,7 +44,14 @@ impl Shell {
                 } else {
                     path.clone()
                 };
-                let _ = self.step(side, Step::OpenPlace(folder), window, cx);
+                let opened = self.open_rail_place(side, &folder, window, cx);
+                self.land_rail_network_open(
+                    *origin,
+                    side,
+                    opened && matches!(effect, Effect::Open { .. }),
+                    window,
+                    cx,
+                );
             }
             Effect::RefreshMounts => self.network_list(cx),
             Effect::Shares {
@@ -73,6 +81,7 @@ impl Shell {
                 connect_failed,
                 password,
             } => {
+                self.drop_rail_network_open(*origin);
                 if self.network_side(*origin).is_none() {
                     return;
                 }
@@ -94,6 +103,7 @@ impl Shell {
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
+                self.drop_rail_network_open(*origin);
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
                     let error =

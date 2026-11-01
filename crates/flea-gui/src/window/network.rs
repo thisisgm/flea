@@ -14,7 +14,6 @@ use crate::g2::pl2::{
 };
 use crate::list::ListState;
 use crate::state::Shell;
-use crate::window::navigate::Step;
 use flea::jsondoc::Json;
 use flea::ui_logic_pl1::RailEntry;
 use flea::ui_logic_pl4::order::{Heading, RailSection};
@@ -292,22 +291,27 @@ impl Shell {
     ) {
         self.ensure_network(window, cx);
         let Some(row) = self.network_row(entry) else {
+            self.bind_rail_network_open(None, None);
             return;
         };
         let origin = self.network_origin(side);
+        self.bind_rail_network_open(Some(origin), None);
         match menus::activate(&row, origin) {
             menus::Open::Direct { path, .. } => {
-                let _ = self.step(side, Step::OpenPlace(path), window, cx);
+                let opened = self.open_rail_place(side, &path, window, cx);
+                self.land_rail_network_open(origin, side, opened, window, cx);
             }
             menus::Open::Remote(request) => {
                 let Some(network) = self.network() else {
                     return;
                 };
                 let service = network.service.clone();
-                service.update(cx, |service, cx| {
+                let generation = service.update(cx, |service, cx| {
                     let now = service.now(cx);
-                    service.open_share(request, now, cx)
+                    service.open_share(request, now, cx);
+                    service.mounts.generation
                 });
+                self.bind_rail_network_open(Some(origin), Some(generation));
             }
         }
     }

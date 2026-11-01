@@ -17,6 +17,8 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 mod jobs;
 #[path = "source_release.rs"]
 mod release;
+#[path = "source_seed.rs"]
+pub mod seed;
 
 #[cfg(test)]
 #[path = "source_fixture.rs"]
@@ -161,6 +163,14 @@ impl Source {
         self.advance(cx);
     }
 
+    /// The launch's own lsblk answer, so DEVICES draws in the window's first frame (SW-07); the poll still lists.
+    pub fn seed(&mut self, listing: String) {
+        let _ = self.devices.list_exited(&super::process::Outcome {
+            stdout: listing,
+            ..super::process::Outcome::default()
+        });
+    }
+
     /// The unlock card's PollDevices: list now, so the unlocked drive's row arrives without waiting on the poll.
     pub fn poll_now(&mut self, cx: &mut Context<Self>) {
         let now = self.now(cx);
@@ -245,7 +255,8 @@ impl Source {
     fn publish(&mut self, cx: &mut Context<Self>) {
         let (network, devices) = rail_groups_ready(
             self.network.answered,
-            self.devices.first_answered && self.listing.answered && self.hostname_ready,
+            // Phones join the end of DEVICES when gio answers; the drives never wait on its slower listing.
+            self.devices.first_answered && self.hostname_ready,
             self.now(cx),
             SETTLE_MS,
         );

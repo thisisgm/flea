@@ -58,6 +58,8 @@ fn main() {
     let worker = std::thread::Builder::new()
         .name("flea-startup".into())
         .spawn(move || {
+            let started = std::time::Instant::now();
+            let devices = flea_gui::g2::pl1::source::seed::start();
             let settings =
                 startup::load_settings().map_err(|error| ("window.settings_failed", error))?;
             let cwd = std::env::current_dir()
@@ -72,6 +74,7 @@ fn main() {
                 .map_err(|error| ("ipc.start_failed", error.to_string()))?;
             let mut launch = Launch::resolve(settings, args, &home);
             launch.unlock = unlock_device;
+            flea_gui::g2::pl1::source::seed::finish(devices, started);
             Ok::<_, (&str, String)>((launch, server, presentation::Service::start()))
         })
         .unwrap_or_else(|error| {

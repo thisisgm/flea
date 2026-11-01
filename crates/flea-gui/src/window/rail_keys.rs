@@ -51,6 +51,10 @@ impl Shell {
             return Some(true);
         }
         producer.update(cx, |producer, _| producer.side = self.focus_side);
+        // RailKeys.act: any other rail key ends a device open's claim on focus.
+        if let Some(join) = &mut self.rail {
+            join.focus_on_open = None;
+        }
         let stroke = &event.keystroke;
         let plain =
             !(stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform);

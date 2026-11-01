@@ -80,6 +80,35 @@ impl Producer {
         );
     }
 
+    /// Inspect only painted favorites, once per visible record set; failed reads retry on the next viewport change.
+    pub(crate) fn inspect_visible(&mut self, cx: &mut Context<Self>) {
+        if !self.polling || self.places.read(cx).favourites.inspecting {
+            return;
+        }
+        let entries = self.entries();
+        let visible: Vec<_> = self
+            .laid
+            .borrow()
+            .rows
+            .iter()
+            .filter_map(|row| entries.get(row.index)?.favourite_index)
+            .filter_map(|index| {
+                self.places
+                    .read(cx)
+                    .favourites
+                    .records
+                    .get(index)
+                    .map(|record| (index, record.clone()))
+            })
+            .collect();
+        if visible != self.inspected_visible {
+            let indices: Vec<_> = visible.iter().map(|(index, _)| *index).collect();
+            self.inspected_visible = visible;
+            self.places
+                .update(cx, |places, cx| places.inspect(&indices, cx));
+        }
+    }
+
     /// U19 and U20 publish complete device and network sections through this seam.
     pub fn set_tail(&mut self, sections: Vec<RailSection>, cx: &mut Context<Self>) {
         self.tail = sections;

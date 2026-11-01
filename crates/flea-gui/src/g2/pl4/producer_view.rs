@@ -6,6 +6,11 @@ const WHEEL_ROW_FRACTION: f32 = 0.78;
 impl Render for Producer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.load(cx);
+        // Read this frame's painted viewport after layout has published its rows.
+        let producer = cx.entity().downgrade();
+        cx.defer(move |cx| {
+            let _ = producer.update(cx, |producer, cx| producer.inspect_visible(cx));
+        });
         let model = self.model.borrow();
         self.ime_session = model.focused.then(|| model.editor.session()).flatten();
         self.ime_focus = self.ime_session.and_then(|_| window.focused(cx));

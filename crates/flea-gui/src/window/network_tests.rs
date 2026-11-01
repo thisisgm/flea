@@ -314,3 +314,6 @@ mod cloud_tests;
 
 #[path = "network_motion_tests.rs"]
 mod motion_tests;
+
+#[path = "network_open_focus_tests.rs"]
+mod open_focus_tests;

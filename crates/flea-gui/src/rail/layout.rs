@@ -39,8 +39,8 @@ pub(super) fn layout(
                 typeface,
                 window,
             );
-            // Keep the shaped run; only the heading's line box uses integer ascent and descent.
-            let text_height = run.ascent.ceil() + (run.height - run.ascent).ceil();
+            // RailHeading.qml's Text line box: one ceiling over ascent plus descent, never one per part (EY-384).
+            let text_height = run.height.ceil();
             let text_width = run.width;
             let rect = Rect::new(
                 metrics.pad,
