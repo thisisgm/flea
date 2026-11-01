@@ -1,6 +1,6 @@
 //! The native toolbar owns its painted controls and hosts the existing path surface.
 use super::{
-    mark::{divider, mark, mark_ink, press_scale, resting_ink, Press, MARK},
+    mark::{divider, press_scale, resting_ink, Press, MARK},
     view::PathView,
 };
 use crate::{

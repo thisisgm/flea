@@ -199,7 +199,7 @@ impl Shell {
 
 impl Shell {
     pub(crate) fn menu_identity(&self) -> String {
-        if self.menu.rail.is_some() {
+        if self.menu.rail.is_some() || self.strip.menu.is_some() {
             return String::new();
         }
         if let Some(place) = &self.menu.place {

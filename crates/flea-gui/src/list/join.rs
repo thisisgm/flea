@@ -90,8 +90,6 @@ impl Shell {
             }),
             renaming: self.renaming_row(side),
             grow: self.grows[side],
-            drop_target,
-            drop_label,
             ..self
                 .settings
                 .row_states(host.pane.held.listing, host.pane.cursor)

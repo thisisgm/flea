@@ -1,5 +1,4 @@
 //! One Grid pane's element: the tile Element under the pane's pointer routing and swap overlay.
-use crate::g2::dg2::join::{flock, Seed};
 use crate::{
     feedback::spinner,
     g2::dg2::join::{flock, Seed},

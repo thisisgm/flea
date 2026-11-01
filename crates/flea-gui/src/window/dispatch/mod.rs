@@ -276,6 +276,7 @@ mod trash_ipc_tests;
 mod trash_parity_tests;
 #[cfg(test)]
 mod u_settings_tests;
+#[cfg(test)]
 mod vf_more_refresh_tests;
 #[cfg(test)]
 mod vf_more_tests;
@@ -343,6 +344,7 @@ mod outline_tests;
 
 #[cfg(test)]
 mod outline_mode_tests;
+#[cfg(test)]
 mod vf5_tests;
 
 #[cfg(test)]

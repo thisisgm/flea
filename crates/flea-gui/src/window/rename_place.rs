@@ -217,6 +217,7 @@ mod vf4_tests {
                 gap: 9.,
                 name_min: 100.,
                 measured: [70., 70., 125., 120.],
+                flush_size: false,
             }
             .for_dual(true),
             Switched::default().for_dual(true),
