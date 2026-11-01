@@ -372,3 +372,6 @@ mod selection_tests;
 
 #[path = "menu_external_tests.rs"]
 mod external_tests;
+
+#[path = "menu_shelf_join_tests.rs"]
+mod shelf_join_tests;

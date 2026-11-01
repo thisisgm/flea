@@ -184,31 +184,8 @@ fn permissions_for_two_marked_files_opens_the_card(cx: &mut gpui::TestAppContext
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// EY-195: Add to Shelf on a file and on a folder adds the row and says so.
-#[gpui::test]
-fn add_to_shelf_adds_a_file_and_a_folder(cx: &mut gpui::TestAppContext) {
-    fn added(_: &[String]) -> Result<(), String> {
-        Ok(())
-    }
-    let (shell, cx) = on_notes(cx);
-    shell.update(cx, |shell, _| {
-        shell.launch.settings.data = jsondoc::parse(
-            r#"{"keys":"default","view":"list","menu":{"hidden":[]},"shelf":{"enabled":true}}"#,
-        )
-        .unwrap();
-        shell.menu.shelve = Some(added);
-    });
-    for (row, kind, path) in [(2, FILE, "/files/notes.txt"), (0, DIR, "/files/alpha")] {
-        set_cursor(&shell, cx, row);
-        cx.simulate_keystrokes("m");
-        answer(&shell, cx, &[kind]);
-        choose(&shell, cx, "addToShelf");
-        validated(&shell, cx, "addToShelf", &[path]);
-        settle(cx);
-        assert_eq!(status(&shell, cx), "Added it to the shelf", "{path}");
-    }
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
-}
+// EY-195's mounted shelf success cases now live in g2/plugins/menu_shelf_join_tests.rs,
+// where they exercise the real declared provider rather than the retired callback.
 
 // EY-268: Recent opened from the rail, then the background menu's New File, refuses as New Folder's key does and opens no card.
 #[gpui::test]

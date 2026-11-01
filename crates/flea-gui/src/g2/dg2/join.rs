@@ -5,7 +5,7 @@ use super::{decide, facts, lift, spot, Dropping, Facts, Landing, Lift, Rows};
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::ui_logic_dg2 as core;
 use flea::ui_logic_fb1::status::Hint;
-use gpui::{App, AppContext, Context, ExternalDragPayload, Global, Point, Window};
+use gpui::{App, Context, ExternalDragPayload, Global, Point, Window};
 use std::collections::HashMap;
 use std::rc::Rc;
 
