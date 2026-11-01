@@ -10,6 +10,8 @@ mod backend;
 mod filesystem;
 #[path = "events_ipc.rs"]
 mod ipc;
+#[path = "events_ipc_reader.rs"]
+mod ipc_reader;
 #[path = "events_quit.rs"]
 mod quit;
 #[path = "events_routes.rs"]
