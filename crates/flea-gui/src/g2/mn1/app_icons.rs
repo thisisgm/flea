@@ -102,13 +102,14 @@ pub(super) fn paint(
     let Some(image) = held_at(path, logical, window, cx) else {
         return false;
     };
+    let drawn = window.paint_image(at, at, Default::default(), image, 0, false);
     #[cfg(test)]
     PAINTED.with(|painted| {
-        if let Some(paths) = painted.borrow_mut().as_mut() {
+        if let (Ok(()), Some(paths)) = (&drawn, painted.borrow_mut().as_mut()) {
             paths.push(path.to_owned());
         }
     });
-    let _ = window.paint_image(at, at, Default::default(), image, 0, false);
+    let _ = drawn;
     true
 }
 

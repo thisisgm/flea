@@ -130,14 +130,20 @@ fn ipc_readers3_open_with_card_reports_its_model_and_its_painted_parts(cx: &mut 
         "titleRuleRect",
         "searchRect",
         "listRect",
+        "rowRect",
         "noMatchRect",
     ] {
         assert_eq!(text(key).as_deref(), Some(""), "{key}");
     }
-    assert!(state
-        .get("rowHeight")
-        .and_then(Json::as_f64)
-        .is_some_and(|row| row > 0.));
+    for key in ["rowHeight", "eyebrowHeight", "gap", "searchTrail"] {
+        assert!(
+            state
+                .get(key)
+                .and_then(Json::as_f64)
+                .is_some_and(|token| token > 0.),
+            "{key}"
+        );
+    }
     refused(
         cx,
         handle,
