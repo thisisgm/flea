@@ -43,11 +43,18 @@ fn decode(bytes: &[u8; 256]) -> Option<(i64, u32)> {
 }
 // The birth seconds of a stat already paid: std's statx asks for btime, so a row needs no second stat.
 pub fn of(meta: &std::fs::Metadata) -> Option<i64> {
-    let time = meta.created().ok()?;
-    Some(match time.duration_since(std::time::UNIX_EPOCH) {
+    meta.created().ok().map(seconds)
+}
+// Floored like statx's tv_sec, so a pre-epoch time with nanoseconds reads one second earlier.
+fn seconds(time: std::time::SystemTime) -> i64 {
+    match time.duration_since(std::time::UNIX_EPOCH) {
         Ok(after) => after.as_secs() as i64,
-        Err(before) => -(before.duration().as_secs_f64().ceil() as i64),
-    })
+        Err(before) => {
+            let before = before.duration();
+            // tv_sec i64::MIN arrives as 2^63 whole seconds, which only a wrapping negation maps back.
+            (before.as_secs() as i64).wrapping_neg() - i64::from(before.subsec_nanos() > 0)
+        }
+    }
 }
 pub fn json(path: &Path) -> String {
     get(path).map_or_else(|| "null".into(), |(seconds, _)| seconds.to_string())
@@ -79,9 +86,24 @@ mod tests {
         }
     }
     #[test]
+    fn birth_seconds_floor_like_statx_on_both_sides_of_the_epoch() {
+        use std::time::{Duration, UNIX_EPOCH};
+        assert_eq!(seconds(UNIX_EPOCH + Duration::new(5, 999_999_999)), 5);
+        assert_eq!(seconds(UNIX_EPOCH - Duration::from_secs(5)), -5);
+        assert_eq!(
+            seconds(UNIX_EPOCH - Duration::new(100_000_000, 1)),
+            -100_000_001
+        );
+        assert_eq!(seconds(UNIX_EPOCH - Duration::from_secs(1 << 63)), i64::MIN);
+    }
+    #[test]
     fn a_paid_stat_carries_the_same_birth_seconds() {
         let root = super::super::testdir::TestDir::new("birthtime-of");
         std::os::unix::fs::symlink("absent", root.join("link")).unwrap();
+        assert!(
+            get(root.path()).is_some(),
+            "the test root reports a birth time"
+        );
         for path in [root.join("link"), root.path().to_path_buf()] {
             let meta = std::fs::symlink_metadata(&path).unwrap();
             assert_eq!(of(&meta), get(&path).map(|time| time.0));
