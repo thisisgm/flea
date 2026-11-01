@@ -287,7 +287,10 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
             ("escape", "keys.escape"),
         ] {
             let words = m.i18n.tr(label);
-            assert_ne!(words, label, "{code} {label} is translated in the fixture");
+            assert!(
+                !words.is_ascii(),
+                "{code} {label} reads the fixture catalog, not the English fallback"
+            );
             let beside = if rtl {
                 rows.lines().any(|line| {
                     line.split(&format!("{words}  ")).nth(1).is_some_and(|rest| {
