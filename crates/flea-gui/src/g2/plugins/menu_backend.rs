@@ -14,19 +14,7 @@ pub(super) fn binary() -> &'static Path {
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let executable = std::env::current_exe().unwrap();
         let dependencies = executable.parent().unwrap();
-        let library = std::fs::read_dir(dependencies)
-            .unwrap()
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .filter(|path| {
-                path.file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .starts_with("libflea-")
-                    && path.extension().is_some_and(|e| e == "rlib")
-            })
-            .max_by_key(|path| path.metadata().unwrap().modified().unwrap())
-            .expect("cargo built flea");
+        let library = foldhash::core_library(dependencies, &executable);
         let binary = dependencies.join(format!("flea-plugin-host-{}", std::process::id()));
         let output = Command::new("rustc")
             .arg("--edition=2021")
