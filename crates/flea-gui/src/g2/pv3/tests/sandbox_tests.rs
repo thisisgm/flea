@@ -195,6 +195,8 @@ fn pv3_the_reader_refuses_corrupt_records() {
 extern "C" {
     fn fcntl(fd: i32, command: i32, ...) -> i32;
 }
+const F_DUPFD: i32 = 0;
+const F_SETFD: i32 = 2;
 
 // bubblewrap hands on every descriptor it inherits, so one the GUI holds without close-on-exec must never reach the decoder.
 #[test]
@@ -204,10 +206,22 @@ fn pv3_the_helper_inherits_no_descriptor_of_the_gui() {
     std::fs::write(&input, b"not a clip\n").expect("input");
     let held = std::fs::File::open(&input).expect("held");
     let fd = std::os::fd::AsRawFd::as_raw_fd(&held);
-    // SAFETY: clears close-on-exec on a descriptor this test owns, as an inherited one arrives.
-    assert!(unsafe { fcntl(fd, 2, 0) } >= 0);
+    // SAFETY: a copy at 10 or above, where the probe's shell keeps its script, on a descriptor this test owns.
+    let high = unsafe { fcntl(fd, F_DUPFD, 10) };
+    assert!(high >= 10, "a high copy of the held descriptor");
+    // SAFETY: F_DUPFD returned a fresh descriptor owned exclusively by this File.
+    let high_file = unsafe { <std::fs::File as std::os::fd::FromRawFd>::from_raw_fd(high) };
+    // SAFETY: clears close-on-exec on descriptors this test owns, as an inherited one arrives.
+    assert!(unsafe { fcntl(fd, F_SETFD, 0) } >= 0);
+    assert!(unsafe { fcntl(high, F_SETFD, 0) } >= 0);
     let probe = root.0.join("probe.sh");
-    let body = format!("#!/bin/sh\nif [ -e /proc/$$/fd/{fd} ]; then printf 'LEAKED-DESCRIPTOR-{fd:04}-INSIDE'; fi\n");
+    // A shell can reuse the closed GUI descriptor for its script, so the probe compares file identity.
+    let mut body = String::from("#!/bin/sh\n");
+    for each in [fd, high] {
+        body.push_str(&format!(
+            "if [ /proc/$$/fd/{each} -ef /input ]; then printf 'LEAKED-DESCRIPTOR-{each:04}-INSIDE'; fi\n"
+        ));
+    }
     std::fs::write(&probe, body).expect("probe");
     std::fs::set_permissions(&probe, std::os::unix::fs::PermissionsExt::from_mode(0o755))
         .expect("chmod");
@@ -235,5 +249,10 @@ fn pv3_the_helper_inherits_no_descriptor_of_the_gui() {
         }
     }
     drop(held);
-    assert_eq!(seen, [Incoming::Closed], "fd {fd} reached the sandbox");
+    drop(high_file);
+    assert_eq!(
+        seen,
+        [Incoming::Closed],
+        "fd {fd} or {high} reached the sandbox"
+    );
 }

@@ -173,6 +173,16 @@ fn u03_middle_file_is_inert_and_first_tap_policies_open_once(cx: &mut TestAppCon
             OPENED.with(|opened| opened.borrow_mut().push(argv[2..].join(" ")));
             (Some(0), String::new())
         };
+        // The fixture's rows are unnamed, and the opener rightly refuses a row with no name to open.
+        let host = shell.panes[0].as_mut().unwrap();
+        let mut rows = host.pane.held.rows.clone();
+        rows[2].name = "notes.txt".into();
+        host.pane.held = Rc::new(crate::list::pane::Held {
+            listing: host.pane.held.listing,
+            total: host.pane.held.total,
+            start: host.pane.held.start,
+            rows,
+        });
         window.focus(&shell.focus, cx);
         shell
     });

@@ -109,6 +109,11 @@ fn rev3_st2_control_a_git_add_past_the_byte_cap_in_a_plain_file_is_refused() {
 
 #[test]
 fn rev3_st2_a_folder_add_never_writes_through_an_old_record() {
+    if super::fifotest::isolated(
+        "backend::rev3_st2_tests::rev3_st2_a_folder_add_never_writes_through_an_old_record",
+    ) {
+        return;
+    }
     let dir = TestDir::new("rev3-st2-rec");
     let env = env(&dir);
     let outside = dir.file("outside", "keep\n");
@@ -116,14 +121,20 @@ fn rev3_st2_a_folder_add_never_writes_through_an_old_record() {
     let sources = dir.dir("config/flea/plugins/.sources");
     symlink(&outside, sources.join("me.tool")).unwrap();
     std::fs::hard_link(&hard, sources.join("me.other")).unwrap();
-    mkfifo(&sources.join("me.third"));
+    let fifo = sources.join("me.third");
+    mkfifo(&fifo);
     let mut added = Vec::new();
     for (folder, id) in [("a", "me.tool"), ("b", "me.other"), ("c", "me.third")] {
         let src = plugin(&dir, folder, id, READY);
         let (env2, line) = (env_of(&dir), add_line(&src.display().to_string()));
-        let done = super::fifotest::within("a folder add over an old record", move || {
-            code(ask(&env2, &line).0)
-        });
+        // Waits on the answer or on the add opening the old fifo record, never on a clock CHANGING's queue eats.
+        let done =
+            super::fifotest::answers_or_holds(&fifo, super::fifotest::Access::Write, move || {
+                code(ask(&env2, &line).0)
+            })
+            .unwrap_or_else(|| {
+                panic!("a folder add over an old record waited on the old fifo record")
+            });
         assert_eq!(done, "", "{id} added");
         added.push((id, src));
     }
