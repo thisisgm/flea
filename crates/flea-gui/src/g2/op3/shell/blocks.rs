@@ -36,6 +36,7 @@ impl Draw<'_> {
                     tail,
                     cursor,
                     mark,
+                    icon,
                 } => {
                     let mut line = self
                         .text(BOARD_BODY)
@@ -59,10 +60,18 @@ impl Draw<'_> {
                                 .bg(t.accent_frame),
                         ),
                     };
-                    // A themed icon fills this slot once the icon service hands it over.
-                    let slot = match mark {
-                        Some(mark) => glyph(*mark, MARK * self.s, t.fg).into_any_element(),
-                        None => div().size(self.px(MARK)).flex_none().into_any_element(),
+                    let slot = if icon.is_empty() {
+                        match mark {
+                            Some(mark) => glyph(*mark, MARK * self.s, t.fg).into_any_element(),
+                            None => div().size(self.px(MARK)).flex_none().into_any_element(),
+                        }
+                    } else {
+                        crate::g2::mn1::element::icons::Icon::new(
+                            icon,
+                            MARK * self.s,
+                            t.muted_frame,
+                        )
+                        .into_any_element()
                     };
                     let line = line.child(slot).child(
                         div()

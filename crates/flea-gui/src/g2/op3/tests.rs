@@ -110,7 +110,8 @@ fn open_with_opens_on_the_search_with_the_default_waiting_grey() {
             label: "Neovim".into(),
             tail: "default".into(),
             cursor: Cursor::Waiting,
-            mark: None
+            mark: None,
+            icon: "nvim".into()
         }
     );
     assert_eq!(
@@ -133,7 +134,8 @@ fn open_with_opens_on_the_search_with_the_default_waiting_grey() {
             label: "Basecamp".into(),
             tail: String::new(),
             cursor: Cursor::None,
-            mark: Some(super::shell::Glyph::AppWindow)
+            mark: Some(super::shell::Glyph::AppWindow),
+            icon: String::new()
         },
         "an entry with no themed icon draws the board's window mark"
     );
@@ -143,7 +145,8 @@ fn open_with_opens_on_the_search_with_the_default_waiting_grey() {
             label: "btop++".into(),
             tail: String::new(),
             cursor: Cursor::None,
-            mark: None
+            mark: None,
+            icon: "btop".into()
         })
     );
     assert!(card.body.contains(&Block::CheckLine {
@@ -183,7 +186,8 @@ fn open_with_tab_walks_list_check_cancel_open_as_the_boards_do() {
             label: "Neovim".into(),
             tail: "default".into(),
             cursor: Cursor::Focused,
-            mark: None
+            mark: None,
+            icon: "nvim".into()
         }
     );
     card.key(Key::Tab);

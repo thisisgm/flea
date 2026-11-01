@@ -1,4 +1,6 @@
 //! The menu card as one custom Element: the frame, each row's wash, mark, label and trailing parts, and the edge fades.
+pub(crate) mod icons;
+
 use super::glyphs;
 use super::lines::{Ink, Lead, Line, Shaped};
 use super::menu::{Card, Menu};
@@ -168,8 +170,15 @@ fn paint_lead(
                 .unwrap_or(ink.label);
             window.paint_quad(fill(slot(left, top, TAG, TAG), color));
         }
-        // An application's own icon belongs to the icon theme unit; until then the window mark stands in.
-        Lead::Icon(_) => {
+        Lead::Icon(name) => {
+            let side = 16.;
+            let scale = window.scale_factor().ceil().max(1.) as u32;
+            if let Some(image) = icons::image(name, side as u32, scale, window, cx) {
+                let bounds = slot(left, top, side, side);
+                let fit = gpui::ObjectFit::Contain.get_bounds(bounds, image.size(0));
+                let _ = window.paint_image(bounds, fit, gpui::Corners::default(), image, 0, false);
+                return;
+            }
             let (key, data) = glyphs::mark("app-window");
             paint_mark(key, data, slot(left, top, SLOT, SLOT), mark, window, cx);
         }

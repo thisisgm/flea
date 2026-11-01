@@ -5,6 +5,10 @@ impl Pane {
         self.row_height
     }
 
+    pub fn viewport_height(&self) -> f32 {
+        self.height
+    }
+
     pub fn set_row_height(&mut self, row: f32) {
         if !row.is_finite() || row <= 0. || row == self.row_height {
             return;
@@ -93,6 +97,26 @@ impl Pane {
         } else if top + self.row_height > self.scroll_y + self.height {
             self.scroll_to(top + self.row_height - self.height);
         }
+    }
+    /// ScrollOff.cursorY at a context above 0: a landing keeps that many rows around the cursor, as v0.3.12's setCursor does.
+    pub fn reveal_cursor_keeping(&mut self, context: usize) {
+        let frame = crate::input::Frame {
+            bounds: gpui::Bounds::new(
+                gpui::point(gpui::px(0.), gpui::px(0.)),
+                gpui::size(gpui::px(1.), gpui::px(self.height)),
+            ),
+            row: self.row_height,
+            lane: 0.,
+            content: self.max_scroll() + self.height,
+            scroll: self.scroll_y,
+            listing: self.held.listing,
+            total: self.held.total,
+            columns: 1,
+            cell_width: 1.,
+            grow: super::Grow::default(),
+            cell_origin: (0., 0.),
+        };
+        self.scroll_to(crate::input::scroll::reveal(frame, self.cursor, context));
     }
 }
 

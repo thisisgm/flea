@@ -179,3 +179,6 @@ pub fn open_request(id: u64, application: &str, always: bool) -> String {
 pub fn close_request(id: u64) -> String {
     format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)
 }
+
+#[path = "openwith_icons.rs"]
+pub mod icons;

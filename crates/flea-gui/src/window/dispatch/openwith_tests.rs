@@ -378,3 +378,67 @@ fn the_snapshot_names_the_listing_row_past_the_held_windows_start(cx: &mut TestA
     );
     quit(&shell, cx);
 }
+
+// EY-357: each application row of the card draws that application's own icon, as boards/openwith-list.png and v0.3.12 do.
+#[gpui::test]
+fn the_open_with_card_draws_each_applications_own_icon(cx: &mut TestAppContext) {
+    let base =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/FIX-MENU-ROWS");
+    std::fs::create_dir_all(&base).unwrap();
+    let base = base.canonicalize().unwrap();
+    let made = std::process::Command::new("mktemp")
+        .arg("-d")
+        .arg(base.join("openwith-icons.XXXXXXXX"))
+        .output()
+        .unwrap();
+    assert!(made.status.success());
+    let root = std::path::PathBuf::from(String::from_utf8(made.stdout).unwrap().trim());
+    assert!(root.is_absolute() && root.starts_with(&base));
+    std::fs::write(root.join(".flea-test-sandbox"), "fixture\n").unwrap();
+    let icons: Vec<String> = [9, 18]
+        .iter()
+        .map(|width| {
+            let path = root.join(format!("app-{width}.svg"));
+            std::fs::write(&path, format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><rect width="{width}" height="18" fill="red"/></svg>"#)).unwrap();
+            path.to_string_lossy().into_owned()
+        })
+        .collect();
+    let (shell, cx, id) = opened(cx);
+    deliver(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"path":"/files/mystery.xyz","kind":"Data","mime":"application/x-mystery","applications":[],"installed":[{{"id":"a.desktop","label":"Aether","icon":"{}","default":false}},{{"id":"b.desktop","label":"btop++","icon":"{}","default":false}}]}}"#,
+            icons[0], icons[1]
+        ),
+    );
+    let mut images = Vec::new();
+    for _ in 0..12 {
+        cx.run_until_parked();
+        images = cx.update(|window, cx| {
+            let images: Vec<_> = icons
+                .iter()
+                .filter_map(|path| {
+                    let resource =
+                        gpui::Resource::Path(std::sync::Arc::from(std::path::Path::new(path)));
+                    cx.fetch_asset::<gpui::ImageAssetLoader>(&resource)?.ok()
+                })
+                .collect();
+            window.refresh();
+            images
+        });
+        if images.len() == icons.len() {
+            break;
+        }
+    }
+    assert_eq!(images.len(), icons.len(), "both fixture icons decode");
+    cx.update(|window, _| {
+        for image in &images {
+            assert!(
+                window.has_image_atlas_entry(image),
+                "the card paints each application's icon, not an empty slot"
+            );
+        }
+    });
+    quit(&shell, cx);
+}
