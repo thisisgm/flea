@@ -155,7 +155,8 @@ impl SelectionPreview {
                     theme,
                     face: self.face.clone(),
                     metrics,
-                    muted: crate::list::Palette::inherited(&window.text_style(), theme).metadata,
+                    muted: crate::list::Palette::inherited(&window.text_style(), theme)
+                        .caption(false),
                     mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode)
                         .svg(),
                 };

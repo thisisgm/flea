@@ -21,6 +21,15 @@ pub fn mark_ink(
     }
 }
 
+/// ChromeModes.qml and ChromeButton.qml: current foreground, other modes muted frame, unavailable at 0.55.
+pub fn resting_ink(enabled: bool, current: bool, palette: &crate::list::Palette) -> gpui::Hsla {
+    if enabled {
+        palette.mark(current)
+    } else {
+        palette.mark(false).opacity(0.55)
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Press {
     pub down: bool,

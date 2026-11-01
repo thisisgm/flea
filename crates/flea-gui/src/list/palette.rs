@@ -52,6 +52,24 @@ impl Palette {
         }
     }
 
+    /// v0.3.12's quiet text: a caption in effect in the foreground, every other one in Theme.color.muted.
+    pub fn caption(&self, lit: bool) -> Hsla {
+        if lit {
+            self.foreground
+        } else {
+            self.muted
+        }
+    }
+
+    /// ChromeButton.qml and TabBar.qml: a mark in effect in the foreground, every other one in Theme.color.mutedFrame.
+    pub fn mark(&self, lit: bool) -> Hsla {
+        if lit {
+            self.foreground
+        } else {
+            self.muted_frame
+        }
+    }
+
     pub fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
         match (lifted, ink) {
             (true, _) | (false, NameInk::Foreground) => self.foreground,

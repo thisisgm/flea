@@ -6,7 +6,6 @@ use super::{
 use crate::{backend::Event, state::Shell};
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_fb1::status::Hint,
     ui_logic_pl4::tags,
 };
 use gpui::{Context, Window};
@@ -145,8 +144,9 @@ impl Shell {
             }
         }
         if !said.is_empty() {
+            let (said, hint) = self.split_undo(&said, false);
             self.status_messages(cx, |messages, now| {
-                messages.say(&said, false, "", Hint::None, now)
+                messages.say(&said, false, "", hint, now)
             });
         }
         self.ask_tag_states(true, cx);

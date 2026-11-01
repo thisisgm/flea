@@ -159,12 +159,12 @@ pub(super) fn is_cue(model: &RowsModel, index: usize) -> bool {
         .is_some_and(|(target, _)| *target == index)
 }
 
-/// The trailing caption's ink: the drop cue's label in the accent, any other detail in metadata.
+/// The trailing caption's ink: the drop cue's label in the accent, any other detail muted (SidebarRow.qml detailText).
 pub(super) fn detail_ink(model: &RowsModel, index: usize, palette: &Palette) -> gpui::Hsla {
     if is_cue(model, index) {
         palette.accent
     } else {
-        palette.metadata
+        palette.caption(false)
     }
 }
 
@@ -196,6 +196,7 @@ pub(super) fn ghost(palette: Palette) -> Palette {
         foreground: fade(palette.foreground),
         error: fade(palette.error),
         metadata: fade(palette.metadata),
+        muted: fade(palette.muted),
         muted_frame: fade(palette.muted_frame),
         executable: fade(palette.executable),
         accent: fade(palette.accent),

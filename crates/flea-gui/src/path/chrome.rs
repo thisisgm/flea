@@ -1,6 +1,6 @@
 //! The native toolbar owns its painted controls and hosts the existing path surface.
 use super::{
-    mark::{divider, press_scale, Press, MARK},
+    mark::{divider, mark, mark_ink, press_scale, resting_ink, Press, MARK},
     view::PathView,
 };
 use crate::{
@@ -168,13 +168,7 @@ impl Render for ChromeView {
             self.frame.borrow_mut().controls[index].focused = focus.is_focused(window);
         }
         let sizes = Sizes::at(&Typeface::for_window(window, cx));
-        let ink = |enabled| {
-            if enabled {
-                palette.foreground
-            } else {
-                palette.metadata_frame.opacity(0.55)
-            }
-        };
+        let ink = |enabled| resting_ink(enabled, true, &palette);
         let mut right = div()
             .h_full()
             .flex()
@@ -220,11 +214,7 @@ impl Render for ChromeView {
                 sizes,
                 index,
                 true,
-                if self.inputs.view == mode {
-                    palette.foreground
-                } else {
-                    palette.metadata_frame
-                },
+                resting_ink(true, self.inputs.view == mode, &palette),
                 palette.foreground,
                 cx,
             ));

@@ -73,7 +73,8 @@ fn hit(cx: &mut VisualTestContext, preset: &str, action: &str) {
 // The footer's notice, the line a finished operation says.
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
-        shell.status_messages(cx, |messages, _| messages.notice().to_owned())
+        let catalog = shell.locale.catalog.clone();
+        shell.status_messages(cx, |messages, _| messages.transient_text(&catalog))
     })
 }
 
@@ -351,3 +352,32 @@ fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
 
 #[path = "fileops_review_tests.rs"]
 mod review;
+
+#[gpui::test]
+fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-n");
+    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"made","ok":true,"path":"/files/notes · z undoes"}"#,
+    );
+    let catalog = catalog(&shell, cx);
+    let receipt = lines::made(&catalog, "default", "/files/notes · z undoes");
+    assert_eq!(notice(&shell, cx), receipt, "wire receipt stays whole");
+    let line = shell.update(cx, |shell, cx| {
+        shell.status_messages(cx, |messages, _| messages.line(&catalog, ""))
+    });
+    assert_eq!(
+        line.primary, "Created notes · z undoes",
+        "the filename is not advice"
+    );
+    assert_eq!(
+        line.undo, "z undoes",
+        "only the generated advice becomes an undo target"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

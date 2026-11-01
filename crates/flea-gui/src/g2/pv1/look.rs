@@ -29,7 +29,7 @@ impl Look {
             surface: palette.background,
             foreground: palette.foreground,
             bright: palette.foreground,
-            muted: palette.metadata,
+            muted: palette.muted,
             meta: palette.metadata,
             muted_frame: crate::presentation::frames::Frames::from_palette(palette, 0.).ink,
             error: palette.error,
@@ -155,5 +155,30 @@ mod tests {
             tags: [ink(0x808080); 7],
         };
         assert_eq!(Look::inherited(&palette).error, palette.error);
+    }
+    /// EY-404, EY-408: QuickLookBar.qml's count and quiet words and FactsTable.qml's names take Theme.color.muted.
+    #[test]
+    fn ey404_the_muted_role_is_the_themes_muted_caption() {
+        use crate::palette::Theme;
+        let latte = "background='#eff1f5'\nforeground='#4c4f69'\naccent='#1e66f5'\ndark_background='#e3e4e8'\nmuted='#acb0be'";
+        let sunset = "background='#1c120d'\nforeground='#c6b395'\naccent='#d28a41'\ndark_background='#150d0a'\nmuted='#68544b'";
+        for (name, text) in [("catppuccin-latte", latte), ("sunset", sunset)] {
+            let theme = Theme::from_text(text);
+            let look = Look::of_text(&gpui::TextStyle::default(), theme);
+            assert_ne!(
+                theme.muted, theme.metadata,
+                "{name}: the fixture needs two inks"
+            );
+            assert_eq!(look.muted, theme.muted, "{name}: muted");
+            assert_eq!(
+                look.meta, theme.metadata,
+                "{name}: meta keeps the metadata ink"
+            );
+        }
+        let look = Look::of_text(&gpui::TextStyle::default(), Theme::from_text(latte));
+        assert!(
+            look.muted.l > look.foreground.l,
+            "on a light theme the muted words read lighter than the name"
+        );
     }
 }

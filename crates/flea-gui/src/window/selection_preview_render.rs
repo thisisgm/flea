@@ -338,7 +338,7 @@ impl Render for SelectionPreview {
                             div()
                                 .w(px(label_width))
                                 .flex_none()
-                                .text_color(roles.metadata)
+                                .text_color(crate::window::preview_facts::label_ink(&roles))
                                 .child(label),
                         )
                         .child(

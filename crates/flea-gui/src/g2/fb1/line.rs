@@ -10,6 +10,9 @@ use gpui::{
 };
 use std::{rc::Rc, sync::Arc, time::Instant};
 
+#[path = "line_busy.rs"]
+mod busy;
+
 /// The bar ended an arm on its own clock or by a move, so its owner must zero that stamp.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ArmLost(pub Arm);
@@ -70,6 +73,7 @@ pub struct MessageLine {
     state_message: String,
     retry: String,
     drawn: Drawn,
+    spinner: Rc<crate::feedback::spinner::Crawl>,
     typeface: Typeface,
     base: Instant,
     timer: Option<(u64, Task<()>)>,
@@ -94,6 +98,7 @@ impl MessageLine {
             state_message: String::new(),
             retry: String::new(),
             drawn: Drawn::default(),
+            spinner: Rc::default(),
             typeface: Typeface::omarchy_default(),
             base: cx.background_executor().now(),
             timer: None,
@@ -219,7 +224,9 @@ impl Render for MessageLine {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let ink = Ink::on_surface(&Palette::inherited(&window.text_style(), theme));
+        let palette = Palette::inherited(&window.text_style(), theme);
+        let ink = Ink::on_surface(&palette);
+        self.spinner.show(self.drawn.busy, palette.accent);
         let drawn = &self.drawn;
         self.painted.clear();
         let text = |name, value: SharedString, color| {
@@ -244,6 +251,9 @@ impl Render for MessageLine {
             .justify_end()
             .min_w_0()
             .overflow_hidden()
+            .when(drawn.busy, |row| {
+                row.child(busy::element(self.spinner.clone()))
+            })
             .when(!drawn.primary.is_empty(), |row| {
                 row.child(
                     text(

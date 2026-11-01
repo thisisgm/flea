@@ -303,6 +303,11 @@ pub fn label_ink(error: bool, palette: &Palette) -> gpui::Hsla {
     }
 }
 
+/// RailHeading.qml: PLACES, FAVORITES, NETWORK and DEVICES draw in the muted caption, quieter than the rows.
+pub fn heading_ink(palette: &Palette) -> gpui::Hsla {
+    palette.caption(false)
+}
+
 pub struct Ready {
     palette: Palette,
     headers: Vec<Rc<text::Prepared>>,

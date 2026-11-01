@@ -370,10 +370,20 @@ impl Shell {
         if let Some(host) = self.panes[side].as_mut() {
             host.status = text.to_owned().into();
         }
+        let (text, hint) = self.split_undo(text, error);
         self.status_messages(cx, |messages, now| {
-            messages.say(text, error, "", Hint::None, now)
+            messages.say(&text, error, "", hint, now)
         });
         cx.notify();
+    }
+
+    /// A receipt's undo tail draws in the hint lane (Status.js hintOf); an error keeps its sentence whole.
+    pub(crate) fn split_undo(&self, text: &str, error: bool) -> (String, Hint) {
+        if error {
+            return (text.to_owned(), Hint::None);
+        }
+        let preset = self.fileops_preset();
+        flea::ui_logic_fb1::status::split_undo(text, &self.locale.catalog, &preset)
     }
 
     pub(super) fn fileops_preset(&self) -> String {

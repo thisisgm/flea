@@ -57,7 +57,7 @@ impl Shell {
                         theme: key.theme,
                         face: key.face.clone(),
                         muted: crate::list::Palette::inherited(&window.text_style(), key.theme)
-                            .metadata,
+                            .caption(false),
                         mark: super::super::mount::mark(&key.row),
                     };
                     let path = crate::navigation::history::join(&key.directory, &key.row.name);

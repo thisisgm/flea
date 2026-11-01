@@ -269,3 +269,64 @@ fn every_notice_end_takes_its_hint_with_it() {
     bar.dismiss(0);
     assert_eq!(bar.line(&catalog, "").hint, "");
 }
+
+/// EY-421: the trash receipt's "· z undoes" leaves the sentence for the muted undo target, as Status.js hintOf splits it.
+#[test]
+fn ey421_a_receipts_undo_tail_draws_as_the_undo_target() {
+    let catalog = english();
+    let said = crate::ui_logic_op1::lines::trashed(&catalog, "default", 1, 0, "");
+    assert_eq!(
+        said, "Moved 1 item to Trash · z undoes",
+        "the receipt as op1 says it"
+    );
+    let (text, hint) = crate::ui_logic_fb1::status::split_undo(&said, &catalog, "default");
+    assert_eq!(
+        (text.as_str(), hint),
+        ("Moved 1 item to Trash", Hint::TransientUndo)
+    );
+    let mut bar = Messages::new("default");
+    bar.say(&text, false, "", hint, 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        line.primary, "Moved 1 item to Trash",
+        "the foreground sentence"
+    );
+    assert_eq!(line.undo, "z undoes", "the muted undo target");
+    assert_eq!(
+        bar.transient_text(&catalog),
+        said,
+        "the wire keeps the whole receipt"
+    );
+    assert_eq!(bar.next_deadline(), Some(MESSAGE_MS));
+    assert!(!bar.tick(MESSAGE_MS - 1).notice_cleared);
+    assert!(bar.tick(MESSAGE_MS).notice_cleared);
+    let expired = bar.line(&catalog, "");
+    assert!(expired.primary.is_empty() && expired.undo.is_empty());
+    // A move, a copy and a tag change carry the same tail, each from its own builder.
+    let moved =
+        crate::ui_logic_op1::lines::with_undo(&catalog, "default", "Moved notes.txt".into());
+    let tagged = format!(
+        "Tagged notes.txt{}",
+        crate::ui_logic_pl4::tags::undo_hint(&catalog, "default")
+    );
+    for (receipt, sentence) in [(moved, "Moved notes.txt"), (tagged, "Tagged notes.txt")] {
+        let split = crate::ui_logic_fb1::status::split_undo(&receipt, &catalog, "default");
+        assert_eq!(
+            split,
+            (sentence.to_owned(), Hint::TransientUndo),
+            "{receipt}"
+        );
+    }
+    let embedded = "Created notes · z undoes.txt";
+    assert_eq!(
+        crate::ui_logic_fb1::status::split_undo(embedded, &catalog, "default"),
+        (embedded.to_owned(), Hint::None),
+        "advice inside a filename is not the receipt's tail"
+    );
+    let plain = crate::ui_logic_fb1::status::split_undo("Copied notes.txt", &catalog, "default");
+    assert_eq!(
+        plain,
+        ("Copied notes.txt".to_owned(), Hint::None),
+        "a line without the tail is untouched"
+    );
+}

@@ -95,14 +95,9 @@ impl Shell {
             window,
             |shell, _, update: &OperationUpdate, _, cx| {
                 if let Some(said) = update.said.last() {
+                    let (text, hint) = shell.split_undo(&said.text, said.error);
                     shell.status_messages(cx, |messages, now| {
-                        messages.say(
-                            &said.text,
-                            said.error,
-                            &said.detail,
-                            flea::ui_logic_fb1::status::Hint::None,
-                            now,
-                        );
+                        messages.say(&text, said.error, &said.detail, hint, now);
                     });
                 }
             },
