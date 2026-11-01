@@ -165,20 +165,28 @@ fn tui_fix_1101_unbacked_trash_row_never_shows_the_previous_text() {
     let mut m = opened(&mut w);
     m.preview_visible = true;
     let listed = page(1, "list", 2, 0, 2, "b").replace("b0.txt\",\"size", &format!("b0.txt\",\"content\":\"{}\",\"size", backing.display()));
+    // Reads the cursor row's preview and answers its name and its first body row.
+    let shown = |m: &mut Model| {
+        crate::tui::preview::load(m, false);
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(1));
+            crate::tui::preview::poll(m);
+        }
+        crate::tui::preview::layout(m);
+        let rows = frame_tests::grid(&render::frame(m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+        (rows[2].chars().skip(83).take(6).collect::<String>(), rows[7].chars().skip(81).collect::<String>().trim_end().to_owned())
+    };
     m.receive(parse(&listed).unwrap(), &mut w).unwrap();
-    crate::tui::preview::load(&mut m, false);
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
-    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(1));
-        crate::tui::preview::poll(&mut m);
-    }
-    assert_eq!(m.preview_body.lines().next(), Some("first draft"));
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "1 first draft".into()), "b0's text draws at row 7 in this layout");
     press(&mut m, &mut w, Key::character('j', ""));
-    crate::tui::preview::load(&mut m, false);
-    crate::tui::preview::layout(&mut m);
-    let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
-    assert_eq!(rows[2].chars().skip(83).take(6).collect::<String>(), "b1.txt");
-    assert_eq!(rows[7].chars().skip(81).collect::<String>().trim(), "", "the text read for b0 stays off b1");
+    assert_eq!(shown(&mut m), ("b1.txt".into(), "".into()), "the text read for b0 stays off b1");
+    press(&mut m, &mut w, Key::character('k', ""));
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "1 first draft".into()));
+    // Trash listed again under an unmoved cursor, its row now unbacked, keeps the old text off too.
+    open(&mut m, &mut w).unwrap();
+    m.receive(parse(&page(2, "list", 2, 0, 2, "b")).unwrap(), &mut w).unwrap();
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "".into()));
     finish(w, reader);
 }
 // With previews loaded on demand, the load key reads a trashed file's text instead of being refused as a change.
