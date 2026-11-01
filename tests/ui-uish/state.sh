@@ -193,6 +193,44 @@ case_xwsettings() {
     kill_flea
 }
 
+# Find the second owned GPUI launch by its new pid, as case_xwsettings does.
+xw_second_window_gpui() {
+    local start_path="$1" before pid fresh="" attempt
+    before=" $(flea_pids | tr '\n' ' ') "
+    flea_test_launch "$start_path" "$run_root/flea.A.log" --ui "$flea_ui" --binary "$flea_bin" \
+        || fail "xwwatch: the second owned window launch failed"
+    for (( attempt = 0; attempt < xw_window_poll_tries; attempt++ )); do
+        for pid in $(flea_pids); do
+            [[ "$before" == *" $pid "* ]] || fresh=$pid
+        done
+        [[ -n "$fresh" ]] && break
+        sleep "$xw_ui_poll_s"
+    done
+    [[ -n "$fresh" ]] || fail "xwwatch: the second window's process never appeared"
+    xw_addr_for_pid "$fresh"
+}
+
+# GPUI's New File card owns a text input; menuDialogState observes only Open With and Run cards.
+xw_wait_new_file_gpui() {
+    local pid="$1" want="$2" step="$3" file="${4-}" n state rename
+    for ((n = 0; n < xw_ui_poll_tries; n++)); do
+        state=$(xw_ipc "$pid" keyDeliveryState 2>/dev/null || true)
+        if [[ "$want" == open ]]; then
+            rename=$(xw_ipc "$pid" renameState 2>/dev/null || true)
+            if [[ "$(xw_ipc "$pid" contextMenuVisible)" == false ]] \
+                && jq -e '.index == -1' <<< "$rename" >/dev/null \
+                && jq -e '.activeFocusItem == "QQuickTextInput" and .searchMode == "" and .filterTyping == false' <<< "$state" >/dev/null; then
+                return 0
+            fi
+        elif [[ -f "$file" ]] && jq -e '.listFocus == true' <<< "$state" >/dev/null; then
+            return 0
+        fi
+        sleep "$xw_ui_poll_s"
+    done
+    xw_editor_diagnostics "$pid" "$step" "${rename-}" "$state"
+    fail "xwwatch: $step: New File $want state was not reached"
+}
+
 case_xwwatch() {
     local dir="$fixture_root/xwwatch" ui_copy="$fixture_root/xwwatch-ui" addrB addrA row pidA pidB cleanup_command entries marksA marksB
     printf -v cleanup_command 'xw_cleanup %q || exit 1' "$ui_copy"
@@ -225,7 +263,7 @@ case_xwwatch() {
         || fail "xwwatch: B cursor is on $(xw_ipc "$pidB" rowAt "$(xw_ipc "$pidB" cursor)"), not sel-two.txt"
 
     # A opens beside it on the same folder.
-    addrA=$(xw_second_window "$dir" "$ui_copy") || fail "xwwatch: no A window address"
+    addrA=$(xw_second_window_gpui "$dir") || fail "xwwatch: no A window address"
     [[ -n "$addrA" ]] || fail "xwwatch: no A window address"
     pidA=$(hyprctl clients -j | jq -er --arg addr "$addrA" \
         '[.[] | select(.address == $addr)] | select(length == 1) | .[0].pid
@@ -248,14 +286,14 @@ case_xwwatch() {
     xw_click_background "$addrA" "$pidA"
     sleep "$settle_s"
     entries=$(xw_ipc "$pidA" contextMenuEntries)
-    [[ "$entries" == 'New folder|New file'* ]] || fail "xwwatch: A did not open its background menu: $entries"
-    xw_menu_seek "$addrA" "$pidA" "New file"
+    [[ "$entries" == 'New Folder|New File'* ]] || fail "xwwatch: A did not open its background menu: $entries"
+    xw_menu_seek "$addrA" "$pidA" "New File"
     xw_key "$addrA" -k Return
-    xw_wait_dialog "$pidA" open "New File after menu Return"
+    xw_wait_new_file_gpui "$pidA" open "New File after menu Return"
     xw_key "$addrA" -M ctrl -k a -m ctrl -k BackSpace
     xw_key "$addrA" created-by-a.txt
     xw_key "$addrA" -k Return
-    xw_wait_dialog "$pidA" closed "New File after submit" "$dir/created-by-a.txt"
+    xw_wait_new_file_gpui "$pidA" closed "New File after submit" "$dir/created-by-a.txt"
     xw_wait_total "$pidA" 6 "create in A"
     xw_wait_total "$pidB" 6 "create"
     xw_settled "$pidA"
@@ -513,10 +551,7 @@ STUB
 
     # With xdg-mime nowhere on PATH no read can start, and neither About's read nor a claim's re-read may leave the row working.
     makedefault_path_without_mime "$box"
-    # Twice: About's own read, then the claim's re-read, each an xdg-mime that cannot start.
-    for _ in 1 2; do
-        printf '%s\n' 'Process failed to start, likely because the binary could not be found. Command: QList("xdg-mime", "query", "default", "inode/directory")' >> "$expected_warnings"
-    done
+    # GPUI handles a missing xdg-mime without Qt's process-start warning.
     : > "$makedefault_events_log"
     makedefault_launch "$dir" "$box" "$real_bin" "$box/nomime"
     settings_open_key

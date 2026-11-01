@@ -17,6 +17,10 @@ fn script(root: &Path, name: &str, body: &str) {
 }
 
 fn run(case: &str) {
+    run_child(case, CHILD);
+}
+
+fn run_child(case: &str, child: &str) {
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -48,6 +52,13 @@ esac"#,
         &root,
         "xdg-mime",
         r#"printf '%s\n' "$@" > "$GH123_ROOT/mime.args"
+echo ASKED >> "$GH123_ROOT/events.log"
+# The held case's first read answers only once the test opens the gate.
+if [ "$GH123_CASE" = held ] && [ ! -e "$GH123_ROOT/asked-once" ]; then
+    : > "$GH123_ROOT/asked-once"
+    while [ ! -e "$GH123_ROOT/gate" ]; do /bin/sleep 0.05; done
+fi
+echo ANSWERED >> "$GH123_ROOT/events.log"
 if [ "$GH123_CASE" = release ]; then
     printf '%s\n' org.example.Files.desktop
 else
@@ -73,7 +84,7 @@ case "$GH123_CASE" in
 esac"#,
     );
     let mut child = Command::new(std::env::current_exe().unwrap())
-        .args(["--exact", CHILD, "--nocapture"])
+        .args(["--exact", child, "--nocapture"])
         .env_clear()
         .env("PATH", root.join("bin"))
         .env("HOME", &root)
@@ -212,6 +223,53 @@ fn isolated_completed() {
             "probe was not reaped"
         );
     }
+}
+
+const HELD_CHILD: &str = "window::settings::claim::tests::isolated_held_read";
+
+// EY-451: DefaultClaim.qml readBusy keeps a pre-claim About read ahead of the claim's fresh read.
+#[test]
+fn isolated_held_read() {
+    let Ok(case) = std::env::var("GH123_CASE") else {
+        return;
+    };
+    assert_eq!(case, "held");
+    let root = PathBuf::from(std::env::var_os("GH123_ROOT").unwrap());
+    assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
+    let events = || fs::read_to_string(root.join("events.log")).unwrap_or_default();
+    let about = std::thread::spawn(handler);
+    while !root.join("asked-once").exists() {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let mut claim = Claim {
+        handler: "before.desktop".into(),
+        packaged: true,
+        probed: true,
+        ..Claim::default()
+    };
+    assert_eq!(claim.start(), Some(true));
+    let binary = root.join("bin").join("flea");
+    let run = std::thread::spawn(move || completed(claim, binary));
+    while !root.join("flea.args").exists() {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    std::thread::sleep(Duration::from_millis(500));
+    assert_eq!(
+        events(),
+        "ASKED\n",
+        "the claim's re-read started beside the held read"
+    );
+    fs::write(root.join("gate"), "").unwrap();
+    assert_eq!(about.join().unwrap(), DESKTOP);
+    let claim = run.join().unwrap();
+    assert_eq!(events(), "ASKED\nANSWERED\nASKED\nANSWERED\n");
+    assert_eq!(claim.handler, DESKTOP);
+    assert!(!claim.running);
+}
+
+#[test]
+fn a_claim_re_read_waits_for_the_read_already_out() {
+    run_child("held", HELD_CHILD);
 }
 
 macro_rules! cases {

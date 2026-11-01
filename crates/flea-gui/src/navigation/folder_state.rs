@@ -169,6 +169,11 @@ impl Folders {
         Some(format!("{{\"folderSorts\":{{\"{}\":null}}}}", escape(path)))
     }
 
+    /// A folder holds its own view only while views are remembered per folder.
+    pub fn owns_view(&self, path: &str) -> bool {
+        self.remember_view && self.views.iter().any(|(own, _)| own == path)
+    }
+
     pub fn view_for(&self, path: &str, fallback: &'static str) -> &'static str {
         if self.remember_view {
             if let Some((_, view)) = self.views.iter().find(|(own, _)| own == path) {

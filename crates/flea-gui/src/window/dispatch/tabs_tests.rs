@@ -369,3 +369,6 @@ fn the_dual_view_draws_and_names_every_tab(cx: &mut TestAppContext) {
     );
     close(&shell, cx);
 }
+
+#[path = "tab_view_tests.rs"]
+mod tab_view_tests;
