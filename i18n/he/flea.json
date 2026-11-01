@@ -2384,7 +2384,7 @@
   "window.select_required": "⁨--select⁩ דורש יעד",
   "window.settings_failed": "לא ניתן היה לקרוא הגדרות: ⁨%1⁩",
   "window.unknown_flag": "דגל לא מוכר ⁨%1⁩",
-  "window.waiting": "עדיין ממתין לתיקייה זו",
+  "window.waiting": "התיקייה אינה מגיבה.",
   "dialogs.file.disconnected": "הכונן או השיתוף נותקו, ולכן תיקייה זו אינה זמינה עוד",
   "dialogs.file.open.unlisted": "הקובץ הזה אינו מופיע עוד ברשימה.",
   "dialogs.file.original.missing": "הקישור הזה מפנה לפריט שאינו קיים עוד.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "לחבילת הגרפיקה אין מסיים מחרוזת",
   "tui.wire.backend_stdin_unavailable": "הקלט התקני של מנגנון הרקע אינו זמין",
   "tui.wire.backend_stdout_unavailable": "הפלט התקני של מנגנון הרקע אינו זמין",
-  "tui.wire.the_file_list_stopped_restart_flea": "רשימת הקבצים נעצרה; יש להפעיל את ⁦Flea⁩ מחדש"
+  "tui.wire.the_file_list_stopped_restart_flea": "רשימת הקבצים נעצרה; יש להפעיל את ⁦Flea⁩ מחדש",
+  "settings.group.your_keys": "המקשים שלכם",
+  "settings.hint.key_file": "⁦keys.toml⁩ לא מקצה שום קיצור, כי ⁦Flea⁩ לא הצליח לקרוא אותו כטקסט בגודל ⁦64 KB⁩ לכל היותר.",
+  "settings.hint.key_layout": "⁦%1⁩ נשאר ללא שיוך, כי ⁦Flea⁩ לא יכול לאמת אותו בפריסת המקלדת הזו.",
+  "settings.hint.key_malformed": "שורה ⁦%1⁩ בקובץ ⁦keys.toml⁩ אינה שיוך מקשים.",
+  "settings.hint.key_repeated": "⁦%1⁩ נשאר ללא שיוך, כי שורה קודמת ב־⁦keys.toml⁩ כבר משייכת אותו.",
+  "settings.hint.key_reserved": "⁦%1⁩ נשאר ללא שיוך, כי ⁦Flea⁩ שומר אותו לשימושו שלו.",
+  "settings.hint.key_taken": "⁦%1⁩ נשאר ללא שיוך, כי הפעולה ⁨%2⁩ כבר משתמשת בו בערכה הזו.",
+  "settings.hint.key_unknown": "⁦%1⁩ נשאר ללא שיוך, כי ב־⁦Flea⁩ אין פעולה בשם ⁨%2⁩."
 }

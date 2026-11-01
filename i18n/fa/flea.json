@@ -2286,7 +2286,7 @@
   "window.select_required": "گزینهٔ --select به مقصد نیاز دارد",
   "window.settings_failed": "خواندن تنظیمات ممکن نشد: ⁨%1⁩",
   "window.unknown_flag": "پرچم ⁨%1⁩ ناشناخته است",
-  "window.waiting": "هنوز منتظر این پوشه است",
+  "window.waiting": "آن پوشه پاسخ نمی‌دهد.",
   "dialogs.file.disconnected": "آن درایو یا منبع اشتراکی قطع شد، پس این پوشه دیگر در دسترس نیست",
   "dialogs.file.open.unlisted": "آن فایل دیگر در فهرست نیست.",
   "dialogs.file.original.missing": "آن پیوند به موردی اشاره می‌کند که دیگر وجود ندارد.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "بستهٔ گرافیکی پایان‌دهندهٔ رشته ندارد",
   "tui.wire.backend_stdin_unavailable": "ورودی استاندارد پردازش پس‌زمینه در دسترس نیست",
   "tui.wire.backend_stdout_unavailable": "خروجی استاندارد پردازش پس‌زمینه در دسترس نیست",
-  "tui.wire.the_file_list_stopped_restart_flea": "فهرست فایل‌ها متوقف شد؛ ⁦Flea⁩ را دوباره اجرا کنید"
+  "tui.wire.the_file_list_stopped_restart_flea": "فهرست فایل‌ها متوقف شد؛ ⁦Flea⁩ را دوباره اجرا کنید",
+  "settings.group.your_keys": "کلیدهای شما",
+  "settings.hint.key_file": "⁦keys.toml⁩ هیچ میانبری تعریف نمی‌کند، چون ⁦Flea⁩ نتوانست آن را به‌صورت متنی با حجم حداکثر ⁦64 KB⁩ بخواند.",
+  "settings.hint.key_layout": "⁦%1⁩ بدون انتساب می‌ماند، چون ⁦Flea⁩ نمی‌تواند آن را در این چیدمان صفحه‌کلید تأیید کند.",
+  "settings.hint.key_malformed": "خط ⁦%1⁩ از ⁦keys.toml⁩ یک انتساب کلید نیست.",
+  "settings.hint.key_repeated": "⁦%1⁩ بدون انتساب می‌ماند، چون خطی پیشین در ⁦keys.toml⁩ آن را قبلاً اختصاص داده است.",
+  "settings.hint.key_reserved": "⁦%1⁩ بدون انتساب می‌ماند، چون ⁦Flea⁩ آن را برای خودش نگه می‌دارد.",
+  "settings.hint.key_taken": "⁦%1⁩ بدون انتساب می‌ماند، چون ⁨%2⁩ در این پیش‌تنظیم از آن استفاده می‌کند.",
+  "settings.hint.key_unknown": "⁦%1⁩ بدون انتساب می‌ماند، چون ⁦Flea⁩ عملی به نام ⁨%2⁩ ندارد."
 }

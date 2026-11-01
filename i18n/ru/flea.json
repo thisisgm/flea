@@ -2539,7 +2539,7 @@
   "window.select_required": "Для --select нужна цель",
   "window.settings_failed": "Не удалось прочитать настройки: %1",
   "window.unknown_flag": "Неизвестный флаг %1",
-  "window.waiting": "Ожидание этой папки продолжается",
+  "window.waiting": "Эта папка не отвечает.",
   "keys.tui17.copyDirUri": "Копировать URI папки",
   "keys.tui17.copyName": "Копировать имя файла",
   "keys.tui17.copyPath": "Копировать путь",
@@ -2731,5 +2731,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "В графическом пакете нет символа завершения строки",
   "tui.wire.backend_stdin_unavailable": "Стандартный ввод серверной части недоступен",
   "tui.wire.backend_stdout_unavailable": "Стандартный вывод серверной части недоступен",
-  "tui.wire.the_file_list_stopped_restart_flea": "Чтение списка файлов остановлено; перезапустите Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Чтение списка файлов остановлено; перезапустите Flea",
+  "settings.group.your_keys": "Ваши клавиши",
+  "settings.hint.key_file": "keys.toml не назначает сочетания клавиш, поскольку Flea не удалось прочитать его как текст размером не более 64 KB.",
+  "settings.hint.key_layout": "%1 остаётся без назначения, поскольку Flea не может проверить эту последовательность в текущей раскладке клавиатуры.",
+  "settings.hint.key_malformed": "Строка %1 в keys.toml не является назначением клавиш.",
+  "settings.hint.key_repeated": "%1 остаётся без назначения, поскольку более ранняя строка keys.toml уже назначает эту последовательность.",
+  "settings.hint.key_reserved": "%1 остаётся без назначения, поскольку Flea резервирует эту последовательность для себя.",
+  "settings.hint.key_taken": "%1 остаётся без назначения, поскольку %2 уже использует эту последовательность в этом наборе.",
+  "settings.hint.key_unknown": "%1 остаётся без назначения, поскольку во Flea нет действия с именем %2."
 }

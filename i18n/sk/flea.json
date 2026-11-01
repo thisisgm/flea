@@ -2438,7 +2438,7 @@
   "window.select_required": "--select vyžaduje cieľ",
   "window.settings_failed": "Nastavenia sa nepodarilo prečítať: %1",
   "window.unknown_flag": "Neznámy prepínač %1",
-  "window.waiting": "Stále sa čaká na tento priečinok",
+  "window.waiting": "Tento priečinok neodpovedá.",
   "keys.tui17.copyDirUri": "Kopírovať URI priečinka",
   "keys.tui17.copyName": "Kopírovať názov súboru",
   "keys.tui17.copyPath": "Kopírovať cestu",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafický paket nemá ukončovací znak reťazca",
   "tui.wire.backend_stdin_unavailable": "Štandardný vstup backendu nie je dostupný",
   "tui.wire.backend_stdout_unavailable": "Štandardný výstup backendu nie je dostupný",
-  "tui.wire.the_file_list_stopped_restart_flea": "Zoznam súborov sa zastavil. Reštartujte Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Zoznam súborov sa zastavil. Reštartujte Flea",
+  "settings.group.your_keys": "Vaše klávesy",
+  "settings.hint.key_file": "keys.toml nepriraďuje žiadne klávesy, pretože ho Flea nedokázala prečítať ako text s veľkosťou najviac 64 KB.",
+  "settings.hint.key_layout": "%1 zostáva bez priradenia, pretože Flea nedokáže overiť túto postupnosť v tomto rozložení klávesnice.",
+  "settings.hint.key_malformed": "Riadok %1 v keys.toml nie je priradením klávesov.",
+  "settings.hint.key_repeated": "%1 zostáva bez priradenia, pretože skorší riadok v keys.toml už priraďuje túto postupnosť.",
+  "settings.hint.key_reserved": "%1 zostáva bez priradenia, pretože Flea si túto postupnosť vyhradzuje pre seba.",
+  "settings.hint.key_taken": "%1 zostáva bez priradenia, pretože %2 už používa túto postupnosť v tejto predvoľbe.",
+  "settings.hint.key_unknown": "%1 zostáva bez priradenia, pretože Flea nemá akciu s názvom %2."
 }

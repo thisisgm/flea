@@ -430,7 +430,7 @@
   "tabs.close": "Tab schließen",
   "tabs.close_others": "Andere Tabs schließen",
   "window.loading": "Lädt",
-  "window.waiting": "Es wird noch auf diesen Ordner gewartet",
+  "window.waiting": "Der Ordner reagiert nicht.",
   "window.select_required": "--select benötigt ein Ziel",
   "window.one_directory": "Es wird nur ein Startverzeichnis akzeptiert",
   "window.unknown_flag": "Unbekannte Option %1",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Dem Grafikpaket fehlt der Zeichenkettenabschluss",
   "tui.wire.backend_stdin_unavailable": "Standardeingabe des Backends nicht verfügbar",
   "tui.wire.backend_stdout_unavailable": "Standardausgabe des Backends nicht verfügbar",
-  "tui.wire.the_file_list_stopped_restart_flea": "Die Dateiliste wurde beendet; starte Flea neu"
+  "tui.wire.the_file_list_stopped_restart_flea": "Die Dateiliste wurde beendet; starte Flea neu",
+  "settings.group.your_keys": "Deine Tasten",
+  "settings.hint.key_file": "keys.toml weist keine Tasten zu, weil Flea die Datei nicht als Text mit höchstens 64 KB lesen konnte.",
+  "settings.hint.key_layout": "%1 bleibt unbelegt, weil Flea die Tastenfolge mit dieser Tastaturbelegung nicht überprüfen kann.",
+  "settings.hint.key_malformed": "Zeile %1 von keys.toml ist keine Tastenbelegung.",
+  "settings.hint.key_repeated": "%1 bleibt unbelegt, weil eine frühere Zeile in keys.toml die Tastenfolge bereits belegt.",
+  "settings.hint.key_reserved": "%1 bleibt unbelegt, weil Flea die Tastenfolge für sich reserviert.",
+  "settings.hint.key_taken": "%1 bleibt unbelegt, weil %2 die Tastenfolge in dieser Voreinstellung bereits verwendet.",
+  "settings.hint.key_unknown": "%1 bleibt unbelegt, weil Flea keine Aktion namens %2 hat."
 }

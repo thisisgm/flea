@@ -2384,7 +2384,7 @@
   "window.select_required": "--select richiede una destinazione",
   "window.settings_failed": "Impossibile leggere le impostazioni: %1",
   "window.unknown_flag": "Opzione sconosciuta %1",
-  "window.waiting": "Ancora in attesa della cartella",
+  "window.waiting": "La cartella non risponde.",
   "dialogs.file.disconnected": "L'unità o la risorsa condivisa è stata disconnessa, quindi questa cartella non è più disponibile",
   "dialogs.file.open.unlisted": "Il file non è più nell'elenco.",
   "dialogs.file.original.missing": "Il collegamento punta a un elemento che non esiste più.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Il pacchetto grafico non ha un terminatore di stringa",
   "tui.wire.backend_stdin_unavailable": "stdin del backend non disponibile",
   "tui.wire.backend_stdout_unavailable": "stdout del backend non disponibile",
-  "tui.wire.the_file_list_stopped_restart_flea": "L'elenco dei file si è arrestato; riavvia Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "L'elenco dei file si è arrestato; riavvia Flea",
+  "settings.group.your_keys": "I tuoi tasti",
+  "settings.hint.key_file": "keys.toml non assegna alcuna scorciatoia perché Flea non ha potuto leggerlo come testo di 64 KB o meno.",
+  "settings.hint.key_layout": "%1 resta senza assegnazione perché Flea non può verificarlo con questa disposizione di tastiera.",
+  "settings.hint.key_malformed": "La riga %1 di keys.toml non è un'assegnazione di tasti.",
+  "settings.hint.key_repeated": "%1 resta senza assegnazione perché una riga precedente di keys.toml lo assegna già.",
+  "settings.hint.key_reserved": "%1 resta senza assegnazione perché Flea lo riserva a sé stesso.",
+  "settings.hint.key_taken": "%1 resta senza assegnazione perché %2 lo usa già in questo profilo.",
+  "settings.hint.key_unknown": "%1 resta senza assegnazione perché Flea non ha un'azione chiamata %2."
 }

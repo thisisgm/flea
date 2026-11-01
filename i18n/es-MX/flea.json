@@ -2384,7 +2384,7 @@
   "window.select_required": "--select necesita un destino",
   "window.settings_failed": "No se pudo leer la configuración: %1",
   "window.unknown_flag": "Opción desconocida %1",
-  "window.waiting": "Aún esperando esta carpeta",
+  "window.waiting": "Esa carpeta no responde.",
   "dialogs.file.disconnected": "Esa unidad o recurso compartido se desconectó, por lo que esta carpeta ya no está disponible",
   "dialogs.file.open.unlisted": "Ese archivo ya no aparece en la lista.",
   "dialogs.file.original.missing": "Ese enlace apunta a un elemento que ya no existe.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "El paquete gráfico no tiene un terminador de cadena",
   "tui.wire.backend_stdin_unavailable": "La entrada estándar del proceso de fondo no está disponible",
   "tui.wire.backend_stdout_unavailable": "La salida estándar del proceso de fondo no está disponible",
-  "tui.wire.the_file_list_stopped_restart_flea": "La lista de archivos se detuvo; reinicia Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "La lista de archivos se detuvo; reinicia Flea",
+  "settings.group.your_keys": "Tus teclas",
+  "settings.hint.key_file": "keys.toml no asigna ninguna tecla porque Flea no pudo leerlo como texto de 64 KB o menos.",
+  "settings.hint.key_layout": "%1 queda sin asignar porque Flea no puede verificar la secuencia con esta distribución de teclado.",
+  "settings.hint.key_malformed": "La línea %1 de keys.toml no es una asignación de teclas.",
+  "settings.hint.key_repeated": "%1 queda sin asignar porque una línea anterior de keys.toml ya asigna la secuencia.",
+  "settings.hint.key_reserved": "%1 queda sin asignar porque Flea reserva la secuencia para sí mismo.",
+  "settings.hint.key_taken": "%1 queda sin asignar porque %2 ya usa la secuencia en este perfil.",
+  "settings.hint.key_unknown": "%1 queda sin asignar porque Flea no tiene ninguna acción llamada %2."
 }

@@ -2286,7 +2286,7 @@
   "window.select_required": "Το --select χρειάζεται προορισμό",
   "window.settings_failed": "Δεν ήταν δυνατή η ανάγνωση ρυθμίσεων: %1",
   "window.unknown_flag": "Άγνωστη επιλογή %1",
-  "window.waiting": "Αναμονή ακόμη για αυτόν τον φάκελο",
+  "window.waiting": "Αυτός ο φάκελος δεν αποκρίνεται.",
   "dialogs.file.disconnected": "Η μονάδα ή ο κοινόχρηστος πόρος αποσυνδέθηκε, οπότε αυτός ο φάκελος δεν είναι πλέον διαθέσιμος",
   "dialogs.file.open.unlisted": "Αυτό το αρχείο δεν εμφανίζεται πλέον στη λίστα.",
   "dialogs.file.original.missing": "Αυτός ο σύνδεσμος παραπέμπει σε ένα στοιχείο που δεν υπάρχει πλέον.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Το πακέτο γραφικών δεν έχει τερματιστή συμβολοσειράς",
   "tui.wire.backend_stdin_unavailable": "Η τυπική είσοδος της διεργασίας παρασκηνίου δεν διατίθεται",
   "tui.wire.backend_stdout_unavailable": "Η τυπική έξοδος της διεργασίας παρασκηνίου δεν διατίθεται",
-  "tui.wire.the_file_list_stopped_restart_flea": "Η λίστα αρχείων σταμάτησε· επανεκκίνησε το Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Η λίστα αρχείων σταμάτησε· επανεκκίνησε το Flea",
+  "settings.group.your_keys": "Τα πλήκτρα σου",
+  "settings.hint.key_file": "Το keys.toml δεν αντιστοιχίζει πλήκτρα, επειδή το Flea δεν μπόρεσε να το διαβάσει ως κείμενο έως 64 KB.",
+  "settings.hint.key_layout": "Το %1 παραμένει χωρίς αντιστοίχιση, επειδή το Flea δεν μπορεί να το επαληθεύσει σε αυτή τη διάταξη πληκτρολογίου.",
+  "settings.hint.key_malformed": "Η γραμμή %1 του keys.toml δεν είναι αντιστοίχιση πλήκτρων.",
+  "settings.hint.key_repeated": "Το %1 παραμένει χωρίς αντιστοίχιση, επειδή έχει ήδη αντιστοιχιστεί σε προηγούμενη γραμμή του keys.toml.",
+  "settings.hint.key_reserved": "Το %1 παραμένει χωρίς αντιστοίχιση, επειδή το Flea το δεσμεύει για δική του χρήση.",
+  "settings.hint.key_taken": "Το %1 παραμένει χωρίς αντιστοίχιση, επειδή το %2 το χρησιμοποιεί ήδη σε αυτή την προεπιλογή.",
+  "settings.hint.key_unknown": "Το %1 παραμένει χωρίς αντιστοίχιση, επειδή το Flea δεν έχει ενέργεια με όνομα %2."
 }

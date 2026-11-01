@@ -2286,7 +2286,7 @@
   "window.select_required": "--select tarvitsee kohteen",
   "window.settings_failed": "Asetuksia ei voitu lukea: %1",
   "window.unknown_flag": "Tuntematon valitsin %1",
-  "window.waiting": "Kansiota odotetaan vielä",
+  "window.waiting": "Kansio ei vastaa.",
   "dialogs.file.disconnected": "Aseman tai jaetun resurssin yhteys katkesi, joten tämä kansio ei ole enää käytettävissä",
   "dialogs.file.open.unlisted": "Tiedostoa ei enää ole luettelossa.",
   "dialogs.file.original.missing": "Linkki osoittaa kohteeseen, jota ei enää ole.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafiikkapaketista puuttuu merkkijonon päätin",
   "tui.wire.backend_stdin_unavailable": "Taustaprosessin vakiosyöte ei ole käytettävissä",
   "tui.wire.backend_stdout_unavailable": "Taustaprosessin vakiotuloste ei ole käytettävissä",
-  "tui.wire.the_file_list_stopped_restart_flea": "Tiedostoluettelo pysähtyi; käynnistä Flea uudestaan"
+  "tui.wire.the_file_list_stopped_restart_flea": "Tiedostoluettelo pysähtyi; käynnistä Flea uudestaan",
+  "settings.group.your_keys": "Omat näppäimet",
+  "settings.hint.key_file": "keys.toml ei määritä näppäinsidontoja, koska Flea ei pystynyt lukemaan sitä enintään 64 KB:n kokoisena tekstinä.",
+  "settings.hint.key_layout": "%1 jää sitomatta, koska Flea ei voi varmistaa sitä tällä näppäimistöasettelulla.",
+  "settings.hint.key_malformed": "Tiedoston keys.toml rivi %1 ei ole näppäinsidonta.",
+  "settings.hint.key_repeated": "%1 jää sitomatta, koska keys.toml-tiedoston aiempi rivi sitoo sen jo.",
+  "settings.hint.key_reserved": "%1 jää sitomatta, koska Flea varaa sen omaan käyttöönsä.",
+  "settings.hint.key_taken": "%1 jää sitomatta, koska %2 käyttää sitä jo tässä esiasetuksessa.",
+  "settings.hint.key_unknown": "%1 jää sitomatta, koska Fleassa ei ole toimintoa nimeltä %2."
 }

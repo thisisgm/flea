@@ -2337,7 +2337,7 @@
   "window.select_required": "--select کے لیے منزل درکار ہے",
   "window.settings_failed": "ترتیبات پڑھی نہیں جا سکیں: ⁨%1⁩",
   "window.unknown_flag": "نامعلوم فلیگ ⁨%1⁩",
-  "window.waiting": "اب بھی اس فولڈر کا انتظار ہے",
+  "window.waiting": "وہ فولڈر جواب نہیں دے رہا۔",
   "keys.tui17.copyDirUri": "فولڈر کا ⁦URI⁩ کاپی کریں",
   "keys.tui17.copyName": "فائل کا نام کاپی کریں",
   "keys.tui17.copyPath": "پاتھ کاپی کریں",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "گرافکس پیکٹ میں اسٹرنگ کا اختتامی نشان نہیں",
   "tui.wire.backend_stdin_unavailable": "بیک اینڈ کا معیاری اِن پٹ دستیاب نہیں",
   "tui.wire.backend_stdout_unavailable": "بیک اینڈ کا معیاری آؤٹ پٹ دستیاب نہیں",
-  "tui.wire.the_file_list_stopped_restart_flea": "فائلوں کی فہرست رک گئی؛ ⁦Flea⁩ دوبارہ شروع کریں"
+  "tui.wire.the_file_list_stopped_restart_flea": "فائلوں کی فہرست رک گئی؛ ⁦Flea⁩ دوبارہ شروع کریں",
+  "settings.group.your_keys": "آپ کی کلیدیں",
+  "settings.hint.key_file": "⁦keys.toml⁩ کوئی کی بائنڈنگ نہیں بناتا کیونکہ ⁦Flea⁩ اسے ⁦64 KB⁩ یا اس سے چھوٹے متن کے طور پر نہیں پڑھ سکا۔",
+  "settings.hint.key_layout": "⁦%1⁩ بغیر بائنڈنگ کے رہتا ہے کیونکہ ⁦Flea⁩ اس کی بورڈ لے آؤٹ پر اس کی تصدیق نہیں کر سکتا۔",
+  "settings.hint.key_malformed": "⁦keys.toml⁩ کی سطر ⁦%1⁩ کوئی کی بائنڈنگ نہیں ہے۔",
+  "settings.hint.key_repeated": "⁦%1⁩ بغیر بائنڈنگ کے رہتا ہے کیونکہ ⁦keys.toml⁩ کی پچھلی سطر اسے پہلے ہی بائنڈ کرتی ہے۔",
+  "settings.hint.key_reserved": "⁦%1⁩ بغیر بائنڈنگ کے رہتا ہے کیونکہ ⁦Flea⁩ اسے اپنے لیے محفوظ رکھتا ہے۔",
+  "settings.hint.key_taken": "⁦%1⁩ بغیر بائنڈنگ کے رہتا ہے کیونکہ اس پیش سیٹ میں ⁨%2⁩ اسے پہلے ہی استعمال کرتا ہے۔",
+  "settings.hint.key_unknown": "⁦%1⁩ بغیر بائنڈنگ کے رہتا ہے کیونکہ ⁦Flea⁩ میں ⁨%2⁩ نام کا کوئی عمل نہیں ہے۔"
 }

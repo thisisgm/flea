@@ -2337,7 +2337,7 @@
   "window.select_required": "--select uchun nishon kerak",
   "window.settings_failed": "Sozlamalarni oʻqib boʻlmadi: %1",
   "window.unknown_flag": "Nomaʼlum parametr: %1",
-  "window.waiting": "Bu jild hali kutilmoqda",
+  "window.waiting": "Bu jild javob bermayapti.",
   "keys.tui17.copyDirUri": "Jild URI manzilini nusxalash",
   "keys.tui17.copyName": "Fayl nomini nusxalash",
   "keys.tui17.copyPath": "Yoʻlni nusxalash",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafik paketda satr tugash belgisi yoʻq",
   "tui.wire.backend_stdin_unavailable": "Fon jarayonining standart kirishi mavjud emas",
   "tui.wire.backend_stdout_unavailable": "Fon jarayonining standart chiqishi mavjud emas",
-  "tui.wire.the_file_list_stopped_restart_flea": "Fayl roʻyxati toʻxtadi; Flea dasturini qayta ishga tushiring"
+  "tui.wire.the_file_list_stopped_restart_flea": "Fayl roʻyxati toʻxtadi; Flea dasturini qayta ishga tushiring",
+  "settings.group.your_keys": "Sizning tugmalaringiz",
+  "settings.hint.key_file": "Flea keys.toml faylini 64 KB yoki undan kichik matn sifatida oʻqiy olmagani uchun fayl hech qanday tugma birikmasini tayinlamaydi.",
+  "settings.hint.key_layout": "Flea bu klaviatura tartibida tekshira olmagani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
+  "settings.hint.key_malformed": "keys.toml faylining %1-qatori tugma tayinlovi emas.",
+  "settings.hint.key_repeated": "keys.toml faylining oldingi qatori allaqachon tayinlagani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
+  "settings.hint.key_reserved": "Flea oʻzi uchun ajratgani sababli %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
+  "settings.hint.key_taken": "Bu tayyor sozlamalarda %2 allaqachon ishlatgani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
+  "settings.hint.key_unknown": "Flea dasturida %2 nomli amal yoʻqligi uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi."
 }

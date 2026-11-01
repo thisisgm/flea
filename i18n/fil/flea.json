@@ -2286,7 +2286,7 @@
   "window.select_required": "Kailangan ng --select ng patutunguhan",
   "window.settings_failed": "Hindi mabasa ang mga setting: %1",
   "window.unknown_flag": "Hindi kilalang flag na %1",
-  "window.waiting": "Hinihintay pa ang folder na ito",
+  "window.waiting": "Hindi sumasagot ang folder na iyon.",
   "dialogs.file.disconnected": "Nadiskonekta ang drive o share na iyon, kaya hindi na magagamit ang folder na ito",
   "dialogs.file.open.unlisted": "Wala na sa listahan ang file na iyon.",
   "dialogs.file.original.missing": "Nakaturo ang link na iyon sa item na wala na.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Walang string terminator ang graphics packet",
   "tui.wire.backend_stdin_unavailable": "Hindi available ang karaniwang input ng backend",
   "tui.wire.backend_stdout_unavailable": "Hindi available ang karaniwang output ng backend",
-  "tui.wire.the_file_list_stopped_restart_flea": "Huminto ang listahan ng file; i-restart ang Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Huminto ang listahan ng file; i-restart ang Flea",
+  "settings.group.your_keys": "Mga key mo",
+  "settings.hint.key_file": "Walang itinatakdang keybinding ang keys.toml dahil hindi ito mabasa ng Flea bilang tekstong 64 KB o mas maliit.",
+  "settings.hint.key_layout": "Nananatiling walang keybinding ang %1 dahil hindi ito ma-verify ng Flea sa layout ng keyboard na ito.",
+  "settings.hint.key_malformed": "Hindi keybinding ang linya %1 ng keys.toml.",
+  "settings.hint.key_repeated": "Nananatiling walang keybinding ang %1 dahil nakatalaga na ito sa naunang linya ng keys.toml.",
+  "settings.hint.key_reserved": "Nananatiling walang keybinding ang %1 dahil nakalaan ito para sa Flea mismo.",
+  "settings.hint.key_taken": "Nananatiling walang keybinding ang %1 dahil ginagamit na ito ng %2 sa preset na ito.",
+  "settings.hint.key_unknown": "Nananatiling walang keybinding ang %1 dahil walang aksyon ang Flea na tinatawag na %2."
 }

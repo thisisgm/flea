@@ -2482,7 +2482,7 @@
   "window.select_required": "--select wymaga elementu docelowego",
   "window.settings_failed": "Nie udało się odczytać ustawień: %1",
   "window.unknown_flag": "Nieznana flaga %1",
-  "window.waiting": "Nadal oczekiwanie na ten folder",
+  "window.waiting": "Ten folder nie odpowiada.",
   "dialogs.file.disconnected": "Dysk lub udział został odłączony, więc ten folder nie jest już dostępny",
   "dialogs.file.open.unlisted": "Tego pliku nie ma już na liście.",
   "dialogs.file.original.missing": "To dowiązanie wskazuje element, który już nie istnieje.",
@@ -2731,5 +2731,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Pakiet graficzny nie ma znacznika końca ciągu",
   "tui.wire.backend_stdin_unavailable": "standardowe wejście procesu zaplecza jest niedostępne",
   "tui.wire.backend_stdout_unavailable": "standardowe wyjście procesu zaplecza jest niedostępne",
-  "tui.wire.the_file_list_stopped_restart_flea": "Lista plików zatrzymana; uruchom Flea ponownie"
+  "tui.wire.the_file_list_stopped_restart_flea": "Lista plików zatrzymana; uruchom Flea ponownie",
+  "settings.group.your_keys": "Twoje klawisze",
+  "settings.hint.key_file": "keys.toml nie przypisuje żadnych klawiszy, ponieważ Flea nie mogła go odczytać jako tekstu o rozmiarze najwyżej 64 KB.",
+  "settings.hint.key_layout": "%1 pozostaje bez przypisania, ponieważ Flea nie może zweryfikować tej sekwencji w tym układzie klawiatury.",
+  "settings.hint.key_malformed": "Wiersz %1 w keys.toml nie jest przypisaniem klawiszy.",
+  "settings.hint.key_repeated": "%1 pozostaje bez przypisania, ponieważ wcześniejszy wiersz keys.toml już przypisuje tę sekwencję.",
+  "settings.hint.key_reserved": "%1 pozostaje bez przypisania, ponieważ Flea rezerwuje tę sekwencję dla siebie.",
+  "settings.hint.key_taken": "%1 pozostaje bez przypisania, ponieważ %2 już używa tej sekwencji w tym zestawie.",
+  "settings.hint.key_unknown": "%1 pozostaje bez przypisania, ponieważ Flea nie ma działania o nazwie %2."
 }

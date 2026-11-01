@@ -2286,7 +2286,7 @@
   "window.select_required": "--select þarf áfangastað",
   "window.settings_failed": "Ekki tókst að lesa stillingar: %1",
   "window.unknown_flag": "Óþekkt flagg %1",
-  "window.waiting": "Bíð enn eftir þessari möppu",
+  "window.waiting": "Þessi mappa svarar ekki.",
   "dialogs.file.disconnected": "Drifið eða samnýtta mappan aftengdist, svo þessi mappa er ekki lengur tiltæk",
   "dialogs.file.open.unlisted": "Skráin er ekki lengur á listanum.",
   "dialogs.file.original.missing": "Tengillinn vísar á atriði sem er ekki lengur til.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafíkpakki hefur engan strengjalokastaf",
   "tui.wire.backend_stdin_unavailable": "staðalinntak bakendans er ekki tiltækt",
   "tui.wire.backend_stdout_unavailable": "staðalúttak bakendans er ekki tiltækt",
-  "tui.wire.the_file_list_stopped_restart_flea": "Skráalistinn stöðvaðist; endurræstu Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Skráalistinn stöðvaðist; endurræstu Flea",
+  "settings.group.your_keys": "Þínir lyklar",
+  "settings.hint.key_file": "keys.toml bindur enga lykla því Flea gat ekki lesið skrána sem texta sem er 64 KB eða minni.",
+  "settings.hint.key_layout": "%1 er áfram óbundin því Flea getur ekki staðfest lyklasamsetninguna með þessu lyklaborðsskipulagi.",
+  "settings.hint.key_malformed": "Lína %1 í keys.toml er ekki lyklabinding.",
+  "settings.hint.key_repeated": "%1 er áfram óbundin því fyrri lína í keys.toml bindur lyklasamsetninguna þegar.",
+  "settings.hint.key_reserved": "%1 er áfram óbundin því Flea tekur lyklasamsetninguna frá fyrir eigin notkun.",
+  "settings.hint.key_taken": "%1 er áfram óbundin því %2 notar lyklasamsetninguna þegar í þessari forstillingu.",
+  "settings.hint.key_unknown": "%1 er áfram óbundin því Flea hefur enga aðgerð sem heitir %2."
 }

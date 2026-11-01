@@ -539,7 +539,7 @@
   "tabs.close": "Tutup tab",
   "tabs.close_others": "Tutup tab lainnya",
   "window.loading": "Memuat",
-  "window.waiting": "Masih menunggu folder ini",
+  "window.waiting": "Folder tersebut tidak merespons.",
   "window.select_required": "--select memerlukan target",
   "window.one_directory": "Hanya satu direktori awal yang diterima",
   "window.unknown_flag": "Opsi tidak dikenal %1",
@@ -2413,5 +2413,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Paket grafis tidak memiliki terminator string",
   "tui.wire.backend_stdin_unavailable": "stdin backend tidak tersedia",
   "tui.wire.backend_stdout_unavailable": "stdout backend tidak tersedia",
-  "tui.wire.the_file_list_stopped_restart_flea": "Daftar berkas berhenti; mulai ulang Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Daftar berkas berhenti; mulai ulang Flea",
+  "settings.group.your_keys": "Tombol Anda",
+  "settings.hint.key_file": "keys.toml tidak menetapkan pintasan apa pun karena Flea tidak dapat membacanya sebagai teks berukuran 64 KB atau kurang.",
+  "settings.hint.key_layout": "%1 tetap tanpa penetapan karena Flea tidak dapat memverifikasinya pada tata letak keyboard ini.",
+  "settings.hint.key_malformed": "Baris %1 pada keys.toml bukan penetapan tombol.",
+  "settings.hint.key_repeated": "%1 tetap tanpa penetapan karena baris sebelumnya pada keys.toml sudah menetapkannya.",
+  "settings.hint.key_reserved": "%1 tetap tanpa penetapan karena Flea mencadangkannya untuk dirinya sendiri.",
+  "settings.hint.key_taken": "%1 tetap tanpa penetapan karena %2 sudah menggunakannya dalam prasetel ini.",
+  "settings.hint.key_unknown": "%1 tetap tanpa penetapan karena Flea tidak memiliki tindakan bernama %2."
 }

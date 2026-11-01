@@ -2337,7 +2337,7 @@
   "window.select_required": "--select-এর জন্য আইটেমের পাথ প্রয়োজন",
   "window.settings_failed": "সেটিং পড়া যায়নি: %1",
   "window.unknown_flag": "অজানা ফ্ল্যাগ %1",
-  "window.waiting": "এই ফোল্ডারের জন্য এখনো অপেক্ষা চলছে",
+  "window.waiting": "ওই ফোল্ডার সাড়া দিচ্ছে না।",
   "keys.tui17.copyDirUri": "ফোল্ডারের URI কপি করুন",
   "keys.tui17.copyName": "ফাইলের নাম কপি করুন",
   "keys.tui17.copyPath": "পাথ কপি করুন",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "গ্রাফিক্স প্যাকেটে স্ট্রিং সমাপ্তির চিহ্ন নেই",
   "tui.wire.backend_stdin_unavailable": "ব্যাকএন্ডের স্ট্যান্ডার্ড ইনপুট উপলব্ধ নয়",
   "tui.wire.backend_stdout_unavailable": "ব্যাকএন্ডের স্ট্যান্ডার্ড আউটপুট উপলব্ধ নয়",
-  "tui.wire.the_file_list_stopped_restart_flea": "ফাইলের তালিকা থেমেছে; Flea আবার চালু করুন"
+  "tui.wire.the_file_list_stopped_restart_flea": "ফাইলের তালিকা থেমেছে; Flea আবার চালু করুন",
+  "settings.group.your_keys": "আপনার কী",
+  "settings.hint.key_file": "Flea ফাইলটিকে 64 KB বা তার চেয়ে ছোট পাঠ্য হিসেবে পড়তে পারেনি বলে keys.toml কোনো কী নির্ধারণ করে না।",
+  "settings.hint.key_layout": "এই কীবোর্ড লেআউটে Flea যাচাই করতে পারে না বলে %1 অনির্ধারিত থাকে।",
+  "settings.hint.key_malformed": "keys.toml-এর %1 নম্বর লাইনটি কোনো কী-বাইন্ডিং নয়।",
+  "settings.hint.key_repeated": "keys.toml-এর আগের একটি লাইনে নির্ধারিত আছে বলে %1 অনির্ধারিত থাকে।",
+  "settings.hint.key_reserved": "Flea নিজের জন্য সংরক্ষণ করে বলে %1 অনির্ধারিত থাকে।",
+  "settings.hint.key_taken": "এই প্রিসেটে %2 ইতিমধ্যে ব্যবহার করে বলে %1 অনির্ধারিত থাকে।",
+  "settings.hint.key_unknown": "Flea-তে %2 নামে কোনো কাজ নেই বলে %1 অনির্ধারিত থাকে।"
 }

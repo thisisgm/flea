@@ -2384,7 +2384,7 @@
   "window.select_required": "--select nécessite une cible",
   "window.settings_failed": "Impossible de lire les réglages : %1",
   "window.unknown_flag": "Option inconnue %1",
-  "window.waiting": "Toujours en attente de ce dossier",
+  "window.waiting": "Ce dossier ne répond pas.",
   "dialogs.file.disconnected": "Ce disque ou partage a été déconnecté, ce dossier n’est donc plus disponible",
   "dialogs.file.open.unlisted": "Ce fichier ne figure plus dans la liste.",
   "dialogs.file.original.missing": "Ce lien pointe vers un élément qui n’existe plus.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Le paquet graphique n’a pas de terminateur de chaîne",
   "tui.wire.backend_stdin_unavailable": "L’entrée standard du moteur est indisponible",
   "tui.wire.backend_stdout_unavailable": "La sortie standard du moteur est indisponible",
-  "tui.wire.the_file_list_stopped_restart_flea": "La liste des fichiers s’est arrêtée ; redémarrez Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "La liste des fichiers s’est arrêtée ; redémarrez Flea",
+  "settings.group.your_keys": "Vos touches",
+  "settings.hint.key_file": "keys.toml n’attribue aucun raccourci, car Flea n’a pas pu le lire comme du texte de 64 KB ou moins.",
+  "settings.hint.key_layout": "%1 reste sans affectation, car Flea ne peut pas vérifier cette séquence avec cette disposition de clavier.",
+  "settings.hint.key_malformed": "La ligne %1 de keys.toml n’est pas une affectation de touches.",
+  "settings.hint.key_repeated": "%1 reste sans affectation, car une ligne précédente de keys.toml attribue déjà cette séquence.",
+  "settings.hint.key_reserved": "%1 reste sans affectation, car Flea se réserve cette séquence.",
+  "settings.hint.key_taken": "%1 reste sans affectation, car %2 utilise déjà cette séquence dans ce préréglage.",
+  "settings.hint.key_unknown": "%1 reste sans affectation, car Flea n’a aucune action appelée %2."
 }

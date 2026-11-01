@@ -2384,7 +2384,7 @@
   "window.select_required": "--select necessita una destinació",
   "window.settings_failed": "No s'ha pogut llegir la configuració: %1",
   "window.unknown_flag": "Opció desconeguda %1",
-  "window.waiting": "Encara s'està esperant aquesta carpeta",
+  "window.waiting": "Aquesta carpeta no respon.",
   "dialogs.file.disconnected": "S'ha desconnectat la unitat o el recurs compartit, de manera que aquesta carpeta ja no està disponible",
   "dialogs.file.open.unlisted": "Aquest fitxer ja no apareix a la llista.",
   "dialogs.file.original.missing": "Aquest enllaç apunta a un element que ja no existeix.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "El paquet gràfic no té terminador de cadena",
   "tui.wire.backend_stdin_unavailable": "L'entrada estàndard del motor no està disponible",
   "tui.wire.backend_stdout_unavailable": "La sortida estàndard del motor no està disponible",
-  "tui.wire.the_file_list_stopped_restart_flea": "La llista de fitxers s'ha aturat; reinicia el Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "La llista de fitxers s'ha aturat; reinicia el Flea",
+  "settings.group.your_keys": "Les teves tecles",
+  "settings.hint.key_file": "keys.toml no assigna cap drecera perquè Flea no l'ha pogut llegir com a text de 64 KB o menys.",
+  "settings.hint.key_layout": "%1 queda sense assignar perquè Flea no el pot verificar amb aquesta disposició de teclat.",
+  "settings.hint.key_malformed": "La línia %1 de keys.toml no és una assignació de tecles.",
+  "settings.hint.key_repeated": "%1 queda sense assignar perquè una línia anterior de keys.toml ja l'assigna.",
+  "settings.hint.key_reserved": "%1 queda sense assignar perquè Flea se'l reserva.",
+  "settings.hint.key_taken": "%1 queda sense assignar perquè %2 ja el fa servir en aquest perfil.",
+  "settings.hint.key_unknown": "%1 queda sense assignar perquè Flea no té cap acció anomenada %2."
 }

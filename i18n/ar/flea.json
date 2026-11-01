@@ -2741,7 +2741,7 @@
   "window.select_required": "يحتاج ⁦--select⁩ إلى هدف",
   "window.settings_failed": "تعذّرت قراءة الإعدادات: ⁨%1⁩",
   "window.unknown_flag": "خيار غير معروف ⁨%1⁩",
-  "window.waiting": "لا يزال انتظار هذا المجلد جاريًا",
+  "window.waiting": "ذلك المجلد لا يستجيب.",
   "keys.tui17.copyDirUri": "نسخ عنوان ⁦URI⁩ للمجلد",
   "keys.tui17.copyName": "نسخ اسم الملف",
   "keys.tui17.copyPath": "نسخ المسار",
@@ -2943,5 +2943,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "حزمة الرسوم لا تحتوي على مُنهٍ للسلسلة النصية",
   "tui.wire.backend_stdin_unavailable": "الإدخال القياسي للخلفية غير متاح",
   "tui.wire.backend_stdout_unavailable": "الإخراج القياسي للخلفية غير متاح",
-  "tui.wire.the_file_list_stopped_restart_flea": "توقفت قائمة الملفات؛ أعد تشغيل ⁦Flea⁩"
+  "tui.wire.the_file_list_stopped_restart_flea": "توقفت قائمة الملفات؛ أعد تشغيل ⁦Flea⁩",
+  "settings.group.your_keys": "مفاتيحك",
+  "settings.hint.key_file": "لا يربط ⁦keys.toml⁩ أي اختصار لأن ⁦Flea⁩ لم يتمكن من قراءته كنص بحجم ⁦64 KB⁩ أو أقل.",
+  "settings.hint.key_layout": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ لا يستطيع التحقق منه على تخطيط لوحة المفاتيح هذا.",
+  "settings.hint.key_malformed": "السطر ⁦%1⁩ من ⁦keys.toml⁩ ليس ربطًا لمفتاح.",
+  "settings.hint.key_repeated": "يبقى ⁦%1⁩ بلا ربط لأن سطرًا سابقًا من ⁦keys.toml⁩ قد ربطه بالفعل.",
+  "settings.hint.key_reserved": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ يحتفظ به لنفسه.",
+  "settings.hint.key_taken": "يبقى ⁦%1⁩ بلا ربط لأن ⁨%2⁩ يستخدمه بالفعل في هذا الإعداد المسبق.",
+  "settings.hint.key_unknown": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ ليس لديه إجراء باسم ⁨%2⁩."
 }

@@ -2539,7 +2539,7 @@
   "window.select_required": "Для --select потрібна ціль",
   "window.settings_failed": "Не вдалося прочитати налаштування: %1",
   "window.unknown_flag": "Невідомий прапорець %1",
-  "window.waiting": "Очікування цієї теки триває",
+  "window.waiting": "Ця тека не відповідає.",
   "keys.tui17.copyDirUri": "Копіювати URI теки",
   "keys.tui17.copyName": "Копіювати назву файлу",
   "keys.tui17.copyPath": "Копіювати шлях",
@@ -2731,5 +2731,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Графічний пакет не має символу завершення рядка",
   "tui.wire.backend_stdin_unavailable": "Стандартне введення серверної частини недоступне",
   "tui.wire.backend_stdout_unavailable": "Стандартне виведення серверної частини недоступне",
-  "tui.wire.the_file_list_stopped_restart_flea": "Список файлів зупинився; перезапустіть Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Список файлів зупинився; перезапустіть Flea",
+  "settings.group.your_keys": "Ваші клавіші",
+  "settings.hint.key_file": "keys.toml не призначає жодних клавіш, оскільки Flea не вдалося прочитати його як текст розміром не більш ніж 64 KB.",
+  "settings.hint.key_layout": "%1 залишається без призначення, оскільки Flea не може перевірити цю послідовність у цій розкладці клавіатури.",
+  "settings.hint.key_malformed": "Рядок %1 у keys.toml не є призначенням клавіш.",
+  "settings.hint.key_repeated": "%1 залишається без призначення, оскільки попередній рядок keys.toml уже призначає цю послідовність.",
+  "settings.hint.key_reserved": "%1 залишається без призначення, оскільки Flea резервує цю послідовність для себе.",
+  "settings.hint.key_taken": "%1 залишається без призначення, оскільки %2 уже використовує цю послідовність у цьому наборі.",
+  "settings.hint.key_unknown": "%1 залишається без призначення, оскільки у Flea немає дії з назвою %2."
 }

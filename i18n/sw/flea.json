@@ -2337,7 +2337,7 @@
   "window.select_required": "--select inahitaji lengo",
   "window.settings_failed": "Mipangilio haikuweza kusomwa: %1",
   "window.unknown_flag": "Chaguo la amri %1 halijulikani",
-  "window.waiting": "Bado inasubiri folda hii",
+  "window.waiting": "Folda hiyo haiitikii.",
   "keys.tui17.copyDirUri": "Nakili URI ya folda",
   "keys.tui17.copyName": "Nakili jina la faili",
   "keys.tui17.copyPath": "Nakili njia",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Pakiti ya michoro haina alama ya mwisho wa mfuatano",
   "tui.wire.backend_stdin_unavailable": "Ingizo sanifu la huduma ya nyuma halipatikani",
   "tui.wire.backend_stdout_unavailable": "Tokeo sanifu la huduma ya nyuma halipatikani",
-  "tui.wire.the_file_list_stopped_restart_flea": "Orodha ya faili imesimama; anzisha Flea upya"
+  "tui.wire.the_file_list_stopped_restart_flea": "Orodha ya faili imesimama; anzisha Flea upya",
+  "settings.group.your_keys": "Vitufe vyako",
+  "settings.hint.key_file": "keys.toml haiweki mikato yoyote ya vitufe kwa sababu Flea haikuweza kuisoma kama maandishi ya 64 KB au chini.",
+  "settings.hint.key_layout": "%1 inabaki bila mgawo kwa sababu Flea haiwezi kuthibitisha mfuatano huo katika mpangilio huu wa kibodi.",
+  "settings.hint.key_malformed": "Mstari wa %1 wa keys.toml si mgawo wa vitufe.",
+  "settings.hint.key_repeated": "%1 inabaki bila mgawo kwa sababu mstari wa awali wa keys.toml tayari umegawa mfuatano huo.",
+  "settings.hint.key_reserved": "%1 inabaki bila mgawo kwa sababu Flea inahifadhi mfuatano huo kwa matumizi yake yenyewe.",
+  "settings.hint.key_taken": "%1 inabaki bila mgawo kwa sababu %2 tayari inatumia mfuatano huo katika seti hii ya mipangilio.",
+  "settings.hint.key_unknown": "%1 inabaki bila mgawo kwa sababu Flea haina kitendo kinachoitwa %2."
 }

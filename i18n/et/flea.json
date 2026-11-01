@@ -430,7 +430,7 @@
   "tabs.close": "Sulge vahekaart",
   "tabs.close_others": "Sulge teised vahekaardid",
   "window.loading": "Laadimine",
-  "window.waiting": "Selle kausta vastust oodatakse endiselt",
+  "window.waiting": "See kaust ei vasta.",
   "window.select_required": "--select vajab sihtüksust",
   "window.one_directory": "Lubatud on ainult üks algkataloog",
   "window.unknown_flag": "Tundmatu lipp %1",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Graafikapaketil puudub sõne lõpetaja",
   "tui.wire.backend_stdin_unavailable": "Taustaprotsessi standardsisend pole saadaval",
   "tui.wire.backend_stdout_unavailable": "Taustaprotsessi standardväljund pole saadaval",
-  "tui.wire.the_file_list_stopped_restart_flea": "Faililoend seiskus; taaskäivita Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Faililoend seiskus; taaskäivita Flea",
+  "settings.group.your_keys": "Sinu klahvid",
+  "settings.hint.key_file": "keys.toml ei määra ühtegi klahviseost, sest Flea ei suutnud seda lugeda kuni 64 KB suuruse tekstina.",
+  "settings.hint.key_layout": "%1 jääb määramata, sest Flea ei saa seda klahvijada selle klaviatuuripaigutusega kontrollida.",
+  "settings.hint.key_malformed": "Faili keys.toml rida %1 ei ole klahviseos.",
+  "settings.hint.key_repeated": "%1 jääb määramata, sest varasem rida failis keys.toml juba määrab selle klahvijada.",
+  "settings.hint.key_reserved": "%1 jääb määramata, sest Flea reserveerib selle klahvijada enda jaoks.",
+  "settings.hint.key_taken": "%1 jääb määramata, sest %2 juba kasutab seda klahvijada selles eelseadistuses.",
+  "settings.hint.key_unknown": "%1 jääb määramata, sest Fleas pole toimingut nimega %2."
 }

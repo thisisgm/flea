@@ -2384,7 +2384,7 @@
   "window.select_required": "--select vyžaduje cíl",
   "window.settings_failed": "Nastavení nelze přečíst: %1",
   "window.unknown_flag": "Neznámý přepínač %1",
-  "window.waiting": "Stále se čeká na tuto složku",
+  "window.waiting": "Tato složka neodpovídá.",
   "dialogs.file.disconnected": "Disk nebo sdílený prostředek byl odpojen, takže tato složka již není dostupná",
   "dialogs.file.open.unlisted": "Tento soubor již není v seznamu.",
   "dialogs.file.original.missing": "Tento odkaz ukazuje na položku, která již neexistuje.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafický paket nemá ukončovač řetězce",
   "tui.wire.backend_stdin_unavailable": "Standardní vstup backendu není dostupný",
   "tui.wire.backend_stdout_unavailable": "Standardní výstup backendu není dostupný",
-  "tui.wire.the_file_list_stopped_restart_flea": "Seznam souborů se zastavil; restartujte Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Seznam souborů se zastavil; restartujte Flea",
+  "settings.group.your_keys": "Vaše klávesy",
+  "settings.hint.key_file": "keys.toml nepřiřazuje žádné zkratky, protože jej Flea nedokázalo přečíst jako text o velikosti nejvýše 64 KB.",
+  "settings.hint.key_layout": "%1 zůstává bez přiřazení, protože jej Flea nedokáže ověřit v tomto rozložení klávesnice.",
+  "settings.hint.key_malformed": "Řádek %1 v keys.toml není přiřazením kláves.",
+  "settings.hint.key_repeated": "%1 zůstává bez přiřazení, protože jej již přiřazuje dřívější řádek v keys.toml.",
+  "settings.hint.key_reserved": "%1 zůstává bez přiřazení, protože si jej Flea vyhrazuje pro sebe.",
+  "settings.hint.key_taken": "%1 zůstává bez přiřazení, protože jej v této předvolbě již používá %2.",
+  "settings.hint.key_unknown": "%1 zůstává bez přiřazení, protože Flea nemá akci s názvem %2."
 }
