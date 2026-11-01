@@ -114,6 +114,11 @@ impl Picker {
     // Focus and stem selection are applied with the window: a name that arrived, a review that asked, the default field.
     pub(super) fn place_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.browse.window = Some(window.window_handle());
+        // A closed location field keeps no keyboard: Escape hands it back, so ":" and Ctrl+L reach the chooser again (EY-543).
+        let path = self.browse.path_view(cx);
+        if !path.read(cx).editing() && path.read(cx).focus.is_focused(window) {
+            self.rail.hand_off = true;
+        }
         // PickerWindow.qml focusDefault: Filename in a save, the files otherwise.
         if std::mem::take(&mut self.rail.hand_off) {
             if self.browse.filename.is_some() {

@@ -92,6 +92,8 @@ mod board_parity_tests;
 #[cfg(test)]
 mod ey_chooser_tests;
 #[cfg(test)]
+mod fix_picker_2a_tests;
+#[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
 mod gm338_hidden_tests;

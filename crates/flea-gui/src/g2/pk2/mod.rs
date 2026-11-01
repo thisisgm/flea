@@ -6,6 +6,7 @@ pub(crate) mod pictures;
 mod pointer;
 pub mod route;
 pub mod save;
+mod scrollbar;
 mod settings;
 pub mod surface;
 pub mod view;
