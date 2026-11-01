@@ -252,7 +252,7 @@ impl Render for Shell {
             );
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
-            let floor = super::glass::list_ground(theme.background, window, cx);
+            let floor = super::glass::ground(theme.background, window, cx);
             panes[side] = Some(
                 div()
                     .id(("file-drag", side))

@@ -231,7 +231,6 @@ fn theme_glass_a_new_presentation_hands_its_glass_inputs_to_the_tagger(cx: &mut 
     theme.glass = super::glass::Inputs {
         automatic: false,
         wanted_alpha: 153,
-        wanted_list_alpha: 153,
         ..Default::default()
     };
     super::glass_tag::events::HANDED.with(|handed| handed.set(None));

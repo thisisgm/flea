@@ -1,15 +1,9 @@
 //! Startup surface identity and truthful observations of each mounted window.
 use super::glass_tag::Mode;
 use crate::{ipc::Adapter, palette::Theme};
-use flea::{
-    ipc::wire::Reply,
-    theme::{parse_shell, Material},
-};
+use flea::{ipc::wire::Reply, theme::parse_shell};
 use gpui::{App, Global, Window, WindowBackgroundAppearance, WindowId};
 use std::collections::HashMap;
-
-// WCAG body text contrast ratio.
-const TEXT_CONTRAST: f64 = 4.5;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Inputs {
@@ -17,7 +11,6 @@ pub struct Inputs {
     pub automatic: bool,
     pub pins_opaque: bool,
     pub wanted_alpha: u8,
-    pub wanted_list_alpha: u8,
 }
 
 impl Default for Inputs {
@@ -27,7 +20,6 @@ impl Default for Inputs {
             automatic: true,
             pins_opaque: false,
             wanted_alpha: 255,
-            wanted_list_alpha: 255,
         }
     }
 }
@@ -44,44 +36,19 @@ fn value(text: &str) -> Option<u8> {
 }
 
 impl Inputs {
-    pub(crate) fn resolve(
-        colors: &str,
-        theme: &str,
-        user: &str,
-        opaque: bool,
-        glassy: bool,
-    ) -> Self {
+    /// Automatic Glassy paints solid like Transparent: Omarchy fades Nautilus as a whole, and glass_tag gives Flea the same rule.
+    pub(crate) fn resolve(theme: &str, user: &str, opaque: bool, glassy: bool) -> Self {
         let (user, theme) = (value(user), value(theme));
         let mode = Mode::from_toggles(glassy, opaque);
-        let automatic = user.is_none() && theme.is_none();
-        let core = flea::theme::Theme::resolve(colors, "", "", None, "monospace");
-        let material = Material::from_colors(&core.colors, true);
         let alpha = user.unwrap_or_else(|| match mode {
             Mode::Opaque => 255,
-            Mode::Glassy => theme.unwrap_or_else(|| material.floor(TEXT_CONTRAST)),
-            Mode::Transparent => theme.unwrap_or(255),
+            Mode::Glassy | Mode::Transparent => theme.unwrap_or(255),
         });
-        let mut list_alpha = alpha;
-        if automatic && mode == Mode::Glassy && alpha < 255 {
-            let mut list = material;
-            list.surface = list.background;
-            let mut floor = 255;
-            while floor > 0
-                && list
-                    .worst(list.muted, floor - 1)
-                    .min(list.worst(list.metadata, floor - 1))
-                    >= TEXT_CONTRAST
-            {
-                floor -= 1;
-            }
-            list_alpha = alpha.max(floor);
-        }
         Self {
             mode,
-            automatic,
+            automatic: user.is_none() && theme.is_none(),
             pins_opaque: user.or(theme) == Some(255),
             wanted_alpha: alpha,
-            wanted_list_alpha: list_alpha,
         }
     }
 
@@ -155,13 +122,13 @@ impl Adapter for Reader<'_> {
             crate::ipc::rows::colour(theme.background)
         };
         let alpha = alpha(self.window, self.cx);
-        let list = list_alpha(self.window, self.cx);
+        let requested = f64::from(inputs.wanted_alpha) / 255.;
+        // v0.3.12 readers also ask for the panes' listAlpha; the panes now draw the window alpha, as Nautilus fades whole.
         Some(Reply::value(format!(
-            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":{list},\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":false,\"requestedAlpha\":{},\"requestedListAlpha\":{}}}",
+            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":{alpha},\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":false,\"requestedAlpha\":{requested},\"requestedListAlpha\":{requested}}}",
             mounted.clear, self.window.is_window_active(), inputs.automatic,
             crate::ipc::rows::colour(theme.foreground), crate::ipc::rows::colour(theme.muted),
             crate::ipc::rows::colour(theme.metadata), mounted.clear,
-            f64::from(inputs.wanted_alpha) / 255., f64::from(inputs.wanted_list_alpha) / 255.,
         )))
     }
 }
@@ -182,26 +149,6 @@ pub(crate) fn alpha(window: &Window, cx: &App) -> f32 {
 // Glass alphas are bytes, 255 opaque, and gpui paints a fraction.
 fn fraction(alpha: u8) -> f32 {
     f32::from(alpha) / f32::from(u8::MAX)
-}
-
-// The List, Columns and preview panes' alpha, Glass.qml's listAlpha: automatic glassy lifts it to the text floor.
-fn list_alpha(window: &Window, cx: &App) -> f32 {
-    if alpha(window, cx) < 1. {
-        fraction(
-            cx.try_global::<Theme>()
-                .copied()
-                .unwrap_or_default()
-                .glass
-                .wanted_list_alpha,
-        )
-    } else {
-        1.
-    }
-}
-
-pub(crate) fn list_ground(mut color: gpui::Hsla, window: &Window, cx: &App) -> gpui::Hsla {
-    color.a *= list_alpha(window, cx);
-    color
 }
 
 pub(crate) fn ground(mut color: gpui::Hsla, window: &Window, cx: &App) -> gpui::Hsla {

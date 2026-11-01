@@ -270,37 +270,15 @@ fn op_glass_explicit_alpha_reaches_the_painted_chrome_without_an_opaque_canvas(
 }
 
 #[gpui::test]
-fn op_glass_automatic_glassy_reads_a_list_floor_above_its_pane_alpha(cx: &mut TestAppContext) {
+fn op_glass_automatic_glassy_paints_solid_for_the_compositor_to_fade(cx: &mut TestAppContext) {
     let value = read_glass(cx, "op-glass-automatic", &[(6, "")]);
     assert_eq!(value.get("mode").and_then(Json::as_str), Some("glassy"));
     assert_eq!(value.get("automatic").and_then(Json::as_bool), Some(true));
     assert_eq!(value.get("material").and_then(Json::as_bool), Some(false));
-    let alpha = value.get("requestedAlpha").and_then(Json::as_f64).unwrap();
-    let list = value
-        .get("requestedListAlpha")
-        .and_then(Json::as_f64)
-        .unwrap();
-    // Glass.qml draws the chrome at the automatic alpha and the panes at the lifted list floor (THEME-GLASS native2).
-    let drawn = |key: &str| value.get(key).and_then(Json::as_f64).unwrap();
-    assert!(
-        (drawn("alpha") - alpha).abs() < 1e-6,
-        "automatic glassy chrome draws {}",
-        drawn("alpha")
-    );
-    assert!(
-        (drawn("listAlpha") - list).abs() < 1e-6,
-        "automatic glassy panes draw {}",
-        drawn("listAlpha")
-    );
-    assert!(
-        alpha < 1.,
-        "automatic glassy keeps a translucent pane: {alpha}"
-    );
-    // The stock muted and metadata inks need more cover than the automatic pane alpha, so the floor lifts above it.
-    assert!(
-        list > alpha,
-        "list floor {list} does not rise above pane alpha {alpha}"
-    );
+    // Omarchy fades Nautilus whole under Glassy, so Flea's grounds and inks stay as drawn and Hyprland fades the window.
+    for key in ["alpha", "listAlpha", "requestedAlpha", "requestedListAlpha"] {
+        assert_eq!(value.get(key).and_then(Json::as_f64), Some(1.), "{key}");
+    }
 }
 
 #[gpui::test]
