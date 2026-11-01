@@ -244,21 +244,28 @@ fn tui_fix_1101_p2_trashed_long_text_scrolls_to_its_last_line() {
 #[test]
 fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
     let theme = Theme::from_text("");
-    let placed = |m: &mut Model, w: &mut Wire| {
+    let kinds = [("pic.png", "image-png"), ("chair.stl", "model-stl"), ("pack.zip", "application-x-package")];
+    // One stage call, answering whether it started any picture: a placed image, a thumbnail ask or a 3D render.
+    let started = |m: &mut Model, w: &mut Wire| {
+        drain(w);
         let mut graphics = crate::tui::graphics::Graphics::new();
         crate::tui::stage::step(m, &mut graphics, &mut crate::tui::stage::Shown::default(), w, (130, 31), false, &mut String::new()).unwrap();
-        m.image_file.is_some() || !graphics.bytes.is_empty()
+        let started = m.image_file.is_some() || !graphics.bytes.is_empty() || m.model3d.active() || !requests(&drain(w), "thumb").is_empty();
+        m.model3d.stop(w).unwrap();
+        started
     };
-    // Positive control: this stage call places a png outside Trash, so its absence below is the Trash gate's doing.
-    let (mut w, reader) = echo_wire();
-    let mut m = frame_tests::model();
-    m.preview_visible = true;
-    let row = m.rows.get_mut(&7).unwrap();
-    (row.name, row.icon, row.thumbnail) = ("pic.png".into(), "image-png".into(), true);
-    crate::tui::preview::load(&mut m, false);
-    assert!(placed(&mut m, &mut w), "a png outside Trash is placed");
-    finish(w, reader);
-    for (name, icon) in [("pic.png", "image-png"), ("chair.stl", "model-stl"), ("pack.zip", "application-x-package")] {
+    // Positive control: outside Trash the same call starts a picture for every kind, so none below is the Trash gate's doing.
+    for (name, icon) in kinds {
+        let (mut w, reader) = echo_wire();
+        let mut m = frame_tests::model();
+        m.preview_visible = true;
+        let row = m.rows.get_mut(&7).unwrap();
+        (row.name, row.icon, row.thumbnail) = (name.into(), icon.into(), true);
+        crate::tui::preview::load(&mut m, false);
+        assert!(started(&mut m, &mut w), "{name}: outside Trash a picture is started");
+        finish(w, reader);
+    }
+    for (name, icon) in kinds {
         let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-non-text");
         let backing = root.file(name, "\u{89}PNG\r\n\u{1a}\n");
         let (mut w, reader) = echo_wire();
@@ -270,9 +277,7 @@ fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
         crate::tui::preview::load(&mut m, false);
         assert_eq!(m.preview_path, backing, "{name}");
         assert!(!m.preview_reader.outstanding(m.preview_generation), "{name}: the kind gate reads nothing");
-        drain(&mut w);
-        assert!(!placed(&mut m, &mut w), "{name}: no picture is placed in Trash");
-        assert!(requests(&drain(&mut w), "thumb").is_empty(), "{name}: no thumbnail is asked for");
+        assert!(!started(&mut m, &mut w), "{name}: no picture is started in Trash");
         crate::tui::preview::layout(&mut m);
         let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
         let below: Vec<String> = rows[6..29].iter().map(|row| row.chars().skip(81).collect::<String>().trim().to_owned()).collect();
