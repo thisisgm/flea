@@ -13,6 +13,8 @@ mod gestures;
 pub(crate) mod host;
 #[path = "columns_hover_tests.rs"]
 mod hover;
+#[path = "columns_neighbour_tab_tests.rs"]
+mod neighbour_tab;
 #[path = "columns_pointer_tests.rs"]
 mod pointer;
 #[path = "columns_review_tests.rs"]
