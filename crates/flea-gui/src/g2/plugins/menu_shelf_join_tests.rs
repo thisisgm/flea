@@ -28,6 +28,10 @@ fn add_to_shelf_adds_a_file_and_a_folder(cx: &mut TestAppContext) {
         })
     });
     for (row, name) in [(0, "notes.txt"), (4, "folder")] {
+        // The folder's own add must say so, not the file's sentence left from the first pass.
+        update(cx, fixture.handle, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().status = gpui::SharedString::default();
+        });
         fixture.menu(cx, row, vec![]);
         wait(cx, |cx| {
             fixture.entries(cx).iter().any(|entry| entry.id == "shelf")

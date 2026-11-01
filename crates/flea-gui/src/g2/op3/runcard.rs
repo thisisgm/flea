@@ -208,10 +208,22 @@ mod ipc_tests {
             .get("controls")
             .and_then(flea::jsondoc::Json::as_array)
             .unwrap();
-        for (actual, drawn) in controls.iter().zip(card.card(&i18n).buttons) {
+        let names: Vec<_> = controls
+            .iter()
+            .map(|control| control.get("name").and_then(flea::jsondoc::Json::as_str))
+            .collect();
+        assert_eq!(names, [Some("cancel"), Some("text"), Some("terminal")]);
+        let drawn = card.card(&i18n).buttons;
+        assert_eq!(drawn.len(), controls.len());
+        for ((actual, drawn), name) in controls.iter().zip(drawn).zip(names) {
             assert_eq!(
                 actual.get("label").and_then(flea::jsondoc::Json::as_str),
                 Some(drawn.label.as_str())
+            );
+            assert_ne!(
+                Some(drawn.label.as_str()),
+                name,
+                "a drawn label must not stand in for its id"
             );
         }
     }

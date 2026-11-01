@@ -1647,3 +1647,5 @@ The M3 drag-status correction retains a single published held-drag hint by retir
 
 The M3 mounted Settings fixture applies its initial font restyle before appending the ordinary wrapping control row. The two-line fixture correction records the exact `crates/flea-gui/src/window/settings/fix1_tests.rs` ceiling at 406, preserving both one-line claim and ordinary wrapping assertions; global limits stay unchanged.
 The archive publish fix (issue 370) moves one ceiling, re-derived with `wc -l`: `src/backend/renamecompat.rs` 728 to 738 for `rename_cancellable` and `copy_then_remove_with`, which carry an archive job's cancel into the copy fallback its compress, extract and convert now publish through. `src/backend/archiveops.rs` stands at 270, over the soft budget and under the hard cap, with the copy-fallback publish tests in `src/backend/archiveopsrclone_tests.rs` at 252.
+
+The COMPOSE-M3 closing join removed a duplicate `menu_identity` from `crates/flea-gui/src/g2/mn1/join.rs`, so its exact ceiling ratchets down to the re-derived `wc -l` count, 437. Global limits are unchanged.
