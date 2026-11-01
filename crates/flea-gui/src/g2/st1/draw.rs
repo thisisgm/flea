@@ -496,7 +496,10 @@ impl Rows<'_> {
                     div()
                         .id(("settings-chevron", index.unwrap_or(0)))
                         .child(mark(
-                            "chevron-right",
+                            crate::locale_geometry::trailing_chevron(
+                                crate::locale_geometry::Direction::from_locale(catalog.locale())
+                                    .is_rtl(),
+                            ),
                             self.s().of(MARK_SLOT),
                             ink.muted_frame,
                         ))

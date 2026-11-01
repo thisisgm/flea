@@ -5,6 +5,7 @@ use super::marks::{self, mark, washed};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
 use crate::list::Typeface;
+use crate::window::input::reading;
 use flea::ui_logic_st1::{
     caps,
     pages::SECTIONS,
@@ -42,14 +43,17 @@ impl SettingsView {
         }
     }
 
-    fn key_down(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        if super::plugins::key(self, event, cx) {
+    fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if super::plugins::key(self, event, window.layout_mirrored(), cx) {
             cx.stop_propagation();
             return;
         }
         let stroke = &event.keystroke;
-        let text = stroke.key_char.as_deref().unwrap_or("");
-        self.panel.key(&stroke.key, text, stroke.modifiers.shift);
+        // A query types its text; otherwise the panel navigates, mirrored with the window.
+        let mirrored = window.layout_mirrored() && self.panel.query.is_none();
+        let text = reading(stroke.key_char.as_deref().unwrap_or(""), mirrored);
+        self.panel
+            .key(reading(&stroke.key, mirrored), text, stroke.modifiers.shift);
         self.flush(cx);
         cx.stop_propagation();
     }

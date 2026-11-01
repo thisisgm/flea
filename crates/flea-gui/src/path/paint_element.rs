@@ -129,47 +129,61 @@ impl Element for CrumbElement {
         } else {
             bounds.size.height
         };
+        // The git label trails the leaf, so it moves with the crumbs as part of the one line.
+        let git = (!view.inputs.git_label.is_empty())
+            .then(|| paint.shape(&view.inputs.git_label, Size::Caption, false, window));
+        let trail = git
+            .as_ref()
+            .map_or(0., |run| 9. + f32::from(run.line().width));
+        // A path keeps its reading order in a mirrored window: its crumbs move as one line.
+        let line = Bounds::new(
+            point(left, bounds.origin.y),
+            size(px(strip.width() + trail), height),
+        );
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            for (index, (crumb, run)) in strip.crumbs().iter().zip(&paint.runs[slot]).enumerate() {
-                let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
-                let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
-                if view.drop_target == Some((slot, index)) && cx.has_active_drag() {
-                    let end = crumb
-                        .text
-                        .strip_suffix('/')
-                        .filter(|name| !name.is_empty())
-                        .map_or(crumb.text.len(), str::len);
-                    let target = Bounds::new(
-                        point(x, bounds.top()),
-                        size(run.line().x_for_index(end), height),
+            window.with_unmirrored(line, |window| {
+                for (index, (crumb, run)) in
+                    strip.crumbs().iter().zip(&paint.runs[slot]).enumerate()
+                {
+                    let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
+                    let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
+                    if view.drop_target == Some((slot, index)) && cx.has_active_drag() {
+                        let end = crumb
+                            .text
+                            .strip_suffix('/')
+                            .filter(|name| !name.is_empty())
+                            .map_or(crumb.text.len(), str::len);
+                        let target = Bounds::new(
+                            point(x, bounds.top()),
+                            size(run.line().x_for_index(end), height),
+                        );
+                        window
+                            .paint_quad(fill(target, ink.accent.opacity(crate::list::CURSOR_WASH)));
+                        window.paint_quad(fill(
+                            Bounds::new(target.origin, size(px(2.), height)),
+                            ink.accent_frame,
+                        ));
+                    }
+                    paint_run(
+                        run,
+                        x,
+                        bounds.origin.y,
+                        height,
+                        if lit { ink.foreground } else { rest },
+                        window,
                     );
-                    window.paint_quad(fill(target, ink.accent.opacity(crate::list::CURSOR_WASH)));
-                    window.paint_quad(fill(
-                        Bounds::new(target.origin, size(px(2.), height)),
-                        ink.accent_frame,
-                    ));
                 }
-                paint_run(
-                    run,
-                    x,
-                    bounds.origin.y,
-                    height,
-                    if lit { ink.foreground } else { rest },
-                    window,
-                );
-            }
-            if !view.inputs.git_label.is_empty() {
-                let end = strip.end();
-                let run = paint.shape(&view.inputs.git_label, Size::Caption, false, window);
-                paint_run(
-                    &run,
-                    left + px(end + 9.),
-                    bounds.origin.y,
-                    height,
-                    ink.muted,
-                    window,
-                );
-            }
+                if let Some(run) = &git {
+                    paint_run(
+                        run,
+                        left + px(strip.end() + 9.),
+                        bounds.origin.y,
+                        height,
+                        ink.muted,
+                        window,
+                    );
+                }
+            })
         });
     }
 }

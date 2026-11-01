@@ -175,7 +175,12 @@ impl TrackElement {
                                     point(left + px(x), top + px((ROW_HEIGHT - CHEVRON) / 2.)),
                                     size(px(CHEVRON), px(CHEVRON)),
                                 );
-                                paint_svg(CHEVRON_SVG, at, inks.chevron, window, cx);
+                                let chevron = if window.layout_mirrored() {
+                                    CHEVRON_LEFT_SVG
+                                } else {
+                                    CHEVRON_SVG
+                                };
+                                paint_svg(chevron, at, inks.chevron, window, cx);
                             }
                             if *clip != Clip::None {
                                 let x = geometry.clip_x();

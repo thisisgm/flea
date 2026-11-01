@@ -172,7 +172,13 @@ impl Shell {
         } else {
             KeyContext::Listing
         };
-        let Match::Action(action) = event_lookup(preset, context, event, window.modifiers()) else {
+        let Match::Action(action) = event_lookup(
+            preset,
+            context,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+        ) else {
             return true;
         };
         let event = ActionEvent::bare(action, context);

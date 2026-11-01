@@ -105,7 +105,7 @@ impl PluginsPane {
         cx.notify();
     }
 
-    fn on_key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+    fn on_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         let keystroke = &event.keystroke;
         if keystroke.key == "tab" {
             if *self.page.card() != Card::None {
@@ -116,20 +116,21 @@ impl PluginsPane {
         let plain = !keystroke.modifiers.control
             && !keystroke.modifiers.alt
             && !keystroke.modifiers.platform;
-        let key = match keystroke.key.as_str() {
-            "up" => Key::Up,
-            "down" => Key::Down,
-            "left" => Key::Left,
-            "right" => Key::Right,
-            "enter" => Key::Enter,
-            "escape" => Key::Escape,
-            "backspace" => Key::Backspace,
-            "space" if !matches!(self.page.card(), Card::Add(_)) => Key::Space,
-            _ => match (&keystroke.key_char, plain) {
-                (Some(text), true) => Key::Text(text.clone()),
-                _ => return,
-            },
-        };
+        let key =
+            match crate::window::input::reading(keystroke.key.as_str(), window.layout_mirrored()) {
+                "up" => Key::Up,
+                "down" => Key::Down,
+                "left" => Key::Left,
+                "right" => Key::Right,
+                "enter" => Key::Enter,
+                "escape" => Key::Escape,
+                "backspace" => Key::Backspace,
+                "space" if !matches!(self.page.card(), Card::Add(_)) => Key::Space,
+                _ => match (&keystroke.key_char, plain) {
+                    (Some(text), true) => Key::Text(text.clone()),
+                    _ => return,
+                },
+            };
         cx.stop_propagation();
         self.key(key, cx);
     }
@@ -296,7 +297,13 @@ impl PluginsPane {
     }
 
     fn chevron(&self) -> Option<Mark> {
-        Mark::named("chevron-right", m::CHEVRON, self.tokens.muted_frame)
+        let mirrored =
+            crate::locale_geometry::Direction::from_locale(self.page.catalog().locale()).is_rtl();
+        Mark::named(
+            crate::locale_geometry::trailing_chevron(mirrored),
+            m::CHEVRON,
+            self.tokens.muted_frame,
+        )
     }
 
     fn chips(

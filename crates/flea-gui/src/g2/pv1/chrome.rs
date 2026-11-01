@@ -92,12 +92,13 @@ pub fn bar(
     }
     let shown: Vec<&StripItem> = chrome.strip.iter().filter(|item| item.visible).collect();
     let pager = |g: Glyph| shown.iter().find(|item| item.glyph == g).copied();
-    // ql-pdf3: the pager and its count follow the name; the tools sit at the right end.
+    // ql-pdf3: the pager and its count follow the name; the tools sit at the right end. The pager keeps its order when mirrored.
+    let mut pages = div().flex().flex_none().items_center().gap(px(look::GAP));
     if let Some(item) = pager(Glyph::ChevronLeft) {
-        row = row.child(strip_slot(item, look, state, cx));
+        pages = pages.child(strip_slot(item, look, state, cx));
     }
     if let Some(counter) = &chrome.counter {
-        row = row.child(
+        pages = pages.child(
             div()
                 .debug_selector(|| "pv1-counter".into())
                 .flex_none()
@@ -106,7 +107,14 @@ pub fn bar(
         );
     }
     if let Some(item) = pager(Glyph::ChevronRight) {
-        row = row.child(strip_slot(item, look, state, cx));
+        pages = pages.child(strip_slot(item, look, state, cx));
+    }
+    if chrome.counter.is_some()
+        || pager(Glyph::ChevronLeft)
+            .or(pager(Glyph::ChevronRight))
+            .is_some()
+    {
+        row = row.child(crate::locale_geometry::unmirrored(pages));
     }
     row = row.child(div().flex_1());
     let mut group = div().flex().flex_none().items_center().gap(px(look::GAP));

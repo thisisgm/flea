@@ -271,56 +271,65 @@ impl Element for FieldElement {
             // The extension starts at the last dot past the first character, read off the draft as it stands.
             let stem = text.rfind('.').filter(|&at| at > 0).unwrap_or(text.len());
             let boundary = origin + line.x_for(stem);
-            window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-                if !entry.selected.is_empty() {
-                    let (from, to) = line.entry_span(entry, &entry.selected);
-                    let (from, to) = (origin + from, origin + to);
-                    window.paint_quad(fill(
-                        Bounds::new(
-                            point(from, band.origin.y),
-                            size(to - from, band.size.height),
-                        ),
-                        ink.wash(SELECTION),
-                    ));
-                }
-                if let Some(run) = &line.run {
-                    let ends = |from: Pixels, to: Pixels| {
-                        Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
-                    };
-                    for (part, color) in [
-                        (ends(band.left(), boundary.max(band.left())), ink.foreground),
-                        (ends(boundary.min(band.right()), band.right()), ink.muted),
-                    ] {
-                        window.with_content_mask(Some(ContentMask { bounds: part }), |window| {
-                            paint_run(
-                                run,
-                                origin,
-                                frame.origin.y,
-                                frame.size.height,
-                                color,
-                                window,
-                            );
-                        });
+            // A file name keeps its order in a mirrored window: line, washes and caret move as one.
+            window.with_unmirrored(frame, |window| {
+                window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
+                    if !entry.selected.is_empty() {
+                        let (from, to) = line.entry_span(entry, &entry.selected);
+                        let (from, to) = (origin + from, origin + to);
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(from, band.origin.y),
+                                size(to - from, band.size.height),
+                            ),
+                            ink.wash(SELECTION),
+                        ));
                     }
-                }
-                if let Some(marked) = &entry.marked {
-                    let (from, to) = line.entry_span(entry, marked);
-                    let (from, to) = (origin + from, origin + to);
-                    window.paint_quad(fill(
-                        Bounds::new(point(from, band.bottom() - px(1.)), size(to - from, px(1.))),
-                        ink.foreground,
-                    ));
-                }
-                if entry.selected.is_empty() {
-                    let at = origin + line.entry_caret(entry, entry.cursor());
-                    window.paint_quad(fill(
-                        Bounds::new(
-                            point(at, band.origin.y + px(2.)),
-                            size(px(1.), band.size.height - px(4.)),
-                        ),
-                        ink.foreground,
-                    ));
-                }
+                    if let Some(run) = &line.run {
+                        let ends = |from: Pixels, to: Pixels| {
+                            Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
+                        };
+                        for (part, color) in [
+                            (ends(band.left(), boundary.max(band.left())), ink.foreground),
+                            (ends(boundary.min(band.right()), band.right()), ink.muted),
+                        ] {
+                            window.with_content_mask(
+                                Some(ContentMask { bounds: part }),
+                                |window| {
+                                    paint_run(
+                                        run,
+                                        origin,
+                                        frame.origin.y,
+                                        frame.size.height,
+                                        color,
+                                        window,
+                                    );
+                                },
+                            );
+                        }
+                    }
+                    if let Some(marked) = &entry.marked {
+                        let (from, to) = line.entry_span(entry, marked);
+                        let (from, to) = (origin + from, origin + to);
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(from, band.bottom() - px(1.)),
+                                size(to - from, px(1.)),
+                            ),
+                            ink.foreground,
+                        ));
+                    }
+                    if entry.selected.is_empty() {
+                        let at = origin + line.entry_caret(entry, entry.cursor());
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(at, band.origin.y + px(2.)),
+                                size(px(1.), band.size.height - px(4.)),
+                            ),
+                            ink.foreground,
+                        ));
+                    }
+                })
             });
             // The refusal sits in the band under its field, in the error role, on the ground its row or the window keeps.
             if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {

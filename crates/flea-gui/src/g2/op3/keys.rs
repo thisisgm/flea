@@ -16,6 +16,17 @@ pub enum Key {
     Text(String),
 }
 
+impl Key {
+    /// A mirrored window's card reads physical Left as Right and Right as Left, as Omarchy's PanelKeyCatcher does.
+    pub fn read(self, mirrored: bool) -> Self {
+        match (self, mirrored) {
+            (Self::Left, true) => Self::Right,
+            (Self::Right, true) => Self::Left,
+            (key, _) => key,
+        }
+    }
+}
+
 /// Sample input: Shift+Tab reads Backtab; a printable key reads its own character; a held Enter or Space reads nothing.
 pub fn key_of(event: &KeyDownEvent) -> Option<Key> {
     let stroke = &event.keystroke;

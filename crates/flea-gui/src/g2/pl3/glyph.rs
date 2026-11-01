@@ -61,7 +61,14 @@ impl Element for GlyphBox {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let (key, data) = self.glyph.svg();
+        let (key, data) = match self.glyph {
+            // Back points to logical leading, right in a mirrored window.
+            Glyph::Back if window.layout_mirrored() => (
+                crate::locale_geometry::ARROW_RIGHT.0.into(),
+                crate::locale_geometry::ARROW_RIGHT.1,
+            ),
+            glyph => glyph.svg(),
+        };
         let _ = window.paint_svg(
             bounds,
             key,

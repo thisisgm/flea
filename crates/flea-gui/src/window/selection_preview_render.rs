@@ -272,7 +272,12 @@ impl Render for SelectionPreview {
                 )),
             };
         }
-        root = root.flex().flex_col().gap(px(metrics.gap)).child(media);
+        // File content keeps its own layout in a mirrored window; the name and facts below mirror.
+        root = root
+            .flex()
+            .flex_col()
+            .gap(px(metrics.gap))
+            .child(crate::locale_geometry::unmirrored(media));
         if empty {
             return root;
         }

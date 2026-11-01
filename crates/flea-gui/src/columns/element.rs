@@ -3,7 +3,7 @@ use super::cache::{Row, Shaping};
 use super::geometry::{
     cells_in, mark_box, name_budget_in, picture_box, Slot, CHEVRON, DIVIDER, GAP, PAD_X,
 };
-use super::glyphs::{paint_line, paint_svg, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
+use super::glyphs::{paint_line, paint_svg, CHEVRON_LEFT_SVG, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
 };

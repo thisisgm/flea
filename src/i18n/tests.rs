@@ -99,6 +99,34 @@ fn missing_translation_forms_use_other_before_english() {
 }
 
 #[test]
+fn a_gui_line_opening_in_latin_takes_the_rtl_locales_direction() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "ar");
+    f.write(
+        "installed/i18n/en/flea.json",
+        r#"{"copy.done":"Copied %1","copy.lead":"Copied %1","isolated":"Copied"}"#,
+    );
+    f.write(
+        "installed/i18n/ar/flea.json",
+        r#"{"app.name":"Flea","copy.done":"Flea نسخ %1","copy.lead":"%1 منسوخ","items.count":{"other":"Flea فيه %1"},"isolated":"\u2068Flea\u2069 نسخ"}"#,
+    );
+    let tui = I18n::load(f.paths());
+    let mut gui = tui.clone();
+    gui.mark_paragraphs();
+    assert_eq!(tui.tr_args("copy.done", &["a.txt"]), "Flea نسخ a.txt");
+    assert_eq!(gui.tr_args("copy.done", &["a.txt"]), "\u{200f}Flea نسخ a.txt");
+    assert_eq!(gui.trn("items.count", 3), "\u{200f}Flea فيه 3");
+    // A line that opens in its own script, in a placeholder, in an isolate or in Latin alone keeps its text.
+    assert_eq!(gui.tr("app.name"), "Flea");
+    assert_eq!(gui.tr_args("copy.lead", &["a.txt"]), "a.txt منسوخ");
+    assert_eq!(gui.tr("isolated"), "\u{2068}Flea\u{2069} نسخ");
+    assert_eq!(gui.tr("folder.empty"), "This folder is empty");
+    gui.reload();
+    assert_eq!(gui.tr_args("copy.done", &["a.txt"]), "\u{200f}Flea نسخ a.txt");
+}
+
+#[test]
 fn substitution_handles_reordering_double_digit_tokens_and_literal_replacement_text() {
     assert_eq!(substitute("%2 then %1", &["A", "B"]), "B then A");
     assert_eq!(substitute("%1 %2", &["%2", "A&B"]), "%2 A&B");

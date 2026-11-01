@@ -88,6 +88,7 @@ pub fn glyph(name: &str) -> Option<(SharedString, &'static [u8])> {
             "flea-st2:plug",
             cut!("M12 22v-5 M9 8V2 M15 8V2 M6 8h12v6l-3 3H9l-3-3z"),
         ),
+        "chevron-left" => ("flea-st2:chevron-left", cut!("M15 18l-6-6 6-6")),
         "chevron-right" => ("flea-st2:chevron-right", cut!("M9 18l6-6-6-6")),
         "folder" => ("flea-st2:folder", cut!("M2 20V3h6l2 3h12v14H2z")),
         "file" => ("flea-st2:file", cut!("M4 22V2h10l6 6v14H4z M14 2v6h6")),

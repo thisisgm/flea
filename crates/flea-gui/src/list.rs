@@ -225,6 +225,7 @@ pub struct Drawn {
     pub scroll_y: f32,
     pub listing: usize,
     pub frames: u64,
+    pub mirrored: bool,
     /// The drop target row and the box its caption is drawn in, this frame.
     pub drop: Option<(usize, Bounds<Pixels>)>,
     /// Rows drawn as Row.qml's loading bar because the pane does not hold them yet.
@@ -246,6 +247,7 @@ impl Default for Drawn {
             scroll_y: 0.,
             listing: 0,
             frames: 0,
+            mirrored: false,
             drop: None,
             loading: 0,
             grow: pane::Grow::default(),

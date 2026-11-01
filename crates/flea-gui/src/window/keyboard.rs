@@ -63,13 +63,14 @@ impl Keyboard {
         name: &str,
         event: &KeyDownEvent,
         held: Modifiers,
+        mirrored: bool,
         seat: Seat,
     ) -> Dispatch {
         if self.composing(event) {
             self.sequence.clear();
             return Dispatch::Composition;
         }
-        match event_lookup(name, self.context, event, held) {
+        match event_lookup(name, self.context, event, held, mirrored) {
             Match::Unbound => {
                 self.sequence.clear();
                 Dispatch::Unbound
@@ -93,9 +94,17 @@ pub fn modifiers(modifiers: Modifiers) -> u8 {
         | (u8::from(modifiers.platform) * keys::SUPER)
 }
 
-/// The event's binding in i18n/keyboard-policy.json order: the US position first for digits and non-Latin groups, else the printed key.
-pub fn event_lookup(name: &str, context: Context, event: &KeyDownEvent, held: Modifiers) -> Match {
-    let [first, second] = event_inputs(event, held);
+/// The event's binding in i18n/keyboard-policy.json order: the US position first for digits and non-Latin groups, else the printed key, read as `reading_input` reads it.
+pub fn event_lookup(
+    name: &str,
+    context: Context,
+    event: &KeyDownEvent,
+    held: Modifiers,
+    mirrored: bool,
+) -> Match {
+    let mirrored = mirrored && reads_mirrored(context);
+    let [first, second] =
+        event_inputs(event, held).map(|input| input.map(|input| reading_input(input, mirrored)));
     match first {
         Some(first) => keys::lookup_either(name, context, Frontend::Gui, first, second),
         None => Match::Unbound,
@@ -108,6 +117,43 @@ pub fn event_inputs(event: &KeyDownEvent, held: Modifiers) -> [Option<Input<'_>>
     match position_input(event, held) {
         Some((position, true)) => [Some(position), Some(printed)],
         position => [Some(printed), position.map(|(input, _)| input)],
+    }
+}
+
+/// Spatial contexts follow a mirrored window; previews, PDFs, media and editors keep their keys, as file content does.
+fn reads_mirrored(context: Context) -> bool {
+    matches!(
+        context,
+        Context::Listing | Context::Rail | Context::Menu | Context::Panel
+    )
+}
+
+/// Omarchy's readingKey, so a mirrored window swaps Left and Right with any modifiers and a plain h and l.
+fn reading_input(input: Input<'_>, mirrored: bool) -> Input<'_> {
+    if !mirrored {
+        return input;
+    }
+    let plain = input.modifiers & keys::MODIFIER_MASK == 0;
+    let key = match input.key {
+        "h" | "l" if !plain => input.key,
+        key => reading(key, true),
+    };
+    let text = if plain {
+        reading(input.text, true)
+    } else {
+        input.text
+    };
+    Input { key, text, ..input }
+}
+
+/// The key a navigation reader acts on, with Left and Right and h and l swapped when mirrored, as Omarchy's PanelKeyCatcher does.
+pub fn reading(key: &str, mirrored: bool) -> &str {
+    match (key, mirrored) {
+        ("left", true) => "right",
+        ("right", true) => "left",
+        ("h", true) => "l",
+        ("l", true) => "h",
+        (key, _) => key,
     }
 }
 
@@ -298,6 +344,9 @@ pub fn paste_into(text: &str, type_text: impl FnOnce(&str)) -> bool {
     true
 }
 
+#[cfg(test)]
+#[path = "keyboard_mirror_tests.rs"]
+mod mirror_tests;
 #[cfg(test)]
 #[path = "keyboard_us_position_tests.rs"]
 mod us_position_tests;

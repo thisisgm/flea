@@ -32,7 +32,7 @@ fn press(
 }
 
 fn action(context: Context, (event, held): (KeyDownEvent, Modifiers)) -> Match {
-    event_lookup("default", context, &event, held)
+    event_lookup("default", context, &event, held, false)
 }
 
 fn shift() -> Modifiers {
@@ -180,7 +180,7 @@ fn latin_ascii_letters_at_us_punctuation_keys_match_only_where_printed() {
         for preset in PRESETS {
             for context in Context::ALL {
                 assert_eq!(
-                    event_lookup(preset, context, &event, held),
+                    event_lookup(preset, context, &event, held, false),
                     lookup(preset, context, Frontend::Gui, event_input(&event, held)),
                     "{preset} {context:?} {:?}",
                     event.keystroke

@@ -1,6 +1,6 @@
 //! Bounded rail text preparation; paint only consumes retained glyph runs.
 use crate::list::Typeface;
-use gpui::{point, px, Font, GlyphRun, Hsla, Pixels, TextRun, Window};
+use gpui::{point, px, size, Bounds, Font, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::{collections::VecDeque, rc::Rc};
 
 pub struct Prepared {
@@ -24,9 +24,17 @@ impl Prepared {
 
     pub fn paint(&self, x: f32, y: f32, height: f32, ink: Hsla, window: &mut Window) {
         let baseline = y + (height - self.height) / 2. + self.ascent;
-        for (offset, run) in &self.runs {
-            let _ = window.paint_glyph_run(point(px(x + offset), px(baseline)), run, ink);
-        }
+        // A tracked label is one run per letter, so it mirrors as one unit to keep its letter order.
+        let drawn = self
+            .runs
+            .last()
+            .map_or(0., |(offset, run)| offset + f32::from(run.line().width));
+        let label = Bounds::new(point(px(x), px(y)), size(px(drawn), px(height)));
+        window.with_unmirrored(label, |window| {
+            for (offset, run) in &self.runs {
+                let _ = window.paint_glyph_run(point(px(x + offset), px(baseline)), run, ink);
+            }
+        });
     }
 }
 

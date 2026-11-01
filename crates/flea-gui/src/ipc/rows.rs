@@ -242,7 +242,12 @@ impl RowsAdapter<'_> {
                 .shown(index)
                 .map(|shown| {
                     if let Some((name, _, _)) = facts.and_then(|row| {
-                        crate::list::outline::chevron(view, row, shown.state.hovered)
+                        crate::list::outline::chevron(
+                            view,
+                            row,
+                            shown.state.hovered,
+                            self.list.drawn.mirrored,
+                        )
                     }) {
                         name.to_owned()
                     } else if shown.prepared.is_none() {

@@ -122,6 +122,7 @@ impl Picker {
             &self.chrome.preset,
             event,
             window.modifiers(),
+            window.layout_mirrored(),
             Default::default(),
         );
         let action = match dispatch {
@@ -139,7 +140,10 @@ impl Picker {
             "extendUp" if !self.selection_permitted() => "cursorUp",
             other => other,
         };
-        let key = event.keystroke.key.as_str();
+        let key = crate::window::input::reading(
+            event.keystroke.key.as_str(),
+            window.layout_mirrored() && !text_focus,
+        );
         if self.browse.listing.read(cx).view_mode() == "grid"
             && !text_focus
             && !(chord.control || chord.alt || chord.platform || chord.shift)

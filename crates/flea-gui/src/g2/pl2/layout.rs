@@ -25,6 +25,7 @@ impl Drawn {
             ..Self::default()
         };
         out.boxes.push(BoxPaint {
+            field: None,
             rect: out.card.unwrap(),
             fill: p.surface,
             border: p.muted_frame,
@@ -65,6 +66,7 @@ impl Drawn {
             window,
         );
         out.boxes.push(BoxPaint {
+            field: None,
             rect: Rect {
                 x: 17.,
                 y: 48.,
@@ -267,6 +269,7 @@ impl Drawn {
             };
             out.hits.push((Focus::Tls, rect));
             out.boxes.push(BoxPaint {
+                field: None,
                 rect: Rect {
                     x: 17.,
                     y: 487.,

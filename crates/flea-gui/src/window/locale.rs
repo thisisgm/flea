@@ -76,6 +76,7 @@ impl Service {
                 let _closing = Closing(worker_state.clone());
                 before_first();
                 let mut catalog = I18n::load(paths);
+                catalog.mark_paragraphs();
                 let _ = catalog.locale().format_date(0);
                 let mut revision = 1;
                 loop {

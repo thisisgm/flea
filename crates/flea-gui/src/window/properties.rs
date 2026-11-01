@@ -150,7 +150,7 @@ impl Shell {
         if self.properties.is_none() {
             return false;
         }
-        if let Some(key) = key_of(event) {
+        if let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) {
             let effects = self
                 .properties
                 .as_mut()

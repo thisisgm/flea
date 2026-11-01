@@ -164,6 +164,11 @@ impl Strip {
         }
     }
 
+    /// The placed crumbs' drawn width, in pixels.
+    pub fn width(&self) -> f32 {
+        self.edges.last().copied().unwrap_or(0.)
+    }
+
     /// Crumb i's left edge from the strip's first crumb and its drawn width, in pixels, once placed.
     pub fn extent(&self, index: usize) -> Option<(f32, f32)> {
         let (&left, &right) = (self.edges.get(index)?, self.edges.get(index + 1)?);

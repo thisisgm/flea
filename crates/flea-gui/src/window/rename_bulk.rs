@@ -69,12 +69,17 @@ impl Shell {
         cx.notify();
     }
 
-    pub(super) fn bulk_rename_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
+    pub(super) fn bulk_rename_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.dialog_key(event, cx) {
             return;
         }
         cx.stop_propagation();
-        let Some(key) = key_of(event) else {
+        let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) else {
             return;
         };
         let Some(open) = self.rename.bulk.as_mut() else {

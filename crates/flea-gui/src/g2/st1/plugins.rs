@@ -5,6 +5,7 @@ use gpui::{Context, KeyDownEvent};
 pub(super) fn key(
     view: &mut SettingsView,
     event: &KeyDownEvent,
+    mirrored: bool,
     cx: &mut Context<SettingsView>,
 ) -> bool {
     if view.panel.section != "plugins" || view.panel.side != super::Side::Pane {
@@ -14,7 +15,7 @@ pub(super) fn key(
         return false;
     };
     let stroke = &event.keystroke;
-    let key = match stroke.key.as_str() {
+    let key = match crate::window::input::reading(stroke.key.as_str(), mirrored) {
         "tab" => {
             return *plugin.read(cx).page().card() != crate::g2::st2::page::Card::None;
         }

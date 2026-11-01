@@ -133,7 +133,7 @@ impl View {
         self.flush(Vec::new(), cx);
     }
 
-    pub fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if !self.opened || !self.pending.is_empty() {
             cx.stop_propagation();
             return;
@@ -145,7 +145,7 @@ impl View {
         }
         if self.edit_octal(event, cx) {
             self.flush(Vec::new(), cx);
-        } else if let Some(key) = key_of(event) {
+        } else if let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) {
             let effects = self.model.key(key);
             if stroke.key == "escape" && effects.contains(&Effect::Close) {
                 self.progress.supersede();
