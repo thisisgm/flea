@@ -4,6 +4,7 @@ pub mod display;
 mod generated;
 pub mod presentation;
 pub mod sequence;
+pub mod user;
 pub use generated::*;
 
 #[cfg(test)]

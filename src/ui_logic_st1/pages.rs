@@ -10,7 +10,7 @@ mod places;
 #[path = "pages_view.rs"]
 mod view;
 
-pub use display::{display_rows, key_preview, key_rows, scale_label};
+pub use display::{display_rows, key_preview, key_rows, scale_label, user_binding_refusals, user_key_refusals, user_key_rows, UserKeyFacts, USER_KEYS};
 pub use places::{favourite_entries, places_rows, sidebar_width, Favourite, WIDTH_STOPS};
 pub use view::{preview_rows, view_rows};
 
@@ -47,11 +47,13 @@ pub struct State<'a> {
     // None reads Saved; a failed write names itself and takes the error role.
     pub save_error: Option<Text>,
     pub favourite_statuses: &'a [Text],
+    // The user's key file and the enabled plugins' menu actions it may name.
+    pub user_keys: Option<&'a UserKeyFacts>,
 }
 
 impl<'a> State<'a> {
     pub fn new(data: &'a Json) -> Self {
-        Self { data, home: "", preset: "default", base_size: 14, monitor_scale: 1., save_error: None, favourite_statuses: &[] }
+        Self { data, home: "", preset: "default", base_size: 14, monitor_scale: 1., save_error: None, favourite_statuses: &[], user_keys: None }
     }
 }
 

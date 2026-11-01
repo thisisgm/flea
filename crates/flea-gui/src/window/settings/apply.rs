@@ -201,6 +201,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let old = &self.launch.settings.data;
+        let preset_changed = old.get("keys") != data.get("keys");
         let plugins_changed = ["plugins", "shelf"]
             .iter()
             .any(|key| old.get(key) != data.get(key));
@@ -259,6 +260,9 @@ impl Shell {
         }
         if plugins_changed {
             self.plugins_settings_changed(cx);
+        }
+        if plugins_changed || preset_changed {
+            self.user_keys_changed(window, cx);
         }
         self.sync_trash_sheet(cx);
         if relist {

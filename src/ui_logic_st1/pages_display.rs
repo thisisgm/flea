@@ -5,6 +5,7 @@ use super::super::Text;
 use super::{at, is_true, State};
 use crate::jsondoc::Json;
 use crate::keys::{action_group, binding_rows, lookup, presentation::key_for, Context, Frontend, Input, PRESETS};
+use crate::keys::user::{builtin_label, Projection, UserKeys, Verdict};
 
 fn hinted(template: &'static str, preset: &str, actions: &[&str]) -> Option<Text> {
     sentence(template, actions.iter().map(|action| key_for(preset, action)).collect())
@@ -114,5 +115,168 @@ pub fn key_rows(state: &State<'_>) -> Vec<Row> {
     if let Some(tip) = hinted("settings.hint.sheet_key", state.preset, &["keymapSheet"]) {
         out.push(Row::hint(tip));
     }
+    if let Some(facts) = state.user_keys {
+        out.extend(user_key_rows(facts, state.preset));
+    }
+    out
+}
+
+pub const USER_KEYS: &str = "userKeys";
+
+/// What Settings > Keys needs to list the user's own bindings: the parsed file and each enabled plugin action's id, label and glyph.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UserKeyFacts {
+    pub keys: UserKeys,
+    pub plugins: Vec<(String, String, String)>,
+    pub catalog: Option<Vec<String>>,
+    pub resolved: Option<(String, Vec<Verdict>)>,
+}
+
+impl UserKeyFacts {
+    pub fn declares(&self, id: &str) -> bool {
+        self.plugins.iter().any(|(known, _, _)| known == id)
+    }
+
+    pub fn resolve(&mut self, preset: &str, projection: &Projection) {
+        let preset = crate::keys::preset(preset);
+        let verdicts = self
+            .keys
+            .verdicts(preset, &|id| self.declares(id), projection);
+        self.resolved = Some((preset.into(), verdicts));
+    }
+
+    pub fn current_verdicts(&self, preset: &str) -> Option<&[Verdict]> {
+        let (known, verdicts) = self.resolved.as_ref()?;
+        (known == crate::keys::preset(preset) && verdicts.len() == self.keys.bindings.len())
+            .then_some(verdicts.as_slice())
+    }
+
+    fn verdicts(&self, preset: &str) -> Vec<Verdict> {
+        let preset = crate::keys::preset(preset);
+        let verdicts = self
+            .current_verdicts(preset)
+            .map(<[Verdict]>::to_vec)
+            .unwrap_or_else(|| {
+                self.keys
+                    .verdicts(preset, &|id| self.declares(id), &Projection::default())
+            });
+        verdicts
+            .into_iter()
+            .zip(&self.keys.bindings)
+            .map(|(verdict, binding)| {
+                let verdict = if binding.is_plugin() && !self.declares(&binding.action) {
+                    Verdict::Inactive
+                } else {
+                    verdict
+                };
+                if verdict == Verdict::Inactive
+                    && binding.is_plugin()
+                    && (binding.preset == "all" || binding.preset == preset)
+                    && self
+                        .catalog
+                        .as_ref()
+                        .is_some_and(|catalog| !catalog.contains(&binding.action))
+                {
+                    Verdict::Unknown
+                } else {
+                    verdict
+                }
+            })
+            .collect()
+    }
+}
+
+/// One refusal sentence per binding that stays unbound in the active preset.
+pub fn user_binding_refusals(facts: &UserKeyFacts, preset: &str) -> Vec<Text> {
+    let verdicts = facts.verdicts(preset);
+    facts
+        .keys
+        .bindings
+        .iter()
+        .zip(&verdicts)
+        .filter_map(|(binding, verdict)| {
+            let keys = Text::data(binding.keys());
+            match verdict {
+                Verdict::Taken("") => Some(Text::args("settings.hint.key_reserved", vec![keys])),
+                Verdict::Taken(action) => {
+                    let by = builtin_label(action).map_or_else(|| Text::data(*action), Text::Key);
+                    Some(Text::args("settings.hint.key_taken", vec![keys, by]))
+                }
+                Verdict::Repeated => Some(Text::args("settings.hint.key_repeated", vec![keys])),
+                Verdict::Unknown => Some(Text::args(
+                    "settings.hint.key_unknown",
+                    vec![keys, Text::data(binding.action.clone())],
+                )),
+                Verdict::Unavailable => Some(Text::args("settings.hint.key_layout", vec![keys])),
+                Verdict::Live | Verdict::Inactive => None,
+            }
+        })
+        .collect()
+}
+
+/// Binding refusals followed by unreadable blocks in file order.
+pub fn user_key_refusals(facts: &UserKeyFacts, preset: &str) -> Vec<Text> {
+    let mut out = user_binding_refusals(facts, preset);
+    // Line 0 is the whole file: too large or not UTF-8 text.
+    out.extend(
+        facts
+            .keys
+            .problems
+            .iter()
+            .map(|problem| match problem.line {
+                0 => Text::Key("settings.hint.key_file"),
+                line => Text::args(
+                    "settings.hint.key_malformed",
+                    vec![Text::data(line.to_string())],
+                ),
+            }),
+    );
+    out
+}
+
+/// The Your Keys group: live bindings in the This Preset recipe, then each refusal as a hint; nothing when the file binds nothing here.
+pub fn user_key_rows(facts: &UserKeyFacts, preset: &str) -> Vec<Row> {
+    let verdicts = facts.verdicts(preset);
+    let items: Vec<KeyItem> = facts
+        .keys
+        .bindings
+        .iter()
+        .zip(&verdicts)
+        .filter(|(_, verdict)| **verdict == Verdict::Live)
+        .map(|(binding, _)| {
+            let plugin = facts
+                .plugins
+                .iter()
+                .find(|(id, _, _)| *id == binding.action);
+            let label = plugin.map_or_else(
+                || {
+                    builtin_label(&binding.action)
+                        .map_or_else(|| Text::data(binding.action.clone()), Text::Key)
+                },
+                |(_, label, _)| Text::data(label.clone()),
+            );
+            let glyph = plugin
+                .and_then(|(_, _, glyph)| crate::ui_logic_mn2::rows::static_glyph(glyph))
+                .unwrap_or("");
+            KeyItem {
+                keys: binding.keys(),
+                label,
+                glyph,
+            }
+        })
+        .collect();
+    let refusals = user_key_refusals(facts, preset);
+    if items.is_empty() && refusals.is_empty() {
+        return Vec::new();
+    }
+    let mut out = vec![Row::group("settings.group.your_keys")];
+    if !items.is_empty() {
+        out.push(Row {
+            id: USER_KEYS.into(),
+            items,
+            ..Row::new(Kind::KeyPreview, Text::Empty)
+        });
+    }
+    out.extend(refusals.into_iter().map(Row::hint));
     out
 }

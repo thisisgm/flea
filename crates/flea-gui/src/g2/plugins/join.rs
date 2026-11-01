@@ -44,6 +44,7 @@ impl Shell {
             &host,
             window,
             |shell, _, line: &super::WireLine, _, cx| {
+                shell.user_keys_listed(&line.0);
                 shell.settings_plugins_reply(&line.0, cx);
             },
         ));
@@ -58,6 +59,7 @@ impl Shell {
                     .flat_map(|p| contributions::menu_actions(&p.manifest).unwrap_or_default())
                     .collect();
                 shell.menu.actions.set_contributions(contributions);
+                shell.user_keys_changed(window, cx);
                 shell.rail_tail(cx);
                 shell.plugin_rail_poll(cx);
                 shell.plugin_places_changed(cx);

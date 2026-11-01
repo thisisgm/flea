@@ -40,6 +40,7 @@ pub struct Shell {
     pub(crate) settings: crate::window::settings::Host,
     pub(crate) menu: crate::g2::mn1::join::Joined,
     pub(crate) plugins: crate::g2::plugins::Join,
+    pub(crate) user_keys: crate::window::user_keys::Join,
     pub(crate) operations: crate::g2::op1::join::Sessions,
     pub(crate) rename: crate::window::rename::Join,
     pub(crate) properties: Option<crate::window::properties::Open>,
@@ -134,6 +135,7 @@ impl Shell {
             surfaces: Default::default(),
             menu: Default::default(),
             plugins: Default::default(),
+            user_keys: Default::default(),
             overlay: None,
             quick_look: None,
             output: Default::default(),
@@ -196,6 +198,7 @@ impl Shell {
             shell.ensure_ipc_reader(window, cx);
         }
         shell.follow_frame_feedback(window, cx);
+        shell.follow_user_keys(window, cx);
         shell.start_plugins(window, cx);
         if let Some(device) = shell.launch.unlock.take() {
             shell.open_unlock_device(&device, window, cx);

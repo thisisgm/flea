@@ -71,6 +71,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         surfaces: Default::default(),
         menu: Default::default(),
         plugins: Default::default(),
+        user_keys: Default::default(),
         overlay: None,
         quick_look: None,
         output: Default::default(),

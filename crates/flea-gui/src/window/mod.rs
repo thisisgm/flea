@@ -55,6 +55,9 @@ pub(crate) mod status;
 pub(crate) mod surfaces;
 mod transitions;
 mod unlock;
+pub(crate) mod user_keys;
+#[cfg(test)]
+mod user_keys_tests;
 #[cfg(test)]
 mod vf6_tests;
 
