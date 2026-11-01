@@ -318,3 +318,66 @@ fn user_key_reads_refuse_nonregular_paths_and_reload_on_permission_changes() {
     assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
     cleanup(&root);
 }
+
+#[gpui::test]
+fn user_keys_existing_idle_host_bootstraps_after_file_load(cx: &mut TestAppContext) {
+    let root = scratch();
+    let file = root.join("keys.toml");
+    std::fs::write(
+        &file,
+        "[[ctrlshift]]\nkey = \"K\"\naction = \"example.checksums:sha256\"\n",
+    )
+    .unwrap();
+    let host = cx.update(crate::g2::plugins::service);
+    host.update(cx, |host, _| host.plugins = vec![checksums()]);
+    // Hold the first Shell frame while the real read and deferred attachment run.
+    let cx = cx.add_empty_window();
+    let (backend, _requests) = Backend::test_channel();
+    let shell = gpui::AppContext::new(cx, |cx| crate::state::tests::shell_with(backend, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        shell.launch.settings.data = flea::uistate::from_file("{}");
+        shell.user_keys.path = Some(file);
+        super::user_keys::test_fixture::seed(shell, cx);
+        shell.follow_user_keys(window, cx);
+        shell.start_plugins(window, cx);
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, _, _| {
+        assert!(
+            shell.plugins.host.is_none(),
+            "key file loads before attachment"
+        );
+        assert_eq!(shell.user_keys.facts.keys.bindings.len(), 1);
+        assert!(!shell.user_keys.facts.declares("example.checksums:sha256"));
+    });
+    cx.executor().advance_clock(Duration::from_millis(2));
+    cx.run_until_parked();
+    shell.update(cx, |shell, _| {
+        assert!(
+            shell.plugins.host.is_some(),
+            "deferred attachment completed"
+        );
+        assert!(
+            shell.user_keys.facts.declares("example.checksums:sha256"),
+            "attaching an idle existing host must initialize the key facts"
+        );
+        assert_eq!(
+            shell.user_keys.facts.current_verdicts("default").unwrap(),
+            &[Verdict::Live]
+        );
+        let event = gpui::KeyDownEvent {
+            keystroke: gpui::Keystroke::parse("ctrl-shift-k").unwrap(),
+            is_held: false,
+            prefer_character_input: false,
+        };
+        assert_eq!(
+            shell.user_key("default", &event, gpui::Modifiers::none()),
+            Some(super::user_keys::Bound::Plugin(
+                "example.checksums:sha256".into()
+            ))
+        );
+        let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+        assert_eq!(rows[1].items.len(), 1, "Settings shares the live verdict");
+    });
+    cleanup(&root);
+}
