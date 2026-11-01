@@ -7,6 +7,9 @@ use flea::ui_logic_pl4::rail::Kind;
 // The status line's activity owner for the held drag's line (FileDrag.qml dragFeedbackOwner).
 pub(super) const DRAG_LINE: u64 = 1 << 33;
 
+#[path = "rail_reaim.rs"]
+mod reaim;
+
 /// Where a rail row sends a drop: a place's folder, or the Trash.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Place {
@@ -352,34 +355,6 @@ impl Shell {
         if held || said {
             self.show_rail_cue(None, None, cx);
         }
-    }
-
-    /// RailDrop.qml onEntriesChanged: a held drag whose rail row no longer sends it where its aim says is aimed again at
-    /// the resting pointer, and the next frame checks it once more against the rows the rail lays out again.
-    pub(crate) fn reaim_rail_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let key = window_key(window);
-        let point = window.mouse_position();
-        let Some(drags) = cx.try_global::<Drags>() else {
-            return;
-        };
-        let Some(lift) = drags.lifts.get(&key) else {
-            return;
-        };
-        let aimed = match drags.aims.get(&key) {
-            Some(aim) => match aim.spot {
-                Spot::Rail(row) => Some((row, aim.side, aim.place.clone())),
-                Spot::Row(_) | Spot::Tab(_) => return,
-            },
-            None => None,
-        };
-        let current = self
-            .rail_target(point, lift, cx)
-            .map(|(row, side, _, place)| (row, side, place));
-        if current == aimed || !cx.has_active_drag() {
-            return;
-        }
-        self.aim_rail_drag(point, window, cx);
-        window.request_animation_frame();
     }
 
     /// A frame with no drag in flight drops a cue the release did not reach, as a release over the chrome.
