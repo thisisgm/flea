@@ -3,6 +3,7 @@ use super::Response;
 use crate::state::Shell;
 use flea::{
     jsondoc::Json,
+    ui_logic_fb1::status::Hint,
     ui_logic_mn1::Entry,
     ui_logic_mn2::{plugins, rows},
     ui_logic_st2::{contributions, store, wire::Plugin},
@@ -233,7 +234,7 @@ impl Shell {
                                     .catalog
                                     .tr_args(crate::g2::mn2::model::START_KEY, &[&said])
                             };
-                            shell.menu_notice(side, sentence, cx);
+                            shell.owner_notice(side, &sentence, !response.ok, Hint::None, cx);
                         }
                     }
                 },
