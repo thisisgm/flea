@@ -24,15 +24,7 @@ fn binary(root: &Path) -> &'static Path {
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let executable = std::env::current_exe().unwrap();
         let dependencies = executable.parent().unwrap();
-        let library = std::fs::read_dir(dependencies)
-            .unwrap()
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .find(|path| {
-                let name = path.file_name().unwrap().to_string_lossy();
-                name.starts_with("libflea-") && name.ends_with(".rlib")
-            })
-            .expect("cargo built the core library for this test");
+        let library = foldhash::core_library(dependencies, &executable);
         let binary = root.join("flea-backend");
         let output = Command::new("rustc")
             .arg("--edition=2021")
