@@ -96,9 +96,10 @@ impl PreviewLook<'_> {
             return String::new();
         }
         figure_line(doc.blocks(), |i| {
+            let ordinal = doc.counter(i).figure;
             figure_word(
-                doc.assets.figures.get(&doc.counter(i).figure).copied(),
-                doc.current(i),
+                doc.assets.figures.get(&ordinal).copied(),
+                doc.current(i) || doc.figure_asked(ordinal),
             )
         })
     }
@@ -140,12 +141,13 @@ fn figure_line(blocks: &[Block], state: impl Fn(usize) -> &'static str) -> Strin
         .join(",")
 }
 
-/// PreviewMarkdown.qml figureInfo's word: a block not laid out is deferred, a laid one waits on its drawing.
-fn figure_word(state: Option<FigureState>, laid: bool) -> &'static str {
+/// PreviewMarkdown.qml figureInfo's word: a figure laid out or asked for waits on its drawing, any other is deferred.
+fn figure_word(state: Option<FigureState>, busy: bool) -> &'static str {
     match state {
         Some(FigureState::Drawn { .. }) => "ready",
         Some(FigureState::Failed) => "failed",
-        _ if laid => "working",
+        Some(FigureState::Waiting) => "working",
+        _ if busy => "working",
         _ => "deferred",
     }
 }
