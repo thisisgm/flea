@@ -54,7 +54,11 @@ fn band_swallows_keys(cx: &mut TestAppContext, view: View) {
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(host.input.band.is_some());
-        assert_ne!(host.selected, before, "the band marks the rows it covers");
+        assert!(
+            host.selected.contains(&0) && host.selected != before,
+            "the band marks the first row it covers: {:?}",
+            host.selected
+        );
     });
     for key in ["ctrl-,", "/", "ctrl-f", "f2", "ctrl-q"] {
         cx.simulate_keystrokes(key);
@@ -89,17 +93,20 @@ fn band_swallows_keys(cx: &mut TestAppContext, view: View) {
         assert!(host.input.band.is_none());
         assert_eq!(host.selected, before);
     });
-    cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
+    // The button stays held after Escape, so the drag continues back over the ground before the release.
+    cx.simulate_mouse_move(ground, Some(MouseButton::Left), Modifiers::none());
+    draw(cx);
+    cx.simulate_mouse_up(ground, MouseButton::Left, Modifiers::none());
     draw(cx);
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(
             host.input.band.is_none(),
-            "the release after Escape draws no band"
+            "the held move and release after Escape draw no band"
         );
         assert_eq!(
             host.selected, before,
-            "the release after Escape keeps the rollback"
+            "the held move and release after Escape keep the rollback"
         );
     });
     cx.simulate_keystrokes("/");
@@ -107,6 +114,14 @@ fn band_swallows_keys(cx: &mut TestAppContext, view: View) {
         assert!(
             shell.panes[0].as_ref().unwrap().filter.owner.typing(),
             "with the band gone, / opens the filter"
+        );
+    });
+    cx.simulate_keystrokes("escape");
+    cx.simulate_keystrokes("ctrl-f");
+    shell.read_with(cx, |shell, _| {
+        assert!(
+            shell.panes[0].as_ref().unwrap().search.owner.active(),
+            "with the band gone, ctrl-f starts a search"
         );
     });
     close(&shell, cx);
