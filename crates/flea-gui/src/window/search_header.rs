@@ -23,6 +23,7 @@ impl Shell {
         if (side == 1 && self.view != View::Dual) || self.slots.covers[side].is_some() {
             return None;
         }
+        let input = self.search_input(side, cx);
         let host = self.panes[side].as_ref()?;
         if !host.search.owner.active() {
             return None;
@@ -49,7 +50,10 @@ impl Shell {
             &window.text_style(),
             theme,
         ));
-        let element = sr1::strip::StripElement::new(words, palette, host.search.strip.clone());
+        let mut element = sr1::strip::StripElement::new(words, palette, host.search.strip.clone());
+        if let Some(input) = input {
+            element = element.with_input(input, self.focus.clone());
+        }
         let height = crate::list::Metrics::for_typeface(&list.typeface).header;
         Some((
             div()

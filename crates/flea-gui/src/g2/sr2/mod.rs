@@ -1,5 +1,8 @@
 //! Filter040, the name filter over the whole listing: the controller behind `filter::PaneSeam`, the `wire` answer, the key line, the strip and the washed runs.
 pub mod filter;
+#[cfg(test)]
+mod i50_query_tests;
+pub(crate) mod input;
 pub mod keys;
 pub mod present;
 pub mod strip;

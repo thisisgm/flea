@@ -1,5 +1,6 @@
 //! One pane's filter: the typed query, the answer it draws, and every transition ui/js/Filter.js and Filter040 define.
 use super::wire::Answer;
+use crate::strips::query_input;
 use flea::ui_logic_sr2::{self as logic, Counts, Narrowed, Refusal, Scope};
 use std::rc::Rc;
 
@@ -73,6 +74,7 @@ pub enum Refused {
 
 #[derive(Default)]
 pub struct Filter {
+    pub entry: Rc<std::cell::RefCell<crate::path::entry::Entry>>,
     query: String,
     typing: bool,
     next_id: u64,
@@ -82,6 +84,22 @@ pub struct Filter {
 }
 
 impl Filter {
+    /// Keeps the draft session with the line while the committed query remains the answer's identity.
+    pub(crate) fn sync_entry(&mut self) {
+        query_input::follow(&mut self.entry.borrow_mut(), self.typing, &self.query);
+    }
+
+    /// One composed commit goes through the existing request and listing-generation path.
+    pub(crate) fn commit_query(
+        &mut self,
+        generation: u64,
+        pane: &mut dyn PaneSeam,
+    ) -> Option<Asked> {
+        self.query =
+            query_input::settled(&self.entry.borrow(), self.typing, generation, &self.query)?;
+        self.ask(pane)
+    }
+
     pub fn query(&self) -> &str {
         &self.query
     }
@@ -122,6 +140,7 @@ impl Filter {
     /// "/" gives the query line the keyboard; nothing narrows until something is typed.
     pub fn start(&mut self) {
         self.typing = true;
+        self.sync_entry();
     }
 
     fn ask(&mut self, pane: &mut dyn PaneSeam) -> Option<Asked> {
@@ -153,14 +172,31 @@ impl Filter {
         if clean.is_empty() {
             return None;
         }
+        if self.entry.borrow().marked.is_some() {
+            return None;
+        }
         self.typing = true;
-        self.query.push_str(&clean);
-        self.ask(pane)
+        self.sync_entry();
+        let generation = {
+            let mut entry = self.entry.borrow_mut();
+            entry.replace(None, &clean);
+            entry.generation
+        };
+        self.commit_query(generation, pane)
     }
 
     pub fn backspace(&mut self, pane: &mut dyn PaneSeam) -> Option<Asked> {
-        self.query.pop()?;
-        self.ask(pane)
+        if !self.typing {
+            self.query.pop()?;
+            return self.ask(pane);
+        }
+        self.sync_entry();
+        let generation = {
+            let mut entry = self.entry.borrow_mut();
+            entry.erase(false);
+            entry.generation
+        };
+        self.commit_query(generation, pane)
     }
 
     /// Enter hands the keyboard to the list with the filter standing; an empty query has nothing to stand, so it closes.
@@ -170,6 +206,7 @@ impl Filter {
             return;
         }
         self.typing = false;
+        self.entry.borrow_mut().close();
         pane.focus_list();
     }
 
@@ -178,6 +215,7 @@ impl Filter {
         let was = self.up();
         self.query.clear();
         self.typing = false;
+        self.entry.borrow_mut().close();
         self.clear(pane);
         if was {
             pane.focus_list();
@@ -206,11 +244,18 @@ impl Filter {
             pane.mark(&exact);
         }
         self.typing = false;
+        self.entry.borrow_mut().close();
         pane.focus_list();
     }
 
     /// The query line's own keys while it has the caret; a key that leaves the line commits first and is not consumed.
     pub fn line_key(&mut self, key: LineKey<'_>, pane: &mut dyn PaneSeam) -> (bool, Option<Asked>) {
+        if self.entry.borrow().marked.is_some() {
+            if matches!(key, LineKey::Escape) {
+                query_input::cancel_composition(&mut self.entry.borrow_mut(), &self.query);
+            }
+            return (true, None);
+        }
         match key {
             LineKey::Text(text) => (true, self.typed(text, pane)),
             LineKey::Backspace => (true, self.backspace(pane)),

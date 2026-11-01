@@ -1,11 +1,14 @@
 //! FilterStrip as the filter boards draw it: 27px on the pane's ground, the accent funnel, the query and its caret, the summary, "esc clears".
 use super::present::StripText;
+#[path = "../../strips/filter_query.rs"]
+mod query_paint;
 use crate::list::{Palette, Typeface};
 use gpui::{
     fill, point, px, relative, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla,
     InspectorElementId, IntoElement, LayoutId, Pixels, ShapedLine, SharedString, Style, TextAlign,
     TextRun, TransformationMatrix, Window,
 };
+use query_paint::QueryLine;
 use std::{cell::RefCell, rc::Rc};
 
 // Board boards.py filter_strip: 27 tall, 14 padding, 9 gap, a 16 funnel, a 2 by 13 caret 1 after the query, a 12% rule.
@@ -76,7 +79,8 @@ impl Shaped {
 pub struct StripState {
     pub text: StripText,
     pub typeface: Typeface,
-    query: Shaped,
+    pub(crate) query: QueryLine,
+    pub(crate) input: Option<gpui::Entity<super::input::FilterInput>>,
     summary: Shaped,
     way_out: Shaped,
     // The summary cut to its room: the full words, room and face it was cut for, the cut words, and the ellipsis it measures.
@@ -104,7 +108,8 @@ impl StripState {
         Self {
             text: StripText::default(),
             typeface,
-            query: Shaped::default(),
+            query: QueryLine::default(),
+            input: None,
             summary: Shaped::default(),
             way_out: Shaped::default(),
             cut_for: None,
@@ -187,15 +192,10 @@ impl Element for StripElement {
             ellipsis,
             laid,
             shaped,
+            input,
         } = &mut *state;
-        let before = [
-            &query.key,
-            &summary.key,
-            &way_out.key,
-            &elided.key,
-            &ellipsis.key,
-        ]
-        .map(Clone::clone);
+        let before = [&summary.key, &way_out.key, &elided.key, &ellipsis.key].map(Clone::clone);
+        let query_before = query.shapings;
         let font = typeface.font.clone();
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let middle = |height: f32| top + px((HEIGHT - RULE - height) / 2.);
@@ -204,18 +204,16 @@ impl Element for StripElement {
             size(px(MARK), px(MARK)),
         );
         let query_x = mark.origin.x + px(MARK + GAP);
-        let query_w = query
-            .get(
-                &text.query,
-                palette.foreground,
-                typeface.body,
-                &font,
-                window,
-            )
-            .width();
+        let query_w = query.get(
+            &text.query,
+            palette.foreground,
+            typeface.body,
+            &font,
+            window,
+        );
         let query_box = Bounds::new(point(query_x, top), size(query_w, px(HEIGHT - RULE)));
         let mut end = query_x + query_w;
-        let caret = text.caret.then(|| {
+        let mut caret = text.caret.then(|| {
             let caret = Bounds::new(
                 point(end + px(CARET_GAP), middle(CARET_H)),
                 size(px(CARET_W), px(CARET_H)),
@@ -275,17 +273,18 @@ impl Element for StripElement {
             point(left, top + px(HEIGHT - RULE)),
             size(bounds.size.width, px(RULE)),
         );
-        *shaped += [
-            &query.key,
-            &summary.key,
-            &way_out.key,
-            &elided.key,
-            &ellipsis.key,
-        ]
-        .iter()
-        .zip(&before)
-        .filter(|(now, was)| ***now != **was)
-        .count();
+        *shaped += [&summary.key, &way_out.key, &elided.key, &ellipsis.key]
+            .iter()
+            .zip(&before)
+            .filter(|(now, was)| ***now != **was)
+            .count()
+            + query.shapings
+            - query_before;
+        if let Some(input) = input {
+            let adapter = input.read(cx);
+            let room = (way_box.left() - px(GAP) - query_box.left()).max(px(0.));
+            caret = query.place(query_box, room, &adapter.entry.borrow());
+        }
         *laid = Some(Laid {
             mark,
             query: query_box,
@@ -325,19 +324,9 @@ impl Element for StripElement {
             .caret
             .map_or(laid.query, |caret| laid.query.union(&caret));
         window.with_unmirrored(query, |window| {
-            if let Some(line) = &state.query.line {
-                let _ = line.paint(
-                    laid.query.origin,
-                    line_height,
-                    TextAlign::Left,
-                    None,
-                    window,
-                    cx,
-                );
-            }
-            if let Some(caret) = laid.caret {
-                window.paint_quad(fill(caret, palette.accent));
-            }
+            state
+                .query
+                .paint(laid, palette, state.input.as_ref(), window, cx);
         });
         let summary_line = if state.cut.is_some() {
             &state.elided.line

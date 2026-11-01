@@ -43,6 +43,13 @@ impl Shell {
             );
             return true;
         }
+        if self.filter_entry_key(event, cx) {
+            return true;
+        }
+        let host = self.panes[side]
+            .as_ref()
+            .expect("filter pane remains mounted");
+        let owner = &host.filter.owner;
         let preset = self
             .launch
             .settings
@@ -64,6 +71,7 @@ impl Shell {
         };
         // Enter on the line opens a single exact match, so one keystroke after the query reaches the file.
         let single = matches!(key, LineKey::Enter)
+            && owner.entry.borrow().marked.is_none()
             && owner.asked().is_none()
             && owner
                 .drawn(host.pane.held.listing)
