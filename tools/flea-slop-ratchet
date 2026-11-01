@@ -131,8 +131,15 @@ def children(f, raw, code, spans):
 
 
 def sources(root):
-    out = subprocess.check_output(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"], text=True)
-    files = sorted(f for f in set(out.split("\0")) if f and (root / f).is_file())
+    listed = subprocess.run(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"],
+                            capture_output=True, text=True)
+    if listed.returncode == 0:
+        names = listed.stdout.split("\0")
+    else:
+        # A tree without git (a CI lane's extracted tree.tar): every .rs file outside target/ and dot directories.
+        names = [str(p.relative_to(root)) for p in root.rglob("*.rs")
+                 if not any(part == "target" or part.startswith(".") for part in p.relative_to(root).parts[:-1])]
+    files = sorted(f for f in set(names) if f and (root / f).is_file())
     parsed = {}
     for f in files:
         raw = (root / f).read_text(encoding="utf-8", errors="replace")
