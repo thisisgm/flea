@@ -171,8 +171,7 @@ impl Picker {
                 self.chrome.reopen_path = false;
                 self.browse.route.asked = path.clone();
                 self.browse.route.leaf.clear();
-                let hidden = self.req.hidden.unwrap_or(false);
-                self.send_listing(&crate::path::peek_line(&path, 0, hidden));
+                self.send_listing(&crate::path::peek_line(&path, 0, self.show_hidden()));
             }
             Out::Send { line, .. } => {
                 self.send_listing(&line);

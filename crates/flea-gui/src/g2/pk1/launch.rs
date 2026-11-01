@@ -208,6 +208,7 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
     gpui_platform::application().run(move |cx: &mut App| {
         presentation.install(cx);
         cx.set_global(presentation.fonts.typeface(&settings));
+        cx.set_global(super::settings::HiddenSeed::read(&settings));
         follow_corner(
             corner_source(crate::compositor::socket(), "hyprctl".into()),
             cx,

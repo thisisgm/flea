@@ -166,6 +166,9 @@ impl Picker {
             find: super::find::Find::new(typeface),
             rail: super::rail::Rail::new(home, cx.focus_handle()),
         };
+        picker.preferences.followed.hidden = cx
+            .try_global::<super::settings::HiddenSeed>()
+            .is_some_and(|seed| seed.0);
         picker.chrome.rail_focus = Some(picker.rail.focus.clone());
         // Back to Recent lists it again, now that the rail can open it.
         picker.chrome.recent_back = Some(|picker, cx| picker.open_folder(logic::RECENT, cx));
