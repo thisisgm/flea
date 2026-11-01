@@ -1687,7 +1687,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 134,
+      "line": 143,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1697,7 +1697,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 134,
+      "line": 143,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1707,7 +1707,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 136,
+      "line": 145,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1727,7 +1727,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "template",
-      "line": 108,
+      "line": 111,
       "path": "src/keys/presentation.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1737,7 +1737,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "label",
-      "line": 188,
+      "line": 191,
       "path": "src/keys/presentation.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3381,7 +3381,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 70,
+      "line": 72,
       "path": "src/ui_logic_st1.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3391,7 +3391,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 73,
+      "line": 75,
       "path": "src/ui_logic_st1.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3401,7 +3401,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 77,
+      "line": 79,
       "path": "src/ui_logic_st1.rs",
       "pattern": null,
       "possible_keys": [],
@@ -58927,14 +58927,14 @@
     "feedback.hint.dismiss": {
       "call_sites": [
         {
-          "excerpt": "catalog.tr_args(\"feedback.hint.dismiss\", &[DISMISS_KEY])",
+          "excerpt": "catalog.tr_args(\"feedback.hint.dismiss\", &[&catalog.keycap(DISMISS_KEY)])",
           "line": 47,
           "path": "src/ui_logic_fb1/messages/line.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
         {
-          "excerpt": "rest: catalog.tr_args(\"feedback.hint.dismiss\", &[DISMISS_KEY]),",
+          "excerpt": "rest: catalog.tr_args(\"feedback.hint.dismiss\", &[&catalog.keycap(DISMISS_KEY)]),",
           "line": 87,
           "path": "src/ui_logic_fb1/status.rs",
           "surface": "core/backend",
@@ -83553,7 +83553,7 @@
           "usage": "key-declaration"
         },
         {
-          "excerpt": "if skip.is_empty() || hint != catalog.tr_args(\"places.tag.undo_hint\", &[\"z\"]) {",
+          "excerpt": "if skip.is_empty() || hint != catalog.tr_args(\"places.tag.undo_hint\", &[&catalog.keycap(\"z\")]) {",
           "line": 150,
           "path": "src/ui_logic_pl4/tags.rs",
           "surface": "core/backend",
@@ -95095,7 +95095,7 @@
     "settings.hint.load_key": {
       "call_sites": [
         {
-          "excerpt": "Some(Row::hint(Text::args(\"settings.hint.load_key\", vec![Text::data(key)])))",
+          "excerpt": "Some(Row::hint(Text::args(\"settings.hint.load_key\", vec![Text::Keycap(key)])))",
           "line": 111,
           "path": "src/ui_logic_st1/pages_view.rs",
           "surface": "core/backend",
@@ -95187,6 +95187,20 @@
     "settings.hint.text_keys": {
       "call_sites": [
         {
+          "excerpt": "\"settings.hint.text_keys\",",
+          "line": 294,
+          "path": "crates/flea-gui/src/locale_geometry.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"settings.hint.text_keys\",",
+          "line": 301,
+          "path": "crates/flea-gui/src/locale_geometry.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "if let Some(keys) = hinted(\"settings.hint.text_keys\", state.preset, &[\"textSizeUp\", \"textSizeDown\", \"textSizeReset\"]) {",
           "line": 60,
           "path": "src/ui_logic_st1/pages_display.rs",
@@ -95195,7 +95209,7 @@
         }
       ],
       "context": "settings.hint.text_keys: src/ui_logic_st1/pages_display.rs:59",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "%1 and %2 step through them; %3 follows Omarchy again.",
       "kind": "text",
       "omarchy_reference": null,
@@ -95280,7 +95294,7 @@
       "call_sites": [
         {
           "excerpt": "Text::List(items) => all(items).join(&i18n.tr(\"settings.list.separator\")),",
-          "line": 79,
+          "line": 81,
           "path": "src/ui_logic_st1.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -97999,8 +98013,8 @@
     "settings.textsize.override": {
       "call_sites": [
         {
-          "excerpt": "Text::args(\"settings.textsize.override\", vec![px, Text::data(reset)])",
-          "line": 118,
+          "excerpt": "\"settings.textsize.override\",",
+          "line": 119,
           "path": "src/ui_logic_st1/textsize.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -119844,6 +119858,33 @@
       "excerpt": "br#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"M5 12h14 M12 5l7 7-7 7\"/></svg>\"#,",
       "line": 81,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"M5 12h14 M12 5l7 7-7 7\"/></svg>",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/locale_geometry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".expect(\"the repo's src/keys/fixtures/keycaps\");",
+      "line": 280,
+      "literal": "the repo's src/keys/fixtures/keycaps",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/locale_geometry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"default\",",
+      "line": 295,
+      "literal": "default",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/locale_geometry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "let raw = actions.map(|action| flea::keys::presentation::key_for(\"default\", action));",
+      "line": 299,
+      "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/locale_geometry.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -172185,6 +172226,114 @@
       "surface": "tui"
     },
     {
+      "excerpt": "Self::Remote => write!(f, \"ssh session, the client's keyboard is not readable here\"),",
+      "line": 46,
+      "literal": "ssh session, the client's keyboard is not readable here",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "Self::NoCompositor => write!(f, \"no Hyprland session\"),",
+      "line": 47,
+      "literal": "no Hyprland session",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "Self::Query(error) => write!(f, \"devices readback failed: {error}\"),",
+      "line": 48,
+      "literal": "devices readback failed: {error}",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "Self::Disconnected => write!(f, \"Hyprland event socket closed\"),",
+      "line": 51,
+      "literal": "Hyprland event socket closed",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "std::str::from_utf8(answer).map_err(|_| Fault::Malformed(\"devices answer is not UTF-8\"))?;",
+      "line": 116,
+      "literal": "devices answer is not UTF-8",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let value = jsondoc::parse(text).map_err(|_| Fault::Malformed(\"devices answer is not JSON\"))?;",
+      "line": 117,
+      "literal": "devices answer is not JSON",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": ".ok_or(Fault::Malformed(\"devices answer has no keyboards\"))?;",
+      "line": 121,
+      "literal": "devices answer has no keyboards",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": ".ok_or(Fault::Malformed(\"devices answer has no keyboards\"))?;",
+      "line": 126,
+      "literal": "devices answer has no keyboards",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": ".ok_or(Fault::Malformed(\"keyboard has no layout\"))?;",
+      "line": 130,
+      "literal": "keyboard has no layout",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"keyboard has an invalid active_layout_index\",",
+      "line": 136,
+      "literal": "keyboard has an invalid active_layout_index",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": ".ok_or(Fault::Malformed(\"keyboard has no active keymap\"))?;",
+      "line": 144,
+      "literal": "keyboard has no active keymap",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"could not start the keyboard layout reader\".into(),",
+      "line": 267,
+      "literal": "could not start the keyboard layout reader",
+      "owner": "t11",
+      "path": "src/tui/keycaps.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "&& get(block, \"action\") == \"unsupported:Content search is unavailable; s opens built-in filename search\" {",
       "line": 63,
       "literal": "unsupported:Content search is unavailable; s opens built-in filename search",
@@ -172303,7 +172452,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 325,
+      "line": 333,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -181402,7 +181551,7 @@
     },
     {
       "excerpt": "Json::Obj(_) => \"[object Object]\".into(),",
-      "line": 153,
+      "line": 156,
       "literal": "[object Object]",
       "owner": "controller",
       "path": "src/ui_logic_st1/textsize.rs",
@@ -181411,7 +181560,7 @@
     },
     {
       "excerpt": "\"Infinity\" | \"+Infinity\" => return f64::INFINITY,",
-      "line": 164,
+      "line": 167,
       "literal": "Infinity",
       "owner": "controller",
       "path": "src/ui_logic_st1/textsize.rs",
@@ -241815,7 +241964,7 @@
     "crates/flea-gui/src/list/tags.rs": "479de70d94508cce74e08c745f876b93cb7570d380d4fe1ea362916296e63a3d",
     "crates/flea-gui/src/list/text_revision.rs": "ffe2f422d576e7885af853480351c919a30ce02842bb86eb33451620c31e7cd8",
     "crates/flea-gui/src/list/typeface.rs": "538397375522dfd539c90cd508d117cd18079efe10b0f10a5b226fef2a63a4b0",
-    "crates/flea-gui/src/locale_geometry.rs": "303dd4a1bf9eb88131be9cc8e01ef3d6110fdc39a60bdbf22c59901883e09c5c",
+    "crates/flea-gui/src/locale_geometry.rs": "07bc4aa5d4179cdfe7d991d8235f305e45bd83c63f3f24f404439a64277e9225",
     "crates/flea-gui/src/main.rs": "58225d72737af6296024d769fc98d2822fef576bfe1199cc56fbf3884d979c82",
     "crates/flea-gui/src/navigation/anchor.rs": "06bc831536cc3aceb11e347a81150732ad897b48c70f0e218b98d5b19956ff59",
     "crates/flea-gui/src/navigation/folder_state.rs": "23589f778f82fc2f9c3e62b58891f20d95ba38b0a4162c0650875be4acbbcf06",
@@ -242551,7 +242700,7 @@
     "src/i18n/document.rs": "ab0dbe4ae58e689cbebca9606fb6d83e60484fd75ded25027f618ce166800729",
     "src/i18n/format.rs": "2be16c98596f0d2009c1f72035f9fc867db75d0f48c583ee3eb8602d75a7f10d",
     "src/i18n/locale.rs": "ea6ecab81ef449c47b943c92aeaf5c8f7494c9a99b79c3dca280740d06240a3a",
-    "src/i18n/mod.rs": "a9c1c8452face952c833ce073f9a2c13391a558d2e02487b5f2686a46975af4b",
+    "src/i18n/mod.rs": "cc4c6efa11425941f3367877eaf77e93fcd6de0232638c04ec139319e0e91c2d",
     "src/i18n/plural.rs": "36727a3843c0be06745c88e469f4f619895326d95035d7729f896353ec3b56c0",
     "src/icdexclude.rs": "d9bbd54fe2de9c928f461e36415101f47973a17f45eff71fbdc04c4b722f5e32",
     "src/icdmanifests.rs": "c2bcea2c13b9040b29227c87c0a3390f66418634254a74e73593acdca2d75f9c",
@@ -242571,7 +242720,7 @@
     "src/keys.rs": "ba8bf2e5d33b589dc888177964c7db1dfa2da8122761a9cf33b7459e2f699238",
     "src/keys/actions.rs": "77df40017ab93c547aa6ce1743bf38c82087f028d651251f30c0be10ee06c781",
     "src/keys/display.rs": "84d5c63882bf1cf4921faff103ab3e3a6034be24b0924476d7d08373dd1fa99a",
-    "src/keys/presentation.rs": "214e8b0c1e38ed2157d3848be6697d87b422e055c72c80e70df910c3975be29d",
+    "src/keys/presentation.rs": "56571f78b8e4b3f005ab81b87d8fdfd53cab328ba4a7087e13eec5bac22d0263",
     "src/keys/sequence.rs": "30640c37710772e1267b0e472893e948f98b6113e937973e487f6b13cb421116",
     "src/keys/user.rs": "e68fafc9cfdc980a6eab6c10be357738f144e65dbddb6e58f787e42d5d085ae6",
     "src/keys/user_parse.rs": "b6d313368cdb41acd0f078231bbb1af3a13139ab6b75e9b04a0a40c6944ab48a",
@@ -242662,6 +242811,7 @@
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
     "src/tui/jobstatus.rs": "bd8d2060ac8375ef73ab9199bd7a46a06ca3fe41e4380eab960aa502fb9ab4be",
     "src/tui/key_sheet.rs": "4fecfb07d0c882928a9238b8767636b02276e9ff03b505490319a32d16b799a8",
+    "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
     "src/tui/launch.rs": "84cc19c56ccf2c72666c11665d34dc46e376757ca56b3135605c5bd9886ea852",
     "src/tui/layout.rs": "d02d942295700381b5999906fad4c2fdbd89bc99beb7c075b1b3f2700b950575",
@@ -242669,7 +242819,7 @@
     "src/tui/media.rs": "5af57bdb96142f0f88beda14937e69a60aec50f552147176785c0c5f4f19fa73",
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "64d336b4cb5e4614702f6d13e3f290a02241cb7ca9d91387b7200f1da8ba7fbb",
-    "src/tui/mod.rs": "5dcc3cf71243eca931b773c67900dab4ad2cba0b2929d9abf4978cde887801a6",
+    "src/tui/mod.rs": "64e6f1b249538770465d51e480013b4c0f24eb2355ce4e98668bbd756d9ebe8b",
     "src/tui/model.rs": "19cd32b42493ccee881a8f7df237cb1ca892586c2bb68cfc27e58d278f0517e8",
     "src/tui/model3d.rs": "bf24d01741128cf691124ccffebe3288d0d358848a63de42f349461051c2ff0e",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
@@ -242725,8 +242875,8 @@
     "src/ui_logic_fb1/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
     "src/ui_logic_fb1/messages.rs": "cd1aa73dc5e2cf235dd0ef592c7b9fa8c5eac52cdc9f25c29e34622383f33d3d",
     "src/ui_logic_fb1/messages/arm.rs": "b5c857ccb06b19c4a22658fa3ce39b376f1a7a010e2f20085dff55228313d1a3",
-    "src/ui_logic_fb1/messages/line.rs": "7e31f55d710b2f37b9150a0fbaad78043f137804a83b50b600210cdeac7393c6",
-    "src/ui_logic_fb1/status.rs": "86fc0a7eaab33e62546f1c986f12e77d72b45ba2aac56c8e57222f0be5ed48a8",
+    "src/ui_logic_fb1/messages/line.rs": "11303e5e39ada12484bac33e5396610d0fb783a4829e70ae473f1a7807b78ea3",
+    "src/ui_logic_fb1/status.rs": "49a8066e2c4a315c1e6098e7d15c4dc7fa56a5ffcab5dd3335ff0057a5c746e2",
     "src/ui_logic_mn1.rs": "10e57a57f3322bff9dabf74d02cff52c1a64f3cc3be20addfe32ea45a81c8c70",
     "src/ui_logic_mn1/archive.rs": "7d5f990c6fd7a593104e727190f806a7b6b7cbf00607042c967aeda3eb669a0e",
     "src/ui_logic_mn1/build.rs": "7bee917f8c94eb7bc72874f3b6fd65505febcd034d8e6b531aca040d75acd5db",
@@ -242842,7 +242992,7 @@
     "src/ui_logic_pl4/recent.rs": "11ee565fd7d3bab976d501c31e52f2283471415f29098b0d35048b3c2e4d2f95",
     "src/ui_logic_pl4/recentmode.rs": "ce331414d2558a073669adb4ced2109c6b119377cc736f7bd1a7876877a21563",
     "src/ui_logic_pl4/shelfpile.rs": "388e47ebe8b3afeb37ad59572a1e3cdbae06dd060cb6e02e80e96c6bd0f6c8b7",
-    "src/ui_logic_pl4/tags.rs": "9aea0dce08ae07a4dcce3bc647197be0d383f70f14a4c1d907332df8a5b9da7f",
+    "src/ui_logic_pl4/tags.rs": "d8121b0ecc3a7fa2ebbf08877cc394b1eb11d544e14f3396b44b17b05a1d3288",
     "src/ui_logic_pl4/tagtheme.rs": "eb085f5696fd07537ac24dd5168179a30c9eea54220143d3343615063a99cbb9",
     "src/ui_logic_pl4/testing.rs": "a8126f12cb1434e2d2a3381afbd55cd876d698e665fff648fa8d3cc9b8ab960d",
     "src/ui_logic_pl4/today.rs": "a0ecd5c8d17e9e54d64f1747279b777a2d9fe7003b45c43efa2e836b1b26a8ef",
@@ -243007,20 +243157,20 @@
     "src/ui_logic_sr2/tests_fixture.rs": "7acfd1421f58e3c8ef0f95afe604bc46a42a5a2d77848008511e2d8b9f25386d",
     "src/ui_logic_sr2/tests_matcher.rs": "7bf32084806852e214e857739045c007852db4e171f588f082bda093b2ac2d8b",
     "src/ui_logic_sr2/tests_same.rs": "d0b57434b0d8b05f50df661be2699deae4d22df3953d57fa9db791108e32bc71",
-    "src/ui_logic_st1.rs": "ffb0e88d1640f592e3e48778a4f4a8501f1e08e8d73e00bad6235be493327e44",
+    "src/ui_logic_st1.rs": "1b472d0b84a44c78fd5e09e5d806f04750a531b5cbc79bf345e6c66e3906051f",
     "src/ui_logic_st1/about.rs": "db5b9cfdc0d4480f1b63f05a5eb4b5a2af4e113d40413bb54c82f48cd165b0b2",
     "src/ui_logic_st1/caps.rs": "54f200e440c6ce6aa50c297f9886a5f312232070a784f75b49b549de7805ebd9",
     "src/ui_logic_st1/edit.rs": "afde2158935fe8569e579c3e240548753fffa4b326b8ac246e08143c81f6bbc8",
     "src/ui_logic_st1/menus.rs": "aef4a19377d0267db4dfcad6b97bc8106d9c9263aed3ac5241bd1c5a034664f5",
     "src/ui_logic_st1/pages.rs": "6f7ff06e60e2c4d114162dcb218f1d8d4c0cf1c70a47a11e18c57ee2e623fdd9",
-    "src/ui_logic_st1/pages_display.rs": "1111d946038a4a1e388c94e73e360b52de6f67fe3dbcfa23e97166c0f2499ee5",
+    "src/ui_logic_st1/pages_display.rs": "e9bd7e04528072ca6ecf05ca49ac62b58a5d67be1bc4f18e0db0000f90c10c86",
     "src/ui_logic_st1/pages_places.rs": "3a6d3fd2c9ae9c34d319c5d2b3679e0e2d1e2ae2fccea809f64826d8058bc8bb",
-    "src/ui_logic_st1/pages_view.rs": "22ceab3bd08ede10820ac91dd65e2682671de24d9d7fb22f74ab831fc370a761",
+    "src/ui_logic_st1/pages_view.rs": "9b364a812e7e80b9e74b289c34b37bf11e2317774554ecf94bda069ddea099c7",
     "src/ui_logic_st1/rows.rs": "55f6cf24e3febc1b341783a587530104aa7170e54f2c888147878b3a8b774725",
     "src/ui_logic_st1/search.rs": "bcd9a91b403815235d4b73a42f2621091588b85cf25b4208cdbc64811839a4bd",
     "src/ui_logic_st1/sheet.rs": "489d31b190503457cf252d7894fa291471ce036b5f81b9b6037cd9126626687b",
     "src/ui_logic_st1/sheetkeys.rs": "a16bc7db5d239c2b4f255ab4f605fcdba6fb094a3c4eaa87a4bdb9214e92cbca",
-    "src/ui_logic_st1/textsize.rs": "bf2d34fa2392c81055c78be9ae1969bdb0c02bfad3098c23295572b81ab1cc8e",
+    "src/ui_logic_st1/textsize.rs": "b59d548e53180c3424649c468e1bb2c029101099ce0c6a521698f4e6f6d5b908",
     "src/ui_logic_st1/uistate.rs": "3f5755eefc25aec5878a8c7f9382c3667c1db9067743a37286490d3e137449f2",
     "src/ui_logic_st1/uistate_merge.rs": "4c5db36eaf370624e046bf85492fc6e34e809df8326fdeab91efda5c61d751a2",
     "src/ui_logic_st1/uistate_obj.rs": "be0036c76ae85d773d6c926dd661538f69e1c15e90b8df32b7078c81090c13bd",
@@ -243625,8 +243775,8 @@
       "source_files": 146
     },
     "gui": {
-      "keys_with_occurrences": 518,
-      "missing_literal_candidates": 2018,
+      "keys_with_occurrences": 519,
+      "missing_literal_candidates": 2021,
       "source_files": 1064
     },
     "qml-reference": {
@@ -243636,8 +243786,8 @@
     },
     "tui": {
       "keys_with_occurrences": 481,
-      "missing_literal_candidates": 356,
-      "source_files": 83
+      "missing_literal_candidates": 368,
+      "source_files": 84
     }
   },
   "unlocated_keys": [
