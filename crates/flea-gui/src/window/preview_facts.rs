@@ -2,6 +2,10 @@
 use super::selection_preview::*;
 use flea::ui_logic_pv1::{facts, kinds::State};
 
+#[cfg(test)]
+#[path = "muted_ink_tests.rs"]
+mod muted_ink_tests;
+
 // cols-preview-video.html, drawn at base and body 14 and caption 12; each value scales with its text size.
 const BOARD_BASE: f32 = 14.;
 const BOARD_BODY: f32 = 14.;
@@ -21,6 +25,16 @@ const FACT_GAP: f32 = 3.;
 /// The column's state mark, scaled with the text size.
 pub(crate) fn state_mark_size(face: &crate::list::Typeface) -> f32 {
     (STATE_MARK * f32::from(face.base) / BOARD_BASE).round()
+}
+
+/// FactsTable.qml: a fact's name in the muted caption beside its value in the foreground.
+pub(crate) fn label_ink(roles: &crate::list::Palette) -> gpui::Hsla {
+    roles.caption(false)
+}
+
+/// PreviewFactsLine.qml: a tall kind's one line, the Kind and its tail, in the foreground.
+pub(crate) fn line_ink(roles: &crate::list::Palette) -> gpui::Hsla {
+    roles.foreground
 }
 
 impl SelectionPreview {

@@ -620,21 +620,13 @@ impl Element for StripElement {
                 let baseline = window.pixel_snap(
                     top + (px(TAB_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent,
                 );
-                let ink = if current {
-                    palette.foreground
-                } else {
-                    palette.metadata
-                };
+                let ink = palette.caption(current);
                 let _ = window.paint_glyph_run(
                     point(x + px(LABEL_X), baseline),
                     run,
                     ink.opacity(fade),
                 );
-                let mark_ink = if current || frame.close_hover == Some(index) {
-                    palette.foreground
-                } else {
-                    palette.metadata_frame
-                };
+                let mark_ink = palette.mark(current || frame.close_hover == Some(index));
                 let mark = Bounds::new(
                     point(
                         x + width - px(HIT_MIN) + px((HIT_MIN - MARK) / 2.),
@@ -670,11 +662,7 @@ impl Element for StripElement {
                 ),
                 size(px(MARK), px(MARK)),
             );
-            let ink = if focused {
-                palette.foreground
-            } else {
-                palette.metadata_frame
-            };
+            let ink = palette.mark(focused);
             let _ = window.paint_svg(
                 plus,
                 "flea-mark:plus".into(),

@@ -137,7 +137,7 @@ impl Shell {
         let look = Look {
             theme,
             face: self.active_typeface(),
-            muted: crate::list::Palette::inherited(&window.text_style(), theme).metadata,
+            muted: crate::list::Palette::inherited(&window.text_style(), theme).caption(false),
             mark: mark(row),
         };
         let catalog = self.locale.catalog.clone();

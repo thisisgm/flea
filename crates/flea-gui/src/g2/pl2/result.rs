@@ -68,3 +68,19 @@ impl crate::ipc::Adapter for Adapter<'_> {
             .then(|| Reply::value(self.0.map_or("", |service| service.result.name())))
     }
 }
+
+/// Starting connections use an activity, waits and completed unmounts use notices, and failures use errors.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SayRole {
+    Opening,
+    Notice,
+    Error,
+}
+
+pub fn say_role(key: &str) -> SayRole {
+    match key {
+        "network.bridge_starting" => SayRole::Opening,
+        "network.another_opening" | "network.unmounted" => SayRole::Notice,
+        _ => SayRole::Error,
+    }
+}

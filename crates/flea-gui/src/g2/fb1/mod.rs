@@ -19,6 +19,8 @@ pub mod hero;
 mod hero_tests;
 pub mod line;
 #[cfg(test)]
+mod line_busy_tests;
+#[cfg(test)]
 mod line_tests;
 #[cfg(test)]
 mod loop_tests;

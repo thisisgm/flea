@@ -41,11 +41,7 @@ impl Render for ChromeView {
         let mut controls = Vec::new();
         for (index, (id, glyph, enabled, focus)) in buttons.into_iter().enumerate() {
             let selected = (index == 2 && mode == "list") || (index == 3 && mode == "grid");
-            let ink = if index < 2 || selected {
-                palette.foreground
-            } else {
-                palette.metadata
-            };
+            let ink = palette.mark(enabled && (index < 2 || selected));
             let handle = picker.clone();
             let mut control = owner
                 .chrome

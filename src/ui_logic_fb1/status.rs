@@ -121,6 +121,22 @@ impl HintText {
     }
 }
 
+/// A receipt's trailing undo advice draws in the muted target and expires on the ordinary notice clock.
+pub fn split_undo(text: &str, catalog: &I18n, preset: &str) -> (String, Hint) {
+    let tails = [
+        crate::ui_logic_op1::undo_hint(catalog, preset),
+        crate::ui_logic_pl4::tags::undo_hint(catalog, preset),
+    ];
+    match tails
+        .iter()
+        .filter(|tail| !tail.is_empty())
+        .find_map(|tail| text.strip_suffix(tail))
+    {
+        Some(sentence) => (sentence.to_owned(), Hint::TransientUndo),
+        None => (text.to_owned(), Hint::None),
+    }
+}
+
 fn join_nonempty(parts: &[&str], sep: &str) -> String {
     parts
         .iter()

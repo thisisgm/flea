@@ -1,6 +1,9 @@
 //! What the service and the card ask of the window: navigation, status, share browsing, peeks and bookmark writes.
 use super::*;
 
+// The status lane's owner for a network connection still opening, apart from every pane and job owner.
+const NETWORK_OPENING: u64 = 1 << 34;
+
 impl Shell {
     pub(crate) fn network_service(
         &mut self,
@@ -30,6 +33,7 @@ impl Shell {
                 origin,
             } => {
                 self.network_list(cx);
+                self.network_opening(*origin, "", cx);
                 let Some(side) = self.network_side(*origin) else {
                     self.drop_rail_network_open(*origin);
                     return;
@@ -82,6 +86,7 @@ impl Shell {
                 password,
             } => {
                 self.drop_rail_network_open(*origin);
+                self.network_opening(*origin, "", cx);
                 if self.network_side(*origin).is_none() {
                     return;
                 }
@@ -104,11 +109,18 @@ impl Shell {
             }
             Effect::Say { note, origin } => {
                 self.drop_rail_network_open(*origin);
+                use crate::g2::pl2::result::{say_role, SayRole};
+                let role = say_role(note.key);
+                if role == SayRole::Error {
+                    self.network_opening(*origin, "", cx);
+                }
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
-                    let error =
-                        !matches!(note.key, "network.another_opening" | "network.unmounted");
-                    self.network_say(side, text, error, cx);
+                    if role == SayRole::Opening {
+                        self.network_opening(*origin, &text, cx);
+                    } else {
+                        self.network_say(side, text, role == SayRole::Error, cx);
+                    }
                 }
             }
             Effect::Peek {
@@ -118,6 +130,20 @@ impl Shell {
             } => self.network_peek(*generation, path.clone(), *count, cx),
             Effect::Run { .. } | Effect::Kill(_) | Effect::EnsureBridge { .. } => {}
         }
+    }
+
+    /// The connection's Starting line rides the status lane as an activity, as v0.3.12's stickyStarting does; empty ends it.
+    fn network_opening(&mut self, origin: u64, text: &str, cx: &mut Context<Self>) {
+        self.status_messages(cx, |messages, now| {
+            messages.set_activity(
+                NETWORK_OPENING | origin,
+                text,
+                0,
+                false,
+                !text.is_empty(),
+                now,
+            )
+        });
     }
 
     /// A bounded directory read off the UI thread; the service drops it unless its generation and path still match.

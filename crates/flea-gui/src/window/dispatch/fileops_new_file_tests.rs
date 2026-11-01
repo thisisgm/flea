@@ -49,7 +49,8 @@ fn card(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Dialog> {
 // The created line the notice shows, as the operation sentences publish it.
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
-        shell.status_messages(cx, |messages, _| messages.notice().to_owned())
+        let catalog = shell.locale.catalog.clone();
+        shell.status_messages(cx, |messages, _| messages.transient_text(&catalog))
     })
 }
 

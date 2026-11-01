@@ -224,7 +224,7 @@ impl Element for RailElement {
                     header.rect.x,
                     header.rect.y + header.top_padding,
                     header.rect.height - header.top_padding - metrics.gap,
-                    palette.metadata,
+                    heading_ink(&palette),
                     window,
                 );
                 if let Some((add, (key, data))) = header.add.zip(super::glyph::svg("plus")) {

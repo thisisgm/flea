@@ -15,7 +15,7 @@ pub struct Palette {
     pub foreground: Hsla,
     pub bright: Hsla,
     pub muted: Hsla,
-    /// The figure helper's muted paint, separate from Source's metadata text.
+    /// The figure helper's muted paint, from the window theme rather than the inherited ground.
     pub figure_muted: Hsla,
     pub muted_frame: Hsla,
     /// The accent lifted to 3:1 against the ground, which a diagram's arrowheads and accent paints take.
