@@ -319,10 +319,8 @@ impl Element for StripElement {
             cx,
         );
         let line_height = px(HEIGHT - RULE);
-        // The query and its caret stay together in a mirrored window.
-        let query = laid
-            .caret
-            .map_or(laid.query, |caret| laid.query.union(&caret));
+        // The query and its caret stay together in a mirrored window; an edited query moves as the line it draws.
+        let query = state.query.unit(laid, state.input.is_some());
         window.with_unmirrored(query, |window| {
             state
                 .query

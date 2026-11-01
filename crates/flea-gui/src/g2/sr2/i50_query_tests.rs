@@ -5,7 +5,8 @@ use crate::{
     window::root::Root,
 };
 use gpui::{
-    AppContext, Context, PlatformInputHandler, PlatformWindow, TestAppContext, Window, WindowHandle,
+    px, AppContext, Context, PlatformInputHandler, PlatformWindow, TestAppContext, Window,
+    WindowHandle,
 };
 
 type Handle = WindowHandle<Root>;
@@ -326,6 +327,48 @@ fn i50_query_filter_platform_control_text_refused(cx: &mut TestAppContext) {
     input.replace_text_in_range(None, "ok");
     let sent = read().expect("clean text still commits");
     assert!(sent.contains("\"query\":\"ok\""), "{sent}");
+}
+
+// A query wider than its field scrolls; in an Arabic window its caret must stay inside the mirrored field.
+#[gpui::test]
+fn i50_query_filter_scrolled_query_stays_in_the_mirrored_field(cx: &mut TestAppContext) {
+    let (handle, mut read) = open(cx);
+    while read().is_some() {}
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../src/keys/fixtures/keycaps");
+    let catalog = flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: fixture.clone(),
+        language_file: fixture.join("language-ar"),
+        catalogs: vec![fixture.join("catalogs")],
+    });
+    edit(cx, handle, |shell, _, cx| {
+        let catalog = std::sync::Arc::new(catalog);
+        let locale = crate::window::locale::Snapshot { revision: 2, catalog };
+        shell.apply_locale(locale, cx)
+    });
+    frame(cx, handle);
+    assert!(edit(cx, handle, |_, window, _| window.layout_mirrored()));
+    let mut input = input(cx, handle);
+    let long = "w".repeat(400);
+    input.replace_text_in_range(None, &long);
+    frame(cx, handle);
+    let caret = input.bounds_for_range(400..400).expect("filter caret");
+    edit(cx, handle, |shell, window, _| {
+        let filter = &shell.panes[0].as_ref().unwrap().filter;
+        let strip = filter.strip.borrow();
+        let field = strip.query.bounds.get().expect("the query is placed");
+        let laid = strip.laid.unwrap();
+        assert!(
+            f32::from(laid.query.size.width) > 2. * f32::from(field.size.width),
+            "fixture must scroll: {laid:?} {field:?}"
+        );
+        let width = window.viewport_size().width;
+        let (start, end) = (width - field.right(), width - field.left());
+        assert!(
+            caret.left() >= start - px(1.) && caret.right() <= end + px(1.),
+            "caret {caret:?} left the mirrored field {start:?}..{end:?}"
+        );
+    });
 }
 
 #[path = "../../strips/i50_query_columns_tests.rs"]
