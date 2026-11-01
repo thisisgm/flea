@@ -70,6 +70,8 @@ pub struct Joined {
     pub context: MenuContext,
     pub pending: Option<(String, String)>,
     pub(crate) from_sheet: bool,
+    /// An outside `flea --action` waiting on this capture's row; retiring the menu unanswered refuses it.
+    pub(crate) external: Option<crate::window::external_action::Waiting>,
     pub activating: bool,
     pub reading: bool,
     pub sequence: u64,

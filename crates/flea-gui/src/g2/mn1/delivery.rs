@@ -34,6 +34,7 @@ impl Shell {
         self.menu.tags_reading = false;
         self.menu.pending = None;
         self.menu.from_sheet = false;
+        self.menu.external = None;
         self.menu.activating = false;
         self.menu.reading = false;
         if let Some(capture) = self.menu.captured.take() {
@@ -294,6 +295,9 @@ impl Shell {
         let Some(capture) = self.menu.captured.clone() else {
             return;
         };
+        if let Some(waiting) = self.menu.external.take() {
+            waiting.answer(crate::window::external_action::ran());
+        }
         let side = capture.side;
         if action == "sendRclone" {
             self.rclone_choose(&capture, &leaf, paths, window, cx);

@@ -72,13 +72,23 @@ const FAMILIES: &[Family] = &[
 impl Shell {
     /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
     pub(crate) fn dispatch(&mut self, order: Order, window: &mut Window, cx: &mut Context<Self>) {
+        self.dispatch_claimed(order, window, cx);
+    }
+
+    /// `dispatch`, answering whether a family ran the order; an outside `flea --action` reads the refusal from it.
+    pub(crate) fn dispatch_claimed(
+        &mut self,
+        order: Order,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
         // Pane.qml act: every dispatched action ends a pending slow click.
         self.slow_cancel();
         if FAMILIES
             .iter()
             .any(|family| family(self, &order, window, cx))
         {
-            return;
+            return true;
         }
         match order {
             Order::Action(event) => {
@@ -91,6 +101,7 @@ impl Shell {
             Order::Place(request) => cx.emit(request),
             Order::Device(request) => cx.emit(request),
         }
+        false
     }
 }
 

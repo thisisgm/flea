@@ -9,7 +9,7 @@ mod notice_tests;
 mod backend;
 
 #[track_caller]
-fn wait(cx: &mut TestAppContext, mut ready: impl FnMut(&mut TestAppContext) -> bool) {
+pub(super) fn wait(cx: &mut TestAppContext, mut ready: impl FnMut(&mut TestAppContext) -> bool) {
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
         cx.run_until_parked();
@@ -24,7 +24,7 @@ fn wait(cx: &mut TestAppContext, mut ready: impl FnMut(&mut TestAppContext) -> b
     }
 }
 
-fn attach(
+pub(super) fn attach(
     cx: &mut TestAppContext,
     fixture: &mut Fixture,
     root: &Path,
@@ -104,7 +104,7 @@ fn attach(
     folder
 }
 
-fn receipt(folder: &Path, op: &str) -> Vec<Json> {
+pub(super) fn receipt(folder: &Path, op: &str) -> Vec<Json> {
     std::fs::read_to_string(folder.join("requests.jsonl"))
         .unwrap_or_default()
         .lines()
@@ -113,7 +113,7 @@ fn receipt(folder: &Path, op: &str) -> Vec<Json> {
         .collect()
 }
 
-fn stop(cx: &mut TestAppContext, fixture: &Fixture) {
+pub(super) fn stop(cx: &mut TestAppContext, fixture: &Fixture) {
     update(cx, fixture.handle, |shell, window, cx| {
         shell.retire_menu(window, cx);
         let (replacement, _lines) = Backend::test_lines();

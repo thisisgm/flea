@@ -10,6 +10,8 @@ mod dual_edge;
 #[cfg(test)]
 mod dual_edge_tests;
 mod events;
+pub(crate) mod external_action;
+pub(crate) mod external_action_ipc;
 pub(crate) mod filter;
 pub(crate) mod frame_feedback;
 mod frame_style;

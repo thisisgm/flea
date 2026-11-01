@@ -369,3 +369,6 @@ mod input_tests;
 
 #[path = "menu_selection_tests.rs"]
 mod selection_tests;
+
+#[path = "menu_external_tests.rs"]
+mod external_tests;

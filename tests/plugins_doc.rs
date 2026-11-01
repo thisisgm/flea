@@ -222,3 +222,66 @@ fn plugins_doc_quick_start_executable_answers_hello_and_settings() {
     flea::plugin_runtime::protocol::ready(&replies[0]).unwrap();
     assert_eq!(replies[1].get("op").and_then(Json::as_str), Some("done"));
 }
+
+// Every `flea --action` line in a `sh action` fence parses as the real command line and names an id that resolves.
+// Sample input: "if ! flea --action example.checksums:sha256 --window \"$flea_pid\"; then"
+fn action_lines(guide: &str) -> Vec<Vec<String>> {
+    let mut lines = Vec::new();
+    for fence in guide.split("```sh action\n").skip(1) {
+        let body = fence.split("\n```").next().unwrap_or("");
+        for line in body.lines() {
+            let Some((_, command)) = line.split_once("flea --action") else {
+                continue;
+            };
+            let words = format!("--action{command}");
+            let words: Vec<String> = words
+                .split_whitespace()
+                .take_while(|word| !matches!(*word, ";" | "then" | "&&" | "||"))
+                .map(|word| word.trim_end_matches(';').trim_matches('"').replace("$flea_pid", "4242"))
+                .collect();
+            lines.push(words);
+        }
+    }
+    lines
+}
+
+fn example_plugin_actions() -> BTreeSet<String> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/plugins");
+    let mut ids = BTreeSet::new();
+    for entry in std::fs::read_dir(root).unwrap() {
+        let path = entry.unwrap().path().join("manifest.json");
+        let Ok(text) = std::fs::read_to_string(&path) else { continue };
+        let parsed = manifest::parse(&text, false).unwrap();
+        for c in flea::ui_logic_st2::contributions::menu_actions(&parsed).unwrap() {
+            ids.insert(flea::ui_logic_mn2::plugins::leaf(&c));
+        }
+    }
+    ids
+}
+
+#[test]
+fn plugins_doc_action_examples_parse_and_name_real_ids() {
+    use flea::ipc::{action, wire::Request};
+    use flea::keys::actions::{parse, Id};
+    let lines = action_lines(GUIDE);
+    let plugins = example_plugin_actions();
+    let (mut builtin, mut plugin, mut list) = (0, 0, 0);
+    for words in &lines {
+        let options = action::parse(words).unwrap_or_else(|e| panic!("{words:?}: {}", e.stderr));
+        let Request::Call { function, arguments, .. } = options.request else { unreachable!() };
+        if function == "actionIds" {
+            list += 1;
+            continue;
+        }
+        match parse(&arguments[0]) {
+            Some(Id::Builtin(_)) => builtin += 1,
+            Some(Id::Plugin { .. }) if plugins.contains(&arguments[0]) => plugin += 1,
+            other => panic!("{} names no real action ({other:?})", arguments[0]),
+        }
+    }
+    assert!(builtin > 0 && plugin > 0 && list > 0, "the guide shows a built-in, a plugin action and the list");
+    for code in [action::RAN, action::USAGE, action::UNKNOWN, action::UNAVAILABLE, action::NO_WINDOW] {
+        assert!(GUIDE.contains(&format!("| `{code}` |")), "exit status {code} is documented");
+    }
+    assert!(action_lines("```sh action\nflea --action noSuchAction\n```\n").iter().all(|w| parse(&w[1]).is_none()));
+}

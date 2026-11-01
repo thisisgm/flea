@@ -88,6 +88,9 @@ impl Shell {
         match outcome {
             Outcome::Closed => self.retire_menu(window, cx),
             Outcome::Refused(key) => {
+                if let Some(waiting) = self.menu.external.take() {
+                    waiting.answer(self.action_refused(key));
+                }
                 self.menu_refuse(key, cx);
                 self.retire_menu(window, cx);
             }

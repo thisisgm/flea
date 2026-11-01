@@ -1,11 +1,14 @@
-use super::{dispatch::Order, lifecycle::Phase, startup};
-use crate::{pane::requests, state::Shell};
+use super::{lifecycle::Phase, startup};
+use crate::state::Shell;
 use gpui::{Context, KeyDownEvent, Window};
 #[path = "keyboard.rs"]
 mod keyboard;
+#[path = "input_run.rs"]
+mod run;
 #[path = "input_wheel.rs"]
 mod wheel;
 pub use keyboard::*;
+pub(crate) use run::KeyRun;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ActionEvent {
@@ -288,44 +291,14 @@ impl Shell {
             }
             Dispatch::Action(action) => action,
         };
-        let busy = host.pane.busy();
-        if listing && action == "escape" && self.escape_cancels_arm(arm_live, cx) {
-            return;
-        }
-        // SelectionPreview.qml accepts Tab and Shift+Tab, so a focused column preview keeps the keyboard.
-        if matches!(action, "focusNext" | "focusPrevious")
-            && (column_focused || self.dual_tab(action == "focusNext", window, cx))
-        {
+        // A focused column preview keeps Tab and Shift+Tab on its own surface.
+        if column_focused && matches!(action, "focusNext" | "focusPrevious") {
             cx.stop_propagation();
             return;
         }
-        // A listing out swallows every row action, modified or not, but the answered list.
-        if matches!(action, "focusNext" | "focusPrevious") {
-            self.input_action(action, window, cx);
+        if self.run_key_action(action, seat, pair_armed, arm_live, window, cx) != KeyRun::Kept {
             cx.stop_propagation();
-            return;
         }
-        if self.keyboard.context == flea::keys::Context::Listing && requests::swallows(busy, action)
-        {
-            self.status_note(&self.locale.catalog.tr("pane.busy"), cx);
-            self.hold_cursor_key(action);
-            cx.stop_propagation();
-            return;
-        }
-        // A standing filter takes its keys ahead of the key-only handlers; the listing family runs them.
-        if !self.filter_claims(action, cx) && self.key_only_action(action, window, cx) {
-            cx.stop_propagation();
-            return;
-        }
-        let context = self.keyboard.context;
-        let event = ActionEvent {
-            action,
-            seat,
-            context,
-            pair_armed,
-        };
-        self.dispatch(Order::Action(event), window, cx);
-        cx.stop_propagation();
     }
 
     /// The key-only handlers that run before the dispatch point; true when one took the action.

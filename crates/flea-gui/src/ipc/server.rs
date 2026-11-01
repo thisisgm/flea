@@ -16,6 +16,8 @@ use std::time::{Duration, Instant};
 
 const CLIENT_LIMIT: usize = 32;
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(2);
+// A plugin action waits for its plugin to start and the menu to validate the row; the caller's own bound is five seconds.
+const ACTION_TIMEOUT: Duration = Duration::from_secs(4);
 
 pub enum Event {
     Call {
@@ -157,6 +159,10 @@ fn serve(mut stream: UnixStream, requests: &Sender<Event>, i18n: &I18n) -> io::R
     if request == Request::Show {
         return wire::write_line(&mut stream, &flea::ipc::registry::show().encode());
     }
+    let wait = match &request {
+        Request::Call { function, .. } if function == "runAction" => ACTION_TIMEOUT,
+        _ => CLIENT_TIMEOUT,
+    };
     let (answer, incoming) = mpsc::sync_channel(1);
     if requests.try_send(Event::Call { request, answer }).is_err() {
         return wire::write_line(
@@ -165,7 +171,7 @@ fn serve(mut stream: UnixStream, requests: &Sender<Event>, i18n: &I18n) -> io::R
         );
     }
     let answer = incoming
-        .recv_timeout(CLIENT_TIMEOUT)
+        .recv_timeout(wait)
         .map_err(|error| io::Error::new(io::ErrorKind::TimedOut, error))?;
     let result = wire::write_line(&mut stream, &answer.reply.encode());
     // Quit only after the reply is flushed; a disconnected caller cannot hold shutdown hostage.
