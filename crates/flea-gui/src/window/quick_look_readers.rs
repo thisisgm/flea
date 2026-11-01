@@ -82,6 +82,8 @@ impl Reader<'_> {
             return "loading".into();
         }
         match view.subject().map(|s| &s.body) {
+            // CompareView.qml:33 keeps Preview's status at loading until the diff answers.
+            Some(Body::Refused { sentence, .. }) if sentence.is_empty() => "loading".into(),
             Some(Body::CannotShow { sentence, .. } | Body::Refused { sentence, .. }) => {
                 sentence.clone()
             }

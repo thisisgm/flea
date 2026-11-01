@@ -193,3 +193,52 @@ fn fixreaders_preview_text_state_column_reads_the_focused_preview(cx: &mut TestA
     assert!(read(&shell, cx, "previewTextState", &[])
         .starts_with("Too few arguments provided (1 required but 0 were provided.)"));
 }
+
+/// EY-507: SelectionPreview.qml takes the keyboard only from focusPreview, so a click on a too-large file's column leaves the listing focused and Right opens Quick Look.
+#[gpui::test]
+fn fixpreview_ey507_a_click_on_the_column_preview_keeps_the_listing_keys(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "/files");
+    let rows = vec![file(
+        "huge.txt",
+        "text-plain",
+        "Plain text document",
+        0o100644,
+    )];
+    land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    let code = ask(&lines, "code").to_owned();
+    answer(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"code","token":{},"slot":"column","state":"large","first":0,"total":0,"lines":[]}}"#,
+            field(&code, "token")
+        ),
+    );
+    pump(cx);
+    let frame = cx
+        .debug_bounds("column-preview")
+        .expect("the column preview is drawn");
+    cx.simulate_click(frame.center(), gpui::Modifiers::none());
+    pump(cx);
+    let preview_focused = cx.update(|window, cx| {
+        let preview = shell
+            .read(cx)
+            .selection_preview(0)
+            .expect("the column is mounted");
+        let focused = preview.read(cx).focus.is_focused(window);
+        focused
+    });
+    assert!(
+        !preview_focused,
+        "a click on the preview leaves the listing focused"
+    );
+    assert_eq!(read(&shell, cx, "focusView", &[]), "list");
+    cx.simulate_keystrokes("right");
+    pump(cx);
+    assert_eq!(
+        read(&shell, cx, "previewOpen", &[]),
+        "true",
+        "Right opens Quick Look on the file"
+    );
+}

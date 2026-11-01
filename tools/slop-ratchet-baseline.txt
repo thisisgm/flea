@@ -1,6 +1,6 @@
 total clone_lines 4755 220283
 total bool_structs 89
-total backend_imports 13
+total backend_imports 14
 total unwraps 467
 bool_structs crates/flea-gui/src/columns/menu.rs Busy 1
 bool_structs crates/flea-gui/src/columns/preview_host.rs Moment 1
@@ -1118,6 +1118,7 @@ backend_imports crates/flea-gui/src/g2/pv2/poppler.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/presentation/face_cache.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/presentation/source.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/window/network_cloud.rs flea::backend::regfile 1
+backend_imports crates/flea-gui/src/window/quick_look_replies.rs flea::backend::imagesize 1
 backend_imports crates/flea-gui/src/window/selection_preview_text.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/window/settings/store.rs flea::backend::regfile 1
 unwraps crates/flea-gui/build.rs 6

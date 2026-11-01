@@ -68,8 +68,10 @@ impl Render for QuickLook {
         // Unrevealed, the ground still takes every event but draws nothing, so the held listing shows through.
         let ground = look.scrim().opacity(motion.opacity);
         let mut overlay = div().absolute().size_full().when(active, |overlay| {
-            overlay
-                .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()))
+            overlay.child(
+                Shield::new(card, ground, on_pointer)
+                    .dragging(self.scroll.drag.is_some() || self.scroll.pan.is_some()),
+            )
         });
         // A mounted view lays out unseen while held back, so it can ask for its first screen before the reveal.
         let laying = self.has_doc()
@@ -292,6 +294,10 @@ impl QuickLook {
                 parts
             }
             Body::Doc(doc) => self.doc_parts(subject, doc, look, window, cx),
+            // A Compare whose diff is still out draws its bar alone, and the waiting mark after the hold.
+            Body::Refused { title, sentence } if sentence.is_empty() => {
+                vec![bar::refusal_bar(mark_of, title, look, self, cx)]
+            }
             Body::Refused { title, sentence } => vec![
                 bar::refusal_bar(mark_of, title, look, self, cx),
                 recipe(
@@ -304,7 +310,10 @@ impl QuickLook {
                 ),
             ],
         };
-        surface.children(children).into_any_element()
+        surface
+            .children(children)
+            .children(self.waiting_mark(look, cx))
+            .into_any_element()
     }
 }
 

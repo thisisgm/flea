@@ -37,6 +37,7 @@ pub mod scroller;
 pub mod shield;
 mod svg;
 mod viewport;
+pub(crate) mod waiting;
 
 pub use raster::{
     for_path as raster_for_path, run as raster_run, Job as RasterJob, RasterOutcome, RasterRefusal,
@@ -130,6 +131,9 @@ pub struct QuickLook {
     raster_in_flight: bool,
     /// The window the card last drew in; a retired tile is freed there even after the host unmounts.
     window: Option<AnyWindowHandle>,
+    /// LATENCY-ATOMIC's hold ran out with the subject's answer still out, so the waiting mark draws.
+    waiting_due: bool,
+    waiting_hold: Option<gpui::Task<()>>,
     retired: Vec<Arc<RenderImage>>,
     /// Every tile freed from the atlas, so a test can tell a freed interim from a kept one.
     #[cfg(test)]
@@ -173,6 +177,8 @@ impl QuickLook {
             raster_latest: Arc::new(AtomicU64::new(0)),
             raster_in_flight: false,
             window: None,
+            waiting_due: false,
+            waiting_hold: None,
             retired: Vec::new(),
             #[cfg(test)]
             retired_ids: Vec::new(),
@@ -296,6 +302,7 @@ impl QuickLook {
         self.strip_hide_task = None;
         self.strip_shown = false;
         self.reveal_strip(cx);
+        self.arm_waiting(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
         self.revealed = revealed;
@@ -337,6 +344,9 @@ impl QuickLook {
                 if let Some(axis) = dragged {
                     self.hold(axis, cx);
                 }
+                for axis in self.scroll.pan_to(at) {
+                    self.hold(axis, cx);
+                }
                 if changed {
                     cx.notify();
                 }
@@ -347,6 +357,9 @@ impl QuickLook {
             } if self.revealed && inside => {
                 if let Some(axis) = self.scroll.press(at) {
                     self.hold(axis, cx);
+                } else if self.zoom > 1. {
+                    // PreviewImage.qml's Flickable: a zoomed picture pans under a drag.
+                    self.scroll.grab(at);
                 }
             }
             Pointer::Wheel if self.revealed => {

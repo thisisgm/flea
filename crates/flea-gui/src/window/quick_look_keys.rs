@@ -74,7 +74,7 @@ pub(super) fn picture(meta: &Meta, path: String, link: Option<&str>, catalog: &I
 }
 
 // EXIF orientations 5 to 8 turn the picture a quarter, so its upright width is the stored height.
-fn upright(w: u32, h: u32, orient: u32) -> (f64, f64) {
+pub(super) fn upright(w: u32, h: u32, orient: u32) -> (f64, f64) {
     if orient >= 5 {
         (h.into(), w.into())
     } else {

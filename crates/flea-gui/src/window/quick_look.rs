@@ -230,11 +230,13 @@ impl Shell {
                 (subject(State::Unsupported, body), true, None, Ask::Nothing)
             }
         };
+        let early = replies::header_path(&ask, &subject.body);
         let host = self.quick_look_host(side, window, cx);
         host.token = token;
         host.row = Some(index);
         host.ask = ask;
         self.show(subject, revealed, line, window, cx);
+        self.quick_look_header(token, early, cx);
     }
 
     /// Opens or replaces the card's subject and sends its one ask; the card takes the keyboard.

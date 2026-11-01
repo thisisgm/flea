@@ -101,35 +101,15 @@ impl QuickLook {
         // As in PreviewImage.qml, a picture without its first frame cannot zoom in.
         if next != self.zoom && (next <= 1. || self.svg.as_ref().is_some_and(|s| s.image.is_some()))
         {
-            let prior = self.scroll.view;
-            self.zoom = next;
-            if let Some(window) = self.window {
-                let _ = window.update(cx, |_, window, _| {
-                    let card = self.card(window.viewport_size());
-                    if let Some(view) = self.picture_viewport(card, window.scale_factor().into()) {
-                        let (fx, fy) = prior
-                            .map(|old| {
-                                let w = f64::from(f32::from(old.bounds.size.width));
-                                let h = f64::from(f32::from(old.bounds.size.height));
-                                (
-                                    (self.scroll.x + w / 2.) / old.content_w,
-                                    (self.scroll.y + h / 2.) / old.content_h,
-                                )
-                            })
-                            .unwrap_or((0.5, 0.5));
-                        self.scroll.x =
-                            fx * view.content_w - f64::from(f32::from(view.bounds.size.width)) / 2.;
-                        self.scroll.y = fy * view.content_h
-                            - f64::from(f32::from(view.bounds.size.height)) / 2.;
-                        // A second zoom before the next frame anchors on this view, not the drawn one.
-                        self.scroll.fit(view);
-                    } else {
-                        self.scroll.x = 0.;
-                        self.scroll.y = 0.;
-                        self.scroll.view = None;
-                    }
-                });
+            // The next frame centres the new viewport on this point: a key runs inside the window's own update, so no window is borrowed here.
+            self.scroll.anchor = (next > 1.).then(|| self.scroll.centre());
+            if next <= 1. {
+                self.scroll.x = 0.;
+                self.scroll.y = 0.;
+                self.scroll.pan = None;
+                self.scroll.view = None;
             }
+            self.zoom = next;
             cx.notify();
         }
         true

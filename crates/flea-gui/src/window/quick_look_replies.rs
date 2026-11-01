@@ -9,12 +9,13 @@ use flea::{
     jsondoc::{self, Json},
     ui_logic_pv1::{
         compare,
-        kinds::State,
+        kinds::{self, State},
         meta::{self, CompareReply, CompareState, Meta},
         rect::Shape,
     },
 };
 use gpui::{Context, Window};
+use std::path::PathBuf;
 
 /// The one line that answers the ask, matched before the card's subject is read.
 enum Reply {
@@ -252,5 +253,62 @@ impl Shell {
             }
             view.reveal(cx);
         });
+    }
+
+    /// The picture's own size from its header, landed while the meta reply is still out (EY-521).
+    pub(super) fn quick_look_header(
+        &mut self,
+        token: u64,
+        path: Option<PathBuf>,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(path) = path else { return };
+        let read = cx
+            .background_executor()
+            .spawn(async move { flea::backend::imagesize::header(&path) });
+        cx.spawn(async move |this, cx| {
+            let Some(found) = read.await else { return };
+            let _ =
+                this.update(cx, |shell, cx| {
+                    if !shell.quick_look.as_ref().is_some_and(|host| {
+                        host.token == token && matches!(host.ask, Ask::Meta { .. })
+                    }) {
+                        return;
+                    }
+                    let (w, h) = keys::upright(found.width, found.height, found.orientation.into());
+                    if w <= 0. || h <= 0. {
+                        return;
+                    }
+                    shell.quick_look_land(cx, |subject| {
+                        if let Body::Image { w: sw, h: sh, .. } = &mut subject.body {
+                            if *sw <= 0. {
+                                (*sw, *sh) = (w, h);
+                                subject.shape = Shape {
+                                    kind: State::Image,
+                                    known: true,
+                                    w: found.width.into(),
+                                    h: found.height.into(),
+                                    orient: found.orientation.max(1).into(),
+                                };
+                            }
+                        }
+                    });
+                });
+        })
+        .detach();
+    }
+}
+
+/// PreviewImage.qml draws the picture as soon as it decodes, so the card reads the file's own header beside a meta ask.
+pub(super) fn header_path(ask: &Ask, body: &Body) -> Option<PathBuf> {
+    match (ask, body) {
+        (
+            Ask::Meta {
+                link: None,
+                path: asked,
+            },
+            Body::Image { path, .. },
+        ) if !kinds::is_raw(asked) => Some(path.clone()),
+        _ => None,
     }
 }

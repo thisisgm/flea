@@ -15,6 +15,9 @@ mod quality;
 mod quality_tests;
 #[path = "pictures/readers.rs"]
 mod readers;
+#[cfg(test)]
+#[path = "pictures/slot_tests.rs"]
+mod slot_tests;
 #[path = "pictures/surface.rs"]
 pub(crate) mod surface;
 #[path = "pictures/wire.rs"]

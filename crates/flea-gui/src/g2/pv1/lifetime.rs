@@ -56,6 +56,8 @@ impl QuickLook {
         self.revealed = false;
         self.expanded = false;
         self.strip_shown = false;
+        self.waiting_due = false;
+        self.waiting_hold = None;
         self.focused = None;
         self.hovered = None;
         self.pressed = None;
