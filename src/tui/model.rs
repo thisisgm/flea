@@ -346,7 +346,7 @@ impl Model {
             menu_count: 0,
             menu_view: super::render::menu_layout::View::new(settings),
             rounded: Default::default(),
-            i18n,
+            i18n: i18n.clone(),
             locale_revision: 0,
             keycaps: None,
             keycap_labels: Default::default(),
