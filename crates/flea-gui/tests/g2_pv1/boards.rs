@@ -106,11 +106,8 @@ fn ql_picture_size_matrix_never_enlarges_a_raster(cx: &mut TestAppContext) {
                 let (_, _, cw, ch) = rect(cx, "pv1-card");
                 let (_, _, w, h) = rect(cx, "pv1-picture");
                 let fit = (cw as f64 / sw).min(ch as f64 / sh);
-                let scale = if vector {
-                    fit
-                } else {
-                    fit.min(1. / cx.update(|window, _| window.scale_factor()) as f64)
-                };
+                let device = cx.update(|window, _| window.scale_factor()) as f64;
+                let scale = if vector { fit } else { fit.min(1. / device) };
                 let cell = format!("{sw}x{sh} vector={vector} in {window_w}x{window_h}");
                 assert!((w as f64 - sw * scale).abs() <= 1., "{cell}: width {w}");
                 assert!((h as f64 - sh * scale).abs() <= 1., "{cell}: height {h}");
