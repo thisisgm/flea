@@ -113,6 +113,46 @@ impl ListingView {
         self.listing().window_request(start, count)
     }
 
+    /// PickerList.qml's wheel: the List body scrolls within its rows and the cursor stays (EY-377).
+    pub fn list_scroll_by(&mut self, delta: f32) {
+        let (height, row) = {
+            let state = self.state.borrow();
+            (
+                f32::from(state.drawn.bounds.size.height),
+                state.file_metrics().row,
+            )
+        };
+        let rows = self
+            .shown
+            .as_ref()
+            .map_or(self.listing().total(), |rows| rows.len());
+        let bottom = (rows as f32 * row - height).max(0.);
+        self.set_scroll_y((self.scroll_y - delta).clamp(0., bottom));
+    }
+
+    /// The window request for List rows the scrolled body shows but the held window does not hold.
+    pub fn list_window_request(&self) -> Option<String> {
+        if self.surface.mode != "list" || self.shown.is_some() {
+            return None;
+        }
+        let (height, row) = {
+            let state = self.state.borrow();
+            (
+                f32::from(state.drawn.bounds.size.height),
+                state.file_metrics().row,
+            )
+        };
+        let first = (self.scroll_y / row).floor() as usize;
+        let end = (((self.scroll_y + height) / row).ceil() as usize).min(self.listing().total());
+        let held = self.listing().held();
+        if first >= held.start && end <= held.start + held.rows.len() {
+            return None;
+        }
+        let count = self.window_size();
+        let start = first.saturating_sub(count.saturating_sub(end - first) / 2);
+        self.listing().window_request(start, count)
+    }
+
     pub fn set_selection_fill(&mut self, fill: gpui::Hsla) {
         self.surface.selection_fill = Some(fill);
     }

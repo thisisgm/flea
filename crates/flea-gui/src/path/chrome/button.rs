@@ -54,6 +54,7 @@ impl ChromeView {
                         let control = &mut frame.controls[index];
                         control.pointer_down = true;
                         control.press_origin = Some(event.position);
+                        control.press_at = Some(cx.background_executor().now());
                         control.set_pressed(
                             true,
                             cx.background_executor().now(),
@@ -76,6 +77,10 @@ impl ChromeView {
                         && super::super::tap::within_threshold(
                             control.press_origin,
                             event.position,
+                        )
+                        && super::super::tap::short_press(
+                            control.press_at,
+                            cx.background_executor().now(),
                         )
                         && control.pressed
                         && control

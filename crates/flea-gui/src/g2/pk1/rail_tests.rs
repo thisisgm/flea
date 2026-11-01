@@ -127,9 +127,11 @@ fn a_save_chooser_offers_no_recent(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn a_press_on_home_lists_home_and_the_keys_walk_the_rail(cx: &mut TestAppContext) {
+fn a_press_on_home_lists_home_and_leaves_the_keyboard_on_the_files(cx: &mut TestAppContext) {
     let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
     listed(&mut f, "/d");
+    let focus = f.read(|picker| picker.focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
     let home = f.cx.debug_bounds("picker-rail-row-1").unwrap().center();
     f.cx.simulate_click(home, Modifiers::none());
     f.cx.run_until_parked();
@@ -147,15 +149,11 @@ fn a_press_on_home_lists_home_and_the_keys_walk_the_rail(cx: &mut TestAppContext
     );
     let picker = f.picker.clone();
     assert!(
-        f.cx.update(|window, cx| picker.read(cx).rail.focus.is_focused(window)),
-        "a press gives the rail the keyboard"
-    );
-    f.cx.simulate_keystrokes("up enter");
-    f.cx.run_until_parked();
-    assert_eq!(
-        f.read(|picker| (picker.rail.cursor, picker.listing.location.clone())),
-        (0, flea::ui_logic_pk1::RECENT.to_owned()),
-        "Up and Enter open Recent"
+        f.cx.update(|window, cx| {
+            let picker = picker.read(cx);
+            picker.focus.is_focused(window) && !picker.rail.focus.is_focused(window)
+        }),
+        "a press leaves the keyboard on the files, as picker-recent-list draws"
     );
 }
 

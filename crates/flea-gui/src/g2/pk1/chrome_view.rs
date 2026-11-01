@@ -64,8 +64,16 @@ impl Render for ChromeView {
                         view.border_1().border_color(palette.foreground)
                     });
             }
-            controls.push(control.on_click(move |_, window, cx| {
-                if !enabled {
+            let pressed = picker.clone();
+            control = control.on_mouse_down(gpui::MouseButton::Left, move |_, _, cx| {
+                let now = cx.background_executor().now();
+                pressed.update(cx, |picker, _| picker.chrome.pressed_at = Some(now));
+            });
+            controls.push(control.on_click(move |event, window, cx| {
+                let held = handle.read(cx).chrome.pressed_at;
+                let long = matches!(event, gpui::ClickEvent::Mouse(_))
+                    && !crate::path::tap::short_press(held, cx.background_executor().now());
+                if !enabled || long {
                     return;
                 }
                 handle.update(cx, |picker, cx| {

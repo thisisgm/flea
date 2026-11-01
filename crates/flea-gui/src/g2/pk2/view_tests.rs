@@ -67,7 +67,7 @@ fn a_hundred_thousand_row_folder_draws_its_held_window_and_nothing_more(cx: &mut
 }
 
 #[gpui::test]
-fn a_backend_death_draws_its_sentence_and_keeps_the_held_rows(cx: &mut TestAppContext) {
+fn ey479_backend_death_keeps_rows_without_a_second_failure_sentence(cx: &mut TestAppContext) {
     let (view, cx) =
         cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
     cx.simulate_resize(size(px(800.), px(600.)));
@@ -81,8 +81,8 @@ fn a_backend_death_draws_its_sentence_and_keeps_the_held_rows(cx: &mut TestAppCo
     });
     cx.run_until_parked();
     assert!(
-        cx.debug_bounds("pk2-failure").is_some(),
-        "the footer sentence is drawn"
+        cx.debug_bounds("pk2-failure").is_none(),
+        "the chooser status reports backend death without contradicting the retained rows"
     );
     assert!(
         cx.debug_bounds("pk2-listing").is_some(),
@@ -100,6 +100,19 @@ fn a_backend_death_draws_its_sentence_and_keeps_the_held_rows(cx: &mut TestAppCo
             "the kept rows still shaped in the frame"
         );
     });
+}
+
+#[gpui::test]
+fn ey479_backend_death_before_rows_still_draws_the_listing_failure(cx: &mut TestAppContext) {
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    view.update(cx, |view, cx| {
+        view.open("/big");
+        assert!(view.fail(view.generation(), Cause::Gone));
+        cx.notify();
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("pk2-failure").is_some());
 }
 
 #[gpui::test]
@@ -143,4 +156,83 @@ fn the_save_field_draws_its_error_line_from_the_field(cx: &mut TestAppContext) {
         cx.debug_bounds("pk2-save-error").is_some(),
         "the field carries its own line"
     );
+}
+
+#[gpui::test]
+fn ey377_opening_another_folder_resets_the_scrolled_viewport(cx: &mut TestAppContext) {
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    view.update(cx, |view, _| {
+        view.open("/big");
+        view.set_scroll_y(900.);
+        view.open("/other");
+        assert_eq!(
+            view.scroll_y(),
+            0.,
+            "a replacement listing starts at its first row"
+        );
+    });
+}
+
+#[gpui::test]
+fn ey377_fractional_scroll_fetches_the_trailing_partial_row(cx: &mut TestAppContext) {
+    const HELD: usize = 350;
+    let (view, cx) =
+        cx.add_window_view(|_, _| ListingView::new(english(), Typeface::omarchy_default()));
+    cx.simulate_resize(size(px(800.), px(600.)));
+    view.update(cx, |view, cx| {
+        view.open("/big");
+        let generation = view.generation();
+        assert!(view.receive(generation, &listed(1000)));
+        let rows = (0..HELD)
+            .map(|index| {
+                format!(r#"{{"n":"file-{index}.txt","d":false,"s":0,"m":0,"p":420,"i":""}}"#)
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        assert!(view.receive(
+            generation,
+            &format!(r#"{{"t":"rows","start":0,"listing":{generation},"rows":[{rows}]}}"#)
+        ));
+        cx.notify();
+    });
+    cx.run_until_parked();
+    view.update(cx, |view, _| {
+        let (height, row) = {
+            let state = view.drawn();
+            (
+                f32::from(state.drawn.bounds.size.height),
+                state.file_metrics().row,
+            )
+        };
+        let first = HELD - view.list_visible_rows();
+        view.set_scroll_y(first as f32 * row);
+        assert!(
+            view.list_window_request().is_none(),
+            "all visible rows are held before fractional scrolling"
+        );
+        let fraction = (height / row).fract();
+        let offset = if fraction == 0. {
+            0.5
+        } else {
+            1. - fraction / 2.
+        };
+        view.set_scroll_y((first as f32 + offset) * row);
+        let line = view
+            .list_window_request()
+            .expect("the newly exposed trailing partial row needs fetching");
+        let request = flea::jsondoc::parse(&line).unwrap();
+        let start = request
+            .get("start")
+            .and_then(|value| value.as_f64())
+            .unwrap() as usize;
+        let count = request
+            .get("count")
+            .and_then(|value| value.as_f64())
+            .unwrap() as usize;
+        assert!(
+            start <= HELD && start + count > HELD,
+            "the fetched window includes the partial row at {HELD}"
+        );
+    });
 }

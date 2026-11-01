@@ -197,6 +197,8 @@ mod view_tests;
 mod u07_drag_review_tests;
 
 #[cfg(test)]
+mod ey200_long_press_tests;
+#[cfg(test)]
 mod u07_tap_tests;
 
 #[cfg(test)]

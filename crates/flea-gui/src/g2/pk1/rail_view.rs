@@ -116,13 +116,12 @@ impl Render for RailView {
                             palette.muted_frame.opacity(UNMOUNTED)
                         })
                 }))
-                .on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                     handle.update(cx, |picker, cx| {
-                        window.focus(&picker.rail.focus, cx);
                         picker.rail.cursor = index;
                         cx.notify();
                     });
-                    // The window's own press would hand the keyboard back to the listing.
+                    // A press leaves the keyboard where it was, as SidebarRow's tap does: picker-recent-list keeps it on the files.
                     cx.stop_propagation();
                 })
                 .on_click({

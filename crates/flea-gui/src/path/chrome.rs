@@ -55,6 +55,7 @@ pub struct Control {
     /// The initiating left press owns the tap only until release or permanent cancellation.
     pub pointer_down: bool,
     pub press_origin: Option<Point<Pixels>>,
+    pub press_at: Option<Instant>,
     pub press: Option<Press>,
 }
 
@@ -63,6 +64,7 @@ impl Control {
         if !down {
             self.pointer_down = false;
             self.press_origin = None;
+            self.press_at = None;
         }
         if self.pressed != down {
             let from = press_scale(self.press, now, reduced).0;

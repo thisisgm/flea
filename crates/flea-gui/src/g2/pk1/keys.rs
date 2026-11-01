@@ -9,6 +9,9 @@ impl Picker {
     pub(super) fn listing_action(&mut self, action: &str, cx: &mut Context<Self>) -> bool {
         let current = || self.browse.listing.read(cx).listing().order();
         match action {
+            "cursorDown" | "cursorUp" => {
+                self.shown_step(if action == "cursorDown" { 1 } else { -1 }, cx);
+            }
             "cursorFirst" | "cursorLast" => self.shown_edge(action == "cursorLast", cx),
             "pageDown" | "pageUp" => {
                 let rows = self.browse.listing.read(cx).list_visible_rows() as isize;

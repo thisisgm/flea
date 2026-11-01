@@ -20,7 +20,7 @@ pub mod scale;
 pub mod strip;
 mod strip_input;
 pub mod suggestions;
-mod tap;
+pub(crate) mod tap;
 pub mod view;
 mod wire;
 
