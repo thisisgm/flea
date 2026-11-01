@@ -6,7 +6,8 @@ use crate::{
 use flea::{jsondoc::Json, ui_logic_op1::jobs::Action};
 use gpui::App;
 
-fn control(text: Option<crate::g2::fb1::observe::Text>, enabled: bool) -> Json {
+// Ipc.qml controlState names the control as v0.3.12 does, whatever the painted label reads.
+fn control(name: &str, text: Option<crate::g2::fb1::observe::Text>, enabled: bool) -> Json {
     let centre = text
         .as_ref()
         .map(|t| {
@@ -28,6 +29,7 @@ fn control(text: Option<crate::g2::fb1::observe::Text>, enabled: bool) -> Json {
         unreachable!()
     };
     state.extend([
+        ("name".into(), Json::Str(name.into())),
         ("label".into(), Json::Str(label)),
         ("enabled".into(), Json::Bool(enabled)),
         ("centre".into(), Json::Str(centre)),
@@ -75,10 +77,14 @@ pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::Message
             "rect",
             Json::Str(frame.as_ref().map(super::status::rect).unwrap_or_default()),
         ),
-        ("cancel", control(cancel, can_cancel)),
+        ("cancel", control("Cancel", cancel, can_cancel)),
         (
             "undo",
-            control(line.painted.get("undo"), !line.drawn().undo.is_empty()),
+            control(
+                "z undoes",
+                line.painted.get("undo"),
+                !line.drawn().undo.is_empty(),
+            ),
         ),
         (
             "blocks",

@@ -6,6 +6,7 @@ use crate::row::marks::Mark;
 use flea::ui_logic_pv2::markdown::{
     markdown_flow::{Atom, Face, Laid},
     markdown_layout::{dashes, Item},
+    Block,
 };
 use gpui::Hsla;
 use std::sync::Arc;
@@ -33,6 +34,24 @@ impl Build<'_> {
                 run,
             ));
         }
+    }
+
+    /// A table chunk's first body row, top and height from the chunk's top: the band its row rules bound, past the header's.
+    fn first_body_row(&self, items: &[Item]) -> Option<(f32, f32)> {
+        let headed = matches!(
+            self.doc.blocks().get(self.block),
+            Some(Block::Table(table)) if !table.head.is_empty()
+        );
+        let mut rules = items.iter().filter_map(|item| match item {
+            Item::Rule { y, wash: true, .. } => Some(*y),
+            _ => None,
+        });
+        let top = if headed {
+            rules.next()? + self.hairline
+        } else {
+            0.
+        };
+        Some((top, rules.next()? - top))
     }
 
     fn quad(&mut self, rect: (f32, f32, f32, f32), color: Hsla) {
@@ -289,7 +308,15 @@ impl Build<'_> {
                     self.selection.clip = old_clip;
                     let len = self.ops.len() - at - 1;
                     self.ops[at] = Op::Clip { rect, len };
-                    self.hits.push(Hit::Table { rect, id, most });
+                    let row = self
+                        .first_body_row(items)
+                        .map(|(top, height)| (x0 + x - shift, y0 + y + top, *content, height));
+                    self.hits.push(Hit::Table {
+                        rect,
+                        id,
+                        most,
+                        row,
+                    });
                 }
             }
         }

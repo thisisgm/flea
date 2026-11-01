@@ -313,3 +313,59 @@ fn gm_prevsel_a_long_drag_cuts_only_the_shown_text_per_move() {
         "the release still copies the whole range: {copied:.60}"
     );
 }
+
+#[test]
+fn ey260_preview_table_reads_the_sideways_table_view_row_and_shift() {
+    let cell = "abcdefghijklmnopqrstuvwxyz";
+    let line = |c: &str| format!("|{}|\n", [c; 12].join("|"));
+    let raw = format!("{}{}{}{}", line("h"), line("---"), line(cell), line(cell));
+    let words = flea::ui_logic_pv2::markdown::Words::english();
+    let blocks = flea::ui_logic_pv2::markdown::blocks(
+        &raw,
+        &flea::ui_logic_pv2::markdown::Ctx {
+            dir: "/md-tables",
+            chrome: "#181825",
+            ink: "#c0caf5",
+            words: &words,
+        },
+    );
+    assert!(matches!(blocks.as_slice(), [Block::Table(_)]), "{blocks:?}");
+    let (mut cx, handle, view) = mount(false, false, &raw, blocks);
+    let read = |cx: &TestAppContext| {
+        let state = view.read_with(cx, |view, _| view.table_state());
+        let json = flea::jsondoc::parse(&state).unwrap();
+        let rect = |key: &str| -> Vec<f32> {
+            json.get(key)
+                .and_then(flea::jsondoc::Json::as_str)
+                .unwrap_or_else(|| panic!("{key} in {state}"))
+                .split(' ')
+                .map(|n| n.parse().unwrap())
+                .collect()
+        };
+        let shift = json.get("scrollX").and_then(flea::jsondoc::Json::as_f64);
+        (shift, rect("view"), rect("row"))
+    };
+    let (shift, table, row) = read(&cx);
+    assert_eq!(shift, Some(0.));
+    // The row starts under the header, runs the whole content width and is one line high.
+    assert_eq!(row[0], table[0]);
+    assert!(
+        row[1] > table[1] && row[1] + row[3] < table[1] + table[3],
+        "{table:?} {row:?}"
+    );
+    assert!(row[2] > table[2] && row[3] > 0., "{table:?} {row:?}");
+    view.update(&mut cx, |view, _| {
+        view.tables
+            .insert(super::super::paint::TableId::Block(0, 0), 40.);
+    });
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    let (shift, moved, after) = read(&cx);
+    assert_eq!(shift, Some(40.));
+    assert_eq!((moved, after[0], after[1]), (table, row[0] - 40., row[1]));
+    view.update(&mut cx, |view, cx| view.set_view(View::Source, cx));
+    assert_eq!(view.read_with(&cx, |view, _| view.table_state()), "{}");
+}

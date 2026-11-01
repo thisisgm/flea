@@ -75,6 +75,15 @@ fn u05_transfer_observer_reads_the_painted_job_block_and_its_fold(cx: &mut TestA
         Some("5.3 MB of 9.7 MB · 1.1 MB/s · 0:04 left")
     );
     assert!(!card.get("rect").unwrap().as_str().unwrap().is_empty());
+    // EY-190: the controls carry Ipc.qml controlState's names.
+    for (control, name) in [("cancel", "Cancel"), ("undo", "z undoes")] {
+        assert_eq!(
+            card.get(control)
+                .and_then(|c| c.get("name"))
+                .and_then(flea::jsondoc::Json::as_str),
+            Some(name)
+        );
+    }
     assert_eq!(
         card.get("cancel")
             .unwrap()
