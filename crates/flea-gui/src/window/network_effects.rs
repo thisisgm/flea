@@ -32,7 +32,6 @@ impl Shell {
                 label,
                 origin,
             } => {
-                self.network_list(cx);
                 self.network_opening(*origin, "", cx);
                 let Some(side) = self.network_side(*origin) else {
                     self.drop_rail_network_open(*origin);
@@ -57,7 +56,14 @@ impl Shell {
                     cx,
                 );
             }
-            Effect::RefreshMounts => self.network_list(cx),
+            Effect::RefreshMounts => {
+                // The phone rows read the rail source's own listing, so a mount that lands re-lists it too, as v0.3.12's one shared poll did.
+                if let Some(join) = &self.rail {
+                    let source = join.devices.clone();
+                    source.update(cx, |source, cx| source.poll_mounts(cx));
+                }
+                self.network_list(cx);
+            }
             Effect::Shares {
                 uri,
                 label,

@@ -135,8 +135,12 @@ impl Service {
                                     if this.child.ended(run) {
                                         this.child_generation = None;
                                         let now = this.now(cx);
-                                        let effects =
+                                        let mut effects =
                                             this.mounts.exited(generation, phase, &out, now);
+                                        // NetworkMounts.qml infoProcess.onExited: every Open follows this exit, so this is the one re-list a mount gets.
+                                        if phase == super::mount::Phase::Info {
+                                            effects.insert(0, Effect::RefreshMounts);
+                                        }
                                         this.apply(effects, now, cx);
                                     }
                                 });
