@@ -164,10 +164,13 @@ fn pl2_key_first_and_info_runs_even_after_mount_refusal() {
     let e = m.exited(generation, Phase::Info, &Outcome::code(1), 20);
     assert!(matches!(
         e.as_slice(),
-        [mount::Effect::Completed {
-            error: Some("network.password_needed"),
-            ..
-        }]
+        [
+            mount::Effect::Completed {
+                error: Some("network.password_needed"),
+                ..
+            },
+            mount::Effect::Say { origin: 7, .. }
+        ]
     ));
 }
 
@@ -344,3 +347,6 @@ fn pl2_real_entity_and_element_draw_all_protocols(cx: &mut gpui::TestAppContext)
             .unwrap();
     }
 }
+
+#[path = "fix_fileops_2_tests.rs"]
+mod fix_fileops_2;

@@ -131,6 +131,8 @@ mod fixmenus_tests;
 #[cfg(test)]
 mod fixchrome_ey522_tests;
 #[cfg(test)]
+mod fix_fileops_2_tests;
+#[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
 mod gh_rename_proof_lane;

@@ -25,7 +25,7 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: String) {
             field_usize(&line, "id").unwrap_or(0)
         )
         .ok();
-        writeln!(out, "{}", progress_line(id, "checking", 0, 0, 0, None)).ok();
+        writeln!(out, "{}", progress_line(id, "checking", 0, 0, 0, ("", 0))).ok();
         out.flush().ok();
         Some((
             Progress {
@@ -34,6 +34,7 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: String) {
                 count: Cell::new(0),
                 nodes: Cell::new(0),
                 last: Cell::new(None),
+                named: Default::default(),
             },
             Cancellation::operation(cancel),
         ))
@@ -90,15 +91,8 @@ fn progress_line(
     done: usize,
     total: usize,
     checked: usize,
-    item: Option<&Detail>,
+    (name, size): (&str, u64),
 ) -> String {
-    let name = item
-        .map(|item| item.item.original.rsplit('/').next().unwrap_or(""))
-        .unwrap_or("");
-    let size = item
-        .and_then(|item| item.backing.as_ref())
-        .map(Reviewed::reviewed_bytes)
-        .unwrap_or(0);
     format!(
         r#"{{"t":"transferprogress","id":{id},"index":0,"name":"{}","itemSize":{size},"bytes":{done},"total":{total},"unit":"items","phase":"{phase}","checked":{checked}}}"#,
         escape(name)
@@ -111,6 +105,8 @@ pub(super) struct Progress {
     pub count: Cell<usize>,
     pub nodes: Cell<usize>,
     last: Cell<Option<Instant>>,
+    /// The phase and the last item a sample named in it, with its size.
+    named: std::cell::RefCell<(String, String, u64)>,
 }
 impl Progress {
     pub fn sample(
@@ -121,6 +117,7 @@ impl Progress {
         item: Option<&Detail>,
         force: bool,
     ) {
+        self.remember(phase, item);
         let now = Instant::now();
         if force
             || self
@@ -129,24 +126,43 @@ impl Progress {
                 .map_or(true, |last| now.duration_since(last) >= PROGRESS_EVERY)
         {
             self.last.set(Some(now));
+            let (name, size) = {
+                let named = self.named.borrow();
+                (named.1.clone(), named.2)
+            };
             let _ = self.tx.send(OpMsg::JobEntries {
                 id: self.id,
                 done,
                 total: self.nodes.get(),
-                file: item
-                    .map(|item| item.item.original.rsplit('/').next().unwrap_or(""))
-                    .unwrap_or("")
-                    .into(),
+                file: name.clone(),
                 bytes: 0,
                 total_bytes: 0,
-                item_bytes: item
-                    .and_then(|item| item.backing.as_ref())
-                    .map(Reviewed::reviewed_bytes)
-                    .unwrap_or(0),
+                item_bytes: size,
             });
             let _ = self.tx.send(OpMsg::Meta {
-                line: progress_line(self.id, phase, done, self.nodes.get(), checked, item),
+                line: progress_line(
+                    self.id,
+                    phase,
+                    done,
+                    self.nodes.get(),
+                    checked,
+                    (&name, size),
+                ),
             });
+        }
+    }
+    // A sample between two items names none; the card keeps the last item this phase named, so its item line never blanks.
+    fn remember(&self, phase: &str, item: Option<&Detail>) {
+        let mut named = self.named.borrow_mut();
+        if named.0 != phase {
+            *named = (phase.into(), String::new(), 0);
+        }
+        if let Some(item) = item {
+            let name = item.item.original.rsplit('/').next().unwrap_or("");
+            if named.1 != name {
+                named.1 = name.into();
+            }
+            named.2 = item.backing.as_ref().map_or(0, Reviewed::reviewed_bytes);
         }
     }
     pub fn finish(self, line: String, cancelled: bool) -> OpMsg {
