@@ -13,7 +13,7 @@ mod hyprkeys;
 use flea::i18n;
 #[cfg(test)]
 mod i18n {
-    pub use flea::i18n::{substitute, I18n, Locale, Paths};
+    pub use flea::i18n::{I18n, Locale, Paths};
     #[path = "test_catalogs.rs"]
     pub(crate) mod test_catalogs;
 }
