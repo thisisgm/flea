@@ -2,6 +2,9 @@ use super::*;
 use flea::ui_logic_st2::wire;
 use std::time::Instant;
 
+#[path = "menu_notice_tests.rs"]
+mod notice_tests;
+
 #[path = "menu_backend.rs"]
 mod backend;
 
