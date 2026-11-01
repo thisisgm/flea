@@ -1,4 +1,5 @@
 use super::*;
+use flea::ui_logic_op1::collide::{text, texts, Request};
 
 // What waits for the facts: this window's own lift or an arrived native drop.
 pub(super) enum Owned {
@@ -12,6 +13,21 @@ impl Owned {
             Self::Own { lift, .. } => lift.paths.as_ref()?.first().cloned(),
             Self::Native(arrived) => arrived.urls.iter().find_map(|url| core::file_path(url)),
         }
+    }
+
+    /// A shelf drag redeems its token instead of re-reading its URIs (Drag.dropInto rule 4); the URIs only ask op1 first.
+    pub(super) fn shelf_ask(&self, dest: &str) -> Option<(Request, Vec<String>)> {
+        let Self::Native(arrived) = self else {
+            return None;
+        };
+        let (token, _) = core::shelf(arrived.shelf.as_deref()?).filter(|_| !dest.is_empty())?;
+        let request = Request::new()
+            .with("c", &text("transfer"))
+            .with("op", &text(""))
+            .with("paths", &texts(&[]))
+            .with("dest", &text(dest))
+            .with("shelf", &text(token));
+        Some((request, core::file_paths(&arrived.urls)))
     }
 
     pub(super) fn dropping(&self) -> Dropping<'_> {

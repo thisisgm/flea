@@ -275,6 +275,11 @@ impl Shell {
         {
             return;
         }
+        if let Some((request, probe)) = owned.shelf_ask(dest) {
+            let probe: Vec<&str> = probe.iter().map(String::as_str).collect();
+            self.ask_operation(side, &request, &probe, false, window, cx);
+            return;
+        }
         match decide(&owned.dropping(), dest, facts) {
             Landing::Ask(ask) => {
                 if let Some((request, _)) = crate::g2::dg1::join::request(&ask) {

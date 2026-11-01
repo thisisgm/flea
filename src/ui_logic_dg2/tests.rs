@@ -313,3 +313,12 @@ fn rail_destination_names_only_mounted_local_folders() {
     );
     assert_eq!(at(RailKind::Folder, "relative", true), "");
 }
+
+#[test]
+fn shelf_reads_the_token_then_the_intent_fixed_at_the_lift() {
+    assert_eq!(shelf("tok\ncopy"), Some(("tok", true)));
+    assert_eq!(shelf("tok\nmove"), Some(("tok", false)));
+    assert_eq!(shelf("tok"), Some(("tok", false)));
+    assert_eq!(shelf(""), None, "no token is no shelf drag");
+    assert_eq!(shelf("\ncopy"), None);
+}

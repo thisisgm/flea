@@ -20,6 +20,8 @@ pub(super) struct Cue {
     serial: u64,
     count: usize,
     flags: Option<(bool, bool)>,
+    /// A shelf drag's verb, fixed at its lift whatever keys are held (Drag.feedbackFor).
+    fixed: Option<Verb>,
     own: bool,
     proposed: Proposed,
     facts: Facts,
@@ -27,6 +29,9 @@ pub(super) struct Cue {
 
 impl Cue {
     fn verb(&self, window: &Window) -> Verb {
+        if let Some(verb) = self.fixed {
+            return verb;
+        }
         let keys = window.modifiers();
         let seen = |held| {
             if held {
@@ -138,6 +143,7 @@ impl Shell {
                     paths.first()?.clone(),
                     paths.len(),
                     Some((lift.marker.copy, lift.marker.shift)),
+                    None,
                     Proposed::default(),
                 ))
             })
@@ -163,15 +169,21 @@ impl Shell {
                     arrived.action,
                 )
                 .proposed;
+                let fixed = arrived
+                    .shelf
+                    .as_deref()
+                    .and_then(core::shelf)
+                    .map(|(_, copy)| if copy { Verb::Copy } else { Verb::Move });
                 Some((
                     paths.first()?.clone(),
                     paths.len(),
                     marker.map(|m| (m.copy, m.shift)),
+                    fixed,
                     proposed,
                 ))
             })
         };
-        let Some((first, count, flags, proposed)) = source else {
+        let Some((first, count, flags, fixed, proposed)) = source else {
             self.clear_file_cue(window, cx);
             return;
         };
@@ -185,6 +197,7 @@ impl Shell {
                 serial,
                 count,
                 flags,
+                fixed,
                 own,
                 proposed,
                 facts: Facts::default(),
