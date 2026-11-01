@@ -30,6 +30,9 @@ const HEIGHT: u64 = 6;
 const VIDEO: u64 = 7;
 // The clock the strip draws moves in steps no finer than this.
 const POSITION_STEP_MS: i64 = 100;
+// A frame released before the clip's size is known renders into a 2x2 RGBA scrap nobody shows.
+const SCRAP_SIDE: u32 = 2;
+const SCRAP_STRIDE: usize = SCRAP_SIDE as usize * 4;
 
 unsafe extern "C" fn wake(data: *mut c_void) {
     // SAFETY: data is the SyncSender `run` keeps alive until both callbacks are cleared.
@@ -249,8 +252,15 @@ fn play(
         let pending = update & RENDER_UPDATE_FRAME != 0;
         let draw = super::draw(pending, state.size.0 > 0, owed || redraw);
         if draw == super::Draw::Release {
-            let mut scrap = [0_u8; 16];
-            render(api, context, 2, 2, 8, &mut scrap)?;
+            let mut scrap = [0_u8; SCRAP_STRIDE * SCRAP_SIDE as usize];
+            render(
+                api,
+                context,
+                SCRAP_SIDE,
+                SCRAP_SIDE,
+                SCRAP_STRIDE,
+                &mut scrap,
+            )?;
             owed = true;
         }
         if draw == super::Draw::Frame && (owed || redraw || frame_due(api, context)?) {
