@@ -109,9 +109,12 @@ impl Shell {
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
-                self.drop_rail_network_open(*origin);
                 use crate::g2::pl2::result::{say_role, SayRole};
                 let role = say_role(note.key);
+                // An opening note precedes the landing, so only a final note ends the rail's open claim.
+                if role != SayRole::Opening {
+                    self.drop_rail_network_open(*origin);
+                }
                 if role == SayRole::Error {
                     self.network_opening(*origin, "", cx);
                 }

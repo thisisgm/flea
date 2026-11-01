@@ -52,7 +52,6 @@ pub(crate) use requested::requested;
 mod review_r2;
 
 pub(crate) struct Columns {
-    pub row_menu: Option<crate::columns::menu::NeighbourMenu>,
     /// The neighbour file a first tap selected, which the same gesture's second tap opens wherever the tracks moved.
     pub file_tap: Option<String>,
     pub area: Area,
@@ -115,7 +114,6 @@ impl Columns {
         );
         area.set_weights(super::selection_preview::host::tracks(&settings.data));
         Self {
-            row_menu: None,
             file_tap: None,
             area,
             preview_hosted: false,
