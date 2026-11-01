@@ -30,6 +30,7 @@ impl Default for Preferences {
             followed: Followed {
                 hidden: false,
                 ctrl_zoom: true,
+                single_click: false,
             },
             view_chosen: false,
             relist: false,
@@ -38,8 +39,6 @@ impl Default for Preferences {
             pending: None,
             pending_thumb: None,
             unsaved_thumb: None,
-            ctrl_zoom: true,
-            single_click: false,
         }
     }
 }
@@ -53,7 +52,7 @@ impl Picker {
             .and_then(Json::as_str)
             .unwrap_or("default")
             .to_owned();
-        self.preferences.single_click =
+        self.preferences.followed.single_click =
             data.get("openMode").and_then(Json::as_str) == Some("single");
         let preview = data.get("preview");
         self.preferences.followed.ctrl_zoom = preview
