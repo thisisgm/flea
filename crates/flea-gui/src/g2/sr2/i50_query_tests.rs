@@ -334,8 +334,8 @@ fn i50_query_filter_platform_control_text_refused(cx: &mut TestAppContext) {
 fn i50_query_filter_scrolled_query_stays_in_the_mirrored_field(cx: &mut TestAppContext) {
     let (handle, mut read) = open(cx);
     while read().is_some() {}
-    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../src/keys/fixtures/keycaps");
+    let fixture =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../src/keys/fixtures/keycaps");
     let catalog = flea::i18n::I18n::load(flea::i18n::Paths {
         omarchy: fixture.clone(),
         language_file: fixture.join("language-ar"),
@@ -343,7 +343,10 @@ fn i50_query_filter_scrolled_query_stays_in_the_mirrored_field(cx: &mut TestAppC
     });
     edit(cx, handle, |shell, _, cx| {
         let catalog = std::sync::Arc::new(catalog);
-        let locale = crate::window::locale::Snapshot { revision: 2, catalog };
+        let locale = crate::window::locale::Snapshot {
+            revision: 2,
+            catalog,
+        };
         shell.apply_locale(locale, cx)
     });
     frame(cx, handle);
