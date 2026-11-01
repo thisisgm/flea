@@ -33,6 +33,12 @@ mod image;
 mod native;
 pub use image::{flock, Flock};
 
+#[path = "drags.rs"]
+mod drags;
+#[path = "row_drop.rs"]
+mod row_drop;
+pub use drags::Drags;
+
 struct HostRows<'a>(&'a PaneHost);
 
 impl Rows for HostRows<'_> {
@@ -78,44 +84,6 @@ pub(crate) fn row_spot(host: &PaneHost, row: Option<usize>, carried: &[usize]) -
 pub struct Seed {
     pub side: usize,
 }
-
-/// Each window's live lift and router registration, held beside the Shell rather than in it.
-#[derive(Default)]
-pub struct Drags {
-    lifts: HashMap<u64, Lift>,
-    clients: HashMap<u64, Registration>,
-    /// The marker tag and serial of each window's current lift, shared with its file client.
-    held: HashMap<u64, Held>,
-    serial: u64,
-    flocks: HashMap<u64, gpui::Entity<Flock>>,
-    said: HashMap<u64, String>,
-    /// The rail row each window's held drag rests on.
-    aims: HashMap<u64, rail_drop::Aim>,
-    rests: HashMap<u64, spring::Rest>,
-    hovers: HashMap<u64, Rc<std::cell::RefCell<Option<Arrived>>>>,
-    cue: Option<(u64, feedback::Cue)>,
-    cue_lines: std::collections::HashSet<u64>,
-    asks: HashMap<(u64, usize), wide::Ask>,
-    waiting: HashMap<(u64, usize), wide::Waiting>,
-}
-
-impl Drags {
-    fn put(&mut self, key: u64, lift: Lift) {
-        *self.held.entry(key).or_default().borrow_mut() =
-            Some((lift.marker.instance.clone(), lift.serial));
-        self.lifts.insert(key, lift);
-    }
-
-    fn take(&mut self, key: u64) -> Option<Lift> {
-        if let Some(held) = self.held.get(&key) {
-            *held.borrow_mut() = None;
-        }
-        self.flocks.remove(&key);
-        self.lifts.remove(&key)
-    }
-}
-
-impl Global for Drags {}
 
 // File lifts number from here, so a tab strip filtering native source events by its own serial never takes one.
 const FILE_SERIALS: u64 = 1 << 62;

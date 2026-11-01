@@ -60,6 +60,8 @@ pub struct HtmlView {
     source_text: Option<String>,
     source_read_failed: bool,
     pub frame: (f32, f32),
+    /// Where the page was last painted, for htmlState.
+    pub bounds: Option<gpui::Bounds<gpui::Pixels>>,
     origin: Instant,
     timer: Option<(u64, Task<()>)>,
     decode: Option<Task<()>>,
@@ -104,6 +106,7 @@ impl HtmlView {
             source_text: None,
             source_read_failed: false,
             frame: (0., 0.),
+            bounds: None,
             origin: cx.background_executor().now(),
             timer: None,
             decode: None,

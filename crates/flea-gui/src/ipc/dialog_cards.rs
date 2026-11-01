@@ -60,12 +60,10 @@ impl Adapter for DialogAdapter<'_> {
                 Some(open) => open_with_state(&open.card, &self.shell.locale.catalog),
                 None => "{\"opened\":false}".into(),
             },
-            "runCardState" => {
-                if self.shell.run_card.is_some() {
-                    return Some(open_card(function, "rect, controls"));
-                }
-                "{\"opened\":false}".into()
-            }
+            "runCardState" => self.shell.run_card.as_ref().map_or_else(
+                || "{\"opened\":false}".into(),
+                |open| open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
+            ),
             // An open card answers its own state; a closed one only the list's rest input state.
             "permissionsState" => match self.shell.permissions_state(self.cx) {
                 Some(state) => flea::jsondoc::render(&state).trim_end().to_owned(),

@@ -40,9 +40,13 @@ fn pv3_a_stop_while_playing_hides_its_own_pause() {
 fn pv3_play_at_the_end_rewinds_and_is_heard() {
     let mut transport = playing();
     assert!(!transport.play(), "a play mid-clip never rewinds");
-    assert_eq!(transport.ended(true), Some(Event::Ended));
     // The helper observes eof-reached before pause, so libmpv reports the end first, in this order.
-    assert_eq!(transport.paused(true), None, "the end's pause");
+    assert_eq!(transport.ended(true), None, "buffered audio still plays");
+    assert_eq!(
+        transport.paused(true),
+        Some(Event::Ended),
+        "the end's pause"
+    );
     assert!(transport.play(), "play at the end seeks to 0 first");
     assert_eq!(transport.paused(false), Some(Event::Playing));
     assert_eq!(transport.ended(false), None, "the rewind leaves the end");
@@ -53,8 +57,8 @@ fn pv3_play_at_the_end_rewinds_and_is_heard() {
 #[test]
 fn pv3_stop_at_the_end_then_play() {
     let mut transport = playing();
-    assert_eq!(transport.ended(true), Some(Event::Ended));
-    assert_eq!(transport.paused(true), None);
+    assert_eq!(transport.ended(true), None);
+    assert_eq!(transport.paused(true), Some(Event::Ended));
     assert_eq!(transport.stop(), Event::Stopped);
     assert_eq!(transport.ended(false), None);
     assert!(!transport.play());
@@ -84,4 +88,28 @@ fn pv3_a_seek_before_the_load_waits_for_it() {
         "after the load a seek goes at once"
     );
     assert_eq!(transport.pending(), None);
+}
+
+// libmpv raises eof-reached once the decoder drains, 0.4 s before a 2 s clip stops playing, so Ended waits for the clock.
+#[test]
+fn pv3_the_end_is_heard_when_playback_reaches_it() {
+    let mut transport = playing();
+    assert_eq!(
+        transport.ended(true),
+        None,
+        "the decoder drained, the sink still plays"
+    );
+    assert_eq!(
+        transport.paused(true),
+        Some(Event::Ended),
+        "keep-open parks the clip at its end"
+    );
+}
+
+// A seek to the end while paused raises eof-reached with no pause change, so the end is heard at once.
+#[test]
+fn pv3_reaching_the_end_while_paused_ends_at_once() {
+    let mut transport = playing();
+    assert_eq!(transport.paused(true), Some(Event::Paused));
+    assert_eq!(transport.ended(true), Some(Event::Ended));
 }

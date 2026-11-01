@@ -308,6 +308,11 @@ impl Shell {
                     look: look.view,
                     cx,
                 };
+                let preview_html = crate::ipc::preview_html::PreviewHtml {
+                    shell: self,
+                    window,
+                    cx,
+                };
                 let browse_state = crate::ipc::browse_state::BrowseState {
                     shell: self,
                     window,
@@ -327,7 +332,7 @@ impl Shell {
                     window,
                     cx,
                 };
-                let adapters: [&dyn crate::ipc::Adapter; 45] = [
+                let adapters: [&dyn crate::ipc::Adapter; 46] = [
                     &glass,
                     &column_preview,
                     &preview_state,
@@ -337,6 +342,7 @@ impl Shell {
                     &preview_scroll,
                     &look,
                     &preview_look,
+                    &preview_html,
                     &thumbnails,
                     &preview_text,
                     &rename,

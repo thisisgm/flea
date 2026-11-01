@@ -10,7 +10,7 @@ impl Probe {
         self.0.borrow_mut().clear();
     }
 
-    pub fn attach(&self, div: Div, id: impl Into<String>) -> Div {
+    pub fn attach<E: ParentElement>(&self, div: E, id: impl Into<String>) -> E {
         div.child(self.mark(id))
     }
 

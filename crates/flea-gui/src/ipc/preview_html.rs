@@ -1,11 +1,168 @@
-//! IpcPreviewState.htmlState: the HTML view Quick Look or the focused pane's column shows, as PreviewHtml.qml captureState writes it.
-use super::preview_state::PreviewState;
+//! htmlState: the mounted Quick Look or column HTML view, as PreviewHtml.qml captureState reports it.
+use super::{preview_state::PreviewState, Adapter};
 use crate::{
-    g2::{pv1::doc::View as Document, pv2::html::HtmlView},
+    g2::{
+        pv1::{doc::View, Hit},
+        pv2::html::HtmlView,
+    },
+    ipc::rows::{centre_of, rect_of},
+    state::Shell,
+    visual::object,
     window::selection_preview::{docs::Doc, Mounted},
 };
 use flea::{ipc::wire::Reply, jsondoc::Json};
 use gpui::Entity;
+use gpui::{App, Bounds, Pixels, Window};
+
+pub(crate) struct PreviewHtml<'a> {
+    pub shell: &'a Shell,
+    pub window: &'a Window,
+    pub cx: &'a App,
+}
+
+fn text(value: impl Into<String>) -> Json {
+    Json::Str(value.into())
+}
+
+fn number(value: impl ToString) -> Json {
+    Json::Num(value.to_string())
+}
+
+fn rect(bounds: Option<Bounds<Pixels>>) -> String {
+    bounds.map_or_else(String::new, |b| {
+        rect_of(
+            b.origin.x.into(),
+            b.origin.y.into(),
+            b.size.width.into(),
+            b.size.height.into(),
+        )
+    })
+}
+
+impl PreviewHtml<'_> {
+    // Quick Look's close control: its pointer and keyboard state and where it was laid out.
+    fn close(&self) -> Json {
+        let Some(host) = self.shell.quick_look.as_ref() else {
+            return Json::Null;
+        };
+        let look = host.view.read(self.cx);
+        let observed = look.observations.borrow();
+        let centre = observed.close.map_or_else(String::new, |b| {
+            centre_of(
+                b.origin.x.into(),
+                b.origin.y.into(),
+                b.size.width.into(),
+                b.size.height.into(),
+            )
+        });
+        let focused = look.focused() == Some(Hit::Close);
+        object([
+            (
+                "hovered",
+                Json::Bool(observed.close_hovered || look.hovered() == Some(Hit::Close)),
+            ),
+            ("pressed", Json::Bool(look.pressed() == Some(Hit::Close))),
+            ("focused", Json::Bool(focused)),
+            ("ring", Json::Bool(focused)),
+            ("centre", text(centre)),
+        ])
+    }
+
+    fn state(&self, view: &HtmlView, visible: bool, facts: String, column: bool) -> String {
+        let catalog = &self.shell.locale.catalog;
+        let size = self.window.viewport_size();
+        let state = object([
+            ("path", text(view.doc.path.clone())),
+            (
+                "view",
+                text(if view.doc.source_view() {
+                    "source"
+                } else {
+                    "rendered"
+                }),
+            ),
+            ("ready", Json::Bool(view.first_screen(self.cx))),
+            ("visible", Json::Bool(visible)),
+            ("state", text(view.status(catalog, self.cx))),
+            ("lines", number(view.line_count(self.cx))),
+            (
+                "count",
+                text(if column {
+                    catalog.trn("document.line_count", view.line_count(self.cx) as i64)
+                } else {
+                    view.bar(catalog, self.cx).count.unwrap_or_default()
+                }),
+            ),
+            ("mark", text("html")),
+            ("file", text(view.doc.image_file.clone())),
+            ("width", number(view.doc.rendered_width)),
+            ("deviceWidth", number(view.doc.device_width)),
+            ("y", number(view.scroll_y)),
+            ("zoom", number(view.doc.zoom)),
+            ("facts", text(facts)),
+            ("frame", text(rect(view.bounds))),
+            ("column", Json::Bool(column)),
+            (
+                "window",
+                object([
+                    ("width", number(f32::from(size.width))),
+                    ("height", number(f32::from(size.height))),
+                ]),
+            ),
+            ("radius", number(view.metrics.radius)),
+            ("viewportHeight", number(view.frame.1)),
+            ("contentHeight", number(view.page_size().1)),
+            ("close", if column { Json::Null } else { self.close() }),
+        ]);
+        flea::jsondoc::render(&state).trim_end().into()
+    }
+
+    fn column(&self) -> Option<String> {
+        let entity = self.shell.selection_preview(self.shell.focus_side)?;
+        let preview = entity.read(self.cx);
+        let frame = preview.drawn.as_ref()?;
+        let Mounted::Doc(Doc::Html(view)) = &frame.mounted else {
+            return None;
+        };
+        let (kind, tail) = preview.compact(frame, self.cx);
+        Some(self.state(view.read(self.cx), preview.visible, kind + &tail, true))
+    }
+
+    fn look(&self) -> Option<String> {
+        let look = self.shell.quick_look.as_ref()?.view.read(self.cx);
+        if !look.is_open() {
+            return None;
+        }
+        let View::Html(view) = &look.subject()?.body.doc()?.view else {
+            return None;
+        };
+        Some(self.state(view.read(self.cx), look.is_revealed(), String::new(), false))
+    }
+}
+
+impl Adapter for PreviewHtml<'_> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function != "htmlState" {
+            return None;
+        }
+        let value = if arguments.first().is_some_and(|flag| flag == "true") {
+            self.column()
+        } else {
+            self.look()
+        };
+        Some(value.map_or_else(
+            || {
+                PreviewState {
+                    shell: self.shell,
+                    window: self.window,
+                    cx: self.cx,
+                }
+                .html_state(arguments.first().is_some_and(|flag| flag == "true"))
+            },
+            Reply::value,
+        ))
+    }
+}
 
 impl PreviewState<'_> {
     /// The open card's or the column's HTML view; anything else answers `{}` as the QML reader does.
@@ -63,7 +220,7 @@ impl PreviewState<'_> {
         let look = self.shell.quick_look.as_ref()?.view.read(self.cx);
         let open = look.is_open();
         match &look.subject()?.body.doc()?.view {
-            Document::Html(view) => Some((view.clone(), open)),
+            View::Html(view) => Some((view.clone(), open)),
             _ => None,
         }
     }

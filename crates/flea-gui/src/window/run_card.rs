@@ -4,7 +4,7 @@ use crate::{
         keys::{key_of, Key},
         lane,
         runcard::RunCard,
-        shell::StandIn,
+        shell::Probed,
         Effect,
     },
     state::Shell,
@@ -20,6 +20,8 @@ pub(crate) struct Open {
     pub(crate) side: usize,
     pub(crate) card: RunCard,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
+    /// The card's and its buttons' laid-out boxes on the latest frame, for runCardState.
+    pub(crate) probe: crate::g2::st1::probe::Probe,
 }
 
 impl Open {
@@ -27,6 +29,7 @@ impl Open {
         Self {
             side,
             card,
+            probe: Default::default(),
             #[cfg(not(test))]
             launch: lane::run,
             // A test window never runs a program; a test that drives the card sets its own launcher.
@@ -215,7 +218,7 @@ impl Shell {
         let press = cx.listener(|shell: &mut Shell, at: &usize, window, cx| {
             shell.press_run_card(*at, window.modifiers().shift, window, cx);
         });
-        let drawn = StandIn.present_pressable(
+        let drawn = Probed(&open.probe).present_pressable(
             &card,
             &palette,
             &self.active_typeface(),

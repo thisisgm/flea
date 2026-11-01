@@ -1,10 +1,7 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
 use crate::g2::fb1::caption::{tracking_for, Tracked};
-use gpui::{
-    div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Stateful, Window,
-};
-use std::rc::Rc;
+use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels, Stateful};
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
@@ -15,6 +12,7 @@ impl Draw<'_> {
         control: Control,
         element: gpui::Stateful<Div>,
     ) -> gpui::Stateful<Div> {
+        let element = element.when_some(self.probe, |e, p| p.attach(e, format!("{control:?}")));
         match self.wire {
             Some(wire) => wire(control, element),
             None => element,
@@ -244,35 +242,9 @@ impl DialogShell for StandIn {
     }
 }
 
-impl StandIn {
-    /// The same card with live buttons: a click on one reports its index, as Enter on it would press it.
-    pub fn present_pressable(
-        &self,
-        card: &Card,
-        palette: &Palette,
-        typeface: &Typeface,
-        corner: f32,
-        room: f32,
-        press: impl Fn(&usize, &mut Window, &mut App) + 'static,
-    ) -> AnyElement {
-        let press = Rc::new(press);
-        let enabled: Vec<bool> = card.buttons.iter().map(|button| button.enabled).collect();
-        // A disabled button draws as before but takes no click.
-        let wire = move |control, element: Stateful<Div>| match control {
-            Control::Button(at) if enabled.get(at).copied().unwrap_or(false) => {
-                let press = press.clone();
-                element.on_click(move |_, window, cx| press(&at, window, cx))
-            }
-            _ => element,
-        };
-        let live = Live {
-            wire: &wire,
-            surface: None,
-            entry: None,
-        };
-        present(card, palette, typeface, corner, room, Some(&live))
-    }
-}
+#[path = "pressable.rs"]
+mod pressable;
+pub use pressable::Probed;
 
 impl DialogShell for Interactive<'_> {
     fn present(
@@ -287,6 +259,7 @@ impl DialogShell for Interactive<'_> {
             wire: self.wire,
             surface: Some(self.surface),
             entry: Some(self.entry),
+            probe: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
     }
@@ -297,6 +270,7 @@ struct Live<'a> {
     wire: &'a Wire,
     surface: Option<Hsla>,
     entry: Option<&'a crate::path::entry::Entry>,
+    probe: Option<&'a crate::g2::st1::probe::Probe>,
 }
 
 fn present(
@@ -316,6 +290,7 @@ fn present(
         language: &card.language,
         wire: live.map(|live| live.wire),
         entry: live.and_then(|live| live.entry),
+        probe: live.and_then(|live| live.probe),
     };
     if let Some(surface) = live.and_then(|live| live.surface) {
         draw.t.surface = surface;
@@ -366,6 +341,10 @@ fn present(
         .child(head)
         .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
     let frame = draw.card_body(card, frame);
+    let frame = match draw.probe {
+        Some(probe) => probe.attach(frame, "card"),
+        None => frame,
+    };
     let mut buttons = div()
         .when(facts, |d| d.flex_none())
         .mt(draw.px(ABOVE_BUTTONS))
