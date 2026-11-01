@@ -80,6 +80,7 @@ fn vf_readers_properties_reports_its_mounted_card(cx: &mut TestAppContext) {
             ready: true,
             kinds: vec![],
             background: false,
+            target: None,
         };
         shell.open_properties_card(&capture, window, cx);
     });

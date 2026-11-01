@@ -72,6 +72,7 @@ fn vf_readers_properties_folder_tail_tracks_the_real_contents_walk(cx: &mut Test
             ready: true,
             kinds: vec![],
             background: false,
+            target: None,
         };
         shell.open_properties_card(&capture, window, cx);
         let reply = jsondoc::parse(r#"{"id":1,"op":"properties","ok":true,"directory":true,"path":"/files/folder","bytes":4096}"#).unwrap();
