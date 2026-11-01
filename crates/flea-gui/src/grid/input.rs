@@ -72,18 +72,29 @@ impl Shell {
             if grid.view.hovered.take().is_some() {
                 cx.notify();
             }
-        }
-        if let Some(next) = next.filter(|next| *next < total && *next != cursor) {
-            if matches!(action, "extendUp" | "extendDown") {
-                host.selected.extend(cursor.min(next)..=cursor.max(next));
-                host.selected.sort_unstable();
-                host.selected.dedup();
-                host.pane.cursor = next;
-            } else {
-                host.pane.cursor = next;
-                crate::input::follow_cursor(host, cursor);
+            // Focus.js:166 cursorFirst sets the cursor even where it already is, so Home always brings the view back to its top.
+            if action == "cursorFirst" && grid.view.visible && !grid.view.hidden_held {
+                grid.view.glide = None;
+                grid.view.scroll = 0.;
+                cx.notify();
             }
-            self.seam.selected(next);
+        }
+        if let Some(next) = next.filter(|next| *next < total) {
+            if let Some(grid) = host.grid.as_mut() {
+                grid.refollow();
+            }
+            if next != cursor {
+                if matches!(action, "extendUp" | "extendDown") {
+                    host.selected.extend(cursor.min(next)..=cursor.max(next));
+                    host.selected.sort_unstable();
+                    host.selected.dedup();
+                    host.pane.cursor = next;
+                } else {
+                    host.pane.cursor = next;
+                    crate::input::follow_cursor(host, cursor);
+                }
+                self.seam.selected(next);
+            }
             cx.notify();
         }
         true

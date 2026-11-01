@@ -263,3 +263,126 @@ fn fix_band_grid_pane_not_ready_keeps_no_tile_hit_boxes(cx: &mut TestAppContext)
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn nav_actions_ey199_down_after_a_ground_click_selects_the_next_row(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "list", 5);
+    let frame = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().input.frame.unwrap()
+    });
+    let first = point(
+        frame.bounds.left() + px(100.),
+        frame.bounds.top() + px(frame.row / 2.),
+    );
+    let ground = point(
+        frame.bounds.left() + px(100.),
+        frame.bounds.bottom() - px(20.),
+    );
+    for at in [first, ground] {
+        cx.simulate_mouse_move(at, None, Modifiers::none());
+        cx.simulate_click(at, Modifiers::none());
+        cx.run_until_parked();
+    }
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 0);
+        assert!(host.selected.is_empty(), "a ground click clears the marks");
+    });
+    cx.simulate_keystrokes("down");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 1);
+        assert_eq!(
+            host.selected,
+            [1],
+            "the next Down selects the row it lights"
+        );
+    });
+    cx.simulate_keystrokes("escape down");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 2);
+        assert!(
+            host.selected.is_empty(),
+            "Escape still leaves a plain move unmarked"
+        );
+    });
+    cx.simulate_click(ground, Modifiers::none());
+    cx.run_until_parked();
+    cx.simulate_keystrokes("escape down");
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 3);
+        assert!(
+            host.selected.is_empty(),
+            "Escape cancels an unconsumed ground click"
+        );
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn nav_actions_ey134_row_drag_scrolls_while_held_at_the_top(cx: &mut TestAppContext) {
+    let (shell, cx) = open(cx, "list", 80);
+    cx.simulate_keystrokes("end");
+    cx.run_until_parked();
+    let frame = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().input.frame.unwrap()
+    });
+    let start = point(
+        frame.bounds.left() + px(120.),
+        frame.bounds.bottom() - px(frame.row / 2.),
+    );
+    let end = point(start.x, frame.bounds.top() - px(10.));
+    cx.simulate_click(start, Modifiers::none());
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, [79]);
+    });
+    drag(cx, start, end);
+    assert!(
+        cx.update(|_, cx| cx.has_active_drag()),
+        "the row lift is active"
+    );
+    let before = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(
+            host.input.band.is_none(),
+            "a row drag keeps its carried selection"
+        );
+        host.pane.scroll_y
+    });
+    for _ in 0..10 {
+        cx.executor().advance_clock(Duration::from_millis(100));
+        cx.update(|window, cx| window.simulate_next_frame(cx));
+        cx.run_until_parked();
+    }
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(
+            host.pane.scroll_y < before - frame.row * 5.,
+            "a stationary row drag scrolls at the edge"
+        );
+        assert_eq!(
+            host.selected,
+            [79],
+            "scrolling never changes the carried row"
+        );
+    });
+    cx.simulate_keystrokes("escape");
+    cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::none());
+    cx.run_until_parked();
+    let stopped = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.scroll_y
+    });
+    cx.executor().advance_clock(Duration::from_millis(300));
+    cx.update(|window, cx| window.simulate_next_frame(cx));
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().pane.scroll_y, stopped)
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

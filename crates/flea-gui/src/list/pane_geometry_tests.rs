@@ -85,3 +85,33 @@ fn g70_invalid_or_unchanged_row_height_keeps_scroll_and_extent() {
         assert_eq!(pane.scroll_extent, Some(3127.));
     }
 }
+
+#[test]
+fn sw18_viewport_handoff_keeps_a_revealed_launch_cursor_visible() {
+    let mut pane = pane(31., 1359., 2000, Some(27.));
+    pane.cursor = 1500;
+    pane.reveal_cursor();
+    close(pane.scroll_y, 45172.);
+    // Native List's header and footer settle after the initial --select reply.
+    pane.set_height(1305.);
+    let top = pane.cursor as f32 * pane.row_height() - pane.scroll_y;
+    assert!(
+        top >= 0. && top + pane.row_height() <= 1305.,
+        "launch row falls below the real viewport: {top}"
+    );
+    pane.set_height(619.);
+    let top = pane.cursor as f32 * pane.row_height() - pane.scroll_y;
+    assert!(
+        top >= 0. && top + pane.row_height() <= 619.,
+        "the revealed row remains visible when the native window shrinks"
+    );
+}
+
+#[test]
+fn sw18_viewport_handoff_preserves_a_cursor_already_scrolled_offscreen() {
+    let mut pane = pane(31., 1359., 2000, Some(27.));
+    pane.cursor = 1500;
+    pane.scroll_to(1000.5);
+    pane.set_height(619.);
+    close(pane.scroll_y, 1000.5);
+}

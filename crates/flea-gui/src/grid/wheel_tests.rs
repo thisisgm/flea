@@ -300,3 +300,6 @@ fn the_wheel_delta_is_the_list_notch_for_every_view() {
     let pixels = wheel_delta(&ScrollDelta::Pixels(point(px(7.), px(-11.))));
     assert_eq!((f32::from(pixels.x), f32::from(pixels.y)), (7., -11.));
 }
+
+#[path = "nav_actions_tests.rs"]
+mod nav_actions;

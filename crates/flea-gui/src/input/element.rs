@@ -88,6 +88,8 @@ fn viewport(
                     host.input.frame = Some(frame);
                     if grid {
                         shell.arm_input_tick(side, window, cx);
+                    } else {
+                        shell.advance_row_drag(side, frame, window, cx);
                     }
                     Some((frame, palette))
                 })

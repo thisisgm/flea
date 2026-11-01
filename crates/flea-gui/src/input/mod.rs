@@ -76,6 +76,7 @@ pub struct PaneInput {
     pub moved_at: Option<std::time::Instant>,
     pub timer: Option<gpui::Task<()>>,
     pub stepped_at: Option<std::time::Instant>,
+    pub(crate) row_drag_at: Option<std::time::Instant>,
     /// The touchpad tail, rubber-band edges and their OutCubic return.
     pub kinetic: scroll::Kinetic,
     pub glide: Option<Glide>,

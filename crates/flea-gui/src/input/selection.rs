@@ -5,6 +5,8 @@ use std::rc::Rc;
 pub struct Selection {
     pub snapshot: Option<Rc<[usize]>>,
     lone: bool,
+    /// Set by a click on blank ground; the next plain move selects its row (FINDER-BEHAVIOR, v0.3.12).
+    ground: bool,
     anchor: usize,
     shift: Option<(usize, usize, Vec<usize>)>,
 }
@@ -17,6 +19,7 @@ impl Selection {
         }
     }
     pub fn changed(&mut self, rows: &[usize]) {
+        self.ground &= rows.is_empty();
         if self.snapshot.as_deref().unwrap_or(&[]) == rows {
             return;
         }
@@ -56,8 +59,14 @@ impl Selection {
         }
         promote
     }
+    /// A click on blank ground clears the marks, and the next plain move selects the row it lights.
+    pub fn ground(&mut self, rows: &mut Vec<usize>) {
+        rows.clear();
+        self.reset();
+        self.ground = true;
+    }
     pub fn follow(&mut self, rows: &mut Vec<usize>, row: usize) {
-        if self.lone && rows.len() == 1 {
+        if (self.lone && rows.len() == 1) || (self.ground && rows.is_empty()) {
             self.only(rows, row);
         } else {
             self.shift = None;
