@@ -126,7 +126,7 @@ impl Navigator {
     }
 
     pub fn can_go_up(&self, pane: &Pane) -> bool {
-        self.asked(pane).is_some() || pane.path() != "/"
+        self.asked(pane).is_some() || (pane.path() != "/" && (pane.named || pane.busy()))
     }
 
     // A click on the folder already shown is a no-op.

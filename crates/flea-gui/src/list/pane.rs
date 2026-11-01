@@ -144,6 +144,8 @@ pub struct Pane {
     /// Backend.qml firstRowsAt: wall-clock ms when this pane's backend first delivered rows, 0 before.
     pub first_rows_at: u64,
     pub(crate) greatest_listing: usize,
+    /// Pane.qml path is empty until a listing or a failure names a folder; EY-546 reads it for Up.
+    pub(crate) named: bool,
     pub(crate) clock: crate::pane::clock::Clock,
 }
 
@@ -167,6 +169,7 @@ impl Pane {
             list_requests: 0,
             first_rows_at: 0,
             greatest_listing: 0,
+            named: false,
             clock: Default::default(),
         };
         pane.begin(path, Options::default(), 0);
@@ -314,6 +317,7 @@ impl Pane {
         let cursor = self.landing_cursor(&pending, &held);
         self.scroll_extent = None;
         self.path = pending.path;
+        self.named = true;
         self.swap.listing_first = pending.first;
         self.greatest_listing = held.listing;
         self.cursor = cursor;

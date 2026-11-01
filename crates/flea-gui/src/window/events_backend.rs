@@ -7,7 +7,7 @@ use std::io::Write;
 
 impl Shell {
     pub(super) fn backend_line(&self, event: BackendEvent) -> BackendEvent {
-        // One unreadable line is logged and refused as v0.3.12's "parse" failure: only a listing in flight ends.
+        // One unreadable line is logged and refused as v0.3.12's "parse" failure: the footer says it, a listing out still lands.
         match event {
             BackendEvent::Garbled(error) => {
                 let diagnostic = self.locale.catalog.tr_args(error.key, &[&error.detail]);
