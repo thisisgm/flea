@@ -103,9 +103,9 @@ fn ey430_opaque_strip_paints_surface_under_a_background_plate(cx: &mut TestAppCo
                 + frame.slots[frame.current] as f32 * frame.tab_width;
             let scale = window.scale_factor();
             let quads = window.painted_quads();
-            // The scene keeps quads in draw order, so a later index paints on top.
+            // The scene keeps quads in draw order; the last match is the one on top.
             let painted = |x: f32, width: f32, color: gpui::Hsla| {
-                quads.iter().position(|quad| {
+                quads.iter().rposition(|quad| {
                     (quad.bounds.origin.x.as_f32() - x * scale).abs() < 0.5
                         && (quad.bounds.origin.y.as_f32() - f32::from(strip.top()) * scale).abs()
                             < 0.5
