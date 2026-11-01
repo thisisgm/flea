@@ -208,8 +208,8 @@ impl CodeView {
                             point(origin.x + text_left + piece.x, y),
                             Bounds::new(point(origin.x, top), size(bounds.size.width, row)),
                             part,
-                            accent,
-                            self.palette.foreground,
+                            None,
+                            (accent, self.palette.foreground),
                             window,
                         );
                     }

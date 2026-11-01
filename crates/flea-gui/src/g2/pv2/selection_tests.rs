@@ -103,6 +103,7 @@ fn gm_prevsel_clipped_text_cannot_become_a_selection_endpoint(cx: &mut gpui::Tes
                 bounds,
                 clip: bounds.intersect(&visible),
                 line: line.clone(),
+                reach: bounds.right(),
             });
         }
         assert_eq!(s.hit(point(px(210.), px(10.))).unwrap().chunk, 0);
@@ -247,5 +248,68 @@ fn gm_prevsel_copy_waits_for_the_original_bytes_while_they_are_read(cx: &mut gpu
         s.set_pending(false);
         s.complete_copy(cx);
         assert_eq!(clipboard(cx).as_deref(), Some("a\tb\r\n"));
+    });
+}
+
+#[gpui::test]
+fn gm_prevsel_a_double_click_selects_only_the_word_under_the_pointer(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (_, cx) = cx.add_window_view(|_, _| gpui::Empty);
+    cx.update(|window, cx| {
+        let text = "héllo world";
+        let run = gpui::TextRun {
+            len: text.len(),
+            font: gpui::font("monospace"),
+            color: Hsla::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let line = window
+            .text_system()
+            .layout_line(text, px(14.), &[run], None);
+        let bounds = Bounds::new(point(px(0.), px(0.)), size(line.width, px(20.)));
+        let mut s = Selection::default();
+        s.chunks.insert(0, Chunk::new(format!("{text}\n")));
+        s.spans.push(Span {
+            chunk: 0,
+            start: 0,
+            len: line.len,
+            bounds,
+            clip: bounds,
+            line: line.clone(),
+            reach: bounds.right(),
+        });
+        let double = |x: Pixels| MouseDownEvent {
+            position: point(x, px(10.)),
+            button: gpui::MouseButton::Left,
+            modifiers: gpui::Modifiers::none(),
+            click_count: 2,
+            first_mouse: false,
+        };
+        let d = line.x_for_index(text.len() - 1);
+        let right_half = d + (line.width - d) * 0.75;
+        let space = line.x_for_index(6) + px(1.);
+        for (x, y, want) in [
+            (line.width + px(40.), px(10.), None),
+            (px(1.), px(40.), None),
+            (px(1.), px(-10.), None),
+            (px(-10.), px(10.), None),
+            (right_half, px(10.), Some("world")),
+            (space, px(10.), None),
+            (px(1.), px(10.), Some("héllo")),
+        ] {
+            let mut event = double(x);
+            event.position.y = y;
+            s.press(&event, event.position, window, cx);
+            s.release(cx);
+            assert_eq!(s.text().as_deref(), want, "double-click at {x:?},{y:?}");
+            assert_eq!(
+                s.range().is_some(),
+                want.is_some(),
+                "a range is what is washed"
+            );
+        }
     });
 }

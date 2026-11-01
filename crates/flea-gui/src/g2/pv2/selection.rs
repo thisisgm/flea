@@ -10,7 +10,9 @@ use std::{
     rc::{Rc, Weak},
     sync::Arc,
 };
-use unicode_segmentation::UnicodeSegmentation;
+
+#[path = "selection_hit.rs"]
+mod hit;
 
 #[path = "selection_text.rs"]
 mod text;
@@ -48,6 +50,8 @@ pub struct Span {
     pub bounds: Bounds<Pixels>,
     pub line: Arc<LineLayout>,
     pub clip: Bounds<Pixels>,
+    /// Where the next piece of the same line starts, so a range running on washes the gap between them.
+    pub reach: Pixels,
 }
 
 #[derive(Default)]
@@ -99,35 +103,6 @@ impl Selection {
         self.state.borrow().dragging
     }
 
-    pub fn hit(&self, at: Point<Pixels>) -> Option<Position> {
-        let span = self
-            .spans
-            .iter()
-            .filter(|span| span.clip.size.width > px(0.) && span.clip.size.height > px(0.))
-            .min_by(|a, b| {
-                let distance = |s: &Span| {
-                    let dy =
-                        (s.clip.top() - at.y).max(px(0.)) + (at.y - s.clip.bottom()).max(px(0.));
-                    let dx =
-                        (s.clip.left() - at.x).max(px(0.)) + (at.x - s.clip.right()).max(px(0.));
-                    (f32::from(dy), f32::from(dx))
-                };
-                distance(a)
-                    .partial_cmp(&distance(b))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })?;
-        let byte = span
-            .line
-            .closest_index_for_x(
-                at.x.clamp(span.clip.left(), span.clip.right()) - span.bounds.left(),
-            )
-            .min(span.len);
-        Some(Position {
-            chunk: span.chunk,
-            byte: span.start + byte,
-        })
-    }
-
     pub fn press(
         &mut self,
         event: &MouseDownEvent,
@@ -148,7 +123,7 @@ impl Selection {
         }
         let mut s = self.state.borrow_mut();
         if event.click_count == 2 {
-            let word = self.word(hit);
+            let word = self.word_under(at, hit);
             s.anchor = Some(word.start);
             s.head = word.end;
             s.word = Some(word);
@@ -164,19 +139,6 @@ impl Selection {
         s.copied = None;
         drop(s);
         self.publish(window, cx);
-    }
-
-    fn word(&self, hit: Position) -> Range<Position> {
-        let Some(chunk) = self.chunk(hit.chunk) else {
-            return hit..hit;
-        };
-        let at = hit.byte.min(chunk.text.len().saturating_sub(1));
-        let word = chunk
-            .text
-            .split_word_bound_indices()
-            .find(|(i, word)| *i <= at && at < i + word.len());
-        let (start, end) = word.map_or((hit.byte, hit.byte), |(i, w)| (i, i + w.len()));
-        Position { byte: start, ..hit }..Position { byte: end, ..hit }
     }
 
     pub fn motion(&mut self, at: Point<Pixels>, window: &Window, cx: &mut App) {
@@ -279,6 +241,17 @@ impl Selection {
         );
     }
 
+    /// Where a piece's wash ends when the range runs on past it: the start of the line's next piece.
+    pub fn wash_end(&self, span: &Span, part: Range<usize>) -> Option<Pixels> {
+        let range = self.range()?;
+        let end = Position {
+            chunk: span.chunk,
+            byte: span.start + span.len,
+        };
+        (part.end == span.len && range.end > end && span.reach > span.bounds.right())
+            .then_some(span.reach)
+    }
+
     /// The selected part of a shaped piece, in its byte offsets.
     pub fn part(&self, chunk: usize, start: usize, len: usize) -> Option<Range<usize>> {
         let range = self.range()?;
@@ -370,13 +343,13 @@ pub fn paint(
     origin: Point<Pixels>,
     band: Bounds<Pixels>,
     selected: Range<usize>,
-    accent: Hsla,
-    foreground: Hsla,
+    reach: Option<Pixels>,
+    (accent, foreground): (Hsla, Hsla),
     window: &mut Window,
 ) {
     let line = run.line();
     let from = origin.x + line.x_for_index(selected.start);
-    let to = origin.x + line.x_for_index(selected.end);
+    let to = (origin.x + line.x_for_index(selected.end)).max(reach.unwrap_or(px(0.)));
     let bounds = Bounds::new(point(from, band.top()), size(to - from, band.size.height));
     window.with_content_mask(Some(ContentMask { bounds }), |window| {
         window.paint_quad(fill(bounds, accent.opacity(SELECTION)));

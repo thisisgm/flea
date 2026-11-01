@@ -113,6 +113,7 @@ impl Build<'_> {
                     self.quad((x0 + x, top + at, *width, *height), self.palette.code);
                 }
             }
+            let mut previous = None;
             for atom in &line.atoms {
                 match atom {
                     Atom::Text {
@@ -128,6 +129,12 @@ impl Build<'_> {
                             (x0 + x, base + look.shift, self.palette.ink(&look.ink));
                         self.text(text, look.face, look.px, x, baseline, color);
                         self.select_last(id, byte);
+                        // A chip's padding sits between two pieces, so the earlier piece's wash reaches this one.
+                        let spans = &mut self.selection.spans;
+                        if let Some(span) = previous.and_then(|i: usize| spans.get_mut(i)) {
+                            span.reach = gpui::px(x);
+                        }
+                        previous = spans.len().checked_sub(1);
                         byte += text.len();
                         if look.underline {
                             self.quad(
@@ -166,6 +173,7 @@ impl Build<'_> {
                         link,
                         ..
                     } => {
+                        previous = None;
                         let rect = (x0 + x, base - height, *width, *height);
                         self.picture(url, rect, link.as_deref());
                     }
@@ -176,6 +184,7 @@ impl Build<'_> {
                         below,
                         index,
                     } => {
+                        previous = None;
                         if let Some(image) = self.doc.art.get(&Art::Formula(*index)) {
                             let rect = (x0 + x, base - above, *width, above + below);
                             self.ops.push(Op::Image {

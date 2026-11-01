@@ -36,7 +36,6 @@ fn tokens(column: bool) -> Tokens {
         state_mark: 40.,
         source_line: None,
         column,
-        source_line: None,
     }
 }
 fn palette() -> Palette {
@@ -369,3 +368,5 @@ fn ey260_preview_table_reads_the_sideways_table_view_row_and_shift() {
     view.update(&mut cx, |view, cx| view.set_view(View::Source, cx));
     assert_eq!(view.read_with(&cx, |view, _| view.table_state()), "{}");
 }
+#[path = "selection_tests/rendered.rs"]
+mod rendered;

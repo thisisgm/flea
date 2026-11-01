@@ -33,6 +33,7 @@ impl CodeView {
                     bounds: rect,
                     clip: rect.intersect(&self.selection.clip),
                     line: Arc::clone(piece.run.line()),
+                    reach: rect.right(),
                 });
             }
         }
