@@ -165,3 +165,27 @@ fn m9_dual_header_name_starts_at_the_label_column() {
             .unwrap();
     }
 }
+
+#[test]
+fn cr_o1_f6_dual_size_sits_flush_against_modified() {
+    let mut cx = bench::real_cx();
+    let handle = open(&mut cx);
+    for (view, gap) in [(View::List, true), (View::Dual, false)] {
+        handle
+            .update(&mut cx, |shell, _, _| shell.view = view)
+            .unwrap();
+        frame(&mut cx, handle);
+        handle
+            .update(&mut cx, |shell, _, _| {
+                let list = shell.panes[0].as_ref().unwrap().list.borrow();
+                let layout = list.drawn.layout;
+                let size = layout.cell(columns::Column::Size).expect("Size is drawn");
+                let date = layout
+                    .cell(columns::Column::Date)
+                    .expect("Modified is drawn");
+                let want = if gap { list.file_metrics().gap } else { 0. };
+                assert_eq!(date.x - size.right(), want, "Size to Modified in {view:?}");
+            })
+            .unwrap();
+    }
+}

@@ -148,6 +148,8 @@ pub struct Tokens {
     pub gap: f32,
     pub name_min: f32,
     pub measured: [f32; 4],
+    /// Row.qml in Dual: Size sits flush against Modified, with no gap between them.
+    pub flush_size: bool,
 }
 
 // Theme.qml's character counts: "rwxr-xr-x", "1000.0 kB", "2026-09-12 15:29", and the name floor of twenty.
@@ -174,6 +176,7 @@ impl Tokens {
                 chars(DATE_CHARS),
                 (KIND_BASE * body_small / KIND_BASE_SIZE).round(),
             ],
+            flush_size: false,
         }
     }
 
@@ -309,7 +312,8 @@ fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) -> Layout {
                 x: right - width,
                 width,
             });
-            right -= width + tokens.gap;
+            let flush = tokens.flush_size && column == Column::Date && on[Column::Size.slot()];
+            right -= width + if flush { 0. } else { tokens.gap };
         }
     }
     let x = tokens.pad + tokens.icon + tokens.gap;
