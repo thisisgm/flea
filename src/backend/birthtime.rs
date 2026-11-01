@@ -41,6 +41,14 @@ fn decode(bytes: &[u8; 256]) -> Option<(i64, u32)> {
     let nanos = u32::from_ne_bytes(bytes[88..92].try_into().unwrap());
     (nanos < 1_000_000_000).then_some((seconds, nanos))
 }
+// The birth seconds of a stat already paid: std's statx asks for btime, so a row needs no second stat.
+pub fn of(meta: &std::fs::Metadata) -> Option<i64> {
+    let time = meta.created().ok()?;
+    Some(match time.duration_since(std::time::UNIX_EPOCH) {
+        Ok(after) => after.as_secs() as i64,
+        Err(before) => -(before.duration().as_secs_f64().ceil() as i64),
+    })
+}
 pub fn json(path: &Path) -> String {
     get(path).map_or_else(|| "null".into(), |(seconds, _)| seconds.to_string())
 }
@@ -68,6 +76,15 @@ mod tests {
         assert_eq!(link.is_some(), directory.is_some());
         if let Some((seconds, nanos)) = link {
             assert!(seconds > 0 && nanos < 1_000_000_000);
+        }
+    }
+    #[test]
+    fn a_paid_stat_carries_the_same_birth_seconds() {
+        let root = super::super::testdir::TestDir::new("birthtime-of");
+        std::os::unix::fs::symlink("absent", root.join("link")).unwrap();
+        for path in [root.join("link"), root.path().to_path_buf()] {
+            let meta = std::fs::symlink_metadata(&path).unwrap();
+            assert_eq!(of(&meta), get(&path).map(|time| time.0));
         }
     }
 }
