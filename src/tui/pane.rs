@@ -1,4 +1,4 @@
-use super::{cells::{self, ellipsis, fit, name_title, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme};
+use super::{cells::{self, ellipsis, fit, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme, words::{title::typed, Text}};
 use super::layout::{pane_padding, preview_area, selection_bytes};
 
 // The roles a preview control draws in.
@@ -198,17 +198,18 @@ fn folder(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
 
 fn selection(m: &Model, y: usize, area: &Area, theme: &Theme) -> String {
     let width = area.width();
+    let i18n = &m.preview_state.i18n;
     let inner = if y == 0 {
         let mark = if m.marks() { format!("{} ", icons::FILES) } else { String::new() };
-        name_title(&mark, &m.preview_state.i18n.trn("preview.selected", m.selected.len() as i64), width)
+        typed(&mark, &Text::Plural("preview.selected", m.selected.len(), vec![]).spans(i18n), width, i18n.locale().right_to_left, true)
     } else if y == 1 {
-        let facts = selection_bytes(m).map(|n| format!("{} · {}", m.preview_state.i18n.tr("preview.fact.combined"), m.preview_state.i18n.locale().format_size(n as u64))).unwrap_or_default();
-        format!("{}{}", theme.meta, fit(&facts, width))
+        let facts = selection_bytes(m).map(|n| [Text::Key("preview.fact.combined").spans(i18n), vec![(None, " · ".into())], Text::Size(n).spans(i18n)].concat()).unwrap_or_default();
+        format!("{}{}", theme.meta, typed("", &facts, width, i18n.locale().right_to_left, false))
     } else if y >= 3 {
         if let Some(row) = m.selected_rows.values().nth(m.preview_scroll + y - 3) {
             return cells::row(row, area.columns, Some(&m.preview_state.i18n.locale().format_size(row.size as u64)), m.marks(), cells::RowStyle { quiet: true, rtl: super::layout::rtl(m), ..Default::default() }, theme, "");
         }
-        format!("{}{}", theme.meta, fit(&super::render::selection_line(m, y + m.preview_scroll, width), width))
+        format!("{}{}", theme.meta, typed("", &super::render::selection_spans(m, y + m.preview_scroll), width, i18n.locale().right_to_left, false))
     } else {
         fit("", width)
     };
@@ -220,14 +221,13 @@ pub fn direction(text: &str, width: usize, i18n: &crate::i18n::I18n, number: boo
     let text = ellipsis(text, width);
     if i18n.locale().right_to_left { cells::isolate(if number { cells::Run::Number } else { cells::Run::Name }, &text) } else { text }
 }
+// Fits the name to exactly width cells, then isolates its shown cells on a right-to-left locale.
 pub fn title(mark: &str, name: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
-    if !i18n.locale().right_to_left { return name_title(mark, name, width); }
+    let spans = [(Some(cells::Run::Name), name.into())];
+    if !i18n.locale().right_to_left { return typed(mark, &spans, width, false, true); }
     let mark = if mark.is_empty() { String::new() } else { format!(" {}", mark.trim_end()) };
     let mark = fit(&mark, text_width(&mark).min(width));
-    let text = format!("{}{}", name_title("", name, width - text_width(&mark)), mark);
-    let Some((prefix, bold)) = text.split_once("\x1b[1m") else { return text };
-    let Some((name, suffix)) = bold.split_once("\x1b[22m") else { return text };
-    format!("{prefix}\x1b[1m{}\x1b[22m{suffix}", cells::isolate(cells::Run::Name, name))
+    format!("{}{}", typed("", &spans, width - text_width(&mark), true, true), mark)
 }
 fn header(kind: &str, size: &str, date: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
     let parts = if date.is_empty() { vec![kind, size] } else { vec![kind, size, date] };
@@ -312,4 +312,4 @@ pub fn prepare(m: &mut Model) {
 mod tests;
 #[cfg(test)]
 #[path = "pane_title_tests.rs"]
-mod title_tests;
+mod pane_title_tests;

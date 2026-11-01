@@ -24,7 +24,7 @@ pub fn safe(c: char) -> bool {
         && !matches!(c, '\u{2028}'..='\u{202e}' | '\u{2066}'..='\u{206f}' | '\u{200e}' | '\u{200f}' | '\u{061c}')
 }
 // Each untrusted run starts on its own base cell, never on the preceding column's blank or mark.
-fn characters(text: &str) -> impl Iterator<Item = (char, usize)> + '_ {
+pub(super) fn characters(text: &str) -> impl Iterator<Item = (char, usize)> + '_ {
     let mut base = false;
     text.chars().filter_map(move |c| {
         if !safe(c) {
@@ -39,8 +39,7 @@ pub fn clean(text: &str) -> String {
     characters(text).map(|(c, _)| c).collect()
 }
 // Untrusted runs are isolated with the markers i18n/rtl-policy.json names, never a TUI copy; TUI-12 wires the views.
-#[cfg_attr(not(test), allow(dead_code))]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Run {
     Name,
     Number,
@@ -74,18 +73,21 @@ fn runs_from(policy: &str) -> Option<Runs> {
         number: pair("numbers_dates_keycaps")?,
     })
 }
-// Call last on an already fitted run: the isolates take no cells, and a refused policy leaves the run clean only.
-#[cfg_attr(not(test), allow(dead_code))]
-pub fn isolate(run: Run, text: &str) -> String {
+pub(super) fn markers(run: Run) -> Option<(char, char)> {
     static RUNS: std::sync::OnceLock<Option<Runs>> = std::sync::OnceLock::new();
-    let text = clean(text);
-    let Some(runs) = RUNS.get_or_init(|| runs_from(include_str!("../../i18n/rtl-policy.json")))
-    else {
-        return text;
-    };
-    let (open, close) = match run {
+    let runs = RUNS
+        .get_or_init(|| runs_from(include_str!("../../i18n/rtl-policy.json")))
+        .as_ref()?;
+    Some(match run {
         Run::Name => runs.name,
         Run::Number => runs.number,
+    })
+}
+// Call last on an already fitted run: the isolates take no cells, and a refused policy leaves the run clean only.
+pub fn isolate(run: Run, text: &str) -> String {
+    let text = clean(text);
+    let Some((open, close)) = markers(run) else {
+        return text;
     };
     format!("{open}{text}{close}")
 }
@@ -159,41 +161,13 @@ pub fn centered(text: &str, limit: usize) -> String {
 }
 // Bold on the name's cells only (mark, space and padding plain, a cut name's ellipsis bold); the title is exactly columns cells.
 pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
-    if columns == 0 {
-        return String::new();
-    }
-    let cut = text_width(mark) + text_width(name) > columns;
-    let limit = if cut { columns - 1 } else { columns };
-    let mut shown = Vec::new();
-    let mut used = 0;
-    for (is_name, c, n) in characters(mark)
-        .map(|(c, n)| (false, c, n))
-        .chain(characters(name).map(|(c, n)| (true, c, n)))
-    {
-        if used + n > limit {
-            break;
-        }
-        shown.push((is_name, c));
-        used += n;
-    }
-    let name_shown = shown.iter().any(|&(is_name, c)| is_name && width(c) > 0);
-    shown.resize(shown.len() + limit - used, (false, ' '));
-    if cut {
-        shown.push((name_shown, '…'));
-    }
-    let mut out = String::new();
-    let mut bold = false;
-    for (is_name, c) in shown {
-        if is_name != bold {
-            out.push_str(if is_name { "\x1b[1m" } else { "\x1b[22m" });
-            bold = is_name;
-        }
-        out.push(c);
-    }
-    if bold {
-        out.push_str("\x1b[22m");
-    }
-    out
+    super::words::title::typed(
+        mark,
+        &[(Some(Run::Name), name.into())],
+        columns,
+        false,
+        true,
+    )
 }
 pub struct Wrapped<'a> {
     remaining: Option<&'a str>,

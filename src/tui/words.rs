@@ -330,6 +330,9 @@ impl super::model::Model {
     }
 }
 
+#[path = "words_title.rs"]
+pub(super) mod title;
+
 #[cfg(test)]
 #[path = "words_layout_tests.rs"]
 mod tests;
