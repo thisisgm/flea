@@ -1,9 +1,10 @@
 //! What each drawn track shows, rebuilt once per event so a still frame reads it without work.
+use super::cache::Row;
 use super::geometry::{ancestor_shown, contain_y, Layout, Slot};
 use super::landing::Landing;
 use super::peeks::{Lens, PeekRow, Peeks};
 use super::preview_host::{Host, PreviewSettings};
-use crate::list::pane::ROW_HEIGHT;
+use crate::list::pane::{Held, ROW_HEIGHT};
 use crate::navigation::history::{join, leaf_of, parent_of};
 use std::rc::Rc;
 
@@ -328,4 +329,23 @@ impl super::Area {
     pub fn scroll_by(&mut self, slot: Slot, dy: f32) -> f32 {
         self.tracks.scroll_by(slot, dy)
     }
+}
+
+pub(crate) fn row_at<'a>(
+    rows: &'a TrackRows,
+    held: Option<&'a Held>,
+    index: usize,
+) -> Option<Row<'a>> {
+    match rows {
+        TrackRows::Peek(rows) => rows.get(index).map(Row::Peek),
+        TrackRows::Listing => held?.row(index).map(Row::Listing),
+        TrackRows::Preview | TrackRows::Blank => None,
+    }
+}
+
+/// The row a track lifts, the one named on the path to the active track; the capture probe reads the same rule.
+pub(crate) fn lifted_row(view: &TrackView, held: Option<&Held>, index: usize) -> bool {
+    view.lifted
+        .as_deref()
+        .is_some_and(|name| row_at(&view.rows, held, index).is_some_and(|row| row.name() == name))
 }

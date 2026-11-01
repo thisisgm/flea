@@ -8,7 +8,7 @@ use flea::ui_logic_mn1::{
     fit::{self, RowParts},
     Brand, Entry,
 };
-use gpui::{px, GlyphRun, Hsla, Pixels, TextRun, Window};
+use gpui::{point, px, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::cell::Cell;
 
 /// What a row draws in its 18 pixel slot.
@@ -325,4 +325,17 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
     };
     built.wrap(metrics.flyout_width(minimum, widest, maximum), env, window);
     built
+}
+
+pub(super) fn paint_text(
+    shaped: &Shaped,
+    at: gpui::Point<Pixels>,
+    color: Hsla,
+    row: i32,
+    window: &mut Window,
+) {
+    let line = shaped.run.line();
+    let baseline =
+        window.pixel_snap(at.y + (px(row as f32) - line.ascent - line.descent) / 2. + line.ascent);
+    let _ = window.paint_glyph_run(point(at.x, baseline), &shaped.run, color);
 }

@@ -183,3 +183,11 @@ pub(super) fn tracked(text: &str, spacing: f32) -> Div {
         .gap(px(spacing))
         .children(text.chars().map(|c| SharedString::from(c.to_string())))
 }
+
+pub(super) fn value(text: &str, ink: Hsla) -> Div {
+    div()
+        .flex_none()
+        .text_size(px(m::BODY))
+        .text_color(ink)
+        .child(SharedString::from(text.to_string()))
+}

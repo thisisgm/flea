@@ -2,7 +2,7 @@
 pub(crate) mod icons;
 
 use super::glyphs;
-use super::lines::{Ink, Lead, Line, Shaped};
+use super::lines::{paint_text, Ink, Lead, Line};
 use super::menu::{Card, Menu};
 use crate::list::Palette;
 use crate::palette::Theme;
@@ -68,19 +68,6 @@ impl IntoElement for MenuElement {
     fn into_element(self) -> Self {
         self
     }
-}
-
-fn paint_text(
-    shaped: &Shaped,
-    at: gpui::Point<Pixels>,
-    color: Hsla,
-    row: i32,
-    window: &mut Window,
-) {
-    let line = shaped.run.line();
-    let baseline =
-        window.pixel_snap(at.y + (px(row as f32) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(at.x, baseline), &shaped.run, color);
 }
 
 fn paint_mark(

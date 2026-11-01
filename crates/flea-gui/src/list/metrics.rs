@@ -1,6 +1,6 @@
 //! Fixed row geometry from the resolved OEM font tokens.
 use super::Typeface;
-use gpui::{px, Pixels};
+use gpui::{point, px, size, Bounds, Pixels};
 
 /// The pane's geometry at the face's body size, from v0.3.12 Theme.qml's formulas, which list.html and list-textsize.html draw.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -69,4 +69,14 @@ impl Metrics {
     pub fn label_x(&self) -> f32 {
         self.pad + self.slot + self.gap
     }
+}
+
+pub(crate) fn mark_bounds_at(left: Pixels, top: Pixels, metrics: &Metrics) -> Bounds<Pixels> {
+    Bounds::new(
+        point(
+            left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
+            top + px((metrics.row - metrics.mark) / 2.),
+        ),
+        size(px(metrics.mark), px(metrics.mark)),
+    )
 }

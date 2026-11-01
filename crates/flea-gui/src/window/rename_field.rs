@@ -8,9 +8,14 @@ use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle,
     DispatchPhase, Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun,
     Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton,
-    MouseDownEvent, Pixels, Position, Style, TextRun, Window,
+    MouseDownEvent, Pixels, Position, Style, Window,
 };
 use std::rc::Rc;
+
+#[path = "rename_field_shaping.rs"]
+mod shaping;
+pub(crate) use shaping::caption_line;
+use shaping::shape;
 
 // The selected run sits on a 24% accent wash with foreground text, and the caret is one pixel wide.
 const SELECTION: f32 = 0.24;
@@ -68,35 +73,6 @@ pub(crate) struct Laid {
     hitbox: Hitbox,
     ink: crate::path::paint::Ink,
     corner: f32,
-}
-
-/// The height of a refusal's caption line, as its shaped ascent and descent.
-pub(crate) fn caption_line(
-    window: &Window,
-    text: &str,
-    font: gpui::Font,
-    pixels: Pixels,
-) -> Pixels {
-    let run = shape(window, text, font, pixels);
-    let line = run.line();
-    line.ascent + line.descent
-}
-
-fn shape(window: &Window, text: &str, font: gpui::Font, pixels: Pixels) -> Rc<GlyphRun> {
-    let run = TextRun {
-        len: text.len(),
-        font,
-        color: Default::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    };
-    Rc::new(GlyphRun::new(window.text_system().layout_line(
-        text,
-        pixels,
-        &[run],
-        None,
-    )))
 }
 
 impl Element for FieldElement {

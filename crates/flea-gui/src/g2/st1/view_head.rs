@@ -1,10 +1,11 @@
 use super::{
     geometry::{self as g, Scale, PAD_X},
-    marks::mark,
+    marks::{mark, washed},
     seams::{Ink, Request},
     view::SettingsView,
 };
 use crate::list::Typeface;
+use flea::ui_logic_st1::caps;
 use gpui::{div, prelude::*, px, Context, Div, FontWeight, MouseButton, SharedString};
 
 impl SettingsView {
@@ -93,6 +94,43 @@ impl SettingsView {
                         view.flush(cx);
                     })),
             )
+    }
+
+    /// A heading in the capitals its language writes, spaced as the boards space it; a typed run keeps its wash.
+    pub(super) fn heading(
+        &self,
+        label: &str,
+        run: Option<(usize, usize)>,
+        lifted: bool,
+        ink: &Ink,
+    ) -> Div {
+        let language = self.panel.catalog.language();
+        let upper = |text: &str| caps::heading(text, language);
+        let spacing = f32::from(self.typeface.caption) * 0.14;
+        let Some((start, length)) = run else {
+            return washed(&upper(label), None, lifted, ink.wash14, spacing);
+        };
+        // Capitals can change a run's length, as ß does, so each part is set in capitals on its own.
+        let at = |chars: usize| {
+            label
+                .char_indices()
+                .nth(chars)
+                .map_or(label.len(), |(byte, _)| byte)
+        };
+        let (from, to) = (at(start), at(start + length));
+        let (head, piece, tail) = (
+            upper(&label[..from]),
+            upper(&label[from..to]),
+            upper(&label[to..]),
+        );
+        let run = (head.chars().count(), piece.chars().count());
+        washed(
+            &format!("{head}{piece}{tail}"),
+            Some(run),
+            lifted,
+            ink.wash14,
+            spacing,
+        )
     }
 }
 

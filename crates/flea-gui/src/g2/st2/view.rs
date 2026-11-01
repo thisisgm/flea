@@ -1,5 +1,5 @@
 //! The Plugins pane as GPUI draws it: Settings rows at the boards' metrics, the Add and Remove cards, keys and clicks.
-use super::mark::{metrics as m, tracked, Mark};
+use super::mark::{metrics as m, tracked, value as row_value, Mark};
 use super::page::{Card, Key, PluginsPage};
 use super::seam::{Effect, PluginsWire, Tokens};
 use flea::i18n::I18n;
@@ -288,14 +288,6 @@ impl PluginsPane {
             .child(SharedString::from(text.to_string()))
     }
 
-    fn value(text: &str, ink: Hsla) -> Div {
-        div()
-            .flex_none()
-            .text_size(px(m::BODY))
-            .text_color(ink)
-            .child(SharedString::from(text.to_string()))
-    }
-
     fn chevron(&self) -> Option<Mark> {
         let mirrored =
             crate::locale_geometry::Direction::from_locale(self.page.catalog().locale()).is_rtl();
@@ -388,7 +380,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot(glyph, m::MARK, mark))
                     .child(Self::label(name, t.fg))
-                    .children(failure.as_deref().map(|word| Self::value(word, t.error)))
+                    .children(failure.as_deref().map(|word| row_value(word, t.error)))
                     .child(self.checkbox(*on, index, cx))
                     .children(self.chevron());
                 self.interactive(line, index, cursor, true, cx)
@@ -444,7 +436,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot("", m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .child(Self::value(&shown, t.fg));
+                    .child(row_value(&shown, t.fg));
                 self.interactive(line, index, cursor, *available, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
             }
@@ -464,7 +456,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot("", m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .child(Self::value(shown, ink));
+                    .child(row_value(shown, ink));
                 self.interactive(line, index, cursor, *available, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
             }
@@ -472,7 +464,7 @@ impl PluginsPane {
                 .line(index)
                 .child(self.slot("", m::ROW_GLYPH, ""))
                 .child(Self::label(text, t.muted))
-                .child(Self::value(value, t.muted)),
+                .child(row_value(value, t.muted)),
             Row::Action {
                 id,
                 label,
@@ -485,9 +477,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .when(!value.is_empty(), |line| {
-                        line.child(Self::value(value, ink))
-                    })
+                    .when(!value.is_empty(), |line| line.child(row_value(value, ink)))
                     .when(*chevron, |line| line.children(self.chevron()));
                 self.interactive(line, index, cursor, true, cx)
             }
@@ -503,7 +493,7 @@ impl PluginsPane {
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
                     .when(!error.is_empty(), |line| {
-                        line.child(Self::value(error, t.error))
+                        line.child(row_value(error, t.error))
                     });
                 self.interactive(line, index, cursor, true, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
