@@ -104,14 +104,20 @@ impl Shell {
         };
         let row = match host.drawn_view {
             // An empty folder draws the hero and no row surface, so its whole pane is blank ground.
-            Some(View::List | View::Dual)
+            Some(drawn @ (View::List | View::Dual | View::Grid))
                 if !host.drawn_list && host.pane.state.kind == Kind::Empty =>
             {
-                let pane = self.geometry(window).rows(
-                    side,
-                    self.view == View::Dual,
-                    self.slots.strip_height_for(side),
-                );
+                let geometry = self.geometry(window);
+                let strip = self.slots.strip_height_for(side);
+                // Grid has no header row: its ground is the whole pane below this pane's strip.
+                let pane = if drawn == View::Grid {
+                    let mut pane = geometry.panes[side];
+                    pane.y += strip;
+                    pane.height = (pane.height - strip).max(0.);
+                    pane
+                } else {
+                    geometry.rows(side, self.view == View::Dual, strip)
+                };
                 let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
                 if x < pane.x || x >= pane.x + pane.width || y < pane.y || y >= pane.y + pane.height
                 {
