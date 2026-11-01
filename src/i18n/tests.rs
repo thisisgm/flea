@@ -308,6 +308,7 @@ fn no_test_resolves_the_host_language() {
         ("src/backend/plugins.rs", 1, "the plugin hello reports the user's language"),
         ("src/backend/contents.rs", 1, "backend content messages use the user's language"),
         ("src/tui/model.rs", 1, "Model::new's release build reads the user's language"),
+        ("src/tui/words.rs", 1, "Text's Display implementation resolves the user's catalog only outside tests"),
         ("crates/flea-gui/src/main.rs", 1, "the GUI launch loads the real catalogs"),
         ("crates/flea-gui/src/ipc/server.rs", 1, "the IPC server answers in the user's language"),
         ("crates/flea-gui/src/g2/pv3/kit/window.rs", 1, "the bench-seam media kit loads catalogs as the shipped app does"),

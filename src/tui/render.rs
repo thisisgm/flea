@@ -14,7 +14,7 @@ pub(super) mod menu_run;
 #[cfg(test)]
 pub fn bytes(n: usize) -> String { crate::i18n::Locale::default().format_size(n as u64) }
 #[cfg(test)]
-pub fn items(n: usize) -> String { super::words::items(&crate::i18n::I18n::default(), n) }
+pub fn items(n: usize) -> String { super::words::items(&crate::i18n::test_catalogs::english(), n) }
 #[cfg(test)]
 pub fn grouped(n: usize) -> String { crate::i18n::Locale::default().format_count(n.min(i64::MAX as usize) as i64) }
 pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,

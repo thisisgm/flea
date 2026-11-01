@@ -230,13 +230,21 @@ fn explicit_layout_snapshots_keep_sequence_parts_and_protocol_pairs_complete() {
 #[test]
 fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
     let map = Map::load();
+    // Keep the real sequence bindings, apart from unrelated layout collisions such as TUI17's '-'.
+    let sequences = Map::parse(&include_str!("../../keys.toml").split("\n\n").filter(|block| {
+        block.lines().any(|line| matches!(line, "action = \"prefix:,\"" | "action = \"prefix:t\"" | "action = \"sortName\"" | "action = \"tabNew\""))
+    }).collect::<Vec<_>>().join("\n\n"));
     // Letters keep their caps in both layouts, so only a comma after the prefix shows the second part relabelled.
     let comma = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"prefix:,\"\ncontext = \"listing\"\n\n[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"tabNew\"\ncontext = \"listing\"\nprefix = \",\"\n");
     for (layout, variant, sort, tail) in [("fr", None, "; a", "; ;"), ("us", Some("dvorak"), "w a", "w w")] {
         let snapshot = flea::keys::display::KeycapSnapshot::new(layout, variant, Some(0), 7).unwrap();
         let mut m = model();
         m.preset = "yazi".into();
-        m.set_keycaps(snapshot, &map).unwrap();
+        m.set_keycaps(flea::keys::display::KeycapSnapshot::new("us", None, Some(0), 6).unwrap(), &map).unwrap();
+        let before = (m.keycaps, m.keycap_labels.clone());
+        assert_eq!(m.set_keycaps(snapshot, &map), Err(flea::keys::display::KeycapError::AmbiguousChord("-".into())));
+        assert_eq!((m.keycaps, m.keycap_labels.clone()), before, "failed snapshot must retain its complete epoch");
+        m.set_keycaps(snapshot, &sequences).unwrap();
         assert_eq!(m.keycap_labels[", a"], sort, "{layout}");
         assert_eq!(m.keycap_labels["t t"], "t t", "{layout}");
         let mut m = model();

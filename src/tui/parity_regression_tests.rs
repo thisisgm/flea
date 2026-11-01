@@ -27,7 +27,8 @@ fn parity_checker_rejects_an_unsupported_key_override() {
 #[test]
 fn parity_checker_runs_the_live_check_for_every_listing_and_panel_row() {
     // Rows of parity.tsv that bind a yazi key in each context, so a dropped or retyped row is caught.
-    const LISTING_ROWS: usize = 69;
+    // TUI17 promotes nineteen more listing rows from unsupported to live handlers.
+    const LISTING_ROWS: usize = 88;
     const PANEL_ROWS: usize = 18;
     let map = Map::load();
     let counts = || (listing_checks::LISTING_CHECKS.with(std::cell::Cell::get), listing_checks::PANEL_CHECKS.with(std::cell::Cell::get));

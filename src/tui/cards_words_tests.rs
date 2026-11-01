@@ -73,6 +73,7 @@ fn locale(root: &TestDir, japanese: bool) -> I18n {
       "dialogs.output.error.copies":"部数を入力してください",
       "dialogs.output.error.columns":"列数を入力してください",
       "dialogs.output.completed":"変換先 %1",
+      "menu.dropbox":"Dropboxに移動",
       "menu.state.signedOut":"未ログイン",
       "dialogs.output.choice.Row":"長い横並びの選択肢です",
       "dialogs.output.choice.Column":"長い縦並びの選択肢です",
@@ -196,7 +197,7 @@ fn tui_card_words_keep_geometry_and_hit_targets_aligned() {
     assert!(before
         .iter()
         .flatten()
-        .any(|row| row.id == "dropbox" && row.trail == "signed out"));
+        .any(|row| row.id == "dropbox" && row.label == "Move to Dropbox" && row.trail.is_empty()));
     root.file("language", "ja");
     assert!(menu.refresh_locale(&[render::cards::refresh_locale]));
     let rows = render::menu_layout::entries(&menu, &map);
@@ -205,13 +206,25 @@ fn tui_card_words_keep_geometry_and_hit_targets_aligned() {
         .position(|row| row.as_ref().is_some_and(|row| row.id == "dropbox"))
         .unwrap();
     let row = rows[index].as_ref().unwrap();
-    assert_eq!(row.trail, "未ログイン");
+    // GM 2026-10-29 keeps unavailable root rows free of state words.
+    assert_eq!(row.label, "Dropboxに移動");
+    assert!(row.trail.is_empty() && !row.keycap);
     assert!(!row.enabled());
     let place = render::menu_layout::place(&menu, &rows);
     assert_eq!(
         render::menu_layout::hit(&menu, &map, place.x + 2, place.y + 2 + index - place.top),
         Some(Some(index))
     );
+    // State words still localize in the empty Taildrop submenu.
+    menu.menu_view.sub = render::menu_layout::Sub::Taildrop;
+    menu.taildrop
+        .status(&parse(r#"{"BackendState":"NeedsLogin"}"#).unwrap());
+    let rows = render::menu_layout::entries(&menu, &map);
+    assert_eq!(rows[0].as_ref().unwrap().label, "未ログイン");
+    root.file("language", "en");
+    assert!(menu.refresh_locale(&[render::cards::refresh_locale]));
+    let rows = render::menu_layout::entries(&menu, &map);
+    assert_eq!(rows[0].as_ref().unwrap().label, "signed out");
     wire::finish(w, reader);
 }
 
