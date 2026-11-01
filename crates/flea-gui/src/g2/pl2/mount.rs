@@ -7,6 +7,8 @@ use flea::ui_logic_pl1::Note;
 use flea::ui_logic_pl2::{self as logic, smb};
 use std::collections::HashMap;
 
+use super::mount_lifetime::completion;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     Mount,
@@ -359,6 +361,9 @@ impl Mounts {
                 {
                     args.push(picked.users.join(", "))
                 }
+                Effect::Say { note, .. } if key == "network.mounted_as" => {
+                    note.args.push(picked.users.join(", "))
+                }
                 _ => {}
             }
         }
@@ -380,19 +385,5 @@ impl Mounts {
 impl Mounts {
     pub fn bridge_failed(&mut self, generation: u64) {
         self.bridges.retain(|b| b.generation != generation);
-    }
-}
-
-pub(super) fn completion(request: &Request, error: Option<&'static str>) -> Vec<Effect> {
-    if request.id == 0 {
-        Vec::new()
-    } else {
-        vec![Effect::Completed {
-            id: request.id,
-            uri: request.uri.clone(),
-            error,
-            args: Vec::new(),
-            connect_failed: error.is_some_and(|key| key != "network.password_needed"),
-        }]
     }
 }

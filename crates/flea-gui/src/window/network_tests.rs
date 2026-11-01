@@ -369,3 +369,6 @@ mod native12_tests;
 
 #[path = "network_bridge_line_tests.rs"]
 mod bridge_line_tests;
+
+#[path = "network_connect_footer_tests.rs"]
+mod connect_footer;

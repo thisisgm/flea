@@ -126,6 +126,7 @@ fn late_cancel_keeps_job_completion_and_legacy_replies_consistent() {
         count: Cell::new(2),
         nodes: Cell::new(2),
         last: Cell::new(None),
+        named: Default::default(),
     };
     let reply = r#"{"t":"trashbrowse","id":9,"op":"delete","ok":true,"done":2,"failed":0,"failures":[],"skipped":0,"cancelled":false}"#;
     let message = progress.finish(reply.into(), true);
@@ -258,4 +259,45 @@ fn cancellation_does_not_hide_a_recovery_error() {
         assert_eq!(std::fs::read_to_string(d.join(&format!("files/{name}"))).unwrap(), "payload");
         assert!(d.join(&format!("info/{name}.trashinfo")).is_file());
     }
+}
+
+// EY-501: the Emptying Trash card's item line keeps the item in flight; a sample between two items never blanks it.
+#[test]
+fn fix_fileops_2_emptying_samples_keep_the_item_in_flight() {
+    let d = TestDir::new("trash-progress-names");
+    let confirmation = two_items(&d);
+    let (tx, rx) = channel();
+    let progress = Progress {
+        id: 1,
+        tx,
+        count: Cell::new(2),
+        nodes: Cell::new(2),
+        last: Cell::new(None),
+        named: Default::default(),
+    };
+    progress.sample("deleting", 0, 2, None, true);
+    delete_with(
+        &confirmation,
+        &Ok(d.path().to_path_buf()),
+        &Cancellation::default(),
+        |done, item, _| progress.sample("deleting", done, 2, item, true),
+    );
+    let files: Vec<_> = rx
+        .try_iter()
+        .filter_map(|message| match message {
+            OpMsg::JobEntries {
+                file, item_bytes, ..
+            } => Some((file, item_bytes)),
+            _ => None,
+        })
+        .collect();
+    let (first, named) = files.split_first().unwrap();
+    assert_eq!(first, &(String::new(), 0), "nothing is in flight yet");
+    assert!(
+        named
+            .iter()
+            .all(|(file, size)| !file.is_empty() && *size == 7),
+        "a sample between items blanks the card's item line: {files:?}"
+    );
+    assert_eq!(named.last().unwrap().0, "b");
 }
