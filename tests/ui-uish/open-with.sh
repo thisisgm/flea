@@ -262,16 +262,18 @@ case_openwithdesign() (
     menus_expect openWithState '[.rows[] | select(.eyebrow) | .eyebrow] == ["Registered for Plain text document", "All applications"]' \
         'both groups draw under their own eyebrow'
     menus_expect openWithState '.rows[1].id == "zzflea-openwith.desktop" and .rows[1].isDefault' 'the registered group leads with the default'
-    # Arithmetic on live tokens, never a pixel count: the box's own text size decides the row, and
-    # a literal here passed at base-size 14 and failed at 20 without anything being wrong.
-    menus_expect openWithState '(.listRect | split(" ")[3] | tonumber) == (7 * .rowHeight + 2 * .eyebrowHeight)' \
-        'the list ends on a row boundary at seven applications'
+    # Assert HIG geometry from painted rects and live tokens, allowing one pixel of rounding (CTL2 10-31 15:1x).
+    menus_expect openWithState '(.listRect | split(" ")[3] | tonumber) - (7 * .rowHeight + 2 * .eyebrowHeight + .eyebrowAir[0] + .eyebrowAir[1] + 2) | fabs <= 1' \
+        'the list holds seven applications, both eyebrows with their air and two hairlines'
     menus_expect openWithState '(.rect | split(" ")[2] | tonumber) > 0' "the card takes the Convert family's own width"
-    # DialogButtons040: the field is two gaps under the title rule, and the list starts the board's trail under the field.
-    menus_expect openWithState '(.titleRuleRect | split(" ") | map(tonumber)) as $t | (.searchRect | split(" ") | map(tonumber)) as $f | $f[1] - ($t[1] + $t[3]) == 2 * .gap' \
-        'the search field sits two gaps under the title rule'
-    menus_expect openWithState '(.searchRect | split(" ") | map(tonumber)) as $f | (.listRect | split(" ") | map(tonumber)) as $l | $l[1] - ($f[1] + $f[3]) == .searchTrail' \
-        'the list starts the board trail under the search field'
+    menus_expect openWithState '(.titleRuleRect | split(" ") | map(tonumber)) as $t | (.searchRect | split(" ") | map(tonumber)) as $f | $f[1] - ($t[1] + $t[3]) - .gap | fabs <= 1' \
+        'the search field sits one gap under the title rule'
+    menus_expect openWithState '(.searchRect | split(" ") | map(tonumber)) as $f | (.listRect | split(" ") | map(tonumber)) as $l | $l[1] - ($f[1] + $f[3]) - .searchTrail | fabs <= 1' \
+        'the list starts one gap under the search field'
+    menus_expect openWithState '(.listRect | split(" ") | map(tonumber)) as $l | (.eyebrowRects[0] | split(" ") | map(tonumber)) as $e | $e[1] - $l[1] - .eyebrowAir[0] | fabs <= 1' \
+        'the first eyebrow stands its air below the list top'
+    menus_expect openWithState '(.groupRuleRect | split(" ") | map(tonumber)) as $r | (.eyebrowRects[1] | split(" ") | map(tonumber)) as $e | ($r | length) == 4 and ($e[1] - ($r[1] + $r[3]) - .eyebrowAir[1] | fabs <= 1)' \
+        'a hairline closes the registered group and the next eyebrow stands its air below it'
     shot openwith-dialog
 
     # Rule 5: the search filters both groups, and a group that matches nothing takes its eyebrow with it.
@@ -279,9 +281,12 @@ case_openwithdesign() (
     menus_expect openWithState '[.rows[] | .label // .eyebrow] == ["Registered for Plain text document", "Zzflea Fixture", "All applications", "Zzflea Fixture"]' \
         'the search filters both groups and keeps both eyebrows'
     openwith_clear_search
-    openwith_search zzqq
-    menus_expect openWithState '(.rows | length) == 0 and (.listRect | split(" ")[3] | tonumber) == (7 * .rowHeight + 2 * .eyebrowHeight)' \
-        'rule 6 keeps the list height when nothing matches'
+    openwith_search zzNoMatchingApplication
+    # HIG leaves no-match to v0.3.12: retain the viewport and centre its caption.
+    menus_expect openWithState '(.rows | length) == 0 and ((.listRect | split(" ") | map(tonumber)) as $l | (.noMatchRect | split(" ") | map(tonumber)) as $n | ($l | length) == 4 and ($n | length) == 4 and ($l[3] - (7 * .rowHeight + 2 * .eyebrowHeight + .eyebrowAir[0] + .eyebrowAir[1] + 2) | fabs <= 1) and ($n[0] + $n[2]/2 - ($l[0] + $l[2]/2) | fabs <= 1) and ($n[1] + $n[3]/2 - ($l[1] + ($l[3]-1)/2) | fabs <= 1))' \
+        'no-match keeps the viewport height and centres the caption above its closing rule'
+    menus_expect openWithState '(.listRect | split(" ") | map(tonumber)) as $l | (.noMatchRect | split(" ") | map(tonumber)) as $n | $n[3] >= 30 and $n[0] >= $l[0] and $n[0] + $n[2] <= $l[0] + $l[2]' \
+        'the long no-match caption wraps inside the viewport'
     menus_expect openWithState 'any(.controls[]; .name == "Open" and (.enabled | not)) and any(.controls[]; .name == "Cancel" and .enabled)' \
         'rule 6 dims Open and leaves Cancel live'
     shot openwith-nomatch

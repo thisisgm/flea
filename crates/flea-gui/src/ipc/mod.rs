@@ -17,6 +17,7 @@ pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;
 pub(crate) mod network_mountinfo;
+mod open_with_painted;
 pub(crate) mod outline;
 pub(crate) mod output_cards;
 pub mod pane;

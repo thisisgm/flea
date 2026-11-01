@@ -9,8 +9,9 @@ use gpui::{
 pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Option<Div> {
     let now = cx.background_executor().now();
     let reduced = cx.reduce_motion();
-    shell.update(cx, |state, _| {
-        state.menu.menu.borrow_mut().settle_fade(now, reduced)
+    shell.update(cx, |state, cx| {
+        state.menu.menu.borrow_mut().settle_fade(now, reduced);
+        state.load_app_icons(window, cx);
     });
     let state = shell.read(cx);
     let fading = state.menu.menu.borrow().faded.as_ref().map(|faded| {

@@ -208,3 +208,17 @@ fn bulk_rename_field_and_name_labels_share_the_board_caption_tracking(cx: &mut T
         1.2,
     );
 }
+
+#[gpui::test]
+fn openwith_eyebrows_use_the_hig_tracking(cx: &mut TestAppContext) {
+    let mut card = crate::g2::op3::tests::open_with().card(&english());
+    card.body.retain(|block| matches!(block, Block::Apps(..)));
+    card.buttons.clear();
+    assert_tracked(
+        cx,
+        card,
+        14.,
+        &["REGISTERED FOR PLAIN TEXT DOCUMENT", "ALL APPLICATIONS"],
+        1.68,
+    );
+}

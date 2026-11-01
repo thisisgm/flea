@@ -425,11 +425,11 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         return false;
     }
     if action == "openWith" {
-        if p.open_with_loaded && p.open_with_apps.is_empty() {
+        if count == 1 && p.open_with_loaded && p.open_with_apps.is_empty() {
             return false;
         }
-        e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps));
-        e.disabled = count != 1;
+        e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps, count == 1));
+        e.disabled = count == 0 || (count > 1 && p.open_with_apps.is_empty());
     }
     if action == "sendRclone" {
         if p.rclone_remotes.is_empty() {

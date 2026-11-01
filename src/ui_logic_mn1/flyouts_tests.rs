@@ -28,7 +28,7 @@ fn open_with_separates_the_default_and_sorts_the_rest() {
             default: false,
         },
     ];
-    let rows = open_with_entries(&apps);
+    let rows = open_with_entries(&apps, true);
     let shape: Vec<&str> = rows
         .iter()
         .map(|row| {
@@ -93,7 +93,7 @@ fn open_with_captions_only_the_lifted_default() {
             default: true,
         },
     ];
-    let rows = open_with_entries(&apps);
+    let rows = open_with_entries(&apps, true);
     let captioned: Vec<&str> = rows
         .iter()
         .filter(|row| row.hint == Some(Text::Key("menu.open_with.default")))

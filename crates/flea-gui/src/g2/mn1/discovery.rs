@@ -33,7 +33,7 @@ impl Shell {
             .menu
             .captured
             .clone()
-            .filter(|c| c.rows.len() == 1 && self.menu.pending.is_none())
+            .filter(|c| !c.rows.is_empty() && !c.background && self.menu.pending.is_none())
         else {
             self.menu.context.open_with_loaded = true;
             self.refresh_menu(window, cx);

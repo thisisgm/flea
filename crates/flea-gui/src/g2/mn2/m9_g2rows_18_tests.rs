@@ -149,16 +149,14 @@ fn m9_g2rows_18_actions_match_and_capture_full_selection(cx: &mut TestAppContext
             handle,
             &format!(r#"{{"t":"actions","id":{id},{LISTING}}}"#),
         );
-        if rows.len() == 1 {
-            next(&mut fixture, "applications");
-            receive(
-                cx,
-                handle,
-                &format!(
-                    r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
-                ),
-            );
-        }
+        next(&mut fixture, "applications");
+        receive(
+            cx,
+            handle,
+            &format!(
+                r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"applications":[]}}"#
+            ),
+        );
         let leaves = update(cx, handle, |shell, _, _| {
             shell
                 .menu_entries()

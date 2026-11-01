@@ -94,118 +94,6 @@ impl Draw<'_> {
             .child(self.caption(text, 14., self.t.muted))
     }
 
-    pub(super) fn field(&self, field: &Field) -> Div {
-        let t = self.t;
-        let caret = || {
-            div()
-                .relative()
-                .w(px(0.))
-                .h(self.px(16.))
-                .flex_none()
-                .child(
-                    div()
-                        .debug_selector(|| "op3-caret".into())
-                        .absolute()
-                        .left_0()
-                        .top_0()
-                        .w(px(1.))
-                        .h_full()
-                        .bg(t.fg),
-                )
-        };
-        let mut line = div()
-            .h(self.px(BUTTON_HEIGHT))
-            .flex()
-            .items_center()
-            .gap(self.px(8.))
-            .px(self.px(BUTTON_PAD))
-            .bg(t.ground)
-            .border_1()
-            .border_color(if field.focused {
-                t.accent_frame
-            } else {
-                t.muted_frame
-            })
-            .rounded(px(self.corner))
-            .text_color(t.fg)
-            .whitespace_nowrap();
-        if let Some(mark) = field.glyph {
-            line = line.child(glyph(mark, 14. * self.s, t.muted));
-        }
-        if let Some(input) = &field.input {
-            line = line.child(crate::g2::op1::field::mount(
-                input.clone(),
-                div().relative().flex_1().min_w_0().h_full().when(
-                    field.value.is_empty() && !field.placeholder.is_empty(),
-                    |slot| {
-                        slot.child(
-                            div()
-                                .absolute()
-                                .left(px(1.))
-                                .top_0()
-                                .h_full()
-                                .flex()
-                                .items_center()
-                                .text_color(t.muted)
-                                .child(field.placeholder.clone()),
-                        )
-                    },
-                ),
-                self.typeface,
-            ));
-            return match &field.label {
-                Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
-                None => line,
-            };
-        }
-        let mut text = div()
-            .flex()
-            .items_center()
-            .min_w_0()
-            .pr(px(1.))
-            .overflow_hidden();
-        if field.value.is_empty() {
-            if field.focused {
-                text = text.child(caret());
-            }
-            if !field.placeholder.is_empty() {
-                text = text.child(
-                    div()
-                        .ml(px(1.))
-                        .text_color(t.muted)
-                        .child(field.placeholder.clone()),
-                );
-            }
-        } else if let Some(entry) = self
-            .entry
-            .filter(|entry| field.focused && entry.text == field.value)
-        {
-            let selected = entry.selected.clone();
-            text = text.child(field.value[..selected.start].to_owned());
-            if selected.is_empty() {
-                text = text.child(caret());
-            } else {
-                text = text.child(
-                    div()
-                        .debug_selector(|| "op3-selection".into())
-                        .bg(t.accent.opacity(flea::ui_logic_op1::card::FIELD_WASH))
-                        .child(field.value[selected.clone()].to_owned()),
-                );
-            }
-            text = text.child(field.value[selected.end..].to_owned());
-        } else {
-            text = text.child(field.value.clone());
-            if field.focused {
-                text = text.child(caret());
-            }
-        }
-        let line = line.child(text);
-        match &field.label {
-            Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
-            None => line,
-        }
-    }
-
     pub(super) fn button(&self, button: &Button) -> Div {
         let t = self.t;
         let primary = button.primary && button.enabled;
@@ -242,6 +130,26 @@ impl DialogShell for StandIn {
     }
 }
 
+impl DialogShell for OpenWithShell<'_> {
+    fn present(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+    ) -> AnyElement {
+        let live = Live {
+            wire: self.wire,
+            surface: Some(self.surface),
+            entry: None,
+            probe: None,
+            measure: Some(self.measure),
+        };
+        present(card, palette, typeface, corner, room, Some(&live))
+    }
+}
+
 #[path = "pressable.rs"]
 mod pressable;
 pub use pressable::Probed;
@@ -260,6 +168,7 @@ impl DialogShell for Interactive<'_> {
             surface: Some(self.surface),
             entry: Some(self.entry),
             probe: None,
+            measure: None,
         };
         present(card, palette, typeface, corner, room, Some(&live))
     }
@@ -271,6 +180,7 @@ struct Live<'a> {
     surface: Option<Hsla>,
     entry: Option<&'a crate::path::entry::Entry>,
     probe: Option<&'a crate::g2::st1::probe::Probe>,
+    measure: Option<&'a crate::g2::op1::measured::Frame>,
 }
 
 fn present(
@@ -291,6 +201,7 @@ fn present(
         wire: live.map(|live| live.wire),
         entry: live.and_then(|live| live.entry),
         probe: live.and_then(|live| live.probe),
+        measure: live.and_then(|live| live.measure),
     };
     if let Some(surface) = live.and_then(|live| live.surface) {
         draw.t.surface = surface;
@@ -319,6 +230,7 @@ fn present(
                 .text_color(t.muted)
                 .child(card.esc.clone()),
         );
+    let rule = draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD)));
     let frame = div()
         .id("op3-frame")
         .debug_selector(|| "op3-card".into())
@@ -339,7 +251,7 @@ fn present(
         .on_any_mouse_down(|_, _, cx| cx.stop_propagation())
         .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
         .child(head)
-        .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
+        .child(draw.track(rule, "titleRule"));
     let frame = draw.card_body(card, frame);
     let frame = match draw.probe {
         Some(probe) => probe.attach(frame, "card"),
@@ -368,6 +280,6 @@ fn present(
         .flex()
         .items_center()
         .justify_center()
-        .child(frame.child(buttons))
+        .child(draw.track(frame, "card").child(buttons))
         .into_any_element()
 }

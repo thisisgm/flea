@@ -107,11 +107,11 @@ fn open_with_opens_on_the_search_with_the_default_waiting_grey() {
     assert_eq!(
         rows[1],
         AppRow::App {
+            at: 0,
+            icon: "nvim".into(),
             label: "Neovim".into(),
             tail: "default".into(),
-            cursor: Cursor::Waiting,
-            mark: None,
-            icon: "nvim".into()
+            cursor: Cursor::Waiting
         }
     );
     assert_eq!(
@@ -131,22 +131,22 @@ fn open_with_opens_on_the_search_with_the_default_waiting_grey() {
     assert_eq!(
         rows[rows.len() - 2],
         AppRow::App {
+            at: 5,
+            icon: "".into(),
             label: "Basecamp".into(),
             tail: String::new(),
-            cursor: Cursor::None,
-            mark: Some(super::shell::Glyph::AppWindow),
-            icon: String::new()
+            cursor: Cursor::None
         },
         "an entry with no themed icon draws the board's window mark"
     );
     assert_eq!(
         rows.last(),
         Some(&AppRow::App {
+            at: 6,
+            icon: "btop".into(),
             label: "btop++".into(),
             tail: String::new(),
-            cursor: Cursor::None,
-            mark: None,
-            icon: "btop".into()
+            cursor: Cursor::None
         })
     );
     assert!(card.body.contains(&Block::CheckLine {
@@ -183,11 +183,11 @@ fn open_with_tab_walks_list_check_cancel_open_as_the_boards_do() {
     assert_eq!(
         apps(&drawn)[1],
         AppRow::App {
+            at: 0,
+            icon: "nvim".into(),
             label: "Neovim".into(),
             tail: "default".into(),
-            cursor: Cursor::Focused,
-            mark: None,
-            icon: "nvim".into()
+            cursor: Cursor::Focused
         }
     );
     card.key(Key::Tab);
@@ -206,6 +206,16 @@ fn open_with_tab_walks_list_check_cancel_open_as_the_boards_do() {
     );
     card.key(Key::Tab);
     assert_eq!(buttons(&card.card(&i18n)), "Cancel|Open*@", "openwith-open");
+    assert!(
+        matches!(
+            apps(&card.card(&i18n))[1],
+            AppRow::App {
+                cursor: Cursor::Waiting,
+                ..
+            }
+        ),
+        "openwith-open: Neovim keeps the grey highlight while the list does not have focus"
+    );
     card.key(Key::Tab);
     assert_eq!(card.focus, OwStop::Search, "the walk comes round");
 }
@@ -260,9 +270,9 @@ fn open_with_search_filters_and_the_always_box_rides_the_open() {
     for c in "zz".chars() {
         card.key(Key::Text(c.to_string()));
     }
-    assert!(notes(&card.card(&i18n))
+    assert!(apps(&card.card(&i18n))
         .iter()
-        .any(|(t, _)| t.starts_with("No application matches \u{201c}zz\u{201d}")));
+        .any(|row| matches!(row, AppRow::Empty { text, .. } if text.starts_with("No application matches \u{201c}zz\u{201d}"))));
     card.key(Key::Backspace);
     card.key(Key::Backspace);
     card.key(Key::Text("b".into()));

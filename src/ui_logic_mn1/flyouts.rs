@@ -3,7 +3,7 @@ use super::entry::{Entry, Text};
 use super::rows::OPEN_WITH_OTHER;
 
 // The desktop's default alone first with the muted caption, a separator, every other capable app alphabetical, a separator, then the tail.
-pub fn open_with_entries(apps: &[super::build::App]) -> Vec<Entry> {
+pub fn open_with_entries(apps: &[super::build::App], another: bool) -> Vec<Entry> {
     let leaf = |app: &super::build::App, default: bool| Entry {
         icon: Some(app.icon.clone()),
         hint: default.then_some(Text::Key("menu.open_with.default")),
@@ -23,6 +23,13 @@ pub fn open_with_entries(apps: &[super::build::App]) -> Vec<Entry> {
         rows.push(Entry::separator());
     }
     rows.extend(rest.iter().map(|app| leaf(app, false)));
+    // The Another Application card opens on one file, so a flyout over several ends with the applications.
+    if !another {
+        if rows.last().is_some_and(|row| row.separator) {
+            rows.pop();
+        }
+        return rows;
+    }
     if rows.last().is_some_and(|row| !row.separator) {
         rows.push(Entry::separator());
     }
