@@ -1,6 +1,6 @@
 //! [ and ] on the production Shell: a workbook of two sheets turns them in Quick Look, any other card keeps the tab step.
 use super::preview_tests::{answer, body, close, context, draw, file, opened, sent, Lines};
-use super::test_shell::{land, row, set_cursor};
+use super::test_shell::{german_press, land, row, set_cursor};
 use crate::{
     g2::pv1::{doc::View, Body},
     state::Shell,
@@ -146,5 +146,29 @@ fn a_pdf_card_keeps_the_tab_step(cx: &mut TestAppContext) {
     assert_eq!(open(&shell, cx), "false", "[ closes the PDF card");
     assert_eq!(context(&shell, cx), Context::Listing);
     assert_eq!(strip(&shell, cx), (3, 0), "[ steps to the previous tab");
+    close(&shell, cx);
+}
+
+// German types [ with AltGr at the US 8 key, which is text, and ü at the US [ key, which is the [ binding.
+#[gpui::test]
+fn altgr_text_keeps_the_card_where_the_plain_bracket_steps_a_tab(cx: &mut TestAppContext) {
+    let (shell, cx, _requests) = three_tabs(cx);
+    set_cursor(&shell, cx, 3);
+    cx.simulate_keystrokes("space");
+    draw(cx);
+    assert_eq!(open(&shell, cx), "true", "the PDF opens the card");
+    cx.simulate_event(german_press("[", "[", Some("8"), true));
+    draw(cx);
+    assert_eq!(
+        open(&shell, cx),
+        "true",
+        "AltGr+8 types [ and keeps the card"
+    );
+    assert_eq!(context(&shell, cx), Context::Pdf);
+    assert_eq!(strip(&shell, cx), (3, 1), "AltGr+8 moves no tab");
+    cx.simulate_event(german_press("[", "ü", Some("["), false));
+    draw(cx);
+    assert_eq!(open(&shell, cx), "false", "ü closes the PDF card");
+    assert_eq!(strip(&shell, cx), (3, 0), "ü steps to the previous tab");
     close(&shell, cx);
 }

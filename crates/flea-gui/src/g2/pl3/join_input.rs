@@ -3,7 +3,7 @@ use crate::{
     state::Shell,
     window::{
         dispatch::Order,
-        input::{event_input, event_lookup, ActionEvent},
+        input::{event_input, ActionEvent},
     },
 };
 use flea::keys::{self, Context as KeyContext, Match};
@@ -53,7 +53,7 @@ impl Shell {
         } else if input.modifiers == 0 && input.key.eq_ignore_ascii_case("f5") {
             Some("reload")
         } else {
-            match event_lookup(
+            match self.keyboard.lookup(
                 preset,
                 if menu_open {
                     KeyContext::Menu

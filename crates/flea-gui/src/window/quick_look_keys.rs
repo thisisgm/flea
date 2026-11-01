@@ -113,10 +113,10 @@ impl Shell {
         // A tab switch the card does not bind closes it, and the key then runs where it was bound.
         let held = window.modifiers();
         let mirrored = window.layout_mirrored();
-        let card =
-            crate::window::input::event_lookup(name, self.keyboard.context, event, held, mirrored);
-        let listing =
-            crate::window::input::event_lookup(name, Keys::Listing, event, held, mirrored);
+        let card = self
+            .keyboard
+            .lookup(name, self.keyboard.context, event, held, mirrored);
+        let listing = self.keyboard.lookup(name, Keys::Listing, event, held, mirrored);
         // [ and ] bind only while a workbook of two or more sheets shows; any other card leaves them unbound.
         let sheet_key = matches!(
             card,

@@ -244,13 +244,15 @@ fn every_command_lookup_reads_the_us_position() {
         ("quick_look_keys.rs", include_str!("quick_look_keys.rs")),
         ("pl3/join_input.rs", include_str!("../g2/pl3/join_input.rs")),
     ];
+    // Keyboard::lookup reads the US position and leaves AltGr text unbound, as resolve does.
     for (name, source) in sites {
-        let routed = source.matches("event_lookup(").count();
+        let source: String = source.split_whitespace().collect();
+        let routed = source.matches("self.keyboard.lookup(").count();
         assert!(routed > 0, "{name} no longer looks a key up here");
         assert_eq!(
             source.matches("lookup(").count(),
             routed,
-            "{name} looks a key up without its US position"
+            "{name} looks a key up without its US position or the AltGr check"
         );
     }
 }
