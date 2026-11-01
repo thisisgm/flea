@@ -88,6 +88,24 @@ fn ey497_a_mounted_removable_drive_ends_in_the_eject_mark(cx: &mut TestAppContex
             && f.cx.debug_bounds("picker-rail-eject-1").is_none(),
         "a fixed drive keeps its mounted square"
     );
+    let before = f.read(|picker| picker.listing.location.clone());
+    let mark = f.cx.debug_bounds("picker-rail-eject-0").unwrap().center();
+    f.cx.simulate_click(mark, gpui::Modifiers::none());
+    f.cx.run_until_parked();
+    assert_eq!(
+        f.read(|picker| picker.listing.location.clone()),
+        before,
+        "a click on the eject mark opens nothing, as SidebarRow.qml's row tap skips it in the chooser"
+    );
+    let row = f.cx.debug_bounds("picker-rail-row-0").unwrap();
+    let label = row.origin + gpui::point(gpui::px(30.), row.size.height / 2.);
+    f.cx.simulate_click(label, gpui::Modifiers::none());
+    f.cx.run_until_parked();
+    assert_eq!(
+        f.read(|picker| picker.listing.location.clone()),
+        "/run/media/FLEAEXFAT",
+        "the rest of the row still opens the drive"
+    );
 }
 
 // EY-509: PickerWindow.qml onChosen calls focusDefault, so a place opened from the rail hands the keyboard to the files.
