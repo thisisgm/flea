@@ -223,8 +223,8 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
-        // Recent stands on "/" with no folder of its own, so a drop on its blank ground lands nowhere.
-        if host.recent.on && dest == host.path {
+        // Recent stands on "/" and search results on their root, neither a folder of its own, so a drop on their blank ground lands nowhere (PaneWire.qml).
+        if (host.recent.on || host.search.owner.active()) && dest == host.path {
             return;
         }
         self.land_then(side, wide::Then::Into(dest), owned, window, cx);
