@@ -223,9 +223,9 @@ pub enum Landing {
     Silent,
 }
 
-// This window's own drop reads live keys, released ones included; a drop from elsewhere keeps the lift's bit unless a key is held here (Drag.dropHeld).
-fn seen(held: bool, own: bool) -> Seen {
-    match (held, own) {
+// A local modifier observes the complete key pair; with neither held, a foreign drop keeps the lift's bits (Drag.dropHeld).
+fn seen(held: bool, observed: bool) -> Seen {
+    match (held, observed) {
         (true, _) => Seen::Held,
         (false, true) => Seen::Released,
         (false, false) => Seen::Unseen,
@@ -256,13 +256,14 @@ pub fn decide(dropping: &Dropping<'_>, dest: &str, facts: Facts) -> Landing {
         deletable: facts.deletable,
         ..marker
     });
+    let keys_observed = dropping.own.is_some() || dropping.ctrl || dropping.shift;
     let input = Dropped {
         marker: marker.as_ref(),
         urls,
         plain: dropping.plain,
         proposed: dropping.proposed,
-        ctrl: seen(dropping.ctrl, dropping.own.is_some()),
-        shift: seen(dropping.shift, dropping.own.is_some()),
+        ctrl: seen(dropping.ctrl, keys_observed),
+        shift: seen(dropping.shift, keys_observed),
     };
     match core::drop_into(&input, dest, facts.dest_dev) {
         Ok(ask) => Landing::Ask(ask),

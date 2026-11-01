@@ -147,3 +147,7 @@ mod i50_tests {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "i50_ime_tests.rs"]
+mod path_ime_tests;

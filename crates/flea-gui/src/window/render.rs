@@ -278,6 +278,7 @@ impl Render for Shell {
                         shell.land_own_drag(side, window, cx);
                     }))
                     .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
+                    .when(side == 0, |div| Shell::aim_rows_on_foreign_drag(div, cx))
                     // A pane with no rows yet draws the list ground its rows will draw.
                     .when(!host.drawn_list, |div| div.bg(floor))
                     .children(lists.areas[side].take())
@@ -338,7 +339,7 @@ impl Render for Shell {
                 .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_with_preview))
-                .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
+                .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
                 .capture_any_mouse_down(cx.listener(Self::capture_press))
                 .child(
                     div()
@@ -383,7 +384,7 @@ impl Render for Shell {
             .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))
-            .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
+            .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .capture_any_mouse_down(cx.listener(Self::side_button))
             .capture_any_mouse_down(cx.listener(Self::capture_press))

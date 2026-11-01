@@ -117,6 +117,15 @@ impl I18n {
         substitute(&self.tr(key), args)
     }
 
+    // A key keeps Omarchy's word; RTL text isolates it LRI..PDI (i18n/rtl-policy.json). The TUI binary's copy never calls it: terminals do no bidi.
+    #[allow(dead_code)]
+    pub fn keycap(&self, keys: &str) -> String {
+        if keys.is_empty() || !self.locale.right_to_left {
+            return keys.into();
+        }
+        format!("\u{2066}{keys}\u{2069}")
+    }
+
     // Count supplies %1; additional arguments start at %2.
     pub fn trn(&self, key: &str, count: i64) -> String { self.trn_args(key, count, &[]) }
 

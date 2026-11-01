@@ -172,7 +172,11 @@ fn ey221_raildrop_held_over_home_lights_move_here_and_says_the_line() {
     vcx.run_until_parked();
     let (target, lines) = cue(&mut vcx, handle);
     assert_eq!(target, None, "leaving the rail drops the cue");
-    assert!(lines.is_empty(), "{lines:?}");
+    // FileDrag.leaveTarget: this window's own lift on no target keeps the line without a name.
+    assert_eq!(
+        lines,
+        vec!["Move 1 item to a folder · ctrl copies, shift moves".to_owned()]
+    );
 }
 
 #[test]

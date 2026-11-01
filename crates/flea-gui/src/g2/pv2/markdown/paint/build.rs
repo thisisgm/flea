@@ -289,7 +289,31 @@ impl Build<'_> {
                     self.selection.clip = old_clip;
                     let len = self.ops.len() - at - 1;
                     self.ops[at] = Op::Clip { rect, len };
-                    self.hits.push(Hit::Table { rect, id, most });
+                    let mut rules = items.iter().filter_map(|item| match item {
+                        Item::Rule { y, wash: true, .. } => Some(*y),
+                        _ => None,
+                    });
+                    let header = matches!(self.doc.blocks().get(self.block), Some(flea::ui_logic_pv2::markdown::Block::Table(table)) if !table.head.is_empty());
+                    let top = if header {
+                        rules.next().map(|y| y + self.hairline)
+                    } else {
+                        Some(0.)
+                    };
+                    let row = top.zip(rules.next()).map(|(top, bottom)| {
+                        (
+                            x0 + x - shift,
+                            y0 + y + top,
+                            *content,
+                            bottom + self.hairline - top,
+                        )
+                    });
+                    self.hits.push(Hit::Table {
+                        rect,
+                        id,
+                        most,
+                        shift,
+                        row,
+                    });
                 }
             }
         }

@@ -147,7 +147,7 @@ pub fn done_line_hinted(
     }
     let changed = changed_line(catalog, op, ok, name);
     // As v0.3.12 Tags.js doneLine, the skip rides only on a trailing " · z undoes"; another undo key, or none, shows no skip.
-    if skip.is_empty() || hint != catalog.tr_args("places.tag.undo_hint", &["z"]) {
+    if skip.is_empty() || hint != catalog.tr_args("places.tag.undo_hint", &[&catalog.keycap("z")]) {
         return changed + hint;
     }
     catalog.tr_args("places.tag.with_skip", &[&changed, &skip]) + hint

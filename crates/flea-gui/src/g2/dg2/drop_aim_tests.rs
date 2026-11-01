@@ -57,7 +57,11 @@ fn ey264_a_drag_held_over_a_folder_row_lights_it_and_says_the_move() {
     vcx.run_until_parked();
     let (target, lines) = aimed(&mut vcx, handle);
     assert_eq!(target, None, "the carried row is no target");
-    assert!(lines.is_empty(), "{lines:?}");
+    // FileDrag.leaveTarget: this window's own lift on no target keeps the line without a name.
+    assert_eq!(
+        lines,
+        vec!["Move 1 item to a folder · ctrl copies, shift moves".to_owned()]
+    );
 }
 
 #[test]

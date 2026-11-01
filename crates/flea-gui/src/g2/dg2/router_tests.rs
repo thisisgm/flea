@@ -150,6 +150,8 @@ fn m9_dg2_the_file_client_never_claims_a_tab_lift() {
         window: 4,
         send,
         held: Rc::new(RefCell::new(None)),
+        hover: Rc::default(),
+        ended: None,
     };
     let types = s(&[crate::tabs::transfer::TAB_MIME, URILIST, "text/plain"]);
     assert!(files
@@ -255,5 +257,7 @@ fn stale_holder(send: async_channel::Sender<files::Arrived>, lift: &Lift) -> fil
         window: 4,
         send,
         held,
+        hover: Rc::default(),
+        ended: None,
     }
 }

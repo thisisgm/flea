@@ -49,6 +49,73 @@ fn joined(card: Option<&Card>, part: impl Fn(&Line) -> &str) -> String {
 }
 
 impl MenuAdapter<'_> {
+    /// A rail row's menu answers the file menu's richer readers too: its model, row probe and menuState's entries and face.
+    pub(crate) fn rail_call(
+        &self,
+        function: &str,
+        arguments: &[String],
+        catalog: &flea::i18n::I18n,
+        pointer: (f32, f32),
+    ) -> Option<Reply> {
+        use flea::jsondoc::{self, Json};
+        match function {
+            "contextMenuModel" => Some(Reply::value(self.model(catalog))),
+            "contextMenuRowProbe" => Some(self.row_probe(arguments, Some(pointer), None)),
+            "menuState" => {
+                let mut state =
+                    jsondoc::parse(self.call(function, arguments)?.stdout.trim()).ok()?;
+                if let Json::Obj(values) = &mut state {
+                    values.extend([
+                        ("entries".into(), jsondoc::parse(&self.model(catalog)).ok()?),
+                        ("forRail".into(), Json::Bool(true)),
+                        ("forHeader".into(), Json::Bool(false)),
+                    ]);
+                }
+                Some(Reply::value(jsondoc::render(&state).trim_end()))
+            }
+            _ => self.call(function, arguments),
+        }
+    }
+
+    pub(crate) fn model(&self, catalog: &flea::i18n::I18n) -> String {
+        joined::model(self.menu.card.as_ref(), catalog)
+    }
+
+    pub(crate) fn row_probe(
+        &self,
+        arguments: &[String],
+        pointer: Option<(f32, f32)>,
+        resting: Option<(f32, f32)>,
+    ) -> Reply {
+        let card = self.menu.card.as_ref();
+        let Some((card, index)) = card.zip(
+            arguments
+                .first()
+                .and_then(|index| index.parse::<usize>().ok()),
+        ) else {
+            return Reply::value("");
+        };
+        let Some(entry) = card.entries.get(index) else {
+            return Reply::value("");
+        };
+        let top = card.row_screen_top(index);
+        if top + fit::height(entry) as f32 <= card.frame.y + fit::PAD as f32
+            || top >= card.frame.y + (fit::PAD + card.view_h) as f32
+        {
+            return Reply::value("");
+        }
+        let (x, y) = pointer.unwrap_or((-1., -1.));
+        let (rx, ry) = resting.unwrap_or((-1., -1.));
+        let hovered = card.row_at(x, y) == Some(index);
+        Reply::value(format!(
+            "{hovered} {} {} {} {}",
+            x.round(),
+            y.round(),
+            rx.round(),
+            ry.round()
+        ))
+    }
+
     fn rect(&self, card: Option<&Card>) -> String {
         card.map(|c| {
             let f = c.frame;

@@ -129,8 +129,11 @@ taking the copy back also fails, the copy stays under the new name and nothing t
 that either.** The error line does carry it in `path`, but `ui/js/Errors.js` words `rename` as one of
 two fixed sentences that reproduce neither `path` nor `msg`, and `ui/PaneWire.qml` does not re-read
 the listing on it, so the duplicate sits on disk unmentioned until some later listing shows it,
-exactly as the partial target above does. Every other filesystem and error, and every
-`rename_noreplace` caller but `rename`, its undo and `move_any`, stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
+exactly as the partial target above does. An archive compress, extract or convert publishes its staged result
+through the same path (issue 370), by `renamecompat::rename_cancellable` with the job's own cancel: a cancel during
+the copy removes the partial target and the job answers cancelled, and the copy reports no progress past the job's
+last sample. Every other filesystem and error, and every
+`rename_noreplace` caller but `rename`, its undo, `move_any` and those three publishes, stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 That kept copy answers `rename-kept` rather than `rename`, because the rename half
 succeeded and the name it came from may be whole, a remnant, or already gone. The error line names the source in `path` and carries the removal's own message in `msg`;

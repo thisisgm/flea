@@ -1,19 +1,22 @@
 //! The drag owner joined to the live Shell: the pane's on_drag lifts the pressed row's carried rows, its own drops and every native drop the router hands this window resolve their folder, read the disk facts off the UI thread, and send one ask through op1.
-use super::files::{Arrived, Files, Held};
-use super::router::{self, Registration};
+use super::files::{Arrived, Files};
+use super::router;
 use super::{decide, facts, lift, spot, Dropping, Facts, Landing, Lift, Rows};
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::ui_logic_dg2 as core;
 use flea::ui_logic_fb1::status::Hint;
 use gpui::{
-    App, AppContext, Context, Empty, ExternalDragPayload, Global, IntoElement, Point, Render,
-    Window,
+    App, AppContext, Context, Empty, ExternalDragPayload, IntoElement, Point, Render, Window,
 };
-use std::collections::HashMap;
 use std::rc::Rc;
 
+#[path = "drags.rs"]
+mod drags;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
+#[path = "row_drop.rs"]
+pub(crate) mod row_drop;
+pub use drags::Drags;
 #[path = "tab_drop.rs"]
 mod tab_drop;
 
@@ -101,35 +104,6 @@ impl Owned {
     }
 }
 
-/// Each window's live lift and router registration, held beside the Shell rather than in it.
-#[derive(Default)]
-pub struct Drags {
-    lifts: HashMap<u64, Lift>,
-    clients: HashMap<u64, Registration>,
-    /// The marker tag and serial of each window's current lift, shared with its file client.
-    held: HashMap<u64, Held>,
-    serial: u64,
-    /// The rail row each window's held drag rests on.
-    aims: HashMap<u64, rail_drop::Aim>,
-}
-
-impl Drags {
-    fn put(&mut self, key: u64, lift: Lift) {
-        *self.held.entry(key).or_default().borrow_mut() =
-            Some((lift.marker.instance.clone(), lift.serial));
-        self.lifts.insert(key, lift);
-    }
-
-    fn take(&mut self, key: u64) -> Option<Lift> {
-        if let Some(held) = self.held.get(&key) {
-            *held.borrow_mut() = None;
-        }
-        self.lifts.remove(&key)
-    }
-}
-
-impl Global for Drags {}
-
 // File lifts number from here, so a tab strip filtering native source events by its own serial never takes one.
 const FILE_SERIALS: u64 = 1 << 62;
 
@@ -155,11 +129,14 @@ impl Shell {
             .entry(key)
             .or_default()
             .clone();
+        let (hover, ended) = self.follow_row_drags(key, window, cx);
         let shared = router::shared(cx);
         let registration = shared.register(Rc::new(Files {
             window: key,
             send,
             held,
+            hover,
+            ended: Some(ended),
         }));
         cx.global_mut::<Drags>().clients.insert(key, registration);
         cx.spawn_in(window, async move |this, cx| {
@@ -183,6 +160,7 @@ impl Shell {
         // A drag that lifts nothing must never land an earlier drag's rows.
         cx.default_global::<Drags>().take(key);
         self.clear_rail_aim(window, cx);
+        self.clear_row_aim(window, cx);
         let Some(host) = self.panes[side].as_ref() else {
             return false;
         };
@@ -237,6 +215,7 @@ impl Shell {
         let key = window_key(window);
         let lifted = cx.default_global::<Drags>().take(key).is_some();
         self.clear_rail_aim(window, cx);
+        self.clear_row_aim(window, cx);
         lifted && cx.stop_active_drag(window)
     }
 
@@ -248,11 +227,14 @@ impl Shell {
         drags.clients.remove(&key);
         drags.held.remove(&key);
         drags.aims.remove(&key);
+        drags.hovers.remove(&key);
+        drags.rows.remove(&key);
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
     pub fn land_own_drag(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.clear_rail_aim(window, cx);
+        self.clear_row_aim(window, cx);
         let key = window_key(window);
         let Some(lift) = cx.default_global::<Drags>().take(key) else {
             return;
@@ -271,6 +253,7 @@ impl Shell {
     }
 
     fn land_arrived(&mut self, arrived: Arrived, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_row_aim(window, cx);
         let point = gpui::point(gpui::px(arrived.position.0), gpui::px(arrived.position.1));
         if self.file_tab_destination(point).is_some() {
             self.land_at(self.focus_side, point, Owned::Native(arrived), window, cx);

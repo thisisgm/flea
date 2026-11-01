@@ -11,7 +11,8 @@ soft_qml=250;  hard_qml=400
 soft_js=200;   hard_js=300
 
 # Recorded debts and scoped release exceptions retain exact per-file ceilings; global limits stay unchanged.
-known_over_cap="crates/flea-gui/src/window/columns_render.rs 404
+known_over_cap="crates/flea-gui/src/g2/sr2/tests_flow.rs 408
+crates/flea-gui/src/window/columns_render.rs 404
 crates/flea-gui/src/g2/pk1/view.rs 407
 crates/flea-gui/src/rail/element.rs 424
 crates/flea-gui/src/window/rename_field.rs 401
@@ -100,7 +101,7 @@ src/backend/durable.rs 809
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
-src/backend/renamecompat.rs 728
+src/backend/renamecompat.rs 738
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634

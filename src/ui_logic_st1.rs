@@ -36,6 +36,8 @@ pub enum Text {
     // Items joined by the catalog's list separator.
     List(Vec<Text>),
     Data(String),
+    // A key as the preset spells it, isolated for right-to-left text when resolved.
+    Keycap(String),
 }
 
 impl Text {
@@ -50,7 +52,7 @@ impl Text {
     pub fn is_empty(&self) -> bool {
         match self {
             Text::Empty => true,
-            Text::Data(value) => value.is_empty(),
+            Text::Data(value) | Text::Keycap(value) => value.is_empty(),
             _ => false,
         }
     }
@@ -78,6 +80,7 @@ impl Text {
             }
             Text::List(items) => all(items).join(&i18n.tr("settings.list.separator")),
             Text::Data(value) => value.clone(),
+            Text::Keycap(keys) => i18n.keycap(keys),
         }
     }
 }

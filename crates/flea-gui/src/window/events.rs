@@ -179,6 +179,7 @@ impl Shell {
                     ),
                 }
                 self.opener_archive_ready(side, window, cx);
+                self.ipc_listing_answered(side, window, cx);
                 return;
             }
             event => event,
@@ -397,9 +398,7 @@ impl Shell {
         self.after_navigation(side, &before, window, cx);
         self.arm_transition(side, window, cx);
         self.fileops_arrival(side, window, cx);
-        if side == 0 {
-            self.ensure_ipc_reader(window, cx);
-        }
+        self.ipc_listing_answered(side, window, cx);
         cx.notify();
     }
 }

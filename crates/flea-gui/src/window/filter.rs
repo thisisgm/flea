@@ -36,6 +36,7 @@ pub(crate) struct Runtime {
     pub owner: Filter,
     pub strip: Rc<RefCell<StripState>>,
     view: Option<Entity<StripView>>,
+    input_generation: Option<u64>,
     // The answer the rows below were cut from, so a frame at rest rebuilds nothing.
     drawn: Option<Rc<Drawn>>,
     /// The drawn rows as one shared slice, None while every row is drawn.
@@ -57,6 +58,7 @@ impl Runtime {
             owner: Filter::default(),
             strip: Rc::new(RefCell::new(StripState::new(face))),
             view: None,
+            input_generation: None,
             drawn: None,
             shown: None,
             key_at: 0,
@@ -194,6 +196,7 @@ impl Shell {
             return;
         };
         let listing = host.pane.held.listing;
+        host.filter.owner.sync_entry();
         host.filter.sync(listing);
         host.input.shown = host.filter.shown.clone();
         let owner = &host.filter.owner;
@@ -205,8 +208,31 @@ impl Shell {
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("/");
-        host.filter.strip.borrow_mut().text =
-            present::strip(owner, listing, folder, &self.locale.catalog);
+        let mut strip = host.filter.strip.borrow_mut();
+        strip.text = present::strip(owner, listing, folder, &self.locale.catalog);
+        let entry = owner.entry.borrow();
+        if owner.typing() {
+            strip.text.query = entry.text.clone().into();
+        }
+        if let Some(generation) = entry.session() {
+            if host.filter.input_generation != Some(generation) {
+                let input = crate::g2::sr2::input::FilterInput::new(
+                    cx.weak_entity(),
+                    side,
+                    generation,
+                    owner.entry.clone(),
+                    strip.query.line.clone(),
+                    strip.query.bounds.clone(),
+                );
+                strip.input = Some(cx.new(|_| input));
+                host.filter.input_generation = Some(generation);
+            }
+        } else {
+            strip.input = None;
+            host.filter.input_generation = None;
+        }
+        drop(entry);
+        drop(strip);
         if let Some(counts) = owner.counts(listing) {
             host.status = present::status(&counts, &self.locale.catalog).into();
         }

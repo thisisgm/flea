@@ -38,9 +38,9 @@ pub fn parse(line: &str) -> Result<Option<Answer>, String> {
     })
 }
 
-/// One line against the request in force, `live` its id or None with nothing asked.
-pub fn read(line: &str, live: Option<u64>) -> Result<Line, String> {
-    scan(line, Some(live))
+/// One line against the requests in flight, `oldest` the oldest id awaited or None with nothing asked.
+pub fn read(line: &str, oldest: Option<u64>) -> Result<Line, String> {
+    scan(line, Some(oldest))
 }
 
 // The members of one flat object as raw byte spans, found without decoding a value.
@@ -236,7 +236,7 @@ fn scan(line: &str, gate: Option<Option<u64>>) -> Result<Line, String> {
         return Ok(Line::Other);
     }
     let id = members.uint("id")?;
-    if gate.is_some_and(|live| live != Some(id)) {
+    if gate.is_some_and(|live| live.is_none_or(|oldest| id < oldest)) {
         return Ok(Line::Stale);
     }
     let query = members.text("query")?;

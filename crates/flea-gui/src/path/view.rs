@@ -221,6 +221,9 @@ impl PathView {
 
     /// Enter on the line, or a jump that declined it.
     pub fn commit(&mut self, cx: &mut Context<Self>) {
+        if !self.entry.editing || self.entry.marked.is_some() {
+            return;
+        }
         let (path, home, failed, side) = (
             self.path().to_owned(),
             self.inputs.home.clone(),
@@ -241,6 +244,9 @@ impl PathView {
     }
 
     pub(super) fn choose(&mut self, path: String, cx: &mut Context<Self>) {
+        if !self.entry.editing || self.entry.marked.is_some() {
+            return;
+        }
         let (current, failed, side) =
             (self.path().to_owned(), self.inputs.failed, self.inputs.side);
         self.close(cx);
@@ -270,6 +276,9 @@ impl PathView {
 
     /// Tab: the bar's own completion, from the kept rows or a fresh peek.
     pub(super) fn tab(&mut self, cx: &mut Context<Self>) {
+        if !self.entry.editing || self.entry.marked.is_some() {
+            return;
+        }
         self.jump.path_typed();
         let (path, home) = (self.path().to_owned(), self.inputs.home.clone());
         match self.entry.complete(&path, &home, self.inputs.show_hidden) {

@@ -1,0 +1,10 @@
+{
+  "feedback.hint.undo": "%1 отменяет действие",
+  "keys.escape": "Закрыть или назад",
+  "keys.redo": "Повторить",
+  "keys.title": "Сочетания клавиш",
+  "keys.undo": "Отменить",
+  "settings.hint.load_key": "%1 загружает текущее выделение.",
+  "settings.hint.text_keys": "%1 и %2 меняют размер по делениям; %3 возвращает размер Omarchy.",
+  "settings.textsize.override": "Размер текста: %1. %2 возвращает размер Omarchy"
+}

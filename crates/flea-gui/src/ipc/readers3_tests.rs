@@ -11,14 +11,14 @@ use flea::{
 };
 use gpui::{AppContext, Context, TestAppContext, Window, WindowBackgroundAppearance, WindowHandle};
 
-fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
+pub(super) fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
     let (backend, _receive) = Backend::test_channel();
     cx.add_window(|_, cx| Root {
         shell: cx.new(|cx| shell_with(backend, cx)),
     })
 }
 
-fn update<R>(
+pub(super) fn update<R>(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
     change: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
@@ -30,7 +30,12 @@ fn update<R>(
         .unwrap()
 }
 
-fn read(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str, args: &[&str]) -> Reply {
+pub(super) fn read(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Root>,
+    name: &str,
+    args: &[&str],
+) -> Reply {
     let (answer, receive) = std::sync::mpsc::sync_channel(1);
     let arguments = args.iter().map(|argument| (*argument).to_owned()).collect();
     update(cx, handle, |shell, window, cx| {
@@ -64,7 +69,7 @@ fn value(
     );
 }
 
-fn json(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Json {
+pub(super) fn json(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Json {
     let reply = read(cx, handle, name, &[]);
     assert_eq!(reply.code, 0, "{name}: {reply:?}");
     jsondoc::parse(reply.stdout.trim()).unwrap()
@@ -129,7 +134,7 @@ fn ipc_readers3_open_with_card_reports_its_model_without_geometry(cx: &mut TestA
 }
 
 #[gpui::test]
-fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
+fn ipc_readers3_run_card_reports_its_geometry(cx: &mut TestAppContext) {
     let handle = open(cx);
     value(cx, handle, "runCardState", &[], "{\"opened\":false}");
     update(cx, handle, |shell, _, cx| {
@@ -144,7 +149,32 @@ fn ipc_readers3_run_card_refuses_its_geometry(cx: &mut TestAppContext) {
     update(cx, handle, |shell, _, _| {
         assert!(shell.run_card.is_some(), "the run card opens");
     });
-    refused(cx, handle, "runCardState", "rect, controls");
+    // RunCard.qml's runCardState: the ask, its buttons, the default and the painted boxes.
+    let state = json(cx, handle, "runCardState");
+    let text = |key: &str| state.get(key).and_then(Json::as_str).map(str::to_owned);
+    assert_eq!(text("kind").as_deref(), Some("script"));
+    assert_eq!(text("focus").as_deref(), Some("terminal"));
+    assert_eq!(text("default").as_deref(), Some("terminal"));
+    assert!(
+        text("rect").is_some_and(|rect| rect.split(' ').count() == 4),
+        "{state:?}"
+    );
+    let controls = state
+        .get("controls")
+        .and_then(Json::as_array)
+        .expect("controls");
+    let names: Vec<_> = controls
+        .iter()
+        .filter_map(|control| control.get("name").and_then(Json::as_str))
+        .collect();
+    assert_eq!(names, ["cancel", "text", "terminal"]);
+    assert!(
+        controls.iter().all(|control| control
+            .get("centre")
+            .and_then(Json::as_str)
+            .is_some_and(|centre| centre.split(' ').count() == 2)),
+        "{state:?}"
+    );
     refused(
         cx,
         handle,

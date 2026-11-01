@@ -60,7 +60,7 @@ fn value(cx: &mut TestAppContext, handle: Handle, name: &str) -> String {
     reply.stdout.trim_end_matches('\n').to_owned()
 }
 
-fn document(
+pub(super) fn document(
     cx: &mut TestAppContext,
     handle: Handle,
     name: &str,

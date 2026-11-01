@@ -54,16 +54,6 @@ impl PreviewLook<'_> {
         format!("[{}]", kinds.join(","))
     }
 
-    fn holds_figure(&self) -> bool {
-        self.markdown().is_some_and(|view| {
-            view.read(self.cx)
-                .doc
-                .blocks()
-                .iter()
-                .any(|block| matches!(block, Block::Figure(_)))
-        })
-    }
-
     fn pdf_overlay(&self) -> bool {
         self.look
             .filter(|look| look.is_open())
@@ -111,8 +101,14 @@ impl Adapter for PreviewLook<'_> {
                 ))
             }
             "previewDuration" => Reply::value(self.duration().to_string()),
-            "previewFigures" if self.holds_figure() => not_ported(function),
-            "previewFigures" => Reply::value(""),
+            "previewFigures" => Reply::value(
+                self.markdown()
+                    .map_or_else(String::new, |view| view.read(self.cx).figures_state()),
+            ),
+            "previewTable" => Reply::value(
+                self.markdown()
+                    .map_or_else(|| "{}".into(), |view| view.read(self.cx).table_state()),
+            ),
             "previewEndGap" if self.markdown().is_some() => not_ported(function),
             "previewEndGap" => Reply::value("-1"),
             "pdfState" if overlay && self.pdf_overlay() => not_ported(function),

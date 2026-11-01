@@ -199,34 +199,7 @@ impl Adapter for JoinedAdapter<'_> {
             }
             "contextMenuModel" => Some(Reply::value(model(menu.card.as_ref(), self.catalog))),
             "contextMenuRowProbe" => {
-                let Some(index) = arguments
-                    .first()
-                    .and_then(|index| index.parse::<usize>().ok())
-                else {
-                    return Some(Reply::value(""));
-                };
-                let Some(card) = &menu.card else {
-                    return Some(Reply::value(""));
-                };
-                if index >= card.entries.len() {
-                    return Some(Reply::value(""));
-                }
-                let (x, y) = self.joined.pointer.unwrap_or((-1., -1.));
-                let (rx, ry) = self.joined.resting.unwrap_or((-1., -1.));
-                let hovered = card.row_at(x, y) == Some(index);
-                let top = card.row_screen_top(index);
-                if top + fit::height(&card.entries[index]) as f32 <= card.frame.y + fit::PAD as f32
-                    || top >= card.frame.y + (fit::PAD + card.view_h) as f32
-                {
-                    return Some(Reply::value(""));
-                }
-                Some(Reply::value(format!(
-                    "{hovered} {} {} {} {}",
-                    x.round(),
-                    y.round(),
-                    rx.round(),
-                    ry.round()
-                )))
+                Some(base.row_probe(arguments, self.joined.pointer, self.joined.resting))
             }
             _ => base.call(function, arguments),
         }

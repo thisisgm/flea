@@ -19,6 +19,8 @@ mod sound_tests;
 #[path = "ui_logic_pv3/strip_tests.rs"]
 mod strip_tests;
 #[cfg(test)]
+mod transport_seek_tests;
+#[cfg(test)]
 #[path = "ui_logic_pv3/transport_tests.rs"]
 mod transport_tests;
 
