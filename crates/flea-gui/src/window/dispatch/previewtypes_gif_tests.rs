@@ -122,7 +122,7 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
     );
     after(cx, 500, &wakes);
     assert_eq!(shown_frame(cx), Some(first), "and loops back");
-    // The moving layer takes the still's place, so it keeps the still's never-enlarge fit for a raster GIF.
+    // The moving layer takes the still's place, so it keeps the still's own-pixel fit for a raster GIF.
     let layer = cx
         .debug_bounds(if first == 0 {
             "column-preview-animation-image-0"
@@ -130,11 +130,14 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
             "column-preview-animation-image-1"
         })
         .expect("the moving layer draws its image");
-    assert_eq!(
-        (f32::from(layer.size.width), f32::from(layer.size.height)),
-        (8., 8.),
-        "an 8x8 GIF moves at its own 8x8 in the wide column frame, never enlarged"
-    );
+    let scale = cx.update(|window, _| window.scale_factor());
+    for side in [layer.size.width, layer.size.height] {
+        let pixels = f32::from(side) * scale;
+        assert!(
+            pixels <= 8. + 1e-3 && pixels > 8. - 0.01,
+            "an 8x8 GIF moves at its own 8x8 device pixels in the wide column frame, never enlarged: {pixels}"
+        );
+    }
     let moving = shell.read_with(cx, |shell, cx| {
         let preview = shell.selection_preview(0).expect("the column is mounted");
         let frame = preview.read(cx).drawn.as_ref().expect("the GIF is drawn");

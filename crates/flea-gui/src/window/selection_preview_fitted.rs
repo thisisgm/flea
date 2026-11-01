@@ -8,7 +8,7 @@ use gpui::{div, img, prelude::*, px, RenderImage};
 use std::sync::Arc;
 
 /// The poster or still fits inside the border; vectors fill the room and rasters keep their pixel limit.
-pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div> {
+pub(super) fn fitted(frame: &Frame, width: f32, height: f32, device: f32) -> Option<gpui::Div> {
     frame.image.clone().map(|image| {
         let size = image.size(0);
         let (w, h) = (size.width.0 as f64, size.height.0 as f64);
@@ -17,6 +17,7 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div
             .as_ref()
             .map_or((0., 0.), |m| (m.w as f64, m.h as f64));
         let vector = is_vector_name(&frame.subject.row.name);
+        // A raster never draws past one source pixel per device pixel.
         let limit = thumbs::preview_limit(
             frame.kind == Kind::Video,
             vector,
@@ -24,14 +25,24 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div
             h,
             original.0,
             original.1,
-        );
-        let scale = thumbs::fit_scale(
+        ) / f64::from(device);
+        let fit = thumbs::fit_scale(
             (width - 2. * FRAME_BORDER).max(1.) as f64,
             (height - 2. * FRAME_BORDER).max(1.) as f64,
             w,
             h,
             limit,
-        ) as f32;
+        );
+        let scale = fit as f32;
+        let (logical_w, logical_h) =
+            match crate::preview_quality::fitted_pixels(w, h, fit, limit, device.into()) {
+                Some(own) => crate::preview_quality::own_size(own, device.into()),
+                None => crate::preview_quality::logical_size(
+                    (w * scale as f64).round(),
+                    (h * scale as f64).round(),
+                    device.into(),
+                ),
+            };
         div()
             .debug_selector(|| "column-preview-picture".into())
             .size_full()
@@ -41,8 +52,8 @@ pub(super) fn fitted(frame: &Frame, width: f32, height: f32) -> Option<gpui::Div
             .child(
                 img(image)
                     .debug_selector(|| "column-preview-image".into())
-                    .w(px((w as f32 * scale).round()))
-                    .h(px((h as f32 * scale).round()))
+                    .w(px(logical_w))
+                    .h(px(logical_h))
                     .object_fit(gpui::ObjectFit::Fill),
             )
     })

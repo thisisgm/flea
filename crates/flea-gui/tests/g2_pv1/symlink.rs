@@ -1,5 +1,5 @@
 //! A symbolic link to a large image reserves its bar; a plain copy fills the card.
-use super::{boards::rect, scenes, *};
+use super::{boards::rect, pixels, scenes, *};
 
 fn scratch() -> PathBuf {
     repo(".superpowers/fix-qlsymlink/fixtures")
@@ -59,6 +59,7 @@ fn a_large_symlink_image_fits_below_its_bar(cx: &mut TestAppContext) {
         *path = made.path.clone();
     }
     let (cx, _, _, _) = host(cx, subject, Arm::Fix);
+    pixels::at_board_scale(cx);
     assert!(cx.debug_bounds("pv1-bar-mark:flea-mark:symlink").is_some());
     let bar = rect(cx, "pv1-bar");
     let picture = rect(cx, "pv1-picture");
@@ -75,6 +76,7 @@ fn a_plain_large_image_keeps_the_whole_card_without_a_bar(cx: &mut TestAppContex
         *path = made.path.clone();
     }
     let (cx, _, _, _) = host(cx, subject, Arm::Fix);
+    pixels::at_board_scale(cx);
     assert!(cx.debug_bounds("pv1-bar").is_none());
     let picture = rect(cx, "pv1-picture");
     assert_eq!(picture, (168., 63., 765., 574.));

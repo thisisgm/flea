@@ -77,6 +77,7 @@ mod rev3_st2_tests;
 mod rev4_st2_tests;
 pub mod durable;
 pub mod icons;
+pub use flea::backend::rastertemp;
 pub mod regfile;
 pub mod exiffacts;
 pub mod imagesize;
@@ -369,6 +370,7 @@ pub mod rawbmff;
 pub mod rawraf;
 pub mod rawexif;
 pub mod rawpreview;
+pub mod previewraster;
 
 #[cfg(test)]
 mod jobs_fix1_tests;

@@ -1,4 +1,5 @@
 //! Each Quick Look and Compare board's geometry at 1100 by 700, read off the drawn frame: g2.pv1.<board>.primary.
+use super::pixels::{assert_centred, assert_own_pixels, at_board_scale};
 use super::scenes::*;
 use super::*;
 
@@ -42,6 +43,7 @@ fn ql_text_is_the_tall_card_with_its_bar_and_lines(cx: &mut TestAppContext) {
 #[gpui::test]
 fn ql_image_is_the_picture_alone(cx: &mut TestAppContext) {
     let (cx, _, _, _) = host(cx, ql_image(), Arm::Fix);
+    at_board_scale(cx);
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert_eq!(rect(cx, "pv1-picture"), (99. + 69., 63., 765., 574.));
     assert!(cx.debug_bounds("pv1-bar").is_none());
@@ -67,14 +69,15 @@ fn small_picture(vector: bool) -> Subject {
 }
 
 #[gpui::test]
-fn ql_small_svg_fills_the_card_and_small_png_keeps_its_size(cx: &mut TestAppContext) {
+fn ql_small_svg_fills_the_card_and_small_png_keeps_its_own_pixels(cx: &mut TestAppContext) {
     // EY-64: a 60x40 vector in the 902x574 card fills along the limiting axis, aspect kept.
     let (cx, _, _, _) = host(cx, small_picture(true), Arm::Fix);
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert_eq!(rect(cx, "pv1-picture"), (120., 63., 861., 574.));
-    // EY-330: v0.3.12 PreviewImage.qml never enlarges a raster; it draws 1:1, centred.
+    // A small raster draws one source pixel per device pixel, centred in the card; only zoom enlarges it.
     let (cx, _, _, _) = host(cx, small_picture(false), Arm::Fix);
-    assert_eq!(rect(cx, "pv1-picture"), (99. + 421., 63. + 267., 60., 40.));
+    assert_own_pixels(cx, "pv1-picture", (60., 40.));
+    assert_centred(cx, "pv1-picture", "pv1-card");
 }
 
 fn sized(w: f64, h: f64, vector: bool) -> Subject {
@@ -103,7 +106,11 @@ fn ql_picture_size_matrix_never_enlarges_a_raster(cx: &mut TestAppContext) {
                 let (_, _, cw, ch) = rect(cx, "pv1-card");
                 let (_, _, w, h) = rect(cx, "pv1-picture");
                 let fit = (cw as f64 / sw).min(ch as f64 / sh);
-                let scale = if vector { fit } else { fit.min(1.) };
+                let scale = if vector {
+                    fit
+                } else {
+                    fit.min(1. / cx.update(|window, _| window.scale_factor()) as f64)
+                };
                 let cell = format!("{sw}x{sh} vector={vector} in {window_w}x{window_h}");
                 assert!((w as f64 - sw * scale).abs() <= 1., "{cell}: width {w}");
                 assert!((h as f64 - sh * scale).abs() <= 1., "{cell}: height {h}");
@@ -144,13 +151,13 @@ fn ql_small_svg_link_fills_under_the_bar_and_small_png_link_keeps_its_size(
     );
     assert!((w - 547. * 1.5).abs() <= 1., "the aspect is kept: {w}");
     let (cx, _, _, _) = host(cx, small_link(false), Arm::Fix);
-    let (_, _, w, h) = rect(cx, "pv1-picture");
-    assert_eq!((w, h), (60., 40.), "a raster link keeps its own pixels");
+    assert_own_pixels(cx, "pv1-picture", (60., 40.));
 }
 
 #[gpui::test]
 fn ql_symlink_puts_the_target_under_the_filled_bar(cx: &mut TestAppContext) {
     let (cx, _, _, _) = host(cx, ql_symlink(&english()), Arm::Fix);
+    at_board_scale(cx);
     assert_eq!(rect(cx, "pv1-bar"), (99., 63., 902., 27.));
     assert_eq!(rect(cx, "pv1-picture"), (99. + 86., 63. + 27., 729., 547.));
     assert_eq!(x_of(cx, "pv1-close"), 1001. - 14. - 24.);
@@ -164,6 +171,7 @@ fn ql_raw_draws_the_embedded_picture_over_its_caption(cx: &mut TestAppContext) {
         matches!(&subject.body, Body::Raw { caption, .. } if caption == "Embedded preview \u{b7} 1620 \u{d7} 1080")
     );
     let (cx, _, _, _) = host(cx, subject, Arm::Fix);
+    at_board_scale(cx);
     assert_eq!(rect(cx, "pv1-picture"), (99. + 41., 63., 821., 547.));
     assert_eq!(rect(cx, "pv1-caption"), (99., 637. - 27., 902., 27.));
 }

@@ -67,6 +67,20 @@ impl Shell {
                 cx,
                 move |shell, key, cx| shell.ask_grid_pictures(side, key, cx),
             );
+            {
+                let mut map = pictures.map.borrow_mut();
+                for trace in map.traces.values() {
+                    trace.observe(window, cx);
+                }
+                super::quality::refine(
+                    &mut map,
+                    host,
+                    live && surface == Some(Surface::Grid),
+                    window,
+                    cx,
+                );
+            }
+            crate::preview_quality::sweep(cx);
             if connected {
                 self.send_picture_lines(side, lines, cx);
             }

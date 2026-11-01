@@ -19,6 +19,8 @@ pub mod palette;
 pub mod pane;
 pub mod path;
 pub mod presentation;
+pub(crate) mod preview_quality;
+pub(crate) mod preview_trace;
 pub mod rail;
 mod reveal;
 pub mod row;

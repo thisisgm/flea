@@ -16,7 +16,7 @@ pub(super) fn pane(top: f32, side: f32, bottom: f32) -> gpui::Div {
 impl QuickLook {
     /// The text or diff viewport in window coordinates, and the content it scrolls over; other kinds have none.
     pub(super) fn viewport(&mut self, card: Bounds<Pixels>, window: &mut Window) -> Option<View> {
-        if let Some(view) = self.picture_viewport(card) {
+        if let Some(view) = self.picture_viewport(card, window.scale_factor().into()) {
             return Some(view);
         }
         let inner = Bounds::new(

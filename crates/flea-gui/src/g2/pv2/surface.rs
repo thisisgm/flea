@@ -135,21 +135,6 @@ impl Surface {
         }
     }
 
-    // The device width a page renders at: the stack's width, that page fitted inside the frame, or a neighbour fitted unzoomed.
-    fn target(&self, page: usize) -> u32 {
-        let (w, h) = if page != self.page && self.fitted.0 > 0. {
-            self.fitted
-        } else {
-            (self.width, self.view_height)
-        };
-        let width = if self.continuous {
-            self.width
-        } else {
-            pdf::fit(w, h, self.aspect_of(page)).0
-        };
-        (width * self.scale).round() as u32
-    }
-
     /// A slow storage class fetches through the host; decided once per opened document.
     pub fn set_fetch(&mut self, fetch_first: bool, has_backend: bool) {
         self.fetch_first = fetch_first;
@@ -274,7 +259,7 @@ impl Surface {
                 .min((self.layout.height - self.view_height).max(0.));
         }
         let target = self.target(self.page);
-        self.render_width = pdf::render_width(self.render_width, target);
+        self.render_width = target;
         self.want();
     }
 
@@ -404,3 +389,7 @@ mod tests;
 #[cfg(test)]
 #[path = "surface_fix_tests.rs"]
 mod fix_tests;
+
+#[cfg(test)]
+#[path = "surface_quality_tests.rs"]
+mod preview_quality_tests;

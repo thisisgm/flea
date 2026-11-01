@@ -1,4 +1,4 @@
-//! The live Columns preview fills its frame with a small vector and keeps a small raster at its own size (v0.3.12 PreviewColumn.qml).
+//! The live Columns preview fills its frame with a small vector and keeps a small raster at its own device pixels.
 use super::previewtypes_kinds_tests::Root;
 use super::previewtypes_tests::{answer, file, local, meta, open};
 use crate::window::u07_tests::read;
@@ -18,8 +18,13 @@ fn settle(cx: &mut VisualTestContext) {
     }
 }
 
-/// The drawn picture's size and the frame room it sits in, for one 60 by 40 image file under the given row name.
-fn drawn(cx: &mut TestAppContext, tag: &str, name: &str, icon: &str) -> ((f32, f32), (f32, f32)) {
+/// The drawn picture's size, the frame room it sits in and the window scale, for one 60 by 40 image file under the given row name.
+fn drawn(
+    cx: &mut TestAppContext,
+    tag: &str,
+    name: &str,
+    icon: &str,
+) -> ((f32, f32), (f32, f32), f32) {
     cx.executor().allow_parking();
     let root = Root::new(tag);
     let dir = root.0.to_string_lossy().into_owned();
@@ -60,12 +65,13 @@ fn drawn(cx: &mut TestAppContext, tag: &str, name: &str, icon: &str) -> ((f32, f
     (
         (f32::from(image.size.width), f32::from(image.size.height)),
         (f32::from(room.size.width), f32::from(room.size.height)),
+        cx.update(|window, _| window.scale_factor()),
     )
 }
 
 #[gpui::test]
 fn a_small_svg_fills_the_live_column_frame(cx: &mut TestAppContext) {
-    let ((w, h), (room_w, room_h)) = drawn(cx, "svgfit-svg", "logo.svg", "image-svg+xml");
+    let ((w, h), (room_w, room_h), _) = drawn(cx, "svgfit-svg", "logo.svg", "image-svg+xml");
     assert!(w > 60. && h > 40., "the vector is enlarged: {w}x{h}");
     assert!(
         (w - room_w).abs() <= 1. || (h - room_h).abs() <= 1.,
@@ -76,6 +82,12 @@ fn a_small_svg_fills_the_live_column_frame(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_small_png_keeps_its_size_in_the_live_column_frame(cx: &mut TestAppContext) {
-    let ((w, h), _) = drawn(cx, "svgfit-png", "logo.png", "image-png");
-    assert_eq!((w, h), (60., 40.), "a raster is never enlarged");
+    let ((w, h), _, scale) = drawn(cx, "svgfit-png", "logo.png", "image-png");
+    for (side, want) in [(w, 60.), (h, 40.)] {
+        let pixels = side * scale;
+        assert!(
+            pixels <= want + 1e-3 && pixels > want - 0.01,
+            "a raster is never enlarged past its own pixels: {pixels} for {want} at {scale}"
+        );
+    }
 }

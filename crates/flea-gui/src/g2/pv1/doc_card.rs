@@ -127,6 +127,13 @@ impl QuickLook {
     ) -> Vec<AnyElement> {
         let i18n = self.i18n.clone();
         if let View::Media(media) = &doc.view {
+            let frame = self.card(window.viewport_size());
+            let (w, h) = crate::preview_quality::physical(
+                f64::from(frame.size.width),
+                f64::from(frame.size.height) - f64::from(pv3::ink::size::STRIP),
+                f64::from(window.scale_factor()),
+            );
+            media.player.update(cx, |player, _| player.resize(w, h));
             let theme = cx
                 .try_global::<crate::palette::Theme>()
                 .copied()

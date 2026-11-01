@@ -35,8 +35,8 @@ impl SelectionPreview {
             let subject = pv3::player::Subject {
                 path: frame.subject.path().into(),
                 video: frame.kind == Kind::Video,
-                box_w: (self.width * window.scale_factor()).max(1.) as u32,
-                box_h: (self.height * window.scale_factor()).max(1.) as u32,
+                box_w: (self.width * window.scale_factor()).ceil().max(1.) as u32,
+                box_h: (self.height * window.scale_factor()).ceil().max(1.) as u32,
                 autoplay: true,
             };
             frame._watch = Some(cx.observe(&entity, |_, _, cx| cx.notify()));

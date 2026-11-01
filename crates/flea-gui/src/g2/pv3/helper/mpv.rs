@@ -149,6 +149,8 @@ fn play(
     let mut buffer: Vec<u8> = Vec::new();
     // A frame released unseen while its size was unknown; it is drawn again once the size is known.
     let mut owed = false;
+    state.box_size = (options.box_w, options.box_h);
+    let mut redraw = false;
     let io = |result: std::io::Result<()>| result.map_err(|error| error.to_string());
     loop {
         for command in commands.try_iter() {
@@ -173,6 +175,16 @@ fn play(
                 // mpv's volume is cubic, so a linear gain g is 100 * cbrt(g).
                 Command::Gain(gain) => {
                     set(api, handle, "volume", &format!("{:.3}", 100. * gain.cbrt()))?
+                }
+                Command::Resize(w, h) => {
+                    state.box_size = (w, h);
+                    state.size = decode_size(
+                        state.clip.0.clamp(0, 1 << 16) as u32,
+                        state.clip.1.clamp(0, 1 << 16) as u32,
+                        w,
+                        h,
+                    );
+                    redraw = true;
                 }
                 Command::Quit => return Ok(()),
             }
@@ -215,21 +227,22 @@ fn play(
                         io(out.event(Event::Seeked(target)))?;
                     }
                 }
-                EVENT_PROPERTY_CHANGE => property(event, &mut state, options, out)?,
+                EVENT_PROPERTY_CHANGE => property(event, &mut state, out)?,
                 _ => {}
             }
         }
         // SAFETY: a live render context.
         let update = unsafe { (api.render_update)(context) };
         let pending = update & RENDER_UPDATE_FRAME != 0;
-        let draw = super::draw(pending, state.size.0 > 0, owed);
+        let draw = super::draw(pending, state.size.0 > 0, owed || redraw);
         if draw == super::Draw::Release {
             let mut scrap = [0_u8; 16];
             render(api, context, 2, 2, 8, &mut scrap)?;
             owed = true;
         }
-        if draw == super::Draw::Frame && (owed || frame_due(api, context)?) {
+        if draw == super::Draw::Frame && (owed || redraw || frame_due(api, context)?) {
             owed = false;
+            redraw = false;
             let (width, height) = state.size;
             let stride = width as usize * 4;
             buffer.resize(stride * height as usize, 0);
@@ -240,15 +253,6 @@ fn play(
         }
         let _ = notified.recv_timeout(Duration::from_millis(10));
     }
-}
-
-fn clip_size((w, h): (i64, i64), options: &Options) -> (u32, u32) {
-    decode_size(
-        w.clamp(0, 1 << 16) as u32,
-        h.clamp(0, 1 << 16) as u32,
-        options.box_w,
-        options.box_h,
-    )
 }
 
 /// Seeks now, or once the file loads; a seek mpv refuses is dropped as Qt drops it, never the end of the helper.
@@ -263,12 +267,7 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
     }
 }
 
-fn property(
-    event: &MpvEvent,
-    state: &mut State,
-    options: &Options,
-    out: &mut Output,
-) -> Result<(), String> {
+fn property(event: &MpvEvent, state: &mut State, out: &mut Output) -> Result<(), String> {
     // SAFETY: PROPERTY_CHANGE carries an mpv_event_property.
     let changed = unsafe { &*(event.data as *const Property) };
     if event.userdata == VIDEO {
@@ -319,7 +318,13 @@ fn property(
         _ => {}
     }
     if matches!(event.userdata, WIDTH | HEIGHT) {
-        state.size = clip_size(state.clip, options);
+        let (w, h) = state.clip;
+        state.size = decode_size(
+            w.clamp(0, 1 << 16) as u32,
+            h.clamp(0, 1 << 16) as u32,
+            state.box_size.0,
+            state.box_size.1,
+        );
     }
     Ok(())
 }

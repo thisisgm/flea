@@ -189,6 +189,10 @@ mod pb_wire_tests;
 #[cfg(test)]
 mod presetkeys_tests;
 #[cfg(test)]
+mod preview_quality_own_size_tests;
+#[cfg(test)]
+mod preview_quality_tests;
+#[cfg(test)]
 mod preview_quiet_keys_tests;
 #[cfg(test)]
 mod preview_tests;

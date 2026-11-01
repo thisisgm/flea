@@ -1,4 +1,5 @@
-//! PNG area reduction from scanlines, including Adam7 passes, without a source-sized pixel buffer.
+//! PNG Catmull-Rom reduction from scanlines, including Adam7 passes, without a source-sized pixel buffer.
+use super::sample::Axis;
 use gpui::RenderImage;
 use image::metadata::Orientation;
 use std::{fs::File, io::BufReader, sync::Arc};
@@ -18,16 +19,22 @@ pub(super) fn decode(
     let mut reader = decoder.read_info().map_err(|_| ())?;
     let info = reader.info();
     let (sw, sh, interlaced) = (info.width, info.height, info.interlaced);
+    if u64::from(sw) * u64::from(sh) > flea::ui_logic_pv1::pixels::MAX_SOURCE_PIXELS {
+        return Err(());
+    }
     let orientation = info
         .exif_metadata
         .as_deref()
         .and_then(Orientation::from_exif_chunk)
         .unwrap_or(Orientation::NoTransforms);
-    let (w, h) = if orientation.to_exif() >= 5 {
-        (target.1, target.0)
-    } else {
-        target
-    };
+    let (w, h) = super::photo_frames::within_source(
+        (sw, sh),
+        if orientation.to_exif() >= 5 {
+            (target.1, target.0)
+        } else {
+            target
+        },
+    );
     let (colour, depth) = reader.output_color_type();
     if depth != png::BitDepth::Eight {
         return Err(());
@@ -45,7 +52,8 @@ pub(super) fn decode(
         (0, 1, 1, 2),
     ];
     let passes = if interlaced { &adam7[..] } else { &plain[..] };
-    let (xs, ys) = (f64::from(w) / f64::from(sw), f64::from(h) / f64::from(sh));
+    let (xs, ys) = (Axis::new(sw, w), Axis::new(sh, h));
+    let mut horizontal = vec![[0f32; 4]; w as usize];
     for &(x0, y0, dx, dy) in passes {
         if x0 >= sw || y0 >= sh {
             continue;
@@ -59,6 +67,7 @@ pub(super) fn decode(
             if row.data().len() != count * channels {
                 return Err(());
             }
+            horizontal.fill([0.; 4]);
             for (x, pixel) in (x0..sw).step_by(dx).zip(row.data().chunks_exact(channels)) {
                 let rgba = match colour {
                     png::ColorType::Grayscale => [pixel[0], pixel[0], pixel[0], 255],
@@ -67,8 +76,6 @@ pub(super) fn decode(
                     png::ColorType::Rgba => [pixel[0], pixel[1], pixel[2], pixel[3]],
                     png::ColorType::Indexed => return Err(()),
                 };
-                let (left, right) = (f64::from(x) * xs, f64::from(x + 1) * xs);
-                let (top, bottom) = (f64::from(y) * ys, f64::from(y + 1) * ys);
                 let alpha = f32::from(rgba[3]);
                 let values = [
                     f32::from(rgba[2]) * alpha / 255.,
@@ -76,17 +83,22 @@ pub(super) fn decode(
                     f32::from(rgba[0]) * alpha / 255.,
                     alpha,
                 ];
-                for oy in top.floor() as u32..(bottom.ceil() as u32).min(h) {
-                    let vy = (bottom.min(f64::from(oy + 1)) - top.max(f64::from(oy))) as f32;
-                    for ox in left.floor() as u32..(right.ceil() as u32).min(w) {
-                        let vx = (right.min(f64::from(ox + 1)) - left.max(f64::from(ox))) as f32;
-                        let sum = &mut sums[(oy * w + ox) as usize];
-                        for channel in 0..4 {
-                            sum[channel] += values[channel] * vx * vy;
-                        }
+                xs.each(x, |tap| {
+                    for (sum, value) in horizontal[tap.at].iter_mut().zip(values) {
+                        *sum += value * tap.weight;
+                    }
+                });
+            }
+            ys.each(y, |tap| {
+                for (sum, row) in sums[tap.at * w as usize..][..w as usize]
+                    .iter_mut()
+                    .zip(&horizontal)
+                {
+                    for (sum, value) in sum.iter_mut().zip(row) {
+                        *sum += value * tap.weight;
                     }
                 }
-            }
+            });
         }
     }
     if reader.next_row().map_err(|_| ())?.is_some() {

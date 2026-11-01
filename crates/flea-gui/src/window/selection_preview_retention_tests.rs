@@ -51,6 +51,8 @@ fn frame(step: usize, image: Arc<RenderImage>) -> Frame {
         image: Some(image),
         animation: None,
         animation_source: None,
+        quality: Default::default(),
+        trace: None,
         failed: false,
         manual: false,
         remote: false,

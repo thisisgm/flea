@@ -26,6 +26,8 @@ mod decoded;
 mod lifecycle;
 #[path = "g2_pv1/marks.rs"]
 mod marks;
+#[path = "g2_pv1/pixels.rs"]
+mod pixels;
 #[path = "g2_pv1/scenes.rs"]
 pub mod scenes;
 #[path = "g2_pv1/scroll.rs"]

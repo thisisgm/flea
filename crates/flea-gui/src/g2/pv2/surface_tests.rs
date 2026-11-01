@@ -199,7 +199,7 @@ fn a_switch_closes_the_old_document_and_releases_its_late_pages() {
 }
 
 #[test]
-fn stack_reads_sizes_once_and_keeps_the_render_width_inside_the_deadband() {
+fn stack_reads_sizes_once_and_refines_on_each_physical_resize() {
     let mut s = opened(true, "/d/big.pdf", 1, vec![LETTER; 500], (600., 800.));
     assert_eq!(s.counters.size_reads, 500, "500 sizes at the open");
     let first = renders(&s.take_commands());
@@ -210,12 +210,13 @@ fn stack_reads_sizes_once_and_keeps_the_render_width_inside_the_deadband() {
     assert!(first.iter().all(|&(_, w)| w == 600), "at the frame's width");
     s.set_frame(570., 800., 1., 9.);
     assert_eq!(
-        s.render_width, 600,
-        "a 5% narrower frame keeps the render width"
+        s.render_width, 570,
+        "a 5% narrower frame asks for its actual physical width"
     );
+    let refined = renders(&s.take_commands());
     assert!(
-        renders(&s.take_commands()).is_empty(),
-        "and renders nothing new"
+        !refined.is_empty() && refined.iter().all(|&(_, width)| width == 570),
+        "the resize renders again, at only the current physical width: {refined:?}"
     );
     s.set_frame(400., 800., 1., 9.);
     assert_eq!(s.render_width, 400, "a third narrower frame renders again");

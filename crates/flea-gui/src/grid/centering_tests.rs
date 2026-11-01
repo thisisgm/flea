@@ -37,8 +37,9 @@ fn pictures_and_marks_sit_on_the_whole_pixel_qt_centres_them_on_in_odd_and_even_
     assert_eq!(qt_half(147.) - qt_half(64.), 42.);
     let (handle, mut lines) = open(cx, "{}");
     first_settle(cx, handle, &mut lines);
-    deliver(cx, handle, &thumbed(0, &flat_png("square.png", 64, 64)));
-    deliver(cx, handle, &thumbed(1, &flat_png("wide.png", 64, 36)));
+    // Cache-edge thumbnails stand in for larger originals, so each fills the 64 px slot.
+    deliver(cx, handle, &thumbed(0, &flat_png("square.png", 256, 256)));
+    deliver(cx, handle, &thumbed(1, &flat_png("wide.png", 256, 144)));
     cx.run_until_parked();
     step(cx, handle);
     let mut parities = [false; 2];

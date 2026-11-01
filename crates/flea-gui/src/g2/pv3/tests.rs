@@ -7,3 +7,5 @@ mod mpris_tests;
 mod paint_tests;
 mod player_tests;
 mod sandbox_tests;
+
+mod preview_quality_tests;

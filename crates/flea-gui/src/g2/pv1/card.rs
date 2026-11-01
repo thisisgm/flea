@@ -87,6 +87,11 @@ impl Render for QuickLook {
         if self.revealed && ready && !landed {
             self.observe_reveal(false, cx);
         }
+        let trace = self.trace.clone();
+        if let Some(trace) = &trace {
+            trace.observe(window, cx);
+        }
+        let full = trace.is_some() && self.full_quality(cx);
         let frames = self.observation_frames.clone();
         let stamp = {
             let observed = self.observations.borrow();
@@ -101,6 +106,9 @@ impl Render for QuickLook {
             gpui::canvas(
                 |_, _, _| (),
                 move |_, _, window, _| {
+                    if let Some(trace) = &trace {
+                        trace.stage(window, stamp.visible && stamp.ready && !stamp.holding, full);
+                    }
                     if let Some(id) = window.current_draw_id() {
                         frames.borrow_mut().stage(id, stamp);
                     }

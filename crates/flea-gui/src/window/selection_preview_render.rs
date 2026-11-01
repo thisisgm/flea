@@ -37,6 +37,7 @@ pub(crate) fn number(meta: Option<&Json>, key: &str) -> i64 {
 impl Render for SelectionPreview {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.poll(window, cx);
+        self.refine_picture(window, cx);
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -44,6 +45,11 @@ impl Render for SelectionPreview {
         let roles = crate::list::Palette::inherited(&window.text_style(), theme);
         let ink = pv3::ink::MediaInk::inherited(&window.text_style(), theme);
         let metrics = crate::list::Metrics::for_typeface(&self.face);
+        let trace = self.drawn.as_ref().and_then(|frame| frame.trace.clone());
+        if let Some(trace) = &trace {
+            trace.observe(window, cx);
+        }
+        let full = trace.is_some() && self.full_quality(cx);
         let rect = self.rect.clone();
         let frames = self.frames.clone();
         let stamp = super::frame_feedback::Stamp {
@@ -57,6 +63,13 @@ impl Render for SelectionPreview {
             |bounds, _, _| bounds,
             move |_, bounds, window, _| {
                 *rect.borrow_mut() = Some(bounds);
+                if let Some(trace) = &trace {
+                    trace.stage(
+                        window,
+                        !stamp.loading && !stamp.held && stamp.generation != 0,
+                        full,
+                    );
+                }
                 if let Some(id) = window.current_draw_id() {
                     frames.borrow_mut().stage(id, stamp);
                 }
@@ -186,8 +199,9 @@ impl Render for SelectionPreview {
                 .debug_selector(|| "column-preview-empty-glyph".into()),
             );
         } else {
-            let fitted = super::fitted::fitted(frame, width, height);
-            let moving = super::picture::moving(frame, gif_at, width, height);
+            let fitted = super::fitted::fitted(frame, width, height, window.scale_factor());
+            let moving =
+                super::picture::moving(frame, gif_at, width, height, window.scale_factor());
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {

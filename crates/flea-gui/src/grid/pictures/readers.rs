@@ -1,6 +1,7 @@
 //! The shared lender's raw source and decoder state, guarded by the current listing, facts and policy.
 use super::{Map, Pictures, Slot};
 use crate::list::pane::Held;
+use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs::CACHE_SIZE};
 
 #[derive(Clone, Copy)]
 #[repr(i32)]
@@ -25,6 +26,48 @@ impl Map {
 }
 
 impl Pictures {
+    pub(crate) fn cache_only(&self) -> bool {
+        let map = self.map.borrow();
+        map.policy
+            .zip(map.class_for(&map.path))
+            .is_none_or(|(policy, class)| policy.cache_only(class))
+    }
+
+    /// Whether `row` holds its source's own pixels: a refinement, a cache-only picture, or a still raster's thumbnail under the cache edge.
+    pub(crate) fn own_pixels(&self, row: usize) -> bool {
+        if self.cache_only() {
+            return true;
+        }
+        let map = self.map.borrow();
+        let whole = match map.slots.get(&row) {
+            Some(Slot::Ready {
+                picture,
+                image: true,
+                ..
+            }) => {
+                let (w, h) = picture.decoded();
+                !is_vector_name(&picture.identity.name) && f64::from(w.max(h)) < CACHE_SIZE
+            }
+            _ => false,
+        };
+        map.bases.contains_key(&row) || whole
+    }
+    pub(crate) fn trace(&self, row: usize) -> Option<(crate::preview_trace::Trace, bool)> {
+        let map = self.map.borrow();
+        Some((
+            map.traces.get(&row)?.clone(),
+            map.refinements
+                .get(&row)
+                .is_some_and(|refinement| refinement.ready),
+        ))
+    }
+
+    pub(crate) fn quality_pixels(&self, row: usize) -> Option<((u32, u32), bool)> {
+        let map = self.map.borrow();
+        let refinement = map.refinements.get(&row)?;
+        Some((refinement.requested.as_ref()?.size, refinement.ready))
+    }
+
     pub(crate) fn file(&self, held: &Held, row: usize) -> String {
         let map = self.map.borrow();
         match map.current(held, row) {

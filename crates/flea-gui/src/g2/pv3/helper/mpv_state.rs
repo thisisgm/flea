@@ -11,6 +11,7 @@ pub(super) struct State {
     pub(super) sent_ms: i64,
     pub(super) seeking: Option<i64>,
     pub(super) clip: (i64, i64),
+    pub(super) box_size: (u32, u32),
     pub(super) size: (u32, u32),
 }
 
@@ -26,6 +27,7 @@ impl State {
             seeking: None,
             clip: (0, 0),
             size: (0, 0),
+            box_size: (0, 0),
         }
     }
 

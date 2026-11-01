@@ -1,7 +1,7 @@
 //! Quick Look's image fit, physical decode request and zoomed picture viewport.
 use super::{
     bar::{self, Name},
-    body::{fit_painted_path, fit_rounded_path, Fit},
+    body::{fit_own, fit_painted_path, fit_rounded_path, Fit},
     card::text,
     look::{self, Look},
     scroller::View,
@@ -13,7 +13,7 @@ use gpui::{
 use std::path::Path;
 
 impl QuickLook {
-    fn picture_fit(&self, w: f64, h: f64) -> Option<(&Path, Fit, (f64, f64))> {
+    fn picture_fit(&self, w: f64, h: f64, device: f64) -> Option<(&Path, Fit, (f64, f64))> {
         let (path, sw, sh, top, bottom, painted) = match &self.subject.as_ref()?.body {
             Body::Image { path, w, h } => (path, *w, *h, 0., 0., false),
             Body::Link { path, w, h, .. } => (path, *w, *h, f64::from(look::BAR), 0., true),
@@ -21,12 +21,24 @@ impl QuickLook {
             _ => return None,
         };
         let room_h = h - top - bottom;
-        // PreviewImage.qml fitScale(..., 1): a raster picture is never enlarged; a small one draws 1:1, centred.
-        let mut fit = if painted {
-            fit_painted_path(w, room_h, sw, sh, path)
+        let vector = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(flea::ui_logic_pv1::pixels::is_vector_name);
+        // A raster draws one source pixel per device pixel at most; only zoom enlarges it.
+        let own = (!vector && sw >= 1. && sh >= 1.)
+            .then(|| crate::preview_quality::own_size((sw as u32, sh as u32), device))
+            .and_then(|(ow, oh)| fit_own(w, room_h, ow.into(), oh.into()));
+        let (fit_w, fit_h) = if vector {
+            (sw, sh)
         } else {
-            fit_rounded_path(w, room_h, sw, sh, path)
-        }?;
+            (sw / device, sh / device)
+        };
+        let mut fit = match own {
+            Some(own) => own,
+            None if painted => fit_painted_path(w, room_h, fit_w, fit_h, path)?,
+            None => fit_rounded_path(w, room_h, fit_w, fit_h, path)?,
+        };
         fit.y += top;
         Some((path, fit, (sw, sh)))
     }
@@ -39,7 +51,7 @@ impl QuickLook {
         cx: &mut Context<Self>,
     ) -> RasterState {
         let next = self
-            .picture_fit(w, h)
+            .picture_fit(w, h, window.scale_factor().into())
             .map(|(path, f, source)| (path.to_path_buf(), f, source));
         match next {
             Some((path, f, source)) => self.picture_image(&path, f.w, f.h, source, window, cx),
@@ -47,13 +59,13 @@ impl QuickLook {
         }
     }
 
-    pub(super) fn picture_viewport(&self, card: Bounds<Pixels>) -> Option<View> {
+    pub(super) fn picture_viewport(&self, card: Bounds<Pixels>, device: f64) -> Option<View> {
         if self.zoom <= 1. {
             return None;
         }
         let w = f64::from(f32::from(card.size.width));
         let h = f64::from(f32::from(card.size.height));
-        let (_, fit, _) = self.picture_fit(w, h)?;
+        let (_, fit, _) = self.picture_fit(w, h, device)?;
         let top = if matches!(self.subject.as_ref()?.body, Body::Link { .. }) {
             look::BAR
         } else {
@@ -94,7 +106,7 @@ impl QuickLook {
             if let Some(window) = self.window {
                 let _ = window.update(cx, |_, window, _| {
                     let card = self.card(window.viewport_size());
-                    if let Some(view) = self.picture_viewport(card) {
+                    if let Some(view) = self.picture_viewport(card, window.scale_factor().into()) {
                         let (fx, fy) = prior
                             .map(|old| {
                                 let w = f64::from(f32::from(old.bounds.size.width));
@@ -132,7 +144,8 @@ impl QuickLook {
         look: &Look,
         cx: &mut Context<Self>,
     ) -> Vec<AnyElement> {
-        let Some((_, fit, _)) = self.picture_fit(w, h) else {
+        let device = self.svg.as_ref().map_or(1., |picture| picture.scale);
+        let Some((_, fit, source)) = self.picture_fit(w, h, device) else {
             return Vec::new();
         };
         let mut parts = Vec::new();
@@ -155,6 +168,12 @@ impl QuickLook {
             0.
         };
         let (pw, ph) = (fit.w * self.zoom, fit.h * self.zoom);
+        let own = crate::preview_quality::own_size((source.0 as u32, source.1 as u32), device);
+        let (logical_w, logical_h) = if self.zoom <= 1. && own == (fit.w as f32, fit.h as f32) {
+            own
+        } else {
+            crate::preview_quality::logical_size(pw, ph, device)
+        };
         let (x, y) = if let Some(view) = self.scroll.view.filter(|_| self.zoom > 1.) {
             (
                 (view.content_w - pw) / 2. - self.scroll.x,
@@ -167,8 +186,8 @@ impl QuickLook {
             .absolute()
             .left(px(x as f32))
             .top(px(y as f32))
-            .w(px(pw as f32))
-            .h(px(ph as f32))
+            .w(px(logical_w))
+            .h(px(logical_h))
             .debug_selector(|| "pv1-picture".into());
         if let Some(image) = raster.image.clone() {
             picture = picture.child(img(image).size_full().object_fit(ObjectFit::Fill));

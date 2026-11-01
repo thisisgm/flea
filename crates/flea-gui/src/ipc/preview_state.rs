@@ -1,4 +1,6 @@
 //! Oracle-shaped preview readers inspect the mounted views and their live model state.
+#[path = "preview_quality.rs"]
+mod quality;
 use super::Adapter;
 use crate::{
     columns::TrackRows,
@@ -153,6 +155,7 @@ impl Adapter for PreviewState<'_> {
             }
             "previewCloseState" => return Some(self.close()),
             "previewSwapState" => return Some(self.swap()),
+            "previewQuality" => return Some(self.quality()),
             _ => return None,
         };
         Some(Reply::value(value))

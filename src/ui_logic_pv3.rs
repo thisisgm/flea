@@ -166,3 +166,7 @@ pub fn file_uri(path: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+#[path = "ui_logic_pv3/preview_quality_tests.rs"]
+mod preview_quality_tests;

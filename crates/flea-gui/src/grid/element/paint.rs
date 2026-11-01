@@ -2,7 +2,7 @@
 use super::{Bold, Drawn, DropKind, GridElement, GridState, Ink};
 use crate::grid::{
     captions,
-    geometry::{fit_picture, Rect, CACHE_ROWS},
+    geometry::{Rect, CACHE_ROWS},
     layout::Layout,
     tile::{self, Shaping},
     Shown,
@@ -156,7 +156,16 @@ impl GridElement {
                     width: widest,
                     height: painted_height,
                 },
-                picture: decoded.map(|(width, height)| fit_picture(slot, width, height)),
+                picture: decoded.map(|decoded| {
+                    crate::grid::element::pictures::picture_bounds(
+                        self.decor.pictures(),
+                        listing,
+                        thumbnail.as_ref().map(|thumb| thumb.kind),
+                        slot,
+                        decoded,
+                        window,
+                    )
+                }),
                 decoded,
                 kind: thumbnail.as_ref().map(|thumb| thumb.kind),
                 cursor,
@@ -211,7 +220,16 @@ impl GridElement {
         let dim = if cut { CUT } else { 1. };
         if let (Some(image), Some(picture)) = (&drawn.image, drawn.picture) {
             let at = bounds_of(origin, picture);
-            let _ = window.paint_image(at, at, Corners::default(), image.clone(), 0, false);
+            let painted = window
+                .paint_image(at, at, Corners::default(), image.clone(), 0, false)
+                .is_ok();
+            if let Some((trace, full)) = self
+                .decor
+                .pictures()
+                .and_then(|pictures| pictures.trace(drawn.listing))
+            {
+                trace.stage(window, painted, full);
+            }
         } else {
             let (key, data) = drawn.language.clone().unwrap_or_else(|| {
                 drawn

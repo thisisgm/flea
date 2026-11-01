@@ -111,12 +111,12 @@ fn gh336_space_svg_rasterizes_at_physical_pixels_at_scale_2_and_1_and_on_each_sc
         ] {
             assert!((painted - logical).abs() < 1. / scale);
         }
-        // Layout floors an enlarged fit that ends between device pixels.
-        let snapped = |value: Pixels| px((f32::from(value) * scale).floor() / scale);
+        // The painted fit covers the raster's own device pixels, so the raster draws one to one.
+        let (pw, ph) = physical(rect, scale.into());
         assert_eq!(
             now.size,
-            size(snapped(rect.size.width), snapped(rect.size.height)),
-            "scale {scale}: the painted fit lands on device pixels"
+            size(px(pw as f32 / scale), px(ph as f32 / scale)),
+            "scale {scale}: the painted fit lands on the raster's device pixels"
         );
         assert_eq!(
             (s.width.0, s.height.0),
@@ -289,7 +289,12 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
                 .filter(|i| (i.size(0).width.0 as u32, i.size(0).height.0 as u32) == want)
         });
     }
-    let full = look.read_with(cx, |look, _| look.svg_raster()).unwrap();
+    let full = wait(cx, "the final sharp decode at full zoom", |cx| {
+        look.read_with(cx, |look, _| {
+            look.svg_raster()
+                .filter(|_| look.quality_pixels().is_some_and(|(_, ready)| ready))
+        })
+    });
     cx.simulate_event(zoom_in);
     draw(cx);
     assert_eq!(
@@ -325,5 +330,44 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
 include!("gh_preview_animation_test.rs");
 
 include!("gh_preview_zoom_test.rs");
+include!("gh_preview_own_size_test.rs");
 
 include!("mdlook_tests.rs");
+
+#[gpui::test]
+fn preview_quality_look_picture_refines_in_place_at_its_device_pixels(cx: &mut TestAppContext) {
+    let _watchdog = watchdog(300);
+    cx.executor().allow_parking();
+    let root = root();
+    let (shell, cx, mut requests) = opened_at(cx, &root.0);
+    land(
+        &shell,
+        cx,
+        &root.0.to_string_lossy(),
+        image_listing(&root.0),
+        1,
+    );
+    cx.simulate_scale_factor_change(1.5);
+    draw(cx);
+    open_picture(&shell, cx, &mut requests, 0, 4000, 3000);
+    let look = look(&shell, cx);
+    let size = wait(cx, "the refined picture", |cx| {
+        look.read_with(cx, |look, _| {
+            let (size, ready) = look.quality_pixels()?;
+            let raster = look.svg_raster()?;
+            let drawn = (
+                raster.size(0).width.0 as u32,
+                raster.size(0).height.0 as u32,
+            );
+            (ready && drawn == size).then_some(size)
+        })
+    });
+    let want = physical(picture_rect(cx), 1.5);
+    assert!(
+        (size.0 as i32 - want.0).abs() <= 1 && (size.1 as i32 - want.1).abs() <= 1,
+        "refined {size:?} covers the card picture's device pixels {want:?}"
+    );
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    close(&shell, cx);
+}
