@@ -264,3 +264,47 @@ fn ey324_removing_an_unsaved_mount_says_it_was_not_saved(cx: &mut TestAppContext
         "a file that lacks the line is left as it was"
     );
 }
+
+// German types a space with AltGr+Space, which is text, so only the plain Space chooses the menu's cursor row.
+#[gpui::test]
+fn altgr_space_chooses_no_network_menu_row(cx: &mut TestAppContext) {
+    use crate::window::dispatch::test_shell::{german_press, land, open_root};
+    let (shell, cx) = open_root(cx, "default");
+    land(&shell, cx, "/files", Vec::new(), 1);
+    shell.update(cx, |shell, cx| {
+        shell.network_publish(Some(vec![share()]), cx)
+    });
+    frame(cx);
+    let index = shell.update_in(cx, |shell, window, cx| {
+        let producer = shell.rail.as_ref().unwrap().places.clone();
+        let entries = producer.read(cx).entries();
+        let index = entries
+            .iter()
+            .position(|row| row.group == Group::Network)
+            .unwrap();
+        producer.update(cx, |producer, cx| producer.set_cursor(index, cx));
+        producer.read(cx).model.borrow_mut().pointer_focus = false;
+        let side = shell.focus_side;
+        shell.network_menu(side, &entries[index], window, cx);
+        index
+    });
+    frame(cx);
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
+    assert_eq!(read(&shell, cx, "contextMenuCursor", &[]), "0");
+    cx.simulate_event(german_press("space", " ", None, true));
+    frame(cx);
+    assert_eq!(
+        read(&shell, cx, "contextMenuVisible", &[]),
+        "true",
+        "AltGr+Space types a space and keeps the menu"
+    );
+    cx.simulate_event(german_press("space", " ", None, false));
+    frame(cx);
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "false");
+    assert_eq!(
+        read(&shell, cx, "railRenamingIndex", &[]),
+        index.to_string(),
+        "Space chooses Rename, the cursor row"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

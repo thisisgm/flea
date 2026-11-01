@@ -1,6 +1,9 @@
 //! EY-301: Tabs.js dropOverlay closes Trash, so t inside it opens the new tab on the folder under it and shows the strip.
 use super::join_tests::{call, draw, opened, root, shell};
-use crate::{list::bench::real_cx, window::pane::PaneHost};
+use crate::{
+    list::bench::real_cx,
+    window::{dispatch::test_shell::german_press, pane::PaneHost},
+};
 use flea::protocol::Reply;
 
 fn place(
@@ -82,5 +85,39 @@ fn ey301_a_tab_switch_inside_trash_closes_it_and_a_tab_on_the_other_side_leaves_
     assert!(
         !shell(&mut cx, window, |shell, _, cx| shell.trash_opened(cx)),
         "switching tabs leaves Trash, as Tabs.js dropOverlay closes it"
+    );
+}
+
+// German types [ with AltGr at the US 8 key, which is text, and ü at the US [ key, which is the [ binding.
+#[test]
+fn altgr_text_inside_trash_keeps_it_where_the_plain_bracket_switches_tabs() {
+    let mut cx = real_cx();
+    let window = root(&mut cx);
+    opened(&mut cx, window);
+    cx.simulate_keystrokes(window.into(), "t");
+    draw(&mut cx, window);
+    opened(&mut cx, window);
+    let mut visual = gpui::VisualTestContext::from_window(window.into(), &cx);
+    visual.simulate_event(german_press("[", "[", Some("8"), true));
+    draw(&mut cx, window);
+    assert_eq!(
+        call(&mut cx, window, "tabIndex", &[]),
+        "1",
+        "AltGr+8 moves no tab"
+    );
+    assert!(
+        shell(&mut cx, window, |shell, _, cx| shell.trash_opened(cx)),
+        "AltGr+8 types [ and keeps Trash"
+    );
+    visual.simulate_event(german_press("[", "ü", Some("["), false));
+    draw(&mut cx, window);
+    assert_eq!(
+        call(&mut cx, window, "tabIndex", &[]),
+        "0",
+        "ü moves to the other tab"
+    );
+    assert!(
+        !shell(&mut cx, window, |shell, _, cx| shell.trash_opened(cx)),
+        "ü switches tabs and leaves Trash"
     );
 }

@@ -9,7 +9,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<bool> {
-        use crate::window::input::{event_lookup, Dispatch};
+        use crate::window::input::Dispatch;
         use flea::keys::{sequence::Seat, Match};
         let Some(join) = &self.rail else {
             return None;
@@ -28,7 +28,7 @@ impl Shell {
             .get("keys")
             .and_then(Json::as_str)
             .unwrap_or("default");
-        let action = event_lookup(
+        let action = self.keyboard.lookup(
             name,
             self.keyboard.context,
             event,

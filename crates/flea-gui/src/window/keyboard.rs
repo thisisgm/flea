@@ -85,6 +85,21 @@ impl Keyboard {
                 .map_or(Dispatch::Armed, Dispatch::Action),
         }
     }
+
+    /// The event's binding in `context` without touching the armed pair; text input binds nothing, as in `resolve`.
+    pub fn lookup(
+        &self,
+        name: &str,
+        context: Context,
+        event: &KeyDownEvent,
+        held: Modifiers,
+        mirrored: bool,
+    ) -> Match {
+        if self.composing(event) {
+            return Match::Unbound;
+        }
+        event_lookup(name, context, event, held, mirrored)
+    }
 }
 
 pub fn modifiers(modifiers: Modifiers) -> u8 {
@@ -95,7 +110,7 @@ pub fn modifiers(modifiers: Modifiers) -> u8 {
 }
 
 /// The event's binding in i18n/keyboard-policy.json order: the US position first for digits and non-Latin groups, else the printed key, read as `reading_input` reads it.
-pub fn event_lookup(
+fn event_lookup(
     name: &str,
     context: Context,
     event: &KeyDownEvent,
