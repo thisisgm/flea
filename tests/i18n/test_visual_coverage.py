@@ -79,7 +79,11 @@ class Coverage(unittest.TestCase):
             for state in ('hover', 'focus'):
                 self.assertIn(f'i50.fit.{code}.list.{state} BLOCKED SCENE-LANG: list registers rest only; '
                               f'{state} needs a drawn-state readback\n', text)
-        # The ruling's old shape, a list group line, now has every rest scene registered under a line that still names it.
+        # The removed list group line overlaps the hover and focus lines, so restoring it is a double cover.
+        restored = text + 'i50.fit.de.list BLOCKED I50-27: old\n'
+        self.assertIn('i50.fit.de.list.hover.gm.r0: more than one undriven line (i50.fit.de.list.hover, i50.fit.de.list)',
+                      self.tool.coverage_errors(self.plan, restored))
+        # A rest group line or a rest scene line covers only registered scenes.
         old = text + 'i50.fit.de.list.rest BLOCKED I50-27: old\n'
         self.assertIn('i50.fit.de.list.rest: registered scene still has an undriven line', self.tool.coverage_errors(self.plan, old))
         exact = text + 'i50.fit.de.list.rest.gm.r0 BLOCKED I50-27: old\n'
