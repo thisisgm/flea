@@ -1,12 +1,15 @@
 //! Tap.js tappedColumn: a middle tap on a peeked folder opens that folder in a new tab, through the real pointer route.
 use super::host;
-use crate::columns::geometry::Slot;
+use crate::columns::{geometry::Slot, TrackRows};
 use gpui::{point, px, Modifiers, MouseButton, VisualTestContext};
 
 #[test]
 fn pb_tabs_neighbour_middle_tap_opens_only_a_folder_in_a_new_tab() {
-    // (row y in the parent track, tabs after, path of the current tab)
-    for (y, count, path) in [(45., 2, "/srv/a/b/other"), (76., 1, "/srv/a/b/c")] {
+    // (row y in the parent track, row it lands on, tabs after, path of the current tab)
+    for (y, name, count, path) in [
+        (45., "other", 2, "/srv/a/b/other"),
+        (76., "notes.txt", 1, "/srv/a/b/c"),
+    ] {
         let mut cx = host::context();
         let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
         host::change(&mut cx, window, |shell, window, cx| {
@@ -26,6 +29,13 @@ fn pb_tabs_neighbour_middle_tap_opens_only_a_folder_in_a_new_tab() {
                 let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
                 let paint = columns.painters.get(Slot::Parent).unwrap().borrow();
                 let drawn = paint.drawn.as_ref().unwrap();
+                // The pointer's own row math, so a miss past the last row cannot pass for the file arm.
+                let at = drawn.grow.position_at(y + drawn.scroll, drawn.row_height);
+                let hit = match &drawn.view().rows {
+                    TrackRows::Peek(rows) => drawn.row_at(at).and_then(|index| rows.get(index)),
+                    _ => None,
+                };
+                assert_eq!(hit.map(|row| row.name.as_str()), Some(name), "row at {y}");
                 point(
                     drawn.bounds.origin.x + drawn.bounds.size.width / 2.,
                     drawn.bounds.origin.y + px(y),

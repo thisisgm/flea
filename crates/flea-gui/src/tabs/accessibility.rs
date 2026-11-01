@@ -70,6 +70,26 @@ pub(super) fn node(frame: &Frame, index: usize, new_label: &str) -> Node {
 }
 
 impl Controls {
+    /// The strip's controls, from the same snapshot the strip's frame was drawn from.
+    pub(super) fn new(shell: WeakEntity<Shell>, host: &Shell) -> Option<Self> {
+        let snapshot = host.strip.snapshot.as_ref()?;
+        Some(Self {
+            shell,
+            side: snapshot.side,
+            identities: snapshot.identities.clone(),
+            new_label: host.locale.catalog.tr("keys.action.tabNew"),
+        })
+    }
+
+    /// Drawn control `index` presses its tab's identity; one past the last tab is New tab.
+    pub(super) fn press(&self, index: usize) -> Press {
+        Press {
+            side: self.side,
+            identity: self.identities.get(index).copied(),
+            close: false,
+        }
+    }
+
     pub(super) fn children(
         &self,
         frame: &Frame,
@@ -80,16 +100,11 @@ impl Controls {
             let Some(bounds) = frame.control_bounds(painted.bounds, index) else {
                 continue;
             };
-            let identity = self.identities.get(index).copied();
-            let id = builder.synthetic_node_id((self.side, identity));
+            let press = self.press(index);
+            let id = builder.synthetic_node_id((self.side, press.identity));
             let mut child = node(frame, index, &self.new_label);
             child.set_bounds(device_bounds(bounds, painted.scale));
             if builder.push_child(id, child) {
-                let press = Press {
-                    side: self.side,
-                    identity,
-                    close: false,
-                };
                 painted.actions.push((id, press));
             }
         }
@@ -100,10 +115,7 @@ impl Controls {
         for (id, press) in painted.actions.drain(..) {
             let shell = self.shell.clone();
             window.on_a11y_action(id, Action::Click, move |_, window, cx: &mut App| {
-                let _ = shell.update(cx, |shell, cx| {
-                    let hit = shell.tab_pressed_hit(press);
-                    shell.tab_tap_hit(hit, false, window, cx);
-                });
+                let _ = shell.update(cx, |shell, cx| shell.tab_a11y_press(press, window, cx));
             });
         }
     }
@@ -113,4 +125,17 @@ pub(super) fn device_bounds(bounds: Bounds<Pixels>, scale: f32) -> Rect {
     let [left, top, right, bottom] = [bounds.left(), bounds.top(), bounds.right(), bounds.bottom()]
         .map(|value| f64::from(f32::from(value) * scale));
     Rect::new(left, top, right, bottom)
+}
+
+impl Shell {
+    /// A screen reader press acts as a left tap on the control it names, resolved by identity now.
+    pub(super) fn tab_a11y_press(
+        &mut self,
+        press: Press,
+        window: &mut Window,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        let hit = self.tab_pressed_hit(press);
+        self.tab_tap_hit(hit, false, window, cx);
+    }
 }

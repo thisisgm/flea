@@ -40,14 +40,7 @@ impl Render for Strip {
             .then(|| self.shell.upgrade())
             .flatten()
             .and_then(|shell| {
-                let shell = shell.read(cx);
-                let snapshot = shell.strip.snapshot.as_ref()?;
-                Some(super::accessibility::Controls {
-                    shell: self.shell.clone(),
-                    side: snapshot.side,
-                    identities: snapshot.identities.clone(),
-                    new_label: shell.locale.catalog.tr("keys.action.tabNew"),
-                })
+                super::accessibility::Controls::new(self.shell.clone(), shell.read(cx))
             });
         let geometry = self.bounds.clone();
         let drop_zone = self.drop_zone.clone();
