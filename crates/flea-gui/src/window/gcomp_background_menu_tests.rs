@@ -204,3 +204,24 @@ fn bgmenu_below_rows_preserves_marks_and_row_targets_in_every_view() {
         });
     }
 }
+
+#[test]
+fn bgmenu_empty_grid_ground_starts_below_the_filter_strip() {
+    let mut cx = crate::list::bench::real_cx();
+    let handle = listing(&mut cx, View::Grid, true);
+    VisualTestContext::from_window(handle.into(), &cx).simulate_keystrokes("/");
+    frame(&mut cx, handle);
+    let (strip, pane) = edit(&mut cx, handle, |shell, window, _| {
+        (
+            shell.slots.strip_height_for(0),
+            shell.geometry(window).panes[0],
+        )
+    });
+    assert!(
+        strip > 10.,
+        "the filter strip is mounted over the empty grid"
+    );
+    // The lowest pixels of the pane sit past the strip-shortened ground unless it starts below the strip.
+    let at = point(px(pane.x + 60.), px(pane.y + pane.height - 5.));
+    assert!(!background(&mut cx, handle, at).is_empty());
+}
