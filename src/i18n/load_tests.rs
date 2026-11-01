@@ -67,6 +67,25 @@ fn i50_font_held_text_covers_every_roster_script() {
     }
 }
 
+#[test]
+fn i50_font_held_text_holds_every_formatted_number_mark() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "fa");
+    let catalog = I18n::load(f.paths());
+    let held = catalog.held_text();
+    let shown = [
+        catalog.locale().format_count(1234567890),
+        catalog.locale().format_number(1.5, 1),
+    ]
+    .concat();
+    assert!(shown.contains('۹') && shown.contains('٫'), "{shown}");
+    assert!(
+        shown.chars().all(|c| held.contains(c)),
+        "{shown} is not held"
+    );
+}
+
 fn wide_object(count: usize, duplicate: bool) -> String {
     let entries: Vec<String> = (0..count).map(|n| {
         let key = if duplicate { 0 } else { n };
