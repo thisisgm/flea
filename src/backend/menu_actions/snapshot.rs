@@ -43,8 +43,12 @@ impl Snapshot {
                             .map(|item| item.mode.to_string())
                             .collect::<Vec<_>>()
                             .join(",");
+                        let names = crate::json::names_field(
+                            self.items.iter().map(|item| item.path.as_path()),
+                            512,
+                        );
                         Ok(format!(
-                            r#""count":{},"kinds":[{}],"modes":[{}]"#,
+                            r#""count":{},"kinds":[{}],"modes":[{}]{names}"#,
                             self.items.len(),
                             kinds,
                             modes
