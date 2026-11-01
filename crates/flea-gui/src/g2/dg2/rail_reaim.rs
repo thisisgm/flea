@@ -2,8 +2,7 @@
 use super::*;
 
 impl Shell {
-    /// RailDrop.qml onEntriesChanged: a held drag whose rail row no longer sends it where its aim says is aimed again at
-    /// the resting pointer, and the next frame checks it once more against the rows the rail lays out again.
+    /// RailDrop.qml onEntriesChanged: a held drag whose rail row now sends it elsewhere is aimed again at the resting pointer.
     pub(crate) fn reaim_rail_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let key = window_key(window);
         let point = window.mouse_position();
