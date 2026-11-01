@@ -6,6 +6,9 @@ use gpui::{
     TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
+#[path = "query_paint.rs"]
+mod query_paint;
+pub use query_paint::QueryPaint;
 
 // Board search.html: a 27 strip, 14 padding, a 16 mark, 9 gaps, a 2 by 13 caret 1 after the query, a 1 hairline.
 pub const HEIGHT: f32 = 27.;
@@ -90,7 +93,7 @@ pub fn layout(width: f32, query_w: f32, scope_w: f32, note_w: f32, way_w: f32) -
 /// One shaping of the strip, kept until its words, width or face change.
 pub struct Prepared {
     key: (Words, u32, u32, Typeface),
-    pub query: GlyphRun,
+    pub query: Rc<GlyphRun>,
     pub scope: GlyphRun,
     pub note: GlyphRun,
     pub way_out: GlyphRun,
@@ -103,6 +106,7 @@ pub struct StripState {
     pub typeface: Typeface,
     pub prepared: Option<Prepared>,
     pub shapings: u64,
+    pub edit: QueryPaint,
 }
 
 impl StripState {
@@ -111,19 +115,31 @@ impl StripState {
             typeface,
             prepared: None,
             shapings: 0,
+            edit: QueryPaint::default(),
         }
     }
 }
 
 pub struct StripElement {
+    input: Option<(gpui::Entity<super::input::QueryInput>, gpui::FocusHandle)>,
     words: Rc<Words>,
     palette: Palette,
     state: Rc<RefCell<StripState>>,
 }
 
 impl StripElement {
+    pub fn with_input(
+        mut self,
+        input: gpui::Entity<super::input::QueryInput>,
+        focus: gpui::FocusHandle,
+    ) -> Self {
+        self.input = Some((input, focus));
+        self
+    }
+
     pub fn new(words: Rc<Words>, palette: Palette, state: Rc<RefCell<StripState>>) -> Self {
         Self {
+            input: None,
             words,
             palette,
             state,
@@ -192,7 +208,7 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
             window.scale_factor().to_bits(),
             typeface.clone(),
         ),
-        query,
+        query: Rc::new(query),
         scope,
         note,
         way_out,
@@ -257,7 +273,7 @@ impl Element for StripElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) {
         let mut state = self.state.borrow_mut();
         let width = f32::from(bounds.size.width);
@@ -272,6 +288,8 @@ impl Element for StripElement {
             state.prepared = Some(prepared);
             state.shapings += 1;
         }
+        drop(state);
+        self.prepaint_query(bounds, cx);
     }
 
     fn paint(
@@ -314,15 +332,18 @@ impl Element for StripElement {
             palette.accent,
             cx,
         );
-        // The query and its caret stay together in a mirrored window.
-        let query = Bounds::new(
+        // The query and its caret stay together in a mirrored window; an edited query moves as the line it draws.
+        let query = self.query_unit(window, cx).unwrap_or(Bounds::new(
             point(left + px(boxes.query_x), top),
             size(
                 px(boxes.caret_x + CARET_W * scale - boxes.query_x),
                 px(height),
             ),
-        );
+        ));
         window.with_unmirrored(query, |window| {
+            if self.paint_query(window, cx) {
+                return;
+            }
             paint_line(
                 &prepared.query,
                 left + px(boxes.query_x),
