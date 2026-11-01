@@ -133,6 +133,14 @@ pub fn typed(mark: &str, spans: &[Span], columns: usize, isolating: bool, bold: 
         .rev()
         .find(|&&(group, c)| group.is_some() && cells::width(c) > 0)
         .map(|&(group, _)| group);
+    // A run shown whole was not cut, so an isolated ellipsis after it stays outside its isolate.
+    let whole = last.flatten().is_some_and(|index| {
+        shown
+            .iter()
+            .filter(|&&(group, _)| group == Some(index))
+            .count()
+            == cells::characters(&spans[index].1).count()
+    });
     let end = shown.len();
     shown.resize(end + limit - used, (None, ' '));
     if cut {
@@ -142,11 +150,13 @@ pub fn typed(mark: &str, spans: &[Span], columns: usize, isolating: bool, bold: 
             (last.flatten(), '…'),
         );
     }
+    let outside = isolating && cut && whole;
     let mut out = String::new();
     let mut bolded = false;
     let mut open: Option<(usize, char)> = None;
-    for (group, c) in shown {
-        if open.is_some_and(|(index, _)| Some(index) != group) {
+    for (at, (group, c)) in shown.into_iter().enumerate() {
+        let apart = outside && at == end;
+        if open.is_some_and(|(index, _)| apart || Some(index) != group) {
             out.push(open.take().map_or(' ', |(_, close)| close));
         }
         if bold && group.is_some() != bolded {
@@ -157,7 +167,7 @@ pub fn typed(mark: &str, spans: &[Span], columns: usize, isolating: bool, bold: 
             });
             bolded = group.is_some();
         }
-        if let Some(index) = group.filter(|_| isolating && open.is_none()) {
+        if let Some(index) = group.filter(|_| isolating && open.is_none() && !apart) {
             if let Some((start, close)) = spans[index].0.and_then(cells::markers) {
                 out.push(start);
                 open = Some((index, close));
