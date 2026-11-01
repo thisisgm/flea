@@ -313,3 +313,49 @@ fn tui_fix_1101_print_card_names_the_printer_by_its_backend_name() {
         wire::finish(w, reader);
     }
 }
+
+// tui-print: a printer picked while another's query is out sends nothing, and the queue ID and name sent are one reply's pair.
+#[test]
+fn tui_fix_1101_print_name_is_never_another_printers_while_its_query_is_out() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    press(&mut m, &mut w, Key::character('P', "ctrl"));
+    ready(&mut m, &mut w);
+    print::query(&mut m, &mut w, "Brother").unwrap();
+    let first = m.printing.card.as_ref().unwrap().query.unwrap();
+    print::query(&mut m, &mut w, "Other").unwrap();
+    let id = m.printing.card.as_ref().unwrap().query.unwrap();
+    let reply = |id: usize, printer: &str, name: &str| {
+        format!(
+            r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[{{"name":"Brother","default":true}},{{"name":"Other","default":false}}],"printer":"{printer}","printerName":"{name}","duplex":true,"twoSided":false,"color":true,"grayscale":false,"setupArgv":[]}}"#
+        )
+    };
+    answer(
+        &mut m,
+        &mut w,
+        &reply(first, "Brother", "Brother HL-L3270CDW"),
+    );
+    let form = m.printing.card.as_ref().unwrap();
+    assert_eq!(
+        form.query,
+        Some(id),
+        "the earlier printer's late reply is not this query's"
+    );
+    assert_eq!(
+        (form.printer.as_str(), form.printer_name.as_str()),
+        ("Brother", "Brother"),
+        "the queue ID and name stay the last accepted reply's pair"
+    );
+    press(&mut m, &mut w, Key::named("Return", ""));
+    assert!(
+        drain(&mut w).iter().all(|v| text(v, "c") != "print"),
+        "no job leaves while the chosen printer's query is out"
+    );
+    answer(&mut m, &mut w, &reply(id, "Other", "Other Lab"));
+    press(&mut m, &mut w, Key::named("Return", ""));
+    let sent = drain(&mut w);
+    let request = sent.iter().find(|v| text(v, "c") == "print").unwrap();
+    assert_eq!(text(request, "printer"), "Other");
+    assert_eq!(text(request, "printerName"), "Other Lab");
+    wire::finish(w, reader);
+}
