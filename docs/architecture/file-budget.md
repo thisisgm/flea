@@ -1618,7 +1618,7 @@ COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. 
 
 - `src/tui/preview.rs`: 406. Composed preview media/facts and localized fallback state from the TUI family.
 - `src/tui/frame_tests.rs`: 408. Preserves both M1 language-aware heading tests and the joined TUI frame assertions.
-- `src/backend/contents_review_tests.rs`: 433. Preserves the composed content-search regression fixtures and assertions.
+- `src/backend/contents_review_tests.rs`: 446. Preserves the composed content-search regression fixtures and assertions, and the ignore-glob partial-walk cases.
 - `crates/flea-gui/src/columns/geometry.rs`: 428. Combines scaled column geometry with joined divider and target geometry.
 - `crates/flea-gui/src/dual/divider_tests.rs`: 446. Retains the divider tests from both the base and composed UI units.
 - `crates/flea-gui/src/feedback/spinner_surface_tests.rs`: 402. Retains the composed spinner surface module/test registration.
@@ -1636,7 +1636,7 @@ COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. 
 - `crates/flea-gui/src/navigation/steps.rs`: 409. Retains the composed navigation state plumbing.
 - `crates/flea-gui/src/window/dispatch/fileops.rs`: 406. Combines reviewed file operation dispatch with native preview/menu retirement.
 - `crates/flea-gui/src/window/dispatch/openwith_tests.rs`: 444. Retains base and composed Open With routing assertions.
-- `crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs`: 422. Retains base and composed Quick Look state assertions.
+- `crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs`: 427. Retains base and composed Quick Look state assertions.
 - `crates/flea-gui/src/window/events_ipc.rs`: 425. Combines reviewed plugin actions and richer window IPC observers.
 - `crates/flea-gui/src/window/network.rs`: 402. Retains reviewed network placement beside refreshed preview state.
 - `crates/flea-gui/src/window/selection_preview_load.rs`: 427. Combines reviewed lazy media, reader, quality and plugin preview delivery.
