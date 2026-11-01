@@ -32,6 +32,7 @@ fn u10_grid_pointer_uses_painted_slots_and_ignores_bare_cell_margins(cx: &mut Te
         let mut visual = VisualTestContext::from_window(handle.into(), cx);
         visual.simulate_mouse_move(slot, None, Modifiers::default());
         visual.simulate_mouse_down(slot, MouseButton::Left, Modifiers::default());
+        visual.simulate_mouse_up(slot, MouseButton::Left, Modifiers::default());
     }
     frame(cx, handle);
     assert_eq!(call(cx, handle, "cursor", &[]), Reply::value("2"));
@@ -41,6 +42,7 @@ fn u10_grid_pointer_uses_painted_slots_and_ignores_bare_cell_margins(cx: &mut Te
         let mut visual = VisualTestContext::from_window(handle.into(), cx);
         visual.simulate_mouse_move(bare, None, Modifiers::default());
         visual.simulate_mouse_down(bare, MouseButton::Left, Modifiers::default());
+        visual.simulate_mouse_up(bare, MouseButton::Left, Modifiers::default());
     }
     frame(cx, handle);
     assert_eq!(call(cx, handle, "cursor", &[]), Reply::value("2"));

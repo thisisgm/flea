@@ -25,11 +25,16 @@ pub struct FocusSnapshot {
     /// Ascending, so membership is a binary search.
     pub selected: Vec<usize>,
     pub band: bool,
+    /// Another control holds the keyboard, so the cursor keeps its grey plate without an accent frame.
+    pub grey: bool,
 }
 
 impl FocusFacts for FocusSnapshot {
     fn cursor(&self) -> usize {
         self.cursor
+    }
+    fn focused(&self) -> bool {
+        !self.grey
     }
     fn selected(&self, listing: usize) -> bool {
         self.selected.binary_search(&listing).is_ok()

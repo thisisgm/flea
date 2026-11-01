@@ -1,6 +1,7 @@
 //! One Grid pane's element: the tile Element under the pane's pointer routing and swap overlay.
 use crate::{
     feedback::spinner,
+    g2::dg2::join::{flock, Seed},
     list::Palette,
     state::Shell,
     window::{locale::Snapshot, pane::PaneHost},
@@ -17,6 +18,7 @@ pub(crate) struct PaneInputs<'a> {
     pub locale: &'a Snapshot,
     pub palette: &'a Palette,
     pub marked: bool,
+    pub focused: bool,
     pub states: Option<AnyView>,
     /// The row whose name the rename field covers, so its tile drops its own caption.
     pub renaming: Option<usize>,
@@ -31,7 +33,13 @@ impl PaneHost {
     ) -> AnyElement {
         let side = input.side;
         self.list.borrow_mut().park();
-        let content = self.render_grid(input.size, input.data, input.locale, input.renaming);
+        let content = self.render_grid(
+            input.size,
+            input.data,
+            input.locale,
+            input.renaming,
+            input.focused,
+        );
         let palette = *input.palette;
         let scroller = crate::input::grid_surface(cx.entity(), side, move |shell, bounds| {
             let host = shell.panes[side].as_mut()?;
@@ -59,9 +67,23 @@ impl PaneHost {
                 palette,
             ))
         });
+        let lifter = cx.entity().downgrade();
+        let payload = cx.entity().downgrade();
+        // GridArea.qml shares List's FileDrag: a tile press lifts on travel, and the pane takes its own drop.
         div()
             .id(("pane", side))
             .size_full()
+            .on_drag(Seed { side }, move |_, _, window, cx| {
+                let _ = lifter.update(cx, |shell, cx| shell.begin_grid_drag(side, window, cx));
+                flock(cx)
+            })
+            .external_drag_payload::<Seed>(move |_, window, cx| {
+                payload.upgrade()?.read(cx).file_drag_payload(window, cx)
+            })
+            .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
+                shell.land_own_drag(side, window, cx);
+            }))
+            .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(move |shell, _, _, cx| shell.focus_pane(side, cx)),

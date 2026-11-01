@@ -42,7 +42,27 @@ case_clickedge() {
         settle
         [[ "$(ipc selectedIndices)" == "$slow" ]] || fail "clickedge: $mode row $slow is not the sole selection"
         sleep "$slow_click_gap_s"
-        click_row_beside_name "$slow" left
+        if [[ "$mode" == grid ]]; then
+            # v0.3.12 GridArea.qml:403-412 limits a tile to its art and painted caption, so its non-name click belongs in the art slot.
+            local tx ty tw th nx ny nw nh cx cy wx wy ww wh
+            # Sample input: rowThumbRect prints "412 237 64 64" (x y width height).
+            read -r tx ty tw th <<< "$(ipc rowThumbRect "$slow")"
+            # Sample input: rowNameRect prints "400 310 90 40" (x y width height).
+            read -r nx ny nw nh <<< "$(ipc rowNameRect "$slow")"
+            [[ "$tx $ty $tw $th $nx $ny $nw $nh" =~ ^-?[0-9]+(\ -?[0-9]+){7}$ ]] \
+                || fail "clickedge: grid row $slow has no art and name rectangles"
+            (( tw > 0 && th > 0 )) || fail "clickedge: grid row $slow has an empty art slot"
+            cx=$((tx + tw / 2))
+            cy=$((ty + th / 2))
+            (( cx < nx || cx >= nx + nw || cy < ny || cy >= ny + nh )) \
+                || fail "clickedge: grid row $slow art centre lies inside its name"
+            # Sample input: window_box prints "40 80 1000 720" (x y width height).
+            read -r wx wy ww wh < <(window_box) || fail "native window coordinates unavailable"
+            omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null \
+                || fail "clickedge: grid row $slow art click was rejected"
+        else
+            click_row_beside_name "$slow" left
+        fi
         settle
         sleep "$slow_click_gap_s"
         after_blank=$(ipc viewContentY)

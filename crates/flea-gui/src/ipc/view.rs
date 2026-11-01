@@ -94,11 +94,19 @@ impl Adapter for MountedView<'_> {
                     return Some(self.rows(function, index, None, false));
                 };
                 let paint = painter.borrow();
-                let held = paint
+                let drawn = paint
                     .drawn
                     .as_ref()
-                    .filter(|drawn| matches!(drawn.view().rows, TrackRows::Listing))
-                    .and_then(|drawn| drawn.held.as_deref());
+                    .filter(|drawn| matches!(drawn.view().rows, TrackRows::Listing));
+                let held = drawn.and_then(|drawn| drawn.held.as_deref());
+                // Ipc.qml drawnCount: the active column's count, narrowed by a standing filter.
+                if function == "drawnCount" {
+                    let shown = drawn
+                        .and_then(|drawn| drawn.shown.as_deref())
+                        .map(<[usize]>::len);
+                    let count = held.map_or(0, |held| shown.unwrap_or(held.total));
+                    return Some(Reply::value(count.to_string()));
+                }
                 Some(self.rows(function, index, held, paint.prepared(index).is_some()))
             }
             Some(View::Grid) => {
@@ -136,7 +144,8 @@ impl Adapter for ViewAdapter<'_> {
                 None => "",
             }
             .to_owned(),
-            "drawnCount" => if ready { list.drawn_rows.total } else { 0 }.to_string(),
+            // Ipc.qml drawnCount is listArea.count, so a standing filter answers its narrowed rows.
+            "drawnCount" => if ready { drawn.count } else { 0 }.to_string(),
             "visibleRows" => {
                 if drawn.frames == 0 {
                     return None;
@@ -150,7 +159,7 @@ impl Adapter for ViewAdapter<'_> {
                 if drawn.frames == 0 {
                     return None;
                 }
-                let count = if ready { list.drawn_rows.total } else { 0 };
+                let count = if ready { drawn.count } else { 0 };
                 let end = drawn.grow.content(count, drawn.metrics.row) + drawn.metrics.header
                     - f32::from(drawn.bounds.size.height);
                 ((end + 0.5).floor() as i64).to_string()

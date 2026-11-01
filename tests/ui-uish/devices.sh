@@ -389,7 +389,7 @@ case_phones() {
     key j >/dev/null
     settle
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, or press Delete on its own."
     # The arm itself, not the hint: ui/Pane.qml escapePressed clears a selection before it clears the
     # bar, and coming up from the mount leaves the row we left selected (ui/js/Nav.js
     # applyPendingSelect), so the sentence stands for its four seconds while the arm is already gone.
@@ -579,8 +579,8 @@ EOS
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot eject-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "eject: right click opened no menu on the volume"
-    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|Eject|-|Flash image" ]] \
-        || fail "eject: the volume's menu is $(ipc contextMenuEntries), not Open|Unmount|Eject|Flash image"
+    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|Eject|-|Flash Image" ]] \
+        || fail "eject: the volume's menu is $(ipc contextMenuEntries), not Open|-|Unmount|Eject|-|Flash Image"
     [[ "$(ipc contextMenuGlyphs)" == "folder-open|-|drive|eject|-|file" ]] \
         || fail "eject: the volume's menu draws $(ipc contextMenuGlyphs), not folder-open|-|drive|eject|-|file"
     if grep -q '^mount -e' "$gio_log"; then
@@ -629,8 +629,8 @@ EOS
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] \
         || fail "eject: an unmounted volume with unmounted drives shown was offered no menu"
-    [[ "$(ipc contextMenuEntries)" == "Mount|-|Flash image" ]] \
-        || fail "eject: the unmounted volume's menu is $(ipc contextMenuEntries), not Mount|Flash image"
+    [[ "$(ipc contextMenuEntries)" == "Mount|-|Flash Image" ]] \
+        || fail "eject: the unmounted volume's menu is $(ipc contextMenuEntries), not Mount|-|Flash Image"
     key -k Escape >/dev/null
     settle
 
@@ -761,8 +761,8 @@ EOS
     # A later mount and unmount are answered with their own verdicts, not the chain's.
     click_rail_row "$(poweroff_row DATA2)" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Mount|-|Flash image" ]] \
-        || fail "poweroff: the unmounted volume offers $(ipc contextMenuEntries), not Mount|Flash image"
+    [[ "$(ipc contextMenuEntries)" == "Mount|-|Flash Image" ]] \
+        || fail "poweroff: the unmounted volume offers $(ipc contextMenuEntries), not Mount|-|Flash Image"
     menu_seek Mount
     key -k Return >/dev/null
     for _attempt in $(seq 1 100); do

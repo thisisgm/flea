@@ -25,15 +25,15 @@ crates/flea-gui/src/window/columns_review_r2_tests.rs 409
 crates/flea-gui/src/g2/pl4/producer.rs 408
 crates/flea-gui/src/g2/op1/cards.rs 402
 crates/flea-gui/src/g2/op3/shell/blocks.rs 410
-crates/flea-gui/src/g2/dg2/join.rs 404
+crates/flea-gui/src/g2/dg2/join.rs 406
 crates/flea-gui/src/g2/pk1/parity_tests.rs 416
 crates/flea-gui/src/window/rail_tests.rs 447
-crates/flea-gui/src/window/events.rs 405
+crates/flea-gui/src/window/events.rs 406
 crates/flea-gui/src/window/navigate.rs 409
 crates/flea-gui/src/window/rail.rs 411
 crates/flea-gui/src/window/search.rs 403
 crates/flea-gui/src/window/search_tests.rs 468
-crates/flea-gui/src/columns/element.rs 430
+crates/flea-gui/src/columns/element.rs 434
 crates/flea-gui/src/g2/mn1/element.rs 442
 crates/flea-gui/src/window/quick_look.rs 401
 crates/flea-gui/src/g2/pk2/route_ports_tests.rs 405
@@ -302,7 +302,11 @@ src/ui_logic_mn1/build_tests.rs 841
 src/ui_logic_mn1/fit_tests.rs 417
 src/ui_logic_mn1/places_tests.rs 402
 src/ui_logic_mn1/rows.rs 515
-src/ui_logic_mn1/rows_tests.rs 1095"
+src/ui_logic_mn1/rows_tests.rs 1095
+crates/flea-gui/src/window/view_tests.rs 405
+crates/flea-gui/src/navigation/mod.rs 402
+crates/flea-gui/src/navigation/landing.rs 404
+crates/flea-gui/src/g2/dg2/rail_drop.rs 440"
 
 status=0
 

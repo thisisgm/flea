@@ -193,6 +193,7 @@ impl Render for Shell {
                     locale: &self.locale,
                     palette: &palette,
                     marked: drawn[side],
+                    focused: lists.states[side].as_ref().is_some_and(|rows| rows.focused),
                     states: self.slots.states[side].clone(),
                     renaming: renaming[side],
                 };

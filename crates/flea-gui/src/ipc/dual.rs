@@ -128,7 +128,7 @@ fn pane_geometry(
                 rect_of(
                     f32::from(bounds.origin.x),
                     f32::from(bounds.origin.y) + drawn.grow.top(position, row) - drawn.scroll,
-                    (f32::from(bounds.size.width) - crate::columns::geometry::LANE).max(0.),
+                    (f32::from(bounds.size.width) - drawn.lane).max(0.),
                     drawn.grow.height(position, row),
                 )
             };

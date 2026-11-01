@@ -1,6 +1,6 @@
 //! Where the rename field stands over the name each view drew: the list's label column, the active column's name cell or a tile's caption.
 use crate::{
-    columns::geometry::{cells, Slot},
+    columns::geometry::{cells_in, Slot},
     list::{pane::ROW_HEIGHT, ListState, Metrics},
     state::Shell,
     window::{pane::PaneHost, startup::View},
@@ -124,8 +124,9 @@ fn columns_place(
     let top =
         drawn.bounds.origin.y + px(drawn.grow.top(position, ROW_HEIGHT) - drawn.scroll.max(0.));
     // The track draws a folder cursor row with its chevron, which narrows the name cell.
-    let name = cells(
+    let name = cells_in(
         f32::from(drawn.bounds.size.width),
+        drawn.lane,
         slot == Slot::Active,
         chevron,
     );

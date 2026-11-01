@@ -2,7 +2,7 @@
 use super::PaneHost;
 use crate::{
     columns::{
-        geometry::{Slot, LANE, NAME_X},
+        geometry::{Slot, NAME_X},
         TrackRows, TrackView,
     },
     state::Shell,
@@ -20,16 +20,22 @@ pub(super) fn surface(
         let host = shell.panes[side].as_mut()?;
         let total = host.filter.shown_total(host.pane.held.total);
         let row = host.columns_row_height();
+        let lane = crate::columns::geometry::lane(&host.list.borrow().typeface);
         let frame = crate::input::Frame {
             bounds,
             row,
-            lane: LANE,
-            content: grow.content(total, row),
+            lane,
+            content: crate::columns::geometry::active_content(
+                grow,
+                total,
+                row,
+                &host.list.borrow().typeface,
+            ),
             scroll: host.pane.scroll_y,
             listing: host.pane.held.listing,
             total,
             columns: 1,
-            cell_width: f32::from(bounds.size.width) - LANE,
+            cell_width: f32::from(bounds.size.width) - lane,
             grow,
             cell_origin: (0., 0.),
         };
@@ -107,6 +113,20 @@ impl Hover {
     }
 }
 
+impl super::Columns {
+    /// A blocked pane or replaced track drops its hover before the shared rows and track painter read it.
+    pub(super) fn settle_hover(&mut self, listing: usize, blocked: bool) {
+        if blocked
+            || self
+                .hover
+                .as_ref()
+                .is_some_and(|hover| !hover.holds(self.area.tracks(), listing))
+        {
+            self.hover = None;
+        }
+    }
+}
+
 /// The row under the pointer on a drawn track, never the lane, a gap below the rows or a hidden listing.
 pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<Hover> {
     let columns = host.columns.as_ref()?;
@@ -118,7 +138,7 @@ pub(crate) fn hover_at(host: &PaneHost, point: Point<Pixels>) -> Option<Hover> {
             || !Rc::ptr_eq(&drawn.tracks, tracks)
             || drawn.at != at
             || !drawn.bounds.contains(&point)
-            || point.x >= drawn.bounds.right() - px(LANE)
+            || point.x >= drawn.bounds.right() - px(drawn.lane)
             || matches!(view.rows, TrackRows::Preview)
             || drawn
                 .held
@@ -166,7 +186,7 @@ pub(crate) fn drop_spot(
             f32::from(point.y - drawn.bounds.top()) + drawn.scroll,
             drawn.row_height,
         );
-        let row = (point.x < drawn.bounds.right() - px(LANE))
+        let row = (point.x < drawn.bounds.right() - px(drawn.lane))
             .then_some(drawn.row_at(position))
             .flatten();
         if view.slot == Slot::Active {

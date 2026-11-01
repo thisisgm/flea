@@ -137,6 +137,9 @@ printf 'NATIVE_EVIDENCE_ROOT=%s\n' "$run_root"
 suite_state="$run_root/state"
 mkdir -p "$suite_state" || fail "the suite state home could not be created at $suite_state"
 export XDG_STATE_HOME="$suite_state"
+# A runner's sandbox config and data homes are the seed each case copies; an unset one stays the transport's per-window home.
+suite_config_base="${XDG_CONFIG_HOME-}"
+suite_data_base="${XDG_DATA_HOME-}"
 # One scratch journal dir for the run; only the backend reads it, qs keeps the session runtime dir.
 suite_undo="$run_root/undo-journal"
 mkdir -p "$suite_undo" || fail "the suite undo dir could not be created at $suite_undo"
@@ -638,15 +641,39 @@ seed_ui_state() {
     export XDG_STATE_HOME="$state"
 }
 
-# DEFAULTS' twelve less placeMenu, runScript, extThumbs and openTerminal, so a case drives that row alone.
-terminal_shown='["delete","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection"]'
-# DEFAULTS' twelve less placeMenu, runScript and extThumbs; an exact-row-list case seeds this.
-menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection"]'
+# DEFAULTS' sixteen less placeMenu, runScript, extThumbs and openTerminal, so a case drives that row alone.
+terminal_shown='["delete","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText","openAgent","actions"]'
+# DEFAULTS' sixteen less placeMenu, runScript and extThumbs; an exact-row-list case seeds this.
+menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText","openAgent","actions"]'
+
+# The HIG boards retitle 0.4.0's GPUI rows and lines; the QML shell keeps v0.3.12's words: by_frontend QML GPUI.
+by_frontend() { if [[ "$test_frontend" == gpui ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
 
 # launch() without its IPC wait, for a case that reads the window before the seam exists; a second argument is the --select target.
+# Each case's first launch moves it onto state, config and data homes of its own, unless the case already chose one,
+# so a view, saved place or setting a failed case left behind never reaches the next.
+case_homes() {
+    [[ -n "${running_case-}" && "${case_homes_for-}" != "$running_case" ]] || return 0
+    case_homes_for="$running_case"
+    local own="$run_root/case-homes/$running_case"
+    mkdir -p "$own/state" "$own/config" "$own/data" || fail "the case homes could not be created under $own"
+    if [[ "$XDG_STATE_HOME" == "$run_root/state" ]]; then
+        suite_state="$own/state"
+        export XDG_STATE_HOME="$suite_state"
+    fi
+    if [[ -n "$suite_config_base" && "${XDG_CONFIG_HOME-}" == "$suite_config_base" ]]; then
+        cp -a "$suite_config_base/." "$own/config/" || fail "the case config home could not be seeded"
+        export XDG_CONFIG_HOME="$own/config"
+    fi
+    if [[ -n "$suite_data_base" && "${XDG_DATA_HOME-}" == "$suite_data_base" ]]; then
+        export XDG_DATA_HOME="$own/data"
+    fi
+}
+
 launch_window() {
     local start_path="$1" select_target="${2-}"
     kill_flea
+    case_homes
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
     # Each case starts with an empty session journal, so one case never undoes another's operation.
@@ -665,9 +692,13 @@ launch_window() {
         launch_bin="$flea_launch_bin"
         backend_args=(--backend "$flea_bin")
     fi
+    # A case's fixture HOME carries its GTK bookmarks and shell.toml under .config, which GPUI reads through XDG_CONFIG_HOME.
+    local launch_config="${XDG_CONFIG_HOME-}"
+    [[ "$HOME" != "$fixture_root"/* ]] || export XDG_CONFIG_HOME="$HOME/.config"
     flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$launch_bin" "${backend_args[@]}" \
         ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" \
         || fail "owned window launch failed"
+    if [[ -n "$launch_config" ]]; then export XDG_CONFIG_HOME="$launch_config"; else unset XDG_CONFIG_HOME; fi
     ipc_pid=$FLEA_TEST_PID
     if [[ "${test_frontend:-qml}" == gpui ]]; then
         local addr deadline=$(( $(date +%s%3N) + async_wait_ms ))
@@ -906,6 +937,29 @@ click_row_beside_name() {
 
 # Steps the menu cursor onto a row by its label rather than by a hardcoded number of Downs, so a
 # case survives the operations design's own rows landing between the ones it cares about.
+# The owned window's own HOME: the transport gives a window a sandbox home when the suite's HOME is unmarked.
+window_home() {
+    local home
+    home=$(tr '\0' '\n' < "/proc/$(flea_pid)/environ" | sed -n 's/^HOME=//p') || return 1
+    [[ "$home" == /* ]] || return 1
+    printf '%s' "$home"
+}
+
+# A menu row matches a case's label exactly; under GPUI the boards' title case and trailing ellipsis match too.
+menu_label_is() {
+    [[ "$1" == "$2" ]] && return 0
+    [[ "$test_frontend" == gpui ]] || return 1
+    local got="${1%…}" want="${2%…}"
+    [[ "${got,,}" == "${want,,}" ]]
+}
+
+# Whether a |-joined menu row list holds a row matching a case's label, by menu_label_is.
+menu_has() {
+    local label IFS='|'
+    for label in $1; do menu_label_is "$label" "$2" && return 0; done
+    return 1
+}
+
 menu_seek() {
     local want="$1" entries target i cursor steps step label
     entries=$(ipc contextMenuEntries)
@@ -913,7 +967,7 @@ menu_seek() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -938,7 +992,7 @@ menu_seek_submenu() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -960,7 +1014,7 @@ menu_row_index() {
     entries=$(ipc contextMenuEntries)
     local IFS='|'
     for label in $entries; do
-        if [[ "$label" == "$want" ]]; then
+        if menu_label_is "$label" "$want"; then
             unset IFS
             printf '%s' "$i"
             return 0
@@ -4670,7 +4724,7 @@ xw_menu_seek() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -12594,7 +12648,9 @@ settings_view() {
     settings_section view
     local inventory
     inventory=$(ipc settingsSections | jq -r 'map(.id) | join(",")')
-    [[ "$inventory" == "view,places,shelf,preview,keys,display,menus,about" ]] || fail "settings: wrong rail order $inventory"
+    # settings board: the rail's Shelf section reads Plugins in 0.4.0's GPUI shell.
+    [[ "$inventory" == "$(by_frontend view,places,shelf,preview,keys,display,menus,about view,places,plugins,preview,keys,display,menus,about)" ]] \
+        || fail "settings: wrong rail order $inventory"
     settings_focus_row view
     key l >/dev/null; settle
     [[ "$(ipc viewMode)" == "columns" ]] || fail "settings: View choice did not change the listing"

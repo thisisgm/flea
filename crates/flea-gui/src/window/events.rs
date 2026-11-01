@@ -310,6 +310,7 @@ impl Shell {
                 };
                 if taken || tab_taken {
                     host.input.selection.sync(&host.selected);
+                    host.take_lone_mark();
                     let now = host.pane.now();
                     host.nav.settle(&host.pane, now);
                     self.tab_landed(side, window, cx);

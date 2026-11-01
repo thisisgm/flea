@@ -6,8 +6,8 @@ use crate::{
     window::startup::View,
 };
 use gpui::{
-    point, px, AppContext as _, MouseButton, MouseDownEvent, ScrollDelta, ScrollWheelEvent,
-    TestAppContext, WindowHandle,
+    point, px, AppContext as _, MouseButton, MouseDownEvent, MouseUpEvent, ScrollDelta,
+    ScrollWheelEvent, TestAppContext, WindowHandle,
 };
 use std::time::Duration;
 
@@ -185,6 +185,27 @@ fn a_press_lands_the_glide_and_reduced_motion_jumps(cx: &mut TestAppContext) {
                 ..Default::default()
             };
             shell.grid_press(0, &press, window, cx);
+            assert_eq!(
+                shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .input
+                    .press
+                    .as_ref()
+                    .map(|press| press.row),
+                Some(under),
+                "the press arms the tile drawn under it"
+            );
+            shell.pointer_up(
+                0,
+                &MouseUpEvent {
+                    button: MouseButton::Left,
+                    position: at,
+                    ..Default::default()
+                },
+                window,
+                cx,
+            );
         })
         .unwrap();
     let cursor = handle

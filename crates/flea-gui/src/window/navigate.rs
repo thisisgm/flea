@@ -159,6 +159,7 @@ impl Shell {
                 host.input.selection.only(&mut host.selected, row);
             }
         }
+        host.take_lone_mark();
         super::outline::keep_lone(host);
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);

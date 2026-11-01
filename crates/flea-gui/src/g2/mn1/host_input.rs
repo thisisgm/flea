@@ -164,8 +164,9 @@ impl Shell {
         };
         if let Some(row) = row {
             if let Some(host) = &mut self.panes[side] {
-                if !host.selected.contains(&row) {
-                    host.selected.clear();
+                if !host.selected.is_empty() && !host.selected.contains(&row) {
+                    host.input.selection.clear(&mut host.selected);
+                    host.nav.landed = None;
                 }
             }
         }

@@ -252,6 +252,7 @@ impl PaneHost {
         data: &Json,
         locale: &crate::window::locale::Snapshot,
         renaming: Option<usize>,
+        focused: bool,
     ) -> AnyElement {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
@@ -292,6 +293,7 @@ impl PaneHost {
                     .collect();
             }
         }
+        focus.grey = !focused;
         let element = GridElement::new(
             Rc::clone(
                 grid.next_view

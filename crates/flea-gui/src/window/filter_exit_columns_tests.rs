@@ -114,7 +114,11 @@ fn gh315_columns_one_escape_replaces_the_filtered_scroll_extent() {
     edit(&mut cx, handle, |shell, window, cx| {
         let pane = shell.panes[0].as_ref().unwrap();
         assert_eq!(pane.pane.cursor, 299);
-        assert_eq!(pane.pane.scroll_extent, Some(31.));
+        // One filtered row of 31 px and the active column's ColumnPane.qml footer.
+        assert_eq!(
+            pane.pane.scroll_extent,
+            Some(31. + crate::columns::geometry::FOOTER)
+        );
         let paint = pane
             .columns
             .as_ref()

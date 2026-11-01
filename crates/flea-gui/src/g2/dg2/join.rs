@@ -221,6 +221,8 @@ impl Shell {
             return false;
         }
         cx.default_global::<Drags>().put(key, lifted);
+        // FileDrag.startOffer: the lift says its line with no folder name until a target names one.
+        self.say_held_drag(window, cx);
         true
     }
 

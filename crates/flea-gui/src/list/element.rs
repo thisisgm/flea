@@ -331,6 +331,7 @@ impl Element for ListElement {
                 )
             }),
             loading,
+            count: drawn_total,
         };
         // The probe reads this frame's rows, so it runs after the visible rows are rebuilt above.
         crate::visual::geometry::rows(&state, bounds, self.scroll_y, metrics.row, window);

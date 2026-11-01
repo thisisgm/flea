@@ -203,7 +203,8 @@ fn aligned_marks(view: View) {
                             .expect("one Columns track painted every clipboard mark");
                         let drawn = paint.drawn.as_ref().unwrap();
                         let width = f32::from(drawn.bounds.size.width);
-                        let cell = crate::columns::geometry::cells(width, true, true);
+                        let cell =
+                            crate::columns::geometry::cells_in(width, drawn.lane, true, true);
                         let x =
                             drawn.bounds.left() + px(cell.name_right - crate::columns::paint::CLIP);
                         for mark in &marks {

@@ -33,7 +33,7 @@ impl PaneHost {
             bounds: drawn.bounds,
             row,
             lane: 0.,
-            content: grow.content(total, row),
+            content: crate::columns::geometry::active_content(grow, total, row, &paint.typeface),
             scroll: self.pane.scroll_y,
             listing: self.pane.held.listing,
             total,

@@ -3,11 +3,7 @@ use super::{arrow, host::GridHost, Arrow, Shown};
 use crate::{
     list::pane::page_items,
     state::Shell,
-    window::{
-        dispatch::Order,
-        input::{modifiers, pointer, ActionEvent},
-        startup::View,
-    },
+    window::{input::modifiers, startup::View},
 };
 use gpui::{Context, KeyDownEvent, MouseDownEvent, MouseMoveEvent, Window};
 
@@ -85,9 +81,15 @@ impl Shell {
             }
             if next != cursor {
                 if matches!(action, "extendUp" | "extendDown") {
-                    host.selected.extend(cursor.min(next)..=cursor.max(next));
-                    host.selected.sort_unstable();
-                    host.selected.dedup();
+                    let pulled = host.input.take_pull(cursor, host.pane.held.listing);
+                    host.input.selection.extend(
+                        &mut host.selected,
+                        cursor,
+                        next,
+                        pulled,
+                        host.input.shown.as_deref(),
+                    );
+                    host.nav.landed = None;
                     host.pane.cursor = next;
                 } else {
                     host.pane.cursor = next;
@@ -169,6 +171,8 @@ impl Shell {
         if host.pane.busy() || host.stopped {
             return;
         }
+        // Every press starts its own gesture, so no earlier tile press can lift rows for this one.
+        host.input.press = None;
         // The glide lands in its own borrow, so a carry drop below can read the whole pane host.
         let Some(grid) = host.grid.as_mut() else {
             return;
@@ -221,79 +225,23 @@ impl Shell {
                 return;
             }
         }
-        let Some(hit) = hit else { return };
-        let Some(drawn) = state.drawn().iter().find(|drawn| drawn.view == hit) else {
+        if hit.is_none() {
             return;
-        };
-        let row = drawn.listing;
-        let Some(facts) = host.pane.held.row(row) else {
-            return;
-        };
-        let Some(binding) = pointer("listing", if facts.dir { "dir" } else { "file" }, event)
-        else {
-            return;
-        };
-        // GridArea.qml onTapped: a lone left tap on the painted caption arms the slow click, any other tap ends it.
-        let tap =
-            (event.button == gpui::MouseButton::Left).then(|| crate::window::rename::slow::Tap {
-                row,
-                on_name: event.click_count == 1
-                    && drawn.painted.contains(f32::from(at.x), f32::from(at.y)),
-                modifiers: event.modifiers,
-                was_sole: crate::input::slow::was_sole_selection(
-                    host.selected.len(),
-                    host.selected.binary_search(&row).is_ok(),
-                    host.pane.cursor == row,
-                ),
-            });
+        }
         drop(state);
-        let old = host.pane.cursor;
-        match binding.effect {
-            "selectOnly" => {
-                host.selected = vec![row];
-                host.pane.cursor = row;
-            }
-            "toggleSelect" if event.click_count == 1 => {
-                if host.selected.binary_search(&row).is_ok() {
-                    host.selected.retain(|at| *at != row);
-                } else {
-                    host.selected.push(row);
-                    host.selected.sort_unstable();
-                }
-                host.pane.cursor = row;
-            }
-            "extendSelect" if event.click_count == 1 => {
-                host.selected = (old.min(row)..=old.max(row)).collect();
-                host.pane.cursor = row;
-            }
-            "open" | "menu" => {
-                host.pane.cursor = row;
-                if host.selected.binary_search(&row).is_err() {
-                    host.selected = vec![row];
-                }
-            }
-            _ => {}
+        self.hold_pointer(side, true, window, cx);
+        self.pointer_down(side, event, window, cx);
+    }
+
+    pub(crate) fn begin_grid_drag(&mut self, side: usize, window: &Window, cx: &mut Context<Self>) {
+        // A travelled tile press cannot become a tap, even when its lift is refused.
+        if let Some(press) = self.panes[side]
+            .as_mut()
+            .and_then(|host| host.input.press.as_mut())
+        {
+            press.dragged = true;
         }
-        self.focus_side = side;
-        if matches!(binding.effect, "open" | "menu" | "openTab") {
-            let event = ActionEvent {
-                action: binding.effect,
-                context: flea::keys::Context::Listing,
-                seat: flea::keys::sequence::Seat {
-                    listing: host.pane.held.listing as u64,
-                    cursor: row,
-                    view: self.view as u64,
-                    focus: side as u64,
-                    ..Default::default()
-                },
-                pair_armed: false,
-            };
-            self.dispatch(Order::Action(event), window, cx);
-        }
-        if let Some(tap) = tap {
-            self.slow_tap(side, tap, window, cx);
-        }
-        cx.notify();
+        self.begin_file_drag(side, window, cx);
     }
 
     // Tests drive a scroll with no glide; production scrolls come through grid_scroll_at.

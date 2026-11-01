@@ -227,3 +227,68 @@ fn scrollkeys_grid_error_ends_the_scrollbar_grab_and_pointer_hold() {
         assert!(host.input.drawn.is_none());
     });
 }
+
+// case_shiftscroll and click_row: a rowCentre is a point a click lands on, so a part-drawn bottom row answers none.
+fn centres_stay_inside_the_list_area(view: View) {
+    let mut cx = host::context();
+    let handle = mounted(&mut cx, view);
+    // Sample input: "192 54 908 619" (x y width height).
+    fn numbers(
+        shell: &mut Shell,
+        function: &str,
+        args: &[&str],
+        window: &mut gpui::Window,
+        cx: &mut gpui::Context<Shell>,
+    ) -> Vec<i64> {
+        host::call(shell, function, args, window, cx)
+            .stdout
+            .split_whitespace()
+            .map(|n| n.parse().unwrap())
+            .collect()
+    }
+    // Scroll so row 30's top shows only 4 px above the area's bottom edge.
+    host::change(&mut cx, handle, |shell, window, cx| {
+        let area = numbers(shell, "listAreaRect", &[], window, cx);
+        let row = numbers(shell, "rowRect", &["0"], window, cx);
+        let scroll = (30 * row[3] - area[3] + 4) as f32;
+        shell.panes[0].as_mut().unwrap().pane.scroll_y = scroll;
+        cx.notify();
+    });
+    host::frame(&mut cx, handle);
+    host::change(&mut cx, handle, |shell, window, cx| {
+        let area = numbers(shell, "listAreaRect", &[], window, cx);
+        let edge = numbers(shell, "rowRect", &["30"], window, cx);
+        assert_eq!(edge.len(), 4, "row 30 is drawn part way at the bottom edge");
+        assert!(edge[1] < area[1] + area[3] && edge[1] + edge[3] > area[1] + area[3]);
+        assert_eq!(
+            host::call(shell, "rowCentre", &["30"], window, cx)
+                .stdout
+                .trim(),
+            ""
+        );
+        for index in 0..80 {
+            let centre = numbers(shell, "rowCentre", &[&index.to_string()], window, cx);
+            if let [x, y] = centre[..] {
+                assert!(
+                    x >= area[0] && x < area[0] + area[2] && y >= area[1] && y < area[1] + area[3],
+                    "row {index}'s centre {x},{y} lies outside {area:?}"
+                );
+            }
+        }
+        assert_eq!(
+            numbers(shell, "rowCentre", &["29"], window, cx).len(),
+            2,
+            "row 29 is whole"
+        );
+    });
+}
+
+#[test]
+fn ey444_list_row_centres_stay_inside_the_list_area() {
+    centres_stay_inside_the_list_area(View::List);
+}
+
+#[test]
+fn ey444_columns_row_centres_stay_inside_the_list_area() {
+    centres_stay_inside_the_list_area(View::Columns);
+}

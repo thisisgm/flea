@@ -35,21 +35,18 @@ impl Shell {
             .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
         let (menu_target, rename_slot) = self.column_menu_focus(side);
         let host = self.panes[side].as_mut()?;
-        let active = host.columns.as_ref()?;
+        let active = host.columns.as_mut()?;
+        active.settle_hover(host.pane.held.listing, blocked || host.pane.busy());
         rows.hovered = active
             .hover
             .as_ref()
-            .filter(|hover| {
-                !blocked
-                    && !host.pane.busy()
-                    && hover.slot == Slot::Active
-                    && hover.holds(active.area.tracks(), host.pane.held.listing)
-            })
+            .filter(|hover| hover.slot == Slot::Active)
             .map(|hover| hover.index);
         let contents_scroll = active.scroll[Slot::Active.index()]
             .input
             .drawn(host.pane.scroll_y);
         let row_height = host.columns_row_height();
+        let grey = !rows.focused;
         let mut blocks = Self::contents_element(
             host,
             &self.launch.settings.data,
@@ -85,15 +82,6 @@ impl Shell {
             _ => &host.pane.state.query,
         }
         .into();
-        // A hover reads the rows drawn when it was made: a busy pane, a new track set or a new listing drops it until the pointer moves.
-        if host.pane.busy()
-            || columns
-                .hover
-                .as_ref()
-                .is_some_and(|hover| !hover.holds(&tracks, host.pane.held.listing))
-        {
-            columns.hover = None;
-        }
         let focus = Rc::new(Focus {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
@@ -105,7 +93,7 @@ impl Shell {
                 .hover
                 .as_ref()
                 .map(|hover| (hover.slot, hover.index)),
-            ..Focus::default()
+            grey,
         });
         drop(list);
         let clip = self.clipboard.column_marks();

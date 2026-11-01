@@ -285,3 +285,71 @@ fn columns_and_grid_row_facts_keep_kind_and_viewport_bounds() {
 
 #[path = "view_every_surface_tests.rs"]
 mod surface;
+
+// EY-441, Ipc.qml drawnCount: Columns and Grid answer the rows a standing filter narrowed to.
+#[test]
+fn drawn_count_follows_a_standing_filter_in_columns_and_grid() {
+    for view in [View::Columns, View::Grid] {
+        let mut cx = context();
+        let (window, _requests) = open(&mut cx, view);
+        ready(&mut cx, window, "current", 1000);
+        draw(&mut cx, window);
+        assert_eq!(
+            call(&mut cx, window, "drawnCount", &[]),
+            Reply::value("1000")
+        );
+        window
+            .update(&mut cx, |shell, _, _| {
+                let shown: std::rc::Rc<[usize]> = std::rc::Rc::from([0usize, 2, 4]);
+                shell.panes[0].as_mut().unwrap().filter.shown = Some(shown);
+            })
+            .unwrap();
+        draw(&mut cx, window);
+        assert_eq!(
+            call(&mut cx, window, "drawnCount", &[]),
+            Reply::value("3"),
+            "{view:?}"
+        );
+    }
+}
+
+#[test]
+fn ey444_filtered_list_row_boxes_follow_view_positions() {
+    let mut cx = context();
+    let (window, _requests) = open(&mut cx, View::List);
+    ready(&mut cx, window, "current", 5);
+    window
+        .update(&mut cx, |shell, _, _| {
+            shell.panes[0].as_mut().unwrap().filter.shown = Some(std::rc::Rc::from([2usize, 4]));
+        })
+        .unwrap();
+    draw(&mut cx, window);
+    // Sample input: "192 54 908 619" (x y width height).
+    let numbers = |reply: Reply| -> Vec<i64> {
+        reply
+            .stdout
+            .split_whitespace()
+            .map(|n| n.parse().unwrap())
+            .collect()
+    };
+    let area = numbers(call(&mut cx, window, "listAreaRect", &[]));
+    let first = numbers(call(&mut cx, window, "rowRect", &["2"]));
+    let second = numbers(call(&mut cx, window, "rowRect", &["4"]));
+    assert_eq!(
+        first.len(),
+        4,
+        "the first filtered row was drawn: {first:?}"
+    );
+    assert_eq!(
+        second.len(),
+        4,
+        "the second filtered row was drawn: {second:?}"
+    );
+    assert_eq!(first[1], area[1]);
+    assert_eq!(second[1], first[1] + first[3]);
+    let centre = numbers(call(&mut cx, window, "rowCentre", &["4"]));
+    assert_eq!(
+        centre[1],
+        (second[1] as f32 + second[3] as f32 / 2.).round() as i64
+    );
+}

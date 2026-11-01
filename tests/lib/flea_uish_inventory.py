@@ -145,7 +145,9 @@ BATCHES = {'tests/ui-uish/common-observers.sh': ['scroll', 'colour', 'lifted', '
  'tests/ui-uish/open-with.sh': ['openterminal', 'makeexec', 'openwithdesign'],
  'tests/ui-uish/drag.sh': ['griddrop', 'railpointer', 'dualautohidereveal', 'dualdivider'],
  'tests/ui-uish/menus.sh': ['querypaste', 'runscript', 'background', 'hidden', 'reload', 'focus', 'columnsbackground'],
- 'tests/ui-uish/backend.sh': ['terminal']}
+ 'tests/ui-uish/backend.sh': ['terminal'],
+ 'tests/ui-uish/autofit.sh': ['columnautofit'],
+ 'tests/ui-uish/input.sh': ['shiftscroll', 'overlays']}
 FUNCTION = re.compile(r"^case_([A-Za-z0-9_]+)\(\) (?:\{[^\n]*\}|\{\n.*?^\}|\(\n.*?^\))(?=\n|$)", re.M | re.S)
 DEFINITION = re.compile(r"^[ \t]*(?:function[ \t]+case_([A-Za-z0-9_]+)(?:[ \t]*\([ \t]*\))?|case_([A-Za-z0-9_]+)[ \t]*\([ \t]*\))[ \t]*[({]", re.M)
 WANTED = re.compile(r"wanted=\((cursor [^\n]+)\)")

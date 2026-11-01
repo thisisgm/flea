@@ -318,7 +318,11 @@ impl Shell {
             }
             if effect != Some("openTab") {
                 host.pane.cursor = row;
-                if let Some(mut frame) = host.input.frame {
+                if let Some(mut frame) = host
+                    .input
+                    .frame
+                    .filter(|_| self.view != crate::window::startup::View::Grid)
+                {
                     frame.scroll = host.pane.scroll_y;
                     host.pane.scroll_to(super::scroll::reveal(
                         frame,
@@ -333,6 +337,8 @@ impl Shell {
                 && count == 1
                 && if self.view == crate::window::startup::View::Columns {
                     crate::window::columns::on_name(host, row, event.position.x)
+                } else if self.view == crate::window::startup::View::Grid {
+                    super::views::grid_on_name(host, row, event.position)
                 } else {
                     host.list.borrow().on_name(row, event.position.x)
                 };

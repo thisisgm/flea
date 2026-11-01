@@ -164,7 +164,9 @@ fn pb_scroll_column_knob_keeps_drag_outside_and_releases() {
         Modifiers::none(),
     );
     host::frame(&mut cx, handle);
-    let maximum = TOTAL as f32 * crate::list::pane::ROW_HEIGHT - f32::from(rect.size.height);
+    // The active track's travel ends past its last row by ColumnPane.qml's footer.
+    let maximum = TOTAL as f32 * crate::list::pane::ROW_HEIGHT + crate::columns::geometry::FOOTER
+        - f32::from(rect.size.height);
     assert!((scrolls(&mut cx, handle)[slot.index()] - maximum).abs() < 1.);
     VisualTestContext::from_window(handle.into(), &cx).simulate_mouse_up(
         outside,

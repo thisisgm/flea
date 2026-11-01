@@ -69,6 +69,9 @@ impl Navigator {
             return;
         }
         let paths = anchor.apply(pane, selected);
+        if paths.is_none() && anchor.had_marks && anchor.lone {
+            self.lone_mark = selected.first().copied();
+        }
         if anchor.landed {
             self.grid_landing = anchor
                 .grid_offset
@@ -152,6 +155,9 @@ impl Navigator {
             return false;
         }
         anchor.located(if ok { matches } else { &[] }, selected);
+        if anchor.lone {
+            self.lone_mark = selected.first().copied();
+        }
         self.anchor = None;
         true
     }

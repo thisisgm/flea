@@ -54,10 +54,20 @@ pub(super) fn surface(
                     } else {
                         columns.area.scroll(slot)
                     };
+                    let content = if slot == Slot::Active {
+                        crate::columns::geometry::active_content(
+                            grow,
+                            total,
+                            row,
+                            &host.list.borrow().typeface,
+                        )
+                    } else {
+                        grow.content(total, row)
+                    };
                     if slot == Slot::Active {
-                        host.pane.scroll_extent = Some(grow.content(total, row));
+                        host.pane.scroll_extent = Some(content);
                     }
-                    let lane = f32::from(host.list.borrow().typeface.body);
+                    let lane = crate::columns::geometry::lane(&host.list.borrow().typeface);
                     let state = &mut columns.scroll[slot.index()];
                     let was_grabbed = state.input.grab.is_some();
                     let snapshot = super::scroll::snapshot(
@@ -70,7 +80,7 @@ pub(super) fn surface(
                             bounds,
                             row,
                             lane,
-                            content: grow.content(total, row),
+                            content,
                             scroll,
                             listing: if slot == Slot::Active {
                                 host.pane.held.listing

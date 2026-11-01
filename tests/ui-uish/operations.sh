@@ -21,7 +21,7 @@ case_dd() {
     [[ "$(ipc selectedIndices)" == "1,2" ]] || fail "dd: the block is $(ipc selectedIndices), not rows 1,2"
     trash_trap_own "$dd_trash" "$dir" "dd" f2.txt f3.txt
     key d >/dev/null
-    wait_message "Press d again to move them to Trash, or Delete on its own."
+    wait_message "Press d again to move them to Trash, or press Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f3.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f3.txt" ]] && fail "dd: the block was not trashed, the bar reads $(ipc lastMessage)"
@@ -44,7 +44,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f5.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, or press Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f5.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f5.txt" ]] && fail "dd: the row was not trashed, the bar reads $(ipc lastMessage)"
@@ -67,7 +67,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f6.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, or press Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f6.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f6.txt" ]] && fail "dd: the last row was not trashed, the bar reads $(ipc lastMessage)"
@@ -126,7 +126,7 @@ case_ddclick() {
         want="f$cur.txt"
         trash_trap_own "$ddclick_trash" "$dir" "ddclick ($view)" "$want"
         key d >/dev/null
-        wait_message "Press d again to move it to Trash, or Delete on its own."
+        wait_message "Press d again to move it to Trash, or press Delete on its own."
         key d >/dev/null
         for _attempt in $(seq 1 40); do [[ -e "$dir/$want" ]] || break; sleep 0.25; done
         [[ -e "$dir/$want" ]] && fail "ddclick ($view): $want survived, the bar reads $(ipc lastMessage)"

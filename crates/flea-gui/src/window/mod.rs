@@ -133,9 +133,15 @@ pub fn open(
 }
 
 #[cfg(test)]
+mod columns_hover_uish_tests;
+#[cfg(test)]
 mod columns_key_repeat_tests;
 #[cfg(test)]
 pub(crate) mod columns_tests;
+#[cfg(test)]
+mod columns_uish_tests;
+#[cfg(test)]
+mod cursor_focus_uish_tests;
 #[cfg(test)]
 mod ipc_cold_tests;
 #[cfg(test)]

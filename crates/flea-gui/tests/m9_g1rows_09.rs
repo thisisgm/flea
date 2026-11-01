@@ -160,7 +160,7 @@ fn m9_g1rows_09_marks_do_not_shift_with_selection_or_elision() {
                     host.focus = Rc::new(FocusSnapshot {
                         cursor: if rung == 2 { 0 } else { usize::MAX },
                         selected: if rung == 3 { vec![0, 1, 2] } else { Vec::new() },
-                        band: false,
+                        ..Default::default()
                     });
                     host.view.hovered = (rung == 1).then_some(0);
                 });

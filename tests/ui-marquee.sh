@@ -76,10 +76,10 @@ marquee_cleanup() {
 }
 
 marquee_press() {
-    local cx="$1" cy="$2" ctrl="${3:-false}" wx wy ww wh
+    local cx="$1" cy="$2" ctrl="${3:-false}" tolerance="${4:-4}" wx wy ww wh
     read -r wx wy ww wh < <(window_box) || fail "marquee: owned window is unavailable"
     (( cx >= 0 && cy >= 0 && cx < ww && cy < wh )) || fail "marquee: press is outside the owned client"
-    marquee_glide "$((wx + cx))" "$((wy + cy))"
+    marquee_glide "$((wx + cx))" "$((wy + cy))" "$tolerance"
     if [[ "$ctrl" == true ]]; then
         ydotool key 29:1 >/dev/null 2>&1 || fail "marquee: Ctrl press failed"
         marquee_ctrl_down=true
@@ -455,8 +455,8 @@ marquee_grid_margin() {
     (( columns >= 4 && columns < 12 )) || fail "marquee: Grid row holds $columns tiles, want a first row of four or more"
     read -r rx ry rw rh <<< "$(ipc rowRect 1)"
     [[ "$rx $ry $rw $rh" =~ ^[0-9]+(\ [0-9]+){3}$ ]] || fail "marquee: Grid tile 1 has no geometry: $rx $ry $rw $rh"
-    # Three pixels inside tile 1's right edge is cell margin, clear of its icon box and its caption.
-    marquee_press "$((rx + rw - 3))" "$((ry + rh / 2))"
+    # Keep glide tolerance inside the three pixel margin so the press cannot cross into tile 2.
+    marquee_press "$((rx + rw - 3))" "$((ry + rh / 2))" false 1
     marquee_state '.tracking and (.active | not)' "a press on the margin between two middle Grid tiles owns a pending band"
     read -r cx cy <<< "$(ipc rowCentre "$((columns + 2))")"
     marquee_to "$cx" "$cy"

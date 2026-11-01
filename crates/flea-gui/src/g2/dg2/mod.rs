@@ -278,4 +278,6 @@ mod mounted_tests;
 #[cfg(test)]
 mod drop_aim_tests;
 #[cfg(test)]
+mod grid_drop_tests;
+#[cfg(test)]
 mod pb_devices_2_tests;
