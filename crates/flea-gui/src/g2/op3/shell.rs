@@ -329,6 +329,7 @@ pub type Wire = dyn Fn(Control, Stateful<Div>) -> Stateful<Div>;
 /// The same board drawing with live controls and the window's card surface role.
 pub struct Interactive<'a> {
     pub wire: &'a Wire,
+    pub frame: &'a dyn Fn(Stateful<Div>) -> Stateful<Div>,
     pub surface: Hsla,
     pub entry: &'a crate::path::entry::Entry,
 }

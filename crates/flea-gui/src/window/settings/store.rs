@@ -36,6 +36,13 @@ pub enum Update {
         through: u64,
         keep: bool,
     },
+    FavouriteFailed {
+        through: u64,
+        detail: String,
+    },
+    FavouriteCommitted {
+        through: u64,
+    },
 }
 
 pub struct Worker {
@@ -133,15 +140,47 @@ impl Worker {
                             let output = Command::new(&binary)
                                 .args([mode, flea::jsondoc::render(value).trim_end()])
                                 .output();
-                            let document =
-                                output.ok().filter(|o| o.status.success()).and_then(|o| {
+                            let document = output
+                                .as_ref()
+                                .ok()
+                                .filter(|o| o.status.success())
+                                .and_then(|o| {
+                                    // Sample response: {"places":{"favourites":[{"label":"Personal","path":"smb://host/share/"}]}}.
                                     flea::jsondoc::parse(&String::from_utf8_lossy(&o.stdout)).ok()
+                                })
+                                .filter(|document| {
+                                    operation.is_none()
+                                        || document
+                                            .get("places")
+                                            .and_then(|places| places.get("favourites"))
+                                            .and_then(Json::as_array)
+                                            .is_some()
                                 });
                             let update = match document {
                                 Some(document) => Update::Loaded {
                                     document,
                                     through,
                                     saved: operation.is_none(),
+                                },
+                                None if operation.is_some()
+                                    && output
+                                        .as_ref()
+                                        .is_ok_and(|output| output.status.success()) =>
+                                {
+                                    Update::FavouriteCommitted { through }
+                                }
+                                None if operation.is_some() => Update::FavouriteFailed {
+                                    through,
+                                    detail: output.as_ref().ok().map_or_else(
+                                        String::new,
+                                        |output| {
+                                            // Sample stderr: "flea: /fixture/ui.json could not be read, so no settings were written\n".
+                                            let stderr = String::from_utf8_lossy(&output.stderr);
+                                            let line =
+                                                stderr.lines().next().unwrap_or_default().trim();
+                                            line.strip_prefix("flea: ").unwrap_or(line).into()
+                                        },
+                                    ),
                                 },
                                 None => Update::Failed {
                                     through,

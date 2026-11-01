@@ -1,10 +1,11 @@
 //! The live rail row reaches PL2's service, and its mount reply navigates only the pane that asked.
 use super::*;
 use crate::backend::Backend;
-use crate::g2::pl1::process::{Handle, Job, Outcome};
+use crate::g2::pl1::process::{Event as Proc, Handle, Job, Outcome};
 use crate::state::tests::shell_with;
-use crate::window::rail::mount;
+use crate::window::rail::{mount, mount_with_source};
 use gpui::{AnyView, TestAppContext, VisualTestContext};
+use std::time::Duration;
 
 #[path = "network_alias_tests.rs"]
 mod alias_tests;
@@ -12,6 +13,11 @@ mod alias_tests;
 mod bfx_net_tests;
 #[path = "network_vf3_tests.rs"]
 mod vf3_tests;
+
+#[path = "network_handoff_tests.rs"]
+mod handoff_tests;
+#[path = "network_native11_tests.rs"]
+mod native11_tests;
 
 #[derive(Default)]
 struct Recorder {
@@ -21,6 +27,14 @@ struct Recorder {
 impl Runner for Recorder {
     fn start(&self, job: Job) -> Handle {
         let (handle, send) = Handle::detached();
+        if job.argv.first().is_some_and(|program| program == "lsblk") {
+            send.try_send(Proc::Exited(Outcome {
+                code: 0,
+                stdout: "{\"blockdevices\":[]}".into(),
+                stderr: String::new(),
+            }))
+            .unwrap();
+        }
         self.jobs.borrow_mut().push(job);
         self.answers.borrow_mut().push(send);
         handle
@@ -67,10 +81,13 @@ fn open(
         shell.panes[1] = shell_with(right, cx).panes[0].take();
         shell.view = crate::window::startup::View::Dual;
         window.focus(&shell.focus, cx);
-        let mut join = mount(
+        let mut join = mount_with_source(
             shell.locale.catalog.clone(),
             &shell.launch.settings.data,
             shell.focus_side,
+            recorder.clone(),
+            Some("testhost".into()),
+            None,
             cx,
         );
         join.network_runner = recorder;
@@ -89,6 +106,28 @@ fn frame(cx: &mut VisualTestContext) {
         window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
+}
+
+#[gpui::test]
+fn uish_misc_network_and_phone_rows_share_one_mount_listing(cx: &mut TestAppContext) {
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx, _) = open(recorder.clone(), cx);
+    let listings = recorder.find("-li");
+    assert_eq!(
+        listings.len(),
+        1,
+        "a window must not race two mount-list producers"
+    );
+    let text = "Mount(0): NAS -> smb://host/share/\nVolume(0): Phone\n  Type: GProxyVolume (GProxyVolumeMonitorMTP)\n  activation_root=mtp://phone/\n  can_mount=1\n  Mount(1): Phone -> mtp://phone/\n";
+    recorder.answer(listings[0], 0, text);
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, cx| {
+        let join = shell.rail.as_ref().unwrap();
+        assert_eq!(join.devices.read(cx).mount_snapshot().1.text, text);
+        assert_eq!(join.network.as_ref().unwrap().listing.text, text);
+        assert_eq!(join.devices.read(cx).phones.entries.len(), 1);
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
 fn drain(lines: &mut Lines) -> Vec<String> {
@@ -321,3 +360,12 @@ mod motion_tests;
 mod muted_tests;
 #[path = "network_open_focus_tests.rs"]
 mod open_focus_tests;
+
+#[path = "network_native11_view_tests.rs"]
+mod native11_view_tests;
+
+#[path = "network_native12_tests.rs"]
+mod native12_tests;
+
+#[path = "network_bridge_line_tests.rs"]
+mod bridge_line_tests;

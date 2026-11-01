@@ -159,13 +159,13 @@ fn fix1_operation_and_browser_secrets_end_with_their_owner() {
 }
 
 #[test]
-fn fix1_secrets_move_out_of_the_dialog_and_nfs_cannot_authenticate() {
+fn fix1_secrets_stay_in_the_live_draft_and_nfs_cannot_authenticate() {
     let mut d = Dialog::default();
     d.open();
     d.form.host = "host".into();
     d.password.push_str("synthetic-secret");
     let e = d.submit().pop().unwrap();
-    assert!(d.password.is_empty());
+    assert_eq!(d.password.expose(), b"synthetic-secret");
     assert!(
         matches!(&e, DialogEffect::Mount { password, .. } if password.expose() == b"synthetic-secret")
     );

@@ -1,5 +1,8 @@
 //! Conversion readers use the mounted output card and the focused backend's capabilities.
-use super::Adapter;
+use super::{
+    rows::{centre_of, rect_of},
+    Adapter,
+};
 use crate::{g2::op4::model::Card, state::Shell};
 use flea::ipc::wire::Reply;
 use gpui::App;
@@ -78,6 +81,39 @@ impl Adapter for OutputAdapter<'_> {
         }
         if function == "combineState" {
             return Some(Reply::value(self.combine_state()));
+        }
+        if matches!(function, "convertCardRect" | "convertTitleCentre") {
+            // The boxes the open Convert card last painted, as Ipc.qml read its card and title.
+            let view = self
+                .shell
+                .output
+                .view
+                .as_ref()
+                .map(|view| view.read(self.cx));
+            let observed = view
+                .filter(|view| matches!(view.model.card, Some(Card::Convert(_))))
+                .and_then(|view| {
+                    if function == "convertCardRect" {
+                        view.observed.card.get().map(|b| {
+                            rect_of(
+                                f32::from(b.origin.x),
+                                f32::from(b.origin.y),
+                                f32::from(b.size.width),
+                                f32::from(b.size.height),
+                            )
+                        })
+                    } else {
+                        view.observed.title.get().map(|b| {
+                            centre_of(
+                                f32::from(b.origin.x),
+                                f32::from(b.origin.y),
+                                f32::from(b.size.width),
+                                f32::from(b.size.height),
+                            )
+                        })
+                    }
+                });
+            return Some(Reply::value(observed.unwrap_or_default()));
         }
         if !matches!(
             function,

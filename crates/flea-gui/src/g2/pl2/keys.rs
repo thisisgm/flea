@@ -39,6 +39,7 @@ impl NetworkView {
                     k.key.as_str(),
                     "escape"
                         | "tab"
+                        | "backtab"
                         | "enter"
                         | "space"
                         | "backspace"
@@ -70,8 +71,8 @@ impl NetworkView {
         }
         if self.model.committed {
             match k.key.as_str() {
-                "tab" => {
-                    self.model.step(k.modifiers.shift);
+                "tab" | "backtab" => {
+                    self.model.step(k.modifiers.shift || k.key == "backtab");
                     self.load_input();
                     self.changed(cx);
                 }
@@ -101,8 +102,8 @@ impl NetworkView {
             return;
         }
         match k.key.as_str() {
-            "tab" => {
-                self.model.step(k.modifiers.shift);
+            "tab" | "backtab" => {
+                self.model.step(k.modifiers.shift || k.key == "backtab");
                 self.load_input();
             }
             "enter" => {

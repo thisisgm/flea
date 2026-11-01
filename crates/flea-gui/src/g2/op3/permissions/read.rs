@@ -1,17 +1,24 @@
-//! The open card's permissionsState: v0.3.12's facts, edit state and controls, without the painted bounds GPUI does not record.
+//! The open card's permissionsState reads model facts and observed paint geometry.
 use super::{Permissions, Phase, Stop};
-use crate::g2::op3::shell::Tri;
+use crate::g2::op3::shell::{Control, Tri};
 use flea::jsondoc::Json;
 
 impl Permissions {
     /// Control names are v0.3.12's accessible names, so both frontends answer one contract.
-    pub fn state(&self) -> Json {
+    pub(crate) fn state(&self, observed: &super::observations::Observations) -> Json {
         let editable = self.phase == Phase::Ready && self.changeable();
         let control = |name: String, enabled: bool, stop: Stop| {
+            let target = match stop {
+                Stop::Box(at) => Control::Check(at),
+                Stop::Octal => Control::Field,
+                Stop::Cancel => Control::Button(0),
+                Stop::Apply => Control::Button(1),
+            };
             vec![
                 ("name".to_string(), Json::Str(name)),
                 ("enabled".to_string(), Json::Bool(enabled)),
                 ("focused".to_string(), Json::Bool(self.focus == stop)),
+                ("centre".to_string(), observed.centre(target)),
             ]
         };
         let execute = if self.held.directory {
@@ -44,6 +51,7 @@ impl Permissions {
         let busy = matches!(self.phase, Phase::Reading | Phase::Applying);
         Json::Obj(vec![
             ("opened".into(), Json::Bool(true)),
+            ("rect".into(), observed.rect()),
             ("inputReady".into(), Json::Bool(false)),
             ("path".into(), text(path)),
             ("mode".into(), text(&self.text)),

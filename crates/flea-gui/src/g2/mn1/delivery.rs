@@ -81,6 +81,9 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
+        if !capture.background && capture.ready && self.provider_before_activation(window, cx) {
+            return;
+        }
         if refresh::validate_choice(
             &self.menu_choice_entries(&action, &leaf),
             &action,
@@ -353,9 +356,11 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            self.menu
-                .actions
-                .run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
+            self.menu.actions.run_named_on(
+                side,
+                usize::try_from(capture.id).unwrap_or(usize::MAX),
+                &leaf,
+            );
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {

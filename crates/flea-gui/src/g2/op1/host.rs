@@ -16,6 +16,9 @@ use gpui::{
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+#[path = "host_input.rs"]
+mod input;
+
 pub struct Overlay {
     pub(super) editor: super::editor::Editor,
     pub frame: super::measured::Frame,
@@ -162,36 +165,7 @@ impl Overlay {
 
     // The destination handles editing first; the card swallows other modified keys, Escape excepted.
     pub fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        if self.held_key(event, cx) {
-            return;
-        }
-        let keys = &event.keystroke;
-        if self.copy_key(event, window, cx) {
-            return;
-        }
-        if keys.key == "escape" && !self.model.open() {
-            if !self.cancel_drawn_activity() {
-                return;
-            }
-            cx.stop_propagation();
-            cx.notify();
-            return;
-        }
-        let held = keys.modifiers.control || keys.modifiers.alt || keys.modifiers.platform;
-        if held && keys.key != "escape" {
-            if self.model.open() {
-                cx.stop_propagation();
-            }
-            return;
-        }
-        if self
-            .model
-            .key(&self.catalog, &keys.key, keys.modifiers.shift)
-        {
-            cx.stop_propagation();
-            cx.notify();
-            self.schedule(cx);
-        }
+        self.dispatch_key(event, window, cx);
     }
 }
 
@@ -205,12 +179,17 @@ impl Overlay {
         let paint = self.feedback_paint.clone();
         let observed = self.model.blocks.first().map(|(_, block)| block.id);
         let cancel_label: gpui::SharedString = self.catalog.tr("jobs.button.cancel").into();
+        let dismiss_label: gpui::SharedString = self.catalog.tr("jobs.button.dismiss").into();
         move |press: Press, button: Stateful<Div>| {
-            let button = if matches!(press, Press::Job(id, flea::ui_logic_op1::jobs::Action::Cancel) if Some(id) == observed)
-            {
-                paint.watch(button, "cancel", cancel_label.clone())
-            } else {
-                button
+            use flea::ui_logic_op1::jobs::Action;
+            let button = match press {
+                Press::Job(id, Action::Cancel) if Some(id) == observed => {
+                    paint.watch(button, "cancel", cancel_label.clone())
+                }
+                Press::Job(id, Action::Dismiss) if Some(id) == observed => {
+                    paint.watch(button, "dismiss", dismiss_label.clone())
+                }
+                _ => button,
             };
             let (hover, down, up, click) = (
                 entity.clone(),

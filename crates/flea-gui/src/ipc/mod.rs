@@ -34,6 +34,7 @@ pub mod rows;
 pub mod server;
 pub(crate) mod settings;
 pub(crate) mod status;
+mod status_activity;
 mod status_card;
 pub mod strips;
 mod surface;

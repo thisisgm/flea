@@ -141,6 +141,7 @@ impl DialogShell for OpenWithShell<'_> {
     ) -> AnyElement {
         let live = Live {
             wire: self.wire,
+            frame: None,
             surface: Some(self.surface),
             entry: None,
             probe: None,
@@ -165,6 +166,7 @@ impl DialogShell for Interactive<'_> {
     ) -> AnyElement {
         let live = Live {
             wire: self.wire,
+            frame: Some(self.frame),
             surface: Some(self.surface),
             entry: Some(self.entry),
             probe: None,
@@ -177,6 +179,7 @@ impl DialogShell for Interactive<'_> {
 /// The one live path every card takes: its wired controls, and the window's surface and text entry where it has them.
 struct Live<'a> {
     wire: &'a Wire,
+    frame: Option<&'a dyn Fn(Stateful<Div>) -> Stateful<Div>>,
     surface: Option<Hsla>,
     entry: Option<&'a crate::path::entry::Entry>,
     probe: Option<&'a crate::g2::st1::probe::Probe>,
@@ -253,7 +256,7 @@ fn present(
         .child(head)
         .child(draw.track(rule, "titleRule"));
     let frame = draw.card_body(card, frame);
-    let frame = match draw.probe {
+    let mut frame = match draw.probe {
         Some(probe) => probe.attach(frame, "card"),
         None => frame,
     };
@@ -274,12 +277,16 @@ fn present(
             ),
         );
     }
+    frame = frame.child(buttons);
+    if let Some(observe) = live.and_then(|live| live.frame) {
+        frame = observe(frame);
+    }
     div()
         .size_full()
         .when(facts, |d| d.p(draw.px(GAP)))
         .flex()
         .items_center()
         .justify_center()
-        .child(draw.track(frame, "card").child(buttons))
+        .child(draw.track(frame, "card"))
         .into_any_element()
 }

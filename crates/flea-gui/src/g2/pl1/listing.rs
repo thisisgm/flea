@@ -12,7 +12,7 @@ pub enum Effect {
     Listed,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Listing {
     /// The last listing that finished on time.
     pub text: String,

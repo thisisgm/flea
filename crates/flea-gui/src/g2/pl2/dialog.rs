@@ -177,6 +177,7 @@ impl Dialog {
         self.pending_label = self.form.name();
         self.status = None;
         self.detail.clear();
+        self.reveal = false;
         self.focus = Focus::Connect;
         if self.mounted_uri == uri {
             self.password.clear();
@@ -189,7 +190,7 @@ impl Dialog {
             label: self.pending_label.clone(),
             origin: self.origin,
             password: if self.form.protocol.credentials() {
-                self.password.take()
+                Secret::from_bytes(self.password.expose())
             } else {
                 self.password.clear();
                 Secret::new()
@@ -212,6 +213,7 @@ impl Dialog {
             return Vec::new();
         }
         self.unacknowledged = None;
+        self.password.clear();
         self.mounted_uri = uri.into();
         self.save()
     }
@@ -251,7 +253,6 @@ impl Dialog {
         self.close()
     }
     pub fn failed(&mut self, key: &'static str, connect: bool) {
-        self.password.clear();
         self.reveal = false;
         self.status = Some(key);
         self.failed_connect = connect;
@@ -304,9 +305,19 @@ impl Dialog {
     }
     pub fn pick(&mut self, index: usize) {
         if let Some(protocol) = PROTOCOLS.get(index) {
+            let previous = self.ring();
+            let at = previous.iter().position(|f| *f == self.focus).unwrap_or(0);
             self.form.pick(*protocol);
-            if !self.ring().contains(&self.focus) {
-                self.focus = Focus::Host;
+            let visible = self.ring();
+            if !visible.contains(&self.focus) {
+                self.focus = previous
+                    .iter()
+                    .cycle()
+                    .skip(at + 1)
+                    .take(previous.len())
+                    .find(|f| visible.contains(f))
+                    .copied()
+                    .unwrap_or(Focus::Host);
             }
         }
     }

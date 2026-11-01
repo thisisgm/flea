@@ -238,6 +238,21 @@ impl NetworkView {
         target.clone_from(&self.input.text);
         self.changed(cx);
     }
+    pub(super) fn pointer_activate(&mut self, focus: Focus, cx: &mut Context<Self>) {
+        let Focus::Protocol(index) = focus else {
+            return self.activate(focus, cx);
+        };
+        if self.model.busy() || self.model.committed || !self.model.ring().contains(&focus) {
+            return;
+        }
+        let previous = self.model.focus;
+        self.model.pick(index);
+        if self.model.focus != previous || previous == Focus::Port {
+            self.load_input();
+        }
+        self.changed(cx);
+    }
+
     pub(super) fn activate(&mut self, focus: Focus, cx: &mut Context<Self>) {
         if focus == Focus::Eye {
             return;

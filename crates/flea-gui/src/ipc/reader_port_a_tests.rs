@@ -159,6 +159,9 @@ mod live;
 #[path = "reader_port_a_unlock_tests.rs"]
 mod unlock;
 
+#[path = "uish_native_reader_tests.rs"]
+mod uish_native;
+
 #[gpui::test]
 fn ipc_status_busy_reads_live_footer(cx: &mut TestAppContext) {
     let (handle, _backend) = open(cx);

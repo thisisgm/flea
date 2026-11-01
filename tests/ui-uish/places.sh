@@ -20,6 +20,7 @@ case_editplace() {
     # rail under test is exactly the two seeded lines and nothing the box happens to have open.
     cat > "$fake_root/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 case "\$1 \${2:-}" in
 "mount -li") exit 0 ;;
 "mount "*) printf '%s\n' "\$*" > "$mount_log" ;;
@@ -49,7 +50,7 @@ EOS
 
     click_rail_row "$legacy_index" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "editplace: the saved place offers $(ipc contextMenuEntries), not Rename, Edit address and Remove from Network"
     menu_seek "Edit address"
     key -k Return >/dev/null
@@ -397,10 +398,12 @@ EOS
 
     local state="$fixture_root/recent-state"
     seed_ui_state "$state" '{"places":{"showRecent":true}}'
-    local real_home="$HOME"
-    export HOME="$fixture_home"
+    # GPUI reads the history from XDG_DATA_HOME, so the fixture HOME's own data folder is passed for this launch.
+    local real_home="$HOME" real_data="${XDG_DATA_HOME-}"
+    export HOME="$fixture_home" XDG_DATA_HOME="$fixture_home/.local/share"
     launch "$dir"
     export HOME="$real_home"
+    if [[ -n "$real_data" ]]; then export XDG_DATA_HOME="$real_data"; else unset XDG_DATA_HOME; fi
     wait_listing 3
     local labels=
     for _attempt in $(seq 1 100); do

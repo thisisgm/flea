@@ -374,4 +374,5 @@ impl Permissions {
 
 mod draw;
 pub mod host;
+mod observations;
 mod read;

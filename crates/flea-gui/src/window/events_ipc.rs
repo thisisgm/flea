@@ -177,6 +177,7 @@ impl Shell {
                         .as_ref()
                         .and_then(|join| join.network.as_ref())
                         .map(|network| &*network.menu),
+                    &self.locale.catalog,
                 );
                 let menu = crate::g2::mn1::ipc::JoinedAdapter {
                     joined: &self.menu,
@@ -284,6 +285,11 @@ impl Shell {
                     view: focus.view.unwrap_or(""),
                     pane_focused: self.focus.is_focused(window),
                     list_focused: states.focused,
+                    share_focused: self
+                        .rail
+                        .as_ref()
+                        .and_then(|rail| rail.network.as_ref())
+                        .is_some_and(|network| network.shares.read(cx).inside(window, cx)),
                     drop_active: self.listing_floor_active(host, &list, &states, window, cx),
                 };
                 let archive_preview =

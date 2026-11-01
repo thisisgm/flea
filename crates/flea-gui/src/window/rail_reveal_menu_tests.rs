@@ -76,6 +76,22 @@ fn network_row_menu_answers_the_menu_readers_under_the_row(cx: &mut TestAppConte
         drawn.0
     );
     assert_eq!(read("contextMenuEntries", cx), drawn.0);
+    let inventory = flea::jsondoc::parse(&read("contextMenuModel", cx)).unwrap();
+    let labels = inventory
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            row.get("label")
+                .and_then(flea::jsondoc::Json::as_str)
+                .unwrap_or("-")
+        })
+        .collect::<Vec<_>>()
+        .join("|");
+    assert_eq!(
+        labels, drawn.0,
+        "the menu traversal budget must describe this card"
+    );
     assert_eq!(read("contextMenuCursor", cx), "0");
     let row = producer.read_with(cx, |producer, _| {
         producer.laid.borrow().row(index).unwrap().rect.x

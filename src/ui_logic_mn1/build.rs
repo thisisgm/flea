@@ -281,7 +281,13 @@ fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool) {
     e.submenu = Some(
         peers
             .iter()
-            .map(|peer| Entry::leaf(peer.id.clone(), Text::Data(peer.label.clone())))
+            .map(|peer| {
+                let mut entry = Entry::leaf(peer.id.clone(), Text::Data(peer.label.clone()));
+                if brand == Brand::Tailscale {
+                    entry.glyph = Some("server");
+                }
+                entry
+            })
             .collect(),
     );
     e.disabled = reading || peers.is_empty();

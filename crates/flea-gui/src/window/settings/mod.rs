@@ -16,10 +16,12 @@ mod locale;
 #[cfg(test)]
 mod m9_g1rows_05_tests;
 mod messages;
+mod network;
 #[cfg(test)]
 mod pb_favourite_tests;
 mod plugins;
 mod provenance;
+mod relist;
 #[cfg(test)]
 mod review_tests;
 #[cfg(test)]
@@ -56,6 +58,7 @@ pub(crate) struct Host {
     // Request revision and highest failed revision actually included in that request.
     pub retried: Vec<(u64, u64)>,
     pub favourite_focus: Option<(u64, usize)>,
+    pub network_favourite: Option<(u64, u64)>,
     pub revision: u64,
     pub claim: st1::claim::Claim,
     update: flea::ui_logic_st1::update::Status,
@@ -64,6 +67,8 @@ pub(crate) struct Host {
     pub about_open: bool,
     pub listed_paths: [String; 2],
     pub relist: [bool; 2],
+    /// Hidden changed, so the owed re-list is a fresh one back at row 0 (Pane.qml re-opens the folder).
+    pub relist_fresh: [bool; 2],
     sheet_sources_subscription: Option<Subscription>,
     pub messages: Option<Entity<crate::g2::fb1::line::MessageLine>>,
     sheet_subscription: Option<Subscription>,

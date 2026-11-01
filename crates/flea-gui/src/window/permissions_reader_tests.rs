@@ -107,3 +107,82 @@ fn m9_permissions_apply_rereads_keeping_the_cursor_row_and_marks(cx: &mut TestAp
     });
     assert_eq!(kept, Some(("notes.txt".to_owned(), 1)));
 }
+
+#[gpui::test]
+fn uish_misc_permissions_reader_observes_painted_controls(cx: &mut TestAppContext) {
+    let (handle, mut requests) = setup(cx);
+    choose(cx, handle, &mut requests);
+    next(&mut requests, "permissions", "inspect");
+    inspect(cx, handle, 1, "notes.txt", "0644", "");
+    let mut previous = None;
+    for (width, height) in [(1100., 700.), (1400., 900.)] {
+        let mut visual = VisualTestContext::from_window(handle.into(), cx);
+        visual.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));
+        visual.run_until_parked();
+        let frame = visual.debug_bounds("op3-card").unwrap();
+        let painted: Vec<_> = [
+            "op3-check-0",
+            "op3-check-1",
+            "op3-check-2",
+            "op3-check-3",
+            "op3-check-4",
+            "op3-check-5",
+            "op3-check-6",
+            "op3-check-7",
+            "op3-check-8",
+        ]
+        .into_iter()
+        .map(|selector| visual.debug_bounds(selector).unwrap())
+        .collect();
+        let open = state(cx, handle);
+        let rect = crate::ipc::rows::rect_of(
+            f32::from(frame.origin.x),
+            f32::from(frame.origin.y),
+            f32::from(frame.size.width),
+            f32::from(frame.size.height),
+        );
+        assert_eq!(open.get("rect").and_then(Json::as_str), Some(rect.as_str()));
+        if let Some(previous) = previous.replace(rect.clone()) {
+            assert_ne!(previous, rect, "a resize must replace the painted bounds");
+        }
+        let controls = open.get("controls").and_then(Json::as_array).unwrap();
+        for (at, bounds) in painted.iter().enumerate() {
+            let bit = (1u32 << (8 - at)).to_string();
+            let check = controls
+                .iter()
+                .find(|control| control.get("bit") == Some(&Json::Num(bit.clone())))
+                .unwrap();
+            let expected = crate::ipc::rows::centre_of_bounds(*bounds);
+            assert_eq!(
+                check.get("centre").and_then(Json::as_str),
+                Some(expected.as_str())
+            );
+            // Sample centre: "128 256".
+            let point: Vec<f32> = expected
+                .split_whitespace()
+                .map(|n| n.parse().unwrap())
+                .collect();
+            let before = state(cx, handle).get("mode").cloned();
+            let mut visual = VisualTestContext::from_window(handle.into(), cx);
+            let position = gpui::point(gpui::px(point[0]), gpui::px(point[1]));
+            visual.simulate_mouse_move(position, None, gpui::Modifiers::none());
+            visual.simulate_mouse_down(position, gpui::MouseButton::Left, gpui::Modifiers::none());
+            visual.simulate_mouse_up(position, gpui::MouseButton::Left, gpui::Modifiers::none());
+            visual.run_until_parked();
+            assert_ne!(state(cx, handle).get("mode").cloned(), before);
+            assert_eq!(
+                edit(cx, handle, |shell, _, _| shell.panes[0]
+                    .as_ref()
+                    .unwrap()
+                    .pane
+                    .cursor),
+                0
+            );
+        }
+    }
+    let open = state(cx, handle);
+    assert!(control(&open, "Cancel")
+        .get("centre")
+        .and_then(Json::as_str)
+        .is_some());
+}

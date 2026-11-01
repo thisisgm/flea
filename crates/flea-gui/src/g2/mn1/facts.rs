@@ -93,6 +93,7 @@ impl Shell {
             clipboard_available,
             clipboard_watch_failed,
             can_link,
+            can_trash: flea::ui_logic_pl1::mounts::trashable(&host.path, None),
             // Menu.js greys New Folder, New File, Paste and every writing row where the backend cannot write the folder.
             dir_writable: host
                 .backend

@@ -23,6 +23,7 @@ pub struct Changed(pub Effect);
 
 pub struct View {
     pub model: Permissions,
+    pub(crate) observed: super::observations::Observations,
     pub catalog: Arc<I18n>,
     pub corner: f32,
     pub opened: bool,
@@ -45,6 +46,7 @@ impl View {
     ) -> Self {
         let mut view = Self {
             model,
+            observed: super::observations::Observations::default(),
             catalog,
             corner,
             opened: true,
@@ -189,6 +191,7 @@ impl View {
 
 impl Render for View {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.observed.clear();
         if !self.opened {
             return div().into_any_element();
         }
@@ -200,16 +203,22 @@ impl Render for View {
         let palette = Palette::inherited(&window.text_style(), theme);
         let typeface = Typeface::for_window(window, cx);
         let weak = cx.entity().downgrade();
+        let observed = self.observed.clone();
         let wire = move |control, element: gpui::Stateful<gpui::Div>| {
             let weak = weak.clone();
-            element.on_click(move |_, _, cx| {
-                let _ = weak.update(cx, |view, cx| view.activate(control, cx));
-                cx.stop_propagation();
-            })
+            observed
+                .control(control, element)
+                .on_click(move |_, _, cx| {
+                    let _ = weak.update(cx, |view, cx| view.activate(control, cx));
+                    cx.stop_propagation();
+                })
         };
+        let observed = self.observed.clone();
+        let frame = move |element| observed.frame(element);
         let card = snapshot.map(|snapshot| {
             Interactive {
                 wire: &wire,
+                frame: &frame,
                 surface: theme.surface,
                 entry: &self.editor,
             }

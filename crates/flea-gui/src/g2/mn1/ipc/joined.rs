@@ -22,12 +22,19 @@ pub(crate) struct JoinedAdapter<'a> {
 }
 
 fn row(entry: Row<'_>) -> String {
+    let glyph = if entry.mark.is_some() {
+        "null".into()
+    } else {
+        format!("\"{}\"", escape(entry.glyph))
+    };
+    let mark = entry.mark.map_or(String::new(), |mark| {
+        format!(",\"mark\":\"{}\"", escape(mark))
+    });
     format!(
-        "{{\"id\":\"{}\",\"action\":\"{}\",\"label\":\"{}\",\"glyph\":\"{}\",\"disabled\":{},\"errored\":{},\"danger\":{},\"hint\":\"{}\"{}{}}}",
+        "{{\"id\":\"{}\",\"action\":\"{}\",\"label\":\"{}\",\"glyph\":{glyph}{mark},\"disabled\":{},\"errored\":{},\"danger\":{},\"hint\":\"{}\"{}{}}}",
         escape(entry.id),
         escape(entry.action),
         escape(entry.label),
-        escape(entry.glyph),
         entry.disabled,
         entry.ink == Ink::Errored,
         entry.ink == Ink::Danger,
@@ -44,11 +51,20 @@ struct Row<'a> {
     action: &'a str,
     label: &'a str,
     glyph: &'a str,
+    mark: Option<&'a str>,
     icon: Option<&'a str>,
     disabled: bool,
     ink: Ink,
     hint: &'a str,
     leaves: Option<String>,
+}
+
+fn brand_name(brand: flea::ui_logic_mn1::Brand) -> &'static str {
+    match brand {
+        flea::ui_logic_mn1::Brand::Tailscale => "tailscale",
+        flea::ui_logic_mn1::Brand::Dropbox => "dropbox",
+        flea::ui_logic_mn1::Brand::LocalSend => "localsend",
+    }
 }
 
 fn ink(entry: &Entry) -> Ink {
@@ -75,6 +91,7 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
         action: &entry.action,
         label: &text(&entry.label),
         glyph: lead_name(&lead(entry)),
+        mark: entry.brand.map(brand_name),
         icon: entry.icon.as_deref(),
         disabled: entry.disabled,
         ink: ink(entry),
@@ -99,7 +116,7 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
     output
 }
 
-pub(super) fn model(card: Option<&Card>, catalog: &I18n) -> String {
+pub(crate) fn model(card: Option<&Card>, catalog: &I18n) -> String {
     let rows = card
         .map(|card| {
             card.built
@@ -115,6 +132,10 @@ pub(super) fn model(card: Option<&Card>, catalog: &I18n) -> String {
                         action: &line.action,
                         label: label(line),
                         glyph: glyph(line),
+                        mark: match &line.lead {
+                            super::super::lines::Lead::Brand(brand) => Some(brand_name(*brand)),
+                            _ => None,
+                        },
                         icon: entry.icon.as_deref(),
                         disabled: line.disabled,
                         ink: line.ink,

@@ -135,7 +135,7 @@ impl Render for NetworkView {
                             drop(drawn);
                             this.reveal_held(false, cx);
                             if let Some(focus) = focus.filter(|f| Some(*f) == this.pressed.take()) {
-                                this.activate(focus, cx);
+                                this.pointer_activate(focus, cx);
                             }
                             this.pressed = None;
                             this.paint_changed(cx);

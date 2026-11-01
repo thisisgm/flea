@@ -206,7 +206,7 @@ impl Shell {
         let Some(host) = &self.panes[side] else {
             return;
         };
-        if self.input_blocked(cx) {
+        if self.wheel_blocked(cx) {
             return;
         }
         if host.pane.held.row(host.pane.cursor).is_none() && self.locked_folder(side).is_none() {
@@ -238,7 +238,7 @@ impl Shell {
             .as_ref()
             .is_some_and(|host| host.pane.held.total == 0);
         // A locked folder keeps its own menu or its own refusal in open_menu.
-        if empty && self.locked_folder(side).is_none() && !self.input_blocked(cx) {
+        if empty && self.locked_folder(side).is_none() && !self.wheel_blocked(cx) {
             let sentence = self.locale.catalog.tr("menu.refusal.nocursor");
             if let Some(host) = &mut self.panes[side] {
                 host.status = sentence.clone().into();

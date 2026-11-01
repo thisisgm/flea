@@ -51,6 +51,10 @@ pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::Message
     let cancel = overlay
         .filter(|_| visible)
         .and_then(|o| o.feedback_paint.get("cancel"));
+    let can_dismiss = visible && block.is_some_and(|(_, b)| b.buttons.contains(&Action::Dismiss));
+    let dismiss = overlay
+        .filter(|_| visible)
+        .and_then(|o| o.feedback_paint.get("dismiss"));
     let painted_text = |name| {
         overlay
             .filter(|_| visible)
@@ -63,6 +67,7 @@ pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::Message
         ("cancelling", Json::Bool(cancelling)),
         ("byteLine", Json::Str(painted_text("byte-line"))),
         ("headline", Json::Str(painted_text("headline"))),
+        ("sourceLine", Json::Str(painted_text("source"))),
         (
             "writing",
             Json::Bool(overlay.is_some_and(|o| o.model.wire.transfer.writing)),
@@ -72,6 +77,7 @@ pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::Message
             Json::Str(frame.as_ref().map(super::status::rect).unwrap_or_default()),
         ),
         ("cancel", control("Cancel", cancel, can_cancel)),
+        ("dismiss", control("Dismiss", dismiss, can_dismiss)),
         (
             "undo",
             control(

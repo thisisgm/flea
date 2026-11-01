@@ -194,7 +194,7 @@ pub fn shell(
         .child(rule(palette).debug_selector(|| "op1-rule".into()))
         .child(body)
         .child(row);
-    scene.track(card, "card", String::new())
+    scene.track(div().relative().child(card), "card", String::new())
 }
 
 // The scrim dims the window once and takes hover, both buttons and the wheel; the card sits centred on it.
@@ -439,7 +439,7 @@ fn bar(palette: &CardPalette, track: f32, share: f64) -> Div {
         )
 }
 
-fn small(text: String, ink: Hsla) -> Div {
+pub(super) fn small(text: String, ink: Hsla) -> Div {
     div()
         .text_size(px(card::JOBS_SMALL))
         .line_height(px(card::JOBS_SMALL_LINE))
@@ -495,9 +495,7 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
         .flex_col()
         .gap(px(card::JOBS_GAP))
         .child(head);
-    if !block.file.is_empty() {
-        out = out.child(small(block.file.clone(), palette.muted));
-    }
+    out = out.children(super::feedback::file(palette, &block.file, paint));
     for line in &block.output {
         out = out.child(small(line.clone(), palette.muted));
     }

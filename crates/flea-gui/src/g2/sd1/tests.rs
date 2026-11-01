@@ -48,6 +48,7 @@ fn facts() -> Facts {
         localsend_reason: String::new(),
         dropbox_command: "/usr/bin/dropbox-cli".into(),
         dropbox_ready: true,
+        ..Facts::default()
     }
 }
 

@@ -10,6 +10,7 @@ case_networktimeout() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 if [ "\$1 \$2" != "mount -li" ]; then
   exec /usr/bin/gio "\$@"
 fi
@@ -65,6 +66,7 @@ EOS
         || fail "networktimeout: polling never recovered, got $(ipc networkEntries)"
     [[ "$(cat "$calls")" -ge 3 ]] || fail "networktimeout: expected three list attempts"
 
+    printf '%s\n' 'flea-gui: device probe gio mount -li failed: timed out after 10000 ms' >> "$expected_warnings"
     printf 'NETWORKTIMEOUT retained=ok retry=ok\n'
 
     # One connect failure sentence per stub status, each shot with its draft held.
@@ -92,6 +94,18 @@ EOS
         || fail "networktimeout: the 124 sentence is not one credentialed call, got $(cat "$dir/auth-calls")"
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "networktimeout: the failed connect discarded its draft"
     shot network-connect-failed
+    # GPUI consumes the Secret on each mount attempt, so the retry receives a fresh field value.
+    if [[ "$test_frontend" == gpui && "$(ipc networkPasswordState)" == "masked|empty" ]]; then
+        local retry_step
+        for retry_step in $(seq 1 12); do
+            [[ "$(ipc networkFocus)" == Password ]] && break
+            key -k Tab >/dev/null
+            settle
+        done
+        [[ "$(ipc networkFocus)" == Password ]] || fail "networktimeout: retry could not focus Password"
+        printf '%s' "fixture-password" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
+        [[ "$(ipc networkPasswordState)" == "masked|set" ]] || fail "networktimeout: retry password was not accepted"
+    fi
     printf '60\n' > "$dir/auth-status"
     key -k Return >/dev/null
     wait_network_status "Could not connect: the network location could not be opened." 20
@@ -168,7 +182,7 @@ case_gvfs() {
 
     click_rail_row "$(rail_row_of share.zip)" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "gvfs: mounted share menu is $(ipc contextMenuEntries)"
     menu_seek Unmount
     key -k Return >/dev/null
@@ -198,6 +212,7 @@ case_unmount() {
     local share_uri="smb://stubhost/stubshare/"
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 case "\$1 \$2" in
   "mount -li")
     # gvfsd composes this label and translates the word between share and host, so the stub speaks
@@ -255,7 +270,7 @@ EOS
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot unmount-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
-    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Open, Unmount, Rename, Edit address then Remove from Network"
     [[ "$(ipc contextMenuGlyphs)" == "folder-open|-|drive|-|rename|sliders|-|minus" ]] \
         || fail "unmount: the share's rows draw $(ipc contextMenuGlyphs), not folder-open, drive, rename, sliders and minus"
@@ -273,7 +288,7 @@ EOS
     menu_seek Unmount
     key -k Return >/dev/null
     wait_message "Unmounted stubshare"
-    [[ "$(cat "$unmount_log")" == "UNMOUNT $share_uri" ]] \
+    [[ "$(cat "$unmount_log")" == "UNMOUNT ${share_uri%/}" ]] \
         || fail "unmount: the menu row did not unmount $share_uri, log is: $(cat "$unmount_log")"
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: the menu stayed open after its action ran"
 
@@ -303,7 +318,7 @@ EOS
     # for, each with its own sentence. This home has no bookmarks file, so the live share is unsaved.
     click_rail_row "$(rail_row_of stubshare)" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "unmount: the share's menu is $(ipc contextMenuEntries) before Remove"
     menu_seek "Remove from Network"
     key -k Return >/dev/null
@@ -360,7 +375,7 @@ EOS
     # Saved and nothing mounted: the line and the row both go, and no unmount clause is offered.
     click_rail_row "$(rail_row_of 'Ghost Place')" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "unmount: an unmounted place offers $(ipc contextMenuEntries), not Rename, Edit address then Remove from Network"
     menu_seek "Remove from Network"
     key -k Return >/dev/null
@@ -413,6 +428,7 @@ case_hangshare() {
     local root_uri="smb://stubhost/"
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 # Every call is logged, because a case that hangs on purpose has no other way to say which leg it
 # reached; the fail messages below quote it. Same idea as case_unmount's own stub log.
 printf '%s\n' "\$*" >> "$dir/bin/calls"
@@ -428,7 +444,7 @@ if [ "\$1" = info ]; then
   # never returns. The marker is what tells the test the guard has actually closed, so the busy
   # refusal below is never asserted against an open that has not started. exec so the product's own
   # terminate reaches the sleep and leaves nothing behind.
-  if [ "\$2" = "$hang_uri" ]; then : > "$dir/bin/info-started"; exec sleep 25; fi
+  if [ "\${2%/}" = "${hang_uri%/}" ]; then : > "$dir/bin/info-started"; exec sleep 25; fi
   printf 'local path: %s\n' "$good_dir"
 fi
 # gio list on a server gvfs cannot reach hangs the same way gio info does, and this is the third
@@ -557,7 +573,7 @@ case_hanglisting() {
         sleep 0.2
     done
     [[ "$seen" == "That folder is not responding." ]] \
-        || fail "hanglisting: the deadline never spoke, stateMessage is $seen"
+        || fail "hanglisting: the deadline never spoke, stateMessage is $seen, state $(ipc state), proxy marker $(tr "\n" ";" < "$dir/delayed")"
     [[ "$(ipc state)" == "waiting" ]] \
         || fail "hanglisting: the pane is not waiting, state is $(ipc state)"
     shot hanglisting-waiting
@@ -572,7 +588,11 @@ case_hanglisting() {
     launch "$dir"
     flea_bin="$real_bin"
     wait_marker "$dir/escape-delayed" "hanglisting: the proxy never held the second listing"
-    local held_at=$(date +%s%3N) home_path="$HOME" seen_path="" escape_by
+    local held_at=$(date +%s%3N) home_path seen_path="" escape_by
+    home_path=$(window_home) || fail "hanglisting: the window's isolated Home is unavailable"
+    [[ "$home_path" == "$FLEA_TEST_WINDOWS_ROOT/"*/home && -f "$FLEA_TEST_WINDOWS_ROOT/.flea-test-sandbox" && -O "$home_path" ]] \
+        || fail "hanglisting: Home is outside the owned window sandbox"
+    : > "$home_path/hanglisting-home.txt"
     wait_pane_waiting hanglisting
     click_rail_row "$(rail_row_of Home)" left
     escape_by=$(( $(date +%s%3N) + 10000 ))
@@ -591,6 +611,8 @@ case_hanglisting() {
     # Only a list of another folder writes "flushed", so the proxy sent the held list ahead of Home's own list.
     grep -qx flushed "$dir/escape-delayed" 2>/dev/null \
         || fail "hanglisting: Home's list never flushed the held one, the proxy wrote $(tr '\n' ' ' 2>/dev/null < "$dir/escape-delayed" || echo 'no marker file')"
+    wait_listing 1
+    seek_row_named hanglisting-home.txt
     [[ -z "$(ipc stateMessage)" ]] \
         || fail "hanglisting: Home kept $(ipc stateMessage)"
     shot hanglisting-escaped
@@ -638,6 +660,10 @@ case_hanglisting() {
     flea_bin="$dir/flea-proxy"
     launch "$dir"
     flea_bin="$real_bin"
+    home_path=$(window_home) || fail "hanglisting: the fifth window's isolated Home is unavailable"
+    [[ "$home_path" == "$FLEA_TEST_WINDOWS_ROOT/"*/home && -f "$FLEA_TEST_WINDOWS_ROOT/.flea-test-sandbox" && -O "$home_path" ]] \
+        || fail "hanglisting: the fifth Home is outside the owned window sandbox"
+    : > "$home_path/hanglisting-home.txt"
     key -k BackSpace >/dev/null
     wait_marker "$dir/newest-delayed" "hanglisting: the proxy never held the fifth listing"
     held_at=$(date +%s%3N)
@@ -664,6 +690,8 @@ case_hanglisting() {
     while (( $(date +%s%3N) < late_by )); do sleep 0.2; done
     [[ "$(ipc path)" == "$home_path" && -z "$(ipc stateMessage)" ]] \
         || fail "hanglisting: the late rows drew over Home: $(ipc path) with $(ipc stateMessage)"
+    wait_listing 1
+    seek_row_named hanglisting-home.txt
     # As in the second listing, Home's list sent the held one ahead of its own, so its stale rows came while Home was out.
     grep -qx flushed "$dir/newest-delayed" 2>/dev/null \
         || fail "hanglisting: Home's list never flushed the held fifth listing, the proxy wrote $(tr '\n' ' ' 2>/dev/null < "$dir/newest-delayed" || echo 'no marker file')"

@@ -10995,6 +10995,9 @@ EOS
     sandbox_remove "$fixture_home"
 }
 
+# The GPUI frontend ends gio's options with "--" (gio mount -- URI, gio mount -u -- URI); a positional stub drops that one word first.
+gio_stub_args='if [ "${2:-}" = -- ]; then _a=$1; shift 2; set -- "$_a" "$@"; elif [ "${3:-}" = -- ]; then _a=$1 _b=$2; shift 3; set -- "$_a" "$_b" "$@"; fi'
+
 # Writes the gio stub case_phones and the README phone frames share: MTP, GPhoto2 and AFC volumes under <dir>.
 phones_gio_stub() {
     local dir="$1"
@@ -11020,6 +11023,7 @@ phones_gio_stub() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 mounted="$dir/mounted"
 afcmounted="$dir/afcmounted"
 case "\$1 \${2:-}" in
@@ -15000,6 +15004,10 @@ hover_row() {
 # ctrl-1 list, ctrl-2 columns, ctrl-3 grid, per keys.toml; the reader proves the switch landed.
 switch_view() {
     local want="$1" chord drew
+    if [[ "${test_frontend:-qml}" == gpui && "$(ipc focusView)" == rail ]]; then
+        key -k Tab >/dev/null
+        settle
+    fi
     case "$want" in list) chord=1 ;; columns) chord=2 ;; grid) chord=3 ;; esac
     key -M ctrl -k "$chord" -m ctrl >/dev/null
     settle

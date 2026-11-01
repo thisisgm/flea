@@ -30,7 +30,7 @@ pub(super) fn rect_of_bounds(bounds: Bounds<Pixels>) -> String {
     )
 }
 
-pub(super) fn centre_of_bounds(bounds: Bounds<Pixels>) -> String {
+pub(crate) fn centre_of_bounds(bounds: Bounds<Pixels>) -> String {
     centre_of(
         f32::from(bounds.origin.x),
         f32::from(bounds.origin.y),

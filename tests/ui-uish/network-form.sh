@@ -218,6 +218,7 @@ case_network() {
     # the newly functional Save action from dialing TEST-NET-2 or reopening on its later timeout.
     cat > "$fake_root/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 case "\$*" in
 "info --attributes=trash::item-count trash:///"|"monitor --dir=trash:///") exec /usr/bin/gio "\$@" ;;
 esac
@@ -428,12 +429,12 @@ EOS
 
     # SFTP hides Domain and TLS: Backtab crosses SMB, the buttons, Password and Username, then skips Domain to Path.
     for ((walk = 0; walk < 8; walk++)); do
-        key -k Backtab >/dev/null
+        key -M shift -k Tab -m shift >/dev/null
         settle
         [[ "$(ipc networkFocus)" == Username ]] && break
     done
     [[ "$(ipc networkFocus)" == Username ]] || fail "network: Backtab never reached Username, focus is $(ipc networkFocus)"
-    key -k Backtab >/dev/null
+    key -M shift -k Tab -m shift >/dev/null
     key "XX" >/dev/null
     settle
     [[ "$(ipc networkUri)" == "sftp://uu@hh/ssXX" ]] \
@@ -462,7 +463,7 @@ EOS
     key -M shift -k Tab -m shift >/dev/null
     settle
     [[ "$(ipc networkFocus)" == Password ]] || fail "network: Shift+Tab from TLS did not reach Password"
-    key -k Tab -k Backtab >/dev/null
+    key -k Tab -M shift -k Tab -m shift >/dev/null
     settle
     [[ "$(ipc networkFocus)" == Password ]] || fail "network: Backtab from TLS did not reach Password"
     # From Password the walk names Cancel, then the primary's label; both focus stops are shot.
@@ -893,6 +894,18 @@ EOS
     menus_point "$((rx + rw * 3 / 4)) $((ry + rh / 2))"
     network_wait_panes ".focused == 0 and .panes[0].cursor == 0 and .panes[0].selected == [0] and ((.panes[1] | del(.focused)) == $retained_secondary)"
     menus_expect shareBrowserState "{active,owner,baseUri,cursor} == $retained_shares" 'pointer selects the expanded primary listing without activating hidden shares'
+    # The race fixture's queued network error owns the first Escape, so it is acknowledged before selection Escape is tested.
+    local standing_errors
+    standing_errors=$(ipc statusActivityState | jq -er '.errors | numbers') \
+        || fail "network: statusActivityState gave no error count: $(ipc statusActivityState)"
+    printf 'NETWORK_STANDING_ERRORS %s\n' "$standing_errors"
+    while [[ "$standing_errors" != 0 ]]; do
+        key -k Escape >/dev/null || fail 'network: error acknowledgement Escape delivery failed'
+        menus_expect statusActivityState ".errors < $standing_errors" 'Escape acknowledges a standing error first'
+        network_wait_panes '.focused == 0 and .panes[0].selected == [0]'
+        standing_errors=$(ipc statusActivityState | jq -er '.errors | numbers') \
+            || fail "network: statusActivityState gave no error count: $(ipc statusActivityState)"
+    done
     key -k Escape >/dev/null || fail 'network: primary Escape delivery failed after dual exit'
     network_wait_panes '.focused == 0 and .panes[0].selected == []'
     menus_expect shareBrowserState "{active,owner,baseUri,cursor} == $retained_shares" 'primary Escape clears selection without dismissing the retained secondary session'
@@ -1009,7 +1022,7 @@ case_networkauth() {
     local dir="$fixture_root/network-auth" fixture_home="$fixture_root/network-auth-home"
     local state="$dir/state" runtime_canary
     runtime_canary=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
-    local helper_log="$state/helper.log"
+    local helper_log="$state/helper.log" attempt_log="$state/attempt.log" helper_attempts
     local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
     local retry_dir="$state/retry-root"
     sandbox_scratch "$dir"
@@ -1018,6 +1031,7 @@ case_networkauth() {
     : > "$retry_dir/alpha.txt"
     : > "$state/mounted"
     : > "$helper_log"
+    : > "$attempt_log"
     fixture_home_make "$fixture_home"
     mkdir -p "$fixture_home/.config/gtk-3.0"
     printf '%s\n' 'sftp://tester@slot.test/home42/tester Own slot' > "$bookmarks"
@@ -1053,6 +1067,7 @@ case_networkauth() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 case "\$1 \${2:-}" in
 "mount -li")
     if [ -s "$state/mounted" ]; then
@@ -1081,6 +1096,25 @@ case "\$1 \${2:-}" in
 *) exit 1 ;;
 esac
 EOS
+    cat > "$dir/bin/timeout" <<EOS
+#!/bin/sh
+if [ "\${1:-}" = -- ] && [ "\${2:-}" = 35 ] && [ "\${3:-}" = "$dir/bin/flea-gio-auth" ]; then
+    /usr/bin/timeout "\$@"
+    result=\$?
+    printf '%s\n' "\$result" >> "$attempt_log"
+    exit "\$result"
+fi
+exec /usr/bin/timeout "\$@"
+EOS
+    # Sample attempt log: "127\n126\n"; each line records one completed real auth timeout invocation.
+    networkauth_wait_attempt() {
+        local count="$1" code="$2" attempt
+        for attempt in $(seq 1 100); do
+            [[ "$(wc -l < "$attempt_log")" -eq "$count" && "$(tail -n 1 "$attempt_log")" == "$code" ]] && return
+            sleep 0.05
+        done
+        fail "networkauth: expected completed auth attempt $count with exit $code"
+    }
     cat > "$dir/bin/flea-gio-auth" <<'EOS'
 #!/bin/sh
 [ "$#" -eq 1 ] || exit 2
@@ -1097,7 +1131,7 @@ printf 'argc=1 uri=%s stdin-lines=1\n' "$1" >> "$state/helper.log"
 printf '%s\n' "$1" > "$state/mounted"
 secret=
 EOS
-    chmod +x "$dir/bin/gio" "$dir/bin/flea-gio-auth"
+    chmod +x "$dir/bin/gio" "$dir/bin/flea-gio-auth" "$dir/bin/timeout"
 
     local real_home="$HOME" saved_path="$PATH"
     export HOME="$fixture_home"
@@ -1130,7 +1164,7 @@ EOS
     [[ ! -s "$helper_log" ]] || fail "networkauth: already-mounted descendant launched helper"
     click_rail_row "$network_index" right
     settle
-    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit address|-|Remove from Network" ]] \
+    [[ "$(ipc contextMenuEntries)" == "Open|-|Unmount|-|Rename|Edit Address…|-|Remove from Network" ]] \
         || fail "networkauth: the projected mounted row offers $(ipc contextMenuEntries), not Open first"
     menu_seek Unmount
     key -k Return >/dev/null
@@ -1174,7 +1208,7 @@ EOS
     key a >/dev/null
     settle
     # Dialogs rule 6: the title says the task, so it is the same sentence under every chip below.
-    [[ "$(ipc networkTitle)" == "Add a network share" ]] \
+    [[ "$(ipc networkTitle)" == "Add a Network Share" ]] \
         || fail "networkauth: the add dialog does not name its own task, got $(ipc networkTitle)"
     [[ "$(ipc networkFields)" == "Label|Host|Port|Share|Domain|Username|Password" ]] \
         || fail "networkauth: SMB fields are $(ipc networkFields)"
@@ -1196,7 +1230,7 @@ EOS
         "WebDAV|Label|Host|Port|Path|Username|Password|TLS"; do
         IFS='|' read -r want_protocol want_fields <<< "$title_case"
         click_chip "$want_protocol"
-        [[ "$(ipc networkTitle)" == "Add a network share" ]] \
+        [[ "$(ipc networkTitle)" == "Add a Network Share" ]] \
             || fail "networkauth: $want_protocol moved the title to $(ipc networkTitle)"
         [[ "$(ipc networkFields)" == "$want_fields" ]] \
             || fail "networkauth: $want_protocol fields are $(ipc networkFields)"
@@ -1204,7 +1238,7 @@ EOS
 
     click_chip NFS
     settle
-    [[ "$(ipc networkTitle)" == "Add a network share" ]] || fail "networkauth: NFS moved the title"
+    [[ "$(ipc networkTitle)" == "Add a Network Share" ]] || fail "networkauth: NFS moved the title"
     [[ "$(ipc networkFields)" == "Label|Host|Port|Export" ]] || fail "networkauth: NFS fields are $(ipc networkFields)"
     [[ "$(ipc networkNote)" == "No password needed. The NFS server trusts this computer." ]] \
         || fail "networkauth: NFS note is $(ipc networkNote)"
@@ -1300,7 +1334,9 @@ EOS
         || fail "networkauth: missing-helper setup did not reach Password"
     printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     mv "$dir/bin/flea-gio-auth" "$dir/bin/flea-gio-auth.real"
+    helper_attempts=$(wc -l < "$attempt_log")
     key -k Return >/dev/null
+    networkauth_wait_attempt "$((helper_attempts + 1))" 127
     wait_network_status "Could not connect: Flea could not ask for the password." 10
     [[ "$(ipc dialogOpen)" == "true" \
         && "$(ipc networkPasswordState)" == "masked|set" ]] \
@@ -1310,8 +1346,9 @@ EOS
 
     cp "$dir/bin/flea-gio-auth.real" "$dir/bin/flea-gio-auth"
     chmod 0644 "$dir/bin/flea-gio-auth"
-    key -k Escape >/dev/null
+    helper_attempts=$(wc -l < "$attempt_log")
     key -k Return >/dev/null
+    networkauth_wait_attempt "$((helper_attempts + 1))" 126
     wait_network_status "Could not connect: Flea could not ask for the password." 10
     [[ "$(ipc dialogOpen)" == "true" \
         && "$(ipc networkPasswordState)" == "masked|set" ]] \
@@ -1326,7 +1363,6 @@ IFS= read -r _password || exit 3
 sleep 120
 EOS
     chmod +x "$dir/bin/flea-gio-auth"
-    key -k Escape >/dev/null
     key -k Return >/dev/null
     wait_network_result mounting 5
     wait_network_result failed 40

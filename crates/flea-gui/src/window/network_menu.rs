@@ -123,6 +123,7 @@ impl Shell {
                 )
             }
             "editPlace" => {
+                self.network_remember_focus();
                 if let Some(network) = self.network() {
                     let card = network.card.clone();
                     card.update(cx, |card, cx| {
@@ -157,7 +158,10 @@ impl Shell {
         };
         let menu_open = network.menu.borrow().opened();
         let shares = network.shares.clone();
-        if !menu_open && !shares.read(cx).model.open {
+        let browser = &shares.read(cx).model;
+        if !menu_open
+            && (!browser.open || self.network_side(browser.origin) != Some(self.focus_side))
+        {
             return false;
         }
         let preset = self
@@ -197,7 +201,9 @@ impl Shell {
             let env = self.menu_env(&typeface);
             let outcome = menu.borrow_mut().act(action, None, "", &env, window);
             self.network_menu_outcome(outcome, window, cx);
-        } else if shares.read(cx).model.open {
+        } else if shares.read(cx).model.open
+            && self.network_side(shares.read(cx).model.origin) == Some(self.focus_side)
+        {
             shares.update(cx, |shares, cx| shares.action(action, cx));
         } else {
             return false;
@@ -229,7 +235,21 @@ impl Shell {
                 .relative()
                 .size_full()
                 .child(content)
-                .child(div().absolute().inset_0().child(network.shares.clone()))
+                .child(
+                    div()
+                        .absolute()
+                        .inset_0()
+                        .overflow_hidden()
+                        // A press on the shares makes their source pane the focused one, as on its listing.
+                        .capture_any_mouse_down(cx.listener(
+                            move |shell, event: &MouseDownEvent, _, cx| {
+                                if event.button == MouseButton::Left {
+                                    shell.focus_pane(side, cx);
+                                }
+                            },
+                        ))
+                        .child(network.shares.clone()),
+                )
                 .into_any_element(),
         );
     }
