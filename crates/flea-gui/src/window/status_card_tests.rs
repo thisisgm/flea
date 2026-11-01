@@ -5,6 +5,9 @@ use gpui::AppContext;
 #[path = "status_transfer_tests.rs"]
 mod transfer;
 
+#[path = "status_card_rate_tests.rs"]
+mod rate;
+
 pub(super) fn state(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> flea::jsondoc::Json {
     handle
         .update(cx, |root, window, cx| {
@@ -75,7 +78,7 @@ fn u05_transfer_observer_reads_the_painted_job_block_and_its_fold(cx: &mut TestA
     );
     assert_eq!(
         card.get("byteLine").unwrap().as_str(),
-        Some("5.3 MB of 9.7 MB · 1.1 MB/s · 0:04 left")
+        Some("5.3 MB of 9.7 MB · 0 B/s")
     );
     assert!(!card.get("rect").unwrap().as_str().unwrap().is_empty());
     // EY-190: the controls carry Ipc.qml controlState's names.

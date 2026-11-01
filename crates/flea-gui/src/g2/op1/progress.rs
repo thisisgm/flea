@@ -13,6 +13,9 @@ use flea::{
 };
 use gpui::{App, Context, KeyDownEvent};
 
+#[path = "card_rate.rs"]
+mod card_rate;
+
 impl Overlay {
     pub(super) fn held_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) -> bool {
         if !self.progress.dialog.holding(self.now(cx)) {
@@ -110,6 +113,7 @@ impl Overlay {
 #[derive(Default)]
 pub(super) struct Presentation {
     rows: Vec<(u64, Progress<Option<JobRow>>)>,
+    rates: card_rate::Rates,
     pub jobs: Jobs,
     card: Progress<bool>,
     activity: Progress<bool>,
@@ -174,6 +178,7 @@ impl Presentation {
             .chain(self.activity.due(now))
             .chain(self.dialog.due(now))
             .chain(self.transfer.due(now))
+            .chain(self.rates.due(now))
             .min()
     }
 
@@ -201,20 +206,18 @@ impl Presentation {
                     row.hide();
                 }
             }
-            let mut old = self.jobs.rows.iter();
-            if !self
+            let mut rows: Vec<_> = self
                 .rows
                 .iter()
-                .filter_map(|(_, row)| row.shown().as_ref())
-                .all(|row| old.next() == Some(row))
-                || old.next().is_some()
-            {
-                self.jobs.snapshot(
-                    self.rows
-                        .iter()
-                        .filter_map(|(_, row)| row.shown().clone())
-                        .collect(),
-                );
+                .filter_map(|(_, row)| row.shown().clone())
+                .collect();
+            if showing {
+                self.rates.publish(&mut rows, now);
+            } else {
+                self.rates.clear();
+            }
+            if self.jobs.rows != rows {
+                self.jobs.snapshot(rows);
             }
         }
         self.jobs.folded = !showing;
