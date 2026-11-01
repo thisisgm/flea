@@ -351,6 +351,8 @@ mod columns_preview_readers_tests;
 #[cfg(test)]
 mod pb_rest_2_tests;
 #[cfg(test)]
+mod pb_tabs_overlay_tests;
+#[cfg(test)]
 mod railrecent_dual_tests;
 
 #[cfg(test)]

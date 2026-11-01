@@ -21,6 +21,9 @@ pub struct Notice {
     pub owed: Option<String>,
     pub withdraw: bool,
     pub shown: Option<u64>,
+    // An accepted tab change owes the window these closes once the model is done (Tabs.js closePreview, dropOverlay).
+    pub close_preview: bool,
+    pub drop_overlay: bool,
 }
 
 pub(crate) struct Pane<'a> {
@@ -159,12 +162,18 @@ impl Live for Pane<'_> {
     fn new_tab_path(&self, here: &str) -> String {
         self.settings.new_tab_path(here, self.home)
     }
-    // The preview owner subscribes to the tab action before a new listing replaces its row.
-    fn close_preview(&mut self) {}
+    fn close_preview(&mut self) {
+        self.notice.close_preview = true;
+    }
     fn drop_overlay(&mut self) -> bool {
         // Tabs.js: Trash only covers the listing, so closing it owes no re-list.
         *self.trash_dropped = true;
-        let search = self.host.pane.state.search;
+        self.notice.drop_overlay = true;
+        // Search.live or Search.owesRelist: the search's rows stand in for the listing.
+        let owner = &self.host.search.owner;
+        let search = self.host.pane.state.search
+            || owner.session.live()
+            || (owner.active() && owner.session.gen > owner.session.opened_gen);
         if search {
             self.host.pane.swap.session.leaving = true;
             self.host.pane.state.search = false;
