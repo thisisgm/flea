@@ -117,6 +117,8 @@ impl Render for RailView {
                         div()
                             .flex_none()
                             .debug_selector(move || format!("picker-rail-eject-{index}"))
+                            // SidebarRow.qml's row tap skips a press on the mark, and PickerPlaces.qml connects no eject.
+                            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .children(glyph::svg("eject").map(|(key, data)| Glyph {
                                 paint: Paint::Svg(key, data),
                                 side: f32::from(caption),
