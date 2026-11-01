@@ -106,9 +106,12 @@ impl Shell {
     pub(crate) fn run_card_modifiers(
         &mut self,
         event: &ModifiersChangedEvent,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if cx.has_active_drag() {
+            self.refresh_file_cue(window, cx);
+        }
         let Some(open) = self.run_card.as_mut() else {
             return;
         };

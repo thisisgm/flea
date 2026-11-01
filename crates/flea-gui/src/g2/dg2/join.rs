@@ -5,10 +5,7 @@ use super::{decide, facts, lift, spot, Dropping, Facts, Landing, Lift, Rows};
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::ui_logic_dg2 as core;
 use flea::ui_logic_fb1::status::Hint;
-use gpui::{
-    App, AppContext, Context, Empty, ExternalDragPayload, Global, IntoElement, Point, Render,
-    Window,
-};
+use gpui::{App, AppContext, Context, ExternalDragPayload, Global, Point, Window};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -29,6 +26,12 @@ mod arrival;
 mod feedback;
 #[path = "wide.rs"]
 mod wide;
+
+#[path = "flock.rs"]
+mod image;
+#[path = "native.rs"]
+mod native;
+pub use image::{flock, Flock};
 
 struct HostRows<'a>(&'a PaneHost);
 
@@ -76,15 +79,6 @@ pub struct Seed {
     pub side: usize,
 }
 
-/// The drag image; the flock look is the drag-cut-move board's, which this seam does not draw.
-pub struct Flock;
-
-impl Render for Flock {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        Empty
-    }
-}
-
 /// Each window's live lift and router registration, held beside the Shell rather than in it.
 #[derive(Default)]
 pub struct Drags {
@@ -93,6 +87,8 @@ pub struct Drags {
     /// The marker tag and serial of each window's current lift, shared with its file client.
     held: HashMap<u64, Held>,
     serial: u64,
+    flocks: HashMap<u64, gpui::Entity<Flock>>,
+    said: HashMap<u64, String>,
     /// The rail row each window's held drag rests on.
     aims: HashMap<u64, rail_drop::Aim>,
     rests: HashMap<u64, spring::Rest>,
@@ -114,6 +110,7 @@ impl Drags {
         if let Some(held) = self.held.get(&key) {
             *held.borrow_mut() = None;
         }
+        self.flocks.remove(&key);
         self.lifts.remove(&key)
     }
 }
@@ -132,43 +129,6 @@ fn at(point: Point<gpui::Pixels>) -> (f32, f32) {
 }
 
 impl Shell {
-    /// Registers this window with the process router and follows the drops it accepts; once per window.
-    pub fn follow_file_drags(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let key = window_key(window);
-        if cx.default_global::<Drags>().clients.contains_key(&key) {
-            return;
-        }
-        let (send, receive) = async_channel::unbounded();
-        let held = cx
-            .global_mut::<Drags>()
-            .held
-            .entry(key)
-            .or_default()
-            .clone();
-        let shared = router::shared(cx);
-        let hover = cx
-            .global_mut::<Drags>()
-            .hovers
-            .entry(key)
-            .or_default()
-            .clone();
-        let registration = shared.register(Rc::new(Files {
-            window: key,
-            send,
-            held,
-            hover,
-        }));
-        cx.global_mut::<Drags>().clients.insert(key, registration);
-        cx.spawn_in(window, async move |this, cx| {
-            while let Ok(arrived) = receive.recv().await {
-                let _ = this.update_in(cx, |shell, window, cx| {
-                    shell.land_arrived(arrived, window, cx)
-                });
-            }
-        })
-        .detach();
-    }
-
     /// The drag's start: lift the rows the press carries, or nothing when the press is not a live left press on a row; a selection reaching past the held rows asks the backend for its paths.
     pub fn begin_file_drag(
         &mut self,
@@ -219,33 +179,20 @@ impl Shell {
             self.say_drop(side, text, cx);
             return false;
         }
+        let host = self.panes[side]
+            .as_ref()
+            .expect("the source pane remains mounted");
+        let flock = image::captured(host, &lifted.rows, window, cx);
+        cx.default_global::<Drags>().flocks.insert(key, flock);
         cx.default_global::<Drags>().put(key, lifted);
         // FileDrag.startOffer: the lift says its line with no folder name until a target names one.
         self.say_held_drag(window, cx);
         true
     }
 
-    /// What the platform gets when this window's drag leaves it.
-    pub fn file_drag_payload(&self, window: &Window, cx: &App) -> Option<ExternalDragPayload> {
-        cx.try_global::<Drags>()?
-            .lifts
-            .get(&window_key(window))
-            .map(Lift::payload)
-    }
-
     /// This window's lift while its drag is in flight, for the dragState reader.
     pub(crate) fn file_drag_lift<'a>(&self, window: &Window, cx: &'a App) -> Option<&'a Lift> {
         cx.try_global::<Drags>()?.lifts.get(&window_key(window))
-    }
-
-    /// Escape during this window's own drag: the drag ends where it started and nothing moves.
-    pub fn escape_file_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        let key = window_key(window);
-        let lifted = cx.default_global::<Drags>().take(key).is_some();
-        self.clear_file_rest(window, cx);
-        self.clear_file_cue(window, cx);
-        self.clear_rail_aim(window, cx);
-        lifted && window.cancel_drag(cx)
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
@@ -386,11 +333,6 @@ impl Shell {
         let text = self.locale.catalog.tr("pane.busy");
         self.say_drop(side, text, cx);
     }
-}
-
-/// The Flock view a pane's on_drag renders.
-pub fn flock(cx: &mut App) -> gpui::Entity<Flock> {
-    cx.new(|_| Flock)
 }
 
 #[cfg(test)]

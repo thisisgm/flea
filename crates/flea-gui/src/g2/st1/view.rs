@@ -469,5 +469,6 @@ impl Render for SettingsView {
                 ),
         ))
         .child(self.probe.attach(div().absolute().inset_0(), "ground"))
+        .children(self.plugin_card(cx))
     }
 }

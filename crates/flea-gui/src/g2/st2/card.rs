@@ -24,7 +24,7 @@ impl PluginsPane {
     }
 
     // The card body inside op1's dialog shell: title row, hairline, its parts, then the buttons.
-    pub(super) fn card(&self) -> Option<Div> {
+    pub(crate) fn card(&self) -> Option<Div> {
         let t = self.tokens;
         let i18n = self.page.catalog();
         let (title, body, buttons): (String, Vec<Div>, Div) = match self.page.card() {
@@ -139,6 +139,7 @@ impl PluginsPane {
             );
         Some(
             div()
+                .flex_none()
                 .w(px(m::CARD_WIDTH))
                 .p(px(m::CARD_PAD))
                 .flex()

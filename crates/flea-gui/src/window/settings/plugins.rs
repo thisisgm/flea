@@ -69,6 +69,7 @@ impl Shell {
             ));
             if let Some(panel) = &self.settings.panel {
                 panel.update(cx, |panel, cx| {
+                    cx.observe(&view, |_, _, cx| cx.notify()).detach();
                     panel.plugins = Some(view.clone());
                     cx.notify();
                 });

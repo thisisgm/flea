@@ -131,6 +131,7 @@ impl Render for Shell {
         }
         // Every frame, so a Grid pane that is hidden or covered lets its pictures go.
         self.sync_grid_pictures(window, cx);
+        self.sync_output_thumbnails(cx);
         for side in 0..2 {
             self.sync_surfaces(side, cx);
         }

@@ -35,6 +35,7 @@ impl Shell {
         let key = window_key(window);
         let drags = cx.default_global::<Drags>();
         drags.take(key);
+        drags.said.remove(&key);
         drags.clients.remove(&key);
         drags.held.remove(&key);
         drags.aims.remove(&key);

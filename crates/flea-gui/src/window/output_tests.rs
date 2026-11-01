@@ -12,6 +12,8 @@ use flea::protocol::RowFacts;
 use gpui::{AppContext, TestAppContext, VisualTestContext, Window, WindowHandle};
 use std::{cell::Cell, rc::Rc};
 
+#[path = "output_tests/combine_preview.rs"]
+mod combine_preview;
 #[path = "output_tests/result_selection_tests.rs"]
 mod result_selection;
 

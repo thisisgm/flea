@@ -5,7 +5,7 @@ use super::{
     view::SettingsView,
 };
 use crate::list::Typeface;
-use gpui::{div, prelude::*, px, Context, Div, FontWeight, SharedString};
+use gpui::{div, prelude::*, px, Context, Div, FontWeight, MouseButton, SharedString};
 
 impl SettingsView {
     /// The search field the sheet uses: magnifier, the typed text and caret, and the clear mark at its end.
@@ -63,7 +63,17 @@ impl SettingsView {
                             .flex_none()
                             .font_weight(FontWeight::BOLD)
                             .whitespace_nowrap()
-                            .child(SharedString::from(self.panel.title())),
+                            .child(SharedString::from(
+                                self.plugins
+                                    .as_ref()
+                                    .filter(|_| {
+                                        self.panel.section == "plugins" && !self.panel.searching()
+                                    })
+                                    .map_or_else(
+                                        || self.panel.title(),
+                                        |plugin| plugin.read(cx).page().title(),
+                                    ),
+                            )),
                         "title",
                     ),
                 ),
@@ -83,5 +93,27 @@ impl SettingsView {
                         view.flush(cx);
                     })),
             )
+    }
+}
+
+impl SettingsView {
+    /// Plugin dialogs center over the Settings window and retain the plugin keyboard owner.
+    pub(super) fn plugin_card(&self, cx: &gpui::App) -> Option<Div> {
+        self.plugins
+            .as_ref()
+            .filter(|_| self.panel.section == "plugins" && !self.panel.searching())
+            .and_then(|plugin| plugin.read(cx).card())
+            .map(|card| {
+                div()
+                    .absolute()
+                    .size_full()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                    .on_mouse_down(MouseButton::Right, |_, _, cx| cx.stop_propagation())
+                    .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
+                    .child(card)
+            })
     }
 }

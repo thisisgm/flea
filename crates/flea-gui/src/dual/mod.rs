@@ -42,4 +42,6 @@ mod activation_tests;
 mod review_tests;
 
 #[cfg(test)]
+mod native_reset_tests;
+#[cfg(test)]
 mod pointer_tests;

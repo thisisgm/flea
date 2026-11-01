@@ -77,6 +77,7 @@ impl CodeView {
         );
         let moved = frame != self.frame;
         self.frame = frame;
+        self.center_match(cx);
         let advance = self.advance(window);
         let inset = self.scroll_inset();
         self.fit_scroll(Bounds::new(
@@ -183,6 +184,7 @@ impl CodeView {
         window.with_content_mask(Some(ContentMask { bounds: clip }), |window| {
             for (top, shaped) in &frame.rows {
                 let top = origin.y + px(*top);
+                self.paint_match(shaped, point(origin.x + text_left, top), row, window);
                 self.painted_rows.set(self.painted_rows.get() + 1);
                 if let Some(number) = &shaped.number {
                     let x = origin.x + gutter - number.line().width;
