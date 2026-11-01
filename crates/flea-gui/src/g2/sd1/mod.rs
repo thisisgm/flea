@@ -215,7 +215,8 @@ fn installed(role: Role, facts: &Facts) -> bool {
     match role {
         // LocalSend drives localsend-cli, never the app's own window, as providers.rs documents.
         Role::LocalSend => !facts.localsend_command.is_empty(),
-        Role::Tailscale => !facts.tailscale_command.is_empty(),
+        // Pane.qml taildropInstalled: an installed Tailscale that cannot run keeps its row, which then reads unavailable.
+        Role::Tailscale => !facts.tailscale_command.is_empty() || facts.tailscale_unusable,
         Role::Dropbox => !facts.dropbox_command.is_empty(),
     }
 }

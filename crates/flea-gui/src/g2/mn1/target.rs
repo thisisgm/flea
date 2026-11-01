@@ -62,6 +62,8 @@ impl Shell {
         }
         context.selection_count = usize::from(capture.target.is_some());
         context.tag_submenu = None;
+        // The zip probe follows the listing's own target, never a peeked path.
+        context.flash_zip_member.clear();
         context.dir_writable = host
             .columns
             .as_ref()

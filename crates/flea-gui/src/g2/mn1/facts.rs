@@ -64,6 +64,12 @@ impl Shell {
             row_is_file: facts.is_some_and(|r| !r.dir),
             row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
             row_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            flash_zip_member: facts.map_or_else(String::new, |r| {
+                let base = host.search.owner.session.base_of(&host.path);
+                self.menu.zip[side]
+                    .member_for(&crate::navigation::history::join(base, &r.name))
+                    .to_owned()
+            }),
             row_is_archive: facts
                 .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
             archive_name: facts.map_or_else(String::new, |r| r.name.clone()),

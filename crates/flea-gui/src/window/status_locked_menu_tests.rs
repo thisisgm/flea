@@ -215,3 +215,21 @@ fn ruling34_a_locked_tile_row_nobody_runs_says_the_action_is_not_available_yet(
 
 #[path = "fixlogic2_locked_menu_tests.rs"]
 mod fixlogic2_locked;
+
+// EY-496: m over the Locked hero opens its menu at the middle of the list slot, as Pane.qml openCursorMenu anchors it.
+#[gpui::test]
+fn fixmenus_ey496_the_locked_menu_opens_at_its_hero_not_the_first_row(cx: &mut TestAppContext) {
+    let handle = locked(cx, Some("[]"));
+    handle
+        .update(cx, |shell, window, _| {
+            assert!(shell.menu_opened(), "the locked menu opens");
+            let pane = shell
+                .geometry(window)
+                .rows(0, false, shell.slots.strip_height);
+            assert_eq!(
+                shell.menu.menu.borrow().anchor(),
+                (pane.x + pane.width / 2., pane.y + pane.height / 2.)
+            );
+        })
+        .unwrap();
+}

@@ -16,6 +16,8 @@ pub mod fit;
 mod fit_fold_tests;
 #[cfg(test)]
 mod fit_tests;
+#[cfg(test)]
+mod fixmenus_tests;
 pub mod flyouts;
 #[cfg(test)]
 mod flyouts_tests;

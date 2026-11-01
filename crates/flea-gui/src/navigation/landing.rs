@@ -56,9 +56,6 @@ impl Navigator {
                 .is_some_and(|anchor| anchor.path == pane.path())
             {
                 let _ = self.reread(pane, &[], false, true);
-            } else if self.relist_owed {
-                let path = pane.path().to_owned();
-                let _ = self.open(pane, &path);
             }
         } else {
             self.locate_parked(pane);
@@ -227,7 +224,6 @@ impl Navigator {
             if std::mem::take(&mut self.relisting) {
                 self.pending_select = None;
             }
-            self.relist_owed = false;
             self.deletion_anchor = None;
             if self
                 .anchor

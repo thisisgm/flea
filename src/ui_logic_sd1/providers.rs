@@ -67,6 +67,8 @@ pub fn provider(providers: &[Provider], role: Role) -> Option<&Provider> {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Facts {
     pub tailscale_command: String,
+    // Tailscale is on PATH but cannot run (not executable, a dangling link); v0.3.12 keeps its row, unavailable.
+    pub tailscale_unusable: bool,
     pub send_command: String,
     pub localsend_command: String,
     // The provider's own reason when the CLI is missing; the caller words the sentence when it is empty.
@@ -87,6 +89,12 @@ pub fn parse_facts(raw: &str) -> Result<Facts, String> {
     };
     Ok(Facts {
         tailscale_command: command("taildrop"),
+        tailscale_unusable: data
+            .get("taildrop")
+            .and_then(|facts| facts.get("installed"))
+            .and_then(Json::as_bool)
+            == Some(true)
+            && command("taildrop").is_empty(),
         send_command: command("taildropSend"),
         localsend_command: command("localsend"),
         localsend_reason: data

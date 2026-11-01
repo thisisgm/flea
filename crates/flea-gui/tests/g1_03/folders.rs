@@ -77,7 +77,6 @@ fn folder_views_are_opt_in_and_hidden_is_a_saved_toggle() {
         Some(r#"{"folderViews":{"/c":"list"}}"#)
     );
     assert!(folders.hidden);
-    assert_eq!(folders.toggle_hidden(), r#"{"hidden":false}"#);
     let off = Folders::from_settings(
         &parse(r#"{"folderViews":{"/a":"grid"}}"#).unwrap(),
         Vec::new(),

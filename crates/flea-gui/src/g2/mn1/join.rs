@@ -93,6 +93,8 @@ pub struct Joined {
     pub tags_reading: bool,
     // Open With flyout launches still waiting on their answer: the side and the menu id whose snapshot they hold.
     pub(crate) launching: Vec<(usize, u64)>,
+    // Each side's Flash to drive zip probe, asked as the target row changes and read when a menu opens.
+    pub(crate) zip: [super::zip::ZipProbe; 2],
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
@@ -366,6 +368,8 @@ impl Shell {
             background,
             target: target.and_then(|target| target.row),
         };
+        // A right click that moves the cursor onto a zip asks about it ahead of the snapshot.
+        self.check_menu_zip(side);
         self.menu.context = self.captured_menu_context(&capture);
         self.menu.captured = Some(capture.clone());
         if !header {

@@ -221,8 +221,6 @@ impl Shell {
             }
             // A file row opens as it does anywhere; the history stays standing behind it.
             Step::OpenCursor => None,
-            // The folder step owns Recent's hidden-toggle refusal sentence.
-            Step::ToggleHidden => None,
             // A history has no next folder and no order to forget.
             Step::Forward | Step::ForgetSort => Some(Ok(false)),
             // Sorting re-orders the history's own rows; leaving Recent still hands the folder's order back.

@@ -273,7 +273,14 @@ impl PaneInput {
                 .find(|(_, rect)| rect.contains(&point))
                 .map(|(row, _)| *row);
         }
-        frame.row_at(point).map(|row| self.index(row))
+        frame.row_at(point).and_then(|row| self.drawn_row(row))
+    }
+    /// The listing row drawn at this position; under a filter the frame spans every held row, so a position past the drawn ones is blank ground.
+    pub fn drawn_row(&self, view: usize) -> Option<usize> {
+        match &self.shown {
+            Some(shown) => shown.get(view).copied(),
+            None => Some(view),
+        }
     }
     pub fn keyboard(&mut self) {
         self.pointer_origin = false;

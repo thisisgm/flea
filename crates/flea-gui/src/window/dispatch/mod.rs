@@ -132,6 +132,10 @@ mod filterkeys_tests;
 #[cfg(test)]
 mod fixcards_compare_tests;
 #[cfg(test)]
+mod fixmenus_hidden_tests;
+#[cfg(test)]
+mod fixmenus_tests;
+#[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
 mod gh_rename_proof_lane;

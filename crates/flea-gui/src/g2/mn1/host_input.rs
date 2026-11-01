@@ -143,7 +143,7 @@ impl Shell {
                 }
                 frame
                     .row_at(event.position)
-                    .map(|row| host.input.index(row))
+                    .and_then(|row| host.input.drawn_row(row))
             }
             Some(View::Grid) => {
                 let Some(grid) = &host.grid else { return };

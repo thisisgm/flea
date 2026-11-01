@@ -35,8 +35,8 @@ pub(super) fn run(
                     || (!chosen.captured.rows.is_empty()
                         && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER))
         }
-        "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
-        | "extThumbs" | "addFavourite" => true,
+        "selectAll" | "invertSelection" | "toggleHidden" | "toggleLangMarks" | "settings"
+        | "updateFlea" | "extThumbs" | "addFavourite" => true,
         _ => false,
     };
     if !wanted || !chosen.claim() {
@@ -87,6 +87,12 @@ pub(super) fn run(
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.
             let focused = std::mem::replace(&mut shell.focus_side, chosen.captured.side);
             shell.input_action(&chosen.action, window, cx);
+            shell.focus_side = focused;
+        }
+        // Pane.qml toggleHidden: the . key's own settings write, so the relist keeps the cursor row as the key's does.
+        "toggleHidden" => {
+            let focused = std::mem::replace(&mut shell.focus_side, chosen.captured.side);
+            shell.settings_action("toggleHidden", window, cx);
             shell.focus_side = focused;
         }
         // ViewState.qml toggles langMarks, which every view reads from ui.json.

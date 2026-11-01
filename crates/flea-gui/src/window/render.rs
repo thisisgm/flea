@@ -58,6 +58,7 @@ impl Render for Shell {
         self.settle_rail(window, cx);
         for side in 0..2 {
             self.flush_operations(side, cx);
+            self.check_menu_zip(side);
             let shown = self.panes[side]
                 .as_ref()
                 .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));

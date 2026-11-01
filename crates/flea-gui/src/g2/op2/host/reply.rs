@@ -54,7 +54,12 @@ impl Shell {
                 let verified = reply.get("verified").and_then(Json::as_bool) != Some(false);
                 self.archive_done(side, &wire::parse_archivedone(&reply), verified, window, cx)
             }
-            "flashimage" if flash_side => {
+            "flashimage" => {
+                // The menu's zip probe answers on any side, before the Flash card's own match.
+                self.note_menu_zip(side, &reply);
+                if !flash_side {
+                    return true;
+                }
                 let path = self
                     .operations
                     .archive
