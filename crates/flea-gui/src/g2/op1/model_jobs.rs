@@ -1,8 +1,43 @@
 //! Job actions and collision state on the existing operations owner.
 use super::*;
 
+#[derive(Clone)]
+pub(crate) struct Receipt {
+    text: String,
+    primary: String,
+}
+
+impl Receipt {
+    fn new(catalog: &I18n, preset: &str, text: &str) -> Self {
+        let hint = flea::ui_logic_op1::undo_hint(catalog, preset);
+        Self {
+            text: text.into(),
+            primary: text
+                .strip_suffix(&hint)
+                .filter(|_| !hint.is_empty())
+                .unwrap_or(text)
+                .into(),
+        }
+    }
+
+    pub(crate) fn owns(&self, notice: &str) -> bool {
+        notice.is_empty() || notice == self.text || notice == self.primary
+    }
+
+    pub(crate) fn revoke_undo(&self, messages: &mut flea::ui_logic_fb1::messages::Messages) {
+        messages.revoke_notice_undo(&self.text, &self.primary);
+    }
+}
+
 impl Operations {
     pub fn job_action(&mut self, id: u64, action: jobs::Action) {
+        if action == jobs::Action::Cancel
+            && self.wire.transfer.running
+            && self.wire.transfer.id == id
+        {
+            self.cancel_transfer();
+            return;
+        }
         if action == jobs::Action::Cancel
             && !self
                 .jobs
@@ -25,11 +60,105 @@ impl Operations {
     }
 
     pub fn cancel_transfer(&mut self) {
-        if self.wire.transfer.cancel_enabled() {
+        if self.wire.transfer.cancel_enabled() && !self.transfer_cancelling {
+            self.transfer_cancelling = true;
+            if let Some(job) = self
+                .jobs
+                .rows
+                .iter_mut()
+                .find(|job| job.id == self.wire.transfer.id)
+            {
+                job.state = "cancelling".into();
+            }
             self.outbox.push(format!(
                 "{{\"c\":\"transfercancel\",\"id\":{}}}",
                 self.wire.transfer.id
             ));
+        }
+    }
+
+    // Jobs can finish before the transfer reply reaches this owner; only that reply ends its presentation.
+    pub(super) fn transfer_job(
+        &mut self,
+        catalog: &I18n,
+        mut job: flea::ui_logic_op1::JobRow,
+    ) -> flea::ui_logic_op1::JobRow {
+        let transfer = &self.wire.transfer;
+        if !transfer.running || transfer.id != job.id {
+            return job;
+        }
+        if !jobs::unfinished(&job) {
+            self.pending_transfer_job = Some(job.clone());
+            job.head = self
+                .jobs
+                .rows
+                .iter()
+                .find(|row| row.id == job.id)
+                .map(|row| row.head.clone())
+                .unwrap_or_else(|| transfer.head(catalog));
+            job.state = "running".into();
+            job.undo = false;
+        }
+        if self.transfer_cancelling {
+            job.state = "cancelling".into();
+        }
+        job
+    }
+
+    pub(super) fn transfer_jobs(
+        &mut self,
+        catalog: &I18n,
+        jobs: Vec<flea::ui_logic_op1::JobRow>,
+    ) -> bool {
+        let mut jobs: Vec<_> = jobs
+            .into_iter()
+            .map(|job| self.transfer_job(catalog, job))
+            .collect();
+        let transfer = &self.wire.transfer;
+        if transfer.running && !jobs.iter().any(|job| job.id == transfer.id) {
+            if let Some(job) = self.jobs.rows.iter().find(|job| job.id == transfer.id) {
+                jobs.push(job.clone());
+            }
+        }
+        self.jobs.snapshot(jobs)
+    }
+
+    pub(super) fn release_transfer_job(&mut self) {
+        if let Some(job) = self.pending_transfer_job.take() {
+            self.jobs.update(job);
+        }
+    }
+
+    pub(super) fn transfer_done(
+        &mut self,
+        catalog: &I18n,
+        done: &flea::ui_logic_op1::TransferDone,
+    ) {
+        if self.emptying.finish(done.id) {
+            return;
+        }
+        if let transfer::Fold::Done { transfer, error } = self.wire.done(done.id, done.failed) {
+            self.release_transfer_job();
+            self.transfer_cancelling = false;
+            let undo = self
+                .jobs
+                .rows
+                .iter()
+                .find(|job| job.id == done.id && jobs::state(job) == jobs::State::Done)
+                .map(|job| job.undo);
+            let mut line = lines::done_line(catalog, &self.preset, &transfer, done);
+            if undo == Some(false) {
+                let hint = flea::ui_logic_op1::undo_hint(catalog, &self.preset);
+                if let Some(receipt) = line.strip_suffix(&hint).filter(|_| !hint.is_empty()) {
+                    line = receipt.to_owned();
+                }
+            }
+            self.transfer_receipt = undo.map(|_| Receipt::new(catalog, &self.preset, &line));
+            self.sticky.clear();
+            self.say(line.clone(), error);
+            if error {
+                self.say(line, false);
+            }
         }
     }
 

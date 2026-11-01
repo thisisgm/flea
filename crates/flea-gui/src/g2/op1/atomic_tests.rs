@@ -333,7 +333,7 @@ fn u13_fix1_escape_cannot_cancel_an_unseen_new_job(cx: &mut TestAppContext) {
     visual.run_until_parked();
     assert_eq!(
         received().as_deref(),
-        Some(r#"{"c":"jobs","op":"cancel","id":14}"#)
+        Some(r#"{"c":"transfercancel","id":14}"#)
     );
     assert!(received().is_none());
 }

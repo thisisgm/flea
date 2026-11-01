@@ -2,6 +2,9 @@ use super::*;
 use crate::window::root::Root;
 use gpui::AppContext;
 
+#[path = "status_transfer_tests.rs"]
+mod transfer;
+
 pub(super) fn state(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> flea::jsondoc::Json {
     handle
         .update(cx, |root, window, cx| {

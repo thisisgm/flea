@@ -52,6 +52,8 @@ impl Shell {
             anchor
         };
         host.nav.deletion_anchor = Some(anchor);
+        // PaneWire.qml onTrashed: the replacement row lands as a lone mark, so the next move carries it.
+        host.outline_lone = Some(host.pane.held.listing);
         if host.pane.busy() {
             let path = host.pane.path().to_owned();
             host.nav.changed(&host.pane, &path, host.pane.now());

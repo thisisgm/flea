@@ -88,6 +88,10 @@ impl Overlay {
         self.progress.dialog.shown().as_ref()
     }
 
+    pub(crate) fn drawn_jobs(&self) -> &Jobs {
+        &self.progress.jobs
+    }
+
     // A frame that brings nothing new stops before any publication; a running spiral's own frames land here.
     pub(super) fn publication_if_pending(
         &mut self,

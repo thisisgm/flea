@@ -150,6 +150,7 @@ pub struct Block {
     pub bar: Option<f64>,
     pub line: Vec<Part>,
     pub buttons: Vec<Action>,
+    pub cancelling: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -256,7 +257,12 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
         output: Vec::new(),
         bar: None,
         line: Vec::new(),
-        buttons: vec![Action::Cancel],
+        buttons: if row.state == "cancelling" {
+            Vec::new()
+        } else {
+            vec![Action::Cancel]
+        },
+        cancelling: row.state == "cancelling",
     };
     match st {
         State::Failed => Block {

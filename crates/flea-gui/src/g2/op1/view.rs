@@ -525,7 +525,22 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
             ))
         },
     );
-    out.child(buttons)
+    if block.cancelling {
+        let m = Metrics::new(scene.typeface);
+        out.child(
+            div()
+                .h(px(m.button))
+                .flex()
+                .justify_end()
+                .items_center()
+                .text_size(px(m.body))
+                .text_color(palette.muted)
+                .debug_selector(move || format!("op1-job-{id}-cancelling"))
+                .child(scene.catalog.tr("send.rclone.cancelling")),
+        )
+    } else {
+        out.child(buttons)
+    }
 }
 
 fn spiral(still: Option<f32>, id: u64, mode: Mode, ink: Hsla) -> Glyph {

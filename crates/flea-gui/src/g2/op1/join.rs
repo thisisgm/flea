@@ -271,6 +271,7 @@ impl Shell {
             model.collide.pending.is_none() && !model.open()
         };
         let Some((outbox, mut said, mut sticky, spent_cut)) = pending else {
+            self.sync_transfer_status(side, cx);
             self.clipboard_operations(side, false, idle, cx);
             if self.settle_overlay_mount(cx) {
                 cx.notify();
@@ -313,6 +314,7 @@ impl Shell {
         }
         changed |= host.status != before;
         let spent_cut = spent_cut && sent;
+        self.sync_transfer_status(side, cx);
         self.clipboard_operations(side, spent_cut, idle, cx);
         // An empty frame publishes nothing, so the shell's cached view stays untouched.
         if !said.is_empty() || spent_cut || self.operations.sticky[side] != sticky {
@@ -363,6 +365,8 @@ fn disconnect(overlay: &mut Overlay, cx: &mut Context<Overlay>) {
     overlay.model.trash_held = None;
     overlay.model.menu_held = None;
     overlay.model.wire.transfer.running = false;
+    overlay.model.pending_transfer_job = None;
+    overlay.model.transfer_cancelling = false;
     overlay.model.wire.held.clear();
     overlay.model.wire.held_since = None;
     overlay.model.emptying.running = false;
@@ -375,6 +379,7 @@ fn disconnect(overlay: &mut Overlay, cx: &mut Context<Overlay>) {
     });
     overlay.model.outbox.clear();
     for job in &mut overlay.model.jobs.rows {
+        job.undo = false;
         if flea::ui_logic_op1::jobs::unfinished(job) {
             job.state = "failed".into();
             job.reason = overlay.catalog.tr("window.backend_stopped");

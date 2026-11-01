@@ -1190,6 +1190,9 @@ wait_terminal() {
     fail "openterminal: $what started no terminal in $want, log is $(cat "$log")"
 }
 
+# The trash-arm board says "or press Delete" in the GPUI frontend; v0.3.12's QML says "or Delete".
+dd_or="or"; if [[ "$test_frontend" == gpui ]]; then dd_or="or press"; fi
+
 # The status bar clears a transient after 4000 ms and an eject verdict arrives on the rail's own
 # 5000 ms poll, so a sentence that lands after a poll has to be caught as it lands, never slept for.
 wait_message() {
@@ -5786,7 +5789,7 @@ case_dd() {
     [[ "$(ipc selectedIndices)" == "1,2" ]] || fail "dd: the block is $(ipc selectedIndices), not rows 1,2"
     trash_trap_own "$dd_trash" "$dir" "dd" f2.txt f3.txt
     key d >/dev/null
-    wait_message "Press d again to move them to Trash, or Delete on its own."
+    wait_message "Press d again to move them to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f3.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f3.txt" ]] && fail "dd: the block was not trashed, the bar reads $(ipc lastMessage)"
@@ -5809,7 +5812,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f5.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f5.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f5.txt" ]] && fail "dd: the row was not trashed, the bar reads $(ipc lastMessage)"
@@ -5832,7 +5835,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f6.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f6.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f6.txt" ]] && fail "dd: the last row was not trashed, the bar reads $(ipc lastMessage)"
@@ -5894,7 +5897,7 @@ case_ddclick() {
         want="f$cur.txt"
         trash_trap_own "$ddclick_trash" "$dir" "ddclick ($view)" "$want"
         key d >/dev/null
-        wait_message "Press d again to move it to Trash, or Delete on its own."
+        wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
         key d >/dev/null
         for _attempt in $(seq 1 40); do [[ -e "$dir/$want" ]] || break; sleep 0.25; done
         [[ -e "$dir/$want" ]] && fail "ddclick ($view): $want survived, the bar reads $(ipc lastMessage)"
@@ -10950,7 +10953,7 @@ case_phones() {
     key j >/dev/null
     settle
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     # The arm itself, not the hint: ui/Pane.qml escapePressed clears a selection before it clears the
     # bar, and coming up from the mount leaves the row we left selected (ui/js/Nav.js
     # applyPendingSelect), so the sentence stands for its four seconds while the arm is already gone.
