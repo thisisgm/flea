@@ -358,7 +358,7 @@ impl Element for GridElement {
         state.frames += 1;
         let state = &*state;
         let origin = bounds.origin;
-        // On glass the floor takes the window alpha, as the List and Columns floors do (Pane.qml listBackground).
+        // On glass the floor takes the window alpha, as the List and Columns floors do.
         let floor = crate::window::glass::ground(ink.background, window, cx);
         window.paint_quad(fill(bounds, floor));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
