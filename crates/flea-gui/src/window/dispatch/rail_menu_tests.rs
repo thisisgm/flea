@@ -370,3 +370,6 @@ fn ey358_escape_on_an_auto_hidden_favourite_menu_returns_to_the_rail_row(cx: &mu
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "rail_overlay_focus_tests.rs"]
+mod overlay_focus;

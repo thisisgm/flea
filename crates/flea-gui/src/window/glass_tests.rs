@@ -380,5 +380,7 @@ fn op_glass_list_and_columns_panes_draw_the_user_alpha(cx: &mut TestAppContext) 
     fixture.cleanup();
 }
 
+#[path = "glass_grid_tests.rs"]
+mod grid;
 #[path = "glass_tab_tests.rs"]
 mod tab;

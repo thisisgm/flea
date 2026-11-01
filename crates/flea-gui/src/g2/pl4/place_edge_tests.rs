@@ -116,10 +116,8 @@ fn the_rail_cursor_keeps_its_accent_edge_while_the_rail_holds_the_keyboard(
 
 // EY-105: with the keyboard on the row's eject mark, v0.3.12 turns the row behind it to the grey cursor ground.
 #[gpui::test]
-fn the_cursor_row_turns_grey_with_no_edge_while_its_eject_mark_holds_the_keyboard(
-    cx: &mut TestAppContext,
-) {
-    let (theme, quads, scale) = place_quads(cx, true, true);
+fn the_cursor_row_turns_grey_while_its_eject_mark_holds_the_keyboard(cx: &mut TestAppContext) {
+    let (theme, quads, _) = place_quads(cx, true, true);
     let grey = theme.foreground.opacity(crate::list::GREY_CURSOR);
     let wash = theme.accent.opacity(crate::list::CURSOR_WASH);
     assert!(
@@ -134,9 +132,17 @@ fn the_cursor_row_turns_grey_with_no_edge_while_its_eject_mark_holds_the_keyboar
             .any(|quad| quad.background.as_solid() == Some(wash)),
         "the row drops the accent wash"
     );
+}
+
+// EY-565: v0.3.12 SidebarRow.qml keeps the 2px accent edge on the cursor row while its eject mark holds the keyboard.
+#[gpui::test]
+fn fix_views_2_ey565_the_cursor_row_keeps_its_edge_while_its_eject_mark_holds_the_keyboard(
+    cx: &mut TestAppContext,
+) {
+    let (theme, quads, scale) = place_quads(cx, true, true);
     assert_eq!(
         edges(&quads, theme.accent_frame, scale),
-        0,
-        "the mark holds the keyboard, so the row draws no accent edge"
+        1,
+        "the edge stays over the grey cursor ground"
     );
 }

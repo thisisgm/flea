@@ -300,18 +300,18 @@ impl Render for Footer {
             font_size: typeface.caption.into(),
             ..window.text_style()
         };
-        let text_width = |text: &SharedString| {
+        let measure = |text: &str| {
             let width = window
                 .text_system()
                 .layout_line(text, typeface.caption, &[style.to_run(text.len())], None)
                 .width;
-            f32::from(width).min(self.zone_width)
+            f32::from(width)
         };
-        let disk_width = text_width(&self.filesystem);
+        let disk_width = measure(&self.filesystem).min(self.zone_width);
         // HIG locked-menu lets the full notice use the count zone's unpainted space.
-        let count_width = text_width(&self.counts);
+        let count_width = measure(&self.counts).min(self.zone_width);
         let room = (self.width - 28. - disk_width - (14. + count_width + 14.)).max(0.);
-        let counts_text = gpui::StyledText::new(self.counts.clone());
+        let counts_text = counts::elided(&self.counts, self.zone_width, measure);
         self.counts_text = counts_text.layout().clone();
         // A block zone, not a flex row: only a text given its zone's width is cut with the ellipsis StatusBar.qml draws.
         let text = |name, value: SharedString, child: gpui::AnyElement| {
