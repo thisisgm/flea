@@ -59,13 +59,20 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                     ("to", word(value)),
                 ])?;
             }
-            "mkdir" | "newfile" => w.send(vec![
-                ("c", word(kind)),
-                ("op", word("newFile")),
-                ("id", super::wire::number(m.action_id)),
-                ("path", word(&editor.path.to_string_lossy())),
-                ("name", word(value)),
-            ])?,
+            "mkdir" | "newfile" => {
+                let default_base = editor.default_base.as_deref().filter(|base| kind == "mkdir" && *base == value.as_str());
+                let mut fields = vec![
+                    ("c", word(kind)),
+                    ("op", word("newFile")),
+                    ("id", super::wire::number(m.action_id)),
+                    ("path", word(&editor.path.to_string_lossy())),
+                    ("name", word(if default_base.is_some() { "" } else { value })),
+                ];
+                if let Some(base) = default_base {
+                    fields.push(("defaultBase", word(base)));
+                }
+                w.send(fields)?;
+            }
             _ => {}
         }
         if matches!(kind, "rename" | "mkdir" | "newfile") {

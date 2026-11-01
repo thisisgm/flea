@@ -296,7 +296,7 @@ impl Shell {
         self.fileops_send(side, line, cx);
     }
 
-    // Ops.js newFolder: no name, so the backend takes the first free one.
+    // The backend takes the first free name from the client catalog's suggestion.
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         // Focus.js:271: Recent holds no folder, so the refusal lands before any mkdir.
         if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
@@ -309,7 +309,8 @@ impl Shell {
                 None => return,
             },
         };
-        let line = format!("{{\"c\":\"mkdir\",\"path\":\"{}\"}}", escape(&path));
+        let base = self.locale.catalog.tr("prompt.newFolder");
+        let line = format!("{{\"c\":\"mkdir\",\"path\":\"{}\",\"defaultBase\":\"{}\"}}", escape(&path), escape(&base));
         self.fileops_send(side, line, cx);
     }
 

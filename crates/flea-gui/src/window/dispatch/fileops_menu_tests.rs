@@ -295,9 +295,14 @@ fn background_new_folder_makes_a_folder_in_the_menu_folder(cx: &mut TestAppConte
         [super::fileops_tests::creation_request(
             &shell,
             cx,
-            r#"{"c":"mkdir","path":"/files"}"#
+            r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
         )]
     );
+    cx.simulate_mouse_down(point(px(x), px(y + 200.)), MouseButton::Right, Modifiers::default());
+    cx.run_until_parked();
+    shell.update(cx, |shell, _| shell.panes[0].as_mut().unwrap().path = "/elsewhere".into());
+    choose(&shell, cx, "newFolder");
+    assert!(sent().is_empty(), "a stale menu must not create in another folder");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

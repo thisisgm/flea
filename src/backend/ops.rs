@@ -8,8 +8,6 @@ use std::sync::atomic::AtomicBool;
 
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
 const NAME_TRIES: usize = 999;
-// The default a nameless mkdir starts from, then "New Folder 2" and up while the name is taken.
-const NEW_FOLDER: &str = "New Folder";
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub use super::opsname::{name_refusal, name_refusal_sentence};
@@ -162,48 +160,7 @@ pub(crate) fn dir_writable(path: &Path) -> bool {
     unsafe { access(c.as_ptr(), W_OK) == 0 }
 }
 
-// A given name is created exactly or refused; an empty one takes the first free default, because a
-// client holds a window of the listing, not the directory, so it cannot know which names are taken.
-pub fn mkdir(parent: &Path, name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
-    // Relative would resolve against the backend's own working directory, which no listing ever names.
-    if !parent.is_absolute() {
-        return Err(named("mkdir", parent, "a parent must be an absolute path"));
-    }
-    let dir = if name.is_empty() {
-        match free_new_folder(parent) {
-            Some(d) => d,
-            None => return Err(named("mkdir", parent, "every default folder name here is already taken")),
-        }
-    } else if let Some(refusal) = name_refusal(name) {
-        return Err(named("mkdir", parent, refusal));
-    } else {
-        if let Some(refusal) = crate::backend::fsname::refuse_in(parent, name) {
-            return Err(named("mkdir", parent, &refusal));
-        }
-        parent.join(name)
-    };
-    match std::fs::create_dir(&dir) {
-        Ok(()) => Ok((dir.clone(), vec![Step::MadeDir { path: dir.clone(), identity: ItemIdentity::inspect(&dir)? }])),
-        // create_dir, never create_dir_all: a name already taken is a collision and must never merge.
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            Err(named("mkdir", &dir, "a folder or file with that name already exists"))
-        }
-        Err(e) => Err(from_io("mkdir", &dir.to_string_lossy(), &e)),
-    }
-}
-
-// "New Folder", then "New Folder 2" and up: the first sibling not already taken by anything. The
-// directory is still created exclusively, so like free_copy_path this is a start and not a promise.
-fn free_new_folder(parent: &Path) -> Option<PathBuf> {
-    for n in 1..=NAME_TRIES {
-        let name = if n <= 1 { NEW_FOLDER.to_string() } else { format!("{} {}", NEW_FOLDER, n) };
-        let candidate = parent.join(name);
-        if candidate.symlink_metadata().is_err() {
-            return Some(candidate);
-        }
-    }
-    None
-}
+pub use super::newfolder::{mkdir, mkdir_with_base};
 
 #[cfg(test)]
 mod tests {
