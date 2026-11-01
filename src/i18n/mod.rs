@@ -113,6 +113,30 @@ impl I18n {
     pub fn language(&self) -> &str { &self.locale.code }
     pub fn locale(&self) -> &Locale { &self.locale }
     pub fn roster(&self) -> &[Locale] { &self.roster }
+
+    /// Every distinct character the roster's own names and this language's catalogs hold, so a font snapshot can resolve each script before it draws.
+    pub fn held_text(&self) -> String {
+        use crate::jsondoc::Json;
+        use std::collections::BTreeSet;
+        fn walk(json: &Json, chars: &mut BTreeSet<char>) {
+            match json {
+                Json::Str(text) => chars.extend(text.chars()),
+                Json::Arr(items) => items.iter().for_each(|item| walk(item, chars)),
+                Json::Obj(members) => members.iter().for_each(|(_, item)| walk(item, chars)),
+                _ => {}
+            }
+        }
+        let mut chars = BTreeSet::new();
+        for locale in &self.roster {
+            chars.extend(locale.name.chars());
+            chars.insert(locale.zero_digit);
+        }
+        for catalog in std::iter::once(&self.translated).chain(self.omarchy_translated.values()) {
+            catalog.values().for_each(|value| walk(value, &mut chars));
+        }
+        chars.into_iter().collect()
+    }
+
     pub fn tr(&self, key: &str) -> String {
         let line = self.resolve(key, None).unwrap_or(key);
         self.paragraph(line, line.into())
@@ -173,9 +197,30 @@ impl I18n {
 
     // Includes missing files, so creation, removal, replacement and same-length edits all trigger reload.
     pub fn poll_changed(&mut self) -> bool {
-        if self.watched.iter().all(|(path, before)| stamp(path) == *before) { return false; }
-        self.reload();
-        true
+        match self.prepare_changed() {
+            Some(prepared) => {
+                *self = prepared;
+                true
+            }
+            None => false,
+        }
+    }
+
+    // Call on a worker: this checks metadata, including the identity of atomically replaced files.
+    pub fn sources_unchanged(&self) -> bool {
+        self.watched
+            .iter()
+            .all(|(path, before)| stamp(path) == *before)
+    }
+
+    // Stage a stable replacement without mutating the catalog any current frame still holds.
+    pub fn prepare_changed(&self) -> Option<Self> {
+        if self.sources_unchanged() {
+            return None;
+        }
+        let mut prepared = self.clone();
+        prepared.reload();
+        prepared.sources_unchanged().then_some(prepared)
     }
 
     fn watch(&mut self, path: PathBuf) -> PathBuf {
