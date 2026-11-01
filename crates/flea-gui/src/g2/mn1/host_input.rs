@@ -204,10 +204,16 @@ impl Shell {
         let pane = geometry.rows(side, self.view == View::Dual, self.slots.strip_height);
         let y = pane.y + host.pane.cursor as f32 * host.pane.row_height() - host.pane.scroll_y
             + host.pane.row_height() / 2.;
+        // Pane.qml openCursorMenu: the locked hero has no rows, so its menu opens at the listing's centre.
+        let locked = self.locked_folder(side).is_some();
+        let centre = (pane.x + pane.width / 2., pane.y + pane.height / 2.);
         // In Columns the cursor row is in the active column, so the menu opens over that column's row.
-        let at = self
-            .columns_cursor_anchor(side)
-            .unwrap_or((pane.x + 14., y));
+        let at = if locked {
+            centre
+        } else {
+            self.columns_cursor_anchor(side)
+                .unwrap_or((pane.x + 14., y))
+        };
         self.open_menu(side, row, at, window, cx);
     }
 

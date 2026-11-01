@@ -357,3 +357,6 @@ mod menus;
 
 #[path = "rail_drive_tests.rs"]
 mod drive;
+
+#[path = "fixlogic2_phone_tests.rs"]
+mod fixlogic2_phone;

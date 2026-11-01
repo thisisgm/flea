@@ -181,7 +181,6 @@ impl Picker {
                 if let Some(network) = self.rail.network.as_mut() {
                     network.waiting = None;
                 }
-                self.refresh_mounts(cx);
                 if matches!(effect, Effect::OpenFile { .. }) {
                     self.path_out(
                         crate::path::view::Out::Open {

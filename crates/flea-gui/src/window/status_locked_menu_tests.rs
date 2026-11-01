@@ -212,3 +212,6 @@ fn ruling34_a_locked_tile_row_nobody_runs_says_the_action_is_not_available_yet(
         "Pane.qml says it as a plain message"
     );
 }
+
+#[path = "fixlogic2_locked_menu_tests.rs"]
+mod fixlogic2_locked;

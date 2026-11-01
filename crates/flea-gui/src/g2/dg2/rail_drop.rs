@@ -10,6 +10,14 @@ pub(super) const DRAG_LINE: u64 = 1 << 33;
 #[path = "rail_reaim.rs"]
 mod reaim;
 
+/// RailDrop.js destination: Recent, a tag and every phone row (MTP, PTP, AFC) are never a drop folder.
+pub(crate) fn rail_kind(kind: Kind) -> RailKind {
+    match kind {
+        Kind::Recent | Kind::Tag | Kind::Phone => RailKind::Other,
+        _ => RailKind::Folder,
+    }
+}
+
 /// Where a rail row sends a drop: a place's folder, or the Trash.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum Place {
@@ -88,10 +96,7 @@ impl Shell {
             flea::ui_logic_pl1::mounts::trashable(&lift.marker.source, None)
                 .then_some(Place::Trash)?
         } else {
-            let kind = match entry.kind {
-                Kind::Recent | Kind::Tag | Kind::Phone => RailKind::Other,
-                _ => RailKind::Folder,
-            };
+            let kind = rail_kind(entry.kind);
             let urls: Vec<String> = paths.iter().map(|path| core::uri_for(path)).collect();
             let dest = rail_destination(
                 kind,
