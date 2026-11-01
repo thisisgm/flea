@@ -1,5 +1,48 @@
-//! Rail marks painted from the monochrome atlas and theme roles.
+//! Rail row grounds and marks painted from the monochrome atlas and theme roles.
 use super::*;
+
+pub(super) fn paint_ground(
+    row: &LaidRow,
+    model: &RowsModel,
+    palette: &Palette,
+    window: &mut Window,
+) {
+    if is_cue(model, row.index) {
+        paint_cue(row, palette, window);
+        return;
+    }
+    if model.menu_open {
+        return;
+    }
+    if model.hovered == Some(row.index) {
+        window.paint_quad(fill(
+            box_of(row.rect),
+            palette.foreground.opacity(crate::list::HOVER),
+        ));
+    }
+    let keyboard = model.focused && !model.pointer_focus;
+    let highlighted = if keyboard { model.cursor } else { model.lit };
+    // SidebarRow.qml: the row behind a focused eject mark keeps the grey cursor ground.
+    let wash = keyboard && !model.mark_focused;
+    if highlighted == Some(row.index) {
+        let plate = if wash {
+            palette.accent.opacity(crate::list::CURSOR_WASH)
+        } else {
+            palette.foreground.opacity(crate::list::GREY_CURSOR)
+        };
+        window.paint_quad(fill(box_of(row.rect), plate));
+        // HIG rail-favorites: only the rail keyboard cursor draws the accent edge.
+        if wash {
+            window.paint_quad(fill(
+                Bounds::new(
+                    point(px(row.rect.x), px(row.rect.y)),
+                    size(px(2.), px(row.rect.height)),
+                ),
+                palette.accent_frame,
+            ));
+        }
+    }
+}
 
 pub(super) fn paint_mark(
     row: &LaidRow,

@@ -144,6 +144,8 @@ pub struct RowsModel {
     pub cursor: Option<usize>,
     pub lit: Option<usize>,
     pub focused: bool,
+    /// The network row menu suppresses plates without taking the rail's cursor or focus.
+    pub menu_open: bool,
     pub renaming: Option<usize>,
     pub editor: crate::path::entry::Entry,
     pub editor_scroll: f32,
