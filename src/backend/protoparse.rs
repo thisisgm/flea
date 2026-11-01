@@ -185,6 +185,7 @@ pub fn parse_request(line: &str) -> Request {
         Some("mkdir") => Request::MkDir {
             path: field_str(line, "path").unwrap_or_default(),
             name: field_str(line, "name").unwrap_or_default(),
+            default_base: field_str(line, "defaultBase"),
         },
         Some("newfile") => Request::NewFile {
             path: field_str(line, "path").unwrap_or_default(),

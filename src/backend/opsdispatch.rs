@@ -303,10 +303,10 @@ where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 }
 
 // A local mkdir answers inline; a remote mkdir uses the bounded slow-write worker.
-pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) -> Vec<PathBuf> {
-    do_mkdir_requested(out, ops, parent, name, 0)
+pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, default_base: Option<&str>) -> Vec<PathBuf> {
+    do_mkdir_requested(out, ops, parent, name, default_base, 0)
 }
-pub(crate) fn do_mkdir_requested(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, request: usize) -> Vec<PathBuf> {
+pub(crate) fn do_mkdir_requested(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, default_base: Option<&str>, request: usize) -> Vec<PathBuf> {
     if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         let mut legacy = Vec::new();
         busy(&mut legacy, "mkdir");
@@ -315,7 +315,11 @@ pub(crate) fn do_mkdir_requested(out: &mut impl Write, ops: &mut Ops, parent: &s
     }
     let base = parent.to_string();
     let given = name.to_string();
-    let work = move || ops::mkdir(Path::new(&base), &given);
+    let default_base = default_base.map(str::to_owned);
+    let work = move || match default_base.as_deref() {
+        Some(default_base) => ops::mkdir_with_base(Path::new(&base), &given, Some(default_base)),
+        None => ops::mkdir(Path::new(&base), &given),
+    };
     if request == 0 { do_mkdir_with(out, ops, parent, CALL_DEADLINE, work) }
     else { created_request::mkdir_with(out, ops, parent, request, CALL_DEADLINE, work) }
 }
@@ -1165,7 +1169,7 @@ mod tests {
         let d = TestDir::new("dispatchmkdir");
         let mut o = ops();
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "photos");
+        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "photos", None);
         assert!(d.join("photos").is_dir());
         assert_eq!(text(&buf).trim(), format!(r#"{{"t":"made","ok":true,"path":"{}"}}"#, d.join("photos").display()));
         assert_eq!(o.journal.len(), 1);
@@ -1182,7 +1186,7 @@ mod tests {
         let mut o = ops();
         d.file("taken", "t");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "taken");
+        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "taken", None);
         assert!(text(&buf).contains(r#""t":"error","where":"mkdir""#), "the refusal is an error line, not a silent no-op");
         assert!(o.journal.is_empty(), "a folder that was not made must not be undoable");
         assert_eq!(std::fs::read_to_string(d.join("taken")).unwrap(), "t");
@@ -1499,7 +1503,7 @@ mod tests {
         let mut o = Ops::new(tx);
         let parent = d.dir("p");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made");
+        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made", None);
         let mut buf = out();
         do_undo(&mut buf, &mut o);
         assert!(text(&buf).contains("undone"), "{}", text(&buf));
@@ -1596,7 +1600,7 @@ mod tests {
         let mut o = Ops::new(tx);
         let parent = d.dir("p");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made");
+        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made", None);
         let mut buf = out();
         do_undo(&mut buf, &mut o);
         let mut buf = out();
@@ -1724,7 +1728,7 @@ mod tests {
         let (tx, rx) = channel();
         let mut o = Ops::new(tx);
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent, "older");
+        do_mkdir(&mut buf, &mut o, &parent, "older", None);
         assert!(text(&buf).contains(r#""t":"made""#), "the older mkdir journals first: {}", text(&buf));
         let victim = d.file("victim.txt", "v");
         let path = victim.to_string_lossy().to_string();
@@ -1745,7 +1749,7 @@ mod tests {
         start_redo(&mut redone, &mut o);
         assert!(text(&redone).contains("already running"), "redo waits too: {}", text(&redone));
         let mut second = out();
-        do_mkdir(&mut second, &mut o, &parent, "newer");
+        do_mkdir(&mut second, &mut o, &parent, "newer", None);
         assert!(text(&second).contains("already running"), "a second write waits too: {}", text(&second));
         drop(release);
         let landed = rx.recv_timeout(std::time::Duration::from_secs(5)).expect("the released write reports through the op channel");
@@ -2153,13 +2157,13 @@ mod tests {
         // Mkdir on the held mount waits, and the folder never appears.
         let journaled = o.journal.len();
         let mut busy = out();
-        do_mkdir(&mut busy, &mut o, &remote.path().to_string_lossy(), "heldsub");
+        do_mkdir(&mut busy, &mut o, &remote.path().to_string_lossy(), "heldsub", None);
         assert!(text(&busy).contains("already running"), "a mkdir on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused mkdir journals nothing");
         assert!(!remote.join("heldsub").exists(), "the refused mkdir touches nothing");
         // The same mkdir elsewhere lands at once.
         let mut done = out();
-        do_mkdir(&mut done, &mut o, &local.path().to_string_lossy(), "photos");
+        do_mkdir(&mut done, &mut o, &local.path().to_string_lossy(), "photos", None);
         assert!(text(&done).contains(r#""t":"made","ok":true"#), "a mkdir elsewhere lands: {}", text(&done));
         // A new file on the held mount waits, and nothing is created.
         let journaled = o.journal.len();

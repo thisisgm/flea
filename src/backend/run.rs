@@ -715,10 +715,11 @@ fn handle_line(
             patch_session_paths(st, touched);
         }
         Request::BulkRename { paths, names } => patch_session_paths(st, super::bulkrename::do_bulkrename(out, ops, paths, names)),
-        Request::MkDir { path, name } => {
+        Request::MkDir { path, name, default_base } => {
             let request = crate::json::field_usize(line, "request").unwrap_or(0);
-            let touched = if request == 0 { do_mkdir(out, ops, &path, &name) }
-                else { super::opsdispatch::do_mkdir_requested(out, ops, &path, &name, request) };
+            let default_base = default_base.as_deref();
+            let touched = if request == 0 { do_mkdir(out, ops, &path, &name, default_base) }
+                else { super::opsdispatch::do_mkdir_requested(out, ops, &path, &name, default_base, request) };
             patch_session_paths(st, touched);
         }
         Request::NewFile { path, name, id } => patch_session_paths(st, do_newfile(out, ops, &path, &name, id)),

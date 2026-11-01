@@ -83,7 +83,7 @@ fn parses_each_request_shape() {
         _ => panic!("expected Search"),
     }
     match parse_request(r#"{"c":"mkdir","path":"/home/gm","name":"New Folder"}"#) {
-        Request::MkDir { path, name } => assert_eq!((path.as_str(), name.as_str()), ("/home/gm", "New Folder")),
+        Request::MkDir { path, name, .. } => assert_eq!((path.as_str(), name.as_str()), ("/home/gm", "New Folder")),
         _ => panic!("expected MkDir"),
     }
     assert!(matches!(parse_request(r#"{"c":"searchcancel"}"#), Request::SearchCancel));

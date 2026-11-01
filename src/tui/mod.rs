@@ -336,3 +336,6 @@ mod cells_hig_tests;
 
 #[cfg(test)]
 mod hig_s5_tests;
+
+#[cfg(test)]
+mod newfolder_tests;
