@@ -43,11 +43,13 @@ impl Shell {
                 self.change_settings(patch, window, cx);
                 let base = self.settings_base(cx);
                 let preset = pages::word(&self.launch.settings.data, &["keys"], "default");
+                // TextSize.js announce: the footer says the new size and its way back, since a chord with the panel shut has no other readout.
+                let sentence =
+                    textsize::announce_for(size, base, preset).resolve(&self.locale.catalog);
                 if let Some(host) = &mut self.panes[self.focus_side] {
-                    host.status = textsize::announce_for(size, base, preset)
-                        .resolve(&self.locale.catalog)
-                        .into();
+                    host.status = sentence.clone().into();
                 }
+                self.status_note(&sentence, cx);
             }
             "viewList" | "viewColumns" | "viewGrid" | "viewDual" => {
                 self.choose_settings_view(

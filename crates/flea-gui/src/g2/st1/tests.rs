@@ -207,6 +207,35 @@ fn escape_and_backspace_leave_the_search_before_the_panel() {
     assert_eq!(panel.query.as_deref(), Some(""));
 }
 
+// EY-197: Shift+J reorders with shifted, unshifted or missing text; plain j still walks the cursor.
+#[test]
+fn shift_j_moves_a_favourite_whatever_text_the_press_carries() {
+    for text in ["J", "j", ""] {
+        let mut panel = panel(
+            r#"{"places":{"favourites":[{"label":"P","path":"/p"},{"label":"Q","path":"/q"}]}}"#,
+        );
+        panel.show_section("places");
+        press(&mut panel, &["j"]);
+        assert_eq!(panel.rows[panel.cursor].favourite, Some(0));
+        panel.key("j", text, true);
+        assert_eq!(
+            panel.take_requests(),
+            [Request::MoveFavourite { from: 0, to: 1 }],
+            "text {text:?}"
+        );
+        assert_eq!(
+            panel.rows[panel.cursor].favourite,
+            Some(0),
+            "text {text:?} moved the cursor instead"
+        );
+        panel.key("k", &text.replace('J', "K").replace('j', "k"), true);
+        assert!(
+            panel.take_requests().is_empty(),
+            "the first favourite moves no higher"
+        );
+    }
+}
+
 #[test]
 fn a_favourite_row_hands_its_moves_to_the_host() {
     let mut panel =
