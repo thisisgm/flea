@@ -276,10 +276,12 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
         ] {
             let words = m.i18n.tr(label);
             assert_ne!(words, label, "{code} {label} is translated in the fixture");
-            assert!(
-                rows.contains(&format!("{keys}  {words}")),
-                "{code}: {keys} beside {words}\n{rows}"
-            );
+            // The base sheet mirrors its columns in a right-to-left language, so the words lead there.
+            let beside = rows.lines().any(|line| match (line.find(keys), line.find(words.as_str())) {
+                (Some(at_keys), Some(at_words)) if m.i18n.locale().right_to_left => at_words < at_keys,
+                _ => line.contains(&format!("{keys}  {words}")),
+            });
+            assert!(beside, "{code}: {keys} beside {words}\n{rows}");
         }
     }
 }
