@@ -221,6 +221,77 @@ class Sidecars(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
                     scenes.manifest(target)
 
+    def language_scene(self, **changes):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        listing = next(scene for scene in scenes.manifest(source) if scene['id'] == 'g1-01-list-r0')
+        scene = dict(listing, id='i50.catalog.de.list.rest.gm.r0', unit='I50-27', board='lang-ja-list', theme='gm',
+                     language='de', surface='list', state='rest', covers=['board:lang-ja-list'])
+        scene.update(changes)
+        return {key: value for key, value in scene.items() if value is not None}
+
+    def test_a_language_scene_names_a_roster_language_surface_and_state(self):
+        target = self.root / 'i50.json'
+        target.write_text(json.dumps(dict(version=1, scenes=[self.language_scene()])))
+        self.assertEqual(scenes.manifest(target)[0]['language'], 'de')
+        for changes, error in [
+            (dict(language='xx', id='i50.catalog.xx.list.rest.gm.r0'), 'unknown language'),
+            (dict(language=['de']), 'unknown language'),
+            (dict(surface=['list']), 'unknown surface or state'),
+            (dict(language=None), 'missing or unknown scene field'),
+            (dict(surface='tray', id='i50.catalog.de.tray.rest.gm.r0'), 'unknown surface or state'),
+            (dict(state='blink', id='i50.catalog.de.list.blink.gm.r0'), 'unknown surface or state'),
+            (dict(state=None), 'missing or unknown scene field'),
+            (dict(id='i50.catalog.de.list.rest.gm.r0/../x'), 'unknown scene id'),
+            (dict(id='i50.'), 'unknown scene id'),
+            (dict(id='i50.paint.de.list.rest.gm.r0'), 'unknown scene id'),
+        ]:
+            with self.subTest(changes=changes):
+                target.write_text(json.dumps(dict(version=1, scenes=[self.language_scene(**changes)])))
+                with self.assertRaisesRegex(ValueError, error):
+                    scenes.manifest(target)
+
+    def test_a_language_scene_id_spells_its_fields(self):
+        target = self.root / 'i50.json'
+        for changes in [dict(language='ja'), dict(surface='menu'), dict(state='focus'), dict(theme='low-chroma'),
+                        dict(corner_radius=8), dict(id='i50.catalog.de.list.rest.gm.r0.extra')]:
+            with self.subTest(changes=changes):
+                target.write_text(json.dumps(dict(version=1, scenes=[self.language_scene(**changes)])))
+                with self.assertRaisesRegex(ValueError, 'language scene id does not spell its fields'):
+                    scenes.manifest(target)
+        spelled = self.language_scene(id='i50.fit.ja.menu.focus.low-chroma.r8', language='ja', surface='menu', state='focus',
+                                      theme='low-chroma', corner_radius=8)
+        target.write_text(json.dumps(dict(version=1, scenes=[spelled])))
+        self.assertEqual(scenes.manifest(target)[0]['id'], 'i50.fit.ja.menu.focus.low-chroma.r8')
+
+    def test_language_fields_belong_only_to_language_scenes(self):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        target = self.root / 'g1.json'
+        for key, value in (('language', 'de'), ('surface', 'list'), ('state', 'rest')):
+            with self.subTest(key=key):
+                data = json.loads(source.read_text())
+                data['scenes'][0][key] = value
+                target.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                    scenes.manifest(target)
+        bare = self.language_scene()
+        for key in ('language', 'surface', 'state'):
+            bare.pop(key)
+        target.write_text(json.dumps(dict(version=1, scenes=[bare])))
+        with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+            scenes.manifest(target)
+
+    def test_the_language_registry_holds_only_drawable_spelled_scenes(self):
+        registered = scenes.manifest(Path(__file__).with_name('scenes') / 'i50.json')
+        # The I50 fit languages; only the listing at rest is drawable until each surface owner adds a drawn-state readback.
+        languages = ['de', 'ar', 'ja', 'zh-CN', 'th', 'hi']
+        self.assertEqual(sorted(scene['id'] for scene in registered),
+                         sorted(f'i50.fit.{code}.list.rest.{theme}.r{radius}' for code in languages
+                                for theme in ('gm', 'low-chroma') for radius in (0, 8)))
+        self.assertEqual({(scene['surface'], scene['state'], scene['view']) for scene in registered}, {('list', 'rest', 'list')})
+        # Arabic draws mirrored on its own board; every other fit language uses the left-to-right list board.
+        self.assertEqual({(scene['language'], scene['board']) for scene in registered},
+                         {(code, 'lang-ar-list' if code == 'ar' else 'lang-ja-list') for code in languages})
+
 
 class Quiet(unittest.TestCase):
     def wait(self, frames, pending):

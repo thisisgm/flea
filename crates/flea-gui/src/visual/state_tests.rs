@@ -212,7 +212,7 @@ fn commit_frame(entity: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) 
 }
 
 /// Draws a frame and has the compositor present it.
-fn draw_frame(entity: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> usize {
+pub(super) fn draw_frame(entity: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> usize {
     let ran = commit_frame(entity, cx);
     cx.update(|window, cx| entity.update(cx, |shell, _| present(shell, window)));
     ran
@@ -238,7 +238,7 @@ fn readback(
     receive.try_recv().unwrap().reply
 }
 
-fn root_shell(
+pub(super) fn root_shell(
     cx: &mut TestAppContext,
 ) -> (
     gpui::Entity<Shell>,
@@ -506,7 +506,7 @@ fn scene_spec(path: &str, key: &str, value: &str) -> crate::visual::contract::Sp
     crate::visual::contract::Spec::from_scene("g1-01-list-r0", &scene, &settings).unwrap()
 }
 
-fn apply(
+pub(super) fn apply(
     entity: &gpui::Entity<Shell>,
     cx: &mut gpui::VisualTestContext,
     spec: crate::visual::contract::Spec,
@@ -549,7 +549,7 @@ fn land_rows(
     });
 }
 
-fn expire(
+pub(super) fn expire(
     entity: &gpui::Entity<Shell>,
     cx: &mut gpui::VisualTestContext,
     receive: &std::sync::mpsc::Receiver<Answer>,
