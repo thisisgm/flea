@@ -466,7 +466,7 @@
   "tabs.close": "Dún cluaisín",
   "tabs.close_others": "Dún na cluaisíní eile",
   "window.loading": "Á lódáil",
-  "window.waiting": "Ag fanacht leis an bhfillteán seo fós",
+  "window.waiting": "Níl an fillteán sin ag freagairt.",
   "window.select_required": "Teastaíonn sprioc ó --select",
   "window.one_directory": "Ní ghlactar ach le comhadlann tosaigh amháin",
   "window.unknown_flag": "Bratach anaithnid %1",
@@ -2837,5 +2837,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Níl foirceannóir teaghráin sa phaicéad grafaice",
   "tui.wire.backend_stdin_unavailable": "Níl ionchur caighdeánach an innill ar fáil",
   "tui.wire.backend_stdout_unavailable": "Níl aschur caighdeánach an innill ar fáil",
-  "tui.wire.the_file_list_stopped_restart_flea": "Stop an liosta comhad; atosaigh Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Stop an liosta comhad; atosaigh Flea",
+  "settings.group.your_keys": "Do chuid eochracha",
+  "settings.hint.key_file": "Ní shocraíonn keys.toml aon cheangal eochrach mar níorbh fhéidir le Flea é a léamh mar théacs 64 KB nó níos lú.",
+  "settings.hint.key_layout": "Fanann %1 gan cheangal mar ní féidir le Flea é a fhíorú leis an leagan amach méarchláir seo.",
+  "settings.hint.key_malformed": "Ní ceangal eochrach í líne %1 i keys.toml.",
+  "settings.hint.key_repeated": "Fanann %1 gan cheangal mar tá sé ceangailte cheana i líne níos luaithe i keys.toml.",
+  "settings.hint.key_reserved": "Fanann %1 gan cheangal mar coimeádann Flea dó féin é.",
+  "settings.hint.key_taken": "Fanann %1 gan cheangal mar úsáideann %2 é cheana sa réamhshocrú seo.",
+  "settings.hint.key_unknown": "Fanann %1 gan cheangal mar níl aon ghníomh darbh ainm %2 ag Flea."
 }

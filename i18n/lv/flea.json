@@ -2384,7 +2384,7 @@
   "window.select_required": "--select ir vajadzīgs mērķis",
   "window.settings_failed": "Iestatījumus nevarēja nolasīt: %1",
   "window.unknown_flag": "Nezināms karodziņš %1",
-  "window.waiting": "Vēl gaida šo mapi",
+  "window.waiting": "Šī mape neatbild.",
   "dialogs.file.disconnected": "Šis disks vai koplietojums tika atvienots, tāpēc šī mape vairs nav pieejama",
   "dialogs.file.open.unlisted": "Šis fails vairs nav sarakstā.",
   "dialogs.file.original.missing": "Šī saite norāda uz vienumu, kas vairs nepastāv.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafikas paketei nav virknes beigu marķiera",
   "tui.wire.backend_stdin_unavailable": "aizmugursistēmas standarta ievade nav pieejama",
   "tui.wire.backend_stdout_unavailable": "aizmugursistēmas standarta izvade nav pieejama",
-  "tui.wire.the_file_list_stopped_restart_flea": "Failu saraksts apstājies; pārstartējiet Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Failu saraksts apstājies; pārstartējiet Flea",
+  "settings.group.your_keys": "Jūsu taustiņi",
+  "settings.hint.key_file": "keys.toml nepiešķir nevienu taustiņu kombināciju, jo Flea nevarēja to nolasīt kā tekstu, kura izmērs nepārsniedz 64 KB.",
+  "settings.hint.key_layout": "%1 paliek nepiešķirta, jo Flea nevar pārbaudīt šo taustiņu secību šajā tastatūras izkārtojumā.",
+  "settings.hint.key_malformed": "keys.toml %1. rinda nav taustiņu piešķīrums.",
+  "settings.hint.key_repeated": "%1 paliek nepiešķirta, jo agrāka keys.toml rinda jau piešķir šo taustiņu secību.",
+  "settings.hint.key_reserved": "%1 paliek nepiešķirta, jo Flea patur šo taustiņu secību sev.",
+  "settings.hint.key_taken": "%1 paliek nepiešķirta, jo %2 jau izmanto šo taustiņu secību šajā priekšiestatījumā.",
+  "settings.hint.key_unknown": "%1 paliek nepiešķirta, jo Flea nav darbības ar nosaukumu %2."
 }

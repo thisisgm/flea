@@ -430,7 +430,7 @@
   "tabs.close": "Lap bezárása",
   "tabs.close_others": "Többi lap bezárása",
   "window.loading": "Betöltés",
-  "window.waiting": "Még várakozás erre a mappára",
+  "window.waiting": "A mappa nem válaszol.",
   "window.select_required": "A --select használatához cél szükséges",
   "window.one_directory": "Csak egy kezdőkönyvtár adható meg",
   "window.unknown_flag": "Ismeretlen kapcsoló: %1",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "A grafikus csomagból hiányzik a karakterlánc lezárója",
   "tui.wire.backend_stdin_unavailable": "a háttérfolyamat szabványos bemenete nem érhető el",
   "tui.wire.backend_stdout_unavailable": "a háttérfolyamat szabványos kimenete nem érhető el",
-  "tui.wire.the_file_list_stopped_restart_flea": "A fájllista leállt; indítsd újra a Fleát"
+  "tui.wire.the_file_list_stopped_restart_flea": "A fájllista leállt; indítsd újra a Fleát",
+  "settings.group.your_keys": "Saját billentyűk",
+  "settings.hint.key_file": "A keys.toml nem rendel hozzá billentyűket, mert a Flea nem tudta legfeljebb 64 KB méretű szövegként beolvasni.",
+  "settings.hint.key_layout": "%1 hozzárendelés nélkül marad, mert a Flea nem tudja ellenőrizni ezen a billentyűzetkiosztáson.",
+  "settings.hint.key_malformed": "A keys.toml %1. sora nem billentyű-hozzárendelés.",
+  "settings.hint.key_repeated": "%1 hozzárendelés nélkül marad, mert a keys.toml egy korábbi sora már hozzárendeli.",
+  "settings.hint.key_reserved": "%1 hozzárendelés nélkül marad, mert a Flea saját magának tartja fenn.",
+  "settings.hint.key_taken": "%1 hozzárendelés nélkül marad, mert ebben az előbeállításban már a(z) %2 használja.",
+  "settings.hint.key_unknown": "%1 hozzárendelés nélkül marad, mert a Flea nem rendelkezik %2 nevű művelettel."
 }

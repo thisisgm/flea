@@ -2286,7 +2286,7 @@
   "window.select_required": "--select vereist een doel",
   "window.settings_failed": "Instellingen konden niet worden gelezen: %1",
   "window.unknown_flag": "Onbekende optie %1",
-  "window.waiting": "Nog wachten op deze map",
+  "window.waiting": "Die map reageert niet.",
   "dialogs.file.disconnected": "Die schijf of gedeelde map is losgekoppeld, waardoor deze map niet meer beschikbaar is",
   "dialogs.file.open.unlisted": "Dat bestand staat niet meer in de lijst.",
   "dialogs.file.original.missing": "Die koppeling verwijst naar een item dat niet meer bestaat.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafisch pakket bevat geen tekenreekseindmarkering",
   "tui.wire.backend_stdin_unavailable": "stdin van backend niet beschikbaar",
   "tui.wire.backend_stdout_unavailable": "stdout van backend niet beschikbaar",
-  "tui.wire.the_file_list_stopped_restart_flea": "De bestandslijst is gestopt; herstart Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "De bestandslijst is gestopt; herstart Flea",
+  "settings.group.your_keys": "Je toetsen",
+  "settings.hint.key_file": "keys.toml wijst geen toetsen toe omdat Flea het niet kon lezen als tekst van 64 KB of minder.",
+  "settings.hint.key_layout": "%1 blijft zonder toewijzing omdat Flea de toetsreeks niet kan controleren met deze toetsenbordindeling.",
+  "settings.hint.key_malformed": "Regel %1 van keys.toml is geen toetsbinding.",
+  "settings.hint.key_repeated": "%1 blijft zonder toewijzing omdat een eerdere regel in keys.toml de toetsreeks al toewijst.",
+  "settings.hint.key_reserved": "%1 blijft zonder toewijzing omdat Flea de toetsreeks voor zichzelf reserveert.",
+  "settings.hint.key_taken": "%1 blijft zonder toewijzing omdat %2 de toetsreeks al gebruikt in deze voorinstelling.",
+  "settings.hint.key_unknown": "%1 blijft zonder toewijzing omdat Flea geen actie met de naam %2 heeft."
 }

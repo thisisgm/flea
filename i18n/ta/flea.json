@@ -2337,7 +2337,7 @@
   "window.select_required": "--select க்கு இலக்கு தேவை",
   "window.settings_failed": "அமைப்புகளைப் படிக்க முடியவில்லை: %1",
   "window.unknown_flag": "அறியப்படாத கொடி %1",
-  "window.waiting": "இந்தக் கோப்புறைக்காக இன்னும் காத்திருக்கிறது",
+  "window.waiting": "அந்தக் கோப்புறை பதிலளிக்கவில்லை.",
   "keys.tui17.copyDirUri": "கோப்புறையின் URI-ஐ நகலெடு",
   "keys.tui17.copyName": "கோப்புப் பெயரை நகலெடு",
   "keys.tui17.copyPath": "பாதையை நகலெடு",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "வரைகலைப் பொட்டலத்தில் சரம் முடிப்பான் இல்லை",
   "tui.wire.backend_stdin_unavailable": "பின்தளத்தின் நிலையான உள்ளீடு கிடைக்கவில்லை",
   "tui.wire.backend_stdout_unavailable": "பின்தளத்தின் நிலையான வெளியீடு கிடைக்கவில்லை",
-  "tui.wire.the_file_list_stopped_restart_flea": "கோப்புப் பட்டியல் நிறுத்தப்பட்டது; Flea ஐ மீண்டும் தொடங்கவும்"
+  "tui.wire.the_file_list_stopped_restart_flea": "கோப்புப் பட்டியல் நிறுத்தப்பட்டது; Flea ஐ மீண்டும் தொடங்கவும்",
+  "settings.group.your_keys": "உங்கள் விசைகள்",
+  "settings.hint.key_file": "Flea ஆல் keys.toml ஐ 64 KB அல்லது அதற்கும் குறைவான உரையாகப் படிக்க முடியாததால் எந்த விசைப்பிணைப்பும் அமைக்கப்படவில்லை.",
+  "settings.hint.key_layout": "இந்த விசைப்பலகை அமைப்பில் Flea ஆல் %1 ஐச் சரிபார்க்க முடியாததால் அது பிணைக்கப்படாமல் இருக்கும்.",
+  "settings.hint.key_malformed": "keys.toml இன் %1 ஆம் வரி ஒரு விசைப்பிணைப்பு அல்ல.",
+  "settings.hint.key_repeated": "keys.toml இன் முந்தைய வரியில் ஏற்கெனவே பிணைக்கப்பட்டுள்ளதால் %1 பிணைக்கப்படாமல் இருக்கும்.",
+  "settings.hint.key_reserved": "Flea தனது பயன்பாட்டுக்கு ஒதுக்கி வைத்துள்ளதால் %1 பிணைக்கப்படாமல் இருக்கும்.",
+  "settings.hint.key_taken": "இந்த முன்னமைவில் %2 ஏற்கெனவே பயன்படுத்துவதால் %1 பிணைக்கப்படாமல் இருக்கும்.",
+  "settings.hint.key_unknown": "Flea இல் %2 என்ற செயல் இல்லாததால் %1 பிணைக்கப்படாமல் இருக்கும்."
 }

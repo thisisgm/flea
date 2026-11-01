@@ -2384,7 +2384,7 @@
   "window.select_required": "--select reikia elemento",
   "window.settings_failed": "Nepavyko perskaityti nuostatų: %1",
   "window.unknown_flag": "Nežinoma vėliavėlė %1",
-  "window.waiting": "Vis dar laukiama šio aplanko",
+  "window.waiting": "Šis aplankas neatsako.",
   "dialogs.file.disconnected": "Diskas arba bendrinamas išteklius atjungtas, todėl šis aplankas nebepasiekiamas",
   "dialogs.file.open.unlisted": "Šio failo sąraše nebėra.",
   "dialogs.file.original.missing": "Ši nuoroda nurodo elementą, kurio nebėra.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafikos pakete nėra simbolių eilutės pabaigos žymens",
   "tui.wire.backend_stdin_unavailable": "posistemės standartinė įvestis neprieinama",
   "tui.wire.backend_stdout_unavailable": "posistemės standartinė išvestis neprieinama",
-  "tui.wire.the_file_list_stopped_restart_flea": "Failų sąrašas sustojo; paleiskite Flea iš naujo"
+  "tui.wire.the_file_list_stopped_restart_flea": "Failų sąrašas sustojo; paleiskite Flea iš naujo",
+  "settings.group.your_keys": "Jūsų klavišai",
+  "settings.hint.key_file": "keys.toml nepriskiria jokių klavišų, nes Flea nepavyko jo perskaityti kaip ne didesnio nei 64 KB teksto.",
+  "settings.hint.key_layout": "%1 lieka nepriskirta, nes Flea negali patikrinti šios klavišų sekos su šiuo klaviatūros išdėstymu.",
+  "settings.hint.key_malformed": "keys.toml eilutė %1 nėra klavišų priskyrimas.",
+  "settings.hint.key_repeated": "%1 lieka nepriskirta, nes ankstesnė keys.toml eilutė jau priskiria šią klavišų seką.",
+  "settings.hint.key_reserved": "%1 lieka nepriskirta, nes Flea pasilieka šią klavišų seką sau.",
+  "settings.hint.key_taken": "%1 lieka nepriskirta, nes %2 jau naudoja šią klavišų seką šiame rinkinyje.",
+  "settings.hint.key_unknown": "%1 lieka nepriskirta, nes Flea neturi veiksmo pavadinimu %2."
 }

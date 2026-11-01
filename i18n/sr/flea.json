@@ -2438,7 +2438,7 @@
   "window.select_required": "--select захтева циљ",
   "window.settings_failed": "Није могуће прочитати подешавања: %1",
   "window.unknown_flag": "Непозната опција %1",
-  "window.waiting": "Још се чека ова фасцикла",
+  "window.waiting": "Та фасцикла не одговара.",
   "keys.tui17.copyDirUri": "Копирај URI фасцикле",
   "keys.tui17.copyName": "Копирај име датотеке",
   "keys.tui17.copyPath": "Копирај путању",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Графички пакет нема завршни знак ниске",
   "tui.wire.backend_stdin_unavailable": "Стандардни улаз позадинског процеса није доступан",
   "tui.wire.backend_stdout_unavailable": "Стандардни излаз позадинског процеса није доступан",
-  "tui.wire.the_file_list_stopped_restart_flea": "Списак датотека је заустављен; поново покрените Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Списак датотека је заустављен; поново покрените Flea",
+  "settings.group.your_keys": "Ваши тастери",
+  "settings.hint.key_file": "keys.toml не додељује ниједну пречицу јер Flea није могао да га прочита као текст величине највише 64 KB.",
+  "settings.hint.key_layout": "%1 остаје без доделе јер Flea не може да провери тај низ на овом распореду тастатуре.",
+  "settings.hint.key_malformed": "Ред %1 у keys.toml није додела тастера.",
+  "settings.hint.key_repeated": "%1 остаје без доделе јер ранији ред у keys.toml већ додељује тај низ.",
+  "settings.hint.key_reserved": "%1 остаје без доделе јер Flea задржава тај низ за себе.",
+  "settings.hint.key_taken": "%1 остаје без доделе јер %2 већ користи тај низ у овом распореду пречица.",
+  "settings.hint.key_unknown": "%1 остаје без доделе јер Flea нема радњу са именом %2."
 }

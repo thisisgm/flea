@@ -418,7 +418,7 @@
   "tabs.close": "Tutup tab",
   "tabs.close_others": "Tutup tab lain",
   "window.loading": "Memuatkan",
-  "window.waiting": "Masih menunggu folder ini",
+  "window.waiting": "Folder itu tidak memberi respons.",
   "window.select_required": "--select memerlukan sasaran",
   "window.one_directory": "Hanya satu direktori mula diterima",
   "window.unknown_flag": "Bendera tidak diketahui %1",
@@ -2413,5 +2413,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Paket grafik tiada penamat rentetan",
   "tui.wire.backend_stdin_unavailable": "stdin proses sokongan tidak tersedia",
   "tui.wire.backend_stdout_unavailable": "stdout proses sokongan tidak tersedia",
-  "tui.wire.the_file_list_stopped_restart_flea": "Senarai fail terhenti; mulakan semula Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Senarai fail terhenti; mulakan semula Flea",
+  "settings.group.your_keys": "Kekunci anda",
+  "settings.hint.key_file": "keys.toml tidak menetapkan sebarang ikatan kekunci kerana Flea tidak dapat membacanya sebagai teks bersaiz 64 KB atau kurang.",
+  "settings.hint.key_layout": "%1 kekal tanpa ikatan kerana Flea tidak dapat mengesahkannya pada susun atur papan kekunci ini.",
+  "settings.hint.key_malformed": "Baris %1 dalam keys.toml bukan ikatan kekunci.",
+  "settings.hint.key_repeated": "%1 kekal tanpa ikatan kerana baris terdahulu dalam keys.toml sudah mengikatnya.",
+  "settings.hint.key_reserved": "%1 kekal tanpa ikatan kerana Flea menyimpannya untuk kegunaan sendiri.",
+  "settings.hint.key_taken": "%1 kekal tanpa ikatan kerana %2 sudah menggunakannya dalam pratetap ini.",
+  "settings.hint.key_unknown": "%1 kekal tanpa ikatan kerana Flea tiada tindakan bernama %2."
 }

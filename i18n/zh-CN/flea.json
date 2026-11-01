@@ -408,7 +408,7 @@
   "tabs.close": "关闭标签页",
   "tabs.close_others": "关闭其他标签页",
   "window.loading": "加载中",
-  "window.waiting": "仍在等待此文件夹",
+  "window.waiting": "该文件夹没有响应。",
   "window.select_required": "--select 需要一个目标",
   "window.one_directory": "只接受一个起始目录",
   "window.unknown_flag": "未知参数 %1",
@@ -2405,5 +2405,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "图形数据包缺少字符串终止符",
   "tui.wire.backend_stdin_unavailable": "后端标准输入不可用",
   "tui.wire.backend_stdout_unavailable": "后端标准输出不可用",
-  "tui.wire.the_file_list_stopped_restart_flea": "文件列表已停止；请重启 Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "文件列表已停止；请重启 Flea",
+  "settings.group.your_keys": "你的按键",
+  "settings.hint.key_file": "keys.toml 未绑定任何按键，因为 Flea 无法将其读取为不超过 64 KB 的文本。",
+  "settings.hint.key_layout": "%1 仍未绑定，因为 Flea 无法在此键盘布局下验证此按键序列。",
+  "settings.hint.key_malformed": "keys.toml 的第 %1 行不是按键绑定。",
+  "settings.hint.key_repeated": "%1 仍未绑定，因为 keys.toml 中更早的行已绑定此按键序列。",
+  "settings.hint.key_reserved": "%1 仍未绑定，因为 Flea 保留此按键序列供自身使用。",
+  "settings.hint.key_taken": "%1 仍未绑定，因为 %2 在此预设中已使用此按键序列。",
+  "settings.hint.key_unknown": "%1 仍未绑定，因为 Flea 没有名为 %2 的操作。"
 }

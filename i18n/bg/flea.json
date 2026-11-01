@@ -2337,7 +2337,7 @@
   "window.select_required": "--select изисква цел",
   "window.settings_failed": "Настройките не могат да бъдат прочетени: %1",
   "window.unknown_flag": "Непознат флаг %1",
-  "window.waiting": "Все още се изчаква тази папка",
+  "window.waiting": "Тази папка не отговаря.",
   "keys.tui17.copyDirUri": "Копирай URI на папката",
   "keys.tui17.copyName": "Копирай името на файла",
   "keys.tui17.copyPath": "Копирай пътя",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Графичният пакет няма завършващ знак за низ",
   "tui.wire.backend_stdin_unavailable": "Стандартният вход на фоновия процес е недостъпен",
   "tui.wire.backend_stdout_unavailable": "Стандартният изход на фоновия процес е недостъпен",
-  "tui.wire.the_file_list_stopped_restart_flea": "Списъкът с файлове спря; рестартирай Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Списъкът с файлове спря; рестартирай Flea",
+  "settings.group.your_keys": "Твоите клавиши",
+  "settings.hint.key_file": "keys.toml не задава никакви клавишни комбинации, защото Flea не успя да го прочете като текст с размер 64 KB или по-малък.",
+  "settings.hint.key_layout": "%1 остава без назначено действие, защото Flea не може да провери тази комбинация при тази клавиатурна подредба.",
+  "settings.hint.key_malformed": "Ред %1 от keys.toml не е клавишна комбинация.",
+  "settings.hint.key_repeated": "%1 остава без назначено действие, защото по-ранен ред в keys.toml вече задава тази комбинация.",
+  "settings.hint.key_reserved": "%1 остава без назначено действие, защото Flea запазва тази комбинация за себе си.",
+  "settings.hint.key_taken": "%1 остава без назначено действие, защото %2 вече използва тази комбинация в тази готова настройка.",
+  "settings.hint.key_unknown": "%1 остава без назначено действие, защото във Flea няма действие с име %2."
 }

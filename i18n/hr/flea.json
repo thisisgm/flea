@@ -2384,7 +2384,7 @@
   "window.select_required": "--select zahtijeva cilj",
   "window.settings_failed": "Nije moguće pročitati postavke: %1",
   "window.unknown_flag": "Nepoznata zastavica %1",
-  "window.waiting": "Još se čeka ova mapa",
+  "window.waiting": "Ta mapa ne odgovara.",
   "dialogs.file.disconnected": "Taj disk ili dijeljeni resurs je odspojen pa ova mapa više nije dostupna",
   "dialogs.file.open.unlisted": "Ta datoteka više nije na popisu.",
   "dialogs.file.original.missing": "Ta poveznica upućuje na stavku koja više ne postoji.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafički paket nema završni znak niza",
   "tui.wire.backend_stdin_unavailable": "standardni ulaz pozadinskog procesa nije dostupan",
   "tui.wire.backend_stdout_unavailable": "standardni izlaz pozadinskog procesa nije dostupan",
-  "tui.wire.the_file_list_stopped_restart_flea": "Popis datoteka je zaustavljen; ponovno pokrenite Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Popis datoteka je zaustavljen; ponovno pokrenite Flea",
+  "settings.group.your_keys": "Vaše tipke",
+  "settings.hint.key_file": "keys.toml ne dodjeljuje nijedan prečac jer ga Flea nije uspio pročitati kao tekst veličine najviše 64 KB.",
+  "settings.hint.key_layout": "%1 ostaje nedodijeljen jer ga Flea ne može provjeriti na ovom rasporedu tipkovnice.",
+  "settings.hint.key_malformed": "Redak %1 u keys.toml nije dodjela tipki.",
+  "settings.hint.key_repeated": "%1 ostaje nedodijeljen jer ga već dodjeljuje raniji redak u keys.toml.",
+  "settings.hint.key_reserved": "%1 ostaje nedodijeljen jer ga Flea zadržava za sebe.",
+  "settings.hint.key_taken": "%1 ostaje nedodijeljen jer ga %2 već koristi u ovom predlošku.",
+  "settings.hint.key_unknown": "%1 ostaje nedodijeljen jer Flea nema radnju s nazivom %2."
 }

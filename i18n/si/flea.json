@@ -2337,7 +2337,7 @@
   "window.select_required": "--select සඳහා ඉලක්කයක් අවශ්‍යයි",
   "window.settings_failed": "සැකසුම් කියවිය නොහැකි විය: %1",
   "window.unknown_flag": "නොදන්නා ධජය %1",
-  "window.waiting": "තවම මෙම ෆෝල්ඩරය බලා සිටිමින්",
+  "window.waiting": "එම ෆෝල්ඩරය ප්‍රතිචාර නොදක්වයි.",
   "keys.tui17.copyDirUri": "ෆෝල්ඩරයේ URI පිටපත් කරන්න",
   "keys.tui17.copyName": "ගොනු නම පිටපත් කරන්න",
   "keys.tui17.copyPath": "මාර්ගය පිටපත් කරන්න",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "චිත්‍රක පැකට්ටුවේ අනුලකුණු වැල අවසන් කරන සලකුණක් නැත",
   "tui.wire.backend_stdin_unavailable": "පසුබිම් සේවාවේ සම්මත ආදානය නොමැත",
   "tui.wire.backend_stdout_unavailable": "පසුබිම් සේවාවේ සම්මත ප්‍රතිදානය නොමැත",
-  "tui.wire.the_file_list_stopped_restart_flea": "ගොනු ලැයිස්තුව නතර විය; Flea නැවත ආරම්භ කරන්න"
+  "tui.wire.the_file_list_stopped_restart_flea": "ගොනු ලැයිස්තුව නතර විය; Flea නැවත ආරම්භ කරන්න",
+  "settings.group.your_keys": "ඔබේ යතුරු",
+  "settings.hint.key_file": "Flea හට keys.toml ගොනුව 64 KB හෝ ඊට අඩු පෙළක් ලෙස කියවිය නොහැකි වූ නිසා එය කිසිදු යතුරු බන්ධනයක් සකසන්නේ නැත.",
+  "settings.hint.key_layout": "මෙම යතුරුපුවරු පිරිසැලසුමේ %1 සත්‍යාපනය කළ නොහැකි නිසා එය බන්ධනය නොකර තබයි.",
+  "settings.hint.key_malformed": "keys.toml හි %1 පේළිය යතුරු බන්ධනයක් නොවේ.",
+  "settings.hint.key_repeated": "keys.toml හි පෙර පේළියක දැනටමත් බන්ධනය කර ඇති නිසා %1 බන්ධනය නොකර තබයි.",
+  "settings.hint.key_reserved": "Flea තම භාවිතයට වෙන් කර ඇති නිසා %1 බන්ධනය නොකර තබයි.",
+  "settings.hint.key_taken": "මෙම පෙරසැකසුමේ %2 දැනටමත් භාවිත කරන නිසා %1 බන්ධනය නොකර තබයි.",
+  "settings.hint.key_unknown": "Flea හි %2 නමින් ක්‍රියාවක් නැති නිසා %1 බන්ධනය නොකර තබයි."
 }

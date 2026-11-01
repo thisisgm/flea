@@ -2384,7 +2384,7 @@
   "window.select_required": "--select necesită o țintă",
   "window.settings_failed": "Setările nu au putut fi citite: %1",
   "window.unknown_flag": "Opțiune necunoscută %1",
-  "window.waiting": "Încă se așteaptă acest dosar",
+  "window.waiting": "Acel dosar nu răspunde.",
   "dialogs.file.disconnected": "Unitatea sau partajarea a fost deconectată, așa că acest dosar nu mai este disponibil",
   "dialogs.file.open.unlisted": "Acel fișier nu mai este în listă.",
   "dialogs.file.original.missing": "Acea legătură indică un element care nu mai există.",
@@ -2625,5 +2625,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Pachetul grafic nu are un terminator de șir",
   "tui.wire.backend_stdin_unavailable": "Intrarea standard a backendului nu este disponibilă",
   "tui.wire.backend_stdout_unavailable": "Ieșirea standard a backendului nu este disponibilă",
-  "tui.wire.the_file_list_stopped_restart_flea": "Lista de fișiere s-a oprit; repornește Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Lista de fișiere s-a oprit; repornește Flea",
+  "settings.group.your_keys": "Tastele tale",
+  "settings.hint.key_file": "keys.toml nu atribuie nicio tastă deoarece Flea nu l-a putut citi ca text de cel mult 64 KB.",
+  "settings.hint.key_layout": "%1 rămâne neatribuită deoarece Flea nu poate verifica secvența cu acest aranjament de tastatură.",
+  "settings.hint.key_malformed": "Linia %1 din keys.toml nu este o atribuire de taste.",
+  "settings.hint.key_repeated": "%1 rămâne neatribuită deoarece o linie anterioară din keys.toml atribuie deja secvența.",
+  "settings.hint.key_reserved": "%1 rămâne neatribuită deoarece Flea păstrează secvența pentru sine.",
+  "settings.hint.key_taken": "%1 rămâne neatribuită deoarece %2 folosește deja secvența în această presetare.",
+  "settings.hint.key_unknown": "%1 rămâne neatribuită deoarece Flea nu are nicio acțiune numită %2."
 }

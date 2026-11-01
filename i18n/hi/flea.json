@@ -2286,7 +2286,7 @@
   "window.select_required": "--select के लिए लक्ष्य चाहिए",
   "window.settings_failed": "सेटिंग पढ़ी नहीं जा सकीं: %1",
   "window.unknown_flag": "अज्ञात फ़्लैग %1",
-  "window.waiting": "अभी इस फ़ोल्डर की प्रतीक्षा है",
+  "window.waiting": "वह फ़ोल्डर जवाब नहीं दे रहा है।",
   "dialogs.file.disconnected": "वह ड्राइव या साझा स्थान डिस्कनेक्ट हो गया है, इसलिए यह फ़ोल्डर अब उपलब्ध नहीं है",
   "dialogs.file.open.unlisted": "वह फ़ाइल अब सूची में नहीं है।",
   "dialogs.file.original.missing": "वह लिंक ऐसे आइटम की ओर इशारा करता है जो अब मौजूद नहीं है।",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "ग्राफ़िक्स पैकेट में स्ट्रिंग समाप्ति चिह्न नहीं है",
   "tui.wire.backend_stdin_unavailable": "बैकएंड का मानक इनपुट उपलब्ध नहीं है",
   "tui.wire.backend_stdout_unavailable": "बैकएंड का मानक आउटपुट उपलब्ध नहीं है",
-  "tui.wire.the_file_list_stopped_restart_flea": "फ़ाइल सूची रुक गई; Flea फिर शुरू करें"
+  "tui.wire.the_file_list_stopped_restart_flea": "फ़ाइल सूची रुक गई; Flea फिर शुरू करें",
+  "settings.group.your_keys": "आपकी कुंजियाँ",
+  "settings.hint.key_file": "keys.toml कोई कीबाइंडिंग नहीं बनाता क्योंकि Flea उसे 64 KB या उससे छोटे पाठ के रूप में नहीं पढ़ सका।",
+  "settings.hint.key_layout": "%1 बिना असाइन किए रहता है क्योंकि Flea इस कीबोर्ड लेआउट पर इसकी जाँच नहीं कर सकता।",
+  "settings.hint.key_malformed": "keys.toml की पंक्ति %1 कोई कीबाइंडिंग नहीं है।",
+  "settings.hint.key_repeated": "%1 बिना असाइन किए रहता है क्योंकि keys.toml की पहले की पंक्ति में यह पहले से असाइन है।",
+  "settings.hint.key_reserved": "%1 बिना असाइन किए रहता है क्योंकि Flea इसे अपने लिए आरक्षित रखता है।",
+  "settings.hint.key_taken": "%1 बिना असाइन किए रहता है क्योंकि इस प्रीसेट में %2 पहले से इसका उपयोग करता है।",
+  "settings.hint.key_unknown": "%1 बिना असाइन किए रहता है क्योंकि Flea में %2 नाम की कोई कार्रवाई नहीं है।"
 }

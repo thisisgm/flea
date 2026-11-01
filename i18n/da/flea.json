@@ -2286,7 +2286,7 @@
   "window.select_required": "--select kræver et mål",
   "window.settings_failed": "Indstillingerne kunne ikke læses: %1",
   "window.unknown_flag": "Ukendt flag %1",
-  "window.waiting": "Venter stadig på denne mappe",
+  "window.waiting": "Mappen svarer ikke.",
   "dialogs.file.disconnected": "Drevet eller netværksdelingen blev afbrudt, så mappen er ikke længere tilgængelig",
   "dialogs.file.open.unlisted": "Filen er ikke længere på listen.",
   "dialogs.file.original.missing": "Linket peger på et element, der ikke længere findes.",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafikpakken mangler en strengterminator",
   "tui.wire.backend_stdin_unavailable": "Baggrundsprocessens standardinput er utilgængeligt",
   "tui.wire.backend_stdout_unavailable": "Baggrundsprocessens standardoutput er utilgængeligt",
-  "tui.wire.the_file_list_stopped_restart_flea": "Fillisten stoppede; genstart Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Fillisten stoppede; genstart Flea",
+  "settings.group.your_keys": "Dine taster",
+  "settings.hint.key_file": "keys.toml tildeler ingen genveje, fordi Flea ikke kunne læse den som tekst på 64 KB eller derunder.",
+  "settings.hint.key_layout": "%1 forbliver uden tildeling, fordi Flea ikke kan kontrollere tastesekvensen med dette tastaturlayout.",
+  "settings.hint.key_malformed": "Linje %1 i keys.toml er ikke en tastetildeling.",
+  "settings.hint.key_repeated": "%1 forbliver uden tildeling, fordi en tidligere linje i keys.toml allerede tildeler tastesekvensen.",
+  "settings.hint.key_reserved": "%1 forbliver uden tildeling, fordi Flea reserverer tastesekvensen til sig selv.",
+  "settings.hint.key_taken": "%1 forbliver uden tildeling, fordi %2 allerede bruger tastesekvensen i dette forvalg.",
+  "settings.hint.key_unknown": "%1 forbliver uden tildeling, fordi Flea ikke har en handling med navnet %2."
 }

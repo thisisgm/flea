@@ -2539,7 +2539,7 @@
   "window.select_required": "--select potrebuje cilj",
   "window.settings_failed": "Nastavitev ni bilo mogoče prebrati: %1",
   "window.unknown_flag": "Neznana zastavica %1",
-  "window.waiting": "Še čakam na to mapo",
+  "window.waiting": "Ta mapa se ne odziva.",
   "keys.tui17.copyDirUri": "Kopiraj URI mape",
   "keys.tui17.copyName": "Kopiraj ime datoteke",
   "keys.tui17.copyPath": "Kopiraj pot",
@@ -2731,5 +2731,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafični paket nima zaključnega znaka niza",
   "tui.wire.backend_stdin_unavailable": "Standardni vhod zaledja ni na voljo",
   "tui.wire.backend_stdout_unavailable": "Standardni izhod zaledja ni na voljo",
-  "tui.wire.the_file_list_stopped_restart_flea": "Seznam datotek se je ustavil; znova zaženite Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Seznam datotek se je ustavil; znova zaženite Flea",
+  "settings.group.your_keys": "Vaše tipke",
+  "settings.hint.key_file": "keys.toml ne dodeli nobene tipke, ker ga Flea ni mogel prebrati kot besedilo velikosti največ 64 KB.",
+  "settings.hint.key_layout": "%1 ostane brez dodelitve, ker Flea tega zaporedja ne more preveriti s to razporeditvijo tipkovnice.",
+  "settings.hint.key_malformed": "Vrstica %1 v keys.toml ni dodelitev tipk.",
+  "settings.hint.key_repeated": "%1 ostane brez dodelitve, ker prejšnja vrstica v keys.toml že dodeli to zaporedje.",
+  "settings.hint.key_reserved": "%1 ostane brez dodelitve, ker Flea to zaporedje pridržuje zase.",
+  "settings.hint.key_taken": "%1 ostane brez dodelitve, ker %2 že uporablja to zaporedje v tej prednastavitvi.",
+  "settings.hint.key_unknown": "%1 ostane brez dodelitve, ker Flea nima dejanja z imenom %2."
 }

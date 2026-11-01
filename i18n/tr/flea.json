@@ -2337,7 +2337,7 @@
   "window.select_required": "--select için hedef gerekir",
   "window.settings_failed": "Ayarlar okunamadı: %1",
   "window.unknown_flag": "Bilinmeyen bayrak %1",
-  "window.waiting": "Bu klasör hâlâ bekleniyor",
+  "window.waiting": "Bu klasör yanıt vermiyor.",
   "keys.tui17.copyDirUri": "Klasör URI'sini kopyala",
   "keys.tui17.copyName": "Dosya adını kopyala",
   "keys.tui17.copyPath": "Yolu kopyala",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafik paketinde dize sonlandırıcısı yok",
   "tui.wire.backend_stdin_unavailable": "Arka ucun standart girdisi kullanılamıyor",
   "tui.wire.backend_stdout_unavailable": "Arka ucun standart çıktısı kullanılamıyor",
-  "tui.wire.the_file_list_stopped_restart_flea": "Dosya listesi durdu; Flea'yı yeniden başlatın"
+  "tui.wire.the_file_list_stopped_restart_flea": "Dosya listesi durdu; Flea'yı yeniden başlatın",
+  "settings.group.your_keys": "Tuşlarınız",
+  "settings.hint.key_file": "Flea dosyayı 64 KB veya daha küçük bir metin olarak okuyamadığı için keys.toml hiçbir tuş atamaz.",
+  "settings.hint.key_layout": "Flea bu klavye düzeninde %1 tuş dizisini doğrulayamadığı için dizi atanmamış kalır.",
+  "settings.hint.key_malformed": "keys.toml dosyasının %1. satırı bir tuş ataması değildir.",
+  "settings.hint.key_repeated": "keys.toml dosyasının önceki bir satırı zaten atadığı için %1 tuş dizisi atanmamış kalır.",
+  "settings.hint.key_reserved": "Flea kendisi için ayırdığı için %1 tuş dizisi atanmamış kalır.",
+  "settings.hint.key_taken": "Bu ön ayarda %2 zaten kullandığı için %1 tuş dizisi atanmamış kalır.",
+  "settings.hint.key_unknown": "Flea içinde %2 adlı bir eylem olmadığı için %1 tuş dizisi atanmamış kalır."
 }

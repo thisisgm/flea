@@ -2236,7 +2236,7 @@
   "window.select_required": "--select 需要指定目標",
   "window.settings_failed": "無法讀取設定：%1",
   "window.unknown_flag": "未知的旗標 %1",
-  "window.waiting": "仍在等候此資料夾",
+  "window.waiting": "該資料夾沒有回應。",
   "keys.tui17.copyDirUri": "複製資料夾 URI",
   "keys.tui17.copyName": "複製檔案名稱",
   "keys.tui17.copyPath": "複製路徑",
@@ -2413,5 +2413,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "圖形封包缺少字串終止符號",
   "tui.wire.backend_stdin_unavailable": "後端標準輸入無法使用",
   "tui.wire.backend_stdout_unavailable": "後端標準輸出無法使用",
-  "tui.wire.the_file_list_stopped_restart_flea": "檔案清單已停止；請重新啟動 Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "檔案清單已停止；請重新啟動 Flea",
+  "settings.group.your_keys": "您的按鍵",
+  "settings.hint.key_file": "keys.toml 未綁定任何按鍵，因為 Flea 無法將其讀取為不超過 64 KB 的文字。",
+  "settings.hint.key_layout": "%1 仍未綁定，因為 Flea 無法在此鍵盤配置下驗證此按鍵序列。",
+  "settings.hint.key_malformed": "keys.toml 的第 %1 行不是按鍵綁定。",
+  "settings.hint.key_repeated": "%1 仍未綁定，因為 keys.toml 中較早的行已綁定此按鍵序列。",
+  "settings.hint.key_reserved": "%1 仍未綁定，因為 Flea 保留此按鍵序列供自身使用。",
+  "settings.hint.key_taken": "%1 仍未綁定，因為 %2 在此預設組合中已使用此按鍵序列。",
+  "settings.hint.key_unknown": "%1 仍未綁定，因為 Flea 沒有名為 %2 的動作。"
 }

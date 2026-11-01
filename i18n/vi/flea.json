@@ -2236,7 +2236,7 @@
   "window.select_required": "--select cần một đích",
   "window.settings_failed": "Không thể đọc cài đặt: %1",
   "window.unknown_flag": "Cờ không xác định %1",
-  "window.waiting": "Vẫn đang chờ thư mục này",
+  "window.waiting": "Thư mục đó không phản hồi.",
   "keys.tui17.copyDirUri": "Sao chép URI thư mục",
   "keys.tui17.copyName": "Sao chép tên tệp",
   "keys.tui17.copyPath": "Sao chép đường dẫn",
@@ -2413,5 +2413,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Gói đồ họa không có ký tự kết thúc chuỗi",
   "tui.wire.backend_stdin_unavailable": "Đầu vào tiêu chuẩn của tiến trình nền không khả dụng",
   "tui.wire.backend_stdout_unavailable": "Đầu ra tiêu chuẩn của tiến trình nền không khả dụng",
-  "tui.wire.the_file_list_stopped_restart_flea": "Danh sách tệp đã dừng; hãy khởi động lại Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Danh sách tệp đã dừng; hãy khởi động lại Flea",
+  "settings.group.your_keys": "Phím của bạn",
+  "settings.hint.key_file": "keys.toml không gán phím nào vì Flea không thể đọc tệp dưới dạng văn bản có kích thước tối đa 64 KB.",
+  "settings.hint.key_layout": "%1 vẫn chưa được gán vì Flea không thể xác minh chuỗi phím này trên bố cục bàn phím này.",
+  "settings.hint.key_malformed": "Dòng %1 của keys.toml không phải là một phép gán phím.",
+  "settings.hint.key_repeated": "%1 vẫn chưa được gán vì một dòng trước đó trong keys.toml đã gán chuỗi phím này.",
+  "settings.hint.key_reserved": "%1 vẫn chưa được gán vì Flea dành riêng chuỗi phím này cho chính nó.",
+  "settings.hint.key_taken": "%1 vẫn chưa được gán vì %2 đã dùng chuỗi phím này trong bộ thiết lập này.",
+  "settings.hint.key_unknown": "%1 vẫn chưa được gán vì Flea không có hành động nào tên là %2."
 }

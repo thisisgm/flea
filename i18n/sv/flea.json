@@ -2337,7 +2337,7 @@
   "window.select_required": "--select kräver ett mål",
   "window.settings_failed": "Inställningarna kunde inte läsas: %1",
   "window.unknown_flag": "Okänd flagga %1",
-  "window.waiting": "Väntar fortfarande på mappen",
+  "window.waiting": "Mappen svarar inte.",
   "keys.tui17.copyDirUri": "Kopiera mappens URI",
   "keys.tui17.copyName": "Kopiera filnamn",
   "keys.tui17.copyPath": "Kopiera sökväg",
@@ -2519,5 +2519,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "Grafikpaketet saknar strängavslutare",
   "tui.wire.backend_stdin_unavailable": "Bakändens standardindata är inte tillgängliga",
   "tui.wire.backend_stdout_unavailable": "Bakändens standardutdata är inte tillgängliga",
-  "tui.wire.the_file_list_stopped_restart_flea": "Fillistan stoppades. Starta om Flea"
+  "tui.wire.the_file_list_stopped_restart_flea": "Fillistan stoppades. Starta om Flea",
+  "settings.group.your_keys": "Dina tangenter",
+  "settings.hint.key_file": "keys.toml tilldelar inga tangenter eftersom Flea inte kunde läsa filen som text på högst 64 KB.",
+  "settings.hint.key_layout": "%1 förblir utan bindning eftersom Flea inte kan verifiera tangentsekvensen med denna tangentbordslayout.",
+  "settings.hint.key_malformed": "Rad %1 i keys.toml är ingen tangentbindning.",
+  "settings.hint.key_repeated": "%1 förblir utan bindning eftersom en tidigare rad i keys.toml redan binder tangentsekvensen.",
+  "settings.hint.key_reserved": "%1 förblir utan bindning eftersom Flea reserverar tangentsekvensen för sig självt.",
+  "settings.hint.key_taken": "%1 förblir utan bindning eftersom %2 redan använder tangentsekvensen i denna förinställning.",
+  "settings.hint.key_unknown": "%1 förblir utan bindning eftersom Flea inte har någon åtgärd som heter %2."
 }

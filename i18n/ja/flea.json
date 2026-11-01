@@ -2157,7 +2157,7 @@
   "window.select_required": "--select には対象の指定が必要です",
   "window.settings_failed": "設定を読み取れませんでした: %1",
   "window.unknown_flag": "不明なフラグ %1",
-  "window.waiting": "このフォルダーの応答を待っています",
+  "window.waiting": "そのフォルダーが応答しません。",
   "archive.flash.chooser_failed": "イメージを選択するために %1 を起動できませんでした：%2。",
   "carry.hint": "移動先をクリック、esc でキャンセル",
   "carry.status": {"other": "持ち運び中：%1 項目"},
@@ -2405,5 +2405,13 @@
   "tui.tmux.graphics_packet_has_no_string_terminator": "グラフィックスパケットに文字列終端記号がありません",
   "tui.wire.backend_stdin_unavailable": "バックエンドの標準入力を利用できません",
   "tui.wire.backend_stdout_unavailable": "バックエンドの標準出力を利用できません",
-  "tui.wire.the_file_list_stopped_restart_flea": "ファイル一覧が停止しました。Flea を再起動してください"
+  "tui.wire.the_file_list_stopped_restart_flea": "ファイル一覧が停止しました。Flea を再起動してください",
+  "settings.group.your_keys": "ユーザーのキー",
+  "settings.hint.key_file": "Flea が keys.toml を 64 KB 以下のテキストとして読み込めなかったため、キーは何も割り当てられません。",
+  "settings.hint.key_layout": "Flea がこのキーボード配列で %1 を検証できないため、未割り当てのままです。",
+  "settings.hint.key_malformed": "keys.toml の %1 行目はキーバインドではありません。",
+  "settings.hint.key_repeated": "keys.toml の前の行ですでに割り当てられているため、%1 は未割り当てのままです。",
+  "settings.hint.key_reserved": "Flea が自身のために予約しているため、%1 は未割り当てのままです。",
+  "settings.hint.key_taken": "このプリセットでは %2 がすでに使用しているため、%1 は未割り当てのままです。",
+  "settings.hint.key_unknown": "Flea に %2 というアクションがないため、%1 は未割り当てのままです。"
 }
