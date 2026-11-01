@@ -186,7 +186,7 @@ pub(super) fn editor_action(keys: &[Key], action: &str) {
     editor_case(&key.name, &key.mods, home, expected);
 }
 
-#[path = "parity17_flow_tests.rs"]
-mod flows;
 #[path = "finder_tests.rs"]
 mod finder;
+#[path = "parity17_flow_tests.rs"]
+mod flows;

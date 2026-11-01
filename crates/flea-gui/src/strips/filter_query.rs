@@ -93,7 +93,10 @@ impl QueryLine {
         let line = self.line.borrow();
         let width = line.run.as_ref().map_or(px(0.), |run| run.line().width);
         let mut right = laid.query.left() + width - line.scroll;
-        for edge in [laid.caret, self.marked, self.selected].into_iter().flatten() {
+        for edge in [laid.caret, self.marked, self.selected]
+            .into_iter()
+            .flatten()
+        {
             right = right.max(edge.right());
         }
         let width = (right.min(clip.right()) - laid.query.left()).max(px(0.));
