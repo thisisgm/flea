@@ -39,7 +39,11 @@ fn a_denied_listing_is_locked_with_its_mode_and_the_board_sentence() {
     let waiting = Facts::waiting(&catalog);
     assert_eq!(
         (waiting.kind, waiting.glyph(), waiting.sentence.as_ref()),
-        (Kind::Waiting, Glyph::Alert, "Still waiting for this folder")
+        (
+            Kind::Waiting,
+            Glyph::Alert,
+            "That folder is not responding."
+        )
     );
 }
 

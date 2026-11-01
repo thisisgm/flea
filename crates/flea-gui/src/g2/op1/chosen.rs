@@ -95,9 +95,9 @@ impl Shell {
             window,
             |shell, _, update: &OperationUpdate, _, cx| {
                 if let Some(said) = update.said.last() {
-                    let (text, hint) = shell.split_undo(&said.text, said.error);
+                    let catalog = shell.locale.catalog.clone();
                     shell.status_messages(cx, |messages, now| {
-                        messages.say(&text, said.error, &said.detail, hint, now);
+                        messages.say_receipt(&catalog, &said.text, said.error, &said.detail, now);
                     });
                 }
             },

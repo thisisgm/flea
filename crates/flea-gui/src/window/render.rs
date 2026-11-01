@@ -108,7 +108,7 @@ impl Render for Shell {
             };
             let mark = &host.pane.swap.mark;
             mark.rendered();
-            mark.show(drawn, palette.accent);
+            mark.show_spiral(drawn, palette.muted_frame);
         }
         let pane_width =
             |side: usize| viewport.map_or(geometry.panes[side].width, |size| f32::from(size.width));

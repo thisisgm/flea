@@ -1,5 +1,5 @@
 //! Feedback surfaces: the empty hero, the pane state message and the status line's message lane, over core `ui_logic_fb1`.
-mod brand;
+pub(crate) mod brand;
 pub mod caption;
 #[cfg(test)]
 mod caption_paint_tests;

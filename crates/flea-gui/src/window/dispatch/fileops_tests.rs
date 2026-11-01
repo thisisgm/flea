@@ -74,7 +74,7 @@ fn hit(cx: &mut VisualTestContext, preset: &str, action: &str) {
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         let catalog = shell.locale.catalog.clone();
-        shell.status_messages(cx, |messages, _| messages.transient_text(&catalog))
+        shell.status_messages(cx, |messages, _| messages.notice_text(&catalog))
     })
 }
 

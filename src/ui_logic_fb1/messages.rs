@@ -99,6 +99,19 @@ impl Messages {
         transient_of(&self.errors, &self.notice, &self.prompt, self.arm_live())
     }
 
+    /// The notice with its own advice, as v0.3.12's statusActivityState notice reads it ("Copied 1 item · z undoes").
+    pub fn notice_text(&self, catalog: &crate::i18n::I18n) -> String {
+        let hint = match self.notice_hint {
+            Hint::Dismiss | Hint::Carry => String::new(),
+            hint => hint.text(catalog, &self.preset).joined(),
+        };
+        if self.notice.is_empty() || hint.is_empty() {
+            self.notice.clone()
+        } else {
+            format!("{}{}{hint}", self.notice, super::status::SEP)
+        }
+    }
+
     /// The transient sentence with its own advice, before the footer splits that advice into another lane.
     pub fn transient_text(&self, catalog: &crate::i18n::I18n) -> String {
         let shown = self.shown();
@@ -158,6 +171,16 @@ impl Messages {
             self.notice_serial += 1;
             self.sync_notice_timer(now);
         }
+    }
+
+    /// An operation line that already ends in the undo advice: the advice leaves the sentence for its own timed target, as Status.js hintOf splits it (EY-360).
+    pub fn say_receipt(&mut self, catalog: &crate::i18n::I18n, text: &str, error: bool, detail: &str, now: u64) {
+        let (text, hint) = if error {
+            (text.to_owned(), Hint::None)
+        } else {
+            super::status::split_undo(text, catalog, &self.preset)
+        };
+        self.say(&text, error, detail, hint, now);
     }
 
     /// Why a key did nothing when nothing failed: a plain notice that stands over the errors until dismissed or expired.

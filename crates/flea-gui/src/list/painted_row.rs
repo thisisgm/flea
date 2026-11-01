@@ -76,16 +76,18 @@ impl Shown {
         name
     }
 
-    /// The clipboard bounds used by paint, in the strip reserved beside the name.
+    /// The clipboard bounds used by paint: one gap after the drawn name, as v0.3.12's Row.qml places it (EY-349).
     pub fn clip_bounds(&self, name: Bounds<Pixels>, metrics: &Metrics) -> Option<Bounds<Pixels>> {
         if self.state.renaming {
             return None;
         }
-        self.prepared.as_ref()?;
-        Some(self.clip?.bounds(
-            self.name_slot(name, metrics),
-            px(metrics.clip),
-            px(metrics.gap),
-        ))
+        let drawn = self.name_line()?.line().width;
+        let mut slot = self.name_slot(name, metrics);
+        slot.size.width = slot.size.width.min(drawn);
+        Some(self.clip?.bounds(slot, px(metrics.clip), px(metrics.gap)))
     }
 }
+
+#[cfg(test)]
+#[path = "painted_row_tests.rs"]
+mod tests;

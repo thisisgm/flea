@@ -325,6 +325,8 @@ mod blocks;
 mod caption_tests;
 mod draw;
 mod facts;
+#[cfg(test)]
+mod facts_tests;
 mod glyph;
 pub use draw::StandIn;
 pub use glyph::glyph;

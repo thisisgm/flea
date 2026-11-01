@@ -263,7 +263,10 @@ impl StatusAdapter<'_> {
                 ),
             ),
             ("errors", number(messages.errors().len())),
-            ("notice", Json::Str(messages.notice().into())),
+            (
+                "notice",
+                Json::Str(messages.notice_text(&self.shell.locale.catalog)),
+            ),
             (
                 "undoAvailable",
                 Json::Bool(

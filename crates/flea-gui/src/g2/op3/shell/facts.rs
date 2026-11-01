@@ -3,12 +3,18 @@ use super::*;
 use flea::ui_logic_pl4::tags;
 use gpui::{div, prelude::*, px, Div};
 
+pub(super) fn is_card(card: &Card) -> bool {
+    card.body
+        .iter()
+        .any(|block| matches!(block, Block::Facts(_)))
+}
+
 impl Draw<'_> {
     pub(super) fn facts(&self, facts: &[Fact]) -> Div {
         let t = self.t;
         let line = |size: f32| {
             self.text(size)
-                .h(self.px(FACT_LINE))
+                .min_h(self.px(FACT_LINE))
                 .line_height(self.px(FACT_LINE))
                 .flex()
                 .items_center()
@@ -78,10 +84,35 @@ impl Draw<'_> {
                             .debug_selector(move || format!("op3-fact-value-{at}"))
                             .flex_1()
                             .min_w_0()
-                            .child(value),
+                            .child(value.debug_selector(move || format!("op3-fact-{at}"))),
                     ),
             );
         }
         rows
+    }
+
+    pub(super) fn card_body(&self, card: &Card, frame: Stateful<Div>) -> Stateful<Div> {
+        if is_card(card) {
+            frame.child(
+                div()
+                    .id("op3-facts-body")
+                    .debug_selector(|| "op3-facts-body".into())
+                    .min_h_0()
+                    .min_w_0()
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(self.px(GAP))
+                    .children(
+                        card.body
+                            .iter()
+                            .map(|block| div().flex_none().child(self.block(block))),
+                    ),
+            )
+        } else {
+            card.body
+                .iter()
+                .fold(frame, |frame, block| frame.child(self.block(block)))
+        }
     }
 }

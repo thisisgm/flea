@@ -319,7 +319,9 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     f.finish();
     let searched = |f: &Fixture| {
         let text = f.text();
-        let line = text.lines().find(|line| field_str(line, "t").as_deref() == Some("searched"));
+        let line = text
+            .lines()
+            .find(|line| field_str(line, "t").as_deref() == Some("searched"));
         line.unwrap().to_owned()
     };
     let complete = searched(&f);
@@ -340,8 +342,14 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     assert_eq!(f.st.listing.name(1), "notes.txt");
     assert!(f.text().contains(r#""lineNo":2,"line":"nested needle""#));
     let line = searched(&f);
-    assert!(line.contains(r#""n":2"#) && line.contains(r#""gen":2"#), "{line}");
-    assert!(line.contains(r#""partial":true,"partial_reason":"unreadable""#), "{line}");
+    assert!(
+        line.contains(r#""n":2"#) && line.contains(r#""gen":2"#),
+        "{line}"
+    );
+    assert!(
+        line.contains(r#""partial":true,"partial_reason":"unreadable""#),
+        "{line}"
+    );
     assert!(complete.contains(r#""partial":false"#), "{complete}");
 }
 
@@ -351,12 +359,20 @@ fn ey333_exit_two_is_partial_only_for_skipped_paths() {
     let summary = r#"{"type":"summary","data":{"stats":{"searches":1}}}"#;
     let denied = "rg: ./Locked: Permission denied (os error 13)\n";
     for (gen, stderr, partial) in [
-        (1, format!("{denied}rg: ./Gone: No such file or directory (os error 2)\n"), true),
+        (
+            1,
+            format!("{denied}rg: ./Gone: No such file or directory (os error 2)\n"),
+            true,
+        ),
         (2, denied.trim_end().to_owned(), true),
         (3, format!("{denied}rg: ./x: some other failure\n"), false),
         (4, format!("{denied}rg: unfinished (os error 13"), false),
         (5, String::new(), false),
-        (6, format!("{denied}rg: No space left on device (os error 28)\n"), false),
+        (
+            6,
+            format!("{denied}rg: No space left on device (os error 28)\n"),
+            false,
+        ),
     ] {
         let mut f = Fixture::new();
         let tool = f.root.join("exit-two-rg");
@@ -367,8 +383,14 @@ fn ey333_exit_two_is_partial_only_for_skipped_paths() {
             .spawn()
             .unwrap();
         let lines = stderr.replace('\n', "\\n");
-        let script = format!("#!/bin/sh\nprintf '%s\\n' '{summary}'\nprintf '{lines}' >&2\nexit 2\n");
-        writer.stdin.take().unwrap().write_all(script.as_bytes()).unwrap();
+        let script =
+            format!("#!/bin/sh\nprintf '%s\\n' '{summary}'\nprintf '{lines}' >&2\nexit 2\n");
+        writer
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(script.as_bytes())
+            .unwrap();
         assert!(writer.wait().unwrap().success());
         f.st.contents.program = Some(tool);
         f.search(false, gen, 10);
@@ -378,9 +400,34 @@ fn ey333_exit_two_is_partial_only_for_skipped_paths() {
             f.until("error");
         }
         let text = f.text();
-        assert!(text.contains(&format!(r#""gen":{gen}"#)), "case {gen}: {text}");
-        assert_eq!(text.contains(r#""t":"searched""#), partial, "case {gen}: {text}");
+        assert!(
+            text.contains(&format!(r#""gen":{gen}"#)),
+            "case {gen}: {text}"
+        );
+        assert_eq!(
+            text.contains(r#""t":"searched""#),
+            partial,
+            "case {gen}: {text}"
+        );
         let skipped = text.contains(r#""partial":true,"partial_reason":"unreadable""#);
         assert_eq!(skipped, partial, "case {gen}: {text}");
     }
+}
+
+// EY-366: rg exits 0 and warns on stderr about a malformed .ignore glob; the matches still publish.
+#[test]
+fn ey366_malformed_ignore_glob_keeps_the_matches() {
+    let mut f = Fixture::new();
+    std::fs::write(f.root.join(".ignore"), "a{b\n").unwrap();
+    std::fs::write(f.root.join("notes.txt"), "plain needle\n").unwrap();
+    f.search(false, 1, 10);
+    f.finish();
+    assert_eq!(f.st.listing.len(), 1);
+    assert_eq!(f.st.listing.name(0), "notes.txt");
+    let text = f.text();
+    let line = text
+        .lines()
+        .find(|line| field_str(line, "t").as_deref() == Some("searched"))
+        .unwrap();
+    assert!(line.contains(r#""partial":false"#), "{line}");
 }

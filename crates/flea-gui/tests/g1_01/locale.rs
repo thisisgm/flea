@@ -63,7 +63,7 @@ fn shared_catalog_worker_reloads_for_two_windows_and_keeps_english_fallback() {
     assert_eq!(changed.catalog.tr("window.loading"), "Laden");
     assert_eq!(
         changed.catalog.tr("window.waiting"),
-        "Still waiting for this folder"
+        "That folder is not responding."
     );
     assert_eq!(second.recv_blocking().unwrap().revision, changed.revision);
     assert_eq!(service.current().unwrap().revision, changed.revision);

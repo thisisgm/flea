@@ -303,3 +303,23 @@ fn pb_clipboard_paste_as_hidden_leaves_reach_the_file_clipboard(cx: &mut TestApp
         );
     }
 }
+
+// EY-360: a finished paste says "Copied 1 item" with its undo advice as the footer's own target, so undoAvailable reads true.
+#[gpui::test]
+fn pb_clipboard_ey360_transfer_receipt_keeps_its_undo_target(cx: &mut TestAppContext) {
+    let (handle, mut lines) = open(cx);
+    keep_both_completes(cx, handle, &mut lines);
+    let (primary, undo) = edit(cx, handle, |shell, _, cx| {
+        let footer = shell.surfaces[0]
+            .footer
+            .clone()
+            .expect("the footer is mounted");
+        let line = footer.read(cx).message_line();
+        let drawn = line.read(cx).drawn().clone();
+        (drawn.primary.to_string(), drawn.undo.to_string())
+    });
+    assert_eq!(
+        (primary.as_str(), undo.as_str()),
+        ("Copied 1 item", "z undoes")
+    );
+}

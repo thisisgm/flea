@@ -252,7 +252,13 @@ pub(crate) fn delete_body(
     }
 }
 
-// The caption token, as the title and buttons follow the text size; the line keeps the board's 1.5 ratio.
+// The Delete card's sentence keeps the shell's live body size, the buttons' size, and wraps (EY-350).
+pub(super) fn sentence(text: String) -> Div {
+    div()
+        .line_height(relative(card::BODY_LINE / card::BODY_SIZE))
+        .child(text)
+}
+
 pub(super) fn caption(scene: &Scene, text: String, ink: Hsla) -> Div {
     let m = Metrics::new(scene.typeface);
     div()
@@ -345,11 +351,7 @@ pub(super) fn dialog_snapshot(
                 )
                 .into_any_element()]
             } else {
-                vec![div()
-                    .text_size(px(card::BODY_SIZE))
-                    .line_height(px(card::BODY_LINE))
-                    .child(delete_body(catalog, review, *scope, false))
-                    .into_any_element()]
+                vec![sentence(delete_body(catalog, review, *scope, false)).into_any_element()]
             };
             // While a menu refresh is out only Cancel is drawn, under the oracle's own title, as v0.3.12 does.
             let shown: &[trash::Button] = if *busy {

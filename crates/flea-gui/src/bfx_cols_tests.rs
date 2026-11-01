@@ -171,13 +171,14 @@ fn aligned_marks(view: View) {
                         let list = host.list.borrow();
                         assert_eq!(list.drawn.metrics.row, 31.);
                         assert_eq!(list.drawn.layout.name.x, 46.);
+                        // EY-349: the mark sits one gap after the drawn name, inside the name column's reserved slot.
+                        let name = list.drawn.bounds.left() + px(list.drawn.layout.name.x);
                         let x = list.drawn.bounds.left()
                             + px(list.drawn.layout.name.right() - list.drawn.metrics.clip);
                         for mark in &marks {
-                            assert_eq!(
-                                mark.left(),
-                                x,
-                                "List clipboard marks need one reserved slot"
+                            assert!(
+                                mark.left() > name + px(list.drawn.metrics.gap) && mark.left() <= x,
+                                "List clipboard marks follow the name: {mark:?}"
                             );
                         }
                     }
