@@ -35,10 +35,11 @@ fn u25_tab_and_file_clients_share_the_native_router(cx: &mut TestAppContext) {
                 moved.move_ && !moved.copy,
                 "a tab over the strip is move-only"
             );
+            // The fork asks only at Enter, so a tab entering off the strip is taken and refused at its drop.
             let outside = offer(&tab, 300.);
             assert!(
-                !outside.move_ && !outside.copy,
-                "a tab off the strip is refused, never a file"
+                outside.move_ && !outside.copy,
+                "a tab entering off the strip may still reach it, and is never a file"
             );
             assert!(
                 offer(&files, 10.).copy,

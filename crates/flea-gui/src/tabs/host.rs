@@ -401,7 +401,17 @@ impl Shell {
         };
         cx.spawn(async move |this, cx| {
             cx.background_executor()
-                .spawn(async move { crate::ipc::tabs::send_taken(&pid, &token) })
+                .spawn(async move {
+                    let reply = crate::ipc::tabs::send_taken(&pid, &token);
+                    super::trace::stage("taken-sent", || {
+                        let said = format!("{}{}", reply.stdout, reply.stderr);
+                        format!(
+                            "target={pid} token={token} code={} reply={}",
+                            reply.code,
+                            said.trim()
+                        )
+                    });
+                })
                 .await;
             let _ = this.update(cx, |shell, cx| {
                 shell.strip.bar.ack_running = false;

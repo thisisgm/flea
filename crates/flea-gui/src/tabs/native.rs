@@ -12,12 +12,22 @@ struct TabClient {
     send: async_channel::Sender<Native>,
     capacity: Rc<Cell<bool>>,
     zone: Rc<Cell<Option<gpui::Bounds<gpui::Pixels>>>>,
+    strip: Rc<Cell<Option<gpui::Bounds<gpui::Pixels>>>>,
     catchers: super::catcher::Catchers,
 }
 
 impl TabClient {
     fn in_zone(&self, window: u64, at: gpui::Point<gpui::Pixels>) -> bool {
         window == self.window && self.zone.get().is_some_and(|zone| zone.contains(&at))
+    }
+
+    // WindowBody.qml takes a one-tab window's drop, TabBar.qml a shown strip's.
+    fn place(&self) -> &'static str {
+        if self.strip.get().is_some() {
+            "strip"
+        } else {
+            "window"
+        }
     }
 }
 
@@ -27,10 +37,19 @@ impl Client for TabClient {
             return None;
         }
         let at = point(px(offered.position.0), px(offered.position.1));
-        let ours = self.catchers.handle(offered.window).is_some()
-            || self.in_zone(offered.window, at) && self.capacity.get();
+        // The fork asks only at Enter; admit the whole window and enforce strip geometry at drop.
+        let receiving = offered.window == self.window && self.zone.get().is_some();
+        let ours =
+            self.catchers.handle(offered.window).is_some() || receiving && self.capacity.get();
         if !ours {
             return None;
+        }
+        if self.catchers.handle(offered.window).is_some() {
+            super::trace::stage("catcher-enter", String::new);
+        } else if self.in_zone(offered.window, at) {
+            super::trace::stage(&format!("enter-{}", self.place()), || {
+                format!("formats={} ok=true", offered.types.join(","))
+            });
         }
         let _ = self.send.try_send(Native::Hover);
         Some(NativeDragActions {
@@ -47,7 +66,7 @@ impl Client for TabClient {
         }
         let bytes = event.get(transfer::TAB_MIME)?;
         let at = point(px(event.position.0), px(event.position.1));
-        if desktop.is_none() && !self.in_zone(event.window, at) {
+        if desktop.is_none() && event.dropped && !self.in_zone(event.window, at) {
             return Some(false);
         }
         let Ok(text) = std::str::from_utf8(&bytes) else {
@@ -68,6 +87,11 @@ impl Client for TabClient {
                             .try_send(Native::Desktop(text.into(), global))
                             .is_ok()),
             );
+        }
+        if event.dropped {
+            super::trace::stage(&format!("drop-{}", self.place()), || {
+                format!("empty={} len={}", bytes.is_empty(), bytes.len())
+            });
         }
         Some(!event.dropped || self.send.try_send(Native::Drop(text.into(), at)).is_ok())
     }
@@ -122,6 +146,10 @@ impl Shell {
         }
         let now = self.tab_now();
         let taken = self.with_tabs(|bar, panes| bar.take(panes, &token, now));
+        super::trace::stage("taken-call", || {
+            let result = if taken { "accepted" } else { "refused" };
+            format!("token={token} result={result}")
+        });
         let _ = answer.try_send(Answer {
             reply: crate::ipc::tabs::answer(taken),
             quit: false,
@@ -140,6 +168,7 @@ impl Shell {
             send,
             capacity: self.strip.capacity.clone(),
             zone: self.strip.drop_zone.clone(),
+            strip: self.strip.bounds.clone(),
             catchers: self.strip.catchers.clone(),
         });
         self.strip.router = Some(crate::g2::dg2::router::shared(cx).register(client));
@@ -171,8 +200,10 @@ impl Shell {
                             }
                             Native::Source(gpui::NativeDragEvent {
                                 phase: NativeDragPhase::Finished,
+                                action,
                                 ..
                             }) => {
+                                super::trace::stage("drag-finished", || format!("action={}", super::trace::action(action)));
                                 shell.strip.bar.out_finished(now);
                                 shell.tabs_changed(window, cx);
                             }
@@ -180,6 +211,7 @@ impl Shell {
                                 phase: NativeDragPhase::Cancelled,
                                 ..
                             }) => {
+                                super::trace::stage("drag-finished", || "action=0".into());
                                 shell.strip.bar.cancel_out(now);
                                 shell.tabs_changed(window, cx);
                             }
@@ -191,6 +223,11 @@ impl Shell {
         }));
         let catchers = self.strip.catchers.clone();
         cx.on_release(move |_, cx| catchers.close(cx)).detach();
+    }
+
+    /// Escape ends a tab's live platform drag as Qt's QDrag does; the Cancelled event restores the strip.
+    pub(crate) fn escape_tab_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        self.strip.bar.out_active && window.cancel_drag(cx)
     }
 
     /// The tab menu's explicit move uses the same identity and acknowledgment as a native lift.

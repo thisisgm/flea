@@ -712,7 +712,21 @@ impl Bar {
             return None;
         }
         let count = self.count(panes);
-        match catcher_outcome(rect, strip, x, y, f64::from(self.tab_width(count)), count) {
+        let outcome = catcher_outcome(rect, strip, x, y, f64::from(self.tab_width(count)), count);
+        super::trace::stage("catcher-drop", || {
+            let name = match outcome {
+                Outcome::TearOff => "tearoff",
+                Outcome::Return(_) => "return",
+                Outcome::Cancel => "cancel",
+            };
+            let unknown = if rect.is_some() {
+                ""
+            } else {
+                " reason=unknown-source-rectangle"
+            };
+            format!("outcome={name} global={x},{y}{unknown}")
+        });
+        match outcome {
             Outcome::TearOff => self.tear_off_at(now),
             Outcome::Return(at) => {
                 self.return_at(panes, at);

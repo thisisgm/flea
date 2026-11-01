@@ -93,7 +93,16 @@ def client_rects(clients, valid):
         w, h = c["size"]
         rects.append([x, y, w, h])
     return rects
-def layer_rects(layers, mon_name, mx, my, mw, mh):
+BAR_NAMESPACE = "omarchy-bar"
+
+
+def reserved_rects(monitor, mx, my, mw, mh):
+    # Hyprland's reserved edges, [left, top, right, bottom]: the strip a screen-wide bar surface takes input on.
+    left, top, right, bottom = (monitor.get("reserved") or [0, 0, 0, 0])[:4]
+    return [r for r in ([mx, my, left, mh], [mx, my, mw, top], [mx + mw - right, my, right, mh], [mx, my + mh - bottom, mw, bottom]) if r[2] > 0 and r[3] > 0]
+
+
+def layer_rects(layers, mon_name, mx, my, mw, mh, monitor=None):
     # Only levels 1, 2 and 3 of the focused monitor, read off the levels key.
     rects = []
     entry = layers.get(mon_name, None)
@@ -109,6 +118,10 @@ def layer_rects(layers, mon_name, mx, my, mw, mh):
             h = node["h"]
             full = x == mx and y == my and w == mw and h == mh
             if key == "1" and ns == CATCHER_NAMESPACE and full:
+                continue
+            # Omarchy 4.5's bar surface spans its screen and masks input to the strip (shell plugins/bar/Bar.qml).
+            if ns == BAR_NAMESPACE and full and monitor is not None:
+                rects.extend(reserved_rects(monitor, mx, my, mw, mh))
                 continue
             rects.append([x, y, w, h])
     return rects
@@ -150,9 +163,10 @@ def main(argv):
         return 2
     try:
         validate_snapshots(clients, layers, monitors)
-        valid = workspace_ids(monitor_entry(monitors, mon_name))
+        monitor = monitor_entry(monitors, mon_name)
+        valid = workspace_ids(monitor)
         rects = client_rects(clients, valid)
-        rects.extend(layer_rects(layers, mon_name, mx, my, mw, mh))
+        rects.extend(layer_rects(layers, mon_name, mx, my, mw, mh, monitor))
     except ValueError as error:
         sys.stderr.write("xwtab_free_point: invalid snapshot: %s\n" % error)
         return 2

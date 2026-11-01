@@ -364,12 +364,13 @@ impl Producer {
             self.cancel_rename(cx);
             return;
         };
-        self.queue(Event::Focus);
         // A press on the eject mark is the mark's own; it releases on a release inside its hit box.
         if event.button == MouseButton::Left && self.mark_press(event.position, cx) {
             return;
         }
+        // PaneRail.qml focusPress: a rail press leaves the keyboard where it was; only the open editor claims it.
         if self.model.borrow().renaming == Some(index) {
+            self.queue(Event::Focus);
             self.editor_press(event, cx);
             cx.stop_propagation();
             return;

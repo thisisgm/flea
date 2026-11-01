@@ -121,6 +121,9 @@ fn position_input(event: &KeyDownEvent, held: Modifiers) -> Option<(Input<'stati
         return None;
     }
     let stroke = &event.keystroke;
+    if misjudged_letter(stroke).is_some() {
+        return None;
+    }
     let us = stroke.us_key.as_deref()?;
     let index = (0..US_UNSHIFTED.len())
         .find(|&i| us == &US_UNSHIFTED[i..=i] || us == &US_SHIFTED[i..=i])?;
@@ -169,10 +172,25 @@ fn position_input(event: &KeyDownEvent, held: Modifiers) -> Option<(Input<'stati
     ))
 }
 
+/// A partial Latin keymap can fail the fork's Latin test; its printed ASCII letter still wins.
+fn misjudged_letter(stroke: &gpui::Keystroke) -> Option<&str> {
+    let typed = stroke.key_char.as_deref()?;
+    let mut chars = typed.chars();
+    let letter = chars
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic())
+        && chars.next().is_none();
+    (letter
+        && stroke.us_key.as_deref() == Some(stroke.key.as_str())
+        && !typed.eq_ignore_ascii_case(&stroke.key))
+    .then_some(typed)
+}
+
 pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
     let keypad = event.keystroke.is_keypad;
     Input {
-        key: table_key(&event.keystroke.key, keypad),
+        key: misjudged_letter(&event.keystroke)
+            .unwrap_or_else(|| table_key(&event.keystroke.key, keypad)),
         text: event.keystroke.key_char.as_deref().unwrap_or(""),
         modifiers: event_modifiers(event, held),
     }

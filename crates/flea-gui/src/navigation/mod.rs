@@ -3,6 +3,7 @@ pub mod anchor;
 pub mod folder_state;
 pub mod history;
 mod landing;
+mod orders;
 mod retry;
 pub mod sort;
 mod steps;
@@ -13,7 +14,8 @@ use crate::pane::{requests::RowAction, swap::Options, Pane};
 use anchor::{Anchor, Preference};
 use folder_state::{Folders, Order, Writer};
 use history::{History, Restore};
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use orders::{Orders, RequestedOrder};
+use std::{cell::RefCell, rc::Rc};
 use watch::{Gate, Watch};
 
 // Locate ids for the anchor sit above the signed menu ids, keeping the reply askers disjoint.
@@ -79,19 +81,6 @@ pub struct Counters {
     pub sorts: usize,
     pub locates: usize,
     pub persisted: usize,
-}
-
-#[derive(Default)]
-struct Orders {
-    path: String,
-    preferences: Option<(Order, bool)>,
-    drawn: Option<(usize, Order)>,
-    requests: VecDeque<RequestedOrder>,
-}
-
-struct RequestedOrder {
-    order: Order,
-    sort: bool,
 }
 
 #[derive(Default)]
@@ -215,6 +204,7 @@ impl Navigator {
     fn start_sort(&mut self, pane: &Pane, order: Order) {
         self.sync_orders(pane);
         self.orders.path = pane.path().into();
+        self.orders.explicit = true;
         let folders = self.folders.borrow();
         self.orders.preferences = Some((folders.global, folders.remember_sort));
         self.orders
@@ -227,11 +217,13 @@ impl Navigator {
         let folders = self.folders.borrow();
         let preferences = (folders.global, folders.remember_sort);
         if !self.preserve_sort
-            && (self.orders.path != path || self.orders.preferences != Some(preferences))
+            && (self.orders.path != path
+                || !self.orders.explicit && self.orders.preferences != Some(preferences))
         {
             self.order = folders.order_for(path);
         }
         if self.orders.path != path {
+            self.orders.explicit = false;
             self.orders.requests.clear();
         } else {
             // A superseded scan may be cancelled, while earlier sorts still answer in command order.

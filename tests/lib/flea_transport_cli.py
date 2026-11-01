@@ -8,7 +8,8 @@ import stat
 import subprocess
 import sys
 
-from flea_transport import REPO, TransportError, Window, load, private, qml_listing, qml_metadata
+from flea_transport import REPO, TransportError, Window, private, qml_listing, qml_metadata
+from flea_transport_peers import PeerWindow, peers
 
 
 def append_to_log(fd):
@@ -20,7 +21,21 @@ def windows(parent, pending=False):
     parent = private(parent)
     for path in sorted(parent.glob("w.*")):
         if (path / ("options.json" if pending else "window.json")).is_file() and not (path / "stopped").exists():
-            yield Window(path)
+            window = Window(path)
+            yield window
+            if not pending:
+                yield from peers(window)
+
+
+def records(parent):
+    for window in windows(parent):
+        try:
+            record = window.record()
+        except (OSError, TransportError):
+            if not isinstance(window, PeerWindow):
+                raise
+            continue
+        yield window, record
 
 
 def select(arguments):
@@ -28,7 +43,11 @@ def select(arguments):
     if arguments[:1] == ["--"]:
         arguments.pop(0)
     parent = os.environ.get("FLEA_TEST_WINDOWS_ROOT")
-    candidates = list(windows(parent)) if parent else [Window(os.environ["FLEA_TEST_WINDOW"])]
+    if parent:
+        candidates = records(parent)
+    else:
+        window = Window(os.environ["FLEA_TEST_WINDOW"])
+        candidates = [(window, window.record())]
     pid = config = instance = None
     while arguments and arguments[0] not in ("call", "show"):
         flag = arguments.pop(0)
@@ -42,8 +61,7 @@ def select(arguments):
         else:
             instance = (flag, value)
     matching = []
-    for window in candidates:
-        record = load(window.root)
+    for window, record in candidates:
         if pid is not None and pid != str(record["pid"]):
             continue
         if instance is not None:
@@ -72,6 +90,7 @@ def main():
     start.add_argument("--wrap", action="append", default=[])
     start.add_argument("--picker", action="store_true")
     start.add_argument("--select")
+    start.add_argument("--share-runtime")
     start.add_argument("--timeout", type=float, default=15)
     execute = commands.add_parser("exec")
     execute.add_argument("command", nargs=argparse.REMAINDER)
@@ -92,7 +111,7 @@ def main():
         parent = os.environ.get("FLEA_TEST_WINDOWS_ROOT", str(REPO / ".superpowers/g010t"))
         print(Window.start(args.path, parent=parent, binary=args.binary, backend=args.backend, picker=args.picker,
                            log=args.log, ui=args.ui, timeout=args.timeout, wrap=args.wrap,
-                           select=args.select).root)
+                           select=args.select, share=args.share_runtime).root)
     elif args.verb == "exec":
         command = args.command
         if command[:1] == ["--"]:
@@ -116,11 +135,11 @@ def main():
         for window in windows(args.root, pending=True):
             window.stop()
     elif args.verb == "pids":
-        for window in windows(args.root):
-            print(window.pid)
+        for _, record in records(args.root):
+            print(record["pid"])
     elif args.verb == "list":
         flags = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
-        active = [(window, load(window.root)) for window in windows(os.environ["FLEA_TEST_WINDOWS_ROOT"])]
+        active = list(records(os.environ["FLEA_TEST_WINDOWS_ROOT"]))
         if len(active) == 1 and active[0][1]["frontend"] == "qml":
             record = active[0][1]
             qml_metadata(record)
@@ -148,9 +167,9 @@ def main():
         else:
             sys.stdout.write("".join(text))
     elif args.verb == "lookup":
-        for window in windows(args.root):
-            if Path(load(window.root)["ui"]).resolve() == Path(args.ui).resolve():
-                print(window.pid)
+        for _, record in records(args.root):
+            if Path(record["ui"]).resolve() == Path(args.ui).resolve():
+                print(record["pid"])
 
     else:
         if args.verb == "call":

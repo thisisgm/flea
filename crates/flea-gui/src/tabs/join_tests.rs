@@ -377,6 +377,68 @@ fn u25_native_drop_zone_tracks_the_drawn_strip_and_full_capacity_own_return(
     });
 }
 
+// EY-469: Enter below a strip must admit the tab so a later strip drop can land.
+#[gpui::test]
+fn ey469_a_tab_entering_below_a_shown_strip_drops_on_it(cx: &mut TestAppContext) {
+    use super::transfer;
+    use crate::g2::dg2::router::{self, Native, Offered};
+    use gpui::{point, px};
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.follow_tab_drags(window, cx);
+            key(shell, "t", window, cx);
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let tabs = shell.geometry(window).tabs;
+            let right = f32::from(window.viewport_size().width) * 0.97;
+            let strip = (right, tabs.y + tabs.height / 2.);
+            let below = (right, tabs.y + tabs.height + 200.);
+            let zone = shell.strip.drop_zone.get().unwrap();
+            assert!(zone.contains(&point(px(strip.0), px(strip.1))));
+            assert!(!zone.contains(&point(px(below.0), px(below.1))));
+            let id = window.window_handle().window_id().as_u64();
+            let shared = router::shared(cx);
+            let types = [transfer::TAB_MIME.to_string()];
+            let entered = shared.offer(&Offered {
+                window: id,
+                position: below,
+                types: &types,
+            });
+            assert!(entered.move_, "the Enter below the strip takes the tab");
+            let payload = transfer::payload("222", "lift-9", "/files/child", "list", "");
+            let data = |mime: &str| {
+                (mime == transfer::TAB_MIME).then(|| std::sync::Arc::from(payload.as_bytes()))
+            };
+            let at = |position, dropped| {
+                Native::new(id, position, dropped, &types, &data, None, false, false)
+            };
+            assert!(shared.land(&at(below, false)), "the Enter is admitted");
+            assert!(
+                !shared.land(&at(below, true)),
+                "a drop off the strip is refused"
+            );
+            assert!(shared.land(&at(strip, true)), "a drop on the strip lands");
+        })
+    });
+    cx.run_until_parked();
+    cx.update(|_, cx| {
+        let pending = shell
+            .read(cx)
+            .strip
+            .bar
+            .pending
+            .as_ref()
+            .map(|p| (p.token.clone(), p.at));
+        assert_eq!(pending, Some(("lift-9".to_string(), Some(2))));
+    });
+}
+
 #[path = "atomic_tests.rs"]
 mod atomic;
 #[path = "catcher_tests.rs"]

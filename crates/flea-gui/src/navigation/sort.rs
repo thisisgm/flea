@@ -190,7 +190,7 @@ pub(crate) fn apply_own_patch(data: &mut flea::jsondoc::Json, command: &super::C
 }
 
 impl super::Navigator {
-    // Explicit settings changes read the folder choice again; file-watch re-reads keep each tab's order.
+    // Shared settings refresh the listing options while an explicit order stays with the open folder.
     pub(crate) fn reread_preferences(
         &mut self,
         pane: &mut crate::pane::Pane,
@@ -362,6 +362,7 @@ impl super::Navigator {
             self.persist(patch, failure);
         }
         self.orders.preferences = None;
+        self.orders.explicit = false;
         let preserve = std::mem::replace(&mut self.preserve_sort, false);
         let result = self.open_without_history(pane, &path, Default::default(), None, false);
         self.preserve_sort = preserve;

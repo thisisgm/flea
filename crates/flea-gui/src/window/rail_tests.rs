@@ -136,7 +136,7 @@ fn u08_composition_paints_rows_and_readers_report_the_drawn_centres(cx: &mut Tes
     cx.simulate_mouse_down(centre, MouseButton::Left, Modifiers::none());
     cx.run_until_parked();
     assert_eq!(ipc(&shell, "railCursor", &[], cx).stdout.trim(), "1");
-    assert_eq!(ipc(&shell, "focusView", &[], cx).stdout.trim(), "rail");
+    assert_eq!(ipc(&shell, "focusView", &[], cx).stdout.trim(), "list");
     assert_eq!(ipc(&shell, "railRowCentre", &["99"], cx).stdout.trim(), "");
     let idle = ipc(&shell, "recentMode", &[], cx);
     assert_eq!(
@@ -193,6 +193,35 @@ fn u08_keyboard_moves_the_rail_cursor_and_hiding_returns_focus(cx: &mut TestAppC
         "false"
     );
     assert!(!producer(&shell, cx).read_with(cx, |producer, _| producer.model.borrow().focused));
+}
+
+// EY-347: PaneRail.qml focusPress leaves the keyboard on the list after a docked rail press, so Ctrl+2 still switches the view.
+#[gpui::test]
+fn ey347_docked_rail_press_keeps_the_keyboard_on_the_list(cx: &mut TestAppContext) {
+    let (shell, cx) = open(false, cx);
+    rows(&shell, vec![row("A", "/a"), row("B", "/b")], cx);
+    let centre = producer(&shell, cx).read_with(cx, |producer, _| {
+        let laid = producer.laid.borrow();
+        let row = laid
+            .row(1)
+            .expect("composition painted the second rail row");
+        point(
+            px(row.rect.x + row.rect.width / 2.),
+            px(row.rect.y + row.rect.height / 2.),
+        )
+    });
+    cx.simulate_mouse_move(centre, None, Modifiers::none());
+    cx.simulate_mouse_down(centre, MouseButton::Left, Modifiers::none());
+    cx.simulate_mouse_up(centre, MouseButton::Left, Modifiers::none());
+    frame(cx);
+    assert_eq!(ipc(&shell, "railCursor", &[], cx).stdout.trim(), "1");
+    assert_eq!(ipc(&shell, "focusView", &[], cx).stdout.trim(), "list");
+    cx.update(|window, cx| {
+        let shell = shell.read(cx);
+        assert!(shell.focus.is_focused(window), "the list kept the keyboard");
+        assert!(!shell.dual_focus.rail.contains_focused(window, cx));
+        assert_eq!(shell.keyboard.context, flea::keys::Context::Listing);
+    });
 }
 
 // EY-205: PaneRail.qml revealed is the pointer or keyboard reveal in every mode, so a docked rail the keyboard holds reads true.
