@@ -172,8 +172,9 @@ class TuiContractTests(unittest.TestCase):
         text = dict((path, text) for path, _, text in self.sources)
         self.assertIn("flea::keys::display::{KeycapError, KeycapSnapshot}", code["src/tui/keycaps.rs"])
         self.assertRegex(code["src/tui/keycaps.rs"], r"KeycapSnapshot::(?:new|from_group_name)\(")
-        self.assertIn("flea::keys::display::chord_label(", code["src/tui/words.rs"])
-        self.assertIn("snapshot.label(", code["src/tui/key_sheet.rs"])
+        # I50-11-AMBIG resolves each chord part on its own, through the legend half of the shared API.
+        self.assertIn("flea::keys::display::chord_legend(", code["src/tui/words.rs"])
+        self.assertIn("snapshot.legend(", code["src/tui/key_sheet.rs"])
         run = code["src/tui/mod.rs"]
         self.assertIn("keycaps.apply(&mut model, &map);", block(run, run.index("while !model.quit")))
         setter = block(code["src/tui/words.rs"], code["src/tui/words.rs"].index("pub fn set_keycaps("))
