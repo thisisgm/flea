@@ -27,6 +27,7 @@ pub enum Face {
     Place,
     Locked,
     Tab,
+    Text,
 }
 
 impl Face {

@@ -60171,15 +60171,15 @@
       ],
       "context": "network.nfs_hint: crates/flea-gui/src/g2/pl2/words.rs:64",
       "coverage": "existing-translated-call",
-      "english": "No password needed: the NFS server trusts this computer",
+      "english": "No password needed. The NFS server trusts this computer.",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "No password needed: the NFS server trusts this computer",
-      "resolved_sha256": "d51bd50de82ef5cf4991ab6c778000fe9013eb9c0f858d0ab78757c86d3d0c72",
-      "resolved_source_hash": "1b5d1841db2b",
-      "source_hash": "1b5d1841db2b"
+      "resolved_english": "No password needed. The NFS server trusts this computer.",
+      "resolved_sha256": "ef207077c176165ed5153997fbae869adade31f1fe4b6c895ccc60f7e8c637f3",
+      "resolved_source_hash": "b6a81d33fafe",
+      "source_hash": "b6a81d33fafe"
     },
     "network.no_answer": {
       "call_sites": [
@@ -199618,7 +199618,7 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "function formNote() { return form.protocol === \"NFS\" ? \"No password needed: the NFS server trusts this computer\" : \"\" }",
+      "excerpt": "function formNote() { return form.protocol === \"NFS\" ? \"No password needed. The NFS server trusts this computer.\" : \"\" }",
       "line": 199,
       "literal": "NFS",
       "owner": "controller",
@@ -199627,9 +199627,9 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "function formNote() { return form.protocol === \"NFS\" ? \"No password needed: the NFS server trusts this computer\" : \"\" }",
+      "excerpt": "function formNote() { return form.protocol === \"NFS\" ? \"No password needed. The NFS server trusts this computer.\" : \"\" }",
       "line": 199,
-      "literal": "No password needed: the NFS server trusts this computer",
+      "literal": "No password needed. The NFS server trusts this computer.",
       "owner": "controller",
       "path": "ui/NetworkDialog.qml",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -199978,9 +199978,9 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "text: \"No password needed: the NFS server trusts this computer\"",
+      "excerpt": "text: \"No password needed. The NFS server trusts this computer.\"",
       "line": 300,
-      "literal": "No password needed: the NFS server trusts this computer",
+      "literal": "No password needed. The NFS server trusts this computer.",
       "owner": "controller",
       "path": "ui/NetworkForm.qml",
       "reason": "untranslated-literal-candidate-needs-owner-verification",

@@ -234,8 +234,14 @@ impl Shell {
     fn menu_click(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if event.button == MouseButton::Right || self.menu.presentation.at.is_some() {
             self.retire_menu(window, cx);
-        } else if let Some(capture) = &self.menu.captured {
-            let list = self.panes[capture.side]
+        } else if let Some(side) = self
+            .menu
+            .captured
+            .as_ref()
+            .map(|capture| capture.side)
+            .or_else(|| self.menu.text.map(|(side, _)| side))
+        {
+            let list = self.panes[side]
                 .as_ref()
                 .expect("the menu's pane")
                 .list
@@ -268,8 +274,14 @@ impl Shell {
         self.menu.pointer = Some(point);
         self.menu.resting = Some(point);
         if moved {
-            if let Some(capture) = &self.menu.captured {
-                let list = self.panes[capture.side]
+            if let Some(side) = self
+                .menu
+                .captured
+                .as_ref()
+                .map(|capture| capture.side)
+                .or_else(|| self.menu.text.map(|(side, _)| side))
+            {
+                let list = self.panes[side]
                     .as_ref()
                     .expect("the menu's pane")
                     .list

@@ -90,7 +90,7 @@ fn menus_rows_lead_with_the_master_and_draw_counts() {
     let checks: Vec<&str> = menus.iter().filter(|r| r.kind == Kind::Check).map(|r| r.id.as_str()).collect();
     assert_eq!(checks.join(","), "cut,copy,paste,duplicate,rename,trash,delete,openwith,print,run,openAsText,openTerminal,openAgent,\
 moveto,copyto,properties,permissions,makeExecutable,copyAs,showOriginal,tags,shelf,compress,extract,convert,flashDrive,taildrop,\
-localsend,rclone,dropbox,sharelink,runScript,placeMenu,updateFlea,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints");
+localsend,rclone,dropbox,sharelink,actions,placeMenu,updateFlea,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints");
 }
 
 #[test]

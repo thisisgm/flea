@@ -130,17 +130,13 @@ fn mn2_an_empty_listing_offers_no_row_at_all() {
 }
 
 #[test]
-fn mn2_the_actions_row_ships_off_with_the_shipped_hidden_set() {
-    // DESIGN-040's Defaults ledger: Actions (file menu) ships hidden, as Run Script's entry does.
-    assert!(
-        crate::ui_logic_mn1::inventory::SHIPPED_HIDDEN.contains(&rows::ID),
-        "Actions ships hidden (DESIGN-040 Defaults ledger)"
-    );
-    let shipped: Vec<String> = crate::ui_logic_mn1::inventory::SHIPPED_HIDDEN
-        .iter()
-        .map(|id| (*id).to_owned())
-        .collect();
-    assert!(rows::actions_row(&shipped, &listing()).is_none());
+fn mn2_the_actions_row_ships_on_while_run_script_ships_off() {
+    // HIG CHANGES keeps Actions (file menu) on and Run Script off, as src/uischema.rs writes.
+    let hidden = crate::ui_logic_mn1::inventory::SHIPPED_HIDDEN;
+    assert!(!hidden.contains(&rows::ID), "Actions ships on (HIG CHANGES)");
+    assert!(hidden.contains(&"runScript"), "Run Script ships off");
+    let shipped: Vec<String> = hidden.iter().map(|id| (*id).to_owned()).collect();
+    assert!(rows::actions_row(&shipped, &listing()).is_some());
 }
 
 #[test]

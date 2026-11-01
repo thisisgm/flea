@@ -167,10 +167,10 @@ fn paint_lead(
             ));
         }
         Lead::Icon(name) => {
-            let side = 16.;
+            let side = metrics.of(16.);
             let scale = window.scale_factor().ceil().max(1.) as u32;
             if let Some(image) = icons::image(name, side as u32, scale, window, cx) {
-                let bounds = slot(left, top, side, side);
+                let bounds = slot(at, side, side, metrics);
                 let fit = gpui::ObjectFit::Contain.get_bounds(bounds, image.size(0));
                 let _ = window.paint_image(bounds, fit, gpui::Corners::default(), image, 0, false);
                 return;

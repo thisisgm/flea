@@ -166,8 +166,24 @@ impl Navigator {
 
     // An operation changed the listing: re-read in place, re-selecting the path it produced.
     pub fn refresh(&mut self, pane: &mut Pane, select: Option<String>) -> Result<bool, Refusal> {
-        self.pending_select = select;
         let path = pane.path().to_owned();
+        if pane.busy() {
+            if pane.place() != path {
+                return Err(Refusal::Busy);
+            }
+            // The older list did not ask for this target; let its pair finish before issuing the selected list.
+            self.refresh_owed = Some((path, select));
+            return Ok(false);
+        }
+        if self
+            .anchor
+            .take()
+            .is_some_and(|anchor| anchor.need_paths.is_some())
+        {
+            self.gate.paths_pending = false;
+        }
+        self.pending_select = select;
+        self.select_locate = None;
         let options = Options {
             kept_query: pane.state.query.clone(),
             ..Options::default()
@@ -178,6 +194,7 @@ impl Navigator {
     // An operation's result re-lists its folder fresh: an unfinished re-read gives up its anchor and supersedes, so nothing stays marked.
     pub fn fresh(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
         self.pending_select = None;
+        self.select_locate = None;
         if self
             .anchor
             .take()
@@ -346,9 +363,16 @@ impl Navigator {
         if pane.state.search {
             return;
         }
-        if let Some(target) = self.pending_select.take() {
+        if let Some(target) = self.pending_select.clone() {
             if anchor::apply_select(pane, &target, selected) {
+                self.pending_select = None;
+                self.select_locate = None;
                 self.landed = Some((pane.held.listing, pane.cursor));
+            } else if pane.held.total == 0 {
+                self.pending_select = None;
+                self.select_locate = None;
+            } else {
+                self.locate_select(pane, &target);
             }
         }
     }

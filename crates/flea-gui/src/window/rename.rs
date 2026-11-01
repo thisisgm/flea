@@ -11,6 +11,8 @@ pub(crate) mod field;
 mod input;
 #[path = "rename_ipc.rs"]
 pub(crate) mod ipc;
+#[path = "rename_menu.rs"]
+mod menu;
 #[path = "rename_place.rs"]
 mod place;
 #[path = "rename_replies.rs"]
@@ -202,6 +204,9 @@ impl Shell {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.menu.text.is_some() {
+            return false;
+        }
         if self.rename.bulk.is_some() {
             self.bulk_rename_key(event, cx);
             return true;
@@ -264,6 +269,7 @@ impl Shell {
                 }
             }
             "a" if command => entry.select_all(),
+            "z" if command => entry.undo(),
             "c" | "x" if command && !entry.selected.is_empty() => {
                 cx.write_to_clipboard(ClipboardItem::new_string(
                     entry.text[entry.selected.clone()].to_owned(),

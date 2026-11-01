@@ -3,6 +3,54 @@ use crate::{backend::Event, columns::geometry::Slot};
 use gpui::{point, px, MouseButton, MouseDownEvent};
 use std::rc::Rc;
 
+#[test]
+fn vf_more_waiting_child_refuses_the_previously_painted_folder() {
+    for button in [MouseButton::Left, MouseButton::Right] {
+        let mut cx = host::context();
+        let (window, _requests) = host::open(&mut cx, "/rows");
+        host::change(&mut cx, window, |shell, window, cx| {
+            host::peek(shell, "/rows/d01", &[("inside-A", true)], false, window, cx);
+            host::settle(shell, window, cx);
+        });
+        host::frame(&mut cx, window);
+        host::change(&mut cx, window, |shell, window, cx| {
+            assert!(shell.panes[0]
+                .as_mut()
+                .unwrap()
+                .pane
+                .move_cursor(crate::list::pane::Move::End));
+            shell.sync_columns(window, cx);
+        });
+        host::advance(&mut cx, window, std::time::Duration::from_millis(12));
+        host::frame(&mut cx, window);
+        host::change(&mut cx, window, |shell, window, cx| {
+            let before = shell.panes[0].as_ref().unwrap().nav.counters.lists;
+            click(shell, Slot::Child, 15., button, window, cx);
+            let pane = shell.panes[0].as_ref().unwrap();
+            assert_eq!(
+                pane.pane.place(),
+                "/rows",
+                "the waiting child must not navigate through its old row"
+            );
+            assert_eq!(pane.nav.counters.lists, before);
+            assert!(pane.nav.menus.background.target.is_empty());
+        });
+        host::change(&mut cx, window, |shell, window, cx| {
+            host::peek(shell, "/rows/d02", &[("inside-B", true)], false, window, cx);
+        });
+        host::frame(&mut cx, window);
+        if button == MouseButton::Left {
+            host::change(&mut cx, window, |shell, window, cx| {
+                click(shell, Slot::Child, 15., button, window, cx);
+                assert_eq!(
+                    shell.panes[0].as_ref().unwrap().pane.place(),
+                    "/rows/d02/inside-B"
+                );
+            });
+        }
+    }
+}
+
 fn click(
     shell: &mut crate::state::Shell,
     slot: Slot,

@@ -153,6 +153,9 @@ impl Tracks {
                     let path = shown.host.shown.child.clone();
                     let (rows, state, enabled) =
                         Self::peek(&path, !path.is_empty(), &lens, peeks, landing, true);
+                    let enabled = enabled
+                        && shown.host.fallback_at.is_none()
+                        && peeks.answered(&lens.key(&path), &path);
                     TrackView {
                         slot: track.slot,
                         x: track.x,

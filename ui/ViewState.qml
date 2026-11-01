@@ -35,7 +35,7 @@ QtObject {
     // ui.json then hid a row the shipped schema shows.
     readonly property var defaultMenuHidden: ["delete", "openTerminal", "placeMenu", "runScript", "moveto",
                                                "copyto", "properties", "permissions", "copyAs", "pasteAs",
-                                               "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"]
+                                               "invertSelection", "extThumbs", "run", "openAsText", "openAgent"]
 
     // ui.json names what is SHOWN. ui/Header.qml, ui/Row.qml and ui/ContextMenu.qml all ask the
     // opposite question, so the inversion lives here once rather than at each of them.

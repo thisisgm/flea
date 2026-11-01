@@ -129,15 +129,19 @@ impl Pane {
     }
 
     pub fn anchor_window(&mut self, start: usize) -> Option<WindowRequest> {
-        let pending = self.swap.pending.as_ref()?;
-        let held = pending.ready.as_ref()?;
-        if self.requests.outstanding.is_some() || pending.following.is_some() || start >= held.total
-        {
+        let (held, count) = match self.swap.pending.as_ref() {
+            Some(pending) if pending.following.is_none() => {
+                (pending.ready.as_ref()?, pending.first)
+            }
+            Some(_) => return None,
+            None => (&*self.held, self.first_count()),
+        };
+        if self.requests.outstanding.is_some() || start >= held.total {
             return None;
         }
         let request = WindowRequest {
             start,
-            count: pending.first,
+            count,
             listing: held.listing,
         };
         self.requests.outstanding = Some(request);

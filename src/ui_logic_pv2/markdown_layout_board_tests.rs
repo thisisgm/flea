@@ -206,16 +206,16 @@ fn chip_box(atoms: &[Atom], label: &str) -> (f32, f32, f32, f32) {
 
 #[test]
 fn a_kbd_chip_centres_its_label_with_the_board_pad_either_side() {
-    // ql-markdown-html.html: a chip's label keeps 4 px either side inside the chip, in Quick Look and in the column.
-    for metrics in [quick_look(), column()] {
+    // Quick Look keeps 4 px; HIG preview-column gives the column's shared code chip 3 px.
+    for (metrics, pad) in [(quick_look(), 4.0), (column(), 3.0)] {
         let atoms = first_line_atoms(&stacked(
             "Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy.\n",
             metrics,
         ));
         for label in ["Ctrl", "C"] {
             let (ground, width, x, glyphs) = chip_box(&atoms, label);
-            assert_eq!(x - ground, 4.0, "left pad of {label}");
-            assert_eq!(ground + width - (x + glyphs), 4.0, "right pad of {label}");
+            assert_eq!(x - ground, pad, "left pad of {label}");
+            assert_eq!(ground + width - (x + glyphs), pad, "right pad of {label}");
         }
     }
 }
@@ -262,11 +262,11 @@ fn a_kbd_chip_keeps_the_space_before_it_and_the_plus_between_the_chips() {
 
 #[test]
 fn back_to_back_kbd_chips_share_one_ground_with_the_pad_either_side() {
-    // The tokens give touching chip pieces one leading and one trailing pad, so their labels join and keep 4 px either side.
-    for metrics in [quick_look(), column()] {
+    // Touching chip pieces share one ground with the owning surface's padding on either side.
+    for (metrics, pad) in [(quick_look(), 4.0), (column(), 3.0)] {
         let atoms = first_line_atoms(&stacked("Press <kbd>A</kbd><kbd>B</kbd> now.\n", metrics));
         let (ground, width, x, glyphs) = chip_box(&atoms, "AB");
-        assert_eq!(x - ground, 4.0, "left pad of AB");
-        assert_eq!(ground + width - (x + glyphs), 4.0, "right pad of AB");
+        assert_eq!(x - ground, pad, "left pad of AB");
+        assert_eq!(ground + width - (x + glyphs), pad, "right pad of AB");
     }
 }

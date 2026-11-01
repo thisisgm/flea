@@ -5,6 +5,7 @@ pub mod history;
 mod landing;
 mod orders;
 mod retry;
+mod selected;
 pub mod sort;
 mod steps;
 pub mod watch;
@@ -99,6 +100,8 @@ pub struct Navigator {
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
+    pub(crate) refresh_owed: Option<(String, Option<String>)>,
+    pub(crate) select_locate: Option<(usize, u64)>,
     /// The listing and row a navigation selected on landing, which Escape climbs through as no mark.
     pub landed: Option<(usize, usize)>,
     /// The row a re-read marked again from a lone mark, owed a lone take by the selection.
@@ -157,6 +160,7 @@ impl Navigator {
     pub fn busy(&self, pane: &Pane) -> bool {
         pane.busy()
             || self.gate.owned()
+            || self.select_locate.is_some()
             || self
                 .anchor
                 .as_ref()
@@ -304,6 +308,8 @@ impl Navigator {
         if !pane.begin(path.into(), options, now) {
             return Ok(false);
         }
+        self.refresh_owed = None;
+        self.select_locate = None;
         self.relisting = relisting;
         self.restore = restore;
         self.pending_sort = None;

@@ -122,7 +122,7 @@ fn a_pointer_pick_writes_the_cell_or_the_stop_it_names() {
     assert_eq!(pick(find(&view, "hiddenLast"), &data, 14, 0), Edit::None, "a greyed row takes no pick");
 }
 
-// A fresh install writes shelf.enabled false and the shipped menu.hidden, so ViewState.menuHidden counts the shelf as off.
+// A saved menu document keeps Actions off; both it and an unset document keep the shelf off.
 const FRESH: &str = r#"{"shelf":{"enabled":false},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","actions"]}}"#;
 
 fn head<'a>(rows: &'a [Row], id: &str) -> &'a Row {
@@ -134,21 +134,23 @@ fn a_fresh_install_counts_the_shelf_as_off() {
     for text in [FRESH, "{}"] {
         let (_, menus) = rows("menus", text);
         let extras = head(&menus, "extras");
-        assert_eq!(say(&extras.value), "11 of 17", "{text}");
+        assert_eq!(say(&extras.value), if text == "{}" { "12 of 17" } else { "11 of 17" }, "{text}");
         assert_eq!(extras.state, Master::Some, "{text}");
         assert!(!find(&menus, "shelf").on, "{text}: Enable shelf is off");
         assert_eq!(say(&head(&menus, "openInspect").value), "5 of 14", "{text}: Open in Agent ships off");
     }
 }
 
-// The Extras board ticks Actions at the defaults (12 of 17); the shipped list keeps runScript hidden, so the port draws 11.
+// The HIG Actions switch writes its own key; Run Script keeps its saved hidden value.
 #[test]
-fn actions_follows_the_shipped_run_script_default() {
+fn actions_default_on_and_saved_off_are_independent_of_run_script() {
     let (_, menus) = rows("menus", FRESH);
-    assert!(!find(&menus, "runScript").on, "Actions is unticked while runScript ships hidden");
-    let (_, menus) = rows("menus", &FRESH.replace(r#""runScript","#, ""));
-    assert!(find(&menus, "runScript").on);
-    assert_eq!(say(&head(&menus, "extras").value), "12 of 17", "the board's count once runScript ships shown");
+    assert!(!find(&menus, "actions").on);
+    let (data, menus) = rows("menus", &FRESH.replace(r#","actions""#, ""));
+    assert!(find(&menus, "actions").on);
+    assert_eq!(say(&head(&menus, "extras").value), "12 of 17");
+    let changed = patch(activate("menus", find(&menus, "actions"), &data, 14));
+    assert!(changed.contains("runScript") && changed.contains("actions"));
 }
 
 #[test]

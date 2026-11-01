@@ -1,5 +1,8 @@
 //! What a committed listing owes: the Back landing, the deep target, the anchor and the held sort.
-use super::{history::join, Command, Navigator};
+use super::{
+    history::{join, select_match},
+    Command, Navigator,
+};
 use crate::pane::{Kind, Pane};
 
 impl Navigator {
@@ -9,6 +12,19 @@ impl Navigator {
         let commits = pane.swap.counters.commits;
         if commits != self.seen {
             self.seen = commits;
+            if let Some((path, select)) = self.refresh_owed.take() {
+                // An owed watch refresh can supply fresh rows; a matching name alone cannot.
+                let names = pane.held.rows.iter().map(|row| row.name.as_str());
+                let held = select
+                    .as_deref()
+                    .is_some_and(|target| select_match(names, target, &path).is_some());
+                if path == pane.path() && held && self.watch.stale {
+                    self.pending_select = select;
+                } else if path == pane.path() {
+                    let _ = self.refresh(pane, select);
+                    return;
+                }
+            }
             if pane.path() != before {
                 self.watch.clear();
                 self.deletion_anchor = None;
@@ -39,6 +55,9 @@ impl Navigator {
             }
         } else {
             self.locate_parked(pane);
+            if !pane.busy() {
+                self.landing_select(pane, selected);
+            }
         }
         let now = pane.now();
         self.settle(pane, now);
@@ -164,6 +183,12 @@ impl Navigator {
 
     // A listing that ended in a refusal owes no landing, and its anchor must not hold the watch forever.
     pub fn after_failure(&mut self, pane: &mut Pane, operation: &str) {
+        if matches!(operation, "locate" | "window" | "backend" | "stale")
+            && self.select_locate.is_some()
+        {
+            self.pending_select = None;
+            self.select_locate = None;
+        }
         if operation == "sort" {
             if let Some(at) = self.orders.requests.iter().position(|request| request.sort) {
                 self.orders.requests.remove(at);
@@ -182,6 +207,8 @@ impl Navigator {
         let ended = !pane.busy() && matches!(pane.state.kind, Kind::Error | Kind::Locked);
         self.menus.failed(operation, ended);
         if ended {
+            self.refresh_owed = None;
+            self.select_locate = None;
             self.orders.requests.clear();
             self.order = self.drawn_order();
             self.orders.path = pane.path().into();

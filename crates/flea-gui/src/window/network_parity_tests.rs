@@ -3,7 +3,7 @@ use super::*;
 use crate::window::u07_tests::{press, read};
 
 #[gpui::test]
-fn pb_network_2_nfs_note_keeps_the_shipped_sentence(cx: &mut TestAppContext) {
+fn pb_network_2_nfs_note_draws_the_board_sentences(cx: &mut TestAppContext) {
     let (shell, cx, _) = open(Rc::new(Recorder::default()), cx);
     cx.simulate_keystrokes("a");
     frame(cx);
@@ -13,7 +13,7 @@ fn pb_network_2_nfs_note_keeps_the_shipped_sentence(cx: &mut TestAppContext) {
     frame(cx);
     assert_eq!(
         read(&shell, cx, "networkNote", &[]),
-        "No password needed: the NFS server trusts this computer"
+        "No password needed. The NFS server trusts this computer."
     );
 }
 

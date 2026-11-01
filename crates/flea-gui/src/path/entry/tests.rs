@@ -4,6 +4,53 @@ use crate::path::field::{ime_bounds, ime_index, Line};
 use gpui::{point, px, size, Bounds, GlyphRun, TestAppContext, TestDispatcher, Window};
 use std::rc::Rc;
 
+#[test]
+fn vf_more_undo_treats_ime_composition_as_one_edit() {
+    for commit in [true, false] {
+        let mut entry = Entry::default();
+        entry.begin("notes.txt");
+        entry.move_to(0);
+        entry.select_to(5);
+        assert!(entry.ime_mark(None, "n", None));
+        assert!(entry.ime_mark(None, "ni", None));
+        if commit {
+            assert!(entry.ime_replace(None, "\u{4f60}"));
+            assert_eq!(entry.text, "\u{4f60}.txt");
+        } else {
+            assert!(entry.ime_unmark());
+            assert_eq!(entry.text, "ni.txt");
+        }
+        entry.undo();
+        assert_eq!(entry.text, "notes.txt");
+        assert_eq!(entry.selected, 0..5);
+        assert!(entry.marked.is_none());
+        assert!(!entry.can_undo());
+    }
+}
+
+#[test]
+fn vf_more_entry_undo_restores_text_and_selection_without_retaining_private_text() {
+    let mut entry = Entry::default();
+    entry.begin("notes.txt");
+    entry.move_to(0);
+    entry.select_to(5);
+    entry.replace(None, "draft");
+    entry.undo();
+    assert_eq!(entry.text, "notes.txt");
+    assert_eq!(entry.selected, 0..5);
+    assert!(!entry.can_undo());
+    for _ in 0..80 {
+        entry.replace(None, "x");
+    }
+    assert_eq!(entry.history.len(), 64);
+    entry.close();
+    assert!(!entry.can_undo());
+    entry.private = true;
+    entry.begin("private");
+    entry.replace(None, "changed");
+    assert!(!entry.can_undo());
+}
+
 fn shaped(window: &mut Window, text: &str) -> Line {
     let run = window.text_style().to_run(text.len());
     let layout = window

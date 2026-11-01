@@ -268,7 +268,7 @@ pub const INVENTORY: &[Spec] = &[
     spec("emptyTrash", "menu.row.empty_trash", "trash", "T", "empty"),
 ];
 
-// The ids Settings > Menus ships switched off, the same list src/uischema.rs writes as menu.hidden: openAgent joins it (ships off, CHANGES 655, switched on here), actions joins it too (with Run Script's place hidden, DESIGN-040 ledger).
+// The ids Settings > Menus ships switched off, as src/uischema.rs writes; HIG keeps Actions on and Run Script off.
 pub const SHIPPED_HIDDEN: &[&str] = &[
     "delete",
     "openTerminal",
@@ -285,7 +285,6 @@ pub const SHIPPED_HIDDEN: &[&str] = &[
     "run",
     "openAsText",
     "openAgent",
-    "actions",
 ];
 
 /// The set a menu hides: the stored list, or the shipped one when none is stored, with Add to Shelf under the shelf's own switch.

@@ -24,13 +24,13 @@ pub const GROUPS: &[Group] = &[
     Group {
         id: "extras", label: "settings.menus.group_extras", features: &["placeMenu"],
         ids: &["shelf", "compress", "extract", "convert", "flashDrive", "taildrop", "localsend", "rclone", "dropbox",
-            "sharelink", "runScript", "placeMenu", "updateFlea", "toggleLangMarks", "extThumbs", "pasteAs", "invertSelection"],
+            "sharelink", "actions", "placeMenu", "updateFlea", "toggleLangMarks", "extThumbs", "pasteAs", "invertSelection"],
     },
 ];
 
 // src/uischema.rs DEFAULTS menu.hidden, which ViewState.defaultMenuHidden copies for a document that stores none.
 pub const SHIPPED_HIDDEN: &[&str] = &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties",
-    "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"];
+    "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"];
 
 // Open and Show Hidden Files draw the lock mark instead of a box: no switch governs them.
 pub const LOCKED: &[&str] = &["open", "toggleHidden"];
@@ -47,7 +47,7 @@ const LABELS: &[(&str, &str)] = &[
     ("shelf", "settings.menus.shelf"), ("compress", "settings.menus.compress"), ("extract", "settings.menus.extract"),
     ("convert", "settings.menus.convert"), ("flashDrive", "settings.menus.flash_drive"),
     ("taildrop", "settings.menus.taildrop"), ("localsend", "settings.menus.localsend"), ("rclone", "settings.menus.rclone"),
-    ("dropbox", "settings.menus.dropbox"), ("sharelink", "settings.menus.sharelink"), ("runScript", "settings.menus.run_script"),
+    ("dropbox", "settings.menus.dropbox"), ("sharelink", "settings.menus.sharelink"), ("actions", "settings.menus.run_script"),
     ("placeMenu", "settings.menus.place_menu"), ("updateFlea", "settings.menus.update_flea"),
     ("toggleLangMarks", "settings.menus.lang_marks"), ("extThumbs", "settings.menus.ext_thumbs"),
     ("pasteAs", "settings.menus.paste_as"), ("invertSelection", "settings.menus.invert_selection"),
@@ -62,7 +62,7 @@ pub const GLYPHS: &[(&str, &str)] = &[
     ("compress", "archive"), ("delete", "trash"), ("openwith", "app-window"), ("moveto", "folder-plus"),
     ("copyto", "copy"), ("properties", "info"), ("extract", "archive-out"), ("convert", "sliders"),
     ("flashDrive", "drive"), ("sharelink", "network"), ("open", "folder-open"), ("toggleHidden", "eye"),
-    ("placeMenu", "folder-open"), ("runScript", "zap"), ("updateFlea", "download"), ("toggleLangMarks", "code"),
+    ("placeMenu", "folder-open"), ("actions", "zap"), ("updateFlea", "download"), ("toggleLangMarks", "code"),
     ("extThumbs", "image"), ("shelf", "shelf"), ("run", "play"), ("openAsText", "file-text"), ("tags", "tag"),
     ("print", "printer"), ("openAgent", "bot"), ("rclone", "cloud-upload"),
 ];
