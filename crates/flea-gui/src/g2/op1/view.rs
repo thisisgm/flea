@@ -177,7 +177,8 @@ pub fn shell(
     let card = div()
         .relative()
         .debug_selector(|| "op1-card".into())
-        .w(px(m.width(kind, window.0)))
+        .min_w(px(m.width(kind, window.0)))
+        .max_w(px(m.widest(kind, window.0)))
         .p(px(m.padding))
         .flex()
         .flex_col()
@@ -190,11 +191,16 @@ pub fn shell(
         .text_size(px(m.body))
         .line_height(relative(card::LINE))
         .text_color(palette.foreground)
-        .child(header)
-        .child(rule(palette).debug_selector(|| "op1-rule".into()))
-        .child(body)
+        .child(yields(header))
+        .child(yields(rule(palette).debug_selector(|| "op1-rule".into())))
+        .child(yields(body))
         .child(row);
     scene.track(card, "card", String::new())
+}
+
+// A part that fills the card's width but asks none of its own, so only the button row can widen the card.
+fn yields<E: Styled>(part: E) -> E {
+    part.w_0().min_w_full()
 }
 
 // The scrim dims the window once and takes hover, both buttons and the wheel; the card sits centred on it.
