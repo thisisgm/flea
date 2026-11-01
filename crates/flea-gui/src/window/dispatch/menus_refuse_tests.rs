@@ -184,8 +184,7 @@ fn permissions_for_two_marked_files_opens_the_card(cx: &mut gpui::TestAppContext
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// EY-195's mounted shelf success cases now live in g2/plugins/menu_shelf_join_tests.rs,
-// where they exercise the real declared provider rather than the retired callback.
+// EY-195's shelf success cases live in g2/plugins/menu_shelf_join_tests.rs, against the real Shelf provider.
 
 // EY-268: Recent opened from the rail, then the background menu's New File, refuses as New Folder's key does and opens no card.
 #[gpui::test]

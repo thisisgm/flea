@@ -32,6 +32,7 @@ impl Model {
         self.remember_preview_error(text.render(&self.i18n), false);
         self.fail_text(text);
     }
+    // A reload of the same file keeps its page, so the page is not asked again and its error stays until the file changes.
     pub fn fail_page(&mut self, text: super::words::Text) {
         self.remember_preview_error(text.render(&self.i18n), true);
         self.fail_text(text);

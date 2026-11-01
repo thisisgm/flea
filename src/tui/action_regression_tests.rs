@@ -92,6 +92,25 @@ fn review_t2_clear_clipboard_rejects_pending_cut_reply() { cancelled_clipboard('
 #[test]
 fn review_t2_cancelled_clipboard_error_releases_request_barrier() { cancelled_clipboard('y', true); }
 
+// A cut still resolving when the folder changes ends there: its reply cannot land, the older clipboard and cut flag go, and the footer says so.
+#[test]
+fn review_m3_navigation_ends_a_pending_cut_and_says_so() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = listing(&mut wire, "yazi");
+    m.clipboard = vec!["/listing/older".into()];
+    m.cursor = 1;
+    press(&mut m, &mut wire, Key::character('x', ""));
+    assert!(m.pending_clipboard && m.cut);
+    m.open(std::path::PathBuf::from("/elsewhere"), &mut wire).unwrap();
+    assert!(m.clipboard.is_empty(), "the older clipboard would paste in place of the cut that was asked for");
+    assert!(!m.cut);
+    assert_eq!(m.error, m.i18n.tr("clipboard.stale"));
+    m.receive(jsondoc::parse(r#"{"t":"paths","paths":["/listing/file"]}"#).unwrap(), &mut wire).unwrap();
+    assert!(m.clipboard.is_empty(), "a reply for the folder that was left cannot land");
+    assert!(!m.pending_clipboard);
+    wire::finish(wire, reader);
+}
+
 fn delayed_sort(key: Key, start: usize, expected: usize, select: bool) {
     let (mut wire, reader) = wire::echo_wire();
     let mut m = Model::new(PathBuf::from("/listing"), &Json::Null);

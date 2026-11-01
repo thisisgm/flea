@@ -443,7 +443,13 @@ impl Model {
             if self.restore_path.is_none() && self.menu_action != "deleteRestore" { self.restore_path = self.current_path(); }
         }
         self.parity17.copy_text = None;
-        self.discard_clipboard |= self.pending_clipboard;
+        // A copy still resolving its rows ends with the listing it came from, so the older clipboard and its cut flag go too and the footer says so.
+        if self.pending_clipboard && !self.discard_clipboard {
+            self.discard_clipboard = true;
+            self.clipboard.clear();
+            self.cut = false;
+            self.fail_key("clipboard.stale");
+        }
         self.pending = Some(path.clone());
         let result = wire.send(vec![
             ("c", word("list")),

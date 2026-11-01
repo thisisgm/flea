@@ -179,3 +179,29 @@ fn targets_match_oem_eligibility_and_refuse_option_names() {
     assert_eq!(found[1].address, "beta.tail.ts.net");
     assert!(peers(&Json::Null).is_empty());
 }
+#[test]
+fn a_sender_that_cannot_start_names_taildrop_the_peer_and_the_cause() {
+    let root = crate::backend::testdir::TestDir::new("taildrop-sender");
+    let unrunnable = root.file("omarchy-tailscale-send", "not a program");
+    let peer = Peer {
+        id: "node-one".into(),
+        label: "phone".into(),
+        address: "phone.invalid".into(),
+    };
+    for (sender, cause) in [
+        ("/nonexistent/omarchy-tailscale-send", "item not found"),
+        (unrunnable.to_str().unwrap(), "permission denied"),
+    ] {
+        let mut taildrop = Taildrop::new();
+        let error = taildrop
+            .send_with(sender, &peer, &["/tmp/a".into()])
+            .unwrap_err();
+        assert!(!taildrop.loading());
+        let mut m = crate::tui::render::frame_tests::model();
+        m.fail_io(&error);
+        assert_eq!(
+            m.error,
+            format!("Taildrop · Could not send to phone ({sender}: {cause})")
+        );
+    }
+}
