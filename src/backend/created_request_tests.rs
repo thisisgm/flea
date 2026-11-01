@@ -63,6 +63,31 @@ fn creation_receipts_keep_legacy_mkdir_payload_and_exact_failure_identity() {
 }
 
 #[test]
+fn creation_receipt_names_the_localized_default_a_collision_chose() {
+    let root = TestDir::new("creation-request-default-base");
+    root.dir("新建文件夹");
+    let (tx, _) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "",
+        Some("新建文件夹"),
+        49,
+    );
+    let text = String::from_utf8(out).unwrap();
+    let chosen = root.join("新建文件夹 2");
+    assert!(receipt(&text, 49).contains(r#""ok":true"#), "{text}");
+    assert_eq!(
+        field_str(receipt(&text, 49), "path").as_deref(),
+        chosen.to_str()
+    );
+    assert!(chosen.is_dir() && !root.join("New Folder").exists());
+}
+
+#[test]
 fn creation_duplicate_busy_reply_does_not_steal_earlier_success_token() {
     let root = TestDir::new("duplicate-request");
     let source = root.file("notes.txt", "keep");
