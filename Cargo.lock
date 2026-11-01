@@ -1452,6 +1452,7 @@ dependencies = [
  "gpui-pre",
  "gpui-pre-platform",
  "image",
+ "log",
  "omi",
  "png",
  "unicode-bidi",

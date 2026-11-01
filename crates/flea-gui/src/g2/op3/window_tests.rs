@@ -189,3 +189,72 @@ fn every_card_matches_its_boards_frame_height(cx: &mut TestAppContext) {
     }
     assert!(off.is_empty(), "{off:?}");
 }
+
+#[gpui::test]
+fn s6_folder_properties_draws_all_eight_compact_board_rows(cx: &mut TestAppContext) {
+    let card = properties_of(
+        6,
+        r#"{"op":"properties","id":6,"ok":true,"path":"/fx/v/work/Media","kind":"Directory","directory":true,"bytes":4096,"modified":1749981600,"mode":"0755","owner":"gm","uid":1000,"gid":1000}"#,
+        &[
+            r#"{"op":"contents","id":6,"ok":true,"bytes":2560562,"items":11,"partial":false,"done":true}"#,
+        ],
+    );
+    let super::shell::Block::Facts(facts) = &card.body[0] else {
+        panic!("Properties draws facts");
+    };
+    let pairs: Vec<_> = facts
+        .iter()
+        .map(|fact| match fact {
+            super::shell::Fact::Text { name, value, tail } => {
+                assert!(tail.is_empty());
+                (name.as_str(), value.as_str())
+            }
+            _ => panic!("the untagged folder has text facts only"),
+        })
+        .collect();
+    let modified = english().locale().format_date(1749981600).unwrap();
+    assert_eq!(
+        pairs,
+        [
+            ("Path", "/fx/v/work/Media"),
+            ("Kind", "Folder"),
+            ("Size", "2.6 MB (2,560,562 bytes)"),
+            ("Contains", "11 items"),
+            ("Modified", modified.as_str()),
+            ("Permissions", "0755"),
+            ("Owner", "gm (uid 1000)"),
+            ("Group", "gid 1000"),
+        ]
+    );
+    let (_, cx) = cx.add_window_view(|_, _| Probe(card, Typeface::omarchy_default()));
+    cx.simulate_resize(size(px(1100.), px(700.)));
+    cx.run_until_parked();
+    let frame = cx.debug_bounds("op3-card").unwrap();
+    assert!(
+        (f32::from(frame.size.height) - 323.).abs() <= 1.,
+        "{frame:?}"
+    );
+    let first = cx.debug_bounds("op3-fact-0").unwrap();
+    let names = [
+        "op3-fact-0",
+        "op3-fact-1",
+        "op3-fact-2",
+        "op3-fact-3",
+        "op3-fact-4",
+        "op3-fact-5",
+        "op3-fact-6",
+        "op3-fact-7",
+    ];
+    for (at, name) in names.into_iter().enumerate() {
+        let row = cx.debug_bounds(name).expect("every fact is painted");
+        assert_eq!(f32::from(row.size.height), 24., "row {at}");
+        assert_eq!(row.left(), first.left(), "one value column");
+        assert_eq!(
+            f32::from(row.top() - first.top()),
+            at as f32 * 24.,
+            "row {at}"
+        );
+    }
+    let close = cx.debug_bounds("op3-button-0").unwrap();
+    assert!(close.bottom() < frame.bottom());
+}

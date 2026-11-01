@@ -77,4 +77,6 @@ mod ey339_writable_tests;
 #[cfg(test)]
 mod review_wrap_tests;
 #[cfg(test)]
+mod s6_tests;
+#[cfg(test)]
 mod wrap_layout_tests;

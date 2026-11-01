@@ -12,6 +12,7 @@ gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
 omi = "=1.0.0"
+log = "=0.4.34"
 # RenderImage's frame type, in the lock through gpui: PNG for the HTML and font helpers, TIFF and ICO for Quick Look.
 image = { version = "=0.25.10", default-features = false, features = ["png", "tiff", "ico"] }
 # Grapheme clusters, so a hint never wraps inside one character; in the lock through gpui.
