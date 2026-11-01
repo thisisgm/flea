@@ -236,5 +236,20 @@ fn tui_convert_rtl_rows_mirror_the_format_edge_and_the_option_brackets() {
         !out[underline + "\x1b[4m".len()..].starts_with(' '),
         "the underline starts with the label, not its padding"
     );
+    // A catalog output label without the trailing separator still fits its lead whole.
+    let catalog = include_str!("../../i18n/en/flea.json");
+    let en = catalog.replace("\"Output \"", "\"Output\"");
+    assert_ne!(en, catalog, "the fixture drops the trailing separator");
+    root.file("catalog/en/flea.json", &en);
+    m.i18n = crate::i18n::I18n::load(crate::i18n::Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.join("language"),
+        catalogs: vec![root.join("catalog")],
+    });
+    assert_eq!(
+        border_gaps(&draw(&m).0, "Output").1,
+        ltr_output.0,
+        "the bare label keeps every cell"
+    );
     wire::finish(w, reader);
 }

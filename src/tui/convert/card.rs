@@ -368,8 +368,8 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                             &cards::field_text(m, &row.text, card.content().saturating_sub(lead))
                         ),
                         theme.muted,
-                        // The catalog's trailing separator space goes between the name and the label, not at the border.
-                        cards::field_text(m, &format!(" {}", prefix.trim_end()), lead)
+                        // Trimmed so the catalog's trailing separator pads between the name and the label, not at the border.
+                        cards::field_text(m, prefix.trim_end(), lead)
                     ));
                 } else {
                     out.push_str(&format!(
