@@ -131,7 +131,7 @@ pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
 }
 #[cfg(test)]
 pub fn small(columns: usize, lines: usize, theme: &Theme) -> String {
-    small_localized(columns, lines, theme, &crate::i18n::I18n::default())
+    small_localized(columns, lines, theme, &crate::i18n::test_catalogs::english())
 }
 pub fn small_localized(columns: usize, lines: usize, theme: &Theme, i18n: &crate::i18n::I18n) -> String {
     let message = i18n.tr("tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall");

@@ -346,11 +346,7 @@ impl Model {
             menu_count: 0,
             menu_view: super::render::menu_layout::View::new(settings),
             rounded: Default::default(),
-            #[cfg(not(test))]
-            i18n: Default::default(),
-            // Tests read English only, whatever the host's Omarchy language.
-            #[cfg(test)]
-            i18n: crate::i18n::test_catalogs::english(),
+            i18n,
             locale_revision: 0,
             keycaps: None,
             keycap_labels: Default::default(),
