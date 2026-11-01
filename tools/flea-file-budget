@@ -103,7 +103,7 @@ crates/flea-gui/tests/g1_08/pictures.rs 410
 crates/flea-gui/tests/g1_08/view.rs 420
 crates/flea-gui/tests/g1_12/view.rs 475
 crates/flea-gui/src/row/marks.rs 421
-crates/flea-gui/src/tabs/bar.rs 696
+crates/flea-gui/src/tabs/bar.rs 487
 crates/flea-gui/src/tabs/host.rs 422
 crates/flea-gui/src/tabs/state.rs 871
 crates/flea-gui/src/tabs/transfer.rs 944

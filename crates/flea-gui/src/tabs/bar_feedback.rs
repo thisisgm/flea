@@ -8,7 +8,16 @@ impl StripElement {
             frame,
             labels,
             feedback: None,
+            controls: None,
         }
+    }
+
+    pub(crate) fn with_controls(
+        mut self,
+        controls: Option<crate::tabs::accessibility::Controls>,
+    ) -> Self {
+        self.controls = controls;
+        self
     }
 
     pub(crate) fn with_feedback(
