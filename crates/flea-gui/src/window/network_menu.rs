@@ -1,4 +1,4 @@
-//! The NETWORK row menu on mn1's shared card, the share browser over its own pane and the card's layer.
+//! The NETWORK row menu on mn1's shared card, the share browser over its own pane's listing and the card's layer.
 use super::Network;
 use crate::{
     g2::mn1::{element::MenuElement, menu::Face, menu::Outcome},
@@ -205,32 +205,41 @@ impl Shell {
         true
     }
 
-    /// The card covers the window, the browser covers its own pane, and the row menu sits over both.
-    pub(crate) fn network_layers(
+    /// The share browser covers only its pane's listing box (WindowBody.qml's listSlot), so the list header stays drawn.
+    pub(crate) fn network_browser(
         &self,
-        window: &Window,
+        panes: &mut [Option<AnyElement>; 2],
         cx: &mut Context<Self>,
-    ) -> Vec<AnyElement> {
+    ) {
+        let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
+            return;
+        };
+        let browser = network.shares.read(cx);
+        if !browser.visible() {
+            return;
+        }
+        let Some(side) = self.network_side(browser.model.origin) else {
+            return;
+        };
+        let Some(content) = panes[side].take() else {
+            return;
+        };
+        panes[side] = Some(
+            div()
+                .relative()
+                .size_full()
+                .child(content)
+                .child(div().absolute().inset_0().child(network.shares.clone()))
+                .into_any_element(),
+        );
+    }
+
+    /// The card covers the window and the row menu sits over it.
+    pub(crate) fn network_layers(&self, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
             return Vec::new();
         };
         let mut layers = Vec::new();
-        let browser = network.shares.read(cx);
-        if browser.visible() {
-            if let Some(side) = self.network_side(browser.model.origin) {
-                let rect = self.geometry(window).panes[side];
-                layers.push(
-                    div()
-                        .absolute()
-                        .left(px(rect.x))
-                        .top(px(rect.y))
-                        .w(px(rect.width))
-                        .h(px(rect.height))
-                        .child(network.shares.clone())
-                        .into_any_element(),
-                );
-            }
-        }
         if network.card.read(cx).visible() {
             layers.push(
                 gpui::deferred(div().absolute().inset_0().child(network.card.clone()))

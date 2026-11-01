@@ -325,6 +325,7 @@ impl Render for Shell {
                     .into_any_element(),
             );
         }
+        self.network_browser(&mut panes, cx);
         self.settle_list_sizes(window, cx);
         self.visual_frame(window, cx);
         self.sync_chrome_probe(cx);
@@ -392,7 +393,7 @@ impl Render for Shell {
         )
         .children(self.settings_surface())
         .children(self.trash_menu_layer(cx))
-        .children(self.network_layers(window, cx))
+        .children(self.network_layers(cx))
         .children(self.carry_flock(window, cx))
         .children(self.unlock_layer(cx))
     }
