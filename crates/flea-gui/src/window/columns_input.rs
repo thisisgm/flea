@@ -1,7 +1,6 @@
-//! Pointer routing uses the track that painted the point, with neighbour backgrounds deferred through the navigator.
-use super::PaneHost;
+//! Pointer routing uses the track that painted the point; neighbour menus capture paths without navigation.
 use crate::{
-    columns::{geometry::Slot, menu, TrackRows},
+    columns::{geometry::Slot, TrackRows},
     state::Shell,
 };
 use gpui::{Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
@@ -14,43 +13,6 @@ pub struct BackgroundMenu {
     pub at: (f32, f32),
 }
 impl gpui::EventEmitter<BackgroundMenu> for Shell {}
-
-struct Navigation<'a> {
-    host: &'a mut PaneHost,
-}
-impl menu::Navigator for Navigation<'_> {
-    fn path(&self) -> &str {
-        self.host.pane.path()
-    }
-    fn busy(&self) -> menu::Busy {
-        let gate = self.host.nav.gate;
-        menu::Busy {
-            in_flight: self.host.pane.busy(),
-            search: self.host.pane.state.search || gate.search,
-            collide_pending: gate.collision_pending,
-            menu_visible: gate.menu_open,
-            menu_action_open: gate.menu_pending,
-            renaming: gate.editing,
-            rename_pending: gate.rename_pending,
-            filter_typing: gate.filter_typing,
-            band: gate.selection_band,
-            ..menu::Busy::default()
-        }
-    }
-    fn in_flight(&self) -> bool {
-        self.host.pane.busy()
-    }
-    fn listing_state(&self) -> crate::pane::states::Kind {
-        self.host.pane.state.kind
-    }
-    fn open(&mut self, path: &str) {
-        let _ = self.host.nav.open_place(&mut self.host.pane, path);
-    }
-    fn say_busy(&mut self) {}
-    fn open_background_menu(&mut self, at: (f32, f32)) {
-        self.host.nav.background_at = Some(at);
-    }
-}
 
 impl Shell {
     pub(crate) fn columns_pointer(
@@ -144,38 +106,34 @@ impl Shell {
                 return;
             }
         }
-        if event.button == MouseButton::Right && row.is_none() {
-            let base = if view.slot == Slot::Active {
-                Some(host.path.clone())
-            } else {
-                columns.area.background_base(view.slot)
-            };
-            if let Some(base) = base {
-                let mut background = std::mem::take(&mut host.nav.menus.background);
-                let at = (f32::from(event.position.x), f32::from(event.position.y));
-                background.route(Some(&mut Navigation { host }), &base, Some(at));
-                host.nav.menus.background = background;
-                self.run_navigation(side, window, cx);
-                self.columns_landed(side, window, cx);
-            }
-            return;
-        }
-        if event.button == MouseButton::Right && view.slot == Slot::Active {
-            if !host.selected.contains(&index) {
-                host.selected.clear();
-            }
-            self.open_menu(
-                side,
-                Some(index),
-                (event.position.x.into(), event.position.y.into()),
-                window,
-                cx,
-            );
-            return;
-        }
         if event.button == MouseButton::Right {
-            if let Some((name, _)) = row {
-                self.columns_neighbour_menu(side, &view.path, &name, window, cx);
+            let at = (event.position.x.into(), event.position.y.into());
+            if view.slot == Slot::Active {
+                if row.is_some() && !host.selected.contains(&index) {
+                    host.selected.clear();
+                }
+                self.open_menu(side, row.as_ref().map(|_| index), at, window, cx);
+            } else if !view.path.is_empty() {
+                let facts = match &view.rows {
+                    TrackRows::Peek(rows) => rows.get(index).map(|row| flea::protocol::RowFacts {
+                        name: row.name.clone(),
+                        dir: row.dir,
+                        icon: row.icon.clone(),
+                        mode: if row.dir { 0o040000 } else { 0o100000 },
+                        ..Default::default()
+                    }),
+                    _ => None,
+                };
+                self.columns_neighbour_menu(
+                    side,
+                    crate::g2::mn1::target::PathMenu {
+                        base: view.path.clone(),
+                        row: facts,
+                    },
+                    at,
+                    window,
+                    cx,
+                );
             }
             return;
         }
@@ -220,7 +178,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.sync_columns(window, cx);
-        self.columns_row_menu_landed(side, window, cx);
+        self.menu_target_landed(side, window, cx);
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };

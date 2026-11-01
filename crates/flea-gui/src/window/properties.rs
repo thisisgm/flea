@@ -69,6 +69,7 @@ impl Shell {
             ready: false,
             kinds: Vec::new(),
             background: false,
+            target: None,
         };
         self.open_properties_card(&captured, window, cx);
         true
@@ -95,18 +96,21 @@ impl Shell {
                 }
             },
         );
-        let (mut card, effects) = Properties::open(
+        let (mut card, mut effects) = Properties::open(
             captured.id,
             captured.listing,
             &captured.rows,
             captured.cursor,
         );
+        if captured.target.is_some() {
+            effects = vec![Effect::Send(captured.snapshot_request())];
+        }
         // Kind prints the MIME database's word the listing already holds for the row, as the preview column does.
         if let [row] = captured.rows[..] {
             let held = self.panes[side]
                 .as_ref()
                 .filter(|host| host.pane.held.listing == captured.listing)
-                .and_then(|host| host.pane.held.row(row));
+                .and_then(|host| captured.row(host, row));
             if let Some(held) = held {
                 card.set_extras(Vec::new(), &held.kind);
             }

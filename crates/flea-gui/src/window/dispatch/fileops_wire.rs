@@ -18,6 +18,10 @@ use flea::{
 };
 use gpui::{Context, Window};
 
+#[cfg(test)]
+#[path = "fileops_created_tests.rs"]
+mod tests;
+
 impl Shell {
     // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"}; duplicated and the trash and delete replies share the same t field.
     /// A backend line this family answers; true when nobody else needs it.
@@ -77,11 +81,11 @@ impl Shell {
                     lines::with_undo(&catalog, &preset, line)
                 };
                 self.fileops_say(side, &said, false, cx);
-                if kind == "made" {
-                    self.operations.fileops.arrival[side] = Some(path.clone());
+                if flea::json::field_usize(line, "request").unwrap_or(0) > 0 {
+                    return true;
                 }
                 // Shell::step says its own refusal in the pane status, so its result is spent here.
-                let _ = self.step(side, Step::Refresh(Some(path)), window, cx);
+                self.fileops_created_target(side, kind, None, path, window, cx);
                 true
             }
             // PaneWire.qml onTrashed clears the marks; the operations overlay says the line.
@@ -92,6 +96,23 @@ impl Shell {
                 let landed = document.get("ok").and_then(Json::as_f64).unwrap_or(0.) > 0.;
                 self.deletion_landed(side, anchor, landed, window, cx);
                 false
+            }
+            "menuaction" if text("op") == "creation" => {
+                let request = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
+                let kind = text("kind");
+                if request == 0 || !matches!(kind, "made" | "duplicated") {
+                    return true;
+                }
+                if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                    self.operations
+                        .fileops
+                        .creations
+                        .failed(side, kind, request);
+                    return true;
+                }
+                let path = text("path").to_owned();
+                self.fileops_created_target(side, kind, Some(request), path, window, cx);
+                true
             }
             "menuaction" if text("op") == "delete" => {
                 let id = document
@@ -123,7 +144,7 @@ impl Shell {
         let preset = self.fileops_preset();
         let said = lines::made(&catalog, &preset, &path);
         self.fileops_say(side, &said, false, cx);
-        let _ = self.step(side, Step::Refresh(Some(path)), window, cx);
+        self.fileops_created_target(side, "newFile", None, path, window, cx);
     }
 
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.

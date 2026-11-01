@@ -1,7 +1,7 @@
 use super::host;
-use crate::{backend::Event, columns::geometry::Slot, window::columns::BackgroundMenu};
+use crate::{backend::Event, columns::geometry::Slot};
 use gpui::{point, px, MouseButton, MouseDownEvent};
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 fn click(
     shell: &mut crate::state::Shell,
@@ -33,7 +33,82 @@ fn click(
 }
 
 #[test]
-fn u09_live_columns_background_navigates_once_and_opens_only_after_its_own_rows() {
+fn ey379_neighbour_row_and_background_keep_listing_cursor_marks_and_tracks() {
+    for background in [false, true] {
+        let mut cx = host::context();
+        let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+        host::change(&mut cx, window, |shell, window, cx| {
+            host::peek(
+                shell,
+                "/srv/a/b",
+                &[("c", true), ("other.txt", false)],
+                false,
+                window,
+                cx,
+            );
+            host::settle(shell, window, cx);
+            shell.panes[0].as_mut().unwrap().selected = vec![1, 2];
+        });
+        host::frame(&mut cx, window);
+        host::change(&mut cx, window, |shell, window, cx| {
+            let pane = shell.panes[0].as_ref().unwrap();
+            let before = (
+                pane.path.clone(),
+                pane.pane.cursor,
+                pane.selected.clone(),
+                pane.pane.held.listing,
+            );
+            let tracks = pane.columns.as_ref().unwrap().area.tracks().clone();
+            click(
+                shell,
+                Slot::Parent,
+                if background { 300. } else { 45. },
+                MouseButton::Right,
+                window,
+                cx,
+            );
+            let pane = shell.panes[0].as_ref().unwrap();
+            assert_eq!(
+                (
+                    pane.path.clone(),
+                    pane.pane.cursor,
+                    pane.selected.clone(),
+                    pane.pane.held.listing
+                ),
+                before
+            );
+            assert_eq!(
+                pane.nav.counters.lists, 0,
+                "right click must not list another folder"
+            );
+            assert!(Rc::ptr_eq(
+                pane.columns.as_ref().unwrap().area.tracks(),
+                &tracks
+            ));
+            let capture = shell
+                .menu
+                .captured
+                .as_ref()
+                .expect("the clicked track owns a menu");
+            assert_eq!(capture.path, "/srv/a/b");
+            assert_eq!(capture.background, background);
+            shell.retire_menu(window, cx);
+            let pane = shell.panes[0].as_ref().unwrap();
+            assert_eq!(
+                (
+                    pane.path.clone(),
+                    pane.pane.cursor,
+                    pane.selected.clone(),
+                    pane.pane.held.listing
+                ),
+                before
+            );
+        });
+    }
+}
+
+#[test]
+fn ey379_parent_active_and_child_backgrounds_open_at_the_pointer_without_navigation() {
     for (slot, path) in [
         (Slot::Parent, "/srv/a/b"),
         (Slot::Active, "/srv/a/b/c"),
@@ -41,56 +116,21 @@ fn u09_live_columns_background_navigates_once_and_opens_only_after_its_own_rows(
     ] {
         let mut cx = host::context();
         let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
-        let events = Rc::new(RefCell::new(Vec::<BackgroundMenu>::new()));
-        let events_copy = Rc::clone(&events);
-        let subscription = window
-            .update(&mut cx, |_, _, cx| {
-                cx.subscribe(&cx.entity(), move |_, _, event: &BackgroundMenu, _| {
-                    events_copy.borrow_mut().push(event.clone())
-                })
-            })
-            .unwrap();
         host::change(&mut cx, window, |shell, window, cx| {
             host::peek(shell, "/srv/a/b", &[("c", true)], false, window, cx);
             host::peek(shell, "/srv/a/b/c/d01", &[], false, window, cx);
+            host::settle(shell, window, cx);
         });
         host::frame(&mut cx, window);
         host::change(&mut cx, window, |shell, window, cx| {
             click(shell, slot, 300., MouseButton::Right, window, cx);
             let host = shell.panes[0].as_ref().unwrap();
-            assert_eq!(host.pane.place(), path);
-            assert_eq!(host.nav.counters.lists, usize::from(slot != Slot::Active));
-            if slot != Slot::Active {
-                assert!(
-                    events.borrow().is_empty(),
-                    "a menu opened before the target's rows"
-                );
-                shell.receive(
-                    0,
-                    Event::Reply(flea::protocol::Reply::Listed {
-                        path: path.into(),
-                        total: 0,
-                    }),
-                    window,
-                    cx,
-                );
-                shell.receive(
-                    0,
-                    Event::Reply(flea::protocol::Reply::Rows {
-                        start: 0,
-                        listing: 4,
-                        rows: Vec::new(),
-                    }),
-                    window,
-                    cx,
-                );
-            }
+            assert_eq!(host.pane.place(), "/srv/a/b/c");
+            assert_eq!(host.nav.counters.lists, 0);
+            let captured = shell.menu.captured.as_ref().unwrap();
+            assert_eq!(captured.path, path);
+            assert!(captured.background);
         });
-        cx.run_until_parked();
-        assert_eq!(events.borrow().len(), 1);
-        assert_eq!(events.borrow()[0].path, path);
-        assert_eq!(events.borrow()[0].at.1, 327.);
-        drop(subscription);
     }
 }
 
@@ -114,8 +154,8 @@ fn u09_live_columns_failed_background_and_busy_or_blank_clicks_never_open_a_menu
         click(shell, Slot::Parent, 300., MouseButton::Right, window, cx);
         assert_eq!(
             shell.panes[0].as_ref().unwrap().nav.counters.lists,
-            1,
-            "busy input was not consumed"
+            0,
+            "right click must not navigate"
         );
         shell.receive(
             0,
@@ -138,5 +178,111 @@ fn u09_live_columns_failed_background_and_busy_or_blank_clicks_never_open_a_menu
     host::change(&mut cx, root, |shell, window, cx| {
         click(shell, Slot::Parent, 300., MouseButton::Right, window, cx);
         assert_eq!(shell.panes[0].as_ref().unwrap().nav.counters.lists, 0);
+    });
+}
+
+#[test]
+fn ey379_rename_edits_the_neighbour_in_place_and_sends_its_validated_path() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::peek(
+            shell,
+            "/srv/a/b",
+            &[("c", true), ("other.txt", false)],
+            false,
+            window,
+            cx,
+        );
+        host::settle(shell, window, cx);
+    });
+    host::frame(&mut cx, window);
+    let (backend, mut requests) = crate::backend::Backend::test_lines();
+    let mut captured_id = 0;
+    host::change(&mut cx, window, |shell, window, cx| {
+        shell.panes[0].as_mut().unwrap().backend = Some(backend);
+        click(shell, Slot::Parent, 45., MouseButton::Right, window, cx);
+        let id = shell.menu.captured.as_ref().unwrap().id;
+        captured_id = id;
+        for op in ["snapshot", "applications"] {
+            shell.receive(0, Event::Producer(format!(r#"{{"t":"menuaction","op":"{op}","id":{id},"ok":true,"kinds":[32768],"modes":[33188],"applications":[]}}"#)), window, cx);
+        }
+        shell.menu.pending = Some(("rename".into(), String::new()));
+        shell.activate_menu(window, cx);
+        shell.receive(0, Event::Producer(format!(r#"{{"t":"menuaction","op":"validate","id":{id},"ok":true,"action":"rename","paths":["/srv/a/b/other.txt"]}}"#)), window, cx);
+        let edit = shell
+            .rename
+            .edit
+            .as_mut()
+            .expect("Rename owns an inline editor");
+        assert_eq!(edit.source, "/srv/a/b/other.txt");
+        assert_eq!(edit.menu, id);
+        edit.entry.begin("renamed.txt");
+        assert_eq!(shell.renaming_row(0), Some(1));
+        shell.rename_commit(cx);
+        assert_eq!(
+            shell.rename.edit.as_ref().unwrap().pending.as_deref(),
+            Some("/srv/a/b/renamed.txt")
+        );
+        let pane = shell.panes[0].as_ref().unwrap();
+        assert_eq!(pane.path, "/srv/a/b/c");
+        assert_eq!(pane.pane.cursor, 0);
+        assert_eq!(pane.nav.counters.lists, 0);
+    });
+    let sent: Vec<_> = std::iter::from_fn(&mut requests)
+        .filter(|line| flea::json::field_str(line, "c").as_deref() == Some("rename"))
+        .collect();
+    assert_eq!(
+        sent.len(),
+        1,
+        "one validated neighbour rename reaches the backend"
+    );
+    assert_eq!(
+        flea::json::field_str(&sent[0], "path").as_deref(),
+        Some("/srv/a/b/other.txt")
+    );
+    assert_eq!(
+        flea::json::field_str(&sent[0], "to").as_deref(),
+        Some("renamed.txt")
+    );
+    assert_eq!(
+        flea::json::field_usize(&sent[0], "menuId"),
+        Some(captured_id as usize)
+    );
+}
+
+#[test]
+fn ey379_renaming_the_active_folders_ancestor_follows_its_new_path() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::peek(shell, "/srv/a/b", &[("c", true)], false, window, cx);
+        host::settle(shell, window, cx);
+    });
+    host::frame(&mut cx, window);
+    host::change(&mut cx, window, |shell, window, cx| {
+        click(shell, Slot::Parent, 15., MouseButton::Right, window, cx);
+        let id = shell.menu.captured.as_ref().unwrap().id;
+        for op in ["snapshot", "applications"] {
+            shell.receive(0, Event::Producer(format!(r#"{{"t":"menuaction","op":"{op}","id":{id},"ok":true,"kinds":[16384],"modes":[16877],"applications":[]}}"#)), window, cx);
+        }
+        shell.menu.pending = Some(("rename".into(), String::new()));
+        shell.activate_menu(window, cx);
+        shell.receive(0, Event::Producer(format!(r#"{{"t":"menuaction","op":"validate","id":{id},"ok":true,"action":"rename","paths":["/srv/a/b/c"]}}"#)), window, cx);
+        shell.rename.edit.as_mut().unwrap().entry.begin("renamed-c");
+        shell.rename_commit(cx);
+        shell.receive(
+            0,
+            Event::Producer(r#"{"t":"renamed","ok":true,"path":"/srv/a/b/renamed-c"}"#.into()),
+            window,
+            cx,
+        );
+        let pane = shell.panes[0].as_ref().unwrap();
+        assert_eq!(pane.pane.place(), "/srv/a/b/renamed-c");
+        assert_eq!(
+            pane.nav.pending_select.as_deref(),
+            Some("/srv/a/b/renamed-c/d01")
+        );
+        assert!(shell.rename.edit.is_none());
     });
 }

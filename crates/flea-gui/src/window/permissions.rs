@@ -77,7 +77,7 @@ impl Shell {
                 .is_some_and(|host| {
                     !host.stopped
                         && host.backend.is_some()
-                        && host.path == capture.path
+                        && (capture.target.is_some() || host.path == capture.path)
                         && host.pane.held.listing == capture.listing
                 });
         self.release_permissions_snapshot(capture, window, cx);

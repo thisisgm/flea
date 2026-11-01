@@ -133,6 +133,7 @@ impl Shell {
             ready: true,
             kinds: Vec::new(),
             background: true,
+            target: None,
         });
         self.menu.place = Some(Place {
             key: key.clone(),

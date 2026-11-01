@@ -169,7 +169,14 @@ fn new_folder_off_screen(cx: &mut TestAppContext, view: View) {
     switch(&shell, cx, view);
     sent(&mut lines);
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(&mut lines), [r#"{"c":"mkdir","path":"/files"}"#]);
+    assert_eq!(
+        sent(&mut lines),
+        [super::fileops_tests::creation_request(
+            &shell,
+            cx,
+            r#"{"c":"mkdir","path":"/files"}"#
+        )]
+    );
     super::fileops_tests::reply(
         &shell,
         cx,

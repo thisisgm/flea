@@ -225,6 +225,7 @@ fn chosen_copy_to(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usi
                 ready: true,
                 kinds: vec![0],
                 background: false,
+                target: None,
             },
             action: "copyTo".into(),
             leaf: String::new(),

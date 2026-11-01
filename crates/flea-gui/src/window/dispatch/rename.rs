@@ -19,6 +19,11 @@ pub(super) fn run(
             return false;
         }
         let side = chosen.captured.side;
+        if chosen.captured.target.is_some() {
+            shell.keyboard.context = flea::keys::Context::Listing;
+            shell.rename_menu_target(&chosen.captured, window, cx);
+            return true;
+        }
         let close = format!(
             "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
             chosen.captured.id

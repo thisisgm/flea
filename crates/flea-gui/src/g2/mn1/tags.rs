@@ -101,7 +101,13 @@ impl Shell {
         else {
             return;
         };
-        if !again && self.tag_entries_for(capture.side, &capture.rows).is_some() {
+        if capture.target.is_some() && !capture.ready {
+            return;
+        }
+        if capture.target.is_none()
+            && !again
+            && self.tag_entries_for(capture.side, &capture.rows).is_some()
+        {
             return;
         }
         if self.menu.flyout == Some("tags") {
@@ -116,6 +122,17 @@ impl Shell {
             listing: capture.listing,
             identity: capture.identity.clone(),
         });
+        if capture.target.is_some() {
+            self.menu_send(
+                capture.side,
+                format!(
+                    r#"{{"c":"menuaction","op":"tagstates","id":{},"tagId":{id}}}"#,
+                    capture.id
+                ),
+                cx,
+            );
+            return;
+        }
         let rows = capture
             .rows
             .iter()
@@ -213,11 +230,10 @@ impl Shell {
         if self.menu.tags_reading {
             return;
         }
-        let Some(capture) = self
-            .menu
-            .captured
-            .as_ref()
-            .filter(|capture| capture.identity == self.menu_identity())
+        let Some(capture) =
+            self.menu.captured.as_ref().filter(|capture| {
+                capture.target.is_none() && capture.identity == self.menu_identity()
+            })
         else {
             return;
         };

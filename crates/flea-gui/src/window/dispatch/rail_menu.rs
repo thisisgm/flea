@@ -74,6 +74,7 @@ impl Shell {
             ready: true,
             kinds: Vec::new(),
             background: true,
+            target: None,
         };
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);

@@ -53,6 +53,20 @@ impl Shell {
         captured: &crate::g2::mn1::join::Captured,
         cx: &mut Context<Self>,
     ) -> bool {
+        if let Some(row) = &captured.target {
+            self.dismiss_cards(cx);
+            self.menu.sequence += 1;
+            let mut target = captured.clone();
+            target.id = self.menu.sequence;
+            if self.open_with_send(target.side, target.snapshot_request(), cx) {
+                self.open_with = Some(Open {
+                    side: target.side,
+                    id: target.id,
+                    card: OpenWith::open(target.id, &row.name),
+                });
+            }
+            return true;
+        }
         let [at] = captured.rows[..] else {
             return false;
         };

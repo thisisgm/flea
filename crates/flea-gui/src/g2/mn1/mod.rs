@@ -33,6 +33,10 @@ pub mod shebang;
 mod tag_checks;
 pub(crate) mod tags;
 mod tags_wire;
+pub(crate) mod target;
+mod target_action;
+#[cfg(test)]
+mod target_tests;
 #[cfg(test)]
 mod tests;
 mod wrap;

@@ -1,5 +1,8 @@
 //! Compose the committed track Elements and the shared empty and refusal producers inside each track's clip.
 use super::Columns;
+use render_tile::{loading_tile, tile};
+#[path = "columns_render/render_tile.rs"]
+mod render_tile;
 use crate::{
     columns::{element::TrackElement, geometry::Slot, paint::Focus, TrackRows, TrackState},
     state::Shell,
@@ -30,6 +33,7 @@ impl Shell {
         let tag_slot = self.panes[side]
             .as_ref()
             .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
+        let (menu_target, rename_slot) = self.column_menu_focus(side);
         let host = self.panes[side].as_mut()?;
         let active = host.columns.as_ref()?;
         rows.hovered = active
@@ -94,6 +98,8 @@ impl Shell {
             cursor: (!host.pane.busy()).then_some(host.pane.cursor),
             selected: host.selected.clone().into(),
             renaming,
+            rename_slot,
+            menu_target,
             grow,
             hover: columns
                 .hover
@@ -326,36 +332,6 @@ impl Shell {
                 .into_any_element(),
         )
     }
-}
-
-/// A peek track's tile fills the track from its corner: an in-flow child would stand below the 100 percent tall Element.
-fn tile() -> gpui::Div {
-    div().absolute().top_0().left_0().size_full()
-}
-
-/// The loading mark over its line, centred in the track it fills: a peek's tile, or the active track once its listing fell back.
-fn loading_tile(
-    mark: Rc<crate::feedback::spinner::Crawl>,
-    typeface: &crate::list::Typeface,
-    ink: gpui::Hsla,
-    line: gpui::SharedString,
-    window: &gpui::Window,
-) -> gpui::Div {
-    tile()
-        .flex()
-        .flex_col()
-        .items_center()
-        .justify_center()
-        .child(crate::feedback::spinner::hero(
-            mark,
-            div()
-                .text_size(typeface.caption)
-                .font_family(typeface.font.family.clone())
-                .text_color(ink)
-                .child(line),
-            typeface.caption,
-            window,
-        ))
 }
 
 fn sync_tile(

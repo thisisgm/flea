@@ -246,20 +246,36 @@ fn columns_menu(cx: &mut TestAppContext, slot: Slot, missing: bool) {
         )
     });
     right_click(cx, x, y);
+    // The loading gate starts its minimum stand only after the drawn frame is acknowledged.
+    cx.update(|window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+        window.simulate_next_frame(cx);
+    });
+    cx.run_until_parked();
     assert_eq!(
         asked(&shell, cx),
-        path,
-        "right click navigates to the row's own column"
+        "/files/A",
+        "right click keeps the active listing"
     );
-    closed(&shell, cx);
-    let kinds = rows.iter().map(|row| row.mode).collect::<Vec<_>>();
-    land(&shell, cx, path, if missing { Vec::new() } else { rows }, 3);
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "false");
+    let id = shell.read_with(cx, |shell, _| shell.menu.captured.as_ref().unwrap().id);
     if missing {
+        shell.update_in(cx, |shell, window, cx| shell.receive(0, crate::backend::Event::Producer(format!(r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":false,"error":"Could not inspect selected item."}}"#)), window, cx));
         closed(&shell, cx);
-        land(&shell, cx, path, vec![entry("Code", DIR)], 4);
+        shell.update_in(cx, |shell, window, cx| {
+            shell.receive(
+                0,
+                crate::backend::Event::Producer(format!(
+                    r#"{{"t":"menuaction","op":"snapshot","id":{id},"ok":true,"kinds":[16384]}}"#
+                )),
+                window,
+                cx,
+            )
+        });
         closed(&shell, cx);
     } else {
-        answer(&shell, cx, &[kinds[cursor]]);
+        answer(&shell, cx, &[rows[cursor].mode]);
         assert_eq!(
             read(&shell, cx, "contextMenuVisible", &[]),
             "true",
@@ -269,10 +285,12 @@ fn columns_menu(cx: &mut TestAppContext, slot: Slot, missing: bool) {
         shell.read_with(cx, |shell, _| {
             let capture = shell.menu.captured.as_ref().unwrap();
             assert_eq!(capture.path, path);
-            assert_eq!(capture.rows, [cursor]);
+            assert_eq!(capture.rows, [0]);
+            assert_eq!(capture.target.as_ref().unwrap().name, rows[cursor].name);
             assert!(!capture.background);
         });
     }
+    assert_eq!(asked(&shell, cx), "/files/A");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
@@ -292,14 +310,14 @@ fn debug(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
 }
 
 #[gpui::test]
-#[ignore = "known red until a right click after landing opens that row's menu (EY-127)"]
-fn ey127_parent_row_right_click_opens_that_rows_menu_after_landing(cx: &mut TestAppContext) {
+fn ey127_parent_row_right_click_opens_its_path_menu_without_navigation(cx: &mut TestAppContext) {
     columns_menu(cx, Slot::Parent, false);
 }
 
 #[gpui::test]
-#[ignore = "known red until a right click after landing opens that row's menu (EY-127)"]
-fn ey127_peeked_child_file_right_click_opens_that_rows_menu_after_landing(cx: &mut TestAppContext) {
+fn ey127_peeked_child_file_right_click_opens_its_path_menu_without_navigation(
+    cx: &mut TestAppContext,
+) {
     columns_menu(cx, Slot::Child, false);
 }
 

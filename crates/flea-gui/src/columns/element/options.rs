@@ -45,3 +45,10 @@ impl TrackElement {
         self
     }
 }
+
+impl TrackElement {
+    pub(crate) fn with_row_height(mut self, row_height: f32) -> Self {
+        self.row_height = row_height;
+        self
+    }
+}

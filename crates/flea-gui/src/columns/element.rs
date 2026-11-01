@@ -17,6 +17,7 @@ use std::{cell::RefCell, rc::Rc};
 #[path = "tags.rs"]
 mod tags;
 
+mod menu_target;
 mod options;
 
 pub struct TrackElement {
@@ -73,11 +74,6 @@ impl TrackElement {
 
     fn view(&self) -> &TrackView {
         &self.tracks[self.at]
-    }
-
-    pub(crate) fn with_row_height(mut self, row_height: f32) -> Self {
-        self.row_height = row_height;
-        self
     }
 
     fn total(&self) -> usize {
@@ -150,7 +146,7 @@ impl Element for TrackElement {
         let advance = f32::from(paint.body_advance(window));
         let view = &self.tracks[self.at];
         // A refused rename grows the active track's edited row and moves the rows below it down.
-        let grow = if view.slot == Slot::Active {
+        let grow = if view.slot == self.focus.rename_slot.unwrap_or(Slot::Active) {
             self.focus.grow
         } else {
             Grow::default()
@@ -294,6 +290,9 @@ impl Element for TrackElement {
                 }
                 if focus.edge(view.slot, *index) {
                     window.paint_quad(fill(row_box(top, EDGE, at), palette.edge()));
+                }
+                if focus.menu_target == Some((view.slot, *index)) {
+                    menu_target::paint(row_box(top, width, at), palette.edge(), window);
                 }
                 if let Some(prepared) = prepared {
                     let chevron = prepared.dir && (cursor || lifted);

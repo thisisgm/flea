@@ -15,6 +15,7 @@ const ARM_OWNER: u64 = 2;
 /// What the family holds between orders: the dd arm and the Delete permanently snapshot each side has out.
 #[derive(Default)]
 pub(crate) struct Held {
+    pub(super) creations: super::fileops_created::Targets,
     arm: trash::Arm,
     seat: Option<Seat>,
     pub(super) deleting: [Option<u64>; 2],
@@ -159,7 +160,8 @@ impl Shell {
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
-        if !flea::ui_logic_pl1::mounts::trashable(&host.path, None) {
+        let base = chosen.map_or(host.path.as_str(), |chosen| chosen.captured.path.as_str());
+        if !flea::ui_logic_pl1::mounts::trashable(base, None) {
             return self.fileops_delete(side, chosen, cx);
         }
         let (listing, rows, menu) = match chosen {
@@ -173,11 +175,21 @@ impl Shell {
                 Err(text) => return self.fileops_say(side, &text, false, cx),
             },
         };
+        let paths = chosen
+            .filter(|chosen| chosen.captured.external(host))
+            .map_or_else(String::new, |chosen| {
+                format!(",\"paths\":{}", flea::json::string_array(&chosen.paths))
+            });
         let line = format!(
-            "{{\"c\":\"trash\",\"rows\":[{}],\"menuId\":{menu},\"listing\":{listing}}}",
+            "{{\"c\":\"trash\",\"rows\":[{}],\"menuId\":{menu},\"listing\":{listing}{paths}}}",
             numbers(&rows)
         );
-        let anchor = self.deletion_capture(side, &rows);
+        let external = chosen.is_some_and(|chosen| chosen.captured.external(host));
+        let anchor = if external {
+            None
+        } else {
+            self.deletion_capture(side, &rows)
+        };
         self.operations.fileops.trash_anchors[side].push_back(anchor);
         self.fileops_send(side, line, cx);
     }
@@ -270,9 +282,17 @@ impl Shell {
                 .map_or_else(|_| Vec::new(), |(_, rows)| rows),
         };
         let id = self.operations.fileops.deleting[side].expect("accepted delete snapshot");
-        self.operations.fileops.delete_anchor[side] = self
-            .deletion_capture(side, &rows)
-            .map(|anchor| (id, anchor));
+        let external = chosen.is_some_and(|chosen| {
+            self.panes[side]
+                .as_ref()
+                .is_some_and(|host| chosen.captured.external(host))
+        });
+        self.operations.fileops.delete_anchor[side] = if external {
+            None
+        } else {
+            self.deletion_capture(side, &rows)
+                .map(|anchor| (id, anchor))
+        };
         self.fileops_send(side, line, cx);
     }
 
@@ -312,6 +332,9 @@ impl Shell {
     }
 
     pub(super) fn fileops_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
+        let Some(line) = self.fileops_creation_request(side, line, cx) else {
+            return;
+        };
         let Some(host) = self.panes[side].as_mut() else {
             return;
         };
@@ -323,6 +346,7 @@ impl Shell {
             }),
         };
         if let Err(error) = result {
+            self.operations.fileops.creations.clear(side);
             self.operations.fileops.deleting[side] = None;
             host.record_error(error, &self.locale);
             cx.notify();
@@ -331,6 +355,7 @@ impl Shell {
 
     /// A stopped backend ends the side's Delete permanently and its pending rename, so the next Delete says why it cannot run.
     pub(crate) fn fileops_reset(&mut self, side: usize) {
+        self.operations.fileops.creations.clear(side);
         self.operations.fileops.deleting[side] = None;
         self.operations.fileops.arrival[side] = None;
     }

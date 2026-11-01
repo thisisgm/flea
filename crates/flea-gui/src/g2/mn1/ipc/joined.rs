@@ -188,6 +188,15 @@ impl Adapter for JoinedAdapter<'_> {
                             .join(",")
                     })
                     .unwrap_or_default();
+                state.push_str(&format!(
+                    ",\"snapshotPath\":\"{}\",\"snapshotRowName\":\"{}\"",
+                    escape(capture.map_or("", |capture| capture.path.as_str())),
+                    escape(
+                        capture
+                            .and_then(|capture| capture.target.as_ref())
+                            .map_or("", |row| row.name.as_str())
+                    )
+                ));
                 let work = menu.work;
                 state.push_str(&format!(
                     ",{},\"rows\":{}",

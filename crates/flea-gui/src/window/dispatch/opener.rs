@@ -120,11 +120,7 @@ pub(super) fn run(
                 let side = chosen.captured.side;
                 shell.keyboard.context = Keys::Listing;
                 shell.focus_side = side;
-                shell.dispatch(
-                    Order::Action(ActionEvent::bare("open", Keys::Listing)),
-                    window,
-                    cx,
-                );
+                shell.open_menu_target(chosen, window, cx);
                 true
             }
         }

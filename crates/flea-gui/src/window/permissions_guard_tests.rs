@@ -20,6 +20,7 @@ fn chosen() -> Chosen {
             ready: true,
             kinds: vec![0o100644],
             background: false,
+            target: None,
         },
         action: "permissions".into(),
         leaf: String::new(),

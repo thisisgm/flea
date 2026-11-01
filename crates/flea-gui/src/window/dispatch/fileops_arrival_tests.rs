@@ -1,6 +1,6 @@
 //! New Folder opens Rename on the new folder once its re-read lands, as PaneWire.qml openRenameOnArrival does.
 use super::{
-    fileops_tests::{reply, wire},
+    fileops_tests::{creation_request, reply, wire},
     test_shell::{asked_on, land, land_on, lists, open, row, set_cursor},
 };
 use crate::{
@@ -33,7 +33,14 @@ fn a_new_folder_rename_returns_to_its_pane_after_focus_moves(cx: &mut TestAppCon
     );
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files"}"#]);
+    assert_eq!(
+        sent(),
+        [creation_request(
+            &shell,
+            cx,
+            r#"{"c":"mkdir","path":"/files"}"#
+        )]
+    );
     cx.simulate_keystrokes("tab down");
     assert_eq!(shell.read_with(cx, |shell, _| shell.focus_side), 1);
     assert_eq!(
@@ -133,9 +140,10 @@ fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &m
         .collect();
     assert_eq!(
         mkdir,
-        [format!(
-            r#"{{"c":"mkdir","path":"{}"}}"#,
-            flea::json::escape(&right)
+        [creation_request(
+            &shell,
+            cx,
+            &format!(r#"{{"c":"mkdir","path":"{}"}}"#, flea::json::escape(&right))
         )]
     );
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(View::List, window, cx)));

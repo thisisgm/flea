@@ -6,6 +6,7 @@ mod document_keys_fixture;
 #[cfg(test)]
 mod document_keys_tests;
 mod fileops;
+mod fileops_created;
 mod fileops_wire;
 mod listing;
 mod menu_parity;

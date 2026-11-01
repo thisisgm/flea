@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, c_void, CString};
 use std::path::Path;
 
 // The attribute Dolphin reads and writes; a comma separated list of names.
-const ATTR_NAME: &str = "user.xdg.tags";
+pub(super) const ATTR_NAME: &str = "user.xdg.tags";
 // ENOTSUP on Linux; EOPNOTSUPP shares this value, so one constant refuses either spelling.
 const ENOTSUP: i32 = 95;
 // ENODATA: the filesystem answers tags, this file just has none.

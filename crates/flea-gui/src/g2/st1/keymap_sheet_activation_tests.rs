@@ -168,6 +168,7 @@ fn keymap_sheet_menu_enter_dispatches_the_current_selection(cx: &mut TestAppCont
         },
     );
     let id = validated(&shell, cx, "duplicate");
+    let request = shell.read_with(cx, |shell, _| shell.menu.sequence);
     let sent = sent();
     assert!(
         sent.iter().any(|line| line.contains(r#""rows":[2]"#)),
@@ -175,7 +176,9 @@ fn keymap_sheet_menu_enter_dispatches_the_current_selection(cx: &mut TestAppCont
     );
     assert!(
         sent.iter().any(|line| line
-            == &format!(r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id}}}"#)),
+            == &format!(
+                r#"{{"c":"duplicate","path":"/files/notes.txt","menuId":{id},"request":{request}}}"#
+            )),
         "menu owner ran: {sent:?}"
     );
 }

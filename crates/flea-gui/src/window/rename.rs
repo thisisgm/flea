@@ -17,6 +17,8 @@ mod place;
 mod replies;
 #[path = "rename_slow.rs"]
 pub(crate) mod slow;
+#[path = "rename_target.rs"]
+mod target;
 
 /// One row's name as an editor: the row the request named, the source it renames and the draft.
 pub(crate) struct Edit {
@@ -37,6 +39,7 @@ pub(crate) struct Edit {
 pub(crate) struct Join {
     pub(crate) ime: crate::g2::op1::dialog_editor::DialogEditor,
     pub edit: Option<Edit>,
+    pub(crate) neighbour: Option<(String, String)>,
     pub bulk: Option<bulk::Open>,
     /// The side whose selection's paths are out for the bulk card.
     pub paths: Option<usize>,
@@ -84,6 +87,7 @@ impl Shell {
         let cut = name.rfind('.').filter(|&at| at > 0).unwrap_or(name.len());
         entry.move_to(0);
         entry.select_to(cut);
+        self.rename.neighbour = None;
         self.rename.edit = Some(Edit {
             side,
             index,
@@ -104,6 +108,10 @@ impl Shell {
 
     /// Enter and an outside click: an unchanged name abandons, a refused one stays open with its reason.
     pub(crate) fn rename_commit(&mut self, cx: &mut Context<Self>) {
+        let neighbour_live = self.rename.neighbour.is_some()
+            && self
+                .rename_neighbour_row(self.rename.edit.as_ref().map_or(0, |edit| edit.side))
+                .is_some();
         let catalog = self.locale.catalog.clone();
         let Some(edit) = self.rename.edit.as_mut() else {
             return;
@@ -118,7 +126,10 @@ impl Shell {
         }
         let side = edit.side;
         let live = self.panes[side].as_ref().is_some_and(|host| {
-            host.pane.held.listing == edit.listing && host.pane.held.row(edit.index).is_some()
+            host.pane.held.listing == edit.listing
+                && (neighbour_live
+                    || (self.rename.neighbour.is_none()
+                        && host.pane.held.row(edit.index).is_some()))
         });
         if !live {
             edit.error = lines::rename_changed(&catalog);
@@ -150,7 +161,15 @@ impl Shell {
 
     /// Escape: the draft goes and the row shows its name again.
     pub(crate) fn rename_abandon(&mut self, cx: &mut Context<Self>) {
-        if self.rename.edit.take().is_some() {
+        let neighbour = self.rename.neighbour.take().is_some();
+        if let Some(edit) = self.rename.edit.take() {
+            if neighbour && edit.menu != 0 {
+                self.menu_send(
+                    edit.side,
+                    format!(r#"{{"c":"menuaction","op":"close","id":{}}}"#, edit.menu),
+                    cx,
+                );
+            }
             cx.notify();
         }
     }
@@ -335,8 +354,13 @@ impl Shell {
     pub(crate) fn renaming_row(&self, side: usize) -> Option<usize> {
         let edit = self.rename.edit.as_ref()?;
         let host = self.panes[side].as_ref()?;
-        (edit.side == side && edit.entry.editing && edit.listing == host.pane.held.listing)
-            .then_some(edit.index)
+        if edit.side != side || !edit.entry.editing || edit.listing != host.pane.held.listing {
+            return None;
+        }
+        if self.rename.neighbour.is_some() {
+            return self.rename_neighbour_row(side).map(|(_, index, _)| index);
+        }
+        Some(edit.index)
     }
 }
 

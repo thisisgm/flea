@@ -218,6 +218,7 @@ pub fn op_write_paths(msg: &crate::backend::opsreq::OpMsg) -> Vec<PathBuf> {
     use crate::backend::opsreq::OpMsg;
     let mut paths = Vec::new();
     match msg {
+        OpMsg::CreationReceipt { inner, .. } => return op_write_paths(inner),
         OpMsg::TransferDone { entry, .. }
         | OpMsg::MergeDone { entry, .. }
         | OpMsg::Trashed { entry, .. }

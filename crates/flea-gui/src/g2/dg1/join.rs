@@ -259,17 +259,21 @@ impl Shell {
             return true;
         };
         let rows = capture.rows.clone();
-        let cursor_path = host
-            .pane
-            .held
-            .row(capture.cursor)
-            .map(|row| core::row_path(&host.path, &row.name))
-            .unwrap_or_default();
+        let cursor_path = capture.cursor_path(host);
+        let base = capture.path.clone();
         let snapshot = paths.to_vec();
         self.clipboard_run(
             side,
             Box::new(
                 move |board, i18n, backend, take, landing, wire, sink, owner| {
+                    let take = Take {
+                        path: &base,
+                        ..take
+                    };
+                    let landing = Landing {
+                        path: &base,
+                        ..landing
+                    };
                     let said = match verb {
                         Some(verb) => {
                             let paths = (!snapshot.is_empty()).then_some(snapshot);

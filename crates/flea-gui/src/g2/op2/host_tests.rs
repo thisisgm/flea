@@ -179,6 +179,7 @@ fn chosen(id: u64, action: &str, leaf: &str, paths: &[&str]) -> Chosen {
             ready: true,
             kinds: Vec::new(),
             background: false,
+            target: None,
         },
         action: action.into(),
         leaf: leaf.into(),
