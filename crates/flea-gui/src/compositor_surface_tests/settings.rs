@@ -84,7 +84,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         shelf: None,
     });
     let listing = wire::listing_line(&Listing { id: 1, plugins });
-    let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
+    let (shell, panel, vcx) = mounted(cx, corner, |shell, window, cx| {
         let theme = super::theme();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let view = cx.new(|cx| {
@@ -96,13 +96,26 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
                 cx,
             )
         });
-        shell.settings.plugins = Some(view.clone());
-        view
+        // Plugin dialogs now mount through SettingsView, above the plugin rows.
+        shell.open_settings(window, cx);
+        let panel = shell.settings.panel.clone().unwrap();
+        panel.update(cx, |panel, cx| {
+            cx.observe(&view, |_, _, cx| cx.notify()).detach();
+            panel.panel.show_section("plugins");
+            panel.plugins = Some(view.clone());
+            cx.notify();
+        });
+        shell.settings.plugins = Some(view);
+        panel
     });
+    let view = panel.read_with(vcx, |panel, _| panel.plugins.clone().unwrap());
     vcx.simulate_resize(size(px(462.), px(656.)));
     view.update(vcx, |view, cx| view.receive(&listing, cx));
     frames("plugins-checkboxes", &shell, vcx, corner, &[18.]);
-    view.update(vcx, |view, cx| view.key(st2::page::Key::Enter, cx));
+    view.update(vcx, |view, cx| {
+        view.key(st2::page::Key::Enter, cx);
+        assert!(matches!(view.page().card(), st2::page::Card::Add(_)));
+    });
     frames("plugins-add-card-field-buttons", &shell, vcx, corner, &[]);
     view.update(vcx, |view, cx| {
         view.key(st2::page::Key::Escape, cx);

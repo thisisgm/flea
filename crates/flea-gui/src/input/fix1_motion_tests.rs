@@ -67,6 +67,7 @@ fn fix1_band_edge_scroll_steps_per_presented_frame_by_measured_time(cx: &mut Tes
                 cursor: 0,
                 active: true,
                 additive: false,
+                shift: false,
                 direction: 1.,
                 last: None,
                 cells: None,

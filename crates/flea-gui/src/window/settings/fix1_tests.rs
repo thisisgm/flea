@@ -104,6 +104,8 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell(backend, cx);
+        // Apply the initial font restyle before appending the wrapping control row.
+        shell.sync_font_settings(cx);
         shell.open_settings(window, cx);
         shell.settings.about_open = true;
         shell.settings.claim.note = Some((
