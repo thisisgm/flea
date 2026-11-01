@@ -124,6 +124,7 @@ fn another_windows_shift_drag_over_a_folder_row_says_move() {
                     .map(|path| flea::ui_logic_dg2::uri_for(path))
                     .collect(),
                 plain: None,
+                shelf: None,
                 action: None,
                 ctrl: false,
                 shift: true,

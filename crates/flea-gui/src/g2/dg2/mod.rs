@@ -301,3 +301,6 @@ mod u_drag_drop_tests;
 
 #[cfg(test)]
 mod u_drag_drop_more_tests;
+
+#[cfg(test)]
+mod shelf_drop_tests;
