@@ -150,7 +150,7 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
             let real = full.iter().any(|hit| class(hit.0) <= class(crate::backend::searchmatch::WORD));
             assert_eq!(answer.typos, !real || Matcher::new(now).budget == 0, "typo rows are skipped exactly when hidden, for {now:?}");
             let kept = if answer.typos { full.len() } else { full.len() - typo_rows };
-            assert_eq!(answer.all.len(), kept, "narrowing keeps every match it could show, for {now:?}");
+            assert_eq!(session.last_matches.len(), kept, "narrowing keeps every match it could show, for {now:?}");
             let mut counts = class_counts(&full);
             hide_typos(&mut full, &mut counts, Matcher::new(now).budget);
             if now.contains('/') {
@@ -161,7 +161,7 @@ fn search_q1_session_scores_only_previous_matches_on_admitted_extensions() {
             let head: Vec<_> = full.iter().take(16).map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
             assert_eq!(answer.rows, head, "identical ranked head for {now:?}");
             assert_eq!(answer.total, full.len(), "identical recall for {now:?}");
-            previous = answer.all.len();
+            previous = session.last_matches.len();
             previous_typos = answer.typos;
             before = now;
         }

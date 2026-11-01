@@ -107,7 +107,7 @@ fn check(session: &mut Session, gen: &mut usize, text: &str, window: usize, seen
     let dp = { let index = session.index.lock().unwrap(); index.name_dp.load(Ordering::Relaxed) + index.path_dp.load(Ordering::Relaxed) };
     let head = window.min(want.order.len());
     assert_eq!(answer.total, want.order.len(), "{text:?} total");
-    assert_eq!(answer.all, want.all, "{text:?} all");
+    assert_eq!(session.last_matches, want.all, "{text:?} all");
     assert_eq!(answer.rows, want.order[..head], "{text:?} head of {window}");
     let mut adopted = head;
     while let Some(rows) = session.take_rest_chunk(adopted + CHUNK, adopted) {
@@ -395,5 +395,5 @@ fn search_typo_rows_answer_only_a_query_no_basename_holds() {
     *session.index.lock().unwrap() = index;
     check(&mut session, &mut gen, "flea", CHUNK, &mut seen);
     let answer = session.query(gen + 1, "flea", CHUNK).unwrap();
-    assert_eq!((answer.total, answer.all.len()), (0, 2), "shadow rows are kept for narrowing and never listed");
+    assert_eq!((answer.total, session.last_matches.len()), (0, 2), "shadow rows are kept for narrowing and never listed");
 }

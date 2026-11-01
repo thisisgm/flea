@@ -190,3 +190,14 @@ fn a_window_past_the_head_fills_its_own_folder_rows() {
     keys.sort();
     assert_eq!(keys, vec![deep], "a window starting at a later row fills that row, not the head's");
 }
+
+// A short answer's arena is sized to its rows, under glibc's 128 KiB mmap threshold, so the answer maps no 1 MiB block.
+#[test]
+fn answer_listing_is_sized_to_its_rows() {
+    let d = fixture("answersizes-arena");
+    let mut rig = Rig::open(&d, 40);
+    rig.ask("bench");
+    assert!(rig.st.listing.len() >= 3, "{}", rig.st.listing.len());
+    assert!(rig.st.listing.names.capacity() < 4096, "names capacity {}", rig.st.listing.names.capacity());
+    assert!(rig.st.listing.spans.capacity() < 64, "spans capacity {}", rig.st.listing.spans.capacity());
+}

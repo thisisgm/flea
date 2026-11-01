@@ -49,11 +49,13 @@ pub struct Listing {
 
 impl Listing {
     pub fn new() -> Listing {
-        let mut names = String::new();
-        names.reserve(NAME_RESERVE_BYTES);
-        let mut spans = Vec::new();
-        spans.reserve(SPAN_RESERVE);
-        Listing { outline_open: Default::default(), outline_watches: Vec::new(), names, spans, gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
+        Listing::with_reserve(NAME_RESERVE_BYTES, SPAN_RESERVE)
+    }
+
+    // A result list sized to its rows: a short answer's arena stays under the mmap threshold, so it costs no mmap.
+    pub fn with_reserve(names: usize, rows: usize) -> Listing {
+        Listing { outline_open: Default::default(), outline_watches: Vec::new(), names: String::with_capacity(names), spans: Vec::with_capacity(rows),
+            gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
     }
 
     // corner: u32 offsets cap the arena at 4 GiB of names, see AGENTS.md.

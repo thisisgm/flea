@@ -11,11 +11,38 @@ use crate::backend::mountinfo;
 use crate::backend::tags;
 use crate::backend::thumbspec::Thumbnailers;
 use crate::json::escape;
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // A row is a short name, two flags, three numbers and an icon name, so this rarely reallocates.
 const ROW_BYTES_ESTIMATE: usize = 128;
+
+thread_local! {
+    // The last window base's mount table, its link-resolved path and its class.
+    static BASE_CLASS: RefCell<Option<(String, PathBuf, &'static str)>> = const { RefCell::new(None) };
+}
+
+// The link walk runs every answer, so a retargeted link or a new mount table classes afresh; an unchanged base skips statfs and sysfs.
+fn base_class(base: &Path, body: &str) -> &'static str {
+    if let Some(class) = extclass::early_class(base, body) {
+        return class;
+    }
+    let owned = extclass::resolved_in(base, body);
+    BASE_CLASS.with(|last| {
+        let mut last = last.borrow_mut();
+        if let Some((seen, at, class)) = &*last {
+            if seen == body && *at == owned {
+                return *class;
+            }
+        }
+        #[cfg(test)]
+        class_tests::CLASSED.with(|classed| classed.set(classed.get() + 1));
+        let class = extclass::resolved_class(&owned, body);
+        *last = Some((body.to_string(), owned, class));
+        class
+    })
+}
 
 pub(crate) fn empty_line(start: usize, ms: f64) -> String {
     format!(r#"{{"t":"rows","start":{start},"rows":[],"kinds":[],"ms":{ms:.3}}}"#)
@@ -75,7 +102,7 @@ fn rows_line_body(
     let mut s = String::with_capacity(metas.len() * ROW_BYTES_ESTIMATE);
     s.push_str(&format!(r#"{{"t":"rows","start":{},"rows":["#, start));
     // Tags are read for exactly the rows a window emits, and never on a network or phone mount, where each read is a round trip.
-    let tag_ok = !matches!(extclass::classify_in(base, body), "network" | "phone");
+    let tag_ok = !matches!(base_class(base, body), "network" | "phone");
     // A type with no POSIX modes reports the mount's 0755 for every file, so its execute bits say nothing; Row.p keeps the reported mode.
     let gvfs_modes = crate::backend::gvfsroot::gvfs_modes_are_real(base);
     let mut device_modes = HashMap::new();
@@ -219,3 +246,7 @@ mod tests;
 #[cfg(test)]
 #[path = "rows_mount_tests.rs"]
 mod mount_tests;
+
+#[cfg(test)]
+#[path = "rows_class_tests.rs"]
+mod class_tests;
