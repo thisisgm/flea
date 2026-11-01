@@ -242305,7 +242305,7 @@
     "crates/flea-gui/src/state_fixture.rs": "487548a9bdfee8c491550b9ce9395049a38653675fb5c66e65b83c16a4e8dd58",
     "crates/flea-gui/src/state_layout.rs": "9e394d039215e7995002a6f3279233ee56f7dbd62036a1faace5de608677f22f",
     "crates/flea-gui/src/strips/filter_host.rs": "fca92236d350b4aefab238ce38533224cb9254edc5caa07a1fc6d3ba0d49d8c4",
-    "crates/flea-gui/src/strips/filter_query.rs": "3fb20373eadf987808e26bf3ae17ac8294434be5703939e4474809919d329549",
+    "crates/flea-gui/src/strips/filter_query.rs": "83169ae91245bc225a358bb74fea55475d4c9db1a4ed26435ca4a5c5e950d9d5",
     "crates/flea-gui/src/strips/mod.rs": "92c8da72243f7408e5a83632fc1d4ccbce69759f93b88a07ffd936c1a11f671c",
     "crates/flea-gui/src/strips/query_input.rs": "aefc885a3b36f235928661a5204b2225245c59d9b1396a50fae38e8b42832923",
     "crates/flea-gui/src/strips/status_host.rs": "edec858826127655a6c724333142223e1fff9b39673bb48813a3d35dcb9af072",
