@@ -206,3 +206,6 @@ fn raildrive_device_menu_eject_runs_on_the_stick(cx: &mut TestAppContext) {
 
 #[path = "rail_drive_rows_tests.rs"]
 mod rows;
+
+#[path = "rail_drive_focus_tests.rs"]
+mod focus;

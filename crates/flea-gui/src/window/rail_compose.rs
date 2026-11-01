@@ -1,6 +1,104 @@
 //! Compose the accepted U08 producer with this window's existing state and focus owners.
 use super::*;
 
+/// Builds the producer from Settings.data and the host over it; the host is the only lazy owner.
+pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<Shell>) -> Join {
+    #[cfg(not(test))]
+    let (runner, seed) = (
+        Rc::new(crate::g2::pl1::process::ThreadRunner),
+        crate::g2::pl1::source::seed::take(),
+    );
+    #[cfg(not(test))]
+    let hostname = seed.as_ref().map(|seed| seed.hostname.clone());
+    #[cfg(test)]
+    let ((runner, hostname), seed) = (crate::g2::pl1::source::fixture::services(cx), None);
+    mount_with_source(catalog, state, side, runner, hostname, seed, cx)
+}
+
+pub(super) fn mount_with_source(
+    catalog: Arc<I18n>,
+    state: &Json,
+    side: usize,
+    runner: Rc<dyn Runner>,
+    hostname: Option<String>,
+    seed: Option<crate::g2::pl1::source::seed::Seed>,
+    cx: &mut Context<Shell>,
+) -> Join {
+    let places = state.get("places").unwrap_or(&Json::Null);
+    let mode = Mode::from_places(places);
+    let width = geometry::width_stop(places.get("sidebarWidth").and_then(Json::as_f64));
+    let producer = cx.new(|cx| {
+        Producer::new(
+            Arc::clone(&catalog),
+            state,
+            crate::window::startup::binary(),
+            cx,
+        )
+    });
+    producer.update(cx, |producer, _| {
+        producer.polling = mode == Mode::Docked;
+        producer.side = side;
+    });
+    let observe = cx.observe(&producer, |_, _, cx| cx.notify());
+    let device_runner = runner.clone();
+    let devices = cx.new(|_| {
+        let mut source = Source::new(runner, hostname, state);
+        // Only a rail drawn at launch takes it: a hidden one lists fresh when it is revealed.
+        if let Some(seed) = seed.filter(|_| mode == Mode::Docked) {
+            source.seed(seed.listing);
+        }
+        source
+    });
+    let device_observe = cx.observe(&devices, |shell, _, cx| {
+        shell.rail_tail(cx);
+        shell.unlock_rail_changed(cx);
+        cx.notify();
+    });
+    devices.update(cx, |source, cx| {
+        source.set_polling(mode == Mode::Docked, cx)
+    });
+    let built = producer.clone();
+    let host = cx.new(|cx| {
+        Host::new(
+            mode,
+            width,
+            Box::new(move |_, _| AnyView::from(built.clone())),
+            cx,
+        )
+    });
+    let host_subscription = cx.subscribe(&host, |shell, _, event, cx| {
+        shell.rail_host(*event, cx);
+    });
+    let owner = cx.entity();
+    let trash_subscription = cx.subscribe(
+        &owner,
+        |shell, _, event: &crate::g2::pl3::join::TrashEvent, cx| match event {
+            crate::g2::pl3::join::TrashEvent::Count(count) => {
+                shell.rail_trash_count(*count as u64, cx);
+            }
+            crate::g2::pl3::join::TrashEvent::FocusRail => {
+                shell.rail_focus(true, cx);
+            }
+        },
+    );
+    Join {
+        host,
+        places: producer,
+        devices,
+        _devices: device_observe,
+        _observe: observe,
+        _host: host_subscription,
+        focus_pending: None,
+        focus_on_open: None,
+        _trash: trash_subscription,
+        network: None,
+        network_runner: crate::window::network::default_runner(),
+        unlock: None,
+        device_runner,
+        add_seen: 0,
+    }
+}
+
 impl Shell {
     pub(crate) fn rail_locale(&mut self, catalog: &Arc<I18n>, cx: &mut Context<Self>) {
         if let Some(join) = &self.rail {

@@ -16,6 +16,16 @@ use gpui::{AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Win
 use std::rc::Rc;
 use std::sync::Arc;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum OpenClaim {
+    Device,
+    NetworkPending,
+    Network {
+        origin: u64,
+        generation: Option<u64>,
+    },
+}
+
 pub struct Join {
     pub host: Entity<Host>,
     pub places: Entity<Producer>,
@@ -24,6 +34,8 @@ pub struct Join {
     _observe: Subscription,
     _host: Subscription,
     pub(crate) focus_pending: Option<bool>,
+    /// A keyboard rail open hands focus to the list only when its own accepted open lands.
+    pub(crate) focus_on_open: Option<OpenClaim>,
     _trash: Subscription,
     /// The NETWORK service, card and rows, built on the first frame that can carry them.
     pub(crate) network: Option<crate::window::network::Network>,
@@ -35,89 +47,9 @@ pub struct Join {
     pub(crate) add_seen: u64,
 }
 
-/// Builds the producer from Settings.data and the host over it; the host is the only lazy owner.
-pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<Shell>) -> Join {
-    #[cfg(not(test))]
-    let (runner, hostname) = (Rc::new(crate::g2::pl1::process::ThreadRunner), None);
-    #[cfg(test)]
-    let (runner, hostname) = crate::g2::pl1::source::fixture::services(cx);
-    mount_with_source(catalog, state, side, runner, hostname, cx)
-}
-
-fn mount_with_source(
-    catalog: Arc<I18n>,
-    state: &Json,
-    side: usize,
-    runner: Rc<dyn Runner>,
-    hostname: Option<String>,
-    cx: &mut Context<Shell>,
-) -> Join {
-    let places = state.get("places").unwrap_or(&Json::Null);
-    let mode = Mode::from_places(places);
-    let width = geometry::width_stop(places.get("sidebarWidth").and_then(Json::as_f64));
-    let producer = cx.new(|cx| {
-        Producer::new(
-            Arc::clone(&catalog),
-            state,
-            crate::window::startup::binary(),
-            cx,
-        )
-    });
-    producer.update(cx, |producer, _| {
-        producer.polling = mode == Mode::Docked;
-        producer.side = side;
-    });
-    let observe = cx.observe(&producer, |_, _, cx| cx.notify());
-    let device_runner = runner.clone();
-    let devices = cx.new(|_| Source::new(runner, hostname, state));
-    let device_observe = cx.observe(&devices, |shell, _, cx| {
-        shell.rail_tail(cx);
-        shell.unlock_rail_changed(cx);
-        cx.notify();
-    });
-    devices.update(cx, |source, cx| {
-        source.set_polling(mode == Mode::Docked, cx)
-    });
-    let built = producer.clone();
-    let host = cx.new(|cx| {
-        Host::new(
-            mode,
-            width,
-            Box::new(move |_, _| AnyView::from(built.clone())),
-            cx,
-        )
-    });
-    let host_subscription = cx.subscribe(&host, |shell, _, event, cx| {
-        shell.rail_host(*event, cx);
-    });
-    let owner = cx.entity();
-    let trash_subscription = cx.subscribe(
-        &owner,
-        |shell, _, event: &crate::g2::pl3::join::TrashEvent, cx| match event {
-            crate::g2::pl3::join::TrashEvent::Count(count) => {
-                shell.rail_trash_count(*count as u64, cx);
-            }
-            crate::g2::pl3::join::TrashEvent::FocusRail => {
-                shell.rail_focus(true, cx);
-            }
-        },
-    );
-    Join {
-        host,
-        places: producer,
-        devices,
-        _devices: device_observe,
-        _observe: observe,
-        _host: host_subscription,
-        focus_pending: None,
-        _trash: trash_subscription,
-        network: None,
-        network_runner: crate::window::network::default_runner(),
-        unlock: None,
-        device_runner,
-        add_seen: 0,
-    }
-}
+pub use compose::mount;
+#[cfg(test)]
+use compose::mount_with_source;
 
 impl Shell {
     /// Polling follows the host's one gate, so a hidden or withdrawn rail asks its producer for nothing.
@@ -202,6 +134,15 @@ impl Shell {
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Network =>
                 {
+                    let keyboard = side == self.focus_side
+                        && self.dual_focus.rail.contains_focused(window, cx)
+                        && self
+                            .rail
+                            .as_ref()
+                            .is_some_and(|join| !join.places.read(cx).model.borrow().pointer_focus);
+                    if let Some(join) = &mut self.rail {
+                        join.focus_on_open = keyboard.then_some(OpenClaim::NetworkPending);
+                    }
                     self.network_activate(side, &entry, window, cx);
                 }
                 Event::Menu(entry) if entry.group == flea::ui_logic_pl4::rail::Group::Network => {
@@ -217,6 +158,9 @@ impl Shell {
                     self.network_save(edit, None, None, cx);
                 }
                 Event::Focus => {
+                    if let Some(join) = &mut self.rail {
+                        join.focus_on_open = None;
+                    }
                     if side == self.focus_side {
                         self.focus_rail(true, cx);
                         window.focus(&self.dual_focus.rail, cx);
@@ -250,6 +194,11 @@ impl Shell {
                 Event::Activate(entry)
                     if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
                 {
+                    if let Some(join) = &mut self.rail {
+                        join.focus_on_open = (side == self.focus_side
+                            && !join.places.read(cx).model.borrow().pointer_focus)
+                            .then_some(OpenClaim::Device);
+                    }
                     let event = Event::Activate(entry);
                     cx.defer_in(window, move |shell, window, cx| {
                         shell.device_request(Request { side, id, event }, window, cx)

@@ -68,6 +68,7 @@ pub struct Producer {
     loaded: bool,
     loading: bool,
     recent_pending: Option<Request>,
+    inspected_visible: Vec<(usize, Json)>,
     history_seen: u64,
     pub(crate) side: usize,
     request_id: u64,
@@ -161,6 +162,7 @@ impl Producer {
             loaded: true,
             loading: false,
             recent_pending: None,
+            inspected_visible: Vec::new(),
             history_seen: 0,
             side: 0,
             request_id: 0,
@@ -397,3 +399,7 @@ impl Producer {
 #[cfg(test)]
 #[path = "producer_stale_hit_tests.rs"]
 mod stale_hit_tests;
+
+#[cfg(test)]
+#[path = "producer_inspection_tests.rs"]
+mod inspection_tests;

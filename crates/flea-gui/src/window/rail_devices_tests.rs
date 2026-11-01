@@ -57,6 +57,15 @@ fn open<'a>(
     state: &str,
     cx: &'a mut TestAppContext,
 ) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
+    open_seeded(state, None, cx)
+}
+
+// The same window over a launch lsblk answer, as main's startup worker hands it over.
+fn open_seeded<'a>(
+    state: &str,
+    seed: Option<crate::g2::pl1::source::seed::Seed>,
+    cx: &'a mut TestAppContext,
+) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
     let service = Rc::new(FakeDevices::default());
     let runner = service.clone();
     let state = flea::jsondoc::parse(state).unwrap();
@@ -71,6 +80,7 @@ fn open<'a>(
             0,
             runner,
             Some("testhost\n".into()),
+            seed,
             cx,
         );
         join.places.update(cx, |producer, cx| {
