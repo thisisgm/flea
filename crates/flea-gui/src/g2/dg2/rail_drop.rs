@@ -45,19 +45,6 @@ fn held_line(catalog: &flea::i18n::I18n, count: usize, ctrl: bool, shift: bool) 
     catalog.tr_args(key, &[&items])
 }
 
-/// The folder row of `side` a held drag rests on in this window, with its caption.
-pub(crate) fn row_cue(
-    window: &Window,
-    cx: &App,
-    side: usize,
-) -> Option<(usize, gpui::SharedString)> {
-    let aim = cx.try_global::<Drags>()?.aims.get(&window_key(window))?;
-    match aim.spot {
-        Spot::Row(row) if aim.side == side => Some((row, aim.label.clone()?)),
-        _ => None,
-    }
-}
-
 impl Shell {
     /// Hands the rail's rows this window's drop receiver; the rows call it with no lease held.
     pub(crate) fn receive_rail_drops(&mut self, cx: &mut Context<Self>) {

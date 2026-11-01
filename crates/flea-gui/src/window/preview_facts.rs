@@ -209,7 +209,7 @@ pub(super) fn compact_facts_line(
         .w_full()
         .h(px(row))
         .line_height(px(line))
-        .text_color(roles.foreground)
+        .text_color(line_ink(roles))
         .child(
             div()
                 .min_w_0()
