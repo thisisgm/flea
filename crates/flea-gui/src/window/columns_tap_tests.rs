@@ -168,3 +168,62 @@ fn ey319_columns_double_click_cancels_a_pending_slow_rename_and_opens() {
     assert_eq!(opened.len(), 1, "the double click opens the file");
     assert_eq!(&opened[0][1..], OPEN);
 }
+
+fn tap_with(cx: &mut VisualTestContext, at: Point<Pixels>, modifiers: Modifiers) {
+    cx.simulate_event(MouseDownEvent {
+        position: at,
+        button: MouseButton::Left,
+        click_count: 1,
+        modifiers,
+        ..Default::default()
+    });
+    cx.simulate_mouse_up(at, MouseButton::Left, modifiers);
+    cx.run_until_parked();
+}
+
+fn selected(handle: WindowHandle<Shell>, cx: &mut VisualTestContext) -> Vec<usize> {
+    handle
+        .update(cx, |shell, _, _| {
+            shell.panes[0].as_ref().unwrap().selected.clone()
+        })
+        .unwrap()
+}
+
+#[test]
+fn ey315_columns_modified_tap_on_the_blank_area_keeps_the_selection() {
+    let mut cx = host::context();
+    let (handle, file, _lines) = columns(&mut cx);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    let row = handle
+        .update(&mut vcx, |shell, _, _| {
+            let columns = shell.panes[0].as_ref().unwrap().columns.as_ref().unwrap();
+            let paint = columns.painters.get(Slot::Active).unwrap().borrow();
+            paint.drawn.as_ref().unwrap().row_height
+        })
+        .unwrap();
+    let folder = point(file.x, file.y - px(row));
+    let blank = point(file.x, file.y + px(row * 3.));
+    tap(&mut vcx, file, 1);
+    wait(&mut vcx, PAST);
+    tap_with(&mut vcx, folder, Modifiers::control());
+    assert_eq!(
+        selected(handle, &mut vcx),
+        [0, 1],
+        "the Ctrl tap marks the folder too"
+    );
+    for modifiers in [Modifiers::shift(), Modifiers::control()] {
+        wait(&mut vcx, PAST);
+        tap_with(&mut vcx, blank, modifiers);
+        assert_eq!(
+            selected(handle, &mut vcx),
+            [0, 1],
+            "a {modifiers:?} tap below the rows keeps the selection"
+        );
+    }
+    wait(&mut vcx, PAST);
+    tap_with(&mut vcx, blank, Modifiers::none());
+    assert!(
+        selected(handle, &mut vcx).is_empty(),
+        "a plain tap below the rows still clears"
+    );
+}
