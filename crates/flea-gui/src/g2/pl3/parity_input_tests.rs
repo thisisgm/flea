@@ -175,7 +175,10 @@ fn pb_trash_scrollbar_shows_on_use_and_lane_moves_only_trash() {
     shell(&mut cx, window, |shell, _, cx| {
         let pane = shell.trash.as_ref().unwrap().pane.read(cx);
         assert!(pane.scrollbar.model.drag.is_none());
-        assert!(pane.view().scroll_y < 100. * super::board::ROW_H - pane.view().height - 5.);
+        assert!(
+            pane.view().scroll_y
+                < 100. * super::board::Board::default().row_h - pane.view().height - 5.
+        );
     });
     draw(&mut cx, window);
     let mut visual = VisualTestContext::from_window(window.into(), &cx);

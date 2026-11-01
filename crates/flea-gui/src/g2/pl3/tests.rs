@@ -138,7 +138,9 @@ fn the_ink_fixture_gives_each_drawn_role_its_own_ink() {
 pub(super) fn open(cx: &mut TestAppContext) -> (WindowHandle<TrashPane>, Rc<RefCell<Vec<Call>>>) {
     let calls = Rc::new(RefCell::new(Vec::new()));
     let recorder = Recorder(calls.clone());
-    let window = cx.open_window(size(px(908.), px(646.)), move |_, cx| {
+    let window = cx.open_window(size(px(908.), px(646.)), move |window, cx| {
+        // A pane-only window takes its rem size as the text size; the boards draw at 14.
+        window.set_rem_size(px(14.));
         let mut pane = TrashPane::new(
             english(),
             Box::new(recorder),

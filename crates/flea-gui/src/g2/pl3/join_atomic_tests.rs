@@ -279,7 +279,7 @@ fn u32_presented_counters_detect_a_stale_source_snapshot_even_with_newer_shape_r
 
 #[test]
 fn u32_fractional_scroll_fetches_the_partly_visible_row_before_publishing_its_viewport() {
-    use super::board::ROW_H;
+    let row_h = super::board::Board::default().row_h;
     let mut cx = real_cx();
     let window = root(&mut cx);
     super::join_tests::opened(&mut cx, window);
@@ -305,10 +305,10 @@ fn u32_fractional_scroll_fetches_the_partly_visible_row_before_publishing_its_vi
     answer(&mut cx, window, "list", &fields(0));
     answer(&mut cx, window, "summary", r#", "bytes":0,"partial":false"#);
     draw(&mut cx, window);
-    let last_complete = count as f32 * ROW_H - height;
-    let next_row = ((last_complete / ROW_H).floor() + 1.) * ROW_H;
+    let last_complete = count as f32 * row_h - height;
+    let next_row = ((last_complete / row_h).floor() + 1.) * row_h;
     let scroll = (last_complete + next_row) / 2.;
-    let start = (scroll / ROW_H).floor() as usize;
+    let start = (scroll / row_h).floor() as usize;
     shell(&mut cx, window, |shell, window, cx| {
         shell.trash.as_ref().unwrap().pane.update(cx, |pane, cx| {
             pane.wheel(scroll, cx);
@@ -335,7 +335,7 @@ fn u32_fractional_scroll_fetches_the_partly_visible_row_before_publishing_its_vi
             paint.painted.contains(&count),
             "the newly exposed partial row paints in the same frame as the new viewport"
         );
-        let last = ((scroll + height) / ROW_H).ceil() as usize;
+        let last = ((scroll + height) / row_h).ceil() as usize;
         assert!((start..last).all(|index| paint.line(index).is_some()));
     });
 }

@@ -47,6 +47,7 @@ impl Shaped {
 }
 
 pub struct Line {
+    pub metrics: fit::Metrics,
     pub separator: bool,
     pub action: String,
     pub id: String,
@@ -86,12 +87,16 @@ impl Line {
         self.chevron || (!self.wraps_hint() && self.word.is_some())
     }
 
-    fn wrapped_minimum(label: f32, chevron: bool) -> f32 {
-        2. * fit::PAD_X
-            + fit::SLOT
-            + 2. * fit::GAP
+    fn wrapped_minimum(label: f32, chevron: bool, metrics: fit::Metrics) -> f32 {
+        2. * metrics.pad_x
+            + metrics.slot
+            + 2. * metrics.gap
             + label
-            + if chevron { fit::CHEVRON + fit::GAP } else { 0. }
+            + if chevron {
+                metrics.chevron + metrics.gap
+            } else {
+                0.
+            }
     }
 
     /// The label run the row paints: the elided one where the card cut it, else the whole label.
@@ -108,25 +113,26 @@ impl Line {
 
     /// The label's clip after the trailing parts the painter actually shapes.
     pub fn label_room(&self, width: f32) -> f32 {
+        let metrics = self.metrics;
         if self.wraps_hint() {
             let label = self.label.as_ref().map_or(0., Shaped::width);
-            let remaining = width + 2. - Self::wrapped_minimum(label, self.chevron);
+            let remaining = width + 2. - Self::wrapped_minimum(label, self.chevron, metrics);
             return (label + (remaining - self.word_width())).max(0.);
         }
-        let mut edge = width - fit::PAD_X;
+        let mut edge = width - metrics.pad_x;
         if self.has_trailing_column() {
-            edge -= fit::CHEVRON + fit::GAP;
+            edge -= metrics.chevron + metrics.gap;
         }
         if let Some(key) = &self.key {
-            edge -= key.width() + fit::GAP;
+            edge -= key.width() + metrics.gap;
         }
         if self.word.is_some() {
-            edge -= self.word_width() + fit::GAP;
+            edge -= self.word_width() + metrics.gap;
         }
         if self.tag_state.is_some() {
-            edge -= flea::ui_logic_pl4::tags::SWATCH_SIZE + fit::GAP;
+            edge -= metrics.of(flea::ui_logic_pl4::tags::SWATCH_SIZE) + metrics.gap;
         }
-        (edge - fit::PAD_X - fit::SLOT).max(0.)
+        (edge - metrics.pad_x - metrics.slot).max(0.)
     }
 }
 
@@ -141,6 +147,7 @@ pub struct Env<'a> {
 }
 
 pub struct Built {
+    pub metrics: fit::Metrics,
     pub lines: Vec<Line>,
     pub widest: f32,
     pub typeface: Typeface,
@@ -154,7 +161,8 @@ impl Built {
             }
             if let Some(word) = &line.word {
                 let label = line.label.as_ref().map_or(0., Shaped::width);
-                let room = (width - Line::wrapped_minimum(label, line.chevron)).max(0.);
+                let room =
+                    (width - Line::wrapped_minimum(label, line.chevron, self.metrics)).max(0.);
                 line.wrapped = Some(Caption::new(word, room, env, window));
             }
         }
@@ -222,6 +230,7 @@ pub(super) fn lead(entry: &Entry) -> Lead {
 pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximum: f32) -> Built {
     BUILDS.with(|count| count.set(count.get() + 1));
     let body = env.typeface.body;
+    let metrics = fit::Metrics::at(f32::from(body));
     let caption = env.typeface.caption;
     let mut widest = 0f32;
     let lines = entries
@@ -229,6 +238,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
         .map(|entry| {
             if entry.separator {
                 return Line {
+                    metrics,
                     separator: true,
                     action: String::new(),
                     id: String::new(),
@@ -270,11 +280,11 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 chevron: entry.has_submenu(),
             };
             let wanted = if wrapping {
-                Line::wrapped_minimum(parts.label, parts.chevron)
+                Line::wrapped_minimum(parts.label, parts.chevron, metrics)
             } else {
-                fit::row_width(parts)
+                metrics.row_width(parts)
                     + if entry.tag_state.is_some() {
-                        flea::ui_logic_pl4::tags::SWATCH_SIZE + fit::GAP
+                        metrics.of(flea::ui_logic_pl4::tags::SWATCH_SIZE) + metrics.gap
                     } else {
                         0.
                     }
@@ -288,6 +298,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 Ink::Plain
             };
             Line {
+                metrics,
                 separator: false,
                 action: entry.action.to_string(),
                 id: entry.id.to_string(),
@@ -307,10 +318,11 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
         })
         .collect();
     let mut built = Built {
+        metrics,
         lines,
         widest,
         typeface: env.typeface.clone(),
     };
-    built.wrap(fit::flyout_width(minimum, widest, maximum), env, window);
+    built.wrap(metrics.flyout_width(minimum, widest, maximum), env, window);
     built
 }

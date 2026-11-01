@@ -12,7 +12,7 @@ use flea::{
     i18n::I18n,
     ipc::wire::Reply,
     json::escape,
-    ui_logic_mn1::{fit, Entry, Text},
+    ui_logic_mn1::{Entry, Text},
 };
 
 pub(crate) struct JoinedAdapter<'a> {
@@ -142,12 +142,13 @@ fn parts(card: Option<&Card>) -> String {
         let label = line.label.as_ref().map_or(0., |label| label.width());
         let hint = [&line.key, &line.word].into_iter().flatten().map(|part| part.width()).collect::<Vec<_>>();
         let chevron = line.has_trailing_column();
-        let padding = fit::PAD_X + line.frame_inset();
+        let metrics = card.built.metrics;
+        let padding = metrics.pad_x + line.frame_inset();
         let trailing = hint.len() + usize::from(chevron);
-        let gap = |count: usize| count as f32 * fit::GAP;
+        let gap = |count: usize| count as f32 * metrics.gap;
         let (hint_width, hint_gaps) = (hint.iter().sum::<f32>(), hint.len().saturating_sub(1));
         let room = line.label_room(card.frame.w - 2.);
-        format!("{{\"separator\":false,\"markLeft\":{},\"slot\":{},\"labelLeft\":{},\"label\":{label},\"labelRight\":{},\"labelTruncated\":{},\"hint\":{},\"hintRight\":0,\"hintWrap\":{},\"status\":0,\"chevron\":{},\"chevronRight\":{}}}", padding, fit::SLOT, fit::GAP, gap(usize::from(trailing > 0)), label > room, hint_width + gap(hint_gaps), line.hint_wrap, if chevron { fit::CHEVRON + gap(usize::from(!hint.is_empty())) } else { 0. }, padding)
+        format!("{{\"separator\":false,\"markLeft\":{},\"slot\":{},\"labelLeft\":{},\"label\":{label},\"labelRight\":{},\"labelTruncated\":{},\"hint\":{},\"hintRight\":0,\"hintWrap\":{},\"status\":0,\"chevron\":{},\"chevronRight\":{}}}", padding, metrics.slot, metrics.gap, gap(usize::from(trailing > 0)), label > room, hint_width + gap(hint_gaps), line.hint_wrap, if chevron { metrics.chevron + gap(usize::from(!hint.is_empty())) } else { 0. }, padding)
     }).collect::<Vec<String>>()).unwrap_or_default();
     format!("[{}]", rows.join(","))
 }
@@ -224,8 +225,9 @@ impl Adapter for JoinedAdapter<'_> {
                 let (rx, ry) = self.joined.resting.unwrap_or((-1., -1.));
                 let hovered = card.row_at(x, y) == Some(index);
                 let top = card.row_screen_top(index);
-                if top + fit::height(&card.entries[index]) as f32 <= card.frame.y + fit::PAD as f32
-                    || top >= card.frame.y + (fit::PAD + card.view_h) as f32
+                if top + card.built.metrics.height(&card.entries[index]) as f32
+                    <= card.frame.y + card.built.metrics.pad as f32
+                    || top >= card.frame.y + (card.built.metrics.pad + card.view_h) as f32
                 {
                     return Some(Reply::value(""));
                 }

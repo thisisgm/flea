@@ -1,5 +1,5 @@
 //! The Trash pane entity: the core session, its seams, its settle timers and the paint state its Elements read.
-use super::board::{HEADER_H, MENU_DROP, PAD_X, ROW_H, STRIP_H};
+use super::board::Board;
 use super::ink::Ink;
 use super::list::ListPaint;
 use super::monitor::{Heard, Monitor, Started};
@@ -38,11 +38,14 @@ pub struct TrashPane {
     pub catalog: Arc<I18n>,
     pub outside: Box<dyn Outside>,
     pub paint: Rc<RefCell<ListPaint>>,
+    /// The next face publishes with its matching complete row window.
+    pending_face: Option<crate::list::Typeface>,
     pub focus: FocusHandle,
     pub button: Button,
     pub(super) scrollbar: super::scrollbar::Bar,
     pub menu_open: bool,
     pub width: f32,
+    pub(super) height: f32,
     pub presentation_loading: bool,
     pub loading_at: Option<Instant>,
     rows_request: u64,
@@ -79,21 +82,20 @@ impl TrashPane {
         cx: &mut Context<Self>,
     ) -> Self {
         let typeface = crate::list::Typeface::omarchy_default();
+        let board = Board::at(&typeface);
         Self {
-            host: Host::new(View::new(ROW_H)),
+            host: Host::new(View::new(board.row_h)),
             catalog,
             outside,
-            paint: Rc::new(RefCell::new(ListPaint::new(
-                typeface.font,
-                typeface.body,
-                ink,
-            ))),
+            paint: Rc::new(RefCell::new(ListPaint::new(typeface.font, board, ink))),
+            pending_face: None,
             focus: cx.focus_handle(),
             button: Button::default(),
             controls: Default::default(),
             scrollbar: Default::default(),
             menu_open: false,
             width: 0.,
+            height: 0.,
             presentation_loading: false,
             loading_at: None,
             rows_request: 0,
@@ -111,6 +113,39 @@ impl TrashPane {
             pointer: None,
             quiet: false,
         }
+    }
+
+    /// The measures at the text size the pane last drew at.
+    pub fn board(&self) -> Board {
+        self.paint.borrow().board
+    }
+
+    fn requested_board(&self) -> Board {
+        self.pending_face
+            .as_ref()
+            .map_or_else(|| self.board(), Board::at)
+    }
+
+    /// The window's face: the rows, the strip and the header follow its text size as the list does.
+    pub fn set_face(&mut self, face: &crate::list::Typeface, cx: &mut Context<Self>) {
+        let board = Board::at(face);
+        if self.pending_face.as_ref() == Some(face) {
+            return;
+        }
+        if self.pending_face.is_none() {
+            let paint = self.paint.borrow();
+            if paint.font == face.font && paint.board == board {
+                return;
+            }
+        }
+        let old = self.host.view.row_height;
+        self.pending_face = Some(face.clone());
+        // Preserve the top row and the full pane height while requesting the newly visible rows.
+        let y = self.host.view.scroll_y * board.row_h / old;
+        let h = (self.height - board.top()).max(0.);
+        self.host.view.row_height = board.row_h;
+        self.host.view.set_viewport(y, h);
+        self.pump(cx);
     }
 
     fn now(&self) -> i64 {
@@ -136,7 +171,8 @@ impl TrashPane {
     }
     pub fn resize(&mut self, width: f32, height: f32, cx: &mut Context<Self>) {
         self.width = width;
-        let rows = (height - STRIP_H - HEADER_H).max(0.);
+        self.height = height;
+        let rows = (height - self.requested_board().top()).max(0.);
         if rows != self.host.view.height {
             let y = self.host.view.scroll_y;
             self.host.view.set_viewport(y, rows);
@@ -226,14 +262,15 @@ impl TrashPane {
         } else {
             host::trash_menu(view.total, view.busy())
         };
+        let board = self.board();
         let at = match at {
             Anchor::Row(index) => At {
-                x: PAD_X,
-                y: STRIP_H + HEADER_H + (index + 1) as f32 * ROW_H - view.scroll_y + MENU_DROP,
+                x: board.pad_x,
+                y: board.top() + (index + 1) as f32 * board.row_h - view.scroll_y + board.menu_drop,
             },
             Anchor::Top => At {
                 x: self.width / 2.,
-                y: STRIP_H,
+                y: board.strip_h,
             },
             Anchor::Point(x, y) => At { x, y },
         };

@@ -19,12 +19,12 @@ fn draw(cx: &mut TestAppContext, window: WindowHandle<TrashPane>) {
 #[test]
 fn trash_columns_follow_the_board() {
     assert_eq!(
-        columns(908.),
+        columns(&super::board::Board::default(), 908.),
         (42., 489., 540., 759.),
         "14 pad, 19 slot, 9 gaps, Original Location 210, Deleted 135, 14 end"
     );
     assert_eq!(
-        columns(100.).1,
+        columns(&super::board::Board::default(), 100.).1,
         0.,
         "a narrow pane gives the name nothing rather than overlap"
     );

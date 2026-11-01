@@ -1,8 +1,5 @@
 //! The Trash strip, the column header and the empty-state line, laid out by the boards' numbers.
-use super::board::{
-    Glyph, BODY, BUTTON_H, BUTTON_PAD, CAPTION, CBTN_GLYPH, CBTN_W, DELETED_W, DISABLED, GAP,
-    HEADER_H, HOVER, LOCATION_W, PAD_X, PRESS, ROW_H, SLOT, STRIP_H,
-};
+use super::board::{Glyph, DISABLED, HOVER, PRESS};
 use super::controls::track;
 use super::glyph::GlyphBox;
 use super::list::TrashList;
@@ -53,9 +50,10 @@ impl TrashPane {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let ink = self.paint.borrow().ink;
+        let board = self.board();
         let mark = GlyphBox {
             glyph,
-            side: CBTN_GLYPH,
+            side: board.cbtn_glyph,
             ink: if enabled {
                 ink.foreground
             } else {
@@ -65,8 +63,8 @@ impl TrashPane {
         let button = div()
             .id(id)
             .debug_selector(|| id.into())
-            .w(px(CBTN_W))
-            .h(px(STRIP_H))
+            .w(px(board.cbtn_w))
+            .h(px(board.strip_h))
             .flex_none()
             .flex()
             .items_center()
@@ -87,18 +85,19 @@ impl TrashPane {
         let ink = self.paint.borrow().ink;
         let catalog = &self.catalog;
         let look = self.button_look();
+        let board = self.board();
         let paint = self.paint.borrow();
         let count: SharedString = words::strip_count(catalog, paint.total, paint.bytes).into();
         let label: SharedString = catalog.tr("trash.empty_action").into();
         let mut button = div()
             .id("trash-empty")
             .debug_selector(|| "trash-empty".into())
-            .h(px(BUTTON_H))
-            .px(px(BUTTON_PAD))
+            .h(px(board.button_h))
+            .px(px(board.button_pad))
             .flex()
             .items_center()
             .flex_none()
-            .text_size(px(CAPTION))
+            .text_size(board.caption)
             .text_color(look.label)
             .border_1()
             .border_color(look.frame)
@@ -135,16 +134,16 @@ impl TrashPane {
                 }));
         }
         div()
-            .h(px(STRIP_H))
+            .h(px(board.strip_h))
             .flex_none()
             .flex()
             .items_center()
-            .px(px(PAD_X))
-            .gap(px(GAP))
+            .px(px(board.pad_x))
+            .gap(px(board.gap))
             .bg(ink.surface)
             .border_b_1()
             .border_color(ink.hair())
-            .text_size(px(CAPTION))
+            .text_size(board.caption)
             .text_color(ink.foreground)
             .child(self.chrome_button(Glyph::Back, true, "trash-back", cx))
             .child(self.chrome_button(Glyph::Up, false, "trash-up", cx))
@@ -160,23 +159,24 @@ impl TrashPane {
 
     fn header(&self) -> AnyElement {
         let ink = self.paint.borrow().ink;
+        let board = self.board();
         let tr = |key: &str| SharedString::from(self.catalog.tr(key));
         let deleted = SharedString::from(crate::navigation::sort::title(
             &self.catalog.tr("trash.header.deleted"),
             true,
         ));
         div()
-            .h(px(HEADER_H))
+            .h(px(board.header_h))
             .flex_none()
             .flex()
             .items_center()
-            .gap(px(GAP))
-            .px(px(PAD_X))
-            .text_size(px(CAPTION))
+            .gap(px(board.gap))
+            .px(px(board.pad_x))
+            .text_size(board.caption)
             .text_color(ink.foreground)
             .border_b_1()
             .border_color(ink.hair())
-            .child(div().w(px(SLOT)).flex_none())
+            .child(div().w(px(board.slot)).flex_none())
             .child(
                 div()
                     .flex_1()
@@ -186,7 +186,7 @@ impl TrashPane {
             )
             .child(
                 div()
-                    .w(px(LOCATION_W))
+                    .w(px(board.location_w))
                     .flex_none()
                     .flex()
                     .justify_end()
@@ -194,7 +194,7 @@ impl TrashPane {
             )
             .child(
                 div()
-                    .w(px(DELETED_W))
+                    .w(px(board.deleted_w))
                     .flex_none()
                     .flex()
                     .justify_end()
@@ -248,7 +248,7 @@ impl TrashPane {
         if y < px(0.) || y >= bounds.size.height {
             return None;
         }
-        let at = ((f32::from(y) + self.host.view.scroll_y) / ROW_H).floor();
+        let at = ((f32::from(y) + self.host.view.scroll_y) / self.board().row_h).floor();
         (at >= 0. && (at as usize) < self.host.view.total).then_some(at as usize)
     }
 }
@@ -258,7 +258,7 @@ impl Render for TrashPane {
         self.evict(window, cx);
         // Every Trash label draws in the system font the list follows, never a family fixed at mount.
         let face = crate::list::Typeface::for_window(window, cx);
-        self.paint.borrow_mut().set_font(face.font);
+        self.set_face(&face, cx);
         let ink = self.paint.borrow().ink;
         if self.presentation_loading {
             self.loading_at
@@ -270,7 +270,7 @@ impl Render for TrashPane {
                 .justify_center()
                 .bg(ink.background)
                 .font_family(self.paint.borrow().font.family.clone())
-                .text_size(px(BODY))
+                .text_size(self.board().body)
                 .text_color(ink.muted)
                 .track_focus(&self.focus)
                 .child(SharedString::from(self.catalog.tr("trash.reading")))
@@ -286,7 +286,7 @@ impl Render for TrashPane {
                 .flex()
                 .items_center()
                 .justify_center()
-                .text_size(px(BODY))
+                .text_size(self.board().body)
                 .text_color(if error { ink.error } else { ink.muted })
                 .child(SharedString::from(text))
         });
@@ -336,7 +336,7 @@ impl Render for TrashPane {
                     let (x, y) = bounds.map_or((0., 0.), |bounds| {
                         (
                             f32::from(bounds.origin.x),
-                            f32::from(bounds.origin.y) - STRIP_H - HEADER_H,
+                            f32::from(bounds.origin.y) - pane.board().top(),
                         )
                     });
                     pane.right_click(
@@ -348,7 +348,8 @@ impl Render for TrashPane {
                 }),
             )
             .on_scroll_wheel(cx.listener(|pane, event: &ScrollWheelEvent, _, cx| {
-                pane.wheel(-f32::from(event.delta.pixel_delta(px(ROW_H)).y), cx);
+                let row = px(pane.board().row_h);
+                pane.wheel(-f32::from(event.delta.pixel_delta(row).y), cx);
                 cx.stop_propagation();
             }))
             .child(self.scrollbar(window, cx));

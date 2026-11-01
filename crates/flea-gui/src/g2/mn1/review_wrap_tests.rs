@@ -50,7 +50,7 @@ fn rev_u06_r3_real_font_wrapped_geometry_matrix() {
     let handle = cx.add_window(move |_, _| Host(shared));
     let catalog = catalog();
     let mut overflows = Vec::new();
-    for body in [14., 18., 24.] {
+    for body in [14., 18., 20., 24.] {
         for family in ["JetBrains Mono", "DejaVu Sans"] {
             let typeface = Typeface {
                 font: font(family),
@@ -96,7 +96,7 @@ fn rev_u06_r3_real_font_wrapped_geometry_matrix() {
                     let doc = jsondoc::parse(state.trim()).unwrap();
                     let row = &doc.get("rows").and_then(Json::as_array).unwrap()[0];
                     let need = ["markLeft","slot","labelLeft","label","labelRight","hintRight","status","chevron","chevronRight"].iter().map(|key| number(row,key)).sum::<f64>().ceil();
-                    let expected = f64::from(fit::MENU_W).max(need).min(f64::from(work_width)).round();
+                    let expected = f64::from(super::wrap_layout_tests::frozen_tokens(body).minimum).max(need).min(f64::from(work_width)).round();
                     assert!((f64::from(menu.borrow().card.as_ref().unwrap().frame.w) - expected).abs() <= 1.);
                 }).unwrap();
                 cx.update_window(handle.into(), |_, window, cx| {

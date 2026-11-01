@@ -85,7 +85,7 @@ impl Shell {
         let origin = list_bounds.map_or((rect.x, rect.y), |bounds| {
             (
                 f32::from(bounds.origin.x),
-                f32::from(bounds.origin.y) - super::board::STRIP_H - super::board::HEADER_H,
+                f32::from(bounds.origin.y) - pane.board().top(),
             )
         });
         let anchor = (origin.0 + at.x, origin.1 + at.y);

@@ -43,7 +43,8 @@ fn rect(x: f32, y: f32, width: f32, height: f32) -> Bounds<Pixels> {
 fn u32_list_prepaint_rejects_empty_off_window_and_parent_clipped_bounds() {
     let mut cx = real_cx();
     let typeface = crate::list::Typeface::omarchy_default();
-    let mut initial = ListPaint::new(typeface.font, typeface.body, super::tests::ink());
+    let board = super::board::Board::at(&typeface);
+    let mut initial = ListPaint::new(typeface.font, board, super::tests::ink());
     initial.total = 1;
     initial.committed = 1;
     initial.lines.push(Line {

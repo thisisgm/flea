@@ -235,7 +235,9 @@ impl Shell {
         if opening {
             self.begin_trash_presentation(window, cx);
         }
+        let face = self.active_typeface();
         pane.update(cx, |pane, cx| {
+            pane.set_face(&face, cx);
             pane.resize(rect.width, height, cx);
             if matches!(action, "openTrash" | "emptyTrash" | "restoreAll") {
                 pane.open(if action == "openTrash" { "" } else { action }, cx);
@@ -302,13 +304,18 @@ impl Shell {
         } else {
             geometry.status.y
         };
+        let face = self.active_typeface();
+        let board = super::board::Board::at(&face);
         let pane = host.pane.read(cx);
         if pane.width != rect.width
-            || pane.view().height
-                != (height - super::board::STRIP_H - super::board::HEADER_H).max(0.)
+            || pane.height != height
+            || pane.board() != board
+            || pane.view().height != (height - board.top()).max(0.)
         {
-            host.pane
-                .update(cx, |pane, cx| pane.resize(rect.width, height, cx));
+            host.pane.update(cx, |pane, cx| {
+                pane.set_face(&face, cx);
+                pane.resize(rect.width, height, cx);
+            });
         }
     }
 

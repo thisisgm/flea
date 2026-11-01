@@ -27,7 +27,9 @@ impl Render for Menu {
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
-    let (shell, view, vcx) = mounted(cx, corner, |shell, _, cx| {
+    let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
+        // The shell fixture and boards use text size 14, so its standalone toolbar must use the same rem.
+        window.set_rem_size(px(14.));
         let path = cx.new(|cx| {
             let mut path = path::view::PathView::new(
                 Arc::default(),
@@ -56,7 +58,10 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         view
     });
     vcx.update(|window, cx| view.update(cx, |view, cx| window.focus(&view.focus[0], cx)));
-    frames("chrome-focus-ring", &shell, vcx, corner, &[]);
+    // The focus ring is a control frame that follows the text size, so it keeps the half corner at every size.
+    let ring =
+        vcx.update(|window, cx| path::chrome::Sizes::at(&Typeface::for_window(window, cx)).ring);
+    frames("chrome-focus-ring", &shell, vcx, corner, &[ring]);
     vcx.update(|window, cx| {
         let path = view.read(cx).path.clone();
         path.update(cx, |view, cx| {
@@ -136,6 +141,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     });
     frames("context-menu-and-flyout", &shell, vcx, corner, &[]);
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
+        window.set_rem_size(px(14.));
         shell.mount_trash(window, cx);
         let view = shell.trash.as_ref().unwrap().pane.clone();
         view.update(cx, |view, cx| {

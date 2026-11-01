@@ -1,23 +1,19 @@
 //! The Settings card's measures from the settings boards, and the pane's scroll rules from ui/SettingsPane.qml.
 use flea::ui_logic_st1::rows::{focusable, Kind, Row};
 
-// A 630 by 684 card in a 700px window: 8px clear of each edge, a 27px head over its hairline, a 168px rail.
+// At text size 14 the 630 by 684 card has a 27px head, 168px rail, 29px rail rows and 37px pane rows.
 pub const CARD_W: f32 = 630.;
 pub const BOARD_CARD_H: f32 = 684.;
 pub const CLAMP: f32 = 8.;
 pub const BORDER: f32 = 1.;
-pub const HEAD_H: f32 = 27.;
 pub const RAIL_W: f32 = 168.;
 pub const RAIL_PAD_TOP: f32 = 10.;
-pub const RAIL_ROW_H: f32 = 29.;
 pub const RAIL_MARK: f32 = 15.;
 pub const PAD_X: f32 = 14.;
 pub const GAP: f32 = 9.;
 pub const MARK_SLOT: f32 = 19.;
 pub const ROW_MARK: f32 = 18.;
 pub const BRAND_MARK: f32 = 16.;
-pub const LABEL_X: f32 = PAD_X + MARK_SLOT + GAP;
-pub const ROW_H: f32 = 37.;
 pub const FAVOURITE_H: f32 = 29.;
 pub const HERO_H: f32 = 121.;
 pub const RULER_H: f32 = 39.;
@@ -29,8 +25,6 @@ pub const FIELD_H: f32 = 30.;
 pub const PANE_FOOT: f32 = 8.;
 // Headings: 16px over the first, a hairline 7px under the row above and 19px over every later one, 7.8 under.
 pub const GROUP_LINE: f32 = 14.4;
-pub const GROUP_FIRST_H: f32 = 16. + GROUP_LINE + 7.8;
-pub const GROUP_H: f32 = 7. + 1. + 19. + GROUP_LINE + 7.8;
 // A hint: 4 over, 2 under, 18px lines; the footer: 10 over its hairline, 10 and 12 around 16px lines.
 pub const HINT_LINE: f32 = 18.;
 pub const FOOTER_LINE: f32 = 16.;
@@ -39,45 +33,102 @@ pub const FADE: f32 = 26.;
 const CUT_SHARE: f32 = 0.5;
 // The row padding a control's ink starts under.
 const ROW_PAD_Y: f32 = 8.;
+const BOARD_BODY: f32 = 14.;
 
-/// A row's height with its wrapped line count; only hints wrap.
-pub fn row_height(row: &Row, first: bool, lines: usize) -> f32 {
+// Theme.railRowRatio: a rail row is 0.78 of a padded row.
+const RAIL_ROW_RATIO: f32 = 0.78;
+
+/// The boards draw Settings at text size 14; v0.3.12 grows the card, its rail and every row with the text.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Scale {
+    ratio: f32,
+    /// Theme.rowHeight, Theme.railRowHeight and Theme.chromeHeight, rounded as the list rounds them.
+    pub row: f32,
+    pub rail_row: f32,
+    pub head: f32,
+}
+
+impl Scale {
+    pub fn at(face: &crate::list::Typeface) -> Self {
+        let metrics = crate::list::Metrics::for_typeface(face);
+        Self {
+            ratio: f32::from(face.body) / BOARD_BODY,
+            row: metrics.nominal_row,
+            rail_row: (metrics.nominal_row * RAIL_ROW_RATIO).round(),
+            head: metrics.header,
+        }
+    }
+
+    /// A board measure at this size, on a whole pixel; hairlines stay one pixel.
+    pub fn of(self, board: f32) -> f32 {
+        (board * self.ratio).round()
+    }
+
+    /// A board line box at this size, unrounded as the board's line heights are.
+    pub fn line(self, board: f32) -> f32 {
+        board * self.ratio
+    }
+
+    /// The label column: the row's padding, the mark slot and the gap.
+    pub fn label_x(self) -> f32 {
+        self.of(PAD_X) + self.of(MARK_SLOT) + self.of(GAP)
+    }
+}
+
+impl Default for Scale {
+    fn default() -> Self {
+        Self::at(&crate::list::Typeface::omarchy_default())
+    }
+}
+
+/// A row's height with its wrapped line count at a text size; only hints wrap.
+pub fn row_height(row: &Row, first: bool, lines: usize, s: Scale) -> f32 {
     let lines = if row.elide_right { 1 } else { lines.max(1) } as f32;
+    let heading = s.line(GROUP_LINE) + s.line(7.8);
     match row.kind {
-        Kind::Group if first => GROUP_FIRST_H,
-        Kind::Group => GROUP_H,
-        Kind::Hint if row.footer => 10. + 1. + 10. + FOOTER_LINE * lines + 12.,
-        Kind::Hint => 4. + HINT_LINE * lines + 2.,
-        Kind::Ruler => RULER_H,
+        Kind::Group if first => s.of(16.) + heading,
+        Kind::Group => s.of(7.) + BORDER + s.of(19.) + heading,
+        Kind::Hint if row.footer => {
+            s.of(10.) + BORDER + s.of(10.) + s.of(FOOTER_LINE) * lines + s.of(12.)
+        }
+        Kind::Hint => s.of(4.) + s.of(HINT_LINE) * lines + s.of(2.),
+        Kind::Ruler => s.of(RULER_H),
         Kind::KeyPreview => {
             let pairs = row.items.len().div_ceil(2) as f32;
-            14. + CHIP_H * pairs + GAP * (pairs - 1.).max(0.)
+            2. * s.of(7.) + s.of(CHIP_H) * pairs + s.of(GAP) * (pairs - 1.).max(0.)
         }
-        Kind::Hero => HERO_H,
-        Kind::Favourite => FAVOURITE_H,
-        _ => ROW_H,
+        Kind::Hero => s.of(HERO_H),
+        Kind::Favourite => s.of(FAVOURITE_H),
+        _ => s.row,
     }
 }
 
 /// Every row's height, from measured hint lines where the window shaped them and one line elsewhere.
-pub fn heights(rows: &[Row], lines: &[usize]) -> Vec<f32> {
+pub fn heights(rows: &[Row], lines: &[usize], s: Scale) -> Vec<f32> {
     rows.iter()
         .enumerate()
-        .map(|(index, row)| row_height(row, index == 0, lines.get(index).copied().unwrap_or(1)))
+        .map(|(index, row)| row_height(row, index == 0, lines.get(index).copied().unwrap_or(1), s))
         .collect()
 }
 
 /// Where a row's first ink starts: a heading's label under its rule and padding, any other row under its padding.
-fn ink_top(row: &Row, first: bool) -> f32 {
+fn ink_top(row: &Row, first: bool, s: Scale) -> f32 {
     match row.kind {
-        Kind::Group if first => 16.,
-        Kind::Group => 27.,
-        _ => ROW_PAD_Y,
+        Kind::Group if first => s.of(16.),
+        Kind::Group => s.of(7.) + BORDER + s.of(19.),
+        _ => s.of(ROW_PAD_Y),
     }
 }
 
 /// The scroll after a cursor move: up to its row, down until it and a cut of the next clear the fade; the last control goes to the top.
-pub fn reveal(rows: &[Row], heights: &[f32], cursor: usize, scroll: f32, viewport: f32) -> f32 {
+pub fn reveal(
+    rows: &[Row],
+    heights: &[f32],
+    cursor: usize,
+    scroll: f32,
+    viewport: f32,
+    s: Scale,
+) -> f32 {
     let total: f32 = heights.iter().sum();
     let most = (total - viewport).max(0.);
     let top: f32 = heights.iter().take(cursor).sum();
@@ -90,10 +141,11 @@ pub fn reveal(rows: &[Row], heights: &[f32], cursor: usize, scroll: f32, viewpor
     if top < scroll {
         return top;
     }
-    let mut bottom = top + height + FADE;
+    let fade = s.of(FADE);
+    let mut bottom = top + height + fade;
     if let Some(next) = rows.get(cursor + 1) {
-        bottom =
-            bottom.max(top + height + ink_top(next, cursor + 1 == 0) + (FADE * CUT_SHARE).round());
+        bottom = bottom
+            .max(top + height + ink_top(next, cursor + 1 == 0, s) + (fade * CUT_SHARE).round());
     }
     if bottom > scroll + viewport {
         return (bottom - viewport).clamp(0., most);
@@ -106,22 +158,22 @@ pub fn fade_shown(heights: &[f32], scroll: f32, viewport: f32) -> bool {
     heights.iter().sum::<f32>() - scroll - viewport > BORDER
 }
 
-/// The card's size in a window: the board's width and as tall as View needs, both 8px clear of every edge.
-pub fn card_size(window_w: f32, window_h: f32, view_h: f32) -> (f32, f32) {
-    let rail = RAIL_PAD_TOP + 8. * RAIL_ROW_H + RAIL_PAD_TOP;
-    let want = HEAD_H + 2. * BORDER + rail.max(view_h + PANE_FOOT);
+/// The card's size in a window: the board's width and as tall as View needs at the text size, both 8px clear of every edge.
+pub fn card_size(window_w: f32, window_h: f32, view_h: f32, s: Scale) -> (f32, f32) {
+    let rail = s.of(RAIL_PAD_TOP) + 8. * s.rail_row + s.of(RAIL_PAD_TOP);
+    let want = s.head + 2. * BORDER + rail.max(view_h + s.of(PANE_FOOT));
     let span = |want: f32, room: f32| want.ceil().min(room.floor()).max(0.);
     (
-        span(CARD_W, window_w - 2. * CLAMP),
+        span(s.of(CARD_W), window_w - 2. * CLAMP),
         span(want, window_h - 2. * CLAMP),
     )
 }
 
 /// The pane's inside: the card less its frame and the rail across, less the head, whose rule it holds, and the foot down.
-pub fn pane_size(card_w: f32, card_h: f32) -> (f32, f32) {
+pub fn pane_size(card_w: f32, card_h: f32, s: Scale) -> (f32, f32) {
     (
-        card_w - 2. * BORDER - RAIL_W,
-        card_h - 2. * BORDER - HEAD_H - PANE_FOOT,
+        card_w - 2. * BORDER - s.of(RAIL_W),
+        card_h - 2. * BORDER - s.head - s.of(PANE_FOOT),
     )
 }
 

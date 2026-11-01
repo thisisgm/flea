@@ -25,7 +25,7 @@ const CUT: f32 = 0.55;
 #[path = "ground.rs"]
 mod ground;
 pub(super) use ground::bounds_of;
-use ground::{baseline, label_run, plate};
+use ground::{baseline, caption_baseline, label_run, plate};
 
 pub(super) fn caption_line<'a>(
     state: &'a GridState,
@@ -90,7 +90,7 @@ impl GridElement {
                 .filter(|target| target.0 == listing)
                 .map(|target| target.1);
             let lines = if drop.is_some() { 1 } else { 2 };
-            let caption = layout.caption(cell, clip.is_some(), lines);
+            let mut caption = layout.caption(cell, clip.is_some(), lines);
             let per_line = (caption.width / advance).floor().max(0.) as usize;
             let tile = match row {
                 Some(facts) => {
@@ -140,7 +140,10 @@ impl GridElement {
                 .as_ref()
                 .map_or(0., |tile| tile.widest)
                 .min(caption.width);
-            let painted_height = (drawn_lines as f32 * line).min(caption.height);
+            let painted_height = tile
+                .as_ref()
+                .map_or(0., |tile| tile.text_height(drawn_lines, line));
+            caption.height = caption.height.max(painted_height.ceil());
             drawn.push(Drawn {
                 view: at,
                 listing,
@@ -243,7 +246,7 @@ impl GridElement {
                 let top = caption.origin.y + px(at as f32 * line);
                 let x = caption.origin.x + px((drawn.caption.width - centred) / 2.);
                 let _ = window.paint_glyph_run(
-                    point(x, baseline(run, top, line, window)),
+                    point(x, caption_baseline(run, top, window)),
                     run,
                     ink.foreground,
                 );

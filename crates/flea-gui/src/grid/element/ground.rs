@@ -31,6 +31,15 @@ pub(super) fn baseline(run: &GlyphRun, top: Pixels, line: f32, window: &Window) 
     window.pixel_snap(top + (px(line) - layout.ascent - layout.descent) / 2. + layout.ascent)
 }
 
+// GridTile.qml leaves caption glyphs top aligned, independent of its fixed line pitch.
+pub(super) fn caption_baseline(run: &GlyphRun, top: Pixels, window: &Window) -> Pixels {
+    window.pixel_snap(top + run.line().ascent)
+}
+
+#[cfg(test)]
+#[path = "caption_tests.rs"]
+mod tests;
+
 // The tile's own ground: the plate it sits on over the pane, which a cut picture fades toward.
 pub(super) fn plate(
     drawn: &Drawn,

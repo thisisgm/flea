@@ -29,6 +29,24 @@ pub struct Tile {
     pub widest: f32,
 }
 
+impl Tile {
+    // QQuickText's integer lineHeightOffset retains the rounded font extents beyond the fixed pitch.
+    pub fn text_height(&self, count: usize, pitch: f32) -> f32 {
+        let count = count.min(self.lines.len());
+        if count == 0 {
+            return 0.;
+        }
+        let natural = self.lines[..count]
+            .iter()
+            .map(|line| {
+                let run = line.run.line();
+                f32::from(run.ascent).ceil() + f32::from(run.descent).abs().ceil()
+            })
+            .fold(0., f32::max);
+        count as f32 * pitch + (natural - pitch).max(0.).trunc()
+    }
+}
+
 /// What every cached tile was shaped for; any change drops them all.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Shaping {

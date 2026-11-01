@@ -88,8 +88,11 @@ impl Menu {
         let Some((in_flyout, card)) = self.card_under(x, y) else {
             return Outcome::Nothing;
         };
-        let (steps, rest) =
-            fit::touch_steps(if begin { 0. } else { card.touch }, pixels, fit::ROW as f32);
+        let (steps, rest) = fit::touch_steps(
+            if begin { 0. } else { card.touch },
+            pixels,
+            card.built.metrics.row as f32,
+        );
         card.touch = rest;
         self.walk(in_flyout, steps)
     }

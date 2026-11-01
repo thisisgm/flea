@@ -42,17 +42,35 @@ pub fn press_scale(press: Option<Press>, now: Instant, reduced: bool) -> (f32, b
     (from + (target - from) * eased, from != target && t < 1.)
 }
 
-pub fn divider(ink: gpui::Hsla) -> Div {
-    div().w(px(1.)).h(px(15.)).flex_none().bg(ink.opacity(0.12))
+/// ui/ChromeModes.qml: a hairline one pixel shorter than the mark.
+pub fn divider(ink: gpui::Hsla, mark: f32) -> Div {
+    div()
+        .w(px(1.))
+        .h(px(mark - 1.))
+        .flex_none()
+        .bg(ink.opacity(0.12))
 }
 
+/// Theme.chromeMarkSize at text size 14.
+pub const MARK: f32 = 16.;
+
 pub fn mark(name: &str, ink: gpui::Hsla, frame: Rc<RefCell<Frame>>, index: usize) -> Div {
+    mark_sized(name, MARK, ink, frame, index)
+}
+
+pub fn mark_sized(
+    name: &str,
+    side: f32,
+    ink: gpui::Hsla,
+    frame: Rc<RefCell<Frame>>,
+    index: usize,
+) -> Div {
     let own = match name {
         "arrow-left" => Some(("flea-chrome:arrow-left".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M19 12H5 M12 19l-7-7 7-7"/></svg>"#.as_slice())),
         "filter" => Some(("flea-chrome:filter".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18l-7 8v7l-4 2v-9z"/></svg>"#.as_slice())),
         _ => crate::g2::st1::glyphs::svg(name),
     };
-    let slot = div().size(px(16.)).flex_none();
+    let slot = div().size(px(side)).flex_none();
     let Some((key, data)) = own else { return slot };
     slot.child(
         canvas(
@@ -74,6 +92,10 @@ pub fn mark(name: &str, ink: gpui::Hsla, frame: Rc<RefCell<Frame>>, index: usize
                     ),
                     size,
                 );
+                #[cfg(test)]
+                {
+                    frame.borrow_mut().controls[index].mark_bounds = Some(bounds);
+                }
                 let _ = window.paint_svg(
                     bounds,
                     key,

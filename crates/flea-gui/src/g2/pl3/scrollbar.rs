@@ -1,8 +1,5 @@
 //! Trash uses the shared viewport scroller's geometry, with its own position and reveal lifetime.
-use super::{
-    board::{PAD_X, ROW_H},
-    pane::TrashPane,
-};
+use super::pane::TrashPane;
 use crate::g2::pv1::scroller::{Axis, Scroll, View};
 use flea::ui_logic_pv1::scroll;
 use gpui::{
@@ -38,7 +35,7 @@ impl TrashPane {
                 size(px(self.width), px(self.host.view.height)),
             ),
             content_w: f64::from(self.width),
-            content_h: paint.total as f64 * f64::from(ROW_H),
+            content_h: paint.total as f64 * f64::from(paint.board.row_h),
             sideways: false,
         });
     }
@@ -164,7 +161,7 @@ impl TrashPane {
         self.scrollbar.previous = Some((total, y));
         let bar = &self.scrollbar;
         let height = f64::from(self.host.view.height);
-        let content = total as f64 * f64::from(ROW_H);
+        let content = total as f64 * f64::from(self.board().row_h);
         let overflow = self.host.view.opened && scroll::overflows(content, height);
         let wide = bar.model.lane == Some(Axis::Vertical) || bar.model.drag.is_some();
         let elapsed = bar.moved_at.map(|at| {
@@ -204,7 +201,8 @@ impl TrashPane {
         } else {
             scroll::KNOB_ALPHA
         };
-        let mut lane = div().absolute().right_0().top_0().w(px(PAD_X)).h_full();
+        let lane_w = self.board().pad_x;
+        let mut lane = div().absolute().right_0().top_0().w(px(lane_w)).h_full();
         if overflow && opacity > 0. {
             if wide {
                 lane = lane.bg(ink.foreground.opacity(scroll::TRACK_ALPHA * opacity));

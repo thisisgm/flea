@@ -1,5 +1,5 @@
 //! The Settings panel's state: the section, the side that holds the keyboard, the cursor row and the search query.
-use super::geometry::{self, CARD_W};
+use super::geometry::{self, Scale, CARD_W};
 use super::seams::{Facts, Request, Store};
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
@@ -58,6 +58,8 @@ pub struct Panel {
     /// The pane's inside as last laid out, and each row's line count as the window shaped it.
     pub pane: (f32, f32),
     pub lines: Vec<usize>,
+    /// The text size every row and the card measure at.
+    pub scale: Scale,
     /// View's height, which sets the card's, so the card keeps one height whichever section is open.
     pub view_height: f32,
     /// A favourite's grip held down: its row and where the press began.
@@ -85,8 +87,9 @@ impl Panel {
             requests: Vec::new(),
             catalog,
             facts,
-            pane: geometry::pane_size(CARD_W, geometry::BOARD_CARD_H),
+            pane: geometry::pane_size(CARD_W, geometry::BOARD_CARD_H, Scale::default()),
             lines: Vec::new(),
+            scale: Scale::default(),
             view_height: 0.,
             grip: None,
             store,
@@ -137,7 +140,7 @@ impl Panel {
     /// Rows come from the document, so every write or catalog change rebuilds the pane and any standing search.
     pub fn rebuild(&mut self) {
         self.rows = self.section_rows(self.section);
-        self.view_height = geometry::heights(&self.section_rows("view"), &[])
+        self.view_height = geometry::heights(&self.section_rows("view"), &[], self.scale)
             .iter()
             .sum();
         self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
@@ -185,17 +188,18 @@ impl Panel {
     /// Each row's height: shaped hint lines once drawn, a monospace estimate before.
     pub fn heights(&self) -> Vec<f32> {
         if self.lines.len() == self.rows.len() {
-            return geometry::heights(&self.rows, &self.lines);
+            return geometry::heights(&self.rows, &self.lines, self.scale);
         }
         let lines: Vec<usize> = self
             .rows
             .iter()
             .map(|row| match row.kind {
                 Kind::Hint if !row.elide_right => {
+                    let s = self.scale;
                     let (size, inset) = if row.footer {
-                        (12., 2. * geometry::PAD_X)
+                        (s.line(12.), 2. * s.of(geometry::PAD_X))
                     } else {
-                        (12., geometry::LABEL_X + geometry::PAD_X)
+                        (s.line(12.), s.label_x() + s.of(geometry::PAD_X))
                     };
                     geometry::estimated_lines(
                         &row.label.resolve(&self.catalog),
@@ -206,7 +210,16 @@ impl Panel {
                 _ => 1,
             })
             .collect();
-        geometry::heights(&self.rows, &lines)
+        geometry::heights(&self.rows, &lines, self.scale)
+    }
+
+    /// A new text size re-measures View, which sets the card's height, and keeps the cursor row in view.
+    pub fn set_scale(&mut self, scale: Scale) {
+        if scale != self.scale {
+            self.scale = scale;
+            self.rebuild();
+            self.reveal();
+        }
     }
 
     /// The window's own layout: a pane of another size or a hint that wraps otherwise moves the scroll.
@@ -225,6 +238,7 @@ impl Panel {
             self.cursor,
             self.scroll,
             self.pane.1,
+            self.scale,
         );
     }
 

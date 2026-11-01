@@ -182,6 +182,11 @@ impl Drawn {
     pub fn caption_text(&self) -> Option<&str> {
         self.tile.as_ref().map(|tile| tile.caption.as_str())
     }
+    pub fn text_height(&self, pitch: f32) -> f32 {
+        self.tile
+            .as_ref()
+            .map_or(0., |tile| tile.text_height(self.lines, pitch))
+    }
     /// The atlas key of the language mark this tile draws in place of its kind mark, None when it draws a picture or a kind mark.
     pub fn language_key(&self) -> Option<&str> {
         self.language.as_ref().map(|(key, _)| key.as_ref())

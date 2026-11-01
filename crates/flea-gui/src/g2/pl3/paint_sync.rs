@@ -18,6 +18,10 @@ impl TrashPane {
             return;
         }
         let mut paint = self.paint.borrow_mut();
+        let face = self.pending_face.take();
+        let face_changed = face
+            .as_ref()
+            .is_some_and(|face| paint.font != face.font || paint.board != Board::at(face));
         paint.source_request = self.rows_request;
         paint.bytes = view.bytes;
         paint.error_text = view.error_text.clone();
@@ -51,8 +55,13 @@ impl TrashPane {
             || paint.first != view.first
             || paint.total != view.total
             || paint.scroll_y != view.scroll_y
+            || face_changed
         {
             paint.committed += 1;
+        }
+        if let Some(face) = face {
+            let board = Board::at(&face);
+            paint.set_face(face.font, board);
         }
         let live: HashSet<Resource> = lines.iter().filter_map(|line| line.thumb.clone()).collect();
         self.retired.extend(self.decoded.difference(&live).cloned());
