@@ -7,9 +7,7 @@ use super::arabic;
 use gpui::{point, px, Modifiers, TestAppContext};
 
 #[gpui::test]
-fn i50_rtl_a_git_labelled_path_hovers_the_crumb_painted_under_the_pointer(
-    cx: &mut TestAppContext,
-) {
+fn i50_rtl_a_git_labelled_path_hovers_the_crumb_painted_under_the_pointer(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_at(cx, "/files/beta");
     land(&shell, cx, "/files/beta", vec![row("inner", true)], 1);
     arabic(&shell, cx);
@@ -42,7 +40,7 @@ fn i50_rtl_a_git_labelled_path_hovers_the_crumb_painted_under_the_pointer(
             window,
         );
         let strip = &view.strips[0];
-        let unit = strip.width() + 9. + f32::from(label.line().width);
+        let unit = strip.width() + crate::path::paint::GIT_GAP + f32::from(label.line().width);
         let width = f32::from(window.viewport_size().width);
         let centres: Vec<f32> = (0..strip.crumbs().len())
             .map(|index| {
@@ -50,7 +48,10 @@ fn i50_rtl_a_git_labelled_path_hovers_the_crumb_painted_under_the_pointer(
                 width - (left + unit) + offset + crumb / 2.
             })
             .collect();
-        (centres, f32::from(bounds.origin.y + bounds.size.height / 2.))
+        (
+            centres,
+            f32::from(bounds.origin.y + bounds.size.height / 2.),
+        )
     });
     assert!(centres.len() >= 2, "a root and a leaf crumb");
     for (index, x) in centres.into_iter().enumerate() {
