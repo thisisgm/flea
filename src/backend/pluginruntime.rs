@@ -8,7 +8,12 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
-static RUNNING: Mutex<Option<HashMap<PathBuf, Runtime>>> = Mutex::new(None);
+struct Registry {
+    closed: bool,
+    live: Option<HashMap<PathBuf, Runtime>>,
+}
+
+static RUNNING: Mutex<Registry> = Mutex::new(Registry { closed: false, live: None });
 const MAX_PLUGINS: usize = 64;
 
 fn key(env: &Env, id: &str) -> PathBuf {
@@ -25,8 +30,12 @@ pub(super) fn start(env: &Env, found: &Installed) -> Result<(), Invalid> {
 }
 
 fn session(env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
+    session_at(&RUNNING, env, found)
+}
+
+fn session_at(registry: &Mutex<Registry>, env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
     let manifest = &found.plugin.manifest;
-    if manifest.block("previewer").is_some() {
+    if manifest.kinds.iter().all(|kind| kind == "previewer") {
         return Err(Invalid::new(
             "start",
             "a previewer runs only in the thumbnail sandbox",
@@ -37,8 +46,11 @@ fn session(env: &Env, found: &Installed) -> Result<Runtime, Invalid> {
         .clone()
         .ok_or_else(|| Invalid::new("builtin", &manifest.id))?;
     let key = key(env, &manifest.id);
-    let mut running = RUNNING.lock().unwrap_or_else(|p| p.into_inner());
-    let running = running.get_or_insert_with(HashMap::new);
+    let mut held = registry.lock().unwrap_or_else(|p| p.into_inner());
+    if held.closed {
+        return Err(Invalid::new("start", "plugin host stopped"));
+    }
+    let running = held.live.get_or_insert_with(HashMap::new);
     running.retain(|key, runtime| {
         let present = key.parent().is_some_and(std::path::Path::is_dir);
         if !present {
@@ -70,6 +82,7 @@ pub(super) fn failure(env: &Env, id: &str) -> Option<Invalid> {
     RUNNING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
+        .live
         .as_ref()?
         .get(&key(env, id))?
         .failure()
@@ -80,6 +93,7 @@ pub(super) fn stop(env: &Env, id: &str) {
     let removed = RUNNING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
+        .live
         .as_mut()
         .and_then(|m| m.remove(&key(env, id)));
     if let Some(runtime) = removed {
@@ -88,11 +102,15 @@ pub(super) fn stop(env: &Env, id: &str) {
 }
 
 pub(crate) fn shutdown() {
-    let running = RUNNING
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .take()
-        .unwrap_or_default();
+    shutdown_at(&RUNNING);
+}
+
+fn shutdown_at(registry: &Mutex<Registry>) {
+    let running = {
+        let mut held = registry.lock().unwrap_or_else(|p| p.into_inner());
+        held.closed = true;
+        held.live.take().unwrap_or_default()
+    };
     for runtime in running.values() {
         runtime.shutdown();
     }
@@ -113,7 +131,7 @@ pub(super) fn reconcile(env: &Env) {
         .collect();
     let removed = {
         let mut held = RUNNING.lock().unwrap_or_else(|p| p.into_inner());
-        let Some(running) = held.as_mut() else {
+        let Some(running) = held.live.as_mut() else {
             return;
         };
         let stale: Vec<_> = running
@@ -178,6 +196,7 @@ pub(super) fn settings(env: &Env, id: &str) {
     let runtime = RUNNING
         .lock()
         .unwrap_or_else(|p| p.into_inner())
+        .live
         .as_ref()
         .and_then(|m| m.get(&key(env, id)).cloned());
     let Some(runtime) = runtime else {
@@ -223,6 +242,15 @@ pub(super) fn reply_stream(env: &Env, request: &Json, progress: &mut dyn FnMut(S
             ])));
         },
     );
+    reply_line(request, result)
+}
+
+pub(super) fn refusal(request: &Json, error: Invalid) -> String {
+    reply_line(request, Err(error))
+}
+
+fn reply_line(request: &Json, result: Result<Reply, Invalid>) -> String {
+    let plugin = request.get("plugin").and_then(Json::as_str).unwrap_or("");
     let (ok, message, progress, code, error) = match result {
         Ok(reply) => {
             let error = reply.message.get("op").and_then(Json::as_str) == Some("error");
@@ -270,3 +298,7 @@ pub(super) fn reply_stream(env: &Env, request: &Json, progress: &mut dyn FnMut(S
         ("error".into(), Json::Str(error)),
     ]))
 }
+
+#[cfg(test)]
+#[path = "pluginruntime_shutdown_tests.rs"]
+mod shutdown_tests;

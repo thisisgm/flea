@@ -7,10 +7,12 @@ use flea::plugin_runtime::{protocol, Reply};
 use flea::ui_logic_mn2::plugins::mime_match;
 use flea::ui_logic_st2::manifest::{Invalid, Manifest};
 use std::io::{BufRead, Read, Write};
+use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::fs::DirBuilderExt;
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, OnceLock};
+use std::sync::{mpsc, Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 // The one selected file and the private output folder, at fixed paths inside the sandbox.
@@ -29,6 +31,12 @@ const MAX_TEXT_LINES: usize = 1000;
 // Shown pictures kept for the GUI to load; older ones are removed as new ones land.
 const KEPT: usize = 8;
 const PNG_SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
+const F_DUPFD_CLOEXEC: i32 = 1030;
+const F_SETFD: i32 = 2;
+
+extern "C" {
+    fn fcntl(fd: i32, command: i32, ...) -> i32;
+}
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 static TYPES: OnceLock<mime::Db> = OnceLock::new();
@@ -65,7 +73,7 @@ fn root() -> PathBuf {
 }
 
 // Every bind is named here: the plugin folder and the input read-only, /out writable, nothing else from the host.
-pub(super) fn argv(folder: &Path, entry: &Path, input: Option<&Path>, out: &Path) -> Vec<String> {
+pub(super) fn argv(folder: &Path, entry: &Path, input: Option<i32>, out: &Path) -> Vec<String> {
     let mut a: Vec<String> = vec![
         sandbox::PRLIMIT.into(),
         format!("--cpu={CPU_SECONDS}"),
@@ -79,11 +87,7 @@ pub(super) fn argv(folder: &Path, entry: &Path, input: Option<&Path>, out: &Path
     let folder = folder.to_string_lossy().into_owned();
     a.extend(["--ro-bind".into(), folder.clone(), folder.clone()]);
     if let Some(input) = input {
-        a.extend([
-            "--ro-bind".into(),
-            input.to_string_lossy().into_owned(),
-            INPUT.into(),
-        ]);
+        a.extend(["--ro-bind-fd".into(), input.to_string(), INPUT.into()]);
     }
     a.extend([
         "--bind".into(),
@@ -150,9 +154,13 @@ fn exchange(
     limits: &Limits,
     want: usize,
 ) -> Result<Vec<Json>, String> {
-    let mut input = jailed.child.stdin.take().ok_or("missing plugin stdin")?;
+    let input = Arc::new(Mutex::new(
+        jailed.child.stdin.take().ok_or("missing plugin stdin")?,
+    ));
     let output = jailed.child.stdout.take().ok_or("missing plugin stdout")?;
+    let writer = input.clone();
     std::thread::spawn(move || {
+        let mut input = writer.lock().unwrap_or_else(|p| p.into_inner());
         for line in lines {
             if input
                 .write_all(line.as_bytes())
@@ -190,13 +198,52 @@ fn exchange(
             protocol::ready(&answers[0])?;
         }
     }
+    drop(input);
     Ok(answers)
+}
+
+fn spawn(
+    folder: &Path,
+    entry: &Path,
+    input: Option<&std::fs::File>,
+    work: &Path,
+    arguments: &[&str],
+) -> Result<Jailed, String> {
+    // The private copy stays above the status slot, and only this child clears its close-on-exec flag.
+    let pinned = input
+        .map(|file| {
+            let fd = unsafe { fcntl(file.as_raw_fd(), F_DUPFD_CLOEXEC, sandbox::STATUS_FD + 1) };
+            if fd < 0 {
+                Err(std::io::Error::last_os_error().to_string())
+            } else {
+                Ok(unsafe { OwnedFd::from_raw_fd(fd) })
+            }
+        })
+        .transpose()?;
+    let input_fd = pinned.as_ref().map(AsRawFd::as_raw_fd);
+    let mut full = argv(folder, entry, input_fd, work);
+    full.extend(arguments.iter().map(|arg| arg.to_string()));
+    jail::spawn_jailed(&full, |command| {
+        command
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null());
+        unsafe {
+            command.pre_exec(move || {
+                if input_fd.is_some_and(|fd| fcntl(fd, F_SETFD, 0) < 0) {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+    })
+    .map_err(|e| e.to_string())
 }
 
 fn run(
     env: &Env,
     found: &Installed,
-    input: Option<&Path>,
+    input: Option<&std::fs::File>,
     request: Option<Json>,
     limits: &Limits,
 ) -> Result<(Option<Json>, Work), String> {
@@ -211,14 +258,7 @@ fn run(
     let folder = folder.canonicalize().map_err(|e| e.to_string())?;
     let entry = super::pluginfs::entry(&folder, &manifest.run).map_err(|e| e.detail)?;
     let work = Work::new(&limits.root)?;
-    let full = argv(&folder, &entry, input, &work.0);
-    let mut jailed = jail::spawn_jailed(&full, |command| {
-        command
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null());
-    })
-    .map_err(|e| e.to_string())?;
+    let mut jailed = spawn(&folder, &entry, input, &work.0, &[])?;
     let mut lines = vec![plugins::hello(env, manifest)];
     lines.extend(request.as_ref().map(flea::ui_logic_st2::wire::compact));
     let answers = exchange(
@@ -238,7 +278,7 @@ pub(super) fn check(env: &Env, found: &Installed) -> Result<(), Invalid> {
         .map_err(|e| Invalid::new("start", e))
 }
 
-fn selected(manifest: &Manifest, request: &Json) -> Result<PathBuf, Invalid> {
+fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invalid> {
     let refuse = |why: &str| Invalid::new("request", why);
     let path = match request.get("paths").and_then(Json::as_array) {
         Some([Json::Str(path)]) => Path::new(path),
@@ -264,13 +304,7 @@ fn selected(manifest: &Manifest, request: &Json) -> Result<PathBuf, Invalid> {
     {
         return Err(refuse("previewer does not handle this type"));
     }
-    let input = path
-        .canonicalize()
-        .map_err(|_| refuse("preview input is unreadable"))?;
-    if !std::fs::metadata(&input).is_ok_and(|m| m.is_file()) {
-        return Err(refuse("preview input must be a regular file"));
-    }
-    Ok(input)
+    super::regfile::open_regular(path).ok_or_else(|| refuse("preview input must be a regular file"))
 }
 
 // Plain text only: no control characters but newline and tab, and a bounded line count.
@@ -290,50 +324,30 @@ fn plain(text: &str) -> String {
 fn picture(work: &Path, root: &Path) -> Result<(PathBuf, u32, u32), String> {
     let path = work.join(PNG_NAME);
     let refuse = || "invalid plugin preview picture".to_string();
-    let meta = std::fs::symlink_metadata(&path).map_err(|_| refuse())?;
-    if !meta.is_file() || meta.len() > FILE_BYTES {
+    let mut input =
+        super::regfile::open_if_regular(&path, crate::oflags::O_NOFOLLOW).map_err(|_| refuse())?;
+    if input.metadata().map_err(|_| refuse())?.len() > FILE_BYTES {
         return Err(refuse());
     }
     let mut head = [0u8; 24];
-    std::fs::File::open(&path)
-        .and_then(|mut f| f.read_exact(&mut head))
-        .map_err(|_| refuse())?;
-    let side = |at: usize| u32::from_be_bytes([head[at], head[at + 1], head[at + 2], head[at + 3]]);
-    let (w, h) = (side(16), side(20));
-    if &head[..8] != PNG_SIGNATURE
-        || &head[12..16] != b"IHDR"
-        || !(1..=MAX_SIDE).contains(&w)
-        || !(1..=MAX_SIDE).contains(&h)
-    {
+    input.read_exact(&mut head).map_err(|_| refuse())?;
+    if !head.starts_with(PNG_SIGNATURE) {
         return Err(refuse());
     }
-    let shown = root.join("shown").join(format!(
-        "{}-{}.png",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
-    std::fs::rename(&path, &shown).map_err(|e| e.to_string())?;
-    prune(&root.join("shown"));
+    let (w, h) = super::imagesize::from_header(&head).ok_or_else(refuse)?;
+    if !(1..=MAX_SIDE).contains(&w) || !(1..=MAX_SIDE).contains(&h) {
+        return Err(refuse());
+    }
+    png::check(&input, root)?;
+    let shown = retention::publish(&path, root)?;
     Ok((shown, w, h))
 }
 
-fn prune(shown: &Path) {
-    let Ok(entries) = std::fs::read_dir(shown) else {
-        return;
-    };
-    let mut files: Vec<_> = entries
-        .flatten()
-        .filter(|e| e.file_name().to_string_lossy().ends_with(".png"))
-        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
-        .collect();
-    files.sort();
-    let extra = files.len().saturating_sub(KEPT);
-    for (_, path) in files.into_iter().take(extra) {
-        if path.is_absolute() && path.starts_with(shown) {
-            let _ = std::fs::remove_file(path);
-        }
-    }
-}
+#[path = "pluginpreview_png.rs"]
+mod png;
+
+#[path = "pluginpreview_retention.rs"]
+mod retention;
 
 pub(super) fn preview(env: &Env, found: &Installed, request: &Json) -> Result<Reply, Invalid> {
     preview_with(env, found, request, &Limits::of(env))
@@ -398,3 +412,11 @@ pub(super) fn preview_with(
         progress: Vec::new(),
     })
 }
+
+#[cfg(test)]
+#[path = "pluginpreview_picture_tests.rs"]
+mod picture_tests;
+
+#[cfg(test)]
+#[path = "pluginpreview_race_tests.rs"]
+mod race_tests;

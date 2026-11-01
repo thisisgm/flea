@@ -5,6 +5,42 @@ use std::collections::BTreeSet;
 const GUIDE: &str = include_str!("../PLUGINS.md");
 const CATALOG: &str = include_str!("../i18n/en/flea.json");
 
+#[test]
+fn plugins_doc_repository_examples_obey_runtime_bounds_and_place_mutations() {
+    let output = std::process::Command::new("python3")
+        .args(["-B", concat!(env!("CARGO_MANIFEST_DIR"), "/tests/plugins_examples.py")])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+}
+
+#[test]
+fn plugins_doc_owner_answers_runtime_and_list_when_user_paths_cannot_resolve() {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    let mut child = Command::new("timeout")
+        .args(["--signal=KILL", "3s", env!("CARGO_BIN_EXE_flea"), "--plugin-host"])
+        .env_remove("HOME")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("XDG_STATE_HOME")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(b"{\"c\":\"plugins\",\"op\":\"runtime\",\"id\":5,\"plugin\":\"example.paths\",\"request\":{\"op\":\"run\"}}\n{\"c\":\"plugins\",\"op\":\"list\",\"id\":6}\n").unwrap();
+    let result = child.wait_with_output().unwrap();
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let lines: Vec<_> = String::from_utf8(result.stdout).unwrap().lines()
+        .map(|line| jsondoc::parse(line).unwrap()).collect();
+    assert_eq!(lines.len(), 2, "every accepted request needs a correlated terminal refusal");
+    for (id, kind) in [(5.0, "pluginruntime"), (6.0, "pluginop")] {
+        let reply = lines.iter().find(|line| line.get("id").and_then(Json::as_f64) == Some(id)).unwrap();
+        assert_eq!(reply.get("t").and_then(Json::as_str), Some(kind));
+        assert_eq!(reply.get("code").and_then(Json::as_str), Some("write"));
+    }
+}
+
 fn manifests(guide: &str) -> Result<Vec<(String, String)>, String> {
     let mut examples = Vec::new();
     let mut opened: Option<(String, String, bool)> = None;

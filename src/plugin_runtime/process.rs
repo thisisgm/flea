@@ -8,6 +8,13 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+const F_GETFL: i32 = 3;
+const F_SETFL: i32 = 4;
+const PR_SET_PDEATHSIG: i32 = 1;
+const SIGKILL: i32 = 9;
+const RLIMIT_AS: i32 = 9;
+const RLIMIT_NOFILE: i32 = 7;
+
 extern "C" {
     fn fcntl(fd: i32, command: i32, ...) -> i32;
     fn kill(pid: i32, signal: i32) -> i32;
@@ -30,8 +37,8 @@ pub(super) struct Process {
 }
 
 fn nonblocking(fd: RawFd) -> Result<(), String> {
-    let flags = unsafe { fcntl(fd, 3) };
-    if flags < 0 || unsafe { fcntl(fd, 4, flags | crate::oflags::O_NONBLOCK) } < 0 {
+    let flags = unsafe { fcntl(fd, F_GETFL) };
+    if flags < 0 || unsafe { fcntl(fd, F_SETFL, flags | crate::oflags::O_NONBLOCK) } < 0 {
         return Err(std::io::Error::last_os_error().to_string());
     }
     Ok(())
@@ -60,10 +67,10 @@ impl Process {
                     current: 256,
                     maximum: 256,
                 };
-                if prctl(1, 9, 0, 0, 0) != 0
+                if prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0) != 0
                     || getppid() != parent
-                    || setrlimit(9, &memory) != 0
-                    || setrlimit(7, &files) != 0
+                    || setrlimit(RLIMIT_AS, &memory) != 0
+                    || setrlimit(RLIMIT_NOFILE, &files) != 0
                 {
                     return Err(std::io::Error::last_os_error());
                 }
@@ -157,7 +164,7 @@ impl Drop for Process {
     fn drop(&mut self) {
         let _ = self.input.write_all(b"{\"op\":\"cancel\"}\n");
         unsafe {
-            kill(-(self.child.id() as i32), 9);
+            kill(-(self.child.id() as i32), SIGKILL);
         }
         let _ = self.child.kill();
         let _ = self.child.wait();

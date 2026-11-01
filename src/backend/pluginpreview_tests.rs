@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 const TEXT: &str = "#!/bin/sh\nread hello\necho '{\"op\":\"ready\"}'\nread req\nprintf '{\"op\":\"preview\",\"text\":\"first line\\\\nsecond\\\\u0007line\"}\\n'\n";
 
-fn previewer(dir: &TestDir, id: &str, output: &str, script: &str) {
+pub(super) fn previewer(dir: &TestDir, id: &str, output: &str, script: &str) {
     let folder = format!("config/flea/plugins/{id}");
     dir.dir(&format!("{folder}/bin"));
     dir.file(&format!("{folder}/manifest.json"), &format!(
@@ -16,7 +16,7 @@ fn previewer(dir: &TestDir, id: &str, output: &str, script: &str) {
     dir.script(&format!("{folder}/bin/run"), script);
 }
 
-fn limits(dir: &TestDir) -> Limits {
+pub(super) fn limits(dir: &TestDir) -> Limits {
     Limits {
         ready: Duration::from_millis(1500),
         request: Duration::from_millis(1500),
@@ -24,7 +24,7 @@ fn limits(dir: &TestDir) -> Limits {
     }
 }
 
-fn request(path: &Path) -> Json {
+pub(super) fn request(path: &Path) -> Json {
     jsondoc::parse(&format!(
         r#"{{"op":"preview","paths":["{}"],"width":320,"height":200}}"#,
         path.display()
@@ -45,13 +45,13 @@ fn plugin_preview_argv_binds_only_the_plugin_the_input_and_its_output() {
     let a = argv(
         Path::new("/p/plug"),
         Path::new("/p/plug/bin/run"),
-        Some(Path::new("/home/u/a.txt")),
+        Some(8),
         Path::new("/run/w"),
     );
     let joined = a.join(" ");
     assert!(joined.contains("--unshare-all"));
     assert!(joined.contains("--ro-bind /p/plug /p/plug"));
-    assert!(joined.contains(&format!("--ro-bind /home/u/a.txt {INPUT}")));
+    assert!(joined.contains(&format!("--ro-bind-fd 8 {INPUT}")));
     assert!(joined.contains(&format!("--bind /run/w {OUTPUT}")));
     assert!(
         !joined.contains("--bind /home/u "),
@@ -211,8 +211,8 @@ fn plugin_preview_png_header_is_checked_and_the_picture_moves_out_of_the_jail() 
     }
     let dir = TestDir::new("plugin-preview-png");
     let env = env(&dir);
-    // A 1x1 PNG header: signature, IHDR length and tag, then width and height.
-    let script = "#!/bin/sh\nread hello\necho '{\"op\":\"ready\"}'\nread req\nprintf '\\211PNG\\r\\n\\032\\n\\000\\000\\000\\rIHDR\\000\\000\\000\\001\\000\\000\\000\\001\\010\\006\\000\\000\\000' > /out/preview.png\necho '{\"op\":\"preview\",\"png\":\"/out/preview.png\"}'\n";
+    // A complete 1x1 PNG with CRC-checked IHDR, IDAT and IEND.
+    let script = "#!/bin/sh\nread hello\necho '{\"op\":\"ready\"}'\nread req\nprintf '\\211\\120\\116\\107\\015\\012\\032\\012\\000\\000\\000\\015\\111\\110\\104\\122\\000\\000\\000\\001\\000\\000\\000\\001\\010\\000\\000\\000\\000\\072\\176\\233\\125\\000\\000\\000\\012\\111\\104\\101\\124\\170\\332\\143\\140\\000\\000\\000\\002\\000\\001\\345\\047\\336\\374\\000\\000\\000\\000\\111\\105\\116\\104\\256\\102\\140\\202' > /out/preview.png\necho '{\"op\":\"preview\",\"png\":\"/out/preview.png\"}'\n";
     previewer(&dir, "example.pic", "png", script);
     let found = super::plugins::find(&env, "example.pic").unwrap();
     let file = dir.file("a.txt", "hello\n");
