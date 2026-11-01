@@ -123,9 +123,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         }
         m.parity17.copy_text = None;
         m.pending_clipboard = false;
-        if value.get("listing").is_some()
-            && (Some(count(value, "listing")) != w.listing || m.pending.is_some())
-        {
+        if value.get("listing").is_some() && stale(m, value, w) {
             return Ok(true);
         }
     }
@@ -141,11 +139,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
             m.pending_clipboard = false;
             return Ok(true);
         }
-        if value.get("listing").is_some()
-            && (Some(count(value, "listing")) != m.parity17.copy_listing
-                || m.parity17.copy_listing != w.listing
-                || m.pending.is_some())
-        {
+        if value.get("listing").is_some() && stale(m, value, w) {
             m.parity17.copy_text = None;
             m.pending_clipboard = false;
             return Ok(true);
@@ -207,6 +201,13 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         return Ok(true);
     }
     Ok(false)
+}
+// A folder's listed line carries no listing stamp, so a copy asked without one is judged by navigation alone.
+fn stale(m: &Model, value: &Json, w: &Wire) -> bool {
+    let asked = m.parity17.copy_listing;
+    asked != w.listing
+        || m.pending.is_some()
+        || asked.is_some_and(|listing| listing != count(value, "listing"))
 }
 pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String {
     let mut paths: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();

@@ -6,7 +6,10 @@ use std::{collections::BTreeMap, io, path::PathBuf};
 
 // The moves that only look: Trash is viewed here, and every action that would change a file is refused with one sentence.
 const LOOKS: &[&str] = &["cursorUp", "cursorDown", "cursorFirst", "cursorLast", "cursorFirstArm", "pageUp", "pageDown", "pageForward",
-    "halfPageUp", "halfPageDown", "keymapSheet", "togglePreview", "focusPreview", "focusNext", "quit", "quitNoCwd", "pathBar", "goHome", "goConfig", "goDownloads"];
+    "halfPageUp", "halfPageDown", "keymapSheet", "togglePreview", "loadPreview", "focusPreview", "focusNext", "quit", "quitNoCwd", "pathBar", "goHome", "goConfig", "goDownloads"];
+
+// The Trash preview's head rows: name, kind and size, Deleted, Original Location, and a blank row.
+const TRASH_HEAD: usize = 5;
 
 pub struct TrashView {
     id: usize,
@@ -16,7 +19,8 @@ pub struct TrashView {
     top: usize,
     current: Option<PathBuf>,
     loaded: bool,
-    items: BTreeMap<usize, (String, String)>,
+    // Each row's original path, deletion date and the backing file its text preview reads.
+    items: BTreeMap<usize, (String, String, String)>,
     kinds: crate::backend::kind::Kinds,
     kind_keys: BTreeMap<usize, &'static str>,
 }
@@ -59,7 +63,7 @@ pub fn window(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     let top = m.top;
     request(m, "window", top, w)
 }
-// Sample input: {"t":"trashbrowse","id":1,"op":"list","ok":true,"total":1,"start":0,"rows":[{"uri":"trash:///a.txt","original":"/w/a.txt","size":13,"deleted":"2025-06-14T09:30:00","directory":false,"icon":"text-plain"}]}.
+// Sample input: {"t":"trashbrowse","id":1,"op":"list","ok":true,"total":1,"start":0,"rows":[{"uri":"trash:///a.txt","original":"/w/a.txt","size":13,"deleted":"2025-06-14T09:30:00","directory":false,"icon":"text-plain","content":"/h/.local/share/Trash/files/a.txt"}]}.
 pub fn receive(m: &mut Model, value: &Json) {
     let Some(view) = m.prompts.trash.as_mut().filter(|view| view.id == count(value, "id")) else { return; };
     view.loaded = true;
@@ -82,7 +86,7 @@ pub fn receive(m: &mut Model, value: &Json) {
         let name = original.rsplit('/').next().unwrap_or(original).to_owned();
         m.rows.insert(start + offset, Row { name, directory, size: count(row, "size"), mode: if directory { 0o40755 } else { 0o100644 },
             link: String::new(), kind, thumbnail: false, modified: 0, birth: None, icon: icon.into() });
-        view.items.insert(start + offset, (original.into(), text(row, "deleted").into()));
+        view.items.insert(start + offset, (original.into(), text(row, "deleted").into(), text(row, "content").into()));
     }
     m.cursor = m.cursor.min(m.total.saturating_sub(1));
 }
@@ -131,7 +135,7 @@ pub fn refuses(m: &mut Model, key: &Key, map: &Map, armed: &str, w: &mut Wire) -
         }
     }
 }
-// No path stands for a Trash row, so nothing previews, opens or acts on one through the folder it was opened from.
+// No path stands for a Trash row, so nothing opens or acts on one through the folder it was opened from.
 pub fn hides(m: &Model) -> bool { m.prompts.trash.is_some() }
 // Trash's disk facts are the folder's it was opened from.
 pub fn opened_from(m: &Model) -> Option<&PathBuf> { m.prompts.trash.as_ref().map(|view| &view.back) }
@@ -142,14 +146,19 @@ pub fn sort(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.pr
 // A Trash row's detail column is the date it went in.
 pub fn detail(m: &Model, index: usize, entry: &Row) -> String {
     match m.prompts.trash.as_ref() {
-        Some(view) => view.items.get(&index).map(|(_, deleted)| super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())).unwrap_or_default(),
+        Some(view) => view.items.get(&index).map(|(_, deleted, _)| super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())).unwrap_or_default(),
         None => super::detail::value(m, index, entry),
     }
 }
-// The preview's head: the name, kind and size, then the window's two Trash facts and a blank row.
+// The backing file in the Trash store a row's text preview reads; only the preview reads it, never an action.
+pub fn content(m: &Model) -> Option<PathBuf> {
+    let (_, _, content) = m.prompts.trash.as_ref()?.items.get(&m.cursor)?;
+    content.starts_with('/').then(|| PathBuf::from(content))
+}
+// The preview's head: the name, kind and size, then the window's two Trash facts, a blank row, and the body read from the backing file.
 pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<String> {
     let view = m.prompts.trash.as_ref()?;
-    let (Some(row), Some((original, deleted))) = (m.rows.get(&m.cursor), view.items.get(&m.cursor)) else { return Some(fit("", width)); };
+    let (Some(row), Some((original, deleted, _))) = (m.rows.get(&m.cursor), view.items.get(&m.cursor)) else { return Some(fit("", width)); };
     let i18n = &m.prompts.i18n;
     let location = std::path::Path::new(original).parent().map(|parent| {
         let home = std::env::var_os("HOME").filter(|home| !home.is_empty()).map(PathBuf::from);
@@ -167,6 +176,8 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
         1 => format!("{}{}", theme.meta, ellipsis(&format!("{} · {}", row.kind, m.i18n.locale().format_size(row.size as u64)), width)),
         2 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.deleted", &[&super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())]), width)),
         3 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.original", &[&location]), width)),
+        y if y >= TRASH_HEAD && content(m).as_ref() == Some(&m.preview_path) => super::pane::body(m, y - TRASH_HEAD,
+            &super::pane::Area { columns: width, padding: 0, height: m.height.saturating_sub(TRASH_HEAD), card: false }, theme),
         _ => fit("", width),
     })
 }
