@@ -1401,6 +1401,8 @@ label = "commit the open rename, then select the row"
 # other gesture. A menu raised inside a multi-row selection acts on all of it, as Finder does, and one
 # raised outside collapses the selection to that row, because every entry the menu draws is built from
 # the cursor row while Move to Trash, Compress and Move to Dropbox all dispatch through the selection.
+# The GPUI columns view's middle column follows Finder instead (CTL2, 2026-10-31): its menu takes the
+# row, or the selection the row is in, and leaves the cursor and the selection exactly as they were.
 [[pointer]]
 where = "listing"
 press = "right"
@@ -1439,7 +1441,8 @@ label = "go into that directory on one tap, as its neighbours do"
 
 # A neighbour column has no cursor, so one tap on a directory makes it the pane's own listing: that is
 # the column view's reveal, the gesture Finder's own column view answers a single click with, and not
-# an open. A file has nothing to reveal, so it waits for the second tap.
+# an open. One tap on a file reveals it too: its directory becomes the listing with the cursor on the
+# file (COLUMNS-FINDER, 2026-10-20), and the second tap of the same gesture opens it.
 [[pointer]]
 where = "neighbour"
 press = "left"
@@ -1451,8 +1454,8 @@ label = "show that directory in the middle column"
 where = "neighbour"
 press = "left"
 row = "file"
-does = "nothing"
-label = "a file has no contents to reveal"
+does = "reveal"
+label = "go to the file in its own directory, selected"
 
 [[pointer]]
 where = "neighbour"

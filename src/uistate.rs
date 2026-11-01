@@ -217,6 +217,9 @@ fn fits(rule: &Rule, value: &Json) -> bool {
         Rule::FolderSorts => is_folder_sorts(value),
         Rule::FolderViews => is_folder_views(value),
         Rule::ColumnWidths => is_column_widths(value),
+        Rule::Tracks => value.as_array().is_some_and(|items| {
+            items.len() <= 4 && items.iter().all(|item| fits(&Rule::Count(1.0, 10000.0), item))
+        }),
         Rule::Plugins => crate::uiplugins::fits(value),
         Rule::Count(low, high) => match value.as_f64() {
             Some(n) => n.fract() == 0.0 && n >= *low && n <= *high,

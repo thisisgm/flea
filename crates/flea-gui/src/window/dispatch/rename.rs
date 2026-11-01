@@ -24,6 +24,7 @@ pub(super) fn run(
             shell.rename_menu_target(&chosen.captured, window, cx);
             return true;
         }
+        shell.adopt_menu_target(&chosen.captured);
         let close = format!(
             "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
             chosen.captured.id

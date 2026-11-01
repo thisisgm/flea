@@ -82,11 +82,13 @@ fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
             );
             fold(&mut cx, handle);
             press(&mut cx, handle, at, button);
+            // Finder rule 5: a right click opens the row's menu and leaves the cursor where it was.
+            let cursor = if button == MouseButton::Right { 0 } else { row };
             update(&mut cx, handle, |shell, _, _| {
                 assert_eq!(
                     shell.panes[0].as_ref().unwrap().pane.cursor,
-                    row,
-                    "folded control must change the real covered cursor"
+                    cursor,
+                    "folded control must reach the real covered row"
                 );
             });
             if button == MouseButton::Right {
@@ -94,7 +96,8 @@ fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
                 assert!(
                     packet
                         .as_deref()
-                        .is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
+                        .is_some_and(|line| line.contains("\"op\":\"snapshot\"")
+                            && line.contains(&format!("\"cursor\":{row}}}"))),
                     "folded control: button={button:?}, point={at:?}, packet={packet:?}"
                 );
             }
@@ -105,10 +108,11 @@ fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
         let outside = point(jobs.left() + px(5.), jobs.top() - px(20.));
         let row = column_row(&mut cx, handle, outside);
         press(&mut cx, handle, outside, button);
+        let cursor = if button == MouseButton::Right { 0 } else { row };
         update(&mut cx, handle, |shell, _, _| {
             assert_eq!(
                 shell.panes[0].as_ref().unwrap().pane.cursor,
-                row,
+                cursor,
                 "outside-card press must still reach Columns"
             );
         });
@@ -117,7 +121,8 @@ fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
             assert!(
                 packet
                     .as_deref()
-                    .is_some_and(|line| line.contains("\"op\":\"snapshot\"")),
+                    .is_some_and(|line| line.contains("\"op\":\"snapshot\"")
+                        && line.contains(&format!("\"cursor\":{row}}}"))),
                 "outside control: button={button:?}, point={outside:?}, packet={packet:?}"
             );
         }

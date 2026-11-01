@@ -107,8 +107,9 @@ pub(super) fn run(
         // PaneMenuActions.qml perform: the menu's Open on a file opens its one validated path on the menu's own pane.
         Order::Menu(chosen) if chosen.action == "open" && shell.menu.context.row_is_file => {
             if menu_claim(shell, chosen, cx) {
+                shell.adopt_menu_target(&chosen.captured);
                 shell.keyboard.context = Keys::Listing;
-                // open_menu put its cursor on the clicked row and focused it, so the cursor's own file keeps Enter's path.
+                // The cursor stands on the menu's row now, so the cursor's own file keeps Enter's path.
                 shell.focus_side = chosen.captured.side;
                 shell.open_menu_target(chosen, window, cx);
             }
@@ -118,6 +119,7 @@ pub(super) fn run(
         Order::Menu(chosen) if chosen.action == "run" && shell.menu.context.row_is_file => {
             menu_claim(shell, chosen, cx) && {
                 let side = chosen.captured.side;
+                shell.adopt_menu_target(&chosen.captured);
                 shell.keyboard.context = Keys::Listing;
                 shell.focus_side = side;
                 shell.open_menu_target(chosen, window, cx);

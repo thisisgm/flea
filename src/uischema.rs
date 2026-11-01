@@ -50,7 +50,7 @@ pub const DEFAULTS: &str = r#"{
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
-    "ctrlZoom": true, "volume": 100, "width": 0, "wrap": false
+    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false
   },
   "previewFacts": "compact",
   "keys": "default",
@@ -91,6 +91,8 @@ pub enum Rule {
     TextSize,
     // ListColumns040: a dragged edge per column, clamped to the rails ui/js/Columns.js draws.
     ColumnWidths,
+    // Columns hairlines: each column's share left of the preview in ten-thousandths, as dual.split, at most four.
+    Tracks,
     // Any whole number, so a newer Flea's higher stamp survives this one's write; no patch may set it.
     Version,
     // A folder path to its own sort order, at most MAX_FOLDER_SORTS entries; see folderSorts above.
@@ -163,6 +165,8 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("ctrlZoom", Rule::Bool),
     ("volume", Rule::Count(0.0, 100.0)),
     ("width", Rule::Count(0.0, 100.0)),
+    // Columns: each column's share of the room left of the preview, left to right, [] for equal columns.
+    ("tracks", Rule::Tracks),
     // Quick Look's w: wraps long lines in a code or text file; off until pressed.
     ("wrap", Rule::Bool),
 ];

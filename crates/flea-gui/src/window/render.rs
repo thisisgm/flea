@@ -383,6 +383,7 @@ impl Render for Shell {
                     .map(|_| self.visual.probe.clone()),
             )
             .children(self.dual_divider(&geometry, palette, cx))
+            .children(self.sidebar_edge(&geometry, cx))
             .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))

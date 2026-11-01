@@ -1,6 +1,6 @@
-//! The mounted preview hairline lends pointer input to the area's retained resize owner.
+//! The mounted Columns hairlines, every column edge and the preview edge, lend pointer input to the area's resize owner.
 use crate::{
-    columns::{edge::EdgeElement, preview_host::Edge},
+    columns::{edge::EdgeElement, geometry::Line, preview_host::Edge},
     state::Shell,
 };
 use flea::jsondoc::Json;
@@ -11,10 +11,16 @@ use gpui::{
 
 pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option<AnyElement> {
     let columns = shell.panes[side].as_ref()?.columns.as_ref()?;
-    if !columns.area.host.third_shown(columns.area.settings) {
+    let third = columns.area.host.third_shown(columns.area.settings);
+    let layout = &columns.area.layout;
+    let zones: Vec<(Line, f32, f32)> = layout
+        .lines()
+        .filter(|&line| third || line != Line::Preview)
+        .filter_map(|line| Edge::zone_at(layout, line).map(|(left, width)| (line, left, width)))
+        .collect();
+    if zones.is_empty() {
         return None;
     }
-    let (left, width) = Edge::zone(&columns.area.layout);
     let entity = cx.entity().downgrade();
     let paint = columns.area.edge_paint();
     Some(
@@ -27,22 +33,38 @@ pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option
             .child(
                 canvas(
                     move |bounds, window, _| {
-                        let zone = gpui::Bounds::new(
-                            bounds.origin + point(px(left), px(0.)),
-                            size(px(width), bounds.size.height),
-                        );
-                        (window.insert_hitbox(zone, HitboxBehavior::Normal), zone)
+                        zones
+                            .iter()
+                            .map(|&(line, left, width)| {
+                                let zone = gpui::Bounds::new(
+                                    bounds.origin + point(px(left), px(0.)),
+                                    size(px(width), bounds.size.height),
+                                );
+                                (
+                                    line,
+                                    window.insert_hitbox(zone, HitboxBehavior::Normal),
+                                    zone,
+                                )
+                            })
+                            .collect::<Vec<_>>()
                     },
-                    move |bounds, (hit, zone), window, _| {
-                        window.set_cursor_style(gpui::CursorStyle::ResizeLeftRight, &hit);
+                    move |bounds, hits, window, _| {
+                        for (_, hit, _) in &hits {
+                            window.set_cursor_style(gpui::CursorStyle::ResizeLeftRight, hit);
+                        }
+                        let hits = std::rc::Rc::new(hits);
                         let down = entity.clone();
+                        let pressed = hits.clone();
                         window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
-                            if phase != DispatchPhase::Capture
-                                || event.button != MouseButton::Left
-                                || !hit.is_hovered(window)
+                            if phase != DispatchPhase::Capture || event.button != MouseButton::Left
                             {
                                 return;
                             }
+                            let Some(&(line, _, _)) =
+                                pressed.iter().find(|(_, hit, _)| hit.is_hovered(window))
+                            else {
+                                return;
+                            };
                             let _ = down.update(cx, |shell, cx| {
                                 if shell.input_blocked(cx) {
                                     return;
@@ -53,6 +75,7 @@ pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option
                                 else {
                                     return;
                                 };
+                                columns.area.host.edge.at = line;
                                 if event.click_count == 2 {
                                     columns.area.edge_restore();
                                 } else {
@@ -79,8 +102,20 @@ pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option
                                     return;
                                 };
                                 let area = &mut columns.area;
-                                let old = (area.host.edge.hovered, area.host.edge.last);
-                                area.host.edge.hovered = !blocked && zone.contains(&event.position);
+                                let old = (
+                                    area.host.edge.hovered,
+                                    area.host.edge.at,
+                                    area.host.edge.last,
+                                );
+                                let hot = hits
+                                    .iter()
+                                    .find(|(_, _, zone)| zone.contains(&event.position))
+                                    .map(|&(line, _, _)| line)
+                                    .filter(|_| !blocked);
+                                area.host.edge.hovered = hot.is_some();
+                                if let Some(line) = hot.filter(|_| !area.host.edge.dragging) {
+                                    area.host.edge.at = line;
+                                }
                                 if area.host.edge.dragging {
                                     if blocked || event.pressed_button != Some(MouseButton::Left) {
                                         area.edge_release();
@@ -89,7 +124,13 @@ pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option
                                     }
                                     cx.stop_propagation();
                                 }
-                                if old != (area.host.edge.hovered, area.host.edge.last) {
+                                if old
+                                    != (
+                                        area.host.edge.hovered,
+                                        area.host.edge.at,
+                                        area.host.edge.last,
+                                    )
+                                {
                                     cx.notify();
                                 }
                                 shell.persist_columns_edge(side, window, cx);
@@ -134,18 +175,36 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let stored = self.panes[side]
+        let Some(area) = self.panes[side]
             .as_mut()
             .and_then(|host| host.columns.as_mut())
-            .and_then(|columns| std::mem::take(&mut columns.area.stored).last().copied());
-        let Some(width) = stored else {
+            .map(|columns| &mut columns.area)
+        else {
             return;
         };
-        if crate::window::selection_preview::host::share(&self.launch.settings.data) == width as f32
+        let stored = std::mem::take(&mut area.stored).last().copied();
+        let tracks = area.stored_tracks.take();
+        let data = &self.launch.settings.data;
+        let mut preview = Vec::new();
+        if let Some(width) = stored
+            .filter(|&width| crate::window::selection_preview::host::share(data) != width as f32)
         {
+            preview.push(("width".into(), Json::Num(width.to_string())));
+        }
+        if let Some(tracks) = tracks {
+            let held = crate::window::selection_preview::host::tracks(data);
+            if held != tracks.iter().map(|&w| w as f32).collect::<Vec<_>>() {
+                let items = tracks.iter().map(|w| Json::Num(w.to_string())).collect();
+                preview.push(("tracks".into(), Json::Arr(items)));
+            }
+        }
+        if preview.is_empty() {
             return;
         }
-        let preview = Json::Obj(vec![("width".into(), Json::Num(width.to_string()))]);
-        self.change_settings(Json::Obj(vec![("preview".into(), preview)]), window, cx);
+        self.change_settings(
+            Json::Obj(vec![("preview".into(), Json::Obj(preview))]),
+            window,
+            cx,
+        );
     }
 }

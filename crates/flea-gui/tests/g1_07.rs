@@ -29,6 +29,8 @@ mod cols_folder;
 mod cols_folder_2;
 #[path = "g1_07/cols_geom.rs"]
 mod cols_geom;
+#[path = "g1_07/cols_hairlines.rs"]
+mod cols_hairlines;
 #[path = "g1_07/cols_hidden.rs"]
 mod cols_hidden;
 #[path = "g1_07/cols_moves.rs"]

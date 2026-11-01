@@ -114,10 +114,11 @@ impl Shell {
         if event.button == MouseButton::Right {
             let at = (event.position.x.into(), event.position.y.into());
             if view.slot == Slot::Active {
-                if row.is_some() && !host.selected.contains(&index) {
-                    host.selected.clear();
+                if row.is_some() {
+                    self.open_menu_in_place(side, index, at, window, cx);
+                } else {
+                    self.open_menu(side, None, at, window, cx);
                 }
-                self.open_menu(side, row.as_ref().map(|_| index), at, window, cx);
             } else if !view.path.is_empty() {
                 let facts = match &view.rows {
                     TrackRows::Peek(rows) => rows.get(index).map(|row| flea::protocol::RowFacts {
@@ -164,16 +165,33 @@ impl Shell {
                 cx,
             );
         }
-        if !dir && view.slot != Slot::Active && event.click_count == 2 && !blocked {
-            self.open_file(
-                side,
-                crate::navigation::history::join(&view.path, &name),
-                window,
-                cx,
-            );
+        if !dir && view.slot != Slot::Active && event.click_count == 1 && !blocked {
+            self.columns_neighbour_file(side, &view.path, &name, window, cx);
         }
         self.sync_columns(window, cx);
         cx.notify();
+    }
+
+    /// Every press first ends a neighbour file tap; only that gesture's second tap opens the file, before any track sees it.
+    pub(crate) fn columns_file_tap(
+        &mut self,
+        side: usize,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let blocked = self.input_blocked(cx);
+        let Some(file) = self.panes[side]
+            .as_mut()
+            .and_then(|host| host.columns.as_mut())
+            .and_then(|columns| columns.file_tap.take())
+        else {
+            return;
+        };
+        if event.button == MouseButton::Left && event.click_count == 2 && !blocked {
+            cx.stop_propagation();
+            self.open_file(side, file, window, cx);
+        }
     }
 
     pub(crate) fn columns_landed(

@@ -18,6 +18,21 @@ pub(crate) fn share(data: &Json) -> f32 {
         .unwrap_or(0.) as f32
 }
 
+/// preview.tracks: each Columns track's weight left of the third, empty for equal tracks.
+pub(crate) fn tracks(data: &Json) -> Vec<f32> {
+    data.get("preview")
+        .and_then(|v| v.get("tracks"))
+        .and_then(Json::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Json::as_f64)
+                .map(|w| w as f32)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 impl Shell {
     /// The retained renderer shared with the pane and future expanded-preview host.
     pub fn selection_preview(&self, side: usize) -> Option<Entity<SelectionPreview>> {
@@ -61,11 +76,12 @@ impl Shell {
             };
             let subject = Subject::for_pane(host);
             let share = share(&self.launch.settings.data);
-            let width = crate::columns::geometry::Layout::new(
+            let width = crate::columns::geometry::Layout::weighted(
                 geometry.panes[side].width,
                 Some(self.launch.settings.columns as f64),
                 share.into(),
                 None,
+                &tracks(&self.launch.settings.data),
             )
             .third_width;
             // The search strip over Columns, as columns_search_strip reads it, from the host already borrowed.
