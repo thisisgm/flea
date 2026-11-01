@@ -231,6 +231,7 @@ fn balanced(text: &str) -> bool {
     }
     depth == 0
 }
+// Sample input: "\x1b[1mاختير \u{2066}3\u{2069} عناصر.\x1b[22m" gives [('\u{2066}', "3")].
 // The visible run each isolate wraps, in order, with its opening marker.
 fn isolated(text: &str) -> Vec<(char, String)> {
     let plain_text: String = {
