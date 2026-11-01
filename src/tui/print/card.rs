@@ -54,7 +54,7 @@ fn labels(m: &Model) -> [Button; 2] {
 }
 pub(super) fn field_column(m: &Model, content: usize) -> usize {
     FIELD_COLUMN
-        .max(text_width(&m.i18n.tr("dialogs.output.copies").to_uppercase()) + 2)
+        .max(text_width(&m.heading("dialogs.output.copies")) + 2)
         .max(text_width(&m.i18n.tr("dialogs.output.two_sided")) + 6)
         .min(content / 2)
 }
