@@ -3695,3 +3695,105 @@ key = "Delete"
 action = "killForward"
 label = ""
 context = "editor"
+
+# TUI17 sheet labels share the generated English keys region.
+
+[[native_copy]]
+key = "tui17.copyDirUri"
+text = "Copy directory URI"
+
+[[native_copy]]
+key = "tui17.copyName"
+text = "Copy filename"
+
+[[native_copy]]
+key = "tui17.copyPath"
+text = "Copy path"
+
+[[native_copy]]
+key = "tui17.copyStem"
+text = "Copy filename without extension"
+
+[[native_copy]]
+key = "tui17.copyUri"
+text = "Copy URI"
+
+[[native_copy]]
+key = "tui17.copydirpath"
+text = "Copy directory path"
+
+[[native_copy]]
+key = "tui17.detailBirth"
+text = "Show creation time"
+
+[[native_copy]]
+key = "tui17.detailOff"
+text = "Hide detail column"
+
+[[native_copy]]
+key = "tui17.findNext"
+text = "Find next"
+
+[[native_copy]]
+key = "tui17.findPrevious"
+text = "Find previous"
+
+[[native_copy]]
+key = "tui17.followLink"
+text = "Follow link"
+
+[[native_copy]]
+key = "tui17.killBackward"
+text = "Delete previous word (field)"
+
+[[native_copy]]
+key = "tui17.killBol"
+text = "Delete to start (field)"
+
+[[native_copy]]
+key = "tui17.killEol"
+text = "Delete to end (field)"
+
+[[native_copy]]
+key = "tui17.killForward"
+text = "Delete next word (field)"
+
+[[native_copy]]
+key = "tui17.pasteAbsoluteLink"
+text = "Paste absolute symbolic links"
+
+[[native_copy]]
+key = "tui17.pasteHardLink"
+text = "Paste hard links"
+
+[[native_copy]]
+key = "tui17.pasteLink"
+text = "Paste relative symbolic links"
+
+[[native_copy]]
+key = "tui17.sortBirth"
+text = "Sort by creation time"
+
+[[native_copy]]
+key = "tui17.sortBirthReverse"
+text = "Sort by creation time (reverse)"
+
+[[native_copy]]
+key = "tui17.sortExtension"
+text = "Sort by extension"
+
+[[native_copy]]
+key = "tui17.sortRandom"
+text = "Shuffle files"
+
+[[native_copy]]
+key = "tui17.suspend"
+text = "Suspend"
+
+[[native_copy]]
+key = "tui17.wordBackward"
+text = "Previous word (field)"
+
+[[native_copy]]
+key = "tui17.wordForward"
+text = "Next word (field)"
