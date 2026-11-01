@@ -329,7 +329,7 @@ fn i50_query_filter_platform_control_text_refused(cx: &mut TestAppContext) {
     assert!(sent.contains("\"query\":\"ok\""), "{sent}");
 }
 
-// A query wider than its field scrolls; in an Arabic window its caret must stay inside the mirrored field.
+// A query wider than its field scrolls; in an Arabic window its caret, at the end or the start, stays inside the mirrored field.
 #[gpui::test]
 fn i50_query_filter_scrolled_query_stays_in_the_mirrored_field(cx: &mut TestAppContext) {
     let (handle, mut read) = open(cx);
@@ -351,24 +351,30 @@ fn i50_query_filter_scrolled_query_stays_in_the_mirrored_field(cx: &mut TestAppC
     let mut input = input(cx, handle);
     let long = "w".repeat(400);
     input.replace_text_in_range(None, &long);
-    frame(cx, handle);
-    let caret = input.bounds_for_range(400..400).expect("filter caret");
-    edit(cx, handle, |shell, window, _| {
-        let filter = &shell.panes[0].as_ref().unwrap().filter;
-        let strip = filter.strip.borrow();
-        let field = strip.query.bounds.get().expect("the query is placed");
-        let laid = strip.laid.unwrap();
-        assert!(
-            f32::from(laid.query.size.width) > 2. * f32::from(field.size.width),
-            "fixture must scroll: {laid:?} {field:?}"
-        );
-        let width = window.viewport_size().width;
-        let (start, end) = (width - field.right(), width - field.left());
-        assert!(
-            caret.left() >= start - px(1.) && caret.right() <= end + px(1.),
-            "caret {caret:?} left the mirrored field {start:?}..{end:?}"
-        );
-    });
+    for at in [400, 0] {
+        edit(cx, handle, |shell, _, _| {
+            let owner = &shell.panes[0].as_ref().unwrap().filter.owner;
+            owner.entry.borrow_mut().move_to(at);
+        });
+        frame(cx, handle);
+        let caret = input.bounds_for_range(at..at).expect("filter caret");
+        edit(cx, handle, |shell, window, _| {
+            let filter = &shell.panes[0].as_ref().unwrap().filter;
+            let strip = filter.strip.borrow();
+            let field = strip.query.bounds.get().expect("the query is placed");
+            let laid = strip.laid.unwrap();
+            assert!(
+                f32::from(laid.query.size.width) > 2. * f32::from(field.size.width),
+                "fixture must scroll: {laid:?} {field:?}"
+            );
+            let width = window.viewport_size().width;
+            let (start, end) = (width - field.right(), width - field.left());
+            assert!(
+                caret.left() >= start - px(1.) && caret.right() <= end + px(1.),
+                "caret at {at}: {caret:?} left the mirrored field {start:?}..{end:?}"
+            );
+        });
+    }
 }
 
 #[path = "../../strips/i50_query_columns_tests.rs"]
