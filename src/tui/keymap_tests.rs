@@ -234,3 +234,29 @@ fn shift_delete_and_uppercase_alternatives_decode_without_keyboard_negotiation()
         }
     }
 }
+
+#[test]
+fn candidate_contents_binding_and_sequence_hints_reach_real_actions() {
+    let map = Map::load();
+    assert_eq!(map.action(&Key::character('S', ""), "yazi"), "searchContents");
+    assert_eq!(map.chord("tabNew", "yazi", "listing").as_deref(), Some("t t"));
+    assert_eq!(map.chord("sortName", "yazi", "listing").as_deref(), Some(", a"));
+    assert!(map.chord("tabNew", "yazi", "editor").is_none());
+    let arm = "[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"t\"\naction = \"prefix:t\"\ncontext = \"listing\"\n\n";
+    let tail = "[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"t\"\naction = \"tabNew\"\ncontext = \"listing\"\nprefix = \"t\"\n";
+    assert_eq!(Map::parse(&format!("{arm}{tail}")).chord("tabNew", "yazi", "listing").as_deref(), Some("t t"));
+    let earlier = "[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"t\"\naction = \"cursorDown\"\ncontext = \"listing\"\n\n";
+    assert!(Map::parse(&format!("{earlier}{arm}{tail}")).chord("tabNew", "yazi", "listing").is_none(), "a shadowed arm is not a reachable sequence");
+}
+
+#[test]
+fn convert_fallback_is_queryable_and_does_not_escape_listing() {
+    let map = Map::load();
+    for preset in ["default", "vim", "mac", "windows", "yazi"] {
+        for mods in ["", "shift"] {
+            assert_eq!(map.action(&Key::character('F', mods), preset), "convert");
+            assert!(map.in_context(&Key::character('F', mods), preset, "editor").is_empty());
+            assert!(map.in_context(&Key::character('F', mods), preset, "panel").is_empty());
+        }
+    }
+}

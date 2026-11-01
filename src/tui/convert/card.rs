@@ -177,15 +177,35 @@ pub fn geometry(m: &Model) -> Card {
     let widths: Vec<_> = labels(m).iter().map(|b| text_width(&b.label) + 4).collect();
     let need = (text_width(&title(m)) + text_width(&m.i18n.tr("card.esc")) + 2)
         .max(50)
+        .max(
+            f.kind
+                .formats()
+                .iter()
+                .map(|format| {
+                    text_width(&m.i18n.tr(&format!("dialogs.output.choice.{format}"))) + 3
+                })
+                .max()
+                .unwrap_or(0),
+        )
+        .max(
+            text_width(&m.i18n.tr(if f.combine_option() {
+                "dialogs.output.combine_pdf"
+            } else {
+                "dialogs.output.metadata"
+            })) + 4,
+        )
         .max(widths.iter().sum::<usize>() + 2);
     let rows = body(m, need.min(cards::room(m.columns)));
-    cards::layout(
-        m.columns,
-        m.height + crate::tui::layout::CHROME_ROWS,
-        need,
-        rows.len(),
-        &widths,
-        f.scroll,
+    cards::direction(
+        m,
+        cards::layout(
+            m.columns,
+            m.height + crate::tui::layout::CHROME_ROWS,
+            need,
+            rows.len(),
+            &widths,
+            f.scroll,
+        ),
     )
 }
 pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
@@ -220,22 +240,33 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                     &theme.frame
                 };
                 let edge = if chosen && f.focus == 0 { "▎" } else { " " };
-                out.push_str(&format!(
-                    "{fill}{}{edge}{ink}{} {}{}",
-                    theme.accent,
-                    if m.marks() { mark } else { " " },
-                    theme.foreground,
-                    fit(&row.text, card.content().saturating_sub(3))
-                ));
+                if cards::rtl(m) {
+                    out.push_str(&format!(
+                        "{fill}{} {ink}{}{}{edge}",
+                        cards::field_text(m, &row.text, card.content().saturating_sub(3)),
+                        if m.marks() { mark } else { " " },
+                        theme.accent
+                    ));
+                } else {
+                    out.push_str(&format!(
+                        "{fill}{}{edge}{ink}{} {}{}",
+                        theme.accent,
+                        if m.marks() { mark } else { " " },
+                        theme.foreground,
+                        fit(&row.text, card.content().saturating_sub(3))
+                    ));
+                }
             }
             2 => out.push_str(&format!("{}{}", theme.rule, "─".repeat(card.content()))),
             3 => out.push_str(&format!(
                 "{}{}",
                 theme.muted,
-                fit(&row.text, card.content())
+                cards::field_text(m, &row.text, card.content())
             )),
             4 => out.push_str(&format!(
-                "{}{}{}{}",
+                "\x1b[{};{}H{}{}{}{}",
+                card.y + 4 + i - card.top,
+                cards::column(m, &card, 0, (text_width(&row.text) + 1).min(card.content())) + 1,
                 theme.field,
                 if f.pages.is_empty() {
                     &theme.muted
@@ -243,7 +274,14 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                     &theme.foreground
                 },
                 if f.focus == 1 { "\x1b[4m" } else { "" },
-                fit(&row.text, (text_width(&row.text) + 1).min(card.content()))
+                crate::tui::cells::isolate(
+                    crate::tui::cells::Run::Number,
+                    &cards::field_text(
+                        m,
+                        &row.text,
+                        (text_width(&row.text) + 1).min(card.content())
+                    )
+                )
             )),
             5 => {
                 let checked = if f.combine_option() {
@@ -256,17 +294,26 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 } else {
                     &theme.muted
                 };
-                out.push_str(&format!(
-                    "{}[{}] {ink}{}{}",
-                    if f.option_enabled() {
-                        &theme.frame
-                    } else {
-                        &theme.muted
-                    },
-                    if checked { "x" } else { " " },
-                    if f.focus == 1 { "\x1b[4m" } else { "" },
-                    fit(&row.text, card.content().saturating_sub(4))
-                ));
+                if cards::rtl(m) {
+                    out.push_str(&format!(
+                        "{ink}{}{} [{}]",
+                        if f.focus == 1 { "\x1b[4m" } else { "" },
+                        cards::field_text(m, &row.text, card.content().saturating_sub(4)),
+                        if checked { "x" } else { " " }
+                    ));
+                } else {
+                    out.push_str(&format!(
+                        "{}[{}] {ink}{}{}",
+                        if f.option_enabled() {
+                            &theme.frame
+                        } else {
+                            &theme.muted
+                        },
+                        if checked { "x" } else { " " },
+                        if f.focus == 1 { "\x1b[4m" } else { "" },
+                        fit(&row.text, card.content().saturating_sub(4))
+                    ));
+                }
             }
             6 | 8 => {
                 let output = m.i18n.tr("dialogs.output.output");
@@ -276,13 +323,29 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 } else {
                     " ".repeat(lead)
                 };
-                out.push_str(&format!(
-                    "{}{}{base}{}{}",
-                    theme.muted,
-                    fit(&prefix, lead),
-                    theme.foreground,
-                    fit(&row.text, card.content().saturating_sub(lead))
-                ));
+                if cards::rtl(m) {
+                    out.push_str(&format!(
+                        "{}{}{}{}",
+                        theme.foreground,
+                        crate::tui::cells::isolate(
+                            crate::tui::cells::Run::Name,
+                            &cards::field_text(m, &row.text, card.content().saturating_sub(lead))
+                        ),
+                        theme.muted,
+                        cards::field_text(m, &prefix, lead)
+                    ));
+                } else {
+                    out.push_str(&format!(
+                        "{}{}{base}{}{}",
+                        theme.muted,
+                        fit(&prefix, lead),
+                        theme.foreground,
+                        crate::tui::cells::isolate(
+                            crate::tui::cells::Run::Name,
+                            &fit(&row.text, card.content().saturating_sub(lead))
+                        )
+                    ));
+                }
             }
             7 => out.push_str(&format!(
                 "{}{}",

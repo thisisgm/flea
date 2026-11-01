@@ -5,7 +5,7 @@ use std::process::{Child, Command, Stdio};
 
 pub fn terminal(path: &Path, window: bool) -> io::Result<Child> {
     let path = path.canonicalize()?;
-    if !path.is_dir() { return Err(io::Error::other("That is not a folder, so no terminal was opened")); }
+    if !path.is_dir() { return Err(super::words::error("tui.launch.that_is_not_a_folder_so_no_terminal_was_opened")); }
     let mut directory = std::ffi::OsString::from("--dir=");
     directory.push(&path);
     let mut command = Command::new("xdg-terminal-exec");

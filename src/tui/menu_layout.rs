@@ -26,10 +26,10 @@ pub enum Sub { #[default] Root, OpenWith, Compress, Taildrop }
 pub enum Ink { Plain, Dim, Destructive, Unavailable }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Entry { pub id: String, pub mark: &'static str, pub label: String, pub trail: String, pub chevron: bool, pub ink: Ink }
+pub struct Entry { pub id: String, pub mark: &'static str, pub label: String, pub trail: String, pub keycap: bool, pub chevron: bool, pub ink: Ink }
 impl Entry {
     fn new(id: &str, mark: &'static str, label: String, ink: Ink) -> Self {
-        Self { id: id.into(), mark, label, trail: String::new(), chevron: false, ink }
+        Self { id: id.into(), mark, label, trail: String::new(), keycap: false, chevron: false, ink }
     }
     pub fn enabled(&self) -> bool { matches!(self.ink, Ink::Plain | Ink::Destructive) }
 }
@@ -37,6 +37,7 @@ impl Entry {
 // What the menu knows beyond the listing: its submenu, the anchor it opened on, and the facts the backend sent for it.
 #[derive(Default)]
 pub struct View {
+    pub properties_source: Option<(usize, Json)>,
     pub sub: Sub,
     pub parent: usize,
     pub row: usize,
@@ -76,7 +77,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
     let mut groups: Vec<Vec<Entry>> = Vec::new();
     match v.sub {
         Sub::Taildrop => groups.push(if m.taildrop.peers.is_empty() {
-            vec![Entry::new("", MACHINE, state(m, &m.taildrop.error), Ink::Unavailable)]
+            vec![Entry::new("", MACHINE, state(m), Ink::Unavailable)]
         } else {
             m.taildrop.peers.iter().enumerate().map(|(i, peer)| Entry::new(&format!("peer:{i}"), MACHINE, peer.label.clone(),
                 if m.taildrop.loading() { Ink::Dim } else { wait(Ink::Plain) })).collect()
@@ -106,6 +107,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
                 }
                 if !v.formats.is_empty() { archive.push(Entry { chevron: true, ..Entry::new("compress", ARCHIVE, tr("menu.compress"), wait(Ink::Plain)) }); }
                 if !m.menu_directory && crate::tui::convert::offered(m) { archive.push(Entry::new("convert", "\u{eb52}", tr("menu.row.convert"), wait(Ink::Plain))); }
+                if !m.menu_directory && crate::tui::combine::offered(m) { archive.push(Entry::new("combine", "\u{eb9f}", tr("menu.row.combine_images"), wait(Ink::Plain))); }
                 archive.extend(v.actions.iter().map(|(id, name)| Entry::new(&format!("action:{id}"), HASH, name.clone(), wait(Ink::Plain))));
                 if v.taildrop { share.push(taildrop(m, tr("menu.taildrop"))); }
                 if let Some(account) = v.dropbox.as_ref().filter(|root| m.menu_view.paths.is_empty() || !m.menu_view.paths.iter().all(|path| within(root, path))) {
@@ -125,8 +127,10 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
     for group in groups.into_iter().filter(|group| !group.is_empty()) {
         if !out.is_empty() { out.push(None); }
         for mut row in group {
-            if v.hints && row.trail.is_empty() && !row.chevron {
+            if v.hints && row.id != "combine" && row.trail.is_empty() && !row.chevron {
                 row.trail = if row.id == "convert" && map.action(&crate::tui::input::Key::character('F', ""), &m.preset).is_empty() { "F".into() } else { super::key_sheet::hint(map, &m.preset, match row.id.as_str() { "delete" => "deletePermanently", id => id }) };
+                row.trail = m.keycap_labels.get(&row.trail).cloned().unwrap_or(row.trail);
+                row.keycap = !row.trail.is_empty();
             }
             out.push(Some(row));
         }
@@ -138,7 +142,7 @@ fn taildrop(m: &Model, label: String) -> Entry {
     let mut row = Entry { chevron: true, ..Entry::new("taildrop", TAILSCALE, label, Ink::Plain) };
     let busy = m.taildrop.loading();
     let word = if m.menu_directory { Some(m.i18n.tr("menu.state.filesOnly")) }
-        else if !busy && m.taildrop.peers.is_empty() { Some(state(m, if m.taildrop.error.is_empty() { "no peers" } else { &m.taildrop.error })) }
+        else if !busy && m.taildrop.peers.is_empty() { Some(state(m)) }
         else { None };
     match word {
         Some(word) => { row.ink = Ink::Unavailable; row.trail = word; row.chevron = false; }
@@ -148,8 +152,8 @@ fn taildrop(m: &Model, label: String) -> Entry {
     row
 }
 // Taildrop's own error as the window's state word, never the provider's sentence.
-fn state(m: &Model, error: &str) -> String {
-    m.i18n.tr(match error { "signed out" => "menu.state.signedOut", "no peers" => "menu.state.noDevices", _ => "menu.state.offline" })
+fn state(m: &Model) -> String {
+    m.i18n.tr(m.taildrop.state_key())
 }
 fn within(root: &str, path: &str) -> bool {
     root.len() > 1 && root.starts_with('/') && (path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/')))
@@ -185,6 +189,7 @@ pub fn place(m: &Model, rows: &[Option<Entry>]) -> Place {
         else { start + body.saturating_sub(shown + 2) };
     let visible = shown.saturating_sub(usize::from(title.is_some())).max(1);
     let top = m.menu_top.min(m.menu_cursor).max((m.menu_cursor + 1).saturating_sub(visible)).min(rows.len().saturating_sub(visible));
+    let x = crate::tui::layout::visual_start(m, x, width + 2);
     Place { x, y, width, rows: shown, top }
 }
 // Some(Some(entry)) on an entry's row, Some(None) elsewhere inside the frame, None outside it; x and y are the terminal's 1-based cells.
@@ -208,7 +213,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
     let mut y = p.y + 1;
     if let Some(title) = title(m) {
         at(out, y);
-        out.push_str(&format!("{}│{} {}{} {}│", theme.frame, base, theme.muted, fit(&title, p.width.saturating_sub(2)), theme.frame));
+        out.push_str(&format!("{}│{} {}{} {}│", theme.frame, base, theme.muted, super::cards::field_text(m, &title, p.width.saturating_sub(2)), theme.frame));
         y += 1;
     }
     for (index, row) in rows.iter().enumerate().skip(p.top).take(p.y + p.rows + 1 - y) {
@@ -222,12 +227,29 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
                     Ink::Plain => (&theme.frame, &theme.foreground), Ink::Dim => (&theme.muted, &theme.muted),
                     Ink::Destructive => (&theme.error, &theme.error), Ink::Unavailable => (&theme.unavailable, &theme.unavailable),
                 };
-                let trail = if row.chevron { CHEVRON.to_owned() } else { row.trail.clone() };
+                let trail = if row.chevron {
+                    if m.i18n.locale().right_to_left && crate::tui::cells::mirrors("menu_arrows") { "\u{eab5}".into() }
+                    else { CHEVRON.to_owned() }
+                } else { row.trail.clone() };
                 let room = p.width.saturating_sub(4 + if trail.is_empty() { 0 } else { 1 + text_width(&trail) });
                 let word = if row.ink == Ink::Unavailable { &theme.unavailable_word } else { &theme.muted };
-                out.push_str(&format!(" {}{} {}{}", mark, fit(if m.marks() { row.mark } else { " " }, 1), ink, fit(&row.label, room)));
-                if !trail.is_empty() { out.push_str(&format!(" {}{}", word, fit(&trail, p.width.saturating_sub(5 + room)))); }
-                out.push(' ');
+                let label = super::cards::field_text(m, &row.label, room);
+                let label = if row.id.starts_with("peer:") || row.id.starts_with("app:") || row.id.starts_with("action:") {
+                    crate::tui::cells::isolate(crate::tui::cells::Run::Name, &label)
+                } else { label };
+                let shown_trail = fit(&trail, p.width.saturating_sub(5 + room));
+                let shown_trail = if row.keycap {
+                    crate::tui::cells::isolate(crate::tui::cells::Run::Number, &shown_trail)
+                } else { shown_trail };
+                if super::cards::rtl(m) {
+                    out.push(' ');
+                    if !trail.is_empty() { out.push_str(&format!("{word}{shown_trail} ")); }
+                    out.push_str(&format!("{ink}{label} {mark}{} ", fit(if m.marks() { row.mark } else { " " }, 1)));
+                } else {
+                    out.push_str(&format!(" {mark}{} {ink}{label}", fit(if m.marks() { row.mark } else { " " }, 1)));
+                    if !trail.is_empty() { out.push_str(&format!(" {word}{shown_trail}")); }
+                    out.push(' ');
+                }
             }
         }
         out.push_str(&format!("{}{}│", base, theme.frame));

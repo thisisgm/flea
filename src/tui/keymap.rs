@@ -56,6 +56,19 @@ impl Map {
                 }
             }
         }
+        // Older shared maps retain the obsolete contents refusal in the optional preset.
+        for (kind, block) in &mut map.blocks {
+            if kind == "tui" && get(block, "name") == "yazi" && get(block, "prefix").is_empty()
+                && get(block, "key") == "S" && get(block, "mods") == "text" && get(block, "context") == "listing"
+                && get(block, "action") == "unsupported:Content search is unavailable; s opens built-in filename search" {
+                block.insert("action".into(), "searchContents".into());
+            }
+            if kind == "tui" && get(block, "name") == "yazi" && get(block, "mods") == "shift"
+                && get(block, "key") == "Return" && get(block, "context") == "listing"
+                && get(block, "action") == "unsupported:Interactive application picking is unavailable in this terminal build; O opens a folder tab" {
+                block.insert("action".into(), "menu".into());
+            }
+        }
         map
     }
     pub fn action(&self, key: &Key, preset: &str) -> String {
@@ -122,23 +135,41 @@ impl Map {
         if key.mods.is_empty() && key.text.len() == 1 && matches!(key.text.as_bytes()[0], b'1'..=b'9') {
             return format!("tab{}", key.text);
         }
+        // Convert already has this fallback in dispatch; keep map queries and hints consistent.
+        if key.text == "F" && matches!(key.mods.as_str(), "" | "shift") { return "convert".into(); }
         String::new()
     }
     pub fn sequence(&self, prefix: &str, key: &Key, preset: &str, context: &str) -> String {
-        self.blocks.iter().find(|(kind, block)| kind == "tui" && get(block, "name") == preset
+        let action: String = self.blocks.iter().find(|(kind, block)| kind == "tui" && get(block, "name") == preset
             && get(block, "prefix") == prefix && context_matches(block, context) && matches_key(block, key))
-            .map(|(_, block)| get(block, "action").into()).unwrap_or_default()
+            .map(|(_, block)| get(block, "action").into()).unwrap_or_default();
+        if preset == "yazi" && context == "listing" && prefix == "m"
+            && action == "unsupported:Specific detail modes are unavailable in this terminal build" {
+            let field = match key.text.as_str() { "s" => "size", "p" => "mode", "m" => "modified", "o" => "owner", _ => return action };
+            return format!("unsupported:detail:{field}");
+        }
+        action
     }
-    // The first key a preset binds to an action in a context, spelled as the sheet spells it: "Ctrl+Space", "Escape", "?".
+    // The first key a preset binds to an action in a context, else its first reachable prefix sequence, spelled as the sheet spells it: "Ctrl+Space", "Escape", "?", "t t".
     pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> { self.chord_where(action, preset, context, |_| true) }
-    // The first key of action whose modifiers keep accepts.
+    // The first key or prefix sequence of action whose modifiers keep accepts.
     pub fn chord_where(&self, action: &str, preset: &str, context: &str, keep: fn(&Key) -> bool) -> Option<String> {
-        self.blocks
-            .iter()
-            .filter(|(_, block)| get(block, "action") == action)
+        let direct = self.blocks.iter().filter(|(_, block)| get(block, "action") == action)
             .filter_map(|(kind, block)| block_key(kind, block))
             .find(|(_, key)| keep(key) && self.in_context(key, preset, context) == action)
-            .map(|(name, key)| spell(&key, name))
+            .map(|(name, key)| spell(&key, name));
+        direct.or_else(|| self.blocks.iter().find_map(|(kind, block)| {
+            let prefix = get(block, "prefix");
+            if kind != "tui" || prefix.is_empty() || get(block, "name") != preset
+                || get(block, "action") != action || !context_matches(block, context) { return None; }
+            let (tail_name, tail) = block_key(kind, block)?;
+            if !keep(&tail) || self.sequence(prefix, &tail, preset, context) != action { return None; }
+            let arm = format!("prefix:{prefix}");
+            self.blocks.iter().filter(|(_, block)| get(block, "action") == arm)
+                .filter_map(|(kind, block)| block_key(kind, block))
+                .find(|(_, key)| keep(key) && self.in_context(key, preset, context) == arm)
+                .map(|(name, key)| format!("{} {}", spell(&key, name), spell(&tail, tail_name)))
+        }))
     }
 }
 // A block as the key it binds and the name the sheet prints for it; None for a block that binds no key the sheet can show.
@@ -258,6 +289,8 @@ pub(super) fn supported(action: &str) -> bool {
             | "editFile"
             | "detailNext"
             | "print"
+            | "convert"
+            | "combine"
             | "factsToggle"
             | "pageForward"
             | "reload"

@@ -3,6 +3,10 @@ use std::time::{Duration, Instant};
 
 pub const BODY_ROW: usize = 3;
 pub const CHROME_ROWS: usize = 4;
+pub fn rtl(m: &Model) -> bool { m.i18n.locale().right_to_left && cells::mirrors("columns") }
+pub fn visual_start(m: &Model, start: usize, width: usize) -> usize {
+    if rtl(m) { m.columns.saturating_sub(start.saturating_add(width)) } else { start }
+}
 pub fn body_height(lines: usize) -> usize { lines.saturating_sub(CHROME_ROWS) }
 pub fn panes(columns: usize, preview: bool) -> (usize, usize, usize) {
     let left = (columns * 22 / 100).saturating_sub(1);
@@ -28,14 +32,14 @@ pub(super) fn short_path(path: &std::path::Path) -> String {
 }
 fn sort_label(m: &Model) -> String {
     if let Some(sort) = super::trashview::sort(m) { return sort; }
-    let name = match m.sort.as_str() { "size" => "Size", "mtime" | "date" => "Modified", "kind" => "Kind", _ => "Name" };
-    format!("{name} {}", if m.reverse { "▾" } else { "▴" })
+    let name = match m.sort.as_str() { "size" => "window.column_size", "mtime" | "date" => "window.column_modified", "kind" => "list.column_kind", _ => "window.column_name" };
+    format!("{} {}", m.i18n.tr(name), if m.reverse { "▾" } else { "▴" })
 }
 // The leading non-tab span preserves the existing mouse hit map; tab() refuses its sentinel index.
 pub fn tab_layout(m: &Model, columns: usize) -> Vec<(usize, String)> {
     if m.tabs.len() < 2 { return Vec::new(); }
     let available = columns.saturating_sub(text_width(&sort_label(m)) + 2).max(1);
-    let label = |i: usize| format!(" {} {} ", i + 1, m.tabs[i].path.file_name().unwrap_or_default().to_string_lossy());
+    let label = |i: usize| format!(" {} {} ", m.i18n.locale().format_count((i + 1) as i64), m.tabs[i].path.file_name().unwrap_or_default().to_string_lossy());
     let mut first = m.tab;
     let mut used = text_width(&label(first)).min(available);
     while first > 0 && used + text_width(&label(first - 1)) <= available {
@@ -72,6 +76,16 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
     let sort_width = text_width(&sort).min(inner);
     let room = inner.saturating_sub(sort_width);
     let gap = room.min(2);
+    if rtl(m) {
+        let trailing = crumbs(&display_path(m), room - gap, theme);
+        let mut tabs = tab_layout(m, inner);
+        let mut contents = String::new();
+        for (index, text) in tabs.drain(..).rev() {
+            if index == usize::MAX { contents.push_str(&crumbs(&display_path(m), text_width(&text), theme)); }
+            else { contents.push_str(if index == m.tab { &theme.tab } else { &theme.background }); contents.push_str(if index == m.tab { &theme.foreground } else { &theme.muted }); contents.push_str(&text); contents.push_str(&theme.base()); }
+        }
+        return format!("{} {}{}{}{}{} ", theme.base(), theme.meta, fit(&sort, sort_width), " ".repeat(gap), if contents.is_empty() { trailing } else { contents }, theme.base());
+    }
     let mut out = format!("{} ", theme.base());
     let tabs = tab_layout(m, inner);
     if tabs.is_empty() { out.push_str(&crumbs(&display_path(m), room - gap, theme)); }
@@ -89,16 +103,21 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
     out.push_str(&format!("{}{}{}{} ", theme.base(), " ".repeat(gap), theme.meta, fit(&sort, sort_width)));
     out
 }
-pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> String {
+#[cfg(test)]
+#[allow(dead_code)]
+pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> String { rule_direction(columns, preview, bottom, theme, false) }
+pub fn rule_for(m: &Model, columns: usize, bottom: bool, theme: &Theme) -> String { rule_direction(columns, m.preview_visible, bottom, theme, rtl(m)) }
+fn rule_direction(columns: usize, preview: bool, bottom: bool, theme: &Theme, rtl: bool) -> String {
     let (left, middle, _) = panes(columns, preview);
     let mut rule = vec!['─'; columns];
     for x in [Some(left), preview.then_some(left + middle + 1)].into_iter().flatten() {
+        let x = if rtl { columns.saturating_sub(x + 1) } else { x };
         if let Some(cell) = rule.get_mut(x) { *cell = if bottom { '┴' } else { '┬' }; }
     }
     format!("{}{}{}", theme.border, rule.into_iter().collect::<String>(), theme.base())
 }
 pub fn focused(m: &Model) -> bool {
-    m.converting.card.is_none() && m.printing.card.is_none() && !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
+    m.combining.card.is_none() && m.converting.card.is_none() && m.printing.card.is_none() && !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
         && m.editor.as_ref().map_or(m.prompts.question.is_none(), |editor| matches!(editor.kind, "filter" | "search"))
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
@@ -110,9 +129,13 @@ pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let top = first.min(total - body) * (body - height) / (total - body);
     Some((top, height))
 }
+#[cfg(test)]
 pub fn small(columns: usize, lines: usize, theme: &Theme) -> String {
-    let message = "Make the window at least 12 columns wide and 5 rows tall.";
-    let wrapped = cells::words(message, columns.saturating_sub(1).max(1));
+    small_localized(columns, lines, theme, &crate::i18n::I18n::default())
+}
+pub fn small_localized(columns: usize, lines: usize, theme: &Theme, i18n: &crate::i18n::I18n) -> String {
+    let message = i18n.tr("tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall");
+    let wrapped = cells::words(&message, columns.saturating_sub(1).max(1));
     let start = lines.saturating_sub(wrapped.len()) / 2;
     let mut out = format!("\x1b[H\x1b[2J{}", theme.base());
     for y in 0..lines {
@@ -128,12 +151,12 @@ pub fn selection_bytes(m: &Model) -> Option<usize> {
 }
 pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> String {
     let base = theme.base();
-    let help = if m.hints.keys.is_empty() { String::new() } else { format!("{} keys", m.hints.keys) };
-    let disk = if (m.disk_path == m.path || super::trashview::opened_from(m) == Some(&m.disk_path)) && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
+    let help = if m.hints.keys.is_empty() { String::new() } else { m.i18n.tr_args("tui.frame.keys", &[&m.hints.keys]) };
+    let disk = if (m.disk_path == m.path || super::trashview::opened_from(m) == Some(&m.disk_path)) && !m.disk_fs.is_empty() { m.i18n.tr_args("status.host.free", &[&m.disk_fs, &m.i18n.locale().format_size(m.disk_free as u64)]) } else { String::new() };
     let count = if !m.selected.is_empty() {
-        format!("{} of {} selected{}", super::render::grouped(m.selected.len()), super::render::grouped(m.total),
-            selection_bytes(m).map(|bytes| format!(" · {}", super::render::bytes(bytes))).unwrap_or_default())
-    } else { super::render::items(m.total) };
+        format!("{}{}", m.i18n.trn_args("status.host.selected", m.selected.len() as i64, &[&m.i18n.locale().format_count(m.total as i64)]),
+            selection_bytes(m).map(|bytes| format!(" · {}", m.i18n.locale().format_size(bytes as u64))).unwrap_or_default())
+    } else { super::words::items(&m.i18n, m.total) };
     let mut parts = super::prompts::lead(m, theme, count);
     if !m.error.is_empty() { parts.push((&theme.error, m.error.clone(), 2)); }
     if !m.transfer.is_empty() {
@@ -171,6 +194,9 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         out.push_str(&ellipsis(&text, width));
         out.push_str(&base);
         used += width;
+    }
+    if rtl(m) {
+        return format!("{right}{}{out}{base}", " ".repeat(columns.saturating_sub(used + right_width)));
     }
     out.push_str(&" ".repeat(columns.saturating_sub(used + right_width)));
     out.push_str(&right);

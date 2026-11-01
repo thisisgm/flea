@@ -14,6 +14,7 @@ fn shown(icon: &str, name: &str) -> Model {
     m.capabilities.graphics = Protocol::Kitty;
     m.preview_state.cell = Some(CELL);
     m.preview_metadata = vec!["Dimensions · 800 × 600".into(), "Modified · today".into(), "Duration · 0:10".into()];
+    m.preview_state.facts = [("model3d.fact.dimensions", "800 × 600"), ("preview.fact.modified", "today"), ("preview.fact.duration", "0:10")].into_iter().map(|(key, value)| crate::tui::preview::words::Fact { key, value: value.into(), number: true }).collect();
     m
 }
 

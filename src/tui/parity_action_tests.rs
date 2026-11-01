@@ -44,10 +44,29 @@ fn confirmation(model: &mut Model) {
 pub(super) fn dialog(keys: &[Key], context: &str, action: &str, map: &Map) {
     let (mut wire, reader) = wire::echo_wire();
     let mut model = listing(&mut wire, "yazi");
-    assert!(matches!(action, "close" | "close --submit"));
+    assert!(matches!(action, "close" | "close --submit" | "scrollUp" | "scrollDown"));
     if context == "confirm" {
         confirmation(&mut model);
         assert!(!model.deletion.as_ref().unwrap().destructive);
+        if matches!(action, "scrollUp" | "scrollDown") {
+            model.height = 6;
+            model.columns = 16;
+            model.deletion.as_mut().unwrap().scroll = 1;
+            model.deletion.as_mut().unwrap().count = 1000;
+            press(&mut model, keys, map, &mut wire);
+            assert_eq!(model.deletion.as_ref().unwrap().scroll, if action == "scrollUp" { 0 } else { 2 });
+            assert!(!model.deletion.as_ref().unwrap().destructive);
+            press(&mut model, &[Key::named("Tab", "")], map, &mut wire);
+            assert!(model.deletion.as_ref().unwrap().destructive);
+            // Back to the middle, so the press with Delete focused takes a real scroll step either way.
+            model.deletion.as_mut().unwrap().scroll = 1;
+            press(&mut model, keys, map, &mut wire);
+            assert_eq!(model.deletion.as_ref().unwrap().scroll, if action == "scrollUp" { 0 } else { 2 });
+            assert!(model.deletion.as_ref().unwrap().destructive, "scrolling moved focus off Delete: {keys:?}");
+            assert!(drain(&mut wire).is_empty());
+            wire::finish(wire, reader);
+            return;
+        }
         press(&mut model, keys, map, &mut wire);
         assert!(model.deletion.is_none(), "confirmation did not close: {keys:?}");
         let sent = drain(&mut wire);
@@ -75,6 +94,10 @@ fn refusal(keys: &[Key], reason: &str, map: &Map) {
     let mut model = listing(&mut wire, "yazi");
     press(&mut model, keys, map, &mut wire);
     assert_eq!(model.error, reason, "{keys:?}");
+    assert_eq!((model.cursor, model.path), (0, std::path::PathBuf::from("/listing")));
+    assert!(model.selected.is_empty() && model.clipboard.is_empty() && model.launches.is_empty());
+    assert!(model.editor.is_none() && model.edit_file.is_none() && !model.quit);
+    assert!(drain(&mut wire).is_empty());
     wire::finish(wire, reader);
 }
 
@@ -86,7 +109,7 @@ pub(super) fn unsupported(row: &[&str], keys: &[Key], map: &Map) {
             refusal(&[Key::character('w', "")], "A task list is unavailable; running operations report in the status row", map);
         }
         "pick" => {
-            assert!(keys.iter().all(|key| map.in_context(key, "yazi", "pick").is_empty()));
+            super::candidate::open_with(keys, "ignored", false, map);
         }
         "input" | "cmp" | "panel" | "confirm" => inactive_action(row, keys, map),
         other => panic!("unverified unsupported context {other}"),
@@ -96,19 +119,42 @@ pub(super) fn unsupported(row: &[&str], keys: &[Key], map: &Map) {
 fn manager_refusal(row: &[&str], keys: &[Key], map: &Map) {
     let found = resolved(map, keys, "listing");
     if let Some(reason) = found.strip_prefix("unsupported:") {
-        assert_eq!(reason, row[7], "{} {}", row[0], row[1]);
-        refusal(keys, reason, map);
+        // The parity reason is the keymap's refusal, except rows whose reason spells out the route the refusal names.
+        match row[8] {
+            "yazi-034" => assert!(reason.contains("use Left") && row[7].contains("then Left seeks"), "{reason}"),
+            "yazi-035" => assert!(reason.contains("use Right") && row[7].contains("then Right seeks"), "{reason}"),
+            "yazi-063" => assert_eq!(reason, "detail:size"),
+            "yazi-064" => assert_eq!(reason, "detail:mode"),
+            "yazi-066" => assert_eq!(reason, "detail:modified"),
+            "yazi-067" => assert_eq!(reason, "detail:owner"),
+            "yazi-065" | "yazi-068" => assert_eq!(reason, "Specific detail modes are unavailable in this terminal build"),
+            _ => assert_eq!(reason, row[7], "{} {}", row[0], row[1]),
+        }
+        let expected = super::super::refusal_text(&found).render(&crate::i18n::I18n::default());
+        refusal(keys, &expected, map);
+        if let Some(field) = reason.strip_prefix("detail:") { super::listing_checks::detail_route(field, map); }
+        if reason == "Specific detail modes are unavailable in this terminal build" { super::listing_checks::listing_action(&[Key::character('I', "")], "detailNext", "yazi", map); }
     } else {
-        let expected = match row[1] {
-            "\"v\"" => "toggleSelect", "\"V\"" => "clearSelection", "\"O\"" => "openTab", "\"A\"" => "openAgent",
-            "\"/\"" => "filter", "\"N\"" => "newFolder",
-            "[\",\", \"m\"]" => "sortDate", "[\",\", \"M\"]" => "sortDateReverse",
-            "[\",\", \"a\"]" => "sortName", "[\",\", \"A\"]" => "sortNameReverse",
-            "[\",\", \"s\"]" => "sortSize", "[\",\", \"S\"]" => "sortSizeReverse",
-            "[\",\", \"E\"]" | "[\",\", \"N\"]" => "",
+        let (action, alternate) = match row[8] {
+            "yazi-032" => ("toggleSelect", vec![Key::character('v', "")]),
+            "yazi-033" => ("clearSelection", vec![Key::character('V', "")]),
+            "yazi-053" => ("openAgent", vec![Key::character('a', "")]),
+            "yazi-076" => ("filter", vec![Key::character('f', "")]),
+            "yazi-079" => ("newFolder", vec![Key::character('N', "")]),
+            "yazi-080" => ("sortDate", keys.to_vec()), "yazi-081" => ("sortDateReverse", keys.to_vec()),
+            "yazi-090" => ("sortSize", keys.to_vec()), "yazi-091" => ("sortSizeReverse", keys.to_vec()),
+            "yazi-086" => ("sortName", keys.to_vec()), "yazi-087" => ("sortNameReverse", keys.to_vec()),
+            "yazi-085" => ("", keys.to_vec()),
             other => panic!("unsupported action lost its refusal: {other}: {found}"),
         };
-        assert_eq!(found, expected, "the intentional alternative changed: {}", row[1]);
+        assert_eq!(found, action, "the intentional alternative changed: {}", row[1]);
+        if row[8] == "yazi-032" { super::listing_checks::listing_action(&[Key::named("Down", "shift")], "extendDown", "yazi", map); }
+        if action.is_empty() {
+            let reason = crate::i18n::I18n::default().tr("tui.actions.no_action_for_that_key_sequence");
+            refusal(&alternate, &reason, map);
+        } else {
+            super::listing_checks::listing_action(&alternate, if action == "openAgent" { "newFile" } else { action }, "yazi", map);
+        }
     }
 }
 
@@ -118,16 +164,29 @@ fn inactive_action(row: &[&str], keys: &[Key], map: &Map) {
     match row[3] {
         "input" | "cmp" => {
             let kind = if row[3] == "input" { "filter" } else { "path" };
-            model.editor = Some(Editor::new(kind, "abc".into(), model.path.clone()));
+            let mut editor = Editor::new(kind, "abc".into(), model.path.clone());
+            if row[8] == "yazi-182" {
+                editor.update(&Key::named("Home", ""));
+                editor.update(&Key::named("Right", ""));
+            }
+            model.editor = Some(editor);
             press(&mut model, keys, map, &mut wire);
             if row[3] == "cmp" && keys == [Key::named("Return", "")] {
                 assert!(model.editor.is_none());
                 assert!(model.pending.is_some());
             } else {
                 let typed: String = keys.iter().filter(|key| matches!(key.mods.as_str(), "" | "shift")).map(|key| key.text.as_str()).collect();
-                assert_eq!(model.editor.as_ref().unwrap().value, format!("abc{typed}"), "insert-only field: {}", row[1]);
+                let expected = if row[8] == "yazi-165" { "abc".into() } else { format!("abc{typed}") };
+                assert_eq!(model.editor.as_ref().unwrap().value, expected, "insert-only field: {}", row[1]);
+                if matches!(row[8], "yazi-165" | "yazi-181" | "yazi-182") {
+                    press(&mut model, &[Key::character('x', "")], map, &mut wire);
+                    assert_eq!(model.editor.as_ref().unwrap().value, if row[8] == "yazi-165" { "x" } else { "abxc" });
+                }
             }
             assert!(!model.sheet && !model.menu);
+            assert_eq!(model.cursor, 0);
+            assert!(model.selected.is_empty() && model.clipboard.is_empty() && model.launches.is_empty() && model.edit_file.is_none());
+            assert!(drain(&mut wire).iter().all(|v| matches!(text(v, "c"), "filter" | "list" | "search")));
         }
         "panel" => {
             model.sheet = true;
@@ -137,11 +196,17 @@ fn inactive_action(row: &[&str], keys: &[Key], map: &Map) {
             assert!(model.editor.is_none());
             assert_eq!(model.path, std::path::Path::new("/listing"));
             assert_eq!(model.sheet, row[1] != "\"<Enter>\"");
+            assert!(model.launches.is_empty() && model.edit_file.is_none() && model.selected.is_empty());
+            assert!(drain(&mut wire).is_empty());
         }
         "confirm" => {
             confirmation(&mut model);
             press(&mut model, keys, map, &mut wire);
             assert!(!model.deletion.as_ref().unwrap().destructive);
+            press(&mut model, &[Key::named("Tab", "")], map, &mut wire);
+            assert!(model.deletion.as_ref().unwrap().destructive);
+            press(&mut model, keys, map, &mut wire);
+            assert!(model.deletion.as_ref().unwrap().destructive, "{} moved focus off Delete", row[1]);
             assert!(!drain(&mut wire).iter().any(|value| text(value, "op") == "delete"));
         }
         _ => unreachable!(),

@@ -25,6 +25,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         }
         return Ok(());
     }
+    if model.combining.card.is_some() {
+        return super::combine::key(model, key, wire);
+    }
     if model.converting.card.is_some() {
         return super::convert::key(model, key, wire);
     }
@@ -176,6 +179,20 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         } else {
             map.action(key, &model.preset)
         };
+    if model.i18n.locale().right_to_left
+        && super::cells::mirrors("navigation")
+        && key.mods.is_empty()
+    {
+        let horizontal =
+            matches!(key.name.as_str(), "Left" | "Right") || matches!(key.text.as_str(), "h" | "l");
+        if horizontal {
+            action = match action.as_str() {
+                "parent" => "pageForward".into(),
+                "open" | "pageForward" => "parent".into(),
+                _ => action,
+            };
+        }
+    }
     if action.is_empty() && key.text == "F" && matches!(key.mods.as_str(), "" | "shift") {
         action = "convert".into();
     }
@@ -183,7 +200,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         action = map.sequence(prefix, key, &model.preset, "listing");
         if action.is_empty() {
             if key.name != "Escape" {
-                model.fail("No action for that key sequence".into());
+                model.fail_key("tui.actions.no_action_for_that_key_sequence");
             }
             return Ok(());
         }
@@ -194,7 +211,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     // Issue 133: every trash key refuses on a mount gio cannot trash, before d arms and before the backend fails.
     if matches!(action.as_str(), "trash" | "trashArm") && !super::mounts::trashable(&model.path) {
-        model.fail(super::mounts::no_trash(&model.hints.delete_permanently));
+        model.fail_text(super::mounts::no_trash_text(
+            &model.hints.delete_permanently,
+        ));
         return Ok(());
     }
     if matches!(
@@ -214,7 +233,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
                 } else {
                     key.text.as_str()
                 };
-                model.say(super::prompts::trash_arm(model, arm));
+                model.say_text(super::prompts::trash_arm_text(model, arm));
             }
             model.key_arm = action;
             return Ok(());
@@ -288,7 +307,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "invertSelection"
         )
     {
-        m.fail(m.prompts.i18n.tr("search.contents.identity"));
+        m.fail_key("search.contents.identity");
         return Ok(());
     }
     if m.searching
@@ -305,7 +324,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "cut"
         )
     {
-        m.fail("Wait for search to settle before a file operation".into());
+        m.fail_key("tui.operation.search_busy");
         return Ok(());
     }
     if !m.rows.contains_key(&m.cursor)
@@ -349,6 +368,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     match action {
         "print" => super::print::open(m, w, false)?,
         "convert" => super::convert::open(m, w, false)?,
+        "combine" => super::combine::open(m, w, false)?,
         "cursorDown" => m.move_by(1, false, w)?,
         "cursorUp" => m.move_by(-1, false, w)?,
         "extendDown" => m.move_by(1, true, w)?,
@@ -386,7 +406,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 && (!m.selected.is_empty() || m.rows.get(&m.cursor).is_some_and(|r| !r.directory))
             {
                 if m.pending_clipboard || m.searching {
-                    m.fail("Wait for the selection to settle before choosing".into());
+                    m.fail_key("tui.actions.wait_for_the_selection_to_settle_before_choosing");
                     return Ok(());
                 }
                 m.choose_count = m.selected.len().max(1);
@@ -398,7 +418,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 if m.rows.get(&m.cursor).is_some_and(|r| r.directory) {
                     navigate(m, path, w)?;
                 } else if crate::open::open(&path.to_string_lossy()) != 0 {
-                    m.fail("Could not open selected file".into());
+                    m.fail_key("tui.model.could_not_open_selected_file");
                 }
             }
         }
@@ -463,14 +483,14 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 };
                 navigate(m, path, w)?;
             } else {
-                m.fail("No home folder is configured".into());
+                m.fail_key("tui.actions.no_home_folder_is_configured");
             }
         }
         "editFile" => {
             if m.rows.get(&m.cursor).is_some_and(|r| !r.directory) {
                 m.edit_file = m.current_path();
             } else {
-                m.fail("Only a regular file can be edited".into());
+                m.fail_key("tui.external_editor.only_a_regular_file_can_be_edited");
             }
         }
         "rename" => {
@@ -493,7 +513,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                     row.directory,
                 )?);
             } else {
-                m.fail("Selected item is unavailable; select it again to rename".into());
+                m.fail_key("tui.actions.selected_item_is_unavailable_select_it_again_to_rename");
             }
         }
         "newFolder" => {
@@ -515,7 +535,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.clipboard.clear();
             m.cut = false;
             m.discard_clipboard |= m.pending_clipboard;
-            m.say("Clipboard cleared".into());
+            m.say_key("tui.actions.clipboard_cleared");
         }
         "paste" | "movePaste" => super::prompts::paste(m, action, w)?,
         "trash" | "trashArm" => super::prompts::trash(m, w)?,
@@ -551,7 +571,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                     ("path", word(&path.to_string_lossy())),
                 ])?;
             } else {
-                m.fail("Select one available item to duplicate".into());
+                m.fail_key("tui.actions.select_one_available_item_to_duplicate");
             }
         }
         "newFile" => {
@@ -627,28 +647,27 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 .filter(|_| m.rows.get(&m.cursor).is_some_and(|r| r.directory))
             {
                 Some(path) => push_tab(m, path, w)?,
-                None => m.say("Only a folder opens in a new tab".into()),
+                None => m.say_key("tui.actions.only_a_folder_opens_in_a_new_tab"),
             }
         }
         "openTerminal" | "windowNew" => {
             let child = super::terminal::launch(&m.path, action == "windowNew")?;
-            m.launches.push((
+            m.launched(
                 if action == "windowNew" {
-                    "New Flea window"
+                    "tui.actions.new_flea_window"
                 } else {
-                    "Terminal"
-                }
-                .into(),
+                    "keys.action.openTerminal"
+                },
                 child,
-            ));
+            );
         }
         "openAgent" => {
             let path = m.path.canonicalize()?;
             if !path.is_dir() {
-                m.fail("An agent needs a folder to open in".into());
+                m.fail_key("tui.actions.an_agent_needs_a_folder_to_open_in");
             } else {
                 let child = super::launch::agent(&path)?;
-                m.launches.push(("Agent".into(), child));
+                m.launched("tui.actions.agent", child);
             }
         }
         "tabClose" => {
@@ -699,7 +718,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "properties" | "factsToggle" => {
             if m.selected.len() > 1 {
-                m.fail("Properties requires one selected item".into());
+                m.fail_key("tui.actions.properties_requires_one_selected_item");
             } else if m.current_path().is_some() {
                 m.action_id = m.action_id.wrapping_add(1).max(1);
                 m.sheet = true;
@@ -726,6 +745,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "escape" => {
+            if super::combine::cancel(m, w)? {
+                return Ok(());
+            }
             if super::convert::cancel(m, w)? {
                 return Ok(());
             }
@@ -783,7 +805,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         {
             return tab(m, (action.as_bytes()[3] - b'1') as usize, w);
         }
-        _ => m.fail(super::parity::refusal(action).into()),
+        _ => m.fail_text(super::parity::refusal_text(action)),
     }
     m.remember_selection();
     Ok(())
@@ -820,7 +842,7 @@ fn history(m: &mut Model, forward: bool, w: &mut Wire) -> io::Result<()> {
 // Both front ends cap the strip at nine, so a tenth tab is refused with the same words; the status line takes no final period.
 fn tab_full(m: &mut Model) -> bool {
     if m.tabs.len() >= crate::uischema::MAX_LAST_TABS {
-        m.say("Nine tabs is the most".into());
+        m.say_key("tui.actions.nine_tabs_is_the_most");
         return true;
     }
     false
@@ -860,7 +882,10 @@ fn save(key: &str, value: Json, m: &mut Model) {
         None => return,
     };
     if let Err(e) = saved {
-        m.fail(format!("Could not save settings: {}", e));
+        m.fail_text(super::words::args(
+            "tui.actions.save_settings",
+            vec![e.to_string().into()],
+        ));
     }
 }
 fn save_preview_column(m: &mut Model) {
@@ -894,7 +919,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     if key.name == "Return" || key.name == "Enter" {
-        if !editor.valid() {
+        if !editor.valid_localized(&m.i18n) {
             m.editor = Some(editor);
             return Ok(());
         }

@@ -37,11 +37,11 @@ impl Wire {
         let input = child
             .stdin
             .take()
-            .ok_or_else(|| io::Error::other("backend stdin unavailable"))?;
+            .ok_or_else(|| super::words::error("tui.wire.backend_stdin_unavailable"))?;
         let output = child
             .stdout
             .take()
-            .ok_or_else(|| io::Error::other("backend stdout unavailable"))?;
+            .ok_or_else(|| super::words::error("tui.wire.backend_stdout_unavailable"))?;
         let (tx, events) = mpsc::channel();
         let (wake, ring) = UnixStream::pair()?;
         wake.set_nonblocking(true)?;
@@ -57,7 +57,7 @@ impl Wire {
                 }
                 let _ = (&ring).write(&[1]);
             }
-            let _ = tx.send(Err("The file list stopped; restart Flea".into()));
+            let _ = tx.send(Err(super::words::Text::Key("tui.wire.the_file_list_stopped_restart_flea").to_string()));
             let _ = (&ring).write(&[1]);
         });
         Ok(Self {

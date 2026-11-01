@@ -10,7 +10,7 @@ fn review_suspend_child() {
     if std::env::var("FLEA_T1_REVIEW_SUSPEND_MODE").as_deref() == Ok("editor") {
         let result = terminal.run_editor("true", &root.join("names"));
         assert!(terminal.stopped(), "the editor handoff ended without a stop: {result:?}");
-        assert_eq!(result.unwrap_err().to_string(), EDITOR_INTERRUPTED);
+        assert_eq!(result.unwrap_err().to_string(), crate::tui::words::error(EDITOR_INTERRUPTED).to_string());
         return;
     }
     while !terminal.stopped() {

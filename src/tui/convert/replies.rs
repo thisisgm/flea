@@ -39,7 +39,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
                 .is_some_and(|ps| ps.iter().all(|p| p.starts_with('/') && !p.contains('\0')));
             if !valid {
                 cancel(m, w)?;
-                m.fail(m.i18n.tr("dialogs.output.error.convert_kind"));
+                m.fail_text(Text::Key("dialogs.output.error.convert_kind"));
                 return Ok(true);
             }
             let paths = paths.unwrap();
@@ -59,7 +59,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
                 .collect();
             if !output::can_convert(&kinds) {
                 cancel(m, w)?;
-                m.fail(m.i18n.tr("dialogs.output.error.convert_kind"));
+                m.fail_text(Text::Key("dialogs.output.error.convert_kind"));
                 return Ok(true);
             }
             let f = m.converting.card.as_mut().unwrap();
@@ -124,7 +124,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
     }
     if event == "convertprogress" {
         if m.job_status.id == 0 && m.transfer_id == 0 {
-            m.transfer = m.i18n.tr("dialogs.output.converting");
+            m.transfer_text(Text::Key("dialogs.output.converting"));
             let total = count(value, "total");
             m.progress_percent = (total > 0).then(|| {
                 super::super::jobstatus::ratio(count(value, "done") as u128, total as u128)
@@ -147,17 +147,18 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         if event == "error" {
             m.fail(text(value, "msg").into());
         } else if text(value, "err") == "cancelled" {
-            m.say(m.i18n.trn("tui.convert.cancelled", outputs as i64));
+            m.say_text(Text::Plural("tui.convert.cancelled", outputs, vec![]));
         } else if !flag(value, "ok") {
-            m.fail(
-                m.i18n
-                    .trn_args("tui.convert.failed", outputs as i64, &[text(value, "err")]),
-            );
+            m.fail_text(Text::Plural(
+                "tui.convert.failed",
+                outputs,
+                vec![text(value, "err").into()],
+            ));
         } else {
-            m.say(
-                m.i18n
-                    .tr_args("dialogs.output.completed", &[text(value, "path")]),
-            );
+            m.say_text(Text::Args(
+                "dialogs.output.completed",
+                vec![text(value, "path").into()],
+            ));
         }
         if run.folder == m.path {
             m.refresh(w)?;

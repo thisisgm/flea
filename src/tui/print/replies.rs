@@ -47,7 +47,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
             });
             if !valid {
                 cancel(m, w)?;
-                m.fail(m.i18n.tr("dialogs.output.error.print_kind"));
+                m.fail_text(Text::Key("dialogs.output.error.print_kind"));
             } else {
                 let paths = paths.unwrap();
                 let paged = paths.iter().any(|path| classify(m, path).paged());
@@ -118,12 +118,15 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         if ok {
             run.accepted.insert(path.into());
             let name = path.rsplit('/').next().unwrap_or(path);
-            m.say(m.i18n.tr_args("dialogs.output.sent", &[name, &printer]));
+            m.say_text(Text::Args(
+                "dialogs.output.sent",
+                vec![name.into(), printer.into()],
+            ));
         } else {
-            m.fail(
-                m.i18n
-                    .tr_args("dialogs.output.error.legacy", &[text(value, "message")]),
-            );
+            m.fail_text(Text::Args(
+                "dialogs.output.error.legacy",
+                vec![text(value, "message").into()],
+            ));
         }
     // Sample input: {"t":"printdone","id":2,"requestId":1,"ok":false,"sent":0,"message":"","err":"cancelled"}
     } else if event == "printdone" {
@@ -141,13 +144,12 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
                     .map(|path| path.rsplit('/').next().unwrap_or(path).to_owned())
                     .collect();
                 if names.is_empty() {
-                    m.i18n.tr("dialogs.output.choice.None")
+                    Text::Key("dialogs.output.choice.None")
                 } else {
-                    names.join(", ")
+                    names.join(", ").into()
                 }
             };
-            m.i18n
-                .tr_args("dialogs.output.cancelled", &[&names(true), &names(false)])
+            Text::Args("dialogs.output.cancelled", vec![names(true), names(false)])
         });
         m.printing.run = None;
         m.printing.card = None;
@@ -156,15 +158,16 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         }
         menu(w, menu_id, "close")?;
         if let Some(message) = cancelled {
-            m.say(message);
+            m.say_text(message);
         } else if !ok {
-            m.fail(m.i18n.tr_args(
+            m.fail_text(Text::Args(
                 "dialogs.output.error.legacy",
-                &[if reason.is_empty() {
+                vec![if reason.is_empty() {
                     text(value, "message")
                 } else {
                     reason
-                }],
+                }
+                .into()],
             ));
         }
     }
@@ -181,23 +184,34 @@ fn options(m: &mut Model, value: &Json) {
     if value.get("ok").and_then(Json::as_bool) == Some(false) {
         form.query = None;
         form.queried = false;
-        form.error = m
-            .i18n
-            .tr_args("dialogs.output.error.printer_query", &[text(value, "err")]);
-        let error = form.error.clone();
-        m.fail(error);
+        let words = Text::Args(
+            "dialogs.output.error.printer_query",
+            vec![text(value, "err").into()],
+        );
+        Held::set(
+            &mut form.error,
+            &mut form.error_words,
+            words.clone(),
+            &m.i18n,
+        );
+        m.fail_text(words);
         return;
     }
     let Some((mut destinations, printer, caps)) = parsed_options(value, &form.pending_printer)
     else {
         form.query = None;
         form.queried = false;
-        form.error = m.i18n.tr_args(
+        let words = Text::Args(
             "dialogs.output.error.printer_query",
-            &[&m.i18n.tr("dialogs.output.error.printer_reply")],
+            vec![Text::Key("dialogs.output.error.printer_reply")],
         );
-        let error = form.error.clone();
-        m.fail(error);
+        Held::set(
+            &mut form.error,
+            &mut form.error_words,
+            words.clone(),
+            &m.i18n,
+        );
+        m.fail_text(words);
         return;
     };
     let Capabilities {

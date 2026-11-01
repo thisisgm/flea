@@ -75,3 +75,27 @@ fn brackets_and_the_diamond_draw_only_while_the_preview_holds_the_keyboard() {
     let runs = player.runs(60, true, &i18n());
     assert_eq!(runs.iter().map(|run| run.0).collect::<Vec<_>>(), [Ink::Foreground, Ink::Frame, Ink::Foreground, Ink::Frame, Ink::Muted]);
 }
+
+// These are real poll/connect branches with owned children and a private in-memory IPC stream.
+#[test]
+fn tui_preview_media_failures_retain_semantic_words() {
+    use crate::tui::preview::words::Text;
+    let mut starting=resting(); starting.process=Some(Process::idle());
+    starting.started=Instant::now()-Duration::from_secs(4);
+    starting.poll();
+    assert!(matches!(starting.failure,Some(Text::Key("tui.preview.media_start"))));
+    assert!(!starting.error.is_empty());
+    let mut unplayable=resting(); unplayable.process=Some(Process::idle());
+    let (socket,_peer)=UnixStream::pair().unwrap(); unplayable.socket=Some(socket);
+    let (sender,events)=mpsc::channel(); unplayable.events=Some(events);
+    sender.send(jsondoc::parse(r#"{"event":"end-file","reason":"error"}"#).unwrap()).unwrap();
+    unplayable.poll();
+    assert!(matches!(unplayable.failure,Some(Text::Key("media.unplayable"))));
+    assert!(!unplayable.error.is_empty());
+    let mut stopped=resting(); stopped.process=Some(Process::finished());
+    let (socket,_peer)=UnixStream::pair().unwrap(); stopped.socket=Some(socket);
+    let (_sender,events)=mpsc::channel(); stopped.events=Some(events);
+    stopped.poll();
+    assert!(matches!(stopped.failure,Some(Text::Key("tui.preview.media_stopped"))));
+    assert!(!stopped.error.is_empty());
+}

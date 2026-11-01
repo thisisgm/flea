@@ -1,5 +1,6 @@
 //! Print uses the backend's captured selection, capability query and per-file CUPS acceptance.
 mod card;
+use super::{render::cards::words::Held, words::Text};
 mod input;
 mod replies;
 use super::{
@@ -47,6 +48,7 @@ pub struct Form {
     pub queried: bool,
     pub setup: Vec<String>,
     pub error: String,
+    error_words: Option<Held>,
     pub focus: usize,
     pub dropdown: bool,
     pub choice: usize,
@@ -121,7 +123,7 @@ pub fn open(m: &mut Model, w: &mut Wire, from_menu: bool) -> io::Result<()> {
         None
     };
     if let Some(reason) = refusal {
-        m.fail(m.i18n.tr(reason));
+        m.fail_text(Text::Key(reason));
         return Ok(());
     }
     m.dismiss_error();
@@ -147,6 +149,7 @@ pub fn open(m: &mut Model, w: &mut Wire, from_menu: bool) -> io::Result<()> {
         queried: false,
         setup: Vec::new(),
         error: String::new(),
+        error_words: None,
         focus: 6,
         dropdown: false,
         choice: 0,
@@ -223,9 +226,9 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
                 cancel(m, w)?;
             }
             Err(error) => {
-                m.fail(m.i18n.tr_args(
+                m.fail_text(Text::Args(
                     "dialogs.output.error.operation",
-                    &[&crate::error::io_message(&error)],
+                    vec![crate::error::io_message(&error).into()],
                 ));
             }
         }
@@ -244,7 +247,8 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
         None
     };
     if let Some(error) = error {
-        m.printing.card.as_mut().unwrap().error = m.i18n.tr(error);
+        let f = m.printing.card.as_mut().unwrap();
+        Held::set(&mut f.error, &mut f.error_words, Text::Key(error), &m.i18n);
         return Ok(());
     }
     if !form.destinations.iter().any(|d| d.name == form.printer) || form.paths.is_empty() {
@@ -279,4 +283,11 @@ pub fn submit(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     });
     m.menu_action = "printSubmitting".into();
     w.send(fields)
+}
+
+// Geometry and painting read the same frame locale after this synchronous refresh.
+pub fn refresh_locale(m: &mut Model) {
+    if let Some(f) = &mut m.printing.card {
+        Held::refresh(&mut f.error, &mut f.error_words, &m.i18n);
+    }
 }

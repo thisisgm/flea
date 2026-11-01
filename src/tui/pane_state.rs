@@ -8,6 +8,11 @@ use std::path::{Component, Path, PathBuf};
 #[derive(Default)]
 pub struct State {
     pub i18n: crate::i18n::I18n,
+    pub text: Option<super::preview::words::Text>,
+    pub refusal: Option<&'static str>,
+    pub unshown_key: Option<&'static str>,
+    pub media: Option<(usize, usize, usize, usize)>,
+    pub facts: Vec<super::preview::words::Fact>,
     pub archive: Option<Archive>,
     pub unshown: Option<Unshown>,
     // None keeps the error alert; an Office subject names its own glyph and tone.
@@ -131,7 +136,11 @@ pub fn content(m: &Model) -> Option<PathBuf> {
 
 // A new preview forgets the last file's archive, sentence and syntax runs; its picture goes by key.
 pub fn reset(state: &mut State) {
-    state.i18n.poll_changed();
+    state.text = None;
+    state.refusal = None;
+    state.unshown_key = None;
+    state.media = None;
+    state.facts.clear();
     state.archive = None;
     state.unshown = None;
     state.unshown_mark = None;
@@ -141,7 +150,10 @@ pub fn reset(state: &mut State) {
 
 // The archive half of a meta reply: the totals and named entries, or the can't-show sentence when it failed.
 pub fn meta(m: &mut Model, value: &Json) {
+    m.preview_state.media = Some((count(value, "w"), count(value, "h"), count(value, "ms"), count(value, "rate")));
+    super::preview::words::metadata(m);
     if flag(value, "afailed") {
+        m.preview_state.unshown_key = Some("preview.archiveUnreadable");
         m.preview_state.unshown = Some(Unshown { sentence: m.preview_state.i18n.tr("preview.archiveUnreadable"), open_with: false });
         return;
     }
@@ -174,7 +186,7 @@ pub fn meta(m: &mut Model, value: &Json) {
 pub fn archive_line(state: &State) -> Option<String> {
     let archive = state.archive.as_ref()?;
     let count = state.i18n.trn("preview.entries", archive.entries as i64);
-    Some(state.i18n.tr_args("preview.unpacked", &[&count, &super::render::bytes(archive.unpacked)]))
+    Some(state.i18n.tr_args("preview.unpacked", &[&count, &state.i18n.locale().format_size(archive.unpacked as u64)]))
 }
 
 #[cfg(test)]

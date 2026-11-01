@@ -34,7 +34,7 @@ const ROWS: &[Row] = &[
     ("find", &["search"], "keys.search", &["f", "ctrl-f"]),
     ("find", &["searchContents"], "keys.searchContents", &["ctrl-g"]),
     ("find", &["reveal"], "keys.reveal", &["o"]),
-    ("find", &["sortNext"], "keys.sortNext", &["s"]),
+    ("find", &["sortNext", "sortName"], "keys.sortNext", &["s"]),
     ("find", &["sortReverse"], "keys.sortReverse", &["S"]),
     ("find", &["pathBar"], "keys.pathBar", &[":", "ctrl-l"]),
     ("change", &["copy"], "keys.copy", &["y", "ctrl-c"]),
@@ -81,11 +81,14 @@ fn bound(map: &Map, preset: &str, actions: &[&str], spelled: &str) -> Option<Str
     keys(&probe).iter().find_map(|key| {
         let found = map.action(key, preset);
         actions.iter().find_map(|action| if found == *action { Some(probe.clone()) }
-            else if found == format!("{action}Arm") { Some(format!("{first}{first}")) } else { None })
+            else if found == format!("{action}Arm") { Some(format!("{first}{first}")) }
+            else if found.strip_prefix("prefix:").is_some_and(|prefix| map.sequence(prefix, key, preset, "listing") == *action) { Some(format!("{first} {first}")) }
+            else { None })
     })
 }
 // The keymap's own spelling, "Ctrl+Shift+N" or "Return", in the sheet's lowercase form.
-fn lowercase(chord: &str) -> String {
+pub(crate) fn lowercase(chord: &str) -> String {
+    if chord.contains(' ') { return chord.split(' ').map(lowercase).collect::<Vec<_>>().join(" "); }
     let (mods, name) = chord.rsplit_once('+').filter(|(_, name)| !name.is_empty()).unwrap_or(("", chord));
     let name = if mods.is_empty() && name.chars().count() == 1 { name.to_owned() } else { name.to_lowercase().replace("return", "enter") };
     if mods.is_empty() { name } else { format!("{}-{}", mods.to_lowercase().replace('+', "-"), name) }
@@ -115,11 +118,26 @@ fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
         let mut lines = vec![Line::Heading(m.heading(&format!("keys.group.{group}")))];
         let answered = |row: &&Row| row.1.iter().any(|action| *action == "tab1" || crate::tui::keymap::supported(action));
         lines.extend(ROWS.iter().filter(|row| row.0 == *group).filter(answered).filter_map(|row| {
-            let keys = spelling(map, &m.preset, row);
+            let canonical = spelling(map, &m.preset, row);
+            let keys = m.keycap_labels.get(&canonical).cloned().unwrap_or(canonical);
             (!keys.is_empty()).then(|| Line::Binding(keys, m.i18n.tr(row.2)))
         }));
         lines
     }).filter(|lines| lines.len() > 1).collect()
+}
+// Resolve a complete display epoch before replacing any held key labels.
+#[allow(dead_code, reason = "called by the retained I50-11 snapshot consumer")]
+pub fn resolve(m: &Model, map: &Map, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<std::collections::HashMap<String, String>, flea::keys::display::KeycapError> {
+    let mut labels = std::collections::HashMap::new();
+    for row in ROWS {
+        let canonical = spelling(map, &m.preset, row);
+        if canonical.is_empty() { continue; }
+        let text = if canonical == "1–9" {
+            format!("{}–{}", snapshot.label("1")?, snapshot.label("9")?)
+        } else { flea::keys::display::chord_label(&canonical, snapshot)?.text };
+        labels.insert(canonical, text);
+    }
+    Ok(labels)
 }
 // Groups fill a column in order and the next group starts a new one when it would not fit whole.
 fn pack(groups: &[Vec<Line>], capacity: usize) -> Vec<Vec<Line>> {
@@ -182,12 +200,24 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
     let card = card(m, map);
     cards::frame(out, m, theme, &card, &m.i18n.tr("keys.title"));
     let base = theme.base();
-    let (mut x, end) = (card.left(), card.left() + card.content());
+    let (mut logical_x, end) = (card.left(), card.left() + card.content());
+    let rtl = m.i18n.locale().right_to_left && crate::tui::cells::mirrors("columns");
     for column in &sheet.columns {
         let (key, label) = widths(column);
-        let room = end.saturating_sub(x);
+        let width = (key + 2 + label).min(end.saturating_sub(logical_x));
+        let x = if rtl { card.left() + card.content().saturating_sub(logical_x - card.left() + width) } else { logical_x };
+        let room = width;
         for (i, line) in column.iter().skip(card.top).take(sheet.rows).enumerate() {
             out.push_str(&format!("\x1b[{};{}H{}", card.y + 4 + i, x + 1, base));
+            if rtl {
+                let align = |text: &str, width: usize| { let text = fit(text, text_width(text).min(width)); format!("{}{}", " ".repeat(width.saturating_sub(text_width(&text))), text) };
+                match line {
+                    Line::Binding(keys, words) => out.push_str(&format!("{}{}  {}{}", theme.foreground, align(words, room.saturating_sub(key + 2).min(label)), theme.meta, crate::tui::cells::isolate(crate::tui::cells::Run::Number, &align(keys, key.min(room))))),
+                    Line::Words(text) => out.push_str(&format!("{}{}", theme.foreground, align(text, room))),
+                    Line::Heading(text) | Line::Key(text) => out.push_str(&format!("{}{}", theme.meta, align(text, room))),
+                }
+                continue;
+            }
             match line {
                 Line::Heading(text) | Line::Key(text) => out.push_str(&format!("{}{}", theme.meta, fit(text, room.min(key + 2 + label)))),
                 Line::Words(text) => out.push_str(&format!("{}{}", theme.foreground, fit(text, room.min(key + 2 + label)))),
@@ -195,8 +225,8 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
                     theme.foreground, fit(words, room.saturating_sub(key + 2).min(label)))),
             }
         }
-        x += key + 2 + label + GAP;
-        if x >= end { break; }
+        logical_x += key + 2 + label + GAP;
+        if logical_x >= end { break; }
     }
     out.push_str(&base);
 }

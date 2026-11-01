@@ -64,20 +64,25 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
         return padded(&fit("", width), &area, theme);
     };
     let state = &m.preview_state;
+    let i18n = &state.i18n;
     let inner = match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
             let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
             let head = (text_width(&mark) + text_width(leaf)).min(width);
-            let name = name_title(&mark, leaf, head);
-            let target = if row.link.is_empty() { String::new() } else { format!(" → {}", row.link) };
-            format!("{}{name}{}{}", theme.foreground, theme.meta, ellipsis(&target, width - head))
+            let name = title(&mark, leaf, head, i18n);
+            let target = if row.link.is_empty() { String::new() } else { format!(" {}", i18n.tr_args("preview.link_target", &[&row.link])) };
+            let target = direction(&target, width - head, i18n, false);
+            if super::layout::rtl(m) { format!("{}{target}{}{name}", theme.meta, theme.foreground) }
+            else { format!("{}{name}{}{target}", theme.foreground, theme.meta) }
         }
         1 => {
-            let modified = super::render::modified(row.modified);
-            let facts = format!("{} · {}{}", if row.directory { "Folder" } else { &row.kind }, m.row_size(m.cursor, row),
-                if modified.is_empty() { String::new() } else { format!(" · {modified}") });
-            format!("{}{}", theme.meta, ellipsis(&facts, width))
+            let modified = i18n.locale().format_date(row.modified).filter(|_| row.modified != 0).unwrap_or_default();
+            let kind = if row.directory { i18n.tr("preview.points.folder") } else { row.kind.clone() };
+            let (bytes, partial) = m.folder_sizes.get(&m.cursor).copied().unwrap_or((row.size, row.directory));
+            let size = format!("{}{}", if partial { ">" } else { "" }, i18n.locale().format_size(bytes as u64));
+            let facts = header(&kind, &size, &modified, width, i18n);
+            format!("{}{facts}", theme.meta)
         }
         2 => format!("{}{}", theme.meta, ellipsis(&super::pane_state::archive_line(state).filter(|_| state.unshown.is_none()).unwrap_or_default(), width)),
         _ => return body(m, y - 3, &area, theme),
@@ -100,8 +105,8 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         let first = usize::from(!area.card);
         let index = (m.preview_scroll + i).checked_sub(first);
         if let Some((entry, size)) = index.and_then(|index| archive.rows.get(index)) {
-            let size = size.map(super::render::bytes);
-            return cells::row(entry, area.columns, size.as_deref(), m.marks(), cells::RowStyle { quiet: true, ..Default::default() }, theme, "");
+            let size = size.map(|size| state.i18n.locale().format_size(size as u64));
+            return cells::row(entry, area.columns, size.as_deref(), m.marks(), cells::RowStyle { quiet: true, rtl: super::layout::rtl(m), ..Default::default() }, theme, "");
         }
         let more = archive.entries.saturating_sub(archive.rows.len());
         let line = if index == Some(archive.rows.len()) && more > 0 { state.i18n.trn("preview.more", more as i64) } else { String::new() };
@@ -111,12 +116,15 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         return padded(&stacked(m, i, area, theme), area, theme);
     }
     if let Some(content) = m.preview_display.get(i) {
-        return padded(&format!("{}{}", theme.meta, fit(content, width)), area, theme);
+        return padded(&format!("{}{}", theme.meta, direction(content, width, &m.preview_state.i18n, false)), area, theme);
     }
     let index = i - m.preview_display.len().min(i);
     if let Some((number, text)) = m.text_lines.get(index) {
         let gutter = m.text_gutter;
-        let number = number.map(|n| format!("{:>gutter$}", super::render::grouped(n))).unwrap_or_else(|| " ".repeat(gutter));
+        let number = number.map(|n| {
+            let number = state.i18n.locale().format_count(n as i64);
+            format!("{}{}", " ".repeat(gutter.saturating_sub(text_width(&number))), number)
+        }).unwrap_or_else(|| " ".repeat(gutter));
         let text = super::syntax::paint(m, index, text, width.saturating_sub(gutter + 1), theme);
         return padded(&format!("{}{number} {text}", theme.meta), area, theme);
     }
@@ -131,15 +139,15 @@ fn stacked(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         // Behind a card (Quick Look, the keys sheet, Properties or the delete card) the pane's picture is cleared; a terminal could only dim it by sending it again.
         Slot::Picture(y) => match picture::grid(m).filter(|_| area.card || !(m.quicklook || m.sheet || m.deletion.is_some())) {
             Some(grid) => {
-                let offset = if area.card { width.saturating_sub(grid.columns) / 2 } else { 0 };
+                let offset = if area.card { width.saturating_sub(grid.columns) / 2 } else if super::layout::rtl(m) { width.saturating_sub(grid.columns) } else { 0 };
                 format!("{}{}", " ".repeat(offset), super::still::row(grid, y, width - offset, theme))
             }
             None => fit("", width),
         },
         Slot::Player => m.player.as_ref().map(|p| paint(&p.runs(width, focused, i18n), width, theme)).unwrap_or_else(|| fit("", width)),
-        Slot::Page => format!("{}{}", theme.meta, fit(&m.pdf.as_ref().map(|p| p.page_line(i18n)).unwrap_or_default(), width)),
+        Slot::Page => format!("{}{}", theme.meta, direction(&m.pdf.as_ref().map(|p| p.page_line(i18n)).unwrap_or_default(), width, i18n, false)),
         Slot::Controls => m.pdf.as_ref().map(|p| paint(&p.runs(focused, m.quicklook, width), width, theme)).unwrap_or_else(|| fit("", width)),
-        Slot::Detail(index) => format!("{}{}", theme.meta, ellipsis(&m.preview_metadata[index], width)),
+        Slot::Detail(index) => format!("{}{}", theme.meta, m.preview_state.facts.get(index).map(|fact| fact.paint(i18n, width)).unwrap_or_else(|| direction(&m.preview_metadata[index], width, i18n, false))),
         Slot::Blank => fit("", width),
     }
 }
@@ -182,8 +190,8 @@ fn folder(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         return padded(&inner, area, theme);
     }
     if let Some(child) = m.preview_rows.get(m.preview_scroll + i) {
-        let size = (child.mode != 0).then(|| super::render::bytes(child.size));
-        return cells::row(child, area.columns, size.as_deref(), m.marks(), cells::RowStyle { quiet: true, ..Default::default() }, theme, "");
+        let size = (child.mode != 0).then(|| m.preview_state.i18n.locale().format_size(child.size as u64));
+        return cells::row(child, area.columns, size.as_deref(), m.marks(), cells::RowStyle { quiet: true, rtl: super::layout::rtl(m), ..Default::default() }, theme, "");
     }
     padded(&fit(m.preview_display.get(i).map(String::as_str).unwrap_or(""), width), area, theme)
 }
@@ -192,19 +200,51 @@ fn selection(m: &Model, y: usize, area: &Area, theme: &Theme) -> String {
     let width = area.width();
     let inner = if y == 0 {
         let mark = if m.marks() { format!("{} ", icons::FILES) } else { String::new() };
-        name_title(&mark, &format!("{} selected", super::render::items(m.selected.len())), width)
+        name_title(&mark, &m.preview_state.i18n.trn("preview.selected", m.selected.len() as i64), width)
     } else if y == 1 {
-        let facts = selection_bytes(m).map(|n| format!("Combined · {}", super::render::bytes(n))).unwrap_or_default();
+        let facts = selection_bytes(m).map(|n| format!("{} · {}", m.preview_state.i18n.tr("preview.fact.combined"), m.preview_state.i18n.locale().format_size(n as u64))).unwrap_or_default();
         format!("{}{}", theme.meta, fit(&facts, width))
     } else if y >= 3 {
         if let Some(row) = m.selected_rows.values().nth(m.preview_scroll + y - 3) {
-            return cells::row(row, area.columns, Some(&super::render::bytes(row.size)), m.marks(), cells::RowStyle { quiet: true, ..Default::default() }, theme, "");
+            return cells::row(row, area.columns, Some(&m.preview_state.i18n.locale().format_size(row.size as u64)), m.marks(), cells::RowStyle { quiet: true, rtl: super::layout::rtl(m), ..Default::default() }, theme, "");
         }
         format!("{}{}", theme.meta, fit(&super::render::selection_line(m, y + m.preview_scroll, width), width))
     } else {
         fit("", width)
     };
     padded(&inner, area, theme)
+}
+
+// Fit untrusted data before adding policy-owned zero-cell isolates.
+pub fn direction(text: &str, width: usize, i18n: &crate::i18n::I18n, number: bool) -> String {
+    let text = ellipsis(text, width);
+    if i18n.locale().right_to_left { cells::isolate(if number { cells::Run::Number } else { cells::Run::Name }, &text) } else { text }
+}
+pub fn title(mark: &str, name: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
+    if !i18n.locale().right_to_left { return name_title(mark, name, width); }
+    let mark = if mark.is_empty() { String::new() } else { format!(" {}", mark.trim_end()) };
+    let mark = fit(&mark, text_width(&mark).min(width));
+    let text = format!("{}{}", name_title("", name, width - text_width(&mark)), mark);
+    let Some((prefix, bold)) = text.split_once("\x1b[1m") else { return text };
+    let Some((name, suffix)) = bold.split_once("\x1b[22m") else { return text };
+    format!("{prefix}\x1b[1m{}\x1b[22m{suffix}", cells::isolate(cells::Run::Name, name))
+}
+fn header(kind: &str, size: &str, date: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
+    let parts = if date.is_empty() { vec![kind, size] } else { vec![kind, size, date] };
+    let mut left = width;
+    let mut out = String::new();
+    for (i, part) in parts.into_iter().enumerate() {
+        if i > 0 { let separator = fit(" · ", left.min(3)); left -= text_width(&separator); out.push_str(&separator); }
+        if left == 0 { break; }
+        let used = text_width(part).min(left);
+        out.push_str(&direction(part, used, i18n, i > 0));
+        left -= used;
+    }
+    out.push_str(&" ".repeat(left));
+    out
+}
+pub fn metadata_visible(m: &Model, index: usize, _line: &str) -> bool {
+    m.preview_state.facts.get(index).map_or(true, |fact| fact.key != "preview.fact.modified")
 }
 
 // The rows a body scrolls through, in the pane or the Quick Look card.
@@ -217,7 +257,7 @@ pub fn preview_scroll_limit(m: &Model) -> usize {
 }
 fn plain_lines(m: &Model, columns: usize) -> impl Iterator<Item = &str> {
     m.preview.iter().skip(2).filter(|line| !line.is_empty())
-        .chain(m.preview_metadata.iter().filter(|line| !line.starts_with("Modified · ")))
+        .chain(m.preview_metadata.iter().enumerate().filter(|(i, line)| metadata_visible(m, *i, line)).map(|(_, line)| line))
         .flat_map(move |line| cells::Wrapped::new(line, columns))
 }
 // Each wrapped part with its line number on the first part, and its source line and byte offset for syntax runs.
@@ -238,7 +278,7 @@ pub fn prepare(m: &mut Model) {
     let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some()
         || m.rows.get(&m.cursor).is_some_and(|r| super::pane_state::kind(r) == super::pane_state::Kind::Model3d);
     let archive = m.preview_state.archive.as_ref().map(|a| a.rows.len() + usize::from(a.entries > a.rows.len()) + usize::from(!m.quicklook));
-    m.text_gutter = super::render::grouped(m.preview_body.lines().count()).len();
+    m.text_gutter = text_width(&m.preview_state.i18n.locale().format_count(m.preview_body.lines().count() as i64));
     let text_width = columns.saturating_sub(m.text_gutter + 1);
     if changed || m.selected.len() > 1 || archive.is_some() {
         m.preview_line_count = if m.selected.len() > 1 { m.selected_rows.len() + usize::from(m.selected_rows.len() < m.selected.len()) }

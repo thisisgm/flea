@@ -10,6 +10,14 @@ pub(super) fn pointer_key(
     map: &Map,
     w: &mut Wire,
 ) -> io::Result<()> {
+    let mut logical;
+    let pointer = if super::super::layout::rtl(m) && !m.quicklook {
+        logical = pointer.clone();
+        logical.x = m.columns.saturating_add(1).saturating_sub(pointer.x);
+        &logical
+    } else {
+        pointer
+    };
     if pointer.released {
         m.drag_anchor = None;
         return Ok(());
@@ -67,6 +75,11 @@ pub(super) fn pointer_key(
             && pointer.x <= start + columns
         {
             let cell = pointer.x - start - 1;
+            let cell = if super::super::layout::rtl(m) && !m.quicklook {
+                columns.saturating_sub(cell + 1)
+            } else {
+                cell
+            };
             if let Some(pdf) = &mut m.pdf {
                 if let Some((control, activate)) = pdf.control_at(cell, m.quicklook, columns) {
                     pdf.control = control;
@@ -75,7 +88,7 @@ pub(super) fn pointer_key(
                     }
                 }
             } else if let Some(player) = &mut m.player {
-                if cell < 7 && !pointer.motion {
+                if cell < player.play_width().min(columns) && !pointer.motion {
                     player.control = 0;
                     return player.toggle();
                 }

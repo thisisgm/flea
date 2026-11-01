@@ -1,4 +1,4 @@
-use super::cells::{ellipsis, fit, name_title, text_width};
+use super::cells::{fit, text_width};
 use super::layout::{BODY_ROW, CHROME_ROWS};
 use super::model::Model;
 use super::pane::Area;
@@ -72,30 +72,50 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let plates = if pane_state::kind(row) == Kind::Model3d { plate_words(m, room / 2, theme) } else { (String::new(), 0) };
     let room = room.saturating_sub(plates.1);
     let head = (text_width(&mark) + text_width(leaf)).min(room);
-    let name = name_title(&mark, leaf, head);
+    let name = super::pane::title(&mark, leaf, head, &m.preview_state.i18n);
     let fact = fact(m, row);
     let rest = room - head;
-    let fact = if fact.is_empty() || rest < 3 { fit("", rest) } else { format!("  {}", ellipsis(&fact, text_width(&fact).min(rest - 2))) };
+    let fact = if fact.is_empty() || rest < 3 { fit("", rest) } else {
+        let fact = super::pane::direction(&fact, text_width(&fact).min(rest - 2), &m.preview_state.i18n, matches!(pane_state::kind(row), Kind::Model3d | Kind::Image | Kind::Video | Kind::Audio));
+        if super::layout::rtl(m) { format!("{fact}  ") } else { format!("  {fact}") }
+    };
     let gap = width.saturating_sub(2 + head + text_width(&fact) + plates.1);
-    format!("{}{name}{}{fact}{}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), plates.0, theme.foreground)
+    if super::layout::rtl(m) {
+        format!("{} {close}{}{}{}{fact}{}{name}", theme.foreground, plates.0, " ".repeat(gap), theme.meta, theme.foreground)
+    } else {
+        format!("{}{name}{}{fact}{}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), plates.0, theme.foreground)
+    }
 }
 
 fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
     let count = m.model3d.data.as_ref().map_or(0, |d| d.plates.len());
-    if count < 2 { return (String::new(), 0); }
-    let mut text = String::new();
-    let mut used = 0;
-    for plate in 0..count {
+    if count < 2 || width == 0 { return (String::new(), 0); }
+    let word = |plate: usize| {
         let number = m.preview_state.i18n.locale().format_count((plate + 1) as i64);
-        let word = m.preview_state.i18n.tr_args("model3d.plate", &[&number]);
-        let length = text_width(&word) + 2;
+        m.preview_state.i18n.tr_args("model3d.plate", &[&number])
+    };
+    let active = m.model3d.controls.plate.min(count - 1);
+    let mut first = active;
+    let mut used = (text_width(&word(active)) + 2).min(width);
+    while first > 0 && used + text_width(&word(first - 1)) + 2 <= width {
+        first -= 1;
+        used += text_width(&word(first)) + 2;
+    }
+    let mut pieces = Vec::new();
+    let mut used = 0;
+    for plate in first..count {
+        let word = word(plate);
+        let length = (text_width(&word) + 2).min(width);
         if used + length > width { break; }
-        text.push_str(if plate == m.model3d.controls.plate { &theme.foreground } else { &theme.muted });
-        text.push_str(&word);
-        text.push_str("  ");
+        let gap = length.min(2);
+        let label = super::pane::direction(&word, length - gap, &m.preview_state.i18n, false);
+        let ink = if plate == active { &theme.foreground } else { &theme.muted };
+        pieces.push(if super::layout::rtl(m) { format!("{ink}{}{label}", " ".repeat(gap)) }
+            else { format!("{ink}{label}{}", " ".repeat(gap)) });
         used += length;
     }
-    (text, used)
+    if super::layout::rtl(m) { pieces.reverse(); }
+    (pieces.concat(), used)
 }
 
 // The fact the window's Quick Look bar names: a picture's size, a sound's length, a page or line count.
@@ -104,8 +124,8 @@ fn fact(m: &Model, row: &super::model::Row) -> String {
     let probe = m.media_probe.unwrap_or((0, 0, 0));
     match pane_state::kind(row) {
         Kind::Model3d => super::model3d::dimensions(m).unwrap_or_default(),
-        Kind::Image | Kind::Video if probe.0 > 0 && probe.1 > 0 => format!("{} × {}", probe.0, probe.1),
-        Kind::Audio if probe.2 > 0 => super::media::clock(probe.2 as f64 / 1000.0),
+        Kind::Image | Kind::Video if probe.0 > 0 && probe.1 > 0 => i18n.tr_args("preview.pixels", &[&i18n.locale().format_count(probe.0 as i64), &i18n.locale().format_count(probe.1 as i64)]),
+        Kind::Audio if probe.2 > 0 => super::media::localized_clock(probe.2 as f64 / 1000.0, i18n),
         Kind::Pdf => m.pdf.as_ref().filter(|pdf| pdf.pages > 0).map(|pdf| i18n.trn("quicklook.pages", pdf.pages as i64)).unwrap_or_default(),
         Kind::Archive => m.preview_state.archive.as_ref().map(|a| i18n.trn("preview.entries", a.entries as i64)).unwrap_or_default(),
         _ if !m.preview_body.is_empty() => i18n.trn("quicklook.lines", m.preview_body.lines().count() as i64),
@@ -126,7 +146,8 @@ pub fn press(m: &mut Model, pointer: &super::input::Pointer) -> bool {
 fn closes(m: &Model, x: usize, y: usize) -> bool {
     let (left, width) = outer(m.columns);
     let area = area(m.columns, m.height);
-    let close = (BODY_ROW + 1, left + 2 + area.padding + area.width() - 2);
+    let column = if super::layout::rtl(m) { left + 2 + area.padding + 1 } else { left + 2 + area.padding + area.width() - 2 };
+    let close = (BODY_ROW + 1, column);
     let inside = x > left && x <= left + width && y >= BODY_ROW && y < BODY_ROW + m.height;
     !inside || (y, x) == close
 }

@@ -11,6 +11,10 @@ impl Column {
     fn next(self) -> Self {
         match self { Self::Size => Self::Modified, Self::Modified => Self::Mode, Self::Mode => Self::Owner, Self::Owner => Self::Size }
     }
+    pub fn key(self) -> &'static str {
+        match self { Self::Size => "window.column_size", Self::Modified => "window.column_modified", Self::Mode => "list.column_mode", Self::Owner => "properties.owner" }
+    }
+    #[cfg(test)]
     pub fn label(self) -> &'static str {
         match self { Self::Size => "Size", Self::Modified => "Modified", Self::Mode => "Mode", Self::Owner => "Owner" }
     }
@@ -46,14 +50,14 @@ impl Detail {
 }
 pub fn cycle(model: &mut Model) {
     model.detail.mode = model.detail.mode.next();
-    model.say(format!("Detail column · {}", model.detail.mode.label()));
+    model.say_text(super::words::args("tui.frame.detail", vec![super::words::Text::Key(model.detail.mode.key())]));
 }
 pub fn value(model: &Model, index: usize, row: &Row) -> String {
     if row.mode == 0 { return String::new(); }
     match model.detail.mode {
         Column::Size => model.row_size(index, row),
-        Column::Modified => super::calendar::modified(row.modified),
-        Column::Mode => format!("{:04o}", row.mode & 0o7777),
+        Column::Modified => model.i18n.locale().format_date(row.modified).filter(|_| row.modified > 0).unwrap_or_default(),
+        Column::Mode => model.i18n.locale().localize_number(&format!("{:04o}", row.mode & 0o7777)),
         Column::Owner => model.detail.owners.get(&index).map(|owner| super::cells::clean(owner)).unwrap_or_default(),
     }
 }

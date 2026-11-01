@@ -4,11 +4,14 @@ use crate::tui::{input::{Key, Pointer, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model
 use crate::jsondoc::Json;
 use std::io;
 
+
+
 // Opens the menu on the cursor row, asking the backend for its identity snapshot and for the facts its rows read.
 pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.menu = true;
     m.menu_cursor = 0;
     m.menu_top = 0;
+    m.taildrop.refresh_locale(&m.i18n);
     m.taildrop.refresh();
     m.menu_ready = false;
     m.menu_action.clear();
@@ -77,6 +80,9 @@ fn dropbox(info: &str, error: &str) -> String {
 pub fn key(m: &mut Model, key: &Key, map: &Map, w: &mut Wire) -> io::Result<()> {
     if let Some(pointer) = &key.pointer { return pointer_key(m, pointer, map, w); }
     let action = map.in_context(key, &m.preset, "menu");
+    let action = if super::cards::rtl(m) && crate::tui::cells::mirrors("navigation") && key.name != "Backspace" {
+        match action.as_str() { "menuRight" => "parent".into(), "parent" => "menuRight".into(), _ => action }
+    } else { action };
     let rows = entries(m, map);
     match action.as_str() {
         "escape" | "parent" => back(m),
@@ -89,7 +95,7 @@ pub fn key(m: &mut Model, key: &Key, map: &Map, w: &mut Wire) -> io::Result<()> 
             m.menu_top = place(m, &rows).top;
         }
         "open" | "preview" | "menuRight" => return activate(m, map, w, action == "menuRight"),
-        _ if !action.is_empty() => m.fail(crate::tui::parity::refusal(&action).into()),
+        _ if !action.is_empty() => m.fail_text(crate::tui::parity::refusal_text(&action)),
         _ => {}
     }
     Ok(())
@@ -153,7 +159,7 @@ fn run(m: &mut Model, id: &str, w: &mut Wire) -> io::Result<()> {
             m.taildrop_target = Some(peer.clone());
             m.menu_action = "taildropRefresh".into();
             m.taildrop.refresh();
-            m.say(m.i18n.tr("menu.taildropChecking"));
+            m.say_key("menu.taildropChecking");
             m.menu = false;
         }
         return Ok(());
@@ -171,6 +177,7 @@ fn run(m: &mut Model, id: &str, w: &mut Wire) -> io::Result<()> {
         vec![("c", word("actions")), ("op", word("run")), ("id", number(request)), ("action", word(action)), ("paths", paths)]
     } else {
         match id {
+            "combine" => return crate::tui::combine::open(m, w, true),
             "convert" => return crate::tui::convert::open(m, w, true),
             "print" => return crate::tui::print::open(m, w, true),
             "open" => { m.menu_action = "open".into(); menu("validate", vec![("action", word("open"))]) }
@@ -222,7 +229,7 @@ pub fn reply(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
                 _ => m.menu_view.folder.file_name().map_or("archive".into(), |leaf| leaf.to_string_lossy().into_owned()),
             };
             let dest = m.menu_view.folder.join(format!("{stem}.{format}"));
-            m.say(m.i18n.trn_args("menu.compressing", paths.len() as i64, &[&format]));
+            m.say_text(crate::tui::words::Text::Plural("menu.compressing", paths.len(), vec![format.clone().into()]));
             w.send(vec![("c", word("archive")), ("op", word("compress")), ("paths", Json::Arr(paths.iter().map(|p| word(p)).collect())),
                 ("dest", word(&dest.to_string_lossy())), ("format", word(&format)), ("menuId", number(m.action_id))])?;
         }
