@@ -67,6 +67,7 @@ pub struct Api {
     pub initialize: unsafe extern "C" fn(Handle) -> c_int,
     pub set_option: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int,
     pub command: unsafe extern "C" fn(Handle, u64, *const *const c_char) -> c_int,
+    pub get_property: unsafe extern "C" fn(Handle, *const c_char, c_int, *mut c_void) -> c_int,
     pub observe: unsafe extern "C" fn(Handle, u64, *const c_char, c_int) -> c_int,
     pub wait_event: unsafe extern "C" fn(Handle, c_double) -> *const Event,
     pub set_wakeup: unsafe extern "C" fn(Handle, Wakeup, *mut c_void),
@@ -87,6 +88,7 @@ impl Api {
             initialize: unsafe extern "C" fn(Handle) -> c_int = "mpv_initialize",
             set_option: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int = "mpv_set_option_string",
             command: unsafe extern "C" fn(Handle, u64, *const *const c_char) -> c_int = "mpv_command_async",
+            get_property: unsafe extern "C" fn(Handle, *const c_char, c_int, *mut c_void) -> c_int = "mpv_get_property",
             observe: unsafe extern "C" fn(Handle, u64, *const c_char, c_int) -> c_int = "mpv_observe_property",
             wait_event: unsafe extern "C" fn(Handle, c_double) -> *const Event = "mpv_wait_event",
             set_wakeup: unsafe extern "C" fn(Handle, Wakeup, *mut c_void) = "mpv_set_wakeup_callback",
@@ -128,6 +130,21 @@ pub fn command(api: &Api, handle: Handle, words: &[&str]) -> Result<(), String> 
 
 pub fn set(api: &Api, handle: Handle, name: &str, value: &str) -> Result<(), String> {
     command(api, handle, &["set", name, value])
+}
+
+pub fn get_double(api: &Api, handle: Handle, name: &str) -> Option<f64> {
+    let name = text(name);
+    let mut value = 0_f64;
+    // SAFETY: a double property read into a double.
+    let status = unsafe {
+        (api.get_property)(
+            handle,
+            name.as_ptr(),
+            FORMAT_DOUBLE,
+            (&mut value as *mut f64).cast(),
+        )
+    };
+    (status >= 0 && value.is_finite()).then_some(value)
 }
 
 /// A restart can be queued from an earlier seek; only current completed playback certifies its endpoint.
