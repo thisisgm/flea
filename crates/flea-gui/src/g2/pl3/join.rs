@@ -215,6 +215,7 @@ impl Shell {
             return false;
         }
         self.mount_trash(window, cx);
+        self.clear_under_trash(cx);
         let geometry = self.geometry(window);
         let host = self.trash.as_mut().expect("mounted Trash");
         host.sweep_timer = None;
