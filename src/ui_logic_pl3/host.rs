@@ -80,9 +80,15 @@ pub fn sheet_menu(selected: usize, total: usize, busy: bool) -> Vec<Item> {
     rows
 }
 
-/// The keys sheet lists only the window actions Trash forwards.
+/// The listing keys Trash answers itself, so its keys sheet lists them beside the window keys it forwards.
+pub const OWN_SHEET_KEYS: &[&str] = &[
+    "cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "focusNext", "focusPrevious", "escape",
+    "reload", "deletePermanently", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu",
+];
+
+/// The keys sheet lists the window actions Trash forwards and the listing keys it answers itself.
 pub fn sheet_action(action: &str) -> bool {
-    words::route(action) != Route::Trash || action == "quit"
+    words::route(action) != Route::Trash || action == "quit" || OWN_SHEET_KEYS.contains(&action)
 }
 
 /// How a sweep reply ended.

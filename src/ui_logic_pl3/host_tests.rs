@@ -26,7 +26,13 @@ fn trash_menus_hold_their_rows_and_states() {
     assert_eq!(ids(&host::selection_menu(true, &["restoreTrashSelection".into()])), ["delete-!"], "no separator leads");
     assert_eq!(ids(&host::sheet_menu(0, 2, false)), ["restoreTrashSelection-", "|", "delete-!", "open", "|", "restoreAll", "|", "emptyTrash!"],
         "the sheet disables the selection rows with nothing marked");
-    assert!(host::sheet_action("settings") && host::sheet_action("quit") && !host::sheet_action("cursorDown"), "the sheet lists forwarded keys only");
+    assert!(host::sheet_action("settings") && host::sheet_action("quit"), "the sheet lists the forwarded window keys");
+    for own in ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "toggleSelect", "selectAll", "deletePermanently", "menu", "escape"] {
+        assert!(host::sheet_action(own), "EY-310: the sheet lists {own}, a key Trash answers itself");
+    }
+    for foreign in ["copy", "paste", "rename", "trash", "open", "parent", "filter", "viewGrid"] {
+        assert!(!host::sheet_action(foreign), "the sheet leaves out {foreign}, which Trash does not answer");
+    }
 }
 
 #[test]
@@ -108,4 +114,11 @@ fn trash_monitor_reads_one_count_at_a_time() {
     let argv = monitor::owned_command(77, &monitor::QUERY);
     assert_eq!(&argv[..4], ["setpriv", "--pdeathsig", "TERM", "--"], "the helper dies with the UI");
     assert_eq!(&argv[8..], ["77", "gio", "info", "--attributes=trash::item-count", "trash:///"]);
+}
+
+#[test]
+fn trash_row_menu_rows_read_in_title_case() {
+    let i18n = english();
+    let labels: Vec<String> = host::selection_menu(false, &[]).iter().filter_map(|i| match i { Item::Entry(e) => Some(i18n.tr(e.label_key)), Item::Separator => None }).collect();
+    assert_eq!(labels, ["Restore", "Delete Permanently…"], "EY-365: both rows in the menus' title case, the ellipsis because a card follows");
 }

@@ -86,6 +86,11 @@ impl Shell {
             return false;
         }
         match decision {
+            Decision::Action { action } if host::OWN_SHEET_KEYS.contains(&action.as_str()) => {
+                let pane = self.trash.as_ref().expect("opened Trash").pane.clone();
+                pane.update(cx, |pane, cx| pane.action(action, false, cx));
+                self.flush_trash(window, cx);
+            }
             Decision::Action { action } if host::sheet_action(action) => {
                 self.forward_trash_action(action, window, cx)
             }
