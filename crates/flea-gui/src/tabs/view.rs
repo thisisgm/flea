@@ -33,7 +33,22 @@ impl Render for Ghost {
 }
 
 impl Render for Strip {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Only a running screen reader pays for the accessible controls.
+        let controls = window
+            .is_a11y_active()
+            .then(|| self.shell.upgrade())
+            .flatten()
+            .and_then(|shell| {
+                let shell = shell.read(cx);
+                let snapshot = shell.strip.snapshot.as_ref()?;
+                Some(super::accessibility::Controls {
+                    shell: self.shell.clone(),
+                    side: snapshot.side,
+                    identities: snapshot.identities.clone(),
+                    new_label: shell.locale.catalog.tr("keys.action.tabNew"),
+                })
+            });
         let geometry = self.bounds.clone();
         let drop_zone = self.drop_zone.clone();
         let drag = self.shell.clone();
@@ -168,7 +183,8 @@ impl Render for Strip {
             )
             .child(
                 StripElement::new(self.frame.clone(), self.labels.clone())
-                    .with_feedback(self.frames.clone()),
+                    .with_feedback(self.frames.clone())
+                    .with_controls(controls),
             )
     }
 }

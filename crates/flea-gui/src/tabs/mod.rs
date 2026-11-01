@@ -11,6 +11,9 @@ mod regression_tests;
 #[cfg(test)]
 pub mod test_support;
 
+mod accessibility;
+#[cfg(test)]
+mod accessibility_tests;
 mod atomic;
 pub(crate) mod catcher;
 mod geometry;
