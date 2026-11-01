@@ -8,6 +8,7 @@ type Wakeup = Option<unsafe extern "C" fn(*mut c_void)>;
 
 pub const EVENT_NONE: c_int = 0;
 pub const EVENT_SHUTDOWN: c_int = 1;
+pub const EVENT_COMMAND_REPLY: c_int = 5;
 pub const EVENT_END_FILE: c_int = 7;
 pub const EVENT_FILE_LOADED: c_int = 8;
 pub const EVENT_PLAYBACK_RESTART: c_int = 21;
@@ -26,6 +27,7 @@ pub const RENDER_SW_STRIDE: c_int = 19;
 pub const RENDER_SW_POINTER: c_int = 20;
 pub const RENDER_UPDATE_FRAME: u64 = 1;
 pub const FRAME_INFO_PRESENT: u64 = 1;
+pub const SEEK_REPLY: u64 = 1;
 
 #[repr(C)]
 pub struct Event {
@@ -64,9 +66,7 @@ pub struct Api {
     pub create: unsafe extern "C" fn() -> Handle,
     pub initialize: unsafe extern "C" fn(Handle) -> c_int,
     pub set_option: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int,
-    pub set_property: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int,
-    pub command: unsafe extern "C" fn(Handle, *const *const c_char) -> c_int,
-    pub get_property: unsafe extern "C" fn(Handle, *const c_char, c_int, *mut c_void) -> c_int,
+    pub command: unsafe extern "C" fn(Handle, u64, *const *const c_char) -> c_int,
     pub observe: unsafe extern "C" fn(Handle, u64, *const c_char, c_int) -> c_int,
     pub wait_event: unsafe extern "C" fn(Handle, c_double) -> *const Event,
     pub set_wakeup: unsafe extern "C" fn(Handle, Wakeup, *mut c_void),
@@ -86,9 +86,7 @@ impl Api {
             create: unsafe extern "C" fn() -> Handle = "mpv_create",
             initialize: unsafe extern "C" fn(Handle) -> c_int = "mpv_initialize",
             set_option: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int = "mpv_set_option_string",
-            set_property: unsafe extern "C" fn(Handle, *const c_char, *const c_char) -> c_int = "mpv_set_property_string",
-            command: unsafe extern "C" fn(Handle, *const *const c_char) -> c_int = "mpv_command",
-            get_property: unsafe extern "C" fn(Handle, *const c_char, c_int, *mut c_void) -> c_int = "mpv_get_property",
+            command: unsafe extern "C" fn(Handle, u64, *const *const c_char) -> c_int = "mpv_command_async",
             observe: unsafe extern "C" fn(Handle, u64, *const c_char, c_int) -> c_int = "mpv_observe_property",
             wait_event: unsafe extern "C" fn(Handle, c_double) -> *const Event = "mpv_wait_event",
             set_wakeup: unsafe extern "C" fn(Handle, Wakeup, *mut c_void) = "mpv_set_wakeup_callback",
@@ -115,50 +113,19 @@ pub fn text(value: &str) -> CString {
     CString::new(value).unwrap_or_default()
 }
 
-/// One synchronous command, its words NUL-terminated and the list null-terminated.
+/// Async commands keep the render thread from waiting on the core while the core waits on a frame.
 pub fn command(api: &Api, handle: Handle, words: &[&str]) -> Result<(), String> {
     let owned: Vec<CString> = words.iter().map(|word| text(word)).collect();
     let mut list: Vec<*const c_char> = owned.iter().map(|word| word.as_ptr()).collect();
     list.push(ptr::null());
-    // SAFETY: a live handle and a null-terminated list of live strings.
-    check(unsafe { (api.command)(handle, list.as_ptr()) }, words[0])
-}
-
-pub fn set(api: &Api, handle: Handle, name: &str, value: &str) -> Result<(), String> {
-    let (name, value) = (text(name), text(value));
-    // SAFETY: a live handle and NUL-terminated strings.
+    let reply = if words[0] == "seek" { SEEK_REPLY } else { 0 };
+    // SAFETY: mpv_command_async copies the null-terminated list of live strings before returning.
     check(
-        unsafe { (api.set_property)(handle, name.as_ptr(), value.as_ptr()) },
-        "set",
+        unsafe { (api.command)(handle, reply, list.as_ptr()) },
+        words[0],
     )
 }
 
-pub fn get_double(api: &Api, handle: Handle, name: &str) -> Option<f64> {
-    let name = text(name);
-    let mut value = 0_f64;
-    // SAFETY: a double property read into a double.
-    let status = unsafe {
-        (api.get_property)(
-            handle,
-            name.as_ptr(),
-            FORMAT_DOUBLE,
-            (&mut value as *mut f64).cast(),
-        )
-    };
-    (status >= 0 && value.is_finite()).then_some(value)
-}
-
-pub fn get_int(api: &Api, handle: Handle, name: &str) -> Option<i64> {
-    let name = text(name);
-    let mut value = 0_i64;
-    // SAFETY: an int64 property read into an i64.
-    let status = unsafe {
-        (api.get_property)(
-            handle,
-            name.as_ptr(),
-            FORMAT_INT64,
-            (&mut value as *mut i64).cast(),
-        )
-    };
-    (status >= 0).then_some(value)
+pub fn set(api: &Api, handle: Handle, name: &str, value: &str) -> Result<(), String> {
+    command(api, handle, &["set", name, value])
 }

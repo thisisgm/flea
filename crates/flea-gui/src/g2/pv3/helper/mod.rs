@@ -137,9 +137,51 @@ pub fn dispatch(args: &[String]) -> Option<i32> {
     })
 }
 
+/// What the decoder loop does with libmpv's frame this turn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Draw {
+    /// Render it at the decoded size and send it.
+    Frame,
+    /// Let it go unseen: its size is not known yet, and holding it would stall libmpv for 200 ms.
+    Release,
+    Nothing,
+}
+
+/// A waiting frame is drawn once its size is known and released before; a released one is drawn again once it is.
+pub fn draw(pending: bool, sized: bool, owed: bool) -> Draw {
+    match (pending || owed, sized) {
+        (true, true) => Draw::Frame,
+        _ if pending => Draw::Release,
+        _ => Draw::Nothing,
+    }
+}
+
 /// Swaps a BGRx picture's padding byte for opaque alpha, in place.
 pub fn opaque(pixels: &mut [u8]) {
     for pixel in pixels.as_chunks_mut::<4>().0 {
         pixel[3] = 255;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{draw, Draw};
+
+    #[test]
+    fn upd_a_frame_with_no_size_is_released_then_drawn_once_sized() {
+        // Base behaviour held this frame until dwidth came, which libmpv only reports after its 200 ms wait.
+        assert_eq!(draw(true, false, false), Draw::Release);
+        assert_eq!(
+            draw(false, true, true),
+            Draw::Frame,
+            "the released frame is drawn again once sized"
+        );
+        assert_eq!(draw(true, true, false), Draw::Frame);
+        assert_eq!(draw(false, true, false), Draw::Nothing);
+        assert_eq!(
+            draw(false, false, true),
+            Draw::Nothing,
+            "still unsized: nothing to draw yet"
+        );
     }
 }

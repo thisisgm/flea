@@ -3,11 +3,18 @@ use super::mpv_api::{Event as MpvEvent, *};
 use super::{opaque, Options, Output, INPUT};
 use flea::ui_logic_pv3::frame::{Command, Event, Failure};
 use flea::ui_logic_pv3::picture::decode_size;
-use flea::ui_logic_pv3::transport::Transport;
 use std::ffi::{c_int, c_void};
 use std::ptr;
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::time::Duration;
+
+#[path = "mpv_state.rs"]
+mod state;
+use state::State;
+
+#[cfg(test)]
+#[path = "mpv_tests.rs"]
+mod tests;
 
 // Observed property ids.
 const PAUSE: u64 = 1;
@@ -16,6 +23,7 @@ const DURATION: u64 = 3;
 const EOF: u64 = 4;
 const WIDTH: u64 = 5;
 const HEIGHT: u64 = 6;
+const VIDEO: u64 = 7;
 // The clock the strip draws moves in steps no finer than this.
 const POSITION_STEP_MS: i64 = 100;
 
@@ -23,19 +31,6 @@ unsafe extern "C" fn wake(data: *mut c_void) {
     // SAFETY: data is the SyncSender `run` keeps alive until both callbacks are cleared.
     let sender = unsafe { &*(data as *const SyncSender<()>) };
     let _ = sender.try_send(());
-}
-
-/// What the loop knows about the open file.
-struct State {
-    transport: Transport,
-    loaded: bool,
-    video: bool,
-    duration_ms: i64,
-    position_ms: i64,
-    sent_ms: i64,
-    seeking: Option<i64>,
-    clip: (i64, i64),
-    size: (u32, u32),
 }
 
 fn ms(seconds: f64) -> i64 {
@@ -116,6 +111,7 @@ pub fn run(
             (DURATION, "duration", FORMAT_DOUBLE),
             (WIDTH, "dwidth", FORMAT_INT64),
             (HEIGHT, "dheight", FORMAT_INT64),
+            (VIDEO, "vid", FORMAT_INT64),
         ] {
             let name = text(name);
             // SAFETY: a live handle and a NUL-terminated name.
@@ -149,18 +145,10 @@ fn play(
     commands: &Receiver<Command>,
     notified: &Receiver<()>,
 ) -> Result<(), String> {
-    let mut state = State {
-        transport: Transport::new(options.autoplay),
-        loaded: false,
-        video: false,
-        duration_ms: 0,
-        position_ms: 0,
-        sent_ms: 0,
-        seeking: None,
-        clip: (0, 0),
-        size: (0, 0),
-    };
+    let mut state = State::new(options.autoplay);
     let mut buffer: Vec<u8> = Vec::new();
+    // A frame released unseen while its size was unknown; it is drawn again once the size is known.
+    let mut owed = false;
     let io = |result: std::io::Result<()>| result.map_err(|error| error.to_string());
     loop {
         for command in commands.try_iter() {
@@ -195,6 +183,16 @@ fn play(
             match event.id {
                 EVENT_NONE => break,
                 EVENT_SHUTDOWN => return Ok(()),
+                EVENT_COMMAND_REPLY => {
+                    if event.userdata == SEEK_REPLY {
+                        if let Err(error) = check(event.error, "seek") {
+                            state.seeking = None;
+                            eprintln!("flea-media: seek dropped: {error}");
+                        }
+                    } else {
+                        check(event.error, "command reply")?;
+                    }
+                }
                 EVENT_END_FILE => {
                     // SAFETY: END_FILE carries an mpv_event_end_file.
                     let end = unsafe { &*(event.data as *const EndFile) };
@@ -204,14 +202,9 @@ fn play(
                     }
                 }
                 EVENT_FILE_LOADED => {
+                    // Observers supply metadata without a synchronous core call on the render thread.
                     state.loaded = true;
-                    state.duration_ms = get_double(api, handle, "duration").map_or(0, ms);
-                    state.video = get_int(api, handle, "vid").is_some_and(|id| id > 0);
-                    let duration_ms = state.duration_ms;
-                    io(out.event(Event::Loaded {
-                        video: state.video,
-                        duration_ms,
-                    }))?;
+                    io(out.event(state.facts()))?;
                     io(out.event(state.transport.loaded()))?;
                     if let Some(target) = state.transport.pending() {
                         seek(api, handle, &mut state, target);
@@ -228,7 +221,15 @@ fn play(
         }
         // SAFETY: a live render context.
         let update = unsafe { (api.render_update)(context) };
-        if update & RENDER_UPDATE_FRAME != 0 && state.size.0 > 0 && frame_due(api, context)? {
+        let pending = update & RENDER_UPDATE_FRAME != 0;
+        let draw = super::draw(pending, state.size.0 > 0, owed);
+        if draw == super::Draw::Release {
+            let mut scrap = [0_u8; 16];
+            render(api, context, 2, 2, 8, &mut scrap)?;
+            owed = true;
+        }
+        if draw == super::Draw::Frame && (owed || frame_due(api, context)?) {
+            owed = false;
             let (width, height) = state.size;
             let stride = width as usize * 4;
             buffer.resize(stride * height as usize, 0);
@@ -239,6 +240,15 @@ fn play(
         }
         let _ = notified.recv_timeout(Duration::from_millis(10));
     }
+}
+
+fn clip_size((w, h): (i64, i64), options: &Options) -> (u32, u32) {
+    decode_size(
+        w.clamp(0, 1 << 16) as u32,
+        h.clamp(0, 1 << 16) as u32,
+        options.box_w,
+        options.box_h,
+    )
 }
 
 /// Seeks now, or once the file loads; a seek mpv refuses is dropped as Qt drops it, never the end of the helper.
@@ -261,6 +271,18 @@ fn property(
 ) -> Result<(), String> {
     // SAFETY: PROPERTY_CHANGE carries an mpv_event_property.
     let changed = unsafe { &*(event.data as *const Property) };
+    if event.userdata == VIDEO {
+        // vid is unavailable for audio-only files; that is a valid false value.
+        let id = if changed.data.is_null() {
+            0
+        } else {
+            unsafe { *(changed.data as *const i64) }
+        };
+        if let Some(news) = state.metadata(VIDEO, id) {
+            return out.event(news).map_err(|error| error.to_string());
+        }
+        return Ok(());
+    }
     if changed.data.is_null() {
         return Ok(());
     }
@@ -283,13 +305,8 @@ fn property(
             }
         }
         DURATION => {
-            let duration_ms = ms(double());
-            if state.loaded && duration_ms != state.duration_ms {
-                state.duration_ms = duration_ms;
-                io(out.event(Event::Loaded {
-                    video: state.video,
-                    duration_ms,
-                }))?;
+            if let Some(news) = state.metadata(DURATION, ms(double())) {
+                io(out.event(news))?;
             }
         }
         EOF => {
@@ -302,13 +319,7 @@ fn property(
         _ => {}
     }
     if matches!(event.userdata, WIDTH | HEIGHT) {
-        let (w, h) = state.clip;
-        state.size = decode_size(
-            w.clamp(0, 1 << 16) as u32,
-            h.clamp(0, 1 << 16) as u32,
-            options.box_w,
-            options.box_h,
-        );
+        state.size = clip_size(state.clip, options);
     }
     Ok(())
 }
