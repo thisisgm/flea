@@ -107,6 +107,28 @@ impl Shell {
         )
     }
 
+    /// Seeds the media level from preview.volume; a kept level is written back as that leaf, ViewState.setMediaVolume.
+    pub(crate) fn follow_media_volume(&mut self, window: &Window, cx: &mut Context<Self>) {
+        use crate::g2::pv3::sound::MediaSound;
+        let shell = cx.entity().downgrade();
+        let handle = window.window_handle();
+        let keep: crate::g2::pv3::sound::KeepVolume = std::rc::Rc::new(move |level, cx| {
+            let shell = shell.clone();
+            // A release lands inside a player or shell update, so the write waits for the next turn.
+            cx.defer(move |cx| {
+                let Ok(patch) = flea::jsondoc::parse(&flea::ui_logic_pv3::volume_patch(level))
+                else {
+                    return;
+                };
+                let _ = handle.update(cx, |_, window, cx| {
+                    shell.update(cx, |shell, cx| shell.change_settings(patch, window, cx))
+                });
+            });
+        });
+        let stored = MediaSound::stored(&self.launch.settings.data);
+        MediaSound::install(stored, Some(keep), cx);
+    }
+
     pub(crate) fn follow_settings(&mut self, window: &Window, cx: &mut Context<Self>) {
         #[cfg(test)]
         if cx.has_global::<crate::state::constructor_fixture::NoSettingsWorker>() {

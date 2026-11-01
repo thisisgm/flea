@@ -14,6 +14,8 @@ pub mod keys;
 #[cfg(test)]
 mod card_tests;
 #[cfg(test)]
+mod draw_eye_tests;
+#[cfg(test)]
 mod draw_flash_tests;
 #[cfg(test)]
 mod draw_motion_tests;

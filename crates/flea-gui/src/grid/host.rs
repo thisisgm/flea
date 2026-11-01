@@ -256,6 +256,14 @@ impl PaneHost {
         self.grid_ready(size, data, locale);
         let grid = self.grid.as_mut().expect("a Grid host");
         grid.overlay.renaming = renaming;
+        // The run the captions mark is the filter's while it stands, else the search's, as the list reads it.
+        let query = match self.filter.shown {
+            Some(_) if !self.pane.state.search => self.filter.owner.query(),
+            _ => &self.pane.state.query,
+        };
+        if grid.overlay.query.as_ref() != query {
+            grid.overlay.query = query.to_owned().into();
+        }
         let filtered = self.filter.shown.clone();
         let shown = filtered
             .as_deref()

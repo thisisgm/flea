@@ -1,6 +1,6 @@
 use super::{
     railrecent_tests::{frame, read},
-    test_shell::{land, open_root, row, sent},
+    test_shell::{land, open_root, open_root_at, row, sent},
 };
 use crate::state::Shell;
 use gpui::{Entity, TestAppContext, VisualTestContext};
@@ -43,5 +43,27 @@ fn pb_recent_new_folder_key_refuses_before_mkdir(cx: &mut TestAppContext) {
         "Recent cannot hold a new folder. Open a folder first"
     );
     assert!(!sent().iter().any(|line| line.contains("mkdir")));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn ey392_recent_draws_back_and_up_live_because_both_close_it(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_at(cx, "/");
+    land(&shell, cx, "/", vec![row("note.txt", false)], 1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(host.nav.history.back.is_empty());
+            assert!(!host.nav.can_go_up(&host.pane));
+            shell.recent_open(0, Vec::new(), window, cx);
+        })
+    });
+    frame(cx);
+    let (back, up) = shell.read_with(cx, |shell, cx| {
+        let inputs = &shell.chrome.view.as_ref().unwrap().read(cx).inputs;
+        (inputs.back, inputs.up)
+    });
+    assert!(back, "v0.3.12 draws Back at full ink in Recent");
+    assert!(up, "v0.3.12 draws Up at full ink in Recent");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

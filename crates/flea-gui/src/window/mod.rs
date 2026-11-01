@@ -114,6 +114,7 @@ pub fn open(
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         shell.update(cx, |shell, cx| {
             shell.follow_settings(window, cx);
+            shell.follow_media_volume(window, cx);
             shell.follow_file_drags(window, cx);
             shell.start_update_polling(window, cx);
         });
@@ -140,6 +141,8 @@ mod ipc_cold_tests;
 #[cfg(test)]
 #[path = "../list/join_tests.rs"]
 mod list_tests;
+#[cfg(test)]
+mod media_volume_tests;
 #[cfg(test)]
 mod modal_tests;
 #[cfg(test)]

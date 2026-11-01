@@ -57,8 +57,9 @@ impl Shell {
         };
         let inputs = Inputs {
             view: self.view,
-            back: !host.nav.history.back.is_empty(),
-            up: host.nav.can_go_up(&host.pane),
+            // Back and Up close Recent onto the folder it opened over, so both stand at full ink there, as v0.3.12 draws them.
+            back: !host.nav.history.back.is_empty() || host.recent.on,
+            up: host.nav.can_go_up(&host.pane) || host.recent.on,
             filter: !host.pane.state.search,
             sort: !host.pane.state.search,
             live: !self.card_holds_keyboard(cx)

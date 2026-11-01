@@ -192,17 +192,11 @@ impl Shell {
         let fresh = !Rc::ptr_eq(&state.held, current);
         if state.held.listing != current.listing {
             state.cancel(backend);
-            state.sizes = if state.path == host.path {
-                state.sizes.carried(
-                    &state.held.rows,
-                    state.held.start,
-                    &current.rows,
-                    current.start,
-                )
-            } else {
+            // PaneSwap.applyListed: a re-list starts its walks clean, since a move into a folder changes its size.
+            if state.path != host.path {
                 state.class = None;
-                DirSizes::default()
-            };
+            }
+            state.sizes = DirSizes::default();
             state.path = host.path.clone();
             state.asked_fs = false;
             state.asked_sizes = false;

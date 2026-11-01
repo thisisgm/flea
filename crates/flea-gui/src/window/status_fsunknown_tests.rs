@@ -184,3 +184,36 @@ fn ey65_a_stale_fsinfo_refusal_leaves_the_shown_folder_pending(cx: &mut TestAppC
         "a refusal for another folder answers nothing here"
     );
 }
+
+#[gpui::test]
+fn ey420_recent_spans_disks_so_the_bar_says_unknown(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(1100.), gpui::px(700.)));
+    frame(cx, handle);
+    handle
+        .update(cx, |shell, window, cx| {
+            let facts = Filesystem {
+                class: String::new(),
+                tagable: None,
+                path: "/files".into(),
+                name: "tmpfs".into(),
+                free: 3_100_000_000,
+            };
+            shell.receive(0, BackendEvent::Filesystem(facts), window, cx);
+        })
+        .unwrap();
+    frame(cx, handle);
+    assert_eq!(filesystem(cx, handle), "tmpfs · 3.1 GB free");
+    handle
+        .update(cx, |shell, _, cx| {
+            shell.panes[0].as_mut().unwrap().recent.on = true;
+            cx.notify();
+        })
+        .unwrap();
+    frame(cx, handle);
+    assert_eq!(
+        filesystem(cx, handle),
+        "unknown",
+        "v0.3.12 RecentMode.js clears fsName and answers, so Recent never shows the folder it came from"
+    );
+}

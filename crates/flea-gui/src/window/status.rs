@@ -39,6 +39,8 @@ pub(crate) struct Footer {
     pub kind: Kind,
     pub counts: SharedString,
     pub filesystem: SharedString,
+    /// The left zone's text as last laid out, cut with an ellipsis when it outgrows its zone.
+    pub counts_text: gpui::TextLayout,
     // The search receipt last handed to the message line, so a frame at rest says nothing new.
     search: String,
     pub border_width: gpui::Pixels,
@@ -66,6 +68,7 @@ impl Footer {
             kind: Kind::Loading,
             counts: SharedString::default(),
             filesystem: SharedString::default(),
+            counts_text: Default::default(),
             search: String::new(),
             border_width: px(0.),
             width: 0.,
@@ -163,7 +166,13 @@ impl Shell {
         let catalog = &self.locale.catalog;
         let fs = &mut self.surfaces[self.focus_side].filesystem;
         fs.enter(&host.path);
-        if !host.pane.busy() && fs.listing != Some(host.pane.held.listing) && !host.stopped {
+        // RecentMode.js: Recent spans disks and asks for no figures, so its bar answers unknown.
+        let recent = host.recent.on;
+        if !recent
+            && !host.pane.busy()
+            && fs.listing != Some(host.pane.held.listing)
+            && !host.stopped
+        {
             fs.listing = Some(host.pane.held.listing);
             if let Some(backend) = &host.backend {
                 let _ = backend.fsinfo();
@@ -173,12 +182,16 @@ impl Shell {
             .facts
             .as_ref()
             .map(|facts| catalog.locale().format_size(facts.free));
-        let filesystem = status_host::disk(
-            catalog,
-            fs.facts.as_ref().map_or("", |facts| facts.name.as_str()),
-            free.as_deref(),
-            !fs.answered,
-        );
+        let filesystem = if recent {
+            status_host::disk(catalog, "", None, false)
+        } else {
+            status_host::disk(
+                catalog,
+                fs.facts.as_ref().map_or("", |facts| facts.name.as_str()),
+                free.as_deref(),
+                !fs.answered,
+            )
+        };
         // HIG search.png: the landed receipt stands before the disk facts while search lives.
         let (path, state_message, retry, search) = if in_trash || in_flash {
             (
@@ -288,19 +301,20 @@ impl Render for Footer {
         // HIG locked-menu lets the full notice use the count zone's unpainted space.
         let count_width = text_width(&self.counts);
         let room = (self.width - 28. - disk_width - (14. + count_width + 14.)).max(0.);
-        let text = |name, value: SharedString| {
+        let counts_text = gpui::StyledText::new(self.counts.clone());
+        self.counts_text = counts_text.layout().clone();
+        // A block zone, not a flex row: only a text given its zone's width is cut with the ellipsis StatusBar.qml draws.
+        let text = |name, value: SharedString, child: gpui::AnyElement| {
             let element = self.painted.watch(
                 div()
                     .relative()
                     .w(px(self.zone_width))
                     .h(px(height))
                     .line_height(px(height))
-                    .flex()
-                    .items_center()
                     .overflow_hidden()
                     .whitespace_nowrap()
                     .text_ellipsis()
-                    .child(value.clone()),
+                    .child(child),
                 name,
                 value.clone(),
             );
@@ -337,12 +351,24 @@ impl Render for Footer {
                     .h(px(1.))
                     .bg(ink.foreground.opacity(0.12)),
             )
-            .child(text("counts", self.counts.clone()).absolute().left(px(14.)))
             .child(
-                text("disk", self.filesystem.clone())
-                    .absolute()
-                    .right(px(14.))
-                    .justify_end(),
+                text(
+                    "counts",
+                    self.counts.clone(),
+                    counts_text.into_any_element(),
+                )
+                .absolute()
+                .left(px(14.)),
+            )
+            .child(
+                text(
+                    "disk",
+                    self.filesystem.clone(),
+                    self.filesystem.clone().into_any_element(),
+                )
+                .absolute()
+                .right(px(14.))
+                .text_right(),
             )
             .child(
                 self.painted.watch(
