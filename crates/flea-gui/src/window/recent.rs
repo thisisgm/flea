@@ -31,6 +31,9 @@ impl PaneHost {
             };
         }
         self.recent = RecentMode::default();
+        if was {
+            self.list.borrow_mut().set_recent_place(None);
+        }
         was
     }
 
@@ -131,6 +134,9 @@ impl Shell {
         host.recent.on = true;
         host.recent.paths = visits.iter().map(|visit| visit.path.clone()).collect();
         host.recent.visits = recent::visits(&visits);
+        host.list
+            .borrow_mut()
+            .set_recent_place(Some(host.recent.visits.clone()));
         host.nav.order = Order {
             key: "mtime",
             desc: true,

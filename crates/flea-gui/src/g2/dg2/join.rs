@@ -13,6 +13,8 @@ use std::rc::Rc;
 mod crumb_drop;
 #[path = "owned.rs"]
 mod owned;
+#[path = "peek_lift.rs"]
+mod peek_lift;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
 #[path = "spring.rs"]
@@ -110,6 +112,19 @@ impl Shell {
         self.clear_file_rest(window, cx);
         self.clear_file_cue(window, cx);
         self.clear_rail_aim(window, cx);
+        let drags = cx.default_global::<Drags>();
+        drags.serial += 1;
+        let serial = FILE_SERIALS | drags.serial;
+        if let Some((lifted, picture)) = self.peek_lift(side, window, serial) {
+            let host = self.panes[side]
+                .as_ref()
+                .expect("the source pane remains mounted");
+            let flock = image::pictured(host, picture, window, cx);
+            cx.default_global::<Drags>().flocks.insert(key, flock);
+            cx.default_global::<Drags>().put(key, lifted);
+            self.say_held_drag(window, cx);
+            return true;
+        }
         let Some(host) = self.panes[side].as_ref() else {
             return false;
         };
@@ -124,9 +139,6 @@ impl Shell {
         }
         // FileDrag.liftBegan: a lift ends the pending slow click, so the next tap on the row only records itself.
         self.rename.slow = None;
-        let drags = cx.default_global::<Drags>();
-        drags.serial += 1;
-        let serial = FILE_SERIALS | drags.serial;
         let modifiers = press.event.modifiers;
         let Some(lifted) = lift(
             &HostRows(host),

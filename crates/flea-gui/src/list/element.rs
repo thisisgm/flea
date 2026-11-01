@@ -488,10 +488,12 @@ impl Element for ListElement {
                         if shown.state.drop_target {
                             continue;
                         }
-                        let recent = view
-                            .today
-                            .zip(self.held.row(shown.index))
-                            .is_some_and(|(today, facts)| format::is_recent(facts.mtime, today));
+                        let recent = view.today.zip(self.held.row(shown.index)).is_some_and(
+                            |(today, facts)| {
+                                view.date_stamp(facts)
+                                    .is_some_and(|stamp| format::is_recent(stamp, today))
+                            },
+                        );
                         for (column, line) in [
                             (Column::Mode, &prepared.mode),
                             (Column::Size, &prepared.size),

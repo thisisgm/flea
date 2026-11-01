@@ -427,6 +427,8 @@
   "window.column_name": "名称",
   "window.column_size": "大小",
   "window.column_modified": "修改时间",
+  "window.column_location": "位置",
+  "window.column_used": "使用时间",
   "visual.window": "截取请求指向了另一个窗口。",
   "visual.unknown": "截取场景未注册。",
   "visual.settings": "截取场景设置无效。",

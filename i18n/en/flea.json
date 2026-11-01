@@ -450,6 +450,8 @@
   "window.column_name": "Name",
   "window.column_size": "Size",
   "window.column_modified": "Modified",
+  "window.column_location": "Location",
+  "window.column_used": "Used",
   "visual.window": "The capture request names another window.",
   "visual.unknown": "The capture scene is not registered.",
   "visual.settings": "The capture scene settings are invalid.",

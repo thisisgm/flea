@@ -6,23 +6,23 @@ use gpui::SharedString;
 const LINE: u64 = 1 << 34;
 
 #[derive(Clone, Debug, PartialEq)]
-struct Target {
-    side: usize,
-    listing: usize,
-    folder: String,
+pub(super) struct Target {
+    pub(super) side: usize,
+    pub(super) listing: usize,
+    pub(super) folder: String,
     row: Option<usize>,
     slot: Option<crate::columns::geometry::Slot>,
     dest: String,
 }
 
 pub(super) struct Cue {
-    target: Target,
+    pub(super) target: Target,
     serial: u64,
     count: usize,
     flags: Option<(bool, bool)>,
     /// A shelf drag's verb, fixed at its lift whatever keys are held (Drag.feedbackFor).
     fixed: Option<Verb>,
-    own: bool,
+    pub(super) own: bool,
     proposed: Proposed,
     facts: Facts,
 }

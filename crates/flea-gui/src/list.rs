@@ -15,6 +15,7 @@ pub(crate) mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;
+mod recent;
 mod row_text;
 mod tags;
 mod text_revision;
@@ -162,6 +163,7 @@ pub struct ListView {
     pub picker_directory: bool,
     /// The picker's Recent history: each row names its leaf, and no title carries a sort arrow (picker-recent-list).
     pub recent: bool,
+    pub(crate) place_recent: Option<recent::PlaceRecent>,
     pub clip: ClipMarks,
     pub order: Order,
     /// Highlight today's dates: today's local midnight while the setting is on.
@@ -191,6 +193,7 @@ impl Default for ListView {
             picker: None,
             picker_directory: false,
             recent: false,
+            place_recent: None,
             clip: ClipMarks::default(),
             order: Order::default(),
             today: None,
