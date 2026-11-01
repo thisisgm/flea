@@ -69,6 +69,7 @@ fn omi_removed_job_keeps_the_drawn_owner_until_the_minimum_expires(cx: &mut Test
     advance(cx, handle, 150);
     assert!(agrees(cx, handle));
     advance(cx, handle, 20);
+    finish(cx, handle);
     line(cx, handle, r#"{"t":"jobs","jobs":[]}"#);
     assert!(agrees(cx, handle));
     advance(cx, handle, 79);
@@ -101,6 +102,11 @@ fn omi_fold_unfold_and_failed_frames_use_the_committed_jobs(cx: &mut TestAppCont
         cx,
         handle,
         r#"{"t":"job","job":{"id":13,"kind":"copy","head":"Copy failed","state":"failed","reason":"Permission denied"}}"#,
+    );
+    line(
+        cx,
+        handle,
+        r#"{"t":"transferdone","id":13,"ok":0,"failed":1}"#,
     );
     advance(cx, handle, 100);
     assert!(!agrees(cx, handle));

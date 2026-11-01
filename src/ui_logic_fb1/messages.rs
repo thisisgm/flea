@@ -67,6 +67,20 @@ impl Messages {
     pub fn notice_serial(&self) -> u64 {
         self.notice_serial
     }
+
+    // A journal invalidation changes only its matching receipt, keeping the notice's serial and deadline.
+    pub fn revoke_notice_undo(&mut self, receipt: &str, primary: &str) {
+        if self.notice != receipt && self.notice != primary {
+            return;
+        }
+        self.notice = primary.into();
+        self.notice_hint = match self.notice_hint {
+            Hint::Undo | Hint::TransientUndo => Hint::None,
+            Hint::Note(note, _) => Hint::Note(note, false),
+            hint => hint,
+        };
+    }
+
     pub fn activities(&self) -> &[Activity] {
         &self.activities
     }
@@ -237,6 +251,16 @@ impl Messages {
     /// Asks to cancel the displayed transfer once; the id goes to its owner's backend.
     pub fn cancel_transfer(&mut self) -> Option<u64> {
         cancel_activity(&mut self.activities).then(|| self.activities[0].transfer)
+    }
+
+    pub fn activity_cancelling(&mut self, owner: u64, transfer: u64) {
+        if let Some(activity) = self
+            .activities
+            .iter_mut()
+            .find(|a| a.owner == owner && a.transfer == transfer && a.running)
+        {
+            activity.cancelling = true;
+        }
     }
 
     /// Escape dismisses a standing error first, then takes every press while a cancellable transfer runs, cancelling it once.

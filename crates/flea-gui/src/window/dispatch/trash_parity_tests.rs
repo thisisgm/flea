@@ -9,7 +9,6 @@ use gpui::TestAppContext;
 pub(super) const SMB: &str = "/run/user/1000/gvfs/smb-share:server=host,share=docs";
 
 #[gpui::test]
-#[ignore = "known red until the path work selects the replacement row after a trash"]
 fn trash_parity_replacement_row_is_selected_in_every_preset(cx: &mut TestAppContext) {
     for (preset, key) in [
         ("mac", "ctrl-delete"),
@@ -203,5 +202,162 @@ fn bfx325_no_trash_pair_names_review_and_a_denied_review_never_deletes(cx: &mut 
         [format!(r#"{{"c":"menuaction","op":"close","id":{id}}}"#)]
     );
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+fn ten() -> Vec<flea::protocol::RowFacts> {
+    (1..=10).map(|n| row(&format!("f{n}.txt"), false)).collect()
+}
+
+fn line_text(
+    shell: &gpui::Entity<crate::state::Shell>,
+    cx: &mut gpui::VisualTestContext,
+) -> String {
+    shell.update(cx, |shell, cx| {
+        let catalog = shell.locale.catalog.clone();
+        shell.status_messages(cx, |messages, _| messages.transient_text(&catalog))
+    })
+}
+
+#[gpui::test]
+fn ey144_escape_after_d_on_a_landed_row_only_disarms(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(
+        cx,
+        r#""keys":"default","view":"list","escapeUp":true"#,
+        Some("/files/alpha.txt"),
+    );
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![row("alpha.txt", false), row("beta.txt", false)],
+        1,
+    );
+    let selected = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().selected.clone()
+    });
+    assert_eq!(selected, vec![0], "the scene's landed row");
+    let before = lists(&shell, cx);
+    cx.simulate_keystrokes("d");
+    cx.simulate_keystrokes("escape");
+    assert_eq!(lists(&shell, cx), before, "Escape only cancels the armed d");
+    assert_eq!(super::test_shell::asked(&shell, cx), "/files");
+    cx.simulate_keystrokes("escape");
+    assert_eq!(lists(&shell, cx), before + 1, "the next Escape climbs");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn ey179_first_d_on_a_marked_block_says_the_pair(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(cx, r#""keys":"default","view":"list""#, None);
+    land(&shell, cx, "/files", ten(), 1);
+    set_cursor(&shell, cx, 1);
+    cx.simulate_keystrokes("v shift-j");
+    let selected = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().selected.clone()
+    });
+    assert_eq!(selected, vec![1, 2]);
+    cx.simulate_keystrokes("d");
+    assert_eq!(
+        line_text(&shell, cx),
+        "Press d again to move them to Trash, or press Delete on its own."
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn ey115_backspace_in_an_empty_filter_after_ctrl_a_stays_in_the_folder(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(cx, r#""keys":"default","view":"list""#, None);
+    land(&shell, cx, "/files", ten(), 1);
+    let before = lists(&shell, cx);
+    for keys in [
+        "/ ctrl-a backspace",
+        "escape / n t ctrl-a escape / ctrl-a backspace",
+    ] {
+        cx.simulate_keystrokes(keys);
+        let (place, up, typing, query) = shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            let filter = &host.filter.owner;
+            (
+                host.pane.place().to_owned(),
+                filter.up(),
+                filter.typing(),
+                filter.query().to_owned(),
+            )
+        });
+        assert_eq!(
+            (place.as_str(), lists(&shell, cx)),
+            ("/files", before),
+            "{keys}"
+        );
+        assert!(
+            up && typing && query.is_empty(),
+            "{keys}: the empty strip keeps its caret"
+        );
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn ey194_dd_selects_the_row_that_takes_the_trashed_ones_place(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root_with(cx, r#""keys":"default","view":"list""#, None);
+    let mut rows = ten();
+    land(&shell, cx, "/files", rows.clone(), 1);
+    set_cursor(&shell, cx, 2);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("d d");
+    assert_eq!(
+        sent(),
+        [r#"{"c":"trash","rows":[2],"menuId":0,"listing":1}"#]
+    );
+    reply(&shell, cx, r#"{"t":"trashed","ok":1,"failed":0}"#);
+    rows.remove(2);
+    land(&shell, cx, "/files", rows, 2);
+    let (cursor, selected) = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        (host.pane.cursor, host.selected.clone())
+    });
+    assert_eq!(
+        (cursor, selected),
+        (2, vec![2]),
+        "f4.txt takes f3.txt's place, selected"
+    );
+    cx.simulate_keystrokes("down");
+    let selected = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().selected.clone()
+    });
+    assert_eq!(selected, vec![3], "the next key acts on the lone selection");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn ey194_a_trash_answered_during_a_watch_reread_still_selects_the_replacement(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = open_root_with(cx, r#""keys":"default","view":"list""#, None);
+    let mut rows = ten();
+    land(&shell, cx, "/files", rows.clone(), 1);
+    set_cursor(&shell, cx, 2);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("d d");
+    assert_eq!(sent().len(), 1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let _ = shell.step(0, Step::Refresh(None), window, cx);
+        })
+    });
+    reply(&shell, cx, r#"{"t":"trashed","ok":1,"failed":0}"#);
+    rows.remove(2);
+    land(&shell, cx, "/files", rows.clone(), 2);
+    land(&shell, cx, "/files", rows, 3);
+    let (cursor, selected) = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        (host.pane.cursor, host.selected.clone())
+    });
+    assert_eq!(
+        (cursor, selected),
+        (2, vec![2]),
+        "the replacement row stays selected"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

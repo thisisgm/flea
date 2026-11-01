@@ -61,6 +61,7 @@ pub mod join;
 mod measured;
 
 mod progress;
+mod transfer_status;
 
 #[cfg(test)]
 mod atomic_dialog_tests;

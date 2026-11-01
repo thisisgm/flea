@@ -84,6 +84,9 @@ pub struct Operations {
     pub collide: Host,
     pub dialog: Option<Dialog>,
     pub wire: transfer::Wire,
+    pub(super) pending_transfer_job: Option<flea::ui_logic_op1::JobRow>,
+    pub transfer_cancelling: bool,
+    pub(super) transfer_receipt: Option<jobs_state::Receipt>,
     pub emptying: Emptying,
     pub jobs: Jobs,
     pub arm: trash::Arm,
@@ -122,6 +125,9 @@ impl Operations {
             collide: Host::default(),
             dialog: None,
             wire: transfer::Wire::default(),
+            pending_transfer_job: None,
+            transfer_cancelling: false,
+            transfer_receipt: None,
             emptying: Emptying::default(),
             jobs: Jobs::default(),
             arm: trash::Arm::default(),
@@ -258,6 +264,9 @@ impl Operations {
                 moving,
                 extract,
             } => {
+                self.release_transfer_job();
+                self.transfer_cancelling = false;
+                self.transfer_receipt = None;
                 self.wire.started(id, moving, n, extract);
                 self.sticky = lines::progress_line(catalog, &self.wire.transfer);
             }
@@ -309,21 +318,7 @@ impl Operations {
                 }
                 _ => {}
             },
-            Event::TransferDone(done) => {
-                if self.emptying.finish(done.id) {
-                    return true;
-                }
-                if let transfer::Fold::Done { transfer, error } =
-                    self.wire.done(done.id, done.failed)
-                {
-                    let line = lines::done_line(catalog, &self.preset, &transfer, &done);
-                    self.sticky.clear();
-                    self.say(line.clone(), error);
-                    if error {
-                        self.say(line, false);
-                    }
-                }
-            }
+            Event::TransferDone(done) => self.transfer_done(catalog, &done),
             Event::Trashed { ok, failed, err } => {
                 if ok > 0 || failed > 0 {
                     self.sticky.clear();
@@ -347,8 +342,11 @@ impl Operations {
             // Shared with the Trash view and the menu, so other readers still get these lines.
             Event::TrashBrowse(reply) => return self.card_reply(catalog, true, &reply, now),
             Event::MenuAction(reply) => return self.card_reply(catalog, false, &reply, now),
-            Event::Jobs { jobs, .. } => self.changed = self.jobs.snapshot(jobs),
-            Event::Job { job, .. } => self.changed = self.jobs.update(job),
+            Event::Jobs { jobs, .. } => self.changed = self.transfer_jobs(catalog, jobs),
+            Event::Job { job, .. } => {
+                let job = self.transfer_job(catalog, job);
+                self.changed = self.jobs.update(job);
+            }
             Event::JobError { error, code, .. } => {
                 let text = jobs::refusal(catalog, &error, &code);
                 self.jobs.refused(&text);

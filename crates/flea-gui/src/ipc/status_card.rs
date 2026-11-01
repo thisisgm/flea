@@ -41,18 +41,12 @@ fn control(name: &str, text: Option<crate::g2::fb1::observe::Text>, enabled: boo
 pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::MessageLine) -> Json {
     let overlay = shell.overlay.as_ref().map(|overlay| overlay.read(cx));
     let frame = overlay.and_then(|overlay| overlay.feedback_paint.get("frame"));
-    let visible =
-        frame.is_some() && overlay.is_some_and(|o| !o.model.jobs.folded && o.model.jobs.visible());
+    let visible = frame.is_some()
+        && overlay.is_some_and(|o| !o.drawn_jobs().folded && o.drawn_jobs().visible());
     let block = overlay
         .filter(|_| visible)
         .and_then(|o| o.model.blocks.first());
-    let cancelling = block.is_some_and(|(_, block)| {
-        line.messages().activities().iter().any(|a| {
-            a.transfer == block.id
-                && Some(a.owner) == overlay.and_then(|o| o.owner).map(|owner| owner as u64)
-                && a.cancelling
-        })
-    });
+    let cancelling = block.is_some_and(|(_, block)| block.cancelling);
     let can_cancel = visible && block.is_some_and(|(_, b)| b.buttons.contains(&Action::Cancel));
     let cancel = overlay
         .filter(|_| visible)

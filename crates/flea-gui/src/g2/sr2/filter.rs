@@ -193,8 +193,11 @@ impl Filter {
         true
     }
 
-    /// Ctrl+A on the line marks every exact row shown, never a close one, and hands the keyboard to the list.
+    /// Ctrl+A marks exact rows and focuses the list; an empty line keeps its caret so Backspace cannot leave the folder.
     pub fn select_all(&mut self, pane: &mut dyn PaneSeam) {
+        if self.query.is_empty() {
+            return;
+        }
         let exact = self
             .drawn(pane.listing())
             .map(|drawn| drawn.narrowed.exact.clone())
@@ -203,11 +206,7 @@ impl Filter {
             pane.mark(&exact);
         }
         self.typing = false;
-        if self.query.is_empty() {
-            self.close(pane);
-        } else {
-            pane.focus_list();
-        }
+        pane.focus_list();
     }
 
     /// The query line's own keys while it has the caret; a key that leaves the line commits first and is not consumed.

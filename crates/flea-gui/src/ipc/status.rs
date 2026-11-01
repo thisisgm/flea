@@ -264,7 +264,14 @@ impl StatusAdapter<'_> {
             ),
             ("errors", number(messages.errors().len())),
             ("notice", Json::Str(messages.notice().into())),
-            ("undoAvailable", Json::Bool(!line.drawn().undo.is_empty())),
+            (
+                "undoAvailable",
+                Json::Bool(
+                    self.shell
+                        .transfer_undo_available(messages.notice(), self.cx)
+                        .unwrap_or(!line.drawn().undo.is_empty()),
+                ),
+            ),
             (
                 "transferCard",
                 super::status_card::read(self.shell, self.cx, line),
