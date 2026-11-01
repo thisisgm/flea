@@ -242573,7 +242573,7 @@
     "src/tui/combine/source.rs": "3771c8e54c6e6d7d1dfffc5e0453e6468fd35d528ef55dc5a6c825fa850d0432",
     "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
     "src/tui/contents.rs": "c3c703f6025f036e5e890b3c92d426a554fe0b4ec224bc9337eb73d8a61368a3",
-    "src/tui/contents/failure.rs": "974266db035e19db521a3700f852423c967e2428d3a4f56680464535959bbae3",
+    "src/tui/contents/failure.rs": "7bff3518c6d58500217f7f7a01bb99f70a67962a6b2ad16eb4b5af1347cd2808",
     "src/tui/convert.rs": "cac577640a064368ebe30b53444d209c7232341004b3af8cac187e053b2bb7ce",
     "src/tui/convert/card.rs": "855867802d5e6e076797247ac6befaf74b2aeebec5f52126d1cd600746f7f0ff",
     "src/tui/convert/input.rs": "0e102c2c5c1afe0d1d4290ba7f6ccfb1883b30d207cf79c50f9da1c5205bb154",

@@ -5,8 +5,7 @@ use crate::tui::{
     wire::{count, text},
 };
 
-// A tagged reply answers only its own gen, and a superseded gen is dropped. An untagged failure answers a waiting
-// names Find only from the wheres it raises itself; every other failure takes the normal path.
+// A superseded gen is dropped; an untagged failure answers a waiting names Find only from its own wheres.
 pub(super) fn receive(m: &mut Model, value: &Json) -> bool {
     let gen = count(value, "gen");
     let contents = text(value, "where") == "searchcontents";
