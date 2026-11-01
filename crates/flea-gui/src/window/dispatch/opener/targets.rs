@@ -19,7 +19,8 @@ pub(super) enum Pending {
         listing: usize,
         path: String,
         rows: Vec<usize>,
-        validating: bool,
+        // None awaits the snapshot; Some retains its first row kind until validation.
+        kind: Option<usize>,
     },
     // One validated archive waits for its own row, since Quick Look reads the cursor row; close names a snapshot this lane still holds.
     Archive {
@@ -243,12 +244,13 @@ impl Shell {
             listing,
             path,
             rows,
-            validating,
+            kind,
         }) = self.opener[side].pending.as_ref()
         else {
             return false;
         };
-        let validating = *validating;
+        let validating = kind.is_some();
+        let directory = kind.is_some_and(|kind| kind & FILE_TYPE == DIRECTORY_MODE);
         let Ok(doc) = jsondoc::parse(line) else {
             return false;
         };
@@ -299,10 +301,8 @@ impl Shell {
                 self.open_selection_end(side, id, cx);
                 self.opener_refused(side, refusal, cx);
             } else {
-                if let Some(Pending::Selection { validating, .. }) =
-                    self.opener[side].pending.as_mut()
-                {
-                    *validating = true;
+                if let Some(Pending::Selection { kind, .. }) = self.opener[side].pending.as_mut() {
+                    *kind = kinds.first().copied();
                 }
                 self.opener_request(
                     side,
@@ -325,7 +325,7 @@ impl Shell {
             });
             match paths {
                 // One marked archive stays inside Flea: Quick Look opens on its own row once that row is loaded.
-                Some(paths) if count == 1 && archive_path(&paths[0]) => {
+                Some(paths) if count == 1 && !directory && archive_path(&paths[0]) => {
                     let (listing, path, rows) = (*listing, path.clone(), rows.clone());
                     self.opener[side].pending = Some(Pending::Archive {
                         id,

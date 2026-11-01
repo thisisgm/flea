@@ -293,3 +293,6 @@ fn enter_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
     );
     quit(&shell, cx);
 }
+
+#[path = "opener_folder_kind_tests.rs"]
+mod folder_kind;

@@ -66,7 +66,7 @@ impl Shell {
             listing,
             path,
             rows,
-            validating: false,
+            kind: None,
         });
         self.opener_request(side, format!(r#"{{"c":"menuaction","op":"snapshot","id":{id},"listing":{listing},"rows":[{indices}],"cursor":{cursor}}}"#), cx);
         self.opener_watch(side, id, window, cx);
