@@ -222,6 +222,12 @@ impl Element for FieldElement {
         let Some(edit) = shell.rename.edit.as_ref() else {
             return;
         };
+        let entity = self.shell.clone();
+        let focus = shell.focus.clone();
+        let active = !shell.operations.archive.showing()
+            && shell.rename.bulk.is_none()
+            && shell.menu.text.is_none()
+            && focus.is_focused(window);
         window.with_content_mask(Some(ContentMask { bounds: clip }), |window| {
             // The small field follows half of the compositor's corner radius.
             window.paint_quad(quad(
@@ -306,7 +312,15 @@ impl Element for FieldElement {
                             ink.foreground,
                         ));
                     }
-                })
+                });
+                // Registered in the field's own scope, so a candidate box that clears the frame still moves with it.
+                if active {
+                    window.handle_input(
+                        &focus,
+                        ElementInputHandler::new(frame, entity.clone()),
+                        cx,
+                    );
+                }
             });
             // The refusal sits in the band under its field, in the error role, on the ground its row or the window keeps.
             if let (Some(area), Some((_, run))) = (laid.error, &shaped.error) {
@@ -323,15 +337,6 @@ impl Element for FieldElement {
                 );
             }
         });
-        let entity = self.shell.clone();
-        let focus = shell.focus.clone();
-        let active = !shell.operations.archive.showing()
-            && shell.rename.bulk.is_none()
-            && shell.menu.text.is_none()
-            && focus.is_focused(window);
-        if active {
-            window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
-        }
         entity.update(cx, |shell, _| {
             if let Some(edit) = &mut shell.rename.edit {
                 edit.line.line.registered = if active { edit.entry.session() } else { None };

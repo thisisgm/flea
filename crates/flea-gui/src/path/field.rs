@@ -372,14 +372,15 @@ impl Element for FieldElement {
                         ink.foreground,
                     ));
                 }
-            })
+            });
+            // Registered in the field's own scope, so a candidate box that clears the frame still moves with it.
+            window.handle_input(
+                &focus,
+                ElementInputHandler::new(frame, self.view.clone()),
+                cx,
+            );
         });
         drop(line);
         view.line.borrow_mut().registered = view.entry.session();
-        window.handle_input(
-            &focus,
-            ElementInputHandler::new(frame, self.view.clone()),
-            cx,
-        );
     }
 }
