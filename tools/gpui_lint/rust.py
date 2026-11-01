@@ -1,5 +1,6 @@
 """Rust item scopes and calls used by the native architecture checks."""
 from dataclasses import dataclass
+from pathlib import Path
 from .lex import pairs, path_at, scope_aliases
 from .bindings import environments
 
@@ -13,24 +14,47 @@ class Function:
     body: list
     aliases: dict
     signature: list
+    test: bool = False
 
 
-def functions(ts, module, path):
+def functions(ts, module, path, owns_directory=False):
     matched = pairs(ts)
-    found, elements = [], set()
+    found, elements, file_mods = [], set(), []
+    source = Path(path)
+    directory = source.parent if owns_directory or source.name == "mod.rs" else source.with_suffix("")
 
-    def walk(start, end, scope, inherited=None, child_module=False):
+    def walk(start, end, scope, inherited=None, child_module=False, test=False, folder=directory, inline=False):
         aliases = scope_aliases(ts[start:end], inherited or {}, child_module)
         i = start
+        # Sample: `#[cfg(test)]` and `#[path = "other/bridge.rs"]` lexed as `#`, `[`, ..., `]` before an item.
+        # A #[cfg(test)] item never compiles into the product, so it is no UI path; #[path] names its file.
+        test_only, target = False, None
         while i < end:
             value = ts[i].value
-            if ts[i].kind == "ident" and value in ("impl", "mod", "fn"):
+            if value == "#" and i + 1 < end and ts[i + 1].value == "[":
+                attribute = [t.value for t in ts[i + 2:matched[i + 1]]]
+                test_only = test_only or attribute == ["cfg", "(", "test", ")"]
+                if attribute[:2] == ["path", "="] and len(attribute) == 3:
+                    target = attribute[2][1:-1]
+                i = matched[i + 1] + 1
+            elif value == ";":
+                test_only, target = False, None
+                i += 1
+            elif ts[i].kind == "ident" and value in ("impl", "mod", "fn"):
                 opening = i + 1
                 while opening < end and ts[opening].value not in ("{", ";"):
                     if ts[opening].value in ("(", "["):
                         opening = matched[opening]
                     opening += 1
                 if opening == end or ts[opening].value != "{":
+                    if value == "mod":
+                        if target is not None:
+                            choices = [(folder if inline else source.parent) / target]
+                        else:
+                            child = folder / ts[i + 1].value
+                            choices = [child.with_suffix(".rs"), child / "mod.rs"]
+                        file_mods.append(([str(p) for p in choices], test or test_only, target is not None))
+                    test_only, target = False, None
                     i = opening + 1
                     continue
                 closing = matched[opening]
@@ -38,14 +62,16 @@ def functions(ts, module, path):
                 if value == "fn":
                     found.append(Function("::".join((*scope, header[0])), module, path,
                                           ts[i].line, ts[opening + 1:closing], aliases,
-                                          ts[i + 1:opening]))
+                                          ts[i + 1:opening], test or test_only))
                 elif value == "mod":
-                    if header[0] != "tests":
-                        walk(opening + 1, closing, (*scope, header[0]), aliases, True)
+                    child = ((folder if inline else source.parent) / target
+                             if target is not None else folder / header[0])
+                    walk(opening + 1, closing, (*scope, header[0]), aliases, True,
+                         test or test_only, child, True)
                 else:
                     if "for" in header:
                         name = header[header.index("for") + 1]
-                        if "Element" in header[:header.index("for")]:
+                        if "Element" in header[:header.index("for")] and not (test or test_only):
                             elements.add(name)
                     else:
                         # Skip impl generics before its target type.
@@ -59,15 +85,20 @@ def functions(ts, module, path):
                                 name = token
                                 break
                     if name:
-                        walk(opening + 1, closing, (*scope, name), aliases)
+                        walk(opening + 1, closing, (*scope, name), aliases,
+                             test=test or test_only, folder=folder, inline=inline)
+                test_only, target = False, None
                 i = closing + 1
-            elif value in ("{", "(", "["):
+            elif value == "{":
+                test_only, target = False, None
+                i = matched[i] + 1
+            elif value in ("(", "["):
                 i = matched[i] + 1
             else:
                 i += 1
 
     walk(0, len(ts), tuple(module.split("::")))
-    return found, elements
+    return found, elements, file_mods
 
 
 def generic_end(ts, index):

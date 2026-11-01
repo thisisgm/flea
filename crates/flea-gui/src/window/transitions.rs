@@ -237,7 +237,11 @@ impl Shell {
             }
             cx.notify();
         }
+        let settled = changed && host.answered;
         let path_changed = host.pane.path() != before;
+        if side == 0 && settled {
+            self.ensure_ipc_reader(window, cx);
+        }
         if timer || changed || path_changed {
             self.search_landed(side, false, window, cx);
             self.settle_dual(window, cx);

@@ -118,6 +118,7 @@ def native_sources(root, paths, metadata):
     members = set(metadata.get("workspace_members", []))
     origin = Path(metadata["workspace_root"])
     roots = []
+    target_roots = set()
     for package in metadata["packages"]:
         if package["id"] not in members or package["name"] == "flea":
             continue
@@ -125,6 +126,12 @@ def native_sources(root, paths, metadata):
         if relative.parts[:1] != ("crates",):
             raise ValueError(f"native package outside crates/: {relative}")
         roots.append((relative, package["name"].replace("-", "_")))
+        if not package.get("targets"):
+            raise ValueError(f"native package resolves no target source paths: {package['name']}")
+        # Cargo kind distinguishes test/bench roots from product targets, including libraries with test=true.
+        for target in package["targets"]:
+            path = str(Path(target["src_path"]).relative_to(origin))
+            target_roots.add((path, target["kind"] in (["test"], ["bench"])))
     from .lex import tokens, use_aliases
     from .rust import functions
     for path in paths:
@@ -139,7 +146,43 @@ def native_sources(root, paths, metadata):
                 parts.pop()
             module = "::".join([name] + parts)
             ts = tokens((root / path).read_text())
-            found, elements = functions(ts, module, str(path))
+            found, elements, file_mods = functions(ts, module, str(path))
             units.append({"path": str(path), "module": module, "tokens": ts, "functions": found,
-                          "elements": elements, "aliases": use_aliases(ts)})
+                          "elements": elements, "aliases": use_aliases(ts), "file_mods": file_mods})
+    # Only files reached exclusively through test declarations are excluded; a product alias keeps shared code visible.
+    by_path = {unit["path"]: unit for unit in units}
+    edges = {}
+
+    def children(path, owns_directory):
+        key = path, owns_directory
+        if key in edges:
+            return edges[key]
+        unit = by_path[path]
+        declarations = (functions(unit["tokens"], unit["module"], path, owns_directory=True)[2]
+                        if owns_directory else unit["file_mods"])
+        edges[key] = []
+        for choices, test, child_owns_directory in declarations:
+            for choice in choices:
+                target = os.path.normpath(choice)
+                if target in by_path:
+                    edges[key].append((target, child_owns_directory, test))
+        return edges[key]
+
+    pending = [(path, True, test) for path, test in target_roots if path in by_path]
+    reached, contexts = set(), {}
+    while pending:
+        path, owns_directory, test = pending.pop()
+        if (path, owns_directory, test) in reached:
+            continue
+        reached.add((path, owns_directory, test))
+        contexts.setdefault(path, set()).add(test)
+        pending.extend((target, child_owns_directory, test or child_test)
+                       for target, child_owns_directory, child_test in children(path, owns_directory))
+    for unit in units:
+        test_only = contexts.get(unit["path"]) == {True}
+        unit.pop("file_mods")
+        if test_only:
+            unit["elements"] = set()
+        for function in unit["functions"]:
+            function.test = function.test or test_only
     return units

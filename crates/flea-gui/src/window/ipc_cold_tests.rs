@@ -137,3 +137,128 @@ fn the_waiting_deadline_opens_ipc_over_a_listing_that_never_answers(cx: &mut Tes
         flea::ipc::wire::Reply::value("waiting")
     );
 }
+
+fn first_listing(cx: &mut TestAppContext, handle: WindowHandle<Shell>, side: usize) {
+    handle
+        .update(cx, |shell, window, cx| {
+            let path = shell.panes[side].as_ref().unwrap().pane.place().to_owned();
+            shell.receive(
+                side,
+                BackendEvent::Reply(Reply::Listed { path, total: 1 }),
+                window,
+                cx,
+            );
+            shell.receive(
+                side,
+                BackendEvent::Reply(Reply::Rows {
+                    start: 0,
+                    rows: vec![flea::protocol::RowFacts::default()],
+                    listing: 1,
+                }),
+                window,
+                cx,
+            );
+        })
+        .unwrap();
+}
+
+#[gpui::test]
+fn a_deferred_first_listing_opens_ipc_only_after_side_zero_settles(cx: &mut TestAppContext) {
+    let (handle, send) = open(cx);
+    cx.run_until_parked();
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.pane_mark_shown(0, true, window, cx);
+        })
+        .unwrap();
+    first_listing(cx, handle, 0);
+    cx.executor()
+        .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS));
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.advance_transition(0, window, cx);
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(
+                host.pane.swap.fell_back,
+                "the tick changed an unsettled pane"
+            );
+            assert!(host.pane.swap.pending.as_ref().unwrap().ready.is_some());
+            assert!(host.pane.busy());
+            assert!(!host.answered);
+            assert_eq!(host.pane.held.listing, 0);
+            assert!(shell.deadlines[0].is_some());
+            assert!(shell.ipc_cold);
+        })
+        .unwrap();
+    let pending = call(&send, "bodyPx");
+    cx.run_until_parked();
+    assert_eq!(
+        pending.try_recv().unwrap().reply,
+        flea::ipc::registry::no_target()
+    );
+    cx.executor().advance_clock(Duration::from_millis(
+        crate::pane::swap::MIN_SHOW_MS - crate::pane::swap::CAP_MS,
+    ));
+    cx.run_until_parked();
+    handle
+        .update(cx, |shell, _, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(!host.pane.busy());
+            assert!(host.answered);
+            assert_eq!(host.pane.held.listing, 1);
+            assert_eq!(host.pane.held.total, 1);
+            assert!(shell.deadlines[0].is_none());
+        })
+        .unwrap();
+    let path = call(&send, "path");
+    let body = call(&send, "bodyPx");
+    cx.run_until_parked();
+    assert_eq!(
+        path.try_recv().unwrap().reply,
+        flea::ipc::wire::Reply::value("/files")
+    );
+    assert_eq!(
+        body.try_recv().unwrap().reply,
+        flea::ipc::wire::Reply::value("14")
+    );
+}
+
+#[gpui::test]
+fn a_deferred_side_one_listing_does_not_open_ipc_for_a_held_side_zero(cx: &mut TestAppContext) {
+    let (handle, send) = open(cx);
+    cx.run_until_parked();
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.set_view(super::startup::View::Dual, window, cx);
+            shell.pane_mark_shown(1, true, window, cx);
+        })
+        .unwrap();
+    first_listing(cx, handle, 1);
+    handle
+        .update(cx, |shell, _, _| {
+            assert!(shell.panes[1].as_ref().unwrap().pane.busy());
+        })
+        .unwrap();
+    cx.executor()
+        .advance_clock(Duration::from_millis(crate::pane::swap::MIN_SHOW_MS));
+    cx.run_until_parked();
+    handle
+        .update(cx, |shell, _, _| {
+            let side_one = shell.panes[1].as_ref().unwrap();
+            assert!(!side_one.pane.busy());
+            assert!(side_one.answered);
+            assert_eq!(side_one.pane.held.listing, 1);
+            let side_zero = shell.panes[0].as_ref().unwrap();
+            assert!(side_zero.pane.busy());
+            assert!(!side_zero.answered);
+            assert!(shell.deadlines[0].is_some());
+            assert!(shell.ipc_cold);
+        })
+        .unwrap();
+    let cold = call(&send, "bodyPx");
+    cx.run_until_parked();
+    assert_eq!(
+        cold.try_recv().unwrap().reply,
+        flea::ipc::registry::no_target()
+    );
+}

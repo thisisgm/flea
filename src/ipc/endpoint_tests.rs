@@ -1,12 +1,10 @@
 use super::*;
 use std::os::unix::fs::symlink;
 
+// A short root of its own: a socket path over SUN_LEN fails to bind, so it must not depend on where the source lives.
 fn root() -> PathBuf {
-    let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".superpowers/g04e");
-    fs::create_dir_all(&parent).unwrap();
     let output = std::process::Command::new("mktemp")
-        .args(["-d"])
-        .arg(parent.join("endpoint.XXXXXX"))
+        .args(["-d", "/tmp/flea-ep.XXXXXX"])
         .output()
         .unwrap();
     assert!(output.status.success());

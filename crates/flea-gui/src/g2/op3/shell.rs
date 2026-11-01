@@ -344,8 +344,8 @@ fn op3_tag_squares_take_the_theme_surface_inks() {
     let theme = crate::palette::Theme::default();
     let mut palette = Palette::inherited(&gpui::TextStyle::default(), theme);
     assert_eq!(Tokens::of(&palette).tags, theme.tag_menu_inks);
-    // Seven distinct inks, so a square drawn in another tag's ink cannot pass.
-    palette.tags = std::array::from_fn(|at| gpui::hsla(at as f32 / 7., 0.5, 0.5, 1.));
+    // Seven distinct role-derived inks, so a square drawn in another tag's ink cannot pass.
+    palette.tags = std::array::from_fn(|at| palette.accent.opacity((at + 1) as f32 / 7.));
     let tokens = Tokens::of(&palette);
     for (at, name) in flea::ui_logic_pl4::tags::NAMES.iter().enumerate() {
         assert_eq!(tokens.tag_ink(name), Some(palette.tags[at]), "{name}");
