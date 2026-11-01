@@ -24,6 +24,7 @@ fn fixture(columns: usize) -> (Frame, Band, Vec<usize>) {
         cursor: 0,
         active: true,
         additive: false,
+        shift: false,
         direction: 0.,
         last: None,
         cells: None,

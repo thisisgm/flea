@@ -90,7 +90,7 @@ crates/flea-gui/src/g2/op3/card_tests.rs 474
 crates/flea-gui/src/g2/pl3/pane.rs 456
 crates/flea-gui/src/g2/pl3/list.rs 419
 crates/flea-gui/src/g2/st1/panel.rs 419
-crates/flea-gui/src/window/settings/fix1_tests.rs 404
+crates/flea-gui/src/window/settings/fix1_tests.rs 406
 crates/flea-gui/src/g2/pl3/tests.rs 527
 crates/flea-gui/src/g2/sr1/contents.rs 430
 crates/flea-gui/src/grid/element/paint.rs 444
