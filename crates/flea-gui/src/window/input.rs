@@ -59,7 +59,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.lifecycle.phase() != Phase::Open {
+        if self.lifecycle.phase() != Phase::Open || self.band_key(event, window, cx) {
             return;
         }
         self.refresh_user_keys_layout(window, cx);

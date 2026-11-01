@@ -302,6 +302,12 @@ mod tags_tests;
 #[cfg(test)]
 mod gh_preview_proof_tests;
 #[cfg(test)]
+mod pb_grid_band_tests;
+#[cfg(test)]
+mod pb_grid_tap_tests;
+#[cfg(test)]
+mod pb_grid_tests;
+#[cfg(test)]
 mod pb_preview_fixture;
 #[cfg(test)]
 mod pb_preview_keys_tests;

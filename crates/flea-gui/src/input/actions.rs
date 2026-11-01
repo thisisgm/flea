@@ -2,7 +2,7 @@ use crate::{
     list::pane::{page_items, Move},
     state::Shell,
 };
-use gpui::{Context, Window};
+use gpui::{Context, KeyDownEvent, Window};
 
 // Marks.js follow only(cursor, keep): a lone mark moves with a plain move, and a carried landing stays the landing, so Escape still climbs through it.
 pub(crate) fn follow_cursor(host: &mut crate::window::pane::PaneHost, from: usize) {
@@ -17,6 +17,26 @@ pub(crate) fn follow_cursor(host: &mut crate::window::pane::PaneHost, from: usiz
 }
 
 impl Shell {
+    /// Focus.js handleKey: a tracking selection band takes every key; Escape rolls it back and the rest do nothing.
+    pub(crate) fn band_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        let tracking = self.panes[self.focus_side]
+            .as_ref()
+            .is_some_and(|host| host.input.band.is_some());
+        if !tracking {
+            return false;
+        }
+        if event.keystroke.key == "escape" {
+            self.input_action("escape", window, cx);
+        }
+        cx.stop_propagation();
+        true
+    }
+
     pub(crate) fn input_action(
         &mut self,
         action: &str,
