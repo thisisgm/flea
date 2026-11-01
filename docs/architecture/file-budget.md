@@ -1643,3 +1643,5 @@ COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. 
 - `crates/flea-gui/src/window/status.rs`: 408. Retains reviewed status labels and IPC state from the composed units.
 
 COMPOSE-M3 applies the fmt gate to newly unformatted files only. This formatting-only correction expands five TUI files without changing behavior or assertions: `src/tui/parity_candidate_tests.rs` 696, `src/tui/office.rs` 403, `src/tui/preview_locale_tests.rs` 513, `src/tui/cells.rs` 426, `src/tui/parity_listing_tests.rs` 410. Their exact ceilings retain all code and tests. The duplicate navigation steps registry row introduced while composing its new ceiling is removed; its single exact ceiling remains 409. Global limits are unchanged.
+
+The M3 drag-status correction retains a single published held-drag hint by retiring the legacy rail fallback before publishing the shared cue, including repeated lines. Its exact scoped feedback owner ceiling is 420 lines; no unrelated ceiling or global limit changes.

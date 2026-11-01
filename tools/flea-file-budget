@@ -21,7 +21,7 @@ src/tui/frame_tests.rs 408
 src/backend/contents_review_tests.rs 433
 crates/flea-gui/src/columns/geometry.rs 428
 crates/flea-gui/src/dual/divider_tests.rs 446
-crates/flea-gui/src/g2/dg2/feedback.rs 410
+crates/flea-gui/src/g2/dg2/feedback.rs 420
 crates/flea-gui/src/g2/op4/tests.rs 409
 crates/flea-gui/src/g2/pk1/tests.rs 463
 crates/flea-gui/src/g2/pl3/trashview_tests.rs 413
