@@ -67,6 +67,7 @@ impl Shell {
                 cx.notify();
             }));
         self.plugins.host = Some(host);
+        self.user_keys_changed(window, cx);
     }
 
     /// Saved plugin settings changed: the owner rescans and an open Plugins card relists.
