@@ -303,7 +303,7 @@ def coverage_errors(plan, undriven, registered=None):
     wanted = fit_scene_ids(plan)
     reasons, errors = {}, []
     for line in undriven.splitlines():
-        # Sample lines: i50.fit.de.menu BLOCKED I50-27: <reason> (a group), i50.fit.de.list.hover.gm.r0 BLOCKED ... (one scene)
+        # Sample lines: 'i50.fit.de.list.hover BLOCKED SCENE-LANG: list registers rest only' (a group), 'i50.fit.de.list.hover.gm.r0 BLOCKED I50-27: no readback' (one scene)
         match = re.fullmatch(r'(i50\.\S+) BLOCKED ([A-Za-z0-9-]+): (\S.*)', line)
         if not line.startswith('i50.'):
             continue
