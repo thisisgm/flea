@@ -1,6 +1,9 @@
 //! Crumb Element rendering; shaping and palette ownership stay in paint.
 use super::*;
 
+/// The room between the path's last crumb and its Git label, in pixels.
+const GIT_GAP: f32 = 9.;
+
 impl Element for CrumbElement {
     type RequestLayoutState = ();
     type PrepaintState = (Hitbox, Ink, bool);
@@ -61,7 +64,7 @@ impl Element for CrumbElement {
                     .shape(label, Size::Caption, false, window)
                     .line()
                     .width,
-            ) + 9.
+            ) + GIT_GAP
         };
         let budget = ((f32::from(bounds.size.width) - 2. * pad - git_width) / f32::from(advance))
             .floor()
@@ -134,7 +137,7 @@ impl Element for CrumbElement {
             .then(|| paint.shape(&view.inputs.git_label, Size::Caption, false, window));
         let trail = git
             .as_ref()
-            .map_or(0., |run| 9. + f32::from(run.line().width));
+            .map_or(0., |run| GIT_GAP + f32::from(run.line().width));
         // A path keeps its reading order in a mirrored window: its crumbs move as one line.
         let line = Bounds::new(
             point(left, bounds.origin.y),
@@ -176,7 +179,7 @@ impl Element for CrumbElement {
                 if let Some(run) = &git {
                     paint_run(
                         run,
-                        left + px(strip.end() + 9.),
+                        left + px(strip.end() + GIT_GAP),
                         bounds.origin.y,
                         height,
                         ink.muted,
