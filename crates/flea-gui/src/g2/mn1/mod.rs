@@ -19,6 +19,7 @@ pub mod ipc;
 pub mod join;
 #[cfg(test)]
 mod join_tests;
+pub mod keycaps;
 mod keys;
 pub mod lines;
 pub mod menu;
