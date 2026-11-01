@@ -164,6 +164,8 @@ impl Pictures {
             let Some(facts) = held.row(row) else {
                 continue;
             };
+            let directory = map.path.clone();
+            super::quality::begin_trace(&mut map, row, &directory, &facts.name);
             let slot = Slot::Asked {
                 identity: Identity::of(facts),
                 image: is_image(facts),

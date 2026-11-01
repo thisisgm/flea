@@ -191,7 +191,9 @@ fn mdlook_ey158_figures_use_the_muted_ink_and_unfilled_ground(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-fn mdlook_ey330_small_images_stay_one_to_one_and_large_ones_fit(cx: &mut TestAppContext) {
+fn mdlook_ey160_small_images_keep_their_own_pixels_and_large_fit_is_preserved(
+    cx: &mut TestAppContext,
+) {
     let root = root();
     let (shell, cx, mut requests) = opened_at(cx, &root.0);
     png(&root.0.join("logo.png"), 96, 48);
@@ -217,10 +219,11 @@ fn mdlook_ey330_small_images_stay_one_to_one_and_large_ones_fit(cx: &mut TestApp
         let card = cx.debug_bounds("pv1-card").unwrap();
         let picture = cx.debug_bounds("pv1-picture").unwrap();
         let (w, h) = (f32::from(card.size.width), f32::from(card.size.height));
-        // PreviewImage.qml fitScale caps at 1: a small picture keeps its own size, a large one fits.
-        let factor = (w / sw as f32).min(h / sh as f32).min(1.);
-        assert!((f32::from(picture.size.width) - (sw as f32 * factor).round()).abs() < 1.);
-        assert!((f32::from(picture.size.height) - (sh as f32 * factor).round()).abs() < 1.);
+        let scale = cx.update(|window, _| window.scale_factor());
+        // A raster never draws past one source pixel per device pixel; a large one fits the card.
+        let factor = (w / sw as f32).min(h / sh as f32).min(1. / scale);
+        assert!((f32::from(picture.size.width) - sw as f32 * factor).abs() < 1.);
+        assert!((f32::from(picture.size.height) - sh as f32 * factor).abs() < 1.);
         cx.simulate_keystrokes("escape");
         draw(cx);
     }

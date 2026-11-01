@@ -155,6 +155,23 @@ impl MediaPlayer {
         cx.notify();
     }
 
+    /// Resizes the existing decoder while preserving its play state, position and held frame.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        let (width, height) = (
+            width.clamp(1, flea::ui_logic_pv3::frame::MAX_WIDTH),
+            height.clamp(1, flea::ui_logic_pv3::frame::MAX_HEIGHT),
+        );
+        let Some(subject) = self.subject.as_mut().filter(|subject| subject.video) else {
+            return;
+        };
+        if (subject.box_w, subject.box_h) == (width, height) {
+            return;
+        }
+        subject.box_w = width;
+        subject.box_h = height;
+        self.send(Command::Resize(width, height));
+    }
+
     /// Ends the subject: the decoder, the MPRIS player and the inhibitor go; the picture leaves the atlas.
     pub fn close(&mut self, cx: &mut Context<Self>) {
         self.generation += 1;

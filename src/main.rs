@@ -120,6 +120,10 @@ fn main() {
         exit(backend::run::run());
     }
 
+    if args.get(1).map(String::as_str) == Some("--preview-raster") {
+        exit(backend::previewraster::run(&args[2..]));
+    }
+
     // flea --thumb-worker: only ever started by the backend, inside its sandbox, with a socket on stdin.
     if args.len() == 2 && args[1] == "--thumb-worker" {
         exit(backend::thumbworker::run());

@@ -383,6 +383,8 @@ fn retained_frame(fixture: &Fixture) -> crate::window::selection_preview::Frame 
         image: None,
         animation: None,
         animation_source: None,
+        quality: Default::default(),
+        trace: None,
         failed: false,
         manual: false,
         remote: false,

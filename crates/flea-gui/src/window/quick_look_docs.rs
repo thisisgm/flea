@@ -312,8 +312,8 @@ impl Mounting<'_> {
                 let subject = pv3::player::Subject {
                     path: path.into(),
                     video,
-                    box_w: (f32::from(viewport.width) * scale).max(1.) as u32,
-                    box_h: (f32::from(viewport.height) * scale).max(1.) as u32,
+                    box_w: (f32::from(viewport.width) * scale).ceil().max(1.) as u32,
+                    box_h: (f32::from(viewport.height) * scale).ceil().max(1.) as u32,
                     autoplay: true,
                 };
                 let player = cx.new(|cx| {

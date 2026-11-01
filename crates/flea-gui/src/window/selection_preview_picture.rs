@@ -81,8 +81,8 @@ fn fitted(
     image: Arc<RenderImage>,
     at: usize,
     frame: &Frame,
-    width: f32,
-    height: f32,
+    (width, height): (f32, f32),
+    device: f32,
     selector: &'static str,
 ) -> AnyElement {
     let size = image.size(0);
@@ -98,14 +98,20 @@ fn fitted(
         h,
         original.0,
         original.1,
-    );
-    let scale = thumbs::fit_scale(
+    ) / f64::from(device);
+    let fit = thumbs::fit_scale(
         (width - 2. * FRAME_BORDER).max(1.) as f64,
         (height - 2. * FRAME_BORDER).max(1.) as f64,
         w,
         h,
         limit,
-    ) as f32;
+    );
+    let scale = fit as f32;
+    let (drawn_w, drawn_h) =
+        match crate::preview_quality::fitted_pixels(w, h, fit, limit, device.into()) {
+            Some(own) => crate::preview_quality::own_size(own, device.into()),
+            None => ((w as f32 * scale).round(), (h as f32 * scale).round()),
+        };
     div()
         .debug_selector(move || selector.into())
         .size_full()
@@ -115,8 +121,8 @@ fn fitted(
         .child(
             div()
                 .debug_selector(move || format!("{selector}-image-{at}"))
-                .w(px((w as f32 * scale).round()))
-                .h(px((h as f32 * scale).round()))
+                .w(px(drawn_w))
+                .h(px(drawn_h))
                 .child(
                     canvas(
                         |_, _, _| {},
@@ -137,10 +143,24 @@ fn fitted(
         .into_any_element()
 }
 
-/// An animated GIF's moving layer over its still at frame `at`, ready only with more than one frame of its own.
-pub(crate) fn moving(frame: &Frame, at: usize, width: f32, height: f32) -> Option<AnyElement> {
+/// An animated GIF's moving layer over its still, ready only with more than one frame of its own.
+pub(crate) fn moving(
+    frame: &Frame,
+    at: usize,
+    width: f32,
+    height: f32,
+    device: f32,
+) -> Option<AnyElement> {
     frame.animation.clone().and_then(|image| {
-        (image.frame_count() > 1)
-            .then(|| fitted(image, at, frame, width, height, "column-preview-animation"))
+        (image.frame_count() > 1).then(|| {
+            fitted(
+                image,
+                at,
+                frame,
+                (width, height),
+                device,
+                "column-preview-animation",
+            )
+        })
     })
 }

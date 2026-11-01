@@ -1,4 +1,4 @@
-use super::{boards::rect, scenes, *};
+use super::{boards::rect, pixels, scenes, *};
 
 #[gpui::test]
 fn raw_picture_fit_keeps_caption_space_for_vectors_and_rasters(cx: &mut TestAppContext) {
@@ -28,7 +28,7 @@ fn raw_picture_fit_keeps_caption_space_for_vectors_and_rasters(cx: &mut TestAppC
             assert_eq!(height + caption_height, card_height);
             assert!((width / height - 1.5).abs() < 0.01);
         } else {
-            assert_eq!((width, height), (60., 40.));
+            pixels::assert_own_pixels(cx, "pv1-picture", (60., 40.));
         }
     }
 }

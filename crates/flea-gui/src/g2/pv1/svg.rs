@@ -2,6 +2,24 @@
 use super::*;
 
 impl QuickLook {
+    pub(super) fn full_quality(&self, cx: &gpui::App) -> bool {
+        if let Some(picture) = &self.svg {
+            return picture.quality.ready;
+        }
+        let Some(doc) = self.subject.as_ref().and_then(|subject| subject.body.doc()) else {
+            return true;
+        };
+        use super::doc::View;
+        match &doc.view {
+            View::Pdf(pdf) => crate::preview_quality::pdf_ready(&pdf.read(cx).surface),
+            View::Office(office) => {
+                crate::preview_quality::pdf_ready(&office.read(cx).pdf.read(cx).surface)
+            }
+            View::Media(media) => crate::preview_quality::media_ready(media.player.read(cx)),
+            _ => true,
+        }
+    }
+
     /// The open picture at its zoomed fit times device scale, bounded by source pixels for a photo.
     pub(super) fn picture_image(
         &mut self,
@@ -36,6 +54,7 @@ impl QuickLook {
                     || (!vector && self.zoom > 1. && s.size.0 >= dw && s.size.1 >= dh))
         });
         if fresh {
+            self.refine_picture(window, cx);
             return self.svg.as_ref().map(SvgPicture::state).unwrap_or_default();
         }
         // The same path keeps drawing its last raster until the new one lands; a new path retires it.
@@ -44,7 +63,8 @@ impl QuickLook {
             .as_ref()
             .filter(|s| s.path == path)
             .and_then(|s| s.image.clone());
-        if let Some(prior) = prior {
+        if let Some(mut prior) = prior {
+            prior.quality.clear(cx);
             if prior.path != path {
                 self.retire(prior.image, cx);
             }
@@ -55,11 +75,38 @@ impl QuickLook {
             size: (dw, dh),
             image: keep,
             refusal: None,
+            quality: Default::default(),
         });
         // A new request invalidates the job in flight; the next one starts when that job ends.
         self.raster_latest.fetch_add(1, Ordering::SeqCst);
         self.start_raster(cx);
         self.svg.as_ref().map(SvgPicture::state).unwrap_or_default()
+    }
+
+    fn refine_picture(&mut self, window: &mut gpui::Window, cx: &mut Context<Self>) {
+        if self.raster_in_flight || self.raster.is_some() {
+            return;
+        }
+        let Some(picture) = self.svg.as_mut().filter(|picture| picture.image.is_some()) else {
+            return;
+        };
+        let size = picture.size;
+        let version = (self.raster_latest.load(Ordering::SeqCst), 0);
+        if let Some(Ok(image)) =
+            picture
+                .quality
+                .poll(picture.path.clone(), size, version, window, cx)
+        {
+            if picture
+                .image
+                .as_ref()
+                .is_none_or(|old| !Arc::ptr_eq(old, &image))
+            {
+                let old = picture.image.replace(image);
+                self.retire(old, cx);
+                cx.notify();
+            }
+        }
     }
 
     /// Starts one raster job for the current request; a job already in flight finishes first.
@@ -158,7 +205,10 @@ impl QuickLook {
 
     /// Retires the open vector's raster and invalidates every in-flight request for it.
     pub(super) fn retire_svg(&mut self, cx: &mut Context<Self>) {
-        let image = self.svg.take().and_then(|s| s.image);
+        let image = self.svg.take().and_then(|mut s| {
+            s.quality.clear(cx);
+            s.image
+        });
         self.retire(image, cx);
         let _ = self.raster_latest.fetch_add(1, Ordering::SeqCst);
     }

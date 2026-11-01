@@ -30,6 +30,7 @@ impl SelectionPreview {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        frame.quality.clear(cx);
         match &mut frame.mounted {
             Mounted::Pdf(pdf) => pdf.update(cx, |pdf, cx| pdf.close(cx)),
             Mounted::Model(model) => model.update(cx, |model, cx| model.hide(cx)),

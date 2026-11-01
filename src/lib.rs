@@ -59,6 +59,7 @@ pub mod backend {
     pub mod nearbyrows;
     #[cfg(test)]
     pub mod fifotest;
+    pub mod rastertemp;
     pub mod regfile;
     #[cfg(test)]
     pub mod testdir;

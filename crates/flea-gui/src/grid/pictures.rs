@@ -8,6 +8,11 @@ pub(crate) mod demand;
 mod faded_tests;
 #[path = "pictures/policy.rs"]
 pub(crate) mod policy;
+#[path = "pictures/quality.rs"]
+mod quality;
+#[cfg(test)]
+#[path = "pictures/quality_tests.rs"]
+mod quality_tests;
 #[path = "pictures/readers.rs"]
 mod readers;
 #[path = "pictures/surface.rs"]
@@ -17,6 +22,7 @@ mod wire;
 
 pub use decor::{paint_in_slot, Counters};
 pub use policy::{Mode, Policy};
+pub(crate) use quality::picture_bounds;
 
 use super::{Decor, Identity, Thumbnail};
 use crate::{list::pane::Held, row::marks::Language};
@@ -115,6 +121,9 @@ struct Map {
     names: HashMap<Box<str>, Option<Language>>,
     retired: Vec<Arc<RenderImage>>,
     counters: Counters,
+    refinements: HashMap<usize, crate::preview_quality::Refinement>,
+    traces: HashMap<usize, crate::preview_trace::Trace>,
+    bases: HashMap<usize, crate::preview_quality::Basis>,
     // A cut row's faded copy of each picture at one level, keyed by the source image it holds, so the key is never reused while kept.
     faded: HashMap<usize, Faded>,
 }
@@ -128,6 +137,11 @@ impl Map {
     }
 
     fn forget(&mut self, row: usize) {
+        self.traces.remove(&row);
+        self.bases.remove(&row);
+        if let Some(mut refinement) = self.refinements.remove(&row) {
+            refinement.cancel();
+        }
         if let Some(Slot::Ready { picture, .. }) = self.slots.remove(&row) {
             self.retire(&picture);
         }
@@ -170,7 +184,14 @@ impl Map {
     fn remember(&mut self, row: usize, slot: Slot) {
         match self.slots.insert(row, slot) {
             None => self.order.push_back(row),
-            Some(Slot::Ready { picture, .. }) => self.retire(&picture),
+            Some(Slot::Ready { picture, .. }) => {
+                // The basis and refinement belonged to the replaced picture.
+                self.bases.remove(&row);
+                if let Some(mut refinement) = self.refinements.remove(&row) {
+                    refinement.cancel();
+                }
+                self.retire(&picture);
+            }
             Some(_) => {}
         }
         while self.order.len() > CAP {
@@ -247,6 +268,11 @@ impl Map {
     }
 
     fn clear(&mut self) -> Vec<usize> {
+        self.traces.clear();
+        self.bases.clear();
+        for (_, mut refinement) in self.refinements.drain() {
+            refinement.cancel();
+        }
         let pending = self.pending().collect();
         for row in std::mem::take(&mut self.order) {
             self.forget(row);

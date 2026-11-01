@@ -3,6 +3,21 @@ use super::{Command, Surface};
 use flea::ui_logic_pv2::pdf;
 
 impl Surface {
+    // The device width a page renders at: the stack's width, that page fitted inside the frame, or a neighbour fitted unzoomed.
+    pub(super) fn target(&self, page: usize) -> u32 {
+        let (w, h) = if page != self.page && self.fitted.0 > 0. {
+            self.fitted
+        } else {
+            (self.width, self.view_height)
+        };
+        let width = if self.continuous {
+            self.width
+        } else {
+            pdf::fit(w, h, self.aspect_of(page)).0
+        };
+        (width * self.scale).ceil() as u32
+    }
+
     // Before the first draw the top page failing fails the stack, and the frame draws once every page in view has settled.
     pub(super) fn first_frame(&mut self) {
         if self.cap.shown_page.is_some() || self.layout.is_empty() {

@@ -3,7 +3,7 @@ use super::Rasterizer;
 use crate::g2::pv3::helper::dl::{symbols, Library};
 use flea::ui_logic_pv1::pixels::MAX_SOURCE_PIXELS;
 use gpui::RenderImage;
-use image::{imageops, DynamicImage, ImageDecoder, ImageReader, RgbaImage};
+use image::{DynamicImage, ImageDecoder, ImageReader, RgbaImage};
 use std::ffi::{c_char, c_int, c_void, CStr};
 use std::io::Cursor;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -237,16 +237,9 @@ pub fn picture_raster() -> Rasterizer {
     })
 }
 
-/// The decoded source shrunk to the request (never enlarged), as the BGRA frame GPUI draws.
+/// The decoded source reduced to the request with Catmull-Rom; a smaller source keeps its own size.
 fn held_at(source: RgbaImage, (w, h): (u32, u32)) -> Arc<RenderImage> {
-    let (w, h) = (w.clamp(1, source.width()), h.clamp(1, source.height()));
-    let mut held = if (w, h) == source.dimensions() {
-        source
-    } else {
-        imageops::thumbnail(&source, w, h)
-    };
-    for pixel in held.as_chunks_mut::<4>().0 {
-        pixel.swap(0, 2);
-    }
+    let size = super::photo_frames::within_source(source.dimensions(), (w, h));
+    let held = super::photo_frames::resized_bgra(source, size);
     Arc::new(RenderImage::new(vec![image::Frame::new(held)]))
 }

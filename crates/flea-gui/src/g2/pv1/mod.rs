@@ -15,13 +15,17 @@ mod lifetime;
 pub mod look;
 pub(crate) mod observations;
 pub(crate) mod observed_frames;
-mod photo;
-mod photo_frames;
+pub(crate) mod photo;
+pub(crate) mod photo_frames;
 mod photo_png;
+mod photo_png_first;
 #[cfg(test)]
 mod photo_tests;
 mod picture;
-mod raster;
+#[cfg(test)]
+mod quality_tests;
+pub(crate) mod raster;
+mod sample;
 pub mod scroller;
 pub mod shield;
 mod svg;
@@ -81,6 +85,7 @@ struct SvgPicture {
     size: (u32, u32),
     image: Option<Arc<RenderImage>>,
     refusal: Option<RasterRefusal>,
+    quality: crate::preview_quality::Refinement,
 }
 
 impl SvgPicture {
@@ -107,6 +112,7 @@ pub struct QuickLook {
     pub(crate) look: Option<Look>,
     pub(crate) subject: Option<Subject>,
     svg: Option<SvgPicture>,
+    trace: Option<crate::preview_trace::Trace>,
     zoom: f64,
     raster: Option<Rasterizer>,
     raster_latest: Arc<AtomicU64>,
@@ -146,6 +152,7 @@ impl QuickLook {
             look: None,
             subject: None,
             svg: None,
+            trace: None,
             zoom: 1.,
             raster: None,
             raster_latest: Arc::new(AtomicU64::new(0)),
@@ -211,6 +218,14 @@ impl QuickLook {
         self.svg.as_ref().and_then(|s| s.image.clone())
     }
 
+    pub(crate) fn quality_pixels(&self) -> Option<((u32, u32), bool)> {
+        let picture = self.svg.as_ref()?;
+        Some((
+            picture.quality.requested.as_ref()?.size,
+            picture.quality.ready,
+        ))
+    }
+
     /// An injected rasterizer for #336's tests; unset, the app's SVG renderer runs.
     #[doc(hidden)]
     pub fn set_svg_raster(&mut self, raster: Rasterizer) {
@@ -246,6 +261,7 @@ impl QuickLook {
             old.close(cx);
         }
         self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
+        self.trace = crate::preview_trace::Trace::begin("look", &subject.name);
         self.subject = Some(subject);
         self.retire_svg(cx);
         self.zoom = 1.;

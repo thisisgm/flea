@@ -22,7 +22,7 @@ fn image(cx: &mut TestAppContext, linked: bool) {
     assert!(root.is_absolute());
     std::fs::write(root.join(".flea-test-sandbox"), "Quick Look symlink join").unwrap();
     let target = if linked { "photo.png" } else { "link.png" };
-    image::RgbaImage::from_pixel(800, 600, image::Rgba([40, 120, 200, 255]))
+    image::RgbaImage::from_pixel(1600, 1200, image::Rgba([40, 120, 200, 255]))
         .save(root.join(target))
         .unwrap();
     if linked {
@@ -44,7 +44,7 @@ fn image(cx: &mut TestAppContext, linked: bool) {
         &shell,
         cx,
         format!(
-            r#"{{"t":"meta","row":0,"token":{},"w":800,"h":600,"orient":1,"target":"{target}"}}"#,
+            r#"{{"t":"meta","row":0,"token":{},"w":1600,"h":1200,"orient":1,"target":"{target}"}}"#,
             token(&asks[0])
         ),
     );

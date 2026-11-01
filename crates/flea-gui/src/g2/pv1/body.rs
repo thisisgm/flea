@@ -213,6 +213,16 @@ pub fn fit_rounded(room_w: f64, room_h: f64, w: f64, h: f64, vector: bool) -> Op
     })
 }
 
+/// A raster at its own size, `w`x`h` logical, centred on whole pixels; none once it outgrows its room.
+pub fn fit_own(room_w: f64, room_h: f64, w: f64, h: f64) -> Option<Fit> {
+    (w > 0. && h > 0. && w <= room_w && h <= room_h).then(|| Fit {
+        x: js_round((room_w - w) / 2.),
+        y: js_round((room_h - h) / 2.),
+        w,
+        h,
+    })
+}
+
 /// The rounded fit for a picture file: a vector path fills its room, a raster path keeps its pixels.
 pub fn fit_rounded_path(room_w: f64, room_h: f64, w: f64, h: f64, path: &Path) -> Option<Fit> {
     let vector = path

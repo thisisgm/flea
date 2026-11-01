@@ -80,7 +80,7 @@ pub(super) fn decode(
     // A renamed SVG must not bypass the bounded vector parser by reaching a pixbuf loader.
     let format = image::guess_format(&magic[..read]).map_err(|_| ())?;
     if format == image::ImageFormat::Png {
-        return super::photo_png::decode(file, target, current);
+        return super::photo_png_first::decode(file, target, current);
     }
     // PNG/JPEG bound decode memory; animations and rare-codec fallbacks retain their source buffers.
     if matches!(format, image::ImageFormat::Gif | image::ImageFormat::WebP) {
@@ -142,4 +142,42 @@ pub(super) fn decode(
         let image = image::RgbaImage::from_raw(w, h, bgra).ok_or(())?;
         Ok(Arc::new(RenderImage::new(vec![image::Frame::new(image)])))
     }
+}
+
+/// Full detail replaces the first scaled picture on the existing background executor.
+pub(crate) fn decode_sharp(
+    path: &Path,
+    target: (u32, u32),
+    current: &dyn Fn() -> bool,
+) -> Result<Arc<RenderImage>, ()> {
+    if !current()
+        || target.0 == 0
+        || target.1 == 0
+        || flea::ui_logic_pv1::pixels::bounded_raster(target.0, target.1) != target
+    {
+        return Err(());
+    }
+    let mut file = flea::backend::regfile::open_regular(path).ok_or(())?;
+    let mut magic = [0; 32];
+    let read = file.read(&mut magic).map_err(|_| ())?;
+    file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
+    let format = image::guess_format(&magic[..read]).map_err(|_| ())?;
+    if format == image::ImageFormat::Png {
+        return super::photo_png::decode(file, target, current);
+    }
+    if matches!(format, image::ImageFormat::Gif | image::ImageFormat::WebP) {
+        if let Some(image) = super::photo_frames::animated(
+            file.try_clone().map_err(|_| ())?,
+            format,
+            target,
+            current,
+        )? {
+            return Ok(image);
+        }
+        file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
+    }
+    if !current() {
+        return Err(());
+    }
+    super::photo_frames::static_image(file, format, target)
 }

@@ -45,6 +45,8 @@ mod owner;
 pub(crate) mod picture;
 #[path = "selection_preview_play.rs"]
 mod play;
+#[path = "selection_preview_quality.rs"]
+mod quality;
 #[path = "selection_preview_readers.rs"]
 pub(crate) mod readers;
 #[path = "selection_preview_render.rs"]
@@ -246,6 +248,8 @@ pub(crate) struct Frame {
     /// An animated GIF's own frames, loaded from the original over its still frame.
     pub animation: Option<Arc<RenderImage>>,
     pub animation_source: Option<gpui::Resource>,
+    pub quality: crate::preview_quality::Refinement,
+    pub trace: Option<crate::preview_trace::Trace>,
     pub failed: bool,
     pub manual: bool,
     pub remote: bool,

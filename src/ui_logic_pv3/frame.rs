@@ -169,6 +169,8 @@ pub enum Command {
     Mute(bool),
     /// Linear gain, 0 to 1.
     Gain(f64),
+    /// The current picture box in device pixels, without restarting playback.
+    Resize(u32, u32),
     Quit,
 }
 
@@ -181,6 +183,7 @@ impl Command {
             Self::Seek(ms) => format!("seek {}", ms.max(0)),
             Self::Mute(muted) => format!("mute {}", u8::from(muted)),
             Self::Gain(gain) => format!("gain {:.6}", gain.clamp(0., 1.)),
+            Self::Resize(w, h) => format!("resize {w} {h}"),
             Self::Quit => "quit".into(),
         }
     }
@@ -196,6 +199,17 @@ impl Command {
             ("seek", Some(ms)) => Self::Seek(ms.parse::<i64>().ok().filter(|ms| *ms >= 0)?),
             ("mute", Some("0")) => Self::Mute(false),
             ("mute", Some("1")) => Self::Mute(true),
+            ("resize", Some(width)) => Self::Resize(
+                width
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|w| (1..=MAX_WIDTH).contains(w))?,
+                words
+                    .next()?
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|h| (1..=MAX_HEIGHT).contains(h))?,
+            ),
             ("gain", Some(value)) => {
                 let gain = value.parse::<f64>().ok().filter(|gain| gain.is_finite())?;
                 Self::Gain(gain.clamp(0., 1.))

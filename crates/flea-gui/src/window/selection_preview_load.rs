@@ -183,6 +183,8 @@ impl SelectionPreview {
             image: None,
             animation: None,
             animation_source: None,
+            quality: Default::default(),
+            trace: crate::preview_trace::Trace::begin("column", &path),
             failed: false,
             manual,
             remote,
