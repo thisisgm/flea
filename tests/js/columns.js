@@ -422,6 +422,19 @@ function runHidden(check) {
     check("width still wins over a column the user wants back, Mode's own floor included",
           [narrow.mode, narrow.size, narrow.date, narrow.kind].join(","), "false,false,false,false")
 
+    // #333: a hidden column reserves no width, so it cannot push out a column the user turned on.
+    // 568 is the name's 216 plus size, date and kind with their gaps, Mode's 79 left out.
+    check("a hidden column releases its width to the columns after it",
+          Columns.names(Columns.set(568, BOX, ["mode"])), "name,size,date,kind")
+    check("and the columns still drop one pixel under the floor that is left",
+          Columns.names(Columns.set(567, BOX, ["mode"])), "name,size,date")
+    check("hidden floors leave the hidden column's own floor out",
+          [Columns.floors(BOX, ["mode"]).size, Columns.floors(BOX, ["mode"]).kind].join(","), "295,568")
+    // The report's ui.json: Mode hidden at a stored 480, Size and Modified at 480, Kind at 295, in a 1388 px list.
+    var stored = Object.assign({}, BOX, { mode: 480, size: 480, date: 480, kind: 295 })
+    check("a wide hidden Mode no longer hides Modified",
+          Columns.names(Columns.set(1388, stored, ["mode"])), "name,size,date")
+
     var undefinedSet = Columns.set(2000, BOX)
     check("a caller that passes no hidden set draws as before",
           [undefinedSet.mode, undefinedSet.size, undefinedSet.date, undefinedSet.kind].join(","), "true,true,true,true")

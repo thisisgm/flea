@@ -72,7 +72,7 @@ src/uischema.rs 597
 src/uistate.rs 849
 src/uistore.rs 568
 src/vulkan.rs 751
-tests/js/columns.js 687
+tests/js/columns.js 700
 tests/js/drag.js 493
 tests/js/dropsflow.js 301
 tests/js/collide.js 319
