@@ -164,7 +164,8 @@ impl Picker {
     // What the shared path entry asks: a committed folder or file is peeked first, Tab's peek goes to the child.
     pub(super) fn path_out(&mut self, out: Out, cx: &mut Context<Self>) {
         match out {
-            Out::Open { path, .. } => {
+            // PathBar.js hands a typed smb:// line back untouched, and the chooser peeks it as it peeks a path.
+            Out::Open { path, .. } | Out::Network(path) => {
                 let view = self.browse.path_view(cx);
                 self.chrome.restore = Some(view.read(cx).focus.clone());
                 self.chrome.restore_path = Some(view.read(cx).entry.text.clone());
@@ -184,7 +185,7 @@ impl Picker {
                 cx.notify();
             }
             Out::ReadHistory => self.read_jump_history(cx),
-            Out::Network(_) | Out::Focus(_) => {}
+            Out::Focus(_) => {}
         }
     }
 }
