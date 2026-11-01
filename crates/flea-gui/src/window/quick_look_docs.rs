@@ -126,7 +126,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: px(card::CAPTION),
-                line: pv2::line_pitch(card::CAPTION),
+                line: pv2::table_line_pitch(card::CAPTION),
                 row_padding_x: card::PAD,
                 hairline: 1.,
             },

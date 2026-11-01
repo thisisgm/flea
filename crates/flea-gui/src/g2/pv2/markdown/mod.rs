@@ -334,3 +334,5 @@ impl MarkdownView {
 
 #[cfg(test)]
 mod table_layout_tests;
+#[cfg(test)]
+mod vf4_tests;

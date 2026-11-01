@@ -6,6 +6,8 @@ mod scroll;
 mod selection;
 mod selection_source;
 pub mod shape;
+#[cfg(test)]
+mod vf4_tests;
 
 pub use bar::{KindBar, ViewWords};
 use flea::i18n::I18n;
@@ -370,12 +372,9 @@ impl CodeView {
         self.metrics.inset + cells as f32 * f32::from(advance)
     }
 
+    /// Plain text keeps the two-cell lead without a gutter, as CodeLines.qml's leftPadding (boards filter, ql-text).
     pub fn text_left(&self, advance: Pixels) -> f32 {
-        let lead = if self.numbered {
-            flea::ui_logic_pv2::code_text::TEXT_LEAD as f32 * f32::from(advance)
-        } else {
-            0.
-        };
+        let lead = flea::ui_logic_pv2::code_text::TEXT_LEAD as f32 * f32::from(advance);
         (self.gutter_right(advance) + lead).round()
     }
 }

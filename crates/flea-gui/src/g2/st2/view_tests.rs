@@ -165,3 +165,49 @@ fn st2_gui_view_a_plugin_mark_is_read_off_the_ui_thread(cx: &mut TestAppContext)
     );
     draw(cx);
 }
+
+#[test]
+fn vf4_plugins_failed_row_keeps_its_hash_mark() {
+    let (_, svg) = super::glyphs::glyph("hash").expect("Checksums keeps its mark when failed");
+    assert!(std::str::from_utf8(svg)
+        .unwrap()
+        .contains("M4 9h16 M4 15h16"));
+}
+
+#[gpui::test]
+fn vf4_plugins_heading_uses_the_board_line_box(cx: &mut TestAppContext) {
+    let (entity, _, _, cx) = pane(cx);
+    cx.update(|_, cx| entity.update(cx, |pane, cx| pane.receive(&listing(1, builtins("{}")), cx)));
+    draw(cx);
+    let parts = entity.read_with(cx, |pane, _| pane.probe.rect("row:plugins.installed"));
+    let rect: Vec<f32> = parts
+        .split_whitespace()
+        .map(|p| p.parse().unwrap())
+        .collect();
+    assert_eq!(rect.len(), 4, "{parts}");
+    assert!(
+        (rect[3] - 38.2).abs() < 1.,
+        "CSS heading is 16 + 14.4 + 7.8: {rect:?}"
+    );
+}
+
+#[test]
+fn vf4_r1_localsend_mark_fills_its_disc_inside_the_dashed_ring() {
+    let (_, svg) = super::glyphs::glyph("localsend").expect("LocalSend keeps its mark");
+    let image = gpui::SvgRenderer::new(std::sync::Arc::new(()))
+        .render_single_frame(svg, 1.)
+        .unwrap();
+    let (width, height) = (
+        image.size(0).width.0 as usize,
+        image.size(0).height.0 as usize,
+    );
+    let bytes = image.as_bytes(0).unwrap();
+    // Alpha along the centre row, at a radius in the board's 24-unit box (plugin-failed: a filled r 6.62 disc).
+    let alpha = |radius: f32| {
+        let x = (width as f32 * (12. + radius) / 24.) as usize;
+        bytes[((height / 2) * width + x) * 4 + 3]
+    };
+    assert!(alpha(0.) > 200 && alpha(4.) > 200, "the disc is filled");
+    assert_eq!(alpha(7.3), 0, "the disc carries no stroke past r 6.62");
+    assert!(alpha(11.2) > 100, "the dashed ring at r 11.18 stays");
+}

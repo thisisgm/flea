@@ -138,7 +138,7 @@ impl crate::window::pane::PaneHost {
             self.filter.owner.renumbered(&mut seam)
         };
         self.filter.sync(self.pane.held.listing);
-        self.input.shown = self.filter.shown.clone();
+        self.input.set_shown(self.filter.shown.clone());
         if let (Some(asked), Some(backend)) = (asked, &self.backend) {
             let _ = backend.line(wire::request(asked.id, &asked.query).trim_end().to_owned());
         }
@@ -195,7 +195,7 @@ impl Shell {
         };
         let listing = host.pane.held.listing;
         host.filter.sync(listing);
-        host.input.shown = host.filter.shown.clone();
+        host.input.set_shown(host.filter.shown.clone());
         let owner = &host.filter.owner;
         if !owner.up() {
             self.slots.strips[side] = None;

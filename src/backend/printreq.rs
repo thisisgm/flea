@@ -50,19 +50,26 @@ fn query(args: &[&str], cancel: &AtomicBool) -> Result<String, String> {
     printtool::run(&args.iter().map(|arg| (*arg).into()).collect::<Vec<_>>(), cancel, printtool::QUERY_WAIT).map_err(|e| e.message)
 }
 
+// A query whose failure the reply survives; a cancel still stops the reply.
+fn optional(result: Result<String, String>, cancel: &AtomicBool) -> Result<String, String> {
+    match result { Err(err) if cancel.load(Ordering::Relaxed) => Err(err), result => Ok(result.unwrap_or_default()) }
+}
+
 pub fn options_line(id: usize, printer: &str, cancel: &AtomicBool) -> String {
     let result = (|| {
         let list = query(&["lpstat", "-e"], cancel)?;
         // A system with destinations but no default makes lpstat -d exit 1; the list still holds.
-        let default = query(&["lpstat", "-d"], cancel).unwrap_or_default();
+        let default = optional(query(&["lpstat", "-d"], cancel), cancel)?;
         let destinations = printing::destinations(&list, &default);
         let printer = if printer.is_empty() { destinations.first().map_or("", |d| d.name.as_str()) } else { printer };
         if !printer.is_empty() && !destinations.iter().any(|d| d.name == printer) { return Err("Choose a printer from the destination list.".into()); }
         let caps = if printer.is_empty() { printing::Capabilities::default() } else { printing::capabilities(&query(&["lpoptions", "-p", printer, "-l"], cancel)?) };
+        let details = if printer.is_empty() { String::new() } else { optional(query(&["lpstat", "-l", "-p", printer], cancel), cancel)? };
+        let printer_name = printing::printer_name(&details, printer);
         let rows: Vec<_> = destinations.iter().map(|d| format!(r#"{{"name":"{}","default":{}}}"#, escape(&d.name), d.default)).collect();
         let message = if destinations.is_empty() { printing::NO_PRINTER } else { "" };
-        Ok(format!(r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[{}],"printer":"{}","duplex":{},"twoSided":{},"color":{},"grayscale":{},"message":"{message}","setupArgv":{},"err":""}}"#,
-            rows.join(","), escape(printer), caps.duplex, caps.two_sided, caps.color, caps.grayscale, crate::json::string_array(&printing::setup_argv())))
+        Ok(format!(r#"{{"t":"printoptions","id":{id},"ok":true,"destinations":[{}],"printer":"{}","printerName":"{}","duplex":{},"twoSided":{},"color":{},"grayscale":{},"message":"{message}","setupArgv":{},"err":""}}"#,
+            rows.join(","), escape(printer), escape(&printer_name), caps.duplex, caps.two_sided, caps.color, caps.grayscale, crate::json::string_array(&printing::setup_argv())))
     })();
     result.unwrap_or_else(|err: String| format!(r#"{{"t":"printoptions","id":{id},"ok":false,"destinations":[],"err":"{}"}}"#, escape(&err)))
 }

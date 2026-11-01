@@ -32,7 +32,8 @@ case "$tool" in
   done ;;
  lpstat)
   if test -f "$root/no-printer"; then exit 0; fi
-  case "$1" in -e) printf 'Kitchen\nBrother\n' ;; -d) printf 'system default destination: Brother\n' ;; esac ;;
+  case "$1" in -e) printf 'Kitchen\nBrother\n' ;; -d) printf 'system default destination: Brother\n' ;; -l) if test -f "$root/hold-lpstat"; then set -C; : > "$root/lpstat-held"; exec /bin/sleep 30; fi
+       printf 'printer Brother is idle\n\tDescription: Brother HL-L3270CDW\n' ;; esac ;;
  lpoptions) printf 'Duplex/Two-sided: *None DuplexNoTumble\nColorModel/Color: *RGB Gray\n' ;;
  lp)
   case "$*" in *hold.pdf*) set -C; : > "$root/lp-held"; exec /bin/sleep 30 ;; esac
@@ -250,4 +251,33 @@ fn print_protocol_combines_layouts_and_exports_office_from_the_preview_cache() {
     let replies = rig.ask(&command, "printdone");
     assert!(field_bool(replies.last().unwrap(), "ok"), "{replies:?}");
     assert!(rig.calls().lines().any(|line| line.starts_with("lp\0") && line.contains(&cache.to_string_lossy().to_string())));
+}
+
+#[test]
+fn vf4_print_options_carry_the_advertised_printer_name() {
+    let mut rig = Rig::new(true);
+    let replies = rig.ask(r#"{"c":"printoptions","id":41}"#, "printoptions");
+    let line = replies.last().unwrap();
+    assert_eq!(field_str(line, "printer").as_deref(), Some("Brother"));
+    assert_eq!(field_str(line, "printerName").as_deref(), Some("Brother HL-L3270CDW"));
+}
+
+#[test]
+fn vf4_r1_a_cancel_during_the_printer_name_query_is_not_an_ok_reply() {
+    let mut rig = Rig::new(true);
+    rig.dir.file("hold-lpstat", "");
+    rig.send(r#"{"c":"printoptions","id":42}"#);
+    const HELD_WAIT: Duration = Duration::from_secs(5);
+    const HELD_POLL: Duration = Duration::from_millis(5);
+    let entered = rig.dir.join("lpstat-held");
+    let end = Instant::now() + HELD_WAIT;
+    while !entered.is_file() && Instant::now() < end {
+        std::thread::sleep(HELD_POLL);
+    }
+    assert!(entered.is_file(), "lpstat -l was reached before the cancel");
+    rig.send(r#"{"c":"quit"}"#);
+    let replies = rig.until("printoptions");
+    let line = replies.last().unwrap();
+    assert!(!field_bool(line, "ok"), "{replies:?}");
+    assert_eq!(field_str(line, "err").as_deref(), Some("cancelled"));
 }

@@ -108,6 +108,7 @@ impl Shell {
                 direction: 0.,
                 last: None,
                 cells: None,
+                basis: None,
             });
         }
         // A row press bubbles on to the pane's on_drag, which lifts the row once the press travels.

@@ -404,3 +404,6 @@ fn op4_pdf_ranges_limits_and_count_diagnostics_keep_their_meaning() {
     m.document_pages(ticket, Err("opaque Poppler 0x81".into()), &c);
     assert!(m.error.ends_with("opaque Poppler 0x81"));
 }
+
+#[path = "vf4_print_tests.rs"]
+mod vf4_print;

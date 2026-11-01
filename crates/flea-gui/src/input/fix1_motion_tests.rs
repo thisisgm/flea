@@ -70,6 +70,7 @@ fn fix1_band_edge_scroll_steps_per_presented_frame_by_measured_time(cx: &mut Tes
                 direction: 1.,
                 last: None,
                 cells: None,
+                basis: None,
             });
             cx.notify();
         })

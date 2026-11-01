@@ -288,7 +288,8 @@ fn md_source_board_row_never_draws_under_a_larger_face(cx: &mut TestAppContext) 
         );
         with(cx, view, |v| v.source.frame.line)
     };
-    let face = line(None, cx);
+    // A zero row reads the face's extent through the board path; None takes the column's body line box.
+    let face = line(Some(0.), cx);
     assert!(
         face > 20.,
         "a 20 px face is taller than the board's 20 px row: {face}"
@@ -297,5 +298,14 @@ fn md_source_board_row_never_draws_under_a_larger_face(cx: &mut TestAppContext) 
         line(Some(20.), cx),
         face,
         "the board's row gives way to the face's extent"
+    );
+    let column = line(None, cx);
+    assert_eq!(
+        column, 28.,
+        "the column takes the body's 1.4 line box, not the face's {face}"
+    );
+    assert_ne!(
+        face, column,
+        "the board path reads the face, not the column's line box"
     );
 }

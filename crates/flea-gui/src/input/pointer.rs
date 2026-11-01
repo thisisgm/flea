@@ -108,8 +108,12 @@ impl Shell {
                 band.active = true;
             }
             frame.scroll = host.pane.scroll_y;
-            super::update_band(frame, band, &mut host.selected, host.input.shown.as_deref());
-            host.input.selection.changed(&host.selected);
+            let before = host.selected.len();
+            let touched =
+                super::update_band(frame, band, &mut host.selected, host.input.shown.as_deref());
+            if touched > 0 || before != host.selected.len() {
+                host.input.selection.changed(&host.selected);
+            }
         } else if moved {
             host.input.pointer_origin = true;
             host.input.hovered = hovered.then(|| host.input.hit(event.position)).flatten();

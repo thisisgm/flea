@@ -24,11 +24,11 @@ pub const TICK: (&str, &[u8]) = (
 );
 
 const LOCALSEND: &[u8] = concat!(
-    r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">"#,
-    r#"<circle cx="12" cy="12" r="6.62"/><path d="M 22.97 9.82 A 11.18 11.18 0 0 1 22.97 14.18 M 21.30 18.21 A 11.18 11.18 0 0 1 18.21 21.30 "#,
+    r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">"#,
+    r#"<g fill="currentColor"><circle cx="12" cy="12" r="6.62"/></g><path d="M 22.97 9.82 A 11.18 11.18 0 0 1 22.97 14.18 M 21.30 18.21 A 11.18 11.18 0 0 1 18.21 21.30 "#,
     r#"M 14.18 22.97 A 11.18 11.18 0 0 1 9.82 22.97 M 5.79 21.30 A 11.18 11.18 0 0 1 2.70 18.21 M 1.03 14.18 A 11.18 11.18 0 0 1 1.03 9.82 "#,
     r#"M 2.70 5.79 A 11.18 11.18 0 0 1 5.79 2.70 M 9.82 1.03 A 11.18 11.18 0 0 1 14.18 1.03 M 18.21 2.70 A 11.18 11.18 0 0 1 21.30 5.79 " "#,
-    r#"stroke-width="1.66" stroke-linecap="round"/></svg>"#
+    r#"stroke="currentColor" stroke-width="1.66" fill="none" stroke-linecap="round"/></svg>"#
 )
 .as_bytes();
 
@@ -55,6 +55,10 @@ pub const DROPBOX_ASPECT: f32 = 20.34 / 24.;
 /// A glyph by the name a manifest or a row gives; a name Flea does not carry draws no mark.
 pub fn glyph(name: &str) -> Option<(SharedString, &'static [u8])> {
     let (key, data): (&'static str, &'static [u8]) = match name {
+        "hash" => (
+            "flea-st2:hash",
+            cut!("M4 9h16 M4 15h16 M10 3 8 21 M16 3l-2 18"),
+        ),
         "shelf" => ("flea-st2:shelf", cut!("M21 21H3V3h18v14H7V7h10v6h-6")),
         "localsend" => ("flea-st2:localsend", LOCALSEND),
         "tailscale" => ("flea-st2:tailscale", TAILSCALE),

@@ -1,4 +1,5 @@
 use super::{Band, Frame};
+mod delta;
 use crate::{list::pane::Pane, state::Shell};
 use gpui::{Context, Window};
 use std::time::{Duration, Instant};
@@ -7,12 +8,14 @@ pub const EDGE_RATE: f32 = 3. * 24. * 4.;
 const ROW_DRAG_BAND: f32 = 37.;
 const ROW_DRAG_STEP: Duration = Duration::from_millis(100);
 
+/// Visits entering and leaving cells only, returning their count for both callers and work tests.
 pub fn update_band(
     frame: Frame,
     band: &mut Band,
     selected: &mut Vec<usize>,
     shown: Option<&[usize]>,
-) {
+) -> usize {
+    let mut touched = 0;
     let (x, y) = frame.local(band.pointer);
     band.direction = if y < 0. {
         -1.
@@ -26,11 +29,19 @@ pub fn update_band(
         y.clamp(0., frame.viewport()) + frame.scroll,
     );
     if !band.active {
-        return;
+        return 0;
     }
-    selected.clear();
-    if band.additive {
-        selected.extend_from_slice(&band.before);
+    let basis = (frame.columns.max(1), frame.total);
+    if band.basis != Some(basis) {
+        // The first update, or a renumbered view: the selection restarts from the marks the band began over.
+        band.before.sort_unstable();
+        band.before.dedup();
+        selected.clear();
+        if band.additive {
+            selected.extend_from_slice(&band.before);
+        }
+        band.cells = None;
+        band.basis = Some(basis);
     }
     let (left, right) = (band.anchor.0.min(band.end.0), band.anchor.0.max(band.end.0));
     let (top, bottom) = (band.anchor.1.min(band.end.1), band.anchor.1.max(band.end.1));
@@ -54,39 +65,11 @@ pub fn update_band(
         let row_end = end.min(frame.total.div_ceil(cols));
         if first < row_end && col_first < col_end {
             cells = Some((col_first, col_end, first, row_end));
-            let index = |view| {
-                shown
-                    .and_then(|shown| shown.get(view).copied())
-                    .unwrap_or(view)
-            };
-            for row in first..row_end {
-                selected.extend(
-                    (row * cols + col_first..row * cols + col_end)
-                        .filter(|&row| row < frame.total)
-                        .map(index),
-                );
-            }
-            let entering = band.cells.is_none_or(|(l, r, t, b)| {
-                col_first < l || col_end > r || first < t || row_end > b
-            });
-            if entering {
-                let row = if band.end.1 < band.anchor.1 {
-                    first
-                } else {
-                    row_end - 1
-                };
-                let column = if band.end.0 < band.anchor.0 {
-                    col_first
-                } else {
-                    col_end - 1
-                };
-                band.last = Some(index((row * cols + column).min(frame.total - 1)));
-            }
         }
     }
+    touched += delta::apply(frame, band, selected, shown, cells);
     band.cells = cells;
-    selected.sort_unstable();
-    selected.dedup();
+    touched
 }
 
 impl super::PaneInput {
@@ -113,8 +96,11 @@ impl super::PaneInput {
             (pane.scroll_y + band.direction * EDGE_RATE * seconds).clamp(0., frame.max_scroll()),
         );
         frame.scroll = pane.scroll_y;
-        update_band(frame, band, selected, self.shown.as_deref());
-        self.selection.changed(selected);
+        let before = selected.len();
+        let touched = update_band(frame, band, selected, self.shown.as_deref());
+        if touched > 0 || before != selected.len() {
+            self.selection.changed(selected);
+        }
         self.moved_at = Some(now);
     }
     /// True while an edge scroll or the scrollbar fade needs the next presented frame.

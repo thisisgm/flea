@@ -356,25 +356,10 @@ impl Render for SelectionPreview {
             root = root.child(table);
         } else {
             let (kind, tail) = self.compact(frame, cx);
-            root = root.child(
-                div()
-                    .debug_selector(|| "column-preview-facts".into())
-                    .flex()
-                    .flex_none()
-                    .w_full()
-                    .h(px(row))
-                    .line_height(px(self.fact_grid().0))
-                    .text_color(roles.metadata)
-                    .child(
-                        div()
-                            .min_w_0()
-                            .overflow_hidden()
-                            .whitespace_nowrap()
-                            .text_ellipsis()
-                            .child(kind),
-                    )
-                    .child(div().flex_none().whitespace_nowrap().child(tail)),
-            );
+            let line = self.fact_grid().0;
+            root = root.child(super::super::preview_facts::compact_facts_line(
+                kind, tail, row, line, &roles,
+            ));
         }
         root
     }

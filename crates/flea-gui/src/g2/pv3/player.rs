@@ -47,6 +47,8 @@ pub struct MediaPlayer {
     pub state: Player,
     pub position: i64,
     pub duration: i64,
+    /// Inline video returns to its poster; Quick Look holds its final frame and clock.
+    pub rewind_on_end: bool,
     seeked: bool,
     session: Session,
     mpris: Option<Mpris>,
@@ -84,6 +86,7 @@ impl MediaPlayer {
             state: Player::default(),
             position: 0,
             duration: 0,
+            rewind_on_end: false,
             seeked: false,
             session: Session::default(),
             mpris: None,
@@ -269,7 +272,7 @@ impl MediaPlayer {
             Event::Ended => {
                 self.state.media = Media::Ended;
                 self.state.playback = Playback::Stopped;
-                if self.state.has_video {
+                if self.state.has_video && self.rewind_on_end {
                     self.position = 0;
                     // Stop pauses and rewinds the decoder so the poster replaces the held picture.
                     self.send(Command::Stop);
