@@ -1613,3 +1613,31 @@ The Trash, side-button and rail reorder fixes move four ceilings, each re-derive
 The TREE-OUTLINE composition keeps the global limits unchanged. The generated key table moves from 397 to 399 lines for the two List outline chords. The List module declaration and the painted check counter move the List module from 411 to 415 lines, and the picker route fixture moves from 401 to 405 for the explicit default outline fields on its two full row literals. The window navigation module moves from 408 to 409 lines for the one call that keeps a lone mark after an in-place open; the handling itself lives in `window/outline.rs`. These are exact `wc -l` composition ceilings. Request row-range classification moves from `run.rs` into `run_rows.rs`; the watch and mount tests move beside their implementation files to keep the changed implementation owners under the hard cap. No test or behavior is removed.
 
 FIX-TWOWIN records seven exact composition ceilings, each re-derived with `wc -l`: `crates/flea-gui/src/g2/dg1/join_tests.rs` 447 for the production-path multi-file clipboard regression; `crates/flea-gui/src/tabs/join_tests.rs` 449 for Enter-below-strip admission and the off-strip refusal; `crates/flea-gui/src/window/rail_tests.rs` 447 for docked-rail keyboard ownership; `crates/flea-gui/src/g2/pl4/producer.rs` 408 and `crates/flea-gui/src/window/composition.rs` 401 for preserving that ownership on a pointer press; `crates/flea-gui/src/tabs/host.rs` 422 for the acknowledgment trace; and `crates/flea-gui/src/tabs/transfer.rs` 944 for the desktop-drop outcome trace. These bounded additions retain the existing entry points and full assertions. Global limits stay unchanged; the per-file ceilings still reject further growth. No code or comment is compressed.
+
+COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. Each count is re-derived with `wc -l` from the composed cut; the base gate at 5e2da6de passes. These preserve the reviewed unions and their tests without compressing code or comments. Global caps remain unchanged, and each per-file record rejects further growth.
+
+- `src/tui/preview.rs`: 406. Composed preview media/facts and localized fallback state from the TUI family.
+- `src/tui/frame_tests.rs`: 408. Preserves both M1 language-aware heading tests and the joined TUI frame assertions.
+- `src/backend/contents_review_tests.rs`: 433. Preserves the composed content-search regression fixtures and assertions.
+- `crates/flea-gui/src/columns/geometry.rs`: 428. Combines scaled column geometry with joined divider and target geometry.
+- `crates/flea-gui/src/dual/divider_tests.rs`: 446. Retains the divider tests from both the base and composed UI units.
+- `crates/flea-gui/src/feedback/spinner_surface_tests.rs`: 402. Retains the composed spinner surface module/test registration.
+- `crates/flea-gui/src/g2/dg2/feedback.rs`: 410. Retains the reviewed drag appearance and held payload feedback together.
+- `crates/flea-gui/src/g2/dg2/rail_drop.rs`: 444. Combines the rail target cues with the existing validated drop owner.
+- `crates/flea-gui/src/g2/mn1/element.rs`: 451. Preserves both localized/scaled menu layout and drawn reader geometry.
+- `crates/flea-gui/src/g2/op4/tests.rs`: 409. Retains the composed operation-card regressions.
+- `crates/flea-gui/src/g2/pk1/tests.rs`: 463. Retains the composed picker regression assertions.
+- `crates/flea-gui/src/g2/pk2/route_ports_tests.rs`: 407. Preserves explicit row and picker preferences fields from the join.
+- `crates/flea-gui/src/g2/pl3/list.rs`: 419. Retains joined rail navigation and scaled row state.
+- `crates/flea-gui/src/g2/pl3/trashview_tests.rs`: 413. Retains base and composed Trash rail regression cases.
+- `crates/flea-gui/src/g2/sr2/tests_flow.rs`: 408. Retains the composed mounted search flow assertions.
+- `crates/flea-gui/src/g2/st1/tests.rs`: 457. Retains base and composed scaled Settings assertions.
+- `crates/flea-gui/src/navigation/landing.rs`: 429. Combines located selection landing with reviewed navigation behavior.
+- `crates/flea-gui/src/navigation/steps.rs`: 409. Retains the composed navigation state plumbing.
+- `crates/flea-gui/src/window/dispatch/fileops.rs`: 406. Combines reviewed file operation dispatch with native preview/menu retirement.
+- `crates/flea-gui/src/window/dispatch/openwith_tests.rs`: 444. Retains base and composed Open With routing assertions.
+- `crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs`: 422. Retains base and composed Quick Look state assertions.
+- `crates/flea-gui/src/window/events_ipc.rs`: 425. Combines reviewed plugin actions and richer window IPC observers.
+- `crates/flea-gui/src/window/network.rs`: 402. Retains reviewed network placement beside refreshed preview state.
+- `crates/flea-gui/src/window/selection_preview_load.rs`: 427. Combines reviewed lazy media, reader, quality and plugin preview delivery.
+- `crates/flea-gui/src/window/status.rs`: 408. Retains reviewed status labels and IPC state from the composed units.
