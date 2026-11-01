@@ -209,6 +209,7 @@ impl Draw<'_> {
                 d.child(glyph(Glyph::Check, CHECK_GLYPH * self.s, t.surface))
             });
         div()
+            .debug_selector(|| "op2-encrypt".into())
             .flex()
             .items_center()
             .gap(self.px(ROW_GAP))
@@ -220,7 +221,7 @@ impl Draw<'_> {
             )
     }
 
-    fn block(&self, block: &Block, probe: &mut Option<EyeProbe>) -> AnyElement {
+    pub(super) fn block(&self, block: &Block, probe: &mut Option<EyeProbe>) -> AnyElement {
         match block {
             Block::Chips(chips) => self.chips(chips).into_any_element(),
             Block::Field(field) if field.secret && field.eye => {
@@ -342,9 +343,7 @@ impl StandIn {
             .line_height(relative(1.2))
             .child(head)
             .child(draw.hairline());
-        for block in &card.body {
-            frame = frame.child(draw.block(block, &mut probe));
-        }
+        frame = draw.body(card, frame, &mut probe);
         let mut buttons = div()
             .mt(draw.px(ABOVE_BUTTONS))
             .flex()

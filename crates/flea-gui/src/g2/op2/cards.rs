@@ -162,6 +162,13 @@ pub struct Card {
     pub width: f32,
     pub body: Vec<Block>,
     pub buttons: Vec<Button>,
+    pub(super) body_layout: BodyLayout,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum BodyLayout {
+    Parts,
+    Compress,
 }
 
 impl Card {

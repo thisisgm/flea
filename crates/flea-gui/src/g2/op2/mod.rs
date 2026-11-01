@@ -1,6 +1,7 @@
 //! Archive and flash cards over core's ui_logic_op2, drawn through the dialog shell seam.
 pub mod cards;
 pub mod compress;
+mod compress_layout;
 pub mod draw;
 pub mod draw_flash;
 mod draw_flash_rows;

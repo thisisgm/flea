@@ -260,6 +260,7 @@ impl Extract {
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
             body,
+            body_layout: super::cards::BodyLayout::Parts,
             buttons: vec![
                 Button {
                     label: i18n.tr("archive.cancel"),
