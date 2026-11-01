@@ -122,6 +122,8 @@ impl Shell {
         if !current || host.pane.busy() {
             return false;
         }
+        // FileDrag.liftBegan: a lift ends the pending slow click, so the next tap on the row only records itself.
+        self.rename.slow = None;
         let drags = cx.default_global::<Drags>();
         drags.serial += 1;
         let serial = FILE_SERIALS | drags.serial;
