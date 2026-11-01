@@ -42,8 +42,10 @@ impl Render for Producer {
                 cx.listener(|producer, event: &gpui::MouseMoveEvent, _, cx| {
                     producer.editor_drag(event, cx);
                     producer.reorder_move(event, cx);
-                    let row = producer.row_at(event.position);
-                    let mark = producer.mark_at(event.position);
+                    // A held drag is a platform drag in v0.3.12: no row hovers under it, and none stays lit after it leaves.
+                    let held = cx.has_active_drag();
+                    let row = producer.row_at(event.position).filter(|_| !held);
+                    let mark = producer.mark_at(event.position).filter(|_| !held);
                     let mut model = producer.model.borrow_mut();
                     if model.hovered != row || model.mark_hovered != mark {
                         model.hovered = row;

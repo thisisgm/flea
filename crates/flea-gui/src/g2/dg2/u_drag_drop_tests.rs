@@ -1,6 +1,7 @@
-//! U-DRAG-DROP ready rows: slop history, held list hover and rename refusal.
+//! U-DRAG-DROP: a drag back onto its own folder is refused, a held drag lights no hover plate in the list or the rail and a tab press keeps the rename editor; the listed-pane and crumb helpers serve the sibling files.
 use super::mounted_tests::{centre, drain, frame, open, Root};
 use super::pb_devices_2_tests::{tab_point, tabs};
+use super::rail_drop_tests::{home, rail, rail_centre};
 use crate::{list::bench, state::Shell};
 use gpui::{
     point, px, Modifiers, MouseButton, Pixels, Point, TestAppContext, VisualTestContext,
@@ -98,6 +99,208 @@ fn ey356_a_held_drag_back_on_its_own_row_lights_no_hover_plate() {
     assert!(vcx.update(|_, cx| cx.has_active_drag()), "the drag is held");
     assert_eq!(hovered(&mut vcx), None, "the refused own row stays dark");
     vcx.simulate_mouse_up(folder, MouseButton::Left, Modifiers::default());
+}
+
+#[test]
+fn ey471_a_held_drag_over_the_rail_lights_no_hover_plate_while_held() {
+    let root = Root::new("ey471");
+    let home = home(&root);
+    let dest = format!("{}/alpha", root.src());
+    let mut cx = bench::real_cx();
+    let (handle, _lines) = open(&mut cx, root.src());
+    handle
+        .update(&mut cx, |shell, window, cx| {
+            tabs(shell, &dest);
+            shell.follow_file_drags(window, cx);
+        })
+        .unwrap();
+    frame(&mut cx, handle);
+    rail(&mut cx, handle, &home);
+    {
+        use flea::ui_logic_pl4::{
+            order::{Heading, RailSection},
+            rail::{Group, Kind, RailEntry},
+        };
+        let entry = |label: &str, path: &str, group, kind| RailEntry {
+            group,
+            kind,
+            label: label.into(),
+            path: path.into(),
+            glyph: "house",
+            ..RailEntry::default()
+        };
+        // A mounted releasable volume draws the eject mark, so the mark's own hover is in reach.
+        let volume = RailEntry {
+            mounted: Some(true),
+            releasable: true,
+            ..entry("Archive", &dest, Group::Device, Kind::Volume)
+        };
+        handle
+            .update(&mut cx, |shell, _, cx| {
+                let places = shell.rail.as_ref().unwrap().places.clone();
+                places.update(cx, |producer, cx| {
+                    producer.replace_sections(
+                        vec![RailSection {
+                            heading: Heading::Key("places.heading.places"),
+                            rows: vec![entry("Home", &home, Group::Home, Kind::Home), volume],
+                        }],
+                        cx,
+                    )
+                });
+            })
+            .unwrap();
+        frame(&mut cx, handle);
+    }
+    let tab = handle
+        .update(&mut cx, |shell, _, _| tab_point(shell))
+        .unwrap();
+    let row = rail_centre(&mut cx, handle, 0);
+    let mark = handle
+        .update(&mut cx, |shell, _, cx| {
+            let producer = shell.rail.as_ref().unwrap().places.read(cx);
+            let hit = producer
+                .laid
+                .borrow()
+                .row(1)
+                .and_then(|row| row.eject_hit());
+            hit.map(|hit| point(px(hit.x + hit.width / 2.), px(hit.y + hit.height / 2.)))
+        })
+        .unwrap()
+        .expect("the volume row draws its eject mark");
+    let rail_hover = |vcx: &mut VisualTestContext| {
+        handle
+            .update(vcx, |shell, _, cx| {
+                let producer = shell.rail.as_ref().unwrap().places.read(cx);
+                let model = producer.model.borrow();
+                (model.hovered, model.mark_hovered)
+            })
+            .unwrap()
+    };
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    vcx.simulate_mouse_move(mark, None, Modifiers::default());
+    vcx.run_until_parked();
+    assert_eq!(
+        rail_hover(&mut vcx),
+        (Some(1), Some(1)),
+        "with no drag the pointer lights the row and its mark"
+    );
+    // The tab drag crosses the rail on its way out of the window, as hv1031.tabs.tear-left-hp does.
+    vcx.simulate_mouse_move(tab, None, Modifiers::default());
+    vcx.simulate_mouse_down(tab, MouseButton::Left, Modifiers::default());
+    vcx.simulate_mouse_move(
+        point(tab.x - px(20.), tab.y + px(4.)),
+        Some(MouseButton::Left),
+        Modifiers::default(),
+    );
+    assert!(
+        vcx.update(|_, cx| cx.has_active_drag()),
+        "the tab drag is held"
+    );
+    vcx.simulate_mouse_move(row, Some(MouseButton::Left), Modifiers::default());
+    vcx.simulate_mouse_move(
+        point(row.x + px(1.), row.y),
+        Some(MouseButton::Left),
+        Modifiers::default(),
+    );
+    vcx.run_until_parked();
+    assert_eq!(
+        rail_hover(&mut vcx),
+        (None, None),
+        "no rail row lights under a drag"
+    );
+    vcx.simulate_mouse_move(mark, Some(MouseButton::Left), Modifiers::default());
+    vcx.simulate_mouse_move(
+        point(mark.x + px(1.), mark.y),
+        Some(MouseButton::Left),
+        Modifiers::default(),
+    );
+    vcx.run_until_parked();
+    assert_eq!(
+        rail_hover(&mut vcx),
+        (None, None),
+        "no eject mark lifts under a drag"
+    );
+    // Teardown only: the tab leaves the window with the pointer, so the drag ends without a drop here.
+    vcx.update(|window, cx| cx.stop_active_drag(window));
+}
+
+// The bench window's pane height, as bfx_cols_tests.rs sizes it.
+const PANE_HEIGHT: f32 = 646.;
+// A pending listing takes its first rows whatever their serial; 2 is the one the pane fixtures stamp.
+pub(super) const FIRST_LISTING: usize = 2;
+
+// A coherent pane on `folder`, so the chrome path bar draws its crumbs.
+pub(super) fn open_listed(
+    cx: &mut TestAppContext,
+    folder: String,
+) -> (WindowHandle<Shell>, impl FnMut() -> Option<String>) {
+    let (handle, _old) = open(cx, folder.clone());
+    let (backend, lines) = crate::backend::Backend::test_operation_channel();
+    handle
+        .update(cx, |shell, window, cx| {
+            let rows = shell.panes[0].as_ref().unwrap().pane.held.rows.clone();
+            let mut host = crate::window::pane::PaneHost::new(
+                folder.clone(),
+                None,
+                PANE_HEIGHT,
+                &shell.locale,
+            );
+            host.backend = Some(backend);
+            host.pane.use_executor(cx.background_executor().clone());
+            host.pane
+                .receive(flea::protocol::Reply::Listed {
+                    path: folder.clone(),
+                    total: rows.len(),
+                })
+                .unwrap();
+            host.pane
+                .receive(flea::protocol::Reply::Rows {
+                    start: 0,
+                    listing: FIRST_LISTING,
+                    rows,
+                })
+                .unwrap();
+            host.changed(&shell.locale);
+            host.nav
+                .after_reply(&mut host.pane, &folder, &mut host.selected);
+            host.list.borrow_mut().typeface = bench::bench_typeface();
+            shell.panes[0] = Some(host);
+            shell.path_labels[0] = folder.clone().into();
+            shell.launch.paths[0] = folder;
+            shell.follow_file_drags(window, cx);
+        })
+        .unwrap();
+    frame(cx, handle);
+    frame(cx, handle);
+    (handle, lines)
+}
+
+// A point on the parent crumb naming `parent` in the chrome strip, with the crumb's folder name as the footer says it.
+pub(super) fn crumb(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Shell>,
+    parent: &str,
+) -> (Point<Pixels>, String) {
+    handle
+        .read_with(cx, |shell, cx| {
+            let view = shell.chrome.view.as_ref().unwrap().read(cx).path.read(cx);
+            let paint = view.paint.borrow();
+            let strip = &view.strips[0];
+            let index = strip
+                .crumbs()
+                .iter()
+                .position(|crumb| crumb.path == parent)
+                .expect("the parent has a crumb");
+            let (left, _) = strip.extent(index).unwrap();
+            let bounds = paint.strips[0].unwrap();
+            let x = bounds.left()
+                + px(crate::path::paint::strip_pad(false, &paint.scale()) + left + 3.);
+            (
+                point(x, bounds.top() + bounds.size.height / 2.),
+                strip.crumbs()[index].text.trim_end_matches('/').to_owned(),
+            )
+        })
+        .unwrap()
 }
 
 #[test]

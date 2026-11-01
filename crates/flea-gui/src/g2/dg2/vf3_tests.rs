@@ -263,31 +263,6 @@ pub(super) fn crumb_point(
 }
 
 #[test]
-fn vf3_crumb_separator_is_not_a_destination() {
-    let root = Root::new("crumb-separator");
-    let mut cx = bench::real_cx();
-    let (handle, mut lines) = open(&mut cx, root.src());
-    frame(&mut cx, handle);
-    let from = centre(&mut cx, handle, 1);
-    let slash = crumb_point(&mut cx, handle, &root, true);
-    let mut cx = VisualTestContext::from_window(handle.into(), &cx);
-    super::mounted_tests::drag(&mut cx, from, slash);
-    cx.run_until_parked();
-    let sent = super::mounted_tests::drain(&mut lines);
-    assert!(
-        !sent
-            .iter()
-            .any(|line| line.contains("collisions") || line.contains("transfer")),
-        "the slash must not receive files: {sent:?}"
-    );
-    handle
-        .read_with(&cx, |shell, _| {
-            assert_eq!(shell.panes[0].as_ref().unwrap().path, root.src())
-        })
-        .unwrap();
-}
-
-#[test]
 fn vf3_crumb_refuses_a_drop_while_its_pane_is_loading() {
     let root = Root::new("crumb-loading");
     let mut cx = bench::real_cx();

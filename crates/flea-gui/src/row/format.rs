@@ -24,6 +24,8 @@ pub struct Words {
     pub size: String,
     pub unknown_size: String,
     pub modified: String,
+    pub location: String,
+    pub used: String,
     pub kind: String,
     /// Set once the words come from a catalog snapshot, whose thread already warmed the zone.
     pub ready: bool,
@@ -39,6 +41,8 @@ impl Words {
             size: catalog.tr("window.column_size"),
             unknown_size: catalog.tr("dialogs.file.properties.unknown"),
             modified: catalog.tr("window.column_modified"),
+            location: catalog.tr("window.column_location"),
+            used: catalog.tr("window.column_used"),
             kind: catalog.tr("list.column_kind"),
             ready: true,
         }

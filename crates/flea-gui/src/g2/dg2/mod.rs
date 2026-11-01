@@ -313,3 +313,15 @@ mod edge_tests;
 
 #[cfg(test)]
 mod xwindow_tests;
+
+#[cfg(test)]
+mod u_drag_drop_cue_tests;
+
+#[cfg(test)]
+mod u_drag_drop_fidelity_tests;
+
+#[cfg(test)]
+mod u_drag_drop_spring_tests;
+
+#[cfg(test)]
+mod u_drag_drop_recent_tests;

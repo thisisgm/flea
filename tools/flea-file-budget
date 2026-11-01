@@ -334,7 +334,7 @@ crates/flea-gui/src/window/view_tests.rs 405
 crates/flea-gui/src/navigation/mod.rs 406
 crates/flea-gui/src/navigation/landing.rs 429
 crates/flea-gui/src/g2/dg2/rail_drop.rs 444
-crates/flea-gui/src/window/columns.rs 406
+crates/flea-gui/src/window/columns.rs 409
 crates/flea-gui/src/g2/mn1/join.rs 453
 "
 

@@ -1,9 +1,79 @@
-//! U-DRAG-DROP: the sub-slop drop gate remains silent before the ordinary tap; a lift or a ground press ends the slow click.
-use super::mounted_tests::{centre, drain, frame, open, Root};
-use super::u_drag_drop_tests::{out_and_back, status};
+//! U-DRAG-DROP: the drag image, the native crumb drop and the sub-slop drop gate; a lift or a ground press ends the slow click.
+use super::mounted_tests::{centre, drain, frame, open, transfer, Root};
+use super::u_drag_drop_tests::{crumb, mounted, open_listed, out_and_back, status};
 use crate::list::bench;
 use crate::state::Shell;
 use gpui::{point, px, Modifiers, MouseButton, VisualTestContext, WindowHandle};
+
+#[test]
+fn ey376_the_drag_image_draws_the_lift() {
+    let root = Root::new("ey376");
+    let mut cx = bench::real_cx();
+    let handle = mounted(&mut cx, &root);
+    let file = centre(&mut cx, handle, 1);
+    let folder = centre(&mut cx, handle, 0);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    super::rail_drop_tests::hold(&mut vcx, file, folder, Modifiers::default());
+    vcx.update(|window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    });
+    // Board carry.html's front plate: a glyph square 19 px right and 27 px below the pointer.
+    let (quads, scale, at) = vcx.update(|window, _| {
+        (
+            window.painted_quads(),
+            window.scale_factor(),
+            window.mouse_position(),
+        )
+    });
+    let x = (f32::from(at.x) + 19.) * scale;
+    let y = (f32::from(at.y) + 27.) * scale;
+    assert!(
+        quads.iter().any(|quad| {
+            (quad.bounds.origin.x.0 - x).abs() < 0.5
+                && (quad.bounds.origin.y.0 - y).abs() < 0.5
+                && (quad.bounds.size.width.0 - 19. * scale).abs() < 0.5
+        }),
+        "no flock plate beside the pointer at {at:?}"
+    );
+    vcx.simulate_mouse_up(folder, MouseButton::Left, Modifiers::default());
+}
+
+#[test]
+fn ey271_a_native_file_drop_on_a_parent_crumb_moves_there() {
+    use flea::ui_logic_dg2::URILIST;
+    let root = Root::new("ey271native");
+    let parent = root.src().trim_end_matches("/src").to_owned();
+    let mut cx = bench::real_cx();
+    let (handle, mut lines) = open_listed(&mut cx, root.src());
+    let (target, _) = crumb(&mut cx, handle, &parent);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    handle
+        .update(&mut vcx, |_, window, cx| {
+            let types = vec![URILIST.to_owned()];
+            let uris: std::sync::Arc<[u8]> = format!("file://{}/b.txt\r\n", root.src())
+                .into_bytes()
+                .into();
+            let get = |mime: &str| (mime == URILIST).then(|| uris.clone());
+            let router = super::router::shared(cx);
+            assert!(router.land(&super::router::Native::new(
+                window.window_handle().window_id().as_u64(),
+                (f32::from(target.x), f32::from(target.y)),
+                true,
+                &types,
+                &get,
+                Some(gpui::NativeDragAction::Move),
+                false,
+                false,
+            )));
+        })
+        .unwrap();
+    vcx.run_until_parked();
+    let sent = transfer(&mut vcx, handle, &mut lines);
+    assert!(sent.contains(r#""op":"move""#), "{sent}");
+    assert!(sent.contains(&format!(r#""dest":"{parent}""#)), "{sent}");
+    assert!(sent.contains(&format!("{}/b.txt", root.src())), "{sent}");
+}
 
 #[test]
 fn ey395_a_press_that_never_left_the_slop_still_drops_nothing() {

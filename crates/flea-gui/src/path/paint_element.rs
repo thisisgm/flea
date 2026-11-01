@@ -131,18 +131,13 @@ impl Element for CrumbElement {
         };
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (index, (crumb, run)) in strip.crumbs().iter().zip(&paint.runs[slot]).enumerate() {
-                let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
-                let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
-                if view.drop_target == Some((slot, index)) && cx.has_active_drag() {
-                    let end = crumb
-                        .text
-                        .strip_suffix('/')
-                        .filter(|name| !name.is_empty())
-                        .map_or(crumb.text.len(), str::len);
-                    let target = Bounds::new(
-                        point(x, bounds.top()),
-                        size(run.line().x_for_index(end), height),
-                    );
+                let held = view.drop_target == Some((slot, index)) && cx.has_active_drag();
+                let lit = crumb.last || held || (strip.hovered == Some(index) && !crumb.elided);
+                let extent = strip.extent(index);
+                let x = left + px(extent.map_or(0., |(left, _)| left));
+                // The wash spans the whole crumb, separator included, the same span hit accepts, as v0.3.12 does.
+                if let Some((_, width)) = extent.filter(|_| held) {
+                    let target = Bounds::new(point(x, bounds.top()), size(px(width), height));
                     window.paint_quad(fill(target, ink.accent.opacity(crate::list::CURSOR_WASH)));
                     window.paint_quad(fill(
                         Bounds::new(target.origin, size(px(2.), height)),

@@ -22,7 +22,7 @@ fn place(label: &str, path: &str, group: Group, kind: Kind) -> RailEntry {
 }
 
 // The window's own rail, with a Home place in the test root and the Trash row.
-fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
+pub(super) fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
     handle
         .update(cx, |shell, _, cx| shell.mount_rail(cx))
         .unwrap();
@@ -50,7 +50,7 @@ fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
 }
 
 // The centre of a rail row as the rows last painted it, in window coordinates.
-fn rail_centre(
+pub(super) fn rail_centre(
     cx: &mut TestAppContext,
     handle: WindowHandle<Shell>,
     index: usize,
@@ -86,6 +86,13 @@ pub(super) fn hold(
     vcx.simulate_mouse_move(to, Some(MouseButton::Left), keys);
     vcx.run_until_parked();
     vcx.simulate_mouse_move(to, Some(MouseButton::Left), keys);
+    vcx.run_until_parked();
+}
+
+// The held pointer moves in place with new keys, as a key pressed mid-drag reaches the next drag move.
+pub(super) fn hold_keys(vcx: &mut VisualTestContext, at: Point<Pixels>, keys: Modifiers) {
+    vcx.simulate_mouse_move(point(at.x + px(1.), at.y), Some(MouseButton::Left), keys);
+    vcx.simulate_mouse_move(at, Some(MouseButton::Left), keys);
     vcx.run_until_parked();
 }
 
@@ -144,7 +151,7 @@ fn transfer(
         .expect("a transfer after the empty collisions answer")
 }
 
-fn home(root: &Root) -> String {
+pub(super) fn home(root: &Root) -> String {
     let home = format!("{}/home", root.src().trim_end_matches("/src"));
     std::fs::create_dir_all(&home).unwrap();
     home

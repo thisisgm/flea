@@ -10,8 +10,8 @@ use crate::rail::{geometry, Mode};
 use crate::state::Shell;
 use crate::window::dispatch::Order;
 use crate::window::navigate::Step;
-use flea::i18n::I18n;
 use flea::jsondoc::Json;
+use flea::{i18n::I18n, ui_logic_pl4::placeview::View};
 use gpui::{AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -89,6 +89,7 @@ impl Shell {
 
     /// A row's request is applied once the frame can still run: opens route through the pane's own step.
     pub(crate) fn route_rail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.reaim_file_cue(window, cx);
         self.settle_rail_drag(window, cx);
         self.reaim_rail_drag(window, cx);
         self.route_device_events(window, cx);
@@ -266,8 +267,8 @@ impl Shell {
         self.tags_sync(window, cx);
         let path = self.panes[self.focus_side]
             .as_ref()
-            .map(|host| host.path.clone());
-        let Some(path) = path else {
+            .map(|host| (host.path.clone(), host.recent.on));
+        let Some((path, recent)) = path else {
             return;
         };
         let trash = self.trash.as_ref().is_some_and(|host| {
@@ -280,10 +281,10 @@ impl Shell {
             join.places.update(cx, |producer, cx| {
                 producer.side = self.focus_side;
                 producer.model.borrow_mut().corner = self.corner;
-                if trash {
-                    producer.settle_view(&path, &flea::ui_logic_pl4::placeview::View::Trash, cx);
-                } else {
-                    producer.settle_lit(&path, cx);
+                match (trash, recent) {
+                    (true, _) => producer.settle_view(&path, &View::Trash, cx),
+                    (_, true) => producer.settle_view(&path, &View::Recent, cx),
+                    _ => producer.settle_lit(&path, cx),
                 }
             });
         }
