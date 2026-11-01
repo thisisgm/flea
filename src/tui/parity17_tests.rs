@@ -188,3 +188,5 @@ pub(super) fn editor_action(keys: &[Key], action: &str) {
 
 #[path = "parity17_flow_tests.rs"]
 mod flows;
+#[path = "finder_tests.rs"]
+mod finder;

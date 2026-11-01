@@ -187,3 +187,29 @@ fn tui_fix_1101_trash_load_preview_key_reads_the_backing() {
     assert_eq!(m.preview_body.lines().next(), Some("first draft"));
     finish(w, reader);
 }
+// A long trashed file scrolls to its last line, since the Trash head takes five rows where the folder preview's takes three.
+#[test]
+fn tui_fix_1101_p2_trashed_long_text_scrolls_to_its_last_line() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-long");
+    let text: String = (1..=60).map(|n| format!("row {n}\n")).collect();
+    let backing = root.file("long.txt", &text);
+    let theme = Theme::from_text("");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    m.preview_visible = true;
+    let listed = LISTED.replace(r#""icon":"text-plain""#, &format!(r#""icon":"text-plain","content":"{}""#, backing.display()));
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    crate::tui::preview::load(&mut m, false);
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+        crate::tui::preview::poll(&mut m);
+    }
+    crate::tui::preview::layout(&mut m);
+    m.preview_scroll = crate::tui::pane::preview_scroll_limit(&m);
+    crate::tui::preview::layout(&mut m);
+    let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+    let shown = |text: &str| rows.iter().any(|line| line.contains(text));
+    assert!(shown("60 row 60") && shown("39 row 39") && !shown("38 row 38"), "the scroll stops with the last line on the last body row:\n{}", rows.join("\n"));
+    finish(w, reader);
+}
