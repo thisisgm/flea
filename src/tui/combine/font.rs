@@ -47,7 +47,7 @@ mod tests {
     use crate::backend::testdir::TestDir;
 
     #[test]
-    fn tui_combine_fontconfig_failure_omits_font_and_preserves_label() {
+    fn tui_combine_fontconfig_failure_omits_font() {
         let root = TestDir::new("tui-combine-font-fallback");
         for query in [
             vec!["/nonexistent-flea-fc-match".into()],
@@ -63,33 +63,28 @@ mod tests {
             assert!(font.is_none());
             let mut args = vec!["magick".into()];
             append_file(&mut args, font.as_deref(), root.path());
-            args.extend(["-annotate".into(), "+2+1".into(), "1".into()]);
-            assert_eq!(args, ["magick", "-annotate", "+2+1", "1"]);
+            assert_eq!(args, ["magick"]);
         }
     }
 
     #[test]
     fn tui_combine_font_file_is_staged_and_missing_file_falls_back() {
         let root = TestDir::new("tui-combine-font-file");
-        let installed = resolve(
+        let source = root.join("user font.ttf");
+        std::fs::write(&source, b"font bytes").unwrap();
+        let resolved = resolve(
             &[
-                "fc-match".into(),
-                "-f".into(),
-                "%{file}".into(),
-                "monospace".into(),
+                "/usr/bin/printf".into(),
+                "%s".into(),
+                source.to_string_lossy().into_owned(),
             ],
             &AtomicBool::new(false),
-        )
-        .expect("an installed system monospace font");
-        std::fs::copy(&installed, root.join("user font.ttf")).unwrap();
-        let source = root.join("user font.ttf");
-        let mut args = Vec::new();
-        append_file(&mut args, Some(&source), root.path());
-        assert_eq!(args[0], "-font");
-        assert_eq!(
-            std::fs::read(&args[1]).unwrap(),
-            std::fs::read(installed).unwrap()
         );
+        assert_eq!(resolved.as_deref(), Some(source.as_path()));
+        let mut args = Vec::new();
+        append_file(&mut args, resolved.as_deref(), root.path());
+        assert_eq!(args[0], "-font");
+        assert_eq!(std::fs::read(&args[1]).unwrap(), b"font bytes");
         let mut fallback = Vec::new();
         append_file(&mut fallback, Some(&root.join("missing.ttf")), root.path());
         assert!(fallback.is_empty());

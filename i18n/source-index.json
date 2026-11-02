@@ -171799,27 +171799,27 @@
       "surface": "tui"
     },
     {
-      "excerpt": ".expect(\"an installed system monospace font\");",
-      "line": 83,
-      "literal": "an installed system monospace font",
-      "owner": "t11",
-      "path": "src/tui/combine/font.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
-      "excerpt": "std::fs::copy(&installed, root.join(\"user font.ttf\")).unwrap();",
-      "line": 84,
-      "literal": "user font.ttf",
-      "owner": "t11",
-      "path": "src/tui/combine/font.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "tui"
-    },
-    {
       "excerpt": "let source = root.join(\"user font.ttf\");",
-      "line": 85,
+      "line": 73,
       "literal": "user font.ttf",
+      "owner": "t11",
+      "path": "src/tui/combine/font.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "std::fs::write(&source, b\"font bytes\").unwrap();",
+      "line": 74,
+      "literal": "font bytes",
+      "owner": "t11",
+      "path": "src/tui/combine/font.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "assert_eq!(std::fs::read(&args[1]).unwrap(), b\"font bytes\");",
+      "line": 87,
+      "literal": "font bytes",
       "owner": "t11",
       "path": "src/tui/combine/font.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -246110,7 +246110,7 @@
     "src/tui/combine.rs": "59885ff0048119b3df480d9f449c8b87530a97c5c761f1877e4d22bd2be955cd",
     "src/tui/combine/card.rs": "ef6b5eee96b6e67fbe2860413c69d191af2efd9f4d6032b90ee8ab2d6480ff96",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
-    "src/tui/combine/font.rs": "ea7ce55662db0538135655bb42723d4d89e4feb08f62879ac6e1924e30f9d8b2",
+    "src/tui/combine/font.rs": "1093a780d1f6ba645cef865c2b1cbabb44f679d88080e1151f830cc059ac32c9",
     "src/tui/combine/input.rs": "168a5b326e639253885901c0be4ecd819894b9f1e37dbf7fab3b4d23720a4ed0",
     "src/tui/combine/preview.rs": "df99fc813780cc734d75417314fe24f9a79700ce33f0a1979b0c435aca805306",
     "src/tui/combine/replies.rs": "eccc222bdef3fa41bbae8d9a6d801c1561eff2ba332d03a1b8c95f4dacd28ef0",
@@ -246587,7 +246587,7 @@
     "tools/flea-keymap-gen": "a36c7ff57d665edf8cd72b5eea9384cea73ef494df55582df3c4476da3bac487",
     "tools/flea-keymap-lint": "685dd15739937f99b51ddb241c104ed291b11c8c893d239a1ff6b41d6b68d7dd",
     "tools/flea-live-ops": "dc849d1a9222ff7a491a98db1c2ff7d91191e27358621828198680b5bbfcdeee",
-    "tools/flea-magick-font": "3fe76787b2a8133b81997a7b3421507955194771c3e6e7979d3c42ed9a4df08e",
+    "tools/flea-magick-font": "aeea289a8300c9be8c09fa9ae3671811ff465546405dc5111fd085c1433f359a",
     "tools/flea-matchbench/Cargo.toml": "1c091116113a2ddd2e3d9f3d04c356ca7ad9ef00b59b5fdc1bcc9700ee0f91cf",
     "tools/flea-matchbench/build.rs": "818e7e616d73082e776561566ef4c1cdb39e451bff43490c0ba199a3a0cefcab",
     "tools/flea-matchbench/contract.json": "b5766020a7f155999c01ec29dae740a13e9b6fef24564a04526274d5e044c267",
@@ -247099,8 +247099,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "e958e52a267a24c42ada53d2f75f1d54020c3a2a",
-  "source_sha": "e958e52a267a24c42ada53d2f75f1d54020c3a2a",
+  "source_ref_sha": "50448a84d4d33869feb316a21f80fc1a41fe7228",
+  "source_sha": "50448a84d4d33869feb316a21f80fc1a41fe7228",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
