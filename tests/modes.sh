@@ -1041,7 +1041,7 @@ relstart_check "start: a relative reveal hands over an absolute pair" "START $D_
 SELECT $D_REAL/deep/x" "$out"
 sandbox_remove "$D"
 
-# u1-probecache: the launcher answers the Vulkan probe from a fingerprinted cache, probing once per change.
+# u1-probecache: a GPUI launch leaves adapter choice to GPUI, so the launcher runs no Vulkan probe and keeps no cache.
 VKD="$FIXTURE_ROOT/flea-vkprobe-$$"
 sandbox_make "$VKD"
 mkdir -p "$VKD/bin" "$VKD/cache" "$VKD/data" "$VKD/home" "$VKD/loader" "$VKD/driver"
@@ -1098,42 +1098,10 @@ vkprobe_run() {
   probes=$(($(vkprobe_lines) - before))
 }
 vkprobe_run "$VKD/cache"
-first=$out
-check "a first launch probes" "1" "$probes"
-vkprobe_run "$VKD/cache"
-check "a second launch is cached" "0" "$probes"
-for field in RENDERER AUTOMATIC ICD DRIVER_FILES; do
-  check "the cached decision keeps $field" "$(echo "$first" | grep "^$field ")" "$(echo "$out" | grep "^$field ")"
-done
-check "the cache file was written" "1" "$([ -f "$VKD/cache/flea/vulkan-probe" ] && echo 1 || echo 0)"
-mkdir -p "$VKD/data/vulkan/icd.d"
-printf '{"ICD":{"library_path":"libvulkan_test_only.so"}}\n' > "$VKD/data/vulkan/icd.d/flea_test_only_icd.json"
-vkprobe_run "$VKD/cache"
-check "a planted manifest probes again" "1" "$probes"
-rm "$VKD/data/vulkan/icd.d/flea_test_only_icd.json"
-vkprobe_run "$VKD/cache"
-check "removing it probes again" "1" "$probes"
-# A driver package update replaces the library a manifest names by absolute path, and the manifest itself stays as it was.
-printf 'driver one\n' > "$VKD/driver/libvulkan_flea_driver.so"
-printf '{"ICD":{"library_path":"%s/driver/libvulkan_flea_driver.so"}}\n' "$VKD" > "$VKD/data/vulkan/icd.d/flea_driver_icd.json"
-vkprobe_run "$VKD/cache"
-check "a planted driver probes" "1" "$probes"
-vkprobe_run "$VKD/cache"
-check "the planted driver is then cached" "0" "$probes"
-printf 'driver two, longer\n' > "$VKD/driver/libvulkan_flea_driver.so.new"
-mv -f "$VKD/driver/libvulkan_flea_driver.so.new" "$VKD/driver/libvulkan_flea_driver.so"
-vkprobe_run "$VKD/cache"
-check "a replaced driver library probes again" "1" "$probes"
-vkprobe_run "$VKD/cache-off" FLEA_VK_PROBE_CACHE=off
-check "off probes" "1" "$probes"
-vkprobe_run "$VKD/cache-off" FLEA_VK_PROBE_CACHE=off
-check "off probes twice" "1" "$probes"
-check "off writes no file" "0" "$([ -e "$VKD/cache-off/flea/vulkan-probe" ] && echo 1 || echo 0)"
+check "a GPUI launch runs no Vulkan probe" "0" "$probes"
+check "a GPUI launch writes no probe cache" "0" "$([ -e "$VKD/cache/flea/vulkan-probe" ] && echo 1 || echo 0)"
 vkprobe_run "$VKD/cache-err" FLEA_FAKE_VK_FAIL=1
-check "an unusable loader probes" "1" "$probes"
-vkprobe_run "$VKD/cache-err" FLEA_FAKE_VK_FAIL=1
-check "an unusable loader probes again" "1" "$probes"
-check "an unusable loader leaves no file" "0" "$([ -e "$VKD/cache-err/flea/vulkan-probe" ] && echo 1 || echo 0)"
+check "an unusable loader is not probed either" "0" "$probes"
 mkdir -p "$VKD/cache-link/flea"
 printf 'victim\n' > "$VKD/victim"
 ln -s "$VKD/victim" "$VKD/cache-link/flea/vulkan-probe"
