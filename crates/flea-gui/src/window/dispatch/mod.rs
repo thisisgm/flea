@@ -163,6 +163,8 @@ mod menus_keys_tests;
 #[cfg(test)]
 mod menus_tests;
 #[cfg(test)]
+mod mounted_navigation_tests;
+#[cfg(test)]
 mod navigation_tests;
 #[cfg(test)]
 mod network_parity_tests;
