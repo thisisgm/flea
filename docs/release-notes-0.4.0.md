@@ -6,9 +6,11 @@
 - Keep Kind pinned to the right edge during column divider drags (#349, @felixzsh).
 - Bind Ctrl+Plus to larger text while preserving the existing zoom shortcuts (#302, @root1945).
 - Keep BOM-prefixed CSV headers aligned in previews (#356, @AksharP5).
-
-## Known issue
-
-Automatic Glassy backgrounds in GPUI remain opaque at alpha 255, rather than the alpha 192 used by v0.3.12. The transparency repair is deferred to 0.4.1.
+- Preserve Omarchy glass while drawing clearer text and keeping sidebar fills independent.
+- Keep rows and scroll position visible during folder expansion and in-place updates.
+- Reveal search matches in their parent folder with Enter.
+- Paste clipboard images from context menus.
+- Keep navigation responsive when leaving Network or Trash confirmations.
+- Retain adjacent columns when selecting files.
 
 Thanks @gjouret, @felixzsh, @root1945 and @AksharP5.
