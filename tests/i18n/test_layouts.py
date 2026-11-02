@@ -231,7 +231,9 @@ class LayoutTests(unittest.TestCase):
                           for context in ("g0:vim:listing:", "g0:vim:listing::pair:sequence")})
         canonical = layouts.bindings(ROOT / "keys.toml")
         self.assertEqual({r["layer"] for r in canonical}, {"shared", "digits", "all", "default", "vim", "mac", "windows", "yazi"})
-        self.assertEqual(sum(r["table"] == "tui" for r in canonical), 110)
+        # Every [[tui]] row in keys.toml reaches the canonical bindings, however many reviewed rows it holds.
+        tui_rows = layouts.tomllib.loads((ROOT / "keys.toml").read_text())["tui"]
+        self.assertEqual(sum(r["table"] == "tui" for r in canonical), len(tui_rows))
         self.assertTrue(any(len(r["strokes"]) == 2 and r["layer"] == "yazi" for r in canonical))
         self.assertTrue(any(r["sequence_kind"] == "confirm" and len(r["strokes"]) == 2 for r in canonical))
         baseline = layouts.bindings(FIXTURES / "baseline.keys.toml")
