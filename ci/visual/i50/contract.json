@@ -30,6 +30,6 @@
     {"id": "I50-09", "provides": "fonts case values and font preference sequence", "missing": "accepted I50-09 app font epoch receipt naming the font preferences and pinned omarchy font cjk values to drive"},
     {"id": "I50-28", "provides": "live switch sequence and epoch evidence", "missing": "accepted I50-28 atomic switch naming the language sequence to drive and its presented-frame epoch counters (mixed epochs, blank frames, blink-backs) readable per frame"},
     {"id": "TUI-16", "provides": "tui cases and the shared display lease", "missing": "tests/tui_battery/candidate.py has no catalog_case with the keyword-only signature TUI-16 froze"},
-    {"id": "SCENE-LANG", "provides": "gui cases", "missing": "scene settings cannot carry a language, surface or state and ci/visual/schema.json registers no i50 scene id: the SCENE-LANG change to ci/visual/schema.json, ci/visual/scenes.py, ci/visual/test_scenes.py and crates/flea-gui/src/visual/{contract,mod,tests,state_tests}.rs is outside I50-27 and not on the stage (its reviewed patch, sha256 25e4af66, is no longer on disk), and even then only list at rest is drawable until each surface owner adds a drawn-state readback"}
+    {"id": "SCENE-LANG", "provides": "gui cases", "missing": "ci/visual/schema.json registers no i50 language scene, or scene settings cannot carry a language, surface or state; a registered language scene draws only the list at rest until each surface owner adds a drawn-state readback"}
   ]
 }
