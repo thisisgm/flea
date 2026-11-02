@@ -175,17 +175,6 @@ impl StandIn {
     ) -> AnyElement {
         self.present_pressable_observed(card, palette, typeface, corner, room, (press, None))
     }
-    pub(crate) fn present_observed(
-        &self,
-        card: &Card,
-        palette: &Palette,
-        typeface: &Typeface,
-        corner: f32,
-        room: f32,
-        probe: &crate::ipc::card_geometry::CardGeometry,
-    ) -> AnyElement {
-        present(card, palette, typeface, corner, room, None, Some(probe))
-    }
     /// The same card with live buttons: a click on one reports its index, as Enter on it would press it.
     pub(crate) fn present_pressable_observed(
         &self,

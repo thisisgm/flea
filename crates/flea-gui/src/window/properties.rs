@@ -6,7 +6,7 @@ use crate::{
         op3::{
             keys::{key_of, Key},
             properties::Properties,
-            shell::StandIn,
+            shell::Probed,
             Effect,
         },
     },
@@ -237,13 +237,19 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let room = f32::from(window.viewport_size().width);
-        let drawn = StandIn.present_observed(
+        let press = cx.listener(|shell: &mut Shell, _: &usize, window, cx| {
+            if let Some(open) = shell.properties.as_mut() {
+                let effects = open.card.close();
+                shell.properties_effects(effects, window, cx);
+            }
+        });
+        let drawn = Probed(&open.probe).present_pressable(
             &card,
             &palette,
             &self.active_typeface(),
             self.corner,
             room,
-            &open.probe,
+            press,
         );
         let scrim = cx.listener(|shell: &mut Shell, _: &gpui::MouseDownEvent, window, cx| {
             if shell.properties.is_some() {
