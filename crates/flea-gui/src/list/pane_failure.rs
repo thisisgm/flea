@@ -45,7 +45,7 @@ impl Pane {
                 .swap
                 .pending
                 .as_ref()
-                .is_some_and(|pending| pending.ready.is_some())
+                .is_some_and(|pending| pending.ready.is_some() && pending.retained_start.is_none())
         {
             self.retire_anchor();
             return self.swap.can_land(now) && self.commit(now);
@@ -54,7 +54,13 @@ impl Pane {
         if operation == "parse" {
             return false;
         }
-        if operation == "window" {
+        if operation == "window"
+            && !self
+                .swap
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.retained_start.is_some())
+        {
             if path == self.path && !self.busy() {
                 // While a sort's pair keeps its count, a window error answers that sort's window, so the view's request stays out.
                 if self.swap.unheld_total.is_some() && matches!(self.swap.unheld_own, Own::Sort(_))

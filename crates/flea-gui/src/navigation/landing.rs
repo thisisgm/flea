@@ -58,6 +58,29 @@ impl Navigator {
                 let _ = self.reread(pane, &[], false, true);
             }
         } else {
+            if let Some(cursor) = pane
+                .swap
+                .pending
+                .as_ref()
+                .and_then(|pending| pending.retained_cursor)
+            {
+                if let Some(anchor) = self.anchor.as_mut() {
+                    anchor.index = cursor;
+                }
+            }
+            if let Some(start) = pane
+                .swap
+                .pending
+                .as_ref()
+                .and_then(|pending| pending.retained_start)
+            {
+                if let Some(request) = pane.anchor_window(start) {
+                    self.emit(Command::Window {
+                        start: request.start,
+                        count: request.count,
+                    });
+                }
+            }
             self.locate_parked(pane);
             if !pane.busy() {
                 self.landing_select(pane, selected);

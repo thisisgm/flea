@@ -1,6 +1,7 @@
 //! Where a pane has been and how it gets back; it submits typed requests to the pane's swap and transport.
 pub mod anchor;
 pub mod folder_state;
+mod fresh;
 pub mod history;
 mod landing;
 mod orders;
@@ -282,7 +283,8 @@ impl Navigator {
         options.restore_name = restore
             .as_ref()
             .map(|restore| restore.entry.name.clone())
-            .filter(|name| !name.is_empty());
+            .filter(|name| !name.is_empty())
+            .or(options.restore_name);
         let relisting = options.relist;
         self.sync_orders(pane);
         if pane.swap.unheld_total.is_some() {

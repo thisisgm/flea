@@ -115,6 +115,7 @@ impl Shell {
                     if let Some(host) = &mut shell.panes[side] {
                         if host.pane.list_requests == request
                             && host.pane.busy()
+                            && !host.pane.swap.retains_rows()
                             && !host.stopped
                             && host.error.is_none()
                         {

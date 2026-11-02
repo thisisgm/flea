@@ -23,6 +23,10 @@ pub fn show_left(since: Option<u64>, now: u64) -> u64 {
 
 #[derive(Clone, Debug, Default)]
 pub struct Options {
+    /// A settled folder is updated in place and never gives way to a loading frame.
+    pub in_place: bool,
+    /// Grid owns its viewport and already holds its presented tiles until their replacement is ready.
+    pub independent_viewport: bool,
     pub supersede: bool,
     pub clear_at_once: bool,
     pub kept_query: String,
@@ -40,6 +44,8 @@ pub struct Pending {
     pub ready: Option<Held>,
     pub following: Option<Held>,
     pub parked_until: Option<u64>,
+    pub retained_start: Option<usize>,
+    pub retained_cursor: Option<usize>,
     pub options: Options,
 }
 
@@ -108,6 +114,8 @@ pub(crate) enum Own {
 
 #[derive(Default)]
 pub struct Swap {
+    /// The previous wire numbering retained by the last in-place commit.
+    pub(crate) retained_listing: Option<usize>,
     pub pending: Option<Pending>,
     pub(crate) unheld_total: Option<usize>,
     pub(crate) unheld_own: Own,
@@ -172,6 +180,8 @@ impl Swap {
             ready: None,
             following: None,
             parked_until: None,
+            retained_start: None,
+            retained_cursor: None,
             options,
         });
         true
@@ -183,8 +193,20 @@ impl Swap {
             .is_some_and(|pending| !pending.options.search)
     }
 
+    pub(crate) fn retains_rows(&self) -> bool {
+        self.holding
+            && self
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.options.in_place)
+    }
+
     pub fn expire(&mut self, now: u64) -> bool {
-        if !self.busy() || self.fell_back || now < self.since.saturating_add(CAP_MS) {
+        if !self.busy()
+            || self.retains_rows()
+            || self.fell_back
+            || now < self.since.saturating_add(CAP_MS)
+        {
             return false;
         }
         if self.holding {
@@ -231,6 +253,12 @@ impl Swap {
             return None;
         }
         let pending = self.pending.as_ref()?;
+        if pending.retained_start.is_some() {
+            return None;
+        }
+        if self.retains_rows() && pending.ready.is_none() {
+            return None;
+        }
         if pending.ready.is_some() && self.awaiting_visibility() {
             return None; // The window's existing transition timer owns the feedback deadline.
         }
@@ -267,6 +295,16 @@ impl super::Pane {
         pending: &Pending,
         held: &crate::list::pane::Held,
     ) -> usize {
+        if pending.options.in_place {
+            return pending
+                .options
+                .restore_name
+                .as_ref()
+                .and_then(|name| held.rows.iter().position(|row| &row.name == name))
+                .map(|at| held.start + at)
+                .unwrap_or(self.cursor)
+                .min(held.total.saturating_sub(1));
+        }
         let reanswer = pending.options.search
             && self.state.search
             && self.path() == pending.path
@@ -303,6 +341,8 @@ impl super::Pane {
                 ready: None,
                 following: None,
                 parked_until: None,
+                retained_start: None,
+                retained_cursor: None,
                 options: Options {
                     search: true,
                     kept_query: self.swap.session.query.clone(),

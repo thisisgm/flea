@@ -186,26 +186,14 @@ impl Navigator {
         self.select_locate = None;
         let options = Options {
             kept_query: pane.state.query.clone(),
+            in_place: true,
+            independent_viewport: self.viewport.is_some(),
+            restore_name: self
+                .pending_select
+                .as_deref()
+                .and_then(|target| std::path::Path::new(target).strip_prefix(&path).ok())
+                .map(|name| name.to_string_lossy().into_owned()),
             ..Options::default()
-        };
-        self.open_without_history(pane, &path, options, None, false)
-    }
-
-    // An operation's result re-lists its folder fresh: an unfinished re-read gives up its anchor and supersedes, so nothing stays marked.
-    pub fn fresh(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
-        self.pending_select = None;
-        self.select_locate = None;
-        if self
-            .anchor
-            .take()
-            .is_some_and(|anchor| anchor.need_paths.is_some())
-        {
-            self.gate.paths_pending = false;
-        }
-        let path = pane.path().to_owned();
-        let options = Options {
-            kept_query: pane.state.query.clone(),
-            ..supersede()
         };
         self.open_without_history(pane, &path, options, None, false)
     }
@@ -303,6 +291,9 @@ impl Navigator {
         let want = anchor.want_changed;
         let options = Options {
             kept_query: pane.state.query.clone(),
+            in_place: !want,
+            independent_viewport: self.viewport.is_some(),
+            restore_name: (!want && !anchor.name.is_empty()).then(|| anchor.name.clone()),
             ..Options::default()
         };
         self.anchor = Some(anchor);
