@@ -337,7 +337,7 @@ impl Pane {
         self.scroll_by(0.);
         self.requests.initial_first = Some((self.scroll_y / self.row_height).floor() as usize);
         self.swap.counters.commits += 1;
-        self.swap.rows_at = now;
+        self.swap.stamp_rows(now);
         self.swap.end(now, "landed");
         true
     }

@@ -248,6 +248,67 @@ fn m9_dg2_another_flea_window_reads_the_marker_and_stat_facts() {
 }
 
 #[test]
+fn native_current_key_pair_replaces_the_other_windows_lift_keys() {
+    let cases = [
+        (
+            false,
+            true,
+            true,
+            false,
+            Some(NativeDragAction::Move),
+            "copy",
+        ),
+        (
+            true,
+            false,
+            false,
+            true,
+            Some(NativeDragAction::Copy),
+            "move",
+        ),
+        (
+            false,
+            true,
+            true,
+            true,
+            Some(NativeDragAction::Move),
+            "link",
+        ),
+        (
+            true,
+            false,
+            true,
+            true,
+            Some(NativeDragAction::Copy),
+            "link",
+        ),
+        (true, false, false, false, None, "copy"),
+        (false, true, false, false, None, "move"),
+    ];
+    for (lift_ctrl, lift_shift, ctrl, shift, action, expected) in cases {
+        let lift = lift(&pane(), 0, 1, (0., 0.), lift_ctrl, lift_shift, 1).unwrap();
+        let marker = lift.marker.encode();
+        let urls: Vec<String> = lift
+            .paths
+            .unwrap()
+            .iter()
+            .map(|path| core::uri_for(path))
+            .collect();
+        let drop = Dropping::native(Some(&marker), &urls, None, ctrl, shift, action);
+        let landing = decide(&drop, "/mnt/usb", facts(7, 8));
+        let actual = match &landing {
+            Landing::Ask(PasteAsk::Link { .. }) => "link",
+            Landing::Ask(PasteAsk::Transfer { op, .. }) => op.as_str(),
+            _ => panic!("unexpected landing: {landing:?}"),
+        };
+        assert_eq!(
+            actual, expected,
+            "lift=({lift_ctrl},{lift_shift}) current=({ctrl},{shift}) action={action:?}"
+        );
+    }
+}
+
+#[test]
 fn m9_dg2_facts_read_devices_and_writability_from_disk() {
     let template = std::env::temp_dir().join("flea-dg2-facts.XXXXXXXX");
     let made = std::process::Command::new("mktemp")

@@ -1,6 +1,9 @@
 //! The snapshot reply carries captured kinds and modes from one inspection.
 use super::*;
 
+// Past this many items the answer carries no names, so a huge selection stays one short line.
+const MAX_NAMED_ITEMS: usize = 512;
+
 impl Snapshot {
     // Sample input: {"c":"menuaction","op":"snapshot","id":3}; run.rs resolves explicit paths or listing rows.
     pub(super) fn handle_request(
@@ -45,7 +48,7 @@ impl Snapshot {
                             .join(",");
                         let names = crate::json::names_field(
                             self.items.iter().map(|item| item.path.as_path()),
-                            512,
+                            MAX_NAMED_ITEMS,
                         );
                         Ok(format!(
                             r#""count":{},"kinds":[{}],"modes":[{}]{names}"#,

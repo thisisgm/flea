@@ -5,6 +5,7 @@ use gpui::{Context, FocusHandle, KeyDownEvent, Window};
 impl Picker {
     pub(super) fn read_control_focus(&mut self, window: &Window) {
         self.chrome.focused = [
+            ("picker-rail", &self.rail.focus),
             ("picker-back", &self.chrome.back),
             ("picker-up", &self.chrome.up),
             ("picker-filter", &self.chrome.filter),

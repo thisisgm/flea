@@ -252,19 +252,24 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 } else {
                     &theme.frame
                 };
-                let edge = if chosen && f.focus == 0 { "▎" } else { " " };
+                let edge = match (chosen && f.focus == 0, cards::rtl(m)) {
+                    (false, _) => " ",
+                    (true, false) => "▎",
+                    (true, true) => "▕",
+                };
                 let lead = card.air.saturating_sub(1);
                 if cards::rtl(m) {
                     out.push_str(&format!(
-                        "{fill}{} {ink}{}{}{edge}{}",
+                        "{fill}{}{} {ink}{}{}{}{edge}",
+                        theme.foreground,
                         cards::field_text(
                             m,
                             &row.text,
                             (card.content() + 2 * card.air).saturating_sub(3 + lead)
                         ),
                         if m.marks() { mark } else { " " },
-                        theme.accent,
-                        " ".repeat(lead)
+                        " ".repeat(lead),
+                        theme.accent
                     ));
                 } else {
                     out.push_str(&format!(
@@ -318,10 +323,18 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                     &theme.muted
                 };
                 if cards::rtl(m) {
+                    let text = cards::field_text(m, &row.text, card.content().saturating_sub(4));
+                    let label = text.trim_start();
+                    // The underline marks the label alone, as in the left-to-right row.
                     out.push_str(&format!(
-                        "{ink}{}{} [{}]",
+                        "{ink}{}{}{label}\x1b[24m{} [{}]",
+                        &text[..text.len() - label.len()],
                         if f.focus == 1 { "\x1b[4m" } else { "" },
-                        cards::field_text(m, &row.text, card.content().saturating_sub(4)),
+                        if f.option_enabled() {
+                            &theme.frame
+                        } else {
+                            &theme.muted
+                        },
                         if checked { "x" } else { " " }
                     ));
                 } else {
@@ -355,7 +368,8 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                             &cards::field_text(m, &row.text, card.content().saturating_sub(lead))
                         ),
                         theme.muted,
-                        cards::field_text(m, &prefix, lead)
+                        // Trimmed so the catalog's trailing separator pads between the name and the label, not at the border.
+                        cards::field_text(m, prefix.trim_end(), lead)
                     ));
                 } else {
                     out.push_str(&format!(

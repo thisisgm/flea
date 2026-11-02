@@ -1,7 +1,10 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
 use crate::g2::fb1::caption::{tracking_for, Tracked};
-use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight, Pixels, Stateful};
+use gpui::{
+    div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Stateful, Window,
+};
+use std::rc::Rc;
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
@@ -12,7 +15,18 @@ impl Draw<'_> {
         control: Control,
         element: gpui::Stateful<Div>,
     ) -> gpui::Stateful<Div> {
-        let element = element.when_some(self.probe, |e, p| p.attach(e, format!("{control:?}")));
+        let id = match control {
+            Control::Field => "field".into(),
+            Control::Check(at) => format!("check:{at}"),
+            Control::Button(at) => format!("button:{at}"),
+            Control::Clear => "clear".into(),
+            Control::Applications => "applications".into(),
+            Control::Application(at) => format!("application:{at}"),
+        };
+        let element = match self.probe {
+            Some(probe) => probe.track(element, id),
+            None => element,
+        };
         match self.wire {
             Some(wire) => wire(control, element),
             None => element,
@@ -126,7 +140,7 @@ impl DialogShell for StandIn {
         corner: f32,
         room: f32,
     ) -> AnyElement {
-        present(card, palette, typeface, corner, room, None)
+        present(card, palette, typeface, corner, room, None, None)
     }
 }
 
@@ -144,16 +158,69 @@ impl DialogShell for OpenWithShell<'_> {
             frame: None,
             surface: Some(self.surface),
             entry: None,
-            probe: None,
             measure: Some(self.measure),
         };
-        present(card, palette, typeface, corner, room, Some(&live))
+        present(card, palette, typeface, corner, room, Some(&live), None)
     }
 }
 
-#[path = "pressable.rs"]
-mod pressable;
-pub use pressable::Probed;
+impl StandIn {
+    pub fn present_pressable(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        press: impl Fn(&usize, &mut Window, &mut App) + 'static,
+    ) -> AnyElement {
+        self.present_pressable_observed(card, palette, typeface, corner, room, (press, None))
+    }
+    pub(crate) fn present_observed(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        probe: &crate::ipc::card_geometry::CardGeometry,
+    ) -> AnyElement {
+        present(card, palette, typeface, corner, room, None, Some(probe))
+    }
+    /// The same card with live buttons: a click on one reports its index, as Enter on it would press it.
+    pub(crate) fn present_pressable_observed(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        controls: (
+            impl Fn(&usize, &mut Window, &mut App) + 'static,
+            Option<&crate::ipc::card_geometry::CardGeometry>,
+        ),
+    ) -> AnyElement {
+        let (press, probe) = controls;
+        let press = Rc::new(press);
+        let enabled: Vec<bool> = card.buttons.iter().map(|button| button.enabled).collect();
+        // A disabled button draws as before but takes no click.
+        let wire = move |control, element: Stateful<Div>| match control {
+            Control::Button(at) if enabled.get(at).copied().unwrap_or(false) => {
+                let press = press.clone();
+                element.on_click(move |_, window, cx| press(&at, window, cx))
+            }
+            _ => element,
+        };
+        let live = Live {
+            wire: &wire,
+            frame: None,
+            surface: None,
+            entry: None,
+            measure: None,
+        };
+        present(card, palette, typeface, corner, room, Some(&live), probe)
+    }
+}
 
 impl DialogShell for Interactive<'_> {
     fn present(
@@ -169,10 +236,38 @@ impl DialogShell for Interactive<'_> {
             frame: Some(self.frame),
             surface: Some(self.surface),
             entry: Some(self.entry),
-            probe: None,
             measure: None,
         };
-        present(card, palette, typeface, corner, room, Some(&live))
+        present(card, palette, typeface, corner, room, Some(&live), None)
+    }
+}
+
+impl Interactive<'_> {
+    pub(crate) fn present_observed(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        corner: f32,
+        room: f32,
+        probe: &crate::ipc::card_geometry::CardGeometry,
+    ) -> AnyElement {
+        let live = Live {
+            wire: self.wire,
+            frame: Some(self.frame),
+            surface: Some(self.surface),
+            entry: Some(self.entry),
+            measure: None,
+        };
+        present(
+            card,
+            palette,
+            typeface,
+            corner,
+            room,
+            Some(&live),
+            Some(probe),
+        )
     }
 }
 
@@ -182,111 +277,12 @@ struct Live<'a> {
     frame: Option<&'a dyn Fn(Stateful<Div>) -> Stateful<Div>>,
     surface: Option<Hsla>,
     entry: Option<&'a crate::path::entry::Entry>,
-    probe: Option<&'a crate::g2::st1::probe::Probe>,
     measure: Option<&'a crate::g2::op1::measured::Frame>,
 }
 
-fn present(
-    card: &Card,
-    palette: &Palette,
-    typeface: &Typeface,
-    corner: f32,
-    room: f32,
-    live: Option<&Live<'_>>,
-) -> AnyElement {
-    let s = f32::from(typeface.body) / BOARD_BODY;
-    let mut draw = Draw {
-        corner: crate::compositor::valid_corner(f64::from(corner)),
-        t: Tokens::of(palette),
-        s,
-        typeface,
-        language: &card.language,
-        wire: live.map(|live| live.wire),
-        entry: live.and_then(|live| live.entry),
-        probe: live.and_then(|live| live.probe),
-        measure: live.and_then(|live| live.measure),
-    };
-    if let Some(surface) = live.and_then(|live| live.surface) {
-        draw.t.surface = surface;
-    }
-    let t = draw.t;
-    let facts = super::facts::is_card(card);
-    let head = draw
-        .text(TITLE)
-        .when(facts, |d| d.flex_none())
-        .flex()
-        .items_center()
-        .gap(draw.px(ROW_GAP))
-        .font_weight(FontWeight::BOLD)
-        .text_color(t.fg)
-        .child(
-            div()
-                .min_w_0()
-                .overflow_hidden()
-                .text_ellipsis()
-                .child(card.title.clone()),
-        )
-        .child(
-            draw.text(CAPTION)
-                .ml_auto()
-                .font_weight(FontWeight::NORMAL)
-                .text_color(t.muted)
-                .child(card.esc.clone()),
-        );
-    let rule = draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD)));
-    let frame = div()
-        .id("op3-frame")
-        .debug_selector(|| "op3-card".into())
-        .when(facts, |d| d.max_h_full())
-        .w(px(scaled(card.width, f32::from(typeface.body), room)))
-        .flex()
-        .flex_col()
-        .gap(draw.px(GAP))
-        .p(draw.px(PAD))
-        .bg(t.surface)
-        .border_1()
-        .border_color(t.muted_frame)
-        .rounded(px(draw.corner))
-        .font_family(draw.typeface.font.family.clone())
-        .text_size(draw.px(BOARD_BODY))
-        .line_height(relative(1.2))
-        .occlude()
-        .on_any_mouse_down(|_, _, cx| cx.stop_propagation())
-        .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
-        .child(head)
-        .child(draw.track(rule, "titleRule"));
-    let frame = draw.card_body(card, frame);
-    let mut frame = match draw.probe {
-        Some(probe) => probe.attach(frame, "card"),
-        None => frame,
-    };
-    let mut buttons = div()
-        .when(facts, |d| d.flex_none())
-        .mt(draw.px(ABOVE_BUTTONS))
-        .flex()
-        .justify_end()
-        .items_center()
-        .gap(draw.px(ROW_GAP));
-    for (at, button) in card.buttons.iter().enumerate() {
-        buttons = buttons.child(
-            draw.wired(
-                Control::Button(at),
-                draw.button(button)
-                    .id(("op3-button", at))
-                    .debug_selector(move || format!("op3-button-{at}")),
-            ),
-        );
-    }
-    frame = frame.child(buttons);
-    if let Some(observe) = live.and_then(|live| live.frame) {
-        frame = observe(frame);
-    }
-    div()
-        .size_full()
-        .when(facts, |d| d.p(draw.px(GAP)))
-        .flex()
-        .items_center()
-        .justify_center()
-        .child(draw.track(frame, "card"))
-        .into_any_element()
-}
+mod frame;
+use frame::present;
+
+#[path = "pressable.rs"]
+mod pressable;
+pub use pressable::Probed;

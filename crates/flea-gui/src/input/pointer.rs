@@ -192,7 +192,7 @@ impl Shell {
                 if let Some(last) = band.last {
                     host.pane.cursor = last;
                 }
-            } else if !band.additive {
+            } else if !band.additive && !band.shift {
                 host.input.selection.ground(&mut host.selected);
             }
             host.input.selection.changed(&host.selected);

@@ -21,7 +21,7 @@ pub(crate) struct Open {
     pub(crate) card: RunCard,
     pub(crate) launch: fn(&[String]) -> lane::Exit,
     /// The card's and its buttons' laid-out boxes on the latest frame, for runCardState.
-    pub(crate) probe: crate::g2::st1::probe::Probe,
+    pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
 }
 
 impl Open {

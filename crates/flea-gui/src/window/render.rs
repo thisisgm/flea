@@ -331,7 +331,7 @@ impl Render for Shell {
                 .bg(super::glass::body_ground(background, window, cx))
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_with_preview))
-                .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
+                .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
                 .capture_any_mouse_down(cx.listener(Self::capture_press))
                 .child(
                     div()
@@ -377,7 +377,7 @@ impl Render for Shell {
             .bg(super::glass::body_ground(background, window, cx))
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))
-            .on_modifiers_changed(cx.listener(Self::run_card_modifiers))
+            .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
             .on_scroll_wheel(cx.listener(Self::wheel))
             .capture_any_mouse_down(cx.listener(Self::side_button))
             .capture_any_mouse_down(cx.listener(Self::capture_press))

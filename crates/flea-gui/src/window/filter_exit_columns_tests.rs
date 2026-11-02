@@ -85,8 +85,9 @@ fn gh315_columns_one_escape_replaces_the_filtered_scroll_extent() {
             .unwrap()
             .filter
             .owner
-            .live()
-            .unwrap();
+            .asked()
+            .unwrap()
+            .id;
         let answer = format!(
             r#"{{"t":"filtered","id":{id},"query":"0300","n":5000,"rows":[299],"ms":0.1,"listing":2}}"#
         );

@@ -330,3 +330,29 @@ fn ey421_a_receipts_undo_tail_draws_as_the_undo_target() {
         "a line without the tail is untouched"
     );
 }
+
+/// An error receipt keeps its whole sentence, undo tail included, as Status.js hintOf leaves an error.
+#[test]
+fn an_error_receipt_offers_no_undo_target() {
+    let catalog = english();
+    let said = crate::ui_logic_op1::lines::with_undo(&catalog, "default", "Moved notes.txt".into());
+    let mut done = Messages::new("default");
+    done.say_receipt(&catalog, &said, false, "", 0);
+    assert_eq!(
+        done.line(&catalog, "").undo,
+        "z undoes",
+        "a receipt offers undo"
+    );
+    let mut failed = Messages::new("default");
+    failed.say_receipt(&catalog, &said, true, "", 0);
+    assert_eq!(
+        failed.line(&catalog, "").undo,
+        "",
+        "an error offers no undo"
+    );
+    assert_eq!(
+        failed.line(&catalog, "").primary,
+        said,
+        "an error keeps its undo tail"
+    );
+}

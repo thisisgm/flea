@@ -84,7 +84,7 @@ impl Hint {
                 undo: String::new(),
             },
             Self::Dismiss => HintText {
-                rest: catalog.tr_args("feedback.hint.dismiss", &[DISMISS_KEY]),
+                rest: catalog.tr_args("feedback.hint.dismiss", &[&catalog.keycap(DISMISS_KEY)]),
                 undo: String::new(),
             },
             Self::Note(note, with_undo) => HintText {

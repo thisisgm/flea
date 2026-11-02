@@ -25,6 +25,9 @@ mod contents_tests;
 #[path = "search_grid_tests.rs"]
 mod grid_tests;
 #[cfg(test)]
+#[path = "../g2/sr1/i50_query_host_tests.rs"]
+mod i50_query_host_tests;
+#[cfg(test)]
 #[path = "search_presented_tests.rs"]
 mod presented_tests;
 #[cfg(test)]
@@ -236,7 +239,10 @@ impl Shell {
             .get("keys")
             .and_then(flea::jsondoc::Json::as_str)
             .unwrap_or("default");
-        if host.search.owner.typing() && keys::leaves_line(name, event, window.modifiers()) {
+        if host.search.owner.typing()
+            && host.search.owner.entry.borrow().marked.is_none()
+            && keys::leaves_line(name, event, window.modifiers())
+        {
             return host.search.owner.session.leaving;
         }
         let clipboard = matches!(key, StripKey::Paste)
@@ -245,7 +251,7 @@ impl Shell {
         self.search_update(
             side,
             clipboard,
-            |search, host| search.key(key, host),
+            |search, host| search.key_event(event, host),
             window,
             cx,
         );

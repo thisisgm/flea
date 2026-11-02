@@ -1,7 +1,9 @@
 //! Search: the query strip, its live backend session and the result presentation, over the core session.
 pub mod contents;
+pub(crate) mod input;
 pub mod matches;
 pub mod presented;
+mod query;
 pub mod run;
 pub mod strip;
 
@@ -76,6 +78,7 @@ impl<'a> From<HostPane<'a>> for Pane<'a> {
 #[derive(Default)]
 pub struct Search {
     pub session: Session,
+    pub entry: std::rc::Rc<std::cell::RefCell<crate::path::entry::Entry>>,
     pub presented: presented::Presented,
     /// The contents producer's match lines, held until the rows of their gen and listing present.
     pub matches: matches::Matches,
@@ -86,6 +89,7 @@ impl Search {
     pub fn new(wire: Wire) -> Self {
         Self {
             session: Session::new(wire),
+            entry: Default::default(),
             presented: presented::Presented::default(),
             matches: matches::Matches::default(),
             relisting: false,
@@ -117,6 +121,9 @@ impl Search {
 
     /// A key while the query line has the keyboard; every key is taken, as the strip owns them all.
     pub fn key(&mut self, key: StripKey, host: &mut dyn Host) {
+        if self.query_key(&key, host) {
+            return;
+        }
         let clip = matches!(key, StripKey::Paste)
             .then(|| host.clipboard_text())
             .flatten();
@@ -139,6 +146,7 @@ impl Search {
 
     /// A click on the scope words cycles the scope the way Tab does.
     pub fn click_scope(&mut self, host: &mut dyn Host) {
+        self.commit_scope_draft();
         let effects = self.session.rescope(&host.pane().into());
         self.apply(effects, host);
     }
@@ -251,6 +259,7 @@ impl Search {
         if self.session.mode == Mode::Off {
             self.matches.clear();
         }
+        self.sync_entry();
         host.publish(self.pane_session());
     }
 
@@ -277,7 +286,11 @@ impl Search {
         };
         let root = Session::scope_root(path, home, session.scope);
         strip::Words {
-            query: session.query.clone(),
+            query: if self.typing() && self.entry.borrow().editing {
+                self.entry.borrow().text.clone()
+            } else {
+                session.query.clone()
+            },
             scope: core::scope_label(i18n, root.as_deref(), home, session.scope, session.kind),
             note: core::note(i18n, session.total, session.running, empty, shares_skipped),
             way_out: core::way_out(i18n, session.running, empty),

@@ -62,6 +62,18 @@ fn skipped_path(line: &[u8]) -> bool {
     named && !digits.is_empty() && digits.iter().all(u8::is_ascii_digit)
 }
 
+/// rg's warning for an ignore file line it cannot parse, prefixed only on the first: "rg: ./.ignore: line 1: error parsing glob 'a{b': ..." then "./.ignore: line 3: ...".
+fn ignore_warning(line: &[u8]) -> bool {
+    const LINE: &[u8] = b": line ";
+    let rest = line.strip_prefix(b"rg: ").unwrap_or(line);
+    let Some(at) = rest.windows(LINE.len()).position(|part| part == LINE) else {
+        return false;
+    };
+    let tail = &rest[at + LINE.len()..];
+    let digits = tail.iter().take_while(|byte| byte.is_ascii_digit()).count();
+    at > 0 && digits > 0 && tail[digits..].starts_with(b": error parsing glob ")
+}
+
 fn program() -> Result<PathBuf, String> {
     std::env::var_os("PATH")
         .into_iter()
@@ -309,7 +321,7 @@ fn collect(
                 }
                 for byte in &chunk[..n] {
                     if *byte == b'\n' {
-                        foreign |= !skipped_path(&line);
+                        foreign |= !skipped_path(&line) && !ignore_warning(&line);
                         line.clear();
                     } else if line.len() < ERROR_LIMIT {
                         line.push(*byte);
@@ -326,8 +338,8 @@ fn collect(
         if eof && err_eof {
             if let Some(status) = child.child.try_wait().map_err(|error| error.to_string())? {
                 *reaped = true;
-                foreign |= !line.is_empty() && !skipped_path(&line);
-                // Exit 2 after the summary, with only skipped-path lines, is a finished walk that skipped what it could not read, as the names walk does.
+                foreign |= !line.is_empty() && !skipped_path(&line) && !ignore_warning(&line);
+                // Exit 2 after the summary, with only skipped-path or ignore-glob lines, is a finished walk that skipped what it could not read, as the names walk does.
                 let skipped = match status.code() {
                     Some(0 | 1) => Some(false),
                     Some(2) if !errors.is_empty() && !foreign => Some(true),

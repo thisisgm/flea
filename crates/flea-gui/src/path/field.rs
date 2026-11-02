@@ -269,12 +269,18 @@ impl Element for FieldElement {
         let pixels = paint.pixels(Size::Field);
         let font = paint.typeface.font.clone();
         let mut line = view.line.borrow_mut();
-        if line.run.is_none() || line.revision != view.entry.revision {
+        if line.run.is_none()
+            || line.revision != view.entry.revision
+            || paint
+                .field_style
+                .as_ref()
+                .is_none_or(|(kept, size)| kept != &font || *size != pixels)
+        {
             let display = view.entry.display();
             let text = display.as_ref();
             let run = TextRun {
                 len: text.len(),
-                font,
+                font: font.clone(),
                 color: Default::default(),
                 background_color: None,
                 underline: None,
@@ -288,6 +294,7 @@ impl Element for FieldElement {
             ))));
             line.set_text_direction(text);
             line.revision = view.entry.revision;
+            paint.field_style = Some((font, pixels));
         }
         // The caret stays inside the frame: the line slides under it the way a text input scrolls.
         let room = (frame.size.width - px(2. * (FRAME + scale.inset))).max(px(0.));

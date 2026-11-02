@@ -1,6 +1,5 @@
-//! Start the window's reader of IPC events once the first listing has answered.
-use crate::state::Shell;
-use gpui::{Context, Window};
+//! Listing readiness starts the current window IPC reader.
+use super::*;
 
 impl Shell {
     /// The first listing answered or gave up waiting, so calls from here on reach the window's readers.

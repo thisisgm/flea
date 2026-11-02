@@ -117,10 +117,9 @@ impl Picker {
             if filename.read(cx).focus.is_focused(window) {
                 let result = filename.update(cx, |field, cx| field.key(event, cx));
                 match &result {
-                    FieldKey::Edited(text) => self.save_name_edited(text.clone(), cx),
                     FieldKey::Enter => self.accept(cx),
                     FieldKey::Tab => window.focus(&self.focus, cx),
-                    FieldKey::Moved | FieldKey::Ignored => {}
+                    FieldKey::Edited(_) | FieldKey::Moved | FieldKey::Ignored => {}
                 }
                 if result != FieldKey::Ignored {
                     cx.stop_propagation();

@@ -174,6 +174,8 @@ pub struct Band {
     pub cursor: usize,
     pub active: bool,
     pub additive: bool,
+    /// A Shift tap that never travels keeps the selection, as SelectionBand.qml does.
+    pub shift: bool,
     pub direction: f32,
     pub last: Option<usize>,
     pub cells: Option<(usize, usize, usize, usize)>,

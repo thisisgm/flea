@@ -333,7 +333,7 @@ impl Picker {
 
     // A `filtered` line: the answer in force lands whole, a stale one is dropped, a broken one is said and never used.
     pub(super) fn find_line(&mut self, line: &str, cx: &mut Context<Self>) {
-        match wire::read(line, self.find.owner.live()) {
+        match wire::read(line, self.find.owner.oldest()) {
             Ok(Line::Answer(answer)) => {
                 let pruned = self.find_update(
                     |filter, pane| {

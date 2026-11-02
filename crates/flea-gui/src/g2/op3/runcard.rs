@@ -150,9 +150,9 @@ impl RunCard {
                 .zip(&self.buttons)
                 .enumerate()
                 .map(|(at, (drawn, button))| {
-                    let id = format!("{:?}", super::shell::Control::Button(at));
+                    let id = format!("button:{at}");
                     crate::visual::object([
-                        ("name", text(button_name(*button))),
+                        ("name", text(button.name())),
                         ("label", text(&drawn.label)),
                         ("primary", Json::Bool(drawn.primary)),
                         ("focused", Json::Bool(drawn.focused)),
@@ -164,35 +164,17 @@ impl RunCard {
         let state = crate::visual::object([
             ("opened", Json::Bool(true)),
             ("title", Json::Str(card.title.clone())),
-            ("kind", text(kind_name(self.ask.kind))),
+            ("kind", text(self.ask.kind.name())),
             (
                 "buttons",
-                Json::Arr(self.buttons.iter().map(|b| text(button_name(*b))).collect()),
+                Json::Arr(self.buttons.iter().map(|b| text(b.name())).collect()),
             ),
-            ("focus", text(button_name(self.focus))),
-            ("default", text(button_name(default))),
+            ("focus", text(self.focus.name())),
+            ("default", text(default.name())),
             ("rect", Json::Str(probe.rect("card"))),
             ("controls", Json::Arr(controls.collect())),
         ]);
         flea::jsondoc::render(&state).trim_end().into()
-    }
-}
-
-// Stable IPC identifiers are independent of the catalog labels drawn by the card.
-fn button_name(button: Button) -> &'static str {
-    match button {
-        Button::Cancel => "cancel",
-        Button::Text => "text",
-        Button::Handler => "handler",
-        Button::Terminal => "terminal",
-    }
-}
-
-fn kind_name(kind: logic::Kind) -> &'static str {
-    match kind {
-        logic::Kind::Script => "script",
-        logic::Kind::Elf => "elf",
-        logic::Kind::AppImage => "appimage",
     }
 }
 
@@ -226,10 +208,22 @@ mod ipc_tests {
             .get("controls")
             .and_then(flea::jsondoc::Json::as_array)
             .unwrap();
-        for (actual, drawn) in controls.iter().zip(card.card(&i18n).buttons) {
+        let names: Vec<_> = controls
+            .iter()
+            .map(|control| control.get("name").and_then(flea::jsondoc::Json::as_str))
+            .collect();
+        assert_eq!(names, [Some("cancel"), Some("text"), Some("terminal")]);
+        let drawn = card.card(&i18n).buttons;
+        assert_eq!(drawn.len(), controls.len());
+        for ((actual, drawn), name) in controls.iter().zip(drawn).zip(names) {
             assert_eq!(
                 actual.get("label").and_then(flea::jsondoc::Json::as_str),
                 Some(drawn.label.as_str())
+            );
+            assert_ne!(
+                Some(drawn.label.as_str()),
+                name,
+                "a drawn label must not stand in for its id"
             );
         }
     }

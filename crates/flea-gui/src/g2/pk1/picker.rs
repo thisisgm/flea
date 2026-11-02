@@ -323,6 +323,9 @@ impl Picker {
                     let _ = self.checks.send(logic::CLOSE_LINE);
                 }
                 Effect::WriteReply(text) => {
+                    let path = self.browse.path_view(cx);
+                    path.update(cx, |path, cx| path.close(cx));
+                    self.browse.route = Default::default();
                     self.find.entry.close();
                     if let Some(field) = self.browse.filename.clone() {
                         field.update(cx, |field, cx| {

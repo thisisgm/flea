@@ -15,7 +15,7 @@ from flea_transport import MARKER, REPO, TransportError, Window, load, sandbox_b
 from flea_native_inputs_controls import check_inputs, check_launch_inputs
 from flea_native_harness_controls import check_harness
 from flea_native_envelope_controls import check_envelope
-from flea_transport_teardown_controls import check_teardown
+from flea_transport_teardown_controls import check_teardown, check_teardown_past_an_unwritable_error
 from flea_uish_headless_drain_controls import (fixreaders_ey25_forced_teardown_keeps_the_short_grace,
                                                fixreaders_ey25_owned_teardown_waits_for_a_held_drain)
 from flea_transport_log_controls import check_shared_log
@@ -131,6 +131,7 @@ try:
     check_teardown(root, check)
     fixreaders_ey25_owned_teardown_waits_for_a_held_drain(check)
     fixreaders_ey25_forced_teardown_keeps_the_short_grace(check)
+    check_teardown_past_an_unwritable_error(root, check)
     check_shared_log(root)
     stub = root / "clients"
     stub.mkdir()

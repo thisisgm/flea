@@ -232,6 +232,8 @@ pub struct Workers {
     parse: mpsc::Sender<(u64, PathBuf, Parse, bool)>,
     lay: mpsc::Sender<Lay>,
     pub replies: async_channel::Receiver<Reply>,
+    #[cfg(test)]
+    _inert: Option<async_channel::Sender<Reply>>,
 }
 
 impl Workers {
@@ -239,6 +241,15 @@ impl Workers {
         let (outbox, replies) = async_channel::unbounded();
         let (parse, parse_inbox) = mpsc::channel();
         let (lay, lay_inbox) = mpsc::channel();
+        #[cfg(test)]
+        if crate::g2::pv2::render::MARKDOWN_INERT.get() {
+            return Workers {
+                parse,
+                lay,
+                replies,
+                _inert: Some(outbox),
+            };
+        }
         let parse_out = outbox.clone();
         let _ = thread::Builder::new()
             .name("flea-md-parse".into())
@@ -251,6 +262,8 @@ impl Workers {
             parse,
             lay,
             replies,
+            #[cfg(test)]
+            _inert: None,
         }
     }
 

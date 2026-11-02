@@ -5,6 +5,9 @@ use crate::{
 };
 use gpui::{Context, Window};
 
+#[path = "events_ipc_reader.rs"]
+mod reader;
+
 impl Shell {
     pub(crate) fn ipc(&mut self, event: Event, window: &mut Window, cx: &mut Context<Self>) {
         match event {
@@ -172,13 +175,18 @@ impl Shell {
                     held: &host.pane.held,
                     states: &states,
                 };
-                let network_menu = crate::ipc::network::NetworkMenu(
-                    self.rail
+                let network_menu = crate::ipc::network::NetworkMenu {
+                    menu: self
+                        .rail
                         .as_ref()
                         .and_then(|join| join.network.as_ref())
                         .map(|network| &*network.menu),
-                    &self.locale.catalog,
-                );
+                    catalog: &self.locale.catalog,
+                    pointer: (
+                        window.mouse_position().x.into(),
+                        window.mouse_position().y.into(),
+                    ),
+                };
                 let menu = crate::g2::mn1::ipc::JoinedAdapter {
                     joined: &self.menu,
                     identity: self.menu_identity(),

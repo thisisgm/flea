@@ -22,12 +22,17 @@ pub struct Arrived {
 /// A window's current lift as its file client knows it: the marker's tag and the lift serial.
 pub(super) type Held = Rc<RefCell<Option<(String, u64)>>>;
 
+/// What another window's drag offered when it entered this window, so a folder row under it can say what a release does.
+pub(super) type Hover = Rc<RefCell<Option<Arrived>>>;
+
 // The window's file client: it claims drags carrying files, Flea's marker or plain text over this window only; text without a local path is refused with its sentence.
 pub(super) struct Files {
     pub(super) window: u64,
     pub(super) send: async_channel::Sender<Arrived>,
     pub(super) held: Held,
-    pub(super) hover: Rc<RefCell<Option<Arrived>>>,
+    pub(super) hover: Hover,
+    /// Told when this window's lift ends in another window or app, so its drag line leaves the status bar.
+    pub(super) ended: Option<async_channel::Sender<()>>,
 }
 
 // A tab lift is the tab strip's alone, whatever else it offers.
@@ -65,15 +70,7 @@ impl Client for Files {
                 .get(mime)
                 .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
         };
-        // This window's current lift came back in: GPUI restores it and its pane on_drop lands it, so the native copy is not landed twice; any other lift's marker lands natively.
-        let current = self.held.borrow().as_ref().map(|(tag, _)| tag.clone());
-        let own = text(ROWS_MIME)
-            .and_then(|marker| flea::ui_logic_dg2::Marker::parse(&marker))
-            .is_some_and(|marker| current.as_deref() == Some(marker.instance.as_str()));
-        if native.dropped && own && native.get(URILIST).is_some() {
-            return Some(true);
-        }
-        let arrived = Arrived {
+        let arrived = || Arrived {
             position: native.position,
             marker: text(ROWS_MIME),
             urls: native
@@ -86,11 +83,19 @@ impl Client for Files {
             shift: native.shift,
         };
         if !native.dropped {
-            *self.hover.borrow_mut() = Some(arrived);
+            *self.hover.borrow_mut() = Some(arrived());
             return Some(true);
         }
-        self.hover.borrow_mut().take();
-        Some(self.send.try_send(arrived).is_ok())
+        *self.hover.borrow_mut() = None;
+        // This window's current lift came back in: GPUI restores it and its pane on_drop lands it, so the native copy is not landed twice; any other lift's marker lands natively.
+        let current = self.held.borrow().as_ref().map(|(tag, _)| tag.clone());
+        let own = text(ROWS_MIME)
+            .and_then(|marker| flea::ui_logic_dg2::Marker::parse(&marker))
+            .is_some_and(|marker| current.as_deref() == Some(marker.instance.as_str()));
+        if own && native.get(URILIST).is_some() {
+            return Some(true);
+        }
+        Some(self.send.try_send(arrived()).is_ok())
     }
 
     // The lift's native session ended elsewhere, so this window no longer holds it.
@@ -106,6 +111,9 @@ impl Client for Files {
                 .is_some_and(|(_, serial)| *serial == event.source_id)
         {
             *held = None;
+            if let Some(ended) = &self.ended {
+                let _ = ended.try_send(());
+            }
         }
     }
 }

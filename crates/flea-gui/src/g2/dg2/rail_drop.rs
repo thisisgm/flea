@@ -298,7 +298,7 @@ impl Shell {
             Spot::Rail(row) => Some(row),
             Spot::Row(_) | Spot::Tab(_) => None,
         };
-        self.show_rail_cue(rail, said, cx);
+        self.show_rail_cue(key, rail, said, cx);
     }
 
     // TabBar.qml hoverSwitch: a drag resting on another tab selects it once the switch delay has passed.
@@ -337,7 +337,7 @@ impl Shell {
                 modifiers.control,
                 modifiers.shift,
             );
-            self.show_rail_cue(None, Some((String::new(), line)), cx);
+            self.show_rail_cue(window_key(window), None, Some((String::new(), line)), cx);
         }
     }
 
@@ -358,7 +358,7 @@ impl Shell {
                 .any(|entry| entry.owner == DRAG_LINE)
         });
         if held || said {
-            self.show_rail_cue(None, None, cx);
+            self.show_rail_cue(key, None, None, cx);
         }
     }
 
@@ -371,8 +371,9 @@ impl Shell {
         }
     }
 
-    fn show_rail_cue(
+    pub(super) fn show_rail_cue(
         &mut self,
+        key: u64,
         rail: Option<usize>,
         cue: Option<(String, String)>,
         cx: &mut Context<Self>,
@@ -391,12 +392,19 @@ impl Shell {
             });
         }
         let line = cue.map(|(_, line)| line).unwrap_or_default();
-        self.status_messages(cx, |messages, now| {
+        let published = self.status_messages(cx, |messages, now| {
             // FileDrag.say: a running transfer keeps the bar; an empty line always leaves.
-            if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
+            let publish =
+                line.is_empty() || !messages.activities().iter().any(|entry| entry.running);
+            if publish {
                 messages.set_activity(DRAG_LINE, &line, 0, false, false, now);
             }
+            publish
         });
+        // The file cue shares this owner, so the line it said no longer stands once the rail writes.
+        if published {
+            cx.default_global::<Drags>().said.remove(&key);
+        }
         cx.notify();
     }
 

@@ -11,14 +11,14 @@ use flea::{
 };
 use gpui::{AppContext, Context, TestAppContext, Window, WindowBackgroundAppearance, WindowHandle};
 
-fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
+pub(super) fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
     let (backend, _receive) = Backend::test_channel();
     cx.add_window(|_, cx| Root {
         shell: cx.new(|cx| shell_with(backend, cx)),
     })
 }
 
-fn update<R>(
+pub(super) fn update<R>(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
     change: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
@@ -30,7 +30,12 @@ fn update<R>(
         .unwrap()
 }
 
-fn read(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str, args: &[&str]) -> Reply {
+pub(super) fn read(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Root>,
+    name: &str,
+    args: &[&str],
+) -> Reply {
     let (answer, receive) = std::sync::mpsc::sync_channel(1);
     let arguments = args.iter().map(|argument| (*argument).to_owned()).collect();
     update(cx, handle, |shell, window, cx| {
@@ -64,7 +69,7 @@ fn value(
     );
 }
 
-fn json(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Json {
+pub(super) fn json(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Json {
     let reply = read(cx, handle, name, &[]);
     assert_eq!(reply.code, 0, "{name}: {reply:?}");
     jsondoc::parse(reply.stdout.trim()).unwrap()

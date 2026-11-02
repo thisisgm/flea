@@ -256,6 +256,11 @@ fn ey238_preview_readers_answer_on_every_kind(cx: &mut TestAppContext) {
     ] {
         if !name.is_empty() {
             open_kind(&shell, cx, name);
+            let open = shell.read_with(cx, |shell, cx| {
+                let look = shell.quick_look.as_ref()?.view.read(cx);
+                look.subject().map(|subject| subject.name.clone())
+            });
+            assert_eq!(open.as_deref(), Some(name), "{name} opens its card");
         }
         for reader in READERS {
             cx.run_until_parked();
