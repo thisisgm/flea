@@ -20,6 +20,7 @@ pub struct Keyboard {
     pub context: Context,
     sequence: Sequence,
     composing: bool,
+    owner: Option<crate::window::text_input::Owner>,
     sequence_path: String,
 }
 
@@ -33,10 +34,21 @@ impl Keyboard {
         &self.sequence_path
     }
 
-    /// No caller yet: the text-input owner sets this from marked text, and Linux key events never prefer character input.
+    /// A composing field holds every key the window would read; an xkb dead key arrives with `prefer_character_input` instead.
     pub fn set_composing(&mut self, composing: bool) {
         self.composing = composing;
         self.sequence.clear();
+    }
+
+    /// The field `Shell::sync_text_input` last found holding marked text.
+    pub(crate) fn text_owner(&self) -> Option<crate::window::text_input::Owner> {
+        self.owner
+    }
+
+    /// The root's only caller of `set_composing`: a field holding marked text composes, and no owner composes nothing.
+    pub(crate) fn own_text(&mut self, owner: Option<crate::window::text_input::Owner>) {
+        self.owner = owner;
+        self.set_composing(owner.is_some());
     }
 
     pub(crate) fn composing(&self, event: &KeyDownEvent) -> bool {

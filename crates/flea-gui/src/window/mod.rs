@@ -55,6 +55,8 @@ pub(crate) mod sidebar_edge;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;
+#[path = "../state/text_input.rs"]
+pub(crate) mod text_input;
 mod transitions;
 mod unlock;
 pub(crate) mod user_keys;
@@ -150,6 +152,8 @@ pub(crate) mod columns_tests;
 mod columns_uish_tests;
 #[cfg(test)]
 mod cursor_focus_uish_tests;
+#[cfg(test)]
+mod i50_ime_tests;
 #[cfg(test)]
 mod ipc_cold_tests;
 #[cfg(test)]
