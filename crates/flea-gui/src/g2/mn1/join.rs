@@ -422,7 +422,7 @@ impl Shell {
                 .unwrap_or("default"),
             key_hints: flag(&self.launch.settings.data, "keyHints"),
             typeface,
-            inset: (4. * f32::from(typeface.body) / 14.).round(),
+            inset: (4. * f32::from(typeface.base) / 12.).round(),
         }
     }
 }

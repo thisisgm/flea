@@ -156,8 +156,14 @@ pub struct Env<'a> {
     pub preset: &'a str,
     pub key_hints: bool,
     pub typeface: &'a Typeface,
-    // The work area's inset, Theme.space(4) at the window's text size, which the theme unit resolves.
+    // The vertical inset is Theme.space(4), scaled from Omarchy's nominal base 12.
     pub inset: f32,
+}
+
+impl Env<'_> {
+    pub fn horizontal_inset(&self) -> f32 {
+        (4. * f32::from(self.typeface.body) / 14.).round()
+    }
 }
 
 pub struct Built {

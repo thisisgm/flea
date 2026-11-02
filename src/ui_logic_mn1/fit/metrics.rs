@@ -118,8 +118,21 @@ impl Metrics {
         work: Rect,
         inset: f32,
     ) -> Rect {
+        self.place_flyout_insets(frame, width, content, row_screen_top, work, (inset, inset))
+    }
+
+    pub fn place_flyout_insets(
+        &self,
+        frame: Rect,
+        width: f32,
+        content: i32,
+        row_screen_top: f32,
+        work: Rect,
+        insets: (f32, f32),
+    ) -> Rect {
+        let (horizontal, vertical) = insets;
         let h = ((content + 2 * self.pad) as f32)
-            .min(work.h - 2. * inset)
+            .min(work.h - 2. * vertical)
             .max(0.);
         let right = work.x + work.w;
         let x = if frame.x + frame.w + width <= right {
@@ -127,11 +140,11 @@ impl Metrics {
         } else if frame.x - width >= work.x {
             frame.x - width
         } else {
-            (right - inset - width).max(work.x)
+            (right - horizontal - width).max(work.x)
         };
         let y = (row_screen_top - self.pad as f32)
-            .min(work.y + work.h - inset - h)
-            .max(work.y + inset);
+            .min(work.y + work.h - vertical - h)
+            .max(work.y + vertical);
         Rect { x, y, w: width, h }
     }
 
