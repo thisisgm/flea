@@ -198,7 +198,7 @@ impl Shell {
         match operation {
             "snapshot" => {
                 let capture = self.menu.captured.as_mut().expect("current snapshot");
-                // A later reply for the same capture only fills facts; discovery already ran.
+                // Only a capture's first snapshot reply may start discovery; a later one would ask again and hold a chosen row.
                 let first = !std::mem::replace(&mut capture.ready, true);
                 capture.kinds = reply
                     .get("kinds")

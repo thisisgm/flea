@@ -1098,9 +1098,11 @@ vkprobe_run() {
   probes=$(($(vkprobe_lines) - before))
 }
 vkprobe_run "$VKD/cache"
+check "a GPUI launch reaches the GPUI child with no driver pin" "1" "$(echo "$out" | grep -c '^DRIVER_FILES unset$')"
 check "a GPUI launch runs no Vulkan probe" "0" "$probes"
 check "a GPUI launch writes no probe cache" "0" "$([ -e "$VKD/cache/flea/vulkan-probe" ] && echo 1 || echo 0)"
 vkprobe_run "$VKD/cache-err" FLEA_FAKE_VK_FAIL=1
+check "an unusable loader still reaches the GPUI child" "1" "$(echo "$out" | grep -c '^DRIVER_FILES unset$')"
 check "an unusable loader is not probed either" "0" "$probes"
 mkdir -p "$VKD/cache-link/flea"
 printf 'victim\n' > "$VKD/victim"
