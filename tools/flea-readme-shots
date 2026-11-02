@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/flea-magick-font"
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Builds the fixture the README images are shot against.
 #   tools/flea-readme-shots fixture     build it and list it
@@ -278,7 +279,7 @@ build_contact_sheet() {
     run magick "$work/sheet-$page.png" -background white -gravity center \
       -extent "${page_w}x$((page_h - page_header_h))" \
       -background white -gravity north -splice "0x$page_header_h" \
-      -font Adwaita-Mono -pointsize 34 -fill '#1b1b1b' -annotate +0+56 'SELECTS  contact sheet' \
+      "${flea_magick_font_args[@]}" -pointsize 34 -fill '#1b1b1b' -annotate +0+56 'SELECTS  contact sheet' \
       -pointsize 24 -fill '#6b6b6b' -annotate +0+100 "sheet $page of $contact_pages" \
       "$work/page-$page.png"
     pages+=("$work/page-$page.png")

@@ -1,5 +1,7 @@
 //! One bounded worker coalesces changes; cancelled epochs cannot replace a newer layout.
 use super::*;
+#[path = "font.rs"]
+mod font;
 #[path = "source.rs"]
 mod source;
 use crate::backend::{archivework::Work, printtool};
@@ -249,6 +251,7 @@ fn render(
         format!("{width}x{height}"),
         "xc:none".into(),
     ];
+    font::append(&mut args, &work.dir, cancel);
     let fitted = composition.fitted(width as f64, height as f64, 0.);
     let color = |rgb: [u8; 3]| format!("rgb({},{},{})", rgb[0], rgb[1], rgb[2]);
     let (ox, oy) = (
@@ -311,8 +314,6 @@ fn render(
             format!("rectangle {x},{y} {},{}", x + 12, y + 14),
             "-fill".into(),
             color(ticket.ink[1]),
-            "-font".into(),
-            "DejaVu-Sans-Mono".into(),
             "-pointsize".into(),
             "11".into(),
             "-gravity".into(),

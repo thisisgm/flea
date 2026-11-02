@@ -35,6 +35,18 @@ pub fn scenario(case: &str) {
         dir.dir(name);
     }
     dir.file("i18n/en/flea.json", r#"{"tui.combine.running":"Combining images…","tui.combine.cancelled":"Image combination cancelled."}"#);
+    if case == "font-fallback" {
+        use std::os::unix::fs::PermissionsExt;
+        dir.file(
+            "bin/fc-match",
+            "#!/bin/sh\nprintf x >> \"$FLEA_TUI_COMBINE_ROOT/font-lookups\"\nexit 1\n",
+        );
+        std::fs::set_permissions(
+            dir.join("bin/fc-match"),
+            std::fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+    }
     let mut cmd = Command::new("/usr/bin/setsid");
     cmd.args([
         "-w",
@@ -97,6 +109,12 @@ pub fn scenario(case: &str) {
         "real combine scenario {case}"
     );
     assert_eq!(std::fs::read_to_string(dir.join("executed")).unwrap(), case);
+    if case == "font-fallback" {
+        assert_eq!(
+            std::fs::read_to_string(dir.join("font-lookups")).unwrap(),
+            "x"
+        );
+    }
 }
 fn backend() -> Wire {
     let mut cmd = Command::new("/bin/sh");
@@ -120,6 +138,7 @@ fn tui_combine_process_helper() {
         "order" => order(&root),
         "dimensions" => dimensions(&root),
         "graphics" => graphics_tests::run(&root),
+        "font-fallback" => graphics_tests::run(&root),
         "jpeg" => jpeg(&root),
         "safe" => safety::run(&root),
         "privacy" => privacy::run(&root),
