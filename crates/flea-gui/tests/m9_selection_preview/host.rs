@@ -278,7 +278,12 @@ pub fn readers() {
     let mut host = Host::new(View::Columns);
     host.select(3);
     host.until("previewColumnState", "text");
-    assert!(!host.call("previewSurfaceRect").is_empty());
+    assert_eq!(host.call("previewOpen"), "false");
+    assert_eq!(
+        host.call("previewSurfaceRect"),
+        "",
+        "closed Quick Look has no surface"
+    );
     assert!(!host.call("columnFrameRect").is_empty());
     assert_eq!(
         host.call("columnTextLines"),
@@ -295,7 +300,16 @@ pub fn readers() {
     assert!(requests.contains("\"code\"") && requests.contains("\"thumb\""));
     host.cx.simulate_keystrokes(host.window.into(), "ctrl-a");
     host.until("previewColumnState", "multi");
-    assert!(host.call("previewFacts").contains("6 items"));
+    assert_eq!(host.call("selectionCount"), "6");
+    let facts = host.call("previewFacts");
+    assert!(
+        facts.starts_with("Kinds=3 files, 1 video, 1 text, 1 image|"),
+        "{facts}"
+    );
+    assert!(
+        facts.split('|').any(|row| row == "Combined=3.6 kB"),
+        "{facts}"
+    );
 }
 pub fn aba() {
     let _lock = SERIAL.lock().unwrap_or_else(|error| error.into_inner());

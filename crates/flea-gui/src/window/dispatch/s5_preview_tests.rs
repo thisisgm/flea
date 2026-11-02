@@ -8,32 +8,34 @@ use gpui::TestAppContext;
 
 #[gpui::test]
 fn s5_markdown_quick_look_uses_saved_wrap_on_each_mount(cx: &mut TestAppContext) {
-    let (shell, cx, _requests) = opened(cx);
-    land(
-        &shell,
-        cx,
-        "/files",
-        vec![file("notes.md", "text-markdown")],
-        1,
-    );
-    for wrap in [true, false] {
-        shell.update(cx, |shell, _| {
-            shell.launch.settings.data =
-                flea::jsondoc::parse(&format!(r#"{{"preview":{{"wrap":{wrap}}}}}"#)).unwrap();
-        });
-        press(cx, "space");
-        let actual = shell.read_with(cx, |shell, cx| {
-            let card = shell.quick_look.as_ref().unwrap().view.read(cx);
-            let doc = card.subject().unwrap().body.doc().unwrap();
-            let View::Markdown(view) = &doc.view else {
-                panic!("Markdown is mounted")
-            };
-            view.read(cx).wrap
-        });
-        assert_eq!(actual, wrap, "a fresh Markdown card restores preview.wrap");
-        press(cx, "escape");
-    }
-    close(&shell, cx);
+    crate::g2::pv2::render::without_markdown_threads(|| {
+        let (shell, cx, _requests) = opened(cx);
+        land(
+            &shell,
+            cx,
+            "/files",
+            vec![file("notes.md", "text-markdown")],
+            1,
+        );
+        for wrap in [true, false] {
+            shell.update(cx, |shell, _| {
+                shell.launch.settings.data =
+                    flea::jsondoc::parse(&format!(r#"{{"preview":{{"wrap":{wrap}}}}}"#)).unwrap();
+            });
+            press(cx, "space");
+            let actual = shell.read_with(cx, |shell, cx| {
+                let card = shell.quick_look.as_ref().unwrap().view.read(cx);
+                let doc = card.subject().unwrap().body.doc().unwrap();
+                let View::Markdown(view) = &doc.view else {
+                    panic!("Markdown is mounted")
+                };
+                view.read(cx).wrap
+            });
+            assert_eq!(actual, wrap, "a fresh Markdown card restores preview.wrap");
+            press(cx, "escape");
+        }
+        close(&shell, cx);
+    });
 }
 
 #[gpui::test]

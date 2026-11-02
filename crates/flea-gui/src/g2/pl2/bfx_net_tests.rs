@@ -83,7 +83,7 @@ fn bfx_net_bare_server_list_has_a_wall_deadline_and_reaps_the_child(cx: &mut gpu
     let root = Root::new();
     let script = root.script(
         "gio",
-        "#!/bin/sh\ncase \"$1\" in\n  mount|info) exit 0 ;;\n  list) printf '%s\\n' \"$$\" > \"$BFX_NET_ROOT/list.pid\"; sleep 60 & exit 0 ;;\n  *) exit 64 ;;\nesac\n",
+        "#!/bin/sh\ncase \"$1\" in\n  mount|info) exit 0 ;;\n  list) printf '%s\\n' \"$$\" > \"$BFX_NET_ROOT/list.pid\"; sleep 60 & wait ;;\n  *) exit 64 ;;\nesac\n",
     );
     let runner = Rc::new(Gio {
         script,
@@ -168,8 +168,8 @@ fn bfx_net_bare_server_list_has_a_wall_deadline_and_reaps_the_child(cx: &mut gpu
     let exits = runner.exits.lock().unwrap();
     assert_eq!(exits.len(), 3);
     assert_eq!(
-        exits[2].1.code, 0,
-        "the list leader exited before its inherited pipes closed"
+        exits[2].1.code, -1,
+        "the deadline killed and reaped the wedged list leader"
     );
     assert!(
         took >= Duration::from_secs(15) && took < Duration::from_secs(18),

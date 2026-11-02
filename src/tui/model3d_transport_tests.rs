@@ -234,7 +234,7 @@ fn tui_model3d_real_tui_board_specimens_and_stepped_transport() {
 }
 
 const REAL_TUI: &str = r#"
-import errno, fcntl, os, pty, re, select, signal, struct, subprocess, sys, termios, time
+import errno, fcntl, os, pty, re, select, signal, struct, subprocess, sys, termios, threading, time
 from pathlib import Path
 from tui_battery.bundle import models
 binary, root = Path(sys.argv[1]), Path(sys.argv[2])
@@ -276,7 +276,8 @@ def pump(seconds):
         if b'\x1b[c' in query_tail: os.write(master, b'\x1b[?62c')
         if b'\x1b[?u' in query_tail: os.write(master, b'\x1b[?0u')
         query_tail[:] = query_tail[-4:]
-def images(): return captured.count(b'\x1b_Ga=t,f=100,')
+# Sample input: b'\x1b_Ga=t,f=100,i=42;AAAA\x1b\\\x1b_Ga=p,i=42,q=2\x1b\\'; each complete transmit/place pair counts once.
+def images(): return len(re.findall(rb'\x1b_Ga=t,f=100,.*?\x1b_Ga=p,i=42,q=2\x1b\\', captured, re.S))
 def until(check, why):
     end = time.monotonic() + 30
     while not check():
@@ -311,10 +312,16 @@ try:
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 27, 110, 880, 432))
     os.kill(child.pid, signal.SIGWINCH)
     until(lambda: images() > count, 'resized picture')
+    count = images()
+    # Force a scheduling pause: Escape and q must still be separate decoded keys.
+    child.send_signal(signal.SIGSTOP)
+    threading.Timer(.3, child.send_signal, args=(signal.SIGCONT,)).start()
     press(b'\x1b')
-    pump(.12)
+    until(lambda: images() > count, 'Escape restored the column picture')
     press(b'q')
-    child.wait(timeout=10)
+    end = time.monotonic() + 10
+    while child.poll() is None and time.monotonic() < end: pump(.03)
+    child.wait(timeout=0)
     assert child.returncode == 0, child.returncode
     print('PASS real --tui: STL facts, 3MF plates, two orbit pictures, idle, controls, resize, clean quit')
 finally:
