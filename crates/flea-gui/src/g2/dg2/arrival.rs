@@ -28,10 +28,19 @@ impl Shell {
             return;
         }
         let side = (0..self.panes.len()).find(|side| {
-            self.panes[*side]
-                .as_ref()
-                .and_then(|host| host.input.frame)
-                .is_some_and(|frame| frame.bounds.contains(&point))
+            self.panes[*side].as_ref().is_some_and(|host| {
+                if host.drawn_view == Some(crate::window::startup::View::List)
+                    && host.pane.state.kind == crate::pane::states::Kind::Empty
+                {
+                    // An empty List paints its floor but mounts no row input surface.
+                    let drawn = host.list.borrow().drawn;
+                    return drawn.listing == host.pane.held.listing
+                        && drawn.bounds.contains(&point);
+                }
+                host.input
+                    .frame
+                    .is_some_and(|frame| frame.bounds.contains(&point))
+            })
         });
         if let Some(side) = side {
             self.land_at(side, point, Owned::Native(arrived), window, cx);
