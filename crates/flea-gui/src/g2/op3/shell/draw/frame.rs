@@ -38,9 +38,8 @@ pub(super) fn present(
         draw.px(ROW_GAP),
     )
     .when(facts, |d| d.flex_none());
-    let observe = live.and_then(|live| live.frame);
-    // The buttons close the frame; a measured card with no observer also ends on its own tracking canvas.
-    let tail = 1 + usize::from(draw.measure.is_some() && observe.is_none());
+    // The buttons close the frame; a measured card also ends on its own tracking canvas.
+    let tail = 1 + usize::from(draw.measure.is_some());
     let frame = div()
         .on_children_prepainted({
             let probe = probe.cloned();
@@ -100,10 +99,6 @@ pub(super) fn present(
             ),
         );
     }
-    let mut frame = frame.child(buttons);
-    if let Some(observe) = observe {
-        frame = observe(frame);
-    }
     div()
         .size_full()
         .when(facts, |d| d.p(draw.px(GAP)))
@@ -113,6 +108,6 @@ pub(super) fn present(
         .when_some(probe, |root, probe| {
             root.on_children_prepainted(probe.probe.first_child("card"))
         })
-        .child(draw.track(frame, "card"))
+        .child(draw.track(frame.child(buttons), "card"))
         .into_any_element()
 }
