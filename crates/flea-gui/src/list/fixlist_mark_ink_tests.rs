@@ -12,6 +12,7 @@ fn shown(state: RowState) -> Shown {
         prepared: None,
         clip: None,
         state,
+        bold_match: false,
         picture: None,
     }
 }
