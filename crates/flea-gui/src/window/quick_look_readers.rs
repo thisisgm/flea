@@ -28,6 +28,8 @@ pub(crate) struct Reader<'a> {
     pub cx: &'a App,
     /// The mounted view's refusal or failure sentence, read where the App is at hand.
     pub failure: Option<String>,
+    /// Whether the open PDF holds the keyboard, which pdfState(true) answers as focused.
+    pub pdf_focused: bool,
 }
 
 impl Reader<'_> {

@@ -71,13 +71,13 @@ impl Reader<'_> {
                 item.focused || (item.enabled && look.focused() == Some(hit)),
             )
         }).collect::<Vec<_>>().join(",");
-        // An open Quick Look owns all key routing until it closes.
         format!(
-            r#"{{"page":{},"pages":{},"zoom":{},"scrollY":{},"focused":true,"control":{},"controls":[{controls}]}}"#,
+            r#"{{"page":{},"pages":{},"zoom":{},"scrollY":{},"focused":{},"control":{},"controls":[{controls}]}}"#,
             pdf.surface.page,
             pdf.surface.page_count(),
             viewer.zoom,
             pdf.pan.1,
+            self.pdf_focused,
             viewer.control.map_or(-1, |index| index as i64),
         )
     }
