@@ -1,4 +1,4 @@
-"""Delay the real startup probe's quitReady observer while the product drains its backend."""
+"""Delay the frozen QML startup oracle's quitReady observer while its real backend drains."""
 import os
 from pathlib import Path
 import subprocess
@@ -36,20 +36,22 @@ source = source.replace(needle, """function onQuitReady() {
         }""")
 (config / 'shell.qml').write_text(source)
 env = os.environ.copy()
-env.update(DISPLAY='flea-offscreen', QT_QPA_PLATFORM='offscreen', QT_FORCE_STDERR_LOGGING='1',
+for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'HYPRLAND_INSTANCE_SIGNATURE'):
+    env.pop(name, None)
+env.update(QT_QPA_PLATFORM='offscreen', QT_FORCE_STDERR_LOGGING='1',
            QSG_RHI_BACKEND='opengl', XDG_STATE_HOME=str(run / 'state'), FLEA_UI=str(run / 'ui'),
-           FLEA_BIN=sys.argv[1], PROBE_BODY=str(repo / 'ui' / 'WindowBody.qml'),
+           FLEA_BIN=sys.argv[1], FLEA_PATH=str(run / 'files'), PROBE_BODY=str(repo / 'ui' / 'WindowBody.qml'),
            PROBE_STATE_HELPER=str(repo / 'tests/xwsettings-start-state.qml'), PROBE_ROLE='B',
            PROBE_READY=str(run / 'ready'), PROBE_DONE=str(run / 'done'), PROBE_POLL_S='0.05')
 subprocess.run([sys.argv[1], '--ui-state', '{"hidden":false,"view":"list","density":"compact","updates":{"autoCheck":false}}'],
                env=env, check=True, stdout=subprocess.DEVNULL)
-result = subprocess.run(['timeout', str(PROBE_TIMEOUT_S), sys.argv[1], '--gui', str(run / 'files')], env=env,
+result = subprocess.run(['timeout', str(PROBE_TIMEOUT_S), 'qs', '-p', str(config)], env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 (run / 'probe.log').write_text(result.stdout)
 count = result.stdout.count('PROBE B backend drained')
 status = result.returncode if result.returncode >= 0 else 128 - result.returncode
 print(result.stdout)
-print(f'xwsdrain: expected={expected} count={count} exit={status} observer_entered={result.stdout.count("PROBE observer entered")} observer_returned={result.stdout.count("PROBE observer returned")}')
+print(f'xwsdrain: scope=frozen-qml-oracle entry=qs expected={expected} count={count} exit={status} observer_entered={result.stdout.count("PROBE observer entered")} observer_returned={result.stdout.count("PROBE observer returned")}')
 assert status == 143
 assert result.stdout.count('PROBE observer entered') == 1
 assert count == expected

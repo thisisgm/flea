@@ -58,6 +58,9 @@ while True:
         reply = {"code": 0, "stdout": "owned\\n", "stderr": ""}
         if function == "palette":
             reply.update(code=3, stdout="", stderr="FLEA_IPC_NOT_PORTED flea.palette\\n")
+        if function == "launch":
+            reply["stdout"] = json.dumps(dict(argv=sys.argv[1:], picker=os.environ.get("FLEA_PICKER"),
+                                              reply=os.environ.get("FLEA_PICKER_REPLY"))) + "\\n"
         if function == "backend":
             reply["stdout"] = os.environ["FLEA_BIN"] + "\\n"
         if function == "spawn":
@@ -174,6 +177,16 @@ try:
     disappearing_peer(root, start, check, windows)
     first = start()
     second = start()
+    picker = Window.start(root, parent=root, frontend="gpui", picker=True, timeout=1)
+    windows.append(picker)
+    # Sample input: {"argv":["--pick","/fixture/picker-reply"],"picker":"{\"folder\": \"/fixture\"}","reply":"/fixture/picker-reply"}
+    launch = json.loads(picker.call("call", "fleapicker", "launch").stdout)
+    reply = str(picker.root / "picker-reply")
+    check(launch == dict(argv=["--pick", reply], picker=json.dumps({"folder": str(root)}), reply=reply),
+          "picker-public-launch-envelope")
+    picker.quit()
+    # Sample input: {"returncode":0,"forced":false,"error":null}
+    check(not json.loads((picker.root / "outcome.json").read_text())["forced"], "picker-natural-quit")
     record = load(first.root)
     alias_parts = record["runtime"].split("/")
     alias_parts[2] = "9" * len(Path("/proc/sys/kernel/pid_max").read_text().strip())
