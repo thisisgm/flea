@@ -89,7 +89,7 @@ def check_envelope(parent):
             counts["passing"] += 1
         print(f"PASS native-admission {name} exit={status}")
 
-    with patch.object(wallpaper, "OMARCHY_SHELL", shell), patch.object(wallpaper, "OMARCHY_TREE", FIXTURE_TREE), \
+    with patch.object(wallpaper, "OMARCHY_SHELL", shell), patch.object(wallpaper, "OMARCHY_TREES", {FIXTURE_TREE}), \
             patch.object(wallpaper, "SYSTEM_BIN", binary), patch.object(wallpaper.subprocess, "check_output", output):
         (process / "comm").write_text("swaybg\n")
         (process / "cmdline").write_bytes(b"swaybg\0-i\0" + str(image).encode() + b"\0")
@@ -210,7 +210,7 @@ def output(command, **kwargs):
     if command[0] == "file": return "image/png"
     if command[0] == "magick": return "1\\n"
     raise AssertionError(command)
-with patch.object(w, "SYSTEM_BIN", root / "bin"), patch.object(w, "OMARCHY_SHELL", root / "omarchy/shell"), patch.object(w, "OMARCHY_TREE", sys.argv[4]), patch.object(w.subprocess, "check_output", output):
+with patch.object(w, "SYSTEM_BIN", root / "bin"), patch.object(w, "OMARCHY_SHELL", root / "omarchy/shell"), patch.object(w, "OMARCHY_TREES", {sys.argv[4]}), patch.object(w.subprocess, "check_output", output):
     sys.exit(w.main(root / "proc", root / "home"))
 ''')
         for namespace, expected in (("omarchy-background", 0), ("forged-background", 2)):

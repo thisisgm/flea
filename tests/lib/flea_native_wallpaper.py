@@ -13,9 +13,10 @@ import subprocess
 import sys
 
 # Omarchy v4.5.0-rc1, 03ff1eff3812933f7088484533784d2f63eaf19a, complete shell tree.
+# Omarchy v4.5.0-rc3, 8d19ad75ace59af8b6ded52f8b2bec1b15adda7c, complete shell tree.
 SYSTEM_BIN = Path("/usr/bin")
 OMARCHY_SHELL = Path("/usr/share/omarchy/shell")
-OMARCHY_TREE = "87955e9cef088cb1c966e85c582e166e57ed19a5"
+OMARCHY_TREES = {"87955e9cef088cb1c966e85c582e166e57ed19a5", "ba6c88d1b2db05cd4044d5b7398eb638785b9182"}
 
 
 def read_json(raw):
@@ -97,7 +98,7 @@ def shell_identity(proc, home):
     if len(boot) != 1: raise RuntimeError("missing wallpaper process boot time")
     started_ns = int(boot[0]) * 1_000_000_000 + int(identity["start"]) * 1_000_000_000 // os.sysconf("SC_CLK_TCK")
     tree = shell_tree(OMARCHY_SHELL, started_ns)
-    if tree != OMARCHY_TREE: raise RuntimeError("unverified Omarchy shell implementation: " + tree)
+    if tree not in OMARCHY_TREES: raise RuntimeError("unverified Omarchy shell implementation: " + tree)
     plugins = home / ".config/omarchy/plugins"
     if plugins.exists() and any(plugins.iterdir()): raise RuntimeError("unverified Omarchy shell user plugins")
     configs = {}
