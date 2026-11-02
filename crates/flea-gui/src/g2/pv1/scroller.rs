@@ -89,6 +89,8 @@ pub struct Scroll {
     pub generation: [u64; 2],
     /// The lane under the pointer, which widens the knob and keeps it shown.
     pub lane: Option<Axis>,
+    /// Both hover lanes include the shared corner, while their painted tracks stop short.
+    pub corner: bool,
     /// A knob held by the pointer, and where on it the press landed.
     pub drag: Option<(Axis, f64)>,
     /// A zoomed picture held by the pointer: where the press landed and the position it started from.
@@ -170,8 +172,13 @@ impl Scroll {
         let lane = AXES
             .into_iter()
             .find(|&a| view.scrolls(a) && view.lane(a).contains(&local));
-        let mut changed = lane != self.lane;
+        let corner = view.sideways
+            && view.bounds.contains(&at)
+            && local.x >= view.bounds.size.width - px(look::PAD)
+            && local.y >= view.bounds.size.height - px(look::PAD);
+        let mut changed = lane != self.lane || corner != self.corner;
         self.lane = lane;
+        self.corner = corner;
         // A release the window never saw: the first move without the button ends the drag, as the lane's onCanceled does.
         if !held && (self.drag.take().is_some() | self.pan.take().is_some()) {
             changed = true;
@@ -285,7 +292,7 @@ impl Scroll {
         let mut out = Vec::new();
         for axis in AXES {
             let pressed = self.drag.is_some_and(|(a, _)| a == axis);
-            let in_lane = self.lane == Some(axis);
+            let in_lane = self.lane == Some(axis) || self.corner;
             let (content, viewport) = view.extent(axis);
             let shown = view.scrolls(axis)
                 && scroll::revealed(true, self.moving[index(axis)], in_lane, pressed);
