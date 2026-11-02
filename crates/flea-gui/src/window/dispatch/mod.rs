@@ -311,6 +311,8 @@ mod pb_preview_keys_tests;
 #[cfg(test)]
 mod pb_preview_readers_tests;
 #[cfg(test)]
+mod pc2_reader_tests;
+#[cfg(test)]
 mod rail_menu_tests;
 
 #[cfg(test)]
