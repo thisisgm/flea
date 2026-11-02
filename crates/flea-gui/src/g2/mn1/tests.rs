@@ -175,7 +175,7 @@ fn keyboard_open_steps_and_escape_returns_focus(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn pointer_hover_lights_a_flyout_parent(cx: &mut TestAppContext) {
+fn sol_menu_order_pointer_hover_lights_a_flyout_parent(cx: &mut TestAppContext) {
     let (handle, _) = window(cx);
     with(cx, handle, |menu, env, window| {
         menu.open(Face::File, file_rows(), (40., 40.), WIDE, "a", env, window);
@@ -222,17 +222,17 @@ fn pointer_hover_lights_a_flyout_parent(cx: &mut TestAppContext) {
             Some((Some(open_with), Some(0))),
             "back on its first leaf"
         );
-        let trash = menu
+        let cut = menu
             .card
             .as_ref()
             .unwrap()
             .entries
             .iter()
-            .position(|e| e.action == "trash")
+            .position(|e| e.action == "cut")
             .unwrap();
         menu.hover(
             x,
-            menu.card.as_ref().unwrap().row_screen_top(trash) + 10.,
+            menu.card.as_ref().unwrap().row_screen_top(cut) + 10.,
             env,
             window,
         );
@@ -476,7 +476,7 @@ fn the_card_fits_its_widest_row_inside_the_work_area(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn a_long_menu_scrolls_with_a_half_row_cue(cx: &mut TestAppContext) {
+fn sol_menu_order_a_long_menu_scrolls_with_a_half_row_cue(cx: &mut TestAppContext) {
     let (handle, _) = window(cx);
     with(cx, handle, |menu, env, window| {
         menu.open(Face::File, file_rows(), (10., 10.), SMALL, "a", env, window);
@@ -500,8 +500,8 @@ fn a_long_menu_scrolls_with_a_half_row_cue(cx: &mut TestAppContext) {
         );
         assert_eq!(
             card.entries[card.cursor.unwrap()].action,
-            "toggleLangMarks",
-            "Hide Code Icons is last"
+            "trash",
+            "Move to Trash is last, as the HIG file menu draws it"
         );
         let before = card.content_y;
         let (x, y) = (card.frame.x + 10., card.frame.y + card.frame.h / 2.);
@@ -565,7 +565,7 @@ fn hints_follow_the_switch(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn ipc_reads_the_drawn_rows(cx: &mut TestAppContext) {
+fn sol_menu_order_ipc_reads_the_drawn_rows(cx: &mut TestAppContext) {
     let (handle, menu) = window(cx);
     with(cx, handle, |menu, env, window| {
         menu.open(Face::File, file_rows(), (40., 40.), WIDE, "a", env, window);
@@ -573,8 +573,9 @@ fn ipc_reads_the_drawn_rows(cx: &mut TestAppContext) {
     let menu = menu.borrow();
     let entries = read(&menu, "contextMenuEntries", &[]);
     assert!(
-        entries.starts_with("Open|Open With|Run|Open as Text|-|Move to Trash|-|Cut|Copy|Paste"),
-        "Move to Trash follows the open group alone: {entries}"
+        entries.starts_with("Open|Open With|Run|Open as Text|-|Cut|Copy|Paste")
+            && entries.ends_with("|-|Move to Trash"),
+        "The HIG file menu closes with Move to Trash alone: {entries}"
     );
     assert!(
         read(&menu, "contextMenuGlyphs", &[]).contains("tailscale"),

@@ -12,7 +12,7 @@ fn st(change: impl FnOnce(&mut Context)) -> Context {
 }
 
 #[test]
-fn inventory_order_and_default_menus() {
+fn sol_menu_order_inventory_order_and_default_menus() {
     let i18n = english();
     let file = listing_entries(&state());
     // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped.
@@ -27,7 +27,7 @@ fn inventory_order_and_default_menus() {
         60,
     );
     check("default image menu matches Menus specimen", actions(&file),
-        "open,openWith,run,openAsText,trash,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,tags,toggleHidden,toggleLangMarks".into());
+        "open,openWith,run,openAsText,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,tags,toggleHidden,toggleLangMarks,trash".into());
     check(
         "code icons ship enabled with the existing code glyph",
         format!(
@@ -84,19 +84,19 @@ fn inventory_order_and_default_menus() {
         p.row_name = "Photos".into()
     }));
     check("folder omits run and open as text; Pane gives a folder no image or archive flag, so no conversion or extraction", actions(&folder),
-        "open,openWith,trash,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,addFavourite,tags,toggleHidden,toggleLangMarks".into());
+        "open,openWith,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,addFavourite,tags,toggleHidden,toggleLangMarks,trash".into());
     check("background menu includes real creation actions in order", actions(&listing_entries(&st(|p| p.has_row = false))),
         "newFolder,newFile,paste,selectAll,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings".into());
-    // Move to Trash follows the open group alone in the destructive group, as Finder orders it.
+    // The HIG file-menu board closes with Move to Trash alone in the destructive group.
     let last_group: Vec<_> = file
         .split(|r| r.separator)
-        .nth(1)
+        .next_back()
         .unwrap()
         .iter()
         .map(|r| r.action.to_string())
         .collect();
     check(
-        "Move to Trash is the group after Open, alone in the destructive group",
+        "Move to Trash is last, alone in the destructive group",
         last_group,
         strings(&["trash"]),
     );
@@ -109,13 +109,13 @@ fn inventory_order_and_default_menus() {
     }));
     let tail: Vec<_> = all
         .split(|r| r.separator)
-        .nth(1)
+        .next_back()
         .unwrap()
         .iter()
         .map(|r| r.action.to_string())
         .collect();
     check(
-        "Move to Trash and Delete Permanently share the group after Open",
+        "Move to Trash and Delete Permanently share the final group",
         tail,
         strings(&["trash", "deletePermanently"]),
     );
