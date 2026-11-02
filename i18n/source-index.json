@@ -1390,7 +1390,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "failure.key()",
-      "line": 341,
+      "line": 343,
       "path": "crates/flea-gui/src/window/network_effects.rs",
       "pattern": null,
       "possible_keys": [],
@@ -245227,7 +245227,7 @@
     "crates/flea-gui/src/window/navigate.rs": "88a4a84cc39ef8035adb97681c8803823bd3807cdd71689c3da1fc5df1b4f6e1",
     "crates/flea-gui/src/window/network.rs": "e1cf9b7bbc0e26f9dab9d82fcf4fa8419d72b6cfa4a64265e9d69a83907c3638",
     "crates/flea-gui/src/window/network_cloud.rs": "c9e57bf2de77b95a802982b1621bcd53723ff14938aaedb2c7fde6405609509c",
-    "crates/flea-gui/src/window/network_effects.rs": "15611dd03f194c4b8465284802b704c80e516aa09936e6e31946661ff0ce52df",
+    "crates/flea-gui/src/window/network_effects.rs": "d4322404130f134835823e8d8f51a16767d51f88b6e196eb2311d2df266ca280",
     "crates/flea-gui/src/window/network_focus.rs": "a2bd7430bcd4602d685f36f87ee7fac372aba15caa8f63a4563770c868fb9caa",
     "crates/flea-gui/src/window/network_menu.rs": "889e706a7f024831bcdb6291db987b8df69d007d26d1641dbf808a7ef67fba97",
     "crates/flea-gui/src/window/network_path.rs": "82a6516a015e3a817b37b94752deffe741427137cbd5194573875e6736ab5676",
@@ -246823,8 +246823,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "054ad1d5a2a44b636f4c8f5c0820ea7cabbcf47d",
-  "source_sha": "054ad1d5a2a44b636f4c8f5c0820ea7cabbcf47d",
+  "source_ref_sha": "1595c4275a8305de362174a460a7e823c83908a9",
+  "source_sha": "1595c4275a8305de362174a460a7e823c83908a9",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
