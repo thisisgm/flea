@@ -189,13 +189,15 @@ mod tests {
 
     #[test]
     fn sol_pl1_drain_final_snapshot_reads_only_what_fionread_reported() {
-        // A datagram socket's FIONREAD counts only its first datagram, so a drain past the snapshot reads the second.
+        // FIONREAD counts all of a stream but only a datagram socket's first datagram, sized to fill one read.
         let (out, writer) = UnixDatagram::pair().unwrap();
-        writer.send(b"first").unwrap();
+        writer.send(&[b'f'; CHUNK]).unwrap();
         writer.send(b"second").unwrap();
-        let err = Pipe::new(None::<OwnedFd>).unwrap();
-        let mut pipes = [Pipe::new(Some(out)).unwrap(), err];
+        let (err, mut err_writer) = UnixStream::pair().unwrap();
+        err_writer.write_all(&[b'e'; 2 * CHUNK]).unwrap();
+        let mut pipes = [Pipe::new(Some(out)).unwrap(), Pipe::new(Some(err)).unwrap()];
         drain_buffered(&mut pipes);
-        assert_eq!(pipes[0].kept, b"first");
+        assert_eq!(pipes[0].kept, [b'f'; CHUNK]);
+        assert_eq!(pipes[1].kept, [b'e'; 2 * CHUNK]);
     }
 }
