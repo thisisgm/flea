@@ -42,11 +42,7 @@ fn s5_native_gif_reader_reports_loaded_and_painted_indices_without_driving_them(
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","frames":2,"w":8,"h":8"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{dir}/still.png"}}"#),
-    );
+    thumbed(&shell, cx, &lines, 0, &format!("{dir}/still.png"));
     settle_pictures(cx);
     let state = |cx: &mut VisualTestContext| {
         flea::jsondoc::parse(&read(&shell, cx, "columnAnimationState", &[])).unwrap()
@@ -81,11 +77,7 @@ fn s5_native_gif_reader_reports_loaded_and_painted_indices_without_driving_them(
     cx.simulate_keystrokes("down");
     let lines = pump(cx);
     meta(&shell, cx, &lines, r#","frames":1,"w":8,"h":8"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":1,"file":"{dir}/still.png"}}"#),
-    );
+    thumbed(&shell, cx, &lines, 1, &format!("{dir}/still.png"));
     settle_pictures(cx);
     let replacement = state(cx);
     assert_eq!(
