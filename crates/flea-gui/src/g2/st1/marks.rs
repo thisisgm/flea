@@ -6,10 +6,14 @@ use super::{
 };
 use flea::ui_logic_st1::rows::Master;
 use gpui::{
-    canvas, div, prelude::*, px, App, ClickEvent, Div, FontWeight, Hsla, MouseButton, SharedString,
-    TransformationMatrix, Window,
+    canvas, div, prelude::*, px, App, ClickEvent, Div, FontWeight, HighlightStyle, Hsla,
+    MouseButton, SharedString, StyledText, TransformationMatrix, Window,
 };
-use std::rc::Rc;
+use std::{ops::Range, rc::Rc};
+
+#[cfg(test)]
+#[path = "rtl_keycap_match_tests.rs"]
+mod rtl_keycap_match_tests;
 
 /// A mark from the boards' path data, drawn as an alpha mask in one ink; a name no board draws keeps its slot empty.
 pub fn mark(name: &str, size: f32, ink: Hsla) -> Div {
@@ -80,22 +84,39 @@ pub fn washed(
     if run.is_none() {
         return div().child(SharedString::from(label.to_owned()));
     }
+    // One shaped line, so a mirrored window moves the label whole and never reorders its pieces.
+    div().whitespace_nowrap().child(
+        StyledText::new(label.to_owned())
+            .with_highlights([highlight(label, start, end, lifted, wash)]),
+    )
+}
+
+/// The typed run's byte range and its style: bold on the highlighted row, else the accent wash.
+fn highlight(
+    label: &str,
+    start: usize,
+    end: usize,
+    lifted: bool,
+    wash: Hsla,
+) -> (Range<usize>, HighlightStyle) {
     let at = |chars: usize| {
         label
             .char_indices()
             .nth(chars)
             .map_or(label.len(), |(byte, _)| byte)
     };
-    let (from, to) = (at(start), at(end));
-    div()
-        .flex()
-        .whitespace_nowrap()
-        .child(SharedString::from(label[..from].to_owned()))
-        .child(dress(
-            div().child(SharedString::from(label[from..to].to_owned())),
-            true,
-        ))
-        .child(SharedString::from(label[to..].to_owned()))
+    let style = if lifted {
+        HighlightStyle {
+            font_weight: Some(FontWeight::BOLD),
+            ..HighlightStyle::default()
+        }
+    } else {
+        HighlightStyle {
+            background_color: Some(wash),
+            ..HighlightStyle::default()
+        }
+    };
+    (at(start)..at(end), style)
 }
 
 /// An overlay's ground: sinks hover, presses and the wheel, and a left or right pointer click closes; a keyboard click never does.
