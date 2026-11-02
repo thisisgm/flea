@@ -22,6 +22,7 @@ pub(crate) struct Open {
     pub(crate) card: Properties,
     pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
     _reply: Subscription,
+    initial: crate::g2::op3::initial::Initial,
 }
 
 #[cfg(test)]
@@ -121,6 +122,7 @@ impl Shell {
             card,
             probe: Default::default(),
             _reply: reply,
+            initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
         });
         self.properties_effects(effects, window, cx);
         cx.notify();
@@ -153,6 +155,14 @@ impl Shell {
             return false;
         }
         if let Some(key) = key_of(event) {
+            let Some(key) = self
+                .properties
+                .as_ref()
+                .and_then(|open| open.initial.key(key))
+            else {
+                cx.stop_propagation();
+                return true;
+            };
             let effects = self
                 .properties
                 .as_mut()
@@ -208,13 +218,24 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        let open = self.properties.as_mut()?;
+        open.probe.clear();
+        let card = open.initial.present(
+            open.card.ready(),
+            open.card.card(&self.locale.catalog),
+            crate::g2::op3::initial::loading(
+                &self.locale.catalog,
+                "dialogs.file.properties.title",
+                crate::g2::op3::properties::WIDTH,
+            ),
+            cx,
+        )?;
         let open = self.properties.as_ref()?;
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let card = open.card.card(&self.locale.catalog);
         let room = f32::from(window.viewport_size().width);
         let drawn = StandIn.present_observed(
             &card,

@@ -117,12 +117,13 @@ impl Permissions {
                     buttons: vec![cancel(true)],
                 };
             }
-            Phase::Reading => body.push(Block::Note {
-                text: tr("dialogs.file.permissions.reading"),
-                inset: 0.,
-                ink: Ink::Muted,
-                lift: 0.,
-            }),
+            Phase::Reading => {
+                return super::super::initial::loading(
+                    i18n,
+                    "dialogs.file.permissions.title",
+                    WIDTH,
+                )
+            }
             _ => {}
         }
         if self.several() && self.phase != Phase::Reading {

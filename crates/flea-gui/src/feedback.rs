@@ -8,3 +8,5 @@ mod paint_tests;
 pub mod spinner;
 #[cfg(test)]
 mod spinner_tests;
+#[cfg(test)]
+mod gap64_tests;

@@ -18,6 +18,23 @@ pub const APP_ID: &str = "com.thisisgm.flea.picker";
 const WIDTH: f32 = 720.;
 const HEIGHT: f32 = 440.;
 
+fn finish_opening<T>(
+    opened: Result<T, String>,
+    catalog: &flea::i18n::I18n,
+    cx: &mut App,
+) -> Result<T, ()> {
+    opened.map_err(|error| {
+        eprintln!(
+            "flea-gui: {}",
+            catalog.tr_args("window.open_failed", &[&error])
+        );
+        cx.spawn(async move |cx| {
+            cx.update(|cx| cx.quit());
+        })
+        .detach();
+    })
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PickLaunch {
     pub req: Request,
@@ -186,6 +203,23 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
             return 2;
         }
     };
+    run(
+        launch,
+        service,
+        locale,
+        gpui_platform::application(),
+        |launch, locale, cx| open(launch, locale, children(), cx),
+    )
+}
+
+fn run(
+    launch: PickLaunch,
+    service: Service,
+    locale: Snapshot,
+    application: gpui::Application,
+    opener: impl FnOnce(PickLaunch, Snapshot, &mut App) -> Result<WindowHandle<Picker>, String>
+        + 'static,
+) -> i32 {
     // Bound before the event loop; a chooser without its test endpoint still answers its caller.
     let server = flea::ipc::endpoint::runtime()
         .and_then(|runtime| Server::bind_picker(&runtime))
@@ -205,7 +239,7 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
         .unwrap_or_else(|_| flea::uistate::from_file("{}"));
     // The chooser draws in the system font as the window does, so it resolves fontconfig's family before its first frame.
     let (fonts, presentation) = crate::presentation::Service::start();
-    gpui_platform::application().run(move |cx: &mut App| {
+    application.run(move |cx: &mut App| {
         presentation.install(cx);
         cx.set_global(presentation.fonts.typeface(&settings));
         cx.set_global(super::settings::HiddenSeed::read(&settings));
@@ -229,7 +263,7 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
             }
         })
         .detach();
-        match open(launch, locale.clone(), children(), cx) {
+        match finish_opening(opener(launch, locale.clone(), cx), &locale.catalog, cx) {
             Ok(window) => {
                 let _ = window.update(cx, |picker, _, cx| {
                     picker.apply_settings(&settings, cx);
@@ -245,16 +279,15 @@ pub fn main(reply: &str, service: Service, locale: Snapshot) -> i32 {
                 });
                 cx.activate(true);
             }
-            Err(error) => {
-                eprintln!(
-                    "flea-gui: {}",
-                    locale.catalog.tr_args("window.open_failed", &[&error])
-                );
+            Err(()) => {
                 // No window is a load that failed: no reply is written, and the portal answers the caller with a fault.
                 failure.set(true);
-                cx.quit();
             }
         }
     });
     i32::from(failed.get())
 }
+
+#[cfg(test)]
+#[path = "launch_gap64_tests.rs"]
+mod gap64_tests;
