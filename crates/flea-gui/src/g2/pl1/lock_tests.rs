@@ -167,3 +167,29 @@ fn sol_luks_refusal_diagnosis_pending_check_polls_with_idle_polling_disabled() {
         .any(|effect| matches!(effect, Effect::Start(Proc::List, _))));
     assert_eq!(messages(&devices.list_exited(&listed(OPEN))).len(), 1);
 }
+
+#[test]
+fn sol_luks_refusal_diagnosis_listings_that_never_witness_keep_the_refusal() {
+    let mut devices = unmounted();
+    devices.polling = false;
+    let failed = Outcome {
+        code: 1,
+        stdout: OPEN.into(),
+        stderr: "lsblk failed".into(),
+    };
+    assert!(messages(&devices.lock_exited(&Outcome::code(1), 20)).is_empty());
+    assert!(messages(&devices.list_exited(&failed)).is_empty());
+    devices.poll(30);
+    assert!(messages(&devices.list_exited(&listed("not json"))).is_empty());
+    devices.poll(40);
+    devices.tick(40 + super::devices::LIST_TIMEOUT_MS);
+    assert_eq!(
+        messages(&devices.list_exited(&listed(CLOSED))),
+        ["vault was unmounted but could not be locked; close what is using it."],
+        "a timed-out listing witnesses nothing, and the third such listing keeps the refusal"
+    );
+    assert!(
+        devices.lock_checks.is_empty(),
+        "the check ends, so polling may idle"
+    );
+}

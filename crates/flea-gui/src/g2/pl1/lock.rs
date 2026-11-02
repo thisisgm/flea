@@ -5,6 +5,9 @@ use flea::jsondoc::Json;
 use flea::ui_logic_pl1::lsblk::{children, device_path, text};
 use flea::ui_logic_pl1::unlock::{backing_for, lock_argv, lock_note};
 
+/// Listings begun after a refused lock; if none of them can be read, the refusal is reported unconfirmed.
+const WITNESS_LISTINGS: u64 = 3;
+
 impl Devices {
     /// Locks the container behind a released crypt; None when the device has no backing container.
     pub(super) fn lock_crypt(
@@ -52,23 +55,27 @@ impl Devices {
     }
 
     /// A listing already in flight at the failed exit cannot witness its final mapping state.
-    pub(super) fn judge_locks(&mut self, body: &str) -> Vec<Effect> {
+    pub(super) fn judge_locks(&mut self, body: Option<&str>) -> Vec<Effect> {
         if self.lock_checks.is_empty() {
             return Vec::new();
         }
-        let Ok(tree) = flea::jsondoc::parse(body) else {
-            return Vec::new();
-        };
-        let Some(nodes) = tree.get("blockdevices").and_then(Json::as_array) else {
-            return Vec::new();
-        };
+        let tree = body.and_then(|body| flea::jsondoc::parse(body).ok());
+        let nodes = tree
+            .as_ref()
+            .and_then(|tree| tree.get("blockdevices"))
+            .and_then(Json::as_array);
         let mut out = Vec::new();
         let started = self.listings_started;
         self.lock_checks.retain(|(backing, label, from)| {
             if started < *from {
                 return true;
             }
-            if nodes.iter().any(|node| open_mapping(node, backing)) {
+            let open = match nodes {
+                Some(nodes) => nodes.iter().any(|node| open_mapping(node, backing)),
+                None if started + 1 < *from + WITNESS_LISTINGS => return true,
+                None => true,
+            };
+            if open {
                 out.push(Effect::Message(lock_note(label), true));
             }
             false

@@ -190,11 +190,10 @@ impl Devices {
         self.running[Proc::List as usize] = false;
         self.list_deadline = None;
         self.stream_pending = false;
-        let mut out = Vec::new();
+        let witness =
+            (!self.list_timed_out && outcome.code == 0).then_some(outcome.stdout.as_str());
+        let mut out = self.judge_locks(witness);
         if !self.list_timed_out {
-            if outcome.code == 0 {
-                out.extend(self.judge_locks(&outcome.stdout));
-            }
             out.extend(self.judge_eject(&outcome.stdout));
             self.listing = outcome.stdout.clone();
             out.extend(self.rebuild());
