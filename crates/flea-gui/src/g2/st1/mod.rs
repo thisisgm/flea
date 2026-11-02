@@ -41,11 +41,11 @@ pub mod sheet;
 mod sheet_board_tests;
 #[cfg(test)]
 mod sheet_keycap_tests;
-#[cfg(test)]
-mod sheet_symbol_tests;
 mod sheet_menus;
 #[cfg(test)]
 mod sheet_scroll_tests;
+#[cfg(test)]
+mod sheet_symbol_tests;
 #[cfg(test)]
 mod sheet_tests;
 mod sheet_view;
