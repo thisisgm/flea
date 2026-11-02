@@ -114,8 +114,17 @@ fn sol_recent_tabs_remainder_t01_refused_receiver_never_acknowledges_or_closes_s
     let mut receiver = destination.bar();
     receiver.self_pid = "222".into();
     assert!(!receiver.strip_drop(&mut destination, &payload, 0., 100_001));
-    assert_eq!(receiver.pump_taken(), None);
     assert_eq!(destination.tabs.count(), super::MAX);
+    // Any acknowledgement the receiver sends reaches the source, so the count below can go red.
+    let taken = receiver.pump_taken();
+    if let Some((_, token)) = &taken {
+        bar.take(&mut source, token, FINISHED + 1);
+    }
     bar.drain_lifts(&mut source, FINISHED + 15_001);
-    assert_eq!(source.tabs.count(), 2);
+    assert_eq!(
+        source.tabs.count(),
+        2,
+        "a refused drop closes no source tab"
+    );
+    assert_eq!(taken, None);
 }

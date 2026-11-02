@@ -303,31 +303,40 @@ fn sol_recent_tabs_remainder_sort_keeps_root_memory_and_existing_global_fallback
 fn sol_recent_tabs_remainder_late_recent_sort_keeps_root_memory_and_existing_fallback(
     cx: &mut TestAppContext,
 ) {
-    let (shell, cx) = setup(cx, "/", 2, false);
-    let before = shell.read_with(cx, |shell, _| {
-        shell.launch.settings.data.get("folderSorts").cloned()
-    });
-    recent(&shell, cx);
-    cx.simulate_keystrokes("s");
-    assert_eq!(read(&shell, cx, "sortMark"), "kind:asc");
-    click(&shell, cx, Hit::New);
-    assert_eq!(read(&shell, cx, "tabCount"), "3");
-    assert_eq!(read(&shell, cx, "recentMode"), "");
-    folder_request("/");
-    pair(&shell, cx, "/", true);
-    pair(&shell, cx, "/", false);
-    shell.read_with(cx, |shell, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!(
-            shell.launch.settings.data.get("folderSorts"),
-            before.as_ref()
-        );
-        let global = shell.launch.settings.data.get("sort").unwrap();
-        assert_eq!(global.get("key").and_then(Json::as_str), Some("kind"));
-        assert_eq!(global.get("reverse").and_then(Json::as_bool), Some(false));
-        assert_eq!(host.nav.writer.borrow().sort_writes(), 1);
-        assert_eq!(host.pane.held.rows[0].name, "A");
-    });
-    assert_eq!(read(&shell, cx, "sortMark"), "name:asc");
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    for remember in [true, false] {
+        let (shell, cx) = setup(cx, "/", 2, remember);
+        let before = shell.read_with(cx, |shell, _| {
+            shell.launch.settings.data.get("folderSorts").cloned()
+        });
+        recent(&shell, cx);
+        cx.simulate_keystrokes("s");
+        assert_eq!(read(&shell, cx, "sortMark"), "kind:asc");
+        click(&shell, cx, Hit::New);
+        assert_eq!(read(&shell, cx, "tabCount"), "3");
+        assert_eq!(read(&shell, cx, "recentMode"), "");
+        folder_request("/");
+        pair(&shell, cx, "/", true);
+        pair(&shell, cx, "/", false);
+        // With memory on the late Recent sort writes nothing; with it off only the global fallback.
+        let (global_key, writes, mark) = if remember {
+            ("name", 0, "size:desc")
+        } else {
+            ("kind", 1, "name:asc")
+        };
+        shell.read_with(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            assert_eq!(
+                shell.launch.settings.data.get("folderSorts"),
+                before.as_ref()
+            );
+            assert_eq!(host.nav.folders.borrow().get("/").unwrap().key, "size");
+            let global = shell.launch.settings.data.get("sort").unwrap();
+            assert_eq!(global.get("key").and_then(Json::as_str), Some(global_key));
+            assert_eq!(global.get("reverse").and_then(Json::as_bool), Some(false));
+            assert_eq!(host.nav.writer.borrow().sort_writes(), writes);
+            assert_eq!(host.pane.held.rows[0].name, "A");
+        });
+        assert_eq!(read(&shell, cx, "sortMark"), mark);
+        shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    }
 }

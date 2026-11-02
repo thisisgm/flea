@@ -64,12 +64,16 @@ fn loading_caption(view: View, cx: &mut TestAppContext) {
         shell.view = view;
         cx.notify();
     });
+    cx.update(|cx| cx.global::<Captions>().0.borrow_mut().clear());
     let mark = load(cx, handle);
     frame(cx, handle);
     assert!(
         mark.shown(),
         "the unanswered listing shows its loading mark"
     );
+    shell(cx, handle, |shell, _, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().drawn_view, Some(view));
+    });
     assert_captions(view, theme, cx);
 }
 
@@ -89,6 +93,16 @@ fn assert_captions(view: View, theme: Theme, cx: &mut TestAppContext) {
             "{view:?}: caption moves up 9 px while the 66 px mark slot stays put"
         );
     }
+}
+
+#[test]
+fn feedback_remainder_ey516_caption_lift_never_enters_the_mark_slot() {
+    use flea::ui_logic_st1::textsize::{body_small, STOPS};
+    for base in STOPS {
+        let lift = super::spinner::caption_lift(px(body_small(base) as f32));
+        assert!(lift <= px(super::spinner::GAP), "text {base}: {lift:?}");
+    }
+    assert_eq!(super::spinner::caption_lift(px(13.)), px(9.));
 }
 
 #[gpui::test]

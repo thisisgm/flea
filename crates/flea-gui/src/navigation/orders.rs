@@ -23,6 +23,11 @@ impl super::Navigator {
         !pane.state.search && !self.orders.paths
     }
 
+    /// Only leaving Recent ends its explicit paths, so a re-read under Recent cannot claim a folder.
+    pub(crate) fn leave_paths(&mut self) {
+        self.orders.paths = false;
+    }
+
     /// A sorted replacement can keep select-all made after the sort cleared the old row marks.
     pub(crate) fn sort_landing(&self, pane: &crate::pane::Pane) -> bool {
         self.orders.path == pane.path()
