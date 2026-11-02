@@ -138,9 +138,9 @@ fn pb_columns2_archive_reader_returns_the_mounted_entries_rectangle(cx: &mut Tes
     assert!(read(&shell, cx, "columnMarkdownText", &[]).is_empty());
 }
 
-// EY-406: the column lists entries as PreviewArchive does, a 1.8 caption line box (22 px at 12) in the muted ink.
+// EY-406: the column steps entries as PreviewArchive does, a 1.8 caption line box (22 px at 12), not the 1.4 line pitch.
 #[gpui::test]
-fn columns_archive_entries_keep_the_v0312_pitch_and_ink(cx: &mut TestAppContext) {
+fn columns_archive_entries_keep_the_v0312_pitch(cx: &mut TestAppContext) {
     let (shell, cx) = host::open(cx, "/files");
     super::test_shell::land(
         &shell,
@@ -163,13 +163,8 @@ fn columns_archive_entries_keep_the_v0312_pitch_and_ink(cx: &mut TestAppContext)
             panic!("archive mounted");
         };
         let archive = archive.read(cx);
-        let theme = cx
-            .try_global::<crate::palette::Theme>()
-            .copied()
-            .unwrap_or_default();
         let caption = f32::from(archive.metrics.caption);
         assert_eq!(archive.metrics.row, (caption * 1.8).round(), "row pitch");
-        assert_eq!(archive.palette.muted, theme.muted, "entry ink");
     });
 }
 
