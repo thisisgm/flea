@@ -3,7 +3,6 @@ use super::process::{Job, Outcome};
 use flea::ui_logic_pl1::devices::{host_label, mount_timer_start, parse_devices, LSBLK_ARGV};
 use flea::ui_logic_pl1::mounts::same_entries;
 use flea::ui_logic_pl1::power::{mount_detail, mount_error, Op, Queued};
-use flea::ui_logic_pl1::unlock::{backing_for, lock_argv, lock_note};
 use flea::ui_logic_pl1::{Kind, Note, RailEntry};
 
 /// A child the service runs; one of each at a time.
@@ -80,8 +79,10 @@ pub struct Devices {
     pub(super) unmount_ended_late: bool,
     pub(super) eject_ended_late: bool,
     pub(super) last_verdict: Option<Note>,
-    lock_label: String,
-    lock_queue: Vec<(String, String)>,
+    pub(super) lock_label: String,
+    pub(super) lock_backing: String,
+    pub(super) lock_queue: Vec<(String, String)>,
+    pub(super) lock_checks: Vec<(String, String, u64)>,
 }
 
 impl Devices {
@@ -114,6 +115,7 @@ impl Devices {
             || self.releasing()
             || !self.pending_open_device.is_empty()
             || !self.power_disk.is_empty()
+            || !self.lock_checks.is_empty()
     }
 
     pub fn poll(&mut self, now: u64) -> Vec<Effect> {
@@ -190,6 +192,9 @@ impl Devices {
         self.stream_pending = false;
         let mut out = Vec::new();
         if !self.list_timed_out {
+            if outcome.code == 0 {
+                out.extend(self.judge_locks(&outcome.stdout));
+            }
             out.extend(self.judge_eject(&outcome.stdout));
             self.listing = outcome.stdout.clone();
             out.extend(self.rebuild());
@@ -323,60 +328,6 @@ impl Devices {
                 out.extend(lock);
                 return out;
             }
-        }
-        out.extend(self.poll(now));
-        out
-    }
-
-    /// Locks the container behind a released crypt; None when the device has no backing container.
-    pub(super) fn lock_crypt(
-        &mut self,
-        device: &str,
-        label: &str,
-        listing: &str,
-    ) -> Option<Vec<Effect>> {
-        let backing = backing_for(listing, device);
-        if backing.is_empty() {
-            return None;
-        }
-        if self.running(Proc::Lock) {
-            self.lock_queue.push((backing, label.to_string()));
-            return Some(Vec::new());
-        }
-        self.lock_label = label.to_string();
-        Some(vec![self.start(
-            Proc::Lock,
-            Job::plain(
-                &lock_argv(&backing)
-                    .iter()
-                    .map(String::as_str)
-                    .collect::<Vec<_>>(),
-            ),
-        )])
-    }
-
-    pub fn lock_exited(&mut self, outcome: &Outcome, now: u64) -> Vec<Effect> {
-        self.running[Proc::Lock as usize] = false;
-        let label = std::mem::take(&mut self.lock_label);
-        let mut out = Vec::new();
-        if outcome.code != 0 {
-            out.push(Effect::Message(lock_note(&label), true));
-        }
-        if !self.lock_queue.is_empty() {
-            let (backing, next) = self.lock_queue.remove(0);
-            self.lock_label = next;
-            out.push(
-                self.start(
-                    Proc::Lock,
-                    Job::plain(
-                        &lock_argv(&backing)
-                            .iter()
-                            .map(String::as_str)
-                            .collect::<Vec<_>>(),
-                    ),
-                ),
-            );
-            return out;
         }
         out.extend(self.poll(now));
         out

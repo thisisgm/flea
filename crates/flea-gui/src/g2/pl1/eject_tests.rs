@@ -197,6 +197,11 @@ fn an_unmount_locks_from_the_listing_it_already_holds_and_a_refusal_is_one_attem
         Some("udisksctl lock --block-device /dev/sdb1")
     );
     let effects = d.lock_exited(&Outcome::code(1), 20);
+    assert!(
+        messages(&effects).is_empty(),
+        "the lock exit awaits a fresh mapping snapshot"
+    );
+    let effects = d.list_exited(&listed(OPEN_CRYPT));
     assert_eq!(
         messages(&effects),
         ["vault was unmounted but could not be locked; close what is using it.|true"]

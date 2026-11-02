@@ -7,6 +7,7 @@ pub mod host;
 pub mod ink;
 pub mod keys;
 pub mod listing;
+mod lock;
 pub mod mark;
 pub mod phones;
 pub mod probes;
@@ -30,6 +31,8 @@ mod host_tests;
 mod keys_tests;
 #[cfg(test)]
 mod listing_tests;
+#[cfg(test)]
+mod lock_tests;
 #[cfg(test)]
 mod process_tests;
 #[cfg(test)]
