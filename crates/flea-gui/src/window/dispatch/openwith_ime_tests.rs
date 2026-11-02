@@ -1,5 +1,5 @@
 //! The Open With search composes through the window's shared entry: a composition shows only in the field, the query and list follow the commit, and it never launches.
-use super::{answer, opened, quit, sent};
+use super::{answer, deliver, opened, quit, sent};
 use crate::{
     g2::{
         op1::dialog_editor::Slot,
@@ -75,6 +75,35 @@ fn ready(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, u64
     sent();
     draw(cx);
     (shell, cx, id)
+}
+
+// Sample input: {"c":"menuaction","op":"snapshot","id":2}; the replacement holds it before its catalogue.
+fn catalogue(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    let snapshot = sent()
+        .iter()
+        .filter_map(|line| flea::jsondoc::parse(line).ok())
+        .find(|doc| doc.get("op").and_then(flea::jsondoc::Json::as_str) == Some("snapshot"))
+        .and_then(|doc| doc.get("id").and_then(flea::jsondoc::Json::as_f64))
+        .expect("the replacement card snapshots its row") as u64;
+    assert_eq!(
+        snapshot,
+        shell.read_with(cx, |s, _| s.open_with.as_ref().unwrap().id)
+    );
+    deliver(
+        shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{snapshot},"op":"snapshot","ok":true,"kinds":[33188]}}"#
+        ),
+    );
+    assert_eq!(
+        sent(),
+        [format!(
+            r#"{{"c":"menuaction","op":"applications","id":{snapshot},"installed":true}}"#
+        )],
+        "the replacement asks for its catalogue after holding its snapshot"
+    );
+    answer(shell, cx, snapshot);
 }
 
 #[gpui::test]
@@ -245,8 +274,7 @@ fn i50_openwith_replaced_card_refuses_the_old_sessions_callback(cx: &mut TestApp
     });
     assert_eq!(listed(&shell, cx).0, "");
     draw(cx);
-    let id = shell.read_with(cx, |s, _| s.open_with.as_ref().unwrap().id);
-    answer(&shell, cx, id);
+    catalogue(&shell, cx);
     draw(cx);
     assert!(cx.debug_bounds("op3-openwith-scrim").is_some());
     cx.simulate_input("n");
