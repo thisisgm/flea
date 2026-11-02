@@ -2419,5 +2419,6 @@
   "settings.hint.key_repeated": "keys.toml의 이전 줄에서 이미 지정했으므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_reserved": "Flea가 자체 용도로 예약했으므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_taken": "이 프리셋에서 %2 동작이 이미 사용하므로 %1 키는 지정되지 않은 상태로 남습니다.",
-  "settings.hint.key_unknown": "Flea에 이름이 %2인 동작이 없으므로 %1 키는 지정되지 않은 상태로 남습니다."
+  "settings.hint.key_unknown": "Flea에 이름이 %2인 동작이 없으므로 %1 키는 지정되지 않은 상태로 남습니다.",
+  "mime.png": "PNG 이미지"
 }

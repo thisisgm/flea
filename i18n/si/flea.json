@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "keys.toml හි පෙර පේළියක දැනටමත් බන්ධනය කර ඇති නිසා %1 බන්ධනය නොකර තබයි.",
   "settings.hint.key_reserved": "Flea තම භාවිතයට වෙන් කර ඇති නිසා %1 බන්ධනය නොකර තබයි.",
   "settings.hint.key_taken": "මෙම පෙරසැකසුමේ %2 දැනටමත් භාවිත කරන නිසා %1 බන්ධනය නොකර තබයි.",
-  "settings.hint.key_unknown": "Flea හි %2 නමින් ක්‍රියාවක් නැති නිසා %1 බන්ධනය නොකර තබයි."
+  "settings.hint.key_unknown": "Flea හි %2 නමින් ක්‍රියාවක් නැති නිසා %1 බන්ධනය නොකර තබයි.",
+  "mime.png": "PNG රූපය"
 }

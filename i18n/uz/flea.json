@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "keys.toml faylining oldingi qatori allaqachon tayinlagani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
   "settings.hint.key_reserved": "Flea oʻzi uchun ajratgani sababli %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
   "settings.hint.key_taken": "Bu tayyor sozlamalarda %2 allaqachon ishlatgani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
-  "settings.hint.key_unknown": "Flea dasturida %2 nomli amal yoʻqligi uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi."
+  "settings.hint.key_unknown": "Flea dasturida %2 nomli amal yoʻqligi uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
+  "mime.png": "PNG tasviri"
 }

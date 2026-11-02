@@ -2957,5 +2957,6 @@
   "settings.hint.key_repeated": "يبقى ⁦%1⁩ بلا ربط لأن سطرًا سابقًا من ⁦keys.toml⁩ قد ربطه بالفعل.",
   "settings.hint.key_reserved": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ يحتفظ به لنفسه.",
   "settings.hint.key_taken": "يبقى ⁦%1⁩ بلا ربط لأن ⁨%2⁩ يستخدمه بالفعل في هذا الإعداد المسبق.",
-  "settings.hint.key_unknown": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ ليس لديه إجراء باسم ⁨%2⁩."
+  "settings.hint.key_unknown": "يبقى ⁦%1⁩ بلا ربط لأن ⁦Flea⁩ ليس لديه إجراء باسم ⁨%2⁩.",
+  "mime.png": "صورة PNG"
 }

@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "dbd848225c0f14811e48db2f2c86397e99c189b03a948a7a36dd4c83c848ab11",
-  "catalog_sha256": "f62caed8c076e92affd562726e00e976eb06a15ab0315e50a8e2e86e17662804",
+  "catalog_file_sha256": "4f13e199f12a390214812d5ddb7af178fcd4aee38db276c924d7a69d72588e9a",
+  "catalog_sha256": "62cf770a5692af5867ab31f9adaf4342812cb2605bbd07624eced9b001f514e7",
   "counts": {
     "direct_references": 0,
-    "keys": 2218,
+    "keys": 2219,
     "plurals": 106
   },
   "direct_references": {},
@@ -76024,7 +76024,7 @@
     "mime.markdown": {
       "call_sites": [
         {
-          "excerpt": "let key = match mime { \"text/markdown\" => \"mime.markdown\", _ => return None };",
+          "excerpt": "let key = match mime { \"text/markdown\" => \"mime.markdown\", \"image/png\" => \"mime.png\", _ => return None };",
           "line": 159,
           "path": "src/i18n/mod.rs",
           "surface": "core/backend",
@@ -76049,6 +76049,28 @@
       "resolved_sha256": "c24f1bce0d9fea4e0bc25d9d2cdd4e6063d324756be32217e667552ff5156ce4",
       "resolved_source_hash": "00271ff95f27",
       "source_hash": "00271ff95f27"
+    },
+    "mime.png": {
+      "call_sites": [
+        {
+          "excerpt": "let key = match mime { \"text/markdown\" => \"mime.markdown\", \"image/png\" => \"mime.png\", _ => return None };",
+          "line": 159,
+          "path": "src/i18n/mod.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "mime.png: src/i18n/mod.rs:159",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "PNG image",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "PNG image",
+      "resolved_sha256": "5a2f9ba5da6fc874864744310cbd3204794cd55be3aca930691b9a2162d1e97b",
+      "resolved_source_hash": "6ef9788d38d3",
+      "source_hash": "6ef9788d38d3"
     },
     "model3d.cannot_preview": {
       "call_sites": [
@@ -88300,7 +88322,7 @@
       "call_sites": [
         {
           "excerpt": ".child(self.catalog.tr_args(\"preview.loadHint\", &[\"Ctrl+Space\"])),",
-          "line": 197,
+          "line": 190,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -88407,14 +88429,14 @@
       "call_sites": [
         {
           "excerpt": "Some(self.catalog.tr(\"preview.no_preview\")),",
-          "line": 186,
+          "line": 179,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(self.catalog.tr(\"preview.no_preview\")),",
-          "line": 286,
+          "line": 279,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -88436,7 +88458,7 @@
       "call_sites": [
         {
           "excerpt": ".then(|| self.catalog.tr(\"preview.no_thumb\")),",
-          "line": 293,
+          "line": 286,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -88944,7 +88966,7 @@
       "call_sites": [
         {
           "excerpt": ".trn(\"preview.selected\", frame.subject.selected_count as i64)",
-          "line": 352,
+          "line": 345,
           "path": "crates/flea-gui/src/window/selection_preview_render.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -124133,7 +124155,7 @@
     },
     {
       "excerpt": "\"Markdown document\".into(),",
-      "line": 265,
+      "line": 305,
       "literal": "Markdown document",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/preview_facts.rs",
@@ -124574,7 +124596,7 @@
     },
     {
       "excerpt": ".expect(\"thumbnail request identity exhausted\");",
-      "line": 25,
+      "line": 27,
       "literal": "thumbnail request identity exhausted",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/selection_preview_thumbnail_observer.rs",
@@ -137876,7 +137898,7 @@
     },
     {
       "excerpt": "\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\",",
-      "line": 82,
+      "line": 91,
       "literal": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137885,7 +137907,7 @@
     },
     {
       "excerpt": "\"<mime-type xmlns=\\\"http://www.freedesktop.org/standards/shared-mime-info\\\" type=\\\"application/msword\\\">\\n\",",
-      "line": 83,
+      "line": 92,
       "literal": "<mime-type xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\" type=\"application/msword\">\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137894,7 +137916,7 @@
     },
     {
       "excerpt": "\"  <comment xml:lang=\\\"zh-Hant-TW\\\">Word 文件</comment>\\n\",",
-      "line": 84,
+      "line": 93,
       "literal": "  <comment xml:lang=\"zh-Hant-TW\">Word 文件</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137903,7 +137925,7 @@
     },
     {
       "excerpt": "\"  <comment xml:lang=\\\"vi\\\">Tài liệu Word</comment>\\n\",",
-      "line": 85,
+      "line": 94,
       "literal": "  <comment xml:lang=\"vi\">Tài liệu Word</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137912,7 +137934,7 @@
     },
     {
       "excerpt": "\"  <comment>Word document</comment>\\n\",",
-      "line": 86,
+      "line": 95,
       "literal": "  <comment>Word document</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137921,7 +137943,7 @@
     },
     {
       "excerpt": "assert_eq!(first_untranslated_comment(MSWORD_SHAPED).as_deref(), Some(\"Word document\"));",
-      "line": 92,
+      "line": 101,
       "literal": "Word document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137930,7 +137952,7 @@
     },
     {
       "excerpt": "let translated_only = \"<mime-type type=\\\"application/x-thing\\\">\\n  <comment xml:lang=\\\"de\\\">Datei</comment>\\n</mime-type>\\n\";",
-      "line": 97,
+      "line": 106,
       "literal": "<mime-type type=\"application/x-thing\">\n  <comment xml:lang=\"de\">Datei</comment>\n</mime-type>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137939,7 +137961,7 @@
     },
     {
       "excerpt": "let jpeg = db.comment(\"image/jpeg\").expect(\"shared-mime-info is a hard dependency and ships image/jpeg\");",
-      "line": 111,
+      "line": 120,
       "literal": "shared-mime-info is a hard dependency and ships image/jpeg",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137948,7 +137970,7 @@
     },
     {
       "excerpt": "let msword = db.comment(\"application/msword\").expect(\"shared-mime-info ships application/msword\");",
-      "line": 114,
+      "line": 123,
       "literal": "shared-mime-info ships application/msword",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137957,7 +137979,7 @@
     },
     {
       "excerpt": "assert!(msword.is_ascii(), \"got a translated comment: {msword}\");",
-      "line": 115,
+      "line": 124,
       "literal": "got a translated comment: {msword}",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137966,7 +137988,7 @@
     },
     {
       "excerpt": "let mut db = Kinds::from_pairs(&[(\"text/plain\", Some(\"Plain Text Document\"))]);",
-      "line": 130,
+      "line": 139,
       "literal": "Plain Text Document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137975,7 +137997,7 @@
     },
     {
       "excerpt": "assert_eq!(db.comment(\"text/plain\").as_deref(), Some(\"Plain Text Document\"));",
-      "line": 131,
+      "line": 140,
       "literal": "Plain Text Document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -137984,7 +138006,7 @@
     },
     {
       "excerpt": "\"<comment xml:lang='fr'>image &amp; dessin</comment>\",",
-      "line": 111,
+      "line": 115,
       "literal": "<comment xml:lang='fr'>image &amp; dessin</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -137993,7 +138015,7 @@
     },
     {
       "excerpt": "\"<comment xml:lang='pt'>imagem</comment><comment xml:lang='pt-BR'>imagem BR</comment>\",",
-      "line": 112,
+      "line": 116,
       "literal": "<comment xml:lang='pt'>imagem</comment><comment xml:lang='pt-BR'>imagem BR</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138002,7 +138024,7 @@
     },
     {
       "excerpt": "\"<comment xml:lang='zh-Hant-TW'>PNG &#x5716;&#20687;</comment>\",",
-      "line": 113,
+      "line": 117,
       "literal": "<comment xml:lang='zh-Hant-TW'>PNG &#x5716;&#20687;</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138011,7 +138033,7 @@
     },
     {
       "excerpt": "\"<comment xml:lang='zh-Hans-CN'>PNG 图像</comment>\",",
-      "line": 114,
+      "line": 118,
       "literal": "<comment xml:lang='zh-Hans-CN'>PNG 图像</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138020,7 +138042,7 @@
     },
     {
       "excerpt": "\"<comment xml:lang='sr-Cyrl'>ПНГ слика</comment><comment>PNG &amp; image</comment>\",",
-      "line": 115,
+      "line": 119,
       "literal": "<comment xml:lang='sr-Cyrl'>ПНГ слика</comment><comment>PNG &amp; image</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138029,7 +138051,7 @@
     },
     {
       "excerpt": "(\"pt-BR\", \"imagem BR\"),",
-      "line": 119,
+      "line": 123,
       "literal": "imagem BR",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138038,7 +138060,7 @@
     },
     {
       "excerpt": "(\"pt_BR\", \"imagem BR\"),",
-      "line": 120,
+      "line": 124,
       "literal": "imagem BR",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138047,7 +138069,7 @@
     },
     {
       "excerpt": "let comments = Comments::parse(\"<commentary>wrong</commentary><comment xml:lang='ja'> </comment><comment>Data</comment>\");",
-      "line": 134,
+      "line": 138,
       "literal": "<commentary>wrong</commentary><comment xml:lang='ja'> </comment><comment>Data</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138056,7 +138078,7 @@
     },
     {
       "excerpt": "assert_eq!(comments.select(\"ja\").as_deref(), Some(\"Data\"));",
-      "line": 135,
+      "line": 139,
       "literal": "Data",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138065,7 +138087,7 @@
     },
     {
       "excerpt": "Comments::parse(\"<comment xml:lang='ja'>画像</comment>\").select(\"en\"),",
-      "line": 138,
+      "line": 142,
       "literal": "<comment xml:lang='ja'>画像</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138074,7 +138096,7 @@
     },
     {
       "excerpt": "let comments = Comments::parse(\"<comment xml:lang='ja'/><comment>PNG image</comment>\");",
-      "line": 145,
+      "line": 149,
       "literal": "<comment xml:lang='ja'/><comment>PNG image</comment>",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138083,7 +138105,7 @@
     },
     {
       "excerpt": "assert_eq!(comments.select(\"en\").as_deref(), Some(\"PNG image\"));",
-      "line": 146,
+      "line": 150,
       "literal": "PNG image",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -138092,7 +138114,7 @@
     },
     {
       "excerpt": "assert_eq!(comments.select(\"ja\").as_deref(), Some(\"PNG image\"));",
-      "line": 147,
+      "line": 151,
       "literal": "PNG image",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
@@ -245535,7 +245557,7 @@
     "crates/flea-gui/src/g2/op4/m9_g2rows_21_artifacts.rs": "9bf69f03b00806ecc6ee06ee5ab76471f56b7e51d87af704802abcc6c327d47f",
     "crates/flea-gui/src/g2/op4/mod.rs": "fd46d620b9083d4777182de2cbe6f633a6b9661e2f7ed6702b39b1f74e8de35c",
     "crates/flea-gui/src/g2/op4/model.rs": "848930f8579d2cca1542839bde0cc7ac0078f34d7046848099e5643727dea434",
-    "crates/flea-gui/src/g2/op4/observations.rs": "6b1cda909e0b87fa20cdbf7274523913247a1673082d8741d0d2a6dc44157030",
+    "crates/flea-gui/src/g2/op4/observations.rs": "666fc633e26898a1296fafacab482cac28b17485559e0e07beef706a95b46353",
     "crates/flea-gui/src/g2/op4/preview.rs": "da533c7b42f95e01a1b7c69bd66e649294f45e5eb8934c6c618c0ba8a7028821",
     "crates/flea-gui/src/g2/op4/printer_menu.rs": "f8d76d7c23c63fe40acf4bf96a296c7b10904cf30e13aa8eb79b39bcf771ec07",
     "crates/flea-gui/src/g2/op4/printing.rs": "4b894ca0b6cca87dbcebc8b14140e8750ff2738aa54629a9acec1f6e550acccb",
@@ -245772,7 +245794,7 @@
     "crates/flea-gui/src/g2/pv2/csv/paint.rs": "d5aeda6b7aa381e09a7aaf3d4e911079777fd886e2ed21bd150412cfede05c2a",
     "crates/flea-gui/src/g2/pv2/csv/scroll.rs": "910fb53616faa85e43e0737c1cb041134f4d446ef801135541217a80b35dc2fc",
     "crates/flea-gui/src/g2/pv2/font/mod.rs": "f467f5a99c51dfd86d312f89f9f0c2ad1bf1c4de824d8fd10d37a37391877d89",
-    "crates/flea-gui/src/g2/pv2/html/capture.rs": "fc51c060ac58fdb7c013fb8b7c5bec06793e7c70cf11110952808c5bc66f1b75",
+    "crates/flea-gui/src/g2/pv2/html/capture.rs": "1fd5baf0372d6131031928d98135fd4b3bd45881e069225295bc924421ae9e9c",
     "crates/flea-gui/src/g2/pv2/html/decode.rs": "a7c9b4322c101e22eb207219fb463ffe3f4b30ddf2e29672f8046158bef24ece",
     "crates/flea-gui/src/g2/pv2/html/mod.rs": "da14cc4cc9a0c6077784056fe8a92f9afc912d1c2a1a3e5f21993f0779c85758",
     "crates/flea-gui/src/g2/pv2/html/paint.rs": "2155df6e2000538509aee3966062b84b554feef94fddb4058cf42f8cdf2e4ebe",
@@ -245981,7 +246003,7 @@
     "crates/flea-gui/src/ipc/grid_rows.rs": "af89fbc764f183356cadd1592260082bffec6d74a5a07e8358765b1bda336f1c",
     "crates/flea-gui/src/ipc/keyboard_state.rs": "66cabd2b09b48864670ab82370f450224a6b9f7890eaf5eb6fd731a560a7fd63",
     "crates/flea-gui/src/ipc/main_cohesion.rs": "6440944706cce131792f492e40adc4ecbe76cae4c4c651e7a88bb5a5d625429c",
-    "crates/flea-gui/src/ipc/mod.rs": "eed4d2544f75b56316e058cf6e401f27f57da9323f4685838f62c9327a2c1667",
+    "crates/flea-gui/src/ipc/mod.rs": "53050edb25de2b3cd5face78d9df96f23d834bd56f03744a801abd8815f78035",
     "crates/flea-gui/src/ipc/native_window.rs": "8dedbe41d3559c5555e0c5baa624118b8bbccaed3f5e998d5573e66cdde434b2",
     "crates/flea-gui/src/ipc/navigation.rs": "dc6ecdbccd6bca19ab32af13b6636f7f1cafcc839f60b00ac0744f0c07faade4",
     "crates/flea-gui/src/ipc/network.rs": "67548c5c3b7b9828310d8e9c9100e5e044bd130a3abb05f9a3d53dd58ec4ae56",
@@ -246305,7 +246327,7 @@
     "crates/flea-gui/src/window/path_host.rs": "d50062fb0ee8daf8ceb8b77c509df505d2b19e809a036e2226c49a0a2116e0e1",
     "crates/flea-gui/src/window/permissions.rs": "39cbf39700e8513af8f0c91d025c8b6443cfa75770add5d52e3c86a1543c8e0e",
     "crates/flea-gui/src/window/presentation.rs": "2caf7b658f62f67bd31210bd2d70d6d2d5a03b9b5bd40158de66d9a93cacc67f",
-    "crates/flea-gui/src/window/preview_facts.rs": "a50db0688e0dc6a7d35668496ce98602520cc3c75f4d9b258acc4fe7027e5bd6",
+    "crates/flea-gui/src/window/preview_facts.rs": "5a931f59808be2ba57221ef451a3c4d6a258798cb9e9a5d0d35f9c230c140da4",
     "crates/flea-gui/src/window/preview_input.rs": "d13e5cb1b20ada69c2665945f7716929a981aa79ef64a240b03c402599ae848d",
     "crates/flea-gui/src/window/preview_locale.rs": "1bce6c127201f52c39d5b566c4b30ab6889bdec00dd49dd67e23c473f94dc23b",
     "crates/flea-gui/src/window/preview_text_selection.rs": "6e75c887043f5e5f0e28feb1991390857e07b16b368b4b43d37cb02ab64601bf",
@@ -246372,9 +246394,9 @@
     "crates/flea-gui/src/window/selection_preview_plugin.rs": "9d48c70b18d50b204c48afd7f8300b257ead7fa44492b5e786af69baacf04cf3",
     "crates/flea-gui/src/window/selection_preview_quality.rs": "1913666a13d8354cac7a475c357f7b6c7dc4573de978bc1f43dc3ab69ea67b8d",
     "crates/flea-gui/src/window/selection_preview_readers.rs": "4e63470c4be7f1d0a4b2af53a975294f2259b92dacd2f9aa44700e70bea43223",
-    "crates/flea-gui/src/window/selection_preview_render.rs": "0fe4963bdb598c301cb773fbafa9f703cf5482fabaf7fbdead353c46181571ed",
+    "crates/flea-gui/src/window/selection_preview_render.rs": "9d37d5c742b0a864d89be20ad0bdefcba3551171930949d580754b9e82bcd9a9",
     "crates/flea-gui/src/window/selection_preview_text.rs": "157c6d8e2fe2ca0394e96dcb1f2c718ad53f129f97c9c52f5af20c46559af84d",
-    "crates/flea-gui/src/window/selection_preview_thumbnail_observer.rs": "66ac692dd0534cd51f980cfc432e35331943f7cd9642a5cf7cd609555b6df254",
+    "crates/flea-gui/src/window/selection_preview_thumbnail_observer.rs": "495194036f6119cffa310816fb8c3e147ef24ccfe8ea62baac2dc03e2db064a5",
     "crates/flea-gui/src/window/selection_preview_wire.rs": "ec4e4d20ff2b767a3362a1f534675e96a0e73483e8c9a990ed45caf93d358d3e",
     "crates/flea-gui/src/window/settings/actions.rs": "920524f1674cfc0ef1b8ec17d9712cbfc21adff1671dc6bb386c0f45e1dc8fdc",
     "crates/flea-gui/src/window/settings/apply.rs": "580d0ddca82a039c9f14015b17e5a4877462b25b03391a40c86168e15f130d74",
@@ -246523,8 +246545,8 @@
     "src/backend/jobwork.rs": "3505783a5e0f6f6f891f2e1f78eb82e71309886f9783ccb16dcb9a3191039dc1",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "baa36b5f1736cb4ba132be7ec864eb9c248cbecad5e66620a1d25d24d45d6320",
-    "src/backend/kind.rs": "c8bbd66b0fd7cc766f70bcef14282201b23cdbcbdd313ff479e24cc2a28ebac0",
-    "src/backend/kind_comments.rs": "04f5da051eb70d907f06c55ff54bc0fadc49feeabb0df7e68c35c1896dc8d4ca",
+    "src/backend/kind.rs": "29cc369380abd40ae283efe5221ce3c7d6cbddc06779bb1d7dbccecb770b1322",
+    "src/backend/kind_comments.rs": "f5f621246f0a4ef50426490a0d3d24278564b5f8adfbd634ef1ae362613e35dc",
     "src/backend/lazy.rs": "7004a94fcc2c18a9f37efd26e51df054fe879b60ec9829660181b658b2dfefe6",
     "src/backend/linecount.rs": "ee7a2e74cd0adc49414e1faaf53d2017e375d1678910cccb677ca84f0d570952",
     "src/backend/link.rs": "2865e2ccbbe58915e91b75bdf7962ecc0af101fcf2c0ee6f8790978b341402ac",
@@ -246820,7 +246842,7 @@
     "src/i18n/document.rs": "ab0dbe4ae58e689cbebca9606fb6d83e60484fd75ded25027f618ce166800729",
     "src/i18n/format.rs": "2be16c98596f0d2009c1f72035f9fc867db75d0f48c583ee3eb8602d75a7f10d",
     "src/i18n/locale.rs": "ea6ecab81ef449c47b943c92aeaf5c8f7494c9a99b79c3dca280740d06240a3a",
-    "src/i18n/mod.rs": "f974e39eed3d1b76c1f3c59c970df50e6ef4fc57c6b6d10ed6f174822f858d03",
+    "src/i18n/mod.rs": "feae510eb8a6bcf7517ab0df7436be85efd227ba576959a46d90a005af131dd4",
     "src/i18n/plural.rs": "36727a3843c0be06745c88e469f4f619895326d95035d7729f896353ec3b56c0",
     "src/icdexclude.rs": "069c23e5cedb162ab3bd7204caca3d2c35cc5dcc4185f5e5264a5237eb41f592",
     "src/icdmanifests.rs": "c2bcea2c13b9040b29227c87c0a3390f66418634254a74e73593acdca2d75f9c",
@@ -247903,7 +247925,7 @@
   "source_sha": "6e67d5a624a6ca86488d87537c6710f66f8004d1",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1285,
+      "keys_with_occurrences": 1286,
       "missing_literal_candidates": 5720,
       "source_files": 836
     },

@@ -2420,5 +2420,6 @@
   "settings.hint.key_reserved": "Flea が自身のために予約しているため、%1 は未割り当てのままです。",
   "settings.hint.key_taken": "このプリセットでは %2 がすでに使用しているため、%1 は未割り当てのままです。",
   "settings.hint.key_unknown": "Flea に %2 というアクションがないため、%1 は未割り当てのままです。",
-  "mime.markdown": "Markdown 文書"
+  "mime.markdown": "Markdown 文書",
+  "mime.png": "PNG 画像"
 }

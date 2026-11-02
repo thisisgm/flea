@@ -2745,5 +2745,6 @@
   "settings.hint.key_repeated": "%1 pozostaje bez przypisania, ponieważ wcześniejszy wiersz keys.toml już przypisuje tę sekwencję.",
   "settings.hint.key_reserved": "%1 pozostaje bez przypisania, ponieważ Flea rezerwuje tę sekwencję dla siebie.",
   "settings.hint.key_taken": "%1 pozostaje bez przypisania, ponieważ %2 już używa tej sekwencji w tym zestawie.",
-  "settings.hint.key_unknown": "%1 pozostaje bez przypisania, ponieważ Flea nie ma działania o nazwie %2."
+  "settings.hint.key_unknown": "%1 pozostaje bez przypisania, ponieważ Flea nie ma działania o nazwie %2.",
+  "mime.png": "Obraz PNG"
 }

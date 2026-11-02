@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 ostaje nedodijeljen jer ga već dodjeljuje raniji redak u keys.toml.",
   "settings.hint.key_reserved": "%1 ostaje nedodijeljen jer ga Flea zadržava za sebe.",
   "settings.hint.key_taken": "%1 ostaje nedodijeljen jer ga %2 već koristi u ovom predlošku.",
-  "settings.hint.key_unknown": "%1 ostaje nedodijeljen jer Flea nema radnju s nazivom %2."
+  "settings.hint.key_unknown": "%1 ostaje nedodijeljen jer Flea nema radnju s nazivom %2.",
+  "mime.png": "PNG slika"
 }

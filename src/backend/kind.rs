@@ -49,9 +49,14 @@ impl Kinds {
             let path = PathBuf::from(MIME_ROOT).join(format!("{mime}.xml"));
             Comments::parse(&std::fs::read_to_string(path).unwrap_or_default())
         });
-        let value = self.catalog.as_ref().filter(|_| self.language != "en")
-            .and_then(|catalog| catalog.mime_comment(mime)).map(str::to_string)
-            .or_else(|| comments.select(&self.language));
+        let override_word = self.catalog.as_ref().filter(|_| self.language != "en")
+            .and_then(|catalog| catalog.mime_comment(mime)).map(str::to_string);
+        let translated = (self.language != "en").then(|| comments.translation(&self.language)).flatten();
+        let value = if mime == "text/markdown" {
+            override_word.or(translated)
+        } else {
+            translated.or(override_word)
+        }.or_else(|| comments.select(&self.language));
         self.cache.insert(mime.into(), value.clone());
         value
     }
@@ -72,6 +77,10 @@ fn first_untranslated_comment(text: &str) -> Option<String> {
 #[cfg(test)]
 #[path = "kind_locale_tests.rs"]
 mod locale_tests;
+
+#[cfg(test)]
+#[path = "kind_polish_tests.rs"]
+mod polish_tests;
 
 #[cfg(test)]
 mod tests {

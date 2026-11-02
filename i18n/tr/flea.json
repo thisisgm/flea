@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "keys.toml dosyasının önceki bir satırı zaten atadığı için %1 tuş dizisi atanmamış kalır.",
   "settings.hint.key_reserved": "Flea kendisi için ayırdığı için %1 tuş dizisi atanmamış kalır.",
   "settings.hint.key_taken": "Bu ön ayarda %2 zaten kullandığı için %1 tuş dizisi atanmamış kalır.",
-  "settings.hint.key_unknown": "Flea içinde %2 adlı bir eylem olmadığı için %1 tuş dizisi atanmamış kalır."
+  "settings.hint.key_unknown": "Flea içinde %2 adlı bir eylem olmadığı için %1 tuş dizisi atanmamış kalır.",
+  "mime.png": "PNG görüntüsü"
 }

@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 hozzárendelés nélkül marad, mert a keys.toml egy korábbi sora már hozzárendeli.",
   "settings.hint.key_reserved": "%1 hozzárendelés nélkül marad, mert a Flea saját magának tartja fenn.",
   "settings.hint.key_taken": "%1 hozzárendelés nélkül marad, mert ebben az előbeállításban már a(z) %2 használja.",
-  "settings.hint.key_unknown": "%1 hozzárendelés nélkül marad, mert a Flea nem rendelkezik %2 nevű művelettel."
+  "settings.hint.key_unknown": "%1 hozzárendelés nélkül marad, mert a Flea nem rendelkezik %2 nevű művelettel.",
+  "mime.png": "PNG-kép"
 }

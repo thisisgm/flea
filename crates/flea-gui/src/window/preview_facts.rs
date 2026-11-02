@@ -214,16 +214,56 @@ impl SelectionPreview {
         rows
     }
 
-    /// Facts.js compactLine: the Kind apart, so it alone elides, then the size and the count.
+    /// Keep compact facts where they fit; overflow uses the existing full-facts table.
+    pub(crate) fn show_full_facts(
+        &self,
+        frame: &Frame,
+        window: &gpui::Window,
+        cx: &gpui::App,
+    ) -> bool {
+        if self.full_facts || !frame.kind.tall() {
+            return true;
+        }
+        let (kind, tail) = self.compact(frame, cx);
+        let measure = |text: String| {
+            crate::g2::fb1::caption::measure(
+                text.into(),
+                self.face.font.clone(),
+                self.face.caption,
+                gpui::px(0.),
+                window,
+            )
+        };
+        let pad = crate::list::Metrics::for_typeface(&self.face).pad;
+        measure(kind) + measure(tail) > (self.width - 2. * pad).max(1.)
+    }
+
+    /// A mirrored line reads its tail toward the kind; the complete size stays LTR.
     pub(crate) fn compact(&self, frame: &Frame, cx: &gpui::App) -> (String, String) {
-        facts::compact_line(
+        let rtl = self.catalog.locale().right_to_left;
+        let kind = frame.subject.row.kind.clone();
+        let size = facts::size(&self.catalog, frame.subject.row.size);
+        let mut parts = vec![if rtl {
+            format!("\u{2066}{size}\u{2069}")
+        } else {
+            size
+        }];
+        let count = facts::compact_count(
             frame.kind.state(),
-            Some(&fact_row(&frame.subject.row)),
             frame.facts.as_ref(),
-            &frame.subject.row.kind,
             &self.extra(frame, cx),
             &self.catalog,
-        )
+        );
+        if !count.is_empty() {
+            parts.push(count);
+        }
+        let tail = parts.join(flea::ui_logic_pv1::FACT_SEP);
+        let tail = if kind.is_empty() {
+            tail
+        } else {
+            format!("{}{tail}", flea::ui_logic_pv1::FACT_SEP)
+        };
+        (kind, if rtl { format!("\u{200f}{tail}") } else { tail })
     }
 }
 

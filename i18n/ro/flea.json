@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 rămâne neatribuită deoarece o linie anterioară din keys.toml atribuie deja secvența.",
   "settings.hint.key_reserved": "%1 rămâne neatribuită deoarece Flea păstrează secvența pentru sine.",
   "settings.hint.key_taken": "%1 rămâne neatribuită deoarece %2 folosește deja secvența în această presetare.",
-  "settings.hint.key_unknown": "%1 rămâne neatribuită deoarece Flea nu are nicio acțiune numită %2."
+  "settings.hint.key_unknown": "%1 rămâne neatribuită deoarece Flea nu are nicio acțiune numită %2.",
+  "mime.png": "imagine PNG"
 }

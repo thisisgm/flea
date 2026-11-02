@@ -2745,5 +2745,6 @@
   "settings.hint.key_repeated": "%1 ostane brez dodelitve, ker prejšnja vrstica v keys.toml že dodeli to zaporedje.",
   "settings.hint.key_reserved": "%1 ostane brez dodelitve, ker Flea to zaporedje pridržuje zase.",
   "settings.hint.key_taken": "%1 ostane brez dodelitve, ker %2 že uporablja to zaporedje v tej prednastavitvi.",
-  "settings.hint.key_unknown": "%1 ostane brez dodelitve, ker Flea nima dejanja z imenom %2."
+  "settings.hint.key_unknown": "%1 ostane brez dodelitve, ker Flea nima dejanja z imenom %2.",
+  "mime.png": "Slika PNG"
 }

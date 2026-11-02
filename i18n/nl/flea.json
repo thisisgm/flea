@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 blijft zonder toewijzing omdat een eerdere regel in keys.toml de toetsreeks al toewijst.",
   "settings.hint.key_reserved": "%1 blijft zonder toewijzing omdat Flea de toetsreeks voor zichzelf reserveert.",
   "settings.hint.key_taken": "%1 blijft zonder toewijzing omdat %2 de toetsreeks al gebruikt in deze voorinstelling.",
-  "settings.hint.key_unknown": "%1 blijft zonder toewijzing omdat Flea geen actie met de naam %2 heeft."
+  "settings.hint.key_unknown": "%1 blijft zonder toewijzing omdat Flea geen actie met de naam %2 heeft.",
+  "mime.png": "PNG-afbeelding"
 }

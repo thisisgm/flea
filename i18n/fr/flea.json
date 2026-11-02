@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 reste sans affectation, car une ligne précédente de keys.toml attribue déjà cette séquence.",
   "settings.hint.key_reserved": "%1 reste sans affectation, car Flea se réserve cette séquence.",
   "settings.hint.key_taken": "%1 reste sans affectation, car %2 utilise déjà cette séquence dans ce préréglage.",
-  "settings.hint.key_unknown": "%1 reste sans affectation, car Flea n’a aucune action appelée %2."
+  "settings.hint.key_unknown": "%1 reste sans affectation, car Flea n’a aucune action appelée %2.",
+  "mime.png": "image PNG"
 }

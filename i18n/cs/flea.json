@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 zůstává bez přiřazení, protože jej již přiřazuje dřívější řádek v keys.toml.",
   "settings.hint.key_reserved": "%1 zůstává bez přiřazení, protože si jej Flea vyhrazuje pro sebe.",
   "settings.hint.key_taken": "%1 zůstává bez přiřazení, protože jej v této předvolbě již používá %2.",
-  "settings.hint.key_unknown": "%1 zůstává bez přiřazení, protože Flea nemá akci s názvem %2."
+  "settings.hint.key_unknown": "%1 zůstává bez přiřazení, protože Flea nemá akci s názvem %2.",
+  "mime.png": "obrázek PNG"
 }

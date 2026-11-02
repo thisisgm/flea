@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 förblir utan bindning eftersom en tidigare rad i keys.toml redan binder tangentsekvensen.",
   "settings.hint.key_reserved": "%1 förblir utan bindning eftersom Flea reserverar tangentsekvensen för sig självt.",
   "settings.hint.key_taken": "%1 förblir utan bindning eftersom %2 redan använder tangentsekvensen i denna förinställning.",
-  "settings.hint.key_unknown": "%1 förblir utan bindning eftersom Flea inte har någon åtgärd som heter %2."
+  "settings.hint.key_unknown": "%1 förblir utan bindning eftersom Flea inte har någon åtgärd som heter %2.",
+  "mime.png": "PNG-bild"
 }

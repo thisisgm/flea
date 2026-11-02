@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 paliek nepiešķirta, jo agrāka keys.toml rinda jau piešķir šo taustiņu secību.",
   "settings.hint.key_reserved": "%1 paliek nepiešķirta, jo Flea patur šo taustiņu secību sev.",
   "settings.hint.key_taken": "%1 paliek nepiešķirta, jo %2 jau izmanto šo taustiņu secību šajā priekšiestatījumā.",
-  "settings.hint.key_unknown": "%1 paliek nepiešķirta, jo Flea nav darbības ar nosaukumu %2."
+  "settings.hint.key_unknown": "%1 paliek nepiešķirta, jo Flea nav darbības ar nosaukumu %2.",
+  "mime.png": "PNG attēls"
 }

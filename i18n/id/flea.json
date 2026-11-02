@@ -2427,5 +2427,6 @@
   "settings.hint.key_repeated": "%1 tetap tanpa penetapan karena baris sebelumnya pada keys.toml sudah menetapkannya.",
   "settings.hint.key_reserved": "%1 tetap tanpa penetapan karena Flea mencadangkannya untuk dirinya sendiri.",
   "settings.hint.key_taken": "%1 tetap tanpa penetapan karena %2 sudah menggunakannya dalam prasetel ini.",
-  "settings.hint.key_unknown": "%1 tetap tanpa penetapan karena Flea tidak memiliki tindakan bernama %2."
+  "settings.hint.key_unknown": "%1 tetap tanpa penetapan karena Flea tidak memiliki tindakan bernama %2.",
+  "mime.png": "Citra PNG"
 }

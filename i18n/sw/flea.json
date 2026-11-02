@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 inabaki bila mgawo kwa sababu mstari wa awali wa keys.toml tayari umegawa mfuatano huo.",
   "settings.hint.key_reserved": "%1 inabaki bila mgawo kwa sababu Flea inahifadhi mfuatano huo kwa matumizi yake yenyewe.",
   "settings.hint.key_taken": "%1 inabaki bila mgawo kwa sababu %2 tayari inatumia mfuatano huo katika seti hii ya mipangilio.",
-  "settings.hint.key_unknown": "%1 inabaki bila mgawo kwa sababu Flea haina kitendo kinachoitwa %2."
+  "settings.hint.key_unknown": "%1 inabaki bila mgawo kwa sababu Flea haina kitendo kinachoitwa %2.",
+  "mime.png": "Picha ya PNG"
 }

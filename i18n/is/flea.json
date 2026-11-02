@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 er áfram óbundin því fyrri lína í keys.toml bindur lyklasamsetninguna þegar.",
   "settings.hint.key_reserved": "%1 er áfram óbundin því Flea tekur lyklasamsetninguna frá fyrir eigin notkun.",
   "settings.hint.key_taken": "%1 er áfram óbundin því %2 notar lyklasamsetninguna þegar í þessari forstillingu.",
-  "settings.hint.key_unknown": "%1 er áfram óbundin því Flea hefur enga aðgerð sem heitir %2."
+  "settings.hint.key_unknown": "%1 er áfram óbundin því Flea hefur enga aðgerð sem heitir %2.",
+  "mime.png": "PNG mynd"
 }

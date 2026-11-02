@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 forbliver uden tildeling, fordi en tidligere linje i keys.toml allerede tildeler tastesekvensen.",
   "settings.hint.key_reserved": "%1 forbliver uden tildeling, fordi Flea reserverer tastesekvensen til sig selv.",
   "settings.hint.key_taken": "%1 forbliver uden tildeling, fordi %2 allerede bruger tastesekvensen i dette forvalg.",
-  "settings.hint.key_unknown": "%1 forbliver uden tildeling, fordi Flea ikke har en handling med navnet %2."
+  "settings.hint.key_unknown": "%1 forbliver uden tildeling, fordi Flea ikke har en handling med navnet %2.",
+  "mime.png": "PNG-billede"
 }

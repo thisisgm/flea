@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 fica sem atribuição porque uma linha anterior de keys.toml já atribui esta sequência.",
   "settings.hint.key_reserved": "%1 fica sem atribuição porque o Flea reserva esta sequência para si próprio.",
   "settings.hint.key_taken": "%1 fica sem atribuição porque %2 já utiliza esta sequência nesta predefinição.",
-  "settings.hint.key_unknown": "%1 fica sem atribuição porque o Flea não tem nenhuma ação chamada %2."
+  "settings.hint.key_unknown": "%1 fica sem atribuição porque o Flea não tem nenhuma ação chamada %2.",
+  "mime.png": "imagem PNG"
 }

@@ -12,6 +12,14 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "crates/flea-gui/src/row/fit_tests.rs",
             "I50-26 measures that the shipped translations fit their rows",
         ),
+        (
+            "src/backend/kind_polish_tests.rs",
+            "LANG polish verifies PNG fallback completeness and provider precedence in all 50 shipped catalogs",
+        ),
+        (
+            "crates/flea-gui/src/window/dispatch/lang_polish_tests.rs",
+            "LANG polish measures actual German/French/Arabic catalog text in preview metadata",
+        ),
     ];
     // Split so this file never matches itself; cargo runs tests from the package root, so cwd and relative forms name i18n/ too.
     let manifest = concat!("CARGO_MANIFEST_", "DIR\")");
