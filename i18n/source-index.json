@@ -110230,7 +110230,7 @@
       "surface": "gui"
     },
     {
-      "excerpt": "assert_eq!(unread, b\"fered past the cap\");",
+      "excerpt": "assert_eq!(&unread[..read], b\"fered past the cap\");",
       "line": 187,
       "literal": "fered past the cap",
       "owner": "I50-07",
@@ -244865,7 +244865,7 @@
     "crates/flea-gui/src/g2/pl1/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
     "crates/flea-gui/src/g2/pl1/process.rs": "03b8743d4f7c823f792f594ba8373ae7f9e6389983bbba467009853259423bd0",
     "crates/flea-gui/src/g2/pl1/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
-    "crates/flea-gui/src/g2/pl1/process_io.rs": "32bd99f0119525681ff3daa9d7c97a5052445a06efe3543883f75fe7b2f323c5",
+    "crates/flea-gui/src/g2/pl1/process_io.rs": "9caf60f04d7124cd30659f7e9b925b7a15c181299ee4a846eaff7fcb5c2077ec",
     "crates/flea-gui/src/g2/pl1/rail_events.rs": "f42092e6a33609a3f0adf6d5b009d6531f872ef6f3abcbe5746bd8cfefec5050",
     "crates/flea-gui/src/g2/pl1/seams.rs": "d5eef58a76c157061d64a90360091396ab8930fb6135017816885bf6c0e8dbaa",
     "crates/flea-gui/src/g2/pl1/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
@@ -247126,8 +247126,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "19319d8612ac756f764966b845b855b63e010d1f",
-  "source_sha": "19319d8612ac756f764966b845b855b63e010d1f",
+  "source_ref_sha": "fb27129ad225b2cdc43aa7c94c5a4b0ec56c79e0",
+  "source_sha": "fb27129ad225b2cdc43aa7c94c5a4b0ec56c79e0",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,

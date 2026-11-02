@@ -180,11 +180,11 @@ mod tests {
         assert_eq!(pipes[0].kept.len(), OUTPUT_CAP);
         assert_eq!(&pipes[0].kept[OUTPUT_CAP - 3..], b"buf");
         assert!(pipes[1].kept.is_empty());
-        drop(writer);
-        let mut unread = Vec::new();
+        // One read, never read_to_end, since another test's fork can hold this writer open and EOF may never come.
+        let mut unread = [0u8; CHUNK];
         let mut rest = pipes[0].file.take().unwrap();
-        rest.read_to_end(&mut unread).unwrap();
-        assert_eq!(unread, b"fered past the cap");
+        let read = rest.read(&mut unread).unwrap();
+        assert_eq!(&unread[..read], b"fered past the cap");
     }
 
     #[test]
