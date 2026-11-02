@@ -2,6 +2,26 @@ use super::*;
 use std::fs;
 use std::process::Command;
 
+#[test]
+fn kind_lang_mime_override_never_uses_english_fallback() {
+    let root = crate::backend::testdir::TestDir::new("mime-override");
+    fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
+    fs::create_dir_all(root.join("catalog/ja")).unwrap();
+    root.file("omarchy/default/i18n/locales.json", include_str!("fixtures/locales.json"));
+    root.file("language", "de");
+    let paths = Paths { omarchy: root.join("omarchy"), language_file: root.join("language"), catalogs: vec![root.join("catalog")] };
+    let mut catalog = I18n::load(paths);
+    assert_eq!(catalog.mime_comment("text/markdown"), None);
+    root.file("language", "ja");
+    root.file("catalog/ja/flea.json", r#"{"mime.markdown":"Markdown 文書"}"#);
+    assert!(catalog.poll_changed());
+    assert_eq!(catalog.mime_comment("text/markdown"), Some("Markdown 文書"));
+    assert_eq!(catalog.mime_comment("image/png"), None);
+    root.file("catalog/ja/flea.json", r#"{"mime.markdown":""}"#);
+    assert!(catalog.poll_changed());
+    assert_eq!(catalog.mime_comment("text/markdown"), None);
+}
+
 // All mutations, including renames and cleanup, stay in a marked mktemp root owned by this test.
 pub(super) struct Fixture(PathBuf);
 
@@ -360,6 +380,7 @@ fn no_test_resolves_the_host_language() {
         ("src/i18n/test_catalogs.rs", 1, "the hermetic paths keep the default Omarchy root"),
         ("src/plugincli.rs", 1, "flea plugin prints in the user's language"),
         ("src/backend/plugins.rs", 1, "the plugin hello reports the user's language"),
+        ("src/backend/kind.rs", 1, "the row service resolves the selected language once per response"),
         ("src/backend/contents.rs", 1, "backend content messages use the user's language"),
         ("src/tui/model.rs", 1, "Model::new's release build reads the user's language"),
         ("src/tui/words.rs", 1, "Text's Display implementation resolves the user's catalog only outside tests"),

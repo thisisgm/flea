@@ -887,6 +887,7 @@ impl Model {
                 for (i, row) in rows.iter().enumerate() {
                     if drawn.is_none() || kept(&(start + i)) { self.rows.insert(start + i, Row::parse(row, kinds)); }
                 }
+                super::preview::words::refresh_head(self);
                 self.remember_selection();
                 if let Some(path) = &self.restore_path {
                     if let Some((&i, _)) = self.rows.iter().find(|(_, r)| self.row_path(r) == *path)

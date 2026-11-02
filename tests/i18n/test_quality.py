@@ -134,6 +134,45 @@ class QualityTests(unittest.TestCase):
         self.save()
         self.refused("key parity")
 
+    def test_kind_lang_optional_mime_override_keeps_receipt_provenance(self):
+        self.english["mime.markdown"] = "Markdown document"
+        write(self.source / "en/flea.json", self.english)
+        self.freeze()
+        index = json.loads(self.index.read_text())
+        index["keys"]["mime.markdown"]["placeholders"] = []
+        write(self.index, index)
+        self.prepare()
+        hashes = json.loads((self.root / "translation-manifest.json").read_text())
+        hashes[self.language].pop("flea:mime.markdown")
+        write(self.root / "translation-manifest.json", hashes)
+        receipt = self.box / "mime-receipt.json"
+        self.cli("check")
+        self.cli("receipt", "--out", receipt)
+        write(self.source / self.language / "flea.json", self.catalog)
+        write(self.source / "translation-manifest.json", hashes)
+        self.cli("prepare", "--translation-receipt", receipt, root=self.box / "mime-reopen")
+        del self.catalog["action"]
+        self.save()
+        self.refused("key parity")
+
+    def test_kind_lang_missing_override_does_not_skip_english_provenance(self):
+        self.english["mime.markdown"] = "Markdown document"
+        write(self.source / "en/flea.json", self.english)
+        self.freeze()
+        index = json.loads(self.index.read_text())
+        index["keys"]["mime.markdown"]["placeholders"] = []
+        write(self.index, index)
+        self.prepare()
+        hashes = json.loads((self.root / "translation-manifest.json").read_text())
+        hashes[self.language].pop("flea:mime.markdown")
+        write(self.root / "translation-manifest.json", hashes)
+        self.cli("check")
+        index["keys"]["mime.markdown"]["resolved_english"] = "Outdated source"
+        index["keys"]["mime.markdown"]["resolved_source_hash"] = digest("Outdated source")
+        write(self.index, index)
+        write(self.root / "source-index.json", index)
+        self.refused("resolved English reference drift")
+
     def test_i50_quality_duplicate_key(self):
         self.prepare()
         (self.root / "de/flea.json").write_bytes((FIXTURES / "duplicate.json").read_bytes())

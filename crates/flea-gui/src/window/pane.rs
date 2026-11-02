@@ -148,6 +148,14 @@ impl PaneHost {
                 }
                 .into();
         }
+        if let Some(backend) = &self.backend {
+            if let Some(request) = self.pane.reread_held() {
+                if let Err(error) = backend.window(request.start, request.count) {
+                    self.pane.requests.outstanding = None;
+                    self.record_error(error, locale);
+                }
+            }
+        }
     }
 
     /// The notice that carried the operation line timed out; a status still showing it returns to the folder's count.

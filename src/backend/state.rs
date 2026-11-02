@@ -22,7 +22,7 @@ pub struct Tables {
     pub icons: Lazy<Arc<Names>>,
     pub aliases: Lazy<Arc<Aliases>>,
     pub thumbs: Lazy<Arc<Thumbnailers>>,
-    // A type's Kind text never changes for the process's life, unlike State's per-listing caches; RefCell because the loop is single-threaded.
+    // MIME comments are cached by type and selected in the current language; the loop is single-threaded.
     pub kinds: RefCell<Kinds>,
     // Probed once when an archive request first needs the installed formats.
     pub formats: Lazy<Arc<Formats>>,

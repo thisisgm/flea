@@ -14,6 +14,8 @@ CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
 CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
 KINDS = {"shell", "menu", "cli", "keybindings"}
 HASH = re.compile(r"[0-9a-f]{12}\Z")
+# This HIG correction is optional elsewhere because shared-mime-info supplies those descriptions.
+MIME_OVERRIDES = {"mime.markdown": {"en", "ja"}}
 ISOLATES = {"\u2066", "\u2068"}
 RIGHT_TO_LEFT_ISOLATE = "\u2067"
 POP_ISOLATE = "\u2069"
@@ -105,6 +107,10 @@ def empty_translation(value):
     return False
 
 
+def required_keys(english, language):
+    return set(english) - {key for key, owners in MIME_OVERRIDES.items() if language not in owners}
+
+
 def current_hashes(root, omarchy, references, allow_empty=False):
     english = read(root / "en/flea.json")
     if not english or any(not key or not isinstance(key, str) for key in english):
@@ -123,7 +129,7 @@ def current_hashes(root, omarchy, references, allow_empty=False):
         if not CODE.fullmatch(code):
             raise ValueError(f"invalid catalog language code: {code}")
         catalog = read(path)
-        missing, extra = set(english) - set(catalog), set(catalog) - set(english)
+        missing, extra = required_keys(english, code) - set(catalog), set(catalog) - set(english)
         if missing or extra:
             raise ValueError(f"{code}: key parity failed; missing={sorted(missing)}, extra={sorted(extra)}")
         section = {}

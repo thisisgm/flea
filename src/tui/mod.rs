@@ -167,7 +167,9 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         preview::refresh_locale(&mut model);
         render::cards::refresh_locale(&mut model);
         while !model.quit && !terminal.stopped() {
-            model.refresh_frame_locale();
+            if model.refresh_frame_locale() {
+                model.window(&mut wire)?;
+            }
             keycaps.apply(&mut model, &map);
             hold.sync(&model, std::time::Instant::now());
             while let Ok(event) = wire.events.try_recv() {
