@@ -106,7 +106,11 @@ fn gm338_the_key_toggle_flips_the_chooser_only(cx: &mut TestAppContext) {
     let count = lists(&f);
     apply(&mut f, r#"{"hidden":true}"#);
     apply(&mut f, r#"{"hidden":false}"#);
-    assert_eq!(lists(&f), count, "a changed setting leaves the toggled window alone");
+    assert_eq!(
+        lists(&f),
+        count,
+        "a changed setting leaves the toggled window alone"
+    );
     assert_eq!(
         last_hidden(&f, "list"),
         Some(true),

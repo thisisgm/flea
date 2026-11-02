@@ -348,13 +348,21 @@ fn noscene_a_side_button_behind_an_open_menu_never_navigates(cx: &mut TestAppCon
     };
     assert!(open_menu(&shell, cx), "m opens the row menu");
     side_button(cx, Forward);
-    assert_eq!(asked(&shell, cx), "/files/beta", "Forward is refused behind the menu");
+    assert_eq!(
+        asked(&shell, cx),
+        "/files/beta",
+        "Forward is refused behind the menu"
+    );
     assert!(open_menu(&shell, cx), "and the menu is still open");
     side_button(cx, Back);
     assert_eq!(asked(&shell, cx), "/files/beta", "and so is Back");
     cx.simulate_keystrokes("escape");
     assert!(!open_menu(&shell, cx), "escape closes the menu");
     side_button(cx, Back);
-    assert_eq!(asked(&shell, cx), "/files", "with the menu closed Back goes back");
+    assert_eq!(
+        asked(&shell, cx),
+        "/files",
+        "with the menu closed Back goes back"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

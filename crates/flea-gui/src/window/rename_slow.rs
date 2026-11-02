@@ -163,7 +163,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.strip.bounds.get().is_some_and(|strip| strip.contains(&at)) {
+        if self
+            .strip
+            .bounds
+            .get()
+            .is_some_and(|strip| strip.contains(&at))
+        {
             return;
         }
         self.rename_commit(cx);

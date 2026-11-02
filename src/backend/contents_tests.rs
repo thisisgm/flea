@@ -109,12 +109,12 @@ impl Fixture {
     }
 }
 
+#[path = "contents_fixlogic_tests.rs"]
+mod fixlogic;
 #[path = "contents_lifecycle_tests.rs"]
 mod lifecycle;
 #[path = "contents_review_tests.rs"]
 mod review;
-#[path = "contents_fixlogic_tests.rs"]
-mod fixlogic;
 
 #[test]
 fn m9_g2rows_01_rg_ignore_hidden_binary_first_line() {
