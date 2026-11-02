@@ -3,6 +3,16 @@ use super::delta_tests::{kinds, Loop};
 use super::*;
 use crate::backend::testdir::TestDir;
 
+thread_local! {
+    static STAT_PATHS: std::cell::RefCell<Vec<std::path::PathBuf>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+impl super::super::searchrowcache::Cache {
+    pub(crate) fn test_record_stat_path(path: &std::path::Path) {
+        STAT_PATHS.with(|paths| paths.borrow_mut().push(path.to_path_buf()));
+    }
+}
+
 #[test]
 fn search_fix4_discard_preserves_an_announced_walk_after_draining_the_landing() {
     let root = TestDir::new("search-discard-landed");
@@ -200,11 +210,13 @@ fn search_fb5_typed_generations_reuse_the_requested_rich_rows() {
     root.dir("scope");
     root.file("scope/alpha.txt", "a");
     root.file("scope/alphabet.txt", "ab");
+    root.file("scope/alphabetical.txt", "abc");
     let mut lp = Loop::open(&root, "alpha", 2);
     let mut previous_rows = None;
     for (gen, query) in [(2, "alpha"), (3, "alph")] {
         super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.set(0));
         super::super::tags::SEARCH_TAG_CALLS.with(|calls| calls.set(0));
+        STAT_PATHS.with(|paths| paths.borrow_mut().clear());
         lp.route(Event::Request(format!(
             r#"{{"c":"searchquery","query":"{query}","gen":{gen},"count":2}}"#
         )));
@@ -212,6 +224,7 @@ fn search_fb5_typed_generations_reuse_the_requested_rich_rows() {
         let said = lp.said();
         assert_eq!(kinds(&said), ["listed", "rows", "searched"], "{said:?}");
         let rows = rich_rows(&said, gen);
+        assert_eq!(crate::json::field_usize(&said[2], "n"), Some(3));
         if let Some(previous) = &previous_rows {
             assert_eq!(
                 &rows, previous,
@@ -232,7 +245,18 @@ fn search_fb5_typed_generations_reuse_the_requested_rich_rows() {
         if gen == 3 {
             assert_eq!(
                 super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.get()),
-                0
+                2,
+                "GAP229 validates only the two requested rows"
+            );
+            let mut paths = STAT_PATHS.with(|paths| std::mem::take(&mut *paths.borrow_mut()));
+            paths.sort();
+            assert_eq!(
+                paths,
+                [
+                    root.join("scope/alpha.txt"),
+                    root.join("scope/alphabet.txt")
+                ],
+                "validation must visit each requested path once and no unrequested match"
             );
             assert_eq!(
                 super::super::tags::SEARCH_TAG_CALLS.with(|calls| calls.get()),

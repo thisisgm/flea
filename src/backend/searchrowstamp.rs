@@ -13,7 +13,10 @@ pub(super) struct Stamp {
 
 pub(super) fn read(path: &Path) -> Option<Stamp> {
     #[cfg(test)]
-    super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.set(calls.get() + 1));
+    {
+        super::super::meta::SEARCH_STAT_CALLS.with(|calls| calls.set(calls.get() + 1));
+        super::Cache::test_record_stat_path(path);
+    }
     let meta = path.symlink_metadata().ok()?;
     Some(Stamp {
         device: meta.dev(),
