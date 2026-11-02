@@ -1,5 +1,5 @@
 // A Vulkan driver for a GPU vendor this box does not hold is disabled before the probe and before qs.
-use crate::vulkan::{is_card, is_hasvk_intel, parse_hex_id, PCI_VENDOR_NVIDIA};
+use crate::vulkan::{is_card, is_hasvk_intel, is_render_node, parse_hex_id, PCI_VENDOR_NVIDIA};
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -43,7 +43,7 @@ pub fn exclude_absent_vendors() {
 }
 
 // The filter to write, or None: a stale marker is re-decided, an operator choice or settings file wins, else absent vendors.
-fn decide_exclusion(var: impl Fn(&str) -> Option<OsString>, pci: &Path, drm: &Path, roots: &[PathBuf]) -> Option<String> {
+pub(crate) fn decide_exclusion(var: impl Fn(&str) -> Option<OsString>, pci: &Path, drm: &Path, roots: &[PathBuf]) -> Option<String> {
     let stale = owned(var(DISABLE).as_deref(), var(MARKER).as_deref());
     if operator_chose_drivers(|name| if stale && name == DISABLE { None } else { var(name) }) {
         return None;
@@ -129,7 +129,9 @@ fn present_devices(pci: &Path, drm: &Path) -> Option<Vec<(u32, u32)>> {
     }
     for entry in std::fs::read_dir(drm).ok()? {
         let entry = entry.ok()?;
-        if !is_card(&entry.file_name().to_string_lossy()) {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if !is_card(&name) && !is_render_node(&name) {
             continue;
         }
         let device = entry.path().join("device");

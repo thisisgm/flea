@@ -47,6 +47,7 @@ headless="$headless native-runtime"
 headless="$headless prove-ci-runner bench-raw-corpus-contract"
 headless="$headless tool-preflight opr-recipe slop-ratchet"
 headless="$headless bench-thumbs"
+headless="$headless nvidia-gpui"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0
