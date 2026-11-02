@@ -1,6 +1,13 @@
 //! Visible rail geometry, measured from prepared text before paint.
 use super::*;
 
+#[cfg(test)]
+#[path = "visual_geometry_tests.rs"]
+mod visual_geometry_tests;
+
+// HIG row text sits one logical pixel above the centred font box, independent of its icon and menu anchor.
+const ROW_TEXT_LIFT: f32 = 1.;
+
 /// Lays out every heading and row once per paint and publishes the boxes the IPC readers answer with.
 pub(super) fn layout(
     sections: &[DrawnSection],
@@ -20,7 +27,7 @@ pub(super) fn layout(
         row_gap: metrics.gap,
         ..Laid::default()
     };
-    let mut y = metrics.pad - model.scroll;
+    let mut y = metrics.top - model.scroll;
     let mut index = 0usize;
     for (slide, section) in sections.iter().enumerate() {
         let first = slide == 0;
@@ -29,8 +36,7 @@ pub(super) fn layout(
                 y += metrics.panel_gap;
             }
         } else {
-            let top_padding = (f32::from(typeface.caption) * HEADING_LEAD).ceil()
-                + if first { 0. } else { metrics.panel_gap };
+            let group_gap = if first { 0. } else { metrics.panel_gap };
             let tracking = if section.caseless {
                 0.
             } else {
@@ -44,15 +50,19 @@ pub(super) fn layout(
                 typeface,
                 window,
             );
-            // RailHeading.qml's Text line box: one ceiling over ascent plus descent, never one per part (EY-384).
-            let text_height = run.height.ceil();
+            // The board's heading pitch keeps both rounded font extents; row text is positioned independently.
+            let text_height = run.ascent.ceil() + (run.height - run.ascent).ceil();
+            let (top_padding, height) = if let Some(heading) = metrics.heading {
+                (
+                    group_gap + (heading - text_height) / 2.,
+                    group_gap + heading,
+                )
+            } else {
+                let lead = (f32::from(typeface.caption) * HEADING_LEAD).ceil() + group_gap;
+                (lead, lead + text_height + metrics.gap)
+            };
             let text_width = run.width;
-            let rect = Rect::new(
-                metrics.pad,
-                y,
-                text_width,
-                top_padding + text_height + metrics.gap,
-            );
+            let rect = Rect::new(metrics.pad, y, text_width, height);
             let network = section
                 .rows
                 .first()
@@ -69,6 +79,7 @@ pub(super) fn layout(
                 text: section.heading.to_string(),
                 rect,
                 top_padding,
+                text_height,
                 font_size: f32::from(typeface.caption),
                 tracking,
                 add,
@@ -133,13 +144,13 @@ pub(super) fn layout(
             let label_height = label_run.height;
             let label_rect = Rect::new(
                 label_left,
-                top + (metrics.row - label_height) / 2.,
+                top + (metrics.row - label_height) / 2. - ROW_TEXT_LIFT,
                 label_width,
                 label_height,
             );
             let detail_rect = Rect::new(
                 width - metrics.pad - slot_width - slot_gap - detail_width,
-                top + (metrics.row - detail_run.height) / 2.,
+                top + (metrics.row - detail_run.height) / 2. - ROW_TEXT_LIFT,
                 detail_width,
                 detail_run.height,
             );
@@ -177,7 +188,7 @@ pub(super) fn layout(
             y += metrics.row;
         }
     }
-    laid.content_height = y + model.scroll + metrics.pad;
+    laid.content_height = y + model.scroll + metrics.top;
     laid
 }
 

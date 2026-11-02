@@ -31,9 +31,10 @@ pub(super) fn baseline(run: &GlyphRun, top: Pixels, line: f32, window: &Window) 
     window.pixel_snap(top + (px(line) - layout.ascent - layout.descent) / 2. + layout.ascent)
 }
 
-// GridTile.qml leaves caption glyphs top aligned, independent of its fixed line pitch.
+// Both grid boards place the caption ink two pixels below the natural font top.
 pub(super) fn caption_baseline(run: &GlyphRun, top: Pixels, window: &Window) -> Pixels {
-    window.pixel_snap(top + run.line().ascent)
+    const TEXT_TOP: f32 = 2.;
+    window.pixel_snap(top + px(TEXT_TOP) + run.line().ascent)
 }
 
 #[cfg(test)]

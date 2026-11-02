@@ -64,7 +64,7 @@ fn rail_devices_hidden_rail_ignores_the_launch_seed(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn rail_heading_line_box_is_one_ceiling_over_the_font_line(cx: &mut TestAppContext) {
+fn rail_heading_line_box_preserves_the_board_group_pitch(cx: &mut TestAppContext) {
     let (shell, service, cx) = open(SETTINGS, cx);
     ready(&service, cx);
     frame(cx);
@@ -87,7 +87,16 @@ fn rail_heading_line_box_is_one_ceiling_over_the_font_line(cx: &mut TestAppConte
                 window,
             );
             let line = header.rect.height - header.top_padding - laid.row_gap;
-            assert_eq!(line, run.height.ceil(), "{} heading line box", header.text);
+            assert_eq!(
+                header.text_height, line,
+                "paint uses the measured text band"
+            );
+            assert_eq!(
+                line,
+                run.ascent.ceil() + (run.height - run.ascent).ceil(),
+                "{} heading line box",
+                header.text
+            );
         }
     });
 }

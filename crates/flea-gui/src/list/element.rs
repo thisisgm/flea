@@ -110,8 +110,9 @@ pub(super) fn paint_line(
     window: &mut Window,
 ) {
     let line = run.line();
-    let baseline =
-        window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline = top + (px(height) - line.ascent - line.descent) / 2. + line.ascent;
+    let scale = window.scale_factor();
+    let baseline = px((f32::from(baseline) * scale).floor() / scale);
     #[cfg(test)]
     crate::bfx_cols_tests::record_line(run, x, baseline);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);

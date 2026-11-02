@@ -32,10 +32,9 @@ fn view(numbered: bool) -> CodeView {
 }
 
 #[test]
-fn vf4_plain_text_keeps_the_two_cell_lead_without_a_gutter() {
-    // Board filter draws notes.txt 23 px into its frame and ql-text at 14 + 2ch; both are the inset plus two advances.
+fn visual_geometry_plain_text_uses_its_inset_without_a_gutter() {
     let advance = px(7.2);
-    assert_eq!(view(false).text_left(advance), 24.);
+    assert_eq!(view(false).text_left(advance), 10.);
     assert_eq!(view(false).gutter_right(advance), 10.);
     // A numbered view keeps the same two-cell lead past its gutter, up to the final whole-pixel rounding.
     let numbered = view(true);

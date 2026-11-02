@@ -67,7 +67,7 @@ impl Element for RailElement {
                 text.paint(
                     header.rect.x,
                     header.rect.y + header.top_padding,
-                    header.rect.height - header.top_padding - metrics.gap,
+                    header.text_height,
                     heading_ink(&palette),
                     window,
                 );
