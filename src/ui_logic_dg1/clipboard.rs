@@ -125,6 +125,19 @@ impl Session {
         self.gets.len()
     }
 
+    /// A backend cannot answer after it ends; its replacement must read afresh.
+    pub fn disconnected(&mut self, backend: u64) {
+        self.sets.retain(|entry| entry.backend != backend);
+        self.gets.retain(|wait| wait.backend != backend);
+        self.paste_waits.retain(|wait| wait.backend != backend);
+        if let Some(deferred) = self.deferred.take() {
+            self.selection(&deferred.clip, deferred.paths, deferred.token);
+        }
+        if !self.failed.contains(&backend) {
+            self.failed.push(backend);
+        }
+    }
+
     fn take_set(&mut self, backend: u64) -> Option<SetEntry> {
         self.sets
             .iter()
@@ -296,6 +309,9 @@ impl Session {
             && waiting.sequence > self.accepted_get_sequence
         {
             self.accepted_get_sequence = waiting.sequence;
+            if !self.own_tokens.contains(&token) {
+                self.own_tokens.clear();
+            }
             self.current = Self::replace(clip, paths, token);
             self.current_entry = EntryHandle::new(&self.current.token);
             self.revision += 1;

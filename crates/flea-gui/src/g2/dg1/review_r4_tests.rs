@@ -81,6 +81,10 @@ fn r4_a_fallback_read_replacement_survives_an_older_spent() {
         &mut rig,
         r#"{"t":"clip","op":"set","ok":true,"token":"token1"}"#,
     );
+    line(
+        &mut rig,
+        r#"{"t":"clip","op":"changed","clip":"cut","paths":["/src/B"],"token":"token1"}"#,
+    );
     paste(&mut rig);
     let captured = rig.sink.asks.borrow()[0].1.clone();
     line(

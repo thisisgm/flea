@@ -111,18 +111,15 @@ impl Clipboard {
     // Each writable backend watches once at start, as Backend.qml does.
     pub fn watch(&mut self, backend: u64, wire: &dyn Wire) {
         if self.watched.insert(backend) {
+            self.session
+                .on_changed(backend, "none", Vec::new(), String::new(), "unwatched");
             wire.send(core::clip_watch_line());
         }
     }
 
     // A watch begun at first use: until its first changed line the backend reads as down, so a paste reads the system selection first and the menu keeps Paste enabled.
     pub fn watch_unknown(&mut self, backend: u64, wire: &dyn Wire) {
-        if !self.watched.contains(&backend) {
-            let _ =
-                self.session
-                    .on_changed(backend, "none", Vec::new(), String::new(), "unwatched");
-            self.watch(backend, wire);
-        }
+        self.watch(backend, wire);
     }
 
     pub fn watching(&self, backend: u64) -> bool {
@@ -139,6 +136,7 @@ impl Clipboard {
     }
 
     pub fn unwatch(&mut self, backend: u64) {
+        self.session.disconnected(backend);
         self.watched.remove(&backend);
         self.queues.remove(&backend);
         self.copy_as.remove(&backend);

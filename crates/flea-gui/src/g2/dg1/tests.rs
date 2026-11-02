@@ -67,7 +67,10 @@ fn copy_and_cut_take_rows_and_paste_reads_the_selection() {
         r#"{"c":"clipSet","op":"cut","paths":["/dest/B"]}"#
     );
     assert!(rig.board.available());
-    assert!(!rig.board.watch_failed(7));
+    assert!(
+        rig.board.watch_failed(7),
+        "the initial watcher offer has not arrived yet"
+    );
     let said = rig
         .board
         .act(

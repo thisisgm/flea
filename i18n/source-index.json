@@ -62688,7 +62688,7 @@
       "call_sites": [
         {
           "excerpt": "let sentence = self.locale.catalog.tr(\"jobs.error.busy\");",
-          "line": 196,
+          "line": 221,
           "path": "crates/flea-gui/src/g2/dg1/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -73536,7 +73536,7 @@
         },
         {
           "excerpt": "let said = Said { text: i18n.tr(\"menu.refusal.empty_clipboard\"), error: false, paste_hint: false };",
-          "line": 166,
+          "line": 167,
           "path": "src/ui_logic_dg1/paste.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -107522,6 +107522,114 @@
       "literal": "link",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/dg1/join.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the destination backend owns the operation\"",
+      "line": 70,
+      "literal": "the destination backend owns the operation",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "for state in [\"empty\", \"files\", \"failed\"] {",
+      "line": 78,
+      "literal": "empty",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "r#\"{\"t\":\"clip\",\"op\":\"changed\",\"error\":\"watch down\"}\"#,",
+      "line": 91,
+      "literal": "{\"t\":\"clip\",\"op\":\"changed\",\"error\":\"watch down\"}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".expect(\"Paste row\");",
+      "line": 101,
+      "literal": "Paste row",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert_eq!(paste.disabled, state == \"empty\", \"{state}\");",
+      "line": 102,
+      "literal": "empty",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the latest observed selection survives either backend ending\"",
+      "line": 168,
+      "literal": "the latest observed selection survives either backend ending",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".expect(\"the menu is mounted\")",
+      "line": 213,
+      "literal": "the menu is mounted",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the painted menu and keyboard facts refresh together\"",
+      "line": 221,
+      "literal": "the painted menu and keyboard facts refresh together",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"an already open menu must enable Paste for a new file offer\"",
+      "line": 230,
+      "literal": "an already open menu must enable Paste for a new file offer",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"keyboard flyout admission uses the same live clipboard facts\"",
+      "line": 237,
+      "literal": "keyboard flyout admission uses the same live clipboard facts",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "r#\"{\"t\":\"clip\",\"op\":\"changed\",\"error\":\"watch down\"}\"#,",
+      "line": 252,
+      "literal": "{\"t\":\"clip\",\"op\":\"changed\",\"error\":\"watch down\"}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the open menu allows the failed watch's fallback read\"",
+      "line": 256,
+      "literal": "the open menu allows the failed watch's fallback read",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -174244,7 +174352,7 @@
     },
     {
       "excerpt": "\"Pasted image {:04}-{:02}-{:02} at {:02}.{:02}.{:02}.png\",",
-      "line": 115,
+      "line": 114,
       "literal": "Pasted image {:04}-{:02}-{:02} at {:02}.{:02}.{:02}.png",
       "owner": "controller",
       "path": "src/ui_logic_dg1/paste.rs",
@@ -243094,14 +243202,15 @@
     "crates/flea-gui/src/g2/dg1/flock.rs": "8b21c93a9142b730acc3407bd3fd59dc4e05e37cf58fa1cad766dc327d6afa6b",
     "crates/flea-gui/src/g2/dg1/host.rs": "77b8b2dd69479e099c907193281776246815f67ec31233937a4945651be69dca",
     "crates/flea-gui/src/g2/dg1/ipc.rs": "0943351dfff8277dd16df75894f2bd9cad838a7fac69301252c77a6ae738c948",
-    "crates/flea-gui/src/g2/dg1/join.rs": "d3e5f370ca7395d3907846919aae41b51e411ceea8f3f51243b2114a3d0ed245",
+    "crates/flea-gui/src/g2/dg1/join.rs": "3f512c7a6481b39dbde4386b7cd40a70a1d82f7fda15063367af30b90233b193",
     "crates/flea-gui/src/g2/dg1/join_marks.rs": "8ff60168c656d067bb69565f1da2136fbae442d90cb3c5765efefd2273263ea2",
+    "crates/flea-gui/src/g2/dg1/join_tests/sol_clipboard_surfaces.rs": "50c7189e67d827c763d865b2ebdf9a6e3a48d0718a0b310735da16c2ab2f200e",
     "crates/flea-gui/src/g2/dg1/keyed.rs": "1d9cee9381f5602212f05e0ba9e0418760a9808ce7cf10570ed148e4927f820f",
     "crates/flea-gui/src/g2/dg1/keys.rs": "c8e50a29cabe580d8c4bd7143055ddb259656904b62f20e9f97447087f6c687c",
     "crates/flea-gui/src/g2/dg1/m9_g2rows_25_rig.rs": "73cd3f20228e6ca4c185bf39a2b0794c66995755e3e3a65e5b5f4904dd05804f",
     "crates/flea-gui/src/g2/dg1/m9_g2rows_25_target_rig.rs": "ed3b6343efbfe192d7e02657004ddb89dee302524f49cdbfe3b51d508105ef48",
     "crates/flea-gui/src/g2/dg1/marks.rs": "1bcc30c73f24369c5d2f821d9653b71399f3cbbca71f4fdec85bb128c9cefb3c",
-    "crates/flea-gui/src/g2/dg1/mod.rs": "2c78b00d01edf9710b35df5ddec51a41536fb6db31593950dcbc27d753a80a2b",
+    "crates/flea-gui/src/g2/dg1/mod.rs": "8f067539850e50e68b414c190716b2e7f9b54874a4915f812ccdbd148d8d06aa",
     "crates/flea-gui/src/g2/dg1/receive.rs": "f03d53b1156a01d8d9b345d15a08d10f991eb09bc50b66f3c357cee9fc48ef67",
     "crates/flea-gui/src/g2/dg1/rig.rs": "fc49b2ca9c4c1b6080407b15ad7170137c9965d0b19bc5e5378c27279d41dd03",
     "crates/flea-gui/src/g2/dg1/seams.rs": "8ec5ca7141e97379c217ced285c71fa4149b0d6338b9e8260ee1727adb07d4eb",
@@ -244702,11 +244811,11 @@
     "src/tui/words.rs": "bfefb2e42f60c684135181c0eb7f83b4b6309c2f7e65490584bbb730b06a9adb",
     "src/ui_logic_dg1.rs": "a4b3cb7d881e7f81ee902c71ff7e39bdf368e300f4919f9062a5780b243b9390",
     "src/ui_logic_dg1/carry.rs": "4fd4c6ed7040596c8004142763f14965a5208fdbf9c9b3e8a92231978a8cc0e8",
-    "src/ui_logic_dg1/clipboard.rs": "61b46d50df70a151eba8759fdb6ff7802f626416eb4364eb3e43581944929c4f",
+    "src/ui_logic_dg1/clipboard.rs": "bea63be2b8931a80805863bae809015bcf95301b85f8f1190c73312faa0048b9",
     "src/ui_logic_dg1/entry.rs": "faa284672d664805b0fe802cd4e88e04c0d52bca063defd044bea5424862d5b7",
     "src/ui_logic_dg1/harness.rs": "93c75fa03afe53508f8722c7b55c25f7d870bfe1be7fcef0540a0f354b2025c9",
     "src/ui_logic_dg1/marks.rs": "2042733e28f32f3c7b6958b62b4a62b40874b4111d5efeaa5b62b34daa1a282b",
-    "src/ui_logic_dg1/paste.rs": "63537b341fe1faedb7b236a68d3b22aae1bffd7d26b6463fe4a10151ecf8f647",
+    "src/ui_logic_dg1/paste.rs": "29423529b4962af4c8236294cbb365eb4221ec3da5d0e0be5c45e5112d594d1d",
     "src/ui_logic_dg1/payload.rs": "06ebcc82db4874c4908c1c712e16eb83093fe88e3fa560b18131e7cc23517097",
     "src/ui_logic_dg1/selection.rs": "5ecdcb77c468818bb581c534d2d48232c985ea73c226aef2012b6c0e564a655d",
     "src/ui_logic_dg1/wire.rs": "9b0a682504faf89471534858531718330db350b4486f8f3d661d38a3e7b01fac",
@@ -245615,8 +245724,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "c02253b5af046017203c3cea04d18c3c2af69f67",
-  "source_sha": "c02253b5af046017203c3cea04d18c3c2af69f67",
+  "source_ref_sha": "7b778d15483e57ed314f2b6390d84eaca429ae5c",
+  "source_sha": "7b778d15483e57ed314f2b6390d84eaca429ae5c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -245630,8 +245739,8 @@
     },
     "gui": {
       "keys_with_occurrences": 530,
-      "missing_literal_candidates": 2070,
-      "source_files": 1105
+      "missing_literal_candidates": 2082,
+      "source_files": 1106
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
