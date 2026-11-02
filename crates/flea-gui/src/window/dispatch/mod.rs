@@ -20,6 +20,8 @@ mod places;
 mod preview;
 mod previewtypes;
 #[cfg(test)]
+mod properties_close_tests;
+#[cfg(test)]
 mod pvset_repro_tests;
 pub(crate) mod rail_menu;
 #[cfg(test)]
