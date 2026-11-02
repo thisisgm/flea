@@ -5,8 +5,6 @@ use gpui::{AppContext, TestAppContext};
 
 #[path = "columns_capture_tests.rs"]
 mod capture;
-#[path = "columns_click_1102_tests.rs"]
-mod click_1102;
 #[path = "columns_empty_middle_tests.rs"]
 mod empty_middle;
 #[path = "columns_finder_tests.rs"]
@@ -19,6 +17,8 @@ mod gestures;
 pub(crate) mod host;
 #[path = "columns_hover_tests.rs"]
 mod hover;
+#[path = "columns_neighbour_click_tests.rs"]
+mod neighbour_click;
 #[path = "columns_neighbour_tab_tests.rs"]
 mod neighbour_tab;
 #[path = "columns_pointer_tests.rs"]
