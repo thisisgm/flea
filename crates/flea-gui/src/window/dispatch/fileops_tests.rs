@@ -359,7 +359,10 @@ fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppCon
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files","request":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
+    );
     reply(
         &shell,
         cx,
