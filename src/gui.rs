@@ -94,13 +94,13 @@ pub fn pick(reply: &str) -> i32 {
     launch::exec_gpui_pick(reply)
 }
 
-// Split from pin_display_icd so a test can drive the guard without touching this process's environment.
+// An exported but empty VK_DRIVER_FILES or VK_ICD_FILENAMES is absent, not the operator's choice.
 #[cfg(test)]
 fn operator_chose_icd(driver: Option<&OsStr>, icd: Option<&OsStr>) -> bool {
     driver.is_some_and(|value| !value.is_empty()) || icd.is_some_and(|value| !value.is_empty())
 }
 
-// Split from pin_display_icd so a test can drive the answer a single-GPU box can never produce.
+// A test drives this with the pin answers a single-GPU box can never produce.
 fn apply_display_pin(cmd: &mut Command, pin: vulkan::DisplayPin) {
     match pin {
         vulkan::DisplayPin::NotNeeded => {}
@@ -119,7 +119,7 @@ fn apply_display_pin(cmd: &mut Command, pin: vulkan::DisplayPin) {
 // Old windows may pass this marker through an upgrade.
 pub const THEME_MARKER: &str = "FLEA_QT_THEME";
 
-// Give a program Flea opens the platform theme this launcher traded away, and nothing else.
+// Give a program Flea opens the platform theme an old window's launcher traded away, and nothing else.
 pub fn restore_platform_theme(command: &mut Command) {
     apply_theme_restore(command, std::env::var_os(THEME_MARKER).as_deref());
 }

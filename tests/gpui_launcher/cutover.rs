@@ -100,19 +100,28 @@ fn gpui_cutover_qml_is_refused_for_every_window_entry() {
         vec!["--pick", "/tmp/reply"],
         vec!["--unlock", "/dev/sdb1"],
     ] {
-        let output = sandbox
-            .launch_command()
-            .env("FLEA_FRONTEND", "qml")
-            .env("FLEA_PICKER", "{}")
-            .args(&arguments)
-            .output()
-            .unwrap();
-        assert_eq!(output.status.code(), Some(2), "{arguments:?}");
-        assert!(output.stdout.is_empty(), "{arguments:?}");
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr),
-            LEGACY,
-            "{arguments:?}"
-        );
+        for headless in [false, true] {
+            let mut command = sandbox.launch_command();
+            command.env("FLEA_FRONTEND", "qml").env("FLEA_PICKER", "{}");
+            // Each entry refuses before its display check, so a headless launch gives the same sentence.
+            if headless {
+                command.env_remove("WAYLAND_DISPLAY").env_remove("DISPLAY");
+            }
+            let output = command.args(&arguments).output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(2),
+                "{arguments:?} headless={headless}"
+            );
+            assert!(
+                output.stdout.is_empty(),
+                "{arguments:?} headless={headless}"
+            );
+            assert_eq!(
+                String::from_utf8_lossy(&output.stderr),
+                LEGACY,
+                "{arguments:?} headless={headless}"
+            );
+        }
     }
 }
