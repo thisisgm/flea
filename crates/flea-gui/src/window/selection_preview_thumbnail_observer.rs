@@ -17,6 +17,8 @@ pub(crate) struct Observation {
 }
 
 impl Observation {
+    // try_update needs Rust 1.95, newer than the workspace rust-version 1.77, so fetch_update stays.
+    #[allow(deprecated)]
     fn new(frame: &Frame) -> Self {
         let serial = NEXT_REQUEST
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
