@@ -4,6 +4,11 @@ import json
 import math
 import statistics
 
+# Quick Look's marked B7 raster edge, the same value as bench_thumbs::PREVIEW_EDGE.
+PREVIEW_EDGE = 800
+# Linux CLOCK_MONOTONIC, the only clock a receipt may be stamped with.
+CLOCK_MONOTONIC = 1
+
 
 class Receipts:
     def __init__(self, path, token, fixture):
@@ -14,6 +19,7 @@ class Receipts:
         self.rows = []
 
     def poll(self):
+        # Sample input: FLEA-B7 {"token":"t","kind":"preview","path":"/f/a.jpg","start_ns":1,"end_ns":2,"worker_ms":null,"width":800,"height":533,"bounds":[0.0, 0.0, 800.0, 533.0],"frame":9,"clock":1}
         rows = []
         for line in self.path.read_text(errors="replace").splitlines():
             if not line.startswith("FLEA-B7 "):
@@ -28,14 +34,14 @@ class Receipts:
                 continue
             if row.get("path") not in self.expected or row.get("kind") not in ("thumbnail", "preview"):
                 raise ValueError("B7 receipt does not name a fixture output")
-            if row.get("clock") != 1 or any(type(row.get(k)) is not int or row[k] <= 0 for k in ("start_ns", "end_ns", "width", "height", "frame")):
+            if row.get("clock") != CLOCK_MONOTONIC or any(type(row.get(k)) is not int or row[k] <= 0 for k in ("start_ns", "end_ns", "width", "height", "frame")):
                 raise ValueError("B7 receipt lacks a positive native monotonic presentation")
             if row["end_ns"] <= row["start_ns"]:
                 raise ValueError("B7 output precedes its request")
             bounds = row.get("bounds")
             if not isinstance(bounds, list) or len(bounds) != 4 or any(type(v) not in (int, float) or not math.isfinite(v) for v in bounds) or min(bounds[:2]) < 0 or min(bounds[2:]) <= 0:
                 raise ValueError("B7 output has no visible paint bounds")
-            if row["kind"] == "preview" and max(row["width"], row["height"]) != 800:
+            if row["kind"] == "preview" and max(row["width"], row["height"]) != PREVIEW_EDGE:
                 raise ValueError("B7 preview is not an 800 px raster")
             if any(r["kind"] == row["kind"] and r["path"] == row["path"] for r in rows):
                 raise ValueError("duplicate B7 output receipt")

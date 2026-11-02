@@ -425,7 +425,10 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
         tail.poll()
     verified = len(verified_cache(root / "cache", fixture, 256))
     if reader:
-        reader.poll()
+        try:
+            reader.poll()
+        except ValueError as failure:
+            error = error or str(failure)
         metrics = reader.metrics(verified)
         method = "GPUI decoded image paint and exact CLOCK_MONOTONIC compositor presentation; thumbed.ms worker duration"
     elif ident.startswith("strata"):

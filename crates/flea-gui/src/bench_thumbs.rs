@@ -1,9 +1,12 @@
 //! B7's opt-in output receipt: decoded pixels painted in an exactly presented frame.
-use crate::preview_trace::now;
+use crate::preview_trace::{now, CLOCK_MONOTONIC};
 use gpui::{App, Bounds, FrameFeedbackEvent, FrameOutcome, Pixels, Subscription, Window};
 use std::{cell::RefCell, collections::VecDeque, sync::OnceLock, time::Duration};
 
 const KEPT: usize = 512;
+/// Quick Look's marked raster edge, independent of monitor dimensions.
+pub(crate) const PREVIEW_EDGE: u32 = 800;
+const MAX_DELAY_MS: u64 = 5000;
 
 pub(crate) fn enabled() -> bool {
     token().is_some()
@@ -18,6 +21,15 @@ fn token() -> Option<&'static str> {
                 .filter(|s| !s.is_empty())
         })
         .as_deref()
+}
+
+fn delay_ms() -> Option<u64> {
+    static DELAY: OnceLock<Option<u64>> = OnceLock::new();
+    *DELAY.get_or_init(|| {
+        std::env::var("FLEA_B7_DELAY_MS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+    })
 }
 
 #[derive(Clone)]
@@ -136,25 +148,10 @@ pub(crate) fn painted(
         else {
             return;
         };
-        // Negative control withholds receipts while normal decoded pixels continue to paint.
-        if !state.delayed {
-            state.delayed = true;
-            if let Some(ms) = std::env::var("FLEA_B7_DELAY_MS")
-                .ok()
-                .and_then(|s| s.parse::<u64>().ok())
-                .filter(|ms| *ms <= 5000)
-            {
-                state.delay_until = now().and_then(|at| at.checked_add(Duration::from_millis(ms)));
-            }
-        }
-        if state
-            .delay_until
-            .is_some_and(|until| now().is_some_and(|at| at < until))
-        {
+        if state.withheld(now(), delay_ms()) {
             window.request_animation_frame();
             return;
         }
-        state.delay_until = None;
         if state.draws.back().is_none_or(|(id, _)| *id != draw) {
             if state.draws.len() == KEPT {
                 state.draws.pop_front();
@@ -175,6 +172,24 @@ pub(crate) fn painted(
 }
 
 impl State {
+    /// Negative control: from the first matched paint, no job stages a receipt until the delay passes.
+    fn withheld(&mut self, at: Option<Duration>, delay_ms: Option<u64>) -> bool {
+        if !self.delayed {
+            self.delayed = true;
+            if let Some(ms) = delay_ms.filter(|ms| *ms <= MAX_DELAY_MS) {
+                self.delay_until = at.and_then(|at| at.checked_add(Duration::from_millis(ms)));
+            }
+        }
+        if self
+            .delay_until
+            .is_some_and(|until| at.is_some_and(|at| at < until))
+        {
+            return true;
+        }
+        self.delay_until = None;
+        false
+    }
+
     fn receive(&mut self, event: FrameFeedbackEvent) {
         match event {
             FrameFeedbackEvent::Submitted { draw_id, frame_id } => {
@@ -194,11 +209,14 @@ impl State {
                 let Some((_, paints)) = paints else { return };
                 let FrameOutcome::Presented(gpui::PresentationTime {
                     timestamp: Some(end),
-                    clock_id: Some(1),
+                    clock_id: Some(clock),
                 }) = terminal.outcome
                 else {
                     return;
                 };
+                if i64::from(clock) != i64::from(CLOCK_MONOTONIC) {
+                    return;
+                }
                 for paint in paints {
                     let job = &mut self.jobs[paint.job];
                     if job.done || end <= job.start {
@@ -206,19 +224,20 @@ impl State {
                     }
                     job.done = true;
                     let worker = job.worker_ms.map_or("null".into(), |ms| ms.to_string());
-                    eprintln!("FLEA-B7 {{\"token\":\"{}\",\"kind\":\"{}\",\"path\":\"{}\",\"start_ns\":{},\"end_ns\":{},\"worker_ms\":{},\"width\":{},\"height\":{},\"bounds\":{:?},\"frame\":{},\"clock\":1}}", flea::json::escape(token().unwrap_or("")), job.kind, flea::json::escape(&job.path), job.start.as_nanos(), end.as_nanos(), worker, paint.width, paint.height, paint.bounds, terminal.frame_id);
+                    eprintln!("FLEA-B7 {{\"token\":\"{}\",\"kind\":\"{}\",\"path\":\"{}\",\"start_ns\":{},\"end_ns\":{},\"worker_ms\":{},\"width\":{},\"height\":{},\"bounds\":{:?},\"frame\":{},\"clock\":{CLOCK_MONOTONIC}}}", flea::json::escape(token().unwrap_or("")), job.kind, flea::json::escape(&job.path), job.start.as_nanos(), end.as_nanos(), worker, paint.width, paint.height, paint.bounds, terminal.frame_id);
                 }
             }
         }
     }
 }
 
-/// B7 compares an actual 800 px raster, independently of monitor dimensions.
+/// B7 compares an actual `PREVIEW_EDGE` raster, independently of monitor dimensions.
 pub(crate) fn preview_size(source: (f64, f64), default: (u32, u32)) -> (u32, u32) {
-    if !enabled() || source.0 < 800. && source.1 < 800. {
+    let edge = f64::from(PREVIEW_EDGE);
+    if !enabled() || source.0 < edge && source.1 < edge {
         return default;
     }
-    let ratio = 800. / source.0.max(source.1);
+    let ratio = edge / source.0.max(source.1);
     (
         (source.0 * ratio).round().max(1.) as u32,
         (source.1 * ratio).round().max(1.) as u32,

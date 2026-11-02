@@ -108,14 +108,20 @@ outputs leave CPU empty. Rival inherited `perf task-clock:u` remains diagnostic;
 those arms still lack certified whole-cgroup CPU. No absent counter becomes zero.
 The start marker executes inside the prepared sandbox, directly before
 `dbus-run-session`, matching the rivals' perf boundary and excluding sandbox
-setup and the collector's Python imports from the counter difference.
+setup and the collector's Python imports from the counter difference. The
+marker stays the session command's parent, because bwrap's exit kills whatever
+remains in its pid namespace before the collector can see it. After the command
+exits, the marker waits up to 5 s for the rest of the namespace to exit and
+records any process still there, which leaves CPU empty.
 
-`FLEA_B7_DELAY_MS=1000` is a bench-only negative control: it withholds receipt
-staging for 1000 ms after the first successful thumbnail paint while the app
-continues painting. The eventually stamped presented frame and measured batch
-time must move by the delay. The token gates this control, the value is
-bounded at 5000 ms, and mutant samples are excluded from rankings. Run this
-control in a separate private sample and retain both captures and receipts.
+`FLEA_B7_DELAY_MS=1000` is a bench-only negative control: from the first
+receipt-eligible paint, normally a thumbnail, it withholds receipt staging for
+every job for 1000 ms while the app continues painting. Each job still open then
+stages at its next paint, so the thumbnail batch ends at least 1000 ms after the
+first thumbnail paint, while previews requested after the window keep their own
+time. The token gates this control, the value is bounded at 5000 ms, and mutant
+samples are excluded from rankings. Run this control in a separate private
+sample and retain both captures and receipts.
 Different rival output coverage and the unpublished source corpus still
 prevent a completed benchmark or release win claim from the recovered harness.
 

@@ -195704,7 +195704,7 @@
     },
     {
       "excerpt": "raise ValueError(\"negative cgroup user CPU\")",
-      "line": 15,
+      "line": 19,
       "literal": "negative cgroup user CPU",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195713,7 +195713,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 CPU collector is not in its dedicated cgroup v2 scope\")",
-      "line": 50,
+      "line": 54,
       "literal": "B7 CPU collector is not in its dedicated cgroup v2 scope",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195721,8 +195721,17 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "raise ValueError(\"B7 start marker is not inside the bwrap pid namespace\")",
+      "line": 79,
+      "literal": "B7 start marker is not inside the bwrap pid namespace",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "raise ValueError(\"B7 scope was not empty before launch\")",
-      "line": 65,
+      "line": 92,
       "literal": "B7 scope was not empty before launch",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195731,7 +195740,7 @@
     },
     {
       "excerpt": "raise ValueError(\"cgroup start boundary differs from this scope\")",
-      "line": 83,
+      "line": 110,
       "literal": "cgroup start boundary differs from this scope",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195749,7 +195758,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 needs exactly 16 fixture files\")",
-      "line": 13,
+      "line": 18,
       "literal": "B7 needs exactly 16 fixture files",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195758,7 +195767,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 receipt does not name a fixture output\")",
-      "line": 30,
+      "line": 36,
       "literal": "B7 receipt does not name a fixture output",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195767,7 +195776,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 receipt lacks a positive native monotonic presentation\")",
-      "line": 32,
+      "line": 38,
       "literal": "B7 receipt lacks a positive native monotonic presentation",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195776,7 +195785,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 output precedes its request\")",
-      "line": 34,
+      "line": 40,
       "literal": "B7 output precedes its request",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195785,7 +195794,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 output has no visible paint bounds\")",
-      "line": 37,
+      "line": 43,
       "literal": "B7 output has no visible paint bounds",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195794,7 +195803,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 preview is not an 800 px raster\")",
-      "line": 39,
+      "line": 45,
       "literal": "B7 preview is not an 800 px raster",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -195803,7 +195812,7 @@
     },
     {
       "excerpt": "raise ValueError(\"duplicate B7 output receipt\")",
-      "line": 41,
+      "line": 47,
       "literal": "duplicate B7 output receipt",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/gpui.py",
@@ -196217,7 +196226,7 @@
     },
     {
       "excerpt": "method = \"GPUI decoded image paint and exact CLOCK_MONOTONIC compositor presentation; thumbed.ms worker duration\"",
-      "line": 430,
+      "line": 433,
       "literal": "GPUI decoded image paint and exact CLOCK_MONOTONIC compositor presentation; thumbed.ms worker duration",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196226,7 +196235,7 @@
     },
     {
       "excerpt": "method = \"worker-clock (browser worker completion log)\"",
-      "line": 433,
+      "line": 436,
       "literal": "worker-clock (browser worker completion log)",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196235,7 +196244,7 @@
     },
     {
       "excerpt": "method = \"flea thumb trace (FLEA_THUMB_TRACE through the FLEA_BIN seam, seen-time polled every 10 ms)\"",
-      "line": 436,
+      "line": 439,
       "literal": "flea thumb trace (FLEA_THUMB_TRACE through the FLEA_BIN seam, seen-time polled every 10 ms)",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196244,7 +196253,7 @@
     },
     {
       "excerpt": "method = \"cache-settle (no per-job completion log)\"",
-      "line": 439,
+      "line": 442,
       "literal": "cache-settle (no per-job completion log)",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196253,7 +196262,7 @@
     },
     {
       "excerpt": "reasons.append(\"perf user counter unavailable; app still ran without CPU collection\")",
-      "line": 445,
+      "line": 448,
       "literal": "perf user counter unavailable; app still ran without CPU collection",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196262,7 +196271,7 @@
     },
     {
       "excerpt": "reasons.append(f\"{len(tail.jobs)} trace lines, expected 16; trace is per reported job\")",
-      "line": 447,
+      "line": 450,
       "literal": "{len(tail.jobs)} trace lines, expected 16; trace is per reported job",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196271,7 +196280,7 @@
     },
     {
       "excerpt": "outcome = dict(declined, rule=\"declined by the rival's default policy; no setting was changed\")",
-      "line": 451,
+      "line": 454,
       "literal": "declined by the rival's default policy; no setting was changed",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196280,7 +196289,7 @@
     },
     {
       "excerpt": "reasons.append(f\"declined: {declined['setting']} default {declined['limit_bytes']} bytes, smallest fixture file \"",
-      "line": 452,
+      "line": 455,
       "literal": "declined: {declined['setting']} default {declined['limit_bytes']} bytes, smallest fixture file ",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196289,7 +196298,7 @@
     },
     {
       "excerpt": "reasons.append(f\"{verified}/16 valid fixture cache entries\")",
-      "line": 455,
+      "line": 458,
       "literal": "{verified}/16 valid fixture cache entries",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196298,7 +196307,7 @@
     },
     {
       "excerpt": "reasons.append(\"app.log tail: \" + \" | \".join(line.strip()[:160] for line in log_text[-6:]))",
-      "line": 457,
+      "line": 460,
       "literal": "app.log tail: ",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196307,7 +196316,7 @@
     },
     {
       "excerpt": "reasons.append(\"800px successful preview output needs verification; screenshots and raw worker timings retained\")",
-      "line": 459,
+      "line": 462,
       "literal": "800px successful preview output needs verification; screenshots and raw worker timings retained",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196316,7 +196325,7 @@
     },
     {
       "excerpt": "reasons.append(\"GPUI did not present all 16 successful 800 px previews\")",
-      "line": 461,
+      "line": 464,
       "literal": "GPUI did not present all 16 successful 800 px previews",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196325,7 +196334,7 @@
     },
     {
       "excerpt": "reasons.append(\"complete whole-cgroup user CPU receipt unavailable\")",
-      "line": 464,
+      "line": 467,
       "literal": "complete whole-cgroup user CPU receipt unavailable",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196334,7 +196343,7 @@
     },
     {
       "excerpt": "evidence=str(root), reasons=reasons, argv=argv, cpu_method=\"cgroup v2 cpu.stat user_usec, launch to graceful exit and all helper exits\" if scope else \"inherited perf task-clock:u, including private session bus\")",
-      "line": 468,
+      "line": 471,
       "literal": "cgroup v2 cpu.stat user_usec, launch to graceful exit and all helper exits",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -196343,7 +196352,7 @@
     },
     {
       "excerpt": "evidence=str(root), reasons=reasons, argv=argv, cpu_method=\"cgroup v2 cpu.stat user_usec, launch to graceful exit and all helper exits\" if scope else \"inherited perf task-clock:u, including private session bus\")",
-      "line": 468,
+      "line": 471,
       "literal": "inherited perf task-clock:u, including private session bus",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/measure.py",
@@ -244512,7 +244521,7 @@
     "crates/flea-gui/src/backend/transport.rs": "bdfbc9780952303854f8aecbd879712809a9fc96b7840a65c4eb409def223a55",
     "crates/flea-gui/src/backend/worker.rs": "e24fbcb7b9a5a6bd0fa8cfc06354dadf99c0f629ad91be30629101afae199537",
     "crates/flea-gui/src/backend_log.rs": "d53389a84c8e22f6f9d9277130ef2b0b5019c59b1142cda3d694b264e910571d",
-    "crates/flea-gui/src/bench_thumbs.rs": "2c357c66d0a7a40d246cbc7b2ade0217e9f0e09cdb55b07eadd490adb0fe6cba",
+    "crates/flea-gui/src/bench_thumbs.rs": "efaa91fa440a35d4bde7ec2e368298f8638c597f64c2b265bc4631be50664ed9",
     "crates/flea-gui/src/capture.rs": "5ff7556c1494ff60d67288a1d706eb4303e7af9720f03f8ff94cc538f1430643",
     "crates/flea-gui/src/columns/cache.rs": "c83e7efb677b3e233a6169fb45c83fbe42ac5ad79eef31d377e38cd3aa59bda6",
     "crates/flea-gui/src/columns/carry.rs": "e68368f8236c8e74f0e8cc88912f0a838e96594cd5929859d1abce6d0903d37b",
@@ -244970,7 +244979,7 @@
     "crates/flea-gui/src/g2/pv1/photo_png.rs": "fff64f50dd6335ba9bb49f0107a6386044c67a82ab9bc8b7a555a4e7ee24e486",
     "crates/flea-gui/src/g2/pv1/photo_png_first.rs": "9396d748e77d00552ae20c22aede132c2d113d63ae1e437b724c2b215c72b097",
     "crates/flea-gui/src/g2/pv1/photo_source.rs": "0d7ea68f13d0969d92be853e0bc1cef0eb33f42d5052e19544272b652643513b",
-    "crates/flea-gui/src/g2/pv1/picture.rs": "a970f165406efb03d858edf27f1f417a2d65f79b1d1c01ca719316b73e3e1a40",
+    "crates/flea-gui/src/g2/pv1/picture.rs": "356872462b8f3b0930c58868f7b5095502a5e1444d48f2c95b2bbcc9a835f14e",
     "crates/flea-gui/src/g2/pv1/pointer.rs": "76a7257f90cdf6153c944b36b56dddbfd1a351221224602f93a28531ea42ae19",
     "crates/flea-gui/src/g2/pv1/raster.rs": "b16be51cf35d0ea3b6ffeea0c60faa6ff23466e76b308875af005243bd61991c",
     "crates/flea-gui/src/g2/pv1/resize.rs": "cfd3a368cf0af3100f138425649b7104b60930b796db0e1b5146745df8acb812",
@@ -245339,7 +245348,7 @@
     "crates/flea-gui/src/preview_quality/readiness.rs": "2be4162746d6c68a34b7307e83ebbd739dddf60133846d749d0d78626e290f22",
     "crates/flea-gui/src/preview_quality/render.rs": "39543e455d055d1630cd5241a21eb6377945c5a26dc29a5e5839c1a1ff39e184",
     "crates/flea-gui/src/preview_quality/reuse.rs": "87701c5f677c72e6fb7a396cb26fd900b79b084f980ae3146c6435e3073e76fd",
-    "crates/flea-gui/src/preview_trace.rs": "176308217dc7e77fb2c12883de667bf5e3fb9661170baf3007aad88edb66ad6b",
+    "crates/flea-gui/src/preview_trace.rs": "5dad119ab3958f65f3319f69e02ee715c1048b19369a3b04c653262abd3dc0b5",
     "crates/flea-gui/src/rail/add.rs": "121e3d7ef779a6a68080eec4be73fe2ff63a0917f04a2e068bdd78137fe3f61d",
     "crates/flea-gui/src/rail/element.rs": "c437713c4be513dcd3995d35ad4ca64d2e0de93a04a134ce8aa358d9b59022d6",
     "crates/flea-gui/src/rail/geometry.rs": "c001446b42dafe211d5b066e04523eda0d3c9da86f0c67740715bff26a8460c0",
@@ -246547,10 +246556,10 @@
     "tools/flea-bench-report": "cc61ab2d7c142b99c49ae0bbfec0080050f457155781b859d21b3e49f35b3682",
     "tools/flea-bench-thumbs": "b7da206de08823bb255ed06be0deaa961558cf1af365e71497fb76785cb59741",
     "tools/flea-bench-thumbs-lib/background_preflight.py": "03b93d6c819565bbd5b2cec0127f4e9d32ddc68e76e3b8b5b666942fd5d73aa3",
-    "tools/flea-bench-thumbs-lib/cgroup_cpu.py": "fc5580833429d544bdbe7d22d3938c01747244b73e1c15e4fd29f67eefa7e91f",
-    "tools/flea-bench-thumbs-lib/gpui.py": "e16bb6ffb0c4edab24de034c954d943c1c7591cd6e7efb53075f748cad9abac1",
+    "tools/flea-bench-thumbs-lib/cgroup_cpu.py": "cbdfec00f946994966f7d5d12b64f0b9cfd664d7fd5cf02fe271162d3badc2fa",
+    "tools/flea-bench-thumbs-lib/gpui.py": "e65399bcb91780b3e3e9f5776355a959074d81a7b35b49fec2259e8afca5bf96",
     "tools/flea-bench-thumbs-lib/inventory.py": "719f40400a3821788d494c77eea49339db81b8758a9218a17cd709491b12f624",
-    "tools/flea-bench-thumbs-lib/measure.py": "039bbeb35ef5cb7ee36b4302f4e8c7aabcec23931a9190beb1bc1133ab41688b",
+    "tools/flea-bench-thumbs-lib/measure.py": "54db4e632aa4a828e1c06dec4f8b197b0cfadba357180eff0f5bde134eaf8c2b",
     "tools/flea-bench-thumbs-lib/raw_corpus.py": "9896179015828b68eb82a3d9c702624220fd46085d12f451f834bac8110569cd",
     "tools/flea-bench-thumbs-lib/versions.py": "343fc3b2c1a3bdf0a383dc34a7a9405378995538c42f3d685d0f2d49c9481c6c",
     "tools/flea-bench-thumbs-lib/wayland.py": "f509622b752de7b16dbf4a74413abd62bec0cacbe7b7ebfdb3f69234f14d12d2",
@@ -247099,8 +247108,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "5f51df29b383c98fb7d609b3d2fff06e292cb5d6",
-  "source_sha": "5f51df29b383c98fb7d609b3d2fff06e292cb5d6",
+  "source_ref_sha": "16c9365955a9fd9b2b0a91448233144b849b8341",
+  "source_sha": "16c9365955a9fd9b2b0a91448233144b849b8341",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247109,7 +247118,7 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
-      "missing_literal_candidates": 5129,
+      "missing_literal_candidates": 5130,
       "source_files": 157
     },
     "gui": {
