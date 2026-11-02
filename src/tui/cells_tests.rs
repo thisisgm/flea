@@ -197,9 +197,9 @@ fn tui_cells_preserve_combining_clusters_at_edges() {
         ("界\u{e0100}", 2),
     ] {
         assert_eq!(text_width(text), cells, "{text:?}");
-        assert_eq!(fit(&format!("{text}z"), cells), text);
+        assert_eq!(plain(&fit(&format!("{text}z"), cells)), text);
         assert_eq!(
-            ellipsis(&format!("{text}zz"), cells + 1),
+            plain(&ellipsis(&format!("{text}zz"), cells + 1)),
             format!("{text}…")
         );
         assert_eq!(Wrapped::new(&format!("{text}z"), cells).next(), Some(text));

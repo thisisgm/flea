@@ -4,9 +4,8 @@ use std::time::{Duration, Instant};
 pub const BODY_ROW: usize = 3;
 pub const CHROME_ROWS: usize = 4;
 pub fn rtl(m: &Model) -> bool { m.i18n.locale().right_to_left && cells::mirrors("columns") }
-pub fn visual_start(m: &Model, start: usize, width: usize) -> usize {
-    if rtl(m) { m.columns.saturating_sub(start.saturating_add(width)) } else { start }
-}
+// HIG tui-lang-ar keeps the rail, list and preview in the same order as the English board.
+pub fn visual_start(_m: &Model, start: usize, _width: usize) -> usize { start }
 pub fn body_height(lines: usize) -> usize { lines.saturating_sub(CHROME_ROWS) }
 pub fn panes(columns: usize, preview: bool) -> (usize, usize, usize) {
     let left = (columns * 22 / 100).saturating_sub(1);
@@ -34,6 +33,14 @@ fn sort_label(m: &Model) -> String {
     if let Some(sort) = super::trashview::sort(m) { return sort; }
     let name = match m.sort.as_str() { "size" => "window.column_size", "mtime" | "date" => "window.column_modified", "kind" => "list.column_kind", "btime" => "properties.birth", "extension" => "tui.sort.extension", "random" => "tui.sort.random", _ => "window.column_name" };
     format!("{} {}", m.i18n.tr(name), if m.reverse { "▾" } else { "▴" })
+}
+// The arrow owns its cell after the isolated label, even when the label reads right to left.
+fn sort_cells(sort: &str, width: usize) -> String {
+    if let Some((label, arrow @ ("▴" | "▾"))) = sort.rsplit_once(' ') {
+        if width >= 2 { return format!("{} {arrow}", fit(label, width - 2)); }
+        return fit(label, width);
+    }
+    fit(sort, width)
 }
 // The leading non-tab span preserves the existing mouse hit map; tab() refuses its sentinel index.
 pub fn tab_layout(m: &Model, columns: usize) -> Vec<(usize, String)> {
@@ -76,16 +83,6 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
     let sort_width = text_width(&sort).min(inner);
     let room = inner.saturating_sub(sort_width);
     let gap = room.min(2);
-    if rtl(m) {
-        let trailing = crumbs(&display_path(m), room - gap, theme);
-        let mut tabs = tab_layout(m, inner);
-        let mut contents = String::new();
-        for (index, text) in tabs.drain(..).rev() {
-            if index == usize::MAX { contents.push_str(&crumbs(&display_path(m), text_width(&text), theme)); }
-            else { contents.push_str(if index == m.tab { &theme.tab } else { &theme.background }); contents.push_str(if index == m.tab { &theme.foreground } else { &theme.muted }); contents.push_str(&text); contents.push_str(&theme.base()); }
-        }
-        return format!("{} {}{}{}{}{} ", theme.base(), theme.meta, fit(&sort, sort_width), " ".repeat(gap), if contents.is_empty() { trailing } else { contents }, theme.base());
-    }
     let mut out = format!("{} ", theme.base());
     let tabs = tab_layout(m, inner);
     if tabs.is_empty() { out.push_str(&crumbs(&display_path(m), room - gap, theme)); }
@@ -100,13 +97,13 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
             }
         }
     }
-    out.push_str(&format!("{}{}{}{} ", theme.base(), " ".repeat(gap), theme.meta, fit(&sort, sort_width)));
+    out.push_str(&format!("{}{}{}{} ", theme.base(), " ".repeat(gap), theme.meta, sort_cells(&sort, sort_width)));
     out
 }
 #[cfg(test)]
 #[allow(dead_code)]
 pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> String { rule_direction(columns, preview, bottom, theme, false) }
-pub fn rule_for(m: &Model, columns: usize, bottom: bool, theme: &Theme) -> String { rule_direction(columns, m.preview_visible, bottom, theme, rtl(m)) }
+pub fn rule_for(m: &Model, columns: usize, bottom: bool, theme: &Theme) -> String { rule_direction(columns, m.preview_visible, bottom, theme, false) }
 fn rule_direction(columns: usize, preview: bool, bottom: bool, theme: &Theme, rtl: bool) -> String {
     let (left, middle, _) = panes(columns, preview);
     let mut rule = vec!['─'; columns];
@@ -179,7 +176,7 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         if text.is_empty() || text_width(&text) + right_width + gap + left_width.min(columns) + 2 > columns { continue; }
         if gap > 0 { right.push_str(&format!("{} · ", theme.muted)); }
         right.push_str(color);
-        right.push_str(&text);
+        right.push_str(&fit(&text, text_width(&text)));
         right_width += text_width(&text) + gap;
     }
     let available = columns.saturating_sub(right_width + usize::from(right_width > 0) * 2);
@@ -194,9 +191,6 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         out.push_str(&ellipsis(&text, width));
         out.push_str(&base);
         used += width;
-    }
-    if rtl(m) {
-        return format!("{right}{}{out}{base}", " ".repeat(columns.saturating_sub(used + right_width)));
     }
     out.push_str(&" ".repeat(columns.saturating_sub(used + right_width)));
     out.push_str(&right);

@@ -30,7 +30,7 @@ pub fn field_text(m: &Model, text: &str, width: usize) -> String {
     if rtl(m) {
         // ellipsis pads a short text on the right through fit, which would leave nothing to right-align.
         let shown = if text_width(&text) <= width { text } else { crate::tui::cells::ellipsis(&text, width) };
-        format!("{}{}", " ".repeat(width.saturating_sub(text_width(&shown))), shown)
+        format!("{}{}", " ".repeat(width.saturating_sub(text_width(&shown))), crate::tui::cells::visual::run(&shown))
     } else { fit(&text, width) }
 }
 

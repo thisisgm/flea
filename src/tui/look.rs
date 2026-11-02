@@ -77,14 +77,10 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let rest = room - head;
     let fact = if fact.is_empty() || rest < 3 { fit("", rest) } else {
         let fact = super::pane::direction(&fact, text_width(&fact).min(rest - 2), &m.preview_state.i18n, matches!(pane_state::kind(row), Kind::Model3d | Kind::Image | Kind::Video | Kind::Audio));
-        if super::layout::rtl(m) { format!("{fact}  ") } else { format!("  {fact}") }
+        format!("  {fact}")
     };
     let gap = width.saturating_sub(2 + head + text_width(&fact) + plates.1);
-    if super::layout::rtl(m) {
-        format!("{} {close}{}{}{}{fact}{}{name}", theme.foreground, plates.0, " ".repeat(gap), theme.meta, theme.foreground)
-    } else {
-        format!("{}{name}{}{fact}{}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), plates.0, theme.foreground)
-    }
+    format!("{}{name}{}{fact}{}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), plates.0, theme.foreground)
 }
 
 fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
@@ -110,11 +106,9 @@ fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
         let gap = length.min(2);
         let label = super::pane::direction(&word, length - gap, &m.preview_state.i18n, false);
         let ink = if plate == active { &theme.foreground } else { &theme.muted };
-        pieces.push(if super::layout::rtl(m) { format!("{ink}{}{label}", " ".repeat(gap)) }
-            else { format!("{ink}{label}{}", " ".repeat(gap)) });
+        pieces.push(format!("{ink}{label}{}", " ".repeat(gap)));
         used += length;
     }
-    if super::layout::rtl(m) { pieces.reverse(); }
     (pieces.concat(), used)
 }
 
@@ -146,7 +140,7 @@ pub fn press(m: &mut Model, pointer: &super::input::Pointer) -> bool {
 fn closes(m: &Model, x: usize, y: usize) -> bool {
     let (left, width) = outer(m.columns);
     let area = area(m.columns, m.height);
-    let column = if super::layout::rtl(m) { left + 2 + area.padding + 1 } else { left + 2 + area.padding + area.width() - 2 };
+    let column = left + 2 + area.padding + area.width() - 2;
     let close = (BODY_ROW + 1, column);
     let inside = x > left && x <= left + width && y >= BODY_ROW && y < BODY_ROW + m.height;
     !inside || (y, x) == close

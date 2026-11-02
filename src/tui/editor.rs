@@ -215,19 +215,33 @@ impl Editor {
             _ => None,
         };
         if let Some(right) = motion {
-            self.cursor = if right { forward(&self.value, self.cursor, self.editable_end) }
-                else { backward(&self.value, self.cursor) };
-            if mods != "ctrlshift" { self.anchor = self.cursor; }
+            self.cursor = if right {
+                forward(&self.value, self.cursor, self.editable_end)
+            } else {
+                backward(&self.value, self.cursor)
+            };
+            if mods != "ctrlshift" {
+                self.anchor = self.cursor;
+            }
             return true;
         }
         let range = match (mods, key.name.as_str()) {
             ("ctrl", "U") => 0..self.cursor,
             ("ctrl", "K") => self.cursor..self.editable_end,
-            ("ctrl", "W" | "Backspace") => self.cursor - kill_length(self.value[..self.cursor].chars().rev())..self.cursor,
-            ("alt", "D") | ("ctrl", "Delete") => self.cursor..self.cursor + kill_length(self.value[self.cursor..self.editable_end].chars()),
+            ("ctrl", "W" | "Backspace") => {
+                self.cursor - kill_length(self.value[..self.cursor].chars().rev())..self.cursor
+            }
+            ("alt", "D") | ("ctrl", "Delete") => {
+                self.cursor
+                    ..self.cursor + kill_length(self.value[self.cursor..self.editable_end].chars())
+            }
             _ => return false,
         };
-        let range = if self.cursor != self.anchor { self.cursor.min(self.anchor)..self.cursor.max(self.anchor) } else { range };
+        let range = if self.cursor != self.anchor {
+            self.cursor.min(self.anchor)..self.cursor.max(self.anchor)
+        } else {
+            range
+        };
         self.cursor = range.start;
         self.anchor = self.cursor;
         self.value.replace_range(range, "");
@@ -261,10 +275,12 @@ impl Editor {
         }
         let room = columns - 1;
         let (mut out, mut used, mut caret, mut ink) = (String::new(), 0, None, "");
+        let (mut shown, mut boundary) = (String::new(), None);
         for (offset, c) in self.value[first..].char_indices() {
             let offset = first + offset;
             if offset == self.cursor {
                 caret = Some(used);
+                boundary = Some(shown.len());
             }
             if !render::safe(c) {
                 continue;
@@ -292,10 +308,16 @@ impl Editor {
                 });
             }
             out.push(c);
+            shown.push(c);
             used += cells;
         }
         if self.cursor == self.value.len() && used <= room {
             caret = Some(used);
+            boundary = Some(shown.len());
+        }
+        if super::cells::visual::needed(&shown) {
+            caret = boundary.map(|at| super::cells::visual::caret(&shown, at));
+            out = format!("\u{2068}{out}\u{2069}");
         }
         out.push_str(&format!("\x1b[0m{}{}{ghost} ", theme.field, theme.ext));
         used += render::text_width(&ghost) + 1;

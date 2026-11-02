@@ -7,6 +7,8 @@ use super::{
 extern "C" {
     fn wcwidth(c: i32) -> i32;
 }
+#[path = "visual.rs"]
+pub mod visual;
 
 pub fn mirrors(role: &str) -> bool {
     static POLICY: std::sync::OnceLock<Option<crate::jsondoc::Json>> = std::sync::OnceLock::new();
@@ -89,7 +91,17 @@ pub fn isolate(run: Run, text: &str) -> String {
     let Some((open, close)) = markers(run) else {
         return text;
     };
-    format!("{open}{text}{close}")
+    let head = text.len() - text.trim_start().len();
+    let tail = text.trim_end().len();
+    if head >= tail {
+        return text;
+    }
+    format!(
+        "{}{open}{}{close}{}",
+        &text[..head],
+        visual::isolate_contents(run, &text[head..tail]),
+        &text[tail..]
+    )
 }
 // Preserve the Unicode range groups as a readable data table.
 #[rustfmt::skip]
@@ -134,6 +146,7 @@ pub fn fit(text: &str, limit: usize) -> String {
         out.push(c);
         used += n;
     }
+    out = visual::run(&out);
     out.push_str(&" ".repeat(limit - used));
     out
 }
@@ -161,13 +174,51 @@ pub fn centered(text: &str, limit: usize) -> String {
 }
 // Bold on the name's cells only (mark, space and padding plain, a cut name's ellipsis bold); the title is exactly columns cells.
 pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
-    super::words::title::typed(
-        mark,
-        &[(Some(Run::Name), name.into())],
-        columns,
-        false,
-        true,
-    )
+    if columns == 0 {
+        return String::new();
+    }
+    let cut = text_width(mark) + text_width(name) > columns;
+    let limit = if cut { columns - 1 } else { columns };
+    let mut shown = Vec::new();
+    let mut used = 0;
+    for (is_name, c, n) in characters(mark)
+        .map(|(c, n)| (false, c, n))
+        .chain(characters(name).map(|(c, n)| (true, c, n)))
+    {
+        if used + n > limit {
+            break;
+        }
+        shown.push((is_name, c));
+        used += n;
+    }
+    let name_shown = shown.iter().any(|&(is_name, c)| is_name && width(c) > 0);
+    shown.resize(shown.len() + limit - used, (false, ' '));
+    if cut {
+        shown.push((name_shown, '…'));
+    }
+    let mut out = String::new();
+    let mut bold = false;
+    let rtl = visual::needed(name);
+    for (is_name, c) in shown {
+        if is_name != bold {
+            if bold && rtl {
+                out.push('\u{2069}');
+            }
+            out.push_str(if is_name { "\x1b[1m" } else { "\x1b[22m" });
+            if is_name && rtl {
+                out.push('\u{2068}');
+            }
+            bold = is_name;
+        }
+        out.push(c);
+    }
+    if bold {
+        if rtl {
+            out.push('\u{2069}');
+        }
+        out.push_str("\x1b[22m");
+    }
+    out
 }
 pub struct Wrapped<'a> {
     remaining: Option<&'a str>,
@@ -295,31 +346,20 @@ pub fn row(
         return out;
     }
     let edge = if style.cursor && style.focused && theme.depth != Depth::Sixteen {
-        format!(
-            "{}{}{}",
-            theme.accent,
-            if style.rtl { "▕" } else { "▎" },
-            ink
-        )
+        format!("{}{}{}", theme.accent, "▎", ink)
     } else {
         " ".into()
     };
-    if columns < 4 + usize::from(style.rtl) {
+    if columns < 4 {
         let name = ellipsis(&entry.name, columns - 1);
-        if style.rtl {
-            out.push_str(&isolate(Run::Name, &name));
-            out.push_str(&edge);
-        } else {
-            out.push_str(&edge);
-            out.push_str(&name);
-        }
+        out.push_str(&edge);
+        out.push_str(&name);
         out.push_str(&base);
         return out;
     }
     let mark = format!("{meta}{} {ink}", icons::row(entry, marks));
-    let size =
-        size.filter(|s| !s.is_empty() && text_width(s) + 6 + usize::from(style.rtl) <= columns);
-    let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3) - usize::from(style.rtl);
+    let size = size.filter(|s| !s.is_empty() && text_width(s) + 6 <= columns);
+    let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3);
     // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
     let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
     let display_name = fit(leaf, text_width(leaf));
@@ -342,34 +382,22 @@ pub fn row(
     } else {
         label.push_str(&name);
     }
-    if style.rtl {
-        if let Some(size) = size {
-            out.push_str(&format!("  {meta}{} ", isolate(Run::Number, size)));
-        } else {
-            out.push(' ');
-        }
+    out.push_str(&edge);
+    out.push_str(&mark);
+    out.push_str(&label);
+    if !target.is_empty() {
         out.push_str(meta);
-        out.push_str(&isolate(Run::Name, &target));
-        out.push_str(ink);
-        // Isolate trusted styling around the already sanitized name without reversing its bytes.
-        out.push('\u{2068}');
-        out.push_str(&label);
-        out.push('\u{2069}');
-        out.push_str(&format!(" {meta}{} {ink}", icons::row(entry, marks)));
-        out.push_str(&edge);
-    } else {
-        out.push_str(&edge);
-        out.push_str(&mark);
-        out.push_str(&label);
-        if !target.is_empty() {
-            out.push_str(meta);
-            out.push_str(&target);
-        }
-        if let Some(size) = size {
-            out.push_str(&format!(" {meta}{size}  "));
+        out.push_str(&target);
+    }
+    if let Some(size) = size {
+        let size = if style.rtl {
+            isolate(Run::Number, size)
         } else {
-            out.push(' ');
-        }
+            size.into()
+        };
+        out.push_str(&format!(" {meta}{size}  "));
+    } else {
+        out.push(' ');
     }
     out.push_str(&base);
     out
