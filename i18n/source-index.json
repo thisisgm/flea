@@ -42148,7 +42148,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(Text::Key(\"dialogs.output.error.dimensions\"));",
-          "line": 342,
+          "line": 343,
           "path": "src/tui/combine/preview.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -45567,7 +45567,7 @@
         },
         {
           "excerpt": "Text::Args(\"dialogs.output.error.operation\", vec![error]),",
-          "line": 160,
+          "line": 162,
           "path": "src/tui/combine/preview.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -171696,6 +171696,33 @@
       "surface": "tui"
     },
     {
+      "excerpt": ".expect(\"an installed system monospace font\");",
+      "line": 83,
+      "literal": "an installed system monospace font",
+      "owner": "t11",
+      "path": "src/tui/combine/font.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "std::fs::copy(&installed, root.join(\"user font.ttf\")).unwrap();",
+      "line": 84,
+      "literal": "user font.ttf",
+      "owner": "t11",
+      "path": "src/tui/combine/font.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let source = root.join(\"user font.ttf\");",
+      "line": 85,
+      "literal": "user font.ttf",
+      "owner": "t11",
+      "path": "src/tui/combine/font.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "if key.name == \"Escape\" {",
       "line": 6,
       "literal": "Escape",
@@ -171796,7 +171823,7 @@
     },
     {
       "excerpt": "\"2\".into(),",
-      "line": 292,
+      "line": 295,
       "literal": "2",
       "owner": "t11",
       "path": "src/tui/combine/preview.rs",
@@ -185422,7 +185449,7 @@
     },
     {
       "excerpt": "command -v omarchy-drive >/dev/null || die \"omarchy-drive is not on PATH, so no window can be driven\"",
-      "line": 50,
+      "line": 51,
       "literal": "omarchy-drive is not on PATH, so no window can be driven",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185431,7 +185458,7 @@
     },
     {
       "excerpt": "session=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env) || die \"omarchy-drive env failed\"",
-      "line": 52,
+      "line": 53,
       "literal": "omarchy-drive env failed",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185440,7 +185467,7 @@
     },
     {
       "excerpt": "*) die \"unexpected omarchy-drive environment name: $name\" ;;",
-      "line": 58,
+      "line": 59,
       "literal": "unexpected omarchy-drive environment name: $name",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185449,7 +185476,7 @@
     },
     {
       "excerpt": "[[ \"$line\" == \"export $name=\"* && \"$names\" != *\" $name \"* ]] || die \"invalid or duplicate session variable: $name\"",
-      "line": 60,
+      "line": 61,
       "literal": "invalid or duplicate session variable: $name",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185458,7 +185485,7 @@
     },
     {
       "excerpt": "[[ \"$names\" == *\" $name \"* && -n \"${!name}\" ]] || die \"session omitted $name\"",
-      "line": 66,
+      "line": 67,
       "literal": "session omitted $name",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185467,7 +185494,7 @@
     },
     {
       "excerpt": "|| die \"omarchy-drive returned an unexpected session\"",
-      "line": 70,
+      "line": 71,
       "literal": "omarchy-drive returned an unexpected session",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185476,7 +185503,7 @@
     },
     {
       "excerpt": "flock -n \"$DRIVE_LOCK\" || die \"another owner holds flea-display.lock\"",
-      "line": 72,
+      "line": 73,
       "literal": "another owner holds flea-display.lock",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185485,7 +185512,7 @@
     },
     {
       "excerpt": "[ -n \"$QT_QPA_PLATFORMTHEME\" ] || die \"nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon\"",
-      "line": 75,
+      "line": 76,
       "literal": "nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185494,7 +185521,7 @@
     },
     {
       "excerpt": "[ \"${1:-}\" != -- ] || die \"a -- argument is silently dropped by omarchy-drive key; pass the text bare\"",
-      "line": 89,
+      "line": 90,
       "literal": "a -- argument is silently dropped by omarchy-drive key; pass the text bare",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185503,7 +185530,7 @@
     },
     {
       "excerpt": "identity=$(drive_window_identity) || die \"native key target lost its owned identity\"",
-      "line": 90,
+      "line": 91,
       "literal": "native key target lost its owned identity",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185512,7 +185539,7 @@
     },
     {
       "excerpt": "drive_mutation_guard \"$(ipc path)\" || die \"native key target left the owned listing\"",
-      "line": 91,
+      "line": 92,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185521,7 +185548,7 @@
     },
     {
       "excerpt": "drive_mutation_guard \"$(ipc path)\" || die \"native key target left the owned listing\"",
-      "line": 91,
+      "line": 92,
       "literal": "native key target left the owned listing",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185530,7 +185557,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\" || die \"Shift-letter target could not receive focus\"",
-      "line": 100,
+      "line": 101,
       "literal": "Shift-letter target could not receive focus",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185539,7 +185566,7 @@
     },
     {
       "excerpt": "active=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl activewindow -j) || die \"active window unavailable before kernel input\"",
-      "line": 101,
+      "line": 102,
       "literal": "active window unavailable before kernel input",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185548,7 +185575,7 @@
     },
     {
       "excerpt": "|| die \"kernel input refused: the owned candidate does not have focus\"",
-      "line": 103,
+      "line": 104,
       "literal": "kernel input refused: the owned candidate does not have focus",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185557,7 +185584,7 @@
     },
     {
       "excerpt": "|| die \"native Shift-letter delivery failed for $DRIVE_ROW_ID\"",
-      "line": 106,
+      "line": 107,
       "literal": "native Shift-letter delivery failed for $DRIVE_ROW_ID",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185566,7 +185593,7 @@
     },
     {
       "excerpt": "|| die \"omarchy-drive key failed for $DRIVE_ROW_ID\"",
-      "line": 110,
+      "line": 111,
       "literal": "omarchy-drive key failed for $DRIVE_ROW_ID",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185575,7 +185602,7 @@
     },
     {
       "excerpt": "[[ \"$x\" =~ ^-?[0-9]+$ && \"$y\" =~ ^-?[0-9]+$ ]] || die \"monitor origin unavailable\"",
-      "line": 120,
+      "line": 121,
       "literal": "monitor origin unavailable",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185584,7 +185611,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive move \"$x\" \"$y\" || die \"pointer parking failed\"",
-      "line": 121,
+      "line": 122,
       "literal": "pointer parking failed",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185593,7 +185620,7 @@
     },
     {
       "excerpt": "[[ \"$1\" =~ ^[a-zA-Z0-9_-]+$ ]] || die \"unsafe screenshot label: $1\"",
-      "line": 128,
+      "line": 129,
       "literal": "unsafe screenshot label: $1",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185602,7 +185629,7 @@
     },
     {
       "excerpt": "[[ ! -e \"$output\" ]] || die \"screenshot output already exists: $output\"",
-      "line": 132,
+      "line": 133,
       "literal": "screenshot output already exists: $output",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185611,7 +185638,7 @@
     },
     {
       "excerpt": "drive_window_identity >/dev/null || die \"screenshot target lost ownership\"",
-      "line": 133,
+      "line": 134,
       "literal": "screenshot target lost ownership",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185620,7 +185647,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot \"$output\" \"$DRIVE_WINDOW_ADDRESS\" || die \"native screenshot failed: $output\"",
-      "line": 134,
+      "line": 135,
       "literal": "native screenshot failed: $output",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185629,7 +185656,7 @@
     },
     {
       "excerpt": "|| die \"native screenshot did not create a fresh PNG: $output\"",
-      "line": 136,
+      "line": 137,
       "literal": "native screenshot did not create a fresh PNG: $output",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185638,7 +185665,7 @@
     },
     {
       "excerpt": "WHY=\"$what was already '$want' before the chord, so this check could not fail\"",
-      "line": 186,
+      "line": 187,
       "literal": "$what was already '$want' before the chord, so this check could not fail",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185647,7 +185674,7 @@
     },
     {
       "excerpt": "WHY=\"$what went '$before' to '$after', wanted '$want'\"",
-      "line": 190,
+      "line": 191,
       "literal": "$what went '$before' to '$after', wanted '$want'",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185656,7 +185683,7 @@
     },
     {
       "excerpt": "WHY=\"$what stayed '$before', so the chord had no effect\"",
-      "line": 198,
+      "line": 199,
       "literal": "$what stayed '$before', so the chord had no effect",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185665,7 +185692,7 @@
     },
     {
       "excerpt": "script = r\"\"\"\nfunction derive(context, Qt, emit) {\n    var punctuation = { ' ': 'Space', '/': 'Slash', '?': 'Question', '.': 'Period', ',': 'Comma',\n        '-': 'Minus', '_': 'Underscore', '+': 'Plus', '=': 'Equal', '>': 'Greater',\n        '<': 'Less', '[': 'BracketLeft', ']': 'BracketRight' };\n    function event(row) {\n        var plain = !(row.mask & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));\n        var namedText = Object.keys(punctuation).find(function(char) { return punctuation[char] === row.key; });\n        var text = row.mods === 'text' ? row.text : !plain ? '' : namedText ||\n            (row.key.length === 1 ? (row.mask & Qt.ShiftModifier ? row.key : row.key.toLowerCase()) : '');\n        var code = text ? 'Key_' + (punctuation[text] || text.toUpperCase()) : row.code;\n        return { key: Qt[code], text: text,\n            mask: row.mods === 'text' ? (/^[A-Z?_<>+]$/.test(text) ? Qt.ShiftModifier : 0) : row.mask };\n    }\n    var candidates = context.PRESET_KEYS.concat(context.SHARED_KEYS);\n    for (var digit = context.DIGITS.from; digit <= context.DIGITS.to; digit++)\n        candidates.push({ preset: 'all', mods: 'text', key: String(digit), text: String(digit), code: '', mask: 0 });\n    var count = 0;\n    context.PRESETS.forEach(function(preset) {\n        ['gui', 'tui'].forEach(function(frontend) {\n            ['listing', 'rail', 'menu', 'panel', 'preview', 'pdf', 'media', 'editor'].forEach(function(scope) {\n                var seen = {};\n                candidates.forEach(function(row) {\n                    if (row.preset !== 'all' && row.preset !== preset) return;\n                    // A listing chord also needs a refusal row in every overlay that does not bind it.\n                    var identity = [preset, frontend, scope, row.mods, row.key].join('|');\n                    if (seen[identity]) return;\n                    seen[identity] = true;\n                    var input = event(row);\n                    var action = context.lookupFor(preset, input.key, input.text, input.mask, scope, frontend);\n                    var fields = [preset, frontend, scope, row.mods, row.key, action];\n                    if (fields.some(function(value) { return /[|\\r\\n]/.test(value); }))\n                        throw new Error('unrepresentable key matrix field');\n                    emit(fields.join('|'));\n                    count++;\n                });\n            });\n        });\n    });\n    emit('__DONE__|' + count);\n}\n\"\"\"",
-      "line": 210,
+      "line": 211,
       "literal": "\nfunction derive(context, Qt, emit) {\n    var punctuation = { ' ': 'Space', '/': 'Slash', '?': 'Question', '.': 'Period', ',': 'Comma',\n        '-': 'Minus', '_': 'Underscore', '+': 'Plus', '=': 'Equal', '>': 'Greater',\n        '<': 'Less', '[': 'BracketLeft', ']': 'BracketRight' };\n    function event(row) {\n        var plain = !(row.mask & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));\n        var namedText = Object.keys(punctuation).find(function(char) { return punctuation[char] === row.key; });\n        var text = row.mods === 'text' ? row.text : !plain ? '' : namedText ||\n            (row.key.length === 1 ? (row.mask & Qt.ShiftModifier ? row.key : row.key.toLowerCase()) : '');\n        var code = text ? 'Key_' + (punctuation[text] || text.toUpperCase()) : row.code;\n        return { key: Qt[code], text: text,\n            mask: row.mods === 'text' ? (/^[A-Z?_<>+]$/.test(text) ? Qt.ShiftModifier : 0) : row.mask };\n    }\n    var candidates = context.PRESET_KEYS.concat(context.SHARED_KEYS);\n    for (var digit = context.DIGITS.from; digit <= context.DIGITS.to; digit++)\n        candidates.push({ preset: 'all', mods: 'text', key: String(digit), text: String(digit), code: '', mask: 0 });\n    var count = 0;\n    context.PRESETS.forEach(function(preset) {\n        ['gui', 'tui'].forEach(function(frontend) {\n            ['listing', 'rail', 'menu', 'panel', 'preview', 'pdf', 'media', 'editor'].forEach(function(scope) {\n                var seen = {};\n                candidates.forEach(function(row) {\n                    if (row.preset !== 'all' && row.preset !== preset) return;\n                    // A listing chord also needs a refusal row in every overlay that does not bind it.\n                    var identity = [preset, frontend, scope, row.mods, row.key].join('|');\n                    if (seen[identity]) return;\n                    seen[identity] = true;\n                    var input = event(row);\n                    var action = context.lookupFor(preset, input.key, input.text, input.mask, scope, frontend);\n                    var fields = [preset, frontend, scope, row.mods, row.key, action];\n                    if (fields.some(function(value) { return /[|\\r\\n]/.test(value); }))\n                        throw new Error('unrepresentable key matrix field');\n                    emit(fields.join('|'));\n                    count++;\n                });\n            });\n        });\n    });\n    emit('__DONE__|' + count);\n}\n",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185674,7 +185701,7 @@
     },
     {
       "excerpt": "bootstrap = r\"\"\"\nconst vm = require('node:vm');\nconst Qt = {NoModifier:0, ShiftModifier:0x02000000, ControlModifier:0x04000000,\n    AltModifier:0x08000000, MetaModifier:0x10000000};\nconst source = SOURCE;\nfor (const name of new Set(source.match(/Key_[A-Za-z0-9_]+/g))) Qt[name] = name;\nconst context = vm.createContext({Qt});\nvm.runInContext(source, context, {timeout:1000});\n\"\"\".replace('SOURCE', json.dumps(source))",
-      "line": 262,
+      "line": 263,
       "literal": "\nconst vm = require('node:vm');\nconst Qt = {NoModifier:0, ShiftModifier:0x02000000, ControlModifier:0x04000000,\n    AltModifier:0x08000000, MetaModifier:0x10000000};\nconst source = SOURCE;\nfor (const name of new Set(source.match(/Key_[A-Za-z0-9_]+/g))) Qt[name] = name;\nconst context = vm.createContext({Qt});\nvm.runInContext(source, context, {timeout:1000});\n",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185683,7 +185710,7 @@
     },
     {
       "excerpt": "(scratch / 'matrix.qml').write_text('import QtQuick\\nimport ' + json.dumps(keymap.as_uri()) + r\"\"\" as Keymap\nimport \"derive.js\" as Matrix",
-      "line": 277,
+      "line": 278,
       "literal": " as Keymap\nimport ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185692,7 +185719,7 @@
     },
     {
       "excerpt": "import \"derive.js\" as Matrix\nQtObject {\n    Component.onCompleted: {\n        try { Matrix.derive(Keymap, Qt, function(row) { console.log(\"FLEA_MATRIX_ROW \" + row); }); }",
-      "line": 278,
+      "line": 279,
       "literal": " as Matrix\nQtObject {\n    Component.onCompleted: {\n        try { Matrix.derive(Keymap, Qt, function(row) { console.log(",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185701,7 +185728,7 @@
     },
     {
       "excerpt": "die \"no deliverable $DRIVE_PRESET/gui/$context binding for setup action '$action'\"",
-      "line": 401,
+      "line": 402,
       "literal": "no deliverable $DRIVE_PRESET/gui/$context binding for setup action '$action'",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185710,7 +185737,7 @@
     },
     {
       "excerpt": "k \"$@\"\n  drive_expect menuDialogState '.confirmation.opened and (.confirmation.destructiveFocus | not)' || return 1\n  [[ -f \"$target\" ]] || { WHY=\"Delete bypassed its confirmation\"; return 1; }",
-      "line": 1535,
+      "line": 1536,
       "literal": "\n  drive_expect menuDialogState '.confirmation.opened and (.confirmation.destructiveFocus | not)' || return 1\n  [[ -f ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185719,7 +185746,7 @@
     },
     {
       "excerpt": "[[ -f \"$target\" ]] || { WHY=\"Delete bypassed its confirmation\"; return 1; }\n  k -k Return\n  drive_expect menuDialogState '.opened | not' || return 1\n  [[ -f \"$target\" ]] || { WHY=\"reflexive Return did not cancel deletion\"; return 1; }",
-      "line": 1537,
+      "line": 1538,
       "literal": "; return 1; }\n  k -k Return\n  drive_expect menuDialogState '.opened | not' || return 1\n  [[ -f ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185728,7 +185755,7 @@
     },
     {
       "excerpt": "k \"$@\"\n  drive_expect menuDialogState '.confirmation.opened and (.confirmation.destructiveFocus | not)' || return 1\n  k -k Tab\n  drive_expect menuDialogState '.confirmation.destructiveFocus' || return 1\n  drive_guard \"$target\"",
-      "line": 1541,
+      "line": 1542,
       "literal": "\n  drive_expect menuDialogState '.confirmation.opened and (.confirmation.destructiveFocus | not)' || return 1\n  k -k Tab\n  drive_expect menuDialogState '.confirmation.destructiveFocus' || return 1\n  drive_guard ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185737,7 +185764,7 @@
     },
     {
       "excerpt": "drive_wait_gone \"$target\" || { WHY=\"confirmed permanent deletion left its source\"; return 1; }\n  drive_expect menuDialogState '(.opened | not) and (.committing | not)'\n}\n\nkeycase_duplicate() {\n  reset_state && seek_row_named a-note.txt || return 1\n  local target=\"$DRIVE_FIXTURE/a-note copy.txt\"",
-      "line": 1547,
+      "line": 1548,
       "literal": "; return 1; }\n  drive_expect menuDialogState '(.opened | not) and (.committing | not)'\n}\n\nkeycase_duplicate() {\n  reset_state && seek_row_named a-note.txt || return 1\n  local target=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185746,7 +185773,7 @@
     },
     {
       "excerpt": "drive_undo_transfer \"$target\" || { WHY=\"Duplicate cleanup through Undo failed\"; return 1; }\n}\n\nkeycase_movePaste() {\n  reset_state && seek_row_named op-cut.txt && drive_action copy && enter_dir dest || return 1\n  local target=\"$DRIVE_FIXTURE/dest/op-cut.txt\"",
-      "line": 1559,
+      "line": 1560,
       "literal": "; return 1; }\n}\n\nkeycase_movePaste() {\n  reset_state && seek_row_named op-cut.txt && drive_action copy && enter_dir dest || return 1\n  local target=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185755,7 +185782,7 @@
     },
     {
       "excerpt": "drive_undo_transfer \"$target\" && leave_dir && wait_file \"$DRIVE_FIXTURE/op-cut.txt\"\n}\n\nkeycase_redo() {\n  reset_state && seek_row_named a-note.txt || return 1\n  local target=\"$DRIVE_FIXTURE/a-note copy.txt\"",
-      "line": 1571,
+      "line": 1572,
       "literal": "\n}\n\nkeycase_redo() {\n  reset_state && seek_row_named a-note.txt || return 1\n  local target=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185764,7 +185791,7 @@
     },
     {
       "excerpt": "[[ ! -e \"$target\" ]] || { WHY=\"Redo destination existed before setup\"; return 1; }\n  drive_action duplicate || return 1\n  wait_file \"$target\" && drive_undo_transfer \"$target\" || { WHY=\"Redo setup did not create and undo a duplicate\"; return 1; }",
-      "line": 1577,
+      "line": 1578,
       "literal": "; return 1; }\n  drive_action duplicate || return 1\n  wait_file ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185773,7 +185800,7 @@
     },
     {
       "excerpt": "drive_undo_transfer \"$target\"\n}\n\nkeycase_copydirpath() {\n  reset_state || return 1\n  local before after\n  enter_dir sub || return 1\n  drive_action copydirpath || return 1\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= wl-paste --no-newline) || { WHY=\"clipboard cannot be observed\"; return 2; }",
-      "line": 1583,
+      "line": 1584,
       "literal": "\n}\n\nkeycase_copydirpath() {\n  reset_state || return 1\n  local before after\n  enter_dir sub || return 1\n  drive_action copydirpath || return 1\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= wl-paste --no-newline) || { WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185782,7 +185809,7 @@
     },
     {
       "excerpt": "changed_to \"copied directory path\" \"$before\" \"$after\" \"$DRIVE_FIXTURE\"\n}\n\ndrive_arm() {\n  local action=$1 final=$2 row=$3 before after\n  shift 3\n  reset_state && seek_row_named \"$row\" || return 1",
-      "line": 1596,
+      "line": 1597,
       "literal": "\n}\n\ndrive_arm() {\n  local action=$1 final=$2 row=$3 before after\n  shift 3\n  reset_state && seek_row_named ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185791,7 +185818,7 @@
     },
     {
       "excerpt": "reset_state && seek_row_named \"$row\" || return 1\n  before=$(ipc keyDeliveryState)\n  k \"$@\"",
-      "line": 1602,
+      "line": 1603,
       "literal": " || return 1\n  before=$(ipc keyDeliveryState)\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185800,7 +185827,7 @@
     },
     {
       "excerpt": "k \"$@\"\n  after=$(ipc keyDeliveryState)\n  [[ \"$(jq -c '.clipboard' <<< \"$before\")\" == \"$(jq -c '.clipboard' <<< \"$after\")\" ]] \\",
-      "line": 1604,
+      "line": 1605,
       "literal": "\n  after=$(ipc keyDeliveryState)\n  [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185809,7 +185836,7 @@
     },
     {
       "excerpt": "[[ -e \"$DRIVE_FIXTURE/$row\" ]] || { WHY=\"first d already trashed its source\"; return 1; }\n  else\n    jq -e --arg action \"$action\" '.keySequence == $action and .keySequenceIdentity != \"\"' <<< \"$after\" >/dev/null || return 1",
-      "line": 1610,
+      "line": 1611,
       "literal": "; return 1; }\n  else\n    jq -e --arg action ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185818,7 +185845,7 @@
     },
     {
       "excerpt": "jq -e --arg action \"$action\" '.keySequence == $action and .keySequenceIdentity != \"\"' <<< \"$after\" >/dev/null || return 1",
-      "line": 1612,
+      "line": 1613,
       "literal": " '.keySequence == $action and .keySequenceIdentity != ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185827,7 +185854,7 @@
     },
     {
       "excerpt": "\"keycase_$final\" \"$@\" \"$@\"\n}\n\nkeycase_copyArm() { drive_arm copyArm copy op-copy.txt \"$@\"; }",
-      "line": 1617,
+      "line": 1618,
       "literal": "\n}\n\nkeycase_copyArm() { drive_arm copyArm copy op-copy.txt ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185836,7 +185863,7 @@
     },
     {
       "excerpt": "keycase_copyArm() { drive_arm copyArm copy op-copy.txt \"$@\"; }\nkeycase_cutArm() { drive_arm cutArm cut op-cut.txt \"$@\"; }",
-      "line": 1620,
+      "line": 1621,
       "literal": "; }\nkeycase_cutArm() { drive_arm cutArm cut op-cut.txt ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185845,7 +185872,7 @@
     },
     {
       "excerpt": "keycase_cutArm() { drive_arm cutArm cut op-cut.txt \"$@\"; }\nkeycase_pasteArm() { drive_arm pasteArm paste op-paste.txt \"$@\"; }",
-      "line": 1621,
+      "line": 1622,
       "literal": "; }\nkeycase_pasteArm() { drive_arm pasteArm paste op-paste.txt ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185854,7 +185881,7 @@
     },
     {
       "excerpt": "keycase_pasteArm() { drive_arm pasteArm paste op-paste.txt \"$@\"; }\nkeycase_cursorFirstArm() { drive_arm cursorFirstArm cursorFirst a-note.txt \"$@\"; }",
-      "line": 1622,
+      "line": 1623,
       "literal": "; }\nkeycase_cursorFirstArm() { drive_arm cursorFirstArm cursorFirst a-note.txt ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185863,7 +185890,7 @@
     },
     {
       "excerpt": "keycase_cursorFirstArm() { drive_arm cursorFirstArm cursorFirst a-note.txt \"$@\"; }\nkeycase_trashArm() { drive_arm trashArm trash op-trash.txt \"$@\"; }",
-      "line": 1623,
+      "line": 1624,
       "literal": "; }\nkeycase_trashArm() { drive_arm trashArm trash op-trash.txt ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185872,7 +185899,7 @@
     },
     {
       "excerpt": "command -v foot >/dev/null || { WHY=\"native foot terminal unavailable; existing ui-tui.sh terminal matrix also requires it\"; return 2; }\n  reset_state || return 1\n  local before terminal=\"\" pid shell_pid=\"\" child output end",
-      "line": 1632,
+      "line": 1633,
       "literal": "; return 2; }\n  reset_state || return 1\n  local before terminal=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185881,7 +185908,7 @@
     },
     {
       "excerpt": "local before terminal=\"\" pid shell_pid=\"\" child output end",
-      "line": 1634,
+      "line": 1635,
       "literal": " pid shell_pid=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185890,7 +185917,7 @@
     },
     {
       "excerpt": "local before terminal=\"\" pid shell_pid=\"\" child output end\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c 'map(.address)') || return 1\n  k \"$@\"",
-      "line": 1634,
+      "line": 1635,
       "literal": " child output end\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c 'map(.address)') || return 1\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185899,7 +185926,7 @@
     },
     {
       "excerpt": "k \"$@\"\n  end=$((SECONDS + 15))\n  while (( SECONDS < end )); do\n    terminal=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --argjson before \"$before\" '.[] | .address as $address | select($before | index($address) | not)') || return 1",
-      "line": 1636,
+      "line": 1637,
       "literal": "\n  end=$((SECONDS + 15))\n  while (( SECONDS < end )); do\n    terminal=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --argjson before ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185908,7 +185935,7 @@
     },
     {
       "excerpt": "terminal=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --argjson before \"$before\" '.[] | .address as $address | select($before | index($address) | not)') || return 1\n    if [[ -n \"$terminal\" ]]; then break; fi",
-      "line": 1639,
+      "line": 1640,
       "literal": " '.[] | .address as $address | select($before | index($address) | not)') || return 1\n    if [[ -n ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185917,7 +185944,7 @@
     },
     {
       "excerpt": "if [[ -n \"$terminal\" ]]; then break; fi\n    sleep 0.05\n  done\n  [[ -n \"$terminal\" && \"$(jq -s length <<< \"$terminal\")\" == 1 ]] || { WHY=\"terminal activation did not produce exactly one attributable native window\"; return 1; }",
-      "line": 1640,
+      "line": 1641,
       "literal": " ]]; then break; fi\n    sleep 0.05\n  done\n  [[ -n ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185926,7 +185953,7 @@
     },
     {
       "excerpt": "|| { WHY=\"new terminal window is not the owned stock foot process\"; return 1; }\n  while (( SECONDS < end )); do\n    for child in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -P \"$pid\" || true); do",
-      "line": 1646,
+      "line": 1647,
       "literal": "; return 1; }\n  while (( SECONDS < end )); do\n    for child in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -P ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185935,7 +185962,7 @@
     },
     {
       "excerpt": "if [[ \"$(drive_owned_pids \"$child\")\" == \"$child\" && \"$(readlink -f \"/proc/$child/exe\")\" == \"$(realpath -e /bin/sh)\" ]]; then shell_pid=$child; break; fi\n    done\n    [[ -n \"$shell_pid\" ]] && break",
-      "line": 1649,
+      "line": 1650,
       "literal": " ]]; then shell_pid=$child; break; fi\n    done\n    [[ -n ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185944,7 +185971,7 @@
     },
     {
       "excerpt": "|| { WHY=\"native terminal shell did not inherit the selected directory\"; return 1; }\n  printf 'OBSERVED terminal=%s shell_pid=%s cwd=%s\\n' \"$terminal\" \"$shell_pid\" \"$(readlink -f \"/proc/$shell_pid/cwd\")\"",
-      "line": 1655,
+      "line": 1656,
       "literal": "; return 1; }\n  printf 'OBSERVED terminal=%s shell_pid=%s cwd=%s\\n' ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185953,7 +185980,7 @@
     },
     {
       "excerpt": "terminal=$(jq -er .address <<< \"$terminal\") || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot \"$output\" \"$terminal\" || { WHY=\"native terminal screenshot failed\"; return 1; }",
-      "line": 1660,
+      "line": 1661,
       "literal": ") || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185962,7 +185989,7 @@
     },
     {
       "excerpt": "[[ \"$(drive_owned_pids \"$pid\")\" == \"$pid\" && \"$(drive_owned_pids \"$shell_pid\")\" == \"$shell_pid\" ]] || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window \"$terminal\" exit -k Return || { WHY=\"native terminal would not accept exit\"; return 1; }",
-      "line": 1664,
+      "line": 1665,
       "literal": " ]] || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185971,7 +185998,7 @@
     },
     {
       "excerpt": "[[ -z \"$(drive_owned_pids \"$pid\")\" ]] || { WHY=\"native terminal remained after exit\"; return 1; }\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\"",
-      "line": 1671,
+      "line": 1672,
       "literal": "; return 1; }\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185980,7 +186007,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\"\n}\n\nkeycase_windowNew() {\n  local before after pid\n  reset_state || return 1\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == \"com.thisisgm.flea\")] | length')",
-      "line": 1672,
+      "line": 1673,
       "literal": "\n}\n\nkeycase_windowNew() {\n  local before after pid\n  reset_state || return 1\n  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185989,7 +186016,7 @@
     },
     {
       "excerpt": "k \"$@\"\n  local end=$((SECONDS + 15))\n  while (( SECONDS < end )); do\n    after=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == \"com.thisisgm.flea\")] | length')",
-      "line": 1679,
+      "line": 1680,
       "literal": "\n  local end=$((SECONDS + 15))\n  while (( SECONDS < end )); do\n    after=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -185998,7 +186025,7 @@
     },
     {
       "excerpt": "[[ \"$after\" == \"$((before + 1))\" ]] || { WHY=\"New window did not create another native window\"; return 1; }\n  local second\n  second=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg first \"$DRIVE_WINDOW_ADDRESS\" '.[] | select(.class == \"com.thisisgm.flea\" and .address != $first) | .address') || return 1",
-      "line": 1686,
+      "line": 1687,
       "literal": "; return 1; }\n  local second\n  second=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg first ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186007,7 +186034,7 @@
     },
     {
       "excerpt": "drive_window_identity \"$second\" || return 1\n  pid=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg address \"$second\" '.[] | select(.address == $address) | .pid') || return 1",
-      "line": 1689,
+      "line": 1690,
       "literal": " || return 1\n  pid=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg address ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186016,7 +186043,7 @@
     },
     {
       "excerpt": "[[ \"$(drive_owned_pids \"$pid\")\" == \"$pid\" ]] || { WHY=\"new window has foreign ownership\"; return 1; }\n  hyprctl dispatch closewindow \"address:$second\" || return 1",
-      "line": 1691,
+      "line": 1692,
       "literal": "; return 1; }\n  hyprctl dispatch closewindow ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186025,7 +186052,7 @@
     },
     {
       "excerpt": "[[ \"$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == \"com.thisisgm.flea\")] | length')\" == \"$before\" ]] || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\" || return 1",
-      "line": 1697,
+      "line": 1698,
       "literal": " ]] || return 1\n  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186034,7 +186061,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\" || return 1\n}\n\n# ---- the key runner ---------------------------------------------------------------------------------\n\ndrive_inert() {\n  local before after\n  before=$(drive_key_snapshot) || return 1\n  k \"$@\"; settle",
-      "line": 1698,
+      "line": 1699,
       "literal": " || return 1\n}\n                                                                                                        \n\ndrive_inert() {\n  local before after\n  before=$(drive_key_snapshot) || return 1\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186043,7 +186070,7 @@
     },
     {
       "excerpt": "printf 'OBSERVED %s refused_key_state=%s\\n' \"$DRIVE_ROW_ID\" \"$after\"\n}\n\ndrive_key_snapshot() {\n  local state path cursor selected settings menu preview\n  state=$(ipc keyDeliveryState) && path=$(ipc path) && cursor=$(ipc cursor) && selected=$(ipc selectedIndices) \\\n    && settings=$(ipc uiSettings) && menu=$(ipc contextMenuVisible) && preview=$(ipc previewOpen) || return 1\n  jq -cn --argjson state \"$state\" --arg path \"$path\" --argjson cursor \"$cursor\" --arg selected \"$selected\" \\",
-      "line": 1709,
+      "line": 1710,
       "literal": "\n}\n\ndrive_key_snapshot() {\n  local state path cursor selected settings menu preview\n  state=$(ipc keyDeliveryState) && path=$(ipc path) && cursor=$(ipc cursor) && selected=$(ipc selectedIndices) \\\n    && settings=$(ipc uiSettings) && menu=$(ipc contextMenuVisible) && preview=$(ipc previewOpen) || return 1\n  jq -cn --argjson state ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186052,7 +186079,7 @@
     },
     {
       "excerpt": "jq -cn --argjson state \"$state\" --arg path \"$path\" --argjson cursor \"$cursor\" --arg selected \"$selected\" \\",
-      "line": 1716,
+      "line": 1717,
       "literal": " --arg path ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186061,7 +186088,7 @@
     },
     {
       "excerpt": "jq -cn --argjson state \"$state\" --arg path \"$path\" --argjson cursor \"$cursor\" --arg selected \"$selected\" \\",
-      "line": 1716,
+      "line": 1717,
       "literal": " --argjson cursor ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186070,7 +186097,7 @@
     },
     {
       "excerpt": "jq -cn --argjson state \"$state\" --arg path \"$path\" --argjson cursor \"$cursor\" --arg selected \"$selected\" \\",
-      "line": 1716,
+      "line": 1717,
       "literal": " --arg selected ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186079,7 +186106,7 @@
     },
     {
       "excerpt": "jq -cn --argjson state \"$state\" --arg path \"$path\" --argjson cursor \"$cursor\" --arg selected \"$selected\" \\\n    --argjson settings \"$settings\" --argjson menu \"$menu\" --argjson preview \"$preview\" --arg context \"$DRIVE_CONTEXT\" \\",
-      "line": 1716,
+      "line": 1717,
       "literal": " \\\n    --argjson settings ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186088,7 +186115,7 @@
     },
     {
       "excerpt": "--argjson settings \"$settings\" --argjson menu \"$menu\" --argjson preview \"$preview\" --arg context \"$DRIVE_CONTEXT\" \\",
-      "line": 1717,
+      "line": 1718,
       "literal": " --argjson menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186097,7 +186124,7 @@
     },
     {
       "excerpt": "--argjson settings \"$settings\" --argjson menu \"$menu\" --argjson preview \"$preview\" --arg context \"$DRIVE_CONTEXT\" \\",
-      "line": 1717,
+      "line": 1718,
       "literal": " --argjson preview ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186106,7 +186133,7 @@
     },
     {
       "excerpt": "--argjson settings \"$settings\" --argjson menu \"$menu\" --argjson preview \"$preview\" --arg context \"$DRIVE_CONTEXT\" \\",
-      "line": 1717,
+      "line": 1718,
       "literal": " --arg context ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186115,7 +186142,7 @@
     },
     {
       "excerpt": "--argjson settings \"$settings\" --argjson menu \"$menu\" --argjson preview \"$preview\" --arg context \"$DRIVE_CONTEXT\" \\\n    --argjson settingsOpen \"$(ipc settingsOpen)\" --argjson pathBar \"$(ipc pathBarOpen)\" --argjson network \"$(ipc dialogOpen)\" \\",
-      "line": 1717,
+      "line": 1718,
       "literal": " \\\n    --argjson settingsOpen ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186124,7 +186151,7 @@
     },
     {
       "excerpt": "--argjson settingsOpen \"$(ipc settingsOpen)\" --argjson pathBar \"$(ipc pathBarOpen)\" --argjson network \"$(ipc dialogOpen)\" \\",
-      "line": 1718,
+      "line": 1719,
       "literal": " --argjson pathBar ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186133,7 +186160,7 @@
     },
     {
       "excerpt": "--argjson settingsOpen \"$(ipc settingsOpen)\" --argjson pathBar \"$(ipc pathBarOpen)\" --argjson network \"$(ipc dialogOpen)\" \\",
-      "line": 1718,
+      "line": 1719,
       "literal": " --argjson network ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186142,7 +186169,7 @@
     },
     {
       "excerpt": "'{state:($state | del(.activeFocusItem,.trashArmedAt) | if $context == \"editor\" then del(.paneFocus,.listFocus) else . end),\n      path:$path,cursor:$cursor,selected:$selected,settings:$settings,menu:$menu,preview:$preview,\n      settingsOpen:$settingsOpen,pathBar:$pathBar,network:$network}'\n}\n\ndrive_refused_context() {\n  reset_state || return 1\n  case \"$DRIVE_CONTEXT\" in",
-      "line": 1719,
+      "line": 1720,
       "literal": " then del(.paneFocus,.listFocus) else . end),\n      path:$path,cursor:$cursor,selected:$selected,settings:$settings,menu:$menu,preview:$preview,\n      settingsOpen:$settingsOpen,pathBar:$pathBar,network:$network}'\n}\n\ndrive_refused_context() {\n  reset_state || return 1\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186151,7 +186178,7 @@
     },
     {
       "excerpt": "case \"$DRIVE_CONTEXT\" in\n    rail) drive_action focusNext && drive_expect focusView '. == \"rail\"' || return 1 ;;",
-      "line": 1726,
+      "line": 1727,
       "literal": " in\n    rail) drive_action focusNext && drive_expect focusView '. == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186160,7 +186187,7 @@
     },
     {
       "excerpt": "rail) drive_action focusNext && drive_expect focusView '. == \"rail\"' || return 1 ;;\n    menu) seek_row_named a-note.txt && drive_action menu && drive_expect menuState '.opened and .snapshotReady' || return 1 ;;\n    panel) drive_action settings && drive_expect settingsOpen '. == true' || return 1 ;;\n    editor) seek_row_named a-note.txt && drive_action rename && drive_expect renameEditorLive '. == true' || return 1 ;;\n    preview) seek_row_named zz-unique-filter.txt && drive_action preview && drive_expect previewKind '. == \"text\"' || return 1 ;;",
-      "line": 1727,
+      "line": 1728,
       "literal": "' || return 1 ;;\n    menu) seek_row_named a-note.txt && drive_action menu && drive_expect menuState '.opened and .snapshotReady' || return 1 ;;\n    panel) drive_action settings && drive_expect settingsOpen '. == true' || return 1 ;;\n    editor) seek_row_named a-note.txt && drive_action rename && drive_expect renameEditorLive '. == true' || return 1 ;;\n    preview) seek_row_named zz-unique-filter.txt && drive_action preview && drive_expect previewKind '. == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186169,7 +186196,7 @@
     },
     {
       "excerpt": "[[ \"$HAVE_MEDIA\" == 1 ]] || { WHY=\"media refusal needs the native media fixture\"; return 2; }\n      seek_row_named d-clip.mp4 && drive_action preview && drive_expect previewKind '. == \"video\"' || return 1 ;;",
-      "line": 1734,
+      "line": 1735,
       "literal": "; return 2; }\n      seek_row_named d-clip.mp4 && drive_action preview && drive_expect previewKind '. == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186178,7 +186205,7 @@
     },
     {
       "excerpt": "if [[ \"$DRIVE_CONTEXT\" == editor ]]; then\n    printf 'EDITOR before=%q\\n' \"$(ipc renameEditorText)\"",
-      "line": 1738,
+      "line": 1739,
       "literal": " == editor ]]; then\n    printf 'EDITOR before=%q\\n' ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186187,7 +186214,7 @@
     },
     {
       "excerpt": "if [[ \"$DRIVE_CONTEXT\" == editor ]]; then\n    # Text editing and submitting the unchanged name are legal; listing actions must remain refused.\n    printf 'EDITOR after=%q open=%s\\n' \"$(ipc renameEditorText)\" \"$(ipc renameEditorLive)\"",
-      "line": 1742,
+      "line": 1743,
       "literal": " == editor ]]; then\n                                                                                                    \n    printf 'EDITOR after=%q open=%s\\n' ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186196,7 +186223,7 @@
     },
     {
       "excerpt": "[[ -f \"$DRIVE_FIXTURE/a-note.txt\" ]] || { WHY=\"editor key changed the underlying fixture file\"; return 1; }\n  fi\n}\n\ndrive_menu_select() {\n  local target cursor count\n  target=$(ipc menuState | jq -er --arg action \"$1\" '.entries | map(.action) | index($action)') \\",
-      "line": 1745,
+      "line": 1746,
       "literal": "; return 1; }\n  fi\n}\n\ndrive_menu_select() {\n  local target cursor count\n  target=$(ipc menuState | jq -er --arg action ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186205,7 +186232,7 @@
     },
     {
       "excerpt": "|| { WHY=\"menu lacks required $1 entry\"; return 1; }\n  count=$(ipc menuState | jq -er '.entries | length') || return 1\n  while (( count-- > 0 )); do\n    cursor=$(ipc contextMenuCursor)\n    [[ \"$cursor\" == \"$target\" ]] && return 0",
-      "line": 1752,
+      "line": 1753,
       "literal": "; return 1; }\n  count=$(ipc menuState | jq -er '.entries | length') || return 1\n  while (( count-- > 0 )); do\n    cursor=$(ipc contextMenuCursor)\n    [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186214,7 +186241,7 @@
     },
     {
       "excerpt": "WHY=\"menu could not focus $1\"\n  return 1\n}\n\ndrive_menu_key() {\n  local action=$1 before after expected direction\n  shift\n  case \"$action\" in open|preview|escape|menuRight|parent|cursorDown|cursorUp) ;;",
-      "line": 1759,
+      "line": 1760,
       "literal": "\n  return 1\n}\n\ndrive_menu_key() {\n  local action=$1 before after expected direction\n  shift\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186223,7 +186250,7 @@
     },
     {
       "excerpt": "case \"$action\" in open|preview|escape|menuRight|parent|cursorDown|cursorUp) ;;\n    *) WHY=\"menu $action still needs its context-specific native assertion\"; return 2 ;; esac",
-      "line": 1766,
+      "line": 1767,
       "literal": " in open|preview|escape|menuRight|parent|cursorDown|cursorUp) ;;\n    *) WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186232,7 +186259,7 @@
     },
     {
       "excerpt": "*) WHY=\"menu $action still needs its context-specific native assertion\"; return 2 ;; esac\n  reset_state && seek_row_named sub && drive_action menu || return 1\n  drive_expect menuState '.opened and .snapshotReady' || return 1\n  case \"$action\" in",
-      "line": 1767,
+      "line": 1768,
       "literal": "; return 2 ;; esac\n  reset_state && seek_row_named sub && drive_action menu || return 1\n  drive_expect menuState '.opened and .snapshotReady' || return 1\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186241,7 +186268,7 @@
     },
     {
       "excerpt": "case \"$action\" in\n    open|preview)\n      drive_menu_select open || return 1\n      k \"$@\"",
-      "line": 1770,
+      "line": 1771,
       "literal": " in\n    open|preview)\n      drive_menu_select open || return 1\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186250,7 +186277,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect menuState '.opened | not' && drive_expect keyDeliveryState '.paneFocus or .listFocus' ;;\n    menuRight|parent)\n      drive_menu_select sort || return 1\n      [[ \"$action\" != parent ]] || drive_action menuRight menu || return 1",
-      "line": 1776,
+      "line": 1777,
       "literal": "\n      drive_expect menuState '.opened | not' && drive_expect keyDeliveryState '.paneFocus or .listFocus' ;;\n    menuRight|parent)\n      drive_menu_select sort || return 1\n      [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186259,7 +186286,7 @@
     },
     {
       "excerpt": "[[ \"$action\" != parent ]] || drive_action menuRight menu || return 1\n      before=$(ipc menuState | jq -r .submenu)\n      k \"$@\"; settle",
-      "line": 1780,
+      "line": 1781,
       "literal": " != parent ]] || drive_action menuRight menu || return 1\n      before=$(ipc menuState | jq -r .submenu)\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186268,7 +186295,7 @@
     },
     {
       "excerpt": "k \"$@\"; settle\n      after=$(ipc menuState | jq -r .submenu)\n      changed_to \"menu submenu\" \"$before\" \"$after\" \"$([[ \"$action\" == menuRight ]] && printf true || printf false)\" ;;",
-      "line": 1782,
+      "line": 1783,
       "literal": "; settle\n      after=$(ipc menuState | jq -r .submenu)\n      changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186277,7 +186304,7 @@
     },
     {
       "excerpt": "if [[ \"$action\" == cursorUp ]]; then drive_action cursorDown menu || return 1; direction=-1; else direction=1; fi\n      before=$(ipc contextMenuCursor)\n      expected=$(ipc menuState | jq -er --argjson direction \"$direction\" '",
-      "line": 1786,
+      "line": 1787,
       "literal": " == cursorUp ]]; then drive_action cursorDown menu || return 1; direction=-1; else direction=1; fi\n      before=$(ipc contextMenuCursor)\n      expected=$(ipc menuState | jq -er --argjson direction ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186286,7 +186313,7 @@
     },
     {
       "excerpt": "expected=$(ipc menuState | jq -er --argjson direction \"$direction\" '\n        .cursor as $cursor | [.entries | to_entries[] | select(.value.separator != true and .value.disabled != true) | .key] |\n        if $direction > 0 then map(select(. > $cursor)) | first else map(select(. < $cursor)) | last end') || return 1\n      k \"$@\"; settle",
-      "line": 1788,
+      "line": 1789,
       "literal": " '\n        .cursor as $cursor | [.entries | to_entries[] | select(.value.separator != true and .value.disabled != true) | .key] |\n        if $direction > 0 then map(select(. > $cursor)) | first else map(select(. < $cursor)) | last end') || return 1\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186295,7 +186322,7 @@
     },
     {
       "excerpt": "k \"$@\"; settle\n      after=$(ipc contextMenuCursor)\n      changed_to \"menu cursor\" \"$before\" \"$after\" \"$expected\" ;;",
-      "line": 1791,
+      "line": 1792,
       "literal": "; settle\n      after=$(ipc contextMenuCursor)\n      changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186304,7 +186331,7 @@
     },
     {
       "excerpt": "*) WHY=\"menu $action still needs its context-specific native assertion\"; return 2 ;;\n  esac\n}\n\ndrive_rail_key() {\n  local action=$1 before after total target\n  shift\n  case \"$action\" in escape|focusNext|focusPrevious|cursorFirst|cursorDown|cursorUp|cursorLast|addNetwork|menu|settings|keymapSheet|pathBar) ;;",
-      "line": 1794,
+      "line": 1795,
       "literal": "; return 2 ;;\n  esac\n}\n\ndrive_rail_key() {\n  local action=$1 before after total target\n  shift\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186313,7 +186340,7 @@
     },
     {
       "excerpt": "case \"$action\" in escape|focusNext|focusPrevious|cursorFirst|cursorDown|cursorUp|cursorLast|addNetwork|menu|settings|keymapSheet|pathBar) ;;\n    *) WHY=\"rail $action requires its own eligibility and refusal state assertion\"; return 2 ;; esac",
-      "line": 1801,
+      "line": 1802,
       "literal": " in escape|focusNext|focusPrevious|cursorFirst|cursorDown|cursorUp|cursorLast|addNetwork|menu|settings|keymapSheet|pathBar) ;;\n    *) WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186322,7 +186349,7 @@
     },
     {
       "excerpt": "*) WHY=\"rail $action requires its own eligibility and refusal state assertion\"; return 2 ;; esac\n  reset_state && drive_action focusNext || return 1\n  [[ \"$(ipc focusView)\" == rail ]] || { WHY=\"rail did not receive focus\"; return 1; }",
-      "line": 1802,
+      "line": 1803,
       "literal": "; return 2 ;; esac\n  reset_state && drive_action focusNext || return 1\n  [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186331,7 +186358,7 @@
     },
     {
       "excerpt": "changed_to \"rail focus returns\" rail \"$(ipc focusView)\" list ;;\n    cursorFirst|cursorDown|cursorUp|cursorLast)\n      drive_action cursorFirst rail || return 1\n      if [[ \"$action\" == cursorFirst || \"$action\" == cursorUp ]]; then drive_action cursorDown rail || return 1; fi",
-      "line": 1808,
+      "line": 1809,
       "literal": " list ;;\n    cursorFirst|cursorDown|cursorUp|cursorLast)\n      drive_action cursorFirst rail || return 1\n      if [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186340,7 +186367,7 @@
     },
     {
       "excerpt": "if [[ \"$action\" == cursorFirst || \"$action\" == cursorUp ]]; then drive_action cursorDown rail || return 1; fi\n      before=$(ipc railCursor); total=$(ipc railCount)\n      case \"$action\" in",
-      "line": 1811,
+      "line": 1812,
       "literal": " == cursorUp ]]; then drive_action cursorDown rail || return 1; fi\n      before=$(ipc railCursor); total=$(ipc railCount)\n      case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186349,7 +186376,7 @@
     },
     {
       "excerpt": "k \"$@\"; settle\n      after=$(ipc railCursor)\n      changed_to \"rail cursor\" \"$before\" \"$after\" \"$target\" ;;",
-      "line": 1819,
+      "line": 1820,
       "literal": "; settle\n      after=$(ipc railCursor)\n      changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186358,7 +186385,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect dialogOpen '. == true' ;;\n    menu)\n      drive_action cursorFirst rail || return 1\n      target=$(ipc railEntries | jq -er 'map(.group == \"trash\") | index(true)') || return 1",
-      "line": 1823,
+      "line": 1824,
       "literal": "\n      drive_expect dialogOpen '. == true' ;;\n    menu)\n      drive_action cursorFirst rail || return 1\n      target=$(ipc railEntries | jq -er 'map(.group == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186367,7 +186394,7 @@
     },
     {
       "excerpt": "target=$(ipc railEntries | jq -er 'map(.group == \"trash\") | index(true)') || return 1\n      total=$(ipc railCount)\n      while [[ \"$(ipc railCursor)\" != \"$target\" ]] && (( total-- > 0 )); do drive_action cursorDown rail || return 1; done",
-      "line": 1827,
+      "line": 1828,
       "literal": ") | index(true)') || return 1\n      total=$(ipc railCount)\n      while [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186376,7 +186403,7 @@
     },
     {
       "excerpt": "while [[ \"$(ipc railCursor)\" != \"$target\" ]] && (( total-- > 0 )); do drive_action cursorDown rail || return 1; done\n      [[ \"$(ipc railCursor)\" == \"$target\" ]] || return 1",
-      "line": 1829,
+      "line": 1830,
       "literal": " ]] && (( total-- > 0 )); do drive_action cursorDown rail || return 1; done\n      [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186385,7 +186412,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect menuState '.opened and .forRail and any(.entries[]; .action == \"emptyTrash\")' ;;",
-      "line": 1831,
+      "line": 1832,
       "literal": "\n      drive_expect menuState '.opened and .forRail and any(.entries[]; .action == ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186394,7 +186421,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect settingsOpen '. == true' ;;\n    keymapSheet)\n      k \"$@\"",
-      "line": 1834,
+      "line": 1835,
       "literal": "\n      drive_expect settingsOpen '. == true' ;;\n    keymapSheet)\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186403,7 +186430,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect keymapSheetOpen '. == true' ;;\n    pathBar)\n      k \"$@\"",
-      "line": 1837,
+      "line": 1838,
       "literal": "\n      drive_expect keymapSheetOpen '. == true' ;;\n    pathBar)\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186412,7 +186439,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect pathBarOpen '. == true' ;;\n    *) WHY=\"rail $action requires its own eligibility and refusal state assertion\"; return 2 ;;",
-      "line": 1840,
+      "line": 1841,
       "literal": "\n      drive_expect pathBarOpen '. == true' ;;\n    *) WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186421,7 +186448,7 @@
     },
     {
       "excerpt": "*) WHY=\"rail $action requires its own eligibility and refusal state assertion\"; return 2 ;;\n  esac\n}\n\ndrive_panel_key() {\n  local action=$1 before after direction expected\n  shift\n  case \"$action\" in escape|focusNext|focusPrevious|open|preview|cursorDown|cursorUp) ;;",
-      "line": 1842,
+      "line": 1843,
       "literal": "; return 2 ;;\n  esac\n}\n\ndrive_panel_key() {\n  local action=$1 before after direction expected\n  shift\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186430,7 +186457,7 @@
     },
     {
       "excerpt": "case \"$action\" in escape|focusNext|focusPrevious|open|preview|cursorDown|cursorUp) ;;\n    *) WHY=\"panel $action needs a named Settings control state\"; return 2 ;; esac",
-      "line": 1849,
+      "line": 1850,
       "literal": " in escape|focusNext|focusPrevious|open|preview|cursorDown|cursorUp) ;;\n    *) WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186439,7 +186466,7 @@
     },
     {
       "excerpt": "*) WHY=\"panel $action needs a named Settings control state\"; return 2 ;; esac\n  reset_state && drive_action settings || return 1\n  drive_expect settingsOpen '. == true' || return 1\n  case \"$action\" in",
-      "line": 1850,
+      "line": 1851,
       "literal": "; return 2 ;; esac\n  reset_state && drive_action settings || return 1\n  drive_expect settingsOpen '. == true' || return 1\n  case ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186448,7 +186475,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect settingsOpen '. == false' ;;\n    focusNext|focusPrevious)\n      before=$(ipc settingsSide)\n      k \"$@\"; settle",
-      "line": 1855,
+      "line": 1856,
       "literal": "\n      drive_expect settingsOpen '. == false' ;;\n    focusNext|focusPrevious)\n      before=$(ipc settingsSide)\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186457,7 +186484,7 @@
     },
     {
       "excerpt": "if [[ \"$action\" == cursorUp ]]; then k -k Down; settle; fi\n      before=$(ipc settingsCursor)\n      direction=1\n      [[ \"$action\" != cursorUp ]] || direction=-1",
-      "line": 1867,
+      "line": 1868,
       "literal": " == cursorUp ]]; then k -k Down; settle; fi\n      before=$(ipc settingsCursor)\n      direction=1\n      [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186466,7 +186493,7 @@
     },
     {
       "excerpt": "[[ \"$action\" != cursorUp ]] || direction=-1\n      expected=$(ipc settingsModel | jq -er --argjson cursor \"$before\" --argjson direction \"$direction\" '",
-      "line": 1870,
+      "line": 1871,
       "literal": " != cursorUp ]] || direction=-1\n      expected=$(ipc settingsModel | jq -er --argjson cursor ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186475,7 +186502,7 @@
     },
     {
       "excerpt": "expected=$(ipc settingsModel | jq -er --argjson cursor \"$before\" --argjson direction \"$direction\" '",
-      "line": 1871,
+      "line": 1872,
       "literal": " --argjson direction ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186484,7 +186511,7 @@
     },
     {
       "excerpt": "[to_entries[] | select((.value.kind == \"ruler\" and .value.on == true) or\n          (.value.kind as $kind | [\"check\",\"master\",\"choice\",\"action\",\"favourite\",\"favouriteActions\"] | index($kind))) | .key] |",
-      "line": 1872,
+      "line": 1873,
       "literal": " and .value.on == true) or\n          (.value.kind as $kind | [",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186493,7 +186520,7 @@
     },
     {
       "excerpt": "(.value.kind as $kind | [\"check\",\"master\",\"choice\",\"action\",\"favourite\",\"favouriteActions\"] | index($kind))) | .key] |\n        if $direction > 0 then map(select(. > $cursor)) | first else map(select(. < $cursor)) | last end') \\\n        || { WHY=\"Settings has no eligible control in direction $direction\"; return 1; }",
-      "line": 1873,
+      "line": 1874,
       "literal": "] | index($kind))) | .key] |\n        if $direction > 0 then map(select(. > $cursor)) | first else map(select(. < $cursor)) | last end') \\\n        || { WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186502,7 +186529,7 @@
     },
     {
       "excerpt": "k \"$@\"; settle\n      after=$(ipc settingsCursor)\n      changed_to \"Settings control cursor\" \"$before\" \"$after\" \"$expected\" ;;",
-      "line": 1876,
+      "line": 1877,
       "literal": "; settle\n      after=$(ipc settingsCursor)\n      changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186511,7 +186538,7 @@
     },
     {
       "excerpt": "*) WHY=\"panel $action needs a named Settings control state\"; return 2 ;;\n  esac\n}\n\ndrive_preview_key() {\n  local action=$1 before after\n  shift\n  if [[ \"$DRIVE_CONTEXT\" == pdf ]]; then",
-      "line": 1879,
+      "line": 1880,
       "literal": "; return 2 ;;\n  esac\n}\n\ndrive_preview_key() {\n  local action=$1 before after\n  shift\n  if [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186520,7 +186547,7 @@
     },
     {
       "excerpt": "seekForward) keycase_pageForward \"$@\"; return $? ;;\n      seekBack|parent)\n        open_pdf_preview && drive_action pageForward pdf || return 1\n        before=$(ipc previewPdfPage)\n        k \"$@\"; settle",
-      "line": 1889,
+      "line": 1890,
       "literal": "; return $? ;;\n      seekBack|parent)\n        open_pdf_preview && drive_action pageForward pdf || return 1\n        before=$(ipc previewPdfPage)\n        k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186529,7 +186556,7 @@
     },
     {
       "excerpt": "case \"$action\" in seekBack|seekForward) \"keycase_$action\" \"$@\"; return $? ;; esac",
-      "line": 1899,
+      "line": 1900,
       "literal": " in seekBack|seekForward) ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186538,7 +186565,7 @@
     },
     {
       "excerpt": "case \"$action\" in seekBack|seekForward) \"keycase_$action\" \"$@\"; return $? ;; esac\n    reset_state && seek_row_named d-clip.mp4 && drive_action preview || return 1\n    drive_expect previewOpen '. == true' || return 1\n    [[ \"$(ipc previewKind)\" == video ]] || { WHY=\"media context did not load the video fixture\"; return 1; }",
-      "line": 1899,
+      "line": 1900,
       "literal": "; return $? ;; esac\n    reset_state && seek_row_named d-clip.mp4 && drive_action preview || return 1\n    drive_expect previewOpen '. == true' || return 1\n    [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186547,7 +186574,7 @@
     },
     {
       "excerpt": "[[ \"$(ipc previewKind)\" == video ]] || { WHY=\"media context did not load the video fixture\"; return 1; }\n  else\n    reset_state && seek_row_named zz-unique-filter.txt && drive_action preview || return 1\n    [[ \"$(ipc previewKind)\" == text ]] || { WHY=\"preview context did not load text\"; return 1; }",
-      "line": 1902,
+      "line": 1903,
       "literal": "; return 1; }\n  else\n    reset_state && seek_row_named zz-unique-filter.txt && drive_action preview || return 1\n    [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186556,7 +186583,7 @@
     },
     {
       "excerpt": "k \"$@\"\n      drive_expect previewOpen '. == false' ;;\n    preview)\n      if [[ \"$DRIVE_CONTEXT\" == media ]]; then",
-      "line": 1909,
+      "line": 1910,
       "literal": "\n      drive_expect previewOpen '. == false' ;;\n    preview)\n      if [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186565,7 +186592,7 @@
     },
     {
       "excerpt": "if [[ \"$DRIVE_CONTEXT\" == media ]]; then\n        before=$(ipc previewState)\n        [[ \"$before\" == playing || \"$before\" == paused ]] || { WHY=\"media did not reach a playable state\"; return 1; }",
-      "line": 1912,
+      "line": 1913,
       "literal": " == media ]]; then\n        before=$(ipc previewState)\n        [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186574,7 +186601,7 @@
     },
     {
       "excerpt": "k \"$@\"\n        drive_expect previewOpen '. == false'\n      else WHY=\"PDF activation requires a named focused toolbar control\"; return 2; fi ;;",
-      "line": 1918,
+      "line": 1919,
       "literal": "\n        drive_expect previewOpen '. == false'\n      else WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186583,7 +186610,7 @@
     },
     {
       "excerpt": "if [[ \"$DRIVE_CONTEXT\" != preview ]]; then WHY=\"$DRIVE_CONTEXT cursor action needs scroll/playback-specific evidence\"; return 2; fi",
-      "line": 1922,
+      "line": 1923,
       "literal": " != preview ]]; then WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186592,7 +186619,7 @@
     },
     {
       "excerpt": "if [[ \"$action\" == cursorDown ]]; then drive_action cursorUp preview || return 1; fi\n      before=$(ipc cursor)\n      k \"$@\"; settle",
-      "line": 1923,
+      "line": 1924,
       "literal": " == cursorDown ]]; then drive_action cursorUp preview || return 1; fi\n      before=$(ipc cursor)\n      k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186601,7 +186628,7 @@
     },
     {
       "excerpt": "k \"$@\"; settle\n      after=$(ipc cursor)\n      changed_to \"preview follows cursor\" \"$before\" \"$after\" \"$((before + ($([[ \"$action\" == cursorDown ]] && printf 1 || printf -- -1))))\" ;;",
-      "line": 1925,
+      "line": 1926,
       "literal": "; settle\n      after=$(ipc cursor)\n      changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186610,7 +186637,7 @@
     },
     {
       "excerpt": "*) WHY=\"$DRIVE_CONTEXT $action requires a focused native control assertion\"; return 2 ;;\n  esac\n}\n\ndrive_key_row() {\n  local row=$1 frontend mods keyname action rc=2 result label\n  local -a chord\n  IFS='|' read -r DRIVE_ROW_ID DRIVE_PRESET frontend DRIVE_CONTEXT mods keyname action <<< \"$row\"",
-      "line": 1928,
+      "line": 1929,
       "literal": "; return 2 ;;\n  esac\n}\n\ndrive_key_row() {\n  local row=$1 frontend mods keyname action rc=2 result label\n  local -a chord\n  IFS='|' read -r DRIVE_ROW_ID DRIVE_PRESET frontend DRIVE_CONTEXT mods keyname action <<< ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186619,7 +186646,7 @@
     },
     {
       "excerpt": "if [[ \"$mods\" == text ]]; then reset_state && drive_inert \"${chord[@]}\"; rc=$?",
-      "line": 1954,
+      "line": 1955,
       "literal": " == text ]]; then reset_state && drive_inert ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186628,7 +186655,7 @@
     },
     {
       "excerpt": "if [[ \"$mods\" == text ]]; then reset_state && drive_inert \"${chord[@]}\"; rc=$?\n            else keycase_addNetwork \"${chord[@]}\"; rc=$?; fi ;;",
-      "line": 1954,
+      "line": 1955,
       "literal": "; rc=$?\n            else keycase_addNetwork ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186637,7 +186664,7 @@
     },
     {
       "excerpt": "pageForward) keycase_open \"${chord[@]}\"; rc=$? ;;\n          *)\n            if declare -F \"keycase_$action\" >/dev/null; then \"keycase_$action\" \"${chord[@]}\"; rc=$?",
-      "line": 1956,
+      "line": 1957,
       "literal": "; rc=$? ;;\n          *)\n            if declare -F ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186646,7 +186673,7 @@
     },
     {
       "excerpt": "if declare -F \"keycase_$action\" >/dev/null; then \"keycase_$action\" \"${chord[@]}\"; rc=$?\n            else WHY=\"missing listing action driver: $action\"; fi ;;",
-      "line": 1958,
+      "line": 1959,
       "literal": "; rc=$?\n            else WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186655,7 +186682,7 @@
     },
     {
       "excerpt": "if [[ \"$action\" == escape ]]; then\n          reset_state && seek_row_named a-note.txt && drive_action rename && drive_expect renameEditorLive '. == true' \\\n            && k \"${chord[@]}\" && drive_expect renameEditorLive '. == false'",
-      "line": 1966,
+      "line": 1967,
       "literal": " == escape ]]; then\n          reset_state && seek_row_named a-note.txt && drive_action rename && drive_expect renameEditorLive '. == true' \\\n            && k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186664,7 +186691,7 @@
     },
     {
       "excerpt": "&& k \"${chord[@]}\" && drive_expect renameEditorLive '. == false'\n          rc=$?\n        else WHY=\"editor binding lacks an editing/refusal driver\"; fi ;;",
-      "line": 1968,
+      "line": 1969,
       "literal": " && drive_expect renameEditorLive '. == false'\n          rc=$?\n        else WHY=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186673,7 +186700,7 @@
     },
     {
       "excerpt": "drive_shot \"$action\" ;;\n      esac\n      pass key \"$DRIVE_ROW_ID $label\" ;;",
-      "line": 1979,
+      "line": 1980,
       "literal": " ;;\n      esac\n      pass key ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186682,7 +186709,7 @@
     },
     {
       "excerpt": "pass key \"$DRIVE_ROW_ID $label\" ;;\n    2) result=UNDRIVEN; skip key \"$DRIVE_ROW_ID $label\" \"$WHY\" ;;",
-      "line": 1981,
+      "line": 1982,
       "literal": " ;;\n    2) result=UNDRIVEN; skip key ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186691,7 +186718,7 @@
     },
     {
       "excerpt": "2) result=UNDRIVEN; skip key \"$DRIVE_ROW_ID $label\" \"$WHY\" ;;\n    *) result=FAIL; bad key \"$DRIVE_ROW_ID $label\" \"${WHY:-native assertion failed; see row log}\" ;;",
-      "line": 1982,
+      "line": 1983,
       "literal": " ;;\n    *) result=FAIL; bad key ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186700,7 +186727,7 @@
     },
     {
       "excerpt": "*) result=FAIL; bad key \"$DRIVE_ROW_ID $label\" \"${WHY:-native assertion failed; see row log}\" ;;\n  esac\n  jq -cn --arg row \"$row\" --arg status \"$result\" --arg reason \"$WHY\" --arg source \"$FLEA_SOURCE_SHA\" \\",
-      "line": 1983,
+      "line": 1984,
       "literal": " ;;\n  esac\n  jq -cn --arg row ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186709,7 +186736,7 @@
     },
     {
       "excerpt": "jq -cn --arg row \"$row\" --arg status \"$result\" --arg reason \"$WHY\" --arg source \"$FLEA_SOURCE_SHA\" \\",
-      "line": 1985,
+      "line": 1986,
       "literal": " --arg status ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186718,7 +186745,7 @@
     },
     {
       "excerpt": "jq -cn --arg row \"$row\" --arg status \"$result\" --arg reason \"$WHY\" --arg source \"$FLEA_SOURCE_SHA\" \\",
-      "line": 1985,
+      "line": 1986,
       "literal": " --arg reason ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186727,7 +186754,7 @@
     },
     {
       "excerpt": "jq -cn --arg row \"$row\" --arg status \"$result\" --arg reason \"$WHY\" --arg source \"$FLEA_SOURCE_SHA\" \\",
-      "line": 1985,
+      "line": 1986,
       "literal": " --arg source ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186736,7 +186763,7 @@
     },
     {
       "excerpt": "jq -cn --arg row \"$row\" --arg status \"$result\" --arg reason \"$WHY\" --arg source \"$FLEA_SOURCE_SHA\" \\\n    --arg binary \"$FLEA_BINARY_SHA256\" --arg ui \"$REPO/ui\" --arg evidence \"$DRIVE_EVIDENCE/$DRIVE_ROW_ID.log\" \\",
-      "line": 1985,
+      "line": 1986,
       "literal": " \\\n    --arg binary ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186745,7 +186772,7 @@
     },
     {
       "excerpt": "--arg binary \"$FLEA_BINARY_SHA256\" --arg ui \"$REPO/ui\" --arg evidence \"$DRIVE_EVIDENCE/$DRIVE_ROW_ID.log\" \\",
-      "line": 1986,
+      "line": 1987,
       "literal": " --arg ui ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186754,7 +186781,7 @@
     },
     {
       "excerpt": "--arg binary \"$FLEA_BINARY_SHA256\" --arg ui \"$REPO/ui\" --arg evidence \"$DRIVE_EVIDENCE/$DRIVE_ROW_ID.log\" \\",
-      "line": 1986,
+      "line": 1987,
       "literal": " --arg evidence ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186763,7 +186790,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= python3 - \"$REPO/ui/js/Menu.js\" <<'PY'\nimport json, pathlib, re, sys\n# The table carries its own comments, and a // line is not JSON: dropped before the decoder reads it.\nsource = re.sub(r'^\\s*//.*$', '', pathlib.Path(sys.argv[1]).read_text(), flags=re.M)\ndef array(name):\n    start = source.index('var ' + name + ' = ') + len('var ' + name + ' = ')\n    return json.JSONDecoder().raw_decode(source[start:].lstrip())[0]\nseen, output = set(), []\ncontexts = {'F': 'file', 'B': 'background', 'P': 'places', 'T': 'trash'}\nfor row in array('INVENTORY'):\n    if len(row) not in (5, 6) or row[0] in seen or not row[3]:\n        raise SystemExit('invalid or duplicate Menu.INVENTORY row: ' + repr(row))\n    seen.add(row[0])\n    for context in row[3]:\n        # Rail rows (R) open from the sidebar, which tests/ui.sh's rail cases drive; this matrix drives listing menus.\n        if context == 'R':\n            continue\n        fields = [row[0], row[5] if len(row) == 6 else row[0], row[1], contexts[context]]\n        if any(not value or any(char in value for char in '|\\r\\n') for value in fields):\n            raise SystemExit('unrepresentable Menu.INVENTORY row: ' + repr(row))\n        output.append('|'.join(fields))\nif not seen:\n    raise SystemExit('empty Menu.INVENTORY')\nfor key, label in array('columns'):\n    output.append('|'.join(['col:' + key, 'col:' + key, label, 'header']))\nprint('\\n'.join(output))\nPY\n}\n\n# The one entry whose label is a ternary rather than a literal, so it needs its own reader.\n# Sample input: '        label: showHidden ? \"Hide hidden files\" : \"Show hidden files\",'\nderive_menu_toggle_labels() {\n  LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/.*label: showHidden ? \"\\([^\"]*\\)\" : \"\\([^\"]*\\)\".*/\\1\\n\\2/p' \"$REPO/ui/js/Menu.js\"",
-      "line": 2006,
+      "line": 2007,
       "literal": " <<'PY'\nimport json, pathlib, re, sys\n                                                                                                     \nsource = re.sub(r'^\\s*//.*$', '', pathlib.Path(sys.argv[1]).read_text(), flags=re.M)\ndef array(name):\n    start = source.index('var ' + name + ' = ') + len('var ' + name + ' = ')\n    return json.JSONDecoder().raw_decode(source[start:].lstrip())[0]\nseen, output = set(), []\ncontexts = {'F': 'file', 'B': 'background', 'P': 'places', 'T': 'trash'}\nfor row in array('INVENTORY'):\n    if len(row) not in (5, 6) or row[0] in seen or not row[3]:\n        raise SystemExit('invalid or duplicate Menu.INVENTORY row: ' + repr(row))\n    seen.add(row[0])\n    for context in row[3]:\n                                                                                                                      \n        if context == 'R':\n            continue\n        fields = [row[0], row[5] if len(row) == 6 else row[0], row[1], contexts[context]]\n        if any(not value or any(char in value for char in '|\\r\\n') for value in fields):\n            raise SystemExit('unrepresentable Menu.INVENTORY row: ' + repr(row))\n        output.append('|'.join(fields))\nif not seen:\n    raise SystemExit('empty Menu.INVENTORY')\nfor key, label in array('columns'):\n    output.append('|'.join(['col:' + key, 'col:' + key, label, 'header']))\nprint('\\n'.join(output))\nPY\n}\n                                                                                            \n                                                                                        \nderive_menu_toggle_labels() {\n  LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/.*label: showHidden ? ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186772,7 +186799,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/.*label: showHidden ? \"\\([^\"]*\\)\" : \"\\([^\"]*\\)\".*/\\1\\n\\2/p' \"$REPO/ui/js/Menu.js\"\n}\n\n# Steps the menu cursor onto the row carrying one of the given labels and returns its index, using\n# the derived cursorDown chord so the walk is the product's own.\nmenu_seek_label() {\n  local wanted=$1 entries i target=-1 idx=0 label\n  entries=$(ipc contextMenuEntries)\n  IFS='|' read -r -a rows <<< \"$entries\"",
-      "line": 2038,
+      "line": 2039,
       "literal": "\n}\n                                                                                                   \n                                                                \nmenu_seek_label() {\n  local wanted=$1 entries i target=-1 idx=0 label\n  entries=$(ipc contextMenuEntries)\n  IFS='|' read -r -a rows <<< ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186781,7 +186808,7 @@
     },
     {
       "excerpt": "IFS='|' read -r -a rows <<< \"$entries\"\n  for idx in \"${!rows[@]}\"; do",
-      "line": 2046,
+      "line": 2047,
       "literal": "\n  for idx in ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186790,7 +186817,7 @@
     },
     {
       "excerpt": "WHY=\"no row of the open menu carries a label this battery derived for it; the menu offers '$entries'\"\n    return 1\n  fi\n  mapfile -t downc < <(first_chord cursorDown)\n  for i in $(seq 1 20); do\n    [ \"$(ipc contextMenuCursor)\" = \"$target\" ] && { printf '%s' \"$target\"; return 0; }",
-      "line": 2053,
+      "line": 2054,
       "literal": "\n    return 1\n  fi\n  mapfile -t downc < <(first_chord cursorDown)\n  for i in $(seq 1 20); do\n    [ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186799,7 +186826,7 @@
     },
     {
       "excerpt": "WHY=\"the menu cursor would not step onto row $target\"\n  return 1\n}\n\n# Opens the row menu on the row an action needs and puts the menu cursor on that action's entry.\nmenu_open_on() {\n  local action=$1 labels row cx cy\n  row=$(menu_row_for \"$action\")",
-      "line": 2061,
+      "line": 2062,
       "literal": "\n  return 1\n}\n                                                                                                 \nmenu_open_on() {\n  local action=$1 labels row cx cy\n  row=$(menu_row_for ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186808,7 +186835,7 @@
     },
     {
       "excerpt": "if [[ \"${DRIVE_MENU_CONTEXT:-file}\" == background ]]; then\n    enter_dir sub || return 1\n    read -r cx cy <<< \"$(ipc listingBackgroundCentre)\"",
-      "line": 2070,
+      "line": 2071,
       "literal": " == background ]]; then\n    enter_dir sub || return 1\n    read -r cx cy <<< ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186817,7 +186844,7 @@
     },
     {
       "excerpt": "click_at \"$cx\" \"$cy\" right || return 1\n    drive_expect menuState '.opened and (.hasRow | not)' || return 1\n  else\n    seek_row_named \"$row\" || return 1",
-      "line": 2074,
+      "line": 2075,
       "literal": " right || return 1\n    drive_expect menuState '.opened and (.hasRow | not)' || return 1\n  else\n    seek_row_named ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186826,7 +186853,7 @@
     },
     {
       "excerpt": "seek_row_named \"$row\" || return 1\n    mapfile -t menuc < <(first_chord menu)\n    k \"${menuc[@]}\"; settle",
-      "line": 2077,
+      "line": 2078,
       "literal": " || return 1\n    mapfile -t menuc < <(first_chord menu)\n    k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186835,7 +186862,7 @@
     },
     {
       "excerpt": "menu_seek_label \"$labels\" >/dev/null\n}\n\n# Every label this action's entry could be drawing, each wrapped in brackets so a seek matches a\n# whole label and never a substring of a longer one.\nmenu_labels_for() {\n  local action=$1 id act label context out=\"\"",
-      "line": 2084,
+      "line": 2085,
       "literal": " >/dev/null\n}\n                                                                                                 \n                                                    \nmenu_labels_for() {\n  local action=$1 id act label context out=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186844,7 +186871,7 @@
     },
     {
       "excerpt": "local action=$1 id act label context out=\"\"\n  while IFS='|' read -r id act label context; do\n    [[ \"$act\" == \"$action\" && \"$context\" == \"${DRIVE_MENU_CONTEXT:-file}\" ]] || continue",
-      "line": 2090,
+      "line": 2091,
       "literal": "\n  while IFS='|' read -r id act label context; do\n    [[ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186853,7 +186880,7 @@
     },
     {
       "excerpt": "if [ \"$action\" = toggleHidden ]; then\n    while IFS= read -r label; do\n      out=\"${out}[$label]\"",
-      "line": 2095,
+      "line": 2096,
       "literal": " = toggleHidden ]; then\n    while IFS= read -r label; do\n      out=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186862,7 +186889,7 @@
     },
     {
       "excerpt": "printf '%s' \"$out\"\n}\n\nmenu_activate() {\n  mapfile -t openc < <(first_chord open menu)\n  k \"${openc[@]}\"",
-      "line": 2100,
+      "line": 2101,
       "literal": "\n}\n\nmenu_activate() {\n  mapfile -t openc < <(first_chord open menu)\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186871,7 +186898,7 @@
     },
     {
       "excerpt": "k \"${openc[@]}\"\n}\n\n# One function per menu action, the same shape the key drivers use: state, before, choose, after.\n\nmenucase_open() {\n  local before after\n  menu_open_on open || return 1\n  before=$(ipc path)\n  menu_activate\n  sleep 1\n  after=$(ipc path)\n  changed_to \"the open directory\" \"$before\" \"$after\" \"$DRIVE_FIXTURE/sub\"",
-      "line": 2105,
+      "line": 2106,
       "literal": "\n}\n                                                                                                  \n\nmenucase_open() {\n  local before after\n  menu_open_on open || return 1\n  before=$(ipc path)\n  menu_activate\n  sleep 1\n  after=$(ipc path)\n  changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186880,7 +186907,7 @@
     },
     {
       "excerpt": "changed_to \"the open directory\" \"$before\" \"$after\" \"$DRIVE_FIXTURE/sub\"\n}\n\nmenucase_rename() {\n  local before after\n  menu_open_on rename || return 1\n  before=$(ipc renamingIndex)\n  menu_activate; settle\n  after=$(ipc renamingIndex)\n  [ \"$before\" = \"-1\" ] || { WHY=\"a row was already its own editor, so this check could not fail\"; return 1; }",
-      "line": 2117,
+      "line": 2118,
       "literal": "\n}\n\nmenucase_rename() {\n  local before after\n  menu_open_on rename || return 1\n  before=$(ipc renamingIndex)\n  menu_activate; settle\n  after=$(ipc renamingIndex)\n  [ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186889,7 +186916,7 @@
     },
     {
       "excerpt": "WHY=\"no row became its own editor, renamingIndex is still $after\"\n  return 1\n}\n\nmenucase_duplicate() {\n  local before after\n  menu_open_on duplicate || return 1\n  before=$(ipc total)\n  menu_activate\n  sleep 2\n  after=$(ipc total)\n  changed_to \"the row count\" \"$before\" \"$after\" \"$((before + 1))\"",
-      "line": 2128,
+      "line": 2129,
       "literal": "\n  return 1\n}\n\nmenucase_duplicate() {\n  local before after\n  menu_open_on duplicate || return 1\n  before=$(ipc total)\n  menu_activate\n  sleep 2\n  after=$(ipc total)\n  changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186898,7 +186925,7 @@
     },
     {
       "excerpt": "changed_to \"the row count\" \"$before\" \"$after\" \"$((before + 1))\"\n}\n\nmenucase_trash() {\n  local before after\n  reset_state || return 1\n  [ -e \"$DRIVE_FIXTURE/menu-trash.txt\" ] \\",
-      "line": 2139,
+      "line": 2140,
       "literal": "\n}\n\nmenucase_trash() {\n  local before after\n  reset_state || return 1\n  [ -e ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186907,7 +186934,7 @@
     },
     {
       "excerpt": "|| { WHY=\"menu-trash.txt is not there to trash, so the check could not fail\"; return 1; }\n  seek_row_named menu-trash.txt || return 1\n  mapfile -t menuc < <(first_chord menu)\n  k \"${menuc[@]}\"; settle",
-      "line": 2146,
+      "line": 2147,
       "literal": "; return 1; }\n  seek_row_named menu-trash.txt || return 1\n  mapfile -t menuc < <(first_chord menu)\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186916,7 +186943,7 @@
     },
     {
       "excerpt": "|| { WHY=\"menu-trash.txt is still on disk ${TRANSFER_WAIT_S}s after the entry was chosen\"; return 1; }\n  mapfile -t undoc < <(first_chord undo)\n  k \"${undoc[@]}\"",
-      "line": 2153,
+      "line": 2154,
       "literal": "; return 1; }\n  mapfile -t undoc < <(first_chord undo)\n  k ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186925,7 +186952,7 @@
     },
     {
       "excerpt": "|| { WHY=\"undo did not put menu-trash.txt back, so the tree is not restored\"; return 1; }\n  return 0\n}\n\nmenucase_newFolder() {\n  local before after directory\n  menu_open_on newFolder || return 1\n  directory=$(ipc path)\n  drive_mutation_guard \"$directory\" || return 1",
-      "line": 2157,
+      "line": 2158,
       "literal": "; return 1; }\n  return 0\n}\n\nmenucase_newFolder() {\n  local before after directory\n  menu_open_on newFolder || return 1\n  directory=$(ipc path)\n  drive_mutation_guard ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186934,7 +186961,7 @@
     },
     {
       "excerpt": "changed_to \"the directory count in the fixture\" \"$before\" \"$after\" \"$((before + 1))\"\n}\n\nmenucase_toggleHidden() {\n  local before after want\n  menu_open_on toggleHidden || return 1\n  before=$(ipc showHidden)\n  want=true\n  [ \"$before\" = true ] && want=false",
-      "line": 2170,
+      "line": 2171,
       "literal": "\n}\n\nmenucase_toggleHidden() {\n  local before after want\n  menu_open_on toggleHidden || return 1\n  before=$(ipc showHidden)\n  want=true\n  [ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186943,7 +186970,7 @@
     },
     {
       "excerpt": "[ \"$before\" = true ] && want=false\n  menu_activate; settle\n  after=$(ipc showHidden)\n  changed_to \"the hidden-file flag\" \"$before\" \"$after\" \"$want\"",
-      "line": 2178,
+      "line": 2179,
       "literal": " = true ] && want=false\n  menu_activate; settle\n  after=$(ipc showHidden)\n  changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186952,7 +186979,7 @@
     },
     {
       "excerpt": "changed_to \"the hidden-file flag\" \"$before\" \"$after\" \"$want\"\n}\n\nmenucase_convert() {\n  local before after\n  [ \"$HAVE_IMAGE\" = 1 ] || { WHY=\"no image fixture, magick is not on this box\"; return 2; }",
-      "line": 2181,
+      "line": 2182,
       "literal": "\n}\n\nmenucase_convert() {\n  local before after\n  [ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186961,7 +186988,7 @@
     },
     {
       "excerpt": "[ \"$(ipc canConvert)\" = true ] || { WHY=\"the backend found no converter on this box, so the row is not offered\"; return 2; }\n  menu_open_on convert || return 1\n  before=$(ipc convertOpen)\n  menu_activate; settle\n  after=$(ipc convertOpen)\n  changed_to \"the convert popup\" \"$before\" \"$after\" true",
-      "line": 2187,
+      "line": 2188,
       "literal": "; return 2; }\n  menu_open_on convert || return 1\n  before=$(ipc convertOpen)\n  menu_activate; settle\n  after=$(ipc convertOpen)\n  changed_to ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186970,7 +186997,7 @@
     },
     {
       "excerpt": "changed_to \"the convert popup\" \"$before\" \"$after\" true\n}\n\nmenucase_extract() {\n  local before after\n  [ \"$HAVE_ARCHIVE\" = 1 ] || { WHY=\"no archive fixture, bsdtar is not on this box\"; return 2; }",
-      "line": 2192,
+      "line": 2193,
       "literal": " true\n}\n\nmenucase_extract() {\n  local before after\n  [ ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186979,7 +187006,7 @@
     },
     {
       "excerpt": "[ \"$HAVE_ARCHIVE\" = 1 ] || { WHY=\"no archive fixture, bsdtar is not on this box\"; return 2; }\n  menu_open_on extract || return 1\n  before=$(ipc total)\n  menu_activate\n  sleep 3\n  after=$(ipc total)\n  changed_from \"the row count\" \"$before\" \"$after\"",
-      "line": 2197,
+      "line": 2198,
       "literal": "; return 2; }\n  menu_open_on extract || return 1\n  before=$(ipc total)\n  menu_activate\n  sleep 3\n  after=$(ipc total)\n  changed_from ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186988,7 +187015,7 @@
     },
     {
       "excerpt": "changed_from \"the row count\" \"$before\" \"$after\"\n}\n\n# The one entry with a flyout: choosing it opens the format list the backend probed, and choosing a\n# format there has to write an archive. Both halves are asserted, because a flyout that opens and\n# writes nothing is the defect this row would have.\nmenucase_compress() {\n  local formats before after\n  formats=$(ipc archiveFormats)\n  [ -n \"$formats\" ] || { WHY=\"the backend probed no archive tool on this box, so the row is not offered\"; return 2; }",
-      "line": 2203,
+      "line": 2204,
       "literal": "\n}\n                                                                                                    \n                                                                                                 \n                                                   \nmenucase_compress() {\n  local formats before after\n  formats=$(ipc archiveFormats)\n  [ -n ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -186997,7 +187024,7 @@
     },
     {
       "excerpt": "[ -n \"$formats\" ] || { WHY=\"the backend probed no archive tool on this box, so the row is not offered\"; return 2; }\n  menu_open_on compress || return 1\n  before=$(ipc total)\n  menu_activate; settle\n  [ -n \"$(ipc contextMenuSubmenuEntries)\" ] || { WHY=\"the format flyout did not open\"; return 1; }",
-      "line": 2212,
+      "line": 2213,
       "literal": "; return 2; }\n  menu_open_on compress || return 1\n  before=$(ipc total)\n  menu_activate; settle\n  [ -n ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187006,7 +187033,7 @@
     },
     {
       "excerpt": "[ -n \"$(ipc contextMenuSubmenuEntries)\" ] || { WHY=\"the format flyout did not open\"; return 1; }\n  menu_activate\n  sleep 4\n  after=$(ipc total)\n  changed_from \"the row count\" \"$before\" \"$after\"",
-      "line": 2216,
+      "line": 2217,
       "literal": "; return 1; }\n  menu_activate\n  sleep 4\n  after=$(ipc total)\n  changed_from ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187015,7 +187042,7 @@
     },
     {
       "excerpt": "changed_from \"the row count\" \"$before\" \"$after\"\n}\n\ndrive_menu_action() {\n  local id action label rc row=$1\n  IFS='|' read -r id action label DRIVE_MENU_CONTEXT <<< \"$row\"",
-      "line": 2220,
+      "line": 2221,
       "literal": "\n}\n\ndrive_menu_action() {\n  local id action label rc row=$1\n  IFS='|' read -r id action label DRIVE_MENU_CONTEXT <<< ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187024,7 +187051,7 @@
     },
     {
       "excerpt": "IFS='|' read -r id action label DRIVE_MENU_CONTEXT <<< \"$row\"\n  local name=\"$id/$DRIVE_MENU_CONTEXT/$action\"",
-      "line": 2225,
+      "line": 2226,
       "literal": "\n  local name=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187033,7 +187060,7 @@
     },
     {
       "excerpt": "if [[ \"$DRIVE_MENU_CONTEXT\" == trash || \"$DRIVE_MENU_CONTEXT\" == header || \"$DRIVE_MENU_CONTEXT\" == places ]]; then\n    skip menu \"$name\" \"derived $label needs its own $DRIVE_MENU_CONTEXT native fixture and eligibility assertion\"",
-      "line": 2227,
+      "line": 2228,
       "literal": " == places ]]; then\n    skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187042,7 +187069,7 @@
     },
     {
       "excerpt": "skip menu \"$name\" \"derived $label needs its own $DRIVE_MENU_CONTEXT native fixture and eligibility assertion\"\n    return\n  fi\n  case $action in\n    taildrop)\n      skip menu \"$name\" \"the row appears only when a tailnet peer is reachable, and choosing it sends a real file to another machine, which is not this battery's to do\"",
-      "line": 2228,
+      "line": 2229,
       "literal": "\n    return\n  fi\n  case $action in\n    taildrop)\n      skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187051,7 +187078,7 @@
     },
     {
       "excerpt": "skip menu \"$name\" \"the row appears only when a tailnet peer is reachable, and choosing it sends a real file to another machine, which is not this battery's to do\"\n      return ;;\n    dropbox)\n      skip menu \"$name\" \"the row needs an authenticated Dropbox tree, and choosing it moves the file into \\$HOME/Dropbox, outside the sandbox hard rule 9 allows\"",
-      "line": 2233,
+      "line": 2234,
       "literal": "\n      return ;;\n    dropbox)\n      skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187060,7 +187087,7 @@
     },
     {
       "excerpt": "skip menu \"$name\" \"the row needs an authenticated Dropbox tree, and choosing it moves the file into \\$HOME/Dropbox, outside the sandbox hard rule 9 allows\"\n      return ;;\n    sharelink)\n      skip menu \"$name\" \"the row appears only for a row already inside \\$HOME/Dropbox, which this battery must not create\"",
-      "line": 2236,
+      "line": 2237,
       "literal": "\n      return ;;\n    sharelink)\n      skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187069,7 +187096,7 @@
     },
     {
       "excerpt": "skip menu \"$name\" \"the row appears only for a row already inside \\$HOME/Dropbox, which this battery must not create\"\n      return ;;\n    updateFlea)\n      skip menu \"$name\" \"the row appears only once a check has found a newer Flea, and choosing it opens Omarchy's system update, which is not this battery's to run\"",
-      "line": 2239,
+      "line": 2240,
       "literal": "\n      return ;;\n    updateFlea)\n      skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187078,7 +187105,7 @@
     },
     {
       "excerpt": "if ! declare -F \"menucase_$action\" >/dev/null; then\n    skip menu \"$name\" \"an entry in ui/js/Menu.js, and this battery has no driver for it yet\"",
-      "line": 2245,
+      "line": 2246,
       "literal": " >/dev/null; then\n    skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187087,7 +187114,7 @@
     },
     {
       "excerpt": "\"menucase_$action\"\n  rc=$?\n  case $rc in\n    0) pass menu \"$name\" \"chosen from the open menu\" ;;",
-      "line": 2250,
+      "line": 2251,
       "literal": "\n  rc=$?\n  case $rc in\n    0) pass menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187096,7 +187123,7 @@
     },
     {
       "excerpt": "0) pass menu \"$name\" \"chosen from the open menu\" ;;\n    2) skip menu \"$name\" \"$WHY\" ;;",
-      "line": 2253,
+      "line": 2254,
       "literal": " ;;\n    2) skip menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187105,7 +187132,7 @@
     },
     {
       "excerpt": "2) skip menu \"$name\" \"$WHY\" ;;\n    *) bad menu \"$name\" \"$WHY\" ;;",
-      "line": 2254,
+      "line": 2255,
       "literal": " ;;\n    *) bad menu ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187114,7 +187141,7 @@
     },
     {
       "excerpt": "*) bad menu \"$name\" \"$WHY\" ;;\n  esac\n}\n\n# ---- the pointer contract ---------------------------------------------------------------------\n#\n# keys.toml grew a [[pointer]] table, so the click contract derives the way the keys do instead of\n# living unnamed in ui/js/Focus.js where no derivation could see it. Every row below is an item.\n\n# Sample input, one block of keys.toml:\n#   [[pointer]]\n#   where = \"listing\"\n#   press = \"left x2\"\n#   row = \"any\"\n#   does = \"open\"\n# Emits \"<where>|<press>|<row>|<does>\", one per block.\nderive_pointer() {\n  local where=\"\" press=\"\" rowkind=\"\" line value intable=0",
-      "line": 2255,
+      "line": 2256,
       "literal": " ;;\n  esac\n}\n                                                                                                  \n \n                                                                                                  \n                                                                                                \n                                        \n               \n                     \n                     \n               \n                 \n                                                      \nderive_pointer() {\n  local where=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187123,7 +187150,7 @@
     },
     {
       "excerpt": "local where=\"\" press=\"\" rowkind=\"\" line value intable=0\n  while IFS= read -r line; do\n    case $line in\n      '[[pointer]]') intable=1; where=\"\"; press=\"\"; rowkind=\"\" ;;",
-      "line": 2272,
+      "line": 2273,
       "literal": " line value intable=0\n  while IFS= read -r line; do\n    case $line in\n      '[[pointer]]') intable=1; where=",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187132,7 +187159,7 @@
     },
     {
       "excerpt": "[ -n \"$centre\" ] || { WHY=\"row $index has no centre, so it is not on screen to click\"; return 1; }",
-      "line": 2304,
+      "line": 2305,
       "literal": "row $index has no centre, so it is not on screen to click",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187141,7 +187168,7 @@
     },
     {
       "excerpt": "if [ \"$landed\" != \"$index\" ] && [ \"$(ipc path)\" = \"$was_at\" ]; then",
-      "line": 2313,
+      "line": 2314,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187150,7 +187177,7 @@
     },
     {
       "excerpt": "|| { WHY=\"hyprctl reported no geometry for the Flea window, so a click cannot be aimed at it\"; return 1; }",
-      "line": 2329,
+      "line": 2330,
       "literal": "hyprctl reported no geometry for the Flea window, so a click cannot be aimed at it",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187159,7 +187186,7 @@
     },
     {
       "excerpt": "|| { WHY=\"the compositor would not accept a click at $((cx + wx)),$((cy + wy))\"; return 1; }",
-      "line": 2331,
+      "line": 2332,
       "literal": "the compositor would not accept a click at $((cx + wx)),$((cy + wy))",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187168,7 +187195,7 @@
     },
     {
       "excerpt": "click_row \"$(ipc cursor)\" --double || return 1",
-      "line": 2352,
+      "line": 2353,
       "literal": "$(ipc cursor)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187177,7 +187204,7 @@
     },
     {
       "excerpt": "changed_to \"the open directory\" \"$before\" \"$after\" \"$DRIVE_FIXTURE/sub\"",
-      "line": 2355,
+      "line": 2356,
       "literal": "the open directory",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187186,7 +187213,7 @@
     },
     {
       "excerpt": "expect_selection \"$(ipc cursor)\" \"\" || return 1",
-      "line": 2360,
+      "line": 2361,
       "literal": "$(ipc cursor)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187195,7 +187222,7 @@
     },
     {
       "excerpt": "expect_selection 3 \"3\"",
-      "line": 2362,
+      "line": 2363,
       "literal": "3",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187204,7 +187231,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = \"$path_before\" ] || { WHY=\"the pane opened $(ipc path), but a modifier must never open\"; return 1; }",
-      "line": 2384,
+      "line": 2385,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187213,7 +187240,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = \"$path_before\" ] || { WHY=\"the pane opened $(ipc path), but a modifier must never open\"; return 1; }",
-      "line": 2384,
+      "line": 2385,
       "literal": "the pane opened $(ipc path), but a modifier must never open",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187222,7 +187249,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = \"$path_before\" ] || { WHY=\"the pane opened $(ipc path), but a modifier must never open\"; return 1; }",
-      "line": 2396,
+      "line": 2397,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187231,7 +187258,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = \"$path_before\" ] || { WHY=\"the pane opened $(ipc path), but a modifier must never open\"; return 1; }",
-      "line": 2396,
+      "line": 2397,
       "literal": "the pane opened $(ipc path), but a modifier must never open",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187240,7 +187267,7 @@
     },
     {
       "excerpt": "changed_to \"the context menu\" \"$before\" \"$after\" true",
-      "line": 2406,
+      "line": 2407,
       "literal": "the context menu",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187249,7 +187276,7 @@
     },
     {
       "excerpt": "[ -n \"$away\" ] || { WHY=\"row 1 has no centre, so there is nowhere to click away to\"; return 1; }",
-      "line": 2417,
+      "line": 2418,
       "literal": "row 1 has no centre, so there is nowhere to click away to",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187258,7 +187285,7 @@
     },
     {
       "excerpt": "[ \"$before\" != \"-1\" ] || { WHY=\"no row became its own editor, so there is no rename to commit\"; return 1; }",
-      "line": 2422,
+      "line": 2423,
       "literal": "no row became its own editor, so there is no rename to commit",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187267,7 +187294,7 @@
     },
     {
       "excerpt": "[ \"$after\" = \"-1\" ] || { WHY=\"the editor is still open on row $after, so the click did not commit it\"; return 1; }",
-      "line": 2427,
+      "line": 2428,
       "literal": "the editor is still open on row $after, so the click did not commit it",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187276,7 +187303,7 @@
     },
     {
       "excerpt": "|| { WHY=\"no file called renamed-by-click.txt exists, so the click closed the editor without committing\"; return 1; }",
-      "line": 2429,
+      "line": 2430,
       "literal": "no file called renamed-by-click.txt exists, so the click closed the editor without committing",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187285,7 +187312,7 @@
     },
     {
       "excerpt": "skip pointer \"$name\" \"does $does; no IPC reader gives a neighbour column row its centre, so there is nothing to aim a click at\"",
-      "line": 2441,
+      "line": 2442,
       "literal": "does $does; no IPC reader gives a neighbour column row its centre, so there is nothing to aim a click at",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187294,7 +187321,7 @@
     },
     {
       "excerpt": "skip pointer \"$name\" \"does $does; activating a rail row navigates out of the fixture and no IPC route comes back, so driving it would strand every later check\"",
-      "line": 2444,
+      "line": 2445,
       "literal": "does $does; activating a rail row navigates out of the fixture and no IPC route comes back, so driving it would strand every later check",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187303,7 +187330,7 @@
     },
     {
       "excerpt": "skip pointer \"$name\" \"does $does; declared in keys.toml and this battery has no driver for it yet\"",
-      "line": 2449,
+      "line": 2450,
       "literal": "does $does; declared in keys.toml and this battery has no driver for it yet",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187312,7 +187339,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^o\\.bind(\"\\(SUPER[^\"]*\\)\", \"\\([^\"]*\\)\".*/\\1|\\2/p' \"$OMARCHY_CLIPBOARD_LUA\"",
-      "line": 2482,
+      "line": 2483,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187321,7 +187348,7 @@
     },
     {
       "excerpt": "identity=$(drive_window_identity) || { WHY=\"Omarchy chord target lost its owned identity\"; return 1; }",
-      "line": 2498,
+      "line": 2499,
       "literal": "Omarchy chord target lost its owned identity",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187330,7 +187357,7 @@
     },
     {
       "excerpt": "drive_mutation_guard \"$(ipc path)\" || return 1",
-      "line": 2499,
+      "line": 2500,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187339,7 +187366,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus \"$DRIVE_WINDOW_ADDRESS\" || { WHY=\"owned Flea would not take focus before the chord\"; return 1; }",
-      "line": 2500,
+      "line": 2501,
       "literal": "owned Flea would not take focus before the chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187348,7 +187375,7 @@
     },
     {
       "excerpt": "|| { WHY=\"Omarchy chord refused: owned Flea does not have focus\"; return 1; }",
-      "line": 2503,
+      "line": 2504,
       "literal": "Omarchy chord refused: owned Flea does not have focus",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187357,7 +187384,7 @@
     },
     {
       "excerpt": "|| { WHY=\"the compositor would not accept a real $mods+$key press\"; return 1; }",
-      "line": 2505,
+      "line": 2506,
       "literal": "the compositor would not accept a real $mods+$key press",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187366,7 +187393,7 @@
     },
     {
       "excerpt": "&& { WHY=\"dest/super-copy.txt existed beforehand, so the check could not fail\"; return 1; }",
-      "line": 2512,
+      "line": 2513,
       "literal": "dest/super-copy.txt existed beforehand, so the check could not fail",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187375,7 +187402,7 @@
     },
     {
       "excerpt": "|| { WHY=\"SUPER+C put nothing on Flea's clipboard: nothing landed at dest/super-copy.txt\"; leave_dir; return 1; }",
-      "line": 2519,
+      "line": 2520,
       "literal": "SUPER+C put nothing on Flea's clipboard: nothing landed at dest/super-copy.txt",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187384,7 +187411,7 @@
     },
     {
       "excerpt": "|| { WHY=\"the source is gone, so SUPER+C reached Flea as a cut rather than a copy\"; leave_dir; return 1; }",
-      "line": 2521,
+      "line": 2522,
       "literal": "the source is gone, so SUPER+C reached Flea as a cut rather than a copy",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187393,7 +187420,7 @@
     },
     {
       "excerpt": "&& { WHY=\"dest/super-paste.txt existed beforehand, so the check could not fail\"; return 1; }",
-      "line": 2529,
+      "line": 2530,
       "literal": "dest/super-paste.txt existed beforehand, so the check could not fail",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187402,7 +187429,7 @@
     },
     {
       "excerpt": "|| { WHY=\"SUPER+V did not paste: nothing landed at dest/super-paste.txt\"; leave_dir; return 1; }",
-      "line": 2536,
+      "line": 2537,
       "literal": "SUPER+V did not paste: nothing landed at dest/super-paste.txt",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187411,7 +187438,7 @@
     },
     {
       "excerpt": "&& { WHY=\"dest/super-cut.txt existed beforehand, so the check could not fail\"; return 1; }",
-      "line": 2544,
+      "line": 2545,
       "literal": "dest/super-cut.txt existed beforehand, so the check could not fail",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187420,7 +187447,7 @@
     },
     {
       "excerpt": "|| { WHY=\"SUPER+X put nothing on Flea's clipboard: nothing landed at dest/super-cut.txt\"; leave_dir; return 1; }",
-      "line": 2551,
+      "line": 2552,
       "literal": "SUPER+X put nothing on Flea's clipboard: nothing landed at dest/super-cut.txt",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187429,7 +187456,7 @@
     },
     {
       "excerpt": "&& { WHY=\"the source is still there, so SUPER+X reached Flea as a copy rather than a cut\"; leave_dir; return 1; }",
-      "line": 2553,
+      "line": 2554,
       "literal": "the source is still there, so SUPER+X reached Flea as a copy rather than a cut",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187438,7 +187465,7 @@
     },
     {
       "excerpt": "|| { WHY=\"undo did not put super-cut.txt back, so the tree is not restored\"; return 1; }",
-      "line": 2557,
+      "line": 2558,
       "literal": "undo did not put super-cut.txt back, so the tree is not restored",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187447,7 +187474,7 @@
     },
     {
       "excerpt": "WHY=\"no layer surface appeared over the focused Flea window, so the chord did not reach the compositor\"",
-      "line": 2570,
+      "line": 2571,
       "literal": "no layer surface appeared over the focused Flea window, so the chord did not reach the compositor",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187456,7 +187483,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2578,
+      "line": 2579,
       "literal": "$(ipc ready)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187465,7 +187492,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2578,
+      "line": 2579,
       "literal": "Flea stopped answering after the chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187474,7 +187501,7 @@
     },
     {
       "excerpt": "WHY=\"the surface the chord raised is still on screen after Escape\"",
-      "line": 2580,
+      "line": 2581,
       "literal": "the surface the chord raised is still on screen after Escape",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187483,7 +187510,7 @@
     },
     {
       "excerpt": "changed_from \"the window's fullscreen state\" \"$before\" \"$after\" || return 1",
-      "line": 2596,
+      "line": 2597,
       "literal": "the window's fullscreen state",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187492,7 +187519,7 @@
     },
     {
       "excerpt": "[ \"$restored\" = \"$before\" ] || { WHY=\"the window did not come back to fullscreen=$before, it is at $restored\"; return 1; }",
-      "line": 2600,
+      "line": 2601,
       "literal": "the window did not come back to fullscreen=$before, it is at $restored",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187501,7 +187528,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2601,
+      "line": 2602,
       "literal": "$(ipc ready)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187510,7 +187537,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2601,
+      "line": 2602,
       "literal": "Flea stopped answering after the chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187519,7 +187546,7 @@
     },
     {
       "excerpt": "[[ \"$(jq length <<< \"$terminal\")\" == 1 ]] \\",
-      "line": 2617,
+      "line": 2618,
       "literal": "$(jq length <<< ",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187528,7 +187555,7 @@
     },
     {
       "excerpt": "|| { WHY=\"Super+Return did not create one attributable terminal; no new window was touched\"; return 2; }",
-      "line": 2618,
+      "line": 2619,
       "literal": "Super+Return did not create one attributable terminal; no new window was touched",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187537,7 +187564,7 @@
     },
     {
       "excerpt": "|| { WHY=\"Super+Return created an unowned compositor window at $address, PID $pid; it lacks this run's sandbox identity and was left untouched\"; return 2; }",
-      "line": 2621,
+      "line": 2622,
       "literal": "Super+Return created an unowned compositor window at $address, PID $pid; it lacks this run's sandbox identity and was left untouched",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187546,7 +187573,7 @@
     },
     {
       "excerpt": "|| { WHY=\"Super+Return window is not the owned stock terminal; it was left untouched\"; return 2; }",
-      "line": 2623,
+      "line": 2624,
       "literal": "Super+Return window is not the owned stock terminal; it was left untouched",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187555,7 +187582,7 @@
     },
     {
       "excerpt": "|| { WHY=\"terminal identity changed before close; no window was touched\"; return 1; }",
-      "line": 2627,
+      "line": 2628,
       "literal": "terminal identity changed before close; no window was touched",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187564,7 +187591,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2631,
+      "line": 2632,
       "literal": "$(ipc ready)",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187573,7 +187600,7 @@
     },
     {
       "excerpt": "[ \"$(ipc ready)\" = true ] || { WHY=\"Flea stopped answering after the chord\"; return 1; }",
-      "line": 2631,
+      "line": 2632,
       "literal": "Flea stopped answering after the chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187582,7 +187609,7 @@
     },
     {
       "excerpt": "[ \"$total\" -gt 0 ] || { WHY=\"the compositor reports no SUPER binds at all, so this check could not fail\"; return 1; }",
-      "line": 2642,
+      "line": 2643,
       "literal": "the compositor reports no SUPER binds at all, so this check could not fail",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187591,7 +187618,7 @@
     },
     {
       "excerpt": "[ \"$leaky\" = 0 ] && { WHY=\"$total SUPER binds, none of them non-consuming\"; return 0; }",
-      "line": 2643,
+      "line": 2644,
       "literal": "$total SUPER binds, none of them non-consuming",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187600,7 +187627,7 @@
     },
     {
       "excerpt": "WHY=\"$leaky of $total SUPER binds are non-consuming, so they can leak into a focused client\"",
-      "line": 2644,
+      "line": 2645,
       "literal": "$leaky of $total SUPER binds are non-consuming, so they can leak into a focused client",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187609,7 +187636,7 @@
     },
     {
       "excerpt": "[ \"$n\" = 0 ] && { WHY=\"keys.toml declares no super table, so Flea cannot shadow an Omarchy chord\"; return 0; }",
-      "line": 2651,
+      "line": 2652,
       "literal": "keys.toml declares no super table, so Flea cannot shadow an Omarchy chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187618,7 +187645,7 @@
     },
     {
       "excerpt": "WHY=\"keys.toml declares $n super table(s), which would shadow an Omarchy chord\"",
-      "line": 2652,
+      "line": 2653,
       "literal": "keys.toml declares $n super table(s), which would shadow an Omarchy chord",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187627,7 +187654,7 @@
     },
     {
       "excerpt": "WHY=\"the Flea window carries the terminal tag, so SUPER+C would send CTRL+Insert, which Flea does not bind\"",
-      "line": 2664,
+      "line": 2665,
       "literal": "the Flea window carries the terminal tag, so SUPER+C would send CTRL+Insert, which Flea does not bind",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187636,7 +187663,7 @@
     },
     {
       "excerpt": "WHY=\"the live window's tags are '${tags:-none}', so clipboard.lua sends it CTRL+C and not CTRL+Insert\"",
-      "line": 2667,
+      "line": 2668,
       "literal": "the live window's tags are '${tags:-none}', so clipboard.lua sends it CTRL+C and not CTRL+Insert",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187645,7 +187672,7 @@
     },
     {
       "excerpt": "skip omarchy \"$chord\" \"$desc, and this battery has no driver for it yet\"",
-      "line": 2682,
+      "line": 2683,
       "literal": "$desc, and this battery has no driver for it yet",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187654,7 +187681,7 @@
     },
     {
       "excerpt": "pass omarchy \"$chord\" \"$desc, driven globally and proved by a landed file\"",
-      "line": 2689,
+      "line": 2690,
       "literal": "$desc, driven globally and proved by a landed file",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187663,7 +187690,7 @@
     },
     {
       "excerpt": "skip omarchy \"$mods + $key\" \"Omarchy binds no such chord on this box, so there is nothing to pass through\"",
-      "line": 2714,
+      "line": 2715,
       "literal": "Omarchy binds no such chord on this box, so there is nothing to pass through",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187672,7 +187699,7 @@
     },
     {
       "excerpt": "pass omarchy \"$mods + $key\" \"fired over a focused Flea window, and Flea still answers\"",
-      "line": 2721,
+      "line": 2722,
       "literal": "fired over a focused Flea window, and Flea still answers",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187681,7 +187708,7 @@
     },
     {
       "excerpt": "|| die \"the harness cannot deliver a -k chord: cursor stayed at $before after -k Down, so every keyed check would fail for a reason that is not the product\"",
-      "line": 2758,
+      "line": 2759,
       "literal": "the harness cannot deliver a -k chord: cursor stayed at $before after -k Down, so every keyed check would fail for a reason that is not the product",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187690,7 +187717,7 @@
     },
     {
       "excerpt": "|| die \"the harness cannot deliver a bare text chord: cursor stayed at $before after j, so every printable key would fail for a reason that is not the product\"",
-      "line": 2764,
+      "line": 2765,
       "literal": "the harness cannot deliver a bare text chord: cursor stayed at $before after j, so every printable key would fail for a reason that is not the product",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187699,7 +187726,7 @@
     },
     {
       "excerpt": "|| die \"the harness cannot deliver a modified chord: the selection stayed at $before after ctrl+a, so every Finder chord would fail for a reason that is not the product\"",
-      "line": 2770,
+      "line": 2771,
       "literal": "the harness cannot deliver a modified chord: the selection stayed at $before after ctrl+a, so every Finder chord would fail for a reason that is not the product",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187708,7 +187735,7 @@
     },
     {
       "excerpt": "sha=$(LC_ALL=C.UTF-8 LANGUAGE= git -C \"$REPO\" rev-parse HEAD) || die \"source identity unavailable\"",
-      "line": 2785,
+      "line": 2786,
       "literal": "source identity unavailable",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187717,7 +187744,7 @@
     },
     {
       "excerpt": "binary_sha=$(sha256sum \"$BIN\" | cut -d' ' -f1) || die \"binary digest unavailable\"",
-      "line": 2786,
+      "line": 2787,
       "literal": "binary digest unavailable",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187726,7 +187753,7 @@
     },
     {
       "excerpt": "[[ \"${FLEA_SOURCE_SHA:-}\" == \"$sha\" ]] || die \"FLEA_SOURCE_SHA must match the recorded build source: $sha\"",
-      "line": 2787,
+      "line": 2788,
       "literal": "FLEA_SOURCE_SHA must match the recorded build source: $sha",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187735,7 +187762,7 @@
     },
     {
       "excerpt": "[[ \"${FLEA_BINARY_SHA256:-}\" == \"$binary_sha\" ]] || die \"FLEA_BINARY_SHA256 must match the recorded build artifact: $BIN\"",
-      "line": 2788,
+      "line": 2789,
       "literal": "FLEA_BINARY_SHA256 must match the recorded build artifact: $BIN",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187744,7 +187771,7 @@
     },
     {
       "excerpt": "[[ \"$?\" == 0 ]] || die \"candidate provenance recording failed\"",
-      "line": 2802,
+      "line": 2803,
       "literal": "candidate provenance recording failed",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187753,7 +187780,7 @@
     },
     {
       "excerpt": "dirty=$(LC_ALL=C.UTF-8 LANGUAGE= git -C \"$REPO\" status --porcelain --untracked-files=no) || die \"candidate dirty-state query failed\"",
-      "line": 2814,
+      "line": 2815,
       "literal": "candidate dirty-state query failed",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187762,7 +187789,7 @@
     },
     {
       "excerpt": "dirty+=$(LC_ALL=C.UTF-8 LANGUAGE= git -C \"$REPO\" ls-files --others --exclude-standard -- ui src tools tests) || die \"candidate untracked-source query failed\"",
-      "line": 2815,
+      "line": 2816,
       "literal": "candidate untracked-source query failed",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187771,7 +187798,7 @@
     },
     {
       "excerpt": "die \"--drive needs a clean derivation source; export the commit and drive that, see drive_require_clean_sources\"",
-      "line": 2818,
+      "line": 2819,
       "literal": "--drive needs a clean derivation source; export the commit and drive that, see drive_require_clean_sources",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -187780,7 +187807,7 @@
     },
     {
       "excerpt": "drive_teardown || die \"candidate processes did not drain before the next preset\"",
-      "line": 2864,
+      "line": 2865,
       "literal": "candidate processes did not drain before the next preset",
       "owner": "controller",
       "path": "tools/flea-acceptance-drive",
@@ -215428,7 +215455,7 @@
     },
     {
       "excerpt": "command -v \"$tool\" >/dev/null || fail \"$tool is missing\"",
-      "line": 61,
+      "line": 62,
       "literal": "$tool is missing",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215437,7 +215464,7 @@
     },
     {
       "excerpt": "|| fail \"ffmpeg has no libx264, so the clips cannot be encoded\"",
-      "line": 64,
+      "line": 65,
       "literal": "ffmpeg has no libx264, so the clips cannot be encoded",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215446,7 +215473,7 @@
     },
     {
       "excerpt": "|| fail \"ffmpeg has no libmp3lame, so the audio file cannot be encoded\"",
-      "line": 66,
+      "line": 67,
       "literal": "ffmpeg has no libmp3lame, so the audio file cannot be encoded",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215455,7 +215482,7 @@
     },
     {
       "excerpt": "*) fail \"no generator for scene '$scene' palette '$palette' (picture '$name')\" ;;",
-      "line": 236,
+      "line": 237,
       "literal": "no generator for scene '$scene' palette '$palette' (picture '$name')",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215464,7 +215491,7 @@
     },
     {
       "excerpt": "mkdir -p \"$selects\" || fail \"could not create $selects\"",
-      "line": 243,
+      "line": 244,
       "literal": "could not create $selects",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215473,7 +215500,7 @@
     },
     {
       "excerpt": "[ \"$made\" -eq \"$selects_count\" ] || fail \"expected $selects_count pictures, made $made\"",
-      "line": 250,
+      "line": 251,
       "literal": "expected $selects_count pictures, made $made",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215482,7 +215509,7 @@
     },
     {
       "excerpt": "-pointsize 24 -fill '#6b6b6b' -annotate +0+100 \"sheet $page of $contact_pages\" \\",
-      "line": 282,
+      "line": 283,
       "literal": "sheet $page of $contact_pages",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215491,7 +215518,7 @@
     },
     {
       "excerpt": "[ \"${#names[@]}\" -eq \"$master_count\" ] || fail \"the master list is ${#names[@]} long, expected $master_count\"",
-      "line": 294,
+      "line": 295,
       "literal": "the master list is ${#names[@]} long, expected $master_count",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215500,7 +215527,7 @@
     },
     {
       "excerpt": "mkdir -p \"$root/Exports\" \"$root/Raw\" \"$root/Scans\" || fail \"could not create the subfolders\"",
-      "line": 303,
+      "line": 304,
       "literal": "could not create the subfolders",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215509,15 +215536,6 @@
     },
     {
       "excerpt": "cp \"$selects/coastline-at-dawn.jpg\" \"$root/Exports/coastline-at-dawn-2400.jpg\" || fail \"export copy failed\"",
-      "line": 306,
-      "literal": "export copy failed",
-      "owner": "controller",
-      "path": "tools/flea-readme-shots",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "cp \"$selects/ridgeline-panorama.jpg\" \"$root/Exports/ridgeline-panorama-2400.jpg\" || fail \"export copy failed\"",
       "line": 307,
       "literal": "export copy failed",
       "owner": "controller",
@@ -215526,8 +215544,17 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "cp \"$selects/headland-storm.jpg\" \"$root/cover-grade.jpg\" || fail \"cover copy failed\"",
+      "excerpt": "cp \"$selects/ridgeline-panorama.jpg\" \"$root/Exports/ridgeline-panorama-2400.jpg\" || fail \"export copy failed\"",
       "line": 308,
+      "literal": "export copy failed",
+      "owner": "controller",
+      "path": "tools/flea-readme-shots",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "cp \"$selects/headland-storm.jpg\" \"$root/cover-grade.jpg\" || fail \"cover copy failed\"",
+      "line": 309,
       "literal": "cover copy failed",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215536,7 +215563,7 @@
     },
     {
       "excerpt": "cp \"$selects/approach-timelapse.mp4\" \"$root/timelapse.mp4\" || fail \"clip copy failed\"",
-      "line": 310,
+      "line": 311,
       "literal": "clip copy failed",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215545,7 +215572,7 @@
     },
     {
       "excerpt": "> \"$root/field-notes.md\" || fail \"could not write field-notes.md\"",
-      "line": 313,
+      "line": 314,
       "literal": "could not write field-notes.md",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215554,7 +215581,7 @@
     },
     {
       "excerpt": "> \"$root/shot-list.csv\" || fail \"could not write shot-list.csv\"",
-      "line": 315,
+      "line": 316,
       "literal": "could not write shot-list.csv",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215563,7 +215590,7 @@
     },
     {
       "excerpt": "> \"$root/lens-profile.json\" || fail \"could not write lens-profile.json\"",
-      "line": 317,
+      "line": 318,
       "literal": "could not write lens-profile.json",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215572,7 +215599,7 @@
     },
     {
       "excerpt": "[ \"$jpgs\" -eq \"$selects_count\" ] || fail \"Selects holds $jpgs jpegs, expected $selects_count\"",
-      "line": 337,
+      "line": 338,
       "literal": "Selects holds $jpgs jpegs, expected $selects_count",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215581,7 +215608,7 @@
     },
     {
       "excerpt": "[ \"$mp4s\" -eq 2 ] || fail \"Selects holds $mp4s clips, expected 2\"",
-      "line": 338,
+      "line": 339,
       "literal": "Selects holds $mp4s clips, expected 2",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215590,7 +215617,7 @@
     },
     {
       "excerpt": "[ \"$masters\" -eq \"$master_count\" ] || fail \"Raw holds $masters masters, expected $master_count\"",
-      "line": 339,
+      "line": 340,
       "literal": "Raw holds $masters masters, expected $master_count",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215599,7 +215626,7 @@
     },
     {
       "excerpt": "[ -s \"$root/contact-sheet.pdf\" ] || fail \"the contact sheet is missing or empty\"",
-      "line": 340,
+      "line": 341,
       "literal": "the contact sheet is missing or empty",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215608,7 +215635,7 @@
     },
     {
       "excerpt": "[ -d \"$root/Scans\" ] || fail \"Scans is missing\"",
-      "line": 341,
+      "line": 342,
       "literal": "Scans is missing",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215617,7 +215644,7 @@
     },
     {
       "excerpt": "[ -z \"$(LC_ALL=C.UTF-8 LANGUAGE= ls -A \"$root/Scans\")\" ] || fail \"Scans must stay empty, it is the empty-state fixture\"",
-      "line": 343,
+      "line": 344,
       "literal": "Scans must stay empty, it is the empty-state fixture",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215626,7 +215653,7 @@
     },
     {
       "excerpt": "[ -n \"$fs\" ] || fail \"findmnt could not name the filesystem holding $parent\"",
-      "line": 355,
+      "line": 356,
       "literal": "findmnt could not name the filesystem holding $parent",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215635,7 +215662,7 @@
     },
     {
       "excerpt": "[ \"$fs\" != tmpfs ] || fail \"$root would be on tmpfs, where the thumbnail cache measures nothing\"",
-      "line": 356,
+      "line": 357,
       "literal": "$root would be on tmpfs, where the thumbnail cache measures nothing",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215644,7 +215671,7 @@
     },
     {
       "excerpt": "mkdir -p \"$work\" || fail \"could not create $work\"",
-      "line": 359,
+      "line": 360,
       "literal": "could not create $work",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215653,7 +215680,7 @@
     },
     {
       "excerpt": "command -v omarchy-drive >/dev/null || fail \"omarchy-drive is not on PATH\"",
-      "line": 438,
+      "line": 439,
       "literal": "omarchy-drive is not on PATH",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215662,7 +215689,7 @@
     },
     {
       "excerpt": "eval \"$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)\"",
-      "line": 439,
+      "line": 440,
       "literal": "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215671,7 +215698,7 @@
     },
     {
       "excerpt": "export QT_QPA_PLATFORMTHEME=\"$(LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)\"",
-      "line": 445,
+      "line": 446,
       "literal": "$(LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215680,7 +215707,7 @@
     },
     {
       "excerpt": "[ -n \"$QT_QPA_PLATFORMTHEME\" ] || fail \"nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon\"",
-      "line": 452,
+      "line": 453,
       "literal": "nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215689,7 +215716,7 @@
     },
     {
       "excerpt": "[ -x \"$bin\" ] || fail \"no binary at $bin, build it first\"",
-      "line": 454,
+      "line": 455,
       "literal": "no binary at $bin, build it first",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215698,7 +215725,7 @@
     },
     {
       "excerpt": "[ -d \"$root\" ] || fail \"no fixture at $root, run '$0 fixture' first\"",
-      "line": 455,
+      "line": 456,
       "literal": "no fixture at $root, run '$0 fixture' first",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215707,7 +215734,7 @@
     },
     {
       "excerpt": "[ -z \"$others\" ] || fail \"another lane holds the display, these windows are open: $others\"",
-      "line": 472,
+      "line": 473,
       "literal": "another lane holds the display, these windows are open: $others",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215716,7 +215743,7 @@
     },
     {
       "excerpt": "d=$(mktemp -d) || fail \"could not make a snapshot directory\"",
-      "line": 478,
+      "line": 479,
       "literal": "could not make a snapshot directory",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215725,7 +215752,7 @@
     },
     {
       "excerpt": "cp -a \"$ui_src/.\" \"$d/\" || fail \"could not copy $ui_src into $d\"",
-      "line": 479,
+      "line": 480,
       "literal": "could not copy $ui_src into $d",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215734,7 +215761,7 @@
     },
     {
       "excerpt": "fail \"a Flea window is already open, and only one lane may hold the display\"",
-      "line": 487,
+      "line": 488,
       "literal": "a Flea window is already open, and only one lane may hold the display",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215743,7 +215770,7 @@
     },
     {
       "excerpt": "mkdir -p \"$frames\" || fail \"could not create $frames\"",
-      "line": 489,
+      "line": 490,
       "literal": "could not create $frames",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215752,7 +215779,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout 15 >/dev/null || fail \"no Flea window appeared in 15 s\"",
-      "line": 495,
+      "line": 496,
       "literal": "no Flea window appeared in 15 s",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215761,7 +215788,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= grep -E \"^$1[[:space:]]*=\" \"$colors_toml\" | head -1 | cut -d'\"' -f2\n}\n\n# Asserted, never assumed: a shot taken on the fallback palette is worthless and looks fine. The\n# expected values come out of colors.toml, so this passes under whatever theme the box is running.\nassert_theme() {\n  local loaded palette surface accent want_surface want_accent field\n  loaded=$(ipc themeLoaded)\n  [ \"$loaded\" = true ] || fail \"themeLoaded is '$loaded', so this window paints a fallback palette\"",
-      "line": 503,
+      "line": 504,
       "literal": "' -f2\n}\n                                                                                                 \n                                                                                                  \nassert_theme() {\n  local loaded palette surface accent want_surface want_accent field\n  loaded=$(ipc themeLoaded)\n  [ ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215770,7 +215797,7 @@
     },
     {
       "excerpt": "[ -s \"$colors_toml\" ] || fail \"no live palette at $colors_toml to check the window against\"\n  # ui/Ipc.qml's palette reader joins these eight in order: background surface foreground muted accent error symlink executable.\n  # Sample output: \"#1a1b26 #13141c #a9b1d6 #414868 #7aa2f7 #f7768e #449dab #9ece6a\"\n  palette=$(ipc palette)\n  surface=$(printf '%s\\n' \"$palette\" | cut -d' ' -f2)",
-      "line": 512,
+      "line": 513,
       "literal": "\n                                                                                                                                \n                                                                                    \n  palette=$(ipc palette)\n  surface=$(printf '%s\\n' ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215779,7 +215806,7 @@
     },
     {
       "excerpt": "accent=$(printf '%s\\n' \"$palette\" | cut -d' ' -f5)\n  # ui/Theme.qml:202 picks surface from dark_background before selection, so that is what it must equal.\n  want_surface=$(theme_key dark_background)\n  want_accent=$(theme_key accent)\n  [ -n \"$want_surface\" ] && [ -n \"$want_accent\" ] \\",
-      "line": 517,
+      "line": 518,
       "literal": " | cut -d' ' -f5)\n                                                                                                        \n  want_surface=$(theme_key dark_background)\n  want_accent=$(theme_key accent)\n  [ -n ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215788,7 +215815,7 @@
     },
     {
       "excerpt": "|| fail \"accent is '$accent' but the live theme says '$want_accent', so this window is not on the box's palette\"\n  # themeLoaded returned true for an empty palette once tonight, so the fallback is checked directly.\n  for field in $palette; do\n    [ \"$field\" = \"$fallback_surface\" ] \\",
-      "line": 526,
+      "line": 527,
       "literal": "\n                                                                                                     \n  for field in $palette; do\n    [ ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215797,7 +215824,7 @@
     },
     {
       "excerpt": "\"$(LC_ALL=C.UTF-8 LANGUAGE= omarchy theme current 2>/dev/null)\" \"$surface\" \"$accent\" \"$colors_toml\"\n}\n\nwindow_json() { LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c '.[] | select(.class == \"com.thisisgm.flea\")'; }",
-      "line": 533,
+      "line": 534,
       "literal": "\n}\n\nwindow_json() { LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c '.[] | select(.class == ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215806,7 +215833,7 @@
     },
     {
       "excerpt": "window_geometry() { window_json | jq -r '\"\\(.at[0]) \\(.at[1]) \\(.size[0]) \\(.size[1]) \\(.address)\"'; }\n\n# hyprctl exits 0 on error, so the geometry read back is the only evidence the resize took.\nsize_window() {\n  local wx wy ww wh addr dx dy\n  read -r wx wy ww wh addr < <(window_geometry)\n  [ -n \"$addr\" ] || fail \"no Flea window to size\"",
-      "line": 537,
+      "line": 538,
       "literal": "'; }\n                                                                                            \nsize_window() {\n  local wx wy ww wh addr dx dy\n  read -r wx wy ww wh addr < <(window_geometry)\n  [ -n ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215815,7 +215842,7 @@
     },
     {
       "excerpt": "if [ \"$(window_json | jq -r '.floating')\" != true ]; then\n    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive window float flea >/dev/null\n    settle\n  fi\n  hyprctl dispatch \"hl.dsp.window.resize({ x = $shot_w, y = $shot_h, exact = true, window = \\\"address:$addr\\\" })\" >/dev/null",
-      "line": 544,
+      "line": 545,
       "literal": " != true ]; then\n    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive window float flea >/dev/null\n    settle\n  fi\n  hyprctl dispatch ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215824,7 +215851,7 @@
     },
     {
       "excerpt": "|| fail \"the window is ${ww}x${wh}, not ${shot_w}x${shot_h}\"",
-      "line": 560,
+      "line": 561,
       "literal": "the window is ${ww}x${wh}, not ${shot_w}x${shot_h}",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215833,7 +215860,7 @@
     },
     {
       "excerpt": "fail \"the pane never opened $want, it is at $seen\"",
-      "line": 571,
+      "line": 572,
       "literal": "the pane never opened $want, it is at $seen",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215842,7 +215869,7 @@
     },
     {
       "excerpt": "case \"$(ipc rowAt \"$(ipc cursor)\")\" in",
-      "line": 579,
+      "line": 580,
       "literal": "$(ipc rowAt ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215851,7 +215878,7 @@
     },
     {
       "excerpt": "fail \"could not put the cursor on $want\"",
-      "line": 584,
+      "line": 585,
       "literal": "could not put the cursor on $want",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215860,7 +215887,7 @@
     },
     {
       "excerpt": "[ \"$(ipc viewMode)\" = \"$1\" ] || fail \"the view is $(ipc viewMode), not $1, after its chord\"",
-      "line": 598,
+      "line": 599,
       "literal": "$(ipc viewMode)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215869,7 +215896,7 @@
     },
     {
       "excerpt": "[ \"$(ipc viewMode)\" = \"$1\" ] || fail \"the view is $(ipc viewMode), not $1, after its chord\"",
-      "line": 598,
+      "line": 599,
       "literal": "the view is $(ipc viewMode), not $1, after its chord",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215878,7 +215905,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot \"$frames/$1.png\" flea >/dev/null || fail \"the shot of $1 failed\"",
-      "line": 602,
+      "line": 603,
       "literal": "the shot of $1 failed",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215887,7 +215914,7 @@
     },
     {
       "excerpt": "printf 'METRIC metrics %s\\n' \"$(ipc metrics)\"",
-      "line": 608,
+      "line": 609,
       "literal": "$(ipc metrics)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215896,7 +215923,7 @@
     },
     {
       "excerpt": "printf 'METRIC chromeHeight %s\\n' \"$(ipc chromeHeight)\"",
-      "line": 609,
+      "line": 610,
       "literal": "$(ipc chromeHeight)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215905,7 +215932,7 @@
     },
     {
       "excerpt": "printf 'METRIC railCount %s\\n' \"$(ipc railCount)\"",
-      "line": 610,
+      "line": 611,
       "literal": "$(ipc railCount)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215914,7 +215941,7 @@
     },
     {
       "excerpt": "printf 'METRIC deviceEntries %s\\n' \"$(ipc deviceEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\\n' ';')\"",
-      "line": 611,
+      "line": 612,
       "literal": "$(ipc deviceEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ';')",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215923,7 +215950,7 @@
     },
     {
       "excerpt": "printf 'METRIC networkEntries %s\\n' \"$(ipc networkEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\\n' ';')\"",
-      "line": 612,
+      "line": 613,
       "literal": "$(ipc networkEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ';')",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215932,7 +215959,7 @@
     },
     {
       "excerpt": "printf 'METRIC railRowCentre %s %s\\n' \"$i\" \"$(ipc railRowCentre \"$i\")\"",
-      "line": 615,
+      "line": 616,
       "literal": "$(ipc railRowCentre ",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215941,7 +215968,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = \"$root\" ] && return 0",
-      "line": 624,
+      "line": 625,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215950,7 +215977,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] && break",
-      "line": 626,
+      "line": 627,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215959,7 +215986,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] || fail \"could not climb to /, the pane is at $(ipc path)\"",
-      "line": 630,
+      "line": 631,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215968,7 +215995,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] || fail \"could not climb to /, the pane is at $(ipc path)\"",
-      "line": 630,
+      "line": 631,
       "literal": "could not climb to /, the pane is at $(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215977,7 +216004,7 @@
     },
     {
       "excerpt": "*) fail \"no rename field opened, renamingIndex is $seen\" ;;",
-      "line": 714,
+      "line": 715,
       "literal": "no rename field opened, renamingIndex is $seen",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215986,7 +216013,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] && break",
-      "line": 754,
+      "line": 755,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -215995,7 +216022,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] || fail \"could not climb to /, the pane is at $(ipc path)\"",
-      "line": 756,
+      "line": 757,
       "literal": "$(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216004,7 +216031,7 @@
     },
     {
       "excerpt": "[ \"$(ipc path)\" = / ] || fail \"could not climb to /, the pane is at $(ipc path)\"",
-      "line": 756,
+      "line": 757,
       "literal": "could not climb to /, the pane is at $(ipc path)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216013,7 +216040,7 @@
     },
     {
       "excerpt": "[ -f \"$f\" ] || fail \"no burst frames to choose from\"",
-      "line": 782,
+      "line": 783,
       "literal": "no burst frames to choose from",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216022,7 +216049,7 @@
     },
     {
       "excerpt": "-format '%[fx:int(w*h*mean)]' info:) || fail \"could not measure $f\"",
-      "line": 784,
+      "line": 785,
       "literal": "could not measure $f",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216031,7 +216058,7 @@
     },
     {
       "excerpt": "cp \"$best\" \"$frames/empty.png\" || fail \"could not name the settled frame\"",
-      "line": 788,
+      "line": 789,
       "literal": "could not name the settled frame",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216040,7 +216067,7 @@
     },
     {
       "excerpt": "[ \"$(ipc emptyShown)\" = true ] || fail \"emptyShown is $(ipc emptyShown), so this is not the empty state\"",
-      "line": 799,
+      "line": 800,
       "literal": "$(ipc emptyShown)",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216049,7 +216076,7 @@
     },
     {
       "excerpt": "[ \"$(ipc emptyShown)\" = true ] || fail \"emptyShown is $(ipc emptyShown), so this is not the empty state\"",
-      "line": 799,
+      "line": 800,
       "literal": "emptyShown is $(ipc emptyShown), so this is not the empty state",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216058,7 +216085,7 @@
     },
     {
       "excerpt": "*) fail \"no such beat: '$beat'\" ;;",
-      "line": 843,
+      "line": 844,
       "literal": "no such beat: '$beat'",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216067,7 +216094,7 @@
     },
     {
       "excerpt": "command -v magick >/dev/null || fail \"magick is missing\"",
-      "line": 878,
+      "line": 879,
       "literal": "magick is missing",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216076,7 +216103,7 @@
     },
     {
       "excerpt": "mkdir -p \"$repo/docs/images\" || fail \"could not create docs/images\"",
-      "line": 879,
+      "line": 880,
       "literal": "could not create docs/images",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216085,7 +216112,7 @@
     },
     {
       "excerpt": "[ -f \"$frames/$src.png\" ] || fail \"no frame at $frames/$src.png, run '$0 shots' first\"",
-      "line": 882,
+      "line": 883,
       "literal": "no frame at $frames/$src.png, run '$0 shots' first",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -216094,7 +216121,7 @@
     },
     {
       "excerpt": "magick \"$frames/$src.png\" -crop \"$geom\" +repage -strip \"$out\" || fail \"the crop of $src failed\"",
-      "line": 887,
+      "line": 888,
       "literal": "the crop of $src failed",
       "owner": "controller",
       "path": "tools/flea-readme-shots",
@@ -245828,8 +245855,9 @@
     "src/tui/combine.rs": "59885ff0048119b3df480d9f449c8b87530a97c5c761f1877e4d22bd2be955cd",
     "src/tui/combine/card.rs": "ef6b5eee96b6e67fbe2860413c69d191af2efd9f4d6032b90ee8ab2d6480ff96",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
+    "src/tui/combine/font.rs": "ea7ce55662db0538135655bb42723d4d89e4feb08f62879ac6e1924e30f9d8b2",
     "src/tui/combine/input.rs": "168a5b326e639253885901c0be4ecd819894b9f1e37dbf7fab3b4d23720a4ed0",
-    "src/tui/combine/preview.rs": "bd4f2c9ec854d28fd77cbc53af344a9d77612c21d0fc97c0f13fb80068dde02b",
+    "src/tui/combine/preview.rs": "df99fc813780cc734d75417314fe24f9a79700ce33f0a1979b0c435aca805306",
     "src/tui/combine/replies.rs": "eccc222bdef3fa41bbae8d9a6d801c1561eff2ba332d03a1b8c95f4dacd28ef0",
     "src/tui/combine/source.rs": "3771c8e54c6e6d7d1dfffc5e0453e6468fd35d528ef55dc5a6c825fa850d0432",
     "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
@@ -246251,7 +246279,7 @@
     "src/vkprobelibs.rs": "dfbc3ef59774576d969649bf95f95e61debfdd88eafacfbd0eba85fe81cba877",
     "src/vulkan.rs": "14c42e5c9efeac51acfaebb617224dd41de42f448ceb07b431ef4ddae134e3c4",
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
-    "tools/flea-acceptance-drive": "829980e913b1dce2f601942ae55a699afb4c9e81c72085434cdc1c2efb7d121a",
+    "tools/flea-acceptance-drive": "4370066f30f088f1779280dd0b77201f859cdbfc14fe561c5e4f2b484b177178",
     "tools/flea-b3-capture/capture.py": "3e8e82edd813e82751acd790cabbf90eeebf9ab88ae7102a55a3dee579a51d66",
     "tools/flea-bench": "1b395041bce3037315d6aadb87d3fcdbdba0ee75f36284ca0b764cf50e5f64b8",
     "tools/flea-bench-capability": "9faa117e795c4e89d9829291680ff85a507529b8e287bed51b5b7cd663403f2c",
@@ -246304,6 +246332,7 @@
     "tools/flea-keymap-gen": "a36c7ff57d665edf8cd72b5eea9384cea73ef494df55582df3c4476da3bac487",
     "tools/flea-keymap-lint": "685dd15739937f99b51ddb241c104ed291b11c8c893d239a1ff6b41d6b68d7dd",
     "tools/flea-live-ops": "dc849d1a9222ff7a491a98db1c2ff7d91191e27358621828198680b5bbfcdeee",
+    "tools/flea-magick-font": "3fe76787b2a8133b81997a7b3421507955194771c3e6e7979d3c42ed9a4df08e",
     "tools/flea-matchbench/Cargo.toml": "1c091116113a2ddd2e3d9f3d04c356ca7ad9ef00b59b5fdc1bcc9700ee0f91cf",
     "tools/flea-matchbench/build.rs": "818e7e616d73082e776561566ef4c1cdb39e451bff43490c0ba199a3a0cefcab",
     "tools/flea-matchbench/contract.json": "b5766020a7f155999c01ec29dae740a13e9b6fef24564a04526274d5e044c267",
@@ -246323,7 +246352,7 @@
     "tools/flea-qmllint-gate": "c29cee5699faa951ae769e84d7723871b27358e9867f304e461f25df24d0d440",
     "tools/flea-rar-fixture": "b403d18e3f97dc620cb68f31f5fd3aa5cc2e7f09b2316ec172db15a04445759c",
     "tools/flea-raw-corpus": "2d0030828861103d2546403780d6f6c9d849582c37b7a20034d7108cc618801e",
-    "tools/flea-readme-shots": "989636a89fd36684751803dc34cd96260905068aefd3958a7437de6fdc7c8b5d",
+    "tools/flea-readme-shots": "d8b3818d8b1be3c4f11fd6b83c8c6d7ce751fbbee0832a7b76ee40829f859524",
     "tools/flea-running": "14f90b761dfade3b33f456690d56e4d935dd542721253233644264455200f6e4",
     "tools/flea-sandbox-guard": "f8dda0ea2de2e3b26d1638e2baa3ffb60ae88da4a227c9defd7dcdbc9a5991b9",
     "tools/flea-searchbench/Cargo.toml": "a1b474d73d3416de7a8b0e5df2cc7fba9ad9a6c3383dfb41c186b5648181174c",
@@ -246815,8 +246844,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "678550637b7e084998522134241ce3d72c3018ef",
-  "source_sha": "678550637b7e084998522134241ce3d72c3018ef",
+  "source_ref_sha": "e6d811cc7677734428d382d54d0ec0255f5e5373",
+  "source_sha": "e6d811cc7677734428d382d54d0ec0255f5e5373",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -246826,7 +246855,7 @@
     "generated/tooling": {
       "keys_with_occurrences": 153,
       "missing_literal_candidates": 5098,
-      "source_files": 153
+      "source_files": 154
     },
     "gui": {
       "keys_with_occurrences": 530,
@@ -246840,8 +246869,8 @@
     },
     "tui": {
       "keys_with_occurrences": 483,
-      "missing_literal_candidates": 365,
-      "source_files": 84
+      "missing_literal_candidates": 368,
+      "source_files": 85
     }
   },
   "unlocated_keys": [

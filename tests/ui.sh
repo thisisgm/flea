@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-magick-font"
 # Drives the selected frontend's real window and asserts through its read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
@@ -7975,8 +7976,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 

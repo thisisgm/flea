@@ -151,8 +151,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 
@@ -352,8 +352,8 @@ PYEOF
 case_lookopen() {
     local dir="$fixture_root/lookopen" view name want wait
     sandbox_scratch "$dir"
-    magick \( -size 440x354 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGEONE \) \
-           \( -size 440x354 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGETWO \) "$dir/a-doc.pdf" \
+    magick \( -size 440x354 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGEONE \) \
+           \( -size 440x354 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGETWO \) "$dir/a-doc.pdf" \
         || fail "lookopen: magick could not make a-doc.pdf"
     ffmpeg -y -f lavfi -i "testsrc=size=320x240" -frames:v 1 "$dir/b-image.jpg" >/dev/null 2>&1 || fail "lookopen: ffmpeg could not make b-image.jpg"
     printf 'hello from flea\n' > "$dir/c-notes.txt"
@@ -375,7 +375,7 @@ case_relstart() {
     mkdir -p "$dir/sub"
     real=$(cd "$dir" && pwd -P)
     magick -size 320x240 xc:'#3070c0' "$dir/a-photo.png" || fail "relstart: magick could not make a-photo.png"
-    magick -size 440x354 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGEONE "$dir/b-doc.pdf" \
+    magick -size 440x354 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGEONE "$dir/b-doc.pdf" \
         || fail "relstart: magick could not make b-doc.pdf"
     magick -size 240x320 xc:'#c07030' "$dir/sub/c-photo.png" || fail "relstart: magick could not make c-photo.png"
     # The relative start stays relative to the case's cwd, and the launch records its PID here, not in a subshell.

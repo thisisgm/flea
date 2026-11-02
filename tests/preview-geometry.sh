@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-magick-font"
 . "$(dirname "$0")/headless-commons.sh"
 # The preview geometry gate (AGENTS.md "The preview swap"); tests/preview-geometry.qml holds the rule table.
 set -u
@@ -52,9 +53,9 @@ solid 256x192 '#3a8a5f' thumb-256x192.png
 solid 120x68 '#bb9af7' office-120x68.png
 solid 181x256 '#bb9af7' office-181x256.png
 # PDF pages, portrait and landscape, made the way case_preview makes its manual.pdf.
-magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
     "$fixture/doc-400x560.pdf" || { echo "preview-geometry.sh: portrait PDF fixture failed"; exit 1; }
-magick \( -size 560x400 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+magick \( -size 560x400 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
     "$fixture/doc-560x400.pdf" || { echo "preview-geometry.sh: landscape PDF fixture failed"; exit 1; }
 
 output=$(env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
