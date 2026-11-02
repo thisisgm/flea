@@ -21,6 +21,8 @@ pub(crate) mod rail_menu;
 #[cfg(test)]
 mod recent_parity_tests;
 mod rename;
+#[cfg(test)]
+mod s5_preview_tests;
 mod tabs;
 mod tag_capability;
 mod tag_places;

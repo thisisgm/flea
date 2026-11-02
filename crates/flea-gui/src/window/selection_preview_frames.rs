@@ -10,8 +10,18 @@ pub(crate) struct Stamp {
     pub held: bool,
     pub blank: bool,
 }
+
+/// The last native animation paint attempt, tied to its preview generation and draw.
+pub(crate) struct AnimationPaint {
+    pub generation: u64,
+    pub index: usize,
+    pub draw: Option<u64>,
+    pub error: Option<String>,
+}
+
 #[derive(Default)]
 pub(crate) struct Frames {
+    pub animation: Option<AnimationPaint>,
     pub available: bool,
     pub presented: u64,
     pub loading: u64,

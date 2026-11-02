@@ -338,7 +338,7 @@ impl Mounting<'_> {
     }
 }
 
-/// Preview.qml binds the code view's wrap to the saved preview.wrap (ViewState.previewWrap).
+/// Preview.qml binds source wrapping to the saved preview.wrap for every text document.
 pub(super) fn wrap_saved(view: &View, settings: &flea::jsondoc::Json, cx: &mut gpui::App) {
     let wrap = settings
         .get("preview")
@@ -348,6 +348,10 @@ pub(super) fn wrap_saved(view: &View, settings: &flea::jsondoc::Json, cx: &mut g
     match view {
         View::Code(code) => code.update(cx, |code, cx| code.set_wrap(wrap, cx)),
         View::Html(html) => html.update(cx, |html, cx| html.set_wrap(wrap, cx)),
+        View::Markdown(markdown) => markdown.update(cx, |markdown, cx| {
+            markdown.wrap = wrap;
+            cx.notify();
+        }),
         _ => {}
     }
 }

@@ -202,8 +202,14 @@ impl Render for SelectionPreview {
             );
         } else {
             let fitted = super::fitted::fitted(frame, width, height, window.scale_factor());
-            let moving =
-                super::picture::moving(frame, gif_at, width, height, window.scale_factor());
+            let moving = super::picture::moving(
+                frame,
+                gif_at,
+                width,
+                height,
+                window.scale_factor(),
+                self.frames.clone(),
+            );
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
