@@ -20,6 +20,8 @@ mod previewtypes;
 pub(crate) mod rail_menu;
 #[cfg(test)]
 mod recent_parity_tests;
+#[cfg(test)]
+mod recent_tabs_remainder_tests;
 mod rename;
 #[cfg(test)]
 mod s5_preview_tests;

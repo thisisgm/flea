@@ -219,6 +219,7 @@ impl Navigator {
 
     // The listing every navigation and re-read submits, in the folder's own order.
     pub fn listing(&mut self, pane: &Pane, path: &str, want_changed: bool) -> Listing {
+        self.orders.paths = false;
         let folders = self.folders.borrow();
         let preferences = (folders.global, folders.remember_sort);
         if !self.preserve_sort
