@@ -155087,7 +155087,7 @@
     },
     {
       "excerpt": "msg: format!(\"{} is not responding.\", mount.display()),",
-      "line": 23,
+      "line": 24,
       "literal": "{} is not responding.",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -155096,7 +155096,7 @@
     },
     {
       "excerpt": "if stop() { return Ok(Directory { entries: Vec::new(), partial: Some(\"cancelled\"), #[cfg(test)] stats: 0 }); }",
-      "line": 88,
+      "line": 89,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -155105,7 +155105,7 @@
     },
     {
       "excerpt": "if stop() { out.partial = Some(\"cancelled\"); return Ok(out); }",
-      "line": 126,
+      "line": 127,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -155114,8 +155114,35 @@
     },
     {
       "excerpt": "if stop() { out.partial = Some(\"cancelled\"); return Ok(out); }",
-      "line": 142,
+      "line": 143,
       "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/searchread.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let link = dir.join(\"link\");",
+      "line": 189,
+      "literal": "link",
+      "owner": "controller",
+      "path": "src/backend/searchread.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"a directory symlink must be refused at open\"",
+      "line": 193,
+      "literal": "a directory symlink must be refused at open",
+      "owner": "controller",
+      "path": "src/backend/searchread.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"a regular file must be refused as a directory\"",
+      "line": 201,
+      "literal": "a regular file must be refused as a directory",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -155123,7 +155150,7 @@
     },
     {
       "excerpt": "assert_eq!(directory_type(dtype, || panic!(\"typed entries must not stat\")).unwrap(), dtype == 4);",
-      "line": 186,
+      "line": 208,
       "literal": "typed entries must not stat",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -155132,7 +155159,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(d.join(\"dir\"), d.join(\"link\")).unwrap();",
-      "line": 191,
+      "line": 213,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -155141,7 +155168,7 @@
     },
     {
       "excerpt": "assert!(normal.contains(&(OsString::from(\"link\"), false)));",
-      "line": 202,
+      "line": 224,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/searchread.rs",
@@ -162242,7 +162269,7 @@
     },
     {
       "excerpt": "Heard::Byte(NO_LIBRARY) => format!(\"{} did not load\", SONAME.to_string_lossy()),",
-      "line": 84,
+      "line": 83,
       "literal": "{} did not load",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162251,7 +162278,7 @@
     },
     {
       "excerpt": "Heard::Byte(NO_LANDLOCK) => String::from(\"this kernel has no Landlock that can deny a truncation\"),",
-      "line": 85,
+      "line": 84,
       "literal": "this kernel has no Landlock that can deny a truncation",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162260,7 +162287,7 @@
     },
     {
       "excerpt": "Heard::Byte(other) => format!(\"it answered the unknown byte {}\", other),",
-      "line": 86,
+      "line": 85,
       "literal": "it answered the unknown byte {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162269,7 +162296,7 @@
     },
     {
       "excerpt": "Heard::Silence => format!(\"it did not answer within {} s\", READY_LIMIT.as_secs()),",
-      "line": 87,
+      "line": 86,
       "literal": "it did not answer within {} s",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162278,7 +162305,7 @@
     },
     {
       "excerpt": "Heard::Closed => String::from(\"it exited before it answered\"),",
-      "line": 88,
+      "line": 87,
       "literal": "it exited before it answered",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162287,7 +162314,7 @@
     },
     {
       "excerpt": "Heard::Broken(e) => format!(\"its socket failed: {}\", e),",
-      "line": 89,
+      "line": 88,
       "literal": "its socket failed: {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162296,7 +162323,7 @@
     },
     {
       "excerpt": "Heard::Byte(NOT_STARTED) => \"failed a job on this machine\",",
-      "line": 96,
+      "line": 95,
       "literal": "failed a job on this machine",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162305,7 +162332,7 @@
     },
     {
       "excerpt": "_ => \"stopped answering\",",
-      "line": 97,
+      "line": 96,
       "literal": "stopped answering",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162314,7 +162341,7 @@
     },
     {
       "excerpt": "Ok(Some(_)) => Heard::Broken(std::io::Error::new(std::io::ErrorKind::InvalidData, \"a reply was not one byte\")),",
-      "line": 121,
+      "line": 120,
       "literal": "a reply was not one byte",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162323,7 +162350,7 @@
     },
     {
       "excerpt": "let off = std::env::var(OFF_SWITCH).is_ok_and(|v| v == \"off\");",
-      "line": 130,
+      "line": 129,
       "literal": "off",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162332,7 +162359,7 @@
     },
     {
       "excerpt": "let exe = std::fs::canonicalize(\"/proc/self/exe\").map_err(|e| format!(\"/proc/self/exe did not resolve: {}\", e))?;",
-      "line": 136,
+      "line": 135,
       "literal": "/proc/self/exe did not resolve: {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162341,7 +162368,7 @@
     },
     {
       "excerpt": "let exe_text = exe.to_str().ok_or(\"the flea executable's path is not UTF-8\")?.to_string();",
-      "line": 137,
+      "line": 136,
       "literal": "the flea executable's path is not UTF-8",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162350,7 +162377,7 @@
     },
     {
       "excerpt": "let (mine, theirs) = fdpass::pair().map_err(|e| format!(\"no socket pair: {}\", e))?;",
-      "line": 138,
+      "line": 137,
       "literal": "no socket pair: {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162359,7 +162386,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"bwrap did not start: {}\", e))?;",
-      "line": 148,
+      "line": 147,
       "literal": "bwrap did not start: {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162368,7 +162395,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the thumbnail worker did not start ({}), so videos use the thumbnailer program\", why);",
-      "line": 164,
+      "line": 163,
       "literal": "flea: the thumbnail worker did not start ({}), so videos use the thumbnailer program",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162377,7 +162404,7 @@
     },
     {
       "excerpt": "WorkerLink::retire(&mut state, \"stopped taking requests\");",
-      "line": 174,
+      "line": 173,
       "literal": "stopped taking requests",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162386,7 +162413,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the thumbnail worker {}, so videos use the thumbnailer program\", why);",
-      "line": 182,
+      "line": 181,
       "literal": "flea: the thumbnail worker {}, so videos use the thumbnailer program",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162395,7 +162422,7 @@
     },
     {
       "excerpt": "let reply = request.fds.into_iter().nth(2).expect(\"a reply socket\");",
-      "line": 244,
+      "line": 243,
       "literal": "a reply socket",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162404,7 +162431,7 @@
     },
     {
       "excerpt": "assert_eq!(got.is_none(), !published, \"verdict {} must send the job down the exec path\", verdict as char);",
-      "line": 260,
+      "line": 259,
       "literal": "verdict {} must send the job down the exec path",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162412,8 +162439,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let target = dir.file(\"target.png\", \"leave this file alone\");",
+      "line": 271,
+      "literal": "leave this file alone",
+      "owner": "controller",
+      "path": "src/backend/workerlink.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"output symlink reached the worker\"",
+      "line": 288,
+      "literal": "output symlink reached the worker",
+      "owner": "controller",
+      "path": "src/backend/workerlink.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"leave this file alone\"",
+      "line": 294,
+      "literal": "leave this file alone",
+      "owner": "controller",
+      "path": "src/backend/workerlink.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "assert!(Command::new(\"mkfifo\").arg(&fifo).status().unwrap().success(), \"mkfifo failed\");",
-      "line": 272,
+      "line": 312,
       "literal": "mkfifo failed",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162422,7 +162476,7 @@
     },
     {
       "excerpt": "let got = answer.recv_timeout(HUNG).unwrap_or_else(|_| panic!(\"generate never returned for {}\", shown));",
-      "line": 281,
+      "line": 321,
       "literal": "generate never returned for {}",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162431,7 +162485,7 @@
     },
     {
       "excerpt": "assert!(matches!(got, Some(Ran::NotStarted)), \"{} was not answered as judging nothing\", shown);",
-      "line": 282,
+      "line": 322,
       "literal": "{} was not answered as judging nothing",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162440,7 +162494,7 @@
     },
     {
       "excerpt": "assert!(matches!(read_byte(&theirs, Duration::ZERO), Heard::Silence), \"a request reached the worker\");",
-      "line": 284,
+      "line": 324,
       "literal": "a request reached the worker",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162449,7 +162503,7 @@
     },
     {
       "excerpt": "assert!(matches!(*link.state.lock().unwrap(), State::Running { .. }), \"judging nothing retired the worker\");",
-      "line": 285,
+      "line": 325,
       "literal": "judging nothing retired the worker",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162458,7 +162512,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Byte(NO_LIBRARY)), \"libffmpegthumbnailer.so.4 did not load\");",
-      "line": 290,
+      "line": 330,
       "literal": "libffmpegthumbnailer.so.4 did not load",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162467,7 +162521,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Byte(NO_LANDLOCK)), \"this kernel has no Landlock that can deny a truncation\");",
-      "line": 291,
+      "line": 331,
       "literal": "this kernel has no Landlock that can deny a truncation",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162476,7 +162530,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Closed), \"it exited before it answered\");",
-      "line": 292,
+      "line": 332,
       "literal": "it exited before it answered",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162485,7 +162539,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Silence), \"it did not answer within 5 s\");",
-      "line": 293,
+      "line": 333,
       "literal": "it did not answer within 5 s",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162494,7 +162548,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Broken(std::io::Error::other(\"a test error\"))), \"its socket failed: a test error\");",
-      "line": 294,
+      "line": 334,
       "literal": "a test error",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162503,7 +162557,7 @@
     },
     {
       "excerpt": "assert_eq!(why_not(&Heard::Broken(std::io::Error::other(\"a test error\"))), \"its socket failed: a test error\");",
-      "line": 294,
+      "line": 334,
       "literal": "its socket failed: a test error",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162512,7 +162566,7 @@
     },
     {
       "excerpt": "assert!(matches!(read_byte(&mine, Duration::from_secs(1)), Heard::Broken(_)), \"a two-byte packet is a broken socket\");",
-      "line": 301,
+      "line": 341,
       "literal": "a two-byte packet is a broken socket",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162521,7 +162575,7 @@
     },
     {
       "excerpt": "assert!(matches!(read_byte(&mine, Duration::ZERO), Heard::Silence), \"nothing was sent\");",
-      "line": 304,
+      "line": 344,
       "literal": "nothing was sent",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162530,7 +162584,7 @@
     },
     {
       "excerpt": "assert!(matches!(read_byte(&not_a_socket, Duration::from_secs(1)), Heard::Broken(_)), \"recvmsg on a file that is not a socket fails\");",
-      "line": 308,
+      "line": 348,
       "literal": "recvmsg on a file that is not a socket fails",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162539,7 +162593,7 @@
     },
     {
       "excerpt": "assert_eq!(gone_because(&Heard::Byte(NOT_STARTED)), \"failed a job on this machine\");",
-      "line": 313,
+      "line": 353,
       "literal": "failed a job on this machine",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162548,7 +162602,7 @@
     },
     {
       "excerpt": "assert_eq!(gone_because(&Heard::Closed), \"stopped answering\");",
-      "line": 314,
+      "line": 354,
       "literal": "stopped answering",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162557,7 +162611,7 @@
     },
     {
       "excerpt": "assert_eq!(gone_because(&Heard::Byte(b'?')), \"stopped answering\");",
-      "line": 315,
+      "line": 355,
       "literal": "stopped answering",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -162566,7 +162620,7 @@
     },
     {
       "excerpt": "assert_eq!(worker_shape(&spec(exec)), None, \"{} took the worker\", exec);",
-      "line": 340,
+      "line": 380,
       "literal": "{} took the worker",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
@@ -168866,7 +168920,7 @@
     },
     {
       "excerpt": "compile_error!(\"O_NONBLOCK needs a verified value for this architecture\");",
-      "line": 24,
+      "line": 30,
       "literal": "O_NONBLOCK needs a verified value for this architecture",
       "owner": "controller",
       "path": "src/oflags.rs",
@@ -244524,7 +244578,7 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "430a3771075c38427b8c5c1a7d61d60a79135589cbdf47849ab4a30767a7317d",
+    "Cargo.toml": "d74532367a69bc14d2f672fbb3e6127c7973e11f96c6b1df7ed0427a40d529d6",
     "crates/flea-gui/Cargo.toml": "20e4f202dfe48d26488eaf2a21a3ed62de0e3d9c66451dcea81f45a6abcaab2c",
     "crates/flea-gui/build.rs": "c401f7b5e0d85762d23db2d1de66f1ef833617cc375269fb9e5e225030c9110f",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
@@ -245709,7 +245763,7 @@
     "src/backend/flashfake.rs": "3263d06f6851905346f2597d3501ec64ec035031bc936fad157d98527911d657",
     "src/backend/flashhelper.rs": "fedce28ac10fdc08c1c1ca8c2a9c8a6593d5551af794b8d6b3d4b841941d0ff2",
     "src/backend/flashimage.rs": "51bba4d54fd425292d0e32463bdaf96b4296dffec21869aabd3e4178dbf545f8",
-    "src/backend/flashio.rs": "5ae821aa463a31d67d018d60d2980ad05e3d5f6568ec6b0564cbbd22781ee6c9",
+    "src/backend/flashio.rs": "86f2db5c67329130b25f6efd88b3c09b30a06fb2aba996b089e66dcb1a57aff0",
     "src/backend/flashmeter.rs": "99a10859819e8c93ce6f3698fa01e7ef2d18470c8084d9f1a555ed89c5472fa5",
     "src/backend/flashop.rs": "f7a227b476dd474e430ad4a73d4ff3bdf24495efa0d581fab2146f3823527723",
     "src/backend/flashpipe.rs": "c65ffd268dd7faa0a970a1bab9267164e547d95fa83924e811fbbb603964361a",
@@ -245930,7 +245984,7 @@
     "src/backend/searchphases_probe.rs": "55cae5ca14470cfc1ab6e4615fdac045af5a10fd4087bd192c9db5b62a018caf",
     "src/backend/searchprior.rs": "874b0b573aa7aed1bf82a87e36e434bd217c5add7ed242c8a715b700cf65594a",
     "src/backend/searchpriorxml.rs": "14df71fe8b032788ab7d594e01bcbc37f58b47f0e746fa6734ee6e464dd1f124",
-    "src/backend/searchread.rs": "008d191f04301c9c114bf6ca8a5038ac2fc4f7494b55d8258a951463b39b6c87",
+    "src/backend/searchread.rs": "77cffbc5b402e68587f192d4cf59581cf9c3cb95b656fa5637ec02a49147a6a4",
     "src/backend/searchreq.rs": "65a7b098b15f3a3c6eb1ff689fca79683f6a702df3df4413b0fdb237f2c586ef",
     "src/backend/searchrest.rs": "3fc4b6e4119cee9d5ad853bd2045b9b54d65c8fc49856e9aca855aa1ee999e7a",
     "src/backend/searchrowcache.rs": "c6840e6ffc3502881494cfbadd4ed229a5e8f1108f1c6e3bd469a90e2ca66489",
@@ -246009,7 +246063,7 @@
     "src/backend/watch.rs": "b4b49c3c7ff1d43d2fd98eb8c89608ab88790d1c50b6d42daca702a23a370cad",
     "src/backend/watchpoll.rs": "c7c1877e0f9380496d08221688ce01d3549d8ddac9b2a5bbdd897f41aa56bef7",
     "src/backend/windowreq.rs": "c9863ab19099a4e0ee83b976ef064753ba5e4854528c1f8622e8de3e91eb045e",
-    "src/backend/workerlink.rs": "0fd474f95e86ff71b354dc78c173e5e890b0ba602af5c49936f92d6a9d55bcc4",
+    "src/backend/workerlink.rs": "c5d7d33fb0d048479aa851919c7a6f3edec5d50b3149c12f26facbbaccb37620",
     "src/backend/xxh64.rs": "c8b63a7db65fc7d8577b5dfaf2c8f78d605d83325343a15b28bdfb569453bf4d",
     "src/cachewrite.rs": "609005ff125b178c02a35c87efe3c3346f97f04e60628554cd74bc92146950a0",
     "src/captures.rs": "7eccee28cf9dbd9343c5ebd418faed69b9e785d2b2ae5effb5f501f2a638b331",
@@ -246083,7 +246137,7 @@
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
     "src/lib.rs": "cbcc64f502146e5868a7233fa9be5cc96559060c6c3be9e8f5c23e3cb8059349",
     "src/main.rs": "5026258af2a12c8552f53e64958a3ccd8395e8fad1896bfeafeda2e051e6799b",
-    "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
+    "src/oflags.rs": "f1ab53c13e4e3d754d5392ee37ea8b734bb7750de6a7c443caa6f121010b873b",
     "src/open.rs": "5b8bc6ab8ca9ff891268a98ec8c92a3c8a25a2e6b0e55c708109bfc4e66c7732",
     "src/open_selection.rs": "7a6b0089d5b7a04ebd19af24665f43fd89d6aa2be6820b147601ee55382dca87",
     "src/paths.rs": "8685b85ca9767240d8c892ffe9151ea701e6ec67171d112edadd8db14e09a562",
@@ -247126,12 +247180,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "66948e86e5b62b81ca3ae1bf44c73221c7e96acc",
-  "source_sha": "66948e86e5b62b81ca3ae1bf44c73221c7e96acc",
+  "source_ref_sha": "8bb982660f1012e641fcfad2dcf55f5a0232e911",
+  "source_sha": "8bb982660f1012e641fcfad2dcf55f5a0232e911",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
-      "missing_literal_candidates": 5697,
+      "missing_literal_candidates": 5703,
       "source_files": 833
     },
     "generated/tooling": {
