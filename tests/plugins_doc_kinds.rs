@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 #[path = "plugins_doc_kinds/sandbox.rs"]
-mod sandbox;
+mod preview_namespace;
 
 const GUIDE: &str = include_str!("../PLUGINS.md");
 // A torrent of two files, the bytes the guide's previewer exchange describes.
@@ -236,7 +236,7 @@ fn plugins_doc_exchanges_are_what_the_examples_answer() {
 fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
     let flea = env!("CARGO_BIN_EXE_flea");
     let sandbox = Sandbox::new("runtime");
-    let preview = sandbox::preview_supported();
+    let preview = preview_namespace::preview_supported();
     let mut ids = Vec::new();
     for (name, _) in exchanges() {
         let (folder, parsed) = example(&name);

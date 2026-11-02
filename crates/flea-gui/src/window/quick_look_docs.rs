@@ -10,7 +10,6 @@ use crate::g2::{
     },
     pv2::{
         self,
-        archive::ArchiveView,
         code::{CodeView, Mark},
         csv::{CsvView, TableFace, TablePalette},
         font::FontView,
@@ -25,6 +24,9 @@ use crate::g2::{
 use flea::{i18n::I18n, protocol::RowFacts, ui_logic_pv4::control::Surface};
 use gpui::{px, AppContext, Context, Window};
 use std::{rc::Rc, sync::Arc};
+
+#[path = "quick_look_archive.rs"]
+mod archive;
 
 #[test]
 fn visual_geometry_quick_look_plain_text_ink_starts_at_x132() {
@@ -231,35 +233,9 @@ impl Mounting<'_> {
                 view.set_active(true, cx);
                 view
             })),
-            Mount::Archive => View::Archive(cx.new(|cx| {
-                let folder = crate::row::marks::Mark::Folder.svg();
-                let file = crate::row::marks::Mark::File.svg();
-                let mut view = ArchiveView::new(
-                    pv2::archive::Palette {
-                        foreground: look.theme.foreground,
-                        muted: look.muted,
-                        muted_frame: look.theme.muted_frame,
-                    },
-                    pv2::archive::Metrics {
-                        inset: card::PAD,
-                        gap: card::GAP,
-                        row: 22.,
-                        glyph: card::CAPTION,
-                        font: look.face.font.clone(),
-                        name: px(card::BODY),
-                        caption: px(card::CAPTION),
-                        more_opacity: 0.6,
-                    },
-                    look.mark.clone(),
-                    file,
-                    folder,
-                );
-                view.set_host(Some(Box::new(wire.clone())));
-                view.set_catalog(catalog.clone(), cx);
-                view.set_subject(path, cx);
-                view.set_active(true, cx);
-                view
-            })),
+            Mount::Archive => {
+                View::Archive(cx.new(|cx| archive::mount(look, wire, catalog, path, cx)))
+            }
             Mount::Office => View::Office(cx.new(|cx| {
                 let (palette, metrics) = look.pdf();
                 let (face, table) = look.table();

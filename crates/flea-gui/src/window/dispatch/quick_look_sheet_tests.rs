@@ -174,9 +174,9 @@ fn a_workbook_card_is_framed_and_a_document_card_is_not(cx: &mut TestAppContext)
     close(&shell, cx);
 }
 
-// German types [ with AltGr at the US 8 key, which is text, and ü at the US [ key, which is the [ binding.
+// Both German AltGr text and the physical bracket binding stay inside Quick Look (EY-438).
 #[gpui::test]
-fn altgr_text_keeps_the_card_where_the_plain_bracket_steps_a_tab(cx: &mut TestAppContext) {
+fn altgr_and_physical_brackets_keep_tabs_inside_the_card(cx: &mut TestAppContext) {
     let (shell, cx, _requests) = three_tabs(cx);
     set_cursor(&shell, cx, 3);
     cx.simulate_keystrokes("space");
@@ -193,7 +193,8 @@ fn altgr_text_keeps_the_card_where_the_plain_bracket_steps_a_tab(cx: &mut TestAp
     assert_eq!(strip(&shell, cx), (3, 1), "AltGr+8 moves no tab");
     cx.simulate_event(german_press("[", "ü", Some("["), false));
     draw(cx);
-    assert_eq!(open(&shell, cx), "false", "ü closes the PDF card");
-    assert_eq!(strip(&shell, cx), (3, 0), "ü steps to the previous tab");
+    assert_eq!(open(&shell, cx), "true", "ü keeps the PDF card");
+    assert_eq!(context(&shell, cx), Context::Pdf);
+    assert_eq!(strip(&shell, cx), (3, 1), "ü moves no tab");
     close(&shell, cx);
 }
