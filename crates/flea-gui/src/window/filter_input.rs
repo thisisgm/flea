@@ -22,17 +22,7 @@ impl Shell {
             if !(plain && event.keystroke.key == "escape") {
                 return false;
             }
-            if !host.selected.is_empty() {
-                if let Some(host) = self.panes[side].as_mut() {
-                    host.input.selection.clear(&mut host.selected);
-                    host.nav.landed = None;
-                    host.input.pulled = None;
-                    host.input.keyboard();
-                }
-                self.keyboard.disarm();
-                cx.notify();
-                return true;
-            }
+            // Focus.js:187: Escape closes the filter and keeps the marks; the list's next Escape clears them.
             self.filter_update(
                 side,
                 |filter, pane| {

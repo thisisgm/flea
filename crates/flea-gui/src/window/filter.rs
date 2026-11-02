@@ -22,6 +22,10 @@ mod tests;
 #[path = "filter_views_tests.rs"]
 mod views_tests;
 
+#[cfg(test)]
+#[path = "fixfilter_tests.rs"]
+mod fixfilter_tests;
+
 // ui/js/Focus.js LEAVES_LINE and the pane's own moves: under a filter each one steps through the drawn rows.
 const MOVES: [&str; 6] = [
     "cursorDown",
@@ -166,6 +170,8 @@ impl Shell {
                 selected: &mut host.selected,
             },
         );
+        // The seam marks and prunes host.selected directly, so the plate's snapshot follows it here.
+        host.input.selection.sync(&host.selected);
         let owner = &host.filter.owner;
         if owner.query() != query {
             host.filter.key_at = wall_ms();

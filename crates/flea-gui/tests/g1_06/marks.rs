@@ -239,6 +239,7 @@ fn clipboard_bounds_align_in_the_reserved_strip() {
                     cursor: true,
                     ..RowState::default()
                 },
+                bold_match: true,
                 picture: None,
             };
             let name = Bounds::new(point(px(46.), px(0.)), size(px(200.), px(31.)));
@@ -248,6 +249,7 @@ fn clipboard_bounds_align_in_the_reserved_strip() {
                 prepared.bold.get().unwrap().line().width != prepared.name.line().width;
             assert_eq!(cursor.left(), name.right() - px(state.drawn.metrics.clip));
             shown.state.cursor = false;
+            shown.bold_match = false;
             let plain = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
             assert_eq!(
                 cursor, plain,
