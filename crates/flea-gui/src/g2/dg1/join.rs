@@ -213,7 +213,7 @@ impl Shell {
             cx.write_to_clipboard(ClipboardItem::new_string(text));
         }
         for (ask, captured) in asks.0 {
-            // A running transfer leaves navigation and other operation producers live, but every second paste refuses.
+            // A running transfer leaves navigation and other operation producers live, but a paste refuses until it ends.
             if self
                 .operation_view(side)
                 .is_some_and(|view| view.read(cx).model.wire.transfer.running)
