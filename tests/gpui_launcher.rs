@@ -253,9 +253,9 @@ fn gpui_skips_qt_renderer_switches_and_diagnostics() {
     for key in ["QSG_RHI_BACKEND", "FLEA_RENDERER_AUTOMATIC"] {
         assert_eq!(environment.get(key), Some(&Json::Null), "{key}");
     }
-    assert_eq!(environment.get("FLEA_VK_PIN").and_then(Json::as_str), Some("1"));
-    for key in ["VK_DRIVER_FILES", "VK_ICD_FILENAMES"] {
-        assert_eq!(environment.get(key).and_then(Json::as_str), software.to_str());
+    // GPUI picks its own adapter: an inherited launcher pin is dropped and no software ICD is added.
+    for key in ["FLEA_VK_PIN", "VK_DRIVER_FILES", "VK_ICD_FILENAMES"] {
+        assert_eq!(environment.get(key), Some(&Json::Null), "{key}");
     }
 }
 
