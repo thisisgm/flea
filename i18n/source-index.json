@@ -1,5 +1,5 @@
 {
-  "catalog_file_sha256": "07cbd8b8a212c974916da61bd7ac93790eebc03187008b929edfac015c3b5745",
+  "catalog_file_sha256": "dbd848225c0f14811e48db2f2c86397e99c189b03a948a7a36dd4c83c848ab11",
   "catalog_sha256": "f62caed8c076e92affd562726e00e976eb06a15ab0315e50a8e2e86e17662804",
   "counts": {
     "direct_references": 0,
@@ -1035,7 +1035,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "format!(\"g2.pv4.{board}.primary\").into()",
-      "line": 371,
+      "line": 376,
       "path": "crates/flea-gui/src/g2/pv4/view.rs",
       "pattern": "g2.pv4.{board}.primary",
       "possible_keys": [],
@@ -1706,7 +1706,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 142,
+      "line": 144,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1716,7 +1716,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&self",
-      "line": 161,
+      "line": 163,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1726,27 +1726,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 162,
-      "path": "src/i18n/mod.rs",
-      "pattern": null,
-      "possible_keys": [],
-      "surface": "core/backend"
-    },
-    {
-      "blocks_removals": true,
-      "coverage": "unresolved-key-expression",
-      "expression": "&self",
-      "line": 175,
-      "path": "src/i18n/mod.rs",
-      "pattern": null,
-      "possible_keys": [],
-      "surface": "core/backend"
-    },
-    {
-      "blocks_removals": true,
-      "coverage": "unresolved-key-expression",
-      "expression": "key",
-      "line": 175,
+      "line": 164,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1757,6 +1737,26 @@
       "coverage": "unresolved-key-expression",
       "expression": "&self",
       "line": 177,
+      "path": "src/i18n/mod.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 177,
+      "path": "src/i18n/mod.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "&self",
+      "line": 179,
       "path": "src/i18n/mod.rs",
       "pattern": null,
       "possible_keys": [],
@@ -7336,7 +7336,7 @@
       "call_sites": [
         {
           "excerpt": "let title = locale.catalog.tr(\"app.name\");",
-          "line": 94,
+          "line": 95,
           "path": "crates/flea-gui/src/window/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57255,7 +57255,7 @@
       "call_sites": [
         {
           "excerpt": "close: i18n.tr(\"document.markdown_close\"),",
-          "line": 307,
+          "line": 313,
           "path": "crates/flea-gui/src/g2/pv2/markdown/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57299,7 +57299,7 @@
       "call_sites": [
         {
           "excerpt": ".then(|| i18n.trn(\"document.markdown_lines\", self.doc.lines as i64)),",
-          "line": 294,
+          "line": 300,
           "path": "crates/flea-gui/src/g2/pv2/markdown/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57356,7 +57356,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr(\"document.markdown_rendered\"),",
-          "line": 298,
+          "line": 304,
           "path": "crates/flea-gui/src/g2/pv2/markdown/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -57378,7 +57378,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr(\"document.markdown_source\"),",
-          "line": 303,
+          "line": 309,
           "path": "crates/flea-gui/src/g2/pv2/markdown/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -76025,7 +76025,7 @@
       "call_sites": [
         {
           "excerpt": "let key = match mime { \"text/markdown\" => \"mime.markdown\", _ => return None };",
-          "line": 157,
+          "line": 159,
           "path": "src/i18n/mod.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -112271,7 +112271,7 @@
     },
     {
       "excerpt": "self.fail(\"backend gone\".into());",
-      "line": 156,
+      "line": 161,
       "literal": "backend gone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv4/view.rs",
@@ -123791,7 +123791,7 @@
     },
     {
       "excerpt": "Err(reply) => warn_once(&format!(\"hyprctl eval did not set {RULE}: {reply}\")),",
-      "line": 248,
+      "line": 251,
       "literal": "hyprctl eval did not set {RULE}: {reply}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/glass_tag/run.rs",
@@ -123800,7 +123800,7 @@
     },
     {
       "excerpt": "\"hyprctl {} exited with {}\",",
-      "line": 264,
+      "line": 267,
       "literal": "hyprctl {} exited with {}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/glass_tag/run.rs",
@@ -123809,7 +123809,7 @@
     },
     {
       "excerpt": "warn_once(&format!(\"hyprctl {} did not run: {error}\", args.join(\" \")));",
-      "line": 271,
+      "line": 274,
       "literal": "hyprctl {} did not run: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/glass_tag/run.rs",
@@ -123818,7 +123818,7 @@
     },
     {
       "excerpt": "warn_once(&format!(\"hyprctl did not tag {window} {tag}: {reply}\"));",
-      "line": 290,
+      "line": 293,
       "literal": "hyprctl did not tag {window} {tag}: {reply}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/glass_tag/run.rs",
@@ -123826,8 +123826,35 @@
       "surface": "gui"
     },
     {
+      "excerpt": "\"unknown request\" | \"unknown command\" | \"unknown command: eval\"",
+      "line": 320,
+      "literal": "unknown request",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/glass_tag/run.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"unknown request\" | \"unknown command\" | \"unknown command: eval\"",
+      "line": 320,
+      "literal": "unknown command",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/glass_tag/run.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"unknown request\" | \"unknown command\" | \"unknown command: eval\"",
+      "line": 320,
+      "literal": "unknown command: eval",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/glass_tag/run.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "eprintln!(\"flea-gui: window transparency tag skipped: {message}\");",
-      "line": 314,
+      "line": 326,
       "literal": "flea-gui: window transparency tag skipped: {message}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/glass_tag/run.rs",
@@ -132403,7 +132430,7 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let mut inner = crate::backend::trashmanifest::Manifest::new(root).expect(\"anonymous manifest\");",
+      "excerpt": "let mut inner = crate::backend::trashmanifest::Manifest::new_on_filesystem(root).expect(\"anonymous manifest\");",
       "line": 106,
       "literal": "anonymous manifest",
       "owner": "controller",
@@ -148352,7 +148379,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the trash reports through the op channel\");",
-      "line": 2098,
+      "line": 2099,
       "literal": "the trash reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148360,8 +148387,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let trash_journaled = trash_journaled.expect(\"the trash batch must complete before the sweep continues\");",
+      "line": 2110,
+      "literal": "the trash batch must complete before the sweep continues",
+      "owner": "controller",
+      "path": "src/backend/opsdispatch.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "assert!(o.live.running().is_none(), \"the trash frees the slot it claimed\");",
-      "line": 2106,
+      "line": 2111,
       "literal": "the trash frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148370,7 +148406,7 @@
     },
     {
       "excerpt": "let snap = rx.recv_timeout(LAND_BOUND).expect(\"the snapshot replies\");",
-      "line": 2111,
+      "line": 2116,
       "literal": "the snapshot replies",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148379,7 +148415,7 @@
     },
     {
       "excerpt": "assert!(matches!(&snap, OpMsg::Meta { .. }), \"the snapshot answers Meta\");",
-      "line": 2112,
+      "line": 2117,
       "literal": "the snapshot answers Meta",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148388,7 +148424,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2118,
+      "line": 2123,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148397,7 +148433,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2118,
+      "line": 2123,
       "literal": "a selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148406,7 +148442,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused trash journals nothing\");",
-      "line": 2119,
+      "line": 2124,
       "literal": "the refused trash journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148415,7 +148451,7 @@
     },
     {
       "excerpt": "assert!(local_other.exists(), \"the refused trash touches nothing\");",
-      "line": 2120,
+      "line": 2125,
       "literal": "the refused trash touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148424,7 +148460,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a duplicate on a pending mount waits: {}\", text(&busy));",
-      "line": 2126,
+      "line": 2131,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148433,7 +148469,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a duplicate on a pending mount waits: {}\", text(&busy));",
-      "line": 2126,
+      "line": 2131,
       "literal": "a duplicate on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148442,7 +148478,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused duplicate journals nothing\");",
-      "line": 2127,
+      "line": 2132,
       "literal": "the refused duplicate journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148451,7 +148487,7 @@
     },
     {
       "excerpt": "assert!(remote_dup.exists(), \"the refused duplicate touches nothing\");",
-      "line": 2128,
+      "line": 2133,
       "literal": "the refused duplicate touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148460,7 +148496,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a duplicate elsewhere answers nothing in sync: {}\", text(&quiet));",
-      "line": 2133,
+      "line": 2138,
       "literal": "a duplicate elsewhere answers nothing in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148469,7 +148505,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the duplicate reports through the op channel\");",
-      "line": 2134,
+      "line": 2139,
       "literal": "the duplicate reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148478,7 +148514,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"duplicated\"\"#), \"the duplicate lands elsewhere: {}\", text(&late));",
-      "line": 2137,
+      "line": 2142,
       "literal": "the duplicate lands elsewhere: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148487,7 +148523,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2142,
+      "line": 2147,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148496,7 +148532,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2142,
+      "line": 2147,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148505,7 +148541,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused duplicate journals nothing\");",
-      "line": 2143,
+      "line": 2148,
       "literal": "the refused duplicate journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148514,7 +148550,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a rename on a pending mount waits: {}\", text(&busy));",
-      "line": 2149,
+      "line": 2154,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148523,7 +148559,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a rename on a pending mount waits: {}\", text(&busy));",
-      "line": 2149,
+      "line": 2154,
       "literal": "a rename on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148532,7 +148568,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused rename journals nothing\");",
-      "line": 2150,
+      "line": 2155,
       "literal": "the refused rename journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148541,7 +148577,7 @@
     },
     {
       "excerpt": "assert!(remote_rename.exists() && !remote.join(\"r2.txt\").exists(), \"the refused rename touches nothing\");",
-      "line": 2151,
+      "line": 2156,
       "literal": "the refused rename touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148550,7 +148586,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"t\":\"renamed\",\"ok\":true\"#), \"a rename elsewhere lands: {}\", text(&done));",
-      "line": 2156,
+      "line": 2161,
       "literal": "a rename elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148559,7 +148595,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a mkdir on a pending mount waits: {}\", text(&busy));",
-      "line": 2161,
+      "line": 2166,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148568,7 +148604,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a mkdir on a pending mount waits: {}\", text(&busy));",
-      "line": 2161,
+      "line": 2166,
       "literal": "a mkdir on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148577,7 +148613,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused mkdir journals nothing\");",
-      "line": 2162,
+      "line": 2167,
       "literal": "the refused mkdir journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148586,7 +148622,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"heldsub\").exists(), \"the refused mkdir touches nothing\");",
-      "line": 2163,
+      "line": 2168,
       "literal": "the refused mkdir touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148595,7 +148631,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"t\":\"made\",\"ok\":true\"#), \"a mkdir elsewhere lands: {}\", text(&done));",
-      "line": 2167,
+      "line": 2172,
       "literal": "a mkdir elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148604,7 +148640,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a new file on a pending mount waits: {}\", text(&busy));",
-      "line": 2172,
+      "line": 2177,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148613,7 +148649,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a new file on a pending mount waits: {}\", text(&busy));",
-      "line": 2172,
+      "line": 2177,
       "literal": "a new file on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148622,7 +148658,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused new file journals nothing\");",
-      "line": 2173,
+      "line": 2178,
       "literal": "the refused new file journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148631,7 +148667,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"held.txt\").exists(), \"the refused new file touches nothing\");",
-      "line": 2174,
+      "line": 2179,
       "literal": "the refused new file touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148640,7 +148676,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"ok\":true\"#), \"a new file elsewhere lands: {}\", text(&done));",
-      "line": 2178,
+      "line": 2183,
       "literal": "a new file elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148649,7 +148685,7 @@
     },
     {
       "excerpt": "assert!(local.join(\"fresh.txt\").exists(), \"the new file landed elsewhere\");",
-      "line": 2179,
+      "line": 2184,
       "literal": "the new file landed elsewhere",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148658,7 +148694,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a link onto a pending mount waits: {}\", text(&busy));",
-      "line": 2187,
+      "line": 2192,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148667,7 +148703,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a link onto a pending mount waits: {}\", text(&busy));",
-      "line": 2187,
+      "line": 2192,
       "literal": "a link onto a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148676,7 +148712,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused link journals nothing\");",
-      "line": 2188,
+      "line": 2193,
       "literal": "the refused link journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148685,7 +148721,7 @@
     },
     {
       "excerpt": "assert!(remote_linkdest.read_dir().unwrap().next().is_none(), \"the refused link lands nothing\");",
-      "line": 2189,
+      "line": 2194,
       "literal": "the refused link lands nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148694,7 +148730,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a link elsewhere answers nothing in sync: {}\", text(&quiet));",
-      "line": 2196,
+      "line": 2201,
       "literal": "a link elsewhere answers nothing in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148703,7 +148739,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the link reports through the op channel\");",
-      "line": 2197,
+      "line": 2202,
       "literal": "the link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148712,7 +148748,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"linked\"\"#), \"a link elsewhere lands: {}\", text(&late));",
-      "line": 2200,
+      "line": 2205,
       "literal": "a link elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148721,7 +148757,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a delete on a pending mount waits: {}\", text(&busy));",
-      "line": 2206,
+      "line": 2211,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148730,7 +148766,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a delete on a pending mount waits: {}\", text(&busy));",
-      "line": 2206,
+      "line": 2211,
       "literal": "a delete on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148739,7 +148775,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused delete journals nothing\");",
-      "line": 2207,
+      "line": 2212,
       "literal": "the refused delete journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148748,7 +148784,7 @@
     },
     {
       "excerpt": "assert!(remote_del.exists(), \"the refused delete touches nothing\");",
-      "line": 2208,
+      "line": 2213,
       "literal": "the refused delete touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148757,7 +148793,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a delete elsewhere passes the gate in sync: {}\", text(&quiet));",
-      "line": 2213,
+      "line": 2218,
       "literal": "a delete elsewhere passes the gate in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148766,7 +148802,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the delete answers through the op channel\");",
-      "line": 2214,
+      "line": 2219,
       "literal": "the delete answers through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148775,7 +148811,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(crate::backend::menu_actions::SELECTION_CHANGED), \"a delete elsewhere reaches the menu's own expiry: {}\", text(&late));",
-      "line": 2217,
+      "line": 2222,
       "literal": "a delete elsewhere reaches the menu's own expiry: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148784,7 +148820,7 @@
     },
     {
       "excerpt": "assert!(!text(&late).contains(\"already running\"), \"a delete elsewhere is never the gate: {}\", text(&late));",
-      "line": 2218,
+      "line": 2223,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148793,7 +148829,7 @@
     },
     {
       "excerpt": "assert!(!text(&late).contains(\"already running\"), \"a delete elsewhere is never the gate: {}\", text(&late));",
-      "line": 2218,
+      "line": 2223,
       "literal": "a delete elsewhere is never the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148802,7 +148838,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the expired delete frees the slot it claimed\");",
-      "line": 2219,
+      "line": 2224,
       "literal": "the expired delete frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148811,7 +148847,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a compress on a pending mount waits: {}\", text(&busy));",
-      "line": 2227,
+      "line": 2232,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148820,7 +148856,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a compress on a pending mount waits: {}\", text(&busy));",
-      "line": 2227,
+      "line": 2232,
       "literal": "a compress on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148829,7 +148865,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused compress starts nothing: {}\", text(&busy));",
-      "line": 2228,
+      "line": 2233,
       "literal": "the refused compress starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148838,7 +148874,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused compress journals nothing\");",
-      "line": 2229,
+      "line": 2234,
       "literal": "the refused compress journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148847,7 +148883,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"out.tar\").exists(), \"the refused compress touches nothing\");",
-      "line": 2230,
+      "line": 2235,
       "literal": "the refused compress touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148856,7 +148892,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(\"archivestarted\"), \"a compress elsewhere starts: {}\", text(&started));",
-      "line": 2236,
+      "line": 2241,
       "literal": "a compress elsewhere starts: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148865,7 +148901,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the compress reports through the op channel\");",
-      "line": 2238,
+      "line": 2243,
       "literal": "the compress reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148874,7 +148910,7 @@
     },
     {
       "excerpt": "assert!(o.detached.is_empty(), \"the compress leaves the quit registry\");",
-      "line": 2246,
+      "line": 2251,
       "literal": "the compress leaves the quit registry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148883,7 +148919,7 @@
     },
     {
       "excerpt": "\"the archive terminal result completes its job\"",
-      "line": 2250,
+      "line": 2255,
       "literal": "the archive terminal result completes its job",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148892,7 +148928,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2256,
+      "line": 2261,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148901,7 +148937,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2256,
+      "line": 2261,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148910,7 +148946,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused compress starts nothing: {}\", text(&busy));",
-      "line": 2257,
+      "line": 2262,
       "literal": "the refused compress starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148919,7 +148955,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"an extract on a pending mount waits: {}\", text(&busy));",
-      "line": 2265,
+      "line": 2270,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148928,7 +148964,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"an extract on a pending mount waits: {}\", text(&busy));",
-      "line": 2265,
+      "line": 2270,
       "literal": "an extract on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148937,7 +148973,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused extract starts nothing: {}\", text(&busy));",
-      "line": 2266,
+      "line": 2271,
       "literal": "the refused extract starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148946,7 +148982,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused extract journals nothing\");",
-      "line": 2267,
+      "line": 2272,
       "literal": "the refused extract journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148955,7 +148991,7 @@
     },
     {
       "excerpt": "std::fs::write(&bogus, \"not an archive\").unwrap();",
-      "line": 2270,
+      "line": 2275,
       "literal": "not an archive",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148964,7 +149000,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(\"archivestarted\"), \"an extract elsewhere starts: {}\", text(&started));",
-      "line": 2275,
+      "line": 2280,
       "literal": "an extract elsewhere starts: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148973,7 +149009,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the extract reports through the op channel\");",
-      "line": 2277,
+      "line": 2282,
       "literal": "the extract reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148982,7 +149018,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the extract frees the slot it claimed\");",
-      "line": 2285,
+      "line": 2290,
       "literal": "the extract frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -148991,7 +149027,7 @@
     },
     {
       "excerpt": "\"the archive terminal result completes its job\"",
-      "line": 2289,
+      "line": 2294,
       "literal": "the archive terminal result completes its job",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149000,7 +149036,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a convert on a pending mount waits: {}\", text(&busy));",
-      "line": 2296,
+      "line": 2301,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149009,7 +149045,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a convert on a pending mount waits: {}\", text(&busy));",
-      "line": 2296,
+      "line": 2301,
       "literal": "a convert on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149018,7 +149054,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"convertstarted\"), \"the refused convert starts nothing: {}\", text(&busy));",
-      "line": 2297,
+      "line": 2302,
       "literal": "the refused convert starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149027,7 +149063,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused convert journals nothing\");",
-      "line": 2298,
+      "line": 2303,
       "literal": "the refused convert journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149036,7 +149072,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"out.jpg\").exists(), \"the refused convert touches nothing\");",
-      "line": 2299,
+      "line": 2304,
       "literal": "the refused convert touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149045,7 +149081,7 @@
     },
     {
       "excerpt": "assert!(!text(&past).contains(\"already running\"), \"a convert elsewhere passes the gate: {}\", text(&past));",
-      "line": 2304,
+      "line": 2309,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149054,7 +149090,7 @@
     },
     {
       "excerpt": "assert!(!text(&past).contains(\"already running\"), \"a convert elsewhere passes the gate: {}\", text(&past));",
-      "line": 2304,
+      "line": 2309,
       "literal": "a convert elsewhere passes the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149063,7 +149099,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the convert reports through the op channel\");",
-      "line": 2306,
+      "line": 2311,
       "literal": "the convert reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149072,7 +149108,7 @@
     },
     {
       "excerpt": "assert!(matches!(&landed, OpMsg::DetachedDone { .. }), \"a convert leaves the quit registry\");",
-      "line": 2307,
+      "line": 2312,
       "literal": "a convert leaves the quit registry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149081,7 +149117,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2314,
+      "line": 2319,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149090,7 +149126,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2314,
+      "line": 2319,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149099,7 +149135,7 @@
     },
     {
       "excerpt": "assert!(text(&probe).contains(\"convertchecked\"), \"a probe answers past the gate: {}\", text(&probe));",
-      "line": 2318,
+      "line": 2323,
       "literal": "a probe answers past the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149108,7 +149144,7 @@
     },
     {
       "excerpt": "assert!(!text(&probe).contains(\"already running\"), \"a probe is never the gate: {}\", text(&probe));",
-      "line": 2319,
+      "line": 2324,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149117,7 +149153,7 @@
     },
     {
       "excerpt": "assert!(!text(&probe).contains(\"already running\"), \"a probe is never the gate: {}\", text(&probe));",
-      "line": 2319,
+      "line": 2324,
       "literal": "a probe is never the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149126,7 +149162,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"permissions on a pending mount wait: {}\", text(&busy));",
-      "line": 2325,
+      "line": 2330,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149135,7 +149171,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"permissions on a pending mount wait: {}\", text(&busy));",
-      "line": 2325,
+      "line": 2330,
       "literal": "permissions on a pending mount wait: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149144,7 +149180,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused permissions batch journals nothing\");",
-      "line": 2326,
+      "line": 2331,
       "literal": "the refused permissions batch journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149153,7 +149189,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"ok\":true\"#), \"permissions elsewhere apply: {}\", text(&done));",
-      "line": 2331,
+      "line": 2336,
       "literal": "permissions elsewhere apply: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149162,7 +149198,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 2335,
+      "line": 2340,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149171,7 +149207,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the released rename journals late: {}\", text(&late));",
-      "line": 2338,
+      "line": 2343,
       "literal": "the released rename journals late: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149180,7 +149216,7 @@
     },
     {
       "excerpt": "assert_eq!(journaled, 0, \"the accepted rename holds later entries behind its reservation\");",
-      "line": 2339,
+      "line": 2344,
       "literal": "the accepted rename holds later entries behind its reservation",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149188,9 +149224,9 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(o.journal.len(), 8, \"the rename and all seven later writes each journal exactly once\");",
-      "line": 2340,
-      "literal": "the rename and all seven later writes each journal exactly once",
+      "excerpt": "assert_eq!(o.journal.len(), 8 + trash_journaled, \"every completed write journals exactly once; an empty Trash receipt journals nothing\");",
+      "line": 2345,
+      "literal": "every completed write journals exactly once; an empty Trash receipt journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -149198,7 +149234,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"no pending entry survives the late Done\");",
-      "line": 2341,
+      "line": 2346,
       "literal": "no pending entry survives the late Done",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149207,7 +149243,7 @@
     },
     {
       "excerpt": "assert!(o.pending.is_empty(), \"the late Done clears its own pending entry\");",
-      "line": 2342,
+      "line": 2347,
       "literal": "the late Done clears its own pending entry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149216,7 +149252,7 @@
     },
     {
       "excerpt": "const SELECTION_GONE: &str = \"Selected items changed; reopen the menu.\";",
-      "line": 2346,
+      "line": 2351,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -149225,7 +149261,7 @@
     },
     {
       "excerpt": "assert!(menu_sources(&o, 0).unwrap().is_none(), \"a request with no menu names no selection\");",
-      "line": 2353,
+      "line": 2358,
       "literal": "a request with no menu names no selection",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154975,36 +155011,27 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let who = std::thread::current().name().unwrap_or(\"a sandboxed test\").to_string();",
-      "line": 17,
-      "literal": "a sandboxed test",
-      "owner": "controller",
-      "path": "src/backend/sandboxprobe.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let line = format!(\"SKIP {}: the bwrap sandbox cannot run here: {}\\n\", who, why);",
-      "line": 19,
-      "literal": "SKIP {}: the bwrap sandbox cannot run here: {}\n",
-      "owner": "controller",
-      "path": "src/backend/sandboxprobe.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "Err(e) => return Some(format!(\"{} could not run: {}\", argv[0], e)),",
-      "line": 29,
-      "literal": "{} could not run: {}",
-      "owner": "controller",
-      "path": "src/backend/sandboxprobe.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "Some(text.lines().next().unwrap_or(\"it exited non-zero and said nothing\").to_string())",
-      "line": 36,
+      "excerpt": ".unwrap_or(\"it exited non-zero and said nothing\")",
+      "line": 30,
       "literal": "it exited non-zero and said nothing",
+      "owner": "controller",
+      "path": "src/backend/sandboxprobe.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let name = thread.name().unwrap_or(\"sandbox integration test\");",
+      "line": 38,
+      "literal": "sandbox integration test",
+      "owner": "controller",
+      "path": "src/backend/sandboxprobe.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"SKIP {name}: the bwrap sandbox cannot run here: {reason}\"",
+      "line": 41,
+      "literal": "SKIP {name}: the bwrap sandbox cannot run here: {reason}",
       "owner": "controller",
       "path": "src/backend/sandboxprobe.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -157478,7 +157505,7 @@
     },
     {
       "excerpt": "assert!(pid > 0, \"the test could not fork\");",
-      "line": 630,
+      "line": 631,
       "literal": "the test could not fork",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157487,7 +157514,7 @@
     },
     {
       "excerpt": "assert_eq!(unsafe { poll(&mut ended, 1, CHILD_WAIT_MS) }, 1, \"the child never ended\");",
-      "line": 634,
+      "line": 635,
       "literal": "the child never ended",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157496,7 +157523,7 @@
     },
     {
       "excerpt": "Err(e) => panic!(\"{} did not read: {}\", path, e),",
-      "line": 679,
+      "line": 680,
       "literal": "{} did not read: {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157505,7 +157532,7 @@
     },
     {
       "excerpt": ".unwrap_or_else(|| panic!(\"no kernel header at {}: install linux-api-headers or linux-libc-dev\", UNISTD.join(\" or \")));",
-      "line": 681,
+      "line": 682,
       "literal": "no kernel header at {}: install linux-api-headers or linux-libc-dev",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157514,7 +157541,7 @@
     },
     {
       "excerpt": "assert!(numbers.contains_key(\"read\"), \"{} yielded no __NR_read, so the parse failed\", path);",
-      "line": 692,
+      "line": 693,
       "literal": "{} yielded no __NR_read, so the parse failed",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157523,7 +157550,7 @@
     },
     {
       "excerpt": "let header = std::fs::read_to_string(SCHED_H).unwrap_or_else(|e| panic!(\"{} did not read: {}\", SCHED_H, e));",
-      "line": 698,
+      "line": 699,
       "literal": "{} did not read: {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157532,7 +157559,7 @@
     },
     {
       "excerpt": "other => panic!(\"the filter loads offset {}, which this walk does not model\", other),",
-      "line": 725,
+      "line": 726,
       "literal": "the filter loads offset {}, which this walk does not model",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157541,7 +157568,7 @@
     },
     {
       "excerpt": "other => panic!(\"the filter uses opcode {:#x}, which this walk does not model\", other),",
-      "line": 733,
+      "line": 734,
       "literal": "the filter uses opcode {:#x}, which this walk does not model",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157550,7 +157577,7 @@
     },
     {
       "excerpt": "None if numbers.contains_key(NEWEST_CALL) => Err(format!(\"{} has no __NR_{}\", header, call)),",
-      "line": 742,
+      "line": 743,
       "literal": "{} has no __NR_{}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157559,7 +157586,7 @@
     },
     {
       "excerpt": "assert!(MUST_REFUSE.contains(&NEWEST_CALL), \"the newest call is one the filter must refuse\");",
-      "line": 749,
+      "line": 750,
       "literal": "the newest call is one the filter must refuse",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157568,7 +157595,7 @@
     },
     {
       "excerpt": "assert_eq!(kernel_number(&older, \"h\", \"fchmod\"), Ok(Some(2)), \"older headers still check the calls they name\");",
-      "line": 753,
+      "line": 754,
       "literal": "older headers still check the calls they name",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157577,7 +157604,7 @@
     },
     {
       "excerpt": "assert_eq!(kernel_number(&current, \"h\", \"fchmdo\"), Err(\"h has no __NR_fchmdo\".to_string()), \"a typo against current headers fails\");",
-      "line": 755,
+      "line": 756,
       "literal": "h has no __NR_fchmdo",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157586,7 +157613,7 @@
     },
     {
       "excerpt": "assert_eq!(kernel_number(&current, \"h\", \"fchmdo\"), Err(\"h has no __NR_fchmdo\".to_string()), \"a typo against current headers fails\");",
-      "line": 755,
+      "line": 756,
       "literal": "a typo against current headers fails",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157595,7 +157622,7 @@
     },
     {
       "excerpt": "let program = call_filter().expect(\"the filter did not build\");",
-      "line": 762,
+      "line": 763,
       "literal": "the filter did not build",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157604,7 +157631,7 @@
     },
     {
       "excerpt": "let number = |call: &str| known(call).unwrap_or_else(|| panic!(\"{} has no __NR_{}\", header, call));",
-      "line": 764,
+      "line": 765,
       "literal": "{} has no __NR_{}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157613,7 +157640,7 @@
     },
     {
       "excerpt": "Some(kernel) => assert_eq!(*listed, kernel, \"the table gives {} the number {}\", call, listed),",
-      "line": 769,
+      "line": 770,
       "literal": "the table gives {} the number {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157622,7 +157649,7 @@
     },
     {
       "excerpt": "Some(kernel) => assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, kernel, 0), refused, \"{} is not refused\", call),",
-      "line": 775,
+      "line": 776,
       "literal": "{} is not refused",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157631,7 +157658,7 @@
     },
     {
       "excerpt": "std::io::stderr().write_all(format!(\"PARTIAL {}: {} predates __NR_{}, so {} went unchecked\\n\", THIS, header, NEWEST_CALL, unchecked.join(\", \")).as_bytes()).ok();",
-      "line": 782,
+      "line": 783,
       "literal": "PARTIAL {}: {} predates __NR_{}, so {} went unchecked\n",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157640,7 +157667,7 @@
     },
     {
       "excerpt": "std::io::stderr().write_all(format!(\"PARTIAL {}: {} predates __NR_{}, so {} went unchecked\\n\", THIS, header, NEWEST_CALL, unchecked.join(\", \")).as_bytes()).ok();",
-      "line": 782,
+      "line": 783,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157649,7 +157676,7 @@
     },
     {
       "excerpt": "let flags = |names: &[&str]| names.iter().map(|name| *bits.get(*name).unwrap_or_else(|| panic!(\"{} has no {}\", SCHED_H, name))).fold(0, |all, bit| all | bit);",
-      "line": 785,
+      "line": 786,
       "literal": "{} has no {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157658,7 +157685,7 @@
     },
     {
       "excerpt": "assert_eq!(CLONE_THREAD, flags(&[\"CLONE_THREAD\"]), \"the filter's thread bit is not the kernel's\");",
-      "line": 786,
+      "line": 787,
       "literal": "the filter's thread bit is not the kernel's",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157667,7 +157694,7 @@
     },
     {
       "excerpt": "assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number(\"clone\"), thread), SECCOMP_RET_ALLOW, \"a thread must start\");",
-      "line": 791,
+      "line": 792,
       "literal": "a thread must start",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157676,7 +157703,7 @@
     },
     {
       "excerpt": "assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number(\"clone\"), fork), refused, \"a forked process must not\");",
-      "line": 792,
+      "line": 793,
       "literal": "a forked process must not",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157685,7 +157712,7 @@
     },
     {
       "excerpt": "assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number(\"clone\"), spawn), refused, \"a spawned process must not\");",
-      "line": 793,
+      "line": 794,
       "literal": "a spawned process must not",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157694,7 +157721,7 @@
     },
     {
       "excerpt": "assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number(\"read\"), 0), SECCOMP_RET_ALLOW, \"an ordinary call must run\");",
-      "line": 795,
+      "line": 796,
       "literal": "an ordinary call must run",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157703,7 +157730,7 @@
     },
     {
       "excerpt": "assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number(\"read\") | X32_SYSCALL_BIT, 0), refused, \"an x32 call must not\");",
-      "line": 796,
+      "line": 797,
       "literal": "an x32 call must not",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157712,7 +157739,7 @@
     },
     {
       "excerpt": "assert_eq!(answer.payload, vec![verdict], \"past deadline {} wanted {}\", past_deadline, verdict as char);",
-      "line": 814,
+      "line": 815,
       "literal": "past deadline {} wanted {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157721,7 +157748,7 @@
     },
     {
       "excerpt": "let opened = std::fs::File::open(&victim).expect(\"the probe could not open its input\").into_raw_fd();",
-      "line": 832,
+      "line": 833,
       "literal": "the probe could not open its input",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157730,7 +157757,7 @@
     },
     {
       "excerpt": "let written = std::fs::OpenOptions::new().write(true).open(format!(\"{}/report\", dir)).expect(\"the probe could not open its report\").into_raw_fd();",
-      "line": 833,
+      "line": 834,
       "literal": "the probe could not open its report",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157739,7 +157766,7 @@
     },
     {
       "excerpt": "let (_peer, planted) = fdpass::pair().expect(\"the probe could not make its socket\");",
-      "line": 849,
+      "line": 850,
       "literal": "the probe could not make its socket",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157748,7 +157775,7 @@
     },
     {
       "excerpt": "let victim_path = std::ffi::CString::new(victim.as_str()).expect(\"the victim path holds a NUL\");",
-      "line": 865,
+      "line": 866,
       "literal": "the victim path holds a NUL",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157757,7 +157784,7 @@
     },
     {
       "excerpt": "std::io::stderr().write_all(format!(\"SKIP {}: this kernel has no Landlock that can deny a truncation\\n\", THIS_TEST).as_bytes()).ok();",
-      "line": 929,
+      "line": 942,
       "literal": "SKIP {}: this kernel has no Landlock that can deny a truncation\n",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157766,7 +157793,7 @@
     },
     {
       "excerpt": "\"socket_before=true nulls=true input_on_3=true before=true reopened=false direct=false readable=true signalled_before=true signalled={} chmod_before=true chmod=false times_before=true times=false truncate_before=true truncate_errno={} xattr_errno={} ioctl_errno={} fork_before=true fork_errno={} thread=true fds=[0, 1, 2, 3, 4] cpu={} as={}\",",
-      "line": 935,
+      "line": 948,
       "literal": "socket_before=true nulls=true input_on_3=true before=true reopened=false direct=false readable=true signalled_before=true signalled={} chmod_before=true chmod=false times_before=true times=false truncate_before=true truncate_errno={} xattr_errno={} ioctl_errno={} fork_before=true fork_errno={} thread=true fds=[0, 1, 2, 3, 4] cpu={} as={}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157775,7 +157802,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&report).unwrap(), expected, \"busy {} probe exited {:?}: {}\", busy, out.status, String::from_utf8_lossy(&out.stdout));",
-      "line": 944,
+      "line": 957,
       "literal": "busy {} probe exited {:?}: {}",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -157784,7 +157811,7 @@
     },
     {
       "excerpt": "assert_ne!(LANDLOCK_WRITE_RIGHTS & LANDLOCK_TRUNCATE_V3, 0, \"a job could truncate its input\");",
-      "line": 956,
+      "line": 969,
       "literal": "a job could truncate its input",
       "owner": "controller",
       "path": "src/backend/thumbworker.rs",
@@ -160979,7 +161006,7 @@
     },
     {
       "excerpt": "Err(\"Trash request cancelled.\".into())",
-      "line": 38,
+      "line": 34,
       "literal": "Trash request cancelled.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -160988,7 +161015,7 @@
     },
     {
       "excerpt": "Outcome::ChildChanged => \"an item in the Trash changed\".into(),",
-      "line": 129,
+      "line": 125,
       "literal": "an item in the Trash changed",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -160997,7 +161024,7 @@
     },
     {
       "excerpt": "Outcome::ItemChanged => \"the item changed\".into(),",
-      "line": 130,
+      "line": 126,
       "literal": "the item changed",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161006,7 +161033,7 @@
     },
     {
       "excerpt": "Outcome::Damaged => \"the Trash record is damaged\".into(),",
-      "line": 131,
+      "line": 127,
       "literal": "the Trash record is damaged",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161015,7 +161042,7 @@
     },
     {
       "excerpt": "_ => \"the contents changed\".into(),",
-      "line": 134,
+      "line": 130,
       "literal": "the contents changed",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161024,7 +161051,7 @@
     },
     {
       "excerpt": "Outcome::Changed => \"The Trash changed, so nothing was done. Try again.\".into(),",
-      "line": 142,
+      "line": 138,
       "literal": "The Trash changed, so nothing was done. Try again.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161033,7 +161060,7 @@
     },
     {
       "excerpt": "Outcome::ConfirmAgain => \"The Trash changed, so nothing was done; confirm again.\".into(),",
-      "line": 143,
+      "line": 139,
       "literal": "The Trash changed, so nothing was done; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161042,7 +161069,7 @@
     },
     {
       "excerpt": "Outcome::NothingDeleted => \"The Trash changed, so nothing was deleted.\".into(),",
-      "line": 144,
+      "line": 140,
       "literal": "The Trash changed, so nothing was deleted.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161051,7 +161078,7 @@
     },
     {
       "excerpt": "Outcome::ItemChanged => \"The item changed after you confirmed, so nothing was deleted.\".into(),",
-      "line": 146,
+      "line": 142,
       "literal": "The item changed after you confirmed, so nothing was deleted.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161060,7 +161087,7 @@
     },
     {
       "excerpt": "Outcome::Damaged => \"The Trash record for this item is damaged, so nothing was restored.\".into(),",
-      "line": 147,
+      "line": 143,
       "literal": "The Trash record for this item is damaged, so nothing was restored.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161069,7 +161096,7 @@
     },
     {
       "excerpt": "Outcome::Kept(at) => format!(\"The Trash changed, so nothing was done. Kept items are in {}.\", at.display()),",
-      "line": 148,
+      "line": 144,
       "literal": "The Trash changed, so nothing was done. Kept items are in {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161078,7 +161105,7 @@
     },
     {
       "excerpt": "Outcome::Prepare(Delete) => format!(\"Could not prepare the deletion, so nothing was deleted: {why}.\"),",
-      "line": 149,
+      "line": 145,
       "literal": "Could not prepare the deletion, so nothing was deleted: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161087,7 +161114,7 @@
     },
     {
       "excerpt": "Outcome::Prepare(Restore) => format!(\"Could not prepare the restore, so nothing was restored: {why}.\"),",
-      "line": 150,
+      "line": 146,
       "literal": "Could not prepare the restore, so nothing was restored: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161096,7 +161123,7 @@
     },
     {
       "excerpt": "Outcome::NoRecord(Delete) => format!(\"Flea could not keep a record of this deletion, so nothing was deleted: {why}.\"),",
-      "line": 151,
+      "line": 147,
       "literal": "Flea could not keep a record of this deletion, so nothing was deleted: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161105,7 +161132,7 @@
     },
     {
       "excerpt": "Outcome::NoRecord(Restore) => format!(\"Flea could not keep a record of this restore, so nothing was restored: {why}.\"),",
-      "line": 152,
+      "line": 148,
       "literal": "Flea could not keep a record of this restore, so nothing was restored: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161114,7 +161141,7 @@
     },
     {
       "excerpt": "Outcome::Stuck(Delete, at) => format!(\"The deletion could not finish: {why}. The remaining items are kept at {}.\", at.display()),",
-      "line": 153,
+      "line": 149,
       "literal": "The deletion could not finish: {why}. The remaining items are kept at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161123,7 +161150,7 @@
     },
     {
       "excerpt": "Outcome::Stuck(Restore, at) => format!(\"The restore could not finish: {why}. The remaining items are kept at {}.\", at.display()),",
-      "line": 154,
+      "line": 150,
       "literal": "The restore could not finish: {why}. The remaining items are kept at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161132,7 +161159,7 @@
     },
     {
       "excerpt": "Outcome::StuckInTrash(Delete, at) => format!(\"The deletion could not finish: {why}. The remaining items are kept in the Trash and at {}.\", at.display()),",
-      "line": 155,
+      "line": 151,
       "literal": "The deletion could not finish: {why}. The remaining items are kept in the Trash and at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161141,7 +161168,7 @@
     },
     {
       "excerpt": "Outcome::StuckInTrash(Restore, at) => format!(\"The restore could not finish: {why}. The remaining items are kept in the Trash and at {}.\", at.display()),",
-      "line": 156,
+      "line": 152,
       "literal": "The restore could not finish: {why}. The remaining items are kept in the Trash and at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161150,7 +161177,7 @@
     },
     {
       "excerpt": "Outcome::StuckAtOriginal(at) => format!(\"The deletion could not finish: {why}. The remaining items are kept where they were and at {}.\", at.display()),",
-      "line": 157,
+      "line": 153,
       "literal": "The deletion could not finish: {why}. The remaining items are kept where they were and at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161159,7 +161186,7 @@
     },
     {
       "excerpt": "Outcome::Partial(Delete) => format!(\"The item could not be fully deleted: {why}. What is left stays in the Trash, and a folder may be partly deleted.\"),",
-      "line": 158,
+      "line": 154,
       "literal": "The item could not be fully deleted: {why}. What is left stays in the Trash, and a folder may be partly deleted.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161168,7 +161195,7 @@
     },
     {
       "excerpt": "Outcome::Partial(Restore) => format!(\"The item could not be restored: {why}. It stays in the Trash.\"),",
-      "line": 159,
+      "line": 155,
       "literal": "The item could not be restored: {why}. It stays in the Trash.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161177,7 +161204,7 @@
     },
     {
       "excerpt": "Outcome::PartialAtOriginal => format!(\"The item could not be fully deleted: {why}. What is left stays where it was, and a folder may be partly deleted.\"),",
-      "line": 160,
+      "line": 156,
       "literal": "The item could not be fully deleted: {why}. What is left stays where it was, and a folder may be partly deleted.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161186,7 +161213,7 @@
     },
     {
       "excerpt": "Outcome::InfoLeft(Delete, at) => format!(\"The item was deleted, but a Trash record at {} could not be removed: {why}.\", at.display()),",
-      "line": 161,
+      "line": 157,
       "literal": "The item was deleted, but a Trash record at {} could not be removed: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161195,7 +161222,7 @@
     },
     {
       "excerpt": "Outcome::InfoLeft(Restore, at) => format!(\"The item was restored, but a Trash record at {} could not be removed: {why}.\", at.display()),",
-      "line": 162,
+      "line": 158,
       "literal": "The item was restored, but a Trash record at {} could not be removed: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161204,7 +161231,7 @@
     },
     {
       "excerpt": "Outcome::FolderLeft(Delete, Some(at)) => format!(\"The item was deleted, but Flea could not remove its temporary folder at {}: {why}.\", at.display()),",
-      "line": 163,
+      "line": 159,
       "literal": "The item was deleted, but Flea could not remove its temporary folder at {}: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161213,7 +161240,7 @@
     },
     {
       "excerpt": "Outcome::FolderLeft(Restore, Some(at)) => format!(\"The item was restored, but Flea could not remove its temporary folder at {}: {why}.\", at.display()),",
-      "line": 164,
+      "line": 160,
       "literal": "The item was restored, but Flea could not remove its temporary folder at {}: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161222,7 +161249,7 @@
     },
     {
       "excerpt": "Outcome::FolderLeft(Delete, None) => format!(\"The item was deleted, but Flea could not remove its temporary folder: {why}.\"),",
-      "line": 165,
+      "line": 161,
       "literal": "The item was deleted, but Flea could not remove its temporary folder: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161231,7 +161258,7 @@
     },
     {
       "excerpt": "Outcome::FolderLeft(Restore, None) => format!(\"The item was restored, but Flea could not remove its temporary folder: {why}.\"),",
-      "line": 166,
+      "line": 162,
       "literal": "The item was restored, but Flea could not remove its temporary folder: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161240,7 +161267,7 @@
     },
     {
       "excerpt": "Outcome::RecordLeft(Some(Delete)) => format!(\"The item was deleted, but Flea could not remove its recovery record: {why}.\"),",
-      "line": 167,
+      "line": 163,
       "literal": "The item was deleted, but Flea could not remove its recovery record: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161249,7 +161276,7 @@
     },
     {
       "excerpt": "Outcome::RecordLeft(Some(Restore)) => format!(\"The item was restored, but Flea could not remove its recovery record: {why}.\"),",
-      "line": 168,
+      "line": 164,
       "literal": "The item was restored, but Flea could not remove its recovery record: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161258,7 +161285,7 @@
     },
     {
       "excerpt": "Outcome::RecordLeft(None) => format!(\"The interrupted operation was recovered, but Flea could not remove its recovery record: {why}.\"),",
-      "line": 169,
+      "line": 165,
       "literal": "The interrupted operation was recovered, but Flea could not remove its recovery record: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161267,7 +161294,7 @@
     },
     {
       "excerpt": "Outcome::RecordUnconfirmed(Some(Delete)) => format!(\"The item was deleted, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.\"),",
-      "line": 170,
+      "line": 166,
       "literal": "The item was deleted, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161276,7 +161303,7 @@
     },
     {
       "excerpt": "Outcome::RecordUnconfirmed(Some(Restore)) => format!(\"The item was restored, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.\"),",
-      "line": 171,
+      "line": 167,
       "literal": "The item was restored, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161285,7 +161312,7 @@
     },
     {
       "excerpt": "Outcome::RecordUnconfirmed(None) => format!(\"The interrupted operation was recovered, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.\"),",
-      "line": 172,
+      "line": 168,
       "literal": "The interrupted operation was recovered, but after removing its recovery record, Flea could not confirm the removal on disk: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161294,7 +161321,7 @@
     },
     {
       "excerpt": "Outcome::ChildChanged => \"An item in the Trash changed, so the rest was kept.\".into(),",
-      "line": 173,
+      "line": 169,
       "literal": "An item in the Trash changed, so the rest was kept.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161303,7 +161330,7 @@
     },
     {
       "excerpt": "Outcome::ChildLeft => format!(\"Some items in the Trash folder could not be deleted: {why}.\"),",
-      "line": 174,
+      "line": 170,
       "literal": "Some items in the Trash folder could not be deleted: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161312,7 +161339,7 @@
     },
     {
       "excerpt": "Outcome::Blocked => format!(\"The item could not be restored: {why}.\"),",
-      "line": 175,
+      "line": 171,
       "literal": "The item could not be restored: {why}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161321,7 +161348,7 @@
     },
     {
       "excerpt": "Outcome::OriginalChanged => \"The item's original folder changed; select it again.\".into(),",
-      "line": 176,
+      "line": 172,
       "literal": "The item's original folder changed; select it again.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161330,7 +161357,7 @@
     },
     {
       "excerpt": "Outcome::Held(at) => format!(\"Flea found an interrupted Trash operation; its items are kept at {}.\", at.display()),",
-      "line": 177,
+      "line": 173,
       "literal": "Flea found an interrupted Trash operation; its items are kept at {}.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161339,7 +161366,7 @@
     },
     {
       "excerpt": "Outcome::RecoveryUnreadable(at) => format!(\"Flea could not read the recovery folder at {}: {why}; records not yet read were left in place.\", at.display()),",
-      "line": 178,
+      "line": 174,
       "literal": "Flea could not read the recovery folder at {}: {why}; records not yet read were left in place.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161348,7 +161375,7 @@
     },
     {
       "excerpt": "Outcome::NothingMoved => \"Flea found an interrupted Trash operation; nothing was moved.\".into(),",
-      "line": 179,
+      "line": 175,
       "literal": "Flea found an interrupted Trash operation; nothing was moved.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161357,7 +161384,7 @@
     },
     {
       "excerpt": "Outcome::Unreadable => \"The Trash could not be read.\".into(),",
-      "line": 180,
+      "line": 176,
       "literal": "The Trash could not be read.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161366,7 +161393,7 @@
     },
     {
       "excerpt": "Outcome::TookTooLong => \"The Trash took too long to answer.\".into(),",
-      "line": 181,
+      "line": 177,
       "literal": "The Trash took too long to answer.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161375,7 +161402,7 @@
     },
     {
       "excerpt": "Outcome::SelectionChanged => \"The Trash selection changed; select the items again.\".into(),",
-      "line": 182,
+      "line": 178,
       "literal": "The Trash selection changed; select the items again.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161384,7 +161411,7 @@
     },
     {
       "excerpt": "Outcome::Indistinct(true) => \"Items in this Trash cannot be told apart, so they cannot be selected.\".into(),",
-      "line": 183,
+      "line": 179,
       "literal": "Items in this Trash cannot be told apart, so they cannot be selected.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161393,7 +161420,7 @@
     },
     {
       "excerpt": "Outcome::Indistinct(false) => \"Items in this Trash cannot be told apart, so nothing was done.\".into(),",
-      "line": 184,
+      "line": 180,
       "literal": "Items in this Trash cannot be told apart, so nothing was done.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161402,7 +161429,7 @@
     },
     {
       "excerpt": "Outcome::Unchecked(Delete) => \"This Trash cannot be checked, so nothing can be deleted from it.\".into(),",
-      "line": 185,
+      "line": 181,
       "literal": "This Trash cannot be checked, so nothing can be deleted from it.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161411,7 +161438,7 @@
     },
     {
       "excerpt": "Outcome::Unchecked(Restore) => \"This Trash cannot be checked, so nothing can be restored from it.\".into(),",
-      "line": 186,
+      "line": 182,
       "literal": "This Trash cannot be checked, so nothing can be restored from it.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161420,7 +161447,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not create recovery record {}: {}\", path.display(), e))?;",
-      "line": 248,
+      "line": 244,
       "literal": "Could not create recovery record {}: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161429,7 +161456,7 @@
     },
     {
       "excerpt": "crate::uistore::lock_exclusive(&file).map_err(|e| format!(\"Could not lock recovery record: {}\", e))?;",
-      "line": 249,
+      "line": 245,
       "literal": "Could not lock recovery record: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161438,7 +161465,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not open recovery record {}: {}\", path.display(), e))?;",
-      "line": 254,
+      "line": 250,
       "literal": "Could not open recovery record {}: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161447,7 +161474,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not reopen recovery record for completion: {}\", e))?;",
-      "line": 257,
+      "line": 253,
       "literal": "Could not reopen recovery record for completion: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161456,7 +161483,7 @@
     },
     {
       "excerpt": "Err(error) => return Err(format!(\"Could not lock recovery record: {}\", error)),",
-      "line": 261,
+      "line": 257,
       "literal": "Could not lock recovery record: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161465,7 +161492,7 @@
     },
     {
       "excerpt": "if !metadata.is_file() { return Err(\"Recovery record is not a regular file.\".into()); }",
-      "line": 264,
+      "line": 260,
       "literal": "Recovery record is not a regular file.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161474,7 +161501,7 @@
     },
     {
       "excerpt": "self.file.sync_all().map_err(|e| format!(\"Could not sync recovery record: {}\", e))",
-      "line": 269,
+      "line": 265,
       "literal": "Could not sync recovery record: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161483,7 +161510,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not create anonymous Trash review in {}: {}\", root.display(), e))?;",
-      "line": 278,
+      "line": 275,
       "literal": "Could not create anonymous Trash review in {}: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161492,7 +161519,7 @@
     },
     {
       "excerpt": "self.append_labelled(\"Trash review\", bytes)",
-      "line": 283,
+      "line": 280,
       "literal": "Trash review",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161501,7 +161528,7 @@
     },
     {
       "excerpt": "total = total.checked_add(bytes.len() as u64).and_then(|sum| sum.checked_add(2 * LENGTH_BYTES)).ok_or_else(|| format!(\"{label} is too large for its backing file.\"))?;",
-      "line": 289,
+      "line": 286,
       "literal": "{label} is too large for its backing file.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161510,7 +161537,7 @@
     },
     {
       "excerpt": "let end = self.end.checked_add(total).ok_or_else(|| format!(\"{label} is too large for its backing file.\"))?;",
-      "line": 291,
+      "line": 288,
       "literal": "{label} is too large for its backing file.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161519,7 +161546,7 @@
     },
     {
       "excerpt": "self.file.write_all_at(&batch, self.end).map_err(|e| format!(\"Could not write {label}: {}\", e))?;",
-      "line": 299,
+      "line": 296,
       "literal": "Could not write {label}: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161528,7 +161555,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"{label} is too large for its backing file.\"))?;",
-      "line": 307,
+      "line": 304,
       "literal": "{label} is too large for its backing file.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161537,7 +161564,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not write {label}: {}\", e))?;",
-      "line": 311,
+      "line": 308,
       "literal": "Could not write {label}: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161546,7 +161573,7 @@
     },
     {
       "excerpt": "if start > end || end > self.end { return Err(\"Invalid Trash review range.\".into()); }",
-      "line": 319,
+      "line": 316,
       "literal": "Invalid Trash review range.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161555,7 +161582,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not read Trash review: {}\", e))?;",
-      "line": 331,
+      "line": 328,
       "literal": "Could not read Trash review: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161564,7 +161591,7 @@
     },
     {
       "excerpt": "return Err(\"Truncated Trash review record.\".into());",
-      "line": 337,
+      "line": 334,
       "literal": "Truncated Trash review record.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161573,7 +161600,7 @@
     },
     {
       "excerpt": "if length > available || length > usize::MAX as u64 { return Err(\"Invalid Trash review length.\".into()); }",
-      "line": 341,
+      "line": 338,
       "literal": "Invalid Trash review length.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161582,7 +161609,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not read Trash review: {}\", e))?;",
-      "line": 344,
+      "line": 341,
       "literal": "Could not read Trash review: {}",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161591,7 +161618,7 @@
     },
     {
       "excerpt": "if self.length(end - LENGTH_BYTES)? != length { return Err(\"Damaged Trash review record.\".into()); }",
-      "line": 346,
+      "line": 343,
       "literal": "Damaged Trash review record.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161600,7 +161627,7 @@
     },
     {
       "excerpt": "return Err(\"Truncated Trash review record.\".into());",
-      "line": 353,
+      "line": 350,
       "literal": "Truncated Trash review record.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
@@ -161609,10 +161636,37 @@
     },
     {
       "excerpt": "if length > *offset - self.start - 2 * LENGTH_BYTES { return Err(\"Invalid Trash review length.\".into()); }",
-      "line": 356,
+      "line": 353,
       "literal": "Invalid Trash review length.",
       "owner": "controller",
       "path": "src/backend/trashmanifest.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"review parent is not trusted\",",
+      "line": 105,
+      "literal": "review parent is not trusted",
+      "owner": "controller",
+      "path": "src/backend/trashmanifest/anonymous.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"private review names collided\",",
+      "line": 123,
+      "literal": "private review names collided",
+      "owner": "controller",
+      "path": "src/backend/trashmanifest/anonymous.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"review directory is not private\",",
+      "line": 152,
+      "literal": "review directory is not private",
+      "owner": "controller",
+      "path": "src/backend/trashmanifest/anonymous.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -172841,7 +172895,7 @@
     },
     {
       "excerpt": "assert!(Instant::now() < until, \"decoder was not reaped after cancellation\");",
-      "line": 318,
+      "line": 321,
       "literal": "decoder was not reaped after cancellation",
       "owner": "t11",
       "path": "src/tui/graphics.rs",
@@ -245672,6 +245726,7 @@
     "crates/flea-gui/src/g2/pv1/button.rs": "7456dead3d46438f089c25953a142633342c10f8797a98dfa1c90843198b7206",
     "crates/flea-gui/src/g2/pv1/card.rs": "5029f2ba4fe85d51b58e3e865f7518470e6ffe7c08fc43bc006e5b7145e34427",
     "crates/flea-gui/src/g2/pv1/card_diff.rs": "677e86d8d9263d9ae10f10da60747d8839340763c9a35ab7bc779c2acb3bed52",
+    "crates/flea-gui/src/g2/pv1/catalog.rs": "96d128849c11477a70cf33c0d5f950ebe572903deae385ca96752eca0953b2b5",
     "crates/flea-gui/src/g2/pv1/chrome.rs": "18aabfac224337ea1655c443bfae47804bd184332e2c4cef707412c2eda85bdd",
     "crates/flea-gui/src/g2/pv1/column.rs": "131bf433f209fb2a6158a94324c423a34415758d1e574c899e1e59dd21d5a941",
     "crates/flea-gui/src/g2/pv1/decode.rs": "e17c19b857c1f114058439d8bd0d4f71b59b233189c05a762bcc69d2825d7ff0",
@@ -245682,7 +245737,7 @@
     "crates/flea-gui/src/g2/pv1/lifetime.rs": "28bf7dd5cafca5252a333473cc9c610e74035b3c065f9635ddab7efde5990860",
     "crates/flea-gui/src/g2/pv1/look.rs": "ce52e180618490999085932e1e0862dcd641b580e526ecdb6aefec458087d8bd",
     "crates/flea-gui/src/g2/pv1/media_strip.rs": "078f292ef0bcc3d4bcb2c595538230d647974ab8214c28116c118ecd40408647",
-    "crates/flea-gui/src/g2/pv1/mod.rs": "079c2a33072c73544ebda58301fcfb7e0e57eb85d2d4c3fd7f4fa136da30bc85",
+    "crates/flea-gui/src/g2/pv1/mod.rs": "88d5e47ebe0c6111e12b647dcf4968ec749e570890e610e30ee2fd094be27615",
     "crates/flea-gui/src/g2/pv1/observations.rs": "455881a336c7dac7c6cab8221135e8604c7417580b53729ab9609269bb000d04",
     "crates/flea-gui/src/g2/pv1/observed_frames.rs": "7c89936c86ca59052ae759c084f64ab4be3cd2579e2fc68028b14c55fe871e1c",
     "crates/flea-gui/src/g2/pv1/photo.rs": "28be7585ac463c20e54e94eefc6f4c32f11062330994f7058cdeb1b4d0c803f5",
@@ -245728,7 +245783,7 @@
     "crates/flea-gui/src/g2/pv2/markdown/doc.rs": "c8195facdc9fc4a4f753637d93d2457441bdb3549ea76074acbef32f069da7c3",
     "crates/flea-gui/src/g2/pv2/markdown/figures.rs": "5627274b99a681a088749377480b6551c79b11e1ab02714df032257a19b7e6bf",
     "crates/flea-gui/src/g2/pv2/markdown/loading.rs": "9168fc120ef8bd01ba276a6ea836c27600be8509cb529f61f80158d3bb0aaf28",
-    "crates/flea-gui/src/g2/pv2/markdown/mod.rs": "aefdcee9961cbd46a9a5a63c1de8ff412e40905362190eefa26d586d620700d8",
+    "crates/flea-gui/src/g2/pv2/markdown/mod.rs": "fc91aa05a6ebb4ec38be187617f2764f59e2f9c164df179c8af90902bfea4249",
     "crates/flea-gui/src/g2/pv2/markdown/paint.rs": "f0dcae597ef1b8c1bbc78b915d65e37cfe05199be2d0f4bec8bb785b8b3a31ea",
     "crates/flea-gui/src/g2/pv2/markdown/paint/build.rs": "7b3db04fff62431bac1ac8d2b02d3307c07446c4d055bea4dfceacf1f22de36b",
     "crates/flea-gui/src/g2/pv2/markdown/paint/input.rs": "214de29d57d9679c3f1515991aad3e54ad5c54924e6cf72b1145ef5530937988",
@@ -245786,7 +245841,7 @@
     "crates/flea-gui/src/g2/pv4/parts.rs": "19c696e1496907354f8799bf8fdc1aa9f292318e5b5c3118bfd605179b6274c9",
     "crates/flea-gui/src/g2/pv4/seam.rs": "694600f1cfc7605a8a097090a9c127247813cefcb163e5325b62399ada006676",
     "crates/flea-gui/src/g2/pv4/session.rs": "a685718a3e3aea5f917f2f430ec4422559321388c8fe6535aef141450e34e99f",
-    "crates/flea-gui/src/g2/pv4/view.rs": "99ea5d831623e40d3b4c460857cc47fa9f97637f57e4fb20ff5904b7ead669c7",
+    "crates/flea-gui/src/g2/pv4/view.rs": "5b24aa75cd8c56409ea8c3063b0c41ce61516e4cdd4c7ad82e13d7491be313e9",
     "crates/flea-gui/src/g2/sd1/activation.rs": "33445cc2eabea782955e1bf73407c3b40e2ee5cde3e8813f64dc700cc287b34f",
     "crates/flea-gui/src/g2/sd1/dropbox_status.rs": "8625c08876371d699a909cdc31905ffb29b42f261e15159cd718f4892561665d",
     "crates/flea-gui/src/g2/sd1/ipc.rs": "5376f908d0afc07829b9b72a6df5d475cb71e5547620231604f4199f43ab1bac",
@@ -245835,7 +245890,7 @@
     "crates/flea-gui/src/g2/st1/input/handler.rs": "f2b167e0f520bd068d7ddd4c107852c9d1d22de05037ffd39dcfa93163d0603b",
     "crates/flea-gui/src/g2/st1/input/session.rs": "97df33d49bacdc16fcf51a09e8020907e6fe9fe61a7ab792a1cbf2c953383895",
     "crates/flea-gui/src/g2/st1/input_host.rs": "6e8de677e70ddfa21d738ce584446eb6da7827f0199d0faef95be90808c6374a",
-    "crates/flea-gui/src/g2/st1/marks.rs": "d9654859fc2c41a3cc343b0b3c15fcb85ea920a03f1fa6fe7cd95c52475d570d",
+    "crates/flea-gui/src/g2/st1/marks.rs": "cc733e1adfe4158847a3dc49ab400649d4db3203b650ad02cbbbc1cf9dd89046",
     "crates/flea-gui/src/g2/st1/mod.rs": "87bcee8ac381b789b52bb8454d4ae1d531e5a2f5fffeb17dfb690384abf47d2b",
     "crates/flea-gui/src/g2/st1/panel.rs": "13f06ca56f31fd04f06657abb17e4b5330eca22db097837a2e1c1b78b41584ee",
     "crates/flea-gui/src/g2/st1/panel/scroll.rs": "6c87253c4f63c6d4d198acb9d2099a974f51a7a0988ee887b12727faaa88a0d2",
@@ -246170,7 +246225,7 @@
     "crates/flea-gui/src/window/dispatch/listing.rs": "16a09417dce665ae4813535a8f01a10d0a77e91bc6a0a102a182d56e216d495e",
     "crates/flea-gui/src/window/dispatch/menu_parity.rs": "1ddb1ac0b38e27ce58eb5a093be1959fdf1856b2154df893158c5beaf100ae0d",
     "crates/flea-gui/src/window/dispatch/menus.rs": "ebf0dadfa365b84c0a92390337ddb76487622fe7e5a18a97016488e830b3b233",
-    "crates/flea-gui/src/window/dispatch/mod.rs": "14fd79f6ea150bf67d8f2672bafa74119435f506c32d6a5e4dce33fd52fcc8be",
+    "crates/flea-gui/src/window/dispatch/mod.rs": "047dff698c3e4366ffd5433a7329df86a61f5720add87f2ae816952d415ea222",
     "crates/flea-gui/src/window/dispatch/navigation.rs": "42b4283b04076e148462bf13269eaf1011b62090f537977414260cbcce9ffee3",
     "crates/flea-gui/src/window/dispatch/opener.rs": "59c8635d663e2d3f88087aaf001dfc45cecc6822014385cf9027ec533f33d5b1",
     "crates/flea-gui/src/window/dispatch/opener/targets.rs": "4ec4ca306658dd23c06e675adb9c4bff440596075ab7ae02c3bf3a13cbef4344",
@@ -246218,7 +246273,7 @@
     "crates/flea-gui/src/window/glass.rs": "a6c7618502f69cacc5825918aa80943fe7b19c18e24616c930dce796659efec1",
     "crates/flea-gui/src/window/glass_tag.rs": "be8d341899ee49862f9ab0bc2f90771db5af8f805d475b1dd3483f5af5b2dbf1",
     "crates/flea-gui/src/window/glass_tag/events.rs": "1a495fc6bb266f2c5265360c1f5ac18da5af64b475085119ba24594f3559c0f3",
-    "crates/flea-gui/src/window/glass_tag/run.rs": "c2ad8606e14a025f7a7f1df8ef1d7f6bee0329ef7676ec39ec2a61d66f7bd66d",
+    "crates/flea-gui/src/window/glass_tag/run.rs": "38221c3513e374c7c3214e67a97e44fa958d95711d6dc9653578daa67d632c12",
     "crates/flea-gui/src/window/gpu_report.rs": "e0c97f69f827baa40ec461681ab3ea645934b024cb3233b4f241f73b2f66afe8",
     "crates/flea-gui/src/window/input.rs": "15f739c3a52125a7a0b47b0466c5a14e0ba7795ef9792fa3311a14ba607c43f3",
     "crates/flea-gui/src/window/input_run.rs": "6839e0258ddadaee59bf7be0f12868c1853f5692904ddc7673673eba340ad9ae",
@@ -246228,7 +246283,7 @@
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "db61d8c455cda0df357f3929a2e0993476fd6187722a9b2306c34b764c5bcc25",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "9d916cc5dff4780e7b9a18996a4e08eca26c69cdbec2c1a4a413fcd92943d651",
+    "crates/flea-gui/src/window/mod.rs": "902624b1584008f573a3a0e5138be41e10086d17161fb281f1bf30ff1594630b",
     "crates/flea-gui/src/window/navigate.rs": "88a4a84cc39ef8035adb97681c8803823bd3807cdd71689c3da1fc5df1b4f6e1",
     "crates/flea-gui/src/window/network.rs": "e1cf9b7bbc0e26f9dab9d82fcf4fa8419d72b6cfa4a64265e9d69a83907c3638",
     "crates/flea-gui/src/window/network_cloud.rs": "c9e57bf2de77b95a802982b1621bcd53723ff14938aaedb2c7fde6405609509c",
@@ -246249,9 +246304,10 @@
     "crates/flea-gui/src/window/pane.rs": "84a1ab9f105b4d54c727f82801ac684fdee32f0064e850731e867a903b1381ee",
     "crates/flea-gui/src/window/path_host.rs": "d50062fb0ee8daf8ceb8b77c509df505d2b19e809a036e2226c49a0a2116e0e1",
     "crates/flea-gui/src/window/permissions.rs": "39cbf39700e8513af8f0c91d025c8b6443cfa75770add5d52e3c86a1543c8e0e",
-    "crates/flea-gui/src/window/presentation.rs": "a6a39c7858e1aa0830581b6e4535b65c98fac3f0cdea2910f409b39360095618",
+    "crates/flea-gui/src/window/presentation.rs": "2caf7b658f62f67bd31210bd2d70d6d2d5a03b9b5bd40158de66d9a93cacc67f",
     "crates/flea-gui/src/window/preview_facts.rs": "a50db0688e0dc6a7d35668496ce98602520cc3c75f4d9b258acc4fe7027e5bd6",
     "crates/flea-gui/src/window/preview_input.rs": "d13e5cb1b20ada69c2665945f7716929a981aa79ef64a240b03c402599ae848d",
+    "crates/flea-gui/src/window/preview_locale.rs": "1bce6c127201f52c39d5b566c4b30ab6889bdec00dd49dd67e23c473f94dc23b",
     "crates/flea-gui/src/window/preview_text_selection.rs": "6e75c887043f5e5f0e28feb1991390857e07b16b368b4b43d37cb02ab64601bf",
     "crates/flea-gui/src/window/properties.rs": "f8e9ce1d64092fca71f10e47dabbd5583c03420fecc7b62b41956964aea247d7",
     "crates/flea-gui/src/window/quick_look.rs": "4e1a5dc533c2c83932f2fdadd24db0b3305f698c01af90d5a9bd19e23ac5d6d1",
@@ -246265,7 +246321,7 @@
     "crates/flea-gui/src/window/quick_look_reader_geometry.rs": "30aee9b120ea2e5d6085d41ddfcf33660feb83c2222272c8625b733676ae0605",
     "crates/flea-gui/src/window/quick_look_readers.rs": "f8eae1cb4baf2b40c7fffb91b1fa14146fda0e3558107a7a5e38029ed670e632",
     "crates/flea-gui/src/window/quick_look_replies.rs": "dc697b9d919ebde1230c3483e49cbe3a851920853ad3cb6e1440b8cdb3d2582c",
-    "crates/flea-gui/src/window/quick_look_warm.rs": "0cfe49eb8154e8995af52d16ee17d2eaaf5524231caebf331c99ebb5d4b4e7de",
+    "crates/flea-gui/src/window/quick_look_warm.rs": "c9e2ae2c8319848d9925eb13a20b6659d1c6b1cdb1b17bf1f621350570cc2501",
     "crates/flea-gui/src/window/quick_look_wire.rs": "b869ab84edc5166190f7bfbec7bd047af7c416df4807b14f842578f896534dba",
     "crates/flea-gui/src/window/rail.rs": "d182f2dbd880a849aa39ded0d58b91914e58408812a9ce6a2edc71ad81eb8dc3",
     "crates/flea-gui/src/window/rail_compose.rs": "209bf6d027666204fe87b6522e803f7b2553a9dacc52a8d8df48112ebebecbf0",
@@ -246386,7 +246442,7 @@
     "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
     "src/backend/convertbatch.rs": "e950fde424b374595336d7a6d70e45e8645f6a7df9298786c60e7e8f83dbcd5d",
     "src/backend/copyfile.rs": "c4b61adce91b28a0e822127a4ffa08a7028d489fd9d35bbef97c7b4735149b43",
-    "src/backend/copymanifest.rs": "822ecd79ae58a1c04c9d261824fa724be39ce06ab5ff8f9a9657ac06c51baf46",
+    "src/backend/copymanifest.rs": "7e31a2c46e0a6392e3fa1d1745b303303d9aeaa231e8db462ee4b8caf89de4f4",
     "src/backend/copynode.rs": "3752eb48eac93e0bb12ee767de5c60826d4aff18e28d6ae0e65fb0fc3e05ae4c",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
     "src/backend/created_request.rs": "c1e3983bef2bff19fab1d0a646b8e29c7d5dd1dd74e2bca898630aae9705ef41",
@@ -246550,7 +246606,7 @@
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
     "src/backend/ops.rs": "89e8c6348cfb0d9e5d71dcf17da4462431f5b2cb156adb3f5532dc2f4a6fb654",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
-    "src/backend/opsdispatch.rs": "8a041560bb01220c975323add70bf3a385a2adc64584eaa495b14fab942b8d74",
+    "src/backend/opsdispatch.rs": "7f0b70eb09ac1a74f094d64ac3ee91eb17fe4956f65b1484a146505a41b774d9",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
     "src/backend/opspace.rs": "6dba8573f53c68c2c35f193aabffd410f1a35b8f56ec32c309df21ac01e96bb7",
     "src/backend/opsprobe.rs": "515c27d465cdfe7b4a590812b775f3563ec3321382da7d0ff593c58039bb709f",
@@ -246620,7 +246676,7 @@
     "src/backend/run.rs": "c38d73dab80765d74ade2a881c32d26ed8f64256435edc983855660d6d7f7f73",
     "src/backend/run_rows.rs": "2e17749ed30ab0b45670c1c20aaaef359170b7ca5b86772f5cde2b2ae9c29031",
     "src/backend/sandbox.rs": "6f389ce65999fccfc4a10e85cc7d358c6ff7c1743113cf261498c64ad4b7c30b",
-    "src/backend/sandboxprobe.rs": "3e53fe6593b25281aaf4a7c80ba6cfe73adbc7482150f432acf799ef678d4445",
+    "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
     "src/backend/scan.rs": "9c34ffd2f0a1d710dea6be5cdab78c6d06ae2afaa022193becac8deb8996867b",
     "src/backend/scanhold.rs": "29c7abffacc51cd424ebc1572d353c5e68ddf2e3d093cbb8c609164a514cb697",
     "src/backend/search.rs": "64aaa50fa3faf09e33d73113973ccb23a29bf22959dc94b86b3ee7d35bf08764",
@@ -246682,7 +246738,7 @@
     "src/backend/thumbreq.rs": "9b69c18aa59132beb6fcebb5b9129603ae546f5b660acbfc70d2552dc139d1b4",
     "src/backend/thumbs.rs": "874161df7f15a61d6b9f0616fb812487775c35a8357e28d7afefc4318f2fbbb1",
     "src/backend/thumbspec.rs": "4681fb6c99b2afec8fd39123611d01b147ef6f1d082795943005d34e57a4de39",
-    "src/backend/thumbworker.rs": "98f44f64ec2269df26f40892cf58f3b357a347cee6a83f85abc88fb1791f2226",
+    "src/backend/thumbworker.rs": "39e127b3788555c37ff1f6c015c24dfc56134da337d3c9e876a34edd4f0cf7c0",
     "src/backend/thumbwrite.rs": "615c6859b0e771a60c8a9f51656b183f422d598440a45c7388b2cb8d5d36ffac",
     "src/backend/timing.rs": "5a94332dff4d75f478acb922436ac2420ee8690e79b3610696f0e7183b7f74e3",
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
@@ -246697,7 +246753,8 @@
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/recovery.rs": "cf9b5ce02bab3718b5b16072aeeba921b808f1984ae84c4ee5c26d18799ceeee",
     "src/backend/trashland.rs": "e337fe4900c68c924bc9aadb84fa6e439b84e0c469cd0baaa1255be7a99cf2c3",
-    "src/backend/trashmanifest.rs": "65e1b8fe015ffb4b7f2a987e7261b64a1c89eb6d920d87933c2d894eaa0bf2c4",
+    "src/backend/trashmanifest.rs": "c2166ea8ea90f91c4979142901476d6343dd4aca2e531e94a25dd8101857e2d3",
+    "src/backend/trashmanifest/anonymous.rs": "4364fa44a764bb8c1306b5d266b11ac33364b071047360005a488fe31ede5bbf",
     "src/backend/trashthumb.rs": "50f3308d1fb51af82b46787f28958d931c5c19e8884eb2949557e4446cec4233",
     "src/backend/trashthumbcache.rs": "c17c02aacbfcfb4f59154242df071e721fde70e32a4c7e2cd0e17cc5d412630a",
     "src/backend/tuifolders.rs": "c56c96dd31cd391c28e791b3772cdd4f7d1a3b4234d0ea03e2cb86de0e04bdf5",
@@ -246763,7 +246820,7 @@
     "src/i18n/document.rs": "ab0dbe4ae58e689cbebca9606fb6d83e60484fd75ded25027f618ce166800729",
     "src/i18n/format.rs": "2be16c98596f0d2009c1f72035f9fc867db75d0f48c583ee3eb8602d75a7f10d",
     "src/i18n/locale.rs": "ea6ecab81ef449c47b943c92aeaf5c8f7494c9a99b79c3dca280740d06240a3a",
-    "src/i18n/mod.rs": "cb15f06c65b334ea8ce9a1a6f5b936b8d827c3a90e8e46b742f2f4b48bf0b28f",
+    "src/i18n/mod.rs": "f974e39eed3d1b76c1f3c59c970df50e6ef4fc57c6b6d10ed6f174822f858d03",
     "src/i18n/plural.rs": "36727a3843c0be06745c88e469f4f619895326d95035d7729f896353ec3b56c0",
     "src/icdexclude.rs": "069c23e5cedb162ab3bd7204caca3d2c35cc5dcc4185f5e5264a5237eb41f592",
     "src/icdmanifests.rs": "c2bcea2c13b9040b29227c87c0a3390f66418634254a74e73593acdca2d75f9c",
@@ -246870,7 +246927,7 @@
     "src/tui/filter.rs": "1cc78a25046f7ade23fc40be9670f174222135a8e227ffc491aee6a0aa18db4d",
     "src/tui/finder.rs": "8385b46bca074fb0b78f37337e1495799af68364e0e982842efdd750c526fdf1",
     "src/tui/footer_errors.rs": "82ee24155f81f20adb9643c0e72e2c583e482cd665f9120878c45e329d337994",
-    "src/tui/graphics.rs": "664d47553a668bb095e85fa655b22dcd4e37b6c70cd6d186fdfd2db7949d9869",
+    "src/tui/graphics.rs": "7eda1d53938b83634297455a3d28f416f89c84c328d79cfa382c84b42b50489b",
     "src/tui/hold.rs": "9aadaa765d5e5d81d4bbfb2923988966ed65ad96bf89e0eab46ec3e996e11868",
     "src/tui/icons.rs": "085c14d17aecd28c7caf4de44c36405d01d7318512b1b33a412cabe2945c9b90",
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
@@ -246892,7 +246949,7 @@
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
     "src/tui/office.rs": "cb3a21ae2094188ce9d82e2a2fa860290948df933e63c2710e97580027448ebf",
     "src/tui/office_container.rs": "8aba9e3af621612dc7431880c6660d741bbbe7164ea4c35b03b731c05d30638a",
-    "src/tui/pane.rs": "0f39a442fca9404881ad4a037aeb9f1f5b77e12ba81954bb0a18e85f0445ef5f",
+    "src/tui/pane.rs": "4182bf3397683073caeed46ce181ba8580b04370e322db53c171f59bfcd7855e",
     "src/tui/pane_state.rs": "f53061803ba9733e51c73d80310b3cf99456f71567158700b412470be9f5d522",
     "src/tui/parity.rs": "53547e7f5f58db0cf51b01e270fc9f99161d6a69b8112aea752f3c7651dc392e",
     "src/tui/parity17.rs": "93a0e09eccf96706f4aaa705829c365ee4049764f5e65da551d7e8f13429e1be",
@@ -246921,7 +246978,7 @@
     "src/tui/wait.rs": "f54f0e8409eeb694985ecb5134a8f8a4ba179ff5a72d353d1654c2f6ddd0125a",
     "src/tui/warm.rs": "570e7ede28f3d3acbec35de19986deb31a11f25ca5552e56ea608fb8b8c2da6c",
     "src/tui/wire.rs": "13ecd5d333ff3506ae14387bd97565a00b42aaf2901fb36376eebe06d6cf3a3f",
-    "src/tui/words.rs": "8c907028d3d575cff577a2ce501700c8f383d90af4d3505f046b8f874fab2dd9",
+    "src/tui/words.rs": "f1e60cffd997147168390c5749539a88e51dd397212e750b73e3bc4a92a9cfdd",
     "src/tui/words_title.rs": "5ee3263342ec4ad8afe5fcc75b7405e6c687148444e625b20002bb2e1424e77d",
     "src/ui_logic_dg1.rs": "a4b3cb7d881e7f81ee902c71ff7e39bdf368e300f4919f9062a5780b243b9390",
     "src/ui_logic_dg1/carry.rs": "4fd4c6ed7040596c8004142763f14965a5208fdbf9c9b3e8a92231978a8cc0e8",
@@ -247122,7 +247179,7 @@
     "src/ui_logic_pv2/markdown_event.rs": "91e180e3c6f45eebbef77f196e5fc0cb6ea3342d708f0c81c7a466d36c4c0ead",
     "src/ui_logic_pv2/markdown_figure.rs": "1db54d9ef9fe6abb39df0b1f0e65a62b7732363fd3bfe07f70a4b77c9cda1ab5",
     "src/ui_logic_pv2/markdown_figure_events.rs": "a06a5c1c75cb30ba373ead717b56a9c01e2064ce973635addecf3075d93c70fb",
-    "src/ui_logic_pv2/markdown_figure_service.rs": "cb7c51a562b1180104902f14b12b9bd77c75633616dff1e1b216b064fa2eccbb",
+    "src/ui_logic_pv2/markdown_figure_service.rs": "2ad15c9e5ec3d4e5e5d756a169931b189b6fecd3aeb6d7c6293f1ca3b5e1d186",
     "src/ui_logic_pv2/markdown_figure_store.rs": "728b208071ff2d43a7ec127550e253c808115819a3f86129f1b860956b6ccea0",
     "src/ui_logic_pv2/markdown_fit.rs": "4487936b50292c220a98b82b830f038c0d226a57bc41661387e9a4ce88742a2b",
     "src/ui_logic_pv2/markdown_flow.rs": "2690ad3364710996845945b07b230b2cb5d5cce07c234b0c62c97f4198fe4b4c",
@@ -247307,7 +247364,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "b1d13e34643e3da8dcbe4a8608f7b93783fd2e74157d4536ea589d8a4d34fad7",
+    "tools/flea-file-budget": "14ef14a89aa614fc6e192fcfd4d31e4cc969f037568de6cfeb112d3f0eea4841",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -247842,13 +247899,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a8eb5338627555baabafd5b1ce22cfa7d597cc10",
-  "source_sha": "a8eb5338627555baabafd5b1ce22cfa7d597cc10",
+  "source_ref_sha": "6e67d5a624a6ca86488d87537c6710f66f8004d1",
+  "source_sha": "6e67d5a624a6ca86488d87537c6710f66f8004d1",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1285,
-      "missing_literal_candidates": 5717,
-      "source_files": 835
+      "missing_literal_candidates": 5720,
+      "source_files": 836
     },
     "generated/tooling": {
       "keys_with_occurrences": 154,
@@ -247857,8 +247914,8 @@
     },
     "gui": {
       "keys_with_occurrences": 533,
-      "missing_literal_candidates": 2114,
-      "source_files": 1132
+      "missing_literal_candidates": 2117,
+      "source_files": 1134
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

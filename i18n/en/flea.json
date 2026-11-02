@@ -2283,6 +2283,7 @@
   "tui.actions.wait_for_the_selection_to_settle_before_choosing": "Wait for the selection to settle before choosing",
   "tui.parity.tags_are_unavailable_in_this_terminal_build": "Tags are unavailable in this terminal build",
   "tui.preview.media_waiting": "Media preview is still loading",
+  "mime.markdown": "Markdown document",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
@@ -2533,6 +2534,5 @@
   "keys.tui17.sortRandom": "Shuffle files",
   "keys.tui17.suspend": "Suspend",
   "keys.tui17.wordBackward": "Previous word (field)",
-  "keys.tui17.wordForward": "Next word (field)",
-  "mime.markdown": "Markdown document"
+  "keys.tui17.wordForward": "Next word (field)"
 }
