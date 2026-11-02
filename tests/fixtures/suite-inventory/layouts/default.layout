@@ -38,3 +38,5 @@ east2 x4 suites state-compat native-runtime legacy-upgrade legacy-helpers i18n-q
 west opr-rec suites opr-recipe
 west tools suites aur-versions bench-b3-capture bench-raw-corpus-contract prove-ci-runner tool-preflight
 west slop suites slop-ratchet
+
+west m4-inventory suites bench-thumbs nvidia-gpui
