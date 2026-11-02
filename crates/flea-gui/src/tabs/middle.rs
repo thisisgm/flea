@@ -30,7 +30,14 @@ impl Shell {
         let Some(host) = self.panes.get(side).and_then(Option::as_ref) else {
             return false;
         };
-        if host.pane.busy() || host.stopped || host.pane.state.kind != crate::pane::Kind::Ready {
+        // An empty active folder can still have painted parent-folder targets in Columns.
+        if host.pane.busy()
+            || host.stopped
+            || !matches!(
+                host.pane.state.kind,
+                crate::pane::Kind::Ready | crate::pane::Kind::Empty
+            )
+        {
             return false;
         }
         let target = match host.drawn_view {
