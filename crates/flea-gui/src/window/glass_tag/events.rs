@@ -57,6 +57,13 @@ pub fn follow(inputs: crate::window::glass::Inputs) {
     }
 }
 
+/// Removes this process's Glassy rule after the application's event loop returns normally.
+pub fn stop() {
+    if let Some(tagger) = TAGGER.get() {
+        tagger.stop();
+    }
+}
+
 // The first pass covers a window already open; after that each config reload or own window opening asks again.
 fn listen(tagger: &Tagger, socket: &Path) {
     let stream = match UnixStream::connect(socket) {

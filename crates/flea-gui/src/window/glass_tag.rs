@@ -7,7 +7,7 @@ use crate::presentation::fonts::{shell_value, uncomment};
 use flea::jsondoc::{self, Json};
 use std::collections::BTreeSet;
 
-pub use events::{follow, start};
+pub use events::{follow, start, stop};
 
 /// The Hyprland tag Omarchy's transparency hotkey sets; Omarchy's own rule then draws the window at its Transparent opacity.
 pub const TAG: &str = "transparent";
@@ -202,20 +202,65 @@ pub fn lua_rule(opacity: Option<(f64, f64)>) -> String {
     }
 }
 
-/// The rule to evaluate this pass; `ruled` is None until this process evaluated it, and under Glassy that first pass disables a rule another process left on.
+// Hyprland evaluates each chunk in its existing Lua state, so ownership and rule changes cannot interleave.
+fn lua_owners(pid: u32, operation: &str) -> String {
+    format!(
+        r#"-- flea-glassy {operation} {pid}
+local owners = _G.__flea_glassy_owners or {{}}
+local live = {{}}
+for _, window in ipairs(hl.get_windows()) do
+    if window.class == "{APP_ID}" then live[window.pid] = true end
+end
+for owner in pairs(owners) do
+    if not live[owner] then owners[owner] = nil end
+end
+"#
+    )
+}
+
+/// Applies the shared rule and updates only this process's ownership; a mode switch still disables unconditionally.
+pub fn lua_owned_rule(pid: u32, opacity: Option<(f64, f64)>) -> String {
+    if opacity.is_none() {
+        return format!(
+            "{}owners[{pid}] = nil\n_G.__flea_glassy_owners = next(owners) and owners or nil\n{}",
+            lua_owners(pid, "disable"),
+            lua_rule(None)
+        );
+    }
+    format!(
+        "{}owners[{pid}] = true\n_G.__flea_glassy_owners = owners\n{}",
+        lua_owners(pid, "enable"),
+        lua_rule(opacity)
+    )
+}
+
+/// Retires this process atomically; the last owner clears the rule even when closing clients remain listed.
+pub fn lua_exit_rule(pid: u32) -> String {
+    format!(
+        "{}owners[{pid}] = nil\nif next(owners) == nil then\n    _G.__flea_glassy_owners = nil\n    {}\nelse\n    _G.__flea_glassy_owners = owners\nend",
+        lua_owners(pid, "exit"),
+        lua_rule(None)
+    )
+}
+
+/// The rule to evaluate this pass; when no opacity is wanted, the first pass clears a rule an earlier process left on.
 pub fn rule_step(
     wanted: Option<(f64, f64)>,
     windows: &[Props],
     ruled: Option<bool>,
-    glassy: bool,
 ) -> Option<Option<(f64, f64)>> {
     let Some((active, inactive)) = wanted else {
-        return (ruled == Some(true) || (glassy && ruled.is_none())).then_some(None);
+        return (ruled != Some(false)).then_some(None);
     };
     let off = |seen: f64, want: f64| seen.is_finite() && (seen - want).abs() > 1e-3;
     windows
         .iter()
-        .any(|window| off(window.opacity, active) || off(window.inactive, inactive))
+        .any(|window| {
+            // Each process confirms the shared rule once, so the last survivor owns its cleanup too.
+            (ruled.is_none() && window.opacity.is_finite() && window.inactive.is_finite())
+                || off(window.opacity, active)
+                || off(window.inactive, inactive)
+        })
         .then_some(wanted)
 }
 
