@@ -391,3 +391,6 @@ mod quick_look_interim_tests;
 
 #[cfg(test)]
 mod s4_tests;
+
+#[cfg(test)]
+mod trash_navigation_tests;

@@ -330,6 +330,7 @@ impl Shell {
     ) -> bool {
         if self.search_action(action, window, cx)
             || self.trash_action(action, window, cx)
+            || self.trash_escape(action, window, cx)
             || self.settings_action(action, window, cx)
             || self.grid_key(action, cx)
             || ((action == "escape"
