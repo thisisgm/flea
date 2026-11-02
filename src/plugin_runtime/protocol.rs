@@ -11,6 +11,21 @@ pub const MAX_SELECTION: usize = 512;
 // The one start failure plugins.invalid.start's sentence describes, so the owner names the plugin for it.
 pub const HELLO_TIMEOUT: &str = "plugin did not answer hello in time";
 pub const CONTRACT: &str = include_str!("../../docs/plugin-protocol.json");
+pub const MAX_PLACE_PATH_BYTES: usize = 4096;
+
+/// A plugin-owned location and its absolute path within that place.
+// Sample input: plugin://example.virtual-place/Photos yields ("example.virtual-place", "/Photos").
+pub fn place_path(uri: &str) -> Option<(&str, &str)> {
+    let (id, tail) = uri.strip_prefix("plugin://")?.split_once('/')?;
+    if !crate::ui_logic_st2::manifest::is_id(id)
+        || tail.len() > MAX_PLACE_PATH_BYTES
+        || tail.chars().any(char::is_control)
+        || tail.split('/').any(|p| p == "." || p == "..")
+    {
+        return None;
+    }
+    Some((id, &uri["plugin://".len() + id.len()..]))
+}
 
 pub const OPERATIONS: [(&str, &str, &str); 12] = [
     ("targets", "send-target", "targets"),

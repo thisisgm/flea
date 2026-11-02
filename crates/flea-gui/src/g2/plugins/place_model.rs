@@ -26,15 +26,7 @@ pub(super) fn number(value: impl ToString) -> Json {
     Json::Num(value.to_string())
 }
 pub(super) fn path(uri: &str) -> Option<(&str, &str)> {
-    let (id, tail) = uri.strip_prefix("plugin://")?.split_once('/')?;
-    if !flea::ui_logic_st2::manifest::is_id(id)
-        || tail.len() > super::limits::TEXT
-        || tail.chars().any(char::is_control)
-        || tail.split('/').any(|p| p == "." || p == "..")
-    {
-        return None;
-    }
-    Some((id, &uri["plugin://".len() + id.len()..]))
+    flea::plugin_runtime::protocol::place_path(uri)
 }
 
 #[derive(Clone)]

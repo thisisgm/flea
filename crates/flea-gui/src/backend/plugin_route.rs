@@ -130,7 +130,9 @@ impl Route {
         let passthrough = matches!(
             command,
             "clipGet" | "clipSet" | "clipClear" | "clipWatch" | "plugins"
-        );
+        ) || (!next.active
+            && command == "menuaction"
+            && doc.get("op").and_then(Json::as_str) == Some("validate"));
         if passthrough
             || (!next.active && !virtual_path("path") && !virtual_path("dest") && !virtual_paths)
         {
