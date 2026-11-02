@@ -158,9 +158,13 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
             view.line.borrow().run.as_ref().unwrap().line().font_size,
             view.paint.borrow().pixels(Size::Field)
         );
-        // A host without installed fonts keeps the face its caller sets, so the size change goes through Paint.
-        let face = Typeface::omarchy_default().at_base(20);
-        view.paint.borrow_mut().set_typeface(face);
+        // Launches install the fonts first; only then does the field follow the window's text size.
+        cx.set_global(crate::presentation::Fonts::from_sources(
+            "",
+            "",
+            "monospace".into(),
+        ));
+        window.set_rem_size(px(20.));
         cx.notify();
     });
     bar.host.update(bar.visual, |host, cx| {
@@ -190,10 +194,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         );
     });
     let run = bar.read(|view| view.line.borrow().run.clone().unwrap());
-    bar.update(|view, _, cx| {
+    bar.update(|_, _, cx| {
         let mut face = Typeface::omarchy_default();
         face.font.weight = gpui::FontWeight::BOLD;
-        view.paint.borrow_mut().set_typeface(face);
+        cx.set_global(face);
         cx.notify();
     });
     assert!(!Rc::ptr_eq(
