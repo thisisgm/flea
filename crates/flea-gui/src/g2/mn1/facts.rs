@@ -91,6 +91,7 @@ impl Shell {
                 != Some(false),
             open_with_loaded: background,
             clipboard_available,
+            clipboard_image_available: self.clipboard.board.image_available(),
             clipboard_watch_failed,
             can_link,
             can_trash: flea::ui_logic_pl1::mounts::trashable(&host.path, None),

@@ -1905,7 +1905,9 @@ Answers one `clip` line with `op` of `set`; see `clip` below.
 Reads the current system selection as files. Runs off the request thread, the way other
 slow reads do, because a foreign source can take up to 2 s to close its pipe. The
 owner's own token type is read first, then GNOME's copied-files shape, then the
-uri-list with KDE's cut marker; an empty or text-only selection answers `none`. Answers
+uri-list with KDE's cut marker. With no file paths, an `image/png` offer answers
+`image` without reading its bytes, including when HTML or browser types are offered
+beside it. An empty or text-only selection answers `none`. Answers
 one `clip` line with `op` of `get`; see `clip` below.
 
 ### clipClear
@@ -1938,7 +1940,8 @@ Starts the clipboard watcher: one thread holding one data-control connection, re
 every clipboard selection (never the primary one, so a text highlight changes nothing)
 as files the same way `clipGet` reads them. Idempotent; the UI sends it
 once at start and later ones answer nothing. No reply of its own: file selections arrive
-as `clip` lines with `op` of `changed`, an empty or text-only selection as `none`, and
+as `clip` lines with `op` of `changed`, a PNG offer without files as `image`, an
+empty or text-only selection as `none`, and
 two identical selections in a row emit once. No compositor or manager ends the thread
 after one `changed` `none` line carrying the error; a dropped connection reconnects at
 most once a second, at most 5 times.
@@ -2669,13 +2672,16 @@ with `inner` `refuse`.
 ### clip
 
 `{"t":"clip","op":"set","ok":<bool>,"token":<string>}`
-`{"t":"clip","op":"get","ok":<bool>,"clip":"copy"|"cut"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
+`{"t":"clip","op":"get","ok":<bool>,"clip":"copy"|"cut"|"image"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
 `{"t":"clip","op":"clear","ok":<bool>,"cleared":<bool>}`
-`{"t":"clip","op":"changed","clip":"copy"|"cut"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
+`{"t":"clip","op":"changed","clip":"copy"|"cut"|"image"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
 
 One shape for all three clipboard requests, read by `clipResult`. A refusal carries
 `ok:false` and an `error` sentence instead of the success fields. A `get` with no
-files on the clipboard answers `clip:none` with empty `paths` and `token`; `skipped`
+files on the clipboard answers `clip:image` if PNG is offered, otherwise `clip:none`,
+with empty `paths` and `token` in either case. Only file selections enable Paste As;
+`image` enables ordinary Paste, which requests the PNG bytes through `pasteimage`.
+`skipped`
 counts the offered URIs that were refused (bad escapes, NUL, relative paths, `.` or
 `..` parts, non-UTF-8, duplicates, other schemes) rather than failing the read. The
 `token` on a `get` names Flea's own copy when the selection carries it, which is what

@@ -73,6 +73,7 @@ pub enum ReadOut {
 #[derive(Default)]
 pub struct Session {
     current: Clip,
+    image_available: bool,
     current_entry: EntryHandle,
     sets: Vec<SetEntry>,
     own_tokens: HashSet<String>,
@@ -115,6 +116,10 @@ impl Session {
 
     pub fn available(&self) -> bool {
         !self.current.is_empty()
+    }
+
+    pub fn image_available(&self) -> bool {
+        self.image_available
     }
 
     pub fn pending_sets(&self) -> usize {
@@ -190,6 +195,7 @@ impl Session {
         self.generation += 1;
         self.revision += 1;
         self.current = Self::replace(clip, paths, token);
+        self.image_available = clip == "image";
         self.current_entry = EntryHandle::new(&self.current.token);
         // Another owner holds the clipboard now, so a later offer of an older own token is that owner's choice to apply; sets still in flight have no token yet and add theirs when answered.
         self.own_tokens.clear();
@@ -203,6 +209,7 @@ impl Session {
         let clip = Clip { paths, moving, token: String::new() };
         let line = clip_set_line(clip.file_op(), &clip.paths);
         self.current = clip.clone();
+        self.image_available = false;
         self.current_entry = EntryHandle::default();
         self.sets.push(SetEntry {
             backend,
@@ -313,6 +320,7 @@ impl Session {
                 self.own_tokens.clear();
             }
             self.current = Self::replace(clip, paths, token);
+            self.image_available = clip == "image";
             self.current_entry = EntryHandle::new(&self.current.token);
             self.revision += 1;
         }
@@ -352,3 +360,7 @@ impl Session {
 #[cfg(test)]
 #[path = "retention_tests.rs"]
 mod retention_tests;
+
+#[cfg(test)]
+#[path = "image_tests.rs"]
+mod image_tests;

@@ -146,6 +146,10 @@ impl Clipboard {
         self.session.available()
     }
 
+    pub fn image_available(&self) -> bool {
+        self.session.image_available()
+    }
+
     pub fn watch_failed(&self, backend: u64) -> bool {
         self.session.watch_failed(backend)
     }
