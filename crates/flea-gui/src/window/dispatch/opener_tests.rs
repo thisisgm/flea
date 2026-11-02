@@ -276,7 +276,7 @@ fn a_second_open_while_one_is_out_is_refused_out_loud(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn enter_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
+fn explicit_open_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
     let (shell, cx, _, _keep) = shell(cx);
     cx.simulate_keystrokes("f s");
     answer(
@@ -285,7 +285,12 @@ fn enter_on_a_search_result_file_opens_that_result(cx: &mut TestAppContext) {
         1,
         vec![row("sub/deep", true), row("sub/found.txt", false)],
     );
-    cx.simulate_keystrokes("enter down enter");
+    cx.simulate_keystrokes("enter down");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.input_action("open", window, cx);
+        })
+    });
     assert_eq!(
         launched(),
         ["/files/sub/found.txt"],

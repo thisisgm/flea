@@ -19,6 +19,13 @@ impl Shell {
         }
         if !owner.typing() {
             let plain = crate::window::input::modifiers(event.keystroke.modifiers) == 0;
+            if plain
+                && event.keystroke.key == "enter"
+                && self.focus.is_focused(window)
+                && self.keyboard.context == flea::keys::Context::Listing
+            {
+                return self.filter_reveal_enter(window, cx);
+            }
             if !(plain && event.keystroke.key == "escape") {
                 return false;
             }
@@ -59,7 +66,7 @@ impl Shell {
             }
             Classified::Key(key) => key,
         };
-        // Enter on the line opens a single exact match, so one keystroke after the query reaches the file.
+        // Enter on the line activates a single exact match; files reveal and folders enter.
         let single = matches!(key, LineKey::Enter)
             && owner.entry.borrow().marked.is_none()
             && owner.asked().is_none()
@@ -76,10 +83,39 @@ impl Shell {
             },
             cx,
         );
-        if single {
+        if single && !self.filter_reveal_enter(window, cx) {
             self.input_action("open", window, cx);
         }
         consumed
+    }
+
+    fn filter_reveal_enter(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        let side = self.focus_side;
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
+        if host.pane.busy() || host.stopped || host.filter.owner.asked().is_some() {
+            return true;
+        }
+        if !flea::ui_logic_sr2::cursor_shown(host.filter.shown.as_deref(), Some(host.pane.cursor))
+            || !host
+                .pane
+                .held
+                .row(host.pane.cursor)
+                .is_some_and(|row| !flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon))
+        {
+            return false;
+        }
+        self.filter_update(
+            side,
+            |filter, pane| {
+                filter.close(pane);
+                None
+            },
+            cx,
+        );
+        self.recent_reveal(side, window, cx);
+        true
     }
 
     /// A `filtered` line for this pane: the answer in force lands whole, a stale one is dropped, a broken one is a protocol error.
