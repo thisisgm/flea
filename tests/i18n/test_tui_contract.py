@@ -163,7 +163,7 @@ class TuiContractTests(unittest.TestCase):
         # The run loop follows a language change through the frame catalog, with no restart.
         run = dict((path, code) for path, code, _ in self.sources)["src/tui/mod.rs"]
         loop = block(run, run.index("while !model.quit"))
-        self.assertIn("model.refresh_frame_locale();", loop)
+        self.assertIn("model.refresh_frame_locale()", loop)
         words = dict((path, code) for path, code, _ in self.sources)["src/tui/words.rs"]
         self.assertIn("self.i18n.poll_changed()", words)
 

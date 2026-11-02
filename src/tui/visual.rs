@@ -10,7 +10,7 @@ pub fn needed(text: &str) -> bool {
 }
 
 fn control(c: char) -> bool {
-    matches!(c, '\u{2066}'..='\u{2069}' | '\u{202a}'..='\u{202e}' | '\u{200e}' | '\u{200f}' | '\u{061c}')
+    !c.is_control() && !super::safe(c)
 }
 
 // Isolate only the text, leaving its fixed column padding outside the bidi run.
@@ -18,10 +18,13 @@ pub fn run(text: &str) -> String {
     if !needed(text) {
         return text.into();
     }
+    let Some((open, close)) = super::markers(super::Run::Name) else {
+        return text.into();
+    };
     let head = text.len() - text.trim_start().len();
     let tail = text.trim_end().len();
     format!(
-        "{}\u{2068}{}\u{2069}{}",
+        "{}{open}{}{close}{}",
         &text[..head],
         percentages(&text[head..tail]),
         &text[tail..]
@@ -30,6 +33,9 @@ pub fn run(text: &str) -> String {
 
 // Sample input: "الصفحة 1 من 1 · 100%"; the numeric percentage stays left to right.
 fn percentages(text: &str) -> String {
+    let Some((open, close)) = super::markers(super::Run::Number) else {
+        return text.into();
+    };
     let mut out = String::new();
     let (mut copied, mut number) = (0, None);
     for (at, c) in text.char_indices() {
@@ -42,9 +48,9 @@ fn percentages(text: &str) -> String {
                 if let Some(first) = number {
                     let end = at + c.len_utf8();
                     out.push_str(&text[copied..first]);
-                    out.push('\u{2066}');
+                    out.push(open);
                     out.push_str(&text[first..end]);
-                    out.push('\u{2069}');
+                    out.push(close);
                     copied = end;
                 }
             }
@@ -104,8 +110,10 @@ pub fn caret(text: &str, boundary: usize) -> usize {
     if !needed(text) {
         return super::text_width(&text[..boundary]);
     }
-    let isolated = format!("\u{2068}{text}\u{2069}");
-    let boundary = boundary + '\u{2068}'.len_utf8();
+    let (isolated, boundary) = match super::markers(super::Run::Name) {
+        Some((open, close)) => (format!("{open}{text}{close}"), boundary + open.len_utf8()),
+        None => (text.to_owned(), boundary),
+    };
     let mut cells = 0;
     let mut end = 0;
     let mut base = 0;
