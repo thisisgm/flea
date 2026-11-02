@@ -200,6 +200,8 @@ impl Shell {
         let Some((spot, side, name, place)) = target else {
             self.clear_rail_aim(window, cx);
             self.say_held_drag(window, cx);
+            // Rail and file cues share one line, so a parent crumb's cue says it again with the crumb's name.
+            self.refresh_file_cue(window, cx);
             return;
         };
         let drags = cx.default_global::<Drags>();
