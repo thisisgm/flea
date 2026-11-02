@@ -5,6 +5,10 @@ use crate::{
 };
 use gpui::{Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
 
+#[cfg(test)]
+#[path = "s1_columns_tests.rs"]
+mod s1_tests;
+
 /// Menu owners consume this only after the clicked directory's own rows have committed.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BackgroundMenu {
@@ -85,7 +89,20 @@ impl Shell {
             self.keyboard.context = flea::keys::Context::Listing;
         }
         cx.stop_propagation();
-        if host.pane.busy() || !view.enabled || host.nav.gate.owned() {
+        // ColumnsArea.qml:543-546: the child column takes a background right click while its shown folder still loads.
+        // Finder rule 5 keeps the columns still, so it opens that folder's path menu as an answered child does.
+        let waiting_child = event.button == MouseButton::Right
+            && view.slot == Slot::Child
+            && row.is_none()
+            && host.columns.as_ref().is_some_and(|columns| {
+                columns.area.host.fallback_at.is_none()
+                    && columns.area.host.shown.child == view.path
+            })
+            && match &view.rows {
+                TrackRows::Peek(rows) => rows.is_empty(),
+                _ => true,
+            };
+        if host.pane.busy() || !(view.enabled || waiting_child) || host.nav.gate.owned() {
             return;
         }
         if event.button == MouseButton::Left {

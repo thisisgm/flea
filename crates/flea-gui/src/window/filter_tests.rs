@@ -214,16 +214,16 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
             .cursor),
         5
     );
-    // Escape clears marks first; another Escape closes the standing filter.
-    press(cx, handle, "escape", None, false);
-    assert_eq!(shown(cx, handle), Some(vec![3, 5, 700]));
-    edit(cx, handle, |shell, _, _| {
-        assert!(shell.panes[0].as_ref().unwrap().selected.is_empty())
-    });
+    // Focus.js:187: Escape closes the standing filter and keeps the marks; another Escape clears them.
     press(cx, handle, "escape", None, false);
     assert_eq!(shown(cx, handle), None);
     edit(cx, handle, |shell, _, _| {
-        assert!(shell.slots.strips[0].is_none())
+        assert!(shell.slots.strips[0].is_none());
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, vec![3, 5, 700]);
+    });
+    press(cx, handle, "escape", None, false);
+    edit(cx, handle, |shell, _, _| {
+        assert!(shell.panes[0].as_ref().unwrap().selected.is_empty())
     });
     frame(cx, handle);
     assert_eq!(drawn_list(cx, handle).first(), Some(&(0, 0)));

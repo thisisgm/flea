@@ -273,6 +273,7 @@ impl Element for ListElement {
                     prepared: None,
                     clip: None,
                     state: marks,
+                    bold_match: false,
                     picture: None,
                 });
                 continue;
@@ -300,7 +301,8 @@ impl Element for ListElement {
                     let shaping = super::outline::shaping(&shaping, facts, &metrics, advance.body);
                     prepare(facts, extra, &shaping, view, &layout, blank, window)
                 });
-            if marks.cursor && prepared.run.is_some() {
+            let bold_match = marks.cursor && (view.searching || !marks.selected);
+            if bold_match && prepared.run.is_some() {
                 prepared
                     .bold
                     .get_or_init(|| bold_name(&prepared, &shaping, window));
@@ -311,6 +313,7 @@ impl Element for ListElement {
                 prepared: Some(prepared),
                 clip,
                 state: marks,
+                bold_match,
                 // Row.qml dims a cut row's thumbnail with the rest of its mark.
                 picture: pictures.lend(index, facts).map(|picture| {
                     let dim = if clip == Some(ClipMark::Cut) {
@@ -433,7 +436,8 @@ impl Element for ListElement {
                         continue;
                     };
                     // At rest a match run sits on the accent wash; the cursor row draws it bold instead.
-                    let (Some((start, end)), false) = (prepared.run, s.cursor) else {
+                    let (Some((start, end)), true) = (prepared.run, s.washes_run(view.searching))
+                    else {
                         continue;
                     };
                     let line = prepared.name.line();
