@@ -21,7 +21,9 @@ pub fn mark(name: &str, size: f32, ink: Hsla) -> Div {
         canvas(
             |_, _, _| {},
             move |bounds, _, window, cx| {
-                let _ = window.paint_svg(
+                #[cfg(test)]
+                let observed = key.clone();
+                let _painted = window.paint_svg(
                     bounds,
                     key,
                     Some(data),
@@ -29,6 +31,10 @@ pub fn mark(name: &str, size: f32, ink: Hsla) -> Div {
                     ink,
                     cx,
                 );
+                #[cfg(test)]
+                if _painted.is_ok() {
+                    super::about_logo_gap64_tests::record(&observed, data, bounds, ink);
+                }
             },
         )
         .size_full(),

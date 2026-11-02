@@ -218,6 +218,16 @@
       "surface": "gui"
     },
     {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "title",
+      "line": 71,
+      "path": "crates/flea-gui/src/g2/op3/initial.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "gui"
+    },
+    {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "tr(&format!(\"dialogs.file.permissions.{who}\")),",
       "line": 56,
@@ -321,7 +331,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "scope",
-      "line": 220,
+      "line": 221,
       "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
       "pattern": null,
       "possible_keys": [],
@@ -626,7 +636,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 185,
+      "line": 202,
       "path": "crates/flea-gui/src/g2/pk1/launch.rs",
       "pattern": null,
       "possible_keys": [],
@@ -23855,7 +23865,7 @@
       "call_sites": [
         {
           "excerpt": "label: tr(\"dialogs.file.apply\"),",
-          "line": 263,
+          "line": 264,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24355,8 +24365,15 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "label: catalog.tr(\"dialogs.file.cancel\"),",
+          "line": 82,
+          "path": "crates/flea-gui/src/g2/op3/initial.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "label: i18n.tr(\"dialogs.file.cancel\"),",
-          "line": 299,
+          "line": 303,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24434,8 +24451,15 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "esc: catalog.tr(\"dialogs.file.esc\"),",
+          "line": 72,
+          "path": "crates/flea-gui/src/g2/op3/initial.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "esc: i18n.tr(\"dialogs.file.esc\"),",
-          "line": 293,
+          "line": 297,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24449,7 +24473,7 @@
         },
         {
           "excerpt": "esc: tr(\"dialogs.file.esc\"),",
-          "line": 256,
+          "line": 257,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24558,7 +24582,7 @@
         },
         {
           "excerpt": "let unlisted = self.locale.catalog.tr(\"dialogs.file.open.unlisted\");",
-          "line": 45,
+          "line": 49,
           "path": "crates/flea-gui/src/window/open_with.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24648,7 +24672,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr(\"dialogs.file.openwith.default\")",
-          "line": 370,
+          "line": 374,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24670,14 +24694,14 @@
       "call_sites": [
         {
           "excerpt": "Some(\"snapshot\") => self.error = Some(i18n.tr(\"dialogs.file.openwith.list_failed\")),",
-          "line": 211,
+          "line": 215,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(\"applications\") => self.error = Some(i18n.tr(\"dialogs.file.openwith.list_failed\")),",
-          "line": 222,
+          "line": 226,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24723,7 +24747,7 @@
       "call_sites": [
         {
           "excerpt": "label: i18n.tr(\"dialogs.file.openwith.open\"),",
-          "line": 305,
+          "line": 309,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24752,14 +24776,14 @@
         },
         {
           "excerpt": "self.error = Some(i18n.tr(\"dialogs.file.openwith.open_failed\"));",
-          "line": 227,
+          "line": 231,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".unwrap_or_else(|| self.locale.catalog.tr(\"dialogs.file.openwith.open_failed\"));",
-          "line": 152,
+          "line": 158,
           "path": "crates/flea-gui/src/window/open_with.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24781,7 +24805,7 @@
       "call_sites": [
         {
           "excerpt": "text: i18n.tr(\"dialogs.file.openwith.opening\"),",
-          "line": 284,
+          "line": 288,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24827,7 +24851,7 @@
       "call_sites": [
         {
           "excerpt": "placeholder: i18n.tr(\"dialogs.file.openwith.search\"),",
-          "line": 241,
+          "line": 245,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24872,6 +24896,13 @@
     "dialogs.file.openwith.title_plain": {
       "call_sites": [
         {
+          "excerpt": "\"dialogs.file.openwith.title_plain\",",
+          "line": 17,
+          "path": "crates/flea-gui/src/window/open_with_initial.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "i18n.tr(\"dialogs.file.openwith.title_plain\")",
           "line": 145,
           "path": "src/ui_logic_op3/openwith.rs",
@@ -24895,7 +24926,7 @@
       "call_sites": [
         {
           "excerpt": "text: i18n.tr(\"dialogs.file.openwith.undo_note\"),",
-          "line": 270,
+          "line": 274,
           "path": "crates/flea-gui/src/g2/op3/openwith.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24939,7 +24970,7 @@
       "call_sites": [
         {
           "excerpt": "text: tr(\"dialogs.file.permissions.applying\"),",
-          "line": 239,
+          "line": 240,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -25450,7 +25481,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.file.permissions.gid\",",
-          "line": 199,
+          "line": 200,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -25525,7 +25556,7 @@
       "call_sites": [
         {
           "excerpt": "label: tr(\"dialogs.file.permissions.group\"),",
-          "line": 196,
+          "line": 197,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -25984,7 +26015,7 @@
       "call_sites": [
         {
           "excerpt": "tr(\"dialogs.file.permissions.kind_file\")",
-          "line": 142,
+          "line": 143,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26057,7 +26088,7 @@
       "call_sites": [
         {
           "excerpt": "tr(\"dialogs.file.permissions.kind_folder\")",
-          "line": 140,
+          "line": 141,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26385,7 +26416,7 @@
       "call_sites": [
         {
           "excerpt": "body.push(Self::note(tr(\"dialogs.file.permissions.mixed\")));",
-          "line": 131,
+          "line": 132,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26534,7 +26565,7 @@
       "call_sites": [
         {
           "excerpt": "label: Some(tr(\"dialogs.file.permissions.octal\")),",
-          "line": 161,
+          "line": 162,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26607,7 +26638,7 @@
       "call_sites": [
         {
           "excerpt": "text: tr(\"dialogs.file.permissions.octal_invalid\"),",
-          "line": 227,
+          "line": 228,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26680,7 +26711,7 @@
       "call_sites": [
         {
           "excerpt": "label: tr(\"dialogs.file.permissions.owner\"),",
-          "line": 188,
+          "line": 189,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26753,7 +26784,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"dialogs.file.permissions.path\", &[&self.held.path]),",
-          "line": 219,
+          "line": 220,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26901,14 +26932,14 @@
       "call_sites": [
         {
           "excerpt": "value: i18n.tr_args(\"dialogs.file.permissions.read_only\", &[&owner]),",
-          "line": 189,
+          "line": 190,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "value: i18n.tr_args(\"dialogs.file.permissions.read_only\", &[&group]),",
-          "line": 197,
+          "line": 198,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -26982,13 +27013,6 @@
     "dialogs.file.permissions.reading": {
       "call_sites": [
         {
-          "excerpt": "text: tr(\"dialogs.file.permissions.reading\"),",
-          "line": 121,
-          "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
-          "surface": "gui",
-          "usage": "translated-call"
-        },
-        {
           "coverage": "needs-owner-verification",
           "excerpt": "tr(&format!(\"dialogs.file.permissions.{who}\")),",
           "line": 56,
@@ -27041,7 +27065,7 @@
         }
       ],
       "context": "dialogs.file.permissions.reading: crates/flea-gui/src/g2/op3/permissions/draw.rs:120",
-      "coverage": "existing-translated-call",
+      "coverage": "occurrence-needs-owner-verification",
       "english": "Reading permissions…",
       "kind": "text",
       "omarchy_reference": null,
@@ -27056,7 +27080,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"dialogs.file.permissions.requested\", &[&self.text]),",
-          "line": 218,
+          "line": 219,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -27131,7 +27155,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.file.permissions.scope_folder\"",
-          "line": 155,
+          "line": 156,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -27204,7 +27228,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.file.permissions.scope_folder_note\",",
-          "line": 207,
+          "line": 208,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -27277,7 +27301,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.file.permissions.scope_item\"",
-          "line": 157,
+          "line": 158,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -27502,6 +27526,13 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "\"dialogs.file.permissions.title\",",
+          "line": 123,
+          "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "coverage": "needs-owner-verification",
           "excerpt": "tr(&format!(\"dialogs.file.permissions.{who}\")),",
           "line": 56,
@@ -27653,7 +27684,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.file.permissions.uid\",",
-          "line": 191,
+          "line": 192,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -27728,14 +27759,14 @@
       "call_sites": [
         {
           "excerpt": "tr(\"dialogs.file.permissions.unknown\")",
-          "line": 145,
+          "line": 146,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "tr(\"dialogs.file.permissions.unknown\")",
-          "line": 150,
+          "line": 151,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -27808,7 +27839,7 @@
       "call_sites": [
         {
           "excerpt": "head: tr(\"dialogs.file.permissions.will_change\"),",
-          "line": 216,
+          "line": 217,
           "path": "crates/flea-gui/src/g2/op3/permissions/draw.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -28774,6 +28805,13 @@
           "path": "crates/flea-gui/src/g2/op3/properties.rs",
           "surface": "gui",
           "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"dialogs.file.properties.title\",",
+          "line": 228,
+          "path": "crates/flea-gui/src/window/properties.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
         }
       ],
       "context": "dialogs.file.properties.title: crates/flea-gui/src/g2/op3/properties.rs:187",
@@ -28833,6 +28871,13 @@
     },
     "dialogs.file.properties.working": {
       "call_sites": [
+        {
+          "excerpt": "text: catalog.tr(\"dialogs.file.properties.working\"),",
+          "line": 76,
+          "path": "crates/flea-gui/src/g2/op3/initial.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
         {
           "excerpt": "text: i18n.tr(\"dialogs.file.properties.working\"),",
           "line": 167,
@@ -60667,7 +60712,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"ipc.start_failed\", &[&error.to_string()])",
-          "line": 197,
+          "line": 231,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -80720,7 +80765,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(\"picker.portal.no_reply\");",
-          "line": 39,
+          "line": 56,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -80742,7 +80787,7 @@
       "call_sites": [
         {
           "excerpt": ".ok_or(\"picker.portal.no_request\")?;",
-          "line": 37,
+          "line": 54,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -105055,7 +105100,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 254,
+          "line": 264,
           "path": "crates/flea-gui/src/window/open_with.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -105069,7 +105114,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 185,
+          "line": 195,
           "path": "crates/flea-gui/src/window/properties.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -105419,8 +105464,8 @@
     "window.open_failed": {
       "call_sites": [
         {
-          "excerpt": "locale.catalog.tr_args(\"window.open_failed\", &[&error])",
-          "line": 251,
+          "excerpt": "catalog.tr_args(\"window.open_failed\", &[&error])",
+          "line": 29,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -109300,7 +109345,7 @@
     },
     {
       "excerpt": "if reply.get(\"cancelled\").and_then(Json::as_bool) != Some(true) {",
-      "line": 226,
+      "line": 230,
       "literal": "cancelled",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op3/openwith.rs",
@@ -109885,7 +109930,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the chooser's rounding reader for {shown} did not start: {error}\")",
-      "line": 99,
+      "line": 116,
       "literal": "flea: the chooser's rounding reader for {shown} did not start: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pk1/launch.rs",
@@ -123745,7 +123790,7 @@
     },
     {
       "excerpt": "if field(\"ok\") != Some(true) && field(\"cancelled\") != Some(true) {",
-      "line": 147,
+      "line": 153,
       "literal": "cancelled",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/open_with.rs",
@@ -123753,8 +123798,8 @@
       "surface": "gui"
     },
     {
-      "excerpt": "let effects = self.open_with.as_mut().expect(\"an open card\").card.key(key);",
-      "line": 215,
+      "excerpt": "let open = self.open_with.as_mut().expect(\"an open card\");",
+      "line": 221,
       "literal": "an open card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/open_with.rs",
@@ -123817,7 +123862,7 @@
     },
     {
       "excerpt": ".expect(\"an open card\")",
-      "line": 159,
+      "line": 169,
       "literal": "an open card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/properties.rs",
@@ -123826,7 +123871,7 @@
     },
     {
       "excerpt": ".expect(\"an open card\")",
-      "line": 232,
+      "line": 253,
       "literal": "an open card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/properties.rs",
@@ -244563,8 +244608,8 @@
     "crates/flea-gui/src/dual/selection.rs": "d1dc1fd6d2c04c68bad53b2deb3fc431b38d5448001969205b06261d65b64158",
     "crates/flea-gui/src/dual/session.rs": "73ea22c584555e2071ee0ed802f61afd883d2f25fbf96a4272ca0cb40186ed6d",
     "crates/flea-gui/src/dual/window.rs": "4e10d2a1031db2cb14b373169e50e585e59710fc7e2b534be1604485f71163f5",
-    "crates/flea-gui/src/feedback.rs": "07eaa749007fa91c6c00bb486a9d8ff43c894b6d9d80b7cdec71392889d55bdf",
-    "crates/flea-gui/src/feedback/spinner.rs": "f3d57dfda5e3374a6b596390a5a69b1adbb843f678e35bf30db6fe882256076c",
+    "crates/flea-gui/src/feedback.rs": "75fb5c0b66ae3e39533d29ce6e7ff2f8bada4cdb77705f454f7f8b2c6d99d01e",
+    "crates/flea-gui/src/feedback/spinner.rs": "42452b0e4fb59bf18faaa2188f7d80b3b5cb3780cae41e6a4717af8e6d195786",
     "crates/flea-gui/src/feedback/spinner_player.rs": "6bb2e0246bed3672b46c5b296a8b1bf7eb5cf2e57455ce2b94b8eeec869d8b4e",
     "crates/flea-gui/src/font_gate.rs": "ad607ca5b9dae4b047c82a47a079d3ff9aaf34fad71a477945f19ebc52fc6ce6",
     "crates/flea-gui/src/font_gate/dialogs.rs": "7a0141f810ccc7c2c61dd11e6e6326305a99895e71f7887be16fc6f5f2ee4008",
@@ -244735,13 +244780,14 @@
     "crates/flea-gui/src/g2/op2/keys.rs": "b023ed7dec50cdae88f020dadd202b796ab6758eb60bfc17f81a1a3721c66cab",
     "crates/flea-gui/src/g2/op2/mod.rs": "3c8a497537973c77d0b4d3c695c2e4bb97374a8499837778d6e02d3ba02de1aa",
     "crates/flea-gui/src/g2/op3/bulkrename.rs": "ce20e5562a6b739360e6a88965545d67fa88b01947befd01b3cbeb7f240d386d",
+    "crates/flea-gui/src/g2/op3/initial.rs": "1fb99848043b014d2dba72eea4ff02b09bcb6914f7675fbdbda2c16fa710bf4e",
     "crates/flea-gui/src/g2/op3/keys.rs": "a6b17b7d91d4b2c2f2f149a96245e86fda54ba3d580366b579ac0c74d8e40146",
     "crates/flea-gui/src/g2/op3/lane.rs": "770307a24270bc62f49da0f1fb8a0e0f1aee0ec303365f724a728e3ecdab0790",
-    "crates/flea-gui/src/g2/op3/mod.rs": "7091ae3c02a187422daccfe7a6f7e0b4b82ee49b25d78de758e3143bba7ddd1a",
-    "crates/flea-gui/src/g2/op3/openwith.rs": "7bd0fa9e30ea897744c86dae7134d1e1eed4c3b5d006b88533a5d67fae87ec4e",
+    "crates/flea-gui/src/g2/op3/mod.rs": "db1756d6a4433cd501b4217548daa9cf6c162945429aef219767c66aab3c0424",
+    "crates/flea-gui/src/g2/op3/openwith.rs": "ca4272d2a160c48d52c2d4ca753dc47a57ad1002e8ea4538cafc5e81b2c36457",
     "crates/flea-gui/src/g2/op3/openwith_pointer.rs": "25717fe096af6136faf7f8677595b40e1f8c28aedd9ea87f0c0664956db0e606",
     "crates/flea-gui/src/g2/op3/permissions.rs": "7cb59933235de829db5706c2b55db7e69c7ea7e7d175703d2bd356bffa4f9341",
-    "crates/flea-gui/src/g2/op3/permissions/draw.rs": "c60e3204cbf9d050b78a8e07d214175e0093fb84b3e5d0e800c4dc3fec0d9664",
+    "crates/flea-gui/src/g2/op3/permissions/draw.rs": "1d4baf9648c0b4f7fe29299890ee345698f03c85577ce16702f20540ab063a48",
     "crates/flea-gui/src/g2/op3/permissions/host.rs": "ca98b27b35318b0a223653255771d969c5e3c60b2fdc491ca1fbaffd6f3151de",
     "crates/flea-gui/src/g2/op3/permissions/host/editor.rs": "621a36b0f7b58892948d5abbb28284eb19a31632f85a57df96b0ef96c938ba9e",
     "crates/flea-gui/src/g2/op3/permissions/painted.rs": "517556c3ac8b274c1fc25826135156593a5e02ebcdcb667bdbe84e6e5b010994",
@@ -244805,7 +244851,7 @@
     "crates/flea-gui/src/g2/pk1/jump.rs": "8c007ab74d9b52a3ce557bdc7fbf011e4ff08f5b6e18bfee35274ee3afcb4a82",
     "crates/flea-gui/src/g2/pk1/keys.rs": "cf6f26534309043c430463b08b8b76f5907b5456ec46ffd8b2c8845c986200f5",
     "crates/flea-gui/src/g2/pk1/labels.rs": "9900b3885dbb462e355d142ef43265b44c6e0c1ad373f3f9eb843f263964d0d3",
-    "crates/flea-gui/src/g2/pk1/launch.rs": "9237b912559438ba1b47cd50891b52fe2a1aa80b745738bb1d5bdd346783c81f",
+    "crates/flea-gui/src/g2/pk1/launch.rs": "7881421e59c38cdd804beb4ed21a5bf666d927c08c0b0ffab73e1fd87f86d104",
     "crates/flea-gui/src/g2/pk1/mod.rs": "841ee491e34d922466895981c3fa147b045a1cd1c74ce4d33b728f6651026688",
     "crates/flea-gui/src/g2/pk1/navigation.rs": "e7f70afa026ba6250034d9a07541aebd1403349d220b9ff7b91994d1bef43f2a",
     "crates/flea-gui/src/g2/pk1/network.rs": "66d092134d2cbcff09ff58f5f3d2b96b4f92cfa2a8cdd544689e43d88afd7c2a",
@@ -245119,8 +245165,8 @@
     "crates/flea-gui/src/g2/st1/draw/user_keys.rs": "3627dd3b546f8eaef4639a6b82acf1dee8e13325cccd0635ab999d6b0130701d",
     "crates/flea-gui/src/g2/st1/geometry.rs": "3aaf122a0fe8eae2d3458ed2ea21a8730b02d840cf9594f84b18b3086fe13f33",
     "crates/flea-gui/src/g2/st1/glyphs.rs": "68b61f292db22cbfda5d3a023c43fd922408e7edde5c7bb4d0ddcf8fa6c2365f",
-    "crates/flea-gui/src/g2/st1/marks.rs": "596f14669f4a6a591e757812aa8cf6bd84e32054c65c9ba6b7ceaee27be54390",
-    "crates/flea-gui/src/g2/st1/mod.rs": "2a0268ed8b208b43a8ef0886feae4f30555dced25bf61fbefee63f1e7fc90857",
+    "crates/flea-gui/src/g2/st1/marks.rs": "d9654859fc2c41a3cc343b0b3c15fcb85ea920a03f1fa6fe7cd95c52475d570d",
+    "crates/flea-gui/src/g2/st1/mod.rs": "33087ac5c2a953337739edb95fe9fc3e0b315fdaca31abddf2c96cc13dab87d2",
     "crates/flea-gui/src/g2/st1/panel.rs": "74ee5bb6285d1004bf6d63e84d9962c3830b65ec9abd72ed6b0b0ffdab491a89",
     "crates/flea-gui/src/g2/st1/panel/scroll.rs": "6c87253c4f63c6d4d198acb9d2099a974f51a7a0988ee887b12727faaa88a0d2",
     "crates/flea-gui/src/g2/st1/panel/search_keys.rs": "99e4fcde4c7bbf653d79aa268f616ab2f2a8f08a6d280cb625c942aafb016e70",
@@ -245362,7 +245408,7 @@
     "crates/flea-gui/src/rail/rename.rs": "96c11ab8a166a26b84de01cf0f51c0d3f2667aea1a4dcfb63cfd517d7cd3030e",
     "crates/flea-gui/src/rail/rows.rs": "669491728de7ce89f81b96d1e3426b4237740cafe999a2e623168b8a57c99467",
     "crates/flea-gui/src/rail/text.rs": "7c6f8a46d44db6fbd3691b4bf234451e97da436ad044894e90137612473a750d",
-    "crates/flea-gui/src/renderer.rs": "3d4c16070bcfb69c4da413e1670173fecbc24bab006190f79cea1871bfa01c9a",
+    "crates/flea-gui/src/renderer.rs": "9c61f1a5b58663b9422234c7931ae20d41833297935b95820d14890de7aa1c7c",
     "crates/flea-gui/src/reveal.rs": "f0255849bed3667ce28b6f30dad44d21fba62e207c7d85e23a938a6eca10c6b7",
     "crates/flea-gui/src/row.rs": "794a44eaad70063ab030e0f9a3c0a56b72c1d55ee7723a28864c868a6f3af7e4",
     "crates/flea-gui/src/row/cache.rs": "27243444c6e2dc18aa5756eefa8bfbea62a9fe0e2070bc7ffd76ec7513c73f42",
@@ -245420,7 +245466,7 @@
     "crates/flea-gui/src/window/columns_gestures.rs": "d28d9634e2cb90f328114168103bee3c4261e32a33718edbbd47d555947af7e0",
     "crates/flea-gui/src/window/columns_input.rs": "b0872f5d6ef68275f2227decad73dfa151a7db4ae506c01dc3b53d2552363576",
     "crates/flea-gui/src/window/columns_keys.rs": "ffea44c34d179a0f43f0c17697b39217a30d36d6367bd3a51cd5d2953b113930",
-    "crates/flea-gui/src/window/columns_loading.rs": "7abb63c060082d43a9dcfc3484f5f2cd4e3d71d733c9f5d0100143df827d96ec",
+    "crates/flea-gui/src/window/columns_loading.rs": "871281cefd86596d87fbeade2ebc4e428b58b6545b82c512f83c35fe43f3a349",
     "crates/flea-gui/src/window/columns_menu.rs": "1b35f059aaf0cea6021ecd36b2d47dd4bb5bb581e4400f95cf815749b6b09c51",
     "crates/flea-gui/src/window/columns_readers.rs": "dbe7a52c13e98f5188cf70cbd9b62ea086f4ad7a8aa4a76a73ebc41b039c5366",
     "crates/flea-gui/src/window/columns_render.rs": "83a83a6edd41978142c48c6ef8211ea2d670185837ad1a70a28d5d07a5beb5c2",
@@ -245515,7 +245561,8 @@
     "crates/flea-gui/src/window/network_path.rs": "82a6516a015e3a817b37b94752deffe741427137cbd5194573875e6736ab5676",
     "crates/flea-gui/src/window/network_rows.rs": "0d1cd411beeccc6df114d490f4fcaeb8f0f1751380f7bbd22bec8e829d78e9cc",
     "crates/flea-gui/src/window/network_section.rs": "ebfdd659b3d83e75e6a0d4ccb4e3e8399f2a6bf6583362a55b558e07cd0a7f1d",
-    "crates/flea-gui/src/window/open_with.rs": "beb85acdecf90e1051394f5b315fc4a84aa95c53a2258b880a17e7ddcf228582",
+    "crates/flea-gui/src/window/open_with.rs": "5f4d809a267f185894e0cd2b24b97d6af1aba3fb1943f444c9c9b17e52c875f9",
+    "crates/flea-gui/src/window/open_with_initial.rs": "3f9d8837e11ddc8b303b43a4481828c89873a07b7e9715192586a4e371d0958c",
     "crates/flea-gui/src/window/outline.rs": "962431488873294ced1f511e9dfacd8503a63d5ec1f3a3705a0f4228a1736f97",
     "crates/flea-gui/src/window/output.rs": "7671e9f247a32c6276cb39d7352d34741606797eb23b15b6fb21bd54b1beb75c",
     "crates/flea-gui/src/window/output_effects.rs": "a79a6e130e990c7fb8124c91af32d946f84bc0c65ed42b3d152c99bef53b6a6b",
@@ -245529,7 +245576,7 @@
     "crates/flea-gui/src/window/preview_facts.rs": "ddadbd7c434fcdbb9e768be0c6caef144ad21745c67e1284007379c86c464874",
     "crates/flea-gui/src/window/preview_input.rs": "de71ecadc1195aef61fba0fb580f79c889d47e42939d24622ac0acaddcb82282",
     "crates/flea-gui/src/window/preview_text_selection.rs": "6e75c887043f5e5f0e28feb1991390857e07b16b368b4b43d37cb02ab64601bf",
-    "crates/flea-gui/src/window/properties.rs": "af083ef75061903851f0708581cae6ea06cf404a20c90464b2db33a775f4a3b2",
+    "crates/flea-gui/src/window/properties.rs": "d4ae5705ae4577b51813e9f1c8decf01721800561ca6f31b001527c9366a4490",
     "crates/flea-gui/src/window/quick_look.rs": "4e1a5dc533c2c83932f2fdadd24db0b3305f698c01af90d5a9bd19e23ac5d6d1",
     "crates/flea-gui/src/window/quick_look_compare.rs": "03bce4ae8b1ca93bf410d5a43ad4e8480ddc55b51e5a5fa9de9efb69799270d4",
     "crates/flea-gui/src/window/quick_look_docs.rs": "4fcc3f5645b6cc4017eab9505c7f30ed8f453e9a672a2023adf110492bfc45d3",
@@ -245559,7 +245606,7 @@
     "crates/flea-gui/src/window/rename_slow.rs": "b14e6dba20ce84e6f6895ccdb2b838a7eaeea21ec204eb8c6d855e2cb5edf5b4",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
     "crates/flea-gui/src/window/rename_target.rs": "e47acf0856985b2c84cdc20be6a6c01e3cddb5d6e84aa72b5586ee2f07005b5b",
-    "crates/flea-gui/src/window/render.rs": "eb066f3a9ee8795e6a816fd13c1e0af8e65e6624327deee56c12c585a613f2ff",
+    "crates/flea-gui/src/window/render.rs": "bf56e5aac4a3430754ce537ce0c5d2bafb278942e0720757961947ef88025f46",
     "crates/flea-gui/src/window/render_footer.rs": "535512763259b18ef9b608661e5ab91da6e673596ad404ff950d50c300d27275",
     "crates/flea-gui/src/window/retry.rs": "bcfd9b57c8b6b497e83a9bb9d2119f0638ebc16638b4e08ce301cfb2551d758e",
     "crates/flea-gui/src/window/root.rs": "b73cc5e84e193eacef4dbd86666e88e9cf0ebbe2a1b40b735e184ff68c10048a",
@@ -247109,8 +247156,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "22abeeea8e517a054322d124185c8731ecaa265d",
-  "source_sha": "22abeeea8e517a054322d124185c8731ecaa265d",
+  "source_ref_sha": "00b145dc6d777b7bfb177e3c15ec8ae761ecde87",
+  "source_sha": "00b145dc6d777b7bfb177e3c15ec8ae761ecde87",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247123,9 +247170,9 @@
       "source_files": 156
     },
     "gui": {
-      "keys_with_occurrences": 529,
+      "keys_with_occurrences": 530,
       "missing_literal_candidates": 2094,
-      "source_files": 1109
+      "source_files": 1111
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

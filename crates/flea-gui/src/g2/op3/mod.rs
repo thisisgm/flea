@@ -11,6 +11,7 @@ mod fixcards_tests;
 pub mod keys;
 pub mod lane;
 pub mod openwith;
+pub(crate) mod initial;
 pub mod permissions;
 #[cfg(test)]
 mod permissions_tests;

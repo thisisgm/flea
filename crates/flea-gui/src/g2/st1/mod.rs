@@ -4,6 +4,8 @@ mod board_strings;
 #[cfg(test)]
 mod board_tests;
 pub mod claim;
+#[cfg(test)]
+mod about_logo_gap64_tests;
 mod draw;
 pub mod geometry;
 #[cfg(test)]

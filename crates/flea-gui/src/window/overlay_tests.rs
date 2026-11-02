@@ -16,6 +16,9 @@ use gpui::{
 };
 use std::sync::Arc;
 
+#[path = "gap64_overlay_tests.rs"]
+mod gap64;
+
 fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Root> {
     cx.add_window(|_, cx| {
         let shell = cx.new(|cx| shell_with(backend, cx));

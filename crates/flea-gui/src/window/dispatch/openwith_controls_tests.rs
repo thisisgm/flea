@@ -7,6 +7,9 @@ use gpui::{Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 const APPS: &str = r#"{"id":"a.desktop","label":"A","icon":"","default":true},{"id":"b.desktop","label":"B","icon":"","default":false}"#;
 
+#[path = "gap64_initial_tests.rs"]
+mod gap64;
+
 type Recorder = Box<dyn FnMut() -> Vec<String>>;
 
 pub(super) fn prepared<'a>(

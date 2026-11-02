@@ -116,6 +116,7 @@ fn ipc_readers3_open_with_card_reports_its_model_and_its_painted_parts(cx: &mut 
             id: 1,
             card,
             frame: Default::default(),
+            initial: Default::default(),
         });
     });
     // The design CI tabs through these controls; every field the reader does not send is named, so a probe that reads one fails on its name.
@@ -169,6 +170,7 @@ fn uish_open_with_card_reports_v0312_model_facts(cx: &mut TestAppContext) {
             id: 1,
             card,
             frame: Default::default(),
+            initial: Default::default(),
         });
     });
     // ui/Ipc.qml openWithState's model fields, in its names and row shapes, before the painted parts.

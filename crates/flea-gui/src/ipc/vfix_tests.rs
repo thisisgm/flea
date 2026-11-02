@@ -43,11 +43,18 @@ fn vf_readers_permissions_mounted_card_is_observable(cx: &mut TestAppContext) {
         .unwrap()
         .is_empty());
     let controls = state.get("controls").and_then(Json::as_array).unwrap();
-    for name in ["Cancel", "Apply"] {
+    let visible: Vec<_> = controls
+        .iter()
+        .filter(|control| control.get("visible").and_then(Json::as_bool) == Some(true))
+        .map(|control| control.get("name").and_then(Json::as_str).unwrap())
+        .collect();
+    assert_eq!(visible, ["Cancel"], "the loading card only offers Cancel");
+    {
         let button = controls
             .iter()
-            .find(|control| control.get("name").and_then(Json::as_str) == Some(name))
+            .find(|control| control.get("name").and_then(Json::as_str) == Some("Cancel"))
             .unwrap();
+        assert_eq!(button.get("name").and_then(Json::as_str), Some("Cancel"));
         assert_eq!(button.get("visible").and_then(Json::as_bool), Some(true));
         assert_eq!(
             button
@@ -91,6 +98,11 @@ fn vf_readers_properties_reports_its_mounted_card(cx: &mut TestAppContext) {
         state.get("action").and_then(Json::as_str),
         Some("properties")
     );
+    assert!(state.get("rect").and_then(Json::as_str).unwrap().is_empty());
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(150));
+    VisualTestContext::from_window(handle.into(), cx).run_until_parked();
+    let state = json(cx, handle, "menuDialogState");
     assert!(!state.get("rect").and_then(Json::as_str).unwrap().is_empty());
     let (card, body) = update(cx, handle, |shell, _, _| {
         let probe = &shell.properties.as_ref().unwrap().probe.probe;

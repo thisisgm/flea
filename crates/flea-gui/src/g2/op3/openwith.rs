@@ -88,6 +88,10 @@ impl OpenWith {
         logic::applications(&self.rows)
     }
 
+    pub(crate) fn ready(&self) -> bool {
+        self.catalogue.is_some() || self.error.is_some()
+    }
+
     fn refilter(&mut self) {
         self.rows = self
             .catalogue

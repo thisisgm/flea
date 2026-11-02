@@ -10,6 +10,9 @@ use crate::{
 };
 use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Window};
 
+#[path = "open_with_initial.rs"]
+mod initial;
+
 /// The open card, the side that asked for it, and the menuaction id its snapshot and requests carry.
 pub(crate) struct Open {
     pub(crate) side: usize,
@@ -17,6 +20,7 @@ pub(crate) struct Open {
     pub(crate) card: OpenWith,
     /// The parts the card painted last, which openWithState reports.
     pub(crate) frame: crate::g2::op1::measured::Frame,
+    pub(crate) initial: crate::g2::op3::initial::Initial,
 }
 
 impl Shell {
@@ -66,6 +70,7 @@ impl Shell {
                     id: target.id,
                     card: OpenWith::open(target.id, &row.name),
                     frame: Default::default(),
+                    initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
                 });
             }
             return true;
@@ -109,6 +114,7 @@ impl Shell {
             id,
             card: OpenWith::open(id, name),
             frame: Default::default(),
+            initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
         });
         cx.notify();
     }
@@ -212,7 +218,11 @@ impl Shell {
             return true;
         };
         let _ = window;
-        let effects = self.open_with.as_mut().expect("an open card").card.key(key);
+        let open = self.open_with.as_mut().expect("an open card");
+        let Some(key) = open.initial.key(key) else {
+            return true;
+        };
+        let effects = open.card.key(key);
         self.open_with_effects(effects, cx);
         true
     }
@@ -279,13 +289,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        let card = self.initial_open_with_card(cx)?;
         let open = self.open_with.as_ref()?;
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let card = open.card.card(&self.locale.catalog);
         let icons = card
             .body
             .iter()
