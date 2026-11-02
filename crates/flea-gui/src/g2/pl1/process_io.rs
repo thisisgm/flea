@@ -153,7 +153,7 @@ pub(super) fn read_ready(pipes: &mut [Pipe; 2], input: &mut Option<Input>) {
 mod tests {
     use super::*;
     use std::io::Write;
-    use std::os::unix::net::UnixStream;
+    use std::os::unix::net::{UnixDatagram, UnixStream};
 
     #[test]
     fn sol_pl1_drain_final_snapshot_keeps_both_already_buffered_streams() {
@@ -188,19 +188,14 @@ mod tests {
     }
 
     #[test]
-    fn sol_pl1_drain_final_snapshot_ends_on_its_budget_against_an_endless_source() {
-        // /dev/zero never runs dry and refuses FIONREAD, so only the OUTPUT_CAP budget ends the drain.
-        let zero = File::open("/dev/zero").unwrap();
-        let (done, finished) = std::sync::mpsc::channel();
-        thread::spawn(move || {
-            let mut pipes = [
-                Pipe::new(Some(zero)).unwrap(),
-                Pipe::new(None::<OwnedFd>).unwrap(),
-            ];
-            drain_buffered(&mut pipes);
-            let _ = done.send(pipes[0].kept.len());
-        });
-        let kept = finished.recv_timeout(Duration::from_secs(3));
-        assert_eq!(kept, Ok(OUTPUT_CAP), "the drain did not end on its budget");
+    fn sol_pl1_drain_final_snapshot_reads_only_what_fionread_reported() {
+        // A datagram socket's FIONREAD counts only its first datagram, so a drain past the snapshot reads the second.
+        let (out, writer) = UnixDatagram::pair().unwrap();
+        writer.send(b"first").unwrap();
+        writer.send(b"second").unwrap();
+        let err = Pipe::new(None::<OwnedFd>).unwrap();
+        let mut pipes = [Pipe::new(Some(out)).unwrap(), err];
+        drain_buffered(&mut pipes);
+        assert_eq!(pipes[0].kept, b"first");
     }
 }
