@@ -356,6 +356,20 @@ pub(super) fn wrap_saved(view: &View, settings: &flea::jsondoc::Json, cx: &mut g
     }
 }
 
+/// Read the live choice before a mount replaces it; a closed card starts a fresh session.
+pub(super) fn remember_markdown(host: &mut super::Host, cx: &gpui::App) {
+    let look = host.view.read(cx);
+    if !look.is_open() {
+        host.markdown_view = Default::default();
+    } else if let Some(View::Markdown(view)) = look
+        .subject()
+        .and_then(|subject| subject.body.doc())
+        .map(|doc| &doc.view)
+    {
+        host.markdown_view = view.read(cx).view;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
