@@ -7,6 +7,9 @@ use std::time::{Duration, Instant};
 
 const DEADLINE: Duration = Duration::from_millis(300);
 
+/// Several of the runner's 5 ms polls, so it has seen the leader exit before the test cancels.
+const RUNNER_SEES_EXIT: Duration = Duration::from_millis(25);
+
 fn start(code: &str) -> Handle {
     start_job(Job::plain(&["python3", "-c", code]))
 }
@@ -99,6 +102,7 @@ os._exit(0)
         );
         std::thread::sleep(Duration::from_millis(1));
     }
+    std::thread::sleep(RUNNER_SEES_EXIT);
     assert!(
         handle.events.try_recv().is_err(),
         "drain ended before cancel"

@@ -186,4 +186,21 @@ mod tests {
         rest.read_to_end(&mut unread).unwrap();
         assert_eq!(unread, b"fered past the cap");
     }
+
+    #[test]
+    fn sol_pl1_drain_final_snapshot_ends_on_its_budget_against_an_endless_source() {
+        // /dev/zero never runs dry and refuses FIONREAD, so only the OUTPUT_CAP budget ends the drain.
+        let zero = File::open("/dev/zero").unwrap();
+        let (done, finished) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            let mut pipes = [
+                Pipe::new(Some(zero)).unwrap(),
+                Pipe::new(None::<OwnedFd>).unwrap(),
+            ];
+            drain_buffered(&mut pipes);
+            let _ = done.send(pipes[0].kept.len());
+        });
+        let kept = finished.recv_timeout(Duration::from_secs(3));
+        assert_eq!(kept, Ok(OUTPUT_CAP), "the drain did not end on its budget");
+    }
 }
