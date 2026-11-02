@@ -110239,6 +110239,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "assert_eq!(kept, Ok(OUTPUT_CAP), \"the drain did not end on its budget\");",
+      "line": 204,
+      "literal": "the drain did not end on its budget",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pl1/process_io.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "probe_timeout(\"gio mount -li\", crate::g2::pl1::listing::TIMEOUT_MS)",
       "line": 90,
       "literal": "gio mount -li",
@@ -244865,7 +244874,7 @@
     "crates/flea-gui/src/g2/pl1/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
     "crates/flea-gui/src/g2/pl1/process.rs": "03b8743d4f7c823f792f594ba8373ae7f9e6389983bbba467009853259423bd0",
     "crates/flea-gui/src/g2/pl1/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
-    "crates/flea-gui/src/g2/pl1/process_io.rs": "bea6d32775e70398622d7a898813ab5a25cc9c73a9f4555b63b1468c9f5d3b80",
+    "crates/flea-gui/src/g2/pl1/process_io.rs": "9bbc78da59695cc60479ba75900a8e49c80ca0cbaf20e2d283543ba7c26b4821",
     "crates/flea-gui/src/g2/pl1/rail_events.rs": "f42092e6a33609a3f0adf6d5b009d6531f872ef6f3abcbe5746bd8cfefec5050",
     "crates/flea-gui/src/g2/pl1/seams.rs": "d5eef58a76c157061d64a90360091396ab8930fb6135017816885bf6c0e8dbaa",
     "crates/flea-gui/src/g2/pl1/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
@@ -247126,8 +247135,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "cbbee5572c4755a51284bebba2be5b605278dafa",
-  "source_sha": "cbbee5572c4755a51284bebba2be5b605278dafa",
+  "source_ref_sha": "b47e600ed4ea5fa4cb33a2887c38875c09d5f8bc",
+  "source_sha": "b47e600ed4ea5fa4cb33a2887c38875c09d5f8bc",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247141,7 +247150,7 @@
     },
     "gui": {
       "keys_with_occurrences": 532,
-      "missing_literal_candidates": 2097,
+      "missing_literal_candidates": 2098,
       "source_files": 1113
     },
     "qml-reference": {
