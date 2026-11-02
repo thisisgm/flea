@@ -117,9 +117,18 @@ impl Sizes {
         }
     }
 
-    /// The controls' height: the band less its rule.
+    /// Keep the mark's parity so centring never puts an odd-sized mark half a pixel high.
     pub fn inner(&self) -> f32 {
-        self.band - 1.
+        self.band - (self.band - self.mark).rem_euclid(2.)
+    }
+}
+
+#[test]
+fn visual_geometry_toolbar_marks_keep_the_board_origin_at_14_and_20() {
+    for (base, band, mark, top) in [(14, 27., 16., 5.), (20, 37., 23., 7.)] {
+        let sizes = Sizes::at(&Typeface::omarchy_default().at_base(base));
+        assert_eq!((sizes.band, sizes.mark), (band, mark));
+        assert_eq!((sizes.inner() - sizes.mark) / 2., top);
     }
 }
 

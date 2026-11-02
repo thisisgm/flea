@@ -6,8 +6,8 @@ use crate::g2::st1::input::{Editor, Host};
 use flea::i18n::I18n;
 use flea::ui_logic_st2::pages::{Row, UPDATE_ID};
 use gpui::{
-    div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, FontWeight, Hsla, SharedString,
-    Stateful, Window,
+    div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, Hsla, SharedString, Stateful,
+    Window,
 };
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -173,6 +173,7 @@ impl PluginsPane {
         cx: &mut Context<Self>,
     ) -> AnyRow {
         let (t, first) = (&self.tokens, index == 0);
+        let heading = super::mark::heading(label, &self.probe, self.page.rows()[index].id());
         let mut row = self
             .probe
             .attach(div(), format!("row:{}", self.page.rows()[index].id()))
@@ -190,7 +191,7 @@ impl PluginsPane {
             .line_height(gpui::relative(1.2))
             .text_size(px(m::CAPTION))
             .text_color(t.muted)
-            .child(tracked(&label.to_uppercase(), m::TRACKING).font_weight(FontWeight::BOLD))
+            .child(heading)
             .child(div().flex_1());
         if !first {
             row = row

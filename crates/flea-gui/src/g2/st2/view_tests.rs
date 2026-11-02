@@ -190,6 +190,32 @@ fn vf4_plugins_heading_uses_the_board_line_box(cx: &mut TestAppContext) {
     );
 }
 
+#[gpui::test]
+fn visual_geometry_plugins_heading_moves_without_moving_rows(cx: &mut TestAppContext) {
+    let (entity, _, _, cx) = pane(cx);
+    cx.update(|_, cx| entity.update(cx, |pane, cx| pane.receive(&listing(1, builtins("{}")), cx)));
+    draw(cx);
+    // Probe rectangle sample: "14 17 56 14.4" (x y width height).
+    let rect = |id| {
+        entity
+            .read_with(cx, |pane, _| pane.probe.rect(id))
+            .split_whitespace()
+            .map(|p| p.parse::<f32>().unwrap())
+            .collect::<Vec<_>>()
+    };
+    let heading = rect("heading:plugins.installed");
+    assert_eq!(heading.len(), 4, "heading's painted text is measured");
+    assert_eq!(
+        heading[1], 17.,
+        "16 px top padding plus 1 px text displacement"
+    );
+    let row = rect("row:flea.shelf");
+    assert!(
+        (row[1] - 38.2).abs() < 1.,
+        "Shelf stays at its approved row: {row:?}"
+    );
+}
+
 #[test]
 fn vf4_r1_localsend_mark_fills_its_disc_inside_the_dashed_ring() {
     let (_, svg) = super::glyphs::glyph("localsend").expect("LocalSend keeps its mark");

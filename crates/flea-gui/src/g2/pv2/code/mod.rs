@@ -376,9 +376,13 @@ impl CodeView {
         self.metrics.inset + cells as f32 * f32::from(advance)
     }
 
-    /// Plain text keeps the two-cell lead without a gutter, as CodeLines.qml's leftPadding (boards filter, ql-text).
+    /// The two-cell lead separates numbered code from its gutter; plain text starts at the frame's inset.
     pub fn text_left(&self, advance: Pixels) -> f32 {
-        let lead = flea::ui_logic_pv2::code_text::TEXT_LEAD as f32 * f32::from(advance);
+        let lead = if self.numbered {
+            flea::ui_logic_pv2::code_text::TEXT_LEAD as f32 * f32::from(advance)
+        } else {
+            0.
+        };
         (self.gutter_right(advance) + lead).round()
     }
 }

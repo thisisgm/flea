@@ -214,7 +214,7 @@ fn ql_error_keeps_the_pdf_strip_and_draws_the_error_recipe(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn ql_unsupported_is_the_calm_recipe_with_no_bar(cx: &mut TestAppContext) {
+fn visual_geometry_ql_unsupported_is_the_calm_recipe_with_no_bar(cx: &mut TestAppContext) {
     let i18n = english();
     let subject = ql_unsupported(&i18n);
     assert!(
@@ -224,8 +224,9 @@ fn ql_unsupported_is_the_calm_recipe_with_no_bar(cx: &mut TestAppContext) {
     assert_eq!(rect(cx, "pv1-card"), (99., 63., 902., 574.));
     assert!(cx.debug_bounds("pv1-bar").is_none());
     assert_eq!(rect(cx, "pv1-recipe"), (100., 64., 900., 572.));
-    let (x, _, w, h) = rect(cx, "pv1-open-with");
+    let (x, y, w, h) = rect(cx, "pv1-open-with");
     assert_eq!((x + w / 2., h), (550., 30.));
+    assert_eq!(y.round(), 377., "Open With board top");
 }
 
 #[gpui::test]

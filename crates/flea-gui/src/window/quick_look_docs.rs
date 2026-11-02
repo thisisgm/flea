@@ -26,6 +26,17 @@ use flea::{i18n::I18n, protocol::RowFacts, ui_logic_pv4::control::Surface};
 use gpui::{px, AppContext, Context, Window};
 use std::{rc::Rc, sync::Arc};
 
+#[test]
+fn visual_geometry_quick_look_plain_text_ink_starts_at_x132() {
+    let look = Look {
+        theme: crate::palette::Theme::default(),
+        face: crate::list::Typeface::omarchy_default(),
+        muted: crate::palette::Theme::default().muted,
+        mark: ("file-text".into(), &[]),
+    };
+    assert_eq!(100. + look.code(false).text_left(px(8.4)), 132.);
+}
+
 /// The theme and type the card's views draw with, read once per mount; sizes are the boards' (ql-code: 14 on rows of 20).
 pub(crate) struct Look {
     pub theme: crate::palette::Theme,
@@ -108,7 +119,11 @@ impl Look {
             },
             pv2::code::Metrics {
                 // ql-text keeps the plain lines at the card's text column; ql-code's gutter starts at the pad.
-                inset: if numbered { card::PAD } else { card::TEXT_LEFT },
+                inset: if numbered {
+                    card::PAD
+                } else {
+                    card::TEXT_LEFT + 1.
+                },
                 top: card::TEXT_TOP - card::BAR,
                 right: card::TEXT_RIGHT,
                 row: card::TEXT_LINE,

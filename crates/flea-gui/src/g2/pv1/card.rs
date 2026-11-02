@@ -370,6 +370,7 @@ pub(super) fn recipe(
         .flex_col()
         .items_center()
         .justify_center()
+        .line_height(gpui::relative(1.2))
         .gap(px(look::GAP))
         .child(mark(glyph, look::MARK, mark_ink))
         .child(text(sentence, look::BODY, ink))

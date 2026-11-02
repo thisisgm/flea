@@ -191,3 +191,15 @@ pub(super) fn value(text: &str, ink: Hsla) -> Div {
         .text_color(ink)
         .child(SharedString::from(text.to_string()))
 }
+
+/// The heading's text and readback move together; its parent row and following rows retain their geometry.
+pub(super) fn heading(text: &str, probe: &crate::g2::st1::probe::Probe, id: &str) -> Div {
+    const TEXT_TOP: f32 = 1.;
+    probe.attach(
+        tracked(&text.to_uppercase(), metrics::TRACKING)
+            .relative()
+            .top(px(TEXT_TOP))
+            .font_weight(gpui::FontWeight::BOLD),
+        format!("heading:{id}"),
+    )
+}

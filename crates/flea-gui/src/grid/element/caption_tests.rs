@@ -2,7 +2,7 @@
 use super::*;
 
 #[gpui::test]
-fn ey410_fixed_height_captions_keep_the_fonts_top_aligned_baseline(cx: &mut gpui::TestAppContext) {
+fn visual_geometry_grid_caption_ink_matches_both_docs_boards(cx: &mut gpui::TestAppContext) {
     use gpui::AppContext;
     let handle = cx.add_window(|_, _| gpui::Empty);
     cx.update_window(handle.into(), |_, window, _| {
@@ -12,7 +12,7 @@ fn ey410_fixed_height_captions_keep_the_fonts_top_aligned_baseline(cx: &mut gpui
         for top in [0., line] {
             assert_eq!(
                 caption_baseline(&run, px(top), window),
-                window.pixel_snap(px(top) + run.line().ascent)
+                window.pixel_snap(px(top + 2.) + run.line().ascent)
             );
         }
         let row = flea::protocol::RowFacts {

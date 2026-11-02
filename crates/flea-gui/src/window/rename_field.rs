@@ -269,6 +269,12 @@ impl Element for FieldElement {
                         ));
                     }
                     if let Some(run) = &line.run {
+                        let layout = run.line();
+                        let baseline = frame.origin.y
+                            + (frame.size.height - layout.ascent - layout.descent) / 2.
+                            + layout.ascent;
+                        let scale = window.scale_factor();
+                        let baseline = px((f32::from(baseline) * scale).floor() / scale);
                         let ends = |from: Pixels, to: Pixels| {
                             Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
                         };
@@ -279,14 +285,8 @@ impl Element for FieldElement {
                             window.with_content_mask(
                                 Some(ContentMask { bounds: part }),
                                 |window| {
-                                    paint_run(
-                                        run,
-                                        origin,
-                                        frame.origin.y,
-                                        frame.size.height,
-                                        color,
-                                        window,
-                                    );
+                                    let _ =
+                                        window.paint_glyph_run(point(origin, baseline), run, color);
                                 },
                             );
                         }

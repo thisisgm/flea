@@ -32,9 +32,11 @@ pub(crate) const RAIL_ROW_SCALE: f64 = 0.78;
 pub(crate) const TEXT_LINE_HEIGHT_FACTOR: f64 = 1.8;
 const OEM_BASE: f32 = 12.;
 
-/// Theme.qml rail formulas scale the approved body-14 geometry with the accepted Typeface.
+/// Preserve the body-14 recipe; larger text follows the two HIG rail anchors (rulings 170 and 173).
 struct RailMetrics {
     row: f32,
+    top: f32,
+    heading: Option<f32>,
     pad: f32,
     gap: f32,
     panel_gap: f32,
@@ -47,14 +49,41 @@ struct RailMetrics {
 impl RailMetrics {
     fn for_typeface(face: &Typeface) -> Self {
         let list = crate::list::Metrics::for_typeface(face);
-        let row = (list.nominal_row * RAIL_ROW_SCALE as f32).round();
+        let base = f32::from(face.base);
+        let compressed = base > BODY;
+        let anchor = |at14: f32, at20: f32| {
+            if base <= 20. {
+                (at14 + (at20 - at14) * (base - BODY) / (20. - BODY)).round()
+            } else {
+                (at20 * base / 20.).round()
+            }
+        };
+        let row = if compressed {
+            anchor(29., 41.)
+        } else {
+            (list.nominal_row * RAIL_ROW_SCALE as f32).round()
+        };
         let line = (f32::from(face.body_small) * TEXT_LINE_HEIGHT_FACTOR as f32).round();
         let board = |value: f32| (value * f32::from(face.base) / BODY).round();
         Self {
             row,
-            pad: list.pad,
-            gap: list.gap,
-            panel_gap: (PANEL_GAP * f32::from(face.base) / OEM_BASE).round(),
+            top: if compressed { anchor(9., 8.) } else { list.pad },
+            heading: compressed.then(|| anchor(33., 42.)),
+            pad: if compressed {
+                anchor(PAD_X, 14.)
+            } else {
+                list.pad
+            },
+            gap: if compressed {
+                anchor(GAP, 9.)
+            } else {
+                list.gap
+            },
+            panel_gap: if compressed {
+                anchor(11., 10.)
+            } else {
+                (PANEL_GAP * base / OEM_BASE).round()
+            },
             icon: (row - (list.nominal_row - line)).max(1.),
             tag: board(TAG),
             dot: board(DOT),
@@ -79,6 +108,7 @@ pub struct LaidHeader {
     pub text: String,
     pub rect: Rect,
     pub top_padding: f32,
+    pub text_height: f32,
     pub font_size: f32,
     /// HEADING_TRACKING, or none in a caseless language.
     pub tracking: f32,

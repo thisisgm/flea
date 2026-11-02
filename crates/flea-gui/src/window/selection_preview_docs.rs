@@ -37,6 +37,10 @@ const MORE_OPACITY: f32 = 0.6;
 /// A row's vertical pad as a multiple of the base size, 6 px at base 12.
 const ROW_PAD_Y: f32 = 6. / 12.;
 
+#[cfg(test)]
+#[path = "visual_geometry_code_tests.rs"]
+mod visual_geometry_code_tests;
+
 impl Look {
     fn row(&self) -> f32 {
         pv2::line_pitch(f32::from(self.face.caption))
@@ -62,7 +66,7 @@ impl Look {
             },
             pv2::code::Metrics {
                 inset: m.gap,
-                top: m.gap + m.hairline,
+                top: m.gap,
                 right: m.gap,
                 row: self.row(),
                 gap: m.gap,
