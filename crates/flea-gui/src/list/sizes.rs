@@ -162,7 +162,7 @@ impl State {
         self.class.as_deref()
     }
 
-    fn cancel(&mut self, backend: &crate::backend::Backend) {
+    pub(crate) fn cancel(&mut self, backend: &crate::backend::Backend) {
         self.task = None;
         self.key = None;
         if !self.waiting.is_empty() {
@@ -282,20 +282,30 @@ impl Shell {
         if !wants_sizes(surface, &[], class.unwrap_or_default(), class.is_some()) {
             return;
         }
-        let painted = if columns {
-            crate::columns::walks::painted_rows(host, key.listing)
+        let held = &host.pane.held;
+        let ask = if columns {
+            let Some((first, last)) = crate::columns::walks::painted_rows(host, key.listing) else {
+                return;
+            };
+            host.sizes.sizes.plan(&held.rows, held.start, first, last)
         } else {
             let list = host.list.borrow();
-            (list.drawn.listing == key.listing && list.drawn.layout.shown(Column::Size))
-                .then(|| list.visible().first().zip(list.visible().last()))
-                .flatten()
-                .map(|(first, last)| (first.index, last.index))
+            if !host.drawn_list
+                || list.drawn.listing != key.listing
+                || !list.drawn.layout.shown(Column::Size)
+            {
+                return;
+            }
+            // A filter's listing indexes need not be adjacent or ascending.
+            list.visible()
+                .iter()
+                .flat_map(|row| {
+                    host.sizes
+                        .sizes
+                        .plan(&held.rows, held.start, row.index, row.index)
+                })
+                .collect()
         };
-        let Some((first, last)) = painted else {
-            return;
-        };
-        let held = &host.pane.held;
-        let ask = host.sizes.sizes.plan(&held.rows, held.start, first, last);
         if ask.is_empty() {
             return;
         }
