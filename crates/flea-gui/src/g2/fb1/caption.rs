@@ -28,6 +28,15 @@ pub fn tracking_for(language: &str) -> f32 {
     }
 }
 
+/// The boards leave caseless scripts unchanged, including Latin words embedded in their captions.
+pub fn heading_for(text: &str, language: &str) -> String {
+    if caseless(language) {
+        text.to_owned()
+    } else {
+        flea::ui_logic_st1::caps::heading(text, language)
+    }
+}
+
 /// What a Tracked caption painted: its text, ink, tracking and box, for tests.
 #[cfg(test)]
 pub type Inked = (SharedString, Hsla, Pixels, Bounds<Pixels>);
@@ -48,6 +57,27 @@ pub struct Tracked {
     pub line: Pixels,
     pub tracking: Pixels,
     pub color: Hsla,
+}
+
+impl Tracked {
+    /// A field or section caption at its live size, using the board's locale and 1.2px tracking at 12px.
+    pub fn caption(
+        text: &str,
+        language: &str,
+        font: Font,
+        size: Pixels,
+        line: Pixels,
+        color: Hsla,
+    ) -> Self {
+        Self {
+            text: heading_for(text, language).into(),
+            font,
+            size,
+            line,
+            tracking: px(tracking_for(language) * f32::from(size) / 12.),
+            color,
+        }
+    }
 }
 
 /// Each glyph's x in the line once `tracking` follows every glyph before it, for tests.

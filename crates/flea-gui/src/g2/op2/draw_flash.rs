@@ -109,6 +109,7 @@ impl StandIn {
         } = p;
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
+            language: i18n.language(),
             t: Tokens::of(palette),
             s,
             typeface,

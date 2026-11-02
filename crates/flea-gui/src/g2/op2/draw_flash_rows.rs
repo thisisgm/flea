@@ -7,7 +7,7 @@ use super::flash::{
     DriveRow, ImageRow, SEL_CURSOR_EDGE, SEL_CURSOR_EDGE_LIVE, SEL_DRIVE_ROW, SEL_IMAGE_HINT,
     SEL_IMAGE_ROW,
 };
-use crate::g2::fb1::caption::Tracked;
+use crate::g2::fb1::caption::{caseless, heading_for, Tracked};
 use crate::g2::op3::shell::glyph;
 use crate::g2::pl3::board::{Glyph as StripGlyph, CBTN_GLYPH, CBTN_W, HAIR, STRIP_H};
 use crate::g2::pl3::glyph::GlyphBox;
@@ -145,11 +145,15 @@ impl StandIn {
     pub(super) fn title(&self, draw: &Draw, ink: Hsla, text: &str, index: usize) -> Div {
         // The shared tracked caption the rail headings use: one shaped line, so the tracking stays 1 px.
         let letters = Tracked {
-            text: text.to_uppercase().into(),
+            text: heading_for(text, draw.language).into(),
             font: draw.typeface.font.clone(),
             size: draw.px(CAPTION),
             line: draw.px(HINT_LINE),
-            tracking: draw.px(TRACKING),
+            tracking: draw.px(if caseless(draw.language) {
+                0.
+            } else {
+                TRACKING
+            }),
             color: ink,
         };
         draw.text(CAPTION)

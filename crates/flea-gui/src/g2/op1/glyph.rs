@@ -343,18 +343,16 @@ impl Element for Tracked {
         shaped: &mut ShapedLine,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) {
-        // The baseline sits where GPUI's own line paint puts it: half the spare height above the ascent.
-        let baseline =
-            bounds.origin.y + (px(self.line) - shaped.ascent - shaped.descent) / 2. + shaped.ascent;
-        let mut at = 0.;
-        for run in &shaped.runs {
-            for glyph in &run.glyphs {
-                let origin = point(bounds.origin.x + glyph.position.x + px(at), baseline);
-                let _ = window.paint_glyph(origin, run.font_id, glyph.id, px(self.size), self.ink);
-                at += self.track;
-            }
+        crate::g2::fb1::caption::Tracked {
+            text: self.text.clone(),
+            font: window.text_style().font(),
+            size: px(self.size),
+            line: px(self.line),
+            tracking: px(self.track),
+            color: self.ink,
         }
+        .paint(None, None, bounds, shaped, &mut (), window, cx);
     }
 }

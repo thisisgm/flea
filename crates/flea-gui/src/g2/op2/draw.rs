@@ -2,6 +2,7 @@
 use super::cards::*;
 use super::draw_step::{DISABLED_OPACITY, WASH_PRESS};
 use super::flash::SEL_FORMAT_LABEL;
+use crate::g2::fb1::caption::Tracked;
 use crate::g2::op3::shell::{card_heading, glyph};
 use crate::list::{Palette, Typeface};
 use gpui::{
@@ -65,7 +66,14 @@ impl Draw<'_> {
             .line_height(self.px(LABEL_LINE))
             .mb(self.px(LABEL_GAP))
             .text_color(self.t.muted)
-            .child(text.to_uppercase())
+            .child(Tracked::caption(
+                text,
+                self.language,
+                self.typeface.font.clone(),
+                self.px(CAPTION),
+                self.px(LABEL_LINE),
+                self.t.muted,
+            ))
     }
 
     fn chips(&self, chips: &Chips) -> Div {
@@ -323,6 +331,7 @@ impl StandIn {
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
+            language: &card.language,
             t: Tokens::of(palette),
             s,
             typeface,

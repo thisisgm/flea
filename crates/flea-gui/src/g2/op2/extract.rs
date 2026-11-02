@@ -260,6 +260,7 @@ impl Extract {
             });
         }
         Card {
+            language: i18n.language().into(),
             title: logic::encrypted_title(i18n, &self.leaf),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,

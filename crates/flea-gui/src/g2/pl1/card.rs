@@ -4,6 +4,8 @@ use super::mark::{Mark, DRIVE, EYE};
 use super::probes::{observe, ButtonProbe, Probes};
 use super::unlock::{Card, Part, Phase};
 use super::words::say;
+use crate::g2::fb1::caption::{heading_for, tracking_for};
+use crate::g2::op1::glyph::Tracked;
 use flea::i18n::I18n;
 use flea::ui_logic_pl1::unlock::{subtitle, title};
 use gpui::{div, prelude::*, px, App, ClickEvent, FontWeight, Hsla, SharedString, Window};
@@ -23,6 +25,7 @@ pub const DISABLED_OPACITY: f32 = 0.55;
 /// The words the card shows, built once per card change or language change, never in paint.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CardText {
+    pub language: String,
     pub title: String,
     pub esc: String,
     pub subtitle: String,
@@ -40,10 +43,11 @@ impl CardText {
             String::new()
         };
         Self {
+            language: catalog.language().into(),
             title: say(catalog, &title(&card.label)),
             esc: "esc".into(),
             subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
-            label: catalog.tr("device.unlock.passphrase").to_uppercase(),
+            label: heading_for(&catalog.tr("device.unlock.passphrase"), catalog.language()),
             note: card
                 .note
                 .as_ref()
@@ -173,7 +177,13 @@ pub(super) fn card_with_input(
                         .line_height(k(14.))
                         .mb(k(5.))
                         .text_color(ink.muted)
-                        .child(text.label.clone()),
+                        .child(Tracked {
+                            text: text.label.clone().into(),
+                            size: 12. * scale,
+                            line: 14. * scale,
+                            track: tracking_for(&text.language) * scale,
+                            ink: ink.muted,
+                        }),
                 )
                 .child(
                     div()

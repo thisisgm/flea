@@ -156,6 +156,7 @@ pub struct Button {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Card {
+    pub language: String,
     pub title: String,
     pub esc: String,
     /// The board width at the board's body size; the shell scales it.
@@ -251,6 +252,7 @@ impl Tokens {
 }
 
 pub(super) struct Draw<'a> {
+    pub(super) language: &'a str,
     pub(super) t: Tokens,
     pub(super) s: f32,
     pub(super) typeface: &'a Typeface,

@@ -1,6 +1,6 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::*;
-use crate::g2::fb1::caption::{tracking_for, Tracked};
+use crate::g2::fb1::caption::Tracked;
 use gpui::{
     div, prelude::*, px, relative, AnyElement, App, Div, FontWeight, Pixels, Stateful, Window,
 };
@@ -90,14 +90,14 @@ impl Draw<'_> {
     }
 
     pub(super) fn caption(&self, text: &str, line: f32, color: Hsla) -> Tracked {
-        Tracked {
-            text: flea::ui_logic_st1::caps::heading(text, self.language).into(),
-            font: self.typeface.font.clone(),
-            size: self.px(CAPTION),
-            line: self.px(line),
-            tracking: self.px(tracking_for(self.language)),
+        Tracked::caption(
+            text,
+            self.language,
+            self.typeface.font.clone(),
+            self.px(CAPTION),
+            self.px(line),
             color,
-        }
+        )
     }
 
     pub(super) fn label(&self, text: &str) -> Div {
