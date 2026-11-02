@@ -196,12 +196,8 @@ impl Shell {
             );
         }
         if !dir && view.slot != Slot::Active && !blocked {
-            if event.click_count == 1
-                && flea::keys::pointer("neighbour", "file", "left", 0, 1)
-                    .is_some_and(|binding| binding.effect == "reveal")
-            {
-                self.columns_neighbour_file(side, &view.path, &name, window, cx);
-            } else if event.click_count == 2 {
+            // A first tap selects on release, so a held press can still lift this peek's file.
+            if event.click_count == 2 {
                 let path = crate::navigation::history::join(&view.path, &name);
                 self.open_file(side, path, window, cx);
             }

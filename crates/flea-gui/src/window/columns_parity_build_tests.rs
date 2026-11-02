@@ -183,17 +183,20 @@ fn pb_columns2_neighbour_double_click_runs_the_file_opener() {
                     let host = shell.panes[0].as_ref().unwrap();
                     assert_eq!(
                         host.pane.place(),
-                        "/srv/a/b/c",
-                        "the first tap keeps the pane's folder"
+                        "/srv/a/b",
+                        "the first tap lists the clicked file's folder"
                     );
-                    assert_eq!(host.nav.pending_select.as_deref(), None);
+                    assert_eq!(
+                        host.nav.pending_select.as_deref(),
+                        Some("/srv/a/b/neighbour.txt")
+                    );
                 })
                 .unwrap();
         }
     }
     handle
         .read_with(&vcx, |shell, _| {
-            assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/srv/a/b/c")
+            assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/srv/a/b")
         })
         .unwrap();
 }
@@ -252,11 +255,7 @@ fn pb_columns2_named_preview_readers_are_mounted_even_without_a_preview() {
 }
 
 #[test]
-fn s2_neighbour_file_single_tap_keeps_listing_and_double_tap_opens_only_it() {
-    assert_eq!(
-        flea::keys::pointer("neighbour", "file", "left", 0, 1).map(|binding| binding.effect),
-        Some("nothing")
-    );
+fn gm_columns_click_parent_file_single_tap_selects_and_double_tap_opens_only_it() {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     host::change(&mut cx, handle, |shell, window, cx| {
@@ -282,12 +281,6 @@ fn s2_neighbour_file_single_tap_keeps_listing_and_double_tap_opens_only_it() {
         .unwrap();
     OPENED.with(|paths| paths.borrow_mut().clear());
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
-    let before = handle
-        .update(&mut vcx, |shell, _, _| {
-            let host = shell.panes[0].as_ref().unwrap();
-            (host.pane.cursor, host.nav.counters.lists)
-        })
-        .unwrap();
     vcx.simulate_event(MouseDownEvent {
         position: at,
         button: MouseButton::Left,
@@ -299,11 +292,11 @@ fn s2_neighbour_file_single_tap_keeps_listing_and_double_tap_opens_only_it() {
     handle
         .update(&mut vcx, |shell, _, _| {
             let host = shell.panes[0].as_ref().unwrap();
-            assert_eq!(host.pane.place(), "/srv/a/b/c");
+            assert_eq!(host.pane.place(), "/srv/a/b");
             assert_eq!(
-                (host.pane.cursor, host.nav.counters.lists),
-                before,
-                "one tap changes neither cursor nor listing requests"
+                host.nav.pending_select.as_deref(),
+                Some("/srv/a/b/neighbour.txt"),
+                "one tap selects the visible file in its own directory"
             );
         })
         .unwrap();

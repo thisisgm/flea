@@ -138,8 +138,8 @@ fn pb_rest_neighbour_double_click_runs_the_file_opener(cx: &mut TestAppContext) 
         cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
         assert_eq!(
             asked(&shell, cx),
-            "/files",
-            "a neighbour file tap keeps the current listing"
+            "/",
+            "the first tap lists the clicked file's own directory"
         );
         if click_count == 1 {
             assert!(OPENED.with(|opened| opened.borrow().is_empty()));
@@ -151,8 +151,8 @@ fn pb_rest_neighbour_double_click_runs_the_file_opener(cx: &mut TestAppContext) 
                         .nav
                         .pending_select
                         .as_deref(),
-                    None,
-                    "a neighbour file's first tap selects nothing"
+                    Some("/outside.txt"),
+                    "a neighbour file's first tap selects that file"
                 );
             });
         }
@@ -183,8 +183,8 @@ fn pb_rest_neighbour_double_click_runs_the_file_opener(cx: &mut TestAppContext) 
     );
     assert_eq!(
         asked(&shell, cx),
-        "/files",
-        "opening a neighbour file preserves the current listing"
+        "/",
+        "the double click keeps the directory selected by its first tap"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
