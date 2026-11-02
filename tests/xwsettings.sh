@@ -536,10 +536,10 @@ if [ "$fail" -eq 0 ]; then
     '{"hidden":false,"view":"list","density":"compact","updates":{"autoCheck":false}}' >/dev/null 2>&1 \
     || exit 1
   env DISPLAY=flea-offscreen QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 QSG_RHI_BACKEND=opengl \
-      XDG_STATE_HOME="$SANDBOX/start/state" FLEA_UI="$SANDBOX/start/ui-a" FLEA_BIN="$BIN" \
+      XDG_STATE_HOME="$SANDBOX/start/state" FLEA_UI="$SANDBOX/start/ui-a" FLEA_BIN="$BIN" FLEA_PATH="$SANDBOX/start/files-a" \
       PROBE_BODY="$PWD/ui/WindowBody.qml" PROBE_STATE_HELPER="$PWD/tests/xwsettings-start-state.qml" \
       PROBE_ROLE=A PROBE_READY="$SANDBOX/start/ready" PROBE_DONE="$SANDBOX/start/done" PROBE_OTHER_PATH="$SANDBOX/start/files-b" \
-      PROBE_POLL_S="$probe_poll_s" timeout "$probe_timeout_s" "$BIN" --gui "$SANDBOX/start/files-a" \
+      PROBE_POLL_S="$probe_poll_s" timeout "$probe_timeout_s" qs -p "$SANDBOX/start/ui-a/boot/shell.qml" \
       > "$SANDBOX/staying.log" 2>&1 &
   staying_pid=$!
   waited=0
@@ -555,9 +555,9 @@ if [ "$fail" -eq 0 ]; then
   done
   if [ "$fail" -eq 0 ]; then
     env DISPLAY=flea-offscreen QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 QSG_RHI_BACKEND=opengl \
-        XDG_STATE_HOME="$SANDBOX/start/state" FLEA_UI="$SANDBOX/start/ui-b" FLEA_BIN="$BIN" \
+        XDG_STATE_HOME="$SANDBOX/start/state" FLEA_UI="$SANDBOX/start/ui-b" FLEA_BIN="$BIN" FLEA_PATH="$SANDBOX/start/files-b" \
         PROBE_BODY="$PWD/ui/WindowBody.qml" PROBE_STATE_HELPER="$PWD/tests/xwsettings-start-state.qml" PROBE_ROLE=B PROBE_READY="$SANDBOX/start/ready" PROBE_DONE="$SANDBOX/start/done" \
-        PROBE_POLL_S="$probe_poll_s" timeout "$probe_timeout_s" "$BIN" --gui "$SANDBOX/start/files-b" \
+        PROBE_POLL_S="$probe_poll_s" timeout "$probe_timeout_s" qs -p "$SANDBOX/start/ui-b/boot/shell.qml" \
         > "$SANDBOX/starting.log" 2>&1
     check "B's real startup drained" "$qs_drained_exit" "$?"
     check "B's backend answered its drain" 1 "$(grep -c 'PROBE B backend drained' "$SANDBOX/starting.log")"
