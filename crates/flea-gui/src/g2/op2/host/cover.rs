@@ -56,6 +56,28 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Result<bool, Refusal>> {
+        if matches!(
+            step,
+            Step::Open(_)
+                | Step::OpenPlace(_)
+                | Step::Back
+                | Step::MouseBack
+                | Step::Up
+                | Step::Forward
+        ) {
+            let shares = self
+                .rail
+                .as_ref()
+                .and_then(|join| join.network.as_ref())
+                .map(|network| network.shares.clone())
+                .filter(|shares| {
+                    let browser = &shares.read(cx).model;
+                    browser.open && self.network_origin_side(browser.origin) == Some(side)
+                });
+            if let Some(shares) = shares {
+                shares.update(cx, |shares, cx| shares.close(cx));
+            }
+        }
         if let Some(host) = self
             .trash
             .as_ref()
