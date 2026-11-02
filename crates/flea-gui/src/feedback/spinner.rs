@@ -14,6 +14,8 @@ use std::{
 
 pub const HERO: f32 = 66.;
 pub const GAP: f32 = 9.;
+// Theme.qml heroMarkSize is bodySmall times this, rounded.
+const HERO_MARK_RATIO: f32 = 3.7;
 
 /// Animation, an undrawn floor, or a fixed time in seconds into the mode.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -125,7 +127,7 @@ impl Crawl {
         if self.spiral.get() {
             let face = crate::list::Typeface::for_window(window, cx);
             self.spiral_side
-                .set((f32::from(face.body_small) * 3.7).round());
+                .set((f32::from(face.body_small) * HERO_MARK_RATIO).round());
             let seconds = match pinned {
                 Some(seconds) => seconds.max(0.),
                 None if moving && !cx.reduce_motion() => {
@@ -263,8 +265,7 @@ pub fn hero(
         .line_height
         .to_pixels(typeface.caption.into(), window.rem_size())
         .round();
-    // LoadingState.qml centres its caption under bodySmall * 3.7; Omi keeps its own slot.
-    let caption_offset = px((HERO - (f32::from(typeface.body_small) * 3.7).round()) / 2.);
+    let caption_offset = caption_lift(typeface.body_small);
     gpui::div()
         .flex()
         .flex_col()
@@ -280,6 +281,11 @@ pub fn hero(
                 .flex_shrink_0()
                 .child(caption),
         )
+}
+
+/// LoadingState.qml centres its caption under heroMarkSize; the lift stops at GAP so it never enters Omi's slot.
+pub(super) fn caption_lift(body_small: Pixels) -> Pixels {
+    px(((HERO - (f32::from(body_small) * HERO_MARK_RATIO).round()) / 2.).min(GAP))
 }
 
 /// The mark's place in the pane's layout; it records its bounds and its pane's clip and paints nothing, so a crawl frame leaves the pane alone.

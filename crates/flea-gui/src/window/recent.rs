@@ -31,6 +31,7 @@ impl PaneHost {
             };
         }
         self.recent = RecentMode::default();
+        self.nav.leave_paths();
         if was {
             self.list.borrow_mut().set_recent_place(None);
         }
