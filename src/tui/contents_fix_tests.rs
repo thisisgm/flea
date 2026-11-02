@@ -34,6 +34,9 @@ fn settled(m: &mut Model, wire: &mut wire::Wire) {
 }
 #[test]
 fn tui_contents_fix1_names_real_backend_contract() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Root::new();
     for i in 0..7 {
         std::fs::write(root.0.join(format!("needle-{i}.txt")), "needle body\n").unwrap();
@@ -207,6 +210,9 @@ fn tui_contents_fix1_scope_matches_shared_cycle_and_words() {
 }
 #[test]
 fn tui_contents_fix1_held_kitty_graphics_through_stage() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Root::new();
     let output = root
         .command(

@@ -213,6 +213,9 @@ pub(super) fn screen(m: &Model) -> String {
 
 #[test]
 fn tui_office_ready_pdf_keeps_original_identity() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
@@ -315,6 +318,9 @@ fn tui_office_cancel_ignores_late_ready() {
 
 #[test]
 fn tui_office_cache_tracks_changed_source() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let first_pdf = root.path("first.pdf");

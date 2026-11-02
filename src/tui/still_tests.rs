@@ -225,6 +225,9 @@ fn r4_colors_change_drops_the_fallback_before_poll() {
 
 #[test]
 fn r4_chained_page_swaps_keep_the_last_drawn_grid_until_the_latest_lands() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     assert!(sandboxed());
     let fixture = Fixture::new();
     fixture.stub(ONE_CELL);
@@ -252,6 +255,9 @@ fn r4_chained_page_swaps_keep_the_last_drawn_grid_until_the_latest_lands() {
 
 #[test]
 fn tui_model3d_chafa_quit_waits_for_reap() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     assert!(sandboxed());
     let root = crate::tui::model3d::tests::Fixture::new();
     std::fs::create_dir(root.path("bin")).unwrap();

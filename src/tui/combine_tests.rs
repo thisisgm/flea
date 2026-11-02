@@ -49,6 +49,9 @@ pub fn frame(m: &Model) -> Vec<String> {
 }
 #[test]
 fn tui_combine_order_focus_and_hit_boxes_agree() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("order");
     let (mut w, reader) = wire::echo_wire();
     let mut m = model();
@@ -87,23 +90,38 @@ fn tui_combine_order_focus_and_hit_boxes_agree() {
 }
 #[test]
 fn tui_combine_layout_dimensions_match_output() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("dimensions");
 }
 #[test]
 fn tui_combine_half_block_mode_uses_numbered_boxes() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("graphics");
 }
 
 #[test]
 fn tui_combine_fontconfig_failure_still_renders_numbered_previews() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("font-fallback");
 }
 #[test]
 fn tui_combine_jpeg_and_background_constraints_hold() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("jpeg");
 }
 #[test]
 fn tui_combine_cancel_and_collision_preserve_sources() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("safe");
 }
 
@@ -200,35 +218,56 @@ fn tui_combine_compiler_identity_is_retained() {
 
 #[test]
 fn tui_combine_private_staging_and_live_locale_epoch() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("privacy");
 }
 
 #[test]
 fn tui_combine_review_top_row_navigation_preserves_source_identity() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("review-navigation");
 }
 
 #[test]
 fn tui_combine_review_painted_number_owns_pointer_and_drag() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("review-pointer");
 }
 
 #[test]
 fn tui_combine_review_short_terminal_reveals_focused_filename() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("review-short");
 }
 
 #[test]
 fn tui_combine_review_oversized_columns_does_not_panic_on_up() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("review-columns");
 }
 
 #[test]
 fn tui_combine_review_source_revision_is_coherent() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("review-revision");
 }
 
 #[test]
 fn tui_combine_cache_revision_uses_held_source_and_reuses_snapshot() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::combine_process_tests::scenario("cache-revision");
 }

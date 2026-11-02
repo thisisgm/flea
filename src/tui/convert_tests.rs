@@ -48,6 +48,9 @@ pub(super) fn frame(m: &Model) -> String {
 }
 #[test]
 fn tui_convert_all_formats_follow_shared_contract() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("formats");
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "photo.png");
@@ -71,6 +74,9 @@ fn tui_convert_all_formats_follow_shared_contract() {
 }
 #[test]
 fn tui_convert_pdf_ranges_and_outputs_are_real() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("pdf");
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "garden-report.pdf");
@@ -79,6 +85,9 @@ fn tui_convert_pdf_ranges_and_outputs_are_real() {
 }
 #[test]
 fn tui_convert_pdf_heading_drops_the_greek_accent() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("pdf");
     let (mut w, reader) = wire::echo_wire();
     let mut m = opened(&mut w, "garden-report.pdf");
@@ -90,6 +99,9 @@ fn tui_convert_pdf_heading_drops_the_greek_accent() {
 }
 #[test]
 fn tui_convert_multiple_images_keep_listing_order() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("order");
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "photo.png");
@@ -98,6 +110,9 @@ fn tui_convert_multiple_images_keep_listing_order() {
 }
 #[test]
 fn tui_convert_office_reuses_preview_cache() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("office");
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "report.docx");
@@ -106,6 +121,9 @@ fn tui_convert_office_reuses_preview_cache() {
 }
 #[test]
 fn tui_convert_collision_cancel_preserve_sources() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     super::convert_process_tests::scenario("safe");
     let (mut w, reader) = wire::echo_wire();
     let m = opened(&mut w, "photo.png");

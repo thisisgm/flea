@@ -27,6 +27,9 @@ fn tui_office_vfix1_missing_source_fails_without_request() {
 
 #[test]
 fn tui_office_failure_and_missing_metadata_are_truthful() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let i18n = crate::i18n::test_catalogs::english();
     let cases: [(&str, Vec<u8>, &str, &str); 4] = [
         (

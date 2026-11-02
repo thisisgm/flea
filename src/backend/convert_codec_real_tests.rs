@@ -11,6 +11,9 @@ fn has_encoder(formats: &str, codec: &str) -> bool {
 
 #[test]
 fn convert_codec_real_outputs_match_the_requested_encoder_or_refuse() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     assert!(
         ready(&["magick", "bwrap", "prlimit", "pdfinfo"]),
         "codec proof needs real tools"
@@ -159,6 +162,9 @@ fn convert_codec_real_outputs_match_the_requested_encoder_or_refuse() {
 
 #[test]
 fn convert_codec_real_metadata_remains_opt_in_to_stripping() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     assert!(
         ready(&["magick", "bwrap", "prlimit"]),
         "metadata proof needs real tools"

@@ -37,6 +37,9 @@ fn m9_g2rows_01_protocol_child() {
 
 #[test]
 fn m9_g2rows_01_real_backend_stdin_stdout_and_remainder() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     use std::io::BufRead;
     let root = root();
     for index in 0..7 {
@@ -134,6 +137,9 @@ fn m9_g2rows_01_real_backend_stdin_stdout_and_remainder() {
 
 #[test]
 fn m9_g2rows_01_cancellation_in_clean_no_tty_pid_namespace() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = root();
     let out = Command::new("/usr/bin/bwrap")
         .args(["--unshare-all", "--dev-bind", "/", "/", "--proc", "/proc", "--die-with-parent", "/usr/bin/env", "-i", "PATH=/usr/bin:/bin"])

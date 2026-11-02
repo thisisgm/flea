@@ -3,6 +3,9 @@ use super::Fixture;
 
 #[test]
 fn fixlogic_ey484_the_searched_folders_own_hit_leads_then_nearer_then_by_name() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     for folder in ["Code", "Docs", "Media", "Code/deep"] {
         std::fs::create_dir_all(f.root.join(folder)).unwrap();

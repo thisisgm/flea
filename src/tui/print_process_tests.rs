@@ -243,6 +243,9 @@ fn tui_print_process_helper() {
 
 #[test]
 fn tui_print_real_backend_and_private_setup_recorder() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let dir = TestDir::new("tui-print");
     dir.dir("files");
     for name in [

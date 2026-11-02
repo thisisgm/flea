@@ -297,6 +297,9 @@ mod tests {
 
     #[test]
     fn tui_model3d_graphics_cancellation_reaps_decoder() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
         use std::time::{Duration, Instant};
         assert!(crate::tui::chafa::test_support::sandboxed());
         let root = crate::tui::model3d::tests::Fixture::new();

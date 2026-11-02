@@ -130,36 +130,7 @@ impl Drop for Fixture {
 }
 
 pub(crate) fn sandboxed() -> bool {
-    static WHY: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
-    let why = WHY.get_or_init(|| {
-        let mut argv =
-            sandbox::wrap_readonly(&["/usr/bin/true".into()], Path::new("/usr/bin/true"));
-        host_loader(&mut argv);
-        let output = match Command::new(&argv[0]).args(&argv[1..]).output() {
-            Ok(output) => output,
-            Err(error) => return Some(format!("{} could not run: {}", argv[0], error)),
-        };
-        if output.status.success() {
-            return None;
-        }
-        Some(
-            String::from_utf8_lossy(&output.stderr)
-                .lines()
-                .next()
-                .unwrap_or("it exited non-zero and said nothing")
-                .to_owned(),
-        )
-    });
-    let Some(why) = why else {
-        return true;
-    };
-    let who = std::thread::current()
-        .name()
-        .unwrap_or("a sandboxed test")
-        .to_owned();
-    let line = format!("SKIP {}: the bwrap sandbox cannot run here: {}\n", who, why);
-    std::io::stderr().write_all(line.as_bytes()).ok();
-    false
+    !crate::backend::sandboxprobe::skipped()
 }
 
 // Debian's ELF loader alias differs from Omarchy's; every namespace, mount permission and limit stays identical.

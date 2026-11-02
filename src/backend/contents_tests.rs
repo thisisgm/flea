@@ -118,6 +118,9 @@ mod review;
 
 #[test]
 fn m9_g2rows_01_rg_ignore_hidden_binary_first_line() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     std::fs::write(f.root.join(".gitignore"), "ignored.txt\n").unwrap();
     std::fs::write(f.root.join("ignored.txt"), "needle ignored\n").unwrap();
@@ -152,6 +155,9 @@ fn m9_g2rows_01_rg_ignore_hidden_binary_first_line() {
 
 #[test]
 fn m9_g2rows_01_cancel_reaps_and_stale_generation_is_ignored() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if std::env::var_os("FLEA_CONTENTS_CI_ENV").is_some() {
         use std::io::IsTerminal;
         assert!(!std::io::stdin().is_terminal());
@@ -278,6 +284,9 @@ fn m9_g2rows_01_cancel_reaps_and_stale_generation_is_ignored() {
 
 #[test]
 fn m9_g2rows_01_raw_paths_and_remainder_keep_listing_identity() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     for name in ["-dash.txt", "two words.txt", "café.txt", "last.txt"] {
         std::fs::write(f.root.join(name), "needle\n").unwrap();

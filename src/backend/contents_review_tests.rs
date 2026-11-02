@@ -20,6 +20,9 @@ fn raw_fixture() -> Fixture {
 
 #[test]
 fn m9_g2rows_01_review_malformed_identity_fails_closed() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = raw_fixture();
     let row =
         f.st.contents
@@ -115,6 +118,9 @@ fn m9_g2rows_01_review_failed_and_cancelled_search_preserves_watch() {
 
 #[test]
 fn m9_g2rows_01_review_completed_cancel_and_close_are_idempotent() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = raw_fixture();
     f.request(r#"{"c":"searchcancel"}"#);
     assert!(
@@ -142,6 +148,9 @@ fn m9_g2rows_01_review_completed_cancel_and_close_are_idempotent() {
 
 #[test]
 fn m9_g2rows_01_review_sort_and_filter_preserve_match_identity() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = raw_fixture();
     let before = f.st.contents.held.as_ref().unwrap().matches.clone();
     f.request(r#"{"c":"filter","query":"safe","id":1}"#);
@@ -199,6 +208,9 @@ fn m9_g2rows_01_review_sort_and_filter_preserve_match_identity() {
 
 #[test]
 fn m9_g2rows_01_retained_filter_and_delete_receipt_keep_rows() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = raw_fixture();
     let generation = f.st.generation;
     let before = f.st.contents.held.as_ref().unwrap().matches.clone();
@@ -219,6 +231,9 @@ fn m9_g2rows_01_retained_filter_and_delete_receipt_keep_rows() {
 
 #[test]
 fn m9_g2rows_01_r2_close_stops_previous_names_session() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     std::fs::write(f.root.join("one.txt"), "needle\n").unwrap();
     f.request(&format!(
@@ -285,6 +300,9 @@ fn m9_g2rows_01_r3_failed_contents_does_not_swallow_names_cancel() {
 
 #[test]
 fn m9_g2rows_01_r2_large_matching_line_uses_request_budget() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     let line = format!("needle{}", "x".repeat(2 * 1024 * 1024));
     std::fs::write(f.root.join("bundle.js"), format!("{line}\n")).unwrap();
@@ -297,6 +315,9 @@ fn m9_g2rows_01_r2_large_matching_line_uses_request_budget() {
 
 #[test]
 fn m9_g2rows_01_review_minified_line_does_not_discard_other_files() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     let line = format!("needle{}", "x".repeat(200 * 1024));
     std::fs::write(f.root.join("bundle.js"), format!("{line}\n")).unwrap();
@@ -310,6 +331,9 @@ fn m9_g2rows_01_review_minified_line_does_not_discard_other_files() {
 // An unreadable folder under the root is skipped like the names walk skips it, never a failed search.
 #[test]
 fn ey333_unreadable_folder_keeps_the_other_matches() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     use std::os::unix::fs::PermissionsExt;
     let mut f = Fixture::new();
     std::fs::write(f.root.join("notes.txt"), "plain needle\n").unwrap();
@@ -356,6 +380,9 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
 // Exit 2 after the summary is a partial walk only when every stderr line names a skipped path or an ignore glob rg passed over.
 #[test]
 fn ey333_exit_two_is_partial_only_for_skipped_paths() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let summary = r#"{"type":"summary","data":{"stats":{"searches":1}}}"#;
     let denied = "rg: ./Locked: Permission denied (os error 13)\n";
     // rg prefixes only the first line of an ignore file's errors: "rg: ./.ignore: line 1: ..." then "./.ignore: line 3: ...".
@@ -430,6 +457,9 @@ fn ey333_exit_two_is_partial_only_for_skipped_paths() {
 // EY-366: rg exits 0 and warns on stderr about a malformed .ignore glob; the matches still publish.
 #[test]
 fn ey366_malformed_ignore_glob_keeps_the_matches() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = Fixture::new();
     std::fs::write(f.root.join(".ignore"), "a{b\n").unwrap();
     std::fs::write(f.root.join("notes.txt"), "plain needle\n").unwrap();

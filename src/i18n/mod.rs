@@ -91,6 +91,7 @@ pub struct I18n {
     omarchy_english: HashMap<&'static str, Catalog>,
     omarchy_translated: HashMap<&'static str, Catalog>,
     watched: Vec<(PathBuf, Option<Stamp>)>,
+    language_text: Option<String>,
     paragraphs: bool,
 }
 
@@ -105,6 +106,7 @@ impl I18n {
             english: Catalog::new(), translated: Catalog::new(),
             omarchy_english: HashMap::new(), omarchy_translated: HashMap::new(), watched: Vec::new(),
             paragraphs: false,
+            language_text: None,
         };
         result.reload();
         result
@@ -219,6 +221,7 @@ impl I18n {
         self.watched
             .iter()
             .all(|(path, before)| stamp(path) == *before)
+            && catalog::read(&self.paths.language_file) == self.language_text
     }
 
     // Stage a stable replacement without mutating the catalog any current frame still holds.
@@ -250,8 +253,8 @@ impl I18n {
         let language_file = self.watch(self.paths.language_file.clone());
         let registry = self.watch(self.paths.omarchy.join("default/i18n/locales.json"));
         self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default(), &registry);
-        let language = catalog::read(&language_file).unwrap_or_default();
-        let code = language_code(&language);
+        self.language_text = catalog::read(&language_file);
+        let code = language_code(self.language_text.as_deref().unwrap_or_default());
         self.locale = self.roster.iter().find(|l| l.code == code).cloned()
             .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());
         let code = self.locale.code.clone();
@@ -309,3 +312,6 @@ mod load_tests;
 mod adv_c_tests;
 #[cfg(test)]
 mod gap64_tests;
+
+#[cfg(test)]
+mod opr_reds_tests;
