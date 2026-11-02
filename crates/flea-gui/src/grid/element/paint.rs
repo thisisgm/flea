@@ -262,7 +262,7 @@ impl GridElement {
                 let _ = window.paint_glyph_run(
                     point(x, caption_baseline(run, top, window)),
                     run,
-                    ink.foreground,
+                    crate::window::glass::producers::text_ink(ink.foreground, window, cx),
                 );
             }
         });

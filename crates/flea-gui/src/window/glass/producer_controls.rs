@@ -24,9 +24,7 @@ impl gpui::Render for UnknownOwner {
 }
 
 #[gpui::test]
-fn sol_glassy_ground_unknown_paint_cannot_be_reported_as_the_requested_alpha(
-    cx: &mut TestAppContext,
-) {
+fn glass_unknown_paint_cannot_be_reported_as_the_requested_alpha(cx: &mut TestAppContext) {
     let fixture = install(cx, "ground-product-unknown-painted", &[(6, "")]);
     let handle = cx.update(|cx| {
         cx.open_window(
@@ -63,7 +61,7 @@ fn sol_glassy_ground_unknown_paint_cannot_be_reported_as_the_requested_alpha(
 }
 
 #[gpui::test]
-fn sol_glassy_ground_paint_the_material_and_preserve_independent_floors(cx: &mut TestAppContext) {
+fn glass_paint_the_material_and_preserve_independent_floors(cx: &mut TestAppContext) {
     let fixture = install(cx, "ground-product-painted", &[(6, "")]);
     let handle = launch(cx);
     draw(handle, cx);
@@ -112,7 +110,7 @@ fn sol_glassy_ground_paint_the_material_and_preserve_independent_floors(cx: &mut
 }
 
 #[gpui::test]
-fn sol_glassy_ground_unknown_and_inherited_grounds_are_opaque(cx: &mut TestAppContext) {
+fn glass_unknown_and_inherited_grounds_are_opaque(cx: &mut TestAppContext) {
     let fixture = install(cx, "ground-product-unknown", &[(6, "")]);
     let handle = launch(cx);
     handle
@@ -140,9 +138,7 @@ fn sol_glassy_ground_unknown_and_inherited_grounds_are_opaque(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-fn sol_glassy_ground_mode_changes_reset_samples_and_windows_do_not_share_them(
-    cx: &mut TestAppContext,
-) {
+fn glass_mode_changes_reset_samples_and_windows_do_not_share_them(cx: &mut TestAppContext) {
     let fixture = install(cx, "ground-product-windows", &[(6, "")]);
     let first = launch(cx);
     let second = launch(cx);
@@ -195,7 +191,7 @@ fn sol_glassy_ground_mode_changes_reset_samples_and_windows_do_not_share_them(
 }
 
 #[gpui::test]
-fn sol_glassy_ground_dual_path_paints_once_and_retires_on_view_change(cx: &mut TestAppContext) {
+fn glass_dual_path_paints_once_and_retires_on_view_change(cx: &mut TestAppContext) {
     let fixture = install(cx, "ground-product-dual-path", &[(6, "")]);
     let handle = launch(cx);
     handle

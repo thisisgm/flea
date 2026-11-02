@@ -114,7 +114,7 @@ impl Element for HeaderElement {
         _: &mut (),
         frame: &mut HeaderFrame,
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) {
         let HeaderFrame {
             palette,
@@ -155,7 +155,14 @@ impl Element for HeaderElement {
                     size(px(cell.width), bounds.size.height),
                 );
                 window.with_content_mask(Some(ContentMask { bounds: mask }), |window| {
-                    paint_line(run, x, text_top, text_height, palette.metadata, window);
+                    paint_line(
+                        run,
+                        x,
+                        text_top,
+                        text_height,
+                        crate::window::glass::producers::text_ink(palette.metadata, window, cx),
+                        window,
+                    );
                 });
             }
         });

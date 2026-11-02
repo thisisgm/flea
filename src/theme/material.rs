@@ -23,24 +23,44 @@ impl Material {
         }
     }
 
+    /// The OEM blur transforms the white endpoint before the app composites its fills.
+    pub fn backdrops(&self) -> [Color; 2] {
+        [
+            Color::rgb(
+                self.blur_brightness,
+                self.blur_brightness,
+                self.blur_brightness,
+            )
+            .quantized(),
+            Color::BLACK,
+        ]
+    }
+
     pub fn worst(&self, ink: Color, alpha: u8) -> f64 {
-        let white = Color::rgb(
-            self.blur_brightness,
-            self.blur_brightness,
-            self.blur_brightness,
-        )
-        .quantized();
+        self.worst_over_washes(ink, alpha, &[])
+    }
+
+    /// Contrast on the actual translucent plane, including its existing selection washes.
+    fn worst_over_washes(&self, ink: Color, alpha: u8, washes: &[Color]) -> f64 {
         [self.background, self.surface]
             .into_iter()
             .flat_map(|plane| {
-                [white, Color::BLACK].into_iter().map(move |backdrop| {
-                    ratio(
-                        ink,
-                        plane.alpha(alpha as f64 / 255.0).over(backdrop).quantized(),
+                self.backdrops().into_iter().flat_map(move |backdrop| {
+                    let ground = plane.alpha(alpha as f64 / 255.).over(backdrop).quantized();
+                    std::iter::once(ratio(ink, ground)).chain(
+                        washes
+                            .iter()
+                            .map(move |wash| ratio(ink, wash.over(ground).quantized())),
                     )
                 })
             })
             .fold(f64::INFINITY, f64::min)
+    }
+
+    pub fn lift_over_washes(&self, ink: Color, alpha: u8, need: f64, washes: &[Color]) -> Color {
+        self.search(ink, |candidate| {
+            self.worst_over_washes(candidate, alpha, washes) >= need
+        })
     }
 
     fn toward(&self) -> Color {

@@ -371,7 +371,7 @@ mod grid;
 mod tab;
 
 #[gpui::test]
-fn sol_glassy_ground_automatic_alpha_matches_v0312(cx: &mut TestAppContext) {
+fn glass_automatic_alpha_matches_v0312(cx: &mut TestAppContext) {
     let value = read_glass(cx, "sol-glassy-ground-alpha", &[(6, "")]);
     assert_eq!(value.get("mode").and_then(Json::as_str), Some("glassy"));
     let alpha = value.get("alpha").and_then(Json::as_f64).unwrap();

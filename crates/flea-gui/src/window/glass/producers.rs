@@ -71,6 +71,18 @@ pub(crate) fn chrome_theme(window: &Window, cx: &App) -> Theme {
     theme
 }
 
+/// Resolve glyph ink independently from fills, including selected-row washes.
+pub(crate) fn text_ink(color: Hsla, window: &Window, cx: &App) -> Hsla {
+    let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+    if requested(window, cx) >= 1. || !theme.glass.automatic || theme.glass.mode != Mode::Glassy {
+        return color;
+    }
+    let Some(inks) = theme.glass.chrome_inks else {
+        return color;
+    };
+    super::recipe::lookup(&theme, inks, color)
+}
+
 pub(crate) fn color(owner: Producer, mut color: Hsla, window: &Window, cx: &App) -> Hsla {
     let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
     let known = color == theme.background || color == theme.surface || color == theme.chrome();

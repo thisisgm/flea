@@ -178,6 +178,19 @@ impl Tagger {
             return;
         }
         let (mode, uses_default, wanted) = self.sources.read();
+        // The app paints the original translucent fills; fading the whole surface would dim text twice.
+        let wanted = if mode == Mode::Glassy
+            && uses_default
+            && wanted.is_some()
+            && self
+                .lock()
+                .followed
+                .is_some_and(|input| input.chrome_inks.is_some() && input.wanted_alpha < 255)
+        {
+            Some((1., 1.))
+        } else {
+            wanted
+        };
         // Clear a stale global rule even before a client has mapped or its properties can be read.
         if wanted.is_none() && rule_step(wanted, &[], self.lock().ruled).is_some() {
             self.set_rule(None);

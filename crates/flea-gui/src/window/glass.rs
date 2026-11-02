@@ -67,21 +67,7 @@ impl Inputs {
             Mode::Glassy => theme.unwrap_or_else(|| material.floor(TEXT_CONTRAST)),
             Mode::Transparent => theme.unwrap_or(255),
         });
-        let mut list_alpha = alpha;
-        if automatic && mode == Mode::Glassy && alpha < 255 {
-            let mut list = material;
-            list.surface = list.background;
-            let mut floor = 255;
-            while floor > 0
-                && list
-                    .worst(list.muted, floor - 1)
-                    .min(list.worst(list.metadata, floor - 1))
-                    >= TEXT_CONTRAST
-            {
-                floor -= 1;
-            }
-            list_alpha = alpha.max(floor);
-        }
+        let list_alpha = alpha;
         Self {
             mode,
             automatic,
@@ -187,9 +173,26 @@ impl Adapter for Reader<'_> {
             })
             .collect::<Vec<_>>()
             .join(",");
+        let text_roles = [
+            ("foreground", theme.foreground),
+            ("muted", theme.muted),
+            ("metadata", theme.metadata),
+            ("metadataFrame", theme.metadata_frame),
+            ("mutedFrame", theme.muted_frame),
+        ]
+        .into_iter()
+        .map(|(name, color)| {
+            format!(
+                "\"{name}\":{{\"color\":\"{}\",\"alpha\":{}}}",
+                crate::ipc::rows::colour(color),
+                color.a
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
         // Actual producer paint samples stay distinct from the requested theme alphas.
         Some(Reply::value(format!(
-            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":{list_alpha},\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":{},\"groundReady\":{ready},\"grounds\":{{{grounds}}},\"requestedAlpha\":{},\"requestedListAlpha\":{}}}",
+            "{{\"clear\":{},\"mode\":\"{mode}\",\"focused\":{},\"automatic\":{},\"alpha\":{alpha},\"listAlpha\":{list_alpha},\"foreground\":\"{}\",\"muted\":\"{}\",\"metadata\":\"{}\",\"window\":\"{window}\",\"early\":{},\"material\":{},\"groundReady\":{ready},\"grounds\":{{{grounds}}},\"textRoles\":{{{text_roles}}},\"requestedAlpha\":{},\"requestedListAlpha\":{}}}",
             mounted.clear, self.window.is_window_active(), inputs.automatic,
             crate::ipc::rows::colour(theme.foreground), crate::ipc::rows::colour(theme.muted),
             crate::ipc::rows::colour(theme.metadata), mounted.clear, ready && alpha < 1. && inputs.automatic && inputs.mode == Mode::Glassy,

@@ -52,6 +52,25 @@ impl Palette {
         }
     }
 
+    /// Glyph roles use the glass contrast recipe; callers retain the original palette for fills.
+    pub(crate) fn text_inks(mut self, window: &gpui::Window, cx: &gpui::App) -> Self {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        if self.background != theme.background || self.foreground != theme.foreground {
+            return self;
+        }
+        let lift = |ink| crate::window::glass::producers::text_ink(ink, window, cx);
+        self.foreground = lift(self.foreground);
+        self.muted = lift(self.muted);
+        self.metadata = lift(self.metadata);
+        self.metadata_frame = lift(self.metadata_frame);
+        self.muted_frame = lift(self.muted_frame);
+        self.symlink = lift(self.symlink);
+        self.executable = lift(self.executable);
+        self.error = lift(self.error);
+        self.error_on_surface = lift(self.error_on_surface);
+        self
+    }
+
     /// v0.3.12's quiet text: a caption in effect in the foreground, every other one in Theme.color.muted.
     pub fn caption(&self, lit: bool) -> Hsla {
         if lit {

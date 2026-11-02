@@ -332,7 +332,7 @@ impl Element for ListElement {
             mask: bounds,
             layout,
             metrics,
-            palette: Some(palette),
+            palette: Some(palette.text_inks(window, cx)),
             scroll_y: self.scroll_y,
             listing: held.listing,
             frames: drawn.frames + 1,
@@ -379,6 +379,7 @@ impl Element for ListElement {
             row_width,
             caption,
         } = *frame;
+        let text = palette.text_inks(window, cx);
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let state = self.state.borrow();
         let view = &state.view;
@@ -492,9 +493,9 @@ impl Element for ListElement {
                             continue;
                         };
                         let meta = if lifted || view.picker.is_some() {
-                            palette.foreground
+                            text.foreground
                         } else {
-                            palette.metadata
+                            text.metadata
                         };
                         if shown.state.drop_target {
                             continue;
@@ -521,7 +522,7 @@ impl Element for ListElement {
                                 Column::Mode => left + px(cell.x),
                             };
                             let ink = if column == Column::Date && recent {
-                                palette.foreground
+                                text.foreground
                             } else {
                                 meta
                             };
@@ -546,7 +547,7 @@ impl Element for ListElement {
                                 self.held.row(shown.index),
                                 &metrics,
                             );
-                            let ink = palette.name(prepared.ink, shown.state.lifted());
+                            let ink = text.name(prepared.ink, shown.state.lifted());
                             let line = shown.name_line().expect("prepared above");
                             let name_mask = ContentMask {
                                 bounds: shown.name_slot(names, &metrics),
@@ -565,9 +566,9 @@ impl Element for ListElement {
                                 let x =
                                     names.origin.x + prepared.name.line().width + px(metrics.gap);
                                 let caption_ink = if shown.state.lifted() {
-                                    palette.foreground
+                                    text.foreground
                                 } else {
-                                    palette.metadata
+                                    text.metadata
                                 };
                                 paint_line(
                                     &prepared.location,
