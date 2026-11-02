@@ -171818,7 +171818,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read(&args[1]).unwrap(), b\"font bytes\");",
-      "line": 87,
+      "line": 88,
       "literal": "font bytes",
       "owner": "t11",
       "path": "src/tui/combine/font.rs",
@@ -246110,7 +246110,7 @@
     "src/tui/combine.rs": "59885ff0048119b3df480d9f449c8b87530a97c5c761f1877e4d22bd2be955cd",
     "src/tui/combine/card.rs": "ef6b5eee96b6e67fbe2860413c69d191af2efd9f4d6032b90ee8ab2d6480ff96",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
-    "src/tui/combine/font.rs": "1093a780d1f6ba645cef865c2b1cbabb44f679d88080e1151f830cc059ac32c9",
+    "src/tui/combine/font.rs": "d84d2e462c3b5d7ae5c791683fd0f29d14594d21f679929a76d27ea6f812ac3a",
     "src/tui/combine/input.rs": "168a5b326e639253885901c0be4ecd819894b9f1e37dbf7fab3b4d23720a4ed0",
     "src/tui/combine/preview.rs": "df99fc813780cc734d75417314fe24f9a79700ce33f0a1979b0c435aca805306",
     "src/tui/combine/replies.rs": "eccc222bdef3fa41bbae8d9a6d801c1561eff2ba332d03a1b8c95f4dacd28ef0",
@@ -247099,8 +247099,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "50448a84d4d33869feb316a21f80fc1a41fe7228",
-  "source_sha": "50448a84d4d33869feb316a21f80fc1a41fe7228",
+  "source_ref_sha": "5f51df29b383c98fb7d609b3d2fff06e292cb5d6",
+  "source_sha": "5f51df29b383c98fb7d609b3d2fff06e292cb5d6",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,

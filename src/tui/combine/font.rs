@@ -84,6 +84,7 @@ mod tests {
         let mut args = Vec::new();
         append_file(&mut args, resolved.as_deref(), root.path());
         assert_eq!(args[0], "-font");
+        assert_eq!(Path::new(&args[1]), root.join("label-font"));
         assert_eq!(std::fs::read(&args[1]).unwrap(), b"font bytes");
         let mut fallback = Vec::new();
         append_file(&mut fallback, Some(&root.join("missing.ttf")), root.path());
