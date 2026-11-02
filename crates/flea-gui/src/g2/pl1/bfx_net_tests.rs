@@ -116,6 +116,7 @@ fn bfx_net_kill_ends_and_closes_a_run_whose_pipes_are_held_outside_its_group() {
         "helper",
         r#"#!/bin/sh
 setsid sh -c 'printf "%s\n" "$$" > "$1/holder.pid"; yes; touch "$1/holder.closed"' holder "$1" &
+wait
 "#,
     );
     let handle = ThreadRunner.start(Job::plain(&[&script, root.0.to_str().unwrap()]));

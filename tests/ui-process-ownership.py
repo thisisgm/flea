@@ -261,6 +261,7 @@ flea_bin="$run_root/stub/flea"
 flea_log="$run_root/flea.log"
 run_log="$run_root/run.log"
 flea_window_class=com.thisisgm.flea
+test_frontend=qml
 foreign_pids=""
 drain_wait_s=1
 settle_s=0
