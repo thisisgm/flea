@@ -106629,7 +106629,7 @@
     },
     {
       "excerpt": "token: \"5\".into(),",
-      "line": 57,
+      "line": 71,
       "literal": "5",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106638,7 +106638,7 @@
     },
     {
       "excerpt": "title: \"Rename incompatible names\".into(),",
-      "line": 94,
+      "line": 108,
       "literal": "Rename incompatible names",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106647,7 +106647,7 @@
     },
     {
       "excerpt": "note: \"Font gate FAT names\".into(),",
-      "line": 101,
+      "line": 115,
       "literal": "Font gate FAT names",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106656,7 +106656,7 @@
     },
     {
       "excerpt": "title: \"Replace existing files\".into(),",
-      "line": 106,
+      "line": 120,
       "literal": "Replace existing files",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106664,8 +106664,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": "r#\"{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"kind\":\"Plain text document\",\"mime\":\"text/plain\",\"applications\":[{{\"id\":\"a.desktop\",\"label\":\"Font gate app\",\"icon\":\"\",\"default\":true}}],\"installed\":[]}}\"#",
+      "line": 165,
+      "literal": "{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"kind\":\"Plain text document\",\"mime\":\"text/plain\",\"applications\":[{{\"id\":\"a.desktop\",\"label\":\"Font gate app\",\"icon\":\"\",\"default\":true}}],\"installed\":[]}}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/font_gate/dialogs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "flea::ui_logic_mn1::Text::Data(\"Font submenu\".into()),",
-      "line": 194,
+      "line": 217,
       "literal": "Font submenu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106674,7 +106683,7 @@
     },
     {
       "excerpt": "flea::ui_logic_mn1::Text::Data(\"Font menu\".into()),",
-      "line": 198,
+      "line": 221,
       "literal": "Font menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106683,7 +106692,7 @@
     },
     {
       "excerpt": "\"the pane opened its menu\"",
-      "line": 231,
+      "line": 254,
       "literal": "the pane opened its menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -106692,7 +106701,7 @@
     },
     {
       "excerpt": "for ch in \"Font gate query\".chars() {",
-      "line": 241,
+      "line": 264,
       "literal": "Font gate query",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -244641,7 +244650,7 @@
     "crates/flea-gui/src/feedback/spinner.rs": "42452b0e4fb59bf18faaa2188f7d80b3b5cb3780cae41e6a4717af8e6d195786",
     "crates/flea-gui/src/feedback/spinner_player.rs": "6bb2e0246bed3672b46c5b296a8b1bf7eb5cf2e57455ce2b94b8eeec869d8b4e",
     "crates/flea-gui/src/font_gate.rs": "ad607ca5b9dae4b047c82a47a079d3ff9aaf34fad71a477945f19ebc52fc6ce6",
-    "crates/flea-gui/src/font_gate/dialogs.rs": "7a0141f810ccc7c2c61dd11e6e6326305a99895e71f7887be16fc6f5f2ee4008",
+    "crates/flea-gui/src/font_gate/dialogs.rs": "b6a2c519dc39d078b4485c93b1794f5f968e95e4f9d507dc64b786498ae4f3f2",
     "crates/flea-gui/src/font_gate/isolation.rs": "dd2e161ff9e00cb4d3ab8a223df801537a85a8a0520d51114ecd210119495a01",
     "crates/flea-gui/src/font_gate/picker.rs": "9ac3dfe6ba79d4ef9f1f4bd0b817a5bb341f16b331115a42a44e563494046616",
     "crates/flea-gui/src/font_gate/readers.rs": "2e0903b3f6c8f5684f48ff77361d7b29f3ada0967aa41ae5ff3fe46cf054667a",
@@ -247187,8 +247196,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "927f7955bf397c2afde9d614b4370c9b2728cdd5",
-  "source_sha": "927f7955bf397c2afde9d614b4370c9b2728cdd5",
+  "source_ref_sha": "375972461c21fba1cd792d869f9107790223340b",
+  "source_sha": "375972461c21fba1cd792d869f9107790223340b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247202,7 +247211,7 @@
     },
     "gui": {
       "keys_with_occurrences": 532,
-      "missing_literal_candidates": 2097,
+      "missing_literal_candidates": 2098,
       "source_files": 1113
     },
     "qml-reference": {
