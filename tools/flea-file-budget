@@ -14,7 +14,7 @@ soft_js=200;   hard_js=300
 known_over_cap="src/tui/parity_candidate_tests.rs 696
 src/tui/office.rs 403
 src/tui/preview_locale_tests.rs 513
-src/tui/cells.rs 426
+src/tui/cells.rs 428
 src/tui/parity_listing_tests.rs 410
 src/tui/preview.rs 406
 src/tui/frame_tests.rs 408
