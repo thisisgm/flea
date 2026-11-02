@@ -3,7 +3,7 @@ use crate::{
     g2::op3::{
         keys::{key_of, Key},
         openwith::OpenWith,
-        shell::StandIn,
+        shell::{Block, StandIn},
         Effect,
     },
     state::Shell,
@@ -193,7 +193,7 @@ impl Shell {
         true
     }
 
-    /// Every key belongs to the card while it shows.
+    /// Every key belongs to the card while it shows; the search's typed text reaches it through the platform.
     pub(crate) fn open_with_key(
         &mut self,
         event: &KeyDownEvent,
@@ -203,11 +203,14 @@ impl Shell {
         if self.open_with.is_none() {
             return false;
         }
-        let Some(key) = key_of(event) else {
+        if self.dialog_key(event, cx) {
+            return true;
+        }
+        cx.stop_propagation();
+        let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) else {
             cx.notify();
             return true;
         };
-        let _ = window;
         let effects = self.open_with.as_mut().expect("an open card").card.key(key);
         self.open_with_effects(effects, cx);
         true
@@ -235,6 +238,7 @@ impl Shell {
                 Effect::Launch(_) | Effect::EditNames { .. } | Effect::Refresh => {}
             }
         }
+        self.sync_dialog_editor();
         cx.notify();
     }
 
@@ -275,13 +279,24 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
+        self.sync_dialog_editor();
         let open = self.open_with.as_ref()?;
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let card = open.card.card(&self.locale.catalog);
+        let mut card = open.card.card(&self.locale.catalog);
+        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+            &palette,
+            self.corner,
+        ));
+        self.rename.ime.error_ink = false;
+        if self.rename.ime.owner == Some(crate::g2::op1::dialog_editor::Slot::OpenWithSearch) {
+            if let Some(Block::Field(search)) = card.body.first_mut() {
+                search.input = Some(cx.entity());
+            }
+        }
         let room = f32::from(window.viewport_size().width);
         let press = cx.listener(|shell: &mut Shell, at: &usize, _, cx| {
             shell.press_open_with(*at, cx);

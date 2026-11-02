@@ -2,6 +2,90 @@ use super::tests::Fixture;
 use super::*;
 use crate::jsondoc::{self, Json};
 
+#[test]
+fn i50_font_language_file_replace() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "de");
+    f.write("installed/i18n/de/flea.json", r#"{"folder.empty":"Leer"}"#);
+    let held = I18n::load(f.paths());
+    f.write("config/omarchy/replacement", "ja");
+    std::fs::rename(
+        f.path("config/omarchy/replacement"),
+        f.path("config/omarchy/language"),
+    )
+    .unwrap();
+    assert!(!held.sources_unchanged());
+    let next = held.prepare_changed().expect("stable replacement");
+    assert_eq!(held.language(), "de");
+    assert_eq!(held.tr("folder.empty"), "Leer");
+    assert_eq!(next.language(), "ja");
+    assert_eq!(next.locale().glibc_locale, "ja_JP.UTF-8");
+    assert!(next.sources_unchanged());
+    assert!(next.prepare_changed().is_none());
+}
+
+#[test]
+fn i50_font_snapshot_catalog_coherent() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "de");
+    f.write("installed/i18n/de/flea.json", r#"{"folder.empty":"Leer"}"#);
+    let held = I18n::load(f.paths());
+    f.write("installed/i18n/de/flea.json", r#"{"folder.empty":"Neu"}"#);
+    let prepared = held.prepare_changed().unwrap();
+    assert_eq!(held.tr("folder.empty"), "Leer");
+    assert_eq!(prepared.tr("folder.empty"), "Neu");
+    f.write("config/omarchy/replacement", "fa");
+    std::fs::rename(
+        f.path("config/omarchy/replacement"),
+        f.path("config/omarchy/language"),
+    )
+    .unwrap();
+    assert!(!prepared.sources_unchanged());
+    assert_eq!(prepared.language(), "de");
+    assert_eq!(prepared.locale().glibc_locale, "de_DE.UTF-8");
+    assert_eq!(prepared.tr("folder.empty"), "Neu");
+    let newest = prepared.prepare_changed().unwrap();
+    assert_eq!(newest.language(), "fa");
+    assert!(newest.locale().right_to_left);
+    assert_eq!(newest.trn("items.count", 2), "۲ items");
+}
+
+#[test]
+fn i50_font_held_text_covers_every_roster_script() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "de");
+    f.write(
+        "installed/i18n/de/flea.json",
+        r#"{"folder.empty":"Leer","items.count":{"one":"%1 Ding","other":"%1 Dinge"}}"#,
+    );
+    let held = I18n::load(f.paths()).held_text();
+    for word in ["العربية", "日本語", "Dansk", "Leer", "Dinge"] {
+        assert!(word.chars().all(|c| held.contains(c)), "{word} is not held");
+    }
+}
+
+#[test]
+fn i50_font_held_text_holds_every_formatted_number_mark() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "fa");
+    let catalog = I18n::load(f.paths());
+    let held = catalog.held_text();
+    let shown = [
+        catalog.locale().format_count(1234567890),
+        catalog.locale().format_number(1.5, 1),
+    ]
+    .concat();
+    assert!(shown.contains('۹') && shown.contains('٫'), "{shown}");
+    assert!(
+        shown.chars().all(|c| held.contains(c)),
+        "{shown} is not held"
+    );
+}
+
 fn wide_object(count: usize, duplicate: bool) -> String {
     let entries: Vec<String> = (0..count).map(|n| {
         let key = if duplicate { 0 } else { n };

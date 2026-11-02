@@ -154,11 +154,45 @@ impl KeycapSnapshot {
             .map(|row| row.1)
             .ok_or_else(|| KeycapError::UnknownChord(canonical.to_owned()))
     }
+
+    /// Canonical spellings whose keycap the policy cannot settle on this layout.
+    pub fn ambiguous(&self) -> &'static [&'static str] {
+        self.layout.ambiguous
+    }
+
+    /// Like `label`, but an ambiguous chord keeps its canonical legend; unknown and unavailable ones still fail.
+    pub fn legend(&self, canonical: &str) -> Result<&'static str, KeycapError> {
+        match self.label(canonical) {
+            Err(KeycapError::AmbiguousChord(_)) => KEYCAP_DEFAULTS
+                .iter()
+                .find(|row| row.0 == canonical)
+                .map(|row| row.1)
+                .ok_or_else(|| KeycapError::UnknownChord(canonical.to_owned())),
+            result => result,
+        }
+    }
 }
 
 /// Resolve alternatives separated by " / " and sequence parts separated by spaces.
 /// The result is logical text; each frontend supplies its own bidi isolation when rendering.
 pub fn chord_label(canonical: &str, snapshot: &KeycapSnapshot) -> Result<KeycapLabel, KeycapError> {
+    compose(canonical, snapshot, KeycapSnapshot::label)
+}
+
+/// `chord_label` with each part resolved by `KeycapSnapshot::legend`, so one ambiguous part never withholds the rest.
+pub fn chord_legend(
+    canonical: &str,
+    snapshot: &KeycapSnapshot,
+) -> Result<KeycapLabel, KeycapError> {
+    compose(canonical, snapshot, KeycapSnapshot::legend)
+}
+
+// Sample: "dd / ctrl-c ctrl-v", alternatives split on " / " and sequence parts on single spaces.
+fn compose(
+    canonical: &str,
+    snapshot: &KeycapSnapshot,
+    atom: fn(&KeycapSnapshot, &str) -> Result<&'static str, KeycapError>,
+) -> Result<KeycapLabel, KeycapError> {
     let mut alternatives = Vec::new();
     for alternative in canonical.split(" / ") {
         let mut parts = Vec::new();
@@ -166,7 +200,7 @@ pub fn chord_label(canonical: &str, snapshot: &KeycapSnapshot) -> Result<KeycapL
             if part.is_empty() {
                 return Err(KeycapError::InvalidChord(canonical.to_owned()));
             }
-            parts.push(snapshot.label(part)?);
+            parts.push(atom(snapshot, part)?);
         }
         alternatives.push(parts.join(" "));
     }
@@ -208,7 +242,7 @@ static KEYCAP_LAYOUTS: &[KeycapLayout] = &[
     KeycapLayout { layout: "is", variant: "", name: "Icelandic", overrides: &[(":", "shift-Æ"), ("?", "shift-Þ"), ("[", "ð"), ("]", "'"), ("ctrl-[", "ctrl-ð"), ("ctrl-equal", "ctrl--"), ("ctrl-minus", "ctrl-ö"), ("super-[", "super-ð"), ("super-]", "super-'"), ("super-bracketleft", "super-ð"), ("super-bracketright", "super-'"), ("{", "shift-Ð"), ("}", "shift-?"), ("~", "shift-¨")], ambiguous: &["-"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "ie", variant: "", name: "Irish", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "it", variant: "", name: "Italian", overrides: &[(":", "shift-ç"), ("?", "shift-_"), ("[", "è"), ("]", "+"), ("_", "shift-?"), ("ctrl-[", "ctrl-è"), ("ctrl-equal", "ctrl-ì"), ("ctrl-minus", "ctrl-'"), ("super-[", "super-è"), ("super-]", "super-+"), ("super-bracketleft", "super-è"), ("super-bracketright", "super-+"), ("{", "shift-é"), ("}", "shift-*"), ("~", "shift-|")], ambiguous: &["+", "-"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
-    KeycapLayout { layout: "jp", variant: "", name: "Japanese", overrides: &[(":", "shift-+")], ambiguous: &["+"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus", "~"], unavailable: &["~"] },
+    KeycapLayout { layout: "jp", variant: "", name: "Japanese", overrides: &[(":", "shift-+")], ambiguous: &["+"], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus", "~"], unavailable: &[] },
     KeycapLayout { layout: "kz", variant: "", name: "Kazakh", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "kr", variant: "kr104", name: "Korean (101/104-key compatible)", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
     KeycapLayout { layout: "kg", variant: "", name: "Kyrgyz", overrides: &[], ambiguous: &[], diagnostics: &[",", ",A", ",B", ",M", ",S", ",a", ",b", ",e", ",m", ",n", ",r", ",s", "-", ":", "?", "ctrl-minus", "ctrl-shift-minus"], unavailable: &[] },
@@ -298,5 +332,52 @@ mod tests {
             }
         }
         assert!(conflicts > 0);
+    }
+    #[test]
+    fn i50_ambig_legend_keeps_only_the_ambiguous_part_canonical() {
+        for (layout, ambiguous, relabelled, keycap) in
+            [("de", "-", "[", "ü"), ("fr", "-", ",", ";")]
+        {
+            let s = snapshot(layout, 3);
+            assert!(s.ambiguous().contains(&ambiguous));
+            assert_eq!(
+                s.label(ambiguous),
+                Err(KeycapError::AmbiguousChord(ambiguous.into()))
+            );
+            assert_eq!(s.legend(ambiguous), Ok(ambiguous));
+            assert_eq!(s.legend(relabelled), Ok(keycap));
+            let label =
+                chord_legend(&format!("{relabelled} {ambiguous} / {ambiguous}"), &s).unwrap();
+            assert_eq!(label.text, format!("{keycap} {ambiguous} / {ambiguous}"));
+            assert_eq!(
+                label.canonical,
+                format!("{relabelled} {ambiguous} / {ambiguous}")
+            );
+            assert_eq!(label.layout_generation, 3);
+            assert!(chord_label(&label.canonical, &s).is_err());
+            assert!(chord_legend("ctrl-wrong-key", &s).is_err());
+        }
+        let jp = snapshot("jp", 4);
+        assert_eq!(jp.legend("+"), Ok("+"));
+        assert_eq!(jp.legend("~"), Ok("~"));
+        for row in KEYCAP_LAYOUTS {
+            let s = KeycapSnapshot::new(row.layout, Some(row.variant), None, 5).unwrap();
+            for (canonical, legend) in KEYCAP_DEFAULTS {
+                match chord_label(canonical, &s) {
+                    Err(KeycapError::AmbiguousChord(_)) => {
+                        assert_eq!(s.legend(canonical), Ok(*legend))
+                    }
+                    result => assert_eq!(chord_legend(canonical, &s), result),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn i50_keycap_printed_shift_paths_are_available() {
+        // jp AE12 is [asciicircum, asciitilde]: "~" is Shift on the "^" key, printed as "~".
+        let s = KeycapSnapshot::new("jp", Some(""), None, 11).unwrap();
+        assert_eq!(s.label("~"), Ok("~"));
+        assert_eq!(chord_label("~", &s).unwrap().text, "~");
     }
 }

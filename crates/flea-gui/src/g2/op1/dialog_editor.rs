@@ -14,6 +14,7 @@ pub(crate) enum Slot {
     BulkReplace,
     BulkLine(usize),
     PluginAction,
+    OpenWithSearch,
 }
 
 #[derive(Default)]
@@ -34,9 +35,20 @@ impl DialogEditor {
 }
 
 impl Shell {
+    /// A card whose fields this shared session serves is showing, so the inline name underneath takes no callback.
+    pub(crate) fn dialog_showing(&self) -> bool {
+        self.open_with.is_some()
+            || self.operations.archive.showing()
+            || self.rename.bulk.is_some()
+            || self.plugins.input.is_some()
+    }
+
     pub(crate) fn dialog_value(&self) -> Option<(Slot, &str)> {
         if let Some(open) = self.plugins.input.as_ref().filter(|open| open.focus == 0) {
             return Some((Slot::PluginAction, &open.value));
+        }
+        if let Some(open) = &self.open_with {
+            return open.card.ime_value();
         }
         let archive = &self.operations.archive;
         if let Some(card) = archive.compress.as_ref().filter(|c| c.opened()) {
@@ -52,10 +64,7 @@ impl Shell {
     }
 
     pub(crate) fn sync_dialog_editor(&mut self) {
-        if self.operations.archive.showing()
-            || self.rename.bulk.is_some()
-            || self.plugins.input.is_some()
-        {
+        if self.dialog_showing() {
             if let Some(edit) = &mut self.rename.edit {
                 edit.entry.ime_unmark();
                 edit.line.line.registered = None;
@@ -67,7 +76,7 @@ impl Shell {
         };
         if self.rename.ime.owner != Some(slot)
             || !self.rename.ime.entry.editing
-            || self.rename.ime.entry.text != value
+            || self.rename.ime.entry.committed() != value
         {
             let value = value.to_owned();
             let editor = &mut self.rename.ime;
@@ -91,7 +100,9 @@ impl Shell {
     pub(crate) fn dialog_edited(&mut self, cx: &mut Context<Self>) {
         let editor = &self.rename.ime;
         if let Some(slot) = editor.owner {
-            let text = &editor.entry.text;
+            // Cards act on committed text only; the field itself still paints the preedit.
+            let committed = editor.entry.committed();
+            let text = &*committed;
             if let Some(open) = self
                 .plugins
                 .input
@@ -99,6 +110,8 @@ impl Shell {
                 .filter(|_| slot == Slot::PluginAction)
             {
                 open.value = text.chars().take(open.descriptor.max_chars).collect();
+            } else if let Some(open) = self.open_with.as_mut() {
+                open.card.ime_set(text, editor.entry.marked.is_some());
             } else if let Some(card) = self
                 .operations
                 .archive
@@ -124,12 +137,17 @@ impl Shell {
         let key = event.keystroke.key.as_str();
         let held = event.keystroke.modifiers;
         let command = held.control || held.platform;
-        let entry = &mut self.rename.ime.entry;
-        if entry.ime_key(key) {
+        let composing = self.rename.ime.entry.marked.is_some();
+        if self.rename.ime.entry.ime_key(key) {
             cx.stop_propagation();
             self.dialog_edited(cx);
             return true;
         }
+        if composing && self.rename.ime.entry.marked.is_none() {
+            // Tab committed the composition, so the card reads the line before focus moves.
+            self.dialog_edited(cx);
+        }
+        let entry = &mut self.rename.ime.entry;
         let at = entry.cursor();
         match key {
             "left" | "right" | "home" | "end" if !command && !held.alt => {

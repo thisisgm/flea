@@ -32,6 +32,14 @@ impl Entry {
         self.marked.as_ref().map(|range| self.range_to_utf16(range))
     }
 
+    /// The selection a field washes; the input method's highlight inside its composition is none, so the caret stays at its end.
+    pub fn washed(&self) -> Option<Range<usize>> {
+        let converting = self.marked.as_ref().is_some_and(|marked| {
+            marked.start <= self.selected.start && self.selected.end <= marked.end
+        });
+        (!self.selected.is_empty() && !converting).then(|| self.selected.clone())
+    }
+
     /// Surrounding text for the input method; a private line answers nothing.
     pub fn ime_text(
         &self,
@@ -46,9 +54,26 @@ impl Entry {
         self.text.get(range).map(str::to_owned)
     }
 
-    /// Commits platform text; control characters never enter the line.
+    /// Whether the input method may serve this line: a password or a number keeps it off, as v0.3.12 does.
+    pub fn composes(&self) -> bool {
+        !self.private && !self.digits
+    }
+
+    /// The line without its composition, the text a consumer acts on; the field still paints the preedit.
+    pub fn committed(&self) -> Cow<'_, str> {
+        match &self.marked {
+            Some(marked) => {
+                Cow::Owned([&self.text[..marked.start], &self.text[marked.end..]].concat())
+            }
+            None => Cow::Borrowed(&self.text),
+        }
+    }
+
+    /// Commits platform text; control characters never enter the line, and a number takes only digits.
     pub fn ime_replace(&mut self, range: Option<Range<usize>>, text: &str) -> bool {
-        if text.chars().any(char::is_control) {
+        if text.chars().any(char::is_control)
+            || (self.digits && !text.chars().all(|ch| ch.is_ascii_digit()))
+        {
             return false;
         }
         let range = range.map(|range| self.ime_range(&range));
@@ -63,7 +88,7 @@ impl Entry {
         text: &str,
         selected: Option<Range<usize>>,
     ) -> bool {
-        if text.chars().any(char::is_control) {
+        if !self.composes() || text.chars().any(char::is_control) {
             return false;
         }
         let range = range.map(|range| self.ime_range(&range));

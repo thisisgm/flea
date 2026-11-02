@@ -2,6 +2,7 @@
 use super::mark::{metrics as m, tracked};
 use super::page::Card;
 use super::view::PluginsPane;
+use crate::g2::st1::input::Field;
 use gpui::{div, prelude::*, px, Div, FontWeight, SharedString};
 
 impl PluginsPane {
@@ -24,7 +25,7 @@ impl PluginsPane {
     }
 
     // The card body inside op1's dialog shell: title row, hairline, its parts, then the buttons.
-    pub(crate) fn card(&self) -> Option<Div> {
+    pub(crate) fn card(&self, pane: gpui::Entity<Self>) -> Option<Div> {
         let t = self.tokens;
         let i18n = self.page.catalog();
         let (title, body, buttons): (String, Vec<Div>, Div) = match self.page.card() {
@@ -41,8 +42,7 @@ impl PluginsPane {
                     .border_1()
                     .border_color(t.accent_frame)
                     .rounded(px(self.radius))
-                    .child(SharedString::from(card.text.clone()))
-                    .child(div().w(px(1.)).h(px(m::CARET)).bg(t.fg));
+                    .child(Field::mount(pane, &self.input_typeface, true));
                 let label = tracked(
                     &i18n.tr("plugins.add.field").to_uppercase(),
                     m::FIELD_TRACKING,

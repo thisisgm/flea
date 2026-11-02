@@ -128,9 +128,9 @@ pub(super) fn paint_icon(
         left + px(metrics.pad + offset + (metrics.slot - metrics.mark) / 2.),
         top + px((metrics.row - metrics.mark) / 2.),
     );
-    if let Some((_, key, data)) =
-        row.and_then(|row| super::outline::chevron(view, row, shown.state.hovered))
-    {
+    if let Some((_, key, data)) = row.and_then(|row| {
+        super::outline::chevron(view, row, shown.state.hovered, window.layout_mirrored())
+    }) {
         let ink = if shown.state.lifted() {
             palette.foreground
         } else {

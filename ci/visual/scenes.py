@@ -12,6 +12,11 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parent
+# A language scene names a code of the pinned Omarchy roster the core reads, so the two lists cannot drift.
+# Sample: {"en": {"name": "English", ...}, "de": {"name": "Deutsch", ...}}, keyed by code.
+ROSTER = ROOT.parents[1] / 'src/i18n/fixtures/locales.json'
+# The fields only a language scene carries, checked against schema.json's language_scenes.
+LANGUAGE_FIELDS = {'language', 'surface', 'state'}
 # Board columns.png sizes only the active track; the id's last field is Slot::Active.index() in crates/flea-gui/src/columns/geometry.rs.
 COLUMNS_ACTIVE_TRACK = re.compile(r'columns-[01]-3')
 # The card scenes that carry no reference pair, each bound to the board ci/visual/g2/op1.json names for it.
@@ -49,6 +54,8 @@ def manifest(path):
     data = json.loads(Path(path).read_text())
     require(data.get('version') == 1 and data.get('scenes'), 'missing scene manifest')
     seen = set()
+    family = schema['language_scenes']
+    codes = json.loads(ROSTER.read_text())
     # Types, safe IDs and registry membership only; each scene's own values belong to its manifest.
     for scene in data['scenes']:
         require(isinstance(scene, dict), 'missing or unknown scene field')
@@ -56,13 +63,22 @@ def manifest(path):
         paired = 'reference' in scene
         require(paired == ('reference_tag' in scene), 'reference needs its tag')
         want = set(schema['required'])
+        # A language scene is one of a generated family: a pattern rather than a listed id, plus its language fields.
+        language = isinstance(scene.get('id'), str) and scene['id'].startswith(family['prefix'])
+        if language:
+            kind = re.fullmatch(family['pattern'], scene['id'])
+            require(kind, 'unknown scene id')
+            want |= LANGUAGE_FIELDS
         if not paired:
             require(isinstance(scene.get('id'), str) and CARD_BOARDS.get(scene.get('id')) == scene.get('board'), 'card scene must name its own board')
             want -= {'reference', 'reference_tag'}
         require(set(scene) == want, 'missing or unknown scene field')
         for key in ('id', 'unit', 'board', 'fixture', 'theme'):
             require(isinstance(scene[key], str) and re.fullmatch(r'[A-Za-z0-9_.-]+', scene[key]), f'unsafe {key}')
-        require(scene['id'] in schema['scene_ids'], 'unknown scene id')
+        require(language or scene['id'] in schema['scene_ids'], 'unknown scene id')
+        if language:
+            require(isinstance(scene['language'], str) and scene['language'] in codes, 'unknown language')
+            require(scene['surface'] in family['surfaces'] and scene['state'] in family['states'], 'unknown surface or state')
         require(scene['id'] not in seen, 'duplicate scene id')
         seen.add(scene['id'])
         require(scene['board'] in schema['boards'], 'unknown board id')
@@ -80,6 +96,10 @@ def manifest(path):
         require(scene['changes'], 'missing changes')
         require(isinstance(scene['covers'], list) and scene['covers']
                 and all(isinstance(v, str) and re.fullmatch(r'[a-z]+:[A-Za-z0-9_.|-]+', v) for v in scene['covers']), 'missing covers')
+        if language:
+            # The id spells its kind, language, surface, state, theme and rounding, so no two of those captures share an id.
+            spelled = f"i50.{kind[1]}.{scene['language']}.{scene['surface']}.{scene['state']}.{scene['theme']}.r{scene['corner_radius']}"
+            require(scene['id'] == spelled, 'language scene id does not spell its fields')
     return data['scenes']
 
 

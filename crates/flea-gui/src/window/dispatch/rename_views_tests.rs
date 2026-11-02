@@ -174,7 +174,7 @@ fn new_folder_off_screen(cx: &mut TestAppContext, view: View) {
         [super::fileops_tests::creation_request(
             &shell,
             cx,
-            r#"{"c":"mkdir","path":"/files"}"#
+            r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
         )]
     );
     super::fileops_tests::reply(

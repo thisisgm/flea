@@ -172,15 +172,18 @@ impl QuickLook {
                     if is_archive { 0. } else { look::BAR },
                 )
             }
-            None => div()
-                .debug_selector(|| "pv1-doc".into())
-                .relative()
-                .flex_1()
-                .min_h_0()
-                .w_full()
-                .overflow_hidden()
-                .child(doc.element())
-                .into_any_element(),
+            // File content keeps its own layout in a mirrored window.
+            None => crate::locale_geometry::unmirrored(
+                div()
+                    .debug_selector(|| "pv1-doc".into())
+                    .relative()
+                    .flex_1()
+                    .min_h_0()
+                    .w_full()
+                    .overflow_hidden()
+                    .child(doc.element()),
+            )
+            .into_any_element(),
         };
         if is_archive {
             return vec![body];

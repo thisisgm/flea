@@ -18,12 +18,25 @@ fn creation_receipts_keep_legacy_mkdir_payload_and_exact_failure_identity() {
     let (tx, _) = channel();
     let mut ops = Ops::new(tx);
     let mut out = Vec::new();
-    super::super::do_mkdir(&mut out, &mut ops, root.path().to_str().unwrap(), "legacy");
+    super::super::do_mkdir(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "legacy",
+        None,
+    );
     let legacy = String::from_utf8(out).unwrap();
     assert!(legacy.contains(r#""t":"made","ok":true,"path":"#));
     assert!(!legacy.contains(r#""request":"#) && !legacy.contains(r#""op":"creation""#));
     let mut out = Vec::new();
-    super::super::do_mkdir_requested(&mut out, &mut ops, root.path().to_str().unwrap(), "new", 47);
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "new",
+        None,
+        47,
+    );
     let text = String::from_utf8(out).unwrap();
     let made = text
         .lines()
@@ -35,11 +48,43 @@ fn creation_receipts_keep_legacy_mkdir_payload_and_exact_failure_identity() {
         root.join("new").to_str()
     );
     let mut out = Vec::new();
-    super::super::do_mkdir_requested(&mut out, &mut ops, root.path().to_str().unwrap(), "new", 48);
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "new",
+        None,
+        48,
+    );
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains(r#""t":"error","where":"mkdir""#));
     assert!(receipt(&text, 48).contains(r#""ok":false"#));
     assert_eq!(ops.journal.len(), 2, "refusal must not add a journal entry");
+}
+
+#[test]
+fn creation_receipt_names_the_localized_default_a_collision_chose() {
+    let root = TestDir::new("creation-request-default-base");
+    root.dir("新建文件夹");
+    let (tx, _) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    super::super::do_mkdir_requested(
+        &mut out,
+        &mut ops,
+        root.path().to_str().unwrap(),
+        "",
+        Some("新建文件夹"),
+        49,
+    );
+    let text = String::from_utf8(out).unwrap();
+    let chosen = root.join("新建文件夹 2");
+    assert!(receipt(&text, 49).contains(r#""ok":true"#), "{text}");
+    assert_eq!(
+        field_str(receipt(&text, 49), "path").as_deref(),
+        chosen.to_str()
+    );
+    assert!(chosen.is_dir() && !root.join("New Folder").exists());
 }
 
 #[test]

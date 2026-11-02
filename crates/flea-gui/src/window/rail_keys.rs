@@ -9,7 +9,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<bool> {
-        use crate::window::input::{event_lookup, Dispatch};
+        use crate::window::input::Dispatch;
         use flea::keys::{sequence::Seat, Match};
         let Some(join) = &self.rail else {
             return None;
@@ -28,7 +28,13 @@ impl Shell {
             .get("keys")
             .and_then(Json::as_str)
             .unwrap_or("default");
-        let action = event_lookup(name, self.keyboard.context, event, window.modifiers());
+        let action = self.keyboard.lookup(
+            name,
+            self.keyboard.context,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+        );
         if action == Match::Action("sidebar") {
             self.toggle_sidebar(window, cx);
             return Some(true);
@@ -58,7 +64,13 @@ impl Shell {
         let stroke = &event.keystroke;
         let plain =
             !(stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform);
-        if producer.update(cx, |producer, cx| producer.mark_key(&stroke.key, plain, cx)) {
+        if producer.update(cx, |producer, cx| {
+            producer.mark_key(
+                crate::window::input::reading(&stroke.key, window.layout_mirrored()),
+                plain,
+                cx,
+            )
+        }) {
             return Some(true);
         }
         let seat = Seat {
@@ -66,9 +78,13 @@ impl Shell {
             cursor: producer.read(cx).cursor().unwrap_or(0),
             ..Seat::default()
         };
-        if let Dispatch::Action(action) =
-            self.keyboard.resolve(name, event, window.modifiers(), seat)
-        {
+        if let Dispatch::Action(action) = self.keyboard.resolve(
+            name,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+            seat,
+        ) {
             if action == "eject" {
                 // RailKeys.act: Ctrl+E from the rail releases the cursor row.
                 self.release_device(false, cx);

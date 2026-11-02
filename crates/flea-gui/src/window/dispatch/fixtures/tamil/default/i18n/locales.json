@@ -1,0 +1,18 @@
+{
+  "en": {
+    "name": "English",
+    "englishName": "English",
+    "formatLocale": "en-US",
+    "locale": "en_US.UTF-8",
+    "decimal": ".",
+    "zeroDigit": "0"
+  },
+  "ta": {
+    "name": "தமிழ்",
+    "englishName": "Tamil",
+    "formatLocale": "ta-LK",
+    "locale": "ta_LK.UTF-8",
+    "decimal": ".",
+    "zeroDigit": "0"
+  }
+}

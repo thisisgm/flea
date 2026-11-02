@@ -511,7 +511,7 @@ impl Session {
                     .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
                 format!(r#""{}""#, class)
             };
-            text.push_str(&format!(r#","bulkSelected":{},"storageClass":{},"thumbnail":{}}}"#, members.contains(&item.item.uri), class, thumbnail(item)));
+            text.push_str(&format!(r#","bulkSelected":{},"storageClass":{},"thumbnail":{},{}}}"#, members.contains(&item.item.uri), class, thumbnail(item), details::content(item)));
             text
         }).collect::<Vec<_>>();
         Ok(format!(r#""total":{},"start":{},"rows":[{}],"selectionToken":{},"selectionCount":{},"selectionStale":{}"#,

@@ -95,8 +95,14 @@ fn dispatch_pointer_hints_and_sequences_allocate_nothing_with_positive_control()
         }
         for _ in 0..1000 {
             black_box(keyboard.pair_armed("vim", Default::default()));
-            black_box(keyboard.resolve("vim", &event, Default::default(), Default::default()));
-            black_box(keyboard.resolve("default", &shifted, held, Default::default()));
+            black_box(keyboard.resolve(
+                "vim",
+                &event,
+                Default::default(),
+                false,
+                Default::default(),
+            ));
+            black_box(keyboard.resolve("default", &shifted, held, false, Default::default()));
         }
     });
     assert_eq!(count, 0);

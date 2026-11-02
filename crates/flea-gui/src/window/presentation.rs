@@ -1,6 +1,7 @@
 use super::locale::{self, Snapshot as LocaleSnapshot};
 use crate::{
     list::Typeface,
+    locale_geometry::Direction,
     presentation::{Fonts, Service, Snapshot},
     state::{labels, Shell},
 };
@@ -21,6 +22,11 @@ impl Shell {
                 }
             }
         }));
+    }
+
+    /// The direction Omarchy's locale registry gives the language; the window mirrors and reads keys by it.
+    pub(crate) fn mirrored(&self) -> bool {
+        Direction::from_locale(self.locale.catalog.locale()).is_rtl()
     }
 
     pub(crate) fn apply_locale(&mut self, locale: LocaleSnapshot, cx: &mut Context<Self>) {

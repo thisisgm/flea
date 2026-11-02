@@ -272,7 +272,12 @@ impl Render for SelectionPreview {
                 )),
             };
         }
-        root = root.flex().flex_col().gap(px(metrics.gap)).child(media);
+        // File content keeps its own layout in a mirrored window; the name and facts below mirror.
+        root = root
+            .flex()
+            .flex_col()
+            .gap(px(metrics.gap))
+            .child(crate::locale_geometry::unmirrored(media));
         if empty {
             return root;
         }
@@ -328,7 +333,8 @@ impl Render for SelectionPreview {
                 }),
         );
         if full {
-            let (line, label_width, gap) = self.fact_grid(frame.kind);
+            let (line, _, gap) = self.fact_grid(frame.kind);
+            let label_width = self.label_column(frame.kind, &facts, width, window);
             let mut table = div()
                 .debug_selector(|| "column-preview-facts".into())
                 .flex()
@@ -348,6 +354,9 @@ impl Render for SelectionPreview {
                             div()
                                 .w(px(label_width))
                                 .flex_none()
+                                .overflow_hidden()
+                                .whitespace_nowrap()
+                                .text_ellipsis()
                                 .text_color(crate::window::preview_facts::label_ink(&roles))
                                 .child(label),
                         )

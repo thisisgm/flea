@@ -230,13 +230,27 @@ fn prepare(
     };
     let budget = |cells: usize| cells.saturating_sub(take).saturating_sub(reserved);
     let run = crate::g2::sr1::run::run_in(name, &shaping.query);
-    let elide = |cells: usize| match run {
+    let elide_at = |cells: usize| match run {
         Some(run) => {
-            let (label, (start, end)) = row::elide_around(name, budget(cells), run);
+            let (label, (start, end)) = row::elide_around(name, cells, run);
             (label, (start < end).then_some((start, end)))
         }
-        None => (row::middle_elide(name, budget(cells)), None),
+        None => (row::middle_elide(name, cells), None),
     };
+    let width = |text: &str| {
+        f32::from(
+            shape(text, &shaping.font, shaping.body, window)
+                .line()
+                .width,
+        )
+    };
+    // One cell is the body face's digit advance, the unit paint.body_advance() counted the budgets in.
+    let advance = f32::from(super::paint::digit_advance(
+        &shaping.font,
+        shaping.body,
+        window,
+    ));
+    let elide = |cells: usize| row::fitted(name, budget(cells), advance, Some(&width), elide_at);
     let label = elide(plain_cells);
     let chevron = row
         .dir()

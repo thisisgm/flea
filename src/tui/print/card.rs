@@ -71,7 +71,7 @@ fn body(m: &Model) -> Vec<Vec<Part>> {
     let printer = if f.query.is_some() || (!f.queried && f.paths.is_empty()) {
         tr("menu.loading")
     } else {
-        f.printer.clone()
+        f.printer_name.clone()
     };
     rows[1].push((0, printer, false, true));
     if f.destinations
@@ -79,7 +79,7 @@ fn body(m: &Model) -> Vec<Vec<Part>> {
         .any(|d| d.name == f.printer && d.default)
     {
         rows[1].push((
-            text_width(&f.printer) + 2,
+            text_width(&f.printer_name) + 2,
             tr("dialogs.output.default"),
             true,
             true,

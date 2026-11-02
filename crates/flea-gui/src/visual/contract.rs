@@ -15,9 +15,18 @@ pub(crate) struct Spec {
     pub selection: Vec<usize>,
     pub text_size: u32,
     pub reduced_motion: bool,
+    pub language: Option<Language>,
+}
+
+/// The catalog language a scene asserts the window runs, and the surface and control state it asks to see.
+pub(crate) struct Language {
+    pub code: String,
+    pub surface: String,
+    pub state: String,
 }
 
 /// What the window draws at the presented frame, read back rather than restated from the manifest.
+#[derive(Default)]
 pub(crate) struct Live {
     pub scale: f32,
     pub text_size: f32,
@@ -25,6 +34,17 @@ pub(crate) struct Live {
     pub reduced_motion: bool,
     pub cursor: usize,
     pub selection: Vec<usize>,
+    pub language: String,
+    pub locale_revision: u64,
+}
+
+/// A roster code such as de, fil or zh-CN.
+fn language_code(code: &str) -> bool {
+    let (base, region) = code.split_once('-').unwrap_or((code, "AA"));
+    (2..=3).contains(&base.len())
+        && base.bytes().all(|byte| byte.is_ascii_lowercase())
+        && region.len() == 2
+        && region.bytes().all(|byte| byte.is_ascii_alphabetic())
 }
 
 fn index(value: &Json) -> Option<usize> {
@@ -113,6 +133,25 @@ impl Spec {
         {
             return Err("visual.settings");
         }
+        let language = match (
+            scene.get("language"),
+            scene.get("surface"),
+            scene.get("state"),
+        ) {
+            (None, None, None) => None,
+            (Some(Json::Str(code)), Some(Json::Str(surface)), Some(Json::Str(state))) => {
+                // This window draws only the listing at rest for a language scene; other surfaces need their own state readback.
+                if !language_code(code) || surface != "list" || state != "rest" {
+                    return Err("visual.settings");
+                }
+                Some(Language {
+                    code: code.clone(),
+                    surface: surface.clone(),
+                    state: state.clone(),
+                })
+            }
+            _ => return Err("visual.settings"),
+        };
         let view = match scene.get("view").and_then(Json::as_str) {
             Some("columns") => View::Columns,
             Some("list") => View::List,
@@ -128,6 +167,7 @@ impl Spec {
             selection,
             text_size,
             reduced_motion,
+            language,
             width: dimension(settings, "width", 1100, 2560)?,
             height: dimension(settings, "height", 700, 1440)?,
             corner: scene
@@ -138,7 +178,7 @@ impl Spec {
     }
 
     pub fn receipt(&self, frame: u64, live: &Live) -> Json {
-        object([
+        let mut pairs = vec![
             ("scene", Json::Str(self.name.clone())),
             ("window", number(std::process::id())),
             ("frame", number(frame)),
@@ -157,7 +197,17 @@ impl Spec {
             ),
             ("reduced_motion", Json::Bool(live.reduced_motion)),
             ("caret_blink", Json::Bool(false)),
-        ])
+        ];
+        // The language is the one the drawn frame's catalog ran, never the manifest's; scenes without one keep their receipt.
+        if let Some(language) = &self.language {
+            pairs.extend([
+                ("language", Json::Str(live.language.clone())),
+                ("locale_revision", number(live.locale_revision)),
+                ("surface", Json::Str(language.surface.clone())),
+                ("state", Json::Str(language.state.clone())),
+            ]);
+        }
+        object(pairs)
     }
 }
 

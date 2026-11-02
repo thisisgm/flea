@@ -242,6 +242,17 @@ impl Render for MessageLine {
                 value,
             )
         };
+        let width = |text: &str| {
+            let font = self.typeface.font.clone();
+            super::caption::measure(
+                text.to_owned().into(),
+                font,
+                self.typeface.caption,
+                px(0.),
+                window,
+            )
+            .ceil()
+        };
         let undo = self.undo.clone();
         div()
             .size_full()
@@ -280,10 +291,13 @@ impl Render for MessageLine {
                 row.child(text("hint", drawn.hint.clone(), ink.muted).flex_none())
             })
             .when(!drawn.extra.is_empty(), |row| {
+                // StatusBar.qml: the rest gives way before the notice does, down to " · …", and never draws past its own width.
+                let whole = width(&drawn.extra);
                 row.child(
                     text("extra", drawn.extra.clone(), ink.muted)
-                        .flex_shrink(1.)
-                        .min_w_0()
+                        .flex_1()
+                        .min_w(px(width(&format!("{SEP}\u{2026}")).min(whole)))
+                        .max_w(px(whole))
                         .overflow_hidden()
                         .text_ellipsis(),
                 )

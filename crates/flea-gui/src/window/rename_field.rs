@@ -8,9 +8,14 @@ use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle,
     DispatchPhase, Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun,
     Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton,
-    MouseDownEvent, Pixels, Position, Style, TextRun, Window,
+    MouseDownEvent, Pixels, Position, Style, Window,
 };
 use std::rc::Rc;
+
+#[path = "rename_field_shaping.rs"]
+mod shaping;
+pub(crate) use shaping::caption_line;
+use shaping::shape;
 
 // The selected run sits on a 24% accent wash with foreground text, and the caret is one pixel wide.
 const SELECTION: f32 = 0.24;
@@ -68,35 +73,6 @@ pub(crate) struct Laid {
     hitbox: Hitbox,
     ink: crate::path::paint::Ink,
     corner: f32,
-}
-
-/// The height of a refusal's caption line, as its shaped ascent and descent.
-pub(crate) fn caption_line(
-    window: &Window,
-    text: &str,
-    font: gpui::Font,
-    pixels: Pixels,
-) -> Pixels {
-    let run = shape(window, text, font, pixels);
-    let line = run.line();
-    line.ascent + line.descent
-}
-
-fn shape(window: &Window, text: &str, font: gpui::Font, pixels: Pixels) -> Rc<GlyphRun> {
-    let run = TextRun {
-        len: text.len(),
-        font,
-        color: Default::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    };
-    Rc::new(GlyphRun::new(window.text_system().layout_line(
-        text,
-        pixels,
-        &[run],
-        None,
-    )))
 }
 
 impl Element for FieldElement {
@@ -246,6 +222,12 @@ impl Element for FieldElement {
         let Some(edit) = shell.rename.edit.as_ref() else {
             return;
         };
+        let entity = self.shell.clone();
+        let focus = shell.focus.clone();
+        let active = !shell.operations.archive.showing()
+            && shell.rename.bulk.is_none()
+            && shell.menu.text.is_none()
+            && focus.is_focused(window);
         window.with_content_mask(Some(ContentMask { bounds: clip }), |window| {
             // The small field follows half of the compositor's corner radius.
             window.paint_quad(quad(
@@ -271,55 +253,73 @@ impl Element for FieldElement {
             // The extension starts at the last dot past the first character, read off the draft as it stands.
             let stem = text.rfind('.').filter(|&at| at > 0).unwrap_or(text.len());
             let boundary = origin + line.x_for(stem);
-            window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-                if !entry.selected.is_empty() {
-                    let (from, to) = line.entry_span(entry, &entry.selected);
-                    let (from, to) = (origin + from, origin + to);
-                    window.paint_quad(fill(
-                        Bounds::new(
-                            point(from, band.origin.y),
-                            size(to - from, band.size.height),
-                        ),
-                        ink.wash(SELECTION),
-                    ));
-                }
-                if let Some(run) = &line.run {
-                    let ends = |from: Pixels, to: Pixels| {
-                        Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
-                    };
-                    for (part, color) in [
-                        (ends(band.left(), boundary.max(band.left())), ink.foreground),
-                        (ends(boundary.min(band.right()), band.right()), ink.muted),
-                    ] {
-                        window.with_content_mask(Some(ContentMask { bounds: part }), |window| {
-                            paint_run(
-                                run,
-                                origin,
-                                frame.origin.y,
-                                frame.size.height,
-                                color,
-                                window,
-                            );
-                        });
+            // A file name keeps its order in a mirrored window: line, washes and caret move as one.
+            window.with_unmirrored(frame, |window| {
+                window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
+                    let washed = entry.washed();
+                    if let Some(selected) = &washed {
+                        let (from, to) = line.entry_span(entry, selected);
+                        let (from, to) = (origin + from, origin + to);
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(from, band.origin.y),
+                                size(to - from, band.size.height),
+                            ),
+                            ink.wash(SELECTION),
+                        ));
                     }
-                }
-                if let Some(marked) = &entry.marked {
-                    let (from, to) = line.entry_span(entry, marked);
-                    let (from, to) = (origin + from, origin + to);
-                    window.paint_quad(fill(
-                        Bounds::new(point(from, band.bottom() - px(1.)), size(to - from, px(1.))),
-                        ink.foreground,
-                    ));
-                }
-                if entry.selected.is_empty() {
-                    let at = origin + line.entry_caret(entry, entry.cursor());
-                    window.paint_quad(fill(
-                        Bounds::new(
-                            point(at, band.origin.y + px(2.)),
-                            size(px(1.), band.size.height - px(4.)),
-                        ),
-                        ink.foreground,
-                    ));
+                    if let Some(run) = &line.run {
+                        let ends = |from: Pixels, to: Pixels| {
+                            Bounds::from_corners(point(from, band.top()), point(to, band.bottom()))
+                        };
+                        for (part, color) in [
+                            (ends(band.left(), boundary.max(band.left())), ink.foreground),
+                            (ends(boundary.min(band.right()), band.right()), ink.muted),
+                        ] {
+                            window.with_content_mask(
+                                Some(ContentMask { bounds: part }),
+                                |window| {
+                                    paint_run(
+                                        run,
+                                        origin,
+                                        frame.origin.y,
+                                        frame.size.height,
+                                        color,
+                                        window,
+                                    );
+                                },
+                            );
+                        }
+                    }
+                    if let Some(marked) = &entry.marked {
+                        let (from, to) = line.entry_span(entry, marked);
+                        let (from, to) = (origin + from, origin + to);
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(from, band.bottom() - px(1.)),
+                                size(to - from, px(1.)),
+                            ),
+                            ink.foreground,
+                        ));
+                    }
+                    if washed.is_none() {
+                        let at = origin + line.entry_caret(entry, entry.cursor());
+                        window.paint_quad(fill(
+                            Bounds::new(
+                                point(at, band.origin.y + px(2.)),
+                                size(px(1.), band.size.height - px(4.)),
+                            ),
+                            ink.foreground,
+                        ));
+                    }
+                });
+                // Registered in the field's own scope, so a candidate box that clears the frame still moves with it.
+                if active {
+                    window.handle_input(
+                        &focus,
+                        ElementInputHandler::new(frame, entity.clone()),
+                        cx,
+                    );
                 }
             });
             // The refusal sits in the band under its field, in the error role, on the ground its row or the window keeps.
@@ -337,15 +337,6 @@ impl Element for FieldElement {
                 );
             }
         });
-        let entity = self.shell.clone();
-        let focus = shell.focus.clone();
-        let active = !shell.operations.archive.showing()
-            && shell.rename.bulk.is_none()
-            && shell.menu.text.is_none()
-            && focus.is_focused(window);
-        if active {
-            window.handle_input(&focus, ElementInputHandler::new(frame, entity.clone()), cx);
-        }
         entity.update(cx, |shell, _| {
             if let Some(edit) = &mut shell.rename.edit {
                 edit.line.line.registered = if active { edit.entry.session() } else { None };

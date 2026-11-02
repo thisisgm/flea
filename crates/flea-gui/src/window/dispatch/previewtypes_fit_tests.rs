@@ -154,6 +154,90 @@ fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut Te
     );
 }
 
+/// Tamil's Modified is wider than the board's label column: the column widens to hold the widest label whole, and every value starts at one x.
+#[gpui::test]
+fn a_label_wider_than_the_board_column_widens_it_to_hold_that_label(cx: &mut TestAppContext) {
+    let (shell, cx) = open_at(cx, "/files", Some(14.));
+    let base =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/window/dispatch/fixtures/tamil");
+    let tamil = flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: base.clone(),
+        language_file: base.join("language"),
+        catalogs: vec![base],
+    });
+    shell.update(cx, |shell, cx| {
+        let catalog = std::sync::Arc::new(tamil);
+        shell.apply_locale(
+            crate::window::locale::Snapshot {
+                revision: 2,
+                catalog,
+            },
+            cx,
+        )
+    });
+    let rows = vec![file("clip.webm", "video-webm", "WebM video", 0o100644)];
+    super::test_shell::land(&shell, cx, "/files", rows, 1);
+    let lines = local(&shell, cx, "/files");
+    meta(&shell, cx, &lines, r#","w":640,"h":360,"ms":4000"#);
+    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    cx.simulate_resize(size(px(1500.), px(1013.)));
+    pump(cx);
+    let facts = read(&shell, cx, "previewFacts", &[]);
+    let labels: Vec<String> = facts
+        .split('|')
+        .filter_map(|fact| fact.split_once('=').map(|(label, _)| label.to_owned()))
+        .collect();
+    let (face, board) = shell.read_with(cx, |shell, cx| {
+        let preview = shell
+            .selection_preview(0)
+            .expect("the column is mounted")
+            .read(cx);
+        (
+            preview.face.clone(),
+            preview
+                .fact_grid(crate::window::selection_preview::Kind::Video)
+                .1,
+        )
+    });
+    let widest = cx.update(|window, _| {
+        let measure = |label: &String| {
+            let font = face.font.clone();
+            crate::g2::fb1::caption::measure(
+                label.clone().into(),
+                font,
+                face.caption,
+                px(0.),
+                window,
+            )
+        };
+        labels.iter().map(measure).fold(0., f32::max)
+    });
+    assert!(
+        widest > board,
+        "{facts}: a Tamil label passes the board's {board} px column, so this test proves something"
+    );
+    const ROWS: [(&str, &str); 5] = [
+        ("column-preview-fact-0", "column-preview-value-0"),
+        ("column-preview-fact-1", "column-preview-value-1"),
+        ("column-preview-fact-2", "column-preview-value-2"),
+        ("column-preview-fact-3", "column-preview-value-3"),
+        ("column-preview-fact-4", "column-preview-value-4"),
+    ];
+    let start = f32::from(bounds(cx, ROWS[0].1).left() - bounds(cx, ROWS[0].0).left());
+    assert!(
+        start >= widest,
+        "the label column {start} holds the widest label {widest}"
+    );
+    for (row, value) in ROWS {
+        let (row, value) = (bounds(cx, row), bounds(cx, value));
+        assert_eq!(
+            f32::from(value.left() - row.left()),
+            start,
+            "every value starts at one x"
+        );
+    }
+}
+
 #[test]
 fn column_document_and_picture_insets_use_the_named_frame_border() {
     // The document inset is in selection_preview_render.rs, the still fit in selection_preview_fitted.rs and the moving fit in selection_preview_picture.rs; each is pinned in its own file.

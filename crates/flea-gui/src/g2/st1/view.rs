@@ -1,12 +1,13 @@
 //! Draws the Settings card over its ground: the head, the rail with its search field, and the pane's rows or results.
 use super::draw::{Line, Rows};
 use super::geometry::{self as g, Scale, BORDER, FADE, PAD_X, RAIL_W};
-use super::marks::{self, mark, washed};
+use super::input::{Editor, Host};
+use super::marks::{self, mark};
 use super::panel::{Panel, Press, Side};
 use super::seams::{Ink, Request};
 use crate::list::Typeface;
+use crate::window::input::reading;
 use flea::ui_logic_st1::{
-    caps,
     pages::SECTIONS,
     rows::{Kind, Row},
     visible,
@@ -22,6 +23,7 @@ use gpui::{
 mod m9_g2rows_02;
 
 pub struct SettingsView {
+    pub(super) editor: Editor,
     pub panel: Panel,
     pub focus: FocusHandle,
     pub typeface: Typeface,
@@ -35,6 +37,7 @@ impl SettingsView {
     pub fn new(panel: Panel, cx: &mut Context<Self>) -> Self {
         Self {
             panel,
+            editor: Editor::default(),
             plugins: None,
             probe: super::probe::Probe::default(),
             focus: cx.focus_handle(),
@@ -42,21 +45,32 @@ impl SettingsView {
         }
     }
 
-    fn key_down(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        if super::plugins::key(self, event, cx) {
-            cx.stop_propagation();
+    fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if self.query_key(event, window, cx) {
+            return;
+        }
+        if super::plugins::key(self, event, window, cx) {
             return;
         }
         let stroke = &event.keystroke;
-        let text = stroke.key_char.as_deref().unwrap_or("");
-        self.panel.key(&stroke.key, text, stroke.modifiers.shift);
+        // A query types its text; otherwise the panel navigates, mirrored with the window.
+        let mirrored = window.layout_mirrored() && self.panel.query.is_none();
+        let text = reading(stroke.key_char.as_deref().unwrap_or(""), mirrored);
+        self.panel
+            .key(reading(&stroke.key, mirrored), text, stroke.modifiers.shift);
         self.flush(cx);
         cx.stop_propagation();
     }
 
     /// Hands every request the panel queued to the host and redraws.
     pub(super) fn flush(&mut self, cx: &mut Context<Self>) {
-        for request in self.panel.take_requests() {
+        let requests = self.panel.take_requests();
+        if requests.contains(&Request::Close) {
+            self.editor.retire();
+        }
+        self.sync_editor();
+        self.sync_plugin_input(cx);
+        for request in requests {
             cx.emit(request);
         }
         cx.notify();
@@ -76,10 +90,10 @@ impl SettingsView {
             .border_color(ink.rule)
             .flex()
             .flex_col();
-        if let Some(query) = &self.panel.query {
+        if self.panel.query.is_some() {
             rail = rail.child(
                 div().px(px(s.of(PAD_X))).pb(px(s.of(g::GAP))).child(
-                    Self::field(query, ink, self.panel.facts.corner, &self.typeface, s)
+                    Self::field(cx.entity(), ink, self.panel.facts.corner, &self.typeface, s)
                         .relative()
                         .child(self.search_clear(cx)),
                 ),
@@ -189,45 +203,40 @@ impl SettingsView {
     }
 
     /// The segment rule from the shaped widths: every option beside the label, or the chevron walk.
-    fn fits(&self, row: &Row, width: f32, window: &Window) -> bool {
-        let shaped = |text: String, size| {
-            let text = SharedString::from(text);
-            let run = TextRun {
-                len: text.len(),
-                font: self.typeface.font.clone(),
-                color: Default::default(),
-                background_color: None,
-                underline: None,
-                strikethrough: None,
-            };
-            f32::from(
-                window
-                    .text_system()
-                    .shape_line(text, size, &[run], None)
-                    .width,
-            )
-        };
+    pub(super) fn fits(&self, row: &Row, width: f32, window: &Window) -> bool {
         let catalog = &self.panel.catalog;
         let options: Vec<f32> = row
             .labels
             .iter()
-            .map(|label| shaped(label.resolve(catalog), self.typeface.caption))
+            .map(|label| self.shaped(label.resolve(catalog), self.typeface.caption, window))
             .collect();
         if visible::marks(row) {
             return true;
         }
         visible::segment_fits(
-            shaped(row.label.resolve(catalog), self.typeface.body),
+            self.shaped(row.label.resolve(catalog), self.typeface.body, window),
             &options,
             width,
         )
     }
 
-    /// Shapes every hint at the pane's width, so heights match the drawn wraps in any language and size.
-    fn measure(&self, rows: &[Row], width: f32, window: &Window) -> Vec<usize> {
+    /// Shapes every hint and colliding label at the pane's width, with each row's bold search run, so heights match the drawn wraps in any language and size.
+    fn measure<'r>(
+        &self,
+        rows: impl IntoIterator<Item = (&'r Row, Option<(usize, usize)>)>,
+        width: f32,
+        window: &Window,
+    ) -> Vec<usize> {
         let font = self.typeface.font.clone();
-        rows.iter()
-            .map(|row| {
+        rows.into_iter()
+            .map(|(row, bold)| {
+                if matches!(
+                    row.kind,
+                    Kind::Fact | Kind::Lock | Kind::Check | Kind::Choice | Kind::Action
+                ) && !row.elide_right
+                {
+                    return self.label_lines(row, bold, width, window);
+                }
                 if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
@@ -269,6 +278,13 @@ impl SettingsView {
             if let Some(view) = &self.plugins {
                 return div()
                     .id("settings-pane")
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|view, _, _, cx| {
+                            view.panel.side = Side::Pane;
+                            view.sync_plugin_input(cx);
+                        }),
+                    )
                     .relative()
                     .flex_1()
                     .h_full()
@@ -280,11 +296,17 @@ impl SettingsView {
         let width = self.panel.pane.0;
         for line in &mut lines {
             line.segment = line.row.kind == Kind::Choice && self.fits(line.row, width, window);
+            line.room = Some(self.room(line.row, line.segment, width, window));
             super::draw::user_keys::measure(line, &self.typeface, window);
         }
         let heights = if searching {
             let rows: Vec<Row> = lines.iter().map(|line| line.row.clone()).collect();
-            g::heights(&rows, &self.measure(&rows, width, window), self.panel.scale)
+            let measured = self.measure(
+                lines.iter().map(|line| (line.row, line.bold_run())),
+                width,
+                window,
+            );
+            g::heights(&rows, &measured, self.panel.scale)
         } else {
             self.panel.heights()
         };
@@ -352,47 +374,12 @@ impl SettingsView {
                     }),
             )
     }
-
-    /// A heading in the capitals its language writes, spaced as the boards space it; a typed run keeps its wash.
-    pub(super) fn heading(
-        &self,
-        label: &str,
-        run: Option<(usize, usize)>,
-        lifted: bool,
-        ink: &Ink,
-    ) -> Div {
-        let language = self.panel.catalog.language();
-        let upper = |text: &str| caps::heading(text, language);
-        let spacing = f32::from(self.typeface.caption) * 0.14;
-        let Some((start, length)) = run else {
-            return washed(&upper(label), None, lifted, ink.wash14, spacing);
-        };
-        // Capitals can change a run's length, as ß does, so each part is set in capitals on its own.
-        let at = |chars: usize| {
-            label
-                .char_indices()
-                .nth(chars)
-                .map_or(label.len(), |(byte, _)| byte)
-        };
-        let (from, to) = (at(start), at(start + length));
-        let (head, piece, tail) = (
-            upper(&label[..from]),
-            upper(&label[from..to]),
-            upper(&label[to..]),
-        );
-        let run = (head.chars().count(), piece.chars().count());
-        washed(
-            &format!("{head}{piece}{tail}"),
-            Some(run),
-            lifted,
-            ink.wash14,
-            spacing,
-        )
-    }
 }
 
 impl Render for SettingsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_editor();
+        self.sync_plugin_input(cx);
         self.probe.clear();
         let theme = cx
             .try_global::<crate::palette::Theme>()
@@ -409,7 +396,11 @@ impl Render for SettingsView {
             s,
         );
         let pane = g::pane_size(card_w, card_h, s);
-        let lines = self.measure(&self.panel.rows, pane.0, window);
+        let lines = self.measure(
+            self.panel.rows.iter().map(|row| (row, None)),
+            pane.0,
+            window,
+        );
         self.panel.laid_out(pane, lines);
         let corner = self.panel.facts.corner;
         let left = ((f32::from(viewport.width) - card_w) / 2.).round();

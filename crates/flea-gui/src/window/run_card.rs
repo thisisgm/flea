@@ -87,11 +87,19 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        let mirrored = window.layout_mirrored();
         let Some(open) = self.run_card.as_mut() else {
             return false;
         };
         open.card.shift = event.keystroke.modifiers.shift;
-        let Some(key) = key_of(event) else {
+        let Some(key) = key_of(event).map(|key| {
+            let key = match key {
+                Key::Text(ref text) if text == "h" => Key::Left,
+                Key::Text(ref text) if text == "l" => Key::Right,
+                key => key,
+            };
+            key.read(mirrored)
+        }) else {
             cx.notify();
             return true;
         };

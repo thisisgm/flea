@@ -201,14 +201,14 @@ impl Shell {
     pub(crate) fn rename_key(
         &mut self,
         event: &KeyDownEvent,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
         if self.menu.text.is_some() {
             return false;
         }
         if self.rename.bulk.is_some() {
-            self.bulk_rename_key(event, cx);
+            self.bulk_rename_key(event, window, cx);
             return true;
         }
         // An editor whose row left the drawn listing lets go of the keys; a request out keeps its reply's owner.

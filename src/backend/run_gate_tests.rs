@@ -386,3 +386,6 @@ fn search_listing_gate_replays_enter_the_worker_and_keep_ordinary_request_order(
     assert_eq!(crate::json::field_usize(&query, "gen"), Some(2));
     l.st.search_session.take().unwrap().close();
 }
+
+#[path = "run_newfolder_tests.rs"]
+mod newfolder_tests;

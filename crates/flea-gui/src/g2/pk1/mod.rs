@@ -69,6 +69,8 @@ mod face_tests;
 #[cfg(test)]
 mod header_tests;
 #[cfg(test)]
+mod i50_fit_tests;
+#[cfg(test)]
 mod parity_tests;
 #[cfg(test)]
 mod pointer_row_tests;

@@ -129,3 +129,159 @@ fn trash_reload_asks_again_for_rows_past_the_first_window() {
     assert_eq!(m.rows[&40].name, "b40.txt");
     finish(w, reader);
 }
+
+// tui-trash-view: a trashed text file previews its first line under the Trash facts and a blank row, read from its backing file in the Trash store.
+#[test]
+fn tui_fix_1101_trashed_text_previews_its_first_line() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash");
+    let backing = root.file("old-draft.txt", "first draft\n");
+    let theme = Theme::from_text("");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    m.preview_visible = true;
+    let listed = LISTED.replace(r#""icon":"text-plain""#, &format!(r#""icon":"text-plain","content":"{}""#, backing.display()));
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    crate::tui::preview::load(&mut m, false);
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+        crate::tui::preview::poll(&mut m);
+    }
+    crate::tui::preview::layout(&mut m);
+    let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+    assert_eq!(rows[5].chars().skip(81).take(30).collect::<String>(), "Original Location · /fx/v/work");
+    assert_eq!(rows[6].chars().skip(81).collect::<String>().trim(), "", "a blank row follows the Trash facts");
+    assert_eq!(rows[7].chars().skip(81).collect::<String>().trim_end(), "1 first draft");
+    assert_eq!(m.current_path(), None, "the backing file never becomes a path actions reach");
+    finish(w, reader);
+}
+// A row whose backing the backend could not review previews nothing, never the text of the row the cursor left.
+#[test]
+fn tui_fix_1101_unbacked_trash_row_never_shows_the_previous_text() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-unbacked");
+    let backing = root.file("old-draft.txt", "first draft\n");
+    let theme = Theme::from_text("");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    m.preview_visible = true;
+    let listed = page(1, "list", 2, 0, 2, "b").replace("b0.txt\",\"size", &format!("b0.txt\",\"content\":\"{}\",\"size", backing.display()));
+    // Reads the cursor row's preview and answers its name and its first body row.
+    let shown = |m: &mut Model| {
+        crate::tui::preview::load(m, false);
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(1));
+            crate::tui::preview::poll(m);
+        }
+        crate::tui::preview::layout(m);
+        let rows = frame_tests::grid(&render::frame(m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+        (rows[2].chars().skip(83).take(6).collect::<String>(), rows[7].chars().skip(81).collect::<String>().trim_end().to_owned())
+    };
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "1 first draft".into()), "b0's text draws at row 7 in this layout");
+    press(&mut m, &mut w, Key::character('j', ""));
+    assert_eq!(shown(&mut m), ("b1.txt".into(), "".into()), "the text read for b0 stays off b1");
+    press(&mut m, &mut w, Key::character('k', ""));
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "1 first draft".into()));
+    // Trash listed again under an unmoved cursor, its row now unbacked, keeps the old text off too.
+    open(&mut m, &mut w).unwrap();
+    m.receive(parse(&page(2, "list", 2, 0, 2, "b")).unwrap(), &mut w).unwrap();
+    assert!(m.preview_body.is_empty() && m.preview_path.as_os_str().is_empty(), "the relist itself drops b0's text");
+    assert_eq!(shown(&mut m), ("b0.txt".into(), "".into()));
+    finish(w, reader);
+}
+// With previews loaded on demand, the load key reads a trashed file's text instead of being refused as a change.
+#[test]
+fn tui_fix_1101_trash_load_preview_key_reads_the_backing() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-manual");
+    let backing = root.file("old-draft.txt", "first draft\n");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    (m.preview_visible, m.preview_auto) = (true, false);
+    let listed = LISTED.replace(r#""icon":"text-plain""#, &format!(r#""icon":"text-plain","content":"{}""#, backing.display()));
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    crate::tui::preview::load(&mut m, false);
+    assert!(!m.preview_reader.outstanding(m.preview_generation), "on demand, nothing reads before the key");
+    press(&mut m, &mut w, Key::character(' ', "ctrl"));
+    assert!(m.error.is_empty(), "{}", m.error);
+    assert_eq!(m.preview_path, backing, "the load key reads the row's backing file");
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+        crate::tui::preview::poll(&mut m);
+    }
+    assert_eq!(m.preview_body.lines().next(), Some("first draft"));
+    finish(w, reader);
+}
+// A long trashed file scrolls to its last line, since the Trash head takes five rows where the folder preview's takes three.
+#[test]
+fn tui_fix_1101_p2_trashed_long_text_scrolls_to_its_last_line() {
+    let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-long");
+    let text: String = (1..=60).map(|n| format!("row {n}\n")).collect();
+    let backing = root.file("long.txt", &text);
+    let theme = Theme::from_text("");
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    m.preview_visible = true;
+    let listed = LISTED.replace(r#""icon":"text-plain""#, &format!(r#""icon":"text-plain","content":"{}""#, backing.display()));
+    m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+    crate::tui::preview::load(&mut m, false);
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    while m.preview_reader.outstanding(m.preview_generation) && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+        crate::tui::preview::poll(&mut m);
+    }
+    crate::tui::preview::layout(&mut m);
+    m.preview_scroll = crate::tui::pane::preview_scroll_limit(&m);
+    crate::tui::preview::layout(&mut m);
+    let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+    let shown = |text: &str| rows.iter().any(|line| line.contains(text));
+    assert!(shown("60 row 60") && shown("39 row 39") && !shown("38 row 38"), "the scroll stops with the last line on the last body row:\n{}", rows.join("\n"));
+    finish(w, reader);
+}
+
+// tui-trash-view: only text previews under the Trash facts, so a trashed picture, model or archive draws nothing there.
+#[test]
+fn tui_fix_1101_trashed_non_text_draws_nothing_under_the_facts() {
+    let theme = Theme::from_text("");
+    // Each kind and the one picture stage starts for it outside Trash: (placed image, 3D render, thumbnail ask).
+    let kinds = [("pic.png", "image-png", (true, false, false)), ("chair.stl", "model-stl", (false, true, false)), ("pack.zip", "application-x-package", (false, false, true))];
+    let started = |m: &mut Model, w: &mut Wire| {
+        drain(w);
+        let mut graphics = crate::tui::graphics::Graphics::new();
+        crate::tui::stage::step(m, &mut graphics, &mut crate::tui::stage::Shown::default(), w, (130, 31), false, &mut String::new()).unwrap();
+        let started = (m.image_file.is_some() || !graphics.bytes.is_empty(), m.model3d.active(), !requests(&drain(w), "thumb").is_empty());
+        m.model3d.stop(w).unwrap();
+        started
+    };
+    // Positive control: outside Trash the same call starts each kind's own picture, so none below is the Trash gate's doing.
+    for (name, icon, picture) in kinds {
+        let (mut w, reader) = echo_wire();
+        let mut m = frame_tests::model();
+        m.preview_visible = true;
+        let row = m.rows.get_mut(&7).unwrap();
+        (row.name, row.icon, row.thumbnail) = (name.into(), icon.into(), true);
+        crate::tui::preview::load(&mut m, false);
+        assert_eq!(started(&mut m, &mut w), picture, "{name}: outside Trash its picture is started");
+        finish(w, reader);
+    }
+    for (name, icon, _) in kinds {
+        let root = crate::backend::testdir::TestDir::new("tui-fix-1101-trash-non-text");
+        let backing = root.file(name, "\u{89}PNG\r\n\u{1a}\n");
+        let (mut w, reader) = echo_wire();
+        let mut m = opened(&mut w);
+        m.preview_visible = true;
+        let listed = LISTED.replace("old-draft.txt", name).replace(r#""icon":"text-plain""#, &format!(r#""icon":"{icon}","content":"{}""#, backing.display()));
+        m.receive(parse(&listed).unwrap(), &mut w).unwrap();
+        assert_eq!(content(&m), Some(backing.clone()), "{name}: the row names its backing");
+        crate::tui::preview::load(&mut m, false);
+        assert_eq!(m.preview_path, backing, "{name}");
+        assert!(!m.preview_reader.outstanding(m.preview_generation), "{name}: the kind gate reads nothing");
+        assert_eq!(started(&mut m, &mut w), (false, false, false), "{name}: no picture is started in Trash");
+        crate::tui::preview::layout(&mut m);
+        let rows = frame_tests::grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+        let below: Vec<String> = rows[6..29].iter().map(|row| row.chars().skip(81).collect::<String>().trim().to_owned()).collect();
+        assert!(below.iter().all(String::is_empty), "{name}: {below:?}");
+        finish(w, reader);
+    }
+}

@@ -6,6 +6,9 @@ use std::sync::{mpsc, Arc, Mutex, PoisonError};
 use std::thread;
 use std::time::Duration;
 
+// How long a catalog read that raced a file replacement waits before reading again.
+const SETTLE: Duration = Duration::from_millis(50);
+
 #[derive(Clone)]
 pub struct Snapshot {
     pub revision: u64,
@@ -76,9 +79,17 @@ impl Service {
                 let _closing = Closing(worker_state.clone());
                 before_first();
                 let mut catalog = I18n::load(paths);
+                catalog.mark_paragraphs();
                 let _ = catalog.locale().format_date(0);
                 let mut revision = 1;
                 loop {
+                    // A language or catalog file replaced mid-read is read again, so no snapshot mixes two versions.
+                    while !catalog.sources_unchanged() {
+                        match stopping.recv_timeout(SETTLE) {
+                            Err(mpsc::RecvTimeoutError::Timeout) => catalog.reload(),
+                            _ => return,
+                        }
+                    }
                     let snapshot = Snapshot {
                         revision,
                         catalog: Arc::new(catalog.clone()),

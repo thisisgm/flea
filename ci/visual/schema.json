@@ -6,13 +6,28 @@
     "grid",
     "list",
     "copyto",
-    "copyto-empty"
+    "copyto-empty",
+    "lang-about",
+    "lang-ar-list",
+    "lang-caps",
+    "lang-de-dialog",
+    "lang-de-menu",
+    "lang-de-settings",
+    "lang-ja-list",
+    "lang-ja-rename",
+    "lang-ru-keys"
   ],
   "references": [
     "cols-cursorfull-1100x700",
     "dual-populated-1100x700",
     "grid-populated-1100x700",
-    "list-populated-1100x700"
+    "list-populated-1100x700",
+    "collision-card-1100x700",
+    "keymap-sheet-1100x700",
+    "menu-submenu-1100x700",
+    "rename-list14-1100x700",
+    "settings-about-1100x700",
+    "settings-view-1100x700"
   ],
   "views": [
     "columns",
@@ -69,5 +84,26 @@
     "grid",
     "dual",
     "recipes"
-  ]
+  ],
+  "language_scenes": {
+    "prefix": "i50.",
+    "pattern": "i50\\.(catalog|fit|ime|fonts|rtl|live)\\.[A-Za-z0-9_.-]+",
+    "surfaces": [
+      "about",
+      "caps",
+      "dialog",
+      "keys",
+      "list",
+      "menu",
+      "rename",
+      "settings"
+    ],
+    "states": [
+      "rest",
+      "hover",
+      "focus",
+      "pressed",
+      "disabled"
+    ]
+  }
 }

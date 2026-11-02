@@ -145,7 +145,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         let caret = view
             .bounds_for_range(end..end, Default::default(), window, cx)
             .unwrap();
-        assert!(caret.top() >= frame.top() && caret.bottom() <= frame.bottom());
+        assert_eq!(
+            (caret.top(), caret.bottom()),
+            (frame.top() - px(3.), frame.bottom() + px(3.))
+        );
         assert!(caret.left() >= frame.left() && caret.left() <= frame.right());
         assert_eq!(
             view.character_index_for_point(caret.origin, window, cx),
@@ -180,7 +183,10 @@ fn i50_path_preedit_bounds(cx: &mut TestAppContext) {
         let caret = view
             .bounds_for_range(end..end, Default::default(), window, cx)
             .unwrap();
-        assert!(caret.top() >= frame.top() && caret.bottom() <= frame.bottom());
+        assert_eq!(
+            (caret.top(), caret.bottom()),
+            (frame.top() - px(3.), frame.bottom() + px(3.))
+        );
         assert!(caret.left() >= frame.left() && caret.left() <= frame.right());
         assert_eq!(
             view.character_index_for_point(caret.origin, window, cx),
@@ -341,3 +347,6 @@ fn i50_path_reopened_owner_refuses_old_handler(cx: &mut TestAppContext) {
         }]
     );
 }
+
+#[path = "i50_mozc_tests.rs"]
+mod mozc;

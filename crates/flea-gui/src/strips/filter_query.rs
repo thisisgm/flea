@@ -82,6 +82,27 @@ impl QueryLine {
         placed.caret
     }
 
+    /// The mirror unit: the drawn line from the field's start with its caret, preedit and selection, clipped to the field.
+    pub(super) fn unit(&self, laid: Laid, editing: bool) -> Bounds<Pixels> {
+        let whole = laid
+            .caret
+            .map_or(laid.query, |caret| laid.query.union(&caret));
+        let Some(clip) = self.clip.filter(|_| editing) else {
+            return whole;
+        };
+        let line = self.line.borrow();
+        let width = line.run.as_ref().map_or(px(0.), |run| run.line().width);
+        let mut right = laid.query.left() + width - line.scroll;
+        for edge in [laid.caret, self.marked, self.selected]
+            .into_iter()
+            .flatten()
+        {
+            right = right.max(edge.right());
+        }
+        let width = (right.min(clip.right()) - laid.query.left()).max(px(0.));
+        Bounds::new(laid.query.origin, size(width, laid.query.size.height))
+    }
+
     pub(super) fn paint(
         &self,
         laid: Laid,

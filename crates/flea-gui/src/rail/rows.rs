@@ -70,6 +70,8 @@ pub struct LaidHeader {
     pub rect: Rect,
     pub top_padding: f32,
     pub font_size: f32,
+    /// HEADING_TRACKING, or none in a caseless language.
+    pub tracking: f32,
     /// The NETWORK heading's plus, in the rows' trailing slot, Sidebar.qml's addGlyph.
     pub add: Option<Rect>,
 }

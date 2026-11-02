@@ -206,7 +206,7 @@ impl super::model::Model {
             &mut hints.undo,
         ] {
             if !hint.is_empty() {
-                *hint = flea::keys::display::chord_label(
+                *hint = flea::keys::display::chord_legend(
                     &super::render::key_sheet::lowercase(hint),
                     &snapshot,
                 )?
@@ -333,6 +333,9 @@ impl super::model::Model {
         true
     }
 }
+
+#[path = "words_title.rs"]
+pub(super) mod title;
 
 #[cfg(test)]
 #[path = "words_layout_tests.rs"]

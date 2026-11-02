@@ -1,6 +1,6 @@
 //! The mounted destination's platform text, through Entry's shared UTF-16 and composition contract.
 use super::view::PathView;
-use crate::path::field::{ime_bounds, ime_index};
+use crate::path::field::{ime_bounds, ime_box, ime_index};
 use gpui::{Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
 
@@ -80,8 +80,7 @@ impl EntityInputHandler for PathView {
             return None;
         }
         let paint = self.paint.borrow();
-        let mut field = paint.frame?;
-        field.origin.x = paint.field_origin;
+        let field = ime_box(paint.frame?, paint.field_origin);
         Some(ime_bounds(&self.line.borrow(), &self.entry, &range, field))
     }
 

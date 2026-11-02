@@ -12,8 +12,12 @@ pub fn chevron(
     view: &ListView,
     row: &RowFacts,
     hovered: bool,
+    mirrored: bool,
 ) -> Option<(&'static str, SharedString, &'static [u8])> {
-    view.picker.is_none().then(|| glyph(row, hovered)).flatten()
+    view.picker
+        .is_none()
+        .then(|| glyph(row, hovered, mirrored))
+        .flatten()
 }
 
 /// The left edge of the mark slot a row's chevron is drawn in, as paint_icon places it.
@@ -22,11 +26,21 @@ pub fn chevron_left(view: &ListView, row: &RowFacts, metrics: &Metrics) -> Optio
         .then(|| metrics.pad + indent(row, metrics))
 }
 
-pub fn glyph(row: &RowFacts, hovered: bool) -> Option<(&'static str, SharedString, &'static [u8])> {
+/// A closed folder's chevron points to logical trailing, left in a mirrored window.
+pub fn glyph(
+    row: &RowFacts,
+    hovered: bool,
+    mirrored: bool,
+) -> Option<(&'static str, SharedString, &'static [u8])> {
     let (name, svg) = if row.dir && row.open {
         (
             "chevron-down",
             r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 9l6 6 6-6"/></svg>"#,
+        )
+    } else if row.dir && row.link.is_none() && hovered && mirrored {
+        (
+            "chevron-left",
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M15 18l-6-6 6-6"/></svg>"#,
         )
     } else if row.dir && row.link.is_none() && hovered {
         (
@@ -36,10 +50,10 @@ pub fn glyph(row: &RowFacts, hovered: bool) -> Option<(&'static str, SharedStrin
     } else {
         return None;
     };
-    let key = if row.open {
-        "flea-tree:chevron-down"
-    } else {
-        "flea-tree:chevron-right"
+    let key = match name {
+        "chevron-down" => "flea-tree:chevron-down",
+        "chevron-left" => "flea-tree:chevron-left",
+        _ => "flea-tree:chevron-right",
     };
     Some((name, SharedString::new_static(key), svg.as_bytes()))
 }
@@ -88,10 +102,12 @@ mod tests {
             ..Default::default()
         };
         let metrics = Metrics::at(px(14.));
-        assert!(glyph(&row, false).is_none());
-        assert_eq!(glyph(&row, true).unwrap().0, "chevron-right");
+        assert!(glyph(&row, false, false).is_none());
+        assert_eq!(glyph(&row, true, false).unwrap().0, "chevron-right");
+        assert_eq!(glyph(&row, true, true).unwrap().0, "chevron-left");
         row.open = true;
-        assert_eq!(glyph(&row, false).unwrap().0, "chevron-down");
+        assert_eq!(glyph(&row, false, true).unwrap().0, "chevron-down");
+        assert_eq!(glyph(&row, false, false).unwrap().0, "chevron-down");
         row.depth = 2;
         assert_eq!(indent(&row, &metrics), 64.);
         let bounds = gpui::Bounds::new(gpui::point(px(46.), px(0.)), gpui::size(px(600.), px(31.)));
@@ -99,12 +115,12 @@ mod tests {
         assert_eq!(slot.origin.x, px(110.));
         assert_eq!(slot.right(), bounds.right());
         row.dir = false;
-        assert!(glyph(&row, true).is_none());
+        assert!(glyph(&row, true, false).is_none());
         row.dir = true;
         row.open = false;
         row.link = Some("/elsewhere".into());
         assert!(
-            glyph(&row, true).is_none(),
+            glyph(&row, true, false).is_none(),
             "a symlinked folder never opens in place"
         );
         assert!(chevron_left(&ListView::default(), &row, &metrics).is_none());
@@ -119,10 +135,15 @@ mod tests {
         };
         let metrics = Metrics::at(px(14.));
         let mut view = ListView::default();
-        assert_eq!(chevron(&view, &row, true).unwrap().0, "chevron-right");
+        assert_eq!(
+            chevron(&view, &row, true, false).unwrap().0,
+            "chevron-right"
+        );
+        assert_eq!(chevron(&view, &row, true, true).unwrap().0, "chevron-left");
         assert_eq!(chevron_left(&view, &row, &metrics), Some(metrics.pad + 32.));
         view.picker = Some(true);
-        assert!(chevron(&view, &row, true).is_none());
+        assert!(chevron(&view, &row, true, false).is_none());
+        assert!(chevron(&view, &row, true, true).is_none());
         assert!(chevron_left(&view, &row, &metrics).is_none());
     }
 }

@@ -81,6 +81,7 @@ pub fn mark_sized(
     };
     let slot = div().size(px(side)).flex_none();
     let Some((key, data)) = own else { return slot };
+    let back = name == "arrow-left";
     slot.child(
         canvas(
             |_, _, _| {},
@@ -105,6 +106,13 @@ pub fn mark_sized(
                 {
                     frame.borrow_mut().controls[index].mark_bounds = Some(bounds);
                 }
+                let (key, data) = match back && window.layout_mirrored() {
+                    true => (
+                        crate::locale_geometry::ARROW_RIGHT.0.into(),
+                        crate::locale_geometry::ARROW_RIGHT.1,
+                    ),
+                    false => (key.clone(), data),
+                };
                 let _ = window.paint_svg(
                     bounds,
                     key,

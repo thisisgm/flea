@@ -4,10 +4,7 @@ use crate::{
     g2::mn1::{element::MenuElement, menu::Face, menu::Outcome},
     g2::pl2::{bookmarks, menus},
     state::Shell,
-    window::{
-        dispatch::Order,
-        input::{event_lookup, ActionEvent},
-    },
+    window::{dispatch::Order, input::ActionEvent},
 };
 use flea::keys::{Context as KeyContext, Match};
 use flea::ui_logic_mn1::fit::Rect;
@@ -172,7 +169,13 @@ impl Shell {
         } else {
             KeyContext::Listing
         };
-        let Match::Action(action) = event_lookup(preset, context, event, window.modifiers()) else {
+        let Match::Action(action) = self.keyboard.lookup(
+            preset,
+            context,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+        ) else {
             return true;
         };
         let event = ActionEvent::bare(action, context);

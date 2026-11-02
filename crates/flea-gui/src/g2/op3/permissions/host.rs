@@ -1,10 +1,13 @@
 //! The live Permissions entity reuses the board drawing and routes every control through its model.
 use super::{Permissions, Phase, Stop};
 use crate::{
-    g2::op3::{
-        keys::{key_of, Key},
-        shell::{Card, Control, Interactive},
-        Effect,
+    g2::{
+        op1::{editor::Drawn, palette::CardPalette},
+        op3::{
+            keys::{key_of, Key},
+            shell::{Card, Control, Interactive, Mount},
+            Effect,
+        },
     },
     list::{Palette, Typeface},
     palette::Theme,
@@ -15,9 +18,10 @@ use gpui::{
     div, prelude::*, App, Context, EventEmitter, FocusHandle, KeyDownEvent, MouseButton, Task,
     Window,
 };
-use std::{sync::Arc, time::Duration};
+use std::{cell::RefCell, sync::Arc, time::Duration};
 
 mod editor;
+mod ime;
 
 pub struct Changed(pub Effect);
 
@@ -30,6 +34,8 @@ pub struct View {
     pub(crate) painted: Option<Card>,
     focus: FocusHandle,
     editor: crate::path::entry::Entry,
+    drawn: RefCell<Drawn>,
+    palette: Option<CardPalette>,
     clock: Clock,
     progress: Progress<Option<Card>>,
     pending: Vec<Effect>,
@@ -54,6 +60,8 @@ impl View {
             painted: None,
             focus: cx.focus_handle(),
             editor: crate::path::entry::Entry::default(),
+            drawn: RefCell::default(),
+            palette: None,
             clock: Clock::default(),
             progress: Progress::default(),
             pending: Vec::new(),
@@ -137,7 +145,7 @@ impl View {
         self.flush(Vec::new(), cx);
     }
 
-    pub fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if !self.opened || !self.pending.is_empty() {
             cx.stop_propagation();
             return;
@@ -147,9 +155,10 @@ impl View {
             cx.stop_propagation();
             return;
         }
-        if self.edit_octal(event, cx) {
-            self.flush(Vec::new(), cx);
-        } else if let Some(key) = key_of(event) {
+        if self.edit_octal(event, window, cx) {
+            return;
+        }
+        if let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) {
             let effects = self.model.key(key);
             if stroke.key == "escape" && effects.contains(&Effect::Close) {
                 self.progress.supersede();
@@ -197,12 +206,18 @@ impl Render for View {
             return div().into_any_element();
         }
         self.observe(cx);
+        self.sync_editor();
         let now = self.now(cx);
         let snapshot = self.progress.commit(now).clone();
         self.schedule(cx);
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
         let typeface = Typeface::for_window(window, cx);
+        self.palette = Some(CardPalette::from_list(&palette, self.corner));
+        let (entity, face) = (cx.entity(), typeface.clone());
+        let mount = move |slot: gpui::Div| {
+            crate::g2::op1::field::mount(entity.clone(), slot, &face).into_any_element()
+        };
         let weak = cx.entity().downgrade();
         let wire = move |control, element: gpui::Stateful<gpui::Div>| {
             let weak = weak.clone();
@@ -216,7 +231,7 @@ impl Render for View {
             Interactive {
                 wire: &wire,
                 surface: theme.surface,
-                entry: &self.editor,
+                mount: self.editor.editing.then_some(&mount as &Mount),
             }
             .present_observed(
                 &snapshot,

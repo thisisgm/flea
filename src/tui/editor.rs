@@ -11,6 +11,7 @@ pub struct Editor {
     pub value: String,
     pub path: PathBuf,
     pub pending: bool,
+    pub default_base: Option<String>,
     pub error: String,
     error_text: Option<(super::words::Text, String)>,
     cursor: usize,
@@ -31,6 +32,7 @@ impl Editor {
             editable_end: cursor,
             full_name: true,
             pending: false,
+            default_base: None,
             error: String::new(),
             error_text: None,
             identity: None,
@@ -40,6 +42,7 @@ impl Editor {
     pub fn named(kind: &'static str, value: String, path: PathBuf) -> Self {
         let mut editor = Self::new(kind, value, path);
         editor.anchor = 0;
+        editor.default_base = (kind == "mkdir").then(|| editor.value.clone());
         editor
     }
     pub fn rename(value: String, path: PathBuf, directory: bool) -> std::io::Result<Self> {

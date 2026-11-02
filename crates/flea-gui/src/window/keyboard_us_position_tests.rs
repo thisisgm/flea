@@ -32,7 +32,7 @@ fn press(
 }
 
 fn action(context: Context, (event, held): (KeyDownEvent, Modifiers)) -> Match {
-    event_lookup("default", context, &event, held)
+    event_lookup("default", context, &event, held, false)
 }
 
 fn shift() -> Modifiers {
@@ -180,7 +180,7 @@ fn latin_ascii_letters_at_us_punctuation_keys_match_only_where_printed() {
         for preset in PRESETS {
             for context in Context::ALL {
                 assert_eq!(
-                    event_lookup(preset, context, &event, held),
+                    event_lookup(preset, context, &event, held, false),
                     lookup(preset, context, Frontend::Gui, event_input(&event, held)),
                     "{preset} {context:?} {:?}",
                     event.keystroke
@@ -244,13 +244,15 @@ fn every_command_lookup_reads_the_us_position() {
         ("quick_look_keys.rs", include_str!("quick_look_keys.rs")),
         ("pl3/join_input.rs", include_str!("../g2/pl3/join_input.rs")),
     ];
+    // Keyboard::lookup reads the US position and leaves AltGr text unbound, as resolve does.
     for (name, source) in sites {
-        let routed = source.matches("event_lookup(").count();
+        let source: String = source.split_whitespace().collect();
+        let routed = source.matches("self.keyboard.lookup(").count();
         assert!(routed > 0, "{name} no longer looks a key up here");
         assert_eq!(
             source.matches("lookup(").count(),
             routed,
-            "{name} looks a key up without its US position"
+            "{name} looks a key up without its US position or the AltGr check"
         );
     }
 }

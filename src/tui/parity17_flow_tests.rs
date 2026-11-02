@@ -338,3 +338,47 @@ fn a_real_copy_holds_sources_through_collision_confirmation_and_chooser_paths_st
     assert!(chooser.get("hold").is_none() && chooser.get("id").is_none());
     wire::finish(w, reader);
 }
+
+// A folder's listed line carries no listing stamp, so the backend's stamped Copy reply must still land: yazi y, then Copied 1 item.
+#[test]
+fn tui_fix_yazi_copy_y_copies_the_cursor_row_in_a_folder() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = listing(&mut w, "yazi");
+    assert_eq!(w.listing, None);
+    actions::key(&mut m, &Key::character('j', ""), &Map::load(), &mut w).unwrap();
+    actions::key(&mut m, &Key::character('y', ""), &Map::load(), &mut w).unwrap();
+    let sent = drain(&mut w);
+    let ask = sent.iter().find(|v| text(v, "c") == "paths").unwrap();
+    assert_eq!(ask.get("hold").and_then(Json::as_bool), Some(true));
+    let id = count(ask, "id");
+    m.receive(
+        parse(&format!(
+            r#"{{"t":"paths","paths":["/listing/file"],"id":{id},"held":[],"listing":3}}"#
+        )),
+        &mut w,
+    )
+    .unwrap();
+    assert_eq!(m.clipboard, vec!["/listing/file".to_string()]);
+    assert!(!m.pending_clipboard);
+    assert_eq!(m.message, "Copied 1 item");
+    // A reply that lands after the folder changed is still dropped, so a stale row never fills the clipboard.
+    actions::key(&mut m, &Key::character('y', ""), &Map::load(), &mut w).unwrap();
+    let id = count(
+        drain(&mut w)
+            .iter()
+            .find(|v| text(v, "c") == "paths")
+            .unwrap(),
+        "id",
+    );
+    m.pending = Some("/elsewhere".into());
+    m.receive(
+        parse(&format!(
+            r#"{{"t":"paths","paths":["/listing/folder"],"id":{id},"held":[],"listing":4}}"#
+        )),
+        &mut w,
+    )
+    .unwrap();
+    assert_eq!(m.clipboard, vec!["/listing/file".to_string()]);
+    assert!(!m.pending_clipboard);
+    wire::finish(w, reader);
+}

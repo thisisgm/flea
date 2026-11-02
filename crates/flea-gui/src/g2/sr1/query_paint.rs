@@ -62,6 +62,27 @@ impl StripElement {
         draw.selection = placed.selection;
     }
 
+    /// The edited query's drawn extent, from the field's start to its last glyph, preedit or caret, clipped to the field.
+    pub(super) fn query_unit(&self, window: &Window, cx: &App) -> Option<Bounds<Pixels>> {
+        let (input, _) = self.input.as_ref()?;
+        let state = self.state.borrow();
+        let draw = &state.edit;
+        let bounds = draw.bounds.get()?;
+        let line = draw.line.borrow();
+        let mut right =
+            bounds.left() + line.run.as_ref().map_or(px(0.), |run| run.line().width) - line.scroll;
+        if input.read(cx).focused(window, cx) {
+            for edge in [draw.caret, draw.marked, draw.selection]
+                .into_iter()
+                .flatten()
+            {
+                right = right.max(edge.right());
+            }
+        }
+        let width = (right.min(bounds.right()) - bounds.left()).max(px(0.));
+        Some(Bounds::new(bounds.origin, size(width, bounds.size.height)))
+    }
+
     pub(super) fn paint_query(&self, window: &mut Window, cx: &mut App) -> bool {
         let Some((input, focus)) = &self.input else {
             return false;

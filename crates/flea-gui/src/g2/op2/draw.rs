@@ -178,7 +178,7 @@ impl Draw<'_> {
                 text = text.child(caret());
             }
         }
-        line = line.child(text);
+        line = line.child(crate::locale_geometry::unmirrored(text));
         if field.eye {
             line = line.child(self.eye(probe));
         }

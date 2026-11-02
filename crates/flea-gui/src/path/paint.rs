@@ -312,6 +312,9 @@ impl Place {
     }
 }
 
+/// The room between the path's last crumb and its Git label, in pixels.
+pub const GIT_GAP: f32 = 9.;
+
 /// A strip's first-crumb inset: none on the chrome, a dual pane's row padding (PanePath's rowPaddingX) on a pane.
 pub fn strip_pad(pane: bool, scale: &Scale) -> f32 {
     if pane {

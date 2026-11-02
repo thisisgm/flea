@@ -20,7 +20,7 @@ mod tags;
 mod text_revision;
 pub use measure::Density;
 pub use metrics::Metrics;
-pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
+pub(crate) use metrics::{mark_bounds_at, CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
 #[cfg(test)]
 mod gh315_filter_tests;
 #[cfg(test)]
@@ -225,6 +225,7 @@ pub struct Drawn {
     pub scroll_y: f32,
     pub listing: usize,
     pub frames: u64,
+    pub mirrored: bool,
     /// The drop target row and the box its caption is drawn in, this frame.
     pub drop: Option<(usize, Bounds<Pixels>)>,
     /// Rows drawn as Row.qml's loading bar because the pane does not hold them yet.
@@ -246,6 +247,7 @@ impl Default for Drawn {
             scroll_y: 0.,
             listing: 0,
             frames: 0,
+            mirrored: false,
             drop: None,
             loading: 0,
             grow: pane::Grow::default(),
@@ -388,15 +390,5 @@ pub(crate) fn mark_bounds(left: Pixels, top: Pixels) -> Bounds<Pixels> {
             top + px((31. - 17.) / 2.),
         ),
         size(px(17.), px(17.)),
-    )
-}
-
-pub(crate) fn mark_bounds_at(left: Pixels, top: Pixels, metrics: &Metrics) -> Bounds<Pixels> {
-    Bounds::new(
-        point(
-            left + px(metrics.pad + (metrics.slot - metrics.mark) / 2.),
-            top + px((metrics.row - metrics.mark) / 2.),
-        ),
-        size(px(metrics.mark), px(metrics.mark)),
     )
 }

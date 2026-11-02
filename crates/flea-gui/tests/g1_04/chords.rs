@@ -41,12 +41,18 @@ fn fork_shaped_shifted_symbol_chords_match_the_oracle_on_every_preset() {
                 )
             };
             assert_eq!(
-                Keyboard::default().resolve(preset, &fork, held(mask | SHIFT), Seat::default()),
+                Keyboard::default().resolve(
+                    preset,
+                    &fork,
+                    held(mask | SHIFT),
+                    false,
+                    Seat::default()
+                ),
                 dispatch(qt(mask | SHIFT)),
                 "{preset} {key} {mask} with Shift held"
             );
             assert_eq!(
-                Keyboard::default().resolve(preset, &fork, held(mask), Seat::default()),
+                Keyboard::default().resolve(preset, &fork, held(mask), false, Seat::default()),
                 dispatch(qt(mask)),
                 "{preset} {key} {mask} on a layout with the symbol unshifted"
             );
@@ -69,6 +75,7 @@ fn fork_shaped_shifted_symbol_chords_match_the_oracle_on_every_preset() {
                     preset,
                     &event(key, text, mask),
                     held(mask | SHIFT),
+                    false,
                     Seat::default()
                 ),
                 Dispatch::Action(expected),
@@ -93,6 +100,7 @@ fn fork_shaped_shifted_symbol_chords_match_the_oracle_on_every_preset() {
                 "default",
                 &event(key, text, mask),
                 held(mask),
+                false,
                 Seat::default()
             ),
             expected,

@@ -4,7 +4,7 @@ use gpui::{
     div, fill, point, prelude::*, px, relative, size, AlignItems, AnyElement, App, AvailableSpace,
     Bounds, ContentMask, CursorStyle, Div, Element, ElementId, ElementInputHandler, Entity,
     GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, InspectorElementId, LayoutId, MouseButton,
-    Pixels, Stateful, Style, Window,
+    Pixels, Style, Window,
 };
 use std::rc::Rc;
 
@@ -12,25 +12,28 @@ pub(crate) fn mount<V: FieldView>(
     view: Entity<V>,
     field: Div,
     typeface: &crate::list::Typeface,
-) -> Stateful<Div> {
+) -> crate::locale_geometry::Unmirrored {
     let down = view.downgrade();
     let moved = view.downgrade();
-    field
-        .id("op1-destination")
-        .on_mouse_down(MouseButton::Left, move |event, window, cx| {
-            let _ = down.update(cx, |view, cx| view.field_press(event, window, cx));
-        })
-        .on_mouse_move(move |event, window, cx| {
-            let _ = moved.update(cx, |view, cx| view.field_drag(event, window, cx));
-        })
-        .child(
-            div()
-                .debug_selector(|| "op1-destination".into())
-                .flex_1()
-                .min_w_0()
-                .h_full()
-                .child(Destination(view, typeface.clone())),
-        )
+    // An editable line keeps its text, selection, caret and placeholder together in a mirrored window.
+    crate::locale_geometry::unmirrored(
+        field
+            .id("op1-destination")
+            .on_mouse_down(MouseButton::Left, move |event, window, cx| {
+                let _ = down.update(cx, |view, cx| view.field_press(event, window, cx));
+            })
+            .on_mouse_move(move |event, window, cx| {
+                let _ = moved.update(cx, |view, cx| view.field_drag(event, window, cx));
+            })
+            .child(
+                div()
+                    .debug_selector(|| "op1-destination".into())
+                    .flex_1()
+                    .min_w_0()
+                    .h_full()
+                    .child(Destination(view, typeface.clone())),
+            ),
+    )
 }
 
 use super::field_view::FieldView;

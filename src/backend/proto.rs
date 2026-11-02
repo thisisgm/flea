@@ -74,7 +74,7 @@ pub enum Request {
     BulkRename { paths: Vec<String>, names: Vec<String> },
     Duplicate { path: String, menu_id: usize },
     // One new empty directory inside parent path; an empty name asks for the first free "New Folder".
-    MkDir { path: String, name: String },
+    MkDir { path: String, name: String, default_base: Option<String> },
     NewFile { path: String, name: String, id: usize },
     Undo,
     Redo,

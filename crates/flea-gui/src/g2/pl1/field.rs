@@ -16,7 +16,7 @@ impl Field {
         if !self.entry.editing {
             self.begin();
         }
-        super::private_entry::replace(&mut self.entry, &mut self.text, None, text, None, false);
+        super::private_entry::replace(&mut self.entry, &mut self.text, None, text, false);
     }
 
     pub fn backspace(&mut self) {

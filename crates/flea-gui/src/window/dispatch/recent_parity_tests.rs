@@ -67,3 +67,57 @@ fn ey392_recent_draws_back_and_up_live_because_both_close_it(cx: &mut TestAppCon
     assert!(up, "v0.3.12 draws Up at full ink in Recent");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+fn arabic(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let fixture = root.join("src/keys/fixtures/keycaps");
+    let catalog = flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: fixture.clone(),
+        language_file: fixture.join("language-ar"),
+        catalogs: vec![root.join("i18n")],
+    });
+    assert_eq!(catalog.language(), "ar");
+    shell.update(cx, |shell, cx| {
+        shell.apply_locale(
+            crate::window::locale::Snapshot {
+                revision: 2,
+                catalog: std::sync::Arc::new(catalog),
+            },
+            cx,
+        );
+    });
+    cx.run_until_parked();
+}
+
+#[gpui::test]
+fn i50_public_a68_recent_hidden_refusal_paints_arabic(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root(cx, "default");
+    recent(&shell, cx);
+    arabic(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-.");
+    frame(cx);
+    assert_eq!(
+        read(&shell, cx, "statusPrimary"),
+        "تعرض العناصر الأخيرة كل ما في قائمتها، بما في ذلك العناصر المخفية"
+    );
+    shell.read_with(cx, |shell, _| {
+        assert!(!shell.panes[0].as_ref().unwrap().nav.folders.borrow().hidden)
+    });
+    assert!(sent().is_empty(), "the refusal sends no request");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn i50_public_a68_recent_new_folder_refusal_paints_arabic(cx: &mut TestAppContext) {
+    let (shell, cx) = open_root(cx, "default");
+    recent(&shell, cx);
+    arabic(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-n");
+    frame(cx);
+    assert_eq!(
+        read(&shell, cx, "statusPrimary"),
+        "لا يمكن إنشاء مجلد في العناصر الأخيرة. افتح مجلدًا أولًا"
+    );
+    assert!(!sent().iter().any(|line| line.contains("mkdir")));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

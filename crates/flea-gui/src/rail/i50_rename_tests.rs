@@ -10,6 +10,8 @@ use gpui::{
 use std::rc::Rc;
 use std::time::Duration;
 
+#[path = "i50_rename_mozc_tests.rs"]
+mod mozc;
 #[path = "i50_rename_rail_tests.rs"]
 mod rail;
 
@@ -162,7 +164,10 @@ fn i50_rename_preedit_stem(cx: &mut TestAppContext) {
             assert_eq!(s.marked_text_range(w, cx), Some(0..2));
             let caret = s.bounds_for_range(2..2, field, w, cx).unwrap();
             assert!(caret.left() >= field.left() && caret.right() <= field.right());
-            assert!(caret.top() >= field.top() && caret.bottom() <= field.bottom());
+            assert_eq!(
+                (caret.top(), caret.bottom()),
+                (field.top() - gpui::px(3.), field.bottom() + gpui::px(3.))
+            );
         });
         assert_eq!(sent(&mut lines), [Vec::<String>::new(), Vec::new()]);
         close(&shell, cx);

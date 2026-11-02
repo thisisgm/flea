@@ -38,7 +38,7 @@ fn a_new_folder_rename_returns_to_its_pane_after_focus_moves(cx: &mut TestAppCon
         [creation_request(
             &shell,
             cx,
-            r#"{"c":"mkdir","path":"/files"}"#
+            r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
         )]
     );
     cx.simulate_keystrokes("tab down");
@@ -143,7 +143,10 @@ fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &m
         [creation_request(
             &shell,
             cx,
-            &format!(r#"{{"c":"mkdir","path":"{}"}}"#, flea::json::escape(&right))
+            &format!(
+                r#"{{"c":"mkdir","path":"{}","defaultBase":"New Folder"}}"#,
+                flea::json::escape(&right)
+            )
         )]
     );
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(View::List, window, cx)));

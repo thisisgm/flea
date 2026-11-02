@@ -302,6 +302,21 @@ pub(super) fn keypad_enter(cx: &mut VisualTestContext) {
     cx.run_until_parked();
 }
 
+// A German (de) press as fork 0c60e44 reports it: `us` is the US key at its position, and AltGr makes it text input.
+pub(crate) fn german_press(key: &str, typed: &str, us: Option<&str>, altgr: bool) -> KeyDownEvent {
+    KeyDownEvent {
+        keystroke: Keystroke {
+            key: key.into(),
+            key_char: Some(typed.into()),
+            modifiers: Modifiers::none(),
+            is_keypad: false,
+            us_key: us.map(Into::into),
+        },
+        is_held: false,
+        prefer_character_input: altgr,
+    }
+}
+
 // The keystroke the platform delivers for a table row, Shift on a cased letter as Linux sends it.
 pub(super) fn keystroke(binding: &keys::Binding) -> KeyDownEvent {
     let text = binding.mods == "text";

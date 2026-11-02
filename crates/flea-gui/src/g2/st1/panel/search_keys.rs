@@ -12,6 +12,40 @@ use flea::ui_logic_st1::{
 use gpui::{div, prelude::*, px, Context, Div, KeyDownEvent, MouseMoveEvent, Stateful, Window};
 
 impl Panel {
+    pub(super) fn search_selection(&self) -> Option<(usize, String)> {
+        let (section, row) = self.hit_target()?;
+        Some((
+            section,
+            self.everything_rows(section).get(row)?.id.to_string(),
+        ))
+    }
+
+    pub(super) fn restore_search_selection(&mut self, selected: Option<(usize, String)>) {
+        let Some((section, id)) = selected else {
+            return;
+        };
+        for hit in 0..self.hit_count() {
+            if let Some((found, row)) = self.target_at(hit) {
+                if section == found
+                    && self
+                        .everything_rows(found)
+                        .get(row)
+                        .is_some_and(|row| row.id == id)
+                {
+                    self.hit = hit;
+                    break;
+                }
+            }
+        }
+    }
+
+    pub(in crate::g2::st1) fn query_changed(&mut self, query: String) {
+        self.query = Some(query);
+        self.hit = 0;
+        self.results_scroll = 0.;
+        self.rebuild();
+    }
+
     pub(crate) fn searching(&self) -> bool {
         self.query.as_deref().is_some_and(|query| !query.is_empty())
     }
@@ -195,6 +229,7 @@ impl SettingsView {
             .w(px(30.))
             .cursor_pointer()
             .on_click(cx.listener(|view, _, _, cx| {
+                view.editor.clear();
                 view.panel.query = Some(String::new());
                 view.panel.hit = 0;
                 view.panel.results_scroll = 0.;
@@ -221,7 +256,10 @@ impl SettingsView {
             && self.plugins.as_ref().is_some_and(|plugin| {
                 *plugin.read(cx).page().card() == crate::g2::st2::page::Card::None
             });
-        if self.panel.query.is_some() || slash {
+        if self.query_key(event, window, cx) {
+            return;
+        }
+        if slash {
             self.panel.key(&stroke.key, text, stroke.modifiers.shift);
             window.focus(&self.focus, cx);
             self.flush(cx);

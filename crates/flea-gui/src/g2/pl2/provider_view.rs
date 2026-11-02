@@ -34,6 +34,7 @@ impl Drawn {
         }
         let p = view.palette;
         self.boxes.push(BoxPaint {
+            field: None,
             rect: Rect {
                 x: 17.,
                 y: top + 42.,

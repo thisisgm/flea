@@ -2,6 +2,7 @@
 mod act;
 mod card;
 pub mod glyphs;
+mod input;
 mod load;
 pub mod mark;
 pub mod page;
@@ -15,3 +16,6 @@ mod page_tests;
 mod scroll_tests;
 #[cfg(test)]
 mod view_tests;
+
+#[cfg(test)]
+mod ime_tests;
