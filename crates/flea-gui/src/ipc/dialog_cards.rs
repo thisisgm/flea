@@ -46,6 +46,9 @@ impl Adapter for DialogAdapter<'_> {
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
             // The menu actions' card is Open With, the run card or Delete permanently's review; with none open the Root has no dialog to describe.
             "menuDialogState" => {
+                if let Some(state) = plugin_input_state(self.shell) {
+                    return Some(Reply::value(state));
+                }
                 if let Some(open) = &self.shell.properties {
                     return Some(Reply::value(
                         open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
@@ -90,6 +93,28 @@ impl Adapter for DialogAdapter<'_> {
         };
         Some(Reply::value(value))
     }
+}
+
+fn plugin_input_state(shell: &Shell) -> Option<String> {
+    let open = shell.plugins.input.as_ref()?;
+    let entry = &shell.rename.ime.entry;
+    let state = object([
+        ("opened", Json::Bool(true)),
+        ("kind", Json::Str("pluginInput".into())),
+        ("value", Json::Str(open.value.clone())),
+        ("editorValue", Json::Str(entry.text.clone())),
+        (
+            "selection",
+            Json::Arr(vec![
+                number(entry.selected.start),
+                number(entry.selected.end),
+            ]),
+        ),
+        ("caret", number(entry.cursor())),
+        ("offsetUnit", Json::Str("utf8-bytes".into())),
+        ("unavailable", Json::Str("rect, controls".into())),
+    ]);
+    Some(flea::jsondoc::render(&state).trim_end().to_owned())
 }
 
 /// The ui/Ipc.qml openWithState fields this reader does not send: the controls' painted state.

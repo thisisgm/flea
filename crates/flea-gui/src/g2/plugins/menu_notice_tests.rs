@@ -1,5 +1,10 @@
 use super::*;
 
+#[path = "plugin_action_recovery_tests.rs"]
+mod plugin_action_recovery_tests;
+#[path = "plugin_footer_error_tests.rs"]
+mod plugin_footer_error_tests;
+
 #[derive(Debug)]
 struct Notice {
     pane: String,
@@ -97,16 +102,14 @@ fn plugin_menu_runtime_notice_success_replaces_progress_without_escape(cx: &mut 
 }
 
 #[gpui::test]
-fn plugin_menu_runtime_notice_actual_failure_stays_an_acknowledged_error(cx: &mut TestAppContext) {
+fn plugin_footer_error_started_failure_preserves_sentence(cx: &mut TestAppContext) {
     let (mut fixture, _folder) = fixture(cx);
-    let expected = update(cx, fixture.handle, |shell, _, _| {
-        shell.locale.catalog.tr_args(
-            crate::g2::mn2::model::START_KEY,
-            &["Checksum does not match."],
-        )
-    });
+    let expected = "Checksum does not match.";
     run(&mut fixture, &"0".repeat(64), cx);
-    wait(cx, |cx| notice(&fixture, cx).pane == expected);
+    wait(cx, |cx| {
+        let failed = notice(&fixture, cx);
+        failed.pending == 0 && failed.error
+    });
     let failed = notice(&fixture, cx);
     assert_eq!(failed.pending, 0, "failure also releases its terminal slot");
     assert!(
@@ -114,7 +117,8 @@ fn plugin_menu_runtime_notice_actual_failure_stays_an_acknowledged_error(cx: &mu
         "real plugin failure must remain acknowledged: {failed:?}"
     );
     assert_eq!(failed.shown, expected);
-    assert_eq!(failed.queued, vec![expected]);
+    assert_eq!(failed.pane, expected);
+    assert_eq!(failed.queued, vec![expected.to_owned()]);
     stop(cx, &fixture);
 }
 

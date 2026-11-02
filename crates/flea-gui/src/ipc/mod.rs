@@ -60,6 +60,8 @@ mod pb_ipc_fixture;
 #[cfg(test)]
 mod pb_ipc_tests;
 #[cfg(test)]
+mod plugin_input_tests;
+#[cfg(test)]
 mod reader_port_a_tests;
 #[cfg(test)]
 mod reader_port_c_tests;
