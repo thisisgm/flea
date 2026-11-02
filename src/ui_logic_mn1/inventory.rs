@@ -1,5 +1,5 @@
 //! The one row order every menu reads: F file, B background, T Trash, P Places, R rail rows (never hideable).
-//! The destructive group follows the open group, so Move to Trash is the file menu's first row after that group.
+//! The HIG file menu ends with Move to Trash and Delete Permanently in their own destructive group.
 
 #[derive(Clone, Copy, Debug)]
 pub struct Spec {
@@ -85,16 +85,6 @@ pub const INVENTORY: &[Spec] = &[
         "F",
         "open",
         "makeExecutable",
-    ),
-    // Move to Trash leads the group after the open group; only Delete Permanently shares it.
-    spec("trash", "menu.row.trash", "trash", "F", "trash"),
-    acting(
-        "delete",
-        "menu.row.delete",
-        "trash",
-        "F",
-        "trash",
-        "deletePermanently",
     ),
     spec("unlockVolume", "menu.row.unlock", "lock", "R", "open"),
     spec("mountVolume", "menu.row.mount", "drive", "R", "open"),
@@ -249,6 +239,16 @@ pub const INVENTORY: &[Spec] = &[
         "code",
         "FB",
         "view",
+    ),
+    // The HIG destructive group is last for files, folders and multi-selection; only Delete Permanently shares it.
+    spec("trash", "menu.row.trash", "trash", "F", "trash"),
+    acting(
+        "delete",
+        "menu.row.delete",
+        "trash",
+        "F",
+        "trash",
+        "deletePermanently",
     ),
     spec(
         "extThumbs",
