@@ -6,6 +6,9 @@ use std::time::Duration;
 #[path = "sol_clipboard_tests.rs"]
 mod sol_clipboard_tests;
 
+#[path = "image_paste_tests.rs"]
+mod image_paste_tests;
+
 const FORMS: [(&str, &str); 6] = [
     ("copyPath", "/files/a.txt\n/files/b.txt"),
     ("copyName", "a.txt\nb.txt"),

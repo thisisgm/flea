@@ -175,10 +175,13 @@ impl Shell {
             let (available, failed, _) = self.clipboard_menu_facts(menu_side);
             if (
                 self.menu.context.clipboard_available,
+                self.menu.context.clipboard_image_available,
                 self.menu.context.clipboard_watch_failed,
-            ) != (available, failed)
+            ) != (available, self.clipboard.board.image_available(), failed)
             {
                 self.menu.context.clipboard_available = available;
+                self.menu.context.clipboard_image_available =
+                    self.clipboard.board.image_available();
                 self.menu.context.clipboard_watch_failed = failed;
                 if let Some(host) = self.panes[menu_side]
                     .as_ref()

@@ -22,6 +22,7 @@ impl Default for Context {
             has_shebang: false,
             cursor_is_target: false,
             clipboard_available: false,
+            clipboard_image_available: false,
             clipboard_watch_failed: false,
             can_trash: true,
             can_link: true,

@@ -102,6 +102,7 @@ pub struct Context {
     pub has_shebang: bool,
     pub cursor_is_target: bool,
     pub clipboard_available: bool,
+    pub clipboard_image_available: bool,
     pub clipboard_watch_failed: bool,
     pub can_trash: bool,
     pub can_link: bool,
@@ -255,7 +256,9 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         return false;
     }
     if action == "paste" {
-        e.disabled = !p.clipboard_available && !p.clipboard_watch_failed;
+        e.disabled = !p.clipboard_available
+            && !p.clipboard_image_available
+            && !p.clipboard_watch_failed;
     }
     if action == "showOriginal" && !p.row_is_symlink {
         return false;
