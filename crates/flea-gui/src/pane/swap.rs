@@ -129,6 +129,13 @@ pub struct Swap {
 }
 
 impl Swap {
+    /// inputToRows' second half: stamped once, and only after an input, as v0.3.12's PaneSwap.qml does; the launch listing is no input.
+    pub(crate) fn stamp_rows(&mut self, now: u64) {
+        if self.rows_at == 0 && self.input_at > 0 {
+            self.rows_at = now;
+        }
+    }
+
     pub fn begin(
         &mut self,
         path: String,

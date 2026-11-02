@@ -1,8 +1,8 @@
-//! A JPEG's first Quick Look decode is the refinement's own picture, so one open reads the file once.
+//! A JPEG's bounded first frame needs sharp refinement; only refined pixels are kept for reuse.
 use crate::preview_quality::reuse;
 
 #[test]
-fn preview_quality_reuse_jpeg_first_decode_is_offered_as_the_refinement() {
+fn preview_quality_reuse_jpeg_bounded_first_frame_requires_sharp_refinement() {
     let made = std::process::Command::new("mktemp")
         .arg("-d")
         .arg(std::env::temp_dir().join("flea-preview-reuse.XXXXXXXX"))
@@ -25,41 +25,19 @@ fn preview_quality_reuse_jpeg_first_decode_is_offered_as_the_refinement() {
         1,
         "the first picture reads the file once"
     );
-    let offered = reuse::take(&path, (300, 200)).expect("a sharp first decode is offered");
-    assert!(std::sync::Arc::ptr_eq(&first, &offered));
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "an offer is claimed once"
-    );
     let refined = super::photo::decode_sharp(&path, (300, 200), &|| true).unwrap();
-    assert_eq!(
+    // GH336 requires one bounded first decode before the single full-source sharp decode.
+    assert_eq!(reuse::decodes(&path), 2);
+    assert_ne!(
         first.as_bytes(0),
         refined.as_bytes(0),
-        "the offer is the refinement's pixels"
+        "this detailed JPEG needs its full-source sharp refinement"
     );
-    let other_size = super::photo::decode(&path, (299, 200), &|| true).unwrap();
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "another size is never claimed"
-    );
-    assert!(std::sync::Arc::ptr_eq(
-        &other_size,
-        &reuse::take(&path, (299, 200)).unwrap()
-    ));
-    let stale = super::photo::decode(&path, (300, 200), &|| true).unwrap();
-    image::RgbImage::from_pixel(1200, 800, image::Rgb([255, 0, 0]))
-        .save(&path)
-        .unwrap();
-    assert!(
-        reuse::take(&path, (300, 200)).is_none(),
-        "a rewritten path cannot claim an older offer"
-    );
-    drop(stale);
     let meta = path.metadata().unwrap();
     let modified = meta.modified().unwrap();
     let version = (meta.len(), 4);
     let identity = reuse::file_identity(&path);
-    reuse::keep(&path, version, (300, 200), &first, identity);
+    reuse::keep(&path, version, (300, 200), &refined, identity);
     assert!(reuse::kept(&path, version).is_some());
     let replacement = root.join("replacement.jpg");
     std::fs::write(&replacement, vec![0; meta.len() as usize]).unwrap();
@@ -75,7 +53,7 @@ fn preview_quality_reuse_jpeg_first_decode_is_offered_as_the_refinement() {
         identity,
         "the fixture supplies a distinct identity with the same row version"
     );
-    reuse::keep(&path, version, (300, 200), &first, identity);
+    reuse::keep(&path, version, (300, 200), &refined, identity);
     assert!(
         reuse::kept(&path, version).is_none(),
         "a changed identity cannot stamp older pixels with an unchanged row version"

@@ -118,7 +118,7 @@ fn meta_one(base: &Path, name: &str) -> Meta {
             } else {
                 String::new()
             };
-            Meta { birth: super::birthtime::get(&base.join(name)).map(|time| time.0), size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev() }
+            Meta { birth: super::birthtime::of(&m), size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev() }
         }
         Err(_) => zeroes(),
     }

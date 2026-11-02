@@ -316,7 +316,7 @@ impl Pane {
             self.requests.initial_first =
                 Some((self.scroll_y / self.row_height()).floor() as usize);
             self.swap.counters.commits += 1;
-            self.swap.rows_at = now;
+            self.swap.stamp_rows(now);
             return Ok(true);
         }
         if listing == self.held.listing {

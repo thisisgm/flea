@@ -193,7 +193,13 @@ fn clipboard_bounds_align_in_the_reserved_strip() {
                         .unwrap_or(&prepared.name);
                     saw_bold_advance |= shown.state.cursor
                         && (f32::from(run.line().width - prepared.name.line().width)).abs() > 0.01;
-                    assert!((f32::from(bounds.right()) - layout.name.right()).abs() < 0.001);
+                    let drawn = f32::from(run.line().width)
+                        .min((layout.name.width - metrics.gap - metrics.clip).max(0.));
+                    assert!(
+                        (f32::from(bounds.left()) - (layout.name.x + drawn + metrics.gap)).abs()
+                            < 0.001,
+                        "the clipboard mark follows the drawn name by one gap"
+                    );
                     assert!(bounds.right() <= name.right());
                     assert_eq!(bounds.size, size(px(12.), px(12.)));
                     if moving {
@@ -247,13 +253,22 @@ fn clipboard_bounds_align_in_the_reserved_strip() {
             let prepared = shown.prepared.as_ref().unwrap();
             saw_bold_advance |=
                 prepared.bold.get().unwrap().line().width != prepared.name.line().width;
-            assert_eq!(cursor.left(), name.right() - px(state.drawn.metrics.clip));
+            let metrics = &state.drawn.metrics;
+            let room = (name.size.width - px(metrics.gap + metrics.clip)).max(px(0.));
+            assert_eq!(
+                cursor.left(),
+                name.left() + prepared.bold.get().unwrap().line().width.min(room) + px(metrics.gap)
+            );
             shown.state.cursor = false;
             shown.bold_match = false;
             let plain = shown.clip_bounds(name, &state.drawn.metrics).unwrap();
             assert_eq!(
-                cursor, plain,
-                "bold cursor text must not move the clipboard slot"
+                plain.left(),
+                name.left() + prepared.name.line().width.min(room) + px(metrics.gap)
+            );
+            assert!(
+                cursor.left() > plain.left(),
+                "the longer drawn bold name moves its mark while both stay inside the column"
             );
         });
     }

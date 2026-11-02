@@ -118,7 +118,19 @@ fn another_windows_shift_drag_over_a_folder_row_says_move() {
                 .clone();
             *hover.borrow_mut() = Some(Arrived {
                 position: (0., 0.),
-                marker: None,
+                marker: Some(
+                    flea::ui_logic_dg2::Marker {
+                        instance: "other-process#1".into(),
+                        source: other.clone(),
+                        rows: vec![0, 1, 2],
+                        listing: 1,
+                        dev: 0,
+                        deletable: true,
+                        copy: false,
+                        shift: true,
+                    }
+                    .encode(),
+                ),
                 urls: carried
                     .iter()
                     .map(|path| flea::ui_logic_dg2::uri_for(path))
@@ -147,6 +159,34 @@ fn another_windows_shift_drag_over_a_folder_row_says_move() {
         lines.contains(&"Move 3 items to alpha · ctrl copies, shift moves".to_owned()),
         "{lines:?}"
     );
+    let (source, _lines) = open(&mut cx, root.src());
+    source
+        .update(&mut cx, |shell, window, cx| window.focus(&shell.focus, cx))
+        .unwrap();
+    frame(&mut cx, source);
+    let mut source_cx = VisualTestContext::from_window(source.into(), &cx);
+    source_cx.simulate_event(gpui::ModifiersChangedEvent {
+        modifiers: Modifiers {
+            control: true,
+            ..Modifiers::default()
+        },
+        capslock: Default::default(),
+    });
+    source_cx.run_until_parked();
+    let (_, label, _) = cue(&mut vcx, handle);
+    assert_eq!(
+        label.as_deref(),
+        Some("copy here"),
+        "source keys refresh the other window"
+    );
+    vcx.simulate_event(FileDropEvent::Pending { position: folder });
+    vcx.run_until_parked();
+    let (_, label, lines) = cue(&mut vcx, handle);
+    assert_eq!(label.as_deref(), Some("copy here"));
+    assert!(
+        lines.contains(&"Copy 3 items to alpha".to_owned()),
+        "released Shift cannot combine with current Ctrl: {lines:?}"
+    );
     vcx.simulate_event(FileDropEvent::Pending { position: file });
     vcx.run_until_parked();
     let (target, _, lines) = cue(&mut vcx, handle);
@@ -169,14 +209,22 @@ fn a_lift_away_in_another_window_keeps_the_line_until_it_ends() {
     let root = Root::new("rowaway");
     let mut cx = bench::real_cx();
     let (handle, _lines) = open(&mut cx, root.src());
+    handle
+        .update(&mut cx, |shell, window, cx| {
+            shell.follow_file_drags(window, cx)
+        })
+        .unwrap();
     frame(&mut cx, handle);
     let folder = centre(&mut cx, handle, 0);
     let file = centre(&mut cx, handle, 1);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
-    hold(&mut vcx, file, folder);
+    hold(&mut vcx, file, file);
+    hold_on(&mut vcx, folder);
+    // As settle_rail_drag does on a frame with no drag in flight.
     handle
         .update(&mut vcx, |shell, window, cx| {
-            shell.settle_row_drag(window, cx)
+            shell.clear_rail_aim(window, cx);
+            shell.settle_row_drag(window, cx);
         })
         .unwrap();
     let (target, _, lines) = cue(&mut vcx, handle);
@@ -188,16 +236,19 @@ fn a_lift_away_in_another_window_keeps_the_line_until_it_ends() {
         lines,
         vec!["Move 1 item to a folder · ctrl copies, shift moves".to_owned()]
     );
-    // Files::source on Finished: the lift is no longer held, and the line leaves.
+    // The real router and file client must deliver the end notification to the source Shell.
     handle
-        .update(&mut vcx, |shell, window, cx| {
+        .update(&mut vcx, |_, window, cx| {
             let key = window_key(window);
-            if let Some(held) = cx.default_global::<Drags>().held.get(&key) {
-                *held.borrow_mut() = None;
-            }
-            shell.settle_row_drag(window, cx);
+            let serial = cx.global::<Drags>().held[&key].borrow().as_ref().unwrap().1;
+            super::super::super::router::shared(cx).source(&gpui::NativeDragEvent {
+                source_id: serial,
+                action: None,
+                phase: gpui::NativeDragPhase::Finished,
+            });
         })
         .unwrap();
+    vcx.run_until_parked();
     let (_, _, lines) = cue(&mut vcx, handle);
     assert!(lines.is_empty(), "{lines:?}");
 }

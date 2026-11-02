@@ -104,6 +104,7 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell(backend, cx);
+        shell.sync_font_settings(cx);
         shell.open_settings(window, cx);
         shell.settings.about_open = true;
         shell.settings.claim.note = Some((
@@ -111,20 +112,22 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
             Default::default(),
         ));
         shell.sync_settings_claim(cx);
+        let panel = shell.settings.panel.as_ref().unwrap();
+        panel.update(cx, |view, _| view.panel.show_section("about"));
         shell
-            .settings
-            .panel
-            .as_ref()
-            .unwrap()
-            .update(cx, |view, _| {
-                view.panel.show_section("about");
-                view.panel.rows.push(Row {
-                    id: "wrap-control".into(),
-                    caption: Text::data("Caption control"),
-                    ..Row::hint(Text::data("Regular wrapping hint ".repeat(60)))
-                });
+    });
+    // The first layout settles the text scale, whose rebuild drops any row appended before it.
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    entity.update(cx, |shell, cx| {
+        let panel = shell.settings.panel.as_ref().unwrap();
+        panel.update(cx, |view, cx| {
+            view.panel.rows.push(Row {
+                id: "wrap-control".into(),
+                caption: Text::data("Caption control"),
+                ..Row::hint(Text::data("Regular wrapping hint ".repeat(60)))
             });
-        shell
+            cx.notify();
+        });
     });
     cx.update(|window, cx| window.draw(cx).clear(cx));
     entity.read_with(cx, |shell, cx| {
@@ -149,10 +152,9 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
             ),
             24.
         );
-        assert!(
-            *panel.lines.last().unwrap() > 1,
-            "ordinary hints must still wrap"
-        );
+        let wrap = panel.rows.iter().position(|row| row.id == "wrap-control");
+        let wrap = wrap.expect("the wrapping control row is laid out");
+        assert!(panel.lines[wrap] > 1, "ordinary hints must still wrap");
         use crate::ipc::Adapter;
         let reply = crate::ipc::settings::SettingsAdapter {
             host: &shell.settings,

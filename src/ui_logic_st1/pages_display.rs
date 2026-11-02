@@ -16,7 +16,7 @@ pub(super) fn sentence(template: &'static str, keys: Vec<String>) -> Option<Text
     if keys.iter().any(String::is_empty) {
         return None;
     }
-    Some(Text::args(template, keys.into_iter().map(Text::Data).collect()))
+    Some(Text::args(template, keys.into_iter().map(Text::Keycap).collect()))
 }
 
 fn px(value: u32) -> Text {

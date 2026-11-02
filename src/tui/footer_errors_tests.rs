@@ -38,7 +38,7 @@ fn expiry_preserves_the_next_errors_semantic_projection() {
     let mut m = frame_tests::model();
     m.fail_text(Text::Key("menu.loading"));
     m.fail_text(Text::Key("pane.unavailable"));
-    m.expire_message(m.error_at + Duration::from_secs(9));
+    m.expire_message(m.error_at + super::ERROR_TIME + Duration::from_secs(1));
     m.error = "stale projection".into();
     m.words.refresh(
         &m.i18n,

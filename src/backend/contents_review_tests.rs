@@ -353,24 +353,37 @@ fn ey333_unreadable_folder_keeps_the_other_matches() {
     assert!(complete.contains(r#""partial":false"#), "{complete}");
 }
 
-// Exit 2 after the summary is a partial walk only when every stderr line names a skipped path with its OS error.
+// Exit 2 after the summary is a partial walk only when every stderr line names a skipped path or an ignore glob rg passed over.
 #[test]
 fn ey333_exit_two_is_partial_only_for_skipped_paths() {
     let summary = r#"{"type":"summary","data":{"stats":{"searches":1}}}"#;
     let denied = "rg: ./Locked: Permission denied (os error 13)\n";
+    // rg prefixes only the first line of an ignore file's errors: "rg: ./.ignore: line 1: ..." then "./.ignore: line 3: ...".
+    let glob = "rg: ./.ignore: line 1: error parsing glob 'a{b': unclosed alternate group; missing '}' (maybe escape '{' with '[{]'?)\n";
     for (gen, stderr, partial) in [
         (
             1,
             format!("{denied}rg: ./Gone: No such file or directory (os error 2)\n"),
             true,
         ),
-        (2, denied.trim_end().to_owned(), true),
+        (
+            2,
+            format!("{glob}{}{}", &glob[4..], denied.trim_end()),
+            true,
+        ),
         (3, format!("{denied}rg: ./x: some other failure\n"), false),
         (4, format!("{denied}rg: unfinished (os error 13"), false),
         (5, String::new(), false),
         (
             6,
             format!("{denied}rg: No space left on device (os error 28)\n"),
+            false,
+        ),
+        (7, format!("{denied}{}", glob.trim_end()), true),
+        (8, format!("{denied}rg: ./x: line 1: other\n"), false),
+        (
+            9,
+            format!("{denied}{}", glob.replace("line 1", "line one")),
             false,
         ),
     ] {
@@ -382,7 +395,7 @@ fn ey333_exit_two_is_partial_only_for_skipped_paths() {
             .stdin(std::process::Stdio::piped())
             .spawn()
             .unwrap();
-        let lines = stderr.replace('\n', "\\n");
+        let lines = stderr.replace('\n', "\\n").replace('\'', "'\\''");
         let script =
             format!("#!/bin/sh\nprintf '%s\\n' '{summary}'\nprintf '{lines}' >&2\nexit 2\n");
         writer

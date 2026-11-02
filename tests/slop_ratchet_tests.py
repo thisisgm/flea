@@ -1,4 +1,5 @@
 """tools/flea-slop-ratchet: growth fails and names the offender, equal passes, a raise is refused, tests are excluded."""
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -185,6 +186,14 @@ class Ratchet(unittest.TestCase):
         self.put("src/n.rs", "//! Only built for tests.\n#![cfg(test)]\nfn z() { q().unwrap(); }\n")
         self.put("src/o.rs", "#![cfg(all(test, unix))]\nfn z() { q().unwrap(); }\n")
         self.assert_passes()
+
+    def test_tree_without_git_skips_target_and_dot_dirs(self):
+        shutil.rmtree(self.root / ".git")
+        self.put("target/debug/build/x.rs", FLAGS.replace("Flags", "Built"))
+        self.put(".cargo/y.rs", FLAGS.replace("Flags", "Hidden"))
+        self.assert_passes()
+        self.put("src/d.rs", FLAGS.replace("Flags", "More"))
+        self.assert_grew("bool_structs", "src/d.rs More 1, baseline 0")
 
 
 if __name__ == "__main__":

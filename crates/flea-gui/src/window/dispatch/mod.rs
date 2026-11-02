@@ -67,6 +67,8 @@ const FAMILIES: &[Family] = &[
 mod run;
 
 #[cfg(test)]
+mod band_shift_tests;
+#[cfg(test)]
 mod band_tests;
 #[cfg(test)]
 mod clipboard_tests;

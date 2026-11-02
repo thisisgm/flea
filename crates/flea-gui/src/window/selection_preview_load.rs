@@ -31,7 +31,6 @@ impl pv2::view::CopyHost for CopyWire {
         id
     }
 }
-
 impl SelectionPreview {
     pub(crate) fn follow(
         &mut self,
@@ -342,6 +341,7 @@ impl SelectionPreview {
         let Some(frame) = self.pending.as_mut() else {
             return;
         };
+        // A sharp picture that is already decoded wins over a thumbnail that lands in the same poll.
         Self::early_picture(frame, (width, height), window, cx);
         Self::load_source(frame, window, cx);
         Self::load_animation(frame, window, cx);

@@ -71,15 +71,18 @@ impl crate::ipc::Adapter for Adapter<'_> {
     }
 }
 
-/// Waits and completed unmounts use notices and failures use errors; a starting connection arrives as Effect::Starting.
+/// Waits and completed unmounts use notices and failures use errors; a starting connection arrives as Effect::Starting,
+/// and a starting note said directly stays an opening note, so it keeps the rail's open claim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SayRole {
+    Opening,
     Notice,
     Error,
 }
 
 pub fn say_role(key: &str) -> SayRole {
     match key {
+        "network.bridge_starting" => SayRole::Opening,
         "network.another_opening" | "network.unmounted" => SayRole::Notice,
         _ => SayRole::Error,
     }

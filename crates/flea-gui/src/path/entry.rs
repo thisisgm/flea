@@ -127,7 +127,7 @@ impl Entry {
         self.pending.as_ref() == Some(&request_key(&peeked.path, peeked.hidden))
     }
 
-    /// A peek came back: only the asked (dir, hidden) pair answers, and only while the line still reads that directory.
+    /// A peek came back: only the asked (dir, hidden) pair is kept, and it applies only to an uncomposed line still reading that directory.
     pub fn complete_with(
         &mut self,
         peeked: &Peeked,
@@ -140,7 +140,10 @@ impl Entry {
         }
         self.pending = None;
         self.cached = Some((ask, peeked.dirs.clone()));
-        if !self.editing || completion_dir(&self.text, current, home) != peeked.path {
+        if !self.editing
+            || self.marked.is_some()
+            || completion_dir(&self.text, current, home) != peeked.path
+        {
             return None;
         }
         Some(self.apply(&peeked.path, &peeked.dirs))

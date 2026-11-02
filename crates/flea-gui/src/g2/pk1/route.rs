@@ -163,6 +163,9 @@ impl Picker {
 
     // What the shared path entry asks: a committed folder or file is peeked first, Tab's peek goes to the child.
     pub(super) fn path_out(&mut self, out: Out, cx: &mut Context<Self>) {
+        if self.answered() {
+            return;
+        }
         match out {
             // PathBar.js hands a typed smb:// line back untouched, and the chooser peeks it as it peeks a path.
             Out::Open { path, .. } | Out::Network(path) => {

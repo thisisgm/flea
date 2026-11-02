@@ -76,3 +76,47 @@ def check_teardown(root, check):
     outcome = json.loads((window / "outcome.json").read_text()) if (window / "outcome.json").exists() else {}
     check(not supervisor.is_alive() and (window / "stopped").exists() and "No such process" in (outcome.get("error") or ""),
           "teardown-supervisor-records-a-failed-drain")
+
+
+def check_teardown_past_an_unwritable_error(root, check):
+    # A failed drain whose error file cannot be written still kills, waits for and reports the window.
+    window = Path(root) / "teardown-unwritable"
+    window.mkdir(mode=0o700)
+    (window / MARKER).write_text("owned Flea window\n")
+    options = dict(root=str(window), path=str(root), select=None, binary="/bin/sleep", gui="/bin/sleep",
+                   frontend="gpui", picker=False, ui=str(flea_transport.REPO / "ui"), timeout=0.3,
+                   log=str(window / "window.log"), command=["/bin/sleep", "60"], wrap=[], backend="/bin/sleep",
+                   owner=os.getpid(), drain_timeout=1.0, owner_start=identity(os.getpid())["start"])
+    (window / "options.json").write_text(json.dumps(options))
+    real_write = Path.write_text
+    failing = threading.Event()
+    refused = []
+
+    def drain(*_, **__):
+        failing.set()
+        raise ProcessLookupError(errno.ESRCH, os.strerror(errno.ESRCH), "/proc/1/environ")
+
+    def write(path, *args, **kwargs):
+        if failing.is_set() and path.name == "error" and not refused:
+            refused.append(path)
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), str(path))
+        return real_write(path, *args, **kwargs)
+
+    killed = []
+    real_killpg = os.killpg
+    with mock.patch.object(flea_transport, "drain", side_effect=drain), mock.patch.object(Path, "write_text", write), \
+            mock.patch.object(flea_transport.os, "killpg", lambda group, sig: killed.append(group) or real_killpg(group, sig)), \
+            mock.patch.object(threading, "excepthook", lambda _: None):
+        supervisor = threading.Thread(target=flea_transport.serve, args=(window,), daemon=True)
+        supervisor.start()
+        supervisor.join(15)
+    launched = json.loads((window / "launch.json").read_text()) if (window / "launch.json").exists() else None
+    if launched and launched["group"] not in killed:
+        try:
+            real_killpg(launched["group"], signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    outcome = json.loads((window / "outcome.json").read_text()) if (window / "outcome.json").exists() else {}
+    check(bool(launched) and launched["group"] in killed and bool(refused), "teardown-kills-the-group-past-an-unwritable-error")
+    check((window / "stopped").exists() and outcome.get("returncode") is not None and (window / "error").exists(),
+          "teardown-waits-and-reports-past-an-unwritable-error")

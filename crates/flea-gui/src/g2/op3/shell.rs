@@ -307,9 +307,9 @@ struct Draw<'a> {
     s: f32,
     typeface: &'a Typeface,
     language: &'a str,
+    probe: Option<&'a crate::ipc::card_geometry::CardGeometry>,
     wire: Option<&'a Wire>,
     entry: Option<&'a crate::path::entry::Entry>,
-    probe: Option<&'a crate::g2::st1::probe::Probe>,
     measure: Option<&'a crate::g2::op1::measured::Frame>,
 }
 
@@ -351,9 +351,11 @@ mod facts;
 mod facts_tests;
 mod field;
 mod glyph;
+mod heading;
 mod scope;
 pub use draw::{Probed, StandIn};
 pub use glyph::glyph;
+pub(crate) use heading::card_heading;
 
 #[test]
 fn op3_error_ink_is_the_error_role() {

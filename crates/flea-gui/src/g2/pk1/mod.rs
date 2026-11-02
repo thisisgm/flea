@@ -41,6 +41,8 @@ mod view;
 pub use picker::{Children, ListingFacts, Message, Picker};
 
 #[cfg(test)]
+mod i50_dispatch_tests;
+#[cfg(test)]
 mod i50_ime_tests;
 #[cfg(test)]
 mod tests;

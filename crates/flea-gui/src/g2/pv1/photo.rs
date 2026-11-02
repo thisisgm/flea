@@ -83,20 +83,6 @@ pub(super) fn decode(
         crate::preview_quality::reuse::decoded(path);
         return super::photo_png_first::decode(file, target, current);
     }
-    // A JPEG decodes sharp here, already the refinement's pixels; the pixbuf loader is its fallback.
-    if format == image::ImageFormat::Jpeg {
-        let identity = super::photo_source::identity(&file.metadata().map_err(|_| ())?);
-        let handle = file.try_clone().map_err(|_| ())?;
-        let sharp = super::photo_frames::static_image(path, handle, format, target, current);
-        if let Ok(image) = sharp {
-            crate::preview_quality::reuse::offer(path, target, identity, &image);
-            return Ok(image);
-        }
-        if !current() {
-            return Err(());
-        }
-        file.seek(SeekFrom::Start(0)).map_err(|_| ())?;
-    }
     // PNG/JPEG bound decode memory; animations and rare-codec fallbacks retain their source buffers.
     if matches!(format, image::ImageFormat::Gif | image::ImageFormat::WebP) {
         if let Some(animation) = super::photo_frames::animated(

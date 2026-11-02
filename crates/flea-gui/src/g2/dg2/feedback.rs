@@ -3,7 +3,8 @@ use super::*;
 use flea::ui_logic_dg2::{drop_held, drop_label, line_to, Proposed, Seen, Verb};
 use gpui::SharedString;
 
-const LINE: u64 = 1 << 34;
+// Rail and file targets publish one activity for the same held drag.
+const LINE: u64 = super::rail_drop::DRAG_LINE;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Target {
@@ -22,6 +23,7 @@ pub(super) struct Cue {
     flags: Option<(bool, bool)>,
     /// A shelf drag's verb, fixed at its lift whatever keys are held (Drag.feedbackFor).
     fixed: Option<Verb>,
+    source_keys: Option<(bool, bool)>,
     pub(super) own: bool,
     proposed: Proposed,
     facts: Facts,
@@ -160,6 +162,7 @@ impl Shell {
                 count,
                 flags,
                 fixed,
+                source_keys: None,
                 own,
                 proposed,
                 facts: Facts::default(),
@@ -310,22 +313,20 @@ impl Shell {
 impl Shell {
     fn publish_file_line(&mut self, window: &Window, line: String, cx: &mut Context<Self>) {
         let key = window_key(window);
-        let legacy = self.status_messages(cx, |messages, _| {
+        let displayed = self.status_messages(cx, |messages, _| {
             messages
                 .activities()
                 .iter()
-                .any(|entry| entry.owner == super::rail_drop::DRAG_LINE)
+                .any(|entry| entry.owner == LINE && entry.text == line)
         });
         let drags = cx.default_global::<Drags>();
-        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line && !legacy {
+        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line
+            && (line.is_empty() || displayed)
+        {
             return;
         }
         let published = self.status_messages(cx, |messages, now| {
             if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
-                // The shared file cue supersedes the legacy rail fallback for this held drag.
-                if !line.is_empty() {
-                    messages.set_activity(super::rail_drop::DRAG_LINE, "", 0, false, false, now);
-                }
                 messages.set_activity(LINE, &line, 0, false, false, now);
                 true
             } else {
@@ -372,7 +373,7 @@ mod tests {
                     shell.status_messages(cx, |messages, _| {
                         messages.activities().iter().any(|entry| entry.text == hint)
                     }),
-                    "a suppressed hint must be published when the transfer ends"
+                    "a hint suppressed during a transfer publishes on the next refresh after it ends"
                 );
             })
             .unwrap();
@@ -393,3 +394,7 @@ mod tests {
             .unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "feedback_owner_tests.rs"]
+mod owner_tests;

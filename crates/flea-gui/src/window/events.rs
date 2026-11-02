@@ -10,8 +10,6 @@ mod backend;
 mod filesystem;
 #[path = "events_ipc.rs"]
 mod ipc;
-#[path = "events_ipc_reader.rs"]
-mod ipc_reader;
 #[path = "events_quit.rs"]
 mod quit;
 #[path = "events_routes.rs"]
@@ -192,6 +190,7 @@ impl Shell {
                     ),
                 }
                 self.opener_archive_ready(side, window, cx);
+                self.ipc_listing_answered(side, window, cx);
                 return;
             }
             event => event,
@@ -411,9 +410,7 @@ impl Shell {
         self.after_navigation(side, &before, window, cx);
         self.arm_transition(side, window, cx);
         self.fileops_arrival(side, window, cx);
-        if side == 0 {
-            self.ensure_ipc_reader(window, cx);
-        }
+        self.ipc_listing_answered(side, window, cx);
         cx.notify();
     }
 }

@@ -107,6 +107,7 @@ impl Shell {
                 cursor: host.pane.cursor,
                 active: false,
                 additive: event.modifiers.control,
+                shift: event.modifiers.shift,
                 direction: 0.,
                 last: None,
                 cells: None,

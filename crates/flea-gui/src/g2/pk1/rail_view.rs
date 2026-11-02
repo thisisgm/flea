@@ -65,7 +65,10 @@ impl Render for RailView {
                 palette.foreground
             };
             let handle = picker.clone();
-            div()
+            owner
+                .chrome
+                .probe
+                .masked(div().relative(), &format!("rail:{index}"))
                 .id(("picker-rail-row", index))
                 .debug_selector(move || format!("picker-rail-row-{index}"))
                 .relative()

@@ -3,7 +3,7 @@ use super::{Permissions, Phase, Stop};
 use crate::{
     g2::op3::{
         keys::{key_of, Key},
-        shell::{Card, Control, DialogShell, Interactive},
+        shell::{Card, Control, Interactive},
         Effect,
     },
     list::{Palette, Typeface},
@@ -23,10 +23,11 @@ pub struct Changed(pub Effect);
 
 pub struct View {
     pub model: Permissions,
-    pub(crate) observed: super::observations::Observations,
     pub catalog: Arc<I18n>,
     pub corner: f32,
     pub opened: bool,
+    pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
+    pub(crate) painted: Option<Card>,
     focus: FocusHandle,
     editor: crate::path::entry::Entry,
     clock: Clock,
@@ -46,10 +47,11 @@ impl View {
     ) -> Self {
         let mut view = Self {
             model,
-            observed: super::observations::Observations::default(),
             catalog,
             corner,
             opened: true,
+            probe: Default::default(),
+            painted: None,
             focus: cx.focus_handle(),
             editor: crate::path::entry::Entry::default(),
             clock: Clock::default(),
@@ -191,7 +193,6 @@ impl View {
 
 impl Render for View {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        self.observed.clear();
         if !self.opened {
             return div().into_any_element();
         }
@@ -203,31 +204,28 @@ impl Render for View {
         let palette = Palette::inherited(&window.text_style(), theme);
         let typeface = Typeface::for_window(window, cx);
         let weak = cx.entity().downgrade();
-        let observed = self.observed.clone();
         let wire = move |control, element: gpui::Stateful<gpui::Div>| {
             let weak = weak.clone();
-            observed
-                .control(control, element)
-                .on_click(move |_, _, cx| {
-                    let _ = weak.update(cx, |view, cx| view.activate(control, cx));
-                    cx.stop_propagation();
-                })
+            element.on_click(move |_, _, cx| {
+                let _ = weak.update(cx, |view, cx| view.activate(control, cx));
+                cx.stop_propagation();
+            })
         };
-        let observed = self.observed.clone();
-        let frame = move |element| observed.frame(element);
+        self.painted = snapshot.clone();
         let card = snapshot.map(|snapshot| {
             Interactive {
                 wire: &wire,
-                frame: &frame,
+                frame: &|frame| frame,
                 surface: theme.surface,
                 entry: &self.editor,
             }
-            .present(
+            .present_observed(
                 &snapshot,
                 &palette,
                 &typeface,
                 self.corner,
                 f32::from(window.viewport_size().width),
+                &self.probe,
             )
         });
         div()

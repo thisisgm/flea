@@ -142,7 +142,7 @@ fn i50_picker_filter_compose(cx: &mut TestAppContext) {
         picker.replace_text_in_range(None, "no", window, cx);
     });
     assert_eq!(f.read(|picker| picker.find.owner.query().to_owned()), "no");
-    let id = f.read(|picker| picker.find.owner.live().unwrap());
+    let id = f.read(|picker| picker.find.owner.asked().unwrap().id);
     f.listing.say(Line::Reply(format!(
         r#"{{"t":"filtered","id":{id},"query":"no","n":1,"rows":[0],"ms":0.010,"listing":1}}"#
     )));
@@ -216,4 +216,36 @@ fn i50_picker_filter_tab_commits_preedit_without_accept(cx: &mut TestAppContext)
     );
     assert!(f.read(|picker| picker.find.owner.typing()));
     assert!(f.checks.sent().is_empty());
+}
+
+#[gpui::test]
+fn i50_picker_filter_cancel_detaches_composition(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    f.listing
+        .say(Line::Reply(r#"{"t":"listed","n":1,"path":"/d"}"#.into()));
+    f.listing.say(Line::Reply(r#"{"t":"rows","start":0,"rows":[{"n":"notes.txt","d":false,"s":1,"m":0,"p":33188,"i":"text-x-generic"}],"listing":1}"#.into()));
+    f.cx.run_until_parked();
+    let focus = f.read(|picker| picker.focus.clone());
+    f.cx.update(|window, cx| window.focus(&focus, cx));
+    f.cx.simulate_keystrokes("/");
+    filter(&mut f, |picker, window, cx| {
+        picker.replace_and_mark_text_in_range(None, "\u{7b46}", None, window, cx);
+        picker.accept(cx);
+        assert!(picker.find.owner.typing());
+    });
+    assert!(f.checks.sent().is_empty());
+    f.update(|picker, cx| picker.cancel(cx));
+    f.settle(|f| f.written().is_some());
+    assert_eq!(f.written().as_deref(), Some(r#"{"response":1}"#));
+    let before = f.listing.sent();
+    filter(&mut f, |picker, window, cx| {
+        let text = picker.find.entry.text.clone();
+        picker.replace_text_in_range(None, "late", window, cx);
+        picker.replace_and_mark_text_in_range(None, "late", None, window, cx);
+        assert_eq!(picker.find.entry.text, text);
+        assert!(picker.selected_text_range(false, window, cx).is_none());
+    });
+    assert_eq!(f.listing.sent(), before);
+    assert_eq!(f.checks.sent(), [CLOSE_LINE]);
 }

@@ -509,7 +509,11 @@ def serve(root):
                     failure = failure or "natural exit failed or required forced termination"
             except BaseException as error:
                 failure = failure or f"teardown failed: {error}"
-                (root / "error").write_text(failure)
+                # An unwritable report must not skip the kill below; the final report writes it again and fails loud.
+                try:
+                    (root / "error").write_text(failure)
+                except OSError:
+                    pass
                 outcome = dict(returncode=None, forced=True)
                 # A failed drain still ends the window's own group while its leader is the one launched, then reports stopped.
                 try:

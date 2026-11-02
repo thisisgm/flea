@@ -14,6 +14,8 @@ mod worker;
 
 pub use asks::FIGURE_HOLD_MS;
 pub use assets::{Art, Snapshot};
+#[cfg(test)]
+pub(crate) use doc::Laid;
 pub use doc::{Doc, Status};
 pub use figures::{FigureDone, FigureHost};
 pub use flea::ui_logic_pv2::markdown::markdown_keys::{Effect, View};

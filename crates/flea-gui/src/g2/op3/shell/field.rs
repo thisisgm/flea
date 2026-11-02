@@ -22,6 +22,25 @@ impl Draw<'_> {
                         .bg(t.fg),
                 )
         };
+        let frame = if field.focused {
+            t.accent_frame
+        } else {
+            t.muted_frame
+        };
+        if let Some(probe) = self.probe {
+            let role = if frame == t.error {
+                "error"
+            } else if frame == t.accent {
+                "accent"
+            } else if frame == t.muted_frame {
+                "mutedFrame"
+            } else if frame == t.muted {
+                "muted"
+            } else {
+                "other"
+            };
+            probe.set_role("field", role);
+        }
         let mut line = div()
             .h(self.px(BUTTON_HEIGHT))
             .flex()
@@ -30,11 +49,7 @@ impl Draw<'_> {
             .px(self.px(BUTTON_PAD))
             .bg(t.ground)
             .border_1()
-            .border_color(if field.focused {
-                t.accent_frame
-            } else {
-                t.muted_frame
-            })
+            .border_color(frame)
             .rounded(px(self.corner))
             .text_color(t.fg)
             .whitespace_nowrap();
