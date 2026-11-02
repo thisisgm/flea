@@ -11,7 +11,7 @@ thread_local! {
     static BACKENDS: RefCell<Vec<Lines>> = const { RefCell::new(Vec::new()) };
 }
 
-fn root(
+pub(super) fn root(
     recorder: Rc<Recorder>,
     cx: &mut TestAppContext,
 ) -> (Entity<Shell>, &mut VisualTestContext, Vec<Lines>) {

@@ -372,3 +372,5 @@ mod bridge_line_tests;
 
 #[path = "network_connect_footer_tests.rs"]
 mod connect_footer;
+#[path = "network_s3_tests.rs"]
+mod s3_tests;

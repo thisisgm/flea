@@ -30,7 +30,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let event = self.backend_line(event);
+        let Some(event) = self.backend_line(side, event, cx) else {
+            return;
+        };
         let Some(event) = self.plugin_place_event(side, event) else {
             return;
         };

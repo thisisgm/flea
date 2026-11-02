@@ -37,6 +37,7 @@ impl Shell {
                     self.drop_rail_network_open(*origin);
                     return;
                 };
+                self.network_connected(side, cx);
                 if matches!(effect, Effect::Open { .. }) {
                     self.remember_path_alias(path, label, uri);
                 }
@@ -80,6 +81,7 @@ impl Shell {
                 origin,
             } => {
                 if let Some(side) = self.network_side(*origin) {
+                    self.network_connected(side, cx);
                     self.network_remember_focus();
                     let previous = window.focused(cx);
                     let (uri, label, names) = (uri.clone(), label.clone(), names.clone());
@@ -129,6 +131,9 @@ impl Shell {
                     .locale
                     .catalog
                     .tr_args(error, &args.iter().map(String::as_str).collect::<Vec<_>>());
+                if *connect_failed {
+                    self.network_connect_error(side, &text);
+                }
                 self.network_say(side, text, *connect_failed, cx);
                 self.network_remember_focus();
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
