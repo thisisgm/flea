@@ -92,12 +92,23 @@ fn tui_print_process_helper() {
     };
     let root = std::path::PathBuf::from(root);
     assert!(root.join(".flea-test-sandbox").is_file());
-    for hidden in ["/run", "/var", "/etc"] {
-        assert_eq!(
-            std::fs::read_dir(hidden).unwrap().count(),
-            0,
-            "host CUPS state must be hidden"
-        );
+    for state in ["/run/cups", "/var/lib/cups", "/var/cache/cups", "/var/spool/cups", "/etc/cups", "/etc/printcap"] {
+        assert!(!Path::new(state).exists(), "host CUPS state must be hidden: {state}");
+    }
+    let executable = std::env::current_exe().unwrap();
+    let inputs = [root.as_path(), Path::new(env!("CARGO_MANIFEST_DIR")), executable.parent().unwrap()];
+    let mut hidden = ["/run", "/var", "/etc"].map(std::path::PathBuf::from).to_vec();
+    assert!(inputs.iter().all(|input| hidden.iter().all(|path| !path.starts_with(input))));
+    while let Some(directory) = hidden.pop() {
+        for entry in std::fs::read_dir(&directory).unwrap() {
+            let path = entry.unwrap().path();
+            if inputs.contains(&path.as_path()) {
+                continue;
+            }
+            assert!(inputs.iter().any(|input| input.starts_with(&path)), "host CUPS state must be hidden: {}", path.display());
+            assert!(path.is_dir() && !path.is_symlink(), "only namespace input parents may be visible");
+            hidden.push(path);
+        }
     }
     let namespace = std::fs::read_link("/proc/self/ns/net").unwrap();
     assert_ne!(
@@ -259,6 +270,8 @@ fn tui_print_real_backend_and_private_setup_recorder() {
     for name in ["touch", "cat", "chmod", "sh"] {
         std::os::unix::fs::symlink(format!("/usr/bin/{name}"), bin.join(name)).unwrap();
     }
+    // The private /var must still expose this test's executable and English catalog.
+    let executable = std::env::current_exe().unwrap();
     let mut command = Command::new("/usr/bin/setsid");
     command
         .args([
@@ -282,11 +295,17 @@ fn tui_print_real_backend_and_private_setup_recorder() {
             "--dev-bind",
             "/dev",
             "/dev",
-            "--bind",
+            "--ro-bind",
         ])
+        .arg(env!("CARGO_MANIFEST_DIR"))
+        .arg(env!("CARGO_MANIFEST_DIR"))
+        .arg("--ro-bind")
+        .arg(executable.parent().unwrap())
+        .arg(executable.parent().unwrap())
+        .arg("--bind")
         .arg(dir.path())
         .arg(dir.path())
-        .arg(std::env::current_exe().unwrap());
+        .arg(&executable);
     command
         .args([
             "--exact",
@@ -302,6 +321,7 @@ fn tui_print_real_backend_and_private_setup_recorder() {
         )
         .env("PATH", bin.as_os_str())
         .env("HOME", dir.dir("home"))
+        .env("TMPDIR", dir.dir("tmp"))
         .env(
             "FLEA_I18N",
             crate::i18n::test_catalogs::english_only(),

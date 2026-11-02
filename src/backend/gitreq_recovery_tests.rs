@@ -106,7 +106,7 @@ fn git_readonly_argv_assertions_run_without_an_external_git_tool() {
     }
     let output = std::process::Command::new("/usr/bin/bwrap")
         .args([
-            "--ro-bind", "/", "/", "--bind", "/tmp", "/tmp", "--dev", "/dev",
+            "--ro-bind", "/", "/", "--bind", "/tmp", "/tmp", "--setenv", "TMPDIR", "/tmp", "--dev", "/dev",
             "--proc", "/proc", "--ro-bind", "/usr/bin/false", "/usr/bin/git", "--",
         ])
         .arg(std::env::current_exe().unwrap())
