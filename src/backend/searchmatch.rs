@@ -19,6 +19,13 @@ pub(crate) const PENDING_NAME: i32 = -2;
 // A NAME-class row whose basename alone is not a subsequence, so a parent-state bound can rank it before its DP.
 pub(crate) const PENDING_PATH: i32 = -1;
 const DEAD: i32 = i32::MIN / 4;
+#[cfg(test)]
+thread_local! {
+    static PARENT_SCORE: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
+}
+
+#[cfg(test)]
+pub(crate) fn parent_score(enabled: bool) { PARENT_SCORE.with(|flag| flag.set(enabled)); }
 // State::advance's bonuses for a matched letter that continues a run, starts a word, or sits in the basename.
 pub(crate) const RUN_BONUS: i32 = 8;
 pub(crate) const BOUNDARY_BONUS: i32 = 6;
@@ -155,6 +162,9 @@ pub(crate) struct Matcher {
     parent_typo: super::searchtypo::Plan,
     // Pass 1 of a ranked answer: a name or path that matches as a subsequence gets its class marker instead of its DP.
     pub defer: bool,
+    // A test-only same-process control for the completed-parent shortcut; production always enables it.
+    #[cfg(test)]
+    pub parent_score: bool,
     // For each byte, the query positions (bit k for needle[k - 1]) its lowercase letter matches; None past 63 positions.
     lanes: Option<Box<[u64; 256]>>,
 }
@@ -182,7 +192,10 @@ impl Matcher {
             }
             lanes
         });
-        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo, defer: false, lanes }
+        Self { needle, ascii, bits: searchbits::mask(query.as_bytes()), parent_bits: searchbits::mask(parent.as_bytes()), suffix_bits, budget, typo, prefix, parent_typo, defer: false, lanes,
+            #[cfg(test)]
+            parent_score: PARENT_SCORE.with(std::cell::Cell::get),
+        }
     }
 
     // The DP over one name or directory part, as fold then State::advance would run it.

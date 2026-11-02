@@ -2,6 +2,55 @@ use super::*;
 use crate::backend::searchmatch::{Matcher, tests::reference};
 use std::sync::atomic::Ordering;
 
+#[test]
+fn l_search_tail_resolved_bounds_equal_independent_raw_path_oracle() {
+    let mut index = Index::new();
+    for parent in ["", "abc", "a/b/c", "a_b/c", "café", "İ/ab", "x/abc/long_gap", "b/c/a"] {
+        for name in ["xyz.txt", "a_b_c", "abc", "aBc.txt", "cab", "café", "a________b________c"] {
+            index.push(if parent.is_empty() { name.to_string() } else { format!("{parent}/{name}") }, false);
+        }
+    }
+    index.push(OsStr::from_bytes(b"abc/raw_\xff.zzz"), false);
+    index.push(OsStr::from_bytes(b"d\xff/caf\xfe.txt"), false);
+    let rows: Vec<_> = (0..index.len()).collect();
+    let mut scratch = QueryScratch::default();
+    for query in ["", "a", "ab", "abc", "bca", "abcd", "café", "caf�", "a/b", "ab/c", "abc/", "qqqq"] {
+        let mut expected: Vec<_> = rows.iter().filter_map(|&row| reference(query, &index.raw(row)).map(|score| (score, row))).collect();
+        expected.sort_by(|a, b| rank_cmp(&index, a, b));
+        for window in [0, 1, 3, 350] {
+            let matcher = Matcher::deferred(query);
+            let mut head = score_cached(&matcher, &rows, &index, &mut scratch);
+            let mut tail = resolve_head(&matcher, &index, &mut scratch, &mut head, window);
+            resolve(&matcher, &index, &mut scratch, &mut tail);
+            head.extend(tail);
+            head.sort_by(|a, b| rank_cmp(&index, a, b));
+            assert_eq!(head, expected, "{query:?} window={window}");
+        }
+    }
+}
+
+#[test]
+fn l_search_tail_slash_terminated_queries_reuse_the_completed_parent() {
+    for count in [5000, 40_000] {
+        let mut index = Index::new();
+        for row in 0..count { index.push(format!("abc/xyz_{row}.zzz"), false); }
+        index.push(OsStr::from_bytes(b"abc/raw_\xff.zzz"), false);
+        let rows: Vec<_> = (0..index.len()).collect();
+        let mut scratch = QueryScratch::default();
+        scratch.pinned_cores = Some(2);
+        let matcher = Matcher::deferred("abc/");
+        let mut head = score_cached(&matcher, &rows, &index, &mut scratch);
+        assert_eq!(head.len(), rows.len());
+        index.path_dp.store(0, Ordering::Relaxed);
+        let tail = resolve_head(&matcher, &index, &mut scratch, &mut head, 350);
+        assert!(tail.is_empty());
+        assert_eq!(head.len(), rows.len(), "all equal-score paths stay available for scrolling");
+        assert_eq!(index.path_dp.load(Ordering::Relaxed), 0, "no basename can finish a slash-terminated query");
+        head.sort_by(|a, b| rank_cmp(&index, a, b));
+        assert_eq!(head, optimized(&index, "abc/", &rows));
+    }
+}
+
 fn optimized(index: &Index, query: &str, rows: &[usize]) -> Vec<(i32, usize)> {
     let mut hits = score_all(&Matcher::new(query), rows, index);
     hits.sort_by(|a, b| rank_cmp(index, a, b));

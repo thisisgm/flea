@@ -155128,7 +155128,7 @@
     },
     {
       "excerpt": "debug_assert!(score.is_some(), \"a subsequence match has a DP hit\");",
-      "line": 330,
+      "line": 341,
       "literal": "a subsequence match has a DP hit",
       "owner": "controller",
       "path": "src/backend/searchscore.rs",
@@ -244526,7 +244526,7 @@
     "src/backend/searchindex.rs": "54c9d6d88259d652d48536c99e4228f21cb93088ed700ebbe8f8bbf7175615e2",
     "src/backend/searchindexpatch.rs": "ad22d146378052a2777d15a91e3163c8119ba714b5b6e38c9a7da9c1cca25523",
     "src/backend/searchjobs.rs": "3a1b60390d8204802f7b23872d878fcad05e1c30c9e38c5808ac1836aae14231",
-    "src/backend/searchmatch.rs": "d9e5364c0689e441005d1ddec12f941104b43c20df4bb97df3fbfa2d68281d39",
+    "src/backend/searchmatch.rs": "86b98b86bafbefbeeb88d5932bd79651bbf2630da9b0a2cfadab2a0bdb17a435",
     "src/backend/searchnames.rs": "737a6b5d48f0355fcbee6bc4b584d96a5ad319b76e7e869badd66ba55c3b88e6",
     "src/backend/searchorder.rs": "6473f79109edcab1951afc22f7802b74d823e3a16aa0a7e4bd5c2a5f9ec4672f",
     "src/backend/searchpatch.rs": "a2e6ddf15008c119a4b02be758fd3d8319771178be2b5c514e01eb7a7741251a",
@@ -244539,7 +244539,7 @@
     "src/backend/searchrowcache.rs": "da5473b0da2c729a49300975bd423bba513180bb5b6a87a261829000186e52b1",
     "src/backend/searchrowinodes.rs": "5a70e944343d4e35507251c4ed3cddc3f54021a6a8b0d6124d992f281e670d72",
     "src/backend/searchrowpar.rs": "bb850c5319a8a728a9e7080f3e7fbadec177f7d828ae0ba5dadfd189aef59f51",
-    "src/backend/searchscore.rs": "01b1c4bacfa500a631d02a29ba455910483ae6bbe2f9b3b767b8a930cfb694c3",
+    "src/backend/searchscore.rs": "814f6715d319397e57469050c0f67a50b57b38789209d69c02d7fb440ad990ee",
     "src/backend/searchscratch.rs": "0ed6a03dd86ae0ba697668ba8ef679cc1840121e4be8b8227103e95bd8b6cbe3",
     "src/backend/searchsession.rs": "f4f22d717488d4ecbc8be35a2ac9d58ee3d99131db0411332a7607662dc6843f",
     "src/backend/searchtags.rs": "186669fdc3d18d55f00b5ef0b4401ce324a47e60bf58902a240f36d7907041ed",
@@ -245724,8 +245724,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7b778d15483e57ed314f2b6390d84eaca429ae5c",
-  "source_sha": "7b778d15483e57ed314f2b6390d84eaca429ae5c",
+  "source_ref_sha": "a48067b4bca8811984fbfe00f3d8a4972694fc34",
+  "source_sha": "a48067b4bca8811984fbfe00f3d8a4972694fc34",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
