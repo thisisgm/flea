@@ -106177,7 +106177,7 @@
     },
     {
       "excerpt": "label: \"Share\".into(),",
-      "line": 83,
+      "line": 92,
       "literal": "Share",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -106186,7 +106186,7 @@
     },
     {
       "excerpt": "preset: \"default\",",
-      "line": 114,
+      "line": 123,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -106195,7 +106195,7 @@
     },
     {
       "excerpt": "submenu: Some(vec![Entry::leaf(\"copy\", Text::Data(\"Copy\".into()))]),",
-      "line": 122,
+      "line": 131,
       "literal": "Copy",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -106204,7 +106204,7 @@
     },
     {
       "excerpt": "..Entry::row(\"copyAs\", Text::Data(\"Copy As\".into()), \"file\")",
-      "line": 123,
+      "line": 132,
       "literal": "Copy As",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -106213,7 +106213,7 @@
     },
     {
       "excerpt": "\"the scrolling listing must paint a thumb\"",
-      "line": 250,
+      "line": 261,
       "literal": "the scrolling listing must paint a thumb",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -106222,7 +106222,7 @@
     },
     {
       "excerpt": "println!(\"M9_CORNER surface=scrollbar corner={corner} track_height={height} live_radius={radius} PASS\");",
-      "line": 257,
+      "line": 268,
       "literal": "M9_CORNER surface=scrollbar corner={corner} track_height={height} live_radius={radius} PASS",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/chrome.rs",
@@ -243171,7 +243171,7 @@
     "crates/flea-gui/src/columns/tracks.rs": "f79249608f26132a13de9afa69cf598391b4838d711e14785c88188c4b9a30b3",
     "crates/flea-gui/src/columns/walks.rs": "bdb9867dc81c31a212dacc9d5658b32a8c8360001d251d52fe63cf866cf5ce80",
     "crates/flea-gui/src/compositor.rs": "c076a50ee7b2f1448e656a878db240a226811a6ee63226125d77289c93b72481",
-    "crates/flea-gui/src/compositor_surface_tests/chrome.rs": "e61c3d7bffc50546fa6fa67d7f00a4cb61f3860d7779c48e0d73c3234f753de3",
+    "crates/flea-gui/src/compositor_surface_tests/chrome.rs": "0c9a57ec41e027b556c74ffabb0faeb33bca8bd2540616f3c243faa632b11dd3",
     "crates/flea-gui/src/compositor_surface_tests/dialogs.rs": "30e2be38a8cd5f2364da2c9614ac59b7fbaf230d8738c569a44765165d1b48ee",
     "crates/flea-gui/src/compositor_surface_tests/network.rs": "1c65e060ceecd3fba2f1808d5fbcd2322a61a8bf675f3f8aeec986c52d0833bd",
     "crates/flea-gui/src/compositor_surface_tests/operations.rs": "24e4c1baba71cea1c8a762d56e5389fe720b36d389d1d7ccd3ab92b186b52f07",
@@ -245724,8 +245724,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "d4a128f8dedcfbb8a89105ff45ed812a7f778191",
-  "source_sha": "d4a128f8dedcfbb8a89105ff45ed812a7f778191",
+  "source_ref_sha": "53b461014b4959baa1960936719ae3c385027051",
+  "source_sha": "53b461014b4959baa1960936719ae3c385027051",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,

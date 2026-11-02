@@ -11,8 +11,10 @@ use flea::{
         rail::{Group, Kind, RailEntry},
     },
 };
-use gpui::{div, prelude::*, px, AppContext, Context, Render, TestAppContext, Window};
-use std::sync::Arc;
+use gpui::{
+    div, prelude::*, px, AppContext, Context, Render, TestAppContext, VisualTestContext, Window,
+};
+use std::{sync::Arc, time::Duration};
 
 struct Menu(gpui::Entity<crate::state::Shell>, bool);
 impl Render for Menu {
@@ -24,6 +26,13 @@ impl Render for Menu {
         };
         div().size_full().children(layer)
     }
+}
+
+// A menu opens on Reveal.qml's fade from clear (EY-555), so its frames are judged once the fade rests.
+fn settle_open_fade(vcx: &mut VisualTestContext) {
+    painted(vcx);
+    vcx.executor()
+        .advance_clock(Duration::from_millis(flea::ui_logic_fb1::OPEN_MS));
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
@@ -139,6 +148,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         let shell = cx.entity();
         cx.new(|_| Menu(shell, false))
     });
+    settle_open_fade(vcx);
     frames("context-menu-and-flyout", &shell, vcx, corner, &[]);
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         window.set_rem_size(px(14.));
@@ -174,6 +184,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         let shell = cx.entity();
         cx.new(|_| Menu(shell, true))
     });
+    settle_open_fade(vcx);
     frames("trash-context-menu", &shell, vcx, corner, &[]);
     scrollbar(cx, corner);
 }
