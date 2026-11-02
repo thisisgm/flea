@@ -10,6 +10,9 @@ use std::time::Duration;
 
 const WAIT: Duration = Duration::from_millis(5);
 
+/// The most one read takes from a pipe.
+const CHUNK: usize = 8192;
+
 pub(super) fn pipes(child: &mut Child) -> io::Result<[Pipe; 2]> {
     Ok([
         Pipe::new(child.stdout.take())?,
@@ -44,8 +47,8 @@ impl Pipe {
         let Some(file) = self.file.as_mut() else {
             return 0;
         };
-        let mut chunk = [0u8; 8192];
-        match file.read(&mut chunk[..limit.min(8192)]) {
+        let mut chunk = [0u8; CHUNK];
+        match file.read(&mut chunk[..limit.min(CHUNK)]) {
             Ok(n) if n > 0 => {
                 let room = OUTPUT_CAP.saturating_sub(self.kept.len());
                 self.kept.extend_from_slice(&chunk[..n.min(room)]);
@@ -141,7 +144,7 @@ pub(super) fn read_ready(pipes: &mut [Pipe; 2], input: &mut Option<Input>) {
     }
     for (pipe, fd) in pipes.iter_mut().zip(fds) {
         if fd.revents != 0 {
-            pipe.read(8192);
+            pipe.read(CHUNK);
         }
     }
 }
@@ -177,5 +180,10 @@ mod tests {
         assert_eq!(pipes[0].kept.len(), OUTPUT_CAP);
         assert_eq!(&pipes[0].kept[OUTPUT_CAP - 3..], b"buf");
         assert!(pipes[1].kept.is_empty());
+        drop(writer);
+        let mut unread = Vec::new();
+        let mut rest = pipes[0].file.take().unwrap();
+        rest.read_to_end(&mut unread).unwrap();
+        assert_eq!(unread, b"fered past the cap");
     }
 }

@@ -56,8 +56,12 @@ if os.fork() == 0:
  time.sleep(2)
  os._exit(0)
 os.read(r,1)
+member=os.fork()
+if member == 0:
+ time.sleep(2)
+ os._exit(0)
 with socket.create_connection(('127.0.0.1',int(os.environ['FLEA_DRAIN_PORT']))) as peer:
- peer.sendall((str(os.getpid())+'\n').encode())
+ peer.sendall(('%d %d\n'%(os.getpid(),member)).encode())
  peer.recv(1)
 os._exit(0)
 "#;
@@ -80,10 +84,11 @@ os._exit(0)
         std::thread::sleep(Duration::from_millis(1));
     };
     peer.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
-    let mut pid = String::new();
-    BufReader::new(&peer).read_line(&mut pid).unwrap();
-    // The fixture sends its leader pid as a line, for example "123\n".
-    let pid = pid.trim().parse().unwrap();
+    let mut pids = String::new();
+    BufReader::new(&peer).read_line(&mut pids).unwrap();
+    // The fixture sends its leader pid and its group member's pid as one line, for example "123 124\n".
+    let (pid, member) = pids.trim().split_once(' ').unwrap();
+    let (pid, member): (u32, u32) = (pid.parse().unwrap(), member.parse().unwrap());
     peer.write_all(b"r").unwrap();
     // The runner keeps the leader unreaped while its escaped descendant holds both pipes.
     while process_state(pid) != Some('Z') {
@@ -106,6 +111,7 @@ os._exit(0)
     assert_eq!(outcome.code, 0, "preserve the leader's actual exit code");
     assert!(outcome.stdout.is_empty());
     assert!(outcome.stderr.is_empty());
+    group_member_stopped(member);
 }
 
 #[test]
@@ -122,7 +128,7 @@ os.write(w,b'r')
 end=time.monotonic()+2
 try:
  while time.monotonic()<end:
-  os.write(1,b'w'*8192)
+  os.write(1,b'w'*(1<<20))
 except BrokenPipeError:
  pass
 os._exit(0)
@@ -155,11 +161,14 @@ fn process_state(pid: u32) -> Option<char> {
     stat.rsplit_once(") ")?.1.chars().next()
 }
 
-fn group_descendant_stopped(stdout: &str) {
-    let pid: u32 = stdout
+fn descendant_pid(stdout: &str) -> u32 {
+    stdout
         .trim()
         .parse()
-        .expect("the descendant reports its pid");
+        .expect("the descendant reports its pid")
+}
+
+fn group_member_stopped(pid: u32) {
     let at = Instant::now();
     loop {
         if matches!(process_state(pid), None | Some('Z')) {
@@ -171,13 +180,18 @@ fn group_descendant_stopped(stdout: &str) {
 }
 
 #[test]
-fn sol_pl1_drain_leader_exit_kills_its_remaining_process_group() {
+fn sol_pl1_drain_leader_exit_leaves_its_process_group_running() {
     let code = "import os,time\nr,w=os.pipe()\nif os.fork() == 0:\n os.write(1,str(os.getpid()).encode())\n os.write(w,b'r')\n time.sleep(2)\n os._exit(0)\nos.read(r,1)\nos._exit(23)\n";
     let handle = start(code);
     let outcome = bounded_exit(&handle, DEADLINE);
     assert_eq!(outcome.code, 23);
     assert!(outcome.stderr.is_empty());
-    group_descendant_stopped(&outcome.stdout);
+    let pid = descendant_pid(&outcome.stdout);
+    let alive = matches!(process_state(pid), Some(state) if state != 'Z');
+    let _ = std::process::Command::new("kill")
+        .args(["-KILL", &pid.to_string()])
+        .status();
+    assert!(alive, "a natural leader exit killed group member {pid}");
 }
 
 #[test]
@@ -189,5 +203,5 @@ fn sol_pl1_drain_cancel_kills_the_whole_process_group() {
     let outcome = bounded_exit(&handle, DEADLINE);
     assert_ne!(outcome.code, 0);
     assert!(outcome.stderr.is_empty());
-    group_descendant_stopped(&outcome.stdout);
+    group_member_stopped(descendant_pid(&outcome.stdout));
 }
