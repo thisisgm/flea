@@ -48,6 +48,31 @@ class GpuReport(unittest.TestCase):
         self.assertTrue(adapter['cpu'])
         self.assertEqual(adapter['device_type'], 'Cpu')
 
+    def test_nvidia_hooks_final_adapter_keeps_s6_backend_and_candidate_build(self):
+        for cpu, name in [(False, 'Intel UHD 630'), (True, 'llvmpipe')]:
+            raw = '\n'.join([
+                f'flea: the window starts on Vulkan ("{name}")',
+                'FLEA_GPU_ADAPTER ' + json.dumps(dict(name=name, driver='Mesa', version='26.2',
+                                                     cpu=cpu, build='0.4.0 release')),
+            ])
+            adapter, _, _ = report['decode'](raw)
+            self.assertEqual(adapter['backend'], 'Vulkan')
+            self.assertEqual(adapter['build'], '0.4.0 release')
+            self.assertEqual(adapter['cpu'], cpu)
+            self.assertEqual(adapter['device_type'], 'Cpu' if cpu else 'hardware (exact type unavailable)')
+
+    def test_nvidia_hooks_adapter_change_remains_partial_after_final_snapshot(self):
+        raw = '\n'.join([
+            'flea: the window starts on Vulkan ("Nvidia")',
+            'FLEA_GPU_ADAPTER {"name":"Nvidia","cpu":false}',
+            'flea: the window starts on Vulkan ("llvmpipe")',
+            'FLEA_GPU_ADAPTER {"name":"llvmpipe","cpu":true}',
+        ])
+        adapter, _, _ = report['decode'](raw)
+        self.assertEqual(adapter['name'], 'llvmpipe')
+        self.assertTrue(adapter.get('changed'), 'final specs must not erase an adapter change during measured scrolling')
+        self.assertIsNone(adapter['cpu'])
+
     def test_non_object_adapter_diagnostics_are_rejected_before_use(self):
         raw = 'FLEA_GPU_ADAPTER "Intel"\nflea: the window starts on Vulkan ("Intel")'
         with self.assertRaises(ValueError):

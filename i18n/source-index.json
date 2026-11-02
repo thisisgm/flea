@@ -7324,7 +7324,7 @@
       "call_sites": [
         {
           "excerpt": "let title = locale.catalog.tr(\"app.name\");",
-          "line": 91,
+          "line": 92,
           "path": "crates/flea-gui/src/window/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -207382,7 +207382,7 @@
     },
     {
       "excerpt": "snapshot = re.fullmatch(r'GPUI_RENDERER backend=(\\w+) adapter=(\"(?:[^\"\\\\]|\\\\.)*\") driver=(\"(?:[^\"\\\\]|\\\\.)*\") driver_info=(\"(?:[^\"\\\\]|\\\\.)*\") software=(true|false) .+', line)\n        if snapshot:\n            backend, name, driver, version, cpu = snapshot.groups()\n            adapter = dict(name=json.loads(name), driver=json.loads(driver),\n                           version=json.loads(version), cpu=cpu == \"true\",",
-      "line": 84,
+      "line": 85,
       "literal": ") software=(true|false) .+', line)\n        if snapshot:\n            backend, name, driver, version, cpu = snapshot.groups()\n            adapter = dict(name=json.loads(name), driver=json.loads(driver),\n                           version=json.loads(version), cpu=cpu == ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207391,7 +207391,7 @@
     },
     {
       "excerpt": "backend=backend, device_type=\"Cpu\" if cpu == \"true\" else \"hardware (exact type unavailable)\")",
-      "line": 89,
+      "line": 90,
       "literal": " if cpu == ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207400,7 +207400,7 @@
     },
     {
       "excerpt": "opened = (adapter[\"name\"], \"Gl\" if backend.lower() == \"gl\" else \"Vulkan\")",
-      "line": 90,
+      "line": 91,
       "literal": " if backend.lower() == ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207409,7 +207409,7 @@
     },
     {
       "excerpt": "opened = (adapter[\"name\"], \"Gl\" if backend.lower() == \"gl\" else \"Vulkan\")\n        # S6's ordinary stderr line is authoritative for the backend of this adapter.\n        backend_line = re.fullmatch(r'flea: (?:the window starts on (Vulkan|OpenGL)|Vulkan is unusable, .+, so the window starts on (OpenGL)) \\((.+)\\)', line)\n        if backend_line:\n            backend = backend_line[1] or backend_line[2]\n            selected = (backend_line[3].strip('\"'), \"Gl\" if backend == \"OpenGL\" else backend)",
-      "line": 90,
+      "line": 91,
       "literal": ")\n                                                                                     \n        backend_line = re.fullmatch(r'flea: (?:the window starts on (Vulkan|OpenGL)|Vulkan is unusable, .+, so the window starts on (OpenGL)) \\((.+)\\)', line)\n        if backend_line:\n            backend = backend_line[1] or backend_line[2]\n            selected = (backend_line[3].strip('",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207418,7 +207418,7 @@
     },
     {
       "excerpt": "choice = re.fullmatch(r\"flea-graphics: Selected GPU \\(passed configuration test\\): (.+) \\((Vulkan|Gl)\\)\", line)",
-      "line": 102,
+      "line": 104,
       "literal": "flea-graphics: Selected GPU \\(passed configuration test\\): (.+) \\((Vulkan|Gl)\\)",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207427,7 +207427,7 @@
     },
     {
       "excerpt": "raise ValueError(\"candidate adapter diagnostics are not an object\")",
-      "line": 108,
+      "line": 112,
       "literal": "candidate adapter diagnostics are not an object",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207436,7 +207436,7 @@
     },
     {
       "excerpt": "raise ValueError(\"candidate adapter diagnostics have an invalid text field\")",
-      "line": 111,
+      "line": 115,
       "literal": "candidate adapter diagnostics have an invalid text field",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207445,7 +207445,7 @@
     },
     {
       "excerpt": "raise ValueError(\"candidate CPU diagnostics are not a Boolean\")",
-      "line": 113,
+      "line": 117,
       "literal": "candidate CPU diagnostics are not a Boolean",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207453,8 +207453,26 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "adapter[\"device_type\"] = \"Cpu\" if adapter[\"cpu\"] else \"hardware (exact type unavailable)\"",
+      "line": 124,
+      "literal": "Cpu",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "adapter[\"device_type\"] = \"Cpu\" if adapter[\"cpu\"] else \"hardware (exact type unavailable)\"",
+      "line": 124,
+      "literal": "hardware (exact type unavailable)",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "field = re.match(r'excluded=(\"(?:[^\"\\\\]|\\\\.)*\")', raw)\n            try:\n                excluded = json.loads(field[1]) if field else None\n            except ValueError:\n                excluded = None\n            names = \",\".join(icd_name(name) for name in excluded.split(\",\")) if excluded else \"none\" if excluded == \"\" else \"names withheld\"",
-      "line": 119,
+      "line": 129,
       "literal": ")', raw)\n            try:\n                excluded = json.loads(field[1]) if field else None\n            except ValueError:\n                excluded = None\n            names = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207463,7 +207481,7 @@
     },
     {
       "excerpt": "names = \",\".join(icd_name(name) for name in excluded.split(\",\")) if excluded else \"none\" if excluded == \"\" else \"names withheld\"",
-      "line": 124,
+      "line": 134,
       "literal": ".join(icd_name(name) for name in excluded.split(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207472,7 +207490,7 @@
     },
     {
       "excerpt": "names = \",\".join(icd_name(name) for name in excluded.split(\",\")) if excluded else \"none\" if excluded == \"\" else \"names withheld\"",
-      "line": 124,
+      "line": 134,
       "literal": ")) if excluded else ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207481,7 +207499,7 @@
     },
     {
       "excerpt": "names = \",\".join(icd_name(name) for name in excluded.split(\",\")) if excluded else \"none\" if excluded == \"\" else \"names withheld\"",
-      "line": 124,
+      "line": 134,
       "literal": " if excluded == ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207490,7 +207508,7 @@
     },
     {
       "excerpt": "operator = \"yes\" if \"operator_icd=true\" in raw else \"no\"",
-      "line": 125,
+      "line": 135,
       "literal": " in raw else ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207499,7 +207517,7 @@
     },
     {
       "excerpt": "policy = f\"excluded={names}; operator ICD override={operator}; preference=compositor GPU\"\n    if not isinstance(adapter, dict) or not isinstance(frames, dict):\n        raise ValueError(\"candidate diagnostics are not objects\")",
-      "line": 126,
+      "line": 136,
       "literal": "\n    if not isinstance(adapter, dict) or not isinstance(frames, dict):\n        raise ValueError(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207508,7 +207526,7 @@
     },
     {
       "excerpt": "raise ValueError(\"candidate diagnostics are not objects\")\n    if not isinstance(frames.get(\"intervals_ms\", []), list):",
-      "line": 128,
+      "line": 138,
       "literal": ")\n    if not isinstance(frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207517,7 +207535,7 @@
     },
     {
       "excerpt": "if not isinstance(frames.get(\"intervals_ms\", []), list):\n        raise ValueError(\"candidate frame timings are not a list\")",
-      "line": 129,
+      "line": 139,
       "literal": ", []), list):\n        raise ValueError(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207526,7 +207544,7 @@
     },
     {
       "excerpt": "raise ValueError(\"candidate frame timings are not a list\")\n    for name, backend, kind in available:\n        actual_backend = adapter.get(\"backend\")",
-      "line": 130,
+      "line": 140,
       "literal": ")\n    for name, backend, kind in available:\n        actual_backend = adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207535,7 +207553,7 @@
     },
     {
       "excerpt": "actual_backend = adapter.get(\"backend\")\n        if name == adapter.get(\"name\") and (kind == \"Cpu\") == adapter.get(\"cpu\") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):",
-      "line": 132,
+      "line": 142,
       "literal": ")\n        if name == adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207543,9 +207561,9 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "if name == adapter.get(\"name\") and (kind == \"Cpu\") == adapter.get(\"cpu\") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):\n            adapter.update(backend=backend, device_type=kind)\n            break\n    if selected is not None and ((opened is not None and selected != opened) or adapter.get(\"name\") != selected[0]):",
-      "line": 133,
-      "literal": ") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):\n            adapter.update(backend=backend, device_type=kind)\n            break\n    if selected is not None and ((opened is not None and selected != opened) or adapter.get(",
+      "excerpt": "if name == adapter.get(\"name\") and (kind == \"Cpu\") == adapter.get(\"cpu\") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):\n            adapter.update(backend=backend, device_type=kind)\n            break\n    if changed or (selected is not None and ((opened is not None and selected != opened) or adapter.get(\"name\") != selected[0])):",
+      "line": 143,
+      "literal": ") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):\n            adapter.update(backend=backend, device_type=kind)\n            break\n    if changed or (selected is not None and ((opened is not None and selected != opened) or adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -207553,7 +207571,7 @@
     },
     {
       "excerpt": "adapter[\"cpu\"] = None\n    return adapter, frames, policy\n\n\ndef scroll_covered(frames):\n    values = frames.get(\"intervals_ms\", [])",
-      "line": 138,
+      "line": 148,
       "literal": "] = None\n    return adapter, frames, policy\n\n\ndef scroll_covered(frames):\n    values = frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207562,7 +207580,7 @@
     },
     {
       "excerpt": "values = frames.get(\"intervals_ms\", [])\n    measured = [value for value in values if type(value) in (int, float) and math.isfinite(value) and value > 0]\n    return len(measured) >= 2 and 4000 <= sum(measured) <= 6000\n\n\ndef summary(gpus, session, adapter, frames, status):\n    intervals = frames.get(\"intervals_ms\", [])",
-      "line": 143,
+      "line": 153,
       "literal": ", [])\n    measured = [value for value in values if type(value) in (int, float) and math.isfinite(value) and value > 0]\n    return len(measured) >= 2 and 4000 <= sum(measured) <= 6000\n\n\ndef summary(gpus, session, adapter, frames, status):\n    intervals = frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207571,7 +207589,7 @@
     },
     {
       "excerpt": "intervals = frames.get(\"intervals_ms\", [])\n    intervals = sorted(value for value in intervals if type(value) in (int, float) and math.isfinite(value) and value > 0)\n    first = frames.get(\"first_ms\")",
-      "line": 149,
+      "line": 159,
       "literal": ", [])\n    intervals = sorted(value for value in intervals if type(value) in (int, float) and math.isfinite(value) and value > 0)\n    first = frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207580,7 +207598,7 @@
     },
     {
       "excerpt": "first = f\"{first:.2f} ms\" if type(first) in (int, float) and math.isfinite(first) and first >= 0 else \"unavailable (no timed presentation feedback)\"",
-      "line": 152,
+      "line": 162,
       "literal": " if type(first) in (int, float) and math.isfinite(first) and first >= 0 else ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207589,7 +207607,7 @@
     },
     {
       "excerpt": "times = \"unavailable (no presentation feedback)\"\n    if len(intervals) >= 2:\n        times = f\"median {statistics.median(intervals):.2f} ms, p95 {intervals[math.ceil(.95 * len(intervals)) - 1]:.2f} ms\"",
-      "line": 153,
+      "line": 163,
       "literal": "\n    if len(intervals) >= 2:\n        times = f",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207598,7 +207616,7 @@
     },
     {
       "excerpt": "cpu = \"YES, CPU RENDERER IN USE\" if adapter.get(\"cpu\") is True else \"no\" if adapter.get(\"cpu\") is False else \"unknown\"",
-      "line": 156,
+      "line": 166,
       "literal": " if adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207607,7 +207625,7 @@
     },
     {
       "excerpt": "cpu = \"YES, CPU RENDERER IN USE\" if adapter.get(\"cpu\") is True else \"no\" if adapter.get(\"cpu\") is False else \"unknown\"",
-      "line": 156,
+      "line": 166,
       "literal": ") is True else ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207616,7 +207634,7 @@
     },
     {
       "excerpt": "cpu = \"YES, CPU RENDERER IN USE\" if adapter.get(\"cpu\") is True else \"no\" if adapter.get(\"cpu\") is False else \"unknown\"",
-      "line": 156,
+      "line": 166,
       "literal": " if adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207625,7 +207643,7 @@
     },
     {
       "excerpt": "cpu = \"YES, CPU RENDERER IN USE\" if adapter.get(\"cpu\") is True else \"no\" if adapter.get(\"cpu\") is False else \"unknown\"",
-      "line": 156,
+      "line": 166,
       "literal": ") is False else ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207634,7 +207652,7 @@
     },
     {
       "excerpt": "\"Candidate: \" + safe(adapter.get(\"build\", \"unknown\")),",
-      "line": 159,
+      "line": 169,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207643,7 +207661,7 @@
     },
     {
       "excerpt": "\"Driver/version: \" + safe(adapter.get(\"driver\", \"unknown\")) + \" \" + safe(adapter.get(\"version\", \"unknown\")),",
-      "line": 161,
+      "line": 171,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207652,7 +207670,7 @@
     },
     {
       "excerpt": "\"Driver/version: \" + safe(adapter.get(\"driver\", \"unknown\")) + \" \" + safe(adapter.get(\"version\", \"unknown\")),",
-      "line": 161,
+      "line": 171,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207661,7 +207679,7 @@
     },
     {
       "excerpt": "\"Adapter opened: \" + safe(adapter.get(\"name\", \"unavailable\")),",
-      "line": 163,
+      "line": 173,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207670,7 +207688,7 @@
     },
     {
       "excerpt": "\"Adapter type/backend: \" + safe(adapter.get(\"device_type\", \"unavailable\")) + \" / \" + safe(adapter.get(\"backend\", \"unavailable\")),",
-      "line": 164,
+      "line": 174,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207679,7 +207697,7 @@
     },
     {
       "excerpt": "\"Adapter type/backend: \" + safe(adapter.get(\"device_type\", \"unavailable\")) + \" / \" + safe(adapter.get(\"backend\", \"unavailable\")),",
-      "line": 164,
+      "line": 174,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207688,7 +207706,7 @@
     },
     {
       "excerpt": "\"Result: \" + status,\n    ])\n\n\ndef run(binary):\n    binary = str(Path(binary).absolute())\n    original = dict(os.environ)\n    gpus = inventory()\n    manifests = icds(original)\n    session = \"Wayland\" if original.get(\"WAYLAND_DISPLAY\") else \"X11\" if original.get(\"DISPLAY\") else \"none\"",
-      "line": 168,
+      "line": 178,
       "literal": " + status,\n    ])\n\n\ndef run(binary):\n    binary = str(Path(binary).absolute())\n    original = dict(os.environ)\n    gpus = inventory()\n    manifests = icds(original)\n    session = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207697,7 +207715,7 @@
     },
     {
       "excerpt": "session = \"Wayland\" if original.get(\"WAYLAND_DISPLAY\") else \"X11\" if original.get(\"DISPLAY\") else \"none\"",
-      "line": 177,
+      "line": 187,
       "literal": " if original.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207706,7 +207724,7 @@
     },
     {
       "excerpt": "session = \"Wayland\" if original.get(\"WAYLAND_DISPLAY\") else \"X11\" if original.get(\"DISPLAY\") else \"none\"",
-      "line": 177,
+      "line": 187,
       "literal": " if original.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207715,7 +207733,7 @@
     },
     {
       "excerpt": "isolation = shutil.which(\"bwrap\")\n        if not isolation:\n            print(summary(gpus, session, {}, {}, \"FAILED: Flea runtime dependency bubblewrap is missing\"))",
-      "line": 182,
+      "line": 192,
       "literal": ")\n        if not isolation:\n            print(summary(gpus, session, {}, {}, ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207724,7 +207742,7 @@
     },
     {
       "excerpt": "allowed = {\"PATH\", \"LANG\", \"LC_ALL\", \"DISPLAY\", \"WAYLAND_DISPLAY\", \"XAUTHORITY\",",
-      "line": 186,
+      "line": 196,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207733,7 +207751,7 @@
     },
     {
       "excerpt": "allowed = {\"PATH\", \"LANG\", \"LC_ALL\", \"DISPLAY\", \"WAYLAND_DISPLAY\", \"XAUTHORITY\",",
-      "line": 186,
+      "line": 196,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207742,7 +207760,7 @@
     },
     {
       "excerpt": "allowed = {\"PATH\", \"LANG\", \"LC_ALL\", \"DISPLAY\", \"WAYLAND_DISPLAY\", \"XAUTHORITY\",",
-      "line": 186,
+      "line": 196,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207751,7 +207769,7 @@
     },
     {
       "excerpt": "allowed = {\"PATH\", \"LANG\", \"LC_ALL\", \"DISPLAY\", \"WAYLAND_DISPLAY\", \"XAUTHORITY\",",
-      "line": 186,
+      "line": 196,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207760,7 +207778,7 @@
     },
     {
       "excerpt": "allowed = {\"PATH\", \"LANG\", \"LC_ALL\", \"DISPLAY\", \"WAYLAND_DISPLAY\", \"XAUTHORITY\",",
-      "line": 186,
+      "line": 196,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207769,7 +207787,7 @@
     },
     {
       "excerpt": "\"FLEA_VK_PIN\", \"FLEA_VK_DISABLE\", \"ZED_DEVICE_ID\", \"DRI_PRIME\",",
-      "line": 187,
+      "line": 197,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207778,7 +207796,7 @@
     },
     {
       "excerpt": "\"FLEA_VK_PIN\", \"FLEA_VK_DISABLE\", \"ZED_DEVICE_ID\", \"DRI_PRIME\",",
-      "line": 187,
+      "line": 197,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207787,7 +207805,7 @@
     },
     {
       "excerpt": "\"FLEA_VK_PIN\", \"FLEA_VK_DISABLE\", \"ZED_DEVICE_ID\", \"DRI_PRIME\",",
-      "line": 187,
+      "line": 197,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207796,7 +207814,7 @@
     },
     {
       "excerpt": "\"GALLIUM_DRIVER\", \"LIBGL_ALWAYS_SOFTWARE\", \"LIBGL_ALWAYS_INDIRECT\",",
-      "line": 188,
+      "line": 198,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207805,7 +207823,7 @@
     },
     {
       "excerpt": "\"GALLIUM_DRIVER\", \"LIBGL_ALWAYS_SOFTWARE\", \"LIBGL_ALWAYS_INDIRECT\",",
-      "line": 188,
+      "line": 198,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207814,7 +207832,7 @@
     },
     {
       "excerpt": "\"EGL_PLATFORM\", \"__GLX_VENDOR_LIBRARY_NAME\", \"__NV_PRIME_RENDER_OFFLOAD\",",
-      "line": 189,
+      "line": 199,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207823,7 +207841,7 @@
     },
     {
       "excerpt": "\"EGL_PLATFORM\", \"__GLX_VENDOR_LIBRARY_NAME\", \"__NV_PRIME_RENDER_OFFLOAD\",",
-      "line": 189,
+      "line": 199,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207832,7 +207850,7 @@
     },
     {
       "excerpt": "\"__NV_PRIME_RENDER_OFFLOAD_PROVIDER\", \"__VK_LAYER_NV_optimus\"}",
-      "line": 190,
+      "line": 200,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207841,7 +207859,7 @@
     },
     {
       "excerpt": "\"__NV_PRIME_RENDER_OFFLOAD_PROVIDER\", \"__VK_LAYER_NV_optimus\"}\n        env = {key: value for key, value in original.items()\n               if key in allowed or key.startswith((\"VK_\", \"MESA_\", \"__GL_\"))}",
-      "line": 190,
+      "line": 200,
       "literal": "}\n        env = {key: value for key, value in original.items()\n               if key in allowed or key.startswith((",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207850,7 +207868,7 @@
     },
     {
       "excerpt": "if key in allowed or key.startswith((\"VK_\", \"MESA_\", \"__GL_\"))}",
-      "line": 192,
+      "line": 202,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207859,7 +207877,7 @@
     },
     {
       "excerpt": "if key in allowed or key.startswith((\"VK_\", \"MESA_\", \"__GL_\"))}",
-      "line": 192,
+      "line": 202,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207868,7 +207886,7 @@
     },
     {
       "excerpt": "(root / \"shm\").mkdir(mode=0o700)\n        for key in list(env):\n            if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):",
-      "line": 196,
+      "line": 206,
       "literal": ").mkdir(mode=0o700)\n        for key in list(env):\n            if key in (",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207877,7 +207895,7 @@
     },
     {
       "excerpt": "if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):",
-      "line": 198,
+      "line": 208,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207886,7 +207904,7 @@
     },
     {
       "excerpt": "if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):",
-      "line": 198,
+      "line": 208,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207895,7 +207913,7 @@
     },
     {
       "excerpt": "if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):",
-      "line": 198,
+      "line": 208,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207904,7 +207922,7 @@
     },
     {
       "excerpt": "if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):",
-      "line": 198,
+      "line": 208,
       "literal": ") or key.startswith(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207913,7 +207931,7 @@
     },
     {
       "excerpt": "if key in (\"FLEA_UNLOCK\", \"FLEA_PICKER\", \"FLEA_PATH\", \"FLEA_SELECT\") or key.startswith(\"FLEA_GUI_BENCH_\"):\n                del env[key]\n        for key, name in ((\"XDG_CONFIG_HOME\", \"config\"), (\"XDG_CACHE_HOME\", \"cache\"),",
-      "line": 198,
+      "line": 208,
       "literal": "):\n                del env[key]\n        for key, name in ((",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -207922,87 +207940,6 @@
     },
     {
       "excerpt": "for key, name in ((\"XDG_CONFIG_HOME\", \"config\"), (\"XDG_CACHE_HOME\", \"cache\"),",
-      "line": 200,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "for key, name in ((\"XDG_CONFIG_HOME\", \"config\"), (\"XDG_CACHE_HOME\", \"cache\"),",
-      "line": 200,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "(\"XDG_DATA_HOME\", \"data\"), (\"XDG_STATE_HOME\", \"state\"),",
-      "line": 201,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "(\"XDG_DATA_HOME\", \"data\"), (\"XDG_STATE_HOME\", \"state\"),",
-      "line": 201,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "(\"XDG_RUNTIME_DIR\", \"runtime\"), (\"TMPDIR\", \"tmp\")):",
-      "line": 202,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "(\"XDG_RUNTIME_DIR\", \"runtime\"), (\"TMPDIR\", \"tmp\")):",
-      "line": 202,
-      "literal": ", ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "fontconfig = Path(original.get(\"XDG_CONFIG_HOME\", str(Path.home() / \".config\"))) / \"fontconfig\"\n        if fontconfig.is_dir():\n            shutil.copytree(fontconfig, root / \"config/fontconfig\", symlinks=True)",
-      "line": 206,
-      "literal": "\n        if fontconfig.is_dir():\n            shutil.copytree(fontconfig, root / ",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "shutil.copytree(fontconfig, root / \"config/fontconfig\", symlinks=True)\n        if env.get(\"WAYLAND_DISPLAY\") and not Path(env[\"WAYLAND_DISPLAY\"]).is_absolute():",
-      "line": 208,
-      "literal": ", symlinks=True)\n        if env.get(",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "if env.get(\"WAYLAND_DISPLAY\") and not Path(env[\"WAYLAND_DISPLAY\"]).is_absolute():",
-      "line": 209,
-      "literal": ") and not Path(env[",
-      "owner": "controller",
-      "path": "tools/flea-gpu-report",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "env[\"WAYLAND_DISPLAY\"] = str(Path(original.get(\"XDG_RUNTIME_DIR\", \"/run/user/\" + str(os.getuid()))) / env[\"WAYLAND_DISPLAY\"])",
       "line": 210,
       "literal": ", ",
       "owner": "controller",
@@ -208011,8 +207948,89 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "fixture = root / \"rows\"\n        fixture.mkdir()\n        for index in range(10_000):\n            (fixture / f\"row-{index:05d}.txt\").touch()",
+      "excerpt": "for key, name in ((\"XDG_CONFIG_HOME\", \"config\"), (\"XDG_CACHE_HOME\", \"cache\"),",
+      "line": 210,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "(\"XDG_DATA_HOME\", \"data\"), (\"XDG_STATE_HOME\", \"state\"),",
+      "line": 211,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "(\"XDG_DATA_HOME\", \"data\"), (\"XDG_STATE_HOME\", \"state\"),",
+      "line": 211,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "(\"XDG_RUNTIME_DIR\", \"runtime\"), (\"TMPDIR\", \"tmp\")):",
       "line": 212,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "(\"XDG_RUNTIME_DIR\", \"runtime\"), (\"TMPDIR\", \"tmp\")):",
+      "line": 212,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "fontconfig = Path(original.get(\"XDG_CONFIG_HOME\", str(Path.home() / \".config\"))) / \"fontconfig\"\n        if fontconfig.is_dir():\n            shutil.copytree(fontconfig, root / \"config/fontconfig\", symlinks=True)",
+      "line": 216,
+      "literal": "\n        if fontconfig.is_dir():\n            shutil.copytree(fontconfig, root / ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "shutil.copytree(fontconfig, root / \"config/fontconfig\", symlinks=True)\n        if env.get(\"WAYLAND_DISPLAY\") and not Path(env[\"WAYLAND_DISPLAY\"]).is_absolute():",
+      "line": 218,
+      "literal": ", symlinks=True)\n        if env.get(",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "if env.get(\"WAYLAND_DISPLAY\") and not Path(env[\"WAYLAND_DISPLAY\"]).is_absolute():",
+      "line": 219,
+      "literal": ") and not Path(env[",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "env[\"WAYLAND_DISPLAY\"] = str(Path(original.get(\"XDG_RUNTIME_DIR\", \"/run/user/\" + str(os.getuid()))) / env[\"WAYLAND_DISPLAY\"])",
+      "line": 220,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-gpu-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "fixture = root / \"rows\"\n        fixture.mkdir()\n        for index in range(10_000):\n            (fixture / f\"row-{index:05d}.txt\").touch()",
+      "line": 222,
       "literal": "\n        fixture.mkdir()\n        for index in range(10_000):\n            (fixture / f",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208021,7 +208039,7 @@
     },
     {
       "excerpt": "command = [isolation, \"--ro-bind\", \"/\", \"/\", \"--tmpfs\", \"/run\",",
-      "line": 217,
+      "line": 227,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208030,7 +208048,7 @@
     },
     {
       "excerpt": "command = [isolation, \"--ro-bind\", \"/\", \"/\", \"--tmpfs\", \"/run\",",
-      "line": 217,
+      "line": 227,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208039,7 +208057,7 @@
     },
     {
       "excerpt": "command = [isolation, \"--ro-bind\", \"/\", \"/\", \"--tmpfs\", \"/run\",",
-      "line": 217,
+      "line": 227,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208048,7 +208066,7 @@
     },
     {
       "excerpt": "command = [isolation, \"--ro-bind\", \"/\", \"/\", \"--tmpfs\", \"/run\",",
-      "line": 217,
+      "line": 227,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208057,7 +208075,7 @@
     },
     {
       "excerpt": "\"--dev-bind\", \"/dev\", \"/dev\", \"--proc\", \"/proc\", \"--unshare-net\",",
-      "line": 219,
+      "line": 229,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208066,7 +208084,7 @@
     },
     {
       "excerpt": "\"--dev-bind\", \"/dev\", \"/dev\", \"--proc\", \"/proc\", \"--unshare-net\",",
-      "line": 219,
+      "line": 229,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208075,7 +208093,7 @@
     },
     {
       "excerpt": "\"--dev-bind\", \"/dev\", \"/dev\", \"--proc\", \"/proc\", \"--unshare-net\",",
-      "line": 219,
+      "line": 229,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208084,7 +208102,7 @@
     },
     {
       "excerpt": "\"--dev-bind\", \"/dev\", \"/dev\", \"--proc\", \"/proc\", \"--unshare-net\",",
-      "line": 219,
+      "line": 229,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208093,7 +208111,7 @@
     },
     {
       "excerpt": "\"--dev-bind\", \"/dev\", \"/dev\", \"--proc\", \"/proc\", \"--unshare-net\",",
-      "line": 219,
+      "line": 229,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208102,7 +208120,7 @@
     },
     {
       "excerpt": "\"--unshare-pid\", \"--unshare-ipc\", \"--die-with-parent\", \"--new-session\"]",
-      "line": 221,
+      "line": 231,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208111,7 +208129,7 @@
     },
     {
       "excerpt": "\"--unshare-pid\", \"--unshare-ipc\", \"--die-with-parent\", \"--new-session\"]",
-      "line": 221,
+      "line": 231,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208120,7 +208138,7 @@
     },
     {
       "excerpt": "\"--unshare-pid\", \"--unshare-ipc\", \"--die-with-parent\", \"--new-session\"]",
-      "line": 221,
+      "line": 231,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208129,7 +208147,7 @@
     },
     {
       "excerpt": "\"--unshare-pid\", \"--unshare-ipc\", \"--die-with-parent\", \"--new-session\"]\n        for key, default in ((\"XDG_CONFIG_HOME\", \".config\"), (\"XDG_DATA_HOME\", \".local/share\")):",
-      "line": 221,
+      "line": 231,
       "literal": "]\n        for key, default in ((",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208138,7 +208156,7 @@
     },
     {
       "excerpt": "for key, default in ((\"XDG_CONFIG_HOME\", \".config\"), (\"XDG_DATA_HOME\", \".local/share\")):",
-      "line": 222,
+      "line": 232,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208147,7 +208165,7 @@
     },
     {
       "excerpt": "for key, default in ((\"XDG_CONFIG_HOME\", \".config\"), (\"XDG_DATA_HOME\", \".local/share\")):",
-      "line": 222,
+      "line": 232,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208156,7 +208174,7 @@
     },
     {
       "excerpt": "for key, default in ((\"XDG_CONFIG_HOME\", \".config\"), (\"XDG_DATA_HOME\", \".local/share\")):\n            original_vulkan = Path(original.get(key) or str(Path.home() / default)) / \"vulkan\"",
-      "line": 222,
+      "line": 232,
       "literal": ")):\n            original_vulkan = Path(original.get(key) or str(Path.home() / default)) / ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208165,7 +208183,7 @@
     },
     {
       "excerpt": "original_vulkan = Path(original.get(key) or str(Path.home() / default)) / \"vulkan\"\n            if original_vulkan.is_dir():\n                command.extend([\"--ro-bind\", str(original_vulkan), str(Path(env[key]) / \"vulkan\")])",
-      "line": 223,
+      "line": 233,
       "literal": "\n            if original_vulkan.is_dir():\n                command.extend([",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208174,7 +208192,7 @@
     },
     {
       "excerpt": "command.extend([\"--ro-bind\", str(original_vulkan), str(Path(env[key]) / \"vulkan\")])\n        if env.get(\"WAYLAND_DISPLAY\"):",
-      "line": 225,
+      "line": 235,
       "literal": ")])\n        if env.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208183,7 +208201,7 @@
     },
     {
       "excerpt": "command.extend([\"--ro-bind\", socket, env[\"WAYLAND_DISPLAY\"]])\n        if env.get(\"DISPLAY\"):",
-      "line": 229,
+      "line": 239,
       "literal": "]])\n        if env.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208192,7 +208210,7 @@
     },
     {
       "excerpt": "authority = Path(original.get(\"XAUTHORITY\") or str(Path.home() / \".Xauthority\")).absolute()",
-      "line": 231,
+      "line": 241,
       "literal": ") or str(Path.home() / ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208201,7 +208219,7 @@
     },
     {
       "excerpt": "authority = Path(original.get(\"XAUTHORITY\") or str(Path.home() / \".Xauthority\")).absolute()\n            if authority.is_file():\n                env[\"XAUTHORITY\"] = str(root / \"runtime/xauthority\")",
-      "line": 231,
+      "line": 241,
       "literal": ")).absolute()\n            if authority.is_file():\n                env[",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208210,7 +208228,7 @@
     },
     {
       "excerpt": "command.extend([\"--\", binary, \"--gui\", str(fixture)])\n        process = subprocess.Popen(command, env=env, cwd=root,\n                                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,\n                                   text=True, start_new_session=True)\n        terminated = False\n        try:\n            _, stderr = process.communicate(timeout=25)\n        except subprocess.TimeoutExpired:\n            terminated = True\n            os.killpg(process.pid, signal.SIGKILL)\n            _, stderr = process.communicate(timeout=3)\n        try:\n            adapter, frames, policy = decode(stderr)\n        except (ValueError, TypeError):\n            adapter, frames, policy = {}, {}, \"invalid diagnostics\"",
-      "line": 235,
+      "line": 245,
       "literal": ", str(fixture)])\n        process = subprocess.Popen(command, env=env, cwd=root,\n                                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,\n                                   text=True, start_new_session=True)\n        terminated = False\n        try:\n            _, stderr = process.communicate(timeout=25)\n        except subprocess.TimeoutExpired:\n            terminated = True\n            os.killpg(process.pid, signal.SIGKILL)\n            _, stderr = process.communicate(timeout=3)\n        try:\n            adapter, frames, policy = decode(stderr)\n        except (ValueError, TypeError):\n            adapter, frames, policy = {}, {}, ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208219,7 +208237,7 @@
     },
     {
       "excerpt": "adapter, frames, policy = {}, {}, \"invalid diagnostics\"\n        complete = (process.returncode == 0 and frames.get(\"complete\") is True",
-      "line": 249,
+      "line": 259,
       "literal": "\n        complete = (process.returncode == 0 and frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208228,7 +208246,7 @@
     },
     {
       "excerpt": "complete = (process.returncode == 0 and frames.get(\"complete\") is True\n                    and frames.get(\"ready\") is True",
-      "line": 250,
+      "line": 260,
       "literal": ") is True\n                    and frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208237,7 +208255,7 @@
     },
     {
       "excerpt": "and frames.get(\"ready\") is True\n                    and isinstance(adapter.get(\"name\"), str) and bool(adapter[\"name\"]))",
-      "line": 251,
+      "line": 261,
       "literal": ") is True\n                    and isinstance(adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208246,7 +208264,7 @@
     },
     {
       "excerpt": "and isinstance(adapter.get(\"name\"), str) and bool(adapter[\"name\"]))",
-      "line": 252,
+      "line": 262,
       "literal": "), str) and bool(adapter[",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208255,7 +208273,7 @@
     },
     {
       "excerpt": "known_cpu = type(adapter.get(\"cpu\")) is bool\n        first = frames.get(\"first_ms\")",
-      "line": 253,
+      "line": 263,
       "literal": ")) is bool\n        first = frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208264,7 +208282,7 @@
     },
     {
       "excerpt": "first = frames.get(\"first_ms\")\n        timed = type(first) in (int, float) and math.isfinite(first) and first >= 0 and len(frames.get(\"intervals_ms\", [])) >= 2",
-      "line": 254,
+      "line": 264,
       "literal": ")\n        timed = type(first) in (int, float) and math.isfinite(first) and first >= 0 and len(frames.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208273,7 +208291,7 @@
     },
     {
       "excerpt": "timed = type(first) in (int, float) and math.isfinite(first) and first >= 0 and len(frames.get(\"intervals_ms\", [])) >= 2\n        covered = scroll_covered(frames)\n        if complete and timed and covered and known_cpu and not adapter.get(\"changed\"):",
-      "line": 255,
+      "line": 265,
       "literal": ", [])) >= 2\n        covered = scroll_covered(frames)\n        if complete and timed and covered and known_cpu and not adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208282,7 +208300,7 @@
     },
     {
       "excerpt": "status = \"complete\"\n        elif complete and adapter.get(\"changed\"):",
-      "line": 258,
+      "line": 268,
       "literal": "\n        elif complete and adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208291,7 +208309,7 @@
     },
     {
       "excerpt": "status = \"PARTIAL: adapter changed during the run; CPU state needs rechecking\"\n        elif complete and not known_cpu:\n            status = \"PARTIAL: actual CPU renderer state is unavailable\"",
-      "line": 260,
+      "line": 270,
       "literal": "\n        elif complete and not known_cpu:\n            status = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208300,7 +208318,7 @@
     },
     {
       "excerpt": "status = \"PARTIAL: actual CPU renderer state is unavailable\"\n        elif complete and timed and not covered:\n            status = \"PARTIAL: presentation samples do not cover the five-second scroll\"",
-      "line": 262,
+      "line": 272,
       "literal": "\n        elif complete and timed and not covered:\n            status = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208309,7 +208327,7 @@
     },
     {
       "excerpt": "status = \"PARTIAL: presentation samples do not cover the five-second scroll\"\n        elif complete:\n            status = \"PARTIAL: window opened and scrolled; presentation timing unavailable\"",
-      "line": 264,
+      "line": 274,
       "literal": "\n        elif complete:\n            status = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208318,7 +208336,7 @@
     },
     {
       "excerpt": "status = \"PARTIAL: window opened and scrolled; presentation timing unavailable\"\n        elif terminated and adapter:\n            status = \"PARTIAL: actual adapter opened; candidate lacks five-second scroll diagnostics\"",
-      "line": 266,
+      "line": 276,
       "literal": "\n        elif terminated and adapter:\n            status = ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208327,7 +208345,7 @@
     },
     {
       "excerpt": "print(\"ICDs present: \" + (\", \".join(manifests) or \"none\"))\n        with open(binary, \"rb\") as executable:",
-      "line": 271,
+      "line": 281,
       "literal": "))\n        with open(binary, ",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208336,7 +208354,7 @@
     },
     {
       "excerpt": "with open(binary, \"rb\") as executable:\n            print(\"Candidate binary SHA256: \" + hashlib.file_digest(executable, \"sha256\").hexdigest())",
-      "line": 272,
+      "line": 282,
       "literal": ") as executable:\n            print(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208345,7 +208363,7 @@
     },
     {
       "excerpt": "print(\"Launch policy: \" + policy)\n        print(summary(gpus, session, adapter, frames, status))\n        return 0 if complete and timed and covered and known_cpu and not adapter.get(\"changed\") else 1",
-      "line": 274,
+      "line": 284,
       "literal": " + policy)\n        print(summary(gpus, session, adapter, frames, status))\n        return 0 if complete and timed and covered and known_cpu and not adapter.get(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208354,7 +208372,7 @@
     },
     {
       "excerpt": "return 0 if complete and timed and covered and known_cpu and not adapter.get(\"changed\") else 1\n    finally:\n        if process is not None:\n            try:\n                os.killpg(process.pid, signal.SIGKILL)\n            except ProcessLookupError:\n                pass\n            try:\n                process.wait(timeout=3)\n            except subprocess.TimeoutExpired:\n                if process.stderr:\n                    process.stderr.close()\n        cleanup(root)\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument(\"--flea\", default=\"flea\", help=\"installed candidate executable (default: flea)\")",
-      "line": 276,
+      "line": 286,
       "literal": ") else 1\n    finally:\n        if process is not None:\n            try:\n                os.killpg(process.pid, signal.SIGKILL)\n            except ProcessLookupError:\n                pass\n            try:\n                process.wait(timeout=3)\n            except subprocess.TimeoutExpired:\n                if process.stderr:\n                    process.stderr.close()\n        cleanup(root)\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208363,7 +208381,7 @@
     },
     {
       "excerpt": "parser.add_argument(\"--flea\", default=\"flea\", help=\"installed candidate executable (default: flea)\")\n    args = parser.parse_args()\n    binary = shutil.which(args.flea)\n    if not binary:\n        print(\"FLEA GPU REPORT\\nResult: FAILED: install the Flea candidate first\")",
-      "line": 293,
+      "line": 303,
       "literal": ")\n    args = parser.parse_args()\n    binary = shutil.which(args.flea)\n    if not binary:\n        print(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -208372,7 +208390,7 @@
     },
     {
       "excerpt": "print(\"FLEA GPU REPORT\\nResult: FAILED: install the Flea candidate first\")\n        return 1\n    try:\n        return run(binary)\n    except (OSError, RuntimeError, ValueError, TypeError):\n        print(\"FLEA GPU REPORT\\nResult: FAILED: could not prepare or launch the isolated report\")",
-      "line": 297,
+      "line": 307,
       "literal": ")\n        return 1\n    try:\n        return run(binary)\n    except (OSError, RuntimeError, ValueError, TypeError):\n        print(",
       "owner": "controller",
       "path": "tools/flea-gpu-report",
@@ -245466,7 +245484,7 @@
     "crates/flea-gui/src/window/frame_feedback/activity.rs": "6576d8076e25165ef1da3634c1179bffb3f9e25a294a6cd6ca1e26b51e459548",
     "crates/flea-gui/src/window/frame_feedback/perf_gates.rs": "505b15c5f3528d402d74c60c3e45cecf7e5951a603e4c5c75505bd75b8c3e2f4",
     "crates/flea-gui/src/window/frame_feedback/policy.rs": "71ddbcbe80ffb0eb6435723eefaa537e088ee88550ea875d7002a7ad4b7f714b",
-    "crates/flea-gui/src/window/frame_feedback/readback.rs": "9a0b3a9c9c2d4ccb64af049351493e040d49cb3e6c5643f3a5d1e9d6bdaa60cb",
+    "crates/flea-gui/src/window/frame_feedback/readback.rs": "d7c7bba899a40ae605117df28a0e0c2e5a76460aa9a126761997a8d49fbed19b",
     "crates/flea-gui/src/window/frame_feedback/snapshot.rs": "6b85943585ead37b30d88f40cddfdc416f9df67c3dfa56b4536e039b03c7b952",
     "crates/flea-gui/src/window/frame_feedback/timing.rs": "cc77bf98cb2d1a1f083c4a3f1317300fba2bc28985fa93e3b2609fe7d4acb23b",
     "crates/flea-gui/src/window/frame_feedback_join_fixture.rs": "8f70af3838cbb3d3d40cfe4f8781a3f0a8ffe643e68373dcb3d3e02a00405fe9",
@@ -245478,6 +245496,7 @@
     "crates/flea-gui/src/window/glass_tag.rs": "20222840b50ed4a7849b7ac2fb90085d7b9bc7d57cdd152bfcd0ac49d0e6976a",
     "crates/flea-gui/src/window/glass_tag/events.rs": "fb2d1b09b0371703a708b6af6868600ac8576eaf104ab38da759c63e2c1f3617",
     "crates/flea-gui/src/window/glass_tag/run.rs": "8f09c0daf0d87bb6d083c5442c24cd3a866c511979a360a3ceaee0965da75e58",
+    "crates/flea-gui/src/window/gpu_report.rs": "e0c97f69f827baa40ec461681ab3ea645934b024cb3233b4f241f73b2f66afe8",
     "crates/flea-gui/src/window/input.rs": "8cac52be4510da146d9f4868c0f7f3643e592b1e17db248a90354b19f358e456",
     "crates/flea-gui/src/window/input_run.rs": "6839e0258ddadaee59bf7be0f12868c1853f5692904ddc7673673eba340ad9ae",
     "crates/flea-gui/src/window/input_wheel.rs": "2a40cd6a2eaa3377d151f06df09b61d1ed9d8fb220fa86e95f05500a404845dd",
@@ -245486,7 +245505,7 @@
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "1a13e6ac47c51ecca964e0a3de27e10182361ca3bf5cba35c7a857a6408248ed",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "147d7377842f4ed0bf8bae7367cbe8fec5a2318731841362cf505230863a760f",
+    "crates/flea-gui/src/window/mod.rs": "c77b52369e29f9c0b6bc3e49edd64a618ab4eb910521bd32a48738c27940f8c5",
     "crates/flea-gui/src/window/navigate.rs": "88a4a84cc39ef8035adb97681c8803823bd3807cdd71689c3da1fc5df1b4f6e1",
     "crates/flea-gui/src/window/network.rs": "e1cf9b7bbc0e26f9dab9d82fcf4fa8419d72b6cfa4a64265e9d69a83907c3638",
     "crates/flea-gui/src/window/network_cloud.rs": "c9e57bf2de77b95a802982b1621bcd53723ff14938aaedb2c7fde6405609509c",
@@ -246563,7 +246582,7 @@
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
     "tools/flea-gio-auth": "91009376f4107dd546e6689ba77b2b8254c297d3689fa3ee62482c95864e618d",
     "tools/flea-glyph-sheet": "4b50385f212b2a450c63c28d7b67a5057b3756399c80e96c83b4d6242876428e",
-    "tools/flea-gpu-report": "344abfb033722974d82ad1ca5aead1939f01c2d7682530ebabf22e9f6912a1f5",
+    "tools/flea-gpu-report": "5751d42b6dc901ed2515ce7aa9e82fecb422411264137964a379265108af97c1",
     "tools/flea-gpui-lint": "743b41ac5f316e2cab68bddebdb1808be73058162a2623c03b1cd66145e3b976",
     "tools/flea-gvfs-fixture": "b4f44dffebe508a8959061cecdcdcfc0c18b128c89a8f9d7019998d7d38d105b",
     "tools/flea-hook-check": "c445b12efd903e95d3b226809a66a48bd37341db729e1dc4be0f6454d28b40a4",
@@ -247090,8 +247109,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "52692b03a99e6b995c489729b260f5e6df86e9ab",
-  "source_sha": "52692b03a99e6b995c489729b260f5e6df86e9ab",
+  "source_ref_sha": "22abeeea8e517a054322d124185c8731ecaa265d",
+  "source_sha": "22abeeea8e517a054322d124185c8731ecaa265d",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247100,13 +247119,13 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
-      "missing_literal_candidates": 5117,
+      "missing_literal_candidates": 5119,
       "source_files": 156
     },
     "gui": {
       "keys_with_occurrences": 529,
       "missing_literal_candidates": 2094,
-      "source_files": 1108
+      "source_files": 1109
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

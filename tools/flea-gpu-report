@@ -80,6 +80,7 @@ def decode(stderr):
     available = []
     selected = None
     opened = None
+    changed = False
     for line in stderr.splitlines():
         snapshot = re.fullmatch(r'GPUI_RENDERER backend=(\w+) adapter=("(?:[^"\\]|\\.)*") driver=("(?:[^"\\]|\\.)*") driver_info=("(?:[^"\\]|\\.)*") software=(true|false) .+', line)
         if snapshot:
@@ -93,6 +94,7 @@ def decode(stderr):
         if backend_line:
             backend = backend_line[1] or backend_line[2]
             selected = (backend_line[3].strip('"'), "Gl" if backend == "OpenGL" else backend)
+            changed |= opened is not None and selected != opened
             if adapter and adapter.get("name") == selected[0]:
                 adapter["backend"] = selected[1]
                 opened = selected
@@ -102,7 +104,9 @@ def decode(stderr):
         choice = re.fullmatch(r"flea-graphics: Selected GPU \(passed configuration test\): (.+) \((Vulkan|Gl)\)", line)
         if choice:
             selected = choice.groups()
+            changed |= opened is not None and selected != opened
         if line.startswith("FLEA_GPU_ADAPTER "):
+            previous = adapter
             adapter = json.loads(line[len("FLEA_GPU_ADAPTER "):])
             if not isinstance(adapter, dict):
                 raise ValueError("candidate adapter diagnostics are not an object")
@@ -111,7 +115,13 @@ def decode(stderr):
                     raise ValueError("candidate adapter diagnostics have an invalid text field")
             if "cpu" in adapter and type(adapter["cpu"]) is not bool:
                 raise ValueError("candidate CPU diagnostics are not a Boolean")
+            if previous and type(previous.get("cpu")) is bool and type(adapter.get("cpu")) is bool:
+                changed |= (previous.get("name"), previous["cpu"]) != (adapter.get("name"), adapter["cpu"])
             opened = selected
+            if selected is not None and adapter.get("name") == selected[0]:
+                adapter["backend"] = selected[1]
+            if "device_type" not in adapter and type(adapter.get("cpu")) is bool:
+                adapter["device_type"] = "Cpu" if adapter["cpu"] else "hardware (exact type unavailable)"
         elif line.startswith("FLEA_GPU_FRAMES "):
             frames = json.loads(line[len("FLEA_GPU_FRAMES "):])
         elif line.startswith("flea-gpu-policy: "):
@@ -133,7 +143,7 @@ def decode(stderr):
         if name == adapter.get("name") and (kind == "Cpu") == adapter.get("cpu") and (actual_backend is None or actual_backend.lower() == backend.lower()) and (opened is None or opened == (name, backend)):
             adapter.update(backend=backend, device_type=kind)
             break
-    if selected is not None and ((opened is not None and selected != opened) or adapter.get("name") != selected[0]):
+    if changed or (selected is not None and ((opened is not None and selected != opened) or adapter.get("name") != selected[0])):
         adapter["changed"] = True
         adapter["cpu"] = None
     return adapter, frames, policy
