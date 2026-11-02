@@ -68,6 +68,7 @@ impl QuickLook {
             source.1,
             vector,
         );
+        let (dw, dh) = crate::bench_thumbs::preview_size(source, (dw, dh));
         if dw == 0 || dh == 0 {
             return RasterState::default();
         }
@@ -80,6 +81,9 @@ impl QuickLook {
         if fresh {
             self.refine_picture(window, cx);
             return self.svg.as_ref().map(SvgPicture::state).unwrap_or_default();
+        }
+        if crate::bench_thumbs::enabled() {
+            crate::bench_thumbs::begin("preview", &path.to_string_lossy());
         }
         // The same path keeps drawing its last raster until the new one lands; a new path retires it.
         let prior = self.svg.take();

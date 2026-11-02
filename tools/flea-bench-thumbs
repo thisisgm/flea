@@ -167,6 +167,8 @@ def roster_template():
         if ident == "flea-0312":
             binary = "/home/gm/flea-work/h323/target/release/flea"
         row = dict(id=ident, binary=binary, version="", sha256="", release_url="", checked_utc="", build_sha="")
+        if ident == "flea":
+            row["gui_sha256"] = ""
         if ident in inventory.version_probe.PACKAGED:
             row.update(package_name=ident, package_version="")
         rows.append(row)
@@ -197,6 +199,8 @@ def roster(path, installed=False):
             raise ValueError(f"latest-release evidence URL required: {row['id']}")
         if row["id"] == "flea" and row["version"] != "0.4.0":
             raise ValueError("candidate must report 0.4.0")
+        if row["id"] == "flea" and digest(binary.with_name("flea-gui")) != row.get("gui_sha256"):
+            raise ValueError("candidate needs the exact sibling flea-gui checksum")
         if row["id"] == "flea-0312" and row["version"] != "0.3.12":
             raise ValueError("comparison must report 0.3.12")
         if row["id"].startswith("strata"):
@@ -219,7 +223,7 @@ def summary(rows):
             for metric, threshold in AFTER[name].items():
                 values = [r.get(metric) for r in selected]
                 valid = len(selected) == 6 and {r["round"] for r in selected} == set(range(1, 7))
-                valid = valid and all(r.get("verified") == 16 and not r.get("simulated") for r in selected)
+                valid = valid and all(r.get("verified") == 16 and not r.get("simulated") and not r.get("mutant") for r in selected)
                 valid = valid and all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in values)
                 stats = dict(median=statistics.median(values), minimum=min(values), maximum=max(values)) if valid else {}
                 metrics[metric] = dict(after=threshold, measured=valid, beats_after=valid and threshold is not None and stats["median"] < threshold, **stats)
@@ -247,6 +251,8 @@ def run(args, root):
                     wayland_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/wayland.py"),
                     inventory_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/inventory.py"),
                     versions_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/versions.py"),
+                    gpui_reader_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/gpui.py"),
+                    cgroup_cpu_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/cgroup_cpu.py"),
                     key_helper_sha256=digest(REPO / "tools/flea-bench-keys"),
                     installed_only=args.installed, latest_releases_asserted=not args.installed,
                     fixture_limit="Synthetic RGB, not the unpublished source corpus; absolute After comparison remains provisional.")
@@ -295,7 +301,7 @@ def main():
         print(json.dumps(roster_template(), indent=2))
         return 0
     if args.command == "doctor":
-        required = wayland.TOOLS
+        required = (*wayland.TOOLS, "systemd-run", "systemctl")
         paths = {name: shutil.which(name) for name in required}
         print(json.dumps(dict(host=platform.node(), kernel=platform.release(), tools=paths), indent=2))
         return 0 if all(paths.values()) else 2

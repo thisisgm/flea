@@ -1,4 +1,5 @@
 pub mod backend;
+mod bench_thumbs;
 mod capture;
 pub mod columns;
 pub(crate) mod compositor;

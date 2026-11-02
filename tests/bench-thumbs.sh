@@ -9,6 +9,7 @@ trap 'python3 -B tests/bench-thumbs.py --cleanup-root "$root"' EXIT
 printf 'bench-thumbs: sandbox %s\n' "$root"
 python3 -B tools/flea-bench-thumbs --help >/dev/null
 python3 -B tests/bench-thumbs.py
+python3 -B tests/bench-thumbs-gpui.py
 python3 -B tests/bench-thumbs-native.py
 python3 -B tests/bench-thumbs-background.py
 python3 -B tests/bench-thumbs-safety.py

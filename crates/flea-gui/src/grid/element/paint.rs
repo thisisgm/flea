@@ -223,12 +223,8 @@ impl GridElement {
             let painted = window
                 .paint_image(at, at, Corners::default(), image.clone(), 0, false)
                 .is_ok();
-            if let Some((trace, full)) = self
-                .decor
-                .pictures()
-                .and_then(|pictures| pictures.trace(drawn.listing))
-            {
-                trace.stage(window, painted, full);
+            if let Some(pictures) = self.decor.pictures() {
+                pictures.record_paint(drawn.listing, at, window, painted);
             }
         } else {
             let (key, data) = drawn.language.clone().unwrap_or_else(|| {

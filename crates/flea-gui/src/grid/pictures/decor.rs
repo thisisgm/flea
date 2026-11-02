@@ -84,6 +84,31 @@ fn reduce(image: &RenderImage, width: u32, height: u32) -> Option<Arc<RenderImag
 }
 
 impl Pictures {
+    pub(crate) fn record_paint(
+        &self,
+        row: usize,
+        bounds: Bounds<Pixels>,
+        window: &mut Window,
+        painted: bool,
+    ) {
+        if let Some((trace, full)) = self.trace(row) {
+            trace.stage(window, painted, full);
+        }
+        if !painted || !crate::bench_thumbs::enabled() {
+            return;
+        }
+        let map = self.map.borrow();
+        if let Some(Slot::Ready { picture, .. }) = map.slots.get(&row) {
+            crate::bench_thumbs::painted(
+                "thumbnail",
+                &crate::navigation::history::join(&map.path, &picture.identity.name),
+                picture.decoded(),
+                bounds,
+                window,
+            );
+        }
+    }
+
     /// Hands the tiles their clipboard marks, which outlive every picture this decor lends.
     pub fn set_clip(&self, marks: Rc<dyn Decor>) {
         *self.clip.borrow_mut() = Some(marks);
