@@ -124,6 +124,9 @@ impl QuickLook {
         let Some(picture) = self.svg.as_mut().filter(|picture| picture.image.is_some()) else {
             return;
         };
+        if picture.quality.ready {
+            return;
+        }
         let size = picture.size;
         let version = (self.raster_latest.load(Ordering::SeqCst), 0);
         if let Some(Ok(image)) =
@@ -157,6 +160,13 @@ impl QuickLook {
             return;
         };
         let (path, size) = (svg.path.clone(), svg.size);
+        // The column already supplies first paint; decode the original directly for its replacement.
+        let sharp = svg.interim
+            && self.raster.is_none()
+            && !path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(flea::ui_logic_pv1::pixels::is_host_decoded);
         let epoch = self.raster_latest.load(Ordering::SeqCst);
         let raster = self
             .raster
@@ -171,11 +181,33 @@ impl QuickLook {
             latest: self.raster_latest.clone(),
             raster,
         };
-        let work = cx
-            .background_executor()
-            .spawn(async move { raster::run(&job) });
+        let work = cx.background_executor().spawn(async move {
+            if !sharp {
+                return (raster::run(&job), false);
+            }
+            let identity = crate::preview_quality::reuse::file_identity(&job.path);
+            let current = || job.latest.load(Ordering::SeqCst) == job.epoch;
+            let image = photo::decode_sharp(&job.path, job.size, &current);
+            if !current() {
+                return (raster::RasterOutcome::Superseded, false);
+            }
+            match image {
+                Ok(image) => {
+                    crate::preview_quality::reuse::keep(
+                        &job.path,
+                        (job.epoch, 0),
+                        job.size,
+                        &image,
+                        identity,
+                    );
+                    (raster::RasterOutcome::Raster(image), true)
+                }
+                // A scaled-readable source may exceed the full decoder's bound or codec support.
+                Err(()) => (raster::run(&job), false),
+            }
+        });
         cx.spawn(async move |this, cx| {
-            let landed = work.await;
+            let (landed, sharp) = work.await;
             let _ = this.update(cx, |ql, cx| {
                 ql.raster_in_flight = false;
                 let current = ql.raster_latest.load(Ordering::SeqCst) == epoch
@@ -192,6 +224,9 @@ impl QuickLook {
                     raster::RasterOutcome::Raster(image) => {
                         if let Some(svg) = ql.svg.as_mut() {
                             svg.refusal = None;
+                            if sharp {
+                                svg.quality.ready = true;
+                            }
                             let borrowed = std::mem::take(&mut svg.interim);
                             let old = svg.image.replace(image);
                             if borrowed {
@@ -279,3 +314,7 @@ impl QuickLook {
         let _ = self.raster_latest.fetch_add(1, Ordering::SeqCst);
     }
 }
+
+#[cfg(test)]
+#[path = "settle_tests.rs"]
+mod settle_tests;

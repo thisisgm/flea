@@ -248,10 +248,10 @@ impl QuickLook {
 
     pub(crate) fn quality_pixels(&self) -> Option<((u32, u32), bool)> {
         let picture = self.svg.as_ref()?;
-        Some((
-            picture.quality.requested.as_ref()?.size,
-            picture.quality.ready,
-        ))
+        match &picture.quality.requested {
+            Some(request) => Some((request.size, picture.quality.ready)),
+            None => picture.quality.ready.then_some((picture.size, true)),
+        }
     }
 
     /// Source decodes of the open picture's file, for the decodes-per-open reader.
