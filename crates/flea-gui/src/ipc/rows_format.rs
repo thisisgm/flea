@@ -50,3 +50,16 @@ pub fn colour(value: Hsla) -> String {
         format!("#{a:02x}{r:02x}{g:02x}{b:02x}")
     }
 }
+
+/// click_row's reported centre must lie inside both the painted viewport and its rounded IPC rectangle.
+pub(crate) fn centre_inside(area: Bounds<Pixels>, (x, y, w, h): (f32, f32, f32, f32)) -> bool {
+    let (cx, cy) = (round(x + w / 2.), round(y + h / 2.));
+    let centre = gpui::point(gpui::px(cx as f32), gpui::px(cy as f32));
+    let (left, top) = (
+        round(f32::from(area.origin.x)),
+        round(f32::from(area.origin.y)),
+    );
+    let right = round(f32::from(area.origin.x + area.size.width));
+    let bottom = round(f32::from(area.origin.y + area.size.height));
+    area.contains(&centre) && cx >= left && cx < right && cy >= top && cy < bottom
+}

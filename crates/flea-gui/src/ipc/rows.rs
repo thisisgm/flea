@@ -19,9 +19,9 @@ use gpui::{Bounds, Hsla, Pixels};
 mod centres_tests;
 #[path = "rows_format.rs"]
 mod geometry_text;
-pub(crate) use geometry_text::centre_of_bounds;
 use geometry_text::rect_of_bounds;
 pub(crate) use geometry_text::round;
+pub(crate) use geometry_text::{centre_inside, centre_of_bounds};
 pub use geometry_text::{centre_of, colour, rect_of};
 
 /// One pane's List, its held rows and the states its owners hold.
@@ -56,19 +56,6 @@ pub(crate) fn drawn_row_rect(list: &ListState, held: &Held, index: usize) -> Str
     };
     let (x, y, w, h) = drawn_row_box(list, shown.view);
     rect_of(x, y, w, h)
-}
-
-/// click_row's reported centre must lie inside both the painted viewport and its rounded IPC rectangle.
-pub(crate) fn centre_inside(area: Bounds<Pixels>, (x, y, w, h): (f32, f32, f32, f32)) -> bool {
-    let (cx, cy) = (round(x + w / 2.), round(y + h / 2.));
-    let centre = gpui::point(gpui::px(cx as f32), gpui::px(cy as f32));
-    let (left, top) = (
-        round(f32::from(area.origin.x)),
-        round(f32::from(area.origin.y)),
-    );
-    let right = round(f32::from(area.origin.x + area.size.width));
-    let bottom = round(f32::from(area.origin.y + area.size.height));
-    area.contains(&centre) && cx >= left && cx < right && cy >= top && cy < bottom
 }
 
 /// Ipc.qml listAreaRect for any pane's list.
