@@ -1,8 +1,5 @@
 use super::*;
-use std::{
-    os::{fd::AsRawFd, unix::fs::PermissionsExt},
-    time::Duration,
-};
+use std::{os::fd::AsRawFd, time::Duration};
 
 pub(crate) struct Fixture(pub PathBuf, std::fs::File);
 
@@ -36,12 +33,20 @@ impl Fixture {
 
     pub(crate) fn command(&self, status: u8) -> PathBuf {
         let path = self.0.join("hyprctl");
-        std::fs::write(
-            &path,
-            format!("#!/bin/sh\ncat \"${{0%/*}}/answer\"\nexit {status}\n"),
-        )
-        .unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        // A child writes the script, since a writable fd here leaks into concurrent forks and exec then fails ETXTBSY.
+        let written = Command::new("/bin/sh")
+            .args([
+                "-c",
+                "printf '%s' \"$2\" > \"$1\" && chmod 700 \"$1\"",
+                "sh",
+            ])
+            .arg(&path)
+            .arg(format!(
+                "#!/bin/sh\ncat \"${{0%/*}}/answer\"\nexit {status}\n"
+            ))
+            .status()
+            .unwrap();
+        assert!(written.success());
         path
     }
 
