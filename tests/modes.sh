@@ -15,7 +15,7 @@ MODE_BIN=$(mktemp -d "$FIXTURE_ROOT/flea-modes-bin.XXXXXXXX") || exit 1
 : > "$MODE_BIN/.flea-test-sandbox"
 cp "$BIN_REAL" "$MODE_BIN/flea" || exit 1
 BIN="$MODE_BIN/flea"
-BIN_REAL="$BIN"
+BIN_REAL=$(readlink -f "$BIN")
 trap 'sandbox_remove "$MODE_BIN"' EXIT
 # Named, not re-derived from ui_dir's own walk, which an installed /usr/share/flea/ui outranks.
 UI_REAL=$(readlink -f .)/ui
@@ -111,7 +111,7 @@ check "an empty DISPLAY does not mask WAYLAND_DISPLAY" "1" "$(echo "$out" | grep
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display DISPLAY=:99 PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
 check "two non-empty displays are accepted" "1" "$(echo "$out" | grep -c 'the window could not start')"
 
-# qs missing from PATH is what a bad launcher or .desktop install hits; no errno may leak.
+# A flea-gui found neither beside flea nor on PATH is a broken install, so the error names the binary and its cause.
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
 check "missing GPUI binary is named" "1" "$(echo "$out" | grep -c 'the window could not start')"
 check "missing GPUI binary carries its cause" "1" "$(echo "$out" | grep -c 'os error')"
@@ -162,7 +162,7 @@ out=$(env FLEA_BIN=stale FLEA_UI="$UI_REAL" WAYLAND_DISPLAY=flea-modes-test-disp
 check "the launched shell has transparent huge pages off" "1" \
   "$(echo "$out" | grep -c 'THP_enabled:[[:space:]]*0')"
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
-# The entry is ui/boot/shell.qml and not the ui directory, because a document imports its own.
+# GPUI opens its own window, so the default launch hands the binary no QML entry.
 check "the default launch targets GPUI without a QML entry" "ARGV " "$(echo "$out" | grep '^ARGV ')"
 # 24003ab made an explicit FLEA_BIN the operator's choice, the rule FLEA_UI and QSG_RHI_BACKEND
 # already follow, and this check was left asserting the behaviour that commit replaced. The launch
@@ -172,17 +172,13 @@ check "an explicit FLEA_BIN is the operator's, and reaches the shell" "FLEA_BIN 
   "$(echo "$out" | grep '^FLEA_BIN ')"
 check "GPUI chooses its own renderer" "1" "$(echo "$out" | grep -c '^RENDERER $')"
 check "GPUI inherits no QML retry" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
-# The downgrade below says why, so its silence here is what proves this arm took the probe's other branch.
-check "a loader that can deliver Vulkan says nothing" "0" "$(echo "$out" | grep -c 'Vulkan is unusable')"
 # Which drivers are excluded depends on this box's GPUs, but the marker always names the exact filter Flea wrote.
 disabled=$(echo "$out" | sed -n 's/^DRIVERS_DISABLE //p')
 check "a driver exclusion and its marker travel together" "$disabled" "$(echo "$out" | sed -n 's/^DISABLE_MARKER //p')"
 out=$(env VK_ICD_FILENAMES=/tmp/flea-operator-icd.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit ICD list is preserved" "1" "$(echo "$out" | grep -c '^ICD /tmp/flea-operator-icd.json$')"
-check "and an explicit ICD list is not announced as a pin" "0" "$(echo "$out" | grep -c 'GPU with no display')"
 out=$(env VK_DRIVER_FILES=/tmp/flea-operator-driver.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit driver file list is preserved" "1" "$(echo "$out" | grep -c '^DRIVER_FILES /tmp/flea-operator-driver.json$')"
-check "and an explicit driver file list is not announced as a pin" "0" "$(echo "$out" | grep -c 'GPU with no display')"
 check "and an explicit driver file list excludes no driver" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE unset$')"
 # The loader's own filter is the operator's too, and Flea neither replaces it nor marks it as its own.
 out=$(env VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
@@ -598,7 +594,7 @@ for handoff in $handoffs; do
   check "PKGBUILD depends on $package, which ships $handoff" "1" "$( (. ./PKGBUILD && printf '%s\n' "${depends[@]}") | grep -cxF "$package")"
 done
 
-# The stub qs is what exec_qs launched, so it inherits huge pages off; --open must hand them back.
+# The stub flea-gui is what exec_window launched, so it inherits huge pages off; --open must hand them back.
 : > "$last_arg"
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --open %s\n' "$BIN_REAL" "$D/file.txt" > "$D/bin/flea-gui"
 chmod +x "$D/bin/flea-gui"
@@ -790,7 +786,7 @@ check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothin
 out=$($BIN --terminal 2>&1 </dev/null)
 check "--terminal with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--terminal')"
 
-# The stub qs is what exec_qs launched, so it inherits huge pages off; --terminal must hand them
+# The stub flea-gui is what exec_window launched, so it inherits huge pages off; --terminal must hand them
 # back. This is the arm with teeth: the plain call above runs with them already on.
 printf '#!/bin/sh\nexec %s --terminal %s\n' "$BIN_REAL" "$D/dir" > "$D/bin/flea-gui"
 chmod +x "$D/bin/flea-gui"
@@ -1003,7 +999,7 @@ out=$(cd "$D/deep/er" && "$BIN_REAL" --select ../x --print-target 2>&1)
 check "select: a dot dot name folds into an absolute pair" "$D_REAL/deep $D_REAL/deep/x" "$out"
 out=$(cd "$D/deep/er" && "$BIN_REAL" --select ./sub/note.txt --print-target 2>&1)
 check "select: a dot slash name drops the dot" "$D_REAL/deep/er/sub $D_REAL/deep/er/sub/note.txt" "$out"
-# A stand-in qs prints what the window is handed; only stdout counts, as a box without Vulkan adds a stderr line.
+# A stand-in flea-gui prints the start and select arguments the window is handed.
 mkdir -p "$D/bin" "$D/home" "$D/data" "$D/cache"
 cat > "$D/bin/flea-gui" <<'START_STUB'
 #!/bin/sh
