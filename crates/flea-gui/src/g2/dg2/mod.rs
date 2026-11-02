@@ -5,6 +5,8 @@ pub mod join;
 pub mod router;
 
 #[cfg(test)]
+mod drag_hig_tests;
+#[cfg(test)]
 mod feedback_tests;
 #[cfg(test)]
 mod rail_drop_tests;
