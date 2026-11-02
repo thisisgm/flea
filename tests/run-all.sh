@@ -46,6 +46,7 @@ headless="$headless bench-b3-capture"
 headless="$headless native-runtime"
 headless="$headless prove-ci-runner bench-raw-corpus-contract"
 headless="$headless tool-preflight opr-recipe slop-ratchet"
+headless="$headless bench-thumbs"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0
