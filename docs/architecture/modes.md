@@ -125,24 +125,23 @@ command the operator did not run.
 `--pick <reply>` is matched in its own exact shape and is not for people: it is how
 `tools/flea-portal` opens one chooser window. See "The file chooser portal".
 
-What remains chooses between the terminal interface and the window with two
-booleans, `want_tui` and `want_gui`, not an enum: there are four modes total, each dispatched
-exactly once, and a type nobody matches on twice would be ceremony.
+For a browsing launch, `src/launchargs.rs` parses `--tui`, `--gui`, the starting path and
+`--select`. `src/main.rs` then dispatches to the terminal interface or the window.
 
-`--tui` and `--gui` are mutually exclusive; giving both is a usage error naming the conflict,
-never a coin flip. With neither flag the window is the default, including when both handles are
-a terminal, because the terminal interface is reserved but not built and a bare invocation must
-open the product that exists. `--tui` is the only route to that reserved interface, and the only
-mode that reads the tty at all: `main.rs` computes the `is_terminal()` pair one line above the
-`if want_tui` that is its only reader, so no other mode can consult it even by accident. It requires
-both stdin and stdout to be a real terminal, not just one, so a future implementation cannot write
-escape codes into a pipeline. `flea | head` gives stdin a tty and stdout a pipe and an explicit
-`--tui` therefore refuses. A window launch without a non-empty `WAYLAND_DISPLAY` or `DISPLAY`
-refuses rather than trying and failing inside `qs`.
+`--tui` and `--gui` are mutually exclusive; giving both is a usage error naming the conflict.
+With neither flag the window is the default, including when stdin and stdout are terminals.
+`--tui` enters the implemented terminal interface through `src/tui/mod.rs`'s `tui::run`.
+Before that call, `src/main.rs` requires both stdin and stdout to be terminals; otherwise it
+prints `flea: the terminal interface needs a terminal on stdin and stdout` and exits `2`.
+For example, `flea --tui | head` refuses because stdout is a pipe. The TUI branch runs before
+the graphical-session check, so it does not require `WAYLAND_DISPLAY` or `DISPLAY`.
+A window launch without a non-empty value for either variable refuses with exit `2`.
 
-`./tests/modes.sh` checks both no-flag shapes: redirected handles exercise the launcher path and
-`script` from the hard `util-linux` dependency gives the child a real pty on both handles, pinning
-the terminal invocation that used to fall into the unbuilt interface.
+For the window branch, `FLEA_FRONTEND=gpui` selects `gui::exec_gpui`; otherwise the launcher
+uses the QML path through `paths::ui_dir()` and `gui::exec_qs`. See `src/gui/launch.rs`.
+
+`./tests/modes.sh` checks the window default with redirected handles and with a real pty
+provided by `script`. It also checks conflicting flags and refusal of `--tui` without a tty.
 
 `paths::ui_dir()` finds the UI the same way `FLEA_BIN` finds the backend binary (see "Where
 the backend binary comes from" below): `FLEA_UI` first, then the packaged
