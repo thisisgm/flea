@@ -47,6 +47,7 @@ impl QuickLook {
             .closing
             .take()
             .and_then(|subject| subject.body.doc().cloned())
+            .filter(|doc| self.kept != Some(doc.id()))
         {
             doc.close(cx);
         }

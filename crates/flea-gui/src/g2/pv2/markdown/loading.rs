@@ -26,6 +26,23 @@ impl MarkdownView {
         }
     }
 
+    /// Taken back from the closed card: it stops asking that card's host and keeps what it drew.
+    pub fn park(&mut self) {
+        self.code = None;
+    }
+
+    /// A view taken back from the closed card opens again as a fresh preparation would: at the top, Rendered, unselected.
+    pub fn rewind(&mut self, cx: &mut Context<Self>) {
+        self.selection.clear();
+        self.view = View::Rendered;
+        self.close_focused = false;
+        self.pointer = Default::default();
+        self.scroll = 0.;
+        self.source.top = 0;
+        self.source.offset = 0.;
+        cx.notify();
+    }
+
     pub fn configure_prepare(&mut self, frame: (f32, f32)) {
         self.preparing = true;
         self.read_limit = markdown_prepared::MAX_BYTES;

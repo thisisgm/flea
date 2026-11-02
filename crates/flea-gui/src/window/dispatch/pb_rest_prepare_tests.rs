@@ -14,9 +14,7 @@ use std::{
 struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
-        let parent = std::env::current_dir()
-            .unwrap()
-            .join(".superpowers/PB-REST-1");
+        let parent = std::env::temp_dir().join("PB-REST-1");
         std::fs::create_dir_all(&parent).unwrap();
         let output = std::process::Command::new("mktemp")
             .arg("-d")
@@ -41,9 +39,7 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
-        let parent = std::env::current_dir()
-            .unwrap()
-            .join(".superpowers/PB-REST-1");
+        let parent = std::env::temp_dir().join("PB-REST-1");
         assert!(
             self.0.is_absolute()
                 && self.0.starts_with(parent)
@@ -219,6 +215,90 @@ fn pb_rest_space_revalidates_prepared_text_even_when_the_listed_size_is_unchange
         super::preview_tests::draw(cx);
         std::thread::sleep(Duration::from_millis(5));
     }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn previewq_dismiss_does_not_prepare_the_unchanged_markdown_again(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (shell, cx) = open(&fixture, cx, "local");
+    let prepared = ready(&shell, cx);
+    cx.simulate_keystrokes("space");
+    super::menus_tests::settle(cx);
+    let shown = shell.read_with(cx, |shell, cx| {
+        assert!(shell.quick_look_open(cx), "Space opened Quick Look");
+        let host = shell.quick_look.as_ref().unwrap();
+        let Body::Doc(doc) = &host.view.read(cx).subject().unwrap().body else {
+            panic!("Space mounted a document")
+        };
+        let View::Markdown(view) = &doc.view else {
+            panic!("Space mounted Markdown")
+        };
+        (doc.id(), view.read(cx).doc.seq)
+    });
+    assert_eq!(shown.0, prepared, "Space took the rested preparation");
+    cx.simulate_keystrokes("escape");
+    super::menus_tests::settle(cx);
+    cx.executor().advance_clock(Duration::from_millis(150));
+    super::menus_tests::settle(cx);
+    shell.read_with(cx, |shell, cx| {
+        assert!(!shell.quick_look_open(cx), "Escape closed Quick Look");
+        let doc = shell.panes[0].as_ref().unwrap().look_warm.prepared.as_ref();
+        let kept = doc.map(|doc| {
+            let View::Markdown(view) = &doc.view else {
+                panic!("a Markdown entry")
+            };
+            let view = view.read(cx);
+            (
+                doc.id(),
+                view.doc.seq,
+                view.counts.parses,
+                view.doc.complete,
+            )
+        });
+        assert_eq!(
+            kept,
+            Some((shown.0, shown.1, 1, true)),
+            "dismissing an unchanged document must not read and prepare it again"
+        );
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn previewq_dismiss_then_space_reopens_the_unchanged_markdown_warm(cx: &mut TestAppContext) {
+    let fixture = Fixture::new();
+    let (shell, cx) = open(&fixture, cx, "local");
+    let shown = ready(&shell, cx);
+    cx.simulate_keystrokes("space");
+    super::menus_tests::settle(cx);
+    assert!(shell.read_with(cx, |shell, cx| shell.quick_look_open(cx)));
+    cx.simulate_keystrokes("escape");
+    // No clock advance: a re-preparation could only land after its 120 ms timer.
+    super::preview_tests::draw(cx);
+    let warm = shell.read_with(cx, |shell, cx| {
+        assert!(!shell.quick_look_open(cx), "Escape closed Quick Look");
+        let warm = &shell.panes[0].as_ref().unwrap().look_warm;
+        warm.prepared.as_ref().map(|doc| doc.id())
+    });
+    assert_eq!(
+        warm,
+        Some(shown),
+        "the dismiss hands the shown view back at once"
+    );
+    cx.simulate_keystrokes("space");
+    super::menus_tests::settle(cx);
+    shell.read_with(cx, |shell, cx| {
+        let host = shell.quick_look.as_ref().unwrap();
+        let Body::Doc(doc) = &host.view.read(cx).subject().unwrap().body else {
+            panic!("Space mounted a document")
+        };
+        assert_eq!(doc.id(), shown, "the second Space takes the shown view");
+        let View::Markdown(view) = &doc.view else {
+            panic!("Space mounted Markdown")
+        };
+        assert_eq!(view.read(cx).counts.parses, 1, "the reopen is not reparsed");
+    });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
