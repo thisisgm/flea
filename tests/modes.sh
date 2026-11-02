@@ -786,8 +786,7 @@ check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothin
 out=$($BIN --terminal 2>&1 </dev/null)
 check "--terminal with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--terminal')"
 
-# The stub flea-gui is what exec_window launched, so it inherits huge pages off; --terminal must hand them
-# back. This is the arm with teeth: the plain call above runs with them already on.
+# exec_window starts the stub flea-gui with huge pages off, so only this arm proves --terminal hands them back.
 printf '#!/bin/sh\nexec %s --terminal %s\n' "$BIN_REAL" "$D/dir" > "$D/bin/flea-gui"
 chmod +x "$D/bin/flea-gui"
 : > "$ran"
