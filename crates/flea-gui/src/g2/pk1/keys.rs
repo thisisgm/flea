@@ -141,6 +141,7 @@ impl Picker {
         let key = event.keystroke.key.as_str();
         if self.browse.listing.read(cx).view_mode() == "grid"
             && !text_focus
+            && action != "historyBack"
             && !(chord.control || chord.alt || chord.platform || chord.shift)
             && matches!(key, "left" | "right" | "h" | "l")
         {
@@ -154,6 +155,9 @@ impl Picker {
             self.go_up(cx);
         } else if action == "historyBack" {
             self.go_back(cx);
+        } else if action == "pathBar" {
+            // The shared entry opens in key(), before a Grid l can move the cursor.
+            return false;
         } else if action == "selectAll" && !text_focus {
             self.select_all(cx);
         } else if key == "space" && !text_focus {
@@ -228,3 +232,7 @@ impl Picker {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "picker_grid_remainder_tests.rs"]
+mod picker_grid_remainder_tests;
