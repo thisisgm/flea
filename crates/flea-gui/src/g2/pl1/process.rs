@@ -224,7 +224,7 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
         .envs(job.env.iter().map(|(k, v)| (k, v)))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    // Its own group, so cleanup also ends descendants that have not escaped it.
+    // Its own group, so a cancel also ends descendants that have not escaped it.
     command.process_group(0);
     command.stdin(if job.stdin.is_some() {
         Stdio::piped()
@@ -253,7 +253,7 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
             let _ = child.wait();
             let _ = send.send_blocking(Event::Exited(Outcome {
                 code: -1,
-                stderr: error.to_string(),
+                stderr: format!("nonblocking output pipe setup failed: {error}"),
                 ..Outcome::default()
             }));
             return;
@@ -278,9 +278,11 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
             match leader_exited(child.id()) {
                 Ok(false) => {}
                 result => {
-                    // Keep the leader unreaped until every group signal has been sent.
+                    // A natural exit leaves the group alone, since setsid(1) forks before its child escapes it.
                     input = None;
-                    kill_group(child.id());
+                    if cancelled || result.is_err() {
+                        kill_group(child.id());
+                    }
                     if result.is_err() {
                         let _ = child.kill();
                     }

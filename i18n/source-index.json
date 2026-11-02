@@ -110212,9 +110212,27 @@
       "surface": "gui"
     },
     {
+      "excerpt": "stderr: format!(\"nonblocking output pipe setup failed: {error}\"),",
+      "line": 256,
+      "literal": "nonblocking output pipe setup failed: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pl1/process.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "writer.write_all(b\"buffered past the cap\").unwrap();",
-      "line": 171,
+      "line": 174,
       "literal": "buffered past the cap",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pl1/process_io.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert_eq!(unread, b\"fered past the cap\");",
+      "line": 187,
+      "literal": "fered past the cap",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pl1/process_io.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -244845,9 +244863,9 @@
     "crates/flea-gui/src/g2/pl1/phones.rs": "b8730a2a3e3a74d9a764e9e715b18776d845dcdd96e00dd31e7f775196c0f0ce",
     "crates/flea-gui/src/g2/pl1/private_entry.rs": "f5f107ba650d8fca7b4873c2675e3a21a6b8d3e26f36b073097b1b0dd43db2fb",
     "crates/flea-gui/src/g2/pl1/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
-    "crates/flea-gui/src/g2/pl1/process.rs": "94a05c1a5846c61b3cd634a2a09bb9396f27303d322597f15f23dbfac3dd13aa",
+    "crates/flea-gui/src/g2/pl1/process.rs": "03b8743d4f7c823f792f594ba8373ae7f9e6389983bbba467009853259423bd0",
     "crates/flea-gui/src/g2/pl1/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
-    "crates/flea-gui/src/g2/pl1/process_io.rs": "bb11b3a6b2f71d96df5d2200757f9a701b8769ba6594cb4c1cc1eef38910ffd2",
+    "crates/flea-gui/src/g2/pl1/process_io.rs": "bea6d32775e70398622d7a898813ab5a25cc9c73a9f4555b63b1468c9f5d3b80",
     "crates/flea-gui/src/g2/pl1/rail_events.rs": "f42092e6a33609a3f0adf6d5b009d6531f872ef6f3abcbe5746bd8cfefec5050",
     "crates/flea-gui/src/g2/pl1/seams.rs": "d5eef58a76c157061d64a90360091396ab8930fb6135017816885bf6c0e8dbaa",
     "crates/flea-gui/src/g2/pl1/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
@@ -247108,8 +247126,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "096832bf241a1fcc10cb523a1f506cd3133813a4",
-  "source_sha": "096832bf241a1fcc10cb523a1f506cd3133813a4",
+  "source_ref_sha": "cbbee5572c4755a51284bebba2be5b605278dafa",
+  "source_sha": "cbbee5572c4755a51284bebba2be5b605278dafa",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247123,7 +247141,7 @@
     },
     "gui": {
       "keys_with_occurrences": 532,
-      "missing_literal_candidates": 2095,
+      "missing_literal_candidates": 2097,
       "source_files": 1113
     },
     "qml-reference": {
