@@ -1,7 +1,7 @@
-total clone_lines 5140 250429
+total clone_lines 5120 250843
 total bool_structs 95
 total backend_imports 16
-total unwraps 526
+total unwraps 528
 bool_structs crates/flea-gui/src/columns/menu.rs Busy 1
 bool_structs crates/flea-gui/src/columns/preview_host.rs Moment 1
 bool_structs crates/flea-gui/src/columns/sets.rs Set 1
@@ -263,7 +263,7 @@ clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/emp
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 7
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/mark.rs 6
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/field.rs 3
-clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/glyph.rs 29
+clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/glyph.rs 27
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/line.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op4/body_scroll.rs 6
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op4/preview.rs 5
@@ -523,7 +523,6 @@ clone_lines crates/flea-gui/src/g2/op1/palette.rs crates/flea-gui/src/path/paint
 clone_lines crates/flea-gui/src/g2/op2/cards.rs crates/flea-gui/src/g2/op3/shell.rs 2
 clone_lines crates/flea-gui/src/g2/op2/compress.rs crates/flea-gui/src/g2/op2/extract.rs 10
 clone_lines crates/flea-gui/src/g2/op2/compress_view.rs crates/flea-gui/src/g2/op2/extract.rs 1
-clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op2/draw_flash.rs 1
 clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op3/shell/draw/frame.rs 4
 clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op3/shell/field.rs 8
 clone_lines crates/flea-gui/src/g2/op2/draw_flash_rows.rs crates/flea-gui/src/g2/op2/draw_flash_rows.rs 5
@@ -1308,7 +1307,7 @@ unwraps crates/flea-gui/src/window/quick_look_interim.rs 1
 unwraps crates/flea-gui/src/window/quick_look_keys.rs 1
 unwraps crates/flea-gui/src/window/quick_look_mount.rs 3
 unwraps crates/flea-gui/src/window/quick_look_plugin.rs 1
-unwraps crates/flea-gui/src/window/quick_look_prepare.rs 2
+unwraps crates/flea-gui/src/window/quick_look_prepare.rs 4
 unwraps crates/flea-gui/src/window/quick_look_readers.rs 1
 unwraps crates/flea-gui/src/window/quick_look_replies.rs 3
 unwraps crates/flea-gui/src/window/quick_look_warm.rs 1
