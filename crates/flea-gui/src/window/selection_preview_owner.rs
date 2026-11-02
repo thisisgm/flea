@@ -29,6 +29,7 @@ impl SelectionPreview {
             automatic: true,
             media_backend: None,
             caches: Default::default(),
+            loading_mark: Rc::default(),
             epoch: cx.background_executor().now(),
             timer: None,
             gif: None,

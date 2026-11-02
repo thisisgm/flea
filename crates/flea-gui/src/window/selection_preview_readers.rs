@@ -38,9 +38,7 @@ pub(crate) fn centre(bounds: Bounds<Pixels>) -> String {
 impl Reader<'_> {
     pub(crate) fn value(&self, function: &str, arguments: &[String]) -> Option<String> {
         let view = self.view.filter(|v| self.active && v.visible);
-        let loading = view.is_some_and(|v| {
-            v.pending.is_some() && (!v.port.0.borrow().holding || v.drawn.is_none())
-        });
+        let loading = view.is_some_and(SelectionPreview::loading);
         let frame = view.and_then(|v| (!loading).then_some(v.drawn.as_ref()).flatten());
         let pdf = frame.and_then(|f| match &f.mounted {
             Mounted::Pdf(pdf) => Some(pdf.read(self.cx)),
@@ -152,13 +150,16 @@ impl Reader<'_> {
                 .and(view.and_then(|v| v.caches.strip.borrow().play))
                 .map_or(String::new(), centre),
             // ColumnsArea.qml factsLine: "Kind=MPEG-4 video|Duration=1:12|...".
-            "previewFacts" => frame.zip(view).map_or(String::new(), |(f, v)| {
-                v.facts(f, self.cx)
-                    .iter()
-                    .map(|(k, v)| format!("{k}={v}"))
-                    .collect::<Vec<_>>()
-                    .join("|")
-            }),
+            "previewFacts" => {
+                view.and_then(|v| v.presented().map(|f| (f, v)))
+                    .map_or(String::new(), |(f, v)| {
+                        v.facts(f, self.cx)
+                            .iter()
+                            .map(|(k, v)| format!("{k}={v}"))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    })
+            }
             // Without a preview class the pane's own fsinfo class answers, so the reader falls through.
             "storageClass" => view
                 .and_then(|v| v.class.as_ref())

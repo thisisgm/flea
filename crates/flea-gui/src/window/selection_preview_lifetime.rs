@@ -76,6 +76,7 @@ impl SelectionPreview {
         }
     }
     pub(crate) fn hide(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.loading_mark.show(false, Default::default());
         self.cancel_pending(window, cx);
         if let Some(frame) = self.drawn.take() {
             self.dispose(frame, window, cx);
