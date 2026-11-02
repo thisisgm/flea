@@ -15,6 +15,11 @@ pub(crate) struct KeyboardState<'a> {
     pub cx: &'a App,
 }
 
+/// Whether the open PDF holds the keyboard, as PdfViewer.activeFocus reads in v0.3.12.
+pub(crate) fn pdf_focused(shell: &Shell, window: &Window, cx: &App) -> bool {
+    KeyboardState { shell, window, cx }.focus_type() == "PdfViewer"
+}
+
 fn strings<'a>(values: impl Iterator<Item = &'a str>) -> Json {
     Json::Arr(values.map(|value| Json::Str(value.into())).collect())
 }

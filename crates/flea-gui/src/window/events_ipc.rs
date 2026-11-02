@@ -253,6 +253,7 @@ impl Shell {
                 };
                 // Quick Look answers before the column, so previewState reads the card while it is open.
                 let look = crate::window::quick_look::readers::Reader {
+                    pdf_focused: crate::ipc::keyboard_state::pdf_focused(self, window, cx),
                     host: self.quick_look.as_ref(),
                     view: self.quick_look.as_ref().map(|host| host.view.read(cx)),
                     viewport: window.viewport_size(),
@@ -312,13 +313,7 @@ impl Shell {
                 let preview_look = crate::ipc::preview_look::PreviewLook {
                     look: look.view,
                     cx,
-                    pdf_focused: crate::ipc::keyboard_state::KeyboardState {
-                        shell: self,
-                        window,
-                        cx,
-                    }
-                    .focus_type()
-                        == "PdfViewer",
+                    pdf_focused: look.pdf_focused,
                 };
                 let preview_html = crate::ipc::preview_html::PreviewHtml {
                     shell: self,
