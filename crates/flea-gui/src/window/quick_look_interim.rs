@@ -84,14 +84,18 @@ impl Shell {
         let line = format!(
             r#"{{"c":"meta","row":{index},"token":{token},"text":false,"media":false,"archive":false}}"#
         );
-        let host = self.quick_look_host(side, window, cx);
-        host.token = token;
-        host.row = Some(index);
-        host.ask = Ask::Meta {
+        let ask = Ask::Meta {
             path: path.clone(),
             link: row.link.clone(),
         };
+        // Without a column frame the card reads the file's own header while meta is out (EY-521).
+        let early = replies::header_path(&ask, &subject.body).filter(|_| interim.is_none());
+        let host = self.quick_look_host(side, window, cx);
+        host.token = token;
+        host.row = Some(index);
+        host.ask = ask;
         self.show(subject, false, Some(line), window, cx);
+        self.quick_look_header(token, early, cx);
         if let Some((_, image)) = interim {
             self.quick_look
                 .as_ref()
