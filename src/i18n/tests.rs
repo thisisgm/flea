@@ -286,7 +286,6 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
 // A test reading the repo's i18n/ sees every shipped catalog, so its English expectations break when a language lands.
 #[test]
 fn no_test_loads_the_shipped_catalog_dir() {
-    // Tests whose subject is the shipped translations themselves, each with its reason.
     const ALLOWED: &[(&str, &str)] = &[
         (
             "crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs",
