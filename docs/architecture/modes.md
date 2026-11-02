@@ -137,8 +137,11 @@ For example, `flea --tui | head` refuses because stdout is a pipe. The TUI branc
 the graphical-session check, so it does not require `WAYLAND_DISPLAY` or `DISPLAY`.
 A window launch without a non-empty value for either variable refuses with exit `2`.
 
-For the window branch, `FLEA_FRONTEND=gpui` selects `gui::exec_gpui`; otherwise the launcher
-uses the QML path through `paths::ui_dir()` and `gui::exec_qs`. See `src/gui/launch.rs`.
+Flea opens the GPUI frontend by default. A bare `flea`, `flea --gui <path>`, a positional directory, and `flea --select <path-or-file-URI>` open the GPUI window. The file chooser portal and FileManager1 use the same launcher and retain their existing command-line and reply protocols. `--tui` selects the terminal interface and requires a terminal on stdin and stdout; `--gui` and `--tui` remain mutually exclusive.
+
+Flea finds `flea-gui` beside its own executable first, then on `PATH`. The legacy QML GUI route is removed. Setting `FLEA_FRONTEND=qml` refuses the launch with: `flea: the QML frontend is no longer available; unset FLEA_FRONTEND to open the GPUI window`.
+
+HTML previews use a separate jailed, headless qml6 and QtWebEngine process to render PNGs. These Qt dependencies remain in 0.4.0; the replacement HTML renderer is deferred to 0.4.1.
 
 `./tests/modes.sh` checks the window default with redirected handles and with a real pty
 provided by `script`. It also checks conflicting flags and refusal of `--tui` without a tty.
