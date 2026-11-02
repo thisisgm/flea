@@ -193,6 +193,10 @@ impl PaneHost {
         let generation = self.pane.held.listing;
         let before = std::mem::take(&mut self.path);
         if generation != self.applied_listing {
+            let keep_all = before == self.pane.path()
+                && self.nav.sort_landing(&self.pane)
+                && self.selected.len() == self.pane.held.total
+                && self.selected.iter().copied().eq(0..self.pane.held.total);
             // Anchor.js anchoredRefresh: only a mark that follows the cursor comes back lone.
             if let Some(anchor) = self.nav.anchor.as_mut() {
                 anchor.lone = anchor.lone && self.input.selection.is_lone();
@@ -203,7 +207,11 @@ impl PaneHost {
             self.input.selection.reset();
             self.input.pulled = None;
             self.input.press = None;
-            self.selected.clear();
+            if keep_all {
+                self.input.selection.changed(&self.selected);
+            } else {
+                self.selected.clear();
+            }
             self.applied_listing = generation;
             self.filter_follow(&before);
         }

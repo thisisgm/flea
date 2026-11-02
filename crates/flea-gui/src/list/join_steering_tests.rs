@@ -1,6 +1,9 @@
 //! Controller native findings: walked folder bytes and selection from the same painted frame.
 use super::{ask, frame, open};
 
+#[path = "s4_size_tests.rs"]
+mod s4_size_tests;
+
 #[path = "join_cursor_tests.rs"]
 mod cursor;
 #[path = "join_size_key_tests.rs"]
