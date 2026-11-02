@@ -195722,7 +195722,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 start marker is not inside the bwrap pid namespace\")",
-      "line": 79,
+      "line": 80,
       "literal": "B7 start marker is not inside the bwrap pid namespace",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195731,7 +195731,7 @@
     },
     {
       "excerpt": "raise ValueError(\"B7 scope was not empty before launch\")",
-      "line": 92,
+      "line": 93,
       "literal": "B7 scope was not empty before launch",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -195740,7 +195740,7 @@
     },
     {
       "excerpt": "raise ValueError(\"cgroup start boundary differs from this scope\")",
-      "line": 110,
+      "line": 111,
       "literal": "cgroup start boundary differs from this scope",
       "owner": "controller",
       "path": "tools/flea-bench-thumbs-lib/cgroup_cpu.py",
@@ -246556,7 +246556,7 @@
     "tools/flea-bench-report": "cc61ab2d7c142b99c49ae0bbfec0080050f457155781b859d21b3e49f35b3682",
     "tools/flea-bench-thumbs": "b7da206de08823bb255ed06be0deaa961558cf1af365e71497fb76785cb59741",
     "tools/flea-bench-thumbs-lib/background_preflight.py": "03b93d6c819565bbd5b2cec0127f4e9d32ddc68e76e3b8b5b666942fd5d73aa3",
-    "tools/flea-bench-thumbs-lib/cgroup_cpu.py": "cbdfec00f946994966f7d5d12b64f0b9cfd664d7fd5cf02fe271162d3badc2fa",
+    "tools/flea-bench-thumbs-lib/cgroup_cpu.py": "46d27928fe239a04a4e31412c27f58cf4a9d8c55b7c7579604bf4c439d2d0533",
     "tools/flea-bench-thumbs-lib/gpui.py": "e65399bcb91780b3e3e9f5776355a959074d81a7b35b49fec2259e8afca5bf96",
     "tools/flea-bench-thumbs-lib/inventory.py": "719f40400a3821788d494c77eea49339db81b8758a9218a17cd709491b12f624",
     "tools/flea-bench-thumbs-lib/measure.py": "54db4e632aa4a828e1c06dec4f8b197b0cfadba357180eff0f5bde134eaf8c2b",
@@ -247108,8 +247108,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "16c9365955a9fd9b2b0a91448233144b849b8341",
-  "source_sha": "16c9365955a9fd9b2b0a91448233144b849b8341",
+  "source_ref_sha": "1204c0cc3f0c100e05044f92917ec849c55c8837",
+  "source_sha": "1204c0cc3f0c100e05044f92917ec849c55c8837",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,

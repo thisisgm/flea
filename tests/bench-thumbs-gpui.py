@@ -75,7 +75,7 @@ class Candidate(unittest.TestCase):
         self.write(rows)
         first = self.reader().metrics(16)
         self.assertEqual(first["preview_800_ms"], 107.5)
-        # The delay control stages every thumbnail painted inside the window at its first paint plus the delay.
+        # Rust withholds every receipt until the first paint plus the delay; modelled here on end_ns.
         until = rows[0]["end_ns"] + 1_000_000_000
         self.write([dict(row, end_ns=max(row["end_ns"], until)) if row["kind"] == "thumbnail" else row for row in rows])
         delayed = self.reader().metrics(16)

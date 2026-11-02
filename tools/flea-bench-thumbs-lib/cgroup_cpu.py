@@ -60,6 +60,7 @@ def current_group():
 
 
 def namespace_pids():
+    # Sample input: os.listdir("/proc") inside bwrap gives ["1", "2", "37", "self", "meminfo"]; pid 1 is bwrap.
     own = os.getpid()
     return sorted(int(name) for name in os.listdir("/proc") if name.isdigit() and int(name) not in (1, own))
 

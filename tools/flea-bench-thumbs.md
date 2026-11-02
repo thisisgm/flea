@@ -112,7 +112,8 @@ setup and the collector's Python imports from the counter difference. The
 marker stays the session command's parent, because bwrap's exit kills whatever
 remains in its pid namespace before the collector can see it. After the command
 exits, the marker waits up to 5 s for the rest of the namespace to exit and
-records any process still there, which leaves CPU empty.
+records any process still there, which leaves CPU empty. The marker sleeps in
+`wait` while the session runs, so only its own exit falls inside the difference.
 
 `FLEA_B7_DELAY_MS=1000` is a bench-only negative control: from the first
 receipt-eligible paint, normally a thumbnail, it withholds receipt staging for
