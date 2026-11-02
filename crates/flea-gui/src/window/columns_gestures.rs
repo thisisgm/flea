@@ -73,6 +73,9 @@ pub(super) fn draggable(
                 }
             }),
         )
+        .on_click(cx.listener(move |shell, event, window, cx| {
+            shell.columns_clicked_file(side, event, window, cx)
+        }))
         .on_drag(Seed { side }, move |_, _, window, cx| {
             let _ = lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
             flock(cx)
@@ -83,6 +86,66 @@ pub(super) fn draggable(
         .on_drop::<Seed>(
             cx.listener(move |shell, _: &Seed, window, cx| shell.land_own_drag(side, window, cx)),
         )
+}
+
+impl Shell {
+    /// A completed neighbour file tap selects it; GPUI cancels this click when the press becomes a drag.
+    fn columns_clicked_file(
+        &mut self,
+        side: usize,
+        event: &gpui::ClickEvent,
+        window: &mut gpui::Window,
+        cx: &mut Context<Self>,
+    ) {
+        let gpui::ClickEvent::Mouse(event) = event else {
+            return;
+        };
+        if event.down.click_count != 1
+            || self.shown_view() != crate::window::startup::View::Columns
+            || self.input_blocked(cx)
+            || cx
+                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .is_some_and(|carrying| carrying.carry.active())
+        {
+            return;
+        }
+        let Some(host) = self.panes[side]
+            .as_ref()
+            .filter(|host| !host.stopped && !host.pane.busy() && !host.nav.gate.owned())
+        else {
+            return;
+        };
+        let Some(hover) = hover_at(host, event.up.position) else {
+            return;
+        };
+        let Some(columns) = host.columns.as_ref() else {
+            return;
+        };
+        if hover.slot == Slot::Active
+            || columns.pressed.as_ref().map(|(pressed, _)| pressed) != Some(&hover)
+        {
+            return;
+        }
+        let Some(view) = columns
+            .area
+            .tracks()
+            .iter()
+            .find(|view| view.slot == hover.slot)
+        else {
+            return;
+        };
+        let TrackRows::Peek(rows) = &view.rows else {
+            return;
+        };
+        let Some(row) = rows.get(hover.index).filter(|row| !row.dir) else {
+            return;
+        };
+        let (base, name) = (view.path.clone(), row.name.clone());
+        self.columns_neighbour_file(side, &base, &name, window, cx);
+        self.sync_columns(window, cx);
+        cx.stop_propagation();
+        cx.notify();
+    }
 }
 
 pub(crate) fn on_name(host: &PaneHost, row: usize, x: Pixels) -> bool {
