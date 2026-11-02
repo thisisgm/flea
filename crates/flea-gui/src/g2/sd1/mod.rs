@@ -242,8 +242,5 @@ fn uish_misc_unusable_provider_facts_keep_the_disabled_row_and_no_command() {
     let mut sender = ProviderSend::default();
     assert!(sender.menu_opened(&NoWire, &facts, None, &[], 0).is_empty());
     assert!(sender.row_on(Role::Tailscale) && sender.row_on(Role::Dropbox));
-    // The menu rows read these through join.rs's provider context, so both draw disabled.
-    assert!(!sender.taildrop_refreshing() && sender.peers_for(Role::Tailscale).is_empty());
-    assert!(!sender.db.checking && !sender.dropbox_ready());
     assert!(sender.dropbox_refresh().is_none());
 }

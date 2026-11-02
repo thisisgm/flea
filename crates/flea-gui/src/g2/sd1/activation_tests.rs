@@ -5,6 +5,7 @@ use crate::g2::{
     sd1::{seams::Wire, ProviderSend},
 };
 use flea::jsondoc::Json;
+use flea::ui_logic_mn1::entry::Brand;
 
 const READY: &str = r#"{"BackendState":"Running","Self":{"Capabilities":["https://tailscale.com/cap/file-sharing"]},"Peer":{"old":{"HostName":"Old","DNSName":"old.invalid.","Online":true,"TaildropTarget":1}}}"#;
 
@@ -221,4 +222,25 @@ fn uish_misc_provider_activation_keeps_original_dropbox_destination(cx: &mut Tes
         shell.read_with(cx, |shell, _| shell.menu.providers.destination[0]),
         Some(true)
     );
+}
+
+#[gpui::test]
+fn uish_misc_unusable_provider_rows_draw_disabled_and_red(cx: &mut TestAppContext) {
+    let (shell, cx, _lines, _id) = warm(cx);
+    let facts = flea::ui_logic_sd1::providers::parse_facts(r#"{"taildrop":{"installed":true,"command":"","reason":"not executable"},"dropbox":{"installed":true,"command":"","reason":"not executable"},"dropboxInfo":"{}"}"#).unwrap();
+    let rows = shell.update_in(cx, |shell, window, cx| {
+        let mut sender = ProviderSend::default();
+        sender.menu_opened(&NoWire, &facts, None, &[], 0);
+        shell.menu.providers.sides[0] = sender;
+        shell.refresh_menu(window, cx);
+        shell.menu_entries()
+    });
+    for brand in [Brand::Tailscale, Brand::Dropbox] {
+        let row = rows.iter().find(|row| row.brand == Some(brand));
+        // Errored pins the cannot-answer branch; a row still reading is disabled but not red.
+        assert!(
+            row.is_some_and(|row| row.disabled && row.errored),
+            "{brand:?} row: {row:?}"
+        );
+    }
 }
