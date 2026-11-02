@@ -41,6 +41,8 @@ pub mod pane;
 pub mod presentation;
 pub mod readers;
 mod readers_controls;
+#[cfg(test)]
+mod s3_tests;
 mod scrollbar;
 pub mod seams;
 #[cfg(test)]

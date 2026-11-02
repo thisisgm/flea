@@ -51,6 +51,7 @@ pub struct Network {
     origins: Vec<Origin>,
     next_origin: u64,
     return_focus: Option<(usize, bool)>,
+    connect_errors: [Vec<String>; 2],
     tasks: Vec<Task<()>>,
     _subscriptions: Vec<Subscription>,
 }
@@ -184,6 +185,7 @@ impl Shell {
                 origins: Vec::new(),
                 next_origin: 0,
                 return_focus: None,
+                connect_errors: Default::default(),
                 tasks: Vec::new(),
                 _subscriptions: subscriptions,
             });

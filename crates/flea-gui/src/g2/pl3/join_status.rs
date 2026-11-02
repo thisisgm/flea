@@ -20,7 +20,7 @@ impl Shell {
         self.trash.as_mut().expect("mounted").message_watches = vec![arm, drawn];
     }
 
-    pub(super) fn trash_say(&mut self, text: &str, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn trash_say(&mut self, text: &str, error: bool, cx: &mut Context<Self>) {
         self.trash_say_detail(text, "", error, cx);
     }
 
