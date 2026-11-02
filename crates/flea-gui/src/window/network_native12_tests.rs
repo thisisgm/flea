@@ -168,3 +168,26 @@ fn uish_misc_native12_old_error_is_acknowledged_before_hidden_browser_selection_
     assert_eq!(browser.get("active"), Some(&Json::Bool(true)));
     assert_eq!(browser.get("owner"), Some(&Json::Num("1".into())));
 }
+
+#[gpui::test]
+fn uish_misc_native12_card_closed_refocuses_past_other_pane_shares(cx: &mut TestAppContext) {
+    let (shell, cx, _lines) = shares_on_other_pane(cx, 1);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert_eq!(shell.focus_side, 0);
+            shell.network_remember_focus();
+            // The dismissed card held the keyboard, so nothing in the window is focused when Closed lands.
+            window.blur(cx);
+            shell.network_card(&crate::g2::pl2::dialog::Effect::Closed, window, cx);
+        })
+    });
+    frame(cx);
+    cx.update(|window, cx| {
+        assert!(
+            shell.read(cx).focus.is_focused(window),
+            "a closed card returns the keyboard to the focused list past the other pane's shares"
+        );
+    });
+    let browser = super::native11_tests::share_state(&shell, cx);
+    assert_eq!(browser.get("active"), Some(&Json::Bool(true)));
+}

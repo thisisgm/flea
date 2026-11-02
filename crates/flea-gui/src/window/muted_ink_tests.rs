@@ -86,9 +86,9 @@ fn ey414_the_quiet_caption_and_mark_roles_are_muted_and_muted_frame() {
     );
 }
 
-/// EY-439: waits stay notices and failures stay errors; "Opening 127.0.0.1" arrives as Effect::Starting, never a Say.
+/// EY-439: waits stay notices and failures stay errors; the Starting route is pinned in g2/pl2/bridge_line_tests.rs.
 #[test]
-fn ey439_a_connection_opening_is_an_activity_and_never_an_error() {
+fn ey439_waits_stay_notices_and_failures_stay_errors() {
     use crate::g2::pl2::result::{say_role, SayRole};
     for key in ["network.another_opening", "network.unmounted"] {
         assert_eq!(say_role(key), SayRole::Notice, "{key}");
