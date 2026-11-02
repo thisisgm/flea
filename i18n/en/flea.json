@@ -2284,6 +2284,7 @@
   "tui.parity.tags_are_unavailable_in_this_terminal_build": "Tags are unavailable in this terminal build",
   "tui.preview.media_waiting": "Media preview is still loading",
   "mime.markdown": "Markdown document",
+  "mime.png": "PNG image",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
@@ -2534,6 +2535,5 @@
   "keys.tui17.sortRandom": "Shuffle files",
   "keys.tui17.suspend": "Suspend",
   "keys.tui17.wordBackward": "Previous word (field)",
-  "keys.tui17.wordForward": "Next word (field)",
-  "mime.png": "PNG image"
+  "keys.tui17.wordForward": "Next word (field)"
 }
