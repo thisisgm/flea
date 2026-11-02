@@ -1,9 +1,10 @@
 //! Network form, identity and bridge rules shared by front ends, with no I/O.
 pub mod bridge;
-pub mod cloud;
 pub mod browser;
+pub mod cloud;
 pub mod form;
 pub mod heading;
+mod kernel_mounts;
 pub mod places;
 pub mod rail;
 pub mod smb;
@@ -42,6 +43,8 @@ pub fn bare_root(uri: &str) -> bool {
 
 #[cfg(test)]
 mod fix1_tests;
+#[cfg(test)]
+mod gh374_tests;
 #[cfg(test)]
 mod oracle_tests;
 #[cfg(test)]

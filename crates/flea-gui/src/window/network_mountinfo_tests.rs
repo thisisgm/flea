@@ -131,6 +131,22 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
     );
 }
 
+#[gpui::test]
+fn sol_gh374_375_mac_cifs_children_do_not_flood_the_mounted_rail(cx: &mut TestAppContext) {
+    let (shell, cx) = root(cx);
+    let fixture = include_str!("../../../../src/ui_logic_pl2/fixtures/gh374.mountinfo");
+    assert_eq!(
+        call(&shell, "flea", "networkFeedMountinfo", &[fixture], cx),
+        Reply::value("fed")
+    );
+    frame(cx);
+    assert_eq!(
+        call(&shell, "flea", "networkEntries", &[], cx),
+        Reply::value("MacMini|network|share|true\nMediaDrive|network|share|true"),
+        "23 iCloud Documents submounts belong to MacMini, while MediaDrive stays independent"
+    );
+}
+
 // The scheduler orders the two background reads by seed, so the sweep covers seeds where the older read finishes last.
 #[gpui::test(iterations = 16)]
 fn pb_network_mountinfo_newer_snapshot_supersedes_older_read(cx: &mut TestAppContext) {
