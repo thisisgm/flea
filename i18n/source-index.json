@@ -200380,7 +200380,7 @@
     },
     {
       "excerpt": "raise HarnessFault(\"the pane is at %r, outside %s\" % (here, base))",
-      "line": 1327,
+      "line": 1332,
       "literal": "the pane is at %r, outside %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200388,8 +200388,8 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "raise HarnessFault(\"the pane did not reach %s in %d keys, it is at %r\" % (want, NAV_STEPS, sess.ipc(\"path\")))",
-      "line": 1328,
+      "excerpt": "raise HarnessFault(\"the pane did not reach %s in %d keys, it is at %r\" % (want, max_steps, here))",
+      "line": 1336,
       "literal": "the pane did not reach %s in %d keys, it is at %r",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200398,7 +200398,7 @@
     },
     {
       "excerpt": "\"\"\"Wait until the pane lists exactly count rows: Flea has seen the folder the tool just filled or emptied.\"\"\"",
-      "line": 1332,
+      "line": 1340,
       "literal": "Wait until the pane lists exactly count rows: Flea has seen the folder the tool just filled or emptied.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200407,7 +200407,7 @@
     },
     {
       "excerpt": "\"\"\"Wait until the pane clipboard (fileClipboard) holds exactly these paths, real, with the right verb.\"\"\"",
-      "line": 1342,
+      "line": 1350,
       "literal": "Wait until the pane clipboard (fileClipboard) holds exactly these paths, real, with the right verb.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200416,7 +200416,7 @@
     },
     {
       "excerpt": "raise HarnessFault(\"the clipboard holds %s paths (moving %s), not the %d of this sample (moving %s)\" % (",
-      "line": 1354,
+      "line": 1362,
       "literal": "the clipboard holds %s paths (moving %s), not the %d of this sample (moving %s)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200425,7 +200425,7 @@
     },
     {
       "excerpt": "len(held) if held is not None else \"no reading\", got.get(\"moving\") if held is not None else \"-\",",
-      "line": 1355,
+      "line": 1363,
       "literal": "no reading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200434,7 +200434,7 @@
     },
     {
       "excerpt": "\"\"\"One op journey, n samples, each from a reset source and an idle status bar: the key that starts it to the first changed pixel.\"\"\"",
-      "line": 1370,
+      "line": 1378,
       "literal": "One op journey, n samples, each from a reset source and an idle status bar: the key that starts it to the first changed pixel.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200443,7 +200443,7 @@
     },
     {
       "excerpt": "raise HarnessFault(\"the destination %s is not clear\" % real_dst)",
-      "line": 1398,
+      "line": 1406,
       "literal": "the destination %s is not clear",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200452,7 +200452,7 @@
     },
     {
       "excerpt": "label = \"Properties\" if name == \"op.size.recursive\" else \"Compress\"",
-      "line": 1440,
+      "line": 1448,
       "literal": "Properties",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200461,7 +200461,7 @@
     },
     {
       "excerpt": "label = \"Properties\" if name == \"op.size.recursive\" else \"Compress\"",
-      "line": 1440,
+      "line": 1448,
       "literal": "Compress",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200470,7 +200470,7 @@
     },
     {
       "excerpt": "rows.append({\"journey\": name, \"row\": 6, \"view\": sess.view, \"first_ms\": \"no instrument\",",
-      "line": 1445,
+      "line": 1453,
       "literal": "no instrument",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200479,7 +200479,7 @@
     },
     {
       "excerpt": "\"note\": \"the context menu holds no %s row here\" % label})",
-      "line": 1446,
+      "line": 1454,
       "literal": "the context menu holds no %s row here",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200488,7 +200488,7 @@
     },
     {
       "excerpt": "sess.send((\"key\", (\"esc\",)))",
-      "line": 1459,
+      "line": 1467,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200497,7 +200497,7 @@
     },
     {
       "excerpt": "\"\"\"Dump the newest frame now, as a PNG.\"\"\"",
-      "line": 1472,
+      "line": 1480,
       "literal": "Dump the newest frame now, as a PNG.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200506,7 +200506,7 @@
     },
     {
       "excerpt": "def open_close(journey, key_in, close=(\"esc\",)):",
-      "line": 1504,
+      "line": 1512,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200515,7 +200515,7 @@
     },
     {
       "excerpt": "\"\"\"p8-rename for one view: j and k pairs, the cursor row renamed, the same pairs again, the rename undone.\"\"\"",
-      "line": 1514,
+      "line": 1522,
       "literal": "p8-rename for one view: j and k pairs, the cursor row renamed, the same pairs again, the rename undone.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200524,7 +200524,7 @@
     },
     {
       "excerpt": "\"\"\"Every part's sessions from the fixtures facts; samples is n per series (cursor pairs: per chord).\"\"\"",
-      "line": 1533,
+      "line": 1541,
       "literal": "Every part's sessions from the fixtures facts; samples is n per series (cursor pairs: per chord).",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200533,7 +200533,7 @@
     },
     {
       "excerpt": "out[\"p5-heavy\"].append({\"missing\": where})",
-      "line": 1576,
+      "line": 1584,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200542,7 +200542,7 @@
     },
     {
       "excerpt": "\"\"\"Every journey id a part's sessions time, for the dry check and the selftest.\"\"\"",
-      "line": 1635,
+      "line": 1643,
       "literal": "Every journey id a part's sessions time, for the dry check and the selftest.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200551,7 +200551,7 @@
     },
     {
       "excerpt": "\"\"\"A predicate over journey ids for --only REGEX (re.search); None keeps every journey. A bad regex is a usage error.\"\"\"",
-      "line": 1668,
+      "line": 1676,
       "literal": "A predicate over journey ids for --only REGEX (re.search); None keeps every journey. A bad regex is a usage error.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200560,7 +200560,7 @@
     },
     {
       "excerpt": "print(\"--only %r is not a regular expression: %s\" % (pattern, e), file=sys.stderr)",
-      "line": 1674,
+      "line": 1682,
       "literal": "--only %r is not a regular expression: %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200569,7 +200569,7 @@
     },
     {
       "excerpt": "\"\"\"The sessions cut to the series with a journey that matches pattern; a session left with none is dropped.\"\"\"",
-      "line": 1680,
+      "line": 1688,
       "literal": "The sessions cut to the series with a journey that matches pattern; a session left with none is dropped.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200578,7 +200578,7 @@
     },
     {
       "excerpt": "\"\"\"Rows per (journey, view, fixture) one part writes at samples; the minima gate checks. only: a --only REGEX.\"\"\"",
-      "line": 1696,
+      "line": 1704,
       "literal": "Rows per (journey, view, fixture) one part writes at samples; the minima gate checks. only: a --only REGEX.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200587,7 +200587,7 @@
     },
     {
       "excerpt": "if s.get(\"missing\") or not s.get(\"series\"):",
-      "line": 1703,
+      "line": 1711,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200596,7 +200596,7 @@
     },
     {
       "excerpt": "\"\"\"Hyprland's repeat delay and rate, read from hyprctl; the plan's values (minipc: 250 ms, 40 a second) else.\"\"\"",
-      "line": 1754,
+      "line": 1762,
       "literal": "Hyprland's repeat delay and rate, read from hyprctl; the plan's values (minipc: 250 ms, 40 a second) else.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200605,7 +200605,7 @@
     },
     {
       "excerpt": "got.update(delay_ms=int(d[\"int\"]), rate=int(r[\"int\"]), source=\"hyprctl getoption\")",
-      "line": 1759,
+      "line": 1767,
       "literal": "hyprctl getoption",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200614,7 +200614,7 @@
     },
     {
       "excerpt": "\"\"\"tests/search-calib.qml under qs: (client, results region, query mask, log path).\"\"\"",
-      "line": 1770,
+      "line": 1778,
       "literal": "tests/search-calib.qml under qs: (client, results region, query mask, log path).",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200623,7 +200623,7 @@
     },
     {
       "excerpt": "raise RuntimeError(\"the calibration window never mapped\")",
-      "line": 1782,
+      "line": 1790,
       "literal": "the calibration window never mapped",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200632,7 +200632,7 @@
     },
     {
       "excerpt": "\"\"\"The key events an idle Qt client receives for the held sweep's exact hold: the overshoot bound.\"\"\"",
-      "line": 1801,
+      "line": 1809,
       "literal": "The key events an idle Qt client receives for the held sweep's exact hold: the overshoot bound.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200641,7 +200641,7 @@
     },
     {
       "excerpt": "counts.append(sum(1 for line in f if \"CALIB key\" in line))",
-      "line": 1819,
+      "line": 1827,
       "literal": "CALIB key",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200650,7 +200650,7 @@
     },
     {
       "excerpt": "\"\"\"No key sent: the recorder over the calibration client's results region must see no change within cap_s.\"\"\"",
-      "line": 1825,
+      "line": 1833,
       "literal": "No key sent: the recorder over the calibration client's results region must see no change within cap_s.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200659,7 +200659,7 @@
     },
     {
       "excerpt": "WHEEL_LINE = re.compile(r\"CALIB wheel at=(\\d+) px=(-?\\d+)\")",
-      "line": 1848,
+      "line": 1856,
       "literal": "CALIB wheel at=(\\d+) px=(-?\\d+)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200668,7 +200668,7 @@
     },
     {
       "excerpt": "\"\"\"CLOCK_REALTIME minus CLOCK_MONOTONIC in ns, from the tightest of CLOCK_OFFSET_READS back to back reads.\"\"\"",
-      "line": 1852,
+      "line": 1860,
       "literal": "CLOCK_REALTIME minus CLOCK_MONOTONIC in ns, from the tightest of CLOCK_OFFSET_READS back to back reads.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200677,7 +200677,7 @@
     },
     {
       "excerpt": "\"\"\"ms from the stroke's first motion report (CLOCK_MONOTONIC ns) to the client's first pixel-carrying wheel event, read\n    from its log lines on the wall clock; None when it logged none. The client's clock floors to a ms, so this reads up to 1 ms early.\"\"\"",
-      "line": 1864,
+      "line": 1872,
       "literal": "ms from the stroke's first motion report (CLOCK_MONOTONIC ns) to the client's first pixel-carrying wheel event, read\n    from its log lines on the wall clock; None when it logged none. The client's clock floors to a ms, so this reads up to 1 ms early.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200686,7 +200686,7 @@
     },
     {
       "excerpt": "\"\"\"Count, median and range of the numbers in vals; None entries are reads that failed.\"\"\"",
-      "line": 1874,
+      "line": 1882,
       "literal": "Count, median and range of the numbers in vals; None entries are reads that failed.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200695,7 +200695,7 @@
     },
     {
       "excerpt": "\"\"\"The fling floor of a calibrate run: the medians and ranges of the stroke to the idle client's first wheel event and first frame.\"\"\"",
-      "line": 1883,
+      "line": 1891,
       "literal": "The fling floor of a calibrate run: the medians and ranges of the stroke to the idle client's first wheel event and first frame.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200704,7 +200704,7 @@
     },
     {
       "excerpt": "\"\"\"What a fling costs before Flea: the census stroke over tests/search-calib.qml, an idle Qt client, read to the client's\n    first pixel-carrying wheel event (its log) and to its first changed frame (the recorder, as the census reads it).\"\"\"",
-      "line": 1889,
+      "line": 1897,
       "literal": "What a fling costs before Flea: the census stroke over tests/search-calib.qml, an idle Qt client, read to the client's\n    first pixel-carrying wheel event (its log) and to its first changed frame (the recorder, as the census reads it).",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200713,7 +200713,7 @@
     },
     {
       "excerpt": "\"\"\"The count of a probe value: a bare number, or the first of a (count, busy) pair.\"\"\"",
-      "line": 1934,
+      "line": 1942,
       "literal": "The count of a probe value: a bare number, or the first of a (count, busy) pair.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200722,7 +200722,7 @@
     },
     {
       "excerpt": "\"\"\"True when a probe value says work was in flight at that read; only a (count, busy) pair can.\"\"\"",
-      "line": 1939,
+      "line": 1947,
       "literal": "True when a probe value says work was in flight at that read; only a (count, busy) pair can.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200731,7 +200731,7 @@
     },
     {
       "excerpt": "\"\"\"True when the load progressed since the read p0: its count changed, or it is busy at p1; an unread probe moved nothing.\"\"\"",
-      "line": 1944,
+      "line": 1952,
       "literal": "True when the load progressed since the read p0: its count changed, or it is busy at p1; an unread probe moved nothing.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200740,7 +200740,7 @@
     },
     {
       "excerpt": "\"\"\"True when the load ran during a sample: it progressed between the read before the input and the read after its quiet, or was busy at the first.\"\"\"",
-      "line": 1950,
+      "line": 1958,
       "literal": "True when the load ran during a sample: it progressed between the read before the input and the read after its quiet, or was busy at the first.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200749,7 +200749,7 @@
     },
     {
       "excerpt": "\"\"\"The two columns a row carries for its load.\"\"\"",
-      "line": 1955,
+      "line": 1963,
       "literal": "The two columns a row carries for its load.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200758,7 +200758,7 @@
     },
     {
       "excerpt": "\"\"\"A load beside a series: probe() reads its progress, renew() starts it again (renew_fn None: it runs on its own).\"\"\"",
-      "line": 1960,
+      "line": 1968,
       "literal": "A load beside a series: probe() reads its progress, renew() starts it again (renew_fn None: it runs on its own).",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200767,7 +200767,7 @@
     },
     {
       "excerpt": "\"\"\"Start the load again; False when gap_s has not passed since the last time, unless force: that waits out the rest of the gap.\"\"\"",
-      "line": 1966,
+      "line": 1974,
       "literal": "Start the load again; False when gap_s has not passed since the last time, unless force: that waits out the rest of the gap.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200776,7 +200776,7 @@
     },
     {
       "excerpt": "\"\"\"Link n cold pictures into dst under names that sort just after the first name there; seq[0] counts down across calls so no name repeats. Returns the new paths; linked, when given, is that list and names only the links that exist when a link fails.\"\"\"",
-      "line": 1980,
+      "line": 1988,
       "literal": "Link n cold pictures into dst under names that sort just after the first name there; seq[0] counts down across calls so no name repeats. Returns the new paths; linked, when given, is that list and names only the links that exist when a link fails.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200785,7 +200785,7 @@
     },
     {
       "excerpt": "\"\"\"The function that starts load a or c again, or None: a swaps the batch of pictures linked into the right folder for a fresh one, c changes the NAS folder's mtime.\"\"\"",
-      "line": 1993,
+      "line": 2001,
       "literal": "The function that starts load a or c again, or None: a swaps the batch of pictures linked into the right folder for a fresh one, c changes the NAS folder's mtime.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200794,7 +200794,7 @@
     },
     {
       "excerpt": "raise RuntimeError(\"no cold images in %s\" % cold)",
-      "line": 2005,
+      "line": 2013,
       "literal": "no cold images in %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200803,7 +200803,7 @@
     },
     {
       "excerpt": "\"\"\"Load d's writer: direct 4 MiB writes, so the stick's own rate is the load and the page cache holds none of it.\"\"\"",
-      "line": 2028,
+      "line": 2036,
       "literal": "Load d's writer: direct 4 MiB writes, so the stick's own rate is the load and the page cache holds none of it.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200812,7 +200812,7 @@
     },
     {
       "excerpt": "\"\"\"End a load-d writer still running, so no write reaches the stick once the session's series is over.\"\"\"",
-      "line": 2033,
+      "line": 2041,
       "literal": "End a load-d writer still running, so no write reaches the stick once the session's series is over.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200821,7 +200821,7 @@
     },
     {
       "excerpt": "\"\"\"Start a load in the right pane; (probe, note). probe() changes while the load runs.\"\"\"",
-      "line": 2046,
+      "line": 2054,
       "literal": "Start a load in the right pane; (probe, note). probe() changes while the load runs.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200830,7 +200830,7 @@
     },
     {
       "excerpt": "return probe, \"thumbnails of a cold image folder in the right pane\"",
-      "line": 2053,
+      "line": 2061,
       "literal": "thumbnails of a cold image folder in the right pane",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200839,7 +200839,7 @@
     },
     {
       "excerpt": "return probe, \"copy of a %d MiB file to the USB stick from the right pane\" % LONG_MIB",
-      "line": 2063,
+      "line": 2071,
       "literal": "copy of a %d MiB file to the USB stick from the right pane",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200848,7 +200848,7 @@
     },
     {
       "excerpt": "return probe, \"dd of %d MiB to the USB stick, no Flea copy, the right pane lists its folder\" % LOAD_D_MIB",
-      "line": 2071,
+      "line": 2079,
       "literal": "dd of %d MiB to the USB stick, no Flea copy, the right pane lists its folder",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200857,7 +200857,7 @@
     },
     {
       "excerpt": "\"\"\"(list requests, listing in flight) of the right pane, from the dualState IPC; (None, False) when unreadable.\"\"\"",
-      "line": 2074,
+      "line": 2082,
       "literal": "(list requests, listing in flight) of the right pane, from the dualState IPC; (None, False) when unreadable.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200866,7 +200866,7 @@
     },
     {
       "excerpt": "return right.get(\"listRequests\"), bool(right.get(\"loading\"))",
-      "line": 2079,
+      "line": 2087,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200875,7 +200875,7 @@
     },
     {
       "excerpt": "return right_listing, \"NAS listing streaming in the right pane\"",
-      "line": 2082,
+      "line": 2090,
       "literal": "NAS listing streaming in the right pane",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200884,7 +200884,7 @@
     },
     {
       "excerpt": "\"\"\"A series' rows; an error or an outside window ends it with the rows already built plus its error row; under a load every row names it and says whether it ran during that sample.\"\"\"",
-      "line": 2086,
+      "line": 2094,
       "literal": "A series' rows; an error or an outside window ends it with the rows already built plus its error row; under a load every row names it and says whether it ran during that sample.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200893,7 +200893,7 @@
     },
     {
       "excerpt": "\"\"\"One session's series; rows go to out as they finish. A failure is an error row, never a gap.\"\"\"",
-      "line": 2102,
+      "line": 2110,
       "literal": "One session's series; rows go to out as they finish. A failure is an error row, never a gap.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200902,7 +200902,7 @@
     },
     {
       "excerpt": "raise RuntimeError(\"load %s needs a %s fixture\" % (spec[\"load\"], \"USB\" if spec[\"load\"] in (\"b\", \"d\") else \"NAS\"))",
-      "line": 2112,
+      "line": 2120,
       "literal": "USB",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200911,7 +200911,7 @@
     },
     {
       "excerpt": "\"\"\"ROOT/ops/run/<op>/{a-dst,b-src}; a-dst links to a fresh dir on the USB stick for a cross-fs op.\"\"\"",
-      "line": 2139,
+      "line": 2147,
       "literal": "ROOT/ops/run/<op>/{a-dst,b-src}; a-dst links to a fresh dir on the USB stick for a cross-fs op.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200920,7 +200920,7 @@
     },
     {
       "excerpt": "raise RuntimeError(\"%s needs the USB fixture\" % name)",
-      "line": 2146,
+      "line": 2154,
       "literal": "%s needs the USB fixture",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200929,7 +200929,7 @@
     },
     {
       "excerpt": "\"\"\"Remove a load-b or load-d session's own dst directory, by the same checks as every sandbox removal.\"\"\"",
-      "line": 2160,
+      "line": 2168,
       "literal": "Remove a load-b or load-d session's own dst directory, by the same checks as every sandbox removal.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200938,7 +200938,7 @@
     },
     {
       "excerpt": "raise SystemExit(\"refusing to remove %s: not a load-b or load-d dst directory\" % path)",
-      "line": 2162,
+      "line": 2170,
       "literal": "refusing to remove %s: not a load-b or load-d dst directory",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200947,7 +200947,7 @@
     },
     {
       "excerpt": "\"\"\"The right pane's path for a load: a fresh cold image copy, a USB destination, or the NAS stream folder.\"\"\"",
-      "line": 2167,
+      "line": 2175,
       "literal": "The right pane's path for a load: a fresh cold image copy, a USB destination, or the NAS stream folder.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200956,7 +200956,7 @@
     },
     {
       "excerpt": "\"\"\"Per session, the pointer of a wheel or stroke and the Enter row of a folder cycle, resolved on a nominal 2560x1440 window.\"\"\"",
-      "line": 2184,
+      "line": 2192,
       "literal": "Per session, the pointer of a wheel or stroke and the Enter row of a folder cycle, resolved on a nominal 2560x1440 window.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200965,7 +200965,7 @@
     },
     {
       "excerpt": "if s.get(\"missing\"):",
-      "line": 2188,
+      "line": 2196,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200974,7 +200974,7 @@
     },
     {
       "excerpt": "t[\"aim\"] = \"centre of the left pane\" if view == \"dual\" else \"centre of the watched region\"",
-      "line": 2195,
+      "line": 2203,
       "literal": "centre of the left pane",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200983,7 +200983,7 @@
     },
     {
       "excerpt": "t[\"aim\"] = \"centre of the left pane\" if view == \"dual\" else \"centre of the watched region\"",
-      "line": 2195,
+      "line": 2203,
       "literal": "centre of the watched region",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -200992,7 +200992,7 @@
     },
     {
       "excerpt": "t[\"aim\"] = \"the first folder, row 0 with folders first\"",
-      "line": 2200,
+      "line": 2208,
       "literal": "the first folder, row 0 with folders first",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201001,7 +201001,7 @@
     },
     {
       "excerpt": "print(\"--only %r matches no journey of part %s\" % (only, part), file=sys.stderr)",
-      "line": 2220,
+      "line": 2228,
       "literal": "--only %r matches no journey of part %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201010,7 +201010,7 @@
     },
     {
       "excerpt": "raise SystemExit(\"flea tree %s is not a git tree, git rev-parse HEAD says: %s\" % (tree, rev.stderr.strip() or \"nothing\"))",
-      "line": 2251,
+      "line": 2259,
       "literal": "flea tree %s is not a git tree, git rev-parse HEAD says: %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201019,7 +201019,7 @@
     },
     {
       "excerpt": "if spec.get(\"missing\"):",
-      "line": 2261,
+      "line": 2269,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201028,7 +201028,7 @@
     },
     {
       "excerpt": "emit(out, {\"journey\": \"fixture\", \"fixture\": spec[\"missing\"], \"first_ms\": \"no instrument\",",
-      "line": 2262,
+      "line": 2270,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201037,7 +201037,7 @@
     },
     {
       "excerpt": "emit(out, {\"journey\": \"fixture\", \"fixture\": spec[\"missing\"], \"first_ms\": \"no instrument\",",
-      "line": 2262,
+      "line": 2270,
       "literal": "no instrument",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201046,7 +201046,7 @@
     },
     {
       "excerpt": "\"note\": \"no %s fixture in fixtures.json\" % spec[\"missing\"]})",
-      "line": 2263,
+      "line": 2271,
       "literal": "no %s fixture in fixtures.json",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201055,7 +201055,7 @@
     },
     {
       "excerpt": "\"note\": \"no %s fixture in fixtures.json\" % spec[\"missing\"]})",
-      "line": 2263,
+      "line": 2271,
       "literal": "missing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201064,7 +201064,7 @@
     },
     {
       "excerpt": "print(\"%s session %d/%d %s %s done in %.0f s\" % (part, i + 1, len(sessions), spec.get(\"view\"),",
-      "line": 2268,
+      "line": 2276,
       "literal": "%s session %d/%d %s %s done in %.0f s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201073,7 +201073,7 @@
     },
     {
       "excerpt": "\"\"\"Census JSONL paths into grouped numeric rows, notes, errors and manifests, shared by report and gate.\"\"\"",
-      "line": 2286,
+      "line": 2294,
       "literal": "Census JSONL paths into grouped numeric rows, notes, errors and manifests, shared by report and gate.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201082,7 +201082,7 @@
     },
     {
       "excerpt": "\"\"\"One grouped journey with its budget verdict, the numbers both report and gate print.\"\"\"",
-      "line": 2307,
+      "line": 2315,
       "literal": "One grouped journey with its budget verdict, the numbers both report and gate print.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201091,7 +201091,7 @@
     },
     {
       "excerpt": "\"\"\"(floor, why) from a calibrate output of concatenated JSON objects: its last \"fling\" object, kept when a later part does not",
-      "line": 2320,
+      "line": 2328,
       "literal": "(floor, why) from a calibrate output of concatenated JSON objects: its last ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201100,7 +201100,7 @@
     },
     {
       "excerpt": "\"\"\"(floor, why) from a calibrate output of concatenated JSON objects: its last \"fling\" object, kept when a later part does not\n    parse; floor is None and why names the file and the cause when the file is unreadable, holds no fling object or does not parse.\"\"\"",
-      "line": 2320,
+      "line": 2328,
       "literal": " object, kept when a later part does not\n    parse; floor is None and why names the file and the cause when the file is unreadable, holds no fling object or does not parse.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201109,7 +201109,7 @@
     },
     {
       "excerpt": "return None, \"%s: %s\" % (path, \"no fling object\" if bad is None else \"parse error at offset %d\" % bad)",
-      "line": 2342,
+      "line": 2350,
       "literal": "no fling object",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201118,7 +201118,7 @@
     },
     {
       "excerpt": "return None, \"%s: %s\" % (path, \"no fling object\" if bad is None else \"parse error at offset %d\" % bad)",
-      "line": 2342,
+      "line": 2350,
       "literal": "parse error at offset %d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201127,7 +201127,7 @@
     },
     {
       "excerpt": "\"\"\"The fling floor as a report note, beside the fling rows; the ceiling less the floor is the room left for Flea. Never judged.\"\"\"",
-      "line": 2346,
+      "line": 2354,
       "literal": "The fling floor as a report note, beside the fling rows; the ceiling less the floor is the room left for Flea. Never judged.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201136,7 +201136,7 @@
     },
     {
       "excerpt": "return \"fling floor not read (%s)\" % (floor.get(\"skipped\") or floor.get(\"error\") or \"no runs\")",
-      "line": 2350,
+      "line": 2358,
       "literal": "fling floor not read (%s)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201145,7 +201145,7 @@
     },
     {
       "excerpt": "return \"fling floor not read (%s)\" % (floor.get(\"skipped\") or floor.get(\"error\") or \"no runs\")",
-      "line": 2350,
+      "line": 2358,
       "literal": "no runs",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201154,7 +201154,7 @@
     },
     {
       "excerpt": "return \"fling floor not read: no run drew a frame\"",
-      "line": 2353,
+      "line": 2361,
       "literal": "fling floor not read: no run drew a frame",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201163,7 +201163,7 @@
     },
     {
       "excerpt": "return (\"idle client floor, stroke to first wheel event p50 %s (%s to %s), to first frame p50 %s (%s to %s) over %d runs, \"",
-      "line": 2355,
+      "line": 2363,
       "literal": "idle client floor, stroke to first wheel event p50 %s (%s to %s), to first frame p50 %s (%s to %s) over %d runs, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201172,7 +201172,7 @@
     },
     {
       "excerpt": "\"%.1f left under the %s ms ceiling, not subtracted\" % (",
-      "line": 2356,
+      "line": 2364,
       "literal": "%.1f left under the %s ms ceiling, not subtracted",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201181,7 +201181,7 @@
     },
     {
       "excerpt": "\"\"\"The census table: one line per (journey, view, fixture, load), with the budget row's target and verdict; floor is a calibrate \"fling\" object.\"\"\"",
-      "line": 2362,
+      "line": 2370,
       "literal": "The census table: one line per (journey, view, fixture, load), with the budget row's target and verdict; floor is a calibrate ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201190,7 +201190,7 @@
     },
     {
       "excerpt": "lines = [\"# Instant budget census\", \"\"]",
-      "line": 2364,
+      "line": 2372,
       "literal": "# Instant budget census",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201199,7 +201199,7 @@
     },
     {
       "excerpt": "lines.append(\"- %s on %s, Flea %s, part %s, repeat %s ms delay at %s a second (%s)\" % (",
-      "line": 2366,
+      "line": 2374,
       "literal": "- %s on %s, Flea %s, part %s, repeat %s ms delay at %s a second (%s)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201208,7 +201208,7 @@
     },
     {
       "excerpt": "lines += [\"\", \"Times are ms from the input to the first frame whose watched region changes with ink (first_ms), \"",
-      "line": 2369,
+      "line": 2377,
       "literal": "Times are ms from the input to the first frame whose watched region changes with ink (first_ms), ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201217,7 +201217,7 @@
     },
     {
       "excerpt": "\"p50 and p95 nearest rank, a miss (nothing drawn before the next input or the cap) ranked above \"",
-      "line": 2370,
+      "line": 2378,
       "literal": "p50 and p95 nearest rank, a miss (nothing drawn before the next input or the cap) ranked above ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201226,7 +201226,7 @@
     },
     {
       "excerpt": "\"every number. Row 2 lists the largest gap between drawn frames in each sweep; its verdict reads the \"",
-      "line": 2371,
+      "line": 2379,
       "literal": "every number. Row 2 lists the largest gap between drawn frames in each sweep; its verdict reads the ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201235,7 +201235,7 @@
     },
     {
       "excerpt": "\"repeat slots and the overshoot. Row 5 lists first_ms; its verdict also reads settled_ms.\", \"\",",
-      "line": 2372,
+      "line": 2380,
       "literal": "repeat slots and the overshoot. Row 5 lists first_ms; its verdict also reads settled_ms.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201244,7 +201244,7 @@
     },
     {
       "excerpt": "note.append(\"%d not quiet before\" % sum(1 for r in g if r.get(\"pre_quiet\") is False))",
-      "line": 2393,
+      "line": 2401,
       "literal": "%d not quiet before",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201253,7 +201253,7 @@
     },
     {
       "excerpt": "note.append(\"slots missed %s, overshoot %s, behind %s\" % (",
-      "line": 2395,
+      "line": 2403,
       "literal": "slots missed %s, overshoot %s, behind %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201262,7 +201262,7 @@
     },
     {
       "excerpt": "note.append(\"load active %d/%d\" % (sum(1 for r in g if r.get(\"load_active\")), len(g)))",
-      "line": 2405,
+      "line": 2413,
       "literal": "load active %d/%d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201271,7 +201271,7 @@
     },
     {
       "excerpt": "lines += [\"\", \"Verdicts: \" + \", \".join(\"%s %d\" % kv for kv in sorted(tally.items()))]",
-      "line": 2415,
+      "line": 2423,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201280,7 +201280,7 @@
     },
     {
       "excerpt": "lines.append(\"- %s %s %s %s: %s\" % (\"harness fault\" if r.get(\"harness_fault\") else \"error\", r.get(\"journey\"),",
-      "line": 2420,
+      "line": 2428,
       "literal": "harness fault",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201289,7 +201289,7 @@
     },
     {
       "excerpt": "\"\"\"Numeric ceiling of a BREACH line: row 5 names the settled limit when only it is over.\"\"\"",
-      "line": 2431,
+      "line": 2439,
       "literal": "Numeric ceiling of a BREACH line: row 5 names the settled limit when only it is over.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201298,7 +201298,7 @@
     },
     {
       "excerpt": "\"\"\"p95 of a BREACH line: row 5 names the settled p95 when only it is over.\"\"\"",
-      "line": 2443,
+      "line": 2451,
       "literal": "p95 of a BREACH line: row 5 names the settled p95 when only it is over.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201307,7 +201307,7 @@
     },
     {
       "excerpt": "\"\"\"A part name from --part: a full PARTS name or a pN short form; None when unknown.\"\"\"",
-      "line": 2452,
+      "line": 2460,
       "literal": "A part name from --part: a full PARTS name or a pN short form; None when unknown.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201316,7 +201316,7 @@
     },
     {
       "excerpt": "\"\"\"Pass or fail the census against the budget ceilings; a missing journey never passes, except one a --only pattern drops.\"\"\"",
-      "line": 2460,
+      "line": 2468,
       "literal": "Pass or fail the census against the budget ceilings; a missing journey never passes, except one a --only pattern drops.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201325,7 +201325,7 @@
     },
     {
       "excerpt": "print(\"need census .jsonl files, got none\", file=sys.stderr)",
-      "line": 2462,
+      "line": 2470,
       "literal": "need census .jsonl files, got none",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201334,7 +201334,7 @@
     },
     {
       "excerpt": "sample_lines.append(\"GATE MISSING %s manifest has an empty flea_head\" % part)",
-      "line": 2481,
+      "line": 2489,
       "literal": "GATE MISSING %s manifest has an empty flea_head",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201343,7 +201343,7 @@
     },
     {
       "excerpt": "sample_lines.append(\"GATE MISSING %s plan samples %s, under the defined %s\" % (part, s, GATE_MIN_SAMPLES))",
-      "line": 2484,
+      "line": 2492,
       "literal": "GATE MISSING %s plan samples %s, under the defined %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201352,7 +201352,7 @@
     },
     {
       "excerpt": "sample_lines.append(\"GATE MISSING part %s has %d manifests, so its rows came from more than one run\" % (part, part_manifests[part]))",
-      "line": 2487,
+      "line": 2495,
       "literal": "GATE MISSING part %s has %d manifests, so its rows came from more than one run",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201361,7 +201361,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING part %s\" % part)",
-      "line": 2491,
+      "line": 2499,
       "literal": "GATE MISSING part %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201370,7 +201370,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s n=%d needs %d\" % (",
-      "line": 2498,
+      "line": 2506,
       "literal": "GATE MISSING %s %s %s n=%d needs %d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201379,7 +201379,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s no readable samples n=%d\" % (",
-      "line": 2502,
+      "line": 2510,
       "literal": "GATE MISSING %s %s %s no readable samples n=%d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201388,7 +201388,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s load inactive in %d of %d samples\" % (",
-      "line": 2507,
+      "line": 2515,
       "literal": "GATE MISSING %s %s %s load inactive in %d of %d samples",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201397,7 +201397,7 @@
     },
     {
       "excerpt": "breaches.append(\"GATE BREACH %s %s %s p95=%s ceiling=%s\" % (",
-      "line": 2510,
+      "line": 2518,
       "literal": "GATE BREACH %s %s %s p95=%s ceiling=%s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201406,7 +201406,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s %s (%s)\" % (key[0], key[1], key[2], r.get(\"first_ms\"), r.get(\"note\", \"\")))",
-      "line": 2515,
+      "line": 2523,
       "literal": "GATE MISSING %s %s %s %s (%s)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201415,7 +201415,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s error %s\" % (key[0], key[1], key[2], r.get(\"error\")))",
-      "line": 2519,
+      "line": 2527,
       "literal": "GATE MISSING %s %s %s error %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201424,7 +201424,7 @@
     },
     {
       "excerpt": "missing.append(\"GATE MISSING %s %s %s n=0 needs %d\" % (key[0], key[1], key[2], need[key]))",
-      "line": 2522,
+      "line": 2530,
       "literal": "GATE MISSING %s %s %s n=0 needs %d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201433,7 +201433,7 @@
     },
     {
       "excerpt": "summary = \"GATE FAIL breaches=%d journeys=%d\" % (len(breaches), len(seen))",
-      "line": 2524,
+      "line": 2532,
       "literal": "GATE FAIL breaches=%d journeys=%d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201442,7 +201442,7 @@
     },
     {
       "excerpt": "summary = \"GATE PASS journeys=%d\" % len(seen)",
-      "line": 2527,
+      "line": 2535,
       "literal": "GATE PASS journeys=%d",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201451,7 +201451,7 @@
     },
     {
       "excerpt": "\"remote_row\": 5, \"metric\": \"p95 first_ms, nearest rank, a miss above every number\"}, indent=1))",
-      "line": 2540,
+      "line": 2548,
       "literal": "p95 first_ms, nearest rank, a miss above every number",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201460,7 +201460,7 @@
     },
     {
       "excerpt": "print(\"no frame_ms\", file=sys.stderr)",
-      "line": 2551,
+      "line": 2559,
       "literal": "no frame_ms",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201469,7 +201469,7 @@
     },
     {
       "excerpt": "print(\"no 50 ms row\", file=sys.stderr)",
-      "line": 2556,
+      "line": 2564,
       "literal": "no 50 ms row",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201478,7 +201478,7 @@
     },
     {
       "excerpt": "print(\"50 ms row unscored\", file=sys.stderr)",
-      "line": 2559,
+      "line": 2567,
       "literal": "50 ms row unscored",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201487,7 +201487,7 @@
     },
     {
       "excerpt": "print(\"fifty_outside_one_frame delay=50 median=%s runs=%s\" % (",
-      "line": 2565,
+      "line": 2573,
       "literal": "fifty_outside_one_frame delay=50 median=%s runs=%s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201496,7 +201496,7 @@
     },
     {
       "excerpt": "print(\"capture_spent delay=0 runs=%s\" % spent, file=sys.stderr)",
-      "line": 2571,
+      "line": 2579,
       "literal": "capture_spent delay=0 runs=%s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201505,7 +201505,7 @@
     },
     {
       "excerpt": "print(\"unscored delay=%s\" % (r.get(\"delay_ms\"),), file=sys.stderr)",
-      "line": 2577,
+      "line": 2585,
       "literal": "unscored delay=%s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201514,7 +201514,7 @@
     },
     {
       "excerpt": "print(\"median_outside_one_frame delay=%s median=%.1f\" % (r.get(\"delay_ms\"), statistics.median(errs)),",
-      "line": 2582,
+      "line": 2590,
       "literal": "median_outside_one_frame delay=%s median=%.1f",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201523,7 +201523,7 @@
     },
     {
       "excerpt": "print(\"outside_one_frame delay=%s runs=%s error_vs_client_ms=%s\" % (",
-      "line": 2586,
+      "line": 2594,
       "literal": "outside_one_frame delay=%s runs=%s error_vs_client_ms=%s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201532,7 +201532,7 @@
     },
     {
       "excerpt": "\"\"\"Also prints the fling floor (fling_probe) under \"fling\", which never changes the verdict. Pass when the negative control is clean, the 50 ms row is within one frame, no delay-0 result followed another commit and every scored row's median error is within one frame; each other run outside one frame prints to stderr as outside_one_frame with its delay, runs and error_vs_client_ms without failing the gate.\"\"\"",
-      "line": 2592,
+      "line": 2600,
       "literal": "Also prints the fling floor (fling_probe) under ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201541,7 +201541,7 @@
     },
     {
       "excerpt": "\"\"\"Also prints the fling floor (fling_probe) under \"fling\", which never changes the verdict. Pass when the negative control is clean, the 50 ms row is within one frame, no delay-0 result followed another commit and every scored row's median error is within one frame; each other run outside one frame prints to stderr as outside_one_frame with its delay, runs and error_vs_client_ms without failing the gate.\"\"\"",
-      "line": 2592,
+      "line": 2600,
       "literal": ", which never changes the verdict. Pass when the negative control is clean, the 50 ms row is within one frame, no delay-0 result followed another commit and every scored row's median error is within one frame; each other run outside one frame prints to stderr as outside_one_frame with its delay, runs and error_vs_client_ms without failing the gate.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201550,7 +201550,7 @@
     },
     {
       "excerpt": "for key in (\"t\", \"w\", \"[\", \"]\", \"m\", \"r\", \",\", \"/\", \";\", \"f\", \"space\", \"esc\", \"tab\", \"delete\", \"backspace\",",
-      "line": 2677,
+      "line": 2685,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201559,7 +201559,7 @@
     },
     {
       "excerpt": "\"enter\", \"right\", \"left\", \"home\", \"end\", \"1\", \"2\", \"3\", \"v\", \"c\", \"x\", \"a\"):",
-      "line": 2678,
+      "line": 2686,
       "literal": "2",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201568,7 +201568,7 @@
     },
     {
       "excerpt": "\"enter\", \"right\", \"left\", \"home\", \"end\", \"1\", \"2\", \"3\", \"v\", \"c\", \"x\", \"a\"):",
-      "line": 2678,
+      "line": 2686,
       "literal": "3",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201577,7 +201577,7 @@
     },
     {
       "excerpt": "check(\"part %s has journeys\" % part, bool(js) or part == \"\", True)",
-      "line": 2692,
+      "line": 2700,
       "literal": "part %s has journeys",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201586,7 +201586,7 @@
     },
     {
       "excerpt": "check(\"rename key %s\" % (chord,), all(c in S.KEYCODES or c in N.EXTRA_KEYCODES for c in chord), True)",
-      "line": 2719,
+      "line": 2727,
       "literal": "rename key %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201595,7 +201595,7 @@
     },
     {
       "excerpt": "os.symlink(td, os.path.join(root, \"link\"))",
-      "line": 2733,
+      "line": 2741,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201604,7 +201604,7 @@
     },
     {
       "excerpt": "check(\"link_itself\", inside_marked(os.path.join(root, \"link\"), [root]), True)",
-      "line": 2734,
+      "line": 2742,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201613,7 +201613,7 @@
     },
     {
       "excerpt": "sandbox_rm(os.path.join(root, \"link\"), [root])",
-      "line": 2735,
+      "line": 2743,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201622,7 +201622,7 @@
     },
     {
       "excerpt": "check(\"link_removed_target_kept\", (os.path.lexists(os.path.join(root, \"link\")), os.path.isdir(td)),",
-      "line": 2736,
+      "line": 2744,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201631,7 +201631,7 @@
     },
     {
       "excerpt": "fail.append(\"sandbox_rm removed an unmarked path\")",
-      "line": 2740,
+      "line": 2748,
       "literal": "sandbox_rm removed an unmarked path",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201640,7 +201640,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps({\"journey\": \"nav.list.fling\", \"row\": 1, \"view\": \"list\", \"first_ms\": \"no instrument\",",
-      "line": 2758,
+      "line": 2766,
       "literal": "no instrument",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201649,7 +201649,7 @@
     },
     {
       "excerpt": "check(\"rep_noinst\", \"nav.list.fling list local: no instrument (why)\" in text, True)",
-      "line": 2775,
+      "line": 2783,
       "literal": "nav.list.fling list local: no instrument (why)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201658,7 +201658,7 @@
     },
     {
       "excerpt": "check(\"rep_error\", \"error op.trash list : RuntimeError: x\" in text, True)",
-      "line": 2776,
+      "line": 2784,
       "literal": "error op.trash list : RuntimeError: x",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201667,7 +201667,7 @@
     },
     {
       "excerpt": "check(\"gate_pass_line\", \"GATE PASS journeys=1\" in gtext, True)",
-      "line": 2813,
+      "line": 2821,
       "literal": "GATE PASS journeys=1",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201676,7 +201676,7 @@
     },
     {
       "excerpt": "check(\"gate_pass_quiet\", (\"GATE BREACH\" in gtext, \"GATE MISSING\" in gtext), (False, False))",
-      "line": 2814,
+      "line": 2822,
       "literal": "GATE BREACH",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201685,7 +201685,7 @@
     },
     {
       "excerpt": "check(\"gate_pass_quiet\", (\"GATE BREACH\" in gtext, \"GATE MISSING\" in gtext), (False, False))",
-      "line": 2814,
+      "line": 2822,
       "literal": "GATE MISSING",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201694,7 +201694,7 @@
     },
     {
       "excerpt": "check(\"gate_breach_line\", \"GATE BREACH nav.grid.enter grid local p95=140.0 ceiling=100\" in gtext, True)",
-      "line": 2830,
+      "line": 2838,
       "literal": "GATE BREACH nav.grid.enter grid local p95=140.0 ceiling=100",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201703,7 +201703,7 @@
     },
     {
       "excerpt": "check(\"gate_breach_fail\", \"GATE FAIL breaches=1 journeys=2\" in gtext, True)",
-      "line": 2831,
+      "line": 2839,
       "literal": "GATE FAIL breaches=1 journeys=2",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201712,7 +201712,7 @@
     },
     {
       "excerpt": "short.append({\"journey\": \"nav.list.fling\", \"row\": 1, \"view\": \"list\", \"first_ms\": \"no instrument\",",
-      "line": 2834,
+      "line": 2842,
       "literal": "no instrument",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201721,7 +201721,7 @@
     },
     {
       "excerpt": "check(\"gate_missing_short\", \"GATE MISSING nav.list.up list local n=3 needs 20\" in gtext, True)",
-      "line": 2838,
+      "line": 2846,
       "literal": "GATE MISSING nav.list.up list local n=3 needs 20",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201730,7 +201730,7 @@
     },
     {
       "excerpt": "check(\"gate_missing_noinst\", \"GATE MISSING nav.list.fling list local no instrument\" in gtext, True)",
-      "line": 2839,
+      "line": 2847,
       "literal": "GATE MISSING nav.list.fling list local no instrument",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201739,7 +201739,7 @@
     },
     {
       "excerpt": "check(\"gate_missing_fail\", (\"GATE FAIL\" in gtext, \"GATE PASS\" in gtext), (True, False))",
-      "line": 2840,
+      "line": 2848,
       "literal": "GATE FAIL",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201748,7 +201748,7 @@
     },
     {
       "excerpt": "check(\"gate_missing_fail\", (\"GATE FAIL\" in gtext, \"GATE PASS\" in gtext), (True, False))",
-      "line": 2840,
+      "line": 2848,
       "literal": "GATE PASS",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201757,7 +201757,7 @@
     },
     {
       "excerpt": "check(\"gate_plan_pass_line\", \"GATE PASS\" in gtext, True)",
-      "line": 2885,
+      "line": 2893,
       "literal": "GATE PASS",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201766,7 +201766,7 @@
     },
     {
       "excerpt": "check(\"gate_plan_part_twice\", (code, \"GATE PASS\" in gtext), (0, True))",
-      "line": 2887,
+      "line": 2895,
       "literal": "GATE PASS",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201775,7 +201775,7 @@
     },
     {
       "excerpt": "check(\"gate_plan_short_line\", \"GATE MISSING\" in gtext, True)",
-      "line": 2890,
+      "line": 2898,
       "literal": "GATE MISSING",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201784,7 +201784,7 @@
     },
     {
       "excerpt": "\"GATE MISSING open.ql.txt.first dual local+load-a n=0 needs 1\" in gtext, True)",
-      "line": 2895,
+      "line": 2903,
       "literal": "GATE MISSING open.ql.txt.first dual local+load-a n=0 needs 1",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201793,7 +201793,7 @@
     },
     {
       "excerpt": "check(\"gate_truncated_line\", (\"GATE MISSING\" in gtext, \"GATE PASS\" in gtext), (True, False))",
-      "line": 2898,
+      "line": 2906,
       "literal": "GATE MISSING",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201802,7 +201802,7 @@
     },
     {
       "excerpt": "check(\"gate_truncated_line\", (\"GATE MISSING\" in gtext, \"GATE PASS\" in gtext), (True, False))",
-      "line": 2898,
+      "line": 2906,
       "literal": "GATE PASS",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201811,7 +201811,7 @@
     },
     {
       "excerpt": "fail.append(\"typo_gate: a typo'd path was dropped instead of refused\")",
-      "line": 2902,
+      "line": 2910,
       "literal": "typo_gate: a typo'd path was dropped instead of refused",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201820,7 +201820,7 @@
     },
     {
       "excerpt": "check(\"gate_miss_line\", \"GATE BREACH open.ql.txt dual local+load-a p95=miss ceiling=100\" in gtext, True)",
-      "line": 2913,
+      "line": 2921,
       "literal": "GATE BREACH open.ql.txt dual local+load-a p95=miss ceiling=100",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201829,7 +201829,7 @@
     },
     {
       "excerpt": "check(\"gate_expected_part\", \"GATE MISSING part p4-open\" in buf.getvalue(), True)",
-      "line": 2927,
+      "line": 2935,
       "literal": "GATE MISSING part p4-open",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201838,7 +201838,7 @@
     },
     {
       "excerpt": "check(\"gate_samples_line\", \"plan samples 2, under the defined 20\" in gtext, True)",
-      "line": 2936,
+      "line": 2944,
       "literal": "plan samples 2, under the defined 20",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201847,7 +201847,7 @@
     },
     {
       "excerpt": "check(\"gate_empty_head_line\", \"GATE MISSING p7-load manifest has an empty flea_head\" in gtext, True)",
-      "line": 2940,
+      "line": 2948,
       "literal": "GATE MISSING p7-load manifest has an empty flea_head",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201856,7 +201856,7 @@
     },
     {
       "excerpt": "check(\"gate_two_manifests_line\", \"GATE MISSING part p1-cursor has 2 manifests\" in buf.getvalue(), True)",
-      "line": 2966,
+      "line": 2974,
       "literal": "GATE MISSING part p1-cursor has 2 manifests",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201865,7 +201865,7 @@
     },
     {
       "excerpt": "fail.append(\"load_dst_guard: a non-dst directory was removed\")",
-      "line": 3007,
+      "line": 3015,
       "literal": "load_dst_guard: a non-dst directory was removed",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201874,7 +201874,7 @@
     },
     {
       "excerpt": "check(\"calib_outside_names\", \"outside_one_frame delay=200 runs=[10]\" in err.getvalue(), True)",
-      "line": 3033,
+      "line": 3041,
       "literal": "outside_one_frame delay=200 runs=[10]",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201883,7 +201883,7 @@
     },
     {
       "excerpt": "check(\"calib_unscored_names\", (\"unscored delay=200\" in err.getvalue(),",
-      "line": 3045,
+      "line": 3053,
       "literal": "unscored delay=200",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201892,7 +201892,7 @@
     },
     {
       "excerpt": "\"outside_one_frame delay=200\" in err.getvalue()), (True, False))",
-      "line": 3046,
+      "line": 3054,
       "literal": "outside_one_frame delay=200",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201901,7 +201901,7 @@
     },
     {
       "excerpt": "check(\"calib_no_frame_names\", \"no frame_ms\" in err.getvalue(), True)",
-      "line": 3052,
+      "line": 3060,
       "literal": "no frame_ms",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201910,7 +201910,7 @@
     },
     {
       "excerpt": "check(\"calib_no_fifty_names\", \"no 50 ms row\" in err.getvalue(), True)",
-      "line": 3058,
+      "line": 3066,
       "literal": "no 50 ms row",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201919,7 +201919,7 @@
     },
     {
       "excerpt": "check(\"calib_fifty_unscored_names\", \"50 ms row unscored\" in err.getvalue(), True)",
-      "line": 3063,
+      "line": 3071,
       "literal": "50 ms row unscored",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201928,7 +201928,7 @@
     },
     {
       "excerpt": "check(\"calib_median_off_names\", \"median_outside_one_frame delay=200\" in err.getvalue(), True)",
-      "line": 3070,
+      "line": 3078,
       "literal": "median_outside_one_frame delay=200",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201937,7 +201937,7 @@
     },
     {
       "excerpt": "names = (\"fifty_outside_one_frame delay=50 median=-21.6\", \"median_outside_one_frame delay=200 median=-21.7\",",
-      "line": 3089,
+      "line": 3097,
       "literal": "fifty_outside_one_frame delay=50 median=-21.6",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201946,7 +201946,7 @@
     },
     {
       "excerpt": "names = (\"fifty_outside_one_frame delay=50 median=-21.6\", \"median_outside_one_frame delay=200 median=-21.7\",",
-      "line": 3089,
+      "line": 3097,
       "literal": "median_outside_one_frame delay=200 median=-21.7",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201955,7 +201955,7 @@
     },
     {
       "excerpt": "\"outside_one_frame delay=0 runs=[4, 9] error_vs_client_ms=[9.4, 10.3]\")",
-      "line": 3090,
+      "line": 3098,
       "literal": "outside_one_frame delay=0 runs=[4, 9] error_vs_client_ms=[9.4, 10.3]",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201964,7 +201964,7 @@
     },
     {
       "excerpt": "check(\"calib_spent_names\", \"capture_spent delay=0 runs=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\" in err.getvalue(), True)",
-      "line": 3105,
+      "line": 3113,
       "literal": "capture_spent delay=0 runs=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201973,7 +201973,7 @@
     },
     {
       "excerpt": "(0, [(0, \"the first folder, row 0 with folders first\")]))",
-      "line": 3144,
+      "line": 3152,
       "literal": "the first folder, row 0 with folders first",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201982,7 +201982,7 @@
     },
     {
       "excerpt": "fail.append(\"folder_setup_folders_last: a session with foldersFirst false was accepted\")",
-      "line": 3147,
+      "line": 3155,
       "literal": "folder_setup_folders_last: a session with foldersFirst false was accepted",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -201991,7 +201991,7 @@
     },
     {
       "excerpt": "check(\"folder_setup_folders_last_names_it\", \"assumes folders first\" in str(e), True)",
-      "line": 3149,
+      "line": 3157,
       "literal": "assumes folders first",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202000,7 +202000,7 @@
     },
     {
       "excerpt": "fail.append(\"folder_setup_unpinned: a patch that does not set foldersFirst was accepted\")",
-      "line": 3152,
+      "line": 3160,
       "literal": "folder_setup_unpinned: a patch that does not set foldersFirst was accepted",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202009,7 +202009,7 @@
     },
     {
       "excerpt": "fail.append(\"folder_setup_none: a listing with no folder was accepted\")",
-      "line": 3158,
+      "line": 3166,
       "literal": "folder_setup_none: a listing with no folder was accepted",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202018,7 +202018,7 @@
     },
     {
       "excerpt": "check(\"only_no_match\", only_series(built[\"p1-cursor\"], r\"^no such journey$\"), [])",
-      "line": 3174,
+      "line": 3182,
       "literal": "^no such journey$",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202027,7 +202027,7 @@
     },
     {
       "excerpt": "fail.append(\"only_bad_regex: an unbalanced regex was accepted\")",
-      "line": 3178,
+      "line": 3186,
       "literal": "only_bad_regex: an unbalanced regex was accepted",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202036,7 +202036,7 @@
     },
     {
       "excerpt": "check(\"gate_only_pass\", (code, \"GATE PASS journeys=2\" in gtext), (0, True))",
-      "line": 3183,
+      "line": 3191,
       "literal": "GATE PASS journeys=2",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202045,7 +202045,7 @@
     },
     {
       "excerpt": "check(\"gate_unfiltered_missing\", (code, \"GATE MISSING nav.list.down list local n=0\" in gtext), (2, True))",
-      "line": 3185,
+      "line": 3193,
       "literal": "GATE MISSING nav.list.down list local n=0",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202054,7 +202054,7 @@
     },
     {
       "excerpt": "check(\"gate_only_breach\", (code, \"GATE BREACH nav.dual.wheel dual local p95=30.0 ceiling=16.7\" in gtext), (1, True))",
-      "line": 3188,
+      "line": 3196,
       "literal": "GATE BREACH nav.dual.wheel dual local p95=30.0 ceiling=16.7",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202063,7 +202063,7 @@
     },
     {
       "excerpt": "check(\"gate_only_short\", (code, \"GATE MISSING nav.dual.fling dual local n=19 needs 20\" in gtext), (2, True))",
-      "line": 3191,
+      "line": 3199,
       "literal": "GATE MISSING nav.dual.fling dual local n=19 needs 20",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202072,7 +202072,7 @@
     },
     {
       "excerpt": "erred = filtered + [{\"journey\": \"nav.dual.enter\", \"view\": \"dual\", \"fixture\": \"local\", \"error\": \"an external window opened\"}]",
-      "line": 3192,
+      "line": 3200,
       "literal": "an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202081,7 +202081,7 @@
     },
     {
       "excerpt": "check(\"gate_only_error_row\", (code, \"error an external window opened\" in gtext), (2, True))",
-      "line": 3194,
+      "line": 3202,
       "literal": "error an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202090,7 +202090,7 @@
     },
     {
       "excerpt": "check(\"gate_only_not_a_path\", \"need an existing\" in err.getvalue(), False)",
-      "line": 3203,
+      "line": 3211,
       "literal": "need an existing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202099,7 +202099,7 @@
     },
     {
       "excerpt": "fail.append(\"sample_external: an external window did not end the sample\")",
-      "line": 3251,
+      "line": 3259,
       "literal": "sample_external: an external window did not end the sample",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202108,7 +202108,7 @@
     },
     {
       "excerpt": "(\"an external window opened\", \"nav.dual.enter\", [{\"class\": \"org.gnome.TextEditor\", \"title\": None, \"pid\": 99}]))",
-      "line": 3254,
+      "line": 3262,
       "literal": "an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202117,7 +202117,7 @@
     },
     {
       "excerpt": "(20, 19, \"an external window opened\"))",
-      "line": 3264,
+      "line": 3272,
       "literal": "an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202126,7 +202126,7 @@
     },
     {
       "excerpt": "raise OSError(\"uinput gone\")",
-      "line": 3270,
+      "line": 3278,
       "literal": "uinput gone",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202135,7 +202135,7 @@
     },
     {
       "excerpt": "(4, 3, \"OSError: uinput gone\"))",
-      "line": 3276,
+      "line": 3284,
       "literal": "OSError: uinput gone",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202144,7 +202144,7 @@
     },
     {
       "excerpt": "fail.append(\"window_at_gone: no refusal\")",
-      "line": 3296,
+      "line": 3304,
       "literal": "window_at_gone: no refusal",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202153,7 +202153,7 @@
     },
     {
       "excerpt": "check(\"window_at_gone_names\", str(e), \"the window 0x2 closed before its geometry was read\")",
-      "line": 3298,
+      "line": 3306,
       "literal": "the window 0x2 closed before its geometry was read",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202162,7 +202162,7 @@
     },
     {
       "excerpt": "raise OSError(\"uinput gone\")",
-      "line": 3304,
+      "line": 3312,
       "literal": "uinput gone",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202171,7 +202171,7 @@
     },
     {
       "excerpt": "(5, {(\"nav.dual.wheel\", 2.0)}, \"OSError: uinput gone\"))",
-      "line": 3317,
+      "line": 3325,
       "literal": "OSError: uinput gone",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202180,7 +202180,7 @@
     },
     {
       "excerpt": "raise RuntimeError(\"no centre\")",
-      "line": 3331,
+      "line": 3339,
       "literal": "no centre",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202189,7 +202189,7 @@
     },
     {
       "excerpt": "raise ExternalWindow({\"journey\": journey, \"error\": \"an external window opened\"})",
-      "line": 3332,
+      "line": 3340,
       "literal": "an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202198,7 +202198,7 @@
     },
     {
       "excerpt": "[\"RuntimeError: no centre\", \"an external window opened\"])",
-      "line": 3339,
+      "line": 3347,
       "literal": "RuntimeError: no centre",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202207,7 +202207,7 @@
     },
     {
       "excerpt": "[\"RuntimeError: no centre\", \"an external window opened\"])",
-      "line": 3339,
+      "line": 3347,
       "literal": "an external window opened",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202216,7 +202216,7 @@
     },
     {
       "excerpt": "acts = [] if running is None else [{\"id\": 1, \"text\": \"Copying\", \"running\": True, \"cancelling\": running == \"cancelling\",",
-      "line": 3342,
+      "line": 3350,
       "literal": "Copying",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202225,7 +202225,7 @@
     },
     {
       "excerpt": "check(\"isolate_none_names_it\", drive([None], 1)[2], \"the status bar is not idle: statusActivityState gave no reading\")",
-      "line": 3366,
+      "line": 3374,
       "literal": "the status bar is not idle: statusActivityState gave no reading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202234,7 +202234,7 @@
     },
     {
       "excerpt": "(0, 0, \"the status bar is not idle: 1 activities after 0 Esc, the first 'Copying'\", True))",
-      "line": 3369,
+      "line": 3377,
       "literal": "the status bar is not idle: 1 activities after 0 Esc, the first 'Copying'",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202243,7 +202243,7 @@
     },
     {
       "excerpt": "swallowed[2].startswith(\"the status bar is not idle: 2 queued errors after \")),",
-      "line": 3372,
+      "line": 3380,
       "literal": "the status bar is not idle: 2 queued errors after ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202252,7 +202252,7 @@
     },
     {
       "excerpt": "(0, 1, True, \"Copied 0 items\", [{\"text\": \"Copying\", \"running\": True, \"cancelling\": False}]))",
-      "line": 3378,
+      "line": 3386,
       "literal": "Copying",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202261,7 +202261,7 @@
     },
     {
       "excerpt": "\"\"\"The pane of the sample's folders: a symlink to a folder is listed among the files, so after b-src.\"\"\"",
-      "line": 3391,
+      "line": 3399,
       "literal": "The pane of the sample's folders: a symlink to a folder is listed among the files, so after b-src.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202270,7 +202270,7 @@
     },
     {
       "excerpt": "\"\"\"A session whose statusActivityState follows script and whose pane follows the keys; a-dst is a symlink.\"\"\"",
-      "line": 3438,
+      "line": 3446,
       "literal": "A session whose statusActivityState follows script and whose pane follows the keys; a-dst is a symlink.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202279,7 +202279,7 @@
     },
     {
       "excerpt": "\"\"\"The reflink of a sample: count files into the source folder.\"\"\"",
-      "line": 3466,
+      "line": 3474,
       "literal": "The reflink of a sample: count files into the source folder.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202288,7 +202288,7 @@
     },
     {
       "excerpt": "rows[0][\"refused\"], rows[0][\"esc_before\"], (\"esc\",) in sent, \"cancel_escs\" in rows[0]),",
-      "line": 3489,
+      "line": 3497,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202297,7 +202297,7 @@
     },
     {
       "excerpt": "escs_at = [i for i, c in enumerate(sent) if c == (\"esc\",)]",
-      "line": 3493,
+      "line": 3501,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202306,7 +202306,7 @@
     },
     {
       "excerpt": "script = [bar(), bar(), bar(\"running\", errors=1, notice=\"an operation is already running\"),",
-      "line": 3498,
+      "line": 3506,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202315,7 +202315,7 @@
     },
     {
       "excerpt": "[c for c in after_paste if c == (\"esc\",)], \"cancel_failed\" in rows[0],",
-      "line": 3503,
+      "line": 3511,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202324,7 +202324,7 @@
     },
     {
       "excerpt": "(True, 1, None, 2, [(\"esc\",), (\"esc\",)], False, True))",
-      "line": 3505,
+      "line": 3513,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202333,7 +202333,7 @@
     },
     {
       "excerpt": "(True, 1, None, 2, [(\"esc\",), (\"esc\",)], False, True))",
-      "line": 3505,
+      "line": 3513,
       "literal": "esc",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202342,7 +202342,7 @@
     },
     {
       "excerpt": "(1, None, [], False, \"RuntimeError: the status bar is not idle: 1 activities after 0 Esc, the first 'Copying'\"))",
-      "line": 3512,
+      "line": 3520,
       "literal": "RuntimeError: the status bar is not idle: 1 activities after 0 Esc, the first 'Copying'",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202351,7 +202351,7 @@
     },
     {
       "excerpt": "rows[0].get(\"error\", \"\").startswith(\"HarnessFault: the clipboard holds 0 paths (moving False), not the 1\")),",
-      "line": 3548,
+      "line": 3556,
       "literal": "HarnessFault: the clipboard holds 0 paths (moving False), not the 1",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202360,7 +202360,7 @@
     },
     {
       "excerpt": "rows[0].get(\"error\", \"\").startswith(\"HarnessFault: the clipboard holds 1 paths (moving False), not the 1\")),",
-      "line": 3561,
+      "line": 3569,
       "literal": "HarnessFault: the clipboard holds 1 paths (moving False), not the 1",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202369,7 +202369,7 @@
     },
     {
       "excerpt": "([r.get(\"harness_fault\") for r in rows], rows[1].get(\"error\", \"\").startswith(\"HarnessFault: the pane is at \"),",
-      "line": 3566,
+      "line": 3574,
       "literal": "HarnessFault: the pane is at ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202378,7 +202378,7 @@
     },
     {
       "excerpt": "landed = \"no fault\"",
-      "line": 3573,
+      "line": 3581,
       "literal": "no fault",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202387,7 +202387,7 @@
     },
     {
       "excerpt": "check(\"listing_that_never_lands_is_a_harness_fault\", (landed, sent), (\"the listing did not land in 0 s\", []))",
-      "line": 3576,
+      "line": 3584,
       "literal": "the listing did not land in 0 s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202396,7 +202396,7 @@
     },
     {
       "excerpt": "check(\"size_ui_shows_only_properties\", ([a for a in MENU_HIDDEN if a not in SIZE_UI[\"menu\"][\"hidden\"]],",
-      "line": 3590,
+      "line": 3598,
       "literal": ", ([a for a in MENU_HIDDEN if a not in SIZE_UI[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202405,7 +202405,7 @@
     },
     {
       "excerpt": "len(SIZE_UI[\"menu\"][\"hidden\"])), ([\"properties\"], len(shipped) - 1))\n    with open(os.path.join(REPO, \"ui\", \"js\", \"Nav.js\")) as f:",
-      "line": 3591,
+      "line": 3599,
       "literal": "], len(shipped) - 1))\n    with open(os.path.join(REPO, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202414,7 +202414,7 @@
     },
     {
       "excerpt": "with open(os.path.join(REPO, \"ui\", \"js\", \"Nav.js\")) as f:",
-      "line": 3592,
+      "line": 3600,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202423,7 +202423,7 @@
     },
     {
       "excerpt": "with open(os.path.join(REPO, \"ui\", \"js\", \"Nav.js\")) as f:",
-      "line": 3592,
+      "line": 3600,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202432,7 +202432,7 @@
     },
     {
       "excerpt": "check(\"flea_backspace_climbs_the_pane_path_lexically\",\n          'var here = pane.path\\n    var cut = here.lastIndexOf(\"/\")\\n    pane.pendingSelect = here\\n'",
-      "line": 3595,
+      "line": 3603,
       "literal": ",\n          'var here = pane.path\\n    var cut = here.lastIndexOf(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202441,7 +202441,7 @@
     },
     {
       "excerpt": "'    pane.open(cut <= 0 ? \"/\" : here.substring(0, cut))' in nav, True)\n    ops_plan = {sp[\"op\"]: sp.get(\"ui\") for sp in parts(PLAN_FX, 20)[\"p6-ops\"]}",
-      "line": 3597,
+      "line": 3605,
       "literal": " : here.substring(0, cut))' in nav, True)\n    ops_plan = {sp[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202450,7 +202450,7 @@
     },
     {
       "excerpt": "ops_plan = {sp[\"op\"]: sp.get(\"ui\") for sp in parts(PLAN_FX, 20)[\"p6-ops\"]}",
-      "line": 3598,
+      "line": 3606,
       "literal": ") for sp in parts(PLAN_FX, 20)[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202459,7 +202459,7 @@
     },
     {
       "excerpt": "check(\"size_patch_reaches_the_session\", dict(ui_patch(\"list\", \"/x\"), **SIZE_UI)[\"menu\"], SIZE_UI[\"menu\"])",
-      "line": 3601,
+      "line": 3609,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202468,7 +202468,7 @@
     },
     {
       "excerpt": "check(\"size_patch_reaches_the_session\", dict(ui_patch(\"list\", \"/x\"), **SIZE_UI)[\"menu\"], SIZE_UI[\"menu\"])\n    # The report names a harness fault as one, beside the other error rows, and counts it in no verdict.\n    with tempfile.NamedTemporaryFile(\"w\", suffix=\".jsonl\", delete=False) as tf:",
-      "line": 3601,
+      "line": 3609,
       "literal": "])\n                                                                                                        \n    with tempfile.NamedTemporaryFile(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202477,7 +202477,7 @@
     },
     {
       "excerpt": "with tempfile.NamedTemporaryFile(\"w\", suffix=\".jsonl\", delete=False) as tf:\n        tf.write(json.dumps({\"journey\": \"nav.list.down\", \"row\": 1, \"view\": \"list\", \"first_ms\": 5.0, \"fixture\": \"local\"}) + \"\\n\")",
-      "line": 3603,
+      "line": 3611,
       "literal": ", delete=False) as tf:\n        tf.write(json.dumps({",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202486,7 +202486,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps({\"journey\": \"nav.list.down\", \"row\": 1, \"view\": \"list\", \"first_ms\": 5.0, \"fixture\": \"local\"}) + \"\\n\")",
-      "line": 3604,
+      "line": 3612,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202495,7 +202495,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps({\"journey\": \"nav.list.down\", \"row\": 1, \"view\": \"list\", \"first_ms\": 5.0, \"fixture\": \"local\"}) + \"\\n\")",
-      "line": 3604,
+      "line": 3612,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202504,7 +202504,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps({\"journey\": \"op.move.cross-fs\", \"row\": 6, \"view\": \"list\", \"fixture\": \"local\",",
-      "line": 3605,
+      "line": 3613,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202513,7 +202513,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps({\"journey\": \"op.move.cross-fs\", \"row\": 6, \"view\": \"list\", \"fixture\": \"local\",",
-      "line": 3605,
+      "line": 3613,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202522,7 +202522,7 @@
     },
     {
       "excerpt": "\"error\": \"HarnessFault: the clipboard holds 0 paths\", \"harness_fault\": True}) + \"\\n\")",
-      "line": 3606,
+      "line": 3614,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202531,7 +202531,7 @@
     },
     {
       "excerpt": "\"error\": \"HarnessFault: the clipboard holds 0 paths\", \"harness_fault\": True}) + \"\\n\")\n    buf = io.StringIO()\n    with redirect_stdout(buf):\n        report([tf.name])\n    os.unlink(tf.name)\n    check(\"rep_harness_fault_named\", (\"- harness fault op.move.cross-fs list local: HarnessFault: the clipboard holds 0 paths\"",
-      "line": 3606,
+      "line": 3614,
       "literal": ")\n    buf = io.StringIO()\n    with redirect_stdout(buf):\n        report([tf.name])\n    os.unlink(tf.name)\n    check(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202540,7 +202540,7 @@
     },
     {
       "excerpt": "check(\"rep_harness_fault_named\", (\"- harness fault op.move.cross-fs list local: HarnessFault: the clipboard holds 0 paths\"\n                                      in buf.getvalue(), \"Verdicts: TARGET 1\\n\" in buf.getvalue()), (True, True))",
-      "line": 3611,
+      "line": 3619,
       "literal": "\n                                      in buf.getvalue(), ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202549,7 +202549,7 @@
     },
     {
       "excerpt": "in buf.getvalue(), \"Verdicts: TARGET 1\\n\" in buf.getvalue()), (True, True))\n    # The calibration probes keep their work directory only while they run.\n    works = []\n\n    def fake_window(work, delay):\n        works.append(work)\n        logp = os.path.join(work, \"client.log\")",
-      "line": 3612,
+      "line": 3620,
       "literal": " in buf.getvalue()), (True, True))\n                                                                           \n    works = []\n\n    def fake_window(work, delay):\n        works.append(work)\n        logp = os.path.join(work, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202558,7 +202558,7 @@
     },
     {
       "excerpt": "logp = os.path.join(work, \"client.log\")\n        with open(logp, \"w\") as f:",
-      "line": 3618,
+      "line": 3626,
       "literal": ")\n        with open(logp, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202567,7 +202567,7 @@
     },
     {
       "excerpt": "f.write(\"CALIB key a\\n\")\n        return None, None, [], logp\n\n    with mock.patch.dict(globals(), dict(calib_window=fake_window, end_client=lambda client: None)), \\\n            mock.patch.object(S, \"build_recorder\", lambda path: path), \\",
-      "line": 3620,
+      "line": 3628,
       "literal": ")\n        return None, None, [], logp\n\n    with mock.patch.dict(globals(), dict(calib_window=fake_window, end_client=lambda client: None)), \\\n            mock.patch.object(S, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202576,7 +202576,7 @@
     },
     {
       "excerpt": "mock.patch.object(S, \"build_recorder\", lambda path: path), \\\n            mock.patch.object(S, \"Recorder\", lambda *a: types.SimpleNamespace(snapshot=lambda: [], stop=lambda: None)), \\",
-      "line": 3624,
+      "line": 3632,
       "literal": ", lambda path: path), \\\n            mock.patch.object(S, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202585,7 +202585,7 @@
     },
     {
       "excerpt": "mock.patch.object(time, \"sleep\", lambda secs: None):\n        repeat_probe(types.SimpleNamespace(_key=lambda *a: None), {\"rate\": 40, \"delay_ms\": 250}, 1)",
-      "line": 3626,
+      "line": 3634,
       "literal": ", lambda secs: None):\n        repeat_probe(types.SimpleNamespace(_key=lambda *a: None), {",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202594,7 +202594,7 @@
     },
     {
       "excerpt": "check(\"probe_dirs_removed\", (len(works), [os.path.exists(w) for w in works]), (2, [False, False]))\n    # A qs ipc call that outlives its timeout is an error row for its series, never an abort of the part.\n    class HungIpc(Session):\n        def __init__(self):\n            self.qs_pid, self.view, self.closed, self.load, self.taken = 1, \"list\", False, None, []",
-      "line": 3629,
+      "line": 3637,
       "literal": ", (len(works), [os.path.exists(w) for w in works]), (2, [False, False]))\n                                                                                                         \n    class HungIpc(Session):\n        def __init__(self):\n            self.qs_pid, self.view, self.closed, self.load, self.taken = 1, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202603,7 +202603,7 @@
     },
     {
       "excerpt": "self.ipc_client = Client(\"qs\")\n\n        def close(self):\n            self.closed = True\n\n    def hang(argv, **kw):\n        raise subprocess.TimeoutExpired(argv, kw[\"timeout\"])",
-      "line": 3634,
+      "line": 3642,
       "literal": ")\n\n        def close(self):\n            self.closed = True\n\n    def hang(argv, **kw):\n        raise subprocess.TimeoutExpired(argv, kw[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202612,7 +202612,7 @@
     },
     {
       "excerpt": "raise subprocess.TimeoutExpired(argv, kw[\"timeout\"])\n\n    hung, hung_out = HungIpc(), io.StringIO()\n    with mock.patch.object(subprocess, \"run\", hang), mock.patch.dict(SERIES, {\"pairs\": lambda s, sp, n: [{\"first_ms\": s.ipc_int(\"cursor\")}]}), \\",
-      "line": 3640,
+      "line": 3648,
       "literal": "])\n\n    hung, hung_out = HungIpc(), io.StringIO()\n    with mock.patch.object(subprocess, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202621,7 +202621,7 @@
     },
     {
       "excerpt": "run_session({\"fixture\": \"f\", \"view\": \"list\", \"region\": \"content\", \"series\": [{\"type\": \"pairs\"}], \"n\": 1},",
-      "line": 3646,
+      "line": 3654,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202630,7 +202630,7 @@
     },
     {
       "excerpt": "run_session({\"fixture\": \"f\", \"view\": \"list\", \"region\": \"content\", \"series\": [{\"type\": \"pairs\"}], \"n\": 1},",
-      "line": 3646,
+      "line": 3654,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202639,7 +202639,7 @@
     },
     {
       "excerpt": "run_session({\"fixture\": \"f\", \"view\": \"list\", \"region\": \"content\", \"series\": [{\"type\": \"pairs\"}], \"n\": 1},",
-      "line": 3646,
+      "line": 3654,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202648,7 +202648,7 @@
     },
     {
       "excerpt": "{\"out_dir\": os.devnull, \"tag\": \"t\"}, hung_out)\n        except subprocess.SubprocessError as e:\n            fail.append(\"ipc_timeout: the part aborted on %s\" % type(e).__name__)",
-      "line": 3647,
+      "line": 3655,
       "literal": "}, hung_out)\n        except subprocess.SubprocessError as e:\n            fail.append(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202657,7 +202657,7 @@
     },
     {
       "excerpt": "check(\"ipc_timeout_row\", (\"TimeoutExpired\" in hung_out.getvalue(), hung.closed), (True, True))\n    # The fling floor: medians and ranges from fixed arrays, a failed run counted out of n.\n    floor = fling_floor([17.0, 18.0, 16.5, None, 17.5], [20.1, 21.0, 19.8, 22.4, 20.5])\n    check(\"fling_floor_wheel\", floor[\"first_wheel_ms\"], {\"n\": 4, \"median\": 17.2, \"min\": 16.5, \"max\": 18.0})",
-      "line": 3650,
+      "line": 3658,
       "literal": " in hung_out.getvalue(), hung.closed), (True, True))\n                                                                                           \n    floor = fling_floor([17.0, 18.0, 16.5, None, 17.5], [20.1, 21.0, 19.8, 22.4, 20.5])\n    check(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202666,7 +202666,7 @@
     },
     {
       "excerpt": "log = [\"qml: CALIB wheel-skip angle=0\", \"qml: CALIB swap key=0 changed=1760000000011 swapped=1760000000030\",",
-      "line": 3660,
+      "line": 3668,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202675,7 +202675,7 @@
     },
     {
       "excerpt": "\"qml: CALIB wheel at=1760000000017 px=-3\", \"qml: CALIB wheel at=1760000000040 px=-9\"]",
-      "line": 3661,
+      "line": 3669,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202684,7 +202684,7 @@
     },
     {
       "excerpt": "check(\"clock_offset\", abs(clock_offset_ns() - (time.time_ns() - time.monotonic_ns())) < 5_000_000, True)\n    # fling_probe with the display, the uinput touchpad and the recorder replaced: three runs, one touchpad, each run's client ended.\n    with tempfile.TemporaryDirectory() as td:\n        logp = os.path.join(td, \"client.log\")",
-      "line": 3664,
+      "line": 3672,
       "literal": ", abs(clock_offset_ns() - (time.time_ns() - time.monotonic_ns())) < 5_000_000, True)\n                                                                                                                                     \n    with tempfile.TemporaryDirectory() as td:\n        logp = os.path.join(td, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202693,7 +202693,7 @@
     },
     {
       "excerpt": "logp = os.path.join(td, \"client.log\")\n        with open(logp, \"w\") as f:",
-      "line": 3667,
+      "line": 3675,
       "literal": ")\n        with open(logp, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202702,7 +202702,7 @@
     },
     {
       "excerpt": "f.write(\"qml: CALIB wheel-skip angle=0\\nqml: CALIB wheel at=1760000000017 px=-3\\n\")\n        made, dropped, ended, pointed, strokes = [], [], [], [], []\n\n        class FakeRec:\n            def __init__(self, *a):\n                pass\n\n            wait_quiet = lambda self, *a: True\n            snapshot = lambda self: []\n            stop = lambda self: None\n        fake_T = types.SimpleNamespace(create=lambda: made.append(7) or 7, CREATE_SETTLE_S=0)\n        fakes = dict(touchpad=lambda: (fake_T, None), calib_window=lambda work, delay: (\n            \"client\", (100, 148, 900, 652), [(100, 100, 900, 48)], logp),",
-      "line": 3669,
+      "line": 3677,
       "literal": ")\n        made, dropped, ended, pointed, strokes = [], [], [], [], []\n\n        class FakeRec:\n            def __init__(self, *a):\n                pass\n\n            wait_quiet = lambda self, *a: True\n            snapshot = lambda self: []\n            stop = lambda self: None\n        fake_T = types.SimpleNamespace(create=lambda: made.append(7) or 7, CREATE_SETTLE_S=0)\n        fakes = dict(touchpad=lambda: (fake_T, None), calib_window=lambda work, delay: (\n            ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202711,7 +202711,7 @@
     },
     {
       "excerpt": "\"client\", (100, 148, 900, 652), [(100, 100, 900, 48)], logp),\n            pointer_to=lambda keys, x, y: pointed.append((x, y)), clock_offset_ns=lambda: off,\n            stroke=lambda T, fd, mm, ms: strokes.append((fd, mm, ms)) or 7_000_000_000,\n            drop_touchpad=lambda T, fd: dropped.append(fd), end_client=ended.append)\n        with mock.patch.dict(globals(), fakes), mock.patch.object(time, \"sleep\", lambda secs: None), \\",
-      "line": 3681,
+      "line": 3689,
       "literal": ", (100, 148, 900, 652), [(100, 100, 900, 48)], logp),\n            pointer_to=lambda keys, x, y: pointed.append((x, y)), clock_offset_ns=lambda: off,\n            stroke=lambda T, fd, mm, ms: strokes.append((fd, mm, ms)) or 7_000_000_000,\n            drop_touchpad=lambda T, fd: dropped.append(fd), end_client=ended.append)\n        with mock.patch.dict(globals(), fakes), mock.patch.object(time, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202720,7 +202720,7 @@
     },
     {
       "excerpt": "with mock.patch.dict(globals(), fakes), mock.patch.object(time, \"sleep\", lambda secs: None), \\\n                mock.patch.object(S, \"build_recorder\", lambda d: \"rec\"), mock.patch.object(S, \"Recorder\", FakeRec), \\",
-      "line": 3685,
+      "line": 3693,
       "literal": ", lambda secs: None), \\\n                mock.patch.object(S, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202729,7 +202729,7 @@
     },
     {
       "excerpt": "mock.patch.object(S, \"search_columns\", lambda frames, times, *a: {\"first_ms\": 20.0}), \\",
-      "line": 3687,
+      "line": 3695,
       "literal": ", lambda frames, times, *a: {",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202738,7 +202738,7 @@
     },
     {
       "excerpt": "check(\"fling_probe_pointer\", pointed, [(550, 474)] * 3)\n        with mock.patch.dict(globals(), touchpad=lambda: (None, \"no uinput\")):",
-      "line": 3694,
+      "line": 3702,
       "literal": ", pointed, [(550, 474)] * 3)\n        with mock.patch.dict(globals(), touchpad=lambda: (None, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202747,7 +202747,7 @@
     },
     {
       "excerpt": "fling_rows = [{\"journey\": \"nav.list.fling\", \"row\": 1, \"view\": \"list\", \"first_ms\": 22.0, \"fixture\": \"local\"}",
-      "line": 3698,
+      "line": 3706,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202756,7 +202756,7 @@
     },
     {
       "excerpt": "fling_rows = [{\"journey\": \"nav.list.fling\", \"row\": 1, \"view\": \"list\", \"first_ms\": 22.0, \"fixture\": \"local\"}",
-      "line": 3698,
+      "line": 3706,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202765,7 +202765,7 @@
     },
     {
       "excerpt": "fling_rows = [{\"journey\": \"nav.list.fling\", \"row\": 1, \"view\": \"list\", \"first_ms\": 22.0, \"fixture\": \"local\"}\n                  for _ in range(20)]\n    op_rows = [{\"journey\": \"op.copy.large\", \"row\": 6, \"view\": \"list\", \"first_ms\": None if i < 3 else 6.0, \"fixture\": \"local\",",
-      "line": 3698,
+      "line": 3706,
       "literal": "}\n                  for _ in range(20)]\n    op_rows = [{",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202774,7 +202774,7 @@
     },
     {
       "excerpt": "op_rows = [{\"journey\": \"op.copy.large\", \"row\": 6, \"view\": \"list\", \"first_ms\": None if i < 3 else 6.0, \"fixture\": \"local\",",
-      "line": 3700,
+      "line": 3708,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202783,7 +202783,7 @@
     },
     {
       "excerpt": "op_rows = [{\"journey\": \"op.copy.large\", \"row\": 6, \"view\": \"list\", \"first_ms\": None if i < 3 else 6.0, \"fixture\": \"local\",",
-      "line": 3700,
+      "line": 3708,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202792,7 +202792,7 @@
     },
     {
       "excerpt": "op_rows = [{\"journey\": \"op.copy.large\", \"row\": 6, \"view\": \"list\", \"first_ms\": None if i < 3 else 6.0, \"fixture\": \"local\",",
-      "line": 3700,
+      "line": 3708,
       "literal": ": None if i < 3 else 6.0, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202801,7 +202801,7 @@
     },
     {
       "excerpt": "\"refused\": i < 2} for i in range(20)]\n    with tempfile.NamedTemporaryFile(\"w\", suffix=\".jsonl\", delete=False) as tf:",
-      "line": 3701,
+      "line": 3709,
       "literal": ": i < 2} for i in range(20)]\n    with tempfile.NamedTemporaryFile(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202810,7 +202810,7 @@
     },
     {
       "excerpt": "with tempfile.NamedTemporaryFile(\"w\", suffix=\".jsonl\", delete=False) as tf:\n        for r in fling_rows + op_rows:\n            tf.write(json.dumps(r) + \"\\n\")",
-      "line": 3702,
+      "line": 3710,
       "literal": ", delete=False) as tf:\n        for r in fling_rows + op_rows:\n            tf.write(json.dumps(r) + ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202819,7 +202819,7 @@
     },
     {
       "excerpt": "tf.write(json.dumps(r) + \"\\n\")\n    buf = io.StringIO()\n    with redirect_stdout(buf):\n        report([tf.name], floor=floor)\n    os.unlink(tf.name)\n    lines = {ln.split(\"|\")[2].strip(): ln for ln in buf.getvalue().splitlines() if ln.startswith(\"| 1 \") or ln.startswith(\"| 6 \")}",
-      "line": 3704,
+      "line": 3712,
       "literal": ")\n    buf = io.StringIO()\n    with redirect_stdout(buf):\n        report([tf.name], floor=floor)\n    os.unlink(tf.name)\n    lines = {ln.split(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202828,7 +202828,7 @@
     },
     {
       "excerpt": "lines = {ln.split(\"|\")[2].strip(): ln for ln in buf.getvalue().splitlines() if ln.startswith(\"| 1 \") or ln.startswith(\"| 6 \")}",
-      "line": 3709,
+      "line": 3717,
       "literal": ")[2].strip(): ln for ln in buf.getvalue().splitlines() if ln.startswith(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202837,7 +202837,7 @@
     },
     {
       "excerpt": "lines = {ln.split(\"|\")[2].strip(): ln for ln in buf.getvalue().splitlines() if ln.startswith(\"| 1 \") or ln.startswith(\"| 6 \")}",
-      "line": 3709,
+      "line": 3717,
       "literal": ") or ln.startswith(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202846,7 +202846,7 @@
     },
     {
       "excerpt": "\"(19.8 to 22.4) over 5 runs, -3.8 left under the 16.7 ms ceiling, not subtracted\"\n                              in lines[\"nav.list.fling\"]), True)",
-      "line": 3711,
+      "line": 3719,
       "literal": "\n                              in lines[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202855,7 +202855,7 @@
     },
     {
       "excerpt": "check(\"rep_op_refused_beside_miss\", \"3 miss; 2 refused\" in lines[\"op.copy.large\"], True)",
-      "line": 3713,
+      "line": 3721,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202864,7 +202864,7 @@
     },
     {
       "excerpt": "check(\"rep_op_refused_beside_miss\", \"3 miss; 2 refused\" in lines[\"op.copy.large\"], True)",
-      "line": 3713,
+      "line": 3721,
       "literal": " in lines[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202873,7 +202873,7 @@
     },
     {
       "excerpt": "check(\"rep_op_has_no_floor\", \"floor\" in lines[\"op.copy.large\"], False)",
-      "line": 3714,
+      "line": 3722,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202882,7 +202882,7 @@
     },
     {
       "excerpt": "check(\"rep_op_has_no_floor\", \"floor\" in lines[\"op.copy.large\"], False)",
-      "line": 3714,
+      "line": 3722,
       "literal": " in lines[",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202891,7 +202891,7 @@
     },
     {
       "excerpt": "check(\"rep_op_has_no_floor\", \"floor\" in lines[\"op.copy.large\"], False)\n    # The floor is read from a calibrate output of concatenated objects, and not read from one that has none.\n    with tempfile.TemporaryDirectory() as td2:\n        cal = os.path.join(td2, \"calibrate.json\")",
-      "line": 3714,
+      "line": 3722,
       "literal": "], False)\n                                                                                                             \n    with tempfile.TemporaryDirectory() as td2:\n        cal = os.path.join(td2, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202900,7 +202900,7 @@
     },
     {
       "excerpt": "cal = os.path.join(td2, \"calibrate.json\")\n        with open(cal, \"w\") as f:",
-      "line": 3717,
+      "line": 3725,
       "literal": ")\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202909,7 +202909,7 @@
     },
     {
       "excerpt": "check(\"fling_floor_of_file\", fling_floor_of(cal), (floor, None))\n        with open(cal, \"a\") as f:",
-      "line": 3721,
+      "line": 3729,
       "literal": ", fling_floor_of(cal), (floor, None))\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202918,7 +202918,7 @@
     },
     {
       "excerpt": "check(\"fling_floor_of_kept_past_garbage\", fling_floor_of(cal), (floor, None))\n        with open(cal, \"w\") as f:",
-      "line": 3724,
+      "line": 3732,
       "literal": ", fling_floor_of(cal), (floor, None))\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202927,7 +202927,7 @@
     },
     {
       "excerpt": "check(\"fling_floor_of_none\", fling_floor_of(cal), (None, cal + \": no fling object\"))\n        with open(cal, \"a\") as f:",
-      "line": 3727,
+      "line": 3735,
       "literal": "))\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202936,7 +202936,7 @@
     },
     {
       "excerpt": "check(\"fling_floor_of_missing\", fling_floor_of(gone), (None, gone + \": No such file or directory\"))\n        with open(cal, \"wb\") as f:",
-      "line": 3733,
+      "line": 3741,
       "literal": "))\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202945,7 +202945,7 @@
     },
     {
       "excerpt": "run = os.path.join(td2, \"run.jsonl\")\n        with open(run, \"w\") as f:",
-      "line": 3738,
+      "line": 3746,
       "literal": ")\n        with open(run, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202954,7 +202954,7 @@
     },
     {
       "excerpt": "with open(run, \"w\") as f:\n            for r in fling_rows:\n                f.write(json.dumps(r) + \"\\n\")",
-      "line": 3739,
+      "line": 3747,
       "literal": ") as f:\n            for r in fling_rows:\n                f.write(json.dumps(r) + ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202963,7 +202963,7 @@
     },
     {
       "excerpt": "f.write(json.dumps(r) + \"\\n\")\n\n        def fling_line(*argv):\n            out = io.StringIO()\n            with redirect_stdout(out):\n                main([\"report\", run, *argv])",
-      "line": 3741,
+      "line": 3749,
       "literal": ")\n\n        def fling_line(*argv):\n            out = io.StringIO()\n            with redirect_stdout(out):\n                main([",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202972,7 +202972,7 @@
     },
     {
       "excerpt": "main([\"report\", run, *argv])\n            return next(ln for ln in out.getvalue().splitlines() if \"nav.list.fling\" in ln)",
-      "line": 3746,
+      "line": 3754,
       "literal": ", run, *argv])\n            return next(ln for ln in out.getvalue().splitlines() if ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202981,7 +202981,7 @@
     },
     {
       "excerpt": "return next(ln for ln in out.getvalue().splitlines() if \"nav.list.fling\" in ln)\n        check(\"rep_named_missing_says_why\", \"fling floor not read (%s: No such file or directory)\" % gone in fling_line(\"--calibrate\", gone), True)",
-      "line": 3747,
+      "line": 3755,
       "literal": " in ln)\n        check(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202990,7 +202990,7 @@
     },
     {
       "excerpt": "check(\"rep_named_missing_says_why\", \"fling floor not read (%s: No such file or directory)\" % gone in fling_line(\"--calibrate\", gone), True)",
-      "line": 3748,
+      "line": 3756,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -202999,7 +202999,7 @@
     },
     {
       "excerpt": "check(\"rep_named_missing_says_why\", \"fling floor not read (%s: No such file or directory)\" % gone in fling_line(\"--calibrate\", gone), True)",
-      "line": 3748,
+      "line": 3756,
       "literal": " % gone in fling_line(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203008,7 +203008,7 @@
     },
     {
       "excerpt": "check(\"rep_named_bad_says_why\", \"fling floor not read (%s: parse error at offset 0)\" % cal in fling_line(\"--calibrate\", cal), True)",
-      "line": 3749,
+      "line": 3757,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203017,7 +203017,7 @@
     },
     {
       "excerpt": "check(\"rep_named_bad_says_why\", \"fling floor not read (%s: parse error at offset 0)\" % cal in fling_line(\"--calibrate\", cal), True)",
-      "line": 3749,
+      "line": 3757,
       "literal": " % cal in fling_line(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203026,7 +203026,7 @@
     },
     {
       "excerpt": "check(\"rep_named_bad_says_why\", \"fling floor not read (%s: parse error at offset 0)\" % cal in fling_line(\"--calibrate\", cal), True)\n        with open(cal, \"w\") as f:",
-      "line": 3749,
+      "line": 3757,
       "literal": ", cal), True)\n        with open(cal, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203035,7 +203035,7 @@
     },
     {
       "excerpt": "check(\"rep_beside_without_floor_is_quiet\", \"floor\" in fling_line(), False)",
-      "line": 3752,
+      "line": 3760,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203044,7 +203044,7 @@
     },
     {
       "excerpt": "check(\"rep_beside_without_floor_is_quiet\", \"floor\" in fling_line(), False)\n    check(\"fling_note_skipped\", fling_floor_note({\"skipped\": \"/dev/uinput is not writable\"}),",
-      "line": 3752,
+      "line": 3760,
       "literal": " in fling_line(), False)\n    check(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203053,7 +203053,7 @@
     },
     {
       "excerpt": "check(\"fling_note_absent\", fling_floor_note(None), None)\n    # calibrate: a fling probe that raises anything is printed as an error object and the gate keeps its own exit code.\n\n    def calibrate_with(probe):\n        out = io.StringIO()\n        fakes = dict(negative_control=lambda runs: {\"clean\": True}, repeat_probe=lambda *a: {}, repeat_settings=lambda plan: {},",
-      "line": 3755,
+      "line": 3763,
       "literal": ", fling_floor_note(None), None)\n                                                                                                                       \n\n    def calibrate_with(probe):\n        out = io.StringIO()\n        fakes = dict(negative_control=lambda runs: {",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203062,7 +203062,7 @@
     },
     {
       "excerpt": "fakes = dict(negative_control=lambda runs: {\"clean\": True}, repeat_probe=lambda *a: {}, repeat_settings=lambda plan: {},\n                     fling_probe=probe, calibrate_gate=lambda neg, rep: 7)\n        with mock.patch.dict(globals(), fakes), mock.patch.object(S, \"session_env\", lambda: {}), mock.patch.object(S, \"ENV\", None), \\",
-      "line": 3760,
+      "line": 3768,
       "literal": ": True}, repeat_probe=lambda *a: {}, repeat_settings=lambda plan: {},\n                     fling_probe=probe, calibrate_gate=lambda neg, rep: 7)\n        with mock.patch.dict(globals(), fakes), mock.patch.object(S, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203071,7 +203071,7 @@
     },
     {
       "excerpt": "mock.patch.object(S, \"calibrate\", lambda delays, runs: []), mock.patch.object(N, \"NavKeys\", object), \\",
-      "line": 3763,
+      "line": 3771,
       "literal": ", lambda delays, runs: []), mock.patch.object(N, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203080,7 +203080,7 @@
     },
     {
       "excerpt": "mock.patch.object(S, \"calibrate\", lambda delays, runs: []), mock.patch.object(N, \"NavKeys\", object), \\\n                redirect_stdout(out):\n            try:\n                code = calibrate(1)\n            except Exception as e:\n                code = \"raised \" + type(e).__name__",
-      "line": 3763,
+      "line": 3771,
       "literal": ", object), \\\n                redirect_stdout(out):\n            try:\n                code = calibrate(1)\n            except Exception as e:\n                code = ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203089,7 +203089,7 @@
     },
     {
       "excerpt": "code = \"raised \" + type(e).__name__\n        return code, out.getvalue()\n\n    def raises(exc):\n        def probe(runs, keys=None):\n            raise exc\n        return probe\n    code, text = calibrate_with(raises(KeyError(\"floor\")))",
-      "line": 3768,
+      "line": 3776,
       "literal": " + type(e).__name__\n        return code, out.getvalue()\n\n    def raises(exc):\n        def probe(runs, keys=None):\n            raise exc\n        return probe\n    code, text = calibrate_with(raises(KeyError(",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203098,7 +203098,7 @@
     },
     {
       "excerpt": "check(\"calibrate_fling_keyerror\", (code, '\"error\": \"KeyError: \\'floor\\'\"' in text), (7, True))\n    code, text = calibrate_with(raises(subprocess.CalledProcessError(2, [\"rec\"])))",
-      "line": 3776,
+      "line": 3784,
       "literal": "' in text), (7, True))\n    code, text = calibrate_with(raises(subprocess.CalledProcessError(2, [",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203107,7 +203107,7 @@
     },
     {
       "excerpt": "code, text = calibrate_with(lambda runs, keys=None: {\"skipped\": \"no uinput\"})",
-      "line": 3779,
+      "line": 3787,
       "literal": "no uinput",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203116,7 +203116,7 @@
     },
     {
       "excerpt": "check(\"calibrate_fling_skipped_keeps_gate\", (code, '\"skipped\": \"no uinput\"' in text), (7, True))",
-      "line": 3780,
+      "line": 3788,
       "literal": "no uinput",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203125,7 +203125,7 @@
     },
     {
       "excerpt": "\"\"\"A session with no display, a stub load, and a chord that bumps the load as a sample's input is sent.\"\"\"",
-      "line": 3791,
+      "line": 3799,
       "literal": "A session with no display, a stub load, and a chord that bumps the load as a sample's input is sent.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203134,7 +203134,7 @@
     },
     {
       "excerpt": "check(\"load_a_never_starts\", (log, [r.get(\"error\") for r in rows]), ([\"renew\"], [\"RuntimeError: the load did not start\"]))",
-      "line": 3854,
+      "line": 3862,
       "literal": "RuntimeError: the load did not start",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203143,7 +203143,7 @@
     },
     {
       "excerpt": "\"\"\"An os.link that raises on its nth call and links as usual on every other.\"\"\"",
-      "line": 3857,
+      "line": 3865,
       "literal": "An os.link that raises on its nth call and links as usual on every other.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203152,7 +203152,7 @@
     },
     {
       "excerpt": "raise OSError(\"link failed\")",
-      "line": 3863,
+      "line": 3871,
       "literal": "link failed",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203161,7 +203161,7 @@
     },
     {
       "excerpt": "with mock.patch.object(os, \"link\", link_failing_at(3)):",
-      "line": 3887,
+      "line": 3895,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203170,7 +203170,7 @@
     },
     {
       "excerpt": "fail.append(\"cold_links_failure_propagates: a failing os.link raised nothing\")",
-      "line": 3890,
+      "line": 3898,
       "literal": "cold_links_failure_propagates: a failing os.link raised nothing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203179,7 +203179,7 @@
     },
     {
       "excerpt": "with mock.patch.object(os, \"link\", link_failing_at(10)):",
-      "line": 3913,
+      "line": 3921,
       "literal": "link",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203188,7 +203188,7 @@
     },
     {
       "excerpt": "fail.append(\"load_a_failed_renewal_propagates: a failing os.link raised nothing\")",
-      "line": 3916,
+      "line": 3924,
       "literal": "load_a_failed_renewal_propagates: a failing os.link raised nothing",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203197,7 +203197,7 @@
     },
     {
       "excerpt": "fail.append(\"load_a_renewal_refuses_outside_a_marked_root: a batch was removed with no marked root\")",
-      "line": 3934,
+      "line": 3942,
       "literal": "load_a_renewal_refuses_outside_a_marked_root: a batch was removed with no marked root",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203206,7 +203206,7 @@
     },
     {
       "excerpt": "ipc = {\"out\": '{\"active\": true, \"focused\": 0, \"panes\": [{\"path\": \"/a\", \"total\": 3, \"cursor\": 0, \"loading\": false, \"selected\": [], \"focused\": true, \"listRequests\": 4}, {\"path\": \"/nas/stream\", \"total\": 5000, \"cursor\": 0, \"loading\": true, \"selected\": [], \"focused\": false, \"listRequests\": 7}]}'}",
-      "line": 3947,
+      "line": 3955,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203215,7 +203215,7 @@
     },
     {
       "excerpt": "ipc = {\"out\": '{\"active\": true, \"focused\": 0, \"panes\": [{\"path\": \"/a\", \"total\": 3, \"cursor\": 0, \"loading\": false, \"selected\": [], \"focused\": true, \"listRequests\": 4}, {\"path\": \"/nas/stream\", \"total\": 5000, \"cursor\": 0, \"loading\": true, \"selected\": [], \"focused\": false, \"listRequests\": 7}]}'}",
-      "line": 3947,
+      "line": 3955,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203224,7 +203224,7 @@
     },
     {
       "excerpt": "check(\"load_c_probe\", (probe_c(), note_c), ((7, True), \"NAS listing streaming in the right pane\"))",
-      "line": 3950,
+      "line": 3958,
       "literal": "NAS listing streaming in the right pane",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203233,7 +203233,7 @@
     },
     {
       "excerpt": "literal = qml[qml.index(\"function dualState()\"):]",
-      "line": 3954,
+      "line": 3962,
       "literal": "function dualState()",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203242,7 +203242,7 @@
     },
     {
       "excerpt": "keys = re.findall(r\"(\\w+):\", literal.split(\"return pane ? {\", 1)[1])",
-      "line": 3956,
+      "line": 3964,
       "literal": "return pane ? {",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203251,7 +203251,7 @@
     },
     {
       "excerpt": "check(\"load_c_probe_reads_the_producers_fields\", (probe_c(), \"listRequests\" in keys, \"loading\" in keys),",
-      "line": 3958,
+      "line": 3966,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203260,7 +203260,7 @@
     },
     {
       "excerpt": "ipc[\"out\"] = '{\"panes\": [{\"listRequests\": 4, \"loading\": false}]}'",
-      "line": 3962,
+      "line": 3970,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203269,7 +203269,7 @@
     },
     {
       "excerpt": "ipc[\"out\"] = '{\"active\": true, \"focused\": 0, \"panes\": [{\"listRequests\": 4, \"loading\": false}, null]}'",
-      "line": 3964,
+      "line": 3972,
       "literal": "loading",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203278,7 +203278,7 @@
     },
     {
       "excerpt": "\"GATE MISSING nav.dual.down dual local+load-a load inactive in 1 of 20 samples\" in gtext, True)",
-      "line": 3972,
+      "line": 3980,
       "literal": "GATE MISSING nav.dual.down dual local+load-a load inactive in 1 of 20 samples",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203287,7 +203287,7 @@
     },
     {
       "excerpt": "check(\"gate_load_inactive_only_that_group\", gtext.count(\"load inactive\"), 1)",
-      "line": 3973,
+      "line": 3981,
       "literal": "load inactive",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203296,7 +203296,7 @@
     },
     {
       "excerpt": "check(\"gate_load_unproved_is_inactive\", (code, \"load inactive in 20 of 20 samples\" in gtext), (2, True))",
-      "line": 3975,
+      "line": 3983,
       "literal": "load inactive in 20 of 20 samples",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203305,7 +203305,7 @@
     },
     {
       "excerpt": "check(\"gate_load_all_active\", (code, \"load inactive\" in gtext), (0, False))",
-      "line": 3977,
+      "line": 3985,
       "literal": "load inactive",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203314,7 +203314,7 @@
     },
     {
       "excerpt": "fail.append(\"restores_changed: a renamed file was not refused\")",
-      "line": 4002,
+      "line": 4010,
       "literal": "restores_changed: a renamed file was not refused",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203323,7 +203323,7 @@
     },
     {
       "excerpt": "fail.append(\"restores_raise: the exception did not reach the caller\")",
-      "line": 4010,
+      "line": 4018,
       "literal": "restores_raise: the exception did not reach the caller",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203332,7 +203332,7 @@
     },
     {
       "excerpt": "fail.append(\"restores_partial: a partial-suffix rename was not refused\")",
-      "line": 4022,
+      "line": 4030,
       "literal": "restores_partial: a partial-suffix rename was not refused",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203341,7 +203341,7 @@
     },
     {
       "excerpt": "fail.append(\"restores_drifted: a fixture off its names was not refused\")",
-      "line": 4031,
+      "line": 4039,
       "literal": "restores_drifted: a fixture off its names was not refused",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203350,7 +203350,7 @@
     },
     {
       "excerpt": "check(\"restores_drifted\", (\"starts off its expected names\" in str(e), sampled), (True, []))",
-      "line": 4033,
+      "line": 4041,
       "literal": "starts off its expected names",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203359,7 +203359,7 @@
     },
     {
       "excerpt": "print(\"plan cases: full planned set passes, one row short is MISSING, a miss p95 is a BREACH\")",
-      "line": 4038,
+      "line": 4046,
       "literal": "plan cases: full planned set passes, one row short is MISSING, a miss p95 is a BREACH",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203368,7 +203368,7 @@
     },
     {
       "excerpt": "print(\"expected-set cases: p1 without p4 is MISSING part p4-open, no paths is usage error\")",
-      "line": 4039,
+      "line": 4047,
       "literal": "expected-set cases: p1 without p4 is MISSING part p4-open, no paths is usage error",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203377,7 +203377,7 @@
     },
     {
       "excerpt": "print(\"samples cases: samples=2 is MISSING plan samples 2, defined 20, floor holds except .first\")",
-      "line": 4040,
+      "line": 4048,
       "literal": "samples cases: samples=2 is MISSING plan samples 2, defined 20, floor holds except .first",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203386,7 +203386,7 @@
     },
     {
       "excerpt": "print(\"rows cases: wheel 2 and first 1 share SERIES_ROWS_PER_SAMPLE with planned_counts\")",
-      "line": 4041,
+      "line": 4049,
       "literal": "rows cases: wheel 2 and first 1 share SERIES_ROWS_PER_SAMPLE with planned_counts",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203395,7 +203395,7 @@
     },
     {
       "excerpt": "print(\"clean-outside cases: own parent and outside run under every parent, skip is failure\")",
-      "line": 4042,
+      "line": 4050,
       "literal": "clean-outside cases: own parent and outside run under every parent, skip is failure",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203404,7 +203404,7 @@
     },
     {
       "excerpt": "print(\"isolation cases: Esc count over running, cancelling and queued errors, refused pastes marked, an unclear bar is an error row\")",
-      "line": 4043,
+      "line": 4051,
       "literal": "isolation cases: Esc count over running, cancelling and queued errors, refused pastes marked, an unclear bar is an error row",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203413,7 +203413,7 @@
     },
     {
       "excerpt": "print(\"op navigation cases: every sample of a move or copy pastes in a-dst whatever the symlink sorts as, the old blind keys paste in b-src and take nothing from a-dst, \"",
-      "line": 4044,
+      "line": 4052,
       "literal": "op navigation cases: every sample of a move or copy pastes in a-dst whatever the symlink sorts as, the old blind keys paste in b-src and take nothing from a-dst, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203422,7 +203422,7 @@
     },
     {
       "excerpt": "\"a pane left in a-dst is walked back, an unreachable a-dst, an empty take and a listing that never lands are harness fault rows, \"",
-      "line": 4045,
+      "line": 4053,
       "literal": "a pane left in a-dst is walked back, an unreachable a-dst, an empty take and a listing that never lands are harness fault rows, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203431,7 +203431,7 @@
     },
     {
       "excerpt": "\"a series stops after repeated faults, a take waits for a late listing, a foreign clipboard of the right size is a fault, a resolved climb is named, Backspace climbs the pane path as Nav.js cuts it, op.size.recursive shows the Properties row, the report names a harness fault\")",
-      "line": 4046,
+      "line": 4054,
       "literal": "a series stops after repeated faults, a take waits for a late listing, a foreign clipboard of the right size is a fault, a resolved climb is named, Backspace climbs the pane path as Nav.js cuts it, op.size.recursive shows the Properties row, the report names a harness fault",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203440,7 +203440,7 @@
     },
     {
       "excerpt": "print(\"fling floor cases: medians and ranges from fixed arrays, the client wheel line on the harness clock, the floor beside the fling rows, \"",
-      "line": 4047,
+      "line": 4055,
       "literal": "fling floor cases: medians and ranges from fixed arrays, the client wheel line on the harness clock, the floor beside the fling rows, ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203449,7 +203449,7 @@
     },
     {
       "excerpt": "\"a floor kept past trailing text, a named file that gives none says why, calibrate survives any probe error\")",
-      "line": 4048,
+      "line": 4056,
       "literal": "a floor kept past trailing text, a named file that gives none says why, calibrate survives any probe error",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203458,7 +203458,7 @@
     },
     {
       "excerpt": "print(\"load cases: the probe is read per sample and per paced key, a load that stops reads inactive from there, a renewed load is awaited before the input and waits out its gap, a renewal swaps its batch inside a marked root, the c probe reads the fields ui/Ipc.qml writes, the gate names an inactive load group\")",
-      "line": 4049,
+      "line": 4057,
       "literal": "load cases: the probe is read per sample and per paced key, a load that stops reads inactive from there, a renewed load is awaited before the input and waits out its gap, a renewal swaps its batch inside a marked root, the c probe reads the fields ui/Ipc.qml writes, the gate names an inactive load group",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203467,7 +203467,7 @@
     },
     {
       "excerpt": "print(\"target cases: dual pointer in the left pane, Enter row from the listing, --only plans, an error or an external window keeps the rows built before it, folders first pinned\")",
-      "line": 4050,
+      "line": 4058,
       "literal": "target cases: dual pointer in the left pane, Enter row from the listing, --only plans, an error or an external window keeps the rows built before it, folders first pinned",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203476,7 +203476,7 @@
     },
     {
       "excerpt": "print(\"SELFTEST ok (%d journeys across %d parts)\" % (len(cover), len(PARTS)))",
-      "line": 4051,
+      "line": 4059,
       "literal": "SELFTEST ok (%d journeys across %d parts)",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203485,7 +203485,7 @@
     },
     {
       "excerpt": "\"\"\"Existing .jsonl files past --out FILE and --part PART; anything else fails loud.\"\"\"",
-      "line": 4065,
+      "line": 4073,
       "literal": "Existing .jsonl files past --out FILE and --part PART; anything else fails loud.",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203494,7 +203494,7 @@
     },
     {
       "excerpt": "print(\"need an existing .jsonl file, not %r\" % a, file=sys.stderr)",
-      "line": 4075,
+      "line": 4083,
       "literal": "need an existing .jsonl file, not %r",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203503,7 +203503,7 @@
     },
     {
       "excerpt": "print(\"unknown part %r, want one of %s\" % (raw, \", \".join(PARTS)), file=sys.stderr)",
-      "line": 4101,
+      "line": 4109,
       "literal": "unknown part %r, want one of %s",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203512,7 +203512,7 @@
     },
     {
       "excerpt": "print(\"unknown part %r, want one of %s\" % (raw, \", \".join(PARTS)), file=sys.stderr)",
-      "line": 4101,
+      "line": 4109,
       "literal": ", ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -203521,7 +203521,7 @@
     },
     {
       "excerpt": "print(\"unknown command \" + cmd, file=sys.stderr)",
-      "line": 4121,
+      "line": 4129,
       "literal": "unknown command ",
       "owner": "controller",
       "path": "tools/flea-field-instant",
@@ -246553,7 +246553,7 @@
     "tools/flea-commit-msg": "730f04fe39bcfd815f1ee3ed92845976e2d44c8ed680e8f5f396a5ef7a273d73",
     "tools/flea-commit-rules": "e376873facbe1955b3ac31eec5a387af46da79f7b5a65bdd3019fbb579fda9e8",
     "tools/flea-field-bench": "03d16bc5c0fbdc7376b4f9dbb00e71a5919b28c20b6b047ab42fc50b4d0bc76b",
-    "tools/flea-field-instant": "78655961dcb1a870cbe313f88a4ac88d557ae3541e245e0012d16fed3aa2d195",
+    "tools/flea-field-instant": "0f61e56053ec0da22691bc45338dab66c6953028080f2de54ddce87c34afd50f",
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
@@ -247090,8 +247090,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "5dfcbc69cd58642a990967fccda9388317998835",
-  "source_sha": "5dfcbc69cd58642a990967fccda9388317998835",
+  "source_ref_sha": "5bd0213074356f14db1026c82c1b3d28eabba229",
+  "source_sha": "5bd0213074356f14db1026c82c1b3d28eabba229",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
