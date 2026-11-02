@@ -79,4 +79,6 @@ mod vfix_tests;
 mod vfix_table_tests;
 
 #[cfg(test)]
+mod pc2_output_geometry_tests;
+#[cfg(test)]
 mod vfix_card_tests;
