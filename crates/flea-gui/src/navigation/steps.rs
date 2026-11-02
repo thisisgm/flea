@@ -387,6 +387,7 @@ impl Navigator {
         );
         self.preserve_sort = preserve;
         if result == Ok(true) {
+            self.orders.paths = true;
             if let Some(Command::List(listing)) = self.out.pop() {
                 self.out.push(Command::ListPaths(listing, paths.to_vec()));
             }

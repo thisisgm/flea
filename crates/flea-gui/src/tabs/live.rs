@@ -52,7 +52,11 @@ impl Live for Pane<'_> {
         self.host.pane.path().into()
     }
     fn resting_path(&self) -> String {
-        self.host.pane.place().into()
+        if self.host.recent.on && !self.host.recent.from.is_empty() {
+            self.host.recent.from.clone()
+        } else {
+            self.host.pane.place().into()
+        }
     }
     fn search_live(&self) -> bool {
         self.host.pane.state.search
@@ -179,7 +183,8 @@ impl Live for Pane<'_> {
             self.host.pane.state.search = false;
             self.host.pane.state.query.clear();
         }
-        search
+        let recent = self.host.leave_recent();
+        search || recent
     }
     fn open(&mut self, path: &str, open: Open) {
         let nav = &mut self.host.nav;

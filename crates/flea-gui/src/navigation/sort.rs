@@ -291,7 +291,7 @@ impl super::Navigator {
             hidden_last: folders.hidden_last,
         });
         self.order = order;
-        if !pane.state.search {
+        if self.is_folder(pane) {
             let patch = self.folders.borrow_mut().remember(pane.path(), order);
             if let Some(patch) = patch {
                 self.persist(patch, failure);

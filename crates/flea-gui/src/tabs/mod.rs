@@ -7,6 +7,8 @@ pub use bar::{Bar, Panes};
 pub use state::{Live, Tab, TabState, Tabs, MAX};
 
 #[cfg(test)]
+mod ack_boundary_tests;
+#[cfg(test)]
 mod regression_tests;
 #[cfg(test)]
 pub mod test_support;
