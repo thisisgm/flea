@@ -58,6 +58,8 @@ mod close_fade_tests;
 mod join_delivery_tests;
 #[cfg(test)]
 mod join_pointer_tests;
+#[cfg(test)]
+mod s2_tests;
 
 #[cfg(test)]
 mod join_atomic_tests;

@@ -32,6 +32,8 @@ mod view;
 mod mounted_tests;
 #[cfg(test)]
 mod router_tests;
+#[cfg(test)]
+mod s2_tests;
 
 mod middle;
 

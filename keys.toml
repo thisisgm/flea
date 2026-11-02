@@ -1441,8 +1441,7 @@ label = "go into that directory on one tap, as its neighbours do"
 
 # A neighbour column has no cursor, so one tap on a directory makes it the pane's own listing: that is
 # the column view's reveal, the gesture Finder's own column view answers a single click with, and not
-# an open. One tap on a file reveals it too: its directory becomes the listing with the cursor on the
-# file (COLUMNS-FINDER, 2026-10-20), and the second tap of the same gesture opens it.
+# an open. A file waits for a double click, as v0.3.12 does (CTL2 ruling 137).
 [[pointer]]
 where = "neighbour"
 press = "left"
@@ -1454,8 +1453,8 @@ label = "show that directory in the middle column"
 where = "neighbour"
 press = "left"
 row = "file"
-does = "reveal"
-label = "go to the file in its own directory, selected"
+does = "nothing"
+label = "no action"
 
 [[pointer]]
 where = "neighbour"

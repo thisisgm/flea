@@ -1025,6 +1025,7 @@
   "keys.label.bcf58eaeff52": "ย้อนกลับตามประวัติ หรือขึ้นไปโฟลเดอร์แม่หากไม่มีประวัติ",
   "keys.label.bd0b7be215ce": "ปิดตัวแก้ไข",
   "keys.label.bfa65befcad0": "ไปยังไฟล์ในไดเรกทอรีของไฟล์นั้นพร้อมเลือกไว้",
+  "keys.label.704fb7f8818b": "ไม่มีการดำเนินการ",
   "keys.label.c2fc6e7bc3be": "ชีตถัดไป",
   "keys.label.c5f15f85156b": "เข้าไดเรกทอรีนั้นด้วยการแตะครั้งเดียวเช่นเดียวกับรายการข้างเคียง",
   "keys.label.c7ad88ff7f52": "แถวที่ดูชั่วคราวไม่มีเมนู",
@@ -1130,7 +1131,7 @@
   "menu.print": "พิมพ์…",
   "menu.refusal.empty_clipboard": "ไม่มีอะไรให้วาง กด y เพื่อคัดลอก และ x เพื่อตัด",
   "menu.refusal.favourite_unread": "อ่านโฟลเดอร์ที่เลือกไม่ได้",
-  "menu.refusal.moved": "รายการที่เลือกเปลี่ยนไป เปิดเมนูอีกครั้ง",
+  "menu.refusal.moved": "รายการที่เลือกถูกย้ายหรือหายไป เปิดเมนูอีกครั้ง",
   "menu.refusal.nocursor": "ไม่มีรายการใต้เคอร์เซอร์ให้เปิดเมนู",
   "menu.refusal.recent_new_file": "สร้างไฟล์ใหม่ใน “ล่าสุด” ไม่ได้ โปรดเปิดโฟลเดอร์ก่อน",
   "menu.refusal.unavailable": "การทำงานนั้นไม่พร้อมใช้งานแล้ว เปิดเมนูอีกครั้ง",
@@ -1623,7 +1624,7 @@
   },
   "preview.link_target": "→ %1",
   "preview.list_separator": ", ",
-  "preview.loadHint": "%1 เพื่อโหลดตัวอย่าง",
+  "preview.loadHint": "%1 โหลดตัวอย่าง",
   "preview.loading": "กำลังโหลด…",
   "preview.more": {
     "other": "และอีก %1 รายการ"

@@ -1248,7 +1248,7 @@
   "menu.state.symlink": "符号链接",
   "menu.state.special_file": "特殊文件",
   "menu.state.not_yours": "不属于你",
-  "menu.refusal.moved": "所选项目已改变；请重新打开菜单。",
+  "menu.refusal.moved": "所选项目已被移动或已消失；请重新打开菜单。",
   "menu.refusal.unavailable": "该操作已不可用；请重新打开菜单。",
   "menu.refusal.empty_clipboard": "没有可粘贴的内容；按 y 复制，按 x 剪切。",
   "menu.locked.refusal": "“在终端中打开”“权限”和“复制为”已在“设置 > 菜单”中隐藏。",
@@ -1702,7 +1702,7 @@
   "media.buffering": "正在缓冲",
   "pdf.page": "第 %1 页，共 %2 页 · %3%",
   "preview.loading": "加载中…",
-  "preview.loadHint": "按 %1 加载预览",
+  "preview.loadHint": "%1 加载预览",
   "preview.tooLarge": "此文件过大，无法预览。",
   "preview.entries": {
     "other": "%1 个条目"
@@ -1993,6 +1993,7 @@
   "keys.label.37962655f9c9": "沿后退记录再次前进，没有可前进的记录时不执行任何操作",
   "keys.label.c5f15f85156b": "单击即进入该目录，与相邻栏的行为一致",
   "keys.label.bfa65befcad0": "转到文件所在的目录并选中该文件",
+  "keys.label.704fb7f8818b": "无操作",
   "keys.label.a22b048d011a": "在指针处打开上下文菜单，作用于该行所在的选择",
   "keys.label.17f30d3d5153": "在新标签页中打开该目录",
   "keys.label.700673165abf": "第一次点按时打开路径中该段所指的目录",

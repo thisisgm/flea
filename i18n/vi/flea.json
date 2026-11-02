@@ -1025,6 +1025,7 @@
   "keys.label.bcf58eaeff52": "quay lại theo lịch sử hoặc lên thư mục cha nếu không có lịch sử",
   "keys.label.bd0b7be215ce": "Đóng trình soạn thảo",
   "keys.label.bfa65befcad0": "đi đến thư mục chứa tệp và chọn tệp",
+  "keys.label.704fb7f8818b": "không có thao tác",
   "keys.label.c2fc6e7bc3be": "Trang tính tiếp theo",
   "keys.label.c5f15f85156b": "đi vào thư mục đó bằng một lần nhấn như các thư mục bên cạnh",
   "keys.label.c7ad88ff7f52": "dòng đang xem lướt không có trình đơn",
@@ -1130,7 +1131,7 @@
   "menu.print": "In…",
   "menu.refusal.empty_clipboard": "Không có gì để dán; y sao chép và x cắt.",
   "menu.refusal.favourite_unread": "Không thể đọc thư mục đã chọn.",
-  "menu.refusal.moved": "Các mục đã chọn đã thay đổi; hãy mở lại trình đơn.",
+  "menu.refusal.moved": "Mục đã chọn đã bị di chuyển hoặc không còn tồn tại; hãy mở lại trình đơn.",
   "menu.refusal.nocursor": "Không có mục nào dưới con trỏ để mở trình đơn",
   "menu.refusal.recent_new_file": "Không thể tạo tệp mới trong Gần đây. Hãy mở một thư mục trước",
   "menu.refusal.unavailable": "Hành động đó không còn khả dụng; hãy mở lại trình đơn.",
@@ -1623,7 +1624,7 @@
   },
   "preview.link_target": "→ %1",
   "preview.list_separator": ", ",
-  "preview.loadHint": "%1 để tải bản xem trước",
+  "preview.loadHint": "%1 tải bản xem trước",
   "preview.loading": "Đang tải…",
   "preview.more": {
     "other": "+ %1 mục khác"
