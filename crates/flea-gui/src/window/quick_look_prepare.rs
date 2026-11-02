@@ -30,6 +30,7 @@ impl Shell {
         window: &Window,
         cx: &mut Context<Self>,
     ) {
+        let lent = self.panes[side].as_mut().unwrap().look_warm.lent.take();
         let row = prepared::Row {
             name: &key.row.name,
             dir: key.row.dir,
@@ -41,6 +42,24 @@ impl Shell {
             key.storage.as_deref().unwrap_or(""),
             key.storage.is_some(),
         ) {
+            return;
+        }
+        // The card closed on this same key: the view it showed was read and parsed once, and is the entry.
+        let adopted = lent.and_then(|(doc, lent)| {
+            let View::Markdown(view) = &doc.view else {
+                return None;
+            };
+            let view = view.clone();
+            let shown = &view.read(cx).doc;
+            let ready = shown.complete && shown.status == crate::g2::pv2::markdown::Status::Ready;
+            (lent == *key && ready).then_some((view, doc))
+        });
+        if let Some((view, doc)) = adopted {
+            view.update(cx, |view, _| view.park());
+            let watch = cx.observe(&view, |_, _, cx| cx.notify());
+            let warm = &mut self.panes[side].as_mut().unwrap().look_warm;
+            warm.prepared = Some(doc);
+            warm.prepared_watch = Some(watch);
             return;
         }
         let key = key.clone();
@@ -89,6 +108,47 @@ impl Shell {
                     cx.notify();
                 });
             }));
+    }
+
+    /// The open card's Markdown view and the key it shows, so the close can hand it back; the card keeps it built.
+    pub(crate) fn lend_quick_prepared(
+        &mut self,
+        side: usize,
+        index: usize,
+        row: &RowFacts,
+        doc: &Doc,
+        cx: &mut Context<Self>,
+    ) {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let face = self.active_typeface();
+        let locale = self.locale.revision;
+        let Some(host) = &mut self.panes[side] else {
+            return;
+        };
+        let storage = host
+            .look_warm
+            .storage
+            .as_ref()
+            .filter(|(path, _)| path == &host.path)
+            .map(|(_, class)| class.clone());
+        let lent = matches!(doc.view, View::Markdown(_)).then(|| {
+            let key = Key {
+                directory: host.path.clone(),
+                listing: host.pane.held.listing,
+                cursor: index,
+                row: row.clone(),
+                theme,
+                face,
+                locale,
+                storage,
+            };
+            (doc.clone(), key)
+        });
+        let kept = lent.as_ref().map(|(doc, _)| doc.id());
+        host.look_warm.lent = lent;
+        if let Some(card) = &self.quick_look {
+            card.view.update(cx, |view, _| view.kept = kept);
+        }
     }
 
     pub(crate) fn take_quick_prepared(

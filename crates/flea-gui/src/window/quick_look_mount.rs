@@ -169,10 +169,12 @@ impl Shell {
             }
         }
         super::docs::wrap_saved(&doc.view, &self.launch.settings.data, cx);
+        self.lend_quick_prepared(side, index, row, &doc, cx);
         if was_prepared {
             if let crate::g2::pv1::doc::View::Markdown(view) = &doc.view {
                 let wire = self.quick_look.as_ref().unwrap().wire.clone();
                 view.update(cx, |view, cx| {
+                    view.rewind(cx);
                     view.set_code_host(Box::new(wire), cx);
                     view.finish_prepare(cx);
                 });

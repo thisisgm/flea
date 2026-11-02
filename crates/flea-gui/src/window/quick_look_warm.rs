@@ -28,6 +28,8 @@ pub(crate) struct Warm {
     prepared_watch: Option<Subscription>,
     storage: Option<(String, String)>,
     pub(crate) prepared: Option<crate::g2::pv1::doc::Doc>,
+    /// The Markdown view the open card shows, taken back on close in place of a second read.
+    lent: Option<(crate::g2::pv1::doc::Doc, Key)>,
 }
 
 impl Shell {
@@ -41,6 +43,7 @@ impl Shell {
                     host.look_warm.prepare_timer = None;
                     host.look_warm.prepared = None;
                     host.look_warm.prepared_watch = None;
+                    host.look_warm.lent = None;
                 }
             }
         }
@@ -78,6 +81,9 @@ impl Shell {
         let row = row.filter(|_| !open && !host.stopped && !host.pane.busy());
         let Some(row) = row else {
             warm.key = None;
+            if !open {
+                warm.lent = None;
+            }
             warm.timer = None;
             warm.prepare_timer = None;
             warm.prepared = None;

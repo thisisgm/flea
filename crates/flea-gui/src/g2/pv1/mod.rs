@@ -153,6 +153,8 @@ pub struct QuickLook {
     pub(crate) scroll: Scroll,
     /// The mounted view's notifications: each re-reads its readiness, its page shape and the PDF's opening page.
     doc_watch: Option<gpui::Subscription>,
+    /// The view the host takes back as its warm entry, so the close leaves it built.
+    pub(crate) kept: Option<gpui::EntityId>,
 }
 
 impl EventEmitter<Event> for QuickLook {}
@@ -162,6 +164,7 @@ impl QuickLook {
         Self {
             motion: Default::default(),
             closing: None,
+            kept: None,
             close_task: None,
             observations: Default::default(),
             observation_origin: None,
