@@ -83,36 +83,34 @@ impl Adapter for OutputAdapter<'_> {
             return Some(Reply::value(self.combine_state()));
         }
         if matches!(function, "convertCardRect" | "convertTitleCentre") {
-            // The boxes the open Convert card last painted, as Ipc.qml read its card and title.
+            // Ipc.qml retains the built Convert dialog's last geometry after close or replacement.
             let view = self
                 .shell
                 .output
                 .view
                 .as_ref()
                 .map(|view| view.read(self.cx));
-            let observed = view
-                .filter(|view| matches!(view.model.card, Some(Card::Convert(_))))
-                .and_then(|view| {
-                    if function == "convertCardRect" {
-                        view.observed.card.get().map(|b| {
-                            rect_of(
-                                f32::from(b.origin.x),
-                                f32::from(b.origin.y),
-                                f32::from(b.size.width),
-                                f32::from(b.size.height),
-                            )
-                        })
-                    } else {
-                        view.observed.title.get().map(|b| {
-                            centre_of(
-                                f32::from(b.origin.x),
-                                f32::from(b.origin.y),
-                                f32::from(b.size.width),
-                                f32::from(b.size.height),
-                            )
-                        })
-                    }
-                });
+            let observed = view.and_then(|view| {
+                if function == "convertCardRect" {
+                    view.observed.convert_card.get().map(|b| {
+                        rect_of(
+                            f32::from(b.origin.x),
+                            f32::from(b.origin.y),
+                            f32::from(b.size.width),
+                            f32::from(b.size.height),
+                        )
+                    })
+                } else {
+                    view.observed.convert_title.get().map(|b| {
+                        centre_of(
+                            f32::from(b.origin.x),
+                            f32::from(b.origin.y),
+                            f32::from(b.size.width),
+                            f32::from(b.size.height),
+                        )
+                    })
+                }
+            });
             return Some(Reply::value(observed.unwrap_or_default()));
         }
         if !matches!(

@@ -64,6 +64,7 @@ pub struct HtmlView {
     /// Where the page was last painted, for htmlState.
     pub bounds: Option<gpui::Bounds<gpui::Pixels>>,
     pub(crate) frame_style: Cell<Option<capture::FrameStyle>>,
+    pub(crate) frame_bounds: Cell<Option<gpui::Bounds<gpui::Pixels>>>,
     origin: Instant,
     timer: Option<(u64, Task<()>)>,
     decode: Option<Task<()>>,
@@ -110,6 +111,7 @@ impl HtmlView {
             frame: (0., 0.),
             bounds: None,
             frame_style: Cell::new(None),
+            frame_bounds: Cell::new(None),
             origin: cx.background_executor().now(),
             timer: None,
             decode: None,

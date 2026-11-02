@@ -9,6 +9,8 @@ const CARD_BORDER: f32 = 1.;
 pub struct Observations {
     pub card: Rc<Cell<Option<Bounds<Pixels>>>>,
     pub title: Rc<Cell<Option<Bounds<Pixels>>>>,
+    pub convert_card: Rc<Cell<Option<Bounds<Pixels>>>>,
+    pub convert_title: Rc<Cell<Option<Bounds<Pixels>>>>,
 }
 
 impl Observations {
@@ -18,6 +20,23 @@ impl Observations {
 
     pub(super) fn title(&self, element: Div) -> Div {
         observe(element, self.title.clone(), 0.)
+    }
+
+    pub(super) fn retain_convert(&self, element: Div) -> Div {
+        let (card, title) = (self.card.clone(), self.title.clone());
+        let (retained_card, retained_title) =
+            (self.convert_card.clone(), self.convert_title.clone());
+        element.child(
+            canvas(
+                |_, _, _| (),
+                move |_, _, _, _| {
+                    retained_card.set(card.get());
+                    retained_title.set(title.get());
+                },
+            )
+            .absolute()
+            .size_full(),
+        )
     }
 }
 
