@@ -332,6 +332,8 @@ mod pb_rest_prepare_tests;
 #[cfg(test)]
 mod parity_preview_column_tests;
 #[cfg(test)]
+mod parity_preview_switch_tests;
+#[cfg(test)]
 mod parity_preview_tests;
 #[cfg(test)]
 mod railrecent_tests;

@@ -312,6 +312,7 @@ fn held_column(cx: &mut TestAppContext, held: &str) {
                 .expect("Omi mark");
             assert_eq!(f32::from(mark.size.width), crate::feedback::spinner::HERO);
             assert_eq!(f32::from(mark.size.height), crate::feedback::spinner::HERO);
+            assert!(mark_shown(&shell, cx), "{name}: the Omi plays in its slot");
             let facts = read(&shell, cx, "previewFacts", &[]);
             assert_eq!(facts, format!("Kind={kind}|Size=4.8 kB|State=loading"));
             if hold == "html" {
@@ -330,8 +331,24 @@ fn held_column(cx: &mut TestAppContext, held: &str) {
             }
             pump(cx);
             assert!(cx.debug_bounds("column-preview-waiting").is_none());
+            assert!(
+                !mark_shown(&shell, cx),
+                "{name}: the landed frame stops the Omi"
+            );
             assert_ne!(read(&shell, cx, "previewColumnState", &[]), "loading");
             assert!(!read(&shell, cx, "previewFacts", &[]).contains("State=loading"));
         }
     }
+}
+
+/// Whether the column's shared Omi player is drawing, not just its slot being laid out.
+pub(super) fn mark_shown(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> bool {
+    shell.read_with(cx, |shell, cx| {
+        shell
+            .selection_preview(0)
+            .unwrap()
+            .read(cx)
+            .loading_mark
+            .shown()
+    })
 }
