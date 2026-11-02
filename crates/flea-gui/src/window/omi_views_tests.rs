@@ -1,4 +1,4 @@
-//! A held listing draws v0.3.12's spiral crawl in List, Grid and both Dual panes (EY-354); past its wait the pane yields it to the alert sentence.
+//! A held listing draws Omi in List, Grid and both Dual panes (ruling 145); past its wait the pane yields it to the alert sentence.
 use crate::{
     backend::Backend,
     ipc::{pane::PaneAdapter, Adapter},
@@ -87,18 +87,13 @@ fn mark(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usize) -> Jso
         .clone()
 }
 
-fn assert_spiral_paints(
-    cx: &mut TestAppContext,
-    handle: WindowHandle<Root>,
-    side: usize,
-    view: &str,
-) {
+fn assert_omi_paints(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usize, view: &str) {
     let described = mark(cx, handle, side);
     let field = |key: &str| described.get(key).cloned();
     assert_eq!(
         field("mode").as_ref().and_then(Json::as_str),
-        Some("spiral"),
-        "{view} side {side}: v0.3.12 draws the spiral while a listing loads (EY-354)"
+        Some("thinking"),
+        "{view} side {side}: ruling 145 requires Omi while a listing loads (EY-354)"
     );
     assert_eq!(
         field("shown").as_ref().and_then(Json::as_bool),
@@ -111,7 +106,7 @@ fn assert_spiral_paints(
         .unwrap_or(0.);
     assert!(
         painted >= 8.,
-        "{view} side {side}: the spiral painted {painted} frames"
+        "{view} side {side}: Omi painted {painted} frames"
     );
     let slot = shell(cx, handle, |shell, _, _| {
         shell.panes[side].as_ref().unwrap().pane.swap.mark.slot()
@@ -123,7 +118,7 @@ fn assert_spiral_paints(
 }
 
 #[gpui::test]
-fn list_grid_and_dual_held_listings_paint_the_spiral(cx: &mut TestAppContext) {
+fn list_grid_and_dual_held_listings_paint_omi(cx: &mut TestAppContext) {
     for (view, sides) in [(View::List, 1), (View::Grid, 1), (View::Dual, 2)] {
         let (handle, _keep) = open(cx, view);
         for side in 0..sides {
@@ -131,17 +126,17 @@ fn list_grid_and_dual_held_listings_paint_the_spiral(cx: &mut TestAppContext) {
         }
         frames(cx, handle, 10);
         for side in 0..sides {
-            assert_spiral_paints(cx, handle, side, &format!("{view:?}"));
+            assert_omi_paints(cx, handle, side, &format!("{view:?}"));
         }
     }
 }
 
 #[gpui::test]
-fn past_its_wait_the_pane_hides_the_spiral_for_the_alert_sentence(cx: &mut TestAppContext) {
+fn past_its_wait_the_pane_hides_omi_for_the_alert_sentence(cx: &mut TestAppContext) {
     let (handle, _keep) = open(cx, View::List);
     hold(cx, handle, 0);
     frames(cx, handle, 10);
-    assert_spiral_paints(cx, handle, 0, "List");
+    assert_omi_paints(cx, handle, 0, "List");
     cx.executor().advance_clock(Duration::from_millis(
         crate::window::startup::LISTING_WAIT_MS,
     ));

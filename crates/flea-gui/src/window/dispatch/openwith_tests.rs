@@ -132,6 +132,9 @@ fn answer(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, id: u
 #[gpui::test]
 fn enter_on_an_unclaimed_file_opens_the_open_with_card(cx: &mut TestAppContext) {
     let (shell, cx, id) = opened(cx);
+    assert!(cx.debug_bounds("op3-card").is_none());
+    assert!(cx.debug_bounds("op3-openwith-scrim").is_none());
+    answer(&shell, cx, id);
     assert_eq!(
         card_title(&shell, cx).as_deref(),
         Some("Open mystery.xyz With")
@@ -140,7 +143,6 @@ fn enter_on_an_unclaimed_file_opens_the_open_with_card(cx: &mut TestAppContext) 
         cx.debug_bounds("op3-card").is_some(),
         "the Open With card is drawn in the window"
     );
-    answer(&shell, cx, id);
     let catalog = crate::g2::op3::tests::english();
     let labels = shell.read_with(cx, |shell, _| {
         shell.open_with.as_ref().map(|open| {
@@ -296,6 +298,9 @@ fn a_second_ask_closes_the_card_that_shows(cx: &mut TestAppContext) {
 #[gpui::test]
 fn a_press_on_the_scrim_cancels_the_open_with_card(cx: &mut TestAppContext) {
     let (shell, cx, id) = opened(cx);
+    assert!(cx.debug_bounds("op3-card").is_none());
+    assert!(cx.debug_bounds("op3-openwith-scrim").is_none());
+    answer(&shell, cx, id);
     sent();
     let scrim = cx
         .debug_bounds("op3-openwith-scrim")
