@@ -1,4 +1,4 @@
-use super::{composition, startup::View};
+use super::{composition, glass::producers::BodyGround, startup::View};
 use crate::{
     feedback::spinner,
     g2::dg2::join::{flock, Seed},
@@ -252,7 +252,6 @@ impl Render for Shell {
             );
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
-            let floor = super::glass::ground(theme.background, window, cx);
             panes[side] = Some(
                 div()
                     .id(("file-drag", side))
@@ -273,7 +272,9 @@ impl Render for Shell {
                     }))
                     .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
                     // A pane with no rows yet draws the list ground its rows will draw.
-                    .when(!host.drawn_list, |div| div.bg(floor))
+                    .when(!host.drawn_list, |div| {
+                        div.child(super::glass::Grounds::listing(theme.background))
+                    })
                     .children(lists.areas[side].take())
                     .on_mouse_down(
                         MouseButton::Left,
@@ -330,7 +331,7 @@ impl Render for Shell {
         if let Some(viewport) = viewport {
             return Self::file_drag_events(div(), cx)
                 .size_full()
-                .bg(super::glass::body_ground(background, window, cx))
+                .body_ground(background, window, cx)
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_with_preview))
                 .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
@@ -376,7 +377,7 @@ impl Render for Shell {
             )
             .children(self.dual_divider(&geometry, palette, cx))
             .children(self.sidebar_edge(&geometry, cx))
-            .bg(super::glass::body_ground(background, window, cx))
+            .body_ground(background, window, cx)
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))
             .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))

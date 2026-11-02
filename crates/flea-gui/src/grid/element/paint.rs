@@ -354,9 +354,13 @@ impl Element for GridElement {
         state.frames += 1;
         let state = &*state;
         let origin = bounds.origin;
-        // On glass the floor takes the window alpha, as the List and Columns floors do.
-        let floor = crate::window::glass::ground(ink.background, window, cx);
-        window.paint_quad(fill(bounds, floor));
+        crate::window::glass::producers::paint(
+            crate::window::glass::producers::Producer::Listing,
+            bounds,
+            ink.background,
+            window,
+            cx,
+        );
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for drawn in &state.drawn {
                 let frame = bounds_of(

@@ -199,10 +199,7 @@ impl RailElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Ready {
-        let theme = cx
-            .try_global::<crate::palette::Theme>()
-            .copied()
-            .unwrap_or_default();
+        let theme = crate::window::glass::producers::chrome_theme(window, cx);
         let palette = rail_palette(&window.text_style(), theme);
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let mut model = self.model.borrow_mut();

@@ -58,10 +58,13 @@ impl Element for RailElement {
         let model = self.model.borrow();
         let laid = self.laid.borrow();
         self.attach_rename(&model, &laid, bounds, window, cx);
-        window.paint_quad(fill(
+        crate::window::glass::producers::paint(
+            crate::window::glass::producers::Producer::Rail,
             bounds,
-            crate::window::glass::rail_ground(palette.background, window, cx),
-        ));
+            palette.background,
+            window,
+            cx,
+        );
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (header, text) in laid.headers.iter().zip(&ready.headers) {
                 text.paint(

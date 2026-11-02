@@ -31,8 +31,13 @@ impl TrackElement {
             let height = grow.height(paint.first + at, self.row_height);
             Bounds::new(point(left, top), size(px(w), px(height)))
         };
-        let ground = crate::window::glass::ground(palette.background, window, cx);
-        window.paint_quad(fill(bounds, ground));
+        crate::window::glass::producers::paint(
+            crate::window::glass::producers::Producer::Listing,
+            bounds,
+            palette.background,
+            window,
+            cx,
+        );
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for (at, (index, prepared, _)) in paint.visible.iter().enumerate() {
                 if prepared.is_none() {

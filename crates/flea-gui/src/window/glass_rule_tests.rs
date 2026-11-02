@@ -5,7 +5,6 @@ use super::glass_tag::{
     lua_exit_rule, lua_owned_rule, lua_rule, nautilus_opacity, parse_props, rule_step, Mode, Props,
 };
 use std::ffi::OsString;
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 #[path = "glassy_rule_lifecycle_tests.rs"]
@@ -94,19 +93,20 @@ fn glass_rule_evaluates_only_where_hyprland_draws_otherwise() {
 }
 
 #[test]
-fn glass_rule_automatic_levels_paint_solid_and_an_explicit_alpha_wins() {
+fn glass_rule_material_floor_preserves_mode_and_explicit_precedence() {
     let alpha = "[flea]\nbackground-alpha = 0.6\n";
     for (opaque, glassy, mode) in [
         (false, false, Mode::Transparent),
         (true, false, Mode::Opaque),
         (false, true, Mode::Glassy),
     ] {
-        let automatic = Inputs::resolve("", "", opaque, glassy);
+        let automatic = Inputs::resolve("", "", "", opaque, glassy);
         assert_eq!((automatic.mode, automatic.automatic), (mode, true));
-        assert_eq!(automatic.wanted_alpha, 255, "{mode:?} grounds stay solid");
+        let expected = if mode == Mode::Glassy { 192 } else { 255 };
+        assert_eq!(automatic.wanted_alpha, expected, "{mode:?} material floor");
         assert!(!automatic.pins_opaque);
-        let user = Inputs::resolve("", alpha, opaque, glassy);
-        let theme = Inputs::resolve(alpha, "", opaque, glassy);
+        let user = Inputs::resolve("", "", alpha, opaque, glassy);
+        let theme = Inputs::resolve("", alpha, "", opaque, glassy);
         let explicit = if mode == Mode::Opaque { 255 } else { 153 };
         assert_eq!(theme.wanted_alpha, explicit, "{mode:?} theme alpha");
         assert_eq!(user.wanted_alpha, 153, "{mode:?} user alpha");
@@ -144,8 +144,18 @@ esac
 "#,
         std::process::id()
     );
-    std::fs::write(&path, script).unwrap();
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    // A child writes the executable so concurrent test forks cannot inherit a writable script fd.
+    let written = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            "printf '%s' \"$2\" > \"$1\" && chmod 700 \"$1\"",
+            "sh",
+        ])
+        .arg(&path)
+        .arg(script)
+        .status()
+        .unwrap();
+    assert!(written.success());
     path.into_os_string()
 }
 

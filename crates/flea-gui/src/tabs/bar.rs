@@ -4,7 +4,6 @@ use super::{
     transfer::{Lift, PendingDrop},
 };
 use crate::list::{Palette, Typeface};
-use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, CursorStyle, Element, ElementId, GlobalElementId,
     GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
