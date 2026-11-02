@@ -33,18 +33,14 @@ not the spec's quoted string.
 
 ### Transparent huge pages
 
-`/sys/kernel/mm/transparent_hugepage/enabled` is `[always]` on this box, and Quickshell is the
-most huge-page-inflated process on it. Every `FileView` and every Qt worker gives `qs` another
-thread, each thread stack is collapsed onto a 2 MB huge page, and the settled process carried
-roughly 70 MB of `AnonHugePages` against roughly 80 MB of anonymous memory: that memory was
-rounding, not allocation. `gui::exec_qs` therefore calls `prctl(PR_SET_THP_DISABLE)` immediately
-before `Command::exec`. That is the last point that owns the launch and the only one that needs
-to, because the setting is preserved across `exec` and inherited by every child. `qs` then
-settles around 44 to 45 MB of PSS instead of around 101 to 104 MB, on the media fixture and on
-the 100,000-file fixture alike, with `AnonHugePages` at zero.
+The GPUI launcher calls `thp::disable()` immediately before `Command::exec` replaces it with
+`flea-gui`; the chooser path does the same.
+Programs Flea opens regain huge pages through `thp::enable()` in the opener and terminal paths.
+
+The Qt-specific measurements below belong to the retained QML reference, which the GPUI launcher does not load.
 
 `prctl` is declared in `src/thp.rs` as an `extern "C"` symbol rather than pulled in with a crate, because
-`std` already links the system libc and this project has no Cargo dependencies. It is declared
+`std` already links the system libc. It is declared
 variadic, `fn prctl(option: i32, ...) -> i32`, the shape glibc gives it (C's own `int prctl(int, ...)` prototype), and each call passes its
 extra arguments as `c_ulong`; the `extern-variadic` gate in `tests/staticgates.py` refuses a
 fixed-arity declaration of `prctl`, `fcntl` or the other variadic libc calls it names, the shape
@@ -82,10 +78,10 @@ opened program inherits huge pages back on; an application a menu launches gets 
 `src/backend/menu_registry.rs`'s `pre_exec`. The `flea --open` call lives in `src/open.rs`, after the
 `canonicalize` and after the directory refusal and immediately before the spawn, so a path that
 never reaches a handler never changes the setting, and `src/thp.rs` holds the `extern "C"`
-declaration that both it and `gui::exec_qs` call. Without it Flea would silently change a
+declaration used by the opener and by the GPUI launcher. Without it Flea would silently change a
 system-wide performance setting for every application launched from it, for that
 application's whole life. `tests/modes.sh` pins it through a
-stub `qs` that execs `flea --open` against a stub handler reporting its own `THP_enabled`, which is
+stub `flea-gui` that execs `flea --open` against a stub handler reporting its own `THP_enabled`, which is
 the only shape of check that can redden when the `thp::enable()` call is deleted. See "Opening a
 file" below.
 
@@ -319,6 +315,8 @@ and `Ctrl+Delete` still go on one press, because neither is a letter a name is t
 sheet draws `dd`, and `tests/js/keymap.js` resolves a doubled cap as that one character.
 
 ### Theme roles and sources
+
+The QML paths in this section describe the retained reference components; the production GPUI window opens through `crates/flea-gui/src/window/mod.rs`.
 
 `Theme.qml`'s `applyColors` assigns only Flea's eight palette roles and ignores unknown
 keys because Omarchy themes contain more roles than Flea uses. `color.surface` walks the
@@ -783,7 +781,7 @@ lucide glyph is therefore: square the corner arcs, keep the extents. One deliber
 change beyond corners: `music` note heads are squares, not circles, the set's brand tell
 (`file-text`'s three rules are lucide's own, restored with the body). The AE compare
 above no longer applies to recut marks (they differ from source on purpose); the gate is the
-montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box, which names the
+retained QML reference's montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box, which names the
 renderer but not `FLEA_RENDERER_AUTOMATIC` and so leaves the QML fallback arm disarmed (bench
 numbers still come from the launcher path, hard rule 7). `rsvg-convert` only
 proves a `d` parses; librsvg renders through a bad tail and exits 0, so its exit status is
@@ -1423,7 +1421,7 @@ The old check could not have caught any of it. `networkMarkGeometry()` measured 
 compared it against an arithmetic slot, `heading.x + heading.width - rowPaddingX - caption / 2`,
 which is term for term what a right-anchored glyph's centre already is: an identity, and it passed
 at all thirteen interface scales it was walked over. `tests/ui.sh` then pinned the same anchoring a
-second time by grepping the source. Both are gone. `networkMarkGeometry()` returns three measured boxes through `ui/boot/shell.qml`'s `boxOf`, the
+second time by grepping the source. Both are gone. In the retained QML reference, `networkMarkGeometry()` returns three measured boxes through `ui/boot/shell.qml`'s `boxOf`, the
 ink, the target and the real `dot`, in one coordinate system, and `tests/ui.sh case_netmark` asserts
 their centres agree at Omarchy's seven text sizes, 9, 10, 11, 12, 14, 16 and 20 px, driven through a
 fixture `[font] base-size`, plus both ends of the interface zoom.
@@ -2062,6 +2060,8 @@ filter or every kept burst, replaying one request only, leaving at once on a clo
 answering a burst before the scan lands each fails one of its assertions.
 `tools/flea-file-budget` records `src/backend/run.rs` 719 to 735 for the gate and the two extra
 `handle_line` call sites; `src/backend/listwork.rs` is inside the soft budget.
+
+The retained QML launch history records these former ceilings; the GPUI launch policy now lives in `src/gui/gpui_renderer.rs`.
 
 icdexclude moves two ceilings, each re-derived with `wc -l`: `src/gui.rs` 501 to 503 for the one exclusion call ahead of the renderer arms and its comment, and `src/vulkan.rs` 728 to 747 for `icd_library` reading `ICD.library_path` through `jsondoc` and `src/jsonmembers.rs` with its 4 KiB bound, its NUL refusal and the repeat and metadata pins, with three helpers and three PCI vendor constants made `pub(crate)`, and `is_hasvk_intel` the fourth for the hasvk exclusion. The exclusion itself is the new `src/icdexclude.rs` at 180 and its manifest inventory (the directory listing with its 256 cap, the `library_path` reading and the known-library table) the new `src/icdmanifests.rs` at 84, declared inside it the way `src/vkprobecache.rs` declares `src/vkprobekey.rs`, both inside the soft budget, with its decision tests in the new `src/icdexclude_tests.rs` at 232 (the present vendors, the hasvk cases, `decide_exclusion`, the filter order and cap, and the fake-sysfs helpers the other file shares) and its manifest tests in the new `src/icdexclude_manifests_tests.rs` at 105 (the search roots, the parse and regular-file rules and the namesake rule), and the member lookup is the new `src/jsonmembers.rs` at 118, all inside both budgets.
 

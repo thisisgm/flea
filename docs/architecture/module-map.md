@@ -23,21 +23,21 @@
   anything else opens the window, on `--select`'s parent directory when one is given, unless
   explicit `--tui` requests the terminal interface, `--gui` being the explicit spelling of the
   window a bare invocation already means, see "Modes".
-- `paths.rs` resolves the UI directory and whether a display is available.
-- `gui.rs` execs `qs` against the resolved UI directory.
+- `paths.rs` resolves the retained QML data directory and whether a display is available; the GPUI window launch checks the display and resolves its executable separately.
+- `gui.rs` re-exports the GPUI launcher in `gui/launch.rs`, which execs `flea-gui`.
 - `crates/flea-gui/src/window/root.rs` is the GPUI window root. It holds the shell as one cached view and paints
   each pane's loading mark over it in an overlay, inside the content mask the mark's slot recorded, so a narrow pane
   cuts the mark at its own edge. A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later
   layer than that overlay, a GPUI `deferred`, so it is never drawn under a mark.
 - `thp.rs` the `prctl(PR_SET_THP_DISABLE)` declaration behind `disable()` and `enable()`.
-- `icdexclude.rs` disables the Vulkan drivers of GPU vendors the box does not hold, before the probe and `qs`; see rule 5.
-- `icdmanifests.rs` the manifest inventory behind `icdexclude.rs` and the probe cache's key: which ICD manifests the loader would read and what each one's library names.
-- `vkprobecache.rs` answers the launcher's Vulkan probe from a fingerprinted cache, probing only on a miss; the key lives in `vkprobekey.rs` and its library search in `vkprobelibs.rs`.
+- `icdexclude.rs` filters known Vulkan drivers for absent hardware before `flea-gui` starts; see rule 5.
+- `icdmanifests.rs` supplies that filter's bounded manifest inventory and driver library classification.
+- `gui/gpui_renderer.rs` clears Qt renderer settings and an inherited legacy display pin, then applies the absent-vendor filter without adding a display pin or probe cache.
 - `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file";
   its `detach` is the set of guards every program Flea starts and does not wait for carries.
 - `tearoff.rs` names the three tab tear-off variables and removes them from a child's environment, for `detach` and `open.rs`.
-- `unlock.rs` `flea --unlock <device>`: opens the same unlock dialog a locked rail row opens, through its own `exec_unlock` beside `gui::qs_command`.
+- `unlock.rs` `flea --unlock <device>`: validates the device and display, then calls `gui::exec_gpui_unlock` to open the GPUI window with that one unlock request.
 - `figurehelper.rs` `flea --figure-helper`: maths and diagrams through quickjs-ng under the
   thumbnail jail's flags and caps, see "Markdown figures".
 - `update.rs` `flea --update [check]`: the install kind, the source's answer, and Omarchy's updater, see "Updates".
@@ -116,12 +116,12 @@
   back after a picture is sent (`give_back`), see "The listing arena returns to the OS".
 - `launcher/mod.rs` re-exports `prewarm`, nothing else.
 - `launcher/prewarm.rs` writes the listing and first screenful before the UI starts.
-- `ui/boot/shell.qml` owns the pragmas, the window, its geometry readers and the scene-graph
-  error path; it holds nothing else, see "The first window".
-- `ui/WindowBody.qml` owns everything inside that window: the view, the startup path, the quit
+- `ui/boot/shell.qml` is the retained QML reference entry, with its window, geometry readers and
+  scene-graph error path; the GPUI launcher does not load it, see "The first window".
+- `ui/WindowBody.qml` owns everything inside that QML reference window: the view, the startup path, the quit
   handshake and the read-only IPC seam. It is loaded by file: URL, so it has no qmldir line.
-- `ui/RendererRetry.qml` owns the OpenGL retry argv, loaded by file: URL only once the scene
-  graph has failed.
+- `ui/RendererRetry.qml` is the QML reference OpenGL retry helper, loaded by file: URL only once
+  that reference scene graph has failed.
 - `ui/Backend.qml` is the only QML component that talks to the Rust child, and carries
   `thumb` and `thumbcancel` out and `thumbed` in alongside `list`, `window` and `sort`.
 - `ui/ViewState.qml` reads `ui.json` once at startup with a blocking `FileView` and writes nothing
