@@ -258,6 +258,8 @@ impl Render for Shell {
                     .id(("file-drag", side))
                     .relative()
                     .size_full()
+                    // GPUI captures this source cursor for the held file drag (HIG drag-cut-move).
+                    .cursor(gpui::CursorStyle::Arrow)
                     .on_drag(Seed { side }, move |_, _, window, cx| {
                         let _ =
                             lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
