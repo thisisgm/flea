@@ -108,6 +108,7 @@ fn settle(cx: &mut TestAppContext) {
     advance(cx, 120);
 }
 
+#[track_caller]
 fn quiet(cx: &mut TestAppContext, handle: WindowHandle<crate::state::Shell>) {
     let replies = handle
         .update(cx, |shell, _, _| {
@@ -125,7 +126,8 @@ fn quiet(cx: &mut TestAppContext, handle: WindowHandle<crate::state::Shell>) {
     while Instant::now() < deadline {
         assert!(
             replies.is_empty(),
-            "a cancelled, early or hidden viewport issued work"
+            "a cancelled, early or hidden viewport issued work: {:?}",
+            replies.try_recv()
         );
         std::thread::sleep(Duration::from_millis(2));
     }
@@ -381,3 +383,6 @@ fn u04_preference_marks_are_normalized_before_list_membership() {
 
 #[path = "fixreaders_steering_tests.rs"]
 mod fixreaders;
+
+#[path = "join_filter_sizes_tests.rs"]
+mod filter_sizes;

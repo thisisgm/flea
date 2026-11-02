@@ -176,6 +176,9 @@ impl Shell {
         host.input.selection.sync(&host.selected);
         let owner = &host.filter.owner;
         if owner.query() != query {
+            if let Some(backend) = &host.backend {
+                host.sizes.cancel(backend);
+            }
             host.filter.key_at = wall_ms();
         }
         let after = owner.drawn(listing);
