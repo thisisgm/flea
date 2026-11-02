@@ -216633,6 +216633,15 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "raise ValueError(f\"searchbench {row['engine']} {row['metric']} {row['phase']} run {row['run']}: invalid instrument resolution {row['resolution']!r}\")",
+      "line": 251,
+      "literal": "searchbench {row['engine']} {row['metric']} {row['phase']} run {row['run']}: invalid instrument resolution {row['resolution']!r}",
+      "owner": "controller",
+      "path": "tools/flea-searchbench/fair/eligibility.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "eprintln!(\"search instrument: {error}\");",
       "line": 9,
       "literal": "search instrument: {error}",
@@ -216645,6 +216654,15 @@
       "excerpt": "\"\"\"Process-run reductions and paired, run-clustered bootstrap summaries.\"\"\"",
       "line": 1,
       "literal": "Process-run reductions and paired, run-clustered bootstrap summaries.",
+      "owner": "controller",
+      "path": "tools/flea-searchbench/metrics.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"searchbench {sample['entrant']} {metric} {sample['phase']} run {sample['run']}: invalid instrument resolution {resolution!r}\")",
+      "line": 191,
+      "literal": "searchbench {sample['entrant']} {metric} {sample['phase']} run {sample['run']}: invalid instrument resolution {resolution!r}",
       "owner": "controller",
       "path": "tools/flea-searchbench/metrics.py",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -246282,7 +246300,7 @@
     "tools/flea-searchbench/engine/Containerfile": "1be50223a1d1608b8f6f77b17c62be0c84148fa99611a74705447eefdfb9c609",
     "tools/flea-searchbench/engine/build.sh": "0f40d59fc9cf0ac0ebca5589a4d72f3b8fbe0d69b0b035e3ba68f27ead985bbd",
     "tools/flea-searchbench/engine/cold-controller.py": "4d772b4fdd973750bdfef2197b76b5a5fc987163a0b64e93661917e8520b17af",
-    "tools/flea-searchbench/engine/compare.py": "6a979a243d6f17d647f854bbf848e37b1bbf20e1712cb7b18a7c50ddc73ca508",
+    "tools/flea-searchbench/engine/compare.py": "d64ea80f740194715949d27ad01f764d0f4b81658cdc9fa705507d8baa38a121",
     "tools/flea-searchbench/engine/contracts.py": "d27fce5e7f470bcf41017291285201cbc1bf23ac43a165cbd7d879f24969f340",
     "tools/flea-searchbench/engine/engines.py": "e0ffa2e1e58713866682a634170120aab68678594ea1b6c7de2d3b5b15ec2bb7",
     "tools/flea-searchbench/engine/fixtures.py": "0d71a441a4fd88a4b627636422a3c79ac425b58ea2053f97ea066b7d8733b57d",
@@ -246301,9 +246319,9 @@
     "tools/flea-searchbench/engine/rust/linux_walk.rs": "070e9299f288a5df2bb167c93b020f9d2c1e5bd9c31831e028f3e498257537bc",
     "tools/flea-searchbench/engine/rust/nd.rs": "9730b6fc171f960ee1a23195dd000102824c6d42be4ded308b47b6118039a924",
     "tools/flea-searchbench/fair/clocks.py": "b923dc29951ab3b619e8d4496c83eba10a58d042e5e228354605f022819efa4c",
-    "tools/flea-searchbench/fair/eligibility.py": "6a04f2d42376c9f581fe8b2c1845ae89049414e2b6eb648af877053afcb6678c",
+    "tools/flea-searchbench/fair/eligibility.py": "0e1c8ca5df814fb913f08f23c01d21721bf995993dfa88a097646a85630780fe",
     "tools/flea-searchbench/launch.rs": "fac951544e93125e4f4e370e50827c80cf31d3d75eeb14edbd9d54896e18aa93",
-    "tools/flea-searchbench/metrics.py": "36d19fb1b1335b0adda7a6ebf2eec8ce32108b983fd01074b4a583983c126590",
+    "tools/flea-searchbench/metrics.py": "ae2ec35a46277b93c0b2d6fdbaa1a8b4d4bc3c5ca029ed0e237885d6e4d0122c",
     "tools/flea-searchbench/smoke.py": "c92e1c6cd2659a7256f7cd45dc54137d5708cca48336f2535475f7108b7c53af",
     "tools/flea-searchbench/source-manifest.json": "fbefd9a3b0295b5ea36b26f65cff1841b9b909c88f4f7f9171ed1297b4bfce6b",
     "tools/flea-searchbench/stage.rs": "f71584061f2f544c08864bbce42a82a8ff8ff72e77d9282fe5f991a77059f823",
@@ -246760,8 +246778,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "f0bb85c7845d38af7f0e2ee2bd5393095f93ec38",
-  "source_sha": "f0bb85c7845d38af7f0e2ee2bd5393095f93ec38",
+  "source_ref_sha": "b324af16e3e7079cebfe6b2ffd133252135de4e9",
+  "source_sha": "b324af16e3e7079cebfe6b2ffd133252135de4e9",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -246770,7 +246788,7 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
-      "missing_literal_candidates": 5096,
+      "missing_literal_candidates": 5098,
       "source_files": 153
     },
     "gui": {
