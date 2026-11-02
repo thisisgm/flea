@@ -142,10 +142,7 @@ check() {
   # back to the next create, so on the builder's /tmp the stranger is
   # identical and undo walks it back. tmpfs allocates inode numbers from a
   # counter and never reuses one, which is what the test assumes.
-  # tagsreq::undo_tests::redo_refuses_a_file_recreated_on_the_freed_inode is
-  # the same case for tags: on the builder's /tmp the freed inode came back
-  # and redo could not tell the new file from the old one. On tmpfs the
-  # inode is never reused, and the test skips that leg itself.
+  # Tags redo asserts replacement refusal with real inode reuse where available and a guaranteed new inode otherwise.
   # copymanifest's garbage-stream test opens its O_TMPFILE manifest in its
   # own test dir; the module's other tests must stay off tmpfs, because
   # Writer::create wants a runtime dir on a different filesystem from the
