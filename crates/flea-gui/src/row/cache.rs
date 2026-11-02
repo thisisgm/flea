@@ -56,6 +56,8 @@ pub struct Shaping {
     pub body: Pixels,
     pub caption: Pixels,
     pub name_cells: usize,
+    /// The body face's digit advance, one cell's pixels; zero leaves names to the cell recipe alone.
+    pub advance: f32,
     /// The name's budget on a row whose clip mark takes the gap and the mark beside it.
     pub clip_cells: usize,
     /// Each column's budget in caption cells, zero where the column is not drawn.

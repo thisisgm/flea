@@ -357,3 +357,28 @@ fn ey220_display_takes_down_and_right_after_tab_from_the_sidebar(cx: &mut TestAp
     assert_eq!(effective_text(&shell, cx).as_deref(), Some("14 px"));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// German types [ with AltGr at the US 8 key, which is text, and ü at the US [ key, which is the tabPrevious chord.
+#[gpui::test]
+fn altgr_text_in_the_focused_rail_passes_no_window_chord(cx: &mut TestAppContext) {
+    use crate::window::dispatch::test_shell::german_press;
+    let (shell, cx) = open(false, "list", cx);
+    tab_to_rail(&shell, cx);
+    let altgr = german_press("[", "[", Some("8"), true);
+    let plain = german_press("[", "ü", Some("["), false);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            assert_eq!(
+                shell.rail_key(&altgr, window, cx),
+                Some(true),
+                "the focused rail keeps AltGr+8 as text"
+            );
+            assert_eq!(
+                shell.rail_key(&plain, window, cx),
+                None,
+                "ü passes tabPrevious on to the window"
+            );
+        })
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

@@ -88,14 +88,14 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
     let catalog = catalog(&shell, cx);
-    // Ops.js newFolder: the folder itself, no name.
+    // New Folder supplies the catalog base; the backend resolves collisions.
     cx.simulate_keystrokes("ctrl-shift-n");
     assert_eq!(
         sent(),
         [creation_request(
             &shell,
             cx,
-            r#"{"c":"mkdir","path":"/files"}"#
+            r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
         )]
     );
     let before = lists(&shell, cx);
@@ -359,7 +359,10 @@ fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppCon
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files","request":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
+    );
     reply(
         &shell,
         cx,
@@ -381,3 +384,6 @@ fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppCon
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "newfolder_tests.rs"]
+mod newfolder_tests;

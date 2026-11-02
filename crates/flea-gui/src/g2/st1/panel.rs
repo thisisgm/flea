@@ -164,8 +164,10 @@ impl Panel {
     }
 
     pub fn set_catalog(&mut self, catalog: Arc<I18n>) {
+        let selected = self.search_selection();
         self.catalog = catalog;
         self.rebuild();
+        self.restore_search_selection(selected);
     }
 
     /// The title names the pane; while a query stands no section is current, so it reads Settings.
@@ -189,7 +191,7 @@ impl Panel {
         self.reveal();
     }
 
-    /// Each row's height: shaped hint lines once drawn, a monospace estimate before.
+    /// Each row's height: shaped hint and colliding label lines once drawn, a monospace estimate before.
     pub fn heights(&self) -> Vec<f32> {
         if self.lines.len() == self.rows.len() {
             return geometry::heights(&self.rows, &self.lines, self.scale);

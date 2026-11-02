@@ -36,163 +36,7 @@ impl Element for RailElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Ready {
-        let theme = cx
-            .try_global::<crate::palette::Theme>()
-            .copied()
-            .unwrap_or_default();
-        let palette = rail_palette(&window.text_style(), theme);
-        let metrics = RailMetrics::for_typeface(&self.typeface);
-        let mut model = self.model.borrow_mut();
-        let mut cache = std::mem::take(&mut model.cache);
-        let mut laid = super::layout::layout(
-            &model.sections,
-            (f32::from(bounds.size.width), f32::from(bounds.size.height)),
-            &self.typeface,
-            &self.detail_face,
-            &model,
-            window,
-            &mut cache,
-        );
-        if let Some(top) = laid.cursor_y.filter(|_| model.reveal_cursor) {
-            if top < 0. {
-                model.scroll = (model.scroll + top).max(0.);
-            } else if top + metrics.row > laid.height {
-                model.scroll += top + metrics.row - laid.height;
-            }
-        }
-        model.reveal_cursor = false;
-        model.scroll = model
-            .scroll
-            .min((laid.content_height - laid.height).max(0.));
-        laid = super::layout::layout(
-            &model.sections,
-            (f32::from(bounds.size.width), f32::from(bounds.size.height)),
-            &self.typeface,
-            &self.detail_face,
-            &model,
-            window,
-            &mut cache,
-        );
-        let (dx, dy) = (f32::from(bounds.origin.x), f32::from(bounds.origin.y));
-        for header in &mut laid.headers {
-            header.rect.x += dx;
-            header.rect.y += dy;
-            if let Some(add) = &mut header.add {
-                add.x += dx;
-                add.y += dy;
-            }
-        }
-        for row in &mut laid.rows {
-            row.rect.x += dx;
-            row.rect.y += dy;
-            row.label_rect.x += dx;
-            row.label_rect.y += dy;
-            row.detail_rect.x += dx;
-            row.detail_rect.y += dy;
-            row.indicator_rect.x += dx;
-            row.indicator_rect.y += dy;
-            if let Some(editor) = &mut row.editor {
-                editor.x += dx;
-                editor.y += dy;
-            }
-        }
-        let headers = laid
-            .headers
-            .iter()
-            .map(|h| {
-                cache.get(
-                    &h.text,
-                    self.typeface.caption,
-                    laid.width - 2. * metrics.pad,
-                    HEADING_TRACKING,
-                    &self.typeface,
-                    window,
-                )
-            })
-            .collect();
-        let labels: Vec<Rc<text::Prepared>> = laid
-            .rows
-            .iter()
-            .map(|row| {
-                let text = if model.renaming == Some(row.index) {
-                    &model.editor.text
-                } else {
-                    &row.label
-                };
-                cache.get(
-                    text,
-                    self.typeface.body,
-                    if model.renaming == Some(row.index) {
-                        f32::INFINITY
-                    } else {
-                        row.label_width
-                    },
-                    0.,
-                    &self.typeface,
-                    window,
-                )
-            })
-            .collect();
-        model.editor_line = model
-            .renaming
-            .and_then(|index| laid.rows.iter().position(|row| row.index == index))
-            .map(|at| Rc::clone(&labels[at]));
-        if let Some(rect) = model
-            .renaming
-            .and_then(|index| laid.row(index))
-            .and_then(|row| row.editor)
-        {
-            let room = (rect.width - 8.).max(0.);
-            let caret = model.editor_x(model.editor.cursor());
-            if caret - model.editor_scroll > room {
-                model.editor_scroll = caret - room;
-            } else if caret < model.editor_scroll {
-                model.editor_scroll = caret;
-            }
-        }
-        let details = laid
-            .rows
-            .iter_mut()
-            .map(|row| {
-                let ink = super::paint::detail_ink(&model, row.index, &palette);
-                row.detail_color = crate::ipc::rows::colour(ink);
-                cache.get(
-                    &row.detail,
-                    self.detail_face.caption,
-                    laid.width,
-                    0.,
-                    &self.detail_face,
-                    window,
-                )
-            })
-            .collect();
-        let digit_face = Typeface {
-            font: gpui::Font {
-                weight: gpui::FontWeight::BOLD,
-                ..self.typeface.font.clone()
-            },
-            ..self.typeface.clone()
-        };
-        let digits = laid
-            .rows
-            .iter()
-            .map(|row| match row.mark {
-                RowMark::Tag(tag) if tag.fill.is_none() => {
-                    Some(cache.get(tag.digit, px(10.), TAG, 0., &digit_face, window))
-                }
-                _ => None,
-            })
-            .collect();
-        cache.bound(((laid.height / metrics.row).ceil() as usize + 2) * 12);
-        model.cache = cache;
-        *self.laid.borrow_mut() = laid;
-        Ready {
-            palette,
-            headers,
-            labels,
-            details,
-            digits,
-        }
+        self.prepaint_rows(bounds, window, cx)
     }
 
     fn paint(
@@ -283,53 +127,61 @@ impl Element for RailElement {
                 } else {
                     rect.x
                 };
-                window.with_content_mask(
-                    Some(ContentMask {
-                        bounds: box_of(rect),
-                    }),
-                    |window| {
-                        if row.editor.is_some() {
-                            let from = origin + model.editor_x(model.editor.selected.start);
-                            let to = origin + model.editor_x(model.editor.selected.end);
-                            if !model.editor.selected.is_empty() {
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(
-                                        from,
-                                        rect.y + 2.,
-                                        to - from,
-                                        rect.height - 4.,
-                                    )),
-                                    palette.accent.opacity(0.24),
-                                ));
-                            } else {
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(from, rect.y + 3., 1., rect.height - 6.)),
-                                    palette.foreground,
-                                ));
+                let paint_label = |window: &mut Window| {
+                    window.with_content_mask(
+                        Some(ContentMask {
+                            bounds: box_of(rect),
+                        }),
+                        |window| {
+                            if row.editor.is_some() {
+                                let from = origin + model.editor_x(model.editor.selected.start);
+                                let to = origin + model.editor_x(model.editor.selected.end);
+                                if !model.editor.selected.is_empty() {
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(
+                                            from,
+                                            rect.y + 2.,
+                                            to - from,
+                                            rect.height - 4.,
+                                        )),
+                                        palette.accent.opacity(0.24),
+                                    ));
+                                } else {
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(from, rect.y + 3., 1., rect.height - 6.)),
+                                        palette.foreground,
+                                    ));
+                                }
+                                if let Some(marked) = &model.editor.marked {
+                                    let from = origin + model.editor_x(marked.start);
+                                    let to = origin + model.editor_x(marked.end);
+                                    window.paint_quad(fill(
+                                        box_of(Rect::new(
+                                            from,
+                                            rect.y + rect.height - 3.,
+                                            to - from,
+                                            1.,
+                                        )),
+                                        palette.foreground,
+                                    ));
+                                }
                             }
-                            if let Some(marked) = &model.editor.marked {
-                                let from = origin + model.editor_x(marked.start);
-                                let to = origin + model.editor_x(marked.end);
-                                window.paint_quad(fill(
-                                    box_of(Rect::new(
-                                        from,
-                                        rect.y + rect.height - 3.,
-                                        to - from,
-                                        1.,
-                                    )),
-                                    palette.foreground,
-                                ));
-                            }
-                        }
-                        label.paint(
-                            origin,
-                            rect.y,
-                            rect.height,
-                            super::label_ink(row.error, &palette),
-                            window,
-                        );
-                    },
-                );
+                            label.paint(
+                                origin,
+                                rect.y,
+                                rect.height,
+                                super::label_ink(row.error, &palette),
+                                window,
+                            );
+                        },
+                    )
+                };
+                // The editor's name, wash and caret keep their order in a mirrored window.
+                if row.editor.is_some() {
+                    window.with_unmirrored(box_of(rect), paint_label);
+                } else {
+                    paint_label(window);
+                }
                 ready.details[at].paint(
                     row.detail_rect.x,
                     row.detail_rect.y,

@@ -1,4 +1,7 @@
 //! Immutable presentation inputs, resolved off the UI thread and installed in one update.
+pub mod epoch;
+#[cfg(test)]
+mod epoch_tests;
 mod face;
 mod face_cache;
 #[cfg(test)]

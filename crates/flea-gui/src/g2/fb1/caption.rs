@@ -10,7 +10,9 @@ use std::{cell::Cell, rc::Rc};
 pub const TRACKING: f32 = 1.2;
 
 /// The scripts the boards draw with no capitals and no tracking, `.statecap:is(:lang(ja), ...)`.
-pub const CASELESS: [&str; 8] = ["ja", "zh", "ko", "ar", "fa", "he", "ur", "th"];
+pub const CASELESS: [&str; 12] = [
+    "ja", "zh", "ko", "ar", "fa", "he", "ur", "th", "hi", "bn", "ta", "si",
+];
 
 /// Whether a language code's primary subtag is one of the boards' caseless scripts.
 pub fn caseless(language: &str) -> bool {

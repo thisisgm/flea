@@ -289,7 +289,10 @@ impl Picker {
         }
         let last = self.rail.entries.len().saturating_sub(1);
         let cursor = self.rail.cursor;
-        self.rail.cursor = match event.keystroke.key.as_str() {
+        self.rail.cursor = match crate::window::input::reading(
+            event.keystroke.key.as_str(),
+            window.layout_mirrored(),
+        ) {
             "up" | "k" => cursor.saturating_sub(1),
             "down" | "j" => (cursor + 1).min(last),
             "home" => 0,

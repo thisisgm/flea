@@ -92,6 +92,26 @@ mod model_tests {
         assert_eq!(model.errors.iter().collect::<Vec<_>>(), ["B.zip is corrupt"]);
         finish(wire, reader);
     }
+
+    #[test]
+    fn ey568_a_copy_status_names_no_destination_and_a_move_keeps_its_own() {
+        let (mut wire, reader) = echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        for (line, shown) in [
+            (r#"{"t":"jobs","jobs":[{"id":7,"kind":"copy","state":"waiting","head":"Copy 5 items to fx"}],"newest":7,"unfinished":1,"head":"Copy 5 items to fx"}"#, "Copy 5 items"),
+            // The snapshot lists every row newest first, finished ones too, so newest sits between two moves.
+            (r#"{"t":"jobs","jobs":[{"id":9,"kind":"move","state":"done","head":"Moving 2 of 2 to fx"},{"id":7,"kind":"copy","state":"running","head":"Copying 2 of 5 to fx"},{"id":6,"kind":"move","state":"running","head":"Moving 1 of 1 to fx"}],"newest":7,"unfinished":2,"head":"Copying 2 of 5 to fx"}"#, "Copying 2 of 5 · 2 jobs"),
+            (r#"{"t":"job","job":{"id":7,"kind":"copy","state":"running","head":"Copying 3 of 5 to a to b"},"unfinished":2}"#, "Copying 3 of 5 · 2 jobs"),
+            (r#"{"t":"job","job":{"id":7,"kind":"copy","state":"failed","head":"Copy failed"},"unfinished":1}"#, ""),
+            (r#"{"t":"jobs","jobs":[{"id":9,"kind":"move","state":"done","head":"Moving 2 of 2 to fx"},{"id":7,"kind":"copy","state":"failed","head":"Copy failed"},{"id":6,"kind":"move","state":"running","head":"Moving 1 of 1 to fx"}],"newest":6,"unfinished":1,"head":"Moving 1 of 1 to fx"}"#, "Moving 1 of 1 to fx"),
+            (r#"{"t":"jobs","jobs":[{"id":11,"kind":"move","state":"running","head":"Moving 1 of 2 to fx"},{"id":10,"kind":"copy","state":"running","head":"Copying 1 of 4 to fx"}],"newest":11,"unfinished":2,"head":"Moving 1 of 2 to fx"}"#, "Moving 1 of 2 to fx · 2 jobs"),
+            (r#"{"t":"job","job":{"id":11,"kind":"move","state":"running","head":"Moving 2 of 2 to fx"},"unfinished":2}"#, "Moving 2 of 2 to fx · 2 jobs"),
+        ] {
+            model.receive(parse(line).unwrap(), &mut wire).unwrap();
+            assert_eq!(model.transfer, shown, "{line}");
+        }
+        finish(wire, reader);
+    }
 }
 
 pub(super) fn percent(job: &crate::jsondoc::Json) -> Option<usize> {
@@ -207,19 +227,19 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
     if text(value, "t") == "jobs" {
         status.id = count(value, "newest");
         status.count = count(value, "unfinished");
-        status.percent = value
+        let newest = value
             .get("jobs")
             .and_then(Json::as_array)
-            .and_then(|jobs| jobs.iter().find(|job| count(job, "id") == status.id))
-            .and_then(percent);
-        status.head = text(value, "head").into();
+            .and_then(|jobs| jobs.iter().find(|job| count(job, "id") == status.id));
+        status.percent = newest.and_then(percent);
+        status.head = status_head(newest.map_or("", |job| text(job, "kind")), text(value, "head"));
         model.transfer = line(&status.i18n, &status.head, status.count);
     } else if let Some(job) = value.get("job") {
         if count(job, "id") == status.id {
             status.percent = percent(job);
             status.count = count(value, "unfinished");
             status.head = if matches!(text(job, "state"), "waiting" | "running") {
-                text(job, "head").into()
+                status_head(text(job, "kind"), text(job, "head"))
             } else {
                 String::new()
             };
@@ -231,6 +251,15 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
         if text(job, "kind") == "extract" && text(job, "state") == "failed" {
             model.fail(text(job, "reason").into());
         }
+    }
+}
+
+// The tui-progress board names no destination for a copy, while the window jobs card keeps it.
+// "Copying 2 of 5 to fx" or "Copy 5 items to fx": the backend's first " to " ends the count.
+fn status_head(kind: &str, head: &str) -> String {
+    match head.split_once(" to ") {
+        Some((words, _)) if kind == "copy" => words.into(),
+        _ => head.into(),
     }
 }
 

@@ -1,5 +1,8 @@
 //! The Settings card's measures from the settings boards, and the pane's scroll rules from ui/SettingsPane.qml.
-use flea::ui_logic_st1::rows::{focusable, Kind, Row};
+use flea::ui_logic_st1::{
+    rows::{focusable, Kind, Row},
+    visible, Text,
+};
 
 // At text size 14 the 630 by 684 card has a 27px head, 168px rail, 29px rail rows and 37px pane rows.
 pub const CARD_W: f32 = 630.;
@@ -31,8 +34,20 @@ pub const FOOTER_LINE: f32 = 16.;
 // The fade over a cut row, seven tenths of a row, and the share of it the next row's first ink shows under.
 pub const FADE: f32 = 26.;
 const CUT_SHARE: f32 = 0.5;
+// LANGUAGES-SPEC: a colliding label wraps inside the row's 8px padding, and two of these line boxes make the row 51.
+pub const WRAP_LINE: f32 = 17.5;
+// A control row's value and caption stop at these shares of the pane.
+pub const VALUE_SHARE: f32 = 0.56;
+pub const CAPTION_SHARE: f32 = 0.5;
+// View's four marks: each 16 wide, 17 apart.
+pub const VIEW_MARK: f32 = 16.;
+pub const VIEW_MARK_GAP: f32 = 17.;
+// A chip's text inset on each side.
+pub const CHIP_PAD: f32 = 7.;
+// Layout lands each box on a whole pixel, so the label's maths keeps this much in hand.
+pub const LAYOUT_SLACK: f32 = 1.;
 // The row padding a control's ink starts under.
-const ROW_PAD_Y: f32 = 8.;
+pub(super) const ROW_PAD_Y: f32 = 8.;
 const BOARD_BODY: f32 = 14.;
 
 // Theme.railRowRatio: a rail row is 0.78 of a padded row.
@@ -99,11 +114,77 @@ pub fn row_height(row: &Row, first: bool, lines: usize, s: Scale) -> f32 {
         }
         Kind::Hero => s.of(HERO_H),
         Kind::Favourite => s.of(FAVOURITE_H),
+        _ if lines > 1. => 2. * s.of(ROW_PAD_Y) + s.line(WRAP_LINE) * lines,
         _ => s.row,
     }
 }
 
-/// Every row's height, from measured hint lines where the window shaped them and one line elsewhere.
+/// What a control row gives its label, value and caption, in SettingsRow.qml's order.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Room {
+    pub label: f32,
+    /// The value's widest draw, under VALUE_SHARE and never into the label's longest word.
+    pub value: f32,
+    /// The caption's widest draw, under CAPTION_SHARE and never into the label's longest word.
+    pub caption: f32,
+}
+
+/// A control row's room: the fixed parts come off first, then the value and the caption take what the label's longest `word` leaves, so a label wraps between words and never inside one.
+pub fn control_room(
+    row: &Row,
+    segment: bool,
+    width: f32,
+    s: Scale,
+    word: f32,
+    body: impl Fn(&Text) -> f32,
+    caption: impl Fn(&Text) -> f32,
+) -> Room {
+    let segment = row.kind == Kind::Choice && segment && row.labels.len() > 1;
+    let steps = row.kind == Kind::Choice && !segment;
+    let mut fixed = Vec::new();
+    if segment && visible::marks(row) {
+        let count = row.labels.len() as f32;
+        fixed.push(count * s.of(VIEW_MARK) + (count - 1.) * s.of(VIEW_MARK_GAP) + s.of(GAP));
+    } else if segment {
+        let chips: f32 = row
+            .labels
+            .iter()
+            .map(|label| (caption(label) + 2. * s.of(CHIP_PAD) + 2. * BORDER).max(s.of(CHIP_H)))
+            .sum();
+        fixed.push(chips + s.of(CHIP_GAP) * (row.labels.len() - 1) as f32);
+    }
+    if steps || (row.kind == Kind::Action && !row.inert) || row.kind == Kind::Lock {
+        fixed.push(s.of(MARK_SLOT));
+    }
+    if row.kind == Kind::Check {
+        fixed.push(s.of(CHECK));
+    }
+    let mut free =
+        width - s.label_x() - s.of(PAD_X) - fixed.iter().map(|part| part + s.of(GAP)).sum::<f32>();
+    let mut room = Room {
+        label: 0.,
+        value: 0.,
+        caption: 0.,
+    };
+    let word = word + LAYOUT_SLACK;
+    if matches!(row.kind, Kind::Fact | Kind::Action)
+        || steps
+        || (row.kind == Kind::Check && !row.value.is_empty())
+    {
+        room.value = (width * VALUE_SHARE).min((free - s.of(GAP) - word).max(0.));
+        free -= body(&row.value).min(room.value) + s.of(GAP);
+    }
+    if !row.caption.is_empty() {
+        room.caption = (width * CAPTION_SHARE)
+            .round()
+            .min((free - s.of(GAP) - word).max(0.));
+        free -= caption(&row.caption).min(room.caption) + s.of(GAP);
+    }
+    room.label = free - LAYOUT_SLACK;
+    room
+}
+
+/// Every row's height, from the hint and colliding label lines the window shaped, and one line elsewhere.
 pub fn heights(rows: &[Row], lines: &[usize], s: Scale) -> Vec<f32> {
     rows.iter()
         .enumerate()

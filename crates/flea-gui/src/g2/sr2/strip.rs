@@ -319,9 +319,13 @@ impl Element for StripElement {
             cx,
         );
         let line_height = px(HEIGHT - RULE);
-        state
-            .query
-            .paint(laid, palette, state.input.as_ref(), window, cx);
+        // The query and its caret stay together in a mirrored window; an edited query moves as the line it draws.
+        let query = state.query.unit(laid, state.input.is_some());
+        window.with_unmirrored(query, |window| {
+            state
+                .query
+                .paint(laid, palette, state.input.as_ref(), window, cx);
+        });
         let summary_line = if state.cut.is_some() {
             &state.elided.line
         } else {

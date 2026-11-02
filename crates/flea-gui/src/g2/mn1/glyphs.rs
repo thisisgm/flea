@@ -83,6 +83,9 @@ static HANDED: std::sync::LazyLock<Vec<(&'static str, String, String)>> = std::s
     },
 );
 
+/// The submenu chevron a mirrored window draws, pointing left; menus never name it.
+pub const CHEVRON_LEFT: (&str, &[u8]) = ("flea-menu:chevron-left", cut!("M15 18l-6-6 6-6"));
+
 /// The atlas key and SVG for a named mark; an unknown name draws the plain file mark, as Icons.pathFor does.
 pub fn mark(name: &str) -> (SharedString, &'static [u8]) {
     if let Some((_, key, svg)) = HANDED.iter().find(|(id, _, _)| *id == name) {

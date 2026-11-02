@@ -159,6 +159,7 @@ impl Shell {
             .unwrap_or(pointer_at);
         let typeface = self.active_typeface();
         let viewport = window.viewport_size();
+        super::keycaps::watch(cx);
         self.menu.menu.borrow_mut().open(
             face,
             entries,

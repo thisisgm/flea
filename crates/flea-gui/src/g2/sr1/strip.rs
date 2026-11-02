@@ -332,8 +332,18 @@ impl Element for StripElement {
             palette.accent,
             cx,
         );
-        let drawn_query = self.paint_query(window, cx);
-        if !drawn_query {
+        // The query and its caret stay together in a mirrored window; an edited query moves as the line it draws.
+        let query = self.query_unit(window, cx).unwrap_or(Bounds::new(
+            point(left + px(boxes.query_x), top),
+            size(
+                px(boxes.caret_x + CARET_W * scale - boxes.query_x),
+                px(height),
+            ),
+        ));
+        window.with_unmirrored(query, |window| {
+            if self.paint_query(window, cx) {
+                return;
+            }
             paint_line(
                 &prepared.query,
                 left + px(boxes.query_x),
@@ -342,17 +352,17 @@ impl Element for StripElement {
                 height,
                 window,
             );
-        }
-        if self.words.typing && !drawn_query {
-            let caret = Bounds::new(
-                point(
-                    left + px(boxes.caret_x),
-                    top + px((height - CARET_H * scale) / 2.),
-                ),
-                size(px(CARET_W * scale), px(CARET_H * scale)),
-            );
-            window.paint_quad(fill(caret, palette.accent));
-        }
+            if self.words.typing {
+                let caret = Bounds::new(
+                    point(
+                        left + px(boxes.caret_x),
+                        top + px((height - CARET_H * scale) / 2.),
+                    ),
+                    size(px(CARET_W * scale), px(CARET_H * scale)),
+                );
+                window.paint_quad(fill(caret, palette.accent));
+            }
+        });
         if boxes.scope_w > 0. {
             paint_line(
                 &prepared.scope,

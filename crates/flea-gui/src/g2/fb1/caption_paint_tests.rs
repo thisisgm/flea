@@ -2,7 +2,7 @@ use super::caption::{origins, tracking_for, Tracked, TRACKING};
 use super::caption_tests::{painted, shaped};
 use super::hero::EmptyHero;
 use super::hero_tests::frame;
-use super::test_root::{caseless, root};
+use super::test_root::{caseless, fallback, root};
 use crate::list::{bench::allocations, Typeface};
 use gpui::{
     div, point, prelude::*, px, size, App, Bounds, Context, Element, ElementId, FontWeight,
@@ -169,4 +169,31 @@ fn a_caseless_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
         .update(cx, |hero, _, _| hero.painted.get("caption").unwrap().bounds)
         .unwrap();
     assert!((caption.size.width - line.width).abs() < px(0.5));
+}
+
+/// EY-544: Devanagari, Bengali, Tamil and Sinhala are caseless too, so a Hindi hero paints untracked and never cuts a cluster apart.
+#[gpui::test]
+fn an_indic_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
+    for code in ["hi", "bn", "ta", "si", "hi-IN"] {
+        assert_eq!(tracking_for(code), 0., "{code}");
+    }
+    let root = root();
+    let catalog = fallback(&root, "hi");
+    assert_eq!(catalog.language(), "hi");
+    cx.update(|cx| cx.set_reduce_motion(true));
+    let handle = cx.add_window(|window, cx| {
+        window.set_rem_size(px(14.));
+        EmptyHero::new(&catalog, cx)
+    });
+    handle
+        .update(cx, |hero, _, cx| hero.show(true, cx))
+        .unwrap();
+    cx.simulate_window_resize(handle.into(), size(px(908.), px(619.)));
+    frame(cx, handle);
+    let phrase = handle
+        .update(cx, |hero, _, _| hero.phrases()[0].clone())
+        .unwrap();
+    assert_eq!(phrase.as_ref(), "Nothing here yet");
+    let line = shaped(cx, handle, phrase);
+    assert_eq!(painted(cx, handle), origins(&line, px(0.)));
 }

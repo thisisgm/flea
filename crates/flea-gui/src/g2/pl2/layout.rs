@@ -25,6 +25,7 @@ impl Drawn {
             ..Self::default()
         };
         out.boxes.push(BoxPaint {
+            field: None,
             rect: out.card.unwrap(),
             fill: p.surface,
             border: p.muted_frame,
@@ -65,6 +66,7 @@ impl Drawn {
             window,
         );
         out.boxes.push(BoxPaint {
+            field: None,
             rect: Rect {
                 x: 17.,
                 y: 48.,
@@ -124,7 +126,7 @@ impl Drawn {
             );
             x += cw + 4.;
         }
-        let derived_name = d.form.name();
+        let derived_name = view.derived_name();
         let fields = [
             (Focus::Label, 0, &d.form.label),
             (Focus::Host, 1, &d.form.host),
@@ -267,6 +269,7 @@ impl Drawn {
             };
             out.hits.push((Focus::Tls, rect));
             out.boxes.push(BoxPaint {
+                field: None,
                 rect: Rect {
                     x: 17.,
                     y: 487.,

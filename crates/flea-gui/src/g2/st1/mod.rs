@@ -10,6 +10,10 @@ pub mod geometry;
 mod geometry_tests;
 pub(crate) mod glyphs;
 #[cfg(test)]
+mod ime_tests;
+pub(crate) mod input;
+mod input_host;
+#[cfg(test)]
 mod keymap_sheet_activation_tests;
 #[cfg(test)]
 mod keymap_sheet_menu_tests;
@@ -22,13 +26,19 @@ pub mod panel;
 mod plugins;
 pub mod probe;
 #[cfg(test)]
+mod room_tests;
+#[cfg(test)]
 mod scroll_mounted_tests;
 #[cfg(test)]
 mod scroll_tests;
 pub mod seams;
+#[cfg(test)]
+mod session_tests;
 pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;
+#[cfg(test)]
+mod sheet_keycap_tests;
 mod sheet_menus;
 #[cfg(test)]
 mod sheet_scroll_tests;
@@ -42,6 +52,7 @@ mod view_head;
 #[cfg(test)]
 mod view_tests;
 pub(crate) mod wheel;
+mod wrap;
 
 pub use panel::{Panel, Press, Side};
 pub use seams::{Facts, Ink, MemoryStore, Request, Store};

@@ -82,9 +82,8 @@ fn st2_gui_view_draws_the_list_and_its_keys_reach_the_wire(cx: &mut TestAppConte
 
 #[gpui::test]
 fn st2_gui_view_the_add_card_takes_typing_and_draws_over_the_list(cx: &mut TestAppContext) {
-    let (entity, wire, _, cx) = pane(cx);
-    cx.update(|_, cx| entity.update(cx, |pane, cx| pane.receive(&listing(1, builtins("{}")), cx)));
-    cx.simulate_keystrokes("enter");
+    // The Settings host draws the card and mounts its field, so typing needs the real parent.
+    let (entity, wire, cx) = super::ime_tests::mounted(cx);
     cx.simulate_keystrokes("a b space c backspace");
     let text = cx.update(|_, cx| match entity.read(cx).page().card() {
         Card::Add(card) => card.text.clone(),

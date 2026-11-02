@@ -32,9 +32,13 @@ impl Shell {
                 .get("keys")
                 .and_then(Json::as_str)
                 .unwrap_or("default");
-            let action =
-                self.keyboard
-                    .resolve(preset, event, window.modifiers(), Default::default());
+            let action = self.keyboard.resolve(
+                preset,
+                event,
+                window.modifiers(),
+                window.layout_mirrored(),
+                Default::default(),
+            );
             if let Dispatch::Action(action) = action {
                 let side = self
                     .menu

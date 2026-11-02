@@ -222,7 +222,8 @@ impl QuickLook {
                     let pane = pane(look::TEXT_TOP, look::PAD, look::TEXT_VIEW_BOTTOM)
                         .children(rows)
                         .children(self.scroll.bars(look));
-                    parts.push(pane.into_any_element());
+                    // File content keeps its own layout in a mirrored window.
+                    parts.push(crate::locale_geometry::unmirrored(pane).into_any_element());
                 }
                 parts
             }
@@ -276,7 +277,8 @@ impl QuickLook {
                     let pane = pane(look::DIFF_VIEW_TOP, 0., 0.)
                         .children(lines)
                         .children(self.scroll.bars(look));
-                    parts.push(pane.into_any_element());
+                    // File content keeps its own layout in a mirrored window.
+                    parts.push(crate::locale_geometry::unmirrored(pane).into_any_element());
                 }
                 parts
             }

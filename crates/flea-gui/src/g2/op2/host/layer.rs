@@ -27,7 +27,7 @@ impl Shell {
             return true;
         }
         cx.stop_propagation();
-        let Some(key) = keys::key_of(event) else {
+        let Some(key) = keys::key_of(event).map(|key| key.read(window.layout_mirrored())) else {
             return true;
         };
         let catalog = self.locale.catalog.clone();

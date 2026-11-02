@@ -3,10 +3,11 @@ use super::cache::{Row, Shaping};
 use super::geometry::{
     cells_in, mark_box, name_budget_in, picture_box, Slot, CHEVRON, DIVIDER, GAP, PAD_X,
 };
-use super::glyphs::{paint_line, paint_svg, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
+use super::glyphs::{paint_line, paint_svg, CHEVRON_LEFT_SVG, CHEVRON_SVG, COPY_SVG, SCISSORS_SVG};
 use super::paint::{
     Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, CUT, EDGE,
 };
+pub(crate) use super::tracks::{lifted_row, row_at};
 use super::tracks::{TrackRows, TrackView};
 use crate::grid::element::pictures::{paint_in_slot, Pictures};
 use crate::list::pane::{visible_rows, Grow, Held, ROW_HEIGHT};
@@ -88,18 +89,6 @@ impl TrackElement {
             },
             TrackRows::Preview | TrackRows::Blank => 0,
         }
-    }
-}
-
-pub(crate) fn row_at<'a>(
-    rows: &'a TrackRows,
-    held: Option<&'a Held>,
-    index: usize,
-) -> Option<Row<'a>> {
-    match rows {
-        TrackRows::Peek(rows) => rows.get(index).map(Row::Peek),
-        TrackRows::Listing => held?.row(index).map(Row::Listing),
-        TrackRows::Preview | TrackRows::Blank => None,
     }
 }
 
@@ -295,11 +284,4 @@ impl Element for TrackElement {
     ) {
         self.paint_track(bounds, *palette, window, cx);
     }
-}
-
-/// The row a track lifts, the one named on the path to the active track; the capture probe reads the same rule.
-pub(crate) fn lifted_row(view: &TrackView, held: Option<&Held>, index: usize) -> bool {
-    view.lifted
-        .as_deref()
-        .is_some_and(|name| row_at(&view.rows, held, index).is_some_and(|row| row.name() == name))
 }

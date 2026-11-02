@@ -146,6 +146,8 @@ impl Shell {
                 host.list.borrow().drawn_cursor.unwrap_or(host.pane.cursor)
             }),
             selection: host.map_or_else(Vec::new, |host| host.selected.clone()),
+            language: self.locale.catalog.language().into(),
+            locale_revision: self.locale.revision,
         }
     }
 
@@ -185,6 +187,11 @@ impl Shell {
                     && live.text_size == spec.text_size as f32
                     && live.reduced_motion == spec.reduced_motion
                     && built == Some((spec.cursor, &spec.selection))
+                    // A language scene asserts the catalog the window already runs; it never switches one.
+                    && spec
+                        .language
+                        .as_ref()
+                        .is_none_or(|language| language.code == live.language)
             });
         let probe = Probe::default();
         if eligible {

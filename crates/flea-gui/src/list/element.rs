@@ -206,6 +206,7 @@ impl Element for ListElement {
             body: typeface.body,
             caption: typeface.caption,
             name_cells: cells(layout.name.width, advance.body),
+            advance: advance.body,
             clip_cells: cells(layout.name.width - metrics.gap - metrics.clip, advance.body),
             cells: Column::ALL.map(|column| {
                 layout
@@ -330,6 +331,7 @@ impl Element for ListElement {
             scroll_y: self.scroll_y,
             listing: held.listing,
             frames: drawn.frames + 1,
+            mirrored: window.layout_mirrored(),
             grow,
             drop: drop_box.map(|(index, x, width, _)| {
                 let top = bounds.origin.y + px(grow.top(index, metrics.row) - self.scroll_y);

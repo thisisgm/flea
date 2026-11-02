@@ -337,6 +337,7 @@ fn keyboard_reader_tracks_sequence_and_clipboard_owner_changes(cx: &mut TestAppC
                 "vim",
                 &event,
                 Modifiers::none(),
+                false,
                 Seat {
                     cursor: 4,
                     ..Default::default()

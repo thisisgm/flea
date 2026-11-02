@@ -41,6 +41,7 @@ fn answer(
     let outside = drawn.clone();
     div()
         .id(id)
+        .debug_selector(move || id.into())
         .relative()
         .children(drawn.probe(slot, [1.; 4]))
         .on_hover(move |hovered, _, _| hover.pointer(slot, Some(*hovered), None))
@@ -182,6 +183,10 @@ impl Picker {
 
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // The picker window's root, so the whole frame paints in the locale's direction.
+        let direction =
+            crate::locale_geometry::Direction::from_locale(self.locale.catalog.locale());
+        window.set_layout_mirrored(direction.is_rtl());
         let face = crate::list::Typeface::for_window(window, cx);
         self.place_focus(window, cx);
         self.submission_focus(window, cx);

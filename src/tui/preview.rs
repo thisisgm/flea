@@ -89,7 +89,7 @@ pub fn load(m: &mut Model, force: bool) {
         m.retract_preview_errors(true);
         return;
     }
-    let Some(path) = m.current_path() else {
+    let Some(path) = m.current_path().or_else(|| super::trashview::content(m)) else {
         return;
     };
     // A Markdown document Quick Look read rests on its head again once Quick Look closes.

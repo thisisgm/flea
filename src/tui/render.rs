@@ -134,13 +134,19 @@ fn contents_row(m: &Model, entry: &super::model::Row, columns: usize, size: &str
     entry.name = format!("{}{}{}", if folder.is_empty() { String::new() } else { format!("{folder}/") }, " ".repeat(pad), leaf);
     cells::row(&entry, columns, Some(size), m.marks(), style, theme, "")
 }
-pub(super) fn selection_line(m: &Model, y: usize, columns: usize) -> String {
-    if y == 0 { return m.i18n.trn("tui.frame.selected", m.selected.len() as i64); }
-    if y == 1 { return layout::selection_bytes(m).map(|total| super::words::args("tui.frame.combined", vec![super::words::Text::Size(total)]).render(&m.i18n)).unwrap_or_default(); }
-    if y < 3 { return String::new(); }
-    if let Some(row) = m.selected_rows.values().nth(y - 3) { return format!("{} {}", fit(&row.name, columns.saturating_sub(text_width(&m.i18n.locale().format_size(row.size as u64)) + 1)), m.i18n.locale().format_size(row.size as u64)); }
-    if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return m.i18n.trn("tui.frame.outside", (m.selected.len() - m.selected_rows.len()) as i64); }
-    String::new()
+#[cfg(test)]
+pub(super) fn selection_line(m: &Model, y: usize, _columns: usize) -> String {
+    selection_spans(m, y).into_iter().map(|(_, text)| text).collect()
+}
+// The selection list's count and size lines as typed runs; loaded rows draw through cells::row instead.
+pub(super) fn selection_spans(m: &Model, y: usize) -> Vec<super::words::title::Span> {
+    use super::words::Text;
+    let count = |key, count| Text::Plural(key, count, vec![]).spans(&m.i18n);
+    if y == 0 { return count("tui.frame.selected", m.selected.len()); }
+    if y == 1 { return layout::selection_bytes(m).map(|total| super::words::args("tui.frame.combined", vec![Text::Size(total)]).spans(&m.i18n)).unwrap_or_default(); }
+    if y < 3 { return Vec::new(); }
+    if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return count("tui.frame.outside", m.selected.len() - m.selected_rows.len()); }
+    Vec::new()
 }
 #[cfg(test)]
 #[path = "render_tests.rs"]

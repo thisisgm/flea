@@ -10,8 +10,8 @@ use flea::ui_logic_st1::{
     visible::marks,
 };
 use gpui::{
-    div, prelude::*, px, AnyElement, Context, Div, FontWeight, Hsla, MouseButton, MouseDownEvent,
-    SharedString,
+    div, prelude::*, px, AnyElement, Context, Div, FontWeight, HighlightStyle, Hsla, MouseButton,
+    MouseDownEvent, SharedString, StyledText,
 };
 
 mod hint;
@@ -33,6 +33,8 @@ pub struct Line<'a> {
     pub segment: bool,
     /// A key preview's key column, widened from shaped widths only where a user chord outgrows the board's 48.
     pub keys_w: f32,
+    /// A control row's value and caption caps from shaped widths, so the drawn label keeps the room it was measured in.
+    pub room: Option<g::Room>,
 }
 
 impl<'a> Line<'a> {
@@ -46,6 +48,7 @@ impl<'a> Line<'a> {
             section: None,
             segment: false,
             keys_w: KEYS_W,
+            room: None,
         }
     }
 
@@ -59,7 +62,14 @@ impl<'a> Line<'a> {
             section: None,
             segment: false,
             keys_w: KEYS_W,
+            room: None,
         }
+    }
+
+    /// The run its label draws bold, in characters: a lifted hit's only.
+    pub fn bold_run(&self) -> Option<(usize, usize)> {
+        let run = self.run.filter(|_| self.lifted)?;
+        Some((run.start, run.length))
     }
 }
 
@@ -98,9 +108,39 @@ impl Rows<'_> {
         px(self.s().of(board))
     }
 
-    fn label(&self, line: &Line<'_>, ink: Hsla) -> Div {
+    /// The row's label; a wrapped one keeps its typed run in one styled text, so the run never stops the wrap.
+    fn label(&self, line: &Line<'_>, ink: Hsla, wrapped: bool) -> Div {
         let run = line.run.map(|run| (run.start, run.length));
-        washed(&self.text(line.row), run, line.lifted, self.ink.wash14, 0.).text_color(ink)
+        let text = self.text(line.row);
+        if !wrapped {
+            return washed(&text, run, line.lifted, self.ink.wash14, 0.).text_color(ink);
+        }
+        let at = |chars: usize| {
+            text.char_indices()
+                .nth(chars)
+                .map_or(text.len(), |(byte, _)| byte)
+        };
+        let style = if line.bold_run().is_some() {
+            HighlightStyle {
+                font_weight: Some(FontWeight::BOLD),
+                ..HighlightStyle::default()
+            }
+        } else {
+            HighlightStyle {
+                background_color: Some(self.ink.wash14),
+                ..HighlightStyle::default()
+            }
+        };
+        let runs: Vec<_> = run
+            .map(|(start, length)| (at(start)..at(start + length), style))
+            .into_iter()
+            .collect();
+        let id = line.row.id.clone();
+        div()
+            .debug_selector(move || format!("settings-label-{id}"))
+            .line_height(px(self.s().line(g::WRAP_LINE)))
+            .text_color(ink)
+            .child(StyledText::new(text).with_highlights(runs))
     }
 
     pub fn draw(&self, lines: &[Line<'_>], cx: &mut Context<SettingsView>) -> Vec<AnyElement> {
@@ -130,7 +170,7 @@ impl Rows<'_> {
             Kind::KeyPreview => self.key_preview(base, row, line.keys_w),
             Kind::Hero => self.hero(base, row),
             Kind::Favourite => self.favourite(base, line, cx),
-            _ => self.control(base, line, cx),
+            _ => self.control(base, line, height > self.s().row, cx),
         }
         .into_any_element()
     }
@@ -154,7 +194,7 @@ impl Rows<'_> {
         if let Some(section) = &line.section {
             end = end.child(SharedString::from(section.clone()));
         } else if row.master {
-            let spacing = f32::from(self.view.typeface.caption) * 0.14;
+            let spacing = self.view.heading_spacing();
             end = end
                 .child(washed(
                     &row.value.resolve(catalog),
@@ -358,7 +398,7 @@ impl Rows<'_> {
                     )),
             )
             .child(
-                self.label(line, if error { ink.error } else { ink.foreground })
+                self.label(line, if error { ink.error } else { ink.foreground }, false)
                     .flex_1()
                     .min_w_0()
                     .overflow_hidden(),
@@ -425,6 +465,7 @@ impl Rows<'_> {
         &self,
         base: gpui::Stateful<Div>,
         line: &Line<'_>,
+        wrapped: bool,
         cx: &mut Context<SettingsView>,
     ) -> gpui::Stateful<Div> {
         let row = line.row;
@@ -453,8 +494,13 @@ impl Rows<'_> {
         };
         let index = line.index.or(line.hit);
         let hit = line.hit;
+        let room = line.room.unwrap_or(g::Room {
+            label: 0.,
+            value: width * g::VALUE_SHARE,
+            caption: (width * g::CAPTION_SHARE).round(),
+        });
         let value = div()
-            .max_w(px(width * 0.56))
+            .max_w(px(room.value))
             .whitespace_nowrap()
             .text_color(value_ink)
             .map(|value| {
@@ -471,7 +517,7 @@ impl Rows<'_> {
             .px(self.px(PAD_X))
             .child(self.slot(row))
             .child(
-                self.label(line, label_ink)
+                self.label(line, label_ink, wrapped)
                     .flex_1()
                     .min_w_0()
                     .overflow_hidden(),
@@ -480,7 +526,7 @@ impl Rows<'_> {
             .when(!row.caption.is_empty(), |line| {
                 line.child(
                     div()
-                        .max_w(px((width * 0.5).round()))
+                        .max_w(px(room.caption))
                         .whitespace_nowrap()
                         .text_ellipsis()
                         .text_size(self.view.typeface.caption)
@@ -496,7 +542,10 @@ impl Rows<'_> {
                     div()
                         .id(("settings-chevron", index.unwrap_or(0)))
                         .child(mark(
-                            "chevron-right",
+                            crate::locale_geometry::trailing_chevron(
+                                crate::locale_geometry::Direction::from_locale(catalog.locale())
+                                    .is_rtl(),
+                            ),
                             self.s().of(MARK_SLOT),
                             ink.muted_frame,
                         ))
@@ -546,13 +595,13 @@ impl Rows<'_> {
                     row.values
                         .get(stop)
                         .map_or("file", |value| view_mark(value)),
-                    self.s().of(16.),
+                    self.s().of(g::VIEW_MARK),
                     tone,
                 ))
             } else {
                 cell.h(self.px(CHIP_H))
                     .min_w(self.px(CHIP_H))
-                    .px(self.px(7.))
+                    .px(self.px(g::CHIP_PAD))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -568,7 +617,7 @@ impl Rows<'_> {
         let mut out = div()
             .flex()
             .items_center()
-            .gap(self.px(if glyphs { 17. } else { CHIP_GAP }))
+            .gap(self.px(if glyphs { g::VIEW_MARK_GAP } else { CHIP_GAP }))
             .when(glyphs, |strip| strip.mr(self.px(GAP)).mt(self.px(-2.)));
         for (cell, stop, current) in cells {
             out = out.child(cell.when_some(index, |cell, index| {

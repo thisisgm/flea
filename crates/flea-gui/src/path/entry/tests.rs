@@ -78,8 +78,12 @@ fn i50_ime_password_surrounding_private(cx: &mut TestAppContext) {
     assert_eq!(entry.display(), "\u{2022}".repeat(4));
     assert_eq!(entry.copyable(), None, "no secret reaches a clipboard");
     entry.move_to(entry.text.len());
-    assert!(entry.ime_mark(None, "\u{3071}", None));
-    assert_eq!(entry.ime_marked(), Some(5..6));
+    assert!(
+        !entry.composes() && !entry.ime_mark(None, "\u{3071}", None),
+        "a password takes no composition"
+    );
+    assert!(entry.ime_replace(None, "\u{3071}"));
+    assert_eq!(entry.ime_marked(), None);
     let line = visual.update(|window, _| shaped(window, &entry.display()));
     let bullet = line.caret_x("\u{2022}".len());
     let field = Bounds::new(point(px(10.), px(4.)), size(px(300.), px(20.)));
@@ -91,9 +95,61 @@ fn i50_ime_password_surrounding_private(cx: &mut TestAppContext) {
     );
     assert!(near(mark.left(), field.left() + bullet * 4.) && mark.top() == field.top());
     assert_eq!(ime_index(&line, &entry, bullet * 4. - px(0.5)), 5);
-    assert!(entry.ime_replace(None, "\u{3071}"));
     entry.close();
     assert!(entry.text.is_empty(), "a closed private line keeps nothing");
+}
+
+#[test]
+fn ime_numbers_refuse_composition_and_consumers_read_committed_text() {
+    let mut number = Entry {
+        digits: true,
+        ..Entry::default()
+    };
+    number.begin("445");
+    assert!(!number.composes());
+    assert!(
+        !number.ime_mark(None, "\u{65e5}", None),
+        "a number takes no composition"
+    );
+    assert!(
+        !number.ime_replace(None, "\u{65e5}\u{672c}"),
+        "a number takes no CJK text"
+    );
+    assert!(!number.ime_replace(None, "8a"));
+    assert_eq!(
+        number.text, "445",
+        "a refused input leaves the number as it was"
+    );
+    assert!(number.ime_replace(None, "8080"));
+    assert_eq!(number.text, "8080");
+    number.begin("");
+    assert!(number.digits, "a new session keeps the field's kind");
+
+    let mut host = Entry::default();
+    host.begin("nas");
+    host.move_to(3);
+    assert!(host.composes());
+    assert!(host.ime_mark(None, "\u{306b}\u{307b}", None));
+    assert_eq!(
+        host.text, "nas\u{306b}\u{307b}",
+        "the field still paints its preedit"
+    );
+    assert_eq!(
+        host.committed(),
+        "nas",
+        "a consumer never reads the preedit"
+    );
+    assert!(host.ime_replace(None, "\u{65e5}"));
+    assert_eq!(host.committed(), "nas\u{65e5}");
+    host.begin("\u{65e5}\u{672c}");
+    host.move_to("\u{65e5}".len());
+    assert!(host.ime_mark(None, "\u{306b}", None));
+    assert_eq!(host.text, "\u{65e5}\u{306b}\u{672c}");
+    assert_eq!(
+        host.committed(),
+        "\u{65e5}\u{672c}",
+        "a preedit inside the line keeps both sides"
+    );
 }
 
 #[test]

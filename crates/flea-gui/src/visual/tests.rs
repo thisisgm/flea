@@ -22,6 +22,9 @@ fn every_registered_scene_applies_fixed_capture_settings() {
                 reduced_motion: false,
                 cursor: 3,
                 selection: vec![1],
+                // A window running a catalog still gives a scene without a language its old receipt.
+                language: "ja".into(),
+                ..Live::default()
             };
             let receipt = spec.receipt(7, &live);
             assert_eq!(receipt.get("view").and_then(Json::as_str), Some(view));
@@ -38,7 +41,79 @@ fn every_registered_scene_applies_fixed_capture_settings() {
                 receipt.get("selection"),
                 Some(&Json::Arr(vec![Json::Num("1".into())]))
             );
+            assert_eq!(receipt.get("language"), None);
         }
+    }
+}
+
+fn language_scene(language: &str, surface: &str, state: &str) -> Result<Spec, &'static str> {
+    let scene = flea::jsondoc::parse(&SCENE.replace(
+        '}',
+        &format!(r#","language":{language},"surface":{surface},"state":{state}}}"#),
+    ))
+    .unwrap();
+    let settings = flea::jsondoc::parse(r#"{"path":"/fixture"}"#).unwrap();
+    Spec::from_scene("i50.fit.de.list.rest.gm.r0", &scene, &settings)
+}
+
+#[test]
+fn a_language_scene_names_its_language_surface_and_state_in_the_receipt() {
+    let spec = language_scene(r#""de""#, r#""list""#, r#""rest""#).unwrap();
+    let language = spec.language.as_ref().unwrap();
+    assert_eq!(
+        (language.code.as_str(), language.surface.as_str()),
+        ("de", "list")
+    );
+    // The window ran ja, so the receipt names ja: it reports the drawn catalog, never the manifest's code.
+    let live = Live {
+        language: "ja".into(),
+        locale_revision: 4,
+        ..Live::default()
+    };
+    let receipt = spec.receipt(9, &live);
+    assert_eq!(receipt.get("language").and_then(Json::as_str), Some("ja"));
+    assert_eq!(
+        receipt.get("locale_revision").and_then(Json::as_f64),
+        Some(4.)
+    );
+    assert_eq!(receipt.get("surface").and_then(Json::as_str), Some("list"));
+    assert_eq!(receipt.get("state").and_then(Json::as_str), Some("rest"));
+    for code in [r#""zh-CN""#, r#""fil""#] {
+        assert!(
+            language_scene(code, r#""list""#, r#""rest""#).is_ok(),
+            "{code}"
+        );
+    }
+}
+
+#[test]
+fn a_language_scene_this_window_cannot_draw_is_refused() {
+    for (language, surface, state) in [
+        (r#""de""#, r#""menu""#, r#""rest""#),
+        (r#""de""#, r#""list""#, r#""hover""#),
+        (r#""DE""#, r#""list""#, r#""rest""#),
+        (r#""de-""#, r#""list""#, r#""rest""#),
+        (r#""zh-CNX""#, r#""list""#, r#""rest""#),
+        (r#""d""#, r#""list""#, r#""rest""#),
+        ("1", r#""list""#, r#""rest""#),
+        (r#""de""#, "null", r#""rest""#),
+    ] {
+        assert_eq!(
+            language_scene(language, surface, state).err(),
+            Some("visual.settings"),
+            "{language} {surface} {state}"
+        );
+    }
+    for (key, value) in [
+        ("language", r#""de""#),
+        ("surface", r#""list""#),
+        ("state", r#""rest""#),
+    ] {
+        assert_eq!(
+            scene_with(key, value).err(),
+            Some("visual.settings"),
+            "{key} alone"
+        );
     }
 }
 

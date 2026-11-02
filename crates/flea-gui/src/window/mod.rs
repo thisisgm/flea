@@ -55,6 +55,8 @@ pub(crate) mod sidebar_edge;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;
+#[path = "../state/text_input.rs"]
+pub(crate) mod text_input;
 mod transitions;
 mod unlock;
 pub(crate) mod user_keys;
@@ -117,6 +119,8 @@ pub fn open(
             }
         }
         window.set_rem_size(crate::list::Typeface::omarchy_default().body);
+        // Every menu's key hints draw the active keyboard group from the first frame.
+        crate::g2::mn1::keycaps::watch(cx);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         shell.update(cx, |shell, cx| {
             shell.follow_settings(window, cx);
@@ -148,6 +152,8 @@ pub(crate) mod columns_tests;
 mod columns_uish_tests;
 #[cfg(test)]
 mod cursor_focus_uish_tests;
+#[cfg(test)]
+mod i50_ime_tests;
 #[cfg(test)]
 mod ipc_cold_tests;
 #[cfg(test)]

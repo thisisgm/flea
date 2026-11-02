@@ -152,7 +152,6 @@ fn pl2_secret_composition_replaces_marked_text_without_plaintext_copies() {
         &mut secret,
         Some(1..2),
         "日",
-        None,
         false
     ));
     assert_eq!(entry.ime_selection().range, 2..2);
@@ -162,7 +161,6 @@ fn pl2_secret_composition_replaces_marked_text_without_plaintext_copies() {
         &mut secret,
         Some(1..2),
         "日本",
-        None,
         false
     ));
     assert_eq!(entry.ime_selection().range, 3..3);

@@ -259,6 +259,7 @@ pub mod manifestdir;
 pub mod copynode;
 mod copyread;
 pub mod unheld;
+mod newfolder;
 pub mod ops;
 pub mod opsname;
 pub mod opscancel;

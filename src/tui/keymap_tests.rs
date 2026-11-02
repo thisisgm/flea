@@ -260,3 +260,12 @@ fn convert_fallback_is_queryable_and_does_not_escape_listing() {
         }
     }
 }
+
+// parity row none+Up -> cursorUp [panel]: Up moves the panel's cursor in every preset.
+#[test]
+fn tui_fix_1101_p2_up_in_the_panel_is_cursor_up() {
+    let map = Map::load();
+    for preset in ["default", "vim", "mac", "windows", "yazi"] {
+        assert_eq!(map.in_context(&Key::named("Up", ""), preset, "panel"), "cursorUp", "{preset}");
+    }
+}

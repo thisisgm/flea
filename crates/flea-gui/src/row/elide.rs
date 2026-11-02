@@ -1,6 +1,7 @@
 //! MatchText's elision around a match run, so the run stays drawn whole inside the name's cells.
-use super::{cut, units};
+use super::{cell_count, cut};
 use std::borrow::Cow;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(test)]
 #[path = "elide_tests.rs"]
@@ -8,9 +9,21 @@ mod tests;
 
 const ELLIPSIS: char = '\u{2026}';
 
-/// Format.js cellWidthOf() summed over a text.
-fn cells(text: &str) -> usize {
-    units(text).map(|unit| unit.1).sum()
+/// The start of the grapheme cluster holding byte `at`.
+fn cluster_start(text: &str, at: usize) -> usize {
+    text.grapheme_indices(true)
+        .map(|(start, _)| start)
+        .take_while(|start| *start <= at)
+        .last()
+        .unwrap_or(0)
+}
+
+/// The end of the grapheme cluster holding the byte before `at`, for `at` above 0.
+fn cluster_end(text: &str, at: usize) -> usize {
+    text.grapheme_indices(true)
+        .map(|(start, unit)| start + unit.len())
+        .find(|end| *end >= at)
+        .unwrap_or(text.len())
 }
 
 /// Pushes `text` with ElideRight to `max_cells` and returns how many of its bytes stay.
@@ -34,6 +47,12 @@ pub fn elide_around(
     max_cells: usize,
     run: (usize, usize),
 ) -> (Cow<'_, str>, (usize, usize)) {
+    // A run that ends inside a cluster, a Thai base matched without its vowel, takes the whole cluster; an empty run stays empty.
+    let run = if run.0 < run.1 {
+        (cluster_start(text, run.0), cluster_end(text, run.1))
+    } else {
+        run
+    };
     let (start, end) = run;
     let Some((kept, _)) = cut(text, max_cells) else {
         return (text.into(), run);
@@ -43,7 +62,7 @@ pub fn elide_around(
         return (drawn.into(), (start.min(kept), end.min(kept)));
     }
     let mut drawn = String::with_capacity(text.len() + 2 * ELLIPSIS.len_utf8());
-    let room = max_cells.saturating_sub(cells(&text[start..end]));
+    let room = max_cells.saturating_sub(cell_count(&text[start..end]));
     if room == 0 {
         drawn.push(ELLIPSIS);
         let shown = push_elided(&mut drawn, &text[start..], max_cells - 1);
@@ -67,7 +86,7 @@ pub fn elide_around(
         }
         None => {
             drawn.push_str(before);
-            room - cells(before)
+            room - cell_count(before)
         }
     };
     let at = drawn.len();

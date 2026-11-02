@@ -2,6 +2,9 @@
 use crate::list::{Typeface, MARK_RATIO};
 use flea::ui_logic_op1::card::{self, Kind};
 
+/// The air a grown card keeps on each side of the window.
+pub const GROW_MARGIN: f32 = 48.;
+
 pub struct Metrics {
     pub body: f32,
     pub caption: f32,
@@ -57,6 +60,11 @@ impl Metrics {
             (card::width(kind) * self.body / card::BODY_SIZE).round()
         };
         width.min((window - 2. * self.padding).max(0.))
+    }
+
+    /// LANGUAGES-SPEC Length: a card grows past its board width to keep its buttons on one row, up to the window less 2 x 48.
+    pub fn widest(&self, kind: Kind, window: f32) -> f32 {
+        (window - 2. * GROW_MARGIN).max(self.width(kind, window))
     }
 
     pub fn body_room(&self, window: f32) -> f32 {

@@ -1,5 +1,6 @@
 //! One build of a menu card: every row's words resolved and shaped once, and the card's width read from them once.
 use super::glyphs;
+use super::keycaps;
 use super::wrap::Caption;
 use crate::g2::pv2::code::shape::{elided, Elide};
 use crate::list::Typeface;
@@ -8,7 +9,7 @@ use flea::ui_logic_mn1::{
     fit::{self, RowParts},
     Brand, Entry,
 };
-use gpui::{px, GlyphRun, Hsla, Pixels, TextRun, Window};
+use gpui::{point, px, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::cell::Cell;
 
 /// What a row draws in its 18 pixel slot.
@@ -232,6 +233,8 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
     let body = env.typeface.body;
     let metrics = fit::Metrics::at(f32::from(body));
     let caption = env.typeface.caption;
+    // The hint keys read the active group's keycaps once per build, so the card is measured with what it draws.
+    let (caps, rtl) = (keycaps::current(), env.catalog.locale().right_to_left);
     let mut widest = 0f32;
     let lines = entries
         .iter()
@@ -268,7 +271,8 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
             let key = (!wrapping)
                 .then_some(entry.key_text(env.preset, env.key_hints))
                 .filter(|k| !k.is_empty())
-                .map(|k| shape(k.to_owned(), caption, env.typeface, window));
+                .map(|k| keycaps::chord(k, caps.as_ref(), rtl))
+                .map(|k| shape(k, caption, env.typeface, window));
             let parts = RowParts {
                 label: label.as_ref().map_or(0., Shaped::width),
                 word: if wrapping {
@@ -325,4 +329,17 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
     };
     built.wrap(metrics.flyout_width(minimum, widest, maximum), env, window);
     built
+}
+
+pub(super) fn paint_text(
+    shaped: &Shaped,
+    at: gpui::Point<Pixels>,
+    color: Hsla,
+    row: i32,
+    window: &mut Window,
+) {
+    let line = shaped.run.line();
+    let baseline =
+        window.pixel_snap(at.y + (px(row as f32) - line.ascent - line.descent) / 2. + line.ascent);
+    let _ = window.paint_glyph_run(point(at.x, baseline), &shaped.run, color);
 }

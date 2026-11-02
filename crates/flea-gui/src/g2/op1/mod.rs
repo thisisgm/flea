@@ -85,6 +85,12 @@ mod field_tests;
 mod focus_async_tests;
 
 #[cfg(test)]
+mod i50_fit_tests;
+
+#[cfg(test)]
+mod i50_new_file_tests;
+
+#[cfg(test)]
 mod publish_tests;
 
 #[cfg(test)]

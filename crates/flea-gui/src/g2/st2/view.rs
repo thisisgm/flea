@@ -1,18 +1,23 @@
 //! The Plugins pane as GPUI draws it: Settings rows at the boards' metrics, the Add and Remove cards, keys and clicks.
-use super::mark::{metrics as m, tracked, Mark};
+use super::mark::{metrics as m, tracked, value as row_value, Mark};
 use super::page::{Card, Key, PluginsPage};
 use super::seam::{Effect, PluginsWire, Tokens};
+use crate::g2::st1::input::{Editor, Host};
 use flea::i18n::I18n;
 use flea::ui_logic_st2::pages::{Row, UPDATE_ID};
 use gpui::{
-    div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, FontWeight, Hsla, KeyDownEvent,
-    SharedString, Stateful, Window,
+    div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, FontWeight, Hsla, SharedString,
+    Stateful, Window,
 };
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
 pub struct PluginsPane {
+    pub(super) editor: Editor,
+    pub(super) input_focus: FocusHandle,
+    pub(super) input_enabled: bool,
+    pub(super) input_typeface: crate::list::Typeface,
     pub(super) page: PluginsPage,
     wire: Rc<dyn PluginsWire>,
     pub(super) tokens: Tokens,
@@ -37,13 +42,18 @@ impl PluginsPane {
     ) -> Self {
         let mut page = PluginsPage::new(i18n);
         page.start(wire.as_ref());
+        let focus = cx.focus_handle();
         Self {
+            editor: Editor::default(),
+            input_focus: focus.clone(),
+            input_enabled: true,
+            input_typeface: crate::list::Typeface::omarchy_default(),
             page,
             wire,
             tokens,
             radius,
             marks: HashMap::new(),
-            focus: cx.focus_handle(),
+            focus,
             probe: Default::default(),
             scroll: 0.,
         }
@@ -76,6 +86,7 @@ impl PluginsPane {
     /// One plugins or pluginop line from the backend.
     pub fn receive(&mut self, line: &str, cx: &mut Context<Self>) {
         if self.page.receive(line) {
+            self.sync_editor();
             self.load_marks(cx);
             cx.notify();
         }
@@ -83,6 +94,7 @@ impl PluginsPane {
 
     pub fn backend_failed(&mut self, cx: &mut Context<Self>) {
         self.page.failed();
+        self.sync_editor();
         cx.notify();
     }
 
@@ -94,6 +106,7 @@ impl PluginsPane {
     pub fn key(&mut self, key: Key, cx: &mut Context<Self>) {
         let title = self.page.title();
         let effect = self.page.key(key, self.wire.as_ref());
+        self.sync_editor();
         self.keyed(&title);
         self.after(effect, cx);
     }
@@ -103,35 +116,6 @@ impl PluginsPane {
             cx.emit(effect);
         }
         cx.notify();
-    }
-
-    fn on_key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        let keystroke = &event.keystroke;
-        if keystroke.key == "tab" {
-            if *self.page.card() != Card::None {
-                cx.stop_propagation();
-            }
-            return;
-        }
-        let plain = !keystroke.modifiers.control
-            && !keystroke.modifiers.alt
-            && !keystroke.modifiers.platform;
-        let key = match keystroke.key.as_str() {
-            "up" => Key::Up,
-            "down" => Key::Down,
-            "left" => Key::Left,
-            "right" => Key::Right,
-            "enter" => Key::Enter,
-            "escape" => Key::Escape,
-            "backspace" => Key::Backspace,
-            "space" if !matches!(self.page.card(), Card::Add(_)) => Key::Space,
-            _ => match (&keystroke.key_char, plain) {
-                (Some(text), true) => Key::Text(text.clone()),
-                _ => return,
-            },
-        };
-        cx.stop_propagation();
-        self.key(key, cx);
     }
 
     fn checkbox(&self, on: bool, index: usize, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -287,16 +271,14 @@ impl PluginsPane {
             .child(SharedString::from(text.to_string()))
     }
 
-    fn value(text: &str, ink: Hsla) -> Div {
-        div()
-            .flex_none()
-            .text_size(px(m::BODY))
-            .text_color(ink)
-            .child(SharedString::from(text.to_string()))
-    }
-
     fn chevron(&self) -> Option<Mark> {
-        Mark::named("chevron-right", m::CHEVRON, self.tokens.muted_frame)
+        let mirrored =
+            crate::locale_geometry::Direction::from_locale(self.page.catalog().locale()).is_rtl();
+        Mark::named(
+            crate::locale_geometry::trailing_chevron(mirrored),
+            m::CHEVRON,
+            self.tokens.muted_frame,
+        )
     }
 
     fn chips(
@@ -381,7 +363,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot(glyph, m::MARK, mark))
                     .child(Self::label(name, t.fg))
-                    .children(failure.as_deref().map(|word| Self::value(word, t.error)))
+                    .children(failure.as_deref().map(|word| row_value(word, t.error)))
                     .child(self.checkbox(*on, index, cx))
                     .children(self.chevron());
                 self.interactive(line, index, cursor, true, cx)
@@ -437,7 +419,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot("", m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .child(Self::value(&shown, t.fg));
+                    .child(row_value(&shown, t.fg));
                 self.interactive(line, index, cursor, *available, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
             }
@@ -457,7 +439,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot("", m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .child(Self::value(shown, ink));
+                    .child(row_value(shown, ink));
                 self.interactive(line, index, cursor, *available, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
             }
@@ -465,7 +447,7 @@ impl PluginsPane {
                 .line(index)
                 .child(self.slot("", m::ROW_GLYPH, ""))
                 .child(Self::label(text, t.muted))
-                .child(Self::value(value, t.muted)),
+                .child(row_value(value, t.muted)),
             Row::Action {
                 id,
                 label,
@@ -478,9 +460,7 @@ impl PluginsPane {
                     .line(index)
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .when(!value.is_empty(), |line| {
-                        line.child(Self::value(value, ink))
-                    })
+                    .when(!value.is_empty(), |line| line.child(row_value(value, ink)))
                     .when(*chevron, |line| line.children(self.chevron()));
                 self.interactive(line, index, cursor, true, cx)
             }
@@ -496,7 +476,7 @@ impl PluginsPane {
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
                     .when(!error.is_empty(), |line| {
-                        line.child(Self::value(error, t.error))
+                        line.child(row_value(error, t.error))
                     });
                 self.interactive(line, index, cursor, true, cx)
                     .when(!available, |row| row.opacity(m::DISABLED))
@@ -509,6 +489,7 @@ type AnyRow = Stateful<Div>;
 
 impl Render for PluginsPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_editor();
         self.laid_out(window, cx);
         let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None {
             self.page.cursor()

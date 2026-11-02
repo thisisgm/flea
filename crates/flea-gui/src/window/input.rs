@@ -63,6 +63,7 @@ impl Shell {
             return;
         }
         self.refresh_user_keys_layout(window, cx);
+        self.sync_text_input(window, cx);
         // Escape ends this window's own drag before any card or listing reads the key.
         if event.keystroke.key == "escape"
             && (self.escape_file_drag(window, cx) || self.escape_tab_drag(window, cx))
@@ -115,9 +116,8 @@ impl Shell {
             cx.stop_propagation();
             return;
         }
-        // The Open With card holds every key while it shows.
+        // The Open With card holds every key while it shows; its search's typed text keeps propagating.
         if self.open_with_key(event, window, cx) {
-            cx.stop_propagation();
             return;
         }
         // The rename editor and the bulk rename card hold every key while open.
@@ -157,6 +157,21 @@ impl Shell {
         }
         // An open Quick Look card takes every key through the dispatch point.
         if self.quick_look_key(event, window, cx) {
+            cx.stop_propagation();
+            return;
+        }
+        // Only the composing line reads a key under marked text, even the platform's insert; a dead key carries no owner.
+        if let Some(owner) = self.keyboard.text_owner() {
+            match owner {
+                crate::window::text_input::Owner::Filter(_) => {
+                    self.filter_key(event, window, cx);
+                }
+                crate::window::text_input::Owner::Find(_) => {
+                    self.search_key(event, window, cx);
+                }
+                crate::window::text_input::Owner::Name => {}
+            }
+            self.keyboard.disarm();
             cx.stop_propagation();
             return;
         }
@@ -250,11 +265,17 @@ impl Shell {
         };
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let arm_live = self.escape_arm_live(seat);
-        let resolved = self.keyboard.resolve(name, event, window.modifiers(), seat);
+        let resolved = self.keyboard.resolve(
+            name,
+            event,
+            window.modifiers(),
+            window.layout_mirrored(),
+            seat,
+        );
         let dispatch = if resolved == Dispatch::Composition {
             resolved
         } else {
-            self.grid_sideways(event)
+            self.grid_sideways(event, window.layout_mirrored())
                 .map(Dispatch::Action)
                 .unwrap_or(resolved)
         };

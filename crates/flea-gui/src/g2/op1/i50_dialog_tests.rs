@@ -7,7 +7,6 @@ use crate::{
 use gpui::{
     AppContext, Context, Entity, EntityInputHandler, TestAppContext, VisualTestContext, Window,
 };
-use std::ops::Range;
 
 type Lines = Box<dyn FnMut() -> Option<String>>;
 fn ready(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Lines) {
@@ -91,21 +90,36 @@ fn i50_dialog_field_composition_matrix(cx: &mut TestAppContext) {
             }
         });
         draw(cx);
-        mark(&shell, cx, "かな");
+        // Every field but the archive name is a password, which keeps the input method off.
+        let secret = index > 0;
         input(cx, &shell, |s, w, cx| {
-            assert_eq!(s.marked_text_range(w, cx), Some(0..2));
-            let bounds = s.rename.ime.drawn.borrow().bounds.expect("field painted");
-            let rect = s.bounds_for_range(0..2, bounds, w, cx).unwrap();
-            assert!(rect.size.width > gpui::px(0.));
+            assert_eq!(s.accepts_text_input(w, cx), !secret)
         });
-        cx.simulate_keystrokes("enter");
-        assert!(
-            shell.read_with(cx, |s, _| s.operations.archive.card_open()),
-            "candidate Enter closed the operation"
-        );
+        mark(&shell, cx, "かな");
+        if secret {
+            input(cx, &shell, |s, w, cx| {
+                assert_eq!(s.marked_text_range(w, cx), None);
+                assert!(s.dialog_value().is_some_and(|(_, value)| value.is_empty()));
+            });
+        } else {
+            input(cx, &shell, |s, w, cx| {
+                assert_eq!(s.marked_text_range(w, cx), Some(0..2));
+                let bounds = s.rename.ime.drawn.borrow().bounds.expect("field painted");
+                let rect = s.bounds_for_range(0..2, bounds, w, cx).unwrap();
+                assert!(rect.size.width > gpui::px(0.));
+            });
+            cx.simulate_keystrokes("enter");
+            assert!(
+                shell.read_with(cx, |s, _| s.operations.archive.card_open()),
+                "candidate Enter closed the operation"
+            );
+        }
         input(cx, &shell, |s, w, cx| {
             s.replace_text_in_range(None, "名前", w, cx);
             assert_eq!(s.marked_text_range(w, cx), None);
+            assert!(s
+                .dialog_value()
+                .is_some_and(|(_, value)| value.ends_with("名前")));
             if index == 3 {
                 s.operations
                     .archive
@@ -181,6 +195,7 @@ fn i50_dialog_tab_preedit_owner(cx: &mut TestAppContext) {
                 is_held: false,
                 prefer_character_input: false,
             },
+            w,
             cx,
         );
         s.replace_text_in_range(None, "late", w, cx);
@@ -218,50 +233,6 @@ fn i50_dialog_closed_callback_refused(cx: &mut TestAppContext) {
         assert!(s.selected_text_range(false, w, cx).is_none());
         assert!(s.rename.ime.entry.session().is_none());
     });
-}
-
-#[test]
-fn i50_dialog_password_private() {
-    use crate::{
-        g2::pl1::{private_entry, secret::Secret},
-        path::entry::Entry,
-    };
-    let mut secret = Secret::new();
-    let mut entry = Entry::default();
-    private_entry::begin(&mut entry, &secret);
-    let value = "a\u{1d11e}猫";
-    assert!(private_entry::replace(
-        &mut entry,
-        &mut secret,
-        None,
-        value,
-        Some(1..3),
-        true
-    ));
-    assert!(secret.expose() == value.as_bytes());
-    assert!(!entry.text.contains('a') && !entry.text.contains('猫'));
-    assert_eq!(entry.ime_marked(), Some(0..4));
-    assert_eq!(entry.ime_selection().range, 1..3);
-    let mut adjusted = None;
-    assert!(entry.ime_text(&(0..4), &mut adjusted).is_none());
-    assert!(adjusted.is_none());
-    assert!(entry.copyable().is_none());
-    assert!(private_entry::key(&mut entry, &mut secret, "enter"));
-    assert!(private_entry::key(&mut entry, &mut secret, "escape"));
-    assert!(secret.is_empty());
-    assert!(private_entry::replace(
-        &mut entry,
-        &mut secret,
-        None,
-        &"q".repeat(2048),
-        None,
-        false
-    ));
-    assert_eq!(secret.chars(), 2048);
-    assert!(!format!("{secret:?}").contains(&"q".repeat(20)));
-    let mut adjusted = Some(Range { start: 7, end: 9 });
-    assert!(entry.ime_text(&(0..20), &mut adjusted).is_none());
-    assert_eq!(adjusted, Some(7..9));
 }
 
 #[gpui::test]
@@ -307,21 +278,16 @@ fn i50_dialog_archive_printable_and_controls(cx: &mut TestAppContext) {
         "Left moves the caret without reaching listing navigation"
     );
     mark(&shell, cx, "猫");
-    cx.simulate_keystrokes("enter");
-    assert!(
-        shell.read_with(cx, |s, _| s.operations.archive.extract.opened()),
-        "candidate Enter must not submit"
+    assert_eq!(
+        shell.read_with(cx, |s, _| s.rename.ime.entry.text.chars().count()),
+        2,
+        "a password refuses composition"
     );
     assert!(!std::iter::from_fn(&mut lines).any(|line| line.contains("\"c\":\"archive\"")));
     cx.simulate_keystrokes("escape");
     assert!(
-        shell.read_with(cx, |s, _| s.operations.archive.extract.opened()),
-        "first Escape cancels preedit"
-    );
-    cx.simulate_keystrokes("escape");
-    assert!(
         shell.read_with(cx, |s, _| !s.operations.archive.extract.opened()),
-        "second Escape closes only the card"
+        "Escape closes only the card"
     );
 }
 
@@ -394,3 +360,6 @@ fn i50_dialog_password_reveal_and_retained_mask(cx: &mut TestAppContext) {
 
 #[path = "i50_owner_tests.rs"]
 mod owner_tests;
+
+#[path = "ime_fields_tests.rs"]
+mod fields;

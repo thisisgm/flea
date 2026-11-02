@@ -3,8 +3,8 @@ use super::{dialog::Focus, view::NetworkView};
 use crate::g2::op1::palette::CardPalette;
 use gpui::{
     point, px, quad, relative, size, App, BorderStyle, Bounds, Element, ElementId, Entity,
-    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
-    TextRun, Window,
+    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Point,
+    Style, TextRun, Window,
 };
 
 pub const WIDTH: f32 = 499.;
@@ -49,6 +49,8 @@ pub struct Text {
     pub clip: Option<Rect>,
 }
 pub struct BoxPaint {
+    /// The field a caret, selection or preedit mark belongs to, so it moves with that field's text.
+    pub field: Option<Focus>,
     pub rect: Rect,
     pub fill: Hsla,
     pub border: Hsla,
@@ -145,6 +147,7 @@ impl Drawn {
             p.muted_frame
         };
         self.boxes.push(BoxPaint {
+            field: None,
             rect,
             fill,
             border,
@@ -153,6 +156,20 @@ impl Drawn {
             clip: None,
         });
         self.hits.push((focus, rect));
+    }
+}
+
+/// A field's text, selection and caret move as one left-to-right unit in a mirrored window.
+fn field_unit(
+    drawn: &Drawn,
+    field: Option<Focus>,
+    origin: Point<Pixels>,
+    window: &mut Window,
+    paint: impl FnOnce(&mut Window),
+) {
+    match field.and_then(|field| drawn.hits.iter().find(|(hit, _)| *hit == field)) {
+        Some((_, rect)) => window.with_unmirrored(rect.bounds() + origin, paint),
+        None => paint(window),
     }
 }
 
@@ -246,7 +263,9 @@ impl Element for NetworkElement {
                 bounds.origin += origin;
                 gpui::ContentMask { bounds }
             });
-            window.with_content_mask(clip, |window| window.paint_quad(paint));
+            field_unit(&drawn, b.field, origin, window, |window| {
+                window.with_content_mask(clip, |window| window.paint_quad(paint))
+            });
         }
         for text in &drawn.text {
             let line = text.run.line();
@@ -262,8 +281,10 @@ impl Element for NetworkElement {
                 origin + point(px(clip.x), px(clip.y)),
                 size(px(clip.w), px(clip.h)),
             );
-            window.with_content_mask(Some(gpui::ContentMask { bounds: mask }), |window| {
-                let _ = window.paint_glyph_run(at, &text.run, text.ink);
+            field_unit(&drawn, text.field, origin, window, |window| {
+                window.with_content_mask(Some(gpui::ContentMask { bounds: mask }), |window| {
+                    let _ = window.paint_glyph_run(at, &text.run, text.ink);
+                })
             });
         }
         super::marks::paint(view, &drawn, origin, p, window, cx);

@@ -18,7 +18,7 @@ pub(super) fn present(
         language: &card.language,
         probe,
         wire: live.map(|live| live.wire),
-        entry: live.and_then(|live| live.entry),
+        mount: live.and_then(|live| live.mount),
     };
     if let Some(surface) = live.and_then(|live| live.surface) {
         draw.t.surface = surface;

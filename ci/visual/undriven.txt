@@ -98,3 +98,58 @@ g2.pl4.plugin-rail-section.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 
 g2.pl4.rail-favorites.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
 g2.pl4.tag-marks.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
 g2.pl4.tags-menu.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
+# Native-undriven I50 language fit scenes: <id> BLOCKED <owner>: <reason>; tools/flea-i18n-native plans the ids and tests/i18n/test_visual_coverage.py keeps the ids exact; owner and reason are hand-written.
+i50.fit.ar.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.ar.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.ar.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.ar.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.ar.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.ar.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.ar.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.ar.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.ar.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.de.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.de.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.de.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.de.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.de.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.de.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.de.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.de.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.de.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.hi.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.hi.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.hi.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.hi.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.hi.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.hi.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.hi.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.hi.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.hi.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.ja.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.ja.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.ja.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.ja.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.ja.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.ja.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.ja.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.ja.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.ja.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.th.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.th.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.th.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.th.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.th.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.th.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.th.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.th.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.th.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.zh-CN.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.zh-CN.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.zh-CN.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.zh-CN.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.zh-CN.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.zh-CN.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.zh-CN.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.zh-CN.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.zh-CN.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback

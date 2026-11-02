@@ -99,6 +99,34 @@ fn missing_translation_forms_use_other_before_english() {
 }
 
 #[test]
+fn a_gui_line_opening_in_latin_takes_the_rtl_locales_direction() {
+    let f = Fixture::new();
+    f.registry();
+    f.write("config/omarchy/language", "ar");
+    f.write(
+        "installed/i18n/en/flea.json",
+        r#"{"copy.done":"Copied %1","copy.lead":"Copied %1","isolated":"Copied"}"#,
+    );
+    f.write(
+        "installed/i18n/ar/flea.json",
+        r#"{"app.name":"Flea","copy.done":"Flea نسخ %1","copy.lead":"%1 منسوخ","items.count":{"other":"Flea فيه %1"},"isolated":"\u2068Flea\u2069 نسخ"}"#,
+    );
+    let tui = I18n::load(f.paths());
+    let mut gui = tui.clone();
+    gui.mark_paragraphs();
+    assert_eq!(tui.tr_args("copy.done", &["a.txt"]), "Flea نسخ a.txt");
+    assert_eq!(gui.tr_args("copy.done", &["a.txt"]), "\u{200f}Flea نسخ a.txt");
+    assert_eq!(gui.trn("items.count", 3), "\u{200f}Flea فيه 3");
+    // A line that opens in its own script, in a placeholder, in an isolate or in Latin alone keeps its text.
+    assert_eq!(gui.tr("app.name"), "Flea");
+    assert_eq!(gui.tr_args("copy.lead", &["a.txt"]), "a.txt منسوخ");
+    assert_eq!(gui.tr("isolated"), "\u{2068}Flea\u{2069} نسخ");
+    assert_eq!(gui.tr("folder.empty"), "This folder is empty");
+    gui.reload();
+    assert_eq!(gui.tr_args("copy.done", &["a.txt"]), "\u{200f}Flea نسخ a.txt");
+}
+
+#[test]
 fn substitution_handles_reordering_double_digit_tokens_and_literal_replacement_text() {
     assert_eq!(substitute("%2 then %1", &["A", "B"]), "B then A");
     assert_eq!(substitute("%1 %2", &["%2", "A&B"]), "%2 A&B");
@@ -258,6 +286,16 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
 // A test reading the repo's i18n/ sees every shipped catalog, so its English expectations break when a language lands.
 #[test]
 fn no_test_loads_the_shipped_catalog_dir() {
+    const ALLOWED: &[(&str, &str)] = &[
+        (
+            "crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs",
+            "I50-24 checks key sheet labels against each shipped catalog's keycap words",
+        ),
+        (
+            "crates/flea-gui/src/row/fit_tests.rs",
+            "I50-26 measures that the shipped translations fit their rows",
+        ),
+    ];
     // Split so this file never matches itself; cargo runs tests from the package root, so cwd and relative forms name i18n/ too.
     let manifest = concat!("CARGO_MANIFEST_", "DIR\")");
     let cwd = concat!("current_dir", "().unwrap()");
@@ -274,7 +312,23 @@ fn no_test_loads_the_shipped_catalog_dir() {
         .filter(|(_, text)| banned.iter().any(|pattern| text.contains(pattern.as_str())))
         .map(|(path, _)| path)
         .collect();
-    assert!(found.is_empty(), "load test_catalogs::english_only() or a fixture catalog instead of the repo's i18n/: {found:?}");
+    let unexpected: Vec<_> = found
+        .iter()
+        .filter(|path| !ALLOWED.iter().any(|(allowed, _)| allowed == path))
+        .collect();
+    assert!(
+        unexpected.is_empty(),
+        "load test_catalogs::english_only() or a fixture catalog instead of the repo's i18n/, or allow the file with a reason: {unexpected:?}"
+    );
+    let stale: Vec<_> = ALLOWED
+        .iter()
+        .map(|(path, _)| *path)
+        .filter(|path| !found.iter().any(|seen| seen == path))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "allowed files no longer load the repo's i18n/: {stale:?}"
+    );
 }
 
 // Sample output: ("src/plugincli.rs", "usecrate::i18n::I18n;..."), the repo-relative path and its whitespace-free text.
