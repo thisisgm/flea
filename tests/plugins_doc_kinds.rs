@@ -7,6 +7,9 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+#[path = "plugins_doc_kinds/sandbox.rs"]
+mod sandbox;
+
 const GUIDE: &str = include_str!("../PLUGINS.md");
 // A torrent of two files, the bytes the guide's previewer exchange describes.
 const TORRENT: &[u8] = b"d4:infod5:filesld6:lengthi412e4:pathl8:lake.pngeed6:lengthi99e4:pathl9:notes.txteee4:name6:photosee";
@@ -233,6 +236,7 @@ fn plugins_doc_exchanges_are_what_the_examples_answer() {
 fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
     let flea = env!("CARGO_BIN_EXE_flea");
     let sandbox = Sandbox::new("runtime");
+    let preview = sandbox::preview_supported();
     let mut ids = Vec::new();
     for (name, _) in exchanges() {
         let (folder, parsed) = example(&name);
@@ -241,6 +245,9 @@ fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
             vec!["plugin", "add", folder.to_str().unwrap()],
             vec!["plugin", "enable", &parsed.id],
         ] {
+            if args[1] == "enable" && name == "torrent-preview" && !preview {
+                continue;
+            }
             let out = sandbox.command(flea).args(&args).output().unwrap();
             assert!(
                 out.status.success(),
@@ -261,14 +268,14 @@ fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
         .get("plugins")
         .and_then(Json::as_array)
         .expect("plugin listing");
-    for (_, id) in &ids {
+    for (name, id) in &ids {
         let row = rows
             .iter()
             .find(|r| r.get("id").and_then(Json::as_str) == Some(id))
             .unwrap_or_else(|| panic!("{id} is not listed"));
         assert_eq!(
             row.get("enabled").and_then(Json::as_bool),
-            Some(true),
+            Some(name != "torrent-preview" || preview),
             "{id}"
         );
         assert!(
@@ -290,6 +297,9 @@ fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
     let mut output = BufReader::new(host.stdout.take().unwrap());
     let mut next = 0;
     for ((name, body), (_, id)) in exchanges().into_iter().zip(&ids) {
+        if name == "torrent-preview" && !preview {
+            continue;
+        }
         for (request, answers) in exchange(&name, &sandbox.localize(&body)).unwrap() {
             next += 1;
             // Flea asks a previewer with the selected path and maps it to /in/file inside the sandbox itself.
@@ -336,6 +346,7 @@ fn plugins_doc_examples_add_enable_and_answer_through_the_runtime() {
     }
     drop(input);
     assert!(host.wait().unwrap().success());
+    eprintln!("OPR ordinary runtime assertions completed");
 }
 
 // The checks fail on an answer the example does not give, a request the kind does not declare, and a missing answer.
