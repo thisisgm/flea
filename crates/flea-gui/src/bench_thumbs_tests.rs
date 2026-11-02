@@ -88,7 +88,10 @@ fn bench_thumbs_reader_discarded_frame_cannot_complete_decoded_output() {
 fn bench_thumbs_delay_control_withholds_every_job_until_first_paint_plus_delay() {
     let mut state = State::default();
     let first = Duration::from_secs(10);
-    assert!(state.withheld(Some(first), Some(1000)), "the first matched paint arms the delay");
+    assert!(
+        state.withheld(Some(first), Some(1000)),
+        "the first matched paint arms the delay"
+    );
     assert!(
         state.withheld(Some(first + Duration::from_millis(999)), Some(1000)),
         "another job painted inside the window is withheld too"
