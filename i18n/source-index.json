@@ -108768,6 +108768,78 @@
       "surface": "gui"
     },
     {
+      "excerpt": "assert!(!extracting_card(cx, handle), \"no stale Extracting card\");",
+      "line": 191,
+      "literal": "no stale Extracting card",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert_eq!(drain(&mut requests).len(), 1, \"one password retry\");",
+      "line": 225,
+      "literal": "one password retry",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "keys(&mut cx, handle, \"tab enter\");",
+      "line": 236,
+      "literal": "tab enter",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"Cancel starts no extraction\"",
+      "line": 241,
+      "literal": "Cancel starts no extraction",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"real extraction keeps progress\"",
+      "line": 270,
+      "literal": "real extraction keeps progress",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert_eq!(ids, [8], \"only the retry is a live progress card\");",
+      "line": 276,
+      "literal": "only the retry is a live progress card",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"wait for the real archive end\"",
+      "line": 281,
+      "literal": "wait for the real archive end",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert!(footer(&mut cx, handle).contains(\"Archive written.\"));",
+      "line": 290,
+      "literal": "Archive written.",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "\"the flash view is drawn\"",
       "line": 23,
       "literal": "the flash view is drawn",
@@ -244638,7 +244710,7 @@
     "crates/flea-gui/src/g2/op2/host/reply.rs": "f9c2351192d1a4d68f4dd9f68bb7e9150ba74d7e0e490091c78200ff07dcffc1",
     "crates/flea-gui/src/g2/op2/host_tests/compress_geometry.rs": "69b8aaea1338f07b604c3a84bdaa117abc71d269e4609244c9709600980927af",
     "crates/flea-gui/src/g2/op2/host_tests/extract.rs": "c2e855254135f11864527ee3c2c7eb64d59caeea1956e3c19298560b6adba49b",
-    "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs": "17945a0e6b14b64f18ac4e3ac19c476583f3672aef61229205ce0cd4090691c4",
+    "crates/flea-gui/src/g2/op2/host_tests/fixcards2.rs": "42d591d381137a9f8c14ee2996f06021898d1b911028bdcc50b645c190bb2798",
     "crates/flea-gui/src/g2/op2/host_tests/flash.rs": "cd127a587498471572cab5e49021b0ba2686aaa7f72a251f95a0ff47ecf2a7b0",
     "crates/flea-gui/src/g2/op2/host_tests/flash_look.rs": "6c2019bd7f7d397ab42c985f1033da57d40804cbcb2dda0a7eeffd726f5d6fce",
     "crates/flea-gui/src/g2/op2/host_tests/reader.rs": "68e7488176646b2eaecea66c7e0d3eb58722ba1e510beed6dccd0c46e015cca5",
@@ -247018,8 +247090,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "bc115d3f82fb767319b5b6f30a483bc6060c0079",
-  "source_sha": "bc115d3f82fb767319b5b6f30a483bc6060c0079",
+  "source_ref_sha": "5dfcbc69cd58642a990967fccda9388317998835",
+  "source_sha": "5dfcbc69cd58642a990967fccda9388317998835",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247033,7 +247105,7 @@
     },
     "gui": {
       "keys_with_occurrences": 530,
-      "missing_literal_candidates": 2086,
+      "missing_literal_candidates": 2094,
       "source_files": 1108
     },
     "qml-reference": {
