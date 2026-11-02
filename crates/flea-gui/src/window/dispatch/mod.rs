@@ -17,6 +17,8 @@ mod original;
 mod places;
 mod preview;
 mod previewtypes;
+#[cfg(test)]
+mod pvset_repro_tests;
 pub(crate) mod rail_menu;
 #[cfg(test)]
 mod recent_parity_tests;

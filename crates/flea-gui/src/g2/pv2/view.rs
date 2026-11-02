@@ -301,6 +301,14 @@ impl PdfView {
             .then(|| i18n.tr(self.surface.fetch.fail_key()))
     }
 
+    /// PreviewScroll.qml pageBy: move the column stack by its viewport, clamped at either end.
+    pub fn page_viewport(&mut self, direction: i64, cx: &mut Context<Self>) {
+        let top = self.surface.view_top + direction as f64 * self.surface.view_height;
+        self.surface.scroll_to(top);
+        self.flush(cx);
+        cx.notify();
+    }
+
     /// A turn: the stack scrolls to the page's top, the single page shows the next one.
     pub fn turn(&mut self, delta: i64, cx: &mut Context<Self>) {
         let now = self.now(cx);
