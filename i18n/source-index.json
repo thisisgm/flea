@@ -187941,6 +187941,96 @@
       "surface": "generated/tooling"
     },
     {
+      "excerpt": "[ -n \"${2:-}\" ] || { echo \"flea-aur-versions: --json needs a file\" >&2; exit 2; }",
+      "line": 11,
+      "literal": "flea-aur-versions: --json needs a file",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "[ \"$#\" -eq 2 ] || { echo \"usage: flea-aur-versions [--json FILE] X.Y.Z COMMIT\" >&2; exit 2; }",
+      "line": 15,
+      "literal": "usage: flea-aur-versions [--json FILE] X.Y.Z COMMIT",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "[[ \"$version\" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || { echo \"flea-aur-versions: '$version' is not X.Y.Z\" >&2; exit 2; }",
+      "line": 18,
+      "literal": "flea-aur-versions: '$version' is not X.Y.Z",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "[[ \"$commit\" =~ ^[0-9a-f]{7,40}$ ]] || { echo \"flea-aur-versions: commit must be 7 to 40 hex digits\" >&2; exit 2; }",
+      "line": 19,
+      "literal": "flea-aur-versions: commit must be 7 to 40 hex digits",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "echo \"flea-aur-versions: cannot read pkgrel from $1 at $commit\" >&2",
+      "line": 28,
+      "literal": "flea-aur-versions: cannot read pkgrel from $1 at $commit",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "[ -f \"$json_file\" ] || { echo \"flea-aur-versions: no file at '$json_file'\" >&2; exit 2; }",
+      "line": 37,
+      "literal": "flea-aur-versions: no file at '$json_file'",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "|| { echo \"flea-aur-versions: the AUR RPC could not be read\" >&2; exit 1; }",
+      "line": 43,
+      "literal": "flea-aur-versions: the AUR RPC could not be read",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "print(\"%s\\t%s\" % (r.get(\"Name\", \"\"), r.get(\"Version\", \"\")))",
+      "line": 53,
+      "literal": "Name",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "print(\"%s\\t%s\" % (r.get(\"Name\", \"\"), r.get(\"Version\", \"\")))",
+      "line": 53,
+      "literal": "Version",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "sys.stderr.write(\"flea-aur-versions: the RPC reply did not parse: %s\\n\" % e)",
+      "line": 55,
+      "literal": "flea-aur-versions: the RPC reply did not parse: %s\n",
+      "owner": "controller",
+      "path": "tools/flea-aur-versions",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
       "excerpt": "\"\"\"B3 installed capture: open to first presented result and indexed PSS for one million-file search.\n\nOne run launches the exact `flea --gui` launcher on a census-bound corpus, types the search key and\nquery through real Wayland input as soon as the window maps, and reads the same process's\nflea.searchStamps. The first result time is the compositor's presentation time of the first\nsubmitted frame that painted the query's own rows (CLOCK_MONOTONIC, wp_presentation), minus the\nlaunch time on the same clock. PSS is the sum of smaps_rollup over every live process of the run's\ncgroup except the driver itself, sampled once the answer settled on a complete index. A missing\nseam, a partial or mismatched index, a foreign process or a failed close blocks the run; nothing\nis estimated. Exit 0 validated capture, 3 blocked, 2 bad input. See README.md.\n\"\"\"",
       "line": 2,
       "literal": "B3 installed capture: open to first presented result and indexed PSS for one million-file search.\n\nOne run launches the exact `flea --gui` launcher on a census-bound corpus, types the search key and\nquery through real Wayland input as soon as the window maps, and reads the same process's\nflea.searchStamps. The first result time is the compositor's presentation time of the first\nsubmitted frame that painted the query's own rows (CLOCK_MONOTONIC, wp_presentation), minus the\nlaunch time on the same clock. PSS is the sum of smaps_rollup over every live process of the run's\ncgroup except the driver itself, sampled once the answer settled on a complete index. A missing\nseam, a partial or mismatched index, a foreign process or a failed close blocks the run; nothing\nis estimated. Exit 0 validated capture, 3 blocked, 2 bad input. See README.md.\n",
@@ -246601,6 +246691,7 @@
     "src/vulkan.rs": "14c42e5c9efeac51acfaebb617224dd41de42f448ceb07b431ef4ddae134e3c4",
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
     "tools/flea-acceptance-drive": "4370066f30f088f1779280dd0b77201f859cdbfc14fe561c5e4f2b484b177178",
+    "tools/flea-aur-versions": "93192e47ebda8e230ecbdda40a7379b4e8f1d2dc96d5e3ceccb95e69ed57dfd6",
     "tools/flea-b3-capture/capture.py": "3e8e82edd813e82751acd790cabbf90eeebf9ab88ae7102a55a3dee579a51d66",
     "tools/flea-bench": "1b395041bce3037315d6aadb87d3fcdbdba0ee75f36284ca0b764cf50e5f64b8",
     "tools/flea-bench-capability": "9faa117e795c4e89d9829291680ff85a507529b8e287bed51b5b7cd663403f2c",
@@ -247167,8 +247258,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "1dfeadd8f70899f5b7041cc78abbca52fb56e0f1",
-  "source_sha": "1dfeadd8f70899f5b7041cc78abbca52fb56e0f1",
+  "source_ref_sha": "3991a7ed054d5dd9e14c89c0ea7cfdef2b7a583e",
+  "source_sha": "3991a7ed054d5dd9e14c89c0ea7cfdef2b7a583e",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -247177,8 +247268,8 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
-      "missing_literal_candidates": 5119,
-      "source_files": 156
+      "missing_literal_candidates": 5129,
+      "source_files": 157
     },
     "gui": {
       "keys_with_occurrences": 530,
