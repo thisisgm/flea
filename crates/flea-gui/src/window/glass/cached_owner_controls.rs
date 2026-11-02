@@ -42,7 +42,7 @@ impl gpui::Render for MixedScene {
 }
 
 #[gpui::test]
-fn sol_glassy_ground_cached_owner_survives_uncached_sibling_then_retires(cx: &mut TestAppContext) {
+fn glass_cached_owner_survives_uncached_sibling_then_retires(cx: &mut TestAppContext) {
     let fixture = install(cx, "paint-pass-mixed-cache", &[(6, "")]);
     let handle = cx.update(|cx| {
         cx.open_window(

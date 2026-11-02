@@ -112,9 +112,7 @@ fn close<T: gpui::Render>(handle: WindowHandle<T>, cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn sol_glassy_ground_actual_unregistered_quads_keep_both_simultaneous_owner_floors(
-    cx: &mut TestAppContext,
-) {
+fn glass_actual_unregistered_quads_keep_both_simultaneous_owner_floors(cx: &mut TestAppContext) {
     let fixture = install(
         cx,
         "paint-pass-same-owner",
@@ -182,7 +180,7 @@ fn sol_glassy_ground_actual_unregistered_quads_keep_both_simultaneous_owner_floo
 }
 
 #[gpui::test]
-fn sol_glassy_ground_removed_unknown_and_rail_expire_on_the_next_actual_paint_pass_with_same_theme(
+fn glass_removed_unknown_and_rail_expire_on_the_next_actual_paint_pass_with_same_theme(
     cx: &mut TestAppContext,
 ) {
     let fixture = install(cx, "paint-pass-retired", &[(6, "")]);
@@ -236,9 +234,7 @@ fn sol_glassy_ground_removed_unknown_and_rail_expire_on_the_next_actual_paint_pa
 }
 
 #[gpui::test]
-fn sol_glassy_ground_actual_opaque_body_prevents_a_translucent_material_receipt(
-    cx: &mut TestAppContext,
-) {
+fn glass_actual_opaque_body_prevents_a_translucent_material_receipt(cx: &mut TestAppContext) {
     let fixture = install(cx, "paint-pass-opaque-body", &[(6, "")]);
     let handle = open(
         Scene {
@@ -296,7 +292,7 @@ impl gpui::Render for CachedScene {
 }
 
 #[gpui::test]
-fn sol_glassy_ground_cached_scene_replay_keeps_its_grounds_and_real_child_repaint_retires_an_owner(
+fn glass_cached_scene_replay_keeps_its_grounds_and_real_child_repaint_retires_an_owner(
     cx: &mut TestAppContext,
 ) {
     let fixture = install(cx, "paint-pass-cached-retired", &[(6, "")]);

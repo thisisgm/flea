@@ -22,7 +22,7 @@ pub(crate) fn socket2_path(runtime: Option<&OsStr>, signature: &OsStr) -> PathBu
 }
 
 /// Starts the tagger when this process runs under Hyprland; a headless run has no compositor to ask.
-pub fn start() {
+pub fn start(inputs: crate::window::glass::Inputs) {
     let Some(signature) = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE") else {
         return;
     };
@@ -36,6 +36,7 @@ pub fn start() {
             )
         })
         .clone();
+    tagger.follow(inputs);
     let _ = std::thread::Builder::new()
         .name("flea-glass-events".into())
         .spawn(move || listen(&tagger, &socket));

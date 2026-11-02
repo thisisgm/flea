@@ -103,7 +103,7 @@ impl TrackElement {
                             let lifted = (!cursor && lifted_row(view, held, *index))
                                 || focus.dropping(view.slot, *index);
                             let chevron = prepared.dir && (cursor || lifted);
-                            let inks = palette.row_ink(
+                            let mut inks = palette.row_ink(
                                 *clip,
                                 cursor || focus.dropping(view.slot, *index),
                                 lifted,
@@ -136,6 +136,8 @@ impl TrackElement {
                             }
                             let name = prepared.name_for(chevron, cursor);
                             let name_x = left + px(geometry.name_x);
+                            inks.name =
+                                crate::window::glass::producers::text_ink(inks.name, window, cx);
                             paint_line(name, name_x, top, inks.name, window);
                             let mut name_width = f32::from(name.line().width);
                             if let Some(location) = prepared.location.as_ref() {
@@ -148,7 +150,15 @@ impl TrackElement {
                                     location,
                                     name_x + name.line().width + px(gap),
                                     top,
-                                    if bright { inks.name } else { palette.metadata },
+                                    if bright {
+                                        inks.name
+                                    } else {
+                                        crate::window::glass::producers::text_ink(
+                                            palette.metadata,
+                                            window,
+                                            cx,
+                                        )
+                                    },
                                     window,
                                 );
                                 name_width += gap + f32::from(location.line().width);

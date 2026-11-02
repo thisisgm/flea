@@ -77,7 +77,7 @@ pub const CURSOR_WASH: f32 = 0.18;
 pub const MATCH_WASH: f32 = 0.14;
 pub const CUT_DIM: f32 = 0.55;
 // Omarchy's selection plate is the foreground at 0.35, which the theme tokens ease per palette for 4.5:1 text.
-const MARK_FILL: f32 = 0.35;
+pub(crate) const MARK_FILL: f32 = 0.35;
 
 /// What the pane's focus, selection and pointer owners say about its rows this frame; the list only reads it.
 #[derive(Clone, Debug, Default)]

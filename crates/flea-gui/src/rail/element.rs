@@ -50,6 +50,12 @@ impl Element for RailElement {
         cx: &mut App,
     ) {
         let palette = ready.palette;
+        let grounds = rail_palette(
+            &window.text_style(),
+            cx.try_global::<crate::palette::Theme>()
+                .copied()
+                .unwrap_or_default(),
+        );
         #[cfg(test)]
         {
             self.laid.borrow_mut().palette = Some(palette);
@@ -104,7 +110,12 @@ impl Element for RailElement {
                 } else {
                     palette
                 };
-                super::paint::paint_ground(row, &model, &palette, window);
+                let grounds = if held {
+                    super::paint::ghost(grounds)
+                } else {
+                    grounds
+                };
+                super::paint::paint_ground(row, &model, &grounds, window);
                 super::paint::paint_mark(
                     row,
                     &palette,

@@ -116,7 +116,7 @@ fn main() {
         })
         .detach();
         let window = finish_opening(window::open(launch, locale, events, cx));
-        window::glass_tag::start();
+        window::glass_tag::start(presentation.theme.glass);
         let _ = window.update(cx, |root, window, cx| {
             root.shell.update(cx, |shell, cx| {
                 shell.follow_locale(&service, cx);
