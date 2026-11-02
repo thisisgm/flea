@@ -198,7 +198,8 @@ impl Shell {
         match operation {
             "snapshot" => {
                 let capture = self.menu.captured.as_mut().expect("current snapshot");
-                capture.ready = true;
+                // A later reply for the same capture only fills facts; discovery already ran.
+                let first = !std::mem::replace(&mut capture.ready, true);
                 capture.kinds = reply
                     .get("kinds")
                     .and_then(Json::as_array)
@@ -219,7 +220,7 @@ impl Shell {
                 }
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
-                } else {
+                } else if first {
                     self.discover_menu(window, cx);
                 }
             }
