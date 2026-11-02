@@ -262,7 +262,9 @@ impl Shell {
                 self.network_save(edit, Some(*id), None, cx);
             }
             dialog::Effect::Closed => {
-                if !shares.read(cx).model.open {
+                // Only a browser on the focused pane keeps the keyboard; one on the other pane must not strand it.
+                let browser = &shares.read(cx).model;
+                if !browser.open || self.network_side(browser.origin) != Some(self.focus_side) {
                     self.network_restore_focus(window, cx);
                 }
             }
