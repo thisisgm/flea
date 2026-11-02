@@ -70,23 +70,22 @@ fn the_focused_flea_window_wins_then_the_newest() {
     assert_eq!(choose(&[], None, &[]).unwrap_err().code, NO_WINDOW);
 }
 
-// A mktemp root with a marker file; dropping it removes only a directory that still holds the marker.
+// A short marked mktemp root keeps Unix sockets within SUN_LEN even on long build paths.
 struct Root(PathBuf);
 
 impl Drop for Root {
     fn drop(&mut self) {
-        if self.0.is_absolute() && self.0.join(".flea-test-sandbox").is_file() {
+        if self.0.parent() == Some(Path::new("/tmp")) && self.0.join(".flea-test-sandbox").is_file()
+        {
             let _ = std::fs::remove_dir_all(&self.0);
         }
     }
 }
 
 fn root() -> Root {
-    let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".superpowers/plugin-actions");
-    std::fs::create_dir_all(&parent).unwrap();
     let output = Command::new("mktemp")
         .arg("-d")
-        .arg(parent.join("action.XXXXXX"))
+        .arg("/tmp/flea-action.XXXXXX")
         .output()
         .unwrap();
     assert!(output.status.success());
