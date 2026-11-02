@@ -2,6 +2,7 @@
 use super::*;
 use crate::{list::Typeface, palette::Theme};
 use gpui::App;
+use std::sync::Arc;
 
 #[path = "quick_look_prepare.rs"]
 mod prepare;
@@ -30,6 +31,18 @@ pub(crate) struct Warm {
     pub(crate) prepared: Option<crate::g2::pv1::doc::Doc>,
     /// The Markdown view the open card shows, taken back on close in place of a second read.
     lent: Option<(crate::g2::pv1::doc::Doc, Key)>,
+}
+
+impl Warm {
+    pub(crate) fn set_catalog(&self, catalog: &Arc<flea::i18n::I18n>, cx: &mut App) {
+        for doc in self
+            .prepared
+            .iter()
+            .chain(self.lent.iter().map(|(doc, _)| doc))
+        {
+            doc.view.set_catalog(catalog, cx);
+        }
+    }
 }
 
 impl Shell {

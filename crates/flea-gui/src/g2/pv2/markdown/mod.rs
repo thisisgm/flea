@@ -232,6 +232,12 @@ impl MarkdownView {
             .as_millis() as u64
     }
 
+    /// Refreshes localized notices while retaining the document, layout and scroll positions.
+    pub fn set_catalog(&mut self, catalog: &I18n, cx: &mut Context<Self>) {
+        self.words = Words::of(catalog);
+        cx.notify();
+    }
+
     /// The backend that colours fences and Source; without one both draw in the foreground.
     pub fn set_code_host(&mut self, host: Box<dyn CodeHost>, cx: &mut Context<Self>) {
         self.code = Some(host);
