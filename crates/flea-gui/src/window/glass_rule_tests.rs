@@ -124,6 +124,7 @@ case "$1" in
 clients) printf '[{{"address":"0x1a","pid":{}}}]' ;;
 getprop) if [ "$3" = opacity ]; then cut -d' ' -f1 "$d/props"; else cut -d' ' -f2 "$d/props"; fi ;;
 eval)
+  [ "$2" != -- ] || shift
   printf '%s' "$2" | tr '\n' ' ' >> "$d/evals"
   printf '\n' >> "$d/evals"
   pid=$(printf '%s\n' "$2" | head -n1 | cut -d' ' -f4)

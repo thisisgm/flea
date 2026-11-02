@@ -243,8 +243,11 @@ impl Tagger {
     }
 
     fn eval_rule(&self, lua: &str, enabled: bool) {
-        match self.dispatched(&["eval", lua]) {
+        // Ownership chunks start with a Lua comment, so stop hyprctl parsing that payload as a flag.
+        match self.dispatched(&["eval", "--", lua]) {
             Ok(()) => self.lock().ruled = Some(enabled),
+            // A host without eval has no Lua rule to disable; Glassy enablement still needs to succeed.
+            Err(reply) if !enabled && eval_unavailable(&reply) => {}
             Err(reply) => warn_once(&format!("hyprctl eval did not set {RULE}: {reply}")),
         }
     }
@@ -307,6 +310,15 @@ impl Tagger {
             Err(reply.trim().to_owned())
         }
     }
+}
+
+// Sample input: "usage: hyprctl [flags] <command>" or "unknown request".
+fn eval_unavailable(reply: &str) -> bool {
+    reply.starts_with("usage: hyprctl ")
+        || matches!(
+            reply,
+            "unknown request" | "unknown command" | "unknown command: eval"
+        )
 }
 
 pub(crate) fn warn_once(message: &str) {
