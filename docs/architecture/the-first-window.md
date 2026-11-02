@@ -81,6 +81,29 @@ list's second line names the shell by pid and start time, and a backend skips th
 already names its shell, so a second pane or window opened later cannot replace the launch's pages
 with its late-life ones.
 
+**The GPUI window prefetches the same way (2026-11-02).** `exec_window` in `src/gui/launch.rs` starts the
+same `flea --launch-warm` helper before it execs `flea-gui`, and hands the window `FLEA_PREFETCH` and
+`FLEA_PREFETCH_SHELL`, its own pid, which exec makes the window's, so the window's backend records the
+list at its first rows as it did for the shell. A picker or unlock launch neither warms nor records, and
+`configure_child` still strips both from every other child. On the 100,000-file btrfs fixture with the page
+cache dropped, launches that had a list mapped at 290 to 349 ms where the same build without one mapped
+at 340 to 388, three-launch field batches on minipc.
+
+**The code a launch runs sits together (2026-11-02).** One launch of `flea-gui` runs about 4,300 of its
+34,000 functions, 7.1 MB of its 31 MB of code, and the default layout spread them over 362 of the 64 KB
+windows the kernel reads and maps around a fault, so about 23 MB of code was resident three seconds after
+map. `crates/flea-gui/build.rs` writes a linker script from `crates/flea-gui/startup-order.txt` that puts
+those functions first, in the order the launch first called them, in `.text.flea.startup` ahead of `.text`.
+On the same fixture the window's PSS three seconds after map was 39.1 to 39.5 MB, against 53.7 to
+54.0 MB without the script. Rust's v0 symbol names
+carry a hash of each crate's compiler and dependency versions, and the release builds on current stable,
+so the list writes every crate hash and back reference as `*`, and a new toolchain still matches; a cold
+function sits in `.text.unlikely`, so each line names both sections. Only release builds for x86_64 Linux
+take the script, and only after a one-line program links with it, so a linker without `SECTIONS` support
+keeps the default layout. `tools/flea-startup-order record` rewrites the list from an Intel PT trace of one
+launch, and `tools/flea-startup-order check` fails a build whose section is missing or under 4 MiB, which is
+what a list that stopped matching looks like.
+
 **Nothing the first frame does not show is built for it.** `ui/js/Keymap.js` builds its sheet in
 `sheetFor`, never in `setPreset`, which a launch runs twice and which spent about 10 ms of a 127 ms body
 build on tables no first frame reads. A menu hint is built per action at that action's first `hintFor`,
