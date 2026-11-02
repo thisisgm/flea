@@ -173,19 +173,26 @@ impl Menu {
         let top = parent.map_or(card.frame.y + metrics.pad as f32, |row| {
             card.row_screen_top(row)
         });
-        let frame = metrics.place_flyout(
+        let frame = metrics.place_flyout_insets(
             card.frame,
             width,
             metrics.content_height(&leaves),
             top,
             self.work,
-            env.inset,
+            (env.horizontal_inset(), env.inset),
         );
         let cursor = Card::first(&leaves);
         let mut fly = Card::new(leaves, built, frame, cursor);
         // A view trimmed to a half row keeps its foot where the work area put it, level with a parent that reaches it.
         fly.frame.y = metrics
-            .place_flyout(card.frame, width, fly.view_h, top, self.work, env.inset)
+            .place_flyout_insets(
+                card.frame,
+                width,
+                fly.view_h,
+                top,
+                self.work,
+                (env.horizontal_inset(), env.inset),
+            )
             .y;
         // Later cursor moves settle inside the room left under that top, so the foot row never runs off the work area.
         fly.full_h = fly
