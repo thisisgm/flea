@@ -48,7 +48,7 @@ impl Shell {
         cx.notify();
     }
 
-    /// Pane.qml goBack and openParent leave Flash and stop; open and openWithoutHistory leave it and go on.
+    /// Pane.qml goBack and openParent leave the covering place and stop; open leaves it and goes on.
     pub(crate) fn covered_step(
         &mut self,
         side: usize,
@@ -56,6 +56,25 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Result<bool, Refusal>> {
+        if let Some(host) = self
+            .trash
+            .as_ref()
+            .filter(|host| host.side == side && host.pane.read(cx).view().opened)
+        {
+            let stops = match step {
+                Step::Back | Step::MouseBack | Step::Up => true,
+                Step::Forward => return Some(Ok(false)),
+                Step::Open(_) | Step::OpenCursor | Step::OpenPlace(_) => false,
+                _ => return self.recent_step(side, step, window, cx),
+            };
+            if host.pane.read(cx).view().confirming {
+                return Some(Ok(false));
+            }
+            self.drop_trash(side, window, cx);
+            if stops {
+                return Some(Ok(true));
+            }
+        }
         if let Some(done) = self.plugin_step(side, step, window, cx) {
             return Some(done);
         }

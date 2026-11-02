@@ -10,6 +10,29 @@ use flea::keys::{self, Context as KeyContext, Match};
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Shell {
+    /// Resolved Escape, including IPC, uses the same Trash owner as a native key.
+    pub(crate) fn trash_escape(
+        &mut self,
+        action: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if action != "escape" || self.keyboard.context != KeyContext::Listing {
+            return false;
+        }
+        let Some(pane) = self
+            .trash
+            .as_ref()
+            .filter(|host| host.side == self.focus_side && host.pane.read(cx).view().opened)
+            .map(|host| host.pane.clone())
+        else {
+            return false;
+        };
+        pane.update(cx, |pane, cx| pane.action("escape", false, cx));
+        self.flush_trash(window, cx);
+        true
+    }
+
     pub(crate) fn trash_key(
         &mut self,
         event: &KeyDownEvent,
