@@ -47,13 +47,13 @@ pub fn favorites(
     }];
     let found = userdirs::user_dirs(dirs, home)
         .into_iter()
-        .map(|dir| (dir.path, dir.label))
+        .map(|dir| (dir.path, dir.label, dir.label_key))
         .chain(
             bookmarks(marks)
                 .into_iter()
-                .map(|mark| (mark.path, mark.label)),
+                .map(|mark| (mark.path, mark.label, "")),
         );
-    for (path, label) in found {
+    for (path, label, label_key) in found {
         if favs.iter().any(|seen| seen.path == path) {
             continue;
         }
@@ -62,6 +62,7 @@ pub fn favorites(
             kind: Kind::Favorite,
             glyph: glyph_for(&label),
             label,
+            label_key,
             path,
             ..RailEntry::default()
         });
@@ -280,6 +281,7 @@ pub fn home_entries(
                     kind: Kind::Home,
                     glyph: glyph_for(&dir.label),
                     label: dir.label,
+                    label_key: dir.label_key,
                     path: dir.path,
                     ..RailEntry::default()
                 }),

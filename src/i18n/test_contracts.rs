@@ -5,6 +5,10 @@ use super::*;
 fn no_test_loads_the_shipped_catalog_dir() {
     const ALLOWED: &[(&str, &str)] = &[
         (
+            "crates/flea-gui/src/window/rail_language_tests.rs",
+            "Live rail language switching verifies the shipped XDG translations",
+        ),
+        (
             "crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs",
             "I50-24 checks key sheet labels against each shipped catalog's keycap words",
         ),

@@ -174,3 +174,6 @@ mod shortcuts;
 
 #[path = "fixcards_flash_tests.rs"]
 mod fixcards_flash;
+
+#[path = "rail_language_tests.rs"]
+mod rail_language;
