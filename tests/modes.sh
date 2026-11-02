@@ -1036,74 +1036,18 @@ relstart_check "start: a relative reveal hands over an absolute pair" "START $D_
 SELECT $D_REAL/deep/x" "$out"
 sandbox_remove "$D"
 
-# u1-probecache: a GPUI launch leaves adapter choice to GPUI, so the launcher runs no Vulkan probe and keeps no cache.
-VKD="$FIXTURE_ROOT/flea-vkprobe-$$"
+# u1-nopin: a GPUI launch leaves adapter choice to GPUI, so the launcher hands its child no driver pin.
+VKD="$FIXTURE_ROOT/flea-nopin-$$"
 sandbox_make "$VKD"
-mkdir -p "$VKD/bin" "$VKD/cache" "$VKD/data" "$VKD/home" "$VKD/loader" "$VKD/driver"
+mkdir -p "$VKD/bin" "$VKD/cache" "$VKD/data" "$VKD/home"
 cat > "$VKD/bin/flea-gui" <<'STUB'
 #!/bin/sh
-printf 'RENDERER %s\n' "$QSG_RHI_BACKEND"
-printf 'AUTOMATIC %s\n' "${FLEA_RENDERER_AUTOMATIC-unset}"
-printf 'ICD %s\n' "${VK_ICD_FILENAMES-unset}"
 printf 'DRIVER_FILES %s\n' "${VK_DRIVER_FILES-unset}"
 STUB
 chmod +x "$VKD/bin/flea-gui"
-# A stand-in libvulkan.so.1 with one Intel device whose vkCreateInstance logs to FLEA_FAKE_VK_LOG and fails on FLEA_FAKE_VK_FAIL.
-cat > "$VKD/loader/fakevk.c" <<'FAKE'
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-static char instance;
-int vkCreateInstance(const void *info, const void *alloc, void **out) {
-  const char *log = getenv("FLEA_FAKE_VK_LOG");
-  FILE *f = log ? fopen(log, "a") : NULL;
-  if (f) {
-    fputs("vkCreateInstance\n", f);
-    fclose(f);
-  }
-  if (getenv("FLEA_FAKE_VK_FAIL")) return -9;
-  *out = &instance;
-  return 0;
-}
-int vkEnumeratePhysicalDevices(void *i, uint32_t *n, void **d) {
-  if (d) d[0] = &instance;
-  *n = 1;
-  return 0;
-}
-void vkGetPhysicalDeviceProperties(void *d, uint8_t *p) {
-  uint32_t id[3] = {0x8086, 0xa788, 1};
-  memcpy(p + 8, id, sizeof id);
-}
-void vkDestroyInstance(void *i, const void *a) {}
-FAKE
-cc -shared -fPIC -o "$VKD/loader/libvulkan.so.1" "$VKD/loader/fakevk.c" -Wl,-soname,libvulkan.so.1 2>/dev/null
-check "a stand-in Vulkan loader builds" "1" "$([ -f "$VKD/loader/libvulkan.so.1" ] && echo 1 || echo 0)"
-vkprobe_launch() {
-  local cache="$1"; shift
-  env -u FLEA_VK_PROBE_CACHE LD_LIBRARY_PATH="$VKD/loader" FLEA_FAKE_VK_LOG="$VKD/probes" XDG_CACHE_HOME="$cache" XDG_DATA_HOME="$VKD/data" HOME="$VKD/home" \
-    WAYLAND_DISPLAY=flea-modes-test-display PATH="$VKD/bin:/usr/bin:/bin" "$@" $BIN --gui 2>&1 </dev/null
-}
-# One launch: its output lands in $out and the number of probes it ran, the lines the stand-in logged, in $probes.
-vkprobe_lines() { if [ -f "$VKD/probes" ]; then wc -l < "$VKD/probes"; else echo 0; fi; }
-vkprobe_run() {
-  local before
-  before=$(vkprobe_lines)
-  out=$(vkprobe_launch "$@")
-  probes=$(($(vkprobe_lines) - before))
-}
-vkprobe_run "$VKD/cache"
+out=$(env XDG_CACHE_HOME="$VKD/cache" XDG_DATA_HOME="$VKD/data" HOME="$VKD/home" \
+  WAYLAND_DISPLAY=flea-modes-test-display PATH="$VKD/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "a GPUI launch reaches the GPUI child with no driver pin" "1" "$(echo "$out" | grep -c '^DRIVER_FILES unset$')"
-check "a GPUI launch runs no Vulkan probe" "0" "$probes"
-check "a GPUI launch writes no probe cache" "0" "$([ -e "$VKD/cache/flea/vulkan-probe" ] && echo 1 || echo 0)"
-vkprobe_run "$VKD/cache-err" FLEA_FAKE_VK_FAIL=1
-check "an unusable loader still reaches the GPUI child" "1" "$(echo "$out" | grep -c '^DRIVER_FILES unset$')"
-check "an unusable loader is not probed either" "0" "$probes"
-mkdir -p "$VKD/cache-link/flea"
-printf 'victim\n' > "$VKD/victim"
-ln -s "$VKD/victim" "$VKD/cache-link/flea/vulkan-probe"
-vkprobe_run "$VKD/cache-link"
-check "a planted symlink is never written through" "victim" "$(cat "$VKD/victim")"
 sandbox_remove "$VKD"
 sandbox_remove "$CACHE_ROOT"
 

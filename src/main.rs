@@ -68,7 +68,6 @@ mod cachewrite;
 mod update;
 mod userfile;
 mod usage;
-mod vkprobecache;
 mod vulkan;
 
 pub(crate) use usage::usage;
