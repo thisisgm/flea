@@ -1,8 +1,11 @@
 //! One child process per job, run off the UI thread; its start and its outcome come back over a channel.
 use super::secret::Secret;
+#[path = "process_input.rs"]
+mod input;
 use async_channel::{Receiver, Sender};
+use input::Input;
 use std::fs::File;
-use std::io::{ErrorKind, Read, Write};
+use std::io::{ErrorKind, Read};
 use std::os::fd::{AsRawFd, OwnedFd};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
@@ -242,28 +245,31 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
         }
     };
     let _ = send.send_blocking(Event::Started);
-    if let (Some(mut input), Some(mut secret)) = (child.stdin.take(), job.stdin.take()) {
-        if !control.withhold.load(Ordering::SeqCst) {
-            let _ = input.write_all(secret.expose());
-        }
-        secret.clear();
-    }
+    let mut input = Input::new(child.stdin.take(), job.stdin.take());
     let mut pipes = [
         Pipe::new(child.stdout.take()),
         Pipe::new(child.stderr.take()),
     ];
     // Pipes close before the leader is reaped, so a kill never names a group id the kernel has freed.
     let mut killed = None;
-    while pipes.iter().any(Pipe::open) {
+    while input.is_some() || pipes.iter().any(Pipe::open) {
+        if input
+            .as_ref()
+            .is_some_and(|i| i.withheld(control.withhold.load(Ordering::SeqCst)))
+        {
+            input = None;
+        }
         if control.kill.load(Ordering::SeqCst) {
+            input = None;
             kill_group(child.id());
             // A pipe held outside the group outlives the kill, so this end closes it instead.
             if killed.get_or_insert_with(Instant::now).elapsed() >= ABANDON_AFTER {
                 break;
             }
         }
-        read_ready(&mut pipes);
+        read_ready(&mut pipes, &mut input);
     }
+    let [stdout, stderr] = pipes.map(Pipe::into_text);
     let status = loop {
         if control.kill.load(Ordering::SeqCst) {
             kill_group(child.id());
@@ -275,7 +281,6 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
             Err(_) => break None,
         }
     };
-    let [stdout, stderr] = pipes.map(Pipe::into_text);
     let outcome = Outcome {
         code: status.and_then(|s| s.code()).unwrap_or(-1),
         stdout,
@@ -298,6 +303,7 @@ extern "C" {
 
 const SIGKILL: i32 = 9;
 const POLLIN: i16 = 1;
+const POLLOUT: i16 = 4;
 
 /// SIGKILL to the child's group; a pid that is not a real leader above 1 is never signalled.
 fn kill_group(pid: u32) {
@@ -350,18 +356,30 @@ impl Pipe {
 }
 
 /// Waits up to WAIT for an open pipe to have output or close, then reads each that does.
-fn read_ready(pipes: &mut [Pipe; 2]) {
+fn read_ready(pipes: &mut [Pipe; 2], input: &mut Option<Input>) {
     // poll(2) skips a record whose fd is negative, so a closed pipe stays in place as -1.
-    let mut fds = pipes.each_ref().map(|pipe| PollFd {
+    let [out, err] = pipes.each_ref().map(|pipe| PollFd {
         fd: pipe.file.as_ref().map_or(-1, |file| file.as_raw_fd()),
         events: POLLIN,
         revents: 0,
     });
-    // SAFETY: fds is a live array of two records, and each open fd stays owned by its pipe for the call.
+    let mut fds = [
+        out,
+        err,
+        PollFd {
+            fd: input.as_ref().map_or(-1, Input::fd),
+            events: POLLOUT,
+            revents: 0,
+        },
+    ];
+    // SAFETY: fds is a live array, and each open fd stays owned by its pipe for the call.
     let ready = unsafe { poll(fds.as_mut_ptr(), fds.len(), WAIT.as_millis() as i32) };
     if ready < 0 {
         thread::sleep(WAIT);
         return;
+    }
+    if fds[2].revents != 0 && input.as_mut().is_some_and(Input::write) {
+        *input = None;
     }
     for (pipe, fd) in pipes.iter_mut().zip(fds) {
         if fd.revents != 0 {

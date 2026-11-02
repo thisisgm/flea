@@ -149,3 +149,107 @@ fn a_bound_stop_keeps_the_jobs_number_so_its_exit_still_answers() {
         "and its exit is still the current job's, so the poller lists again"
     );
 }
+
+fn event_before(handle: &super::process::Handle, bound: Duration) -> Option<Event> {
+    let deadline = Instant::now() + bound;
+    loop {
+        if let Ok(event) = handle.events.try_recv() {
+            return Some(event);
+        }
+        if Instant::now() >= deadline {
+            return None;
+        }
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+
+fn bounded_exit(handle: &super::process::Handle, bound: Duration) -> super::process::Outcome {
+    let event = event_before(handle, bound);
+    if event.is_none() {
+        handle.kill();
+        // The base runner may still be blocked on input until the fixture's alarm or sleep ends.
+        let _ = event_before(handle, Duration::from_secs(6));
+    }
+    match event {
+        Some(Event::Exited(outcome)) => outcome,
+        _ => panic!("the started job did not exit within {bound:?}"),
+    }
+}
+
+fn started_python(code: &str, input: &[u8]) -> super::process::Handle {
+    let mut job = Job::plain(&["python3", "-c", code]);
+    job.stdin = Some(Secret::from_bytes(input));
+    let handle = ThreadRunner.start(job);
+    assert!(matches!(
+        event_before(&handle, Duration::from_secs(3)),
+        Some(Event::Started)
+    ));
+    handle
+}
+
+#[test]
+fn sol_pl1_duplex_blocked_input_cancel_meets_300ms_deadline() {
+    let handle = started_python("import time; time.sleep(2)", &vec![b'x'; 1 << 20]);
+    std::thread::sleep(Duration::from_millis(30));
+    let at = Instant::now();
+    handle.kill();
+    let outcome = bounded_exit(&handle, Duration::from_millis(300));
+    assert_ne!(outcome.code, 0);
+    assert!(at.elapsed() < Duration::from_millis(300));
+    assert!(outcome.stdout.is_empty());
+    assert!(outcome.stderr.is_empty());
+}
+
+#[test]
+fn sol_pl1_duplex_full_duplex_keeps_capped_streams_and_all_input() {
+    let code = "import signal,sys\nsignal.alarm(3)\nsys.stdout.buffer.write(b'q'*(2<<20));sys.stdout.flush()\ndata=sys.stdin.buffer.read()\nsys.stderr.buffer.write(b'e'*(2<<20));sys.stderr.flush()\nsys.exit(23 if data==b'x'*(1<<20) else 24)\n";
+    let handle = started_python(code, &vec![b'x'; 1 << 20]);
+    let outcome = bounded_exit(&handle, Duration::from_secs(3));
+    assert_eq!(outcome.code, 23);
+    assert_eq!(outcome.stdout, "q".repeat(super::process::OUTPUT_CAP));
+    assert_eq!(outcome.stderr, "e".repeat(super::process::OUTPUT_CAP));
+}
+
+#[test]
+fn sol_pl1_duplex_normal_input_probe_control() {
+    let handle = started_python(
+        "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read()); sys.stdout.flush()",
+        b"positive-control",
+    );
+    let outcome = bounded_exit(&handle, Duration::from_secs(3));
+    assert_eq!(outcome.code, 0);
+    assert_eq!(outcome.stdout, "positive-control");
+    assert!(outcome.stderr.is_empty());
+}
+
+#[test]
+fn sol_pl1_duplex_normal_passphrase_cancel_probe_control() {
+    let handle = started_python("import time; time.sleep(2)", &[b'x'; 64]);
+    handle.kill();
+    assert_ne!(bounded_exit(&handle, Duration::from_millis(300)).code, 0);
+}
+
+#[test]
+fn sol_pl1_duplex_empty_input_closes_with_eof() {
+    let handle = started_python(
+        "import sys; sys.exit(0 if sys.stdin.buffer.read()==b'' else 1)",
+        b"",
+    );
+    assert_eq!(bounded_exit(&handle, Duration::from_secs(3)).code, 0);
+}
+
+#[test]
+fn sol_pl1_duplex_early_exit_ignores_broken_input_pipe() {
+    let handle = started_python("import os; os.close(0); os._exit(23)", &vec![b'x'; 1 << 20]);
+    let outcome = bounded_exit(&handle, Duration::from_secs(3));
+    assert_eq!(outcome.code, 23);
+    assert!(outcome.stdout.is_empty());
+    assert!(outcome.stderr.is_empty());
+}
+
+#[test]
+fn sol_pl1_duplex_pending_input_survives_output_eof() {
+    let code = "import os,signal\nsignal.alarm(3)\nos.close(1);os.close(2)\ndata=b''\nwhile True:\n chunk=os.read(0,65536)\n if not chunk: break\n data+=chunk\nos._exit(23 if data==b'x'*(1<<20) else 24)\n";
+    let handle = started_python(code, &vec![b'x'; 1 << 20]);
+    assert_eq!(bounded_exit(&handle, Duration::from_secs(3)).code, 23);
+}
