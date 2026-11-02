@@ -25,7 +25,7 @@ pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
 }
 pub(super) fn present(out: String, last: &mut String, writer: &mut impl Write) -> io::Result<bool> {
     if *last == out { return Ok(false); }
-    write!(writer, "{}\x1b[0m", out)?;
+    write!(writer, "{}\x1b[0m", cells::visual::frame(&out))?;
     writer.flush()?;
     *last = out;
     Ok(true)

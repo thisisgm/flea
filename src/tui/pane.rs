@@ -73,8 +73,7 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
             let name = title(&mark, leaf, head, i18n);
             let target = if row.link.is_empty() { String::new() } else { format!(" {}", i18n.tr_args("preview.link_target", &[&row.link])) };
             let target = direction(&target, width - head, i18n, false);
-            if super::layout::rtl(m) { format!("{}{target}{}{name}", theme.meta, theme.foreground) }
-            else { format!("{}{name}{}{target}", theme.foreground, theme.meta) }
+            format!("{}{name}{}{target}", theme.foreground, theme.meta)
         }
         1 => {
             let modified = i18n.locale().format_date(row.modified).filter(|_| row.modified != 0).unwrap_or_default();
@@ -139,7 +138,7 @@ fn stacked(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
         // Behind a card (Quick Look, the keys sheet, Properties or the delete card) the pane's picture is cleared; a terminal could only dim it by sending it again.
         Slot::Picture(y) => match picture::grid(m).filter(|_| area.card || !(m.quicklook || m.sheet || m.deletion.is_some())) {
             Some(grid) => {
-                let offset = if area.card { width.saturating_sub(grid.columns) / 2 } else if super::layout::rtl(m) { width.saturating_sub(grid.columns) } else { 0 };
+                let offset = if area.card { width.saturating_sub(grid.columns) / 2 } else { 0 };
                 format!("{}{}", " ".repeat(offset), super::still::row(grid, y, width - offset, theme))
             }
             None => fit("", width),
@@ -221,13 +220,8 @@ pub fn direction(text: &str, width: usize, i18n: &crate::i18n::I18n, number: boo
     let text = ellipsis(text, width);
     if i18n.locale().right_to_left { cells::isolate(if number { cells::Run::Number } else { cells::Run::Name }, &text) } else { text }
 }
-// Fits the name to exactly width cells, then isolates its shown cells on a right-to-left locale.
-pub fn title(mark: &str, name: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
-    let spans = [(Some(cells::Run::Name), name.into())];
-    if !i18n.locale().right_to_left { return typed(mark, &spans, width, false, true); }
-    let mark = if mark.is_empty() { String::new() } else { format!(" {}", mark.trim_end()) };
-    let mark = fit(&mark, text_width(&mark).min(width));
-    format!("{}{}", typed("", &spans, width - text_width(&mark), true, true), mark)
+pub fn title(mark: &str, name: &str, width: usize, _i18n: &crate::i18n::I18n) -> String {
+    name_title(mark, name, width)
 }
 fn header(kind: &str, size: &str, date: &str, width: usize, i18n: &crate::i18n::I18n) -> String {
     let parts = if date.is_empty() { vec![kind, size] } else { vec![kind, size, date] };

@@ -179,20 +179,6 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         } else {
             map.action(key, &model.preset)
         };
-    if model.i18n.locale().right_to_left
-        && super::cells::mirrors("navigation")
-        && key.mods.is_empty()
-    {
-        let horizontal =
-            matches!(key.name.as_str(), "Left" | "Right") || matches!(key.text.as_str(), "h" | "l");
-        if horizontal {
-            action = match action.as_str() {
-                "parent" => "pageForward".into(),
-                "open" | "pageForward" => "parent".into(),
-                _ => action,
-            };
-        }
-    }
     if action.is_empty() && key.text == "F" && matches!(key.mods.as_str(), "" | "shift") {
         action = "convert".into();
     }

@@ -225,7 +225,7 @@ fn tui_words_rtl_frame_maps_cells_without_reversing_data() {
     assert!(crate::tui::layout::rtl(&m));
     for start in 0..m.columns {
         let visual = crate::tui::layout::visual_start(&m, start, 1);
-        assert_eq!(crate::tui::layout::visual_start(&m, visual, 1), start);
+        assert_eq!(visual, start, "HIG tui-lang-ar keeps the pane coordinates");
     }
     let entry = render::frame_tests::entry("تقرير_2025.pdf", false, 1280);
     let theme = Theme::from_text("");

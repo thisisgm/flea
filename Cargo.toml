@@ -25,6 +25,8 @@ foldhash = "0.2.0"
 regex = "1.13.1"
 regex-syntax = "0.8.11"
 unicode-normalization = "0.1.25"
+unicode-bidi = "=0.3.18"
+icu_properties = { version = "=2.3.0", default-features = false, features = ["compiled_data"] }
 
 [dev-dependencies]
 # An independent target ABI oracle for the hand-declared Linux flags.
