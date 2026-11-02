@@ -27,7 +27,7 @@ mutants = [
     ("gui-desktop", "launchargs.rs", 'let mut options = Self::default();', 'let mut options = Self { want_tui: true, ..Self::default() };'),
     ("tui-pipe", "main.rs", 'if !interactive {', 'if false {'),
     ("select-path", "main.rs", 'Some(target.to_string_lossy().into_owned())', 'Some(String::new())'),
-    ("pick", "gui.rs", 'cmd.env("FLEA_PICKER_REPLY", reply);', 'cmd.env("FLEA_PICKER_REPLY", "");'),
+    ("pick", "gui/launch.rs", 'cmd.arg("--pick").arg(reply);', 'cmd.arg("--pick").arg("");'),
     ("open-folder", "main.rs", 'exit(open::open_many(&args[2..]));', 'exit(0);'),
     ("ui-state", "uistatecli.rs", 'print!("{}", jsondoc::render(&state));', 'print!("wrong state");'),
 ]

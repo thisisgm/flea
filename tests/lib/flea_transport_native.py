@@ -50,7 +50,7 @@ try:
     for window in (first, second):
         show = window.call("show")
         assert show.returncode == 0 and b"target flea\n" in show.stdout, show
-    if os.environ.get("FLEA_TEST_FRONTEND", "qml") == "qml":
+    if os.environ.get("FLEA_TEST_FRONTEND", "gpui") == "qml":
         instance = qml_metadata(load(first.root))["id"]
         cli = Path(__file__).with_name("flea_transport_cli.py")
         for flag in ("-i", "--id"):

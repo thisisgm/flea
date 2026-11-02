@@ -151,7 +151,7 @@ cap_is_transient() {
 
 select_process_targets() {
   if [ "$CAP_ONLY" = flea ]; then
-    if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+    if [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
       PROCESS_TARGETS=("flea-gui|$(dirname "$FLEA_BIN")/flea-gui" "flea|")
     else
       PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
@@ -393,7 +393,7 @@ stop_watches() {
 require_flea_enumeration() {
   local shells status=0
   local listing="qs list --all"
-  if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+  if [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
     listing="native IPC list --all"
     shells=$(FLEA_IPC_KIND=gpui FLEA_IPC_BIN="$FLEA_BIN" FLEA_IPC_HELPER="$FLEA_REPO/tools/flea-ipc" "$FLEA_REPO/tools/flea-ipc" list --all 2>/dev/null) || status=$?
   else
@@ -617,7 +617,7 @@ for cap_row in "${CAP_ROWS[@]}"; do
   # A variable the bench table gained and this pass does not expand would run empty, so it stops the pass instead.
   case $cmd in *'$'*) fail "entrant $id's command still names an unexpanded variable: $cmd" ;; esac
   [ -z "$CAP_ONLY" ] || [ "$id" = "$CAP_ONLY" ] || continue
-  if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-qml}" = gpui ]; then
+  if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
     [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
   elif [ "$id" = strata-nightly ]; then
     [ -x "${STRATA_NIGHTLY_BIN:-}" ] || fail "Strata nightly binary is absent"

@@ -175,29 +175,10 @@ fn unlock_launch_uses_gpui_without_qml_and_forgets_the_parent_request() {
 }
 
 #[test]
-fn unlock_launch_keeps_qml_and_rejects_invalid_or_headless_requests() {
+fn unlock_launch_rejects_invalid_or_headless_requests() {
     let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let sandbox = Sandbox::new();
     sandbox.frontend();
-    fs::hard_link(sandbox.root.join("flea-gui"), sandbox.root.join("qs")).unwrap();
-    let ui = sandbox.root.join("ui");
-    fs::create_dir_all(ui.join("boot")).unwrap();
-    fs::write(ui.join("boot/shell.qml"), "").unwrap();
-    let output = sandbox
-        .launch_command()
-        .args(["--unlock", "/dev/sdb1"])
-        .env("FLEA_FRONTEND", "qml")
-        .env("FLEA_UI", &ui)
-        .env("QSG_RHI_BACKEND", "opengl")
-        .env("PATH", &sandbox.root)
-        .output()
-        .unwrap();
-    let document = reply(&output);
-    assert_eq!(document.get("argv"), Some(&Json::Arr(vec![
-        Json::Str("-p".into()),
-        Json::Str(ui.join("boot/shell.qml").to_string_lossy().into_owned()),
-    ])));
-    assert_eq!(document.get("env").unwrap().get("FLEA_UNLOCK").and_then(Json::as_str), Some("/dev/sdb1"));
     for device in ["/etc/passwd", "/dev/../etc/passwd"] {
         let output = sandbox.launch_command().args(["--unlock", device]).output().unwrap();
         assert_eq!(output.status.code(), Some(2));
@@ -376,3 +357,6 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
 
 #[path = "gpui_launcher/sandbox.rs"]
 mod sandbox;
+
+#[path = "gpui_launcher/cutover.rs"]
+mod cutover;

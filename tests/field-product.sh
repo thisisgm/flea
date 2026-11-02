@@ -70,6 +70,12 @@ with patch.dict(os.environ, {'FLEA_FRONTEND': 'gpui'}):
 
 # The actual list adapter must discover the owned native instance, not invoke qs.
 proc = type('Process', (), {'pid': os.getpid()})()
+with patch.dict(os.environ, {}, clear=True):
+    assert I.Client(fresh).kind == 'gpui'
+    assert I.Client('qs').kind == 'qml'
+with patch.dict(os.environ, {'FLEA_FRONTEND': ''}, clear=True):
+    assert I.Client(fresh).kind == 'gpui'
+    assert I.Client('qs').kind == 'qml'
 client = I.Client(fresh, frontend='gpui')
 reply = 'Instance 9:\n  Process ID: 9\n  Config path: /fixture/ui/boot/shell.qml\n'
 with patch.object(I.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, stdout=reply)), patch.object(I.S, 'descendants', return_value={9}):

@@ -7,10 +7,10 @@ from pathlib import Path
 
 
 class Client:
-    def __init__(self, binary="qs", frontend=None):
+    def __init__(self, binary="flea", frontend=None):
         binary = str(binary)
         name = Path(binary).name
-        self.kind = frontend or os.environ.get("FLEA_FRONTEND", "qml")
+        self.kind = frontend or os.environ.get("FLEA_FRONTEND") or "gpui"
         if name in ("qs", "quickshell"):
             self.kind = "qml"
         elif name == "flea-gui":

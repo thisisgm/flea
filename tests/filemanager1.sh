@@ -30,7 +30,7 @@ for tool in dbus-daemon python3; do
 done
 # The --default cases drive the real binary; without it every one of them would report a missing
 # binary as a product failure, which is the wrong green this suite exists to refuse.
-BIN="$root/target/debug/flea"
+BIN="${FLEA_BIN:-$root/target/debug/flea}"
 [[ -x "$BIN" ]] || { printf 'FAIL %s is missing, run cargo build\n' "$BIN"; exit 1; }
 
 stop_bus() {

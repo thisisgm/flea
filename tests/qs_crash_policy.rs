@@ -43,22 +43,14 @@ impl Sandbox {
         );
         let sandbox = Self(root);
         sandbox.script(
-            "qs",
+            "flea-gui",
             r#"ulimit -c 0
 case "$FLEA_TEST_QS_MODE" in
-  inspect) printf '%s|%s|%s\n' "${QS_DISABLE_CRASH_HANDLER+x}" "${QS_DISABLE_CRASH_HANDLER-}" "${FLEA_QS_CRASH_POLICY-}"; exit 0;;
+  crash) printf 'frontend-pid=%s\n' "$$"; kill -ABRT "$$";;
   open) exec "$FLEA_BIN" --open "$FLEA_TEST_TARGET";;
+  *) printf '%s|%s|%s\n' "${QS_DISABLE_CRASH_HANDLER+x}" "${QS_DISABLE_CRASH_HANDLER-}" "${FLEA_QS_CRASH_POLICY-}";;
 esac
-printf 'frontend-pid=%s\n' "$$"
-if [ "${QS_DISABLE_CRASH_HANDLER+x}" != x ]; then
-  trap 'exec /bin/sh -c "echo relaunch-without-close"' ABRT
-fi
-kill -ABRT "$$"
 "#,
-        );
-        sandbox.script(
-            "flea-gui",
-            "printf '%s|%s|%s\\n' \"${QS_DISABLE_CRASH_HANDLER+x}\" \"${QS_DISABLE_CRASH_HANDLER-}\" \"${FLEA_QS_CRASH_POLICY-}\"\n",
         );
         sandbox.script(
             "gio",
@@ -83,7 +75,6 @@ kill -ABRT "$$"
             .env("XDG_CONFIG_HOME", self.0.join("config"))
             .env("XDG_STATE_HOME", self.0.join("state"))
             .env("WAYLAND_DISPLAY", "fixture")
-            .env("FLEA_FRONTEND", "qml")
             .env("FLEA_UI", self.0.join("ui"))
             .env("FLEA_BIN", self.0.join("bin/flea"))
             .env("FLEA_TEST_TARGET", self.0.join("notes.txt"))
@@ -145,12 +136,12 @@ fn a_fatal_signal_never_relaunches_a_picker() {
 }
 
 #[test]
-fn crash_policy_is_owned_only_when_flea_supplies_it() {
+fn a_gpui_launch_does_not_install_a_quickshell_crash_policy() {
     let sandbox = Sandbox::new();
     let output = sandbox.command().arg("--gui").output().unwrap();
     assert!(output.status.success());
-    assert_eq!(String::from_utf8(output.stdout).unwrap(), "x|1|1\n");
-    // A new window or the OpenGL retry started from Flea's own qs inherits the pair and must keep owning it.
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), "||\n");
+    // A GPUI launch clears a crash policy inherited from the old frontend.
     let output = sandbox
         .command()
         .arg("--gui")
@@ -159,7 +150,7 @@ fn crash_policy_is_owned_only_when_flea_supplies_it() {
         .output()
         .unwrap();
     assert!(output.status.success());
-    assert_eq!(String::from_utf8(output.stdout).unwrap(), "x|1|1\n");
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), "||\n");
     for chosen in ["", "1", "0", "operator"] {
         let output = sandbox
             .command()
@@ -181,8 +172,10 @@ fn opening_a_program_or_gpui_drops_only_fleas_crash_policy() {
     let sandbox = Sandbox::new();
     let output = sandbox
         .command()
-        .arg("--gui")
-        .env("FLEA_TEST_QS_MODE", "open")
+        .arg("--open")
+        .arg(sandbox.0.join("notes.txt"))
+        .env("QS_DISABLE_CRASH_HANDLER", "1")
+        .env("FLEA_QS_CRASH_POLICY", "1")
         .output()
         .unwrap();
     assert!(output.status.success());

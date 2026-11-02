@@ -50,9 +50,6 @@ const DEVICE_ID_OFFSET: usize = 12;
 const DEVICE_TYPE_OFFSET: usize = 16;
 const PROPERTIES_BYTES: usize = 2048;
 
-// VkPhysicalDeviceType VK_PHYSICAL_DEVICE_TYPE_CPU, the kind lavapipe reports.
-const DEVICE_TYPE_CPU: u32 = 4;
-
 // PCI vendor ids, the values /sys/class/drm/card*/device/vendor carries.
 pub(crate) const PCI_VENDOR_NVIDIA: u32 = 0x10de;
 pub(crate) const PCI_VENDOR_INTEL: u32 = 0x8086;
@@ -329,22 +326,6 @@ pub(crate) fn is_hasvk_intel(id: (u32, u32)) -> bool {
     id.1 < HASVK_ID_CEILING && id.1 != BROXTON_BELOW_CEILING
 }
 
-// Issue #160: hasvk draws garbled text, so a box whose every real GPU is a hasvk Intel GPU starts on OpenGL.
-// Sample input: [(0x8086, 0x0412, 1)] for a Haswell-only box, plus (0x10de, 0x27e0, 2) beside it.
-pub fn hasvk_only(devices: &[(u32, u32, u32)]) -> bool {
-    let mut real = false;
-    for id in devices {
-        if id.2 == DEVICE_TYPE_CPU {
-            continue;
-        }
-        if !is_hasvk_intel((id.0, id.1)) {
-            return false;
-        }
-        real = true;
-    }
-    real
-}
-
 // Sample input: "libGLX_nvidia.so.0", "libvulkan_intel.so", "libvulkan_intel_hasvk.so".
 fn vendor_of_library(lib: &str) -> Option<u32> {
     match Path::new(lib).file_name()?.to_str()? {
@@ -446,6 +427,25 @@ pub(crate) fn parse_hex_id(raw: &str) -> Option<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // VkPhysicalDeviceType VK_PHYSICAL_DEVICE_TYPE_CPU, the kind lavapipe reports.
+    const DEVICE_TYPE_CPU: u32 = 4;
+
+    // Issue #160: hasvk draws garbled text, so a box whose every real GPU is a hasvk Intel GPU starts on OpenGL.
+    // Sample input: [(0x8086, 0x0412, 1)] for a Haswell-only box, plus (0x10de, 0x27e0, 2) beside it.
+    pub fn hasvk_only(devices: &[(u32, u32, u32)]) -> bool {
+        let mut real = false;
+        for id in devices {
+            if id.2 == DEVICE_TYPE_CPU {
+                continue;
+            }
+            if !is_hasvk_intel((id.0, id.1)) {
+                return false;
+            }
+            real = true;
+        }
+        real
+    }
     // VkPhysicalDeviceType for a real GPU, the kinds a hasvk decision keeps.
     const DEVICE_TYPE_INTEGRATED: u32 = 1;
     const DEVICE_TYPE_DISCRETE: u32 = 2;

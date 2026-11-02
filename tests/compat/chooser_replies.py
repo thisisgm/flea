@@ -15,13 +15,14 @@ def fixture():
     for area in ("home", "config", "state", "data", "cache", "runtime", "bin", "chosen"):
         (root / area).mkdir(mode=0o700)
     (root / "chosen/image.iso").write_text("chosen image\n")
-    stub = root / "bin/qs"
+    stub = root / "bin/flea-gui"
     stub.write_text('''#!/usr/bin/python3
-import json, os
+import json, os, sys
 from pathlib import Path
 root = Path(os.environ["CHOOSER_ROOT"]).resolve()
 assert root.is_absolute() and (root / ".flea-test-sandbox").is_file()
-reply = Path(os.environ["FLEA_PICKER_REPLY"]).resolve()
+assert sys.argv[1] == "--pick"
+reply = Path(sys.argv[2]).resolve()
 assert reply.is_absolute() and reply.is_relative_to(root)
 chosen = Path(os.environ["CHOOSER_CHOSEN"]).resolve()
 assert chosen.is_relative_to(root)
@@ -39,7 +40,7 @@ with (root / "invocations").open("a") as log:
            "XDG_RUNTIME_DIR": str(root / "runtime"), "XDG_DATA_DIRS": str(root / "missing"),
            "FLEA_UI": str(repo / "ui"), "QSG_RHI_BACKEND": "opengl",
            "VK_DRIVER_FILES": str(root / "missing.json"), "WAYLAND_DISPLAY": "fixture",
-           "CHOOSER_ROOT": str(root), "FLEA_FRONTEND": "qml"}
+           "CHOOSER_ROOT": str(root)}
     return root, env
 
 
