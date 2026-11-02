@@ -2419,5 +2419,6 @@
   "settings.hint.key_repeated": "%1 仍未绑定，因为 keys.toml 中更早的行已绑定此按键序列。",
   "settings.hint.key_reserved": "%1 仍未绑定，因为 Flea 保留此按键序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未绑定，因为 %2 在此预设中已使用此按键序列。",
-  "settings.hint.key_unknown": "%1 仍未绑定，因为 Flea 没有名为 %2 的操作。"
+  "settings.hint.key_unknown": "%1 仍未绑定，因为 Flea 没有名为 %2 的操作。",
+  "mime.png": "PNG 图像"
 }

@@ -2427,5 +2427,6 @@
   "settings.hint.key_repeated": "%1 ยังคงไม่ถูกผูก เพราะบรรทัดก่อนหน้าใน keys.toml ผูกลำดับปุ่มนี้ไว้แล้ว",
   "settings.hint.key_reserved": "%1 ยังคงไม่ถูกผูก เพราะ Flea สงวนลำดับปุ่มนี้ไว้ใช้เอง",
   "settings.hint.key_taken": "%1 ยังคงไม่ถูกผูก เพราะ %2 ใช้ลำดับปุ่มนี้อยู่แล้วในชุดปุ่มลัดนี้",
-  "settings.hint.key_unknown": "%1 ยังคงไม่ถูกผูก เพราะ Flea ไม่มีการกระทำชื่อ %2"
+  "settings.hint.key_unknown": "%1 ยังคงไม่ถูกผูก เพราะ Flea ไม่มีการกระทำชื่อ %2",
+  "mime.png": "ภาพ PNG"
 }

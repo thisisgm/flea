@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 queda sin asignar porque una línea anterior de keys.toml ya asigna la secuencia.",
   "settings.hint.key_reserved": "%1 queda sin asignar porque Flea reserva la secuencia para sí mismo.",
   "settings.hint.key_taken": "%1 queda sin asignar porque %2 ya usa la secuencia en este perfil.",
-  "settings.hint.key_unknown": "%1 queda sin asignar porque Flea no tiene ninguna acción llamada %2."
+  "settings.hint.key_unknown": "%1 queda sin asignar porque Flea no tiene ninguna acción llamada %2.",
+  "mime.png": "imagen PNG"
 }

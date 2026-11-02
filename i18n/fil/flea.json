@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "Nananatiling walang keybinding ang %1 dahil nakatalaga na ito sa naunang linya ng keys.toml.",
   "settings.hint.key_reserved": "Nananatiling walang keybinding ang %1 dahil nakalaan ito para sa Flea mismo.",
   "settings.hint.key_taken": "Nananatiling walang keybinding ang %1 dahil ginagamit na ito ng %2 sa preset na ito.",
-  "settings.hint.key_unknown": "Nananatiling walang keybinding ang %1 dahil walang aksyon ang Flea na tinatawag na %2."
+  "settings.hint.key_unknown": "Nananatiling walang keybinding ang %1 dahil walang aksyon ang Flea na tinatawag na %2.",
+  "mime.png": "Larawang PNG"
 }

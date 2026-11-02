@@ -2427,5 +2427,6 @@
   "settings.hint.key_repeated": "%1 kekal tanpa ikatan kerana baris terdahulu dalam keys.toml sudah mengikatnya.",
   "settings.hint.key_reserved": "%1 kekal tanpa ikatan kerana Flea menyimpannya untuk kegunaan sendiri.",
   "settings.hint.key_taken": "%1 kekal tanpa ikatan kerana %2 sudah menggunakannya dalam pratetap ini.",
-  "settings.hint.key_unknown": "%1 kekal tanpa ikatan kerana Flea tiada tindakan bernama %2."
+  "settings.hint.key_unknown": "%1 kekal tanpa ikatan kerana Flea tiada tindakan bernama %2.",
+  "mime.png": "Imej PNG"
 }

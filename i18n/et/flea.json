@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 jääb määramata, sest varasem rida failis keys.toml juba määrab selle klahvijada.",
   "settings.hint.key_reserved": "%1 jääb määramata, sest Flea reserveerib selle klahvijada enda jaoks.",
   "settings.hint.key_taken": "%1 jääb määramata, sest %2 juba kasutab seda klahvijada selles eelseadistuses.",
-  "settings.hint.key_unknown": "%1 jääb määramata, sest Fleas pole toimingut nimega %2."
+  "settings.hint.key_unknown": "%1 jääb määramata, sest Fleas pole toimingut nimega %2.",
+  "mime.png": "PNG pilt"
 }

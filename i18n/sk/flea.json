@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 zostáva bez priradenia, pretože skorší riadok v keys.toml už priraďuje túto postupnosť.",
   "settings.hint.key_reserved": "%1 zostáva bez priradenia, pretože Flea si túto postupnosť vyhradzuje pre seba.",
   "settings.hint.key_taken": "%1 zostáva bez priradenia, pretože %2 už používa túto postupnosť v tejto predvoľbe.",
-  "settings.hint.key_unknown": "%1 zostáva bez priradenia, pretože Flea nemá akciu s názvom %2."
+  "settings.hint.key_unknown": "%1 zostáva bez priradenia, pretože Flea nemá akciu s názvom %2.",
+  "mime.png": "Obrázok PNG"
 }

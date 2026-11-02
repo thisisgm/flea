@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 jää sitomatta, koska keys.toml-tiedoston aiempi rivi sitoo sen jo.",
   "settings.hint.key_reserved": "%1 jää sitomatta, koska Flea varaa sen omaan käyttöönsä.",
   "settings.hint.key_taken": "%1 jää sitomatta, koska %2 käyttää sitä jo tässä esiasetuksessa.",
-  "settings.hint.key_unknown": "%1 jää sitomatta, koska Fleassa ei ole toimintoa nimeltä %2."
+  "settings.hint.key_unknown": "%1 jää sitomatta, koska Fleassa ei ole toimintoa nimeltä %2.",
+  "mime.png": "PNG-kuva"
 }

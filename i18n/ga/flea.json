@@ -2851,5 +2851,6 @@
   "settings.hint.key_repeated": "Fanann %1 gan cheangal mar tá sé ceangailte cheana i líne níos luaithe i keys.toml.",
   "settings.hint.key_reserved": "Fanann %1 gan cheangal mar coimeádann Flea dó féin é.",
   "settings.hint.key_taken": "Fanann %1 gan cheangal mar úsáideann %2 é cheana sa réamhshocrú seo.",
-  "settings.hint.key_unknown": "Fanann %1 gan cheangal mar níl aon ghníomh darbh ainm %2 ag Flea."
+  "settings.hint.key_unknown": "Fanann %1 gan cheangal mar níl aon ghníomh darbh ainm %2 ag Flea.",
+  "mime.png": "íomhá PNG"
 }

@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "keys.toml-এর আগের একটি লাইনে নির্ধারিত আছে বলে %1 অনির্ধারিত থাকে।",
   "settings.hint.key_reserved": "Flea নিজের জন্য সংরক্ষণ করে বলে %1 অনির্ধারিত থাকে।",
   "settings.hint.key_taken": "এই প্রিসেটে %2 ইতিমধ্যে ব্যবহার করে বলে %1 অনির্ধারিত থাকে।",
-  "settings.hint.key_unknown": "Flea-তে %2 নামে কোনো কাজ নেই বলে %1 অনির্ধারিত থাকে।"
+  "settings.hint.key_unknown": "Flea-তে %2 নামে কোনো কাজ নেই বলে %1 অনির্ধারিত থাকে।",
+  "mime.png": "PNG ছবি"
 }

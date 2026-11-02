@@ -44,11 +44,16 @@ impl Comments {
         if code == "en" {
             return self.english.clone();
         }
+        self.translation(code).or_else(|| self.english.clone())
+    }
+
+    pub(super) fn translation(&self, code: &str) -> Option<String> {
         let code = code.replace('_', "-");
         let tag = match code.as_str() {
             "zh-CN" => "zh-Hans-CN",
             "zh-TW" => "zh-Hant-TW",
             "sr" => "sr-Cyrl",
+            "no" => "nb",
             _ => &code,
         };
         self.translated
@@ -59,7 +64,6 @@ impl Comments {
                     .and_then(|(base, _)| self.translated.get(base))
             })
             .cloned()
-            .or_else(|| self.english.clone())
     }
 }
 

@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 lieka nepriskirta, nes ankstesnė keys.toml eilutė jau priskiria šią klavišų seką.",
   "settings.hint.key_reserved": "%1 lieka nepriskirta, nes Flea pasilieka šią klavišų seką sau.",
   "settings.hint.key_taken": "%1 lieka nepriskirta, nes %2 jau naudoja šią klavišų seką šiame rinkinyje.",
-  "settings.hint.key_unknown": "%1 lieka nepriskirta, nes Flea neturi veiksmo pavadinimu %2."
+  "settings.hint.key_unknown": "%1 lieka nepriskirta, nes Flea neturi veiksmo pavadinimu %2.",
+  "mime.png": "PNG paveikslėlis"
 }

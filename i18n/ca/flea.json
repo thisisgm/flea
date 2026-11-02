@@ -2639,5 +2639,6 @@
   "settings.hint.key_repeated": "%1 queda sense assignar perquè una línia anterior de keys.toml ja l'assigna.",
   "settings.hint.key_reserved": "%1 queda sense assignar perquè Flea se'l reserva.",
   "settings.hint.key_taken": "%1 queda sense assignar perquè %2 ja el fa servir en aquest perfil.",
-  "settings.hint.key_unknown": "%1 queda sense assignar perquè Flea no té cap acció anomenada %2."
+  "settings.hint.key_unknown": "%1 queda sense assignar perquè Flea no té cap acció anomenada %2.",
+  "mime.png": "imatge PNG"
 }

@@ -2533,5 +2533,6 @@
   "settings.hint.key_repeated": "%1 bleibt unbelegt, weil eine frühere Zeile in keys.toml die Tastenfolge bereits belegt.",
   "settings.hint.key_reserved": "%1 bleibt unbelegt, weil Flea die Tastenfolge für sich reserviert.",
   "settings.hint.key_taken": "%1 bleibt unbelegt, weil %2 die Tastenfolge in dieser Voreinstellung bereits verwendet.",
-  "settings.hint.key_unknown": "%1 bleibt unbelegt, weil Flea keine Aktion namens %2 hat."
+  "settings.hint.key_unknown": "%1 bleibt unbelegt, weil Flea keine Aktion namens %2 hat.",
+  "mime.png": "PNG-Bild"
 }

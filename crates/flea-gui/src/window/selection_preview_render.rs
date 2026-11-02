@@ -98,10 +98,10 @@ impl Render for SelectionPreview {
         // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.
         if let Some(frame) = self.pending.as_ref().filter(|f| !f.manual) {
             if let Mounted::Doc(doc) = &frame.mounted {
-                let rows = if frame.kind.tall() && !self.full_facts {
+                let rows = if !self.show_full_facts(frame, window, cx) {
                     1
                 } else {
-                    3
+                    self.facts(frame, cx).len()
                 };
                 let (width, height) = self.frame_size(frame.kind, rows);
                 root = root.child(
@@ -127,7 +127,7 @@ impl Render for SelectionPreview {
         }
         let empty = self.manual_empty(frame);
         let kind = if empty { Kind::Facts } else { frame.kind };
-        let full = !frame.kind.tall() || self.full_facts;
+        let full = self.show_full_facts(frame, window, cx);
         let facts = self.facts(frame, cx);
         let (row, name_row) = self.fact_row();
         let (width, height) = self.frame_size(kind, if full { facts.len() } else { 1 });

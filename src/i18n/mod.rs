@@ -156,7 +156,7 @@ impl I18n {
 
     // MIME owns descriptions unless this language explicitly overrides one; no English fallback here.
     pub fn mime_comment(&self, mime: &str) -> Option<&str> {
-        let key = match mime { "text/markdown" => "mime.markdown", _ => return None };
+        let key = match mime { "text/markdown" => "mime.markdown", "image/png" => "mime.png", _ => return None };
         self.translated.get(key).and_then(crate::jsondoc::Json::as_str).filter(|value| !value.trim().is_empty())
     }
 

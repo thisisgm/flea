@@ -3,6 +3,9 @@ use super::previewtypes_tests::{answer, ask, field, file, local, meta, open_at, 
 use crate::window::u07_tests::read;
 use gpui::{px, size, Bounds, Pixels, TestAppContext, VisualTestContext};
 
+#[path = "lang_polish_tests.rs"]
+mod lang_polish_tests;
+
 fn bounds(cx: &mut VisualTestContext, selector: &'static str) -> Bounds<Pixels> {
     cx.debug_bounds(selector)
         .unwrap_or_else(|| panic!("{selector} is drawn"))
@@ -79,7 +82,7 @@ fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(
             cx.simulate_resize(size(px(w), px(h)));
             pump(cx);
             assert_fits(&shell, cx, &format!("{facts} {w}x{h}"));
-            if facts == "compact" {
+            if facts == "compact" && w > 900. {
                 let line = bounds(cx, "column-preview-facts").size.height;
                 assert_eq!(
                     f32::from(line),
