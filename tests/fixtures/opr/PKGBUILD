@@ -39,6 +39,7 @@ depends=(
   'quickjs-ng'         # qjs, which flea --figure-helper runs for Markdown maths and diagrams
   'qt6-declarative'    # HTML preview helper (src/backend/htmlreq.rs) until flea-html lands
   'qt6-webengine'      # HTML preview helper (src/backend/htmlreq.rs) until flea-html lands
+  'ripgrep'            # searches file contents through the jailed rg worker
   'shared-mime-info'   # the MIME database Flea reads file types from
   'udisks2'            # udisksctl, for unlocking and the relock after unmount
   'usbmuxd'            # the iPhone connection gvfs-afc talks to
@@ -53,7 +54,7 @@ depends=(
 # git fetches the pinned GPUI fork in prepare(), and pkgconf locates its system libraries.
 makedepends=('cargo' 'git' 'pkgconf')
 # qml6 runs tests/js.sh; the same package also serves the runtime HTML helper.
-checkdepends=('qt6-declarative')
+checkdepends=('qt6-declarative' 'ripgrep' '7zip' 'imagemagick')
 optdepends=(
   '7zip: 7z archive support'
   'dropbox-cli: Dropbox browsing and share links'
