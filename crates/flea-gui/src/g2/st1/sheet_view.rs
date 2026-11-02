@@ -16,6 +16,13 @@ use gpui::{
 
 mod scroll;
 use scroll::{Measured, COLUMNS, LAST_ROWS};
+#[path = "sheet_geometry.rs"]
+mod fit;
+pub use fit::card_rect;
+
+#[cfg(test)]
+#[path = "i18n_fit_tests.rs"]
+mod i18n_fit_tests;
 
 // Board keymap: a 628 by 684 card padded 16, the key column 117 plus a 5px margin, columns 14 apart, 19px headings over 25px rows.
 pub const SHEET_W: f32 = 628.;
@@ -258,18 +265,6 @@ impl SheetView {
     }
 }
 
-/// The board's card centred in a window this size and kept 8px clear of every edge; no sheet state moves it.
-pub fn card_rect(width: f32, height: f32) -> (f32, f32, f32, f32) {
-    let fit = |want: f32, room: f32| want.min((room - 2. * CLAMP).floor()).max(0.);
-    let (card_w, card_h) = (fit(SHEET_W, width), fit(SHEET_H, height));
-    (
-        ((width - card_w) / 2.).round(),
-        ((height - card_h) / 2.).round(),
-        card_w,
-        card_h,
-    )
-}
-
 fn card_size(window: &Window) -> (f32, f32) {
     let viewport = window.viewport_size();
     let (_, _, card_w, card_h) = card_rect(f32::from(viewport.width), f32::from(viewport.height));
@@ -286,9 +281,7 @@ impl Render for SheetView {
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty() || !self.editor.entry.text.is_empty();
         let measured = self.laid_out(window, cx);
-        let viewport = window.viewport_size();
-        let (left, top, card_w, card_h) =
-            card_rect(f32::from(viewport.width), f32::from(viewport.height));
+        let (left, top, card_w, card_h) = fit::for_sheet(&self.sheet, &self.typeface, window);
         let title = self.sheet.catalog.tr("keys.action.keymapSheet");
         let mut card = div()
             .id("sheet-card")

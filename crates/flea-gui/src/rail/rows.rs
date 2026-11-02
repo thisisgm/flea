@@ -63,6 +63,16 @@ impl RailMetrics {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn i18n_fit_widths(face: &Typeface) -> (f32, f32) {
+    let metrics = RailMetrics::for_typeface(face);
+    let width = crate::rail::geometry::DEFAULT_WIDTH;
+    (
+        width - 2. * metrics.pad - metrics.icon - metrics.gap,
+        width - 2. * metrics.pad,
+    )
+}
+
 /// One heading as painted: the caption's capitals, its box, its lead and its type size.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LaidHeader {

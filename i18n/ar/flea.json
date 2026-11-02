@@ -1677,7 +1677,7 @@
   "places.favorite.busy": "لا يزال حفظ تغيير في المفضلة جاريًا.",
   "places.favorite.changed_reopen": "تغيّرت المفضلة؛ أعد فتح القائمة قبل إزالة هذا الصف.",
   "places.favorite.inspect_failed": "تعذّر على ⁦Flea⁩ التحقق من عناصر المفضلة التي لا تزال موجودة.",
-  "places.favorite.invalid_label": "عنصر مفضلة غير صالح",
+  "places.favorite.invalid_label": "مفضلة غير صالحة",
   "places.favorite.invalid_path": "مسار غير صالح",
   "places.favorite.invalid_record": "سجل مفضلة غير صالح",
   "places.favorite.label_blank": "تحتاج التسمية إلى نص ظاهر",
