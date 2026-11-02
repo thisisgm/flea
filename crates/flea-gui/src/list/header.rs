@@ -272,10 +272,14 @@ impl ListState {
         self.write_width(column, width)
     }
 
-    /// Header.autofitColumn(): a double click ends any drag, then fits one drawn column over the held rows only.
+    /// A double click or F4 ends any drag, then fits an enabled column over the held rows only.
     pub fn autofit(&mut self, column: Column, held: &Held, window: &Window) -> Option<String> {
         self.header.drag.cancel();
-        if self.view.dual || self.view.searching || !self.drawn.layout.shown(column) {
+        if self.view.dual
+            || self.view.searching
+            || !self.view.switched.on(column)
+            || (self.view.recent && matches!(column, Column::Mode | Column::Kind))
+        {
             return None;
         }
         // A fit moves the edges under a still pointer, so no zone stays lit from before it.

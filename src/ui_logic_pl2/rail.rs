@@ -3,10 +3,7 @@ use super::{
     mounts::{self, Place},
     protocols,
 };
-use crate::{
-    backend::netfs,
-    ui_logic_pl1::{Group, Kind, RailEntry},
-};
+use crate::ui_logic_pl1::{Group, Kind, RailEntry};
 use std::collections::HashSet;
 
 pub fn rebuild(gio: &str, marks: &[Place], mountinfo: &str) -> Vec<RailEntry> {
@@ -33,36 +30,7 @@ pub fn rebuild(gio: &str, marks: &[Place], mountinfo: &str) -> Vec<RailEntry> {
         push(&mut out, &mut seen, &place.uri, &place.label, false);
     }
     let gio_kernel = mounts::gio_kernel_mounts(gio);
-    let mut kernels: Vec<(String, String)> = Vec::new();
-    for line in mountinfo.lines() {
-        let Some((head, tail)) = line.split_once(" - ") else {
-            continue;
-        };
-        let Some(raw) = head.split_whitespace().nth(4) else {
-            continue;
-        };
-        let Some(fstype) = tail.split_whitespace().next() else {
-            continue;
-        };
-        if !netfs::is_network_fstype(fstype) {
-            continue;
-        }
-        let path = unescape(raw);
-        if path == "/"
-            || ["/run/", "/proc/", "/sys/", "/dev/"]
-                .iter()
-                .any(|prefix| path.starts_with(prefix))
-            || ["/proc", "/sys", "/dev"].contains(&path.as_str())
-        {
-            continue;
-        }
-        if let Some(old) = kernels.iter_mut().find(|(p, _)| *p == path) {
-            old.1 = fstype.into();
-        } else {
-            kernels.push((path, fstype.into()));
-        }
-    }
-    for (path, fstype) in kernels {
+    for (path, fstype) in super::kernel_mounts::rows(mountinfo) {
         let lent = gio_kernel.iter().find(|row| row.path == path);
         let uri = lent.map_or_else(|| path.clone(), |row| row.uri.clone());
         let label = lent.map_or_else(|| mounts::leaf(&path), |row| row.label.clone());
