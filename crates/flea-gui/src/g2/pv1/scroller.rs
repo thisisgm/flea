@@ -12,6 +12,8 @@ pub enum Axis {
 /// GPUI's Wayland client multiplies each touchpad axis value by 3.0 (gpui-pre-linux/src/linux/wayland/client.rs:2774 at af2dfcb); Qt's pixelDelta, which Scroll.js scales by 2.5, is the value itself.
 pub const GPUI_TOUCHPAD_SCALE: f64 = 3.;
 
+#[path = "scroller_capture.rs"]
+pub(crate) mod capture;
 #[path = "scroller_overlay.rs"]
 pub(crate) mod overlay;
 

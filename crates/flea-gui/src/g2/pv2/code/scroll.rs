@@ -5,6 +5,10 @@ use gpui::{Bounds, Context, Pixels, Point, ScrollWheelEvent};
 use std::time::Duration;
 
 impl CodeView {
+    pub(crate) fn vertical_lane(&self) -> Option<crate::g2::pv1::scroller::capture::Lane> {
+        self.scroll.vertical_lane(true)
+    }
+
     pub(super) fn scroll_inset(&self) -> f32 {
         if self.slot == "look" {
             self.metrics.top

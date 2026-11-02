@@ -14,6 +14,12 @@ pub(crate) struct Overlay {
     timers: [Option<gpui::Task<()>>; 2],
 }
 
+impl Overlay {
+    pub(crate) fn vertical_lane(&self) -> Option<super::capture::Lane> {
+        self.scroll.vertical_lane(false)
+    }
+}
+
 #[cfg(test)]
 impl Overlay {
     // The vertical bar shows: the view moved within the last HOLD_MS.

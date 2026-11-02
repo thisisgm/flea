@@ -218,6 +218,15 @@ impl QuickLook {
         } else {
             surface.bg(crate::window::glass::ground(look.background, window, cx))
         };
+        surface = surface.children(crate::g2::pv2::html::capture::frame(
+            subject.body.doc().and_then(|doc| match &doc.view {
+                super::doc::View::Html(view) => Some(view.clone()),
+                _ => None,
+            }),
+            1.,
+            look.muted_frame,
+            look.surface,
+        ));
         let mark_of = subject.mark_with_languages(self.languages);
         let children: Vec<AnyElement> = match shown.as_ref() {
             Body::Text { lines, count } => {

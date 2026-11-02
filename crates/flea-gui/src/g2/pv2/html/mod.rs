@@ -1,5 +1,6 @@
 //! The HTML preview (ui/PreviewHtml.qml, HtmlPane.qml, HtmlClip.qml): the helper's still image of the page under the
 //! dark-theme veil and clipped to the frame's inner arc, or the shipped code view for Source.
+pub(crate) mod capture;
 pub mod decode;
 mod paint;
 mod scroll;
@@ -62,6 +63,7 @@ pub struct HtmlView {
     pub frame: (f32, f32),
     /// Where the page was last painted, for htmlState.
     pub bounds: Option<gpui::Bounds<gpui::Pixels>>,
+    pub(crate) frame_style: Cell<Option<capture::FrameStyle>>,
     origin: Instant,
     timer: Option<(u64, Task<()>)>,
     decode: Option<Task<()>>,
@@ -107,6 +109,7 @@ impl HtmlView {
             source_read_failed: false,
             frame: (0., 0.),
             bounds: None,
+            frame_style: Cell::new(None),
             origin: cx.background_executor().now(),
             timer: None,
             decode: None,

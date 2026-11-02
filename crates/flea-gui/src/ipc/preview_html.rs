@@ -5,7 +5,7 @@ use crate::{
         pv1::{doc::View, Hit},
         pv2::html::HtmlView,
     },
-    ipc::rows::{centre_of, rect_of},
+    ipc::rows::{centre_of, colour, rect_of},
     state::Shell,
     visual::object,
     window::selection_preview::{docs::Doc, Mounted},
@@ -71,6 +71,14 @@ impl PreviewHtml<'_> {
     fn state(&self, view: &HtmlView, visible: bool, facts: String, column: bool) -> String {
         let catalog = &self.shell.locale.catalog;
         let size = self.window.viewport_size();
+        let style = view.frame_style.get();
+        let lane = view.vertical_lane(self.cx).map_or(Json::Null, |lane| {
+            object([
+                ("shown", Json::Bool(lane.shown)),
+                ("visible", Json::Bool(visible && lane.visible)),
+                ("rect", text(rect(Some(lane.bounds)))),
+            ])
+        });
         let state = object([
             ("path", text(view.doc.path.clone())),
             (
@@ -110,6 +118,16 @@ impl PreviewHtml<'_> {
                 ]),
             ),
             ("radius", number(view.metrics.radius)),
+            ("hairline", style.map_or(Json::Null, |s| number(s.hairline))),
+            (
+                "ringColor",
+                style.map_or(Json::Null, |s| text(colour(s.ring))),
+            ),
+            (
+                "canvasColor",
+                style.map_or(Json::Null, |s| text(colour(s.canvas))),
+            ),
+            ("lane", lane),
             ("viewportHeight", number(view.frame.1)),
             ("contentHeight", number(view.page_size().1)),
             ("close", if column { Json::Null } else { self.close() }),
