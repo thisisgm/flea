@@ -65,6 +65,7 @@ pub const VISUAL: &[Function] = &[
     function!("flea", "combineState", "string", &[]),
     function!("flea", "dirSizeState", "string", &[]),
     function!("flea", "columnsState", "string", &[]),
+    function!("flea", "columnAnimationState", "string", &[]),
     function!("flea", "clipboardText", "string", &[]),
     function!("flea", "dirSizeCancels", "int", &[]),
     function!("flea", "tabTearoffState", "string", &[]),

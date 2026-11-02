@@ -20,6 +20,88 @@ const STILL_PNG: [u8; 73] = [
     113, 0, 83, 82, 22, 129, 25, 170, 14, 207, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
 ];
 
+#[gpui::test]
+fn s5_native_gif_reader_reports_loaded_and_painted_indices_without_driving_them(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = Root::new("s5-gif-reader");
+    let dir = root.0.to_string_lossy().into_owned();
+    std::fs::write(root.0.join("anim.gif"), ANIMATED_GIF).unwrap();
+    std::fs::write(root.0.join("still.png"), STILL_PNG).unwrap();
+    let (shell, cx) = open(cx, &dir);
+    super::test_shell::land(
+        &shell,
+        cx,
+        &dir,
+        vec![
+            file("anim.gif", "image-gif", "GIF image", 0o100644),
+            file("other.gif", "image-gif", "GIF image", 0o100644),
+        ],
+        1,
+    );
+    let lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","frames":2,"w":8,"h":8"#);
+    answer(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"thumbed","row":0,"file":"{dir}/still.png"}}"#),
+    );
+    settle_pictures(cx);
+    let state = |cx: &mut VisualTestContext| {
+        flea::jsondoc::parse(&read(&shell, cx, "columnAnimationState", &[])).unwrap()
+    };
+    let first = state(cx);
+    assert_eq!(
+        first
+            .get("loadedFrames")
+            .and_then(flea::jsondoc::Json::as_f64),
+        Some(2.)
+    );
+    let index = |json: &flea::jsondoc::Json| {
+        json.get("paintedIndex")
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap() as usize
+    };
+    assert_eq!(
+        Some(index(&first)),
+        shown_frame(cx),
+        "the reader reports the painted canvas index"
+    );
+    assert_eq!(first, state(cx), "reading never advances a frame");
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(550));
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    let second = state(cx);
+    assert_eq!(index(&second), (index(&first) + 1) % 2);
+    assert_eq!(Some(index(&second)), shown_frame(cx));
+    cx.simulate_keystrokes("down");
+    let lines = pump(cx);
+    meta(&shell, cx, &lines, r#","frames":1,"w":8,"h":8"#);
+    answer(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"thumbed","row":1,"file":"{dir}/still.png"}}"#),
+    );
+    settle_pictures(cx);
+    let replacement = state(cx);
+    assert_eq!(
+        replacement
+            .get("loadedFrames")
+            .and_then(flea::jsondoc::Json::as_f64),
+        Some(0.)
+    );
+    assert_eq!(
+        replacement.get("paintedIndex"),
+        Some(&flea::jsondoc::Json::Null),
+        "a replacement cannot report the retired GIF's index"
+    );
+    super::preview_tests::close(&shell, cx);
+}
+
 /// Frames and real time for a picture decode, which runs on the background executor.
 fn settle_pictures(cx: &mut VisualTestContext) {
     for _ in 0..40 {

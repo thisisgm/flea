@@ -5,6 +5,9 @@ use flea::ipc::wire::Reply;
 use flea::ui_logic_pv2::refusal::Refusal;
 use gpui::{App, Bounds, Pixels};
 
+#[path = "selection_preview_animation_reader.rs"]
+mod animation;
+
 pub(crate) struct Reader<'a> {
     pub view: Option<&'a SelectionPreview>,
     pub active: bool,
@@ -48,6 +51,7 @@ impl Reader<'_> {
             _ => None,
         });
         Some(match function {
+            "columnAnimationState" => animation::state(view, frame),
             "pdfState" => {
                 if arguments.first().is_some_and(|overlay| overlay == "true") {
                     return None;
