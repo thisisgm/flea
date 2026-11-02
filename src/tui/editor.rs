@@ -317,7 +317,9 @@ impl Editor {
         }
         if super::cells::visual::needed(&shown) {
             caret = boundary.map(|at| super::cells::visual::caret(&shown, at));
-            out = format!("\u{2068}{out}\u{2069}");
+            if let Some((open, close)) = super::cells::markers(super::cells::Run::Name) {
+                out = format!("{open}{out}{close}");
+            }
         }
         out.push_str(&format!("\x1b[0m{}{}{ghost} ", theme.field, theme.ext));
         used += render::text_width(&ghost) + 1;

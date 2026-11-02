@@ -43,6 +43,11 @@
       "from": "\"stateVersion\": 3\n",
       "to": "\"stateVersion\": 4\n",
       "reason": "The same migration stamps the document with state version 4."
+    },
+    {
+      "from": "    \"width\": 0,\n    \"wrap\": false",
+      "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
+      "reason": "src/uischema.rs supplies preview.tracks for the 0.4.0 state reader, matching its already-declared CLI default."
     }
   ],
   "cli:gui-desktop": [

@@ -10,7 +10,7 @@ import sandbox
 repo = Path(__file__).resolve().parents[2]
 root = sandbox.make("cli-mutants-")
 shutil.copytree(repo / "src", root / "src")
-for name in ("ui", "shelf", "keys.toml", "i18n"):
+for name in ("ui", "shelf", "keys.toml", "i18n", "docs"):
     (root / name).symlink_to(repo / name, target_is_directory=(repo / name).is_dir())
 manifest = (repo / "Cargo.toml").read_text()
 version = next(line for line in manifest.splitlines() if line.startswith("version ="))
