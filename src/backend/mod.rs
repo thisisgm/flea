@@ -392,16 +392,7 @@ pub mod rawpreview;
 pub mod previewraster;
 
 #[cfg(test)]
-mod jobs_fix1_tests;
-#[cfg(test)]
-mod jobs_fix2_tests;
-#[cfg(test)]
-mod jobs_tests;
-
-#[cfg(test)]
-mod jobs_regression_tests;
-#[cfg(test)]
-mod jobs_extract_eta_tests;
+mod jobtests;
 
 #[cfg(test)]
 #[path = "tree_outline_tests.rs"]
