@@ -1,6 +1,7 @@
 """Keep legacy filter sentinels and chooser retries working through the real picker launcher."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -8,6 +9,9 @@ import sandbox
 
 repo = Path(__file__).resolve().parents[2]
 failures = []
+# flea prefers a flea-gui beside its own executable, so a copy with no sibling is what reaches the stub on PATH.
+launcher = sandbox.make("chooser-launcher-") / "flea"
+shutil.copy2(sys.argv[1], launcher)
 
 
 def fixture():
@@ -46,7 +50,7 @@ with (root / "invocations").open("a") as log:
 
 def invoke(root, env, consumer, index, accepted, label):
     chosen = root / ("chosen/image.iso" if consumer == "flash" else "chosen")
-    result = subprocess.run([sys.argv[1], consumer, "choose"],
+    result = subprocess.run([str(launcher), consumer, "choose"],
                             env=env | {"CHOOSER_FILTER": index, "CHOOSER_CHOSEN": str(chosen)},
                             cwd=root, capture_output=True, timeout=8)
     reply = root / "state/omarchy/flea-shelf/reply.json"
