@@ -171,7 +171,9 @@ def receipt_data(path):
     expected = {f"flea:{key}": record["source_hash"] for key, record in records.items()}
     hashes = receipt_object(receipt, "manifest_path")
     catalog = receipt_object(receipt, "catalog_path")
-    if hashes.get(language) != expected or hashes.get("en") != expected or set(catalog) != set(records):
+    translated = {unit: value for unit, value in expected.items() if unit.removeprefix("flea:") in catalog}
+    if (hashes.get(language) != translated or hashes.get("en") != expected
+            or not manifest.required_keys(records, language) <= set(catalog) <= set(records)):
         fail("translation receipt catalog/hash provenance differs from embedded index")
     return receipt
 
@@ -404,20 +406,22 @@ def check(args):
     if inputs.raw(root / "source-index.json") != args.source_index.read_bytes():
         fail("private source index differs from requested source index")
     target = inputs.read(root / args.language / "flea.json")
-    if set(target) != set(english):
+    if not manifest.required_keys(english, args.language) <= set(target) <= set(english):
         fail(f"key parity: missing={sorted(set(english) - set(target))}, extra={sorted(set(target) - set(english))}")
     hashes = inputs.read(root / "translation-manifest.json")
     for language in ("en", args.language):
         section = hashes.get(language, {})
         if not isinstance(section, dict):
             fail(f"invalid manifest section: {language}")
-        for key, entry in records.items():
+        keys = set(english) if language == "en" else set(target)
+        for key in keys:
+            entry = records[key]
             unit = f"flea:{key}"
             if unit not in section:
                 fail(f"missing source hash: {language}:{key}")
             if section[unit] != entry["source_hash"]:
                 fail(f"stale source hash: {language}:{key}")
-        if set(section) != {f"flea:{key}" for key in records}:
+        if set(section) != {f"flea:{key}" for key in keys}:
             fail(f"extra source hashes: {language}")
     categories = required_categories(args.language, args.omarchy_path, frozen, inputs)
     exceptions = inputs.read(args.exceptions)
@@ -437,6 +441,8 @@ def check(args):
         resolved = references.resolve(record["omarchy_reference"] or english[key], "en")
         if resolved != record["resolved_english"]:
             fail(f"source index:{key}: resolved English reference drift")
+        if key not in target:
+            continue
         validate_value(key, english[key], target[key], categories, args.language, references, exceptions["entries"])
     for reference in frozen["direct_references"]:
         if not reference.startswith("omarchy:"):

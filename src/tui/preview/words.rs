@@ -6,6 +6,23 @@ use crate::tui::{
 
 pub use crate::tui::words::Text;
 
+// A locale refresh re-reads held rows without restarting the preview or losing its scroll.
+pub fn refresh_head(m: &mut Model) {
+    if m.current_path().as_ref() != Some(&m.preview_path) {
+        return;
+    }
+    let Some(row) = m.rows.get(&m.cursor) else {
+        return;
+    };
+    if let Some(head) = m.preview.get_mut(1) {
+        *head = format!(
+            "{} · {}",
+            row.kind,
+            m.preview_state.i18n.locale().format_size(row.size as u64)
+        );
+    }
+}
+
 pub fn from_io(error: &std::io::Error) -> Text {
     match error
         .get_ref()
@@ -125,3 +142,7 @@ pub fn metadata(m: &mut Model) {
 pub fn fail(m: &mut Model, message: Text) {
     m.fail_text(message);
 }
+
+#[cfg(test)]
+#[path = "../kind_language_tests.rs"]
+mod kind_language_tests;

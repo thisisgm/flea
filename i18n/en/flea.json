@@ -2533,5 +2533,6 @@
   "keys.tui17.sortRandom": "Shuffle files",
   "keys.tui17.suspend": "Suspend",
   "keys.tui17.wordBackward": "Previous word (field)",
-  "keys.tui17.wordForward": "Next word (field)"
+  "keys.tui17.wordForward": "Next word (field)",
+  "mime.markdown": "Markdown document"
 }

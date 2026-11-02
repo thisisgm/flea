@@ -79,6 +79,7 @@ pub(crate) struct Cache {
     last: HashSet<u64>,
     // A cold response reads current facts without changing the armed entries underneath it.
     reuse_rendered: bool,
+    kind_revision: u64,
     bytes: usize,
     #[cfg(test)]
     pub(crate) misses: usize,
@@ -291,6 +292,13 @@ impl Cache {
     pub(crate) fn rendered(&self, path: &Path) -> Option<&(String, String)> {
         if !self.reuse_rendered { return None; }
         self.entries.get(path)?.rendered.as_ref()
+    }
+
+    pub(crate) fn kind_revision(&mut self, revision: u64) {
+        if self.kind_revision == revision { return; }
+        self.kind_revision = revision;
+        for entry in self.entries.values_mut() { entry.rendered = None; }
+        self.recount();
     }
 
     pub(crate) fn remember(&mut self, path: &Path, row: &str, kind: &str) {

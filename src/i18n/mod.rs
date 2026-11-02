@@ -152,6 +152,12 @@ impl I18n {
         if self.paragraphs && self.locale.right_to_left && opens_latin(template) { format!("\u{200f}{line}") } else { line }
     }
 
+    // MIME owns descriptions unless this language explicitly overrides one; no English fallback here.
+    pub fn mime_comment(&self, mime: &str) -> Option<&str> {
+        let key = match mime { "text/markdown" => "mime.markdown", _ => return None };
+        self.translated.get(key).and_then(crate::jsondoc::Json::as_str).filter(|value| !value.trim().is_empty())
+    }
+
     pub fn tr_args(&self, key: &str, args: &[&str]) -> String {
         substitute(&self.tr(key), args)
     }

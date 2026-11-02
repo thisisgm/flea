@@ -98,6 +98,8 @@ fn rows_line_body(
     mime: &Db, icons: &Names, aliases: &Aliases, thumbs: &Thumbnailers, kinds: &mut Kinds,
     mut cache: Option<&mut super::searchrowcache::Cache>,
 ) -> String {
+    let kind_revision = kinds.refresh();
+    if let Some(cache) = cache.as_deref_mut() { cache.kind_revision(kind_revision); }
     // Field names stay one character: a window serialises on every scroll.
     let mut s = String::with_capacity(metas.len() * ROW_BYTES_ESTIMATE);
     s.push_str(&format!(r#"{{"t":"rows","start":{},"rows":["#, start));

@@ -197,6 +197,24 @@ class ManifestHistory(unittest.TestCase):
         self.assertEqual(current['de']['flea:count'], current['en']['flea:count'])
         self.assertNotIn('stale translation', self.run_tool('--check').stderr)
 
+    def test_kind_lang_mime_override_is_optional_only_outside_its_owners(self):
+        self.english['mime.markdown'] = 'Markdown document'
+        self.write('en/flea.json', self.english)
+        self.run_tool()
+        self.run_tool('--check')
+        self.assertNotIn('flea:mime.markdown', self.read_manifest()['de'])
+        self.write('ja/flea.json', self.translation)
+        result = self.run_tool(status=1)
+        self.assertIn('mime.markdown', result.stderr)
+        japanese = dict(self.translation, **{'mime.markdown': 'Markdown 文書'})
+        self.write('ja/flea.json', japanese)
+        self.run_tool()
+        self.run_tool('--check')
+        self.assertIn('flea:mime.markdown', self.read_manifest()['ja'])
+        del self.translation['label']
+        self.write('de/flea.json', self.translation)
+        self.assertIn('label', self.run_tool(status=1).stderr)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
