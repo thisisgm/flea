@@ -539,3 +539,4 @@ bench-thumbs|^bench-thumbs-safety: [1-9][0-9]* offline contracts, 0 failed$|1
 nvidia-gpui|^Ran [1-9][0-9]* tests in [0-9]+([.][0-9]+)?s$|1
 nvidia-gpui|^OK$|1
 aur-versions|^aur-versions: 19 check\(s\), 0 failed$|1
+startup-order-tool|^PASS startup order cleanup: inherited directory preserved, own traces removed, short trace refused$|1

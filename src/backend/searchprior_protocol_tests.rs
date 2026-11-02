@@ -10,6 +10,7 @@ struct Backend {
     input: ChildStdin,
     output: Receiver<String>,
     gen: usize,
+    open_request: String,
 }
 
 impl Backend {
@@ -25,10 +26,16 @@ impl Backend {
         let stdout = child.stdout.take().unwrap();
         let (tx, output) = channel();
         std::thread::spawn(move || { for line in BufReader::new(stdout).lines() { if tx.send(line.unwrap()).is_err() { break; } } });
-        let mut backend = Self { child, input, output, gen: 0 };
-        backend.send(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}","hidden":false}}"#, escape(&root.join("scope").to_string_lossy()), escape(&root.join(folder).to_string_lossy())));
-        loop { if field_str(&backend.line(), "t").as_deref() == Some("searchopened") { break; } }
+        let open_request = format!(r#"{{"c":"searchopen","path":"{}","folder":"{}","hidden":false}}"#, escape(&root.join("scope").to_string_lossy()), escape(&root.join(folder).to_string_lossy()));
+        let mut backend = Self { child, input, output, gen: 0, open_request };
+        backend.reopen();
         backend
+    }
+
+    fn reopen(&mut self) {
+        let request = self.open_request.clone();
+        self.send(&request);
+        loop { if field_str(&self.line(), "t").as_deref() == Some("searchopened") { break; } }
     }
 
     fn send(&mut self, request: &str) { writeln!(self.input, "{request}").unwrap(); self.input.flush().unwrap(); }
@@ -57,9 +64,11 @@ impl Backend {
         }
     }
 
-    fn eventually(&mut self, query: &str, count: usize, expected: &[&str]) -> Vec<String> {
+    fn eventually_after_reopen(&mut self, query: &str, count: usize, expected: &[&str]) -> Vec<String> {
         let started = std::time::Instant::now();
         loop {
+            // A completed query in an old open cannot stand in for adoption by a new open.
+            self.reopen();
             let rows = self.query(0, query, count);
             if rows == expected { return rows; }
             assert!(started.elapsed() < Duration::from_secs(4), "expected {expected:?}, got {rows:?}");
@@ -96,7 +105,7 @@ fn searchprior_protocol_real_backend_protects_exact_and_ranks_files_folders_and_
     let folders = d.script("bin/zoxide", &format!("#!/bin/sh\n[ \"$*\" = 'query --list --all --score' ] || exit 9\nprintf '90 %s\\n' '{}'\n", d.join("scope/z/project").display()));
     let provider_before = (std::fs::read(&history).unwrap(), std::fs::read(&folders).unwrap());
     let mut backend = Backend::new(&d, &d.join("data"), "scope/a");
-    assert_eq!(backend.eventually("report.rs", 1, &["z/report.rs"]), ["z/report.rs"]);
+    assert_eq!(backend.eventually_after_reopen("report.rs", 1, &["z/report.rs"]), ["z/report.rs"]);
     backend.send(r#"{"c":"window","start":0,"count":100}"#);
     loop {
         let line = backend.line();
@@ -129,7 +138,7 @@ fn searchprior_protocol_missing_corrupt_unavailable_and_held_out_providers() {
     d.file("data/recently-used.xbel", &format!("<xbel><bookmark href='file://{}'/></xbel>", d.join("scope/z/unrelated-open.txt").display()));
     {
         let mut backend = Backend::new(&d, &d.join("data"), "scope/z");
-        assert_eq!(backend.eventually("report.rs", 100, &["z/report.rs", "a/report.rs"]), ["z/report.rs", "a/report.rs"], "an unrelated open supplies folder context with the target held out");
+        assert_eq!(backend.eventually_after_reopen("report.rs", 100, &["z/report.rs", "a/report.rs"]), ["z/report.rs", "a/report.rs"], "an unrelated open supplies folder context with the target held out");
     }
     d.file("data/recently-used.xbel", "<xbel/>");
     d.script("bin/zoxide", &format!("#!/bin/sh\nprintf '90 %s\\n' '{}'\nexit 1\n", d.join("scope/z/project").display()));
@@ -139,7 +148,7 @@ fn searchprior_protocol_missing_corrupt_unavailable_and_held_out_providers() {
     d.file("data/recently-used.xbel", "<broken>");
     d.script("bin/zoxide", &format!("#!/bin/sh\nprintf '90 %s\\n' '{}'\n", d.join("scope/z/project").display()));
     let mut backend = Backend::new(&d, &d.join("data"), "scope/a");
-    assert_eq!(backend.eventually("project", 100, &["z/project", "a/project"]), ["z/project", "a/project"], "a corrupt file provider must not disable the folder provider");
+    assert_eq!(backend.eventually_after_reopen("project", 100, &["z/project", "a/project"]), ["z/project", "a/project"], "a corrupt file provider must not disable the folder provider");
 }
 
 #[test]
@@ -151,7 +160,7 @@ fn searchprior_fix1_protocol_invalid_xml_keeps_fresh_ranking_after_providers_rea
         d.file("data/recently-used.xbel", &xml);
         d.script("bin/zoxide", &format!("#!/bin/sh\nprintf '90 %s\\n' '{}'\n", d.join("scope/z/project").display()));
         let mut backend = Backend::new(&d, &d.join("data"), "scope/a");
-        backend.eventually("project", 100, &["z/project", "a/project"]);
+        backend.eventually_after_reopen("project", 100, &["z/project", "a/project"]);
         let rows = backend.query(0, "report.rs", 100);
         println!("FB3_FIX1 malformed_name={name} rows={rows:?}");
         assert_eq!(rows, ["a/report.rs", "z/report.rs"], "the ready folder prior must not hide acceptance of malformed XML");
@@ -188,7 +197,7 @@ fn searchprior_fix1_protocol_searchclose_during_provider_load() {
 
 #[test]
 #[ignore]
-fn searchprior_fix1_protocol_adopts_ready_priors_on_a_new_query() {
+fn searchprior_fix1_protocol_adopts_ready_priors_on_a_new_open() {
     let d = fixture();
     let ready = d.join("provider-ready");
     let release = d.join("provider-release");
@@ -204,7 +213,7 @@ fn searchprior_fix1_protocol_adopts_ready_priors_on_a_new_query() {
         std::thread::sleep(Duration::from_millis(1));
     }
     d.file("provider-release", "ready\n");
-    backend.eventually("report.rs", 100, &["z/report.rs", "a/report.rs"]);
+    backend.eventually_after_reopen("report.rs", 100, &["z/report.rs", "a/report.rs"]);
     assert_eq!(backend.query(0, "project", 100), ["z/project", "a/project"]);
 }
 
@@ -214,7 +223,7 @@ fn corrupt_xml_after_readiness(form: &str, fragment: &str) {
     let history = d.file("data/recently-used.xbel", &xml);
     d.script("bin/zoxide", &format!("#!/bin/sh\nprintf '90 %s\\n' '{}'\n", d.join("scope/z/project").display()));
     let mut backend = Backend::new(&d, &d.join("data"), "scope/a");
-    backend.eventually("project", 100, &["z/project", "a/project"]);
+    backend.eventually_after_reopen("project", 100, &["z/project", "a/project"]);
     let rows = backend.query(0, "report.rs", 100);
     println!("FB3_FIX2 malformed={form} snapshot=ready rows={rows:?}");
     assert_eq!(std::fs::read(history).unwrap(), xml.as_bytes());

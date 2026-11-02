@@ -6,6 +6,7 @@ import os
 import socket
 import sys
 import types
+sys.dont_write_bytecode = True
 
 gi = types.ModuleType("gi")
 gi.require_version = lambda *args: None

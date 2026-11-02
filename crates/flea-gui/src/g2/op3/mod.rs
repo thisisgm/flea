@@ -8,10 +8,10 @@ mod card_tests;
 mod fixcards2_tests;
 #[cfg(test)]
 mod fixcards_tests;
+pub(crate) mod initial;
 pub mod keys;
 pub mod lane;
 pub mod openwith;
-pub(crate) mod initial;
 pub mod permissions;
 #[cfg(test)]
 mod permissions_tests;

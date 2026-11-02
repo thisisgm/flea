@@ -152,9 +152,10 @@ scope_src=$(sed -n '/^# only scope begin$/,/^# only scope end$/p' "$bench")
 scope_case() {
   (
     fail() { printf 'refused: %s\n' "$*"; exit 3; }
-    FLEA_UI=$scratch/ui; FLEA_BIN=$scratch/flea; FLEA_QMLCACHE=$scratch/qml; FIXTURE=$scratch; FIELD_FRONTEND=qml
+    FLEA_UI=$scratch/ui; FLEA_BIN=$scratch/flea; FLEA_QMLCACHE=$scratch/qml; FIXTURE=$scratch
+    FIELD_FRONTEND=${2:-qml}; FLEA_FRONTEND=$FIELD_FRONTEND
     # The selection check needs each selected entrant to exist, so stand-ins take their names.
-    mkdir -p "$scratch/bin"; for stand_in in "$scratch/flea" "$scratch/bin/thunar"; do printf '#!/bin/sh\n' > "$stand_in"; chmod +x "$stand_in"; done
+    mkdir -p "$scratch/bin"; for stand_in in "$scratch/flea" "$scratch/flea-gui" "$scratch/bin/thunar"; do printf '#!/bin/sh\n' > "$stand_in"; chmod +x "$stand_in"; done
     PATH="$scratch/bin:$PATH"
     FLEA_STATE=""; TUI_CONF=""; TUI_CLASS=flea-test-kitty; TUI_TERM=kitty; STRATA_BIN=$scratch/strata; WITH_ANCHOR=no
     eval "$entrant_src"; build_entrants
@@ -178,10 +179,15 @@ out=$(scope_case "flea thunr"); rc=$?
 check "ONLY=flea thunr refuses the whole selection" 3 "$rc"
 check "the ONLY refusal names the unknown word" "refused: ONLY names unknown entrant 'thunr'" "$out"
 out=$(scope_case "flea thunar"); rc=$?
-check "ONLY=flea thunar scopes both entrants and thunar's helper" "targets=qs|$scratch/ui flea|--backend thunar| tumblerd| selected=flea thunar
+check "ONLY=flea thunar scopes both QML entrants and thunar's helper" "targets=qs|$scratch/ui flea|--backend thunar| tumblerd| selected=flea thunar
 fresh state
 fresh config" "$out"
 check "a valid multi-word ONLY exits zero" 0 "$rc"
+out=$(scope_case "flea thunar" gpui); rc=$?
+check "ONLY=flea thunar scopes the GPUI child and thunar's helper" "targets=flea-gui|$scratch/flea-gui flea|--backend thunar| tumblerd| selected=flea thunar
+fresh state
+fresh config" "$out"
+check "a valid GPUI multi-word ONLY exits zero" 0 "$rc"
 
 # Run the capability tool's own roster read, so the earlier builder remains visible to its caller.
 cap_src=$(sed -n '/^# capability roster begin$/,/^# capability roster end$/p' tools/flea-bench-capability)

@@ -173,6 +173,7 @@ bad "empty set stays empty, got '$norm_empty'"
 fi
 # The probe verdict against the native lines that failed it: one torn pid (before "169083 ", after "169083 169306 ") reading as the lifted folder is the catcher drop.
 . "$repo/tests/probes/layer-drop-verdict.sh" || { bad "cannot source layer-drop-verdict.sh"; }
+flea_ipc_init qs
 torn_case=$(layerdrop_torn_pids "169083 " "169083 169306 " || true)
 if [ "$torn_case" = "169306" ]; then
 ok "native before/after leaves one torn pid: $torn_case"

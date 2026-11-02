@@ -61,7 +61,7 @@ esac
 
 # Exercise measured source bytes at each ratcheted debt, without reading the registry into the expected result.
 git -C "$scratch" init -q || exit 1
-for file in crates/flea-gui/src/rail/element.rs ui/PreviewMarkdown.qml; do
+for file in src/backend/thumbworker.rs ui/PreviewMarkdown.qml; do
   measured=$(wc -l < "$repo/$file") || exit 1
   if [ "$measured" -le 400 ]; then
     echo "FAIL measured-debt fixture: $file no longer exceeds the 400-line hard cap"

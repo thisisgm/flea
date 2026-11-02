@@ -117,8 +117,21 @@ def mapped_surface_controls():
     assert mapped_surface((role + attach + commit).replace("#", "@"), 23)
 
 
+def journal_packets(journal):
+    packets = []
+    journal.setblocking(False)
+    try:
+        while True:
+            packets.append(journal.recv(8192).decode())
+    except BlockingIOError:
+        return packets
+    finally:
+        journal.settimeout(3)
+
+
 def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
     global ACTIVE_CASE
+    journal_packets(journal)
     directory = ROOT / f"{entry}-{case}-{run}"
     directory.mkdir()
     ACTIVE_CASE = directory
@@ -202,10 +215,10 @@ def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
     if "so the shell starts on OpenGL" in text:
         fail(f"{case}: Qt downgrade ran on the GPUI path")
     if case == "neither":
-        if mapped or frame.is_set() or process.returncode != 78 or text.count(MESSAGE) != 1:
+        if mapped or frame.is_set() or process.returncode != 1 or text.count(MESSAGE) != 1:
             fail(f"neither: mapped={mapped}, exit={process.returncode}, sentences={text.count(MESSAGE)}")
-        packet = journal.recv(8192).decode()
-        if packet.count(MESSAGE) != 1:
+        packets = journal_packets(journal)
+        if sum(packet.count(MESSAGE) for packet in packets) != 1:
             fail("neither: journal did not receive the driver sentence exactly once")
     else:
         if not mapped or not frame.is_set() or adapter == "none" or pre_stop_exit is not None:

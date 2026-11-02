@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Keep compositor command construction inside the typed helper."""
 import json
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -12,6 +13,12 @@ EXEMPT_FILES = (
     "tests/hypr-dispatch-proof.py",  # The proof executes raw command fixtures against a fake compositor.
     "tests/hyprdispatch.py",  # The scanner contains the words and patterns that it refuses elsewhere.
 )
+# These exact offline fixtures construct and assert fake compositor commands; every content change requires review.
+PINNED_FIXTURES = {
+    "tests/bench-thumbs-native.py": "32a14778e29e218af130d0d9f7357dc3cc11be5dd6ccf7e251b69f4758449b7d",
+    "tests/bench-thumbs-safety.py": "713f4a97a4379ea5116ba1a0e0da582c6d1b28d257d8c322e2f2eb312839634c",
+    "tests/bench-thumbs-stub.py": "cf5a1e5bb58cd267cdfa0c510564fd9bd2b8a73f7f96df114ec9959122a5467c",
+}
 SOURCE_SUFFIXES = (".sh", ".py", ".qml", ".js")
 COMMENT_PREFIXES = ("#", "//")
 FIRST_LINE = 1
@@ -62,15 +69,31 @@ def scan(text, helper_file=False):
     return count, sorted(issues, key=lambda issue: issue[0])
 
 
+def scan_source(relative, text):
+    pinned_fixture = hashlib.sha256(text.encode()).hexdigest() == PINNED_FIXTURES.get(relative)
+    return scan(text, helper_file=relative in EXEMPT_FILES or pinned_fixture)
+
+
 def main():
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
     fixtures = json.loads(Path(__file__).with_name("fixtures").joinpath("hypr-dispatch.json").read_text())
     problems = []
     calls = 0
+    pinned_controls = 0
     files = sorted(path for path in (root / "tests").rglob("*") if path.suffix in SOURCE_SUFFIXES)
     for path in files:
         relative = path.relative_to(root).as_posix()
-        count, issues = scan(path.read_text(), helper_file=relative in EXEMPT_FILES)
+        text = path.read_text()
+        count, issues = scan_source(relative, text)
+        if relative in PINNED_FIXTURES:
+            if hashlib.sha256(text.encode()).hexdigest() != PINNED_FIXTURES[relative]:
+                problems.append(f"{relative}: offline fixture changed; review its command data before renewing the pin")
+            else:
+                mutant = text + "\nhyprctl dispatch unsafe\n"
+                _, mutant_issues = scan_source(relative, mutant)
+                if (len(mutant.splitlines()), "hypr-window-reply") not in mutant_issues:
+                    problems.append(f"{relative}: changed fixture bypassed the dispatcher scanner")
+                pinned_controls += 1
         calls += count
         problems.extend(f"{relative}:{line}: {rule}" + (RAW_REFUSAL_ADVICE if rule == "hypr-window-reply" else "")
                         for line, rule in issues)
@@ -89,6 +112,7 @@ def main():
         problems.append("empty source or fixture sweep")
     for problem in problems:
         print("FAIL " + problem)
+    print(f"hypr-dispatch fixture controls: {pinned_controls} reviewed contents accepted; changed contents scanned")
     print(f"hypr-window-dispatch: {len(files)} file(s), {calls} call(s), {len(problems)} problem(s)")
     return bool(problems)
 

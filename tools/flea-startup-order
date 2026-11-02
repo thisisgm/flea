@@ -3,6 +3,7 @@
 set -euo pipefail
 # This tool reads machine output; record opens one Flea window in the running session and closes it.
 export LC_ALL=C.UTF-8
+unset LANGUAGE
 repo=$(cd "$(dirname "$0")/.." && pwd)
 list="$repo/crates/flea-gui/startup-order.txt"
 
