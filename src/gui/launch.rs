@@ -122,6 +122,12 @@ fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str,
             .then_some(carry.select.as_deref())
             .flatten()
     });
+    // Only the main window warms and records; a picker or unlock launch keeps the window's list.
+    let warm = if special.is_none() {
+        Warm::launch(start)
+    } else {
+        Warm::default()
+    };
     settle_state();
     let mut cmd = gpui_argv(&binary, start, select);
     let selection = crate::jsondoc::Json::Arr(
@@ -137,6 +143,7 @@ fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str,
         crate::jsondoc::render(&crate::jsondoc::Json::Arr(carry.windows)),
     );
     configure_gpui(&mut cmd);
+    warm.hand_to(&mut cmd, start);
     if let Some((key, value)) = special {
         cmd.env(key, value);
     }
@@ -147,6 +154,44 @@ fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str,
         binary.display()
     );
     1
+}
+
+// The page-cache list and the gvfs head start a main window launch hands its window; see AGENTS.md "The first window".
+#[derive(Default)]
+struct Warm {
+    list: Option<PathBuf>,
+    gvfs: Option<(PathBuf, u64)>,
+}
+
+impl Warm {
+    // One helper fork for both jobs, before any other read this launch makes.
+    fn launch(start: Option<&str>) -> Self {
+        let list = prefetch::list_path();
+        let prepared = start.and_then(crate::gvfsprefetch::prepare);
+        let gvfs_arg = match (&prepared, start) {
+            (Some((dest, _)), Some(path)) => Some((path, dest.as_path())),
+            _ => None,
+        };
+        let warmed = crate::gui::warm_all(list.as_deref(), gvfs_arg);
+        Warm {
+            list,
+            gvfs: prepared.filter(|_| warmed),
+        }
+    }
+
+    fn hand_to(&self, cmd: &mut Command, start: Option<&str>) {
+        if let Some(list) = &self.list {
+            cmd.env(prefetch::LIST_ENV, list);
+            // exec keeps this pid, so it is the window's own, and its backend records the window's pages.
+            cmd.env(prefetch::SHELL_ENV, std::process::id().to_string());
+        }
+        if let Some((dest, start_ms)) = &self.gvfs {
+            cmd.env(crate::gvfsprefetch::PREFETCH_ENV, dest);
+            // The window's backend inherits this, so the first scan of this path can adopt the file.
+            cmd.env(crate::gvfsprefetch::PATH_ENV, start.unwrap_or_default());
+            cmd.env(crate::gvfsprefetch::START_ENV, start_ms.to_string());
+        }
+    }
 }
 
 fn gpui_pick_argv(binary: &Path, reply: &str) -> Command {

@@ -360,3 +360,6 @@ mod sandbox;
 
 #[path = "gpui_launcher/cutover.rs"]
 mod cutover;
+
+#[path = "gpui_launcher/prefetch.rs"]
+mod prefetch;

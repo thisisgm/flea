@@ -46,6 +46,15 @@ struct Range {
     length: u64,
 }
 
+// $XDG_CACHE_HOME/flea/prefetch, or None when there is no home to put it in.
+pub fn list_path() -> Option<PathBuf> {
+    let cache = match crate::userfile::env_dir("XDG_CACHE_HOME") {
+        Some(dir) => dir,
+        None => crate::userfile::env_dir("HOME")?.join(".cache"),
+    };
+    Some(cache.join("flea/prefetch"))
+}
+
 // The page-cache half the combined launch helper shares: the same bounded read and advice, no fork.
 pub(crate) fn do_warm(list: &Path) {
     let Some(text) = read_bounded(list) else { return };
