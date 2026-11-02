@@ -242,3 +242,96 @@ fn fixpreview_ey507_a_click_on_the_column_preview_keeps_the_listing_keys(cx: &mu
         "Right opens Quick Look on the file"
     );
 }
+
+#[gpui::test]
+fn sol_preview_remainder_ey545_held_meta_keeps_frame_mark_name_and_facts(cx: &mut TestAppContext) {
+    held_column(cx, "meta");
+}
+
+#[gpui::test]
+fn sol_preview_remainder_ey545_held_html_keeps_frame_mark_name_and_facts(cx: &mut TestAppContext) {
+    held_column(cx, "html");
+}
+
+fn held_column(cx: &mut TestAppContext, held: &str) {
+    use super::previewtypes_kinds_tests::Root;
+    cx.executor().allow_parking();
+    for colors in [
+        "background='#141414'\nforeground='#d0cbc7'",
+        "background='#eff1f5'\nforeground='#4c4f69'",
+    ] {
+        for (name, icon, kind, hold) in [
+            ("image-jpg.jpg", "image-jpeg", "JPEG image", "meta"),
+            ("code-html.html", "text-html", "HTML document", "html"),
+        ] {
+            if hold != held {
+                continue;
+            }
+            let root = Root::new("ey545");
+            let dir = root.0.to_string_lossy().into_owned();
+            let page = root.0.join("page.png");
+            image::RgbImage::from_pixel(32, 24, image::Rgb([255; 3]))
+                .save(&page)
+                .unwrap();
+            if hold == "html" {
+                std::fs::write(root.0.join(name), "<p>sweep</p>").unwrap();
+            } else {
+                std::fs::write(
+                    root.0.join(name),
+                    include_bytes!("../../../tests/fixtures/ey545-image-jpg.jpg"),
+                )
+                .unwrap();
+            }
+            let (shell, cx) = super::previewtypes_tests::open_at(cx, &dir, Some(14.));
+            cx.update(|_, cx| cx.set_global(crate::palette::Theme::from_text(colors)));
+            let mut row = file(name, icon, kind, 0o100644);
+            row.size = 4800;
+            land(&shell, cx, &dir, vec![row], 1);
+            let mut lines = local(&shell, cx, &dir);
+            assert!(!ask(&lines, "meta").is_empty(), "meta request is held");
+            if hold == "html" {
+                meta(&shell, cx, &lines, "");
+                lines.extend(pump(cx));
+                assert!(ask(&lines, "html").contains(r#""slot":"column""#));
+            }
+            pump(cx);
+            cx.executor()
+                .advance_clock(std::time::Duration::from_millis(1200));
+            pump(cx);
+            assert_eq!(read(&shell, cx, "previewColumnState", &[]), "loading");
+            for selector in [
+                "column-preview-frame",
+                "column-preview-waiting",
+                "column-preview-name",
+                "column-preview-facts",
+            ] {
+                assert!(cx.debug_bounds(selector).is_some(), "{name}: {selector}");
+            }
+            let mark = cx
+                .debug_bounds("column-preview-loading-mark")
+                .expect("Omi mark");
+            assert_eq!(f32::from(mark.size.width), crate::feedback::spinner::HERO);
+            assert_eq!(f32::from(mark.size.height), crate::feedback::spinner::HERO);
+            let facts = read(&shell, cx, "previewFacts", &[]);
+            assert_eq!(facts, format!("Kind={kind}|Size=4.8 kB|State=loading"));
+            if hold == "html" {
+                answer(
+                    &shell,
+                    cx,
+                    &format!(
+                        r#"{{"t":"html","token":{},"slot":"column","state":"ready","file":"{}","total":1,"width":32,"title":""}}"#,
+                        field(ask(&lines, "html"), "token"),
+                        page.display()
+                    ),
+                );
+            } else {
+                meta(&shell, cx, &lines, r#","w":320,"h":240"#);
+                super::previewtypes_tests::thumbed(&shell, cx, &lines, 0, "");
+            }
+            pump(cx);
+            assert!(cx.debug_bounds("column-preview-waiting").is_none());
+            assert_ne!(read(&shell, cx, "previewColumnState", &[]), "loading");
+            assert!(!read(&shell, cx, "previewFacts", &[]).contains("State=loading"));
+        }
+    }
+}

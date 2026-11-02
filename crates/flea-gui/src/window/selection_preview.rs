@@ -381,6 +381,7 @@ pub struct SelectionPreview {
     pub(crate) automatic: bool,
     pub(crate) media_backend: Option<Rc<dyn crate::g2::pv3::engine::Backend>>,
     pub(crate) caches: crate::g2::pv3::surface::Caches,
+    pub(crate) loading_mark: Rc<crate::feedback::spinner::Crawl>,
     pub(crate) epoch: Instant,
     pub(crate) timer: Option<(u64, Task<()>)>,
     pub(crate) gif: Option<picture::GifClock>,
