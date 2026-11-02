@@ -158,6 +158,10 @@ impl Shell {
         let Some(mut doc) = prepared.or_else(|| mounting.mount(kind, window, cx)) else {
             return false;
         };
+        if let View::Markdown(view) = &doc.view {
+            let shown = host.markdown_view;
+            view.update(cx, |view, cx| view.set_view(shown, cx));
+        }
         if let View::Code(code) = &doc.view {
             if let Some(hit) = self.panes[side]
                 .as_ref()

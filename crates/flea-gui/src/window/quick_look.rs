@@ -84,6 +84,8 @@ pub(crate) struct Host {
     pub meta: u64,
     /// The decoder media plays through; None uses the sandboxed helper.
     pub backend: Option<std::rc::Rc<dyn crate::g2::pv3::engine::Backend>>,
+    /// Preview.qml markdownSource lasts until the card closes, including moves through other kinds.
+    markdown_view: crate::g2::pv2::markdown::View,
     cap: Option<Task<()>>,
     _events: Subscription,
     _drain: Task<()>,
@@ -133,6 +135,7 @@ impl Shell {
                 wire,
                 meta: 0,
                 backend: None,
+                markdown_view: Default::default(),
                 cap: None,
                 _events: events,
                 _drain: drain,
@@ -148,6 +151,7 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_bool)
             != Some(false);
         let host = self.quick_look.as_mut().expect("built above");
+        docs::remember_markdown(host, cx);
         host.view
             .update(cx, |view, cx| view.set_languages(languages, cx));
         host.side = side;
@@ -315,6 +319,7 @@ impl Shell {
         let Some(host) = self.quick_look.as_mut() else {
             return;
         };
+        host.markdown_view = Default::default();
         if host.token == 0
             && host.ask == Ask::Nothing
             && host.row.is_none()
