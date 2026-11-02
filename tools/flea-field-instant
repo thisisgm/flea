@@ -1315,7 +1315,12 @@ def enter_row(sess, name):
 def reach(sess, want, base, via, kids):
     """Walk the pane to want: from a folder in kids Backspace climbs to base (Nav.js parent cuts the pane path), Enter on via goes down."""
     base_real = os.path.realpath(base)
-    for _ in range(NAV_STEPS):
+    initial = sess.ipc("path")
+    extra_parents = max(
+        0, os.path.normpath(initial).count(os.sep) - os.path.normpath(base).count(os.sep) - 1,
+        os.path.realpath(initial).count(os.sep) - base_real.count(os.sep) - 1)
+    max_steps = NAV_STEPS + extra_parents
+    for _ in range(max_steps):
         here = sess.ipc("path")
         if same_dir(here, want):
             return
@@ -1325,7 +1330,10 @@ def reach(sess, want, base, via, kids):
             nav_key(sess, "backspace")
         else:
             raise HarnessFault("the pane is at %r, outside %s" % (here, base))
-    raise HarnessFault("the pane did not reach %s in %d keys, it is at %r" % (want, NAV_STEPS, sess.ipc("path")))
+    here = sess.ipc("path")
+    if same_dir(here, want):
+        return
+    raise HarnessFault("the pane did not reach %s in %d keys, it is at %r" % (want, max_steps, here))
 
 
 def listed_total(sess, count, cap_s=None):
