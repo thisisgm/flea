@@ -1,7 +1,7 @@
-total clone_lines 5219 245670
-total bool_structs 92
-total backend_imports 15
-total unwraps 517
+total clone_lines 5140 250429
+total bool_structs 95
+total backend_imports 16
+total unwraps 526
 bool_structs crates/flea-gui/src/columns/menu.rs Busy 1
 bool_structs crates/flea-gui/src/columns/preview_host.rs Moment 1
 bool_structs crates/flea-gui/src/columns/sets.rs Set 1
@@ -14,6 +14,7 @@ bool_structs crates/flea-gui/src/g2/op2/cards.rs Field 1
 bool_structs crates/flea-gui/src/g2/op2/compress.rs Compress 1
 bool_structs crates/flea-gui/src/g2/op2/flash/mod.rs Flash 1
 bool_structs crates/flea-gui/src/g2/op2/flash/view.rs StepRow 1
+bool_structs crates/flea-gui/src/g2/op3/openwith.rs OpenWith 1
 bool_structs crates/flea-gui/src/g2/pl1/devices.rs Devices 1
 bool_structs crates/flea-gui/src/g2/pl1/listing.rs Listing 1
 bool_structs crates/flea-gui/src/g2/pl1/source.rs Source 1
@@ -31,6 +32,7 @@ bool_structs crates/flea-gui/src/g2/st1/claim.rs Claim 1
 bool_structs crates/flea-gui/src/grid/element.rs Drawn 1
 bool_structs crates/flea-gui/src/grid/pictures/policy.rs Policy 1
 bool_structs crates/flea-gui/src/ipc/rail_network.rs NetworkBuilt 1
+bool_structs crates/flea-gui/src/ipc/window_feedback.rs FeedbackAdapter 1
 bool_structs crates/flea-gui/src/list.rs ListView 1
 bool_structs crates/flea-gui/src/list.rs RowState 1
 bool_structs crates/flea-gui/src/navigation/anchor.rs Anchor 1
@@ -92,6 +94,7 @@ bool_structs src/ui_logic_pv2/markdown_figure_service.rs Service 1
 bool_structs src/ui_logic_pv2/markdown_figure_store.rs Store 1
 bool_structs src/ui_logic_pv2/markdown_rich_types.rs Style 1
 bool_structs src/ui_logic_pv3/transport.rs Transport 1
+bool_structs src/ui_logic_sd1/providers.rs Facts 1
 bool_structs src/ui_logic_st1/rows.rs Row 1
 bool_structs src/ui_logic_st2/shelf.rs Input 1
 clone_lines crates/flea-gui/src/columns/cache.rs crates/flea-gui/src/g2/pl3/list.rs 1
@@ -104,7 +107,6 @@ clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/dg1/flock
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/fb1/caption.rs 5
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 9
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/fb1/mark.rs 4
-clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/mn1/element.rs 9
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/op1/glyph.rs 5
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/g2/op1/line.rs 2
@@ -136,7 +138,7 @@ clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/path/menu.rs 13
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/path/paint_element.rs 13
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/rail/element.rs 13
-clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/tabs/bar.rs 13
+clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/tabs/bar_element.rs 11
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/window/rename_field.rs 10
 clone_lines crates/flea-gui/src/columns/edge.rs crates/flea-gui/src/window/root.rs 10
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/feedback/spinner.rs 6
@@ -145,7 +147,6 @@ clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/fb1/ca
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/fb1/empty_omi.rs 3
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 5
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/fb1/mark.rs 4
-clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/mn1/element.rs 5
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/op1/glyph.rs 4
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/g2/op1/line.rs 2
@@ -177,7 +178,7 @@ clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/path/fiel
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/path/menu.rs 17
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/columns/element.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/columns/glyphs.rs crates/flea-gui/src/g2/pl3/board.rs 4
@@ -187,7 +188,6 @@ clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/fb1/c
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/fb1/empty_omi.rs 10
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 3
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/fb1/mark.rs 2
-clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/mn1/element.rs 3
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/op1/field.rs 1
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/op1/glyph.rs 2
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/g2/op4/body_scroll.rs 2
@@ -218,13 +218,12 @@ clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/path/fie
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/path/menu.rs 6
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/path/paint_element.rs 6
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/rail/element.rs 6
-clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/tabs/bar.rs 6
+clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/tabs/bar_element.rs 6
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/window/rename_field.rs 3
 clone_lines crates/flea-gui/src/feedback/spinner.rs crates/flea-gui/src/window/root.rs 3
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/fb1/caption.rs 7
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 21
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/fb1/mark.rs 6
-clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/mn1/element.rs 8
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/op1/glyph.rs 7
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/g2/op1/line.rs 3
@@ -256,14 +255,13 @@ clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/window/rename_field.rs 8
 clone_lines crates/flea-gui/src/g2/dg1/flock.rs crates/flea-gui/src/window/root.rs 13
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/caption.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/empty_omi.rs 10
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/hero_paint.rs 7
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/fb1/mark.rs 6
-clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/mn1/element.rs 5
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/glyph.rs 29
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/g2/op1/line.rs 4
@@ -295,7 +293,7 @@ clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/path/field
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/path/menu.rs 8
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/path/paint_element.rs 8
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/rail/element.rs 8
-clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/tabs/bar.rs 8
+clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/tabs/bar_element.rs 6
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/fb1/caption.rs crates/flea-gui/src/window/root.rs 7
 clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/g2/op1/glyph.rs 1
@@ -320,9 +318,8 @@ clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/path/fie
 clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/path/menu.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/path/paint_element.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/rail/element.rs 3
-clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/tabs/bar.rs 3
+clone_lines crates/flea-gui/src/g2/fb1/empty_omi.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/g2/fb1/mark.rs 6
-clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/g2/mn1/element.rs 9
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/g2/op1/glyph.rs 7
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/g2/op1/line.rs 3
@@ -354,10 +351,9 @@ clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/path/fi
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/window/rename_field.rs 9
 clone_lines crates/flea-gui/src/g2/fb1/hero_paint.rs crates/flea-gui/src/window/root.rs 15
-clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/g2/mn1/element.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/g2/mn1/glyphs.rs 1
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/g2/op1/field.rs 3
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/g2/op1/glyph.rs 12
@@ -393,43 +389,9 @@ clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/path/menu.rs 
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/path/paint_element.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/rail/element.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/row/marks.rs 2
-clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/tabs/bar.rs 4
+clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/tabs/bar_element.rs 2
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/fb1/mark.rs crates/flea-gui/src/window/root.rs 6
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/op1/field.rs 3
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/op1/glyph.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/op1/line.rs 2
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/op4/body_scroll.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/op4/preview.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pk1/text.rs 3
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pl1/mark.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pl2/browser.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pl2/drawing.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pl3/glyph.rs 7
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pl3/list.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pv1/shield.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pv3/strip.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pv3/view.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pv4/element.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/pv4/parts.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/sd1/view.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/sd2/sweep.rs 7
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/sr1/contents.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/sr1/strip.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/sr2/strip.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/st1/input/field.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/g2/st2/mark.rs 7
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/grid/element/paint.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/list/element.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/list/header_element.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/locale_geometry.rs 4
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/path/field.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/path/menu.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/path/paint_element.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/tabs/bar.rs 5
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/window/rename_field.rs 10
-clone_lines crates/flea-gui/src/g2/mn1/element.rs crates/flea-gui/src/window/root.rs 10
 clone_lines crates/flea-gui/src/g2/mn1/glyphs.rs crates/flea-gui/src/g2/pl1/mark.rs 1
 clone_lines crates/flea-gui/src/g2/mn1/glyphs.rs crates/flea-gui/src/g2/pv1/glyph.rs 1
 clone_lines crates/flea-gui/src/g2/mn1/glyphs.rs crates/flea-gui/src/g2/st2/glyphs.rs 3
@@ -479,7 +441,7 @@ clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/path/menu.rs 3
 clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/path/paint_element.rs 3
 clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/rail/element.rs 3
-clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/tabs/bar.rs 3
+clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/tabs/bar_element.rs 1
 clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/window/rename_field.rs 3
 clone_lines crates/flea-gui/src/g2/op1/field.rs crates/flea-gui/src/window/root.rs 3
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/g2/op1/glyph.rs 6
@@ -512,7 +474,7 @@ clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/path/menu.rs 4
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/path/paint_element.rs 4
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/rail/element.rs 4
-clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/tabs/bar.rs 4
+clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/tabs/bar_element.rs 2
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/op1/glyph.rs crates/flea-gui/src/window/root.rs 7
 clone_lines crates/flea-gui/src/g2/op1/input.rs crates/flea-gui/src/g2/op3/permissions/host/ime.rs 2
@@ -554,7 +516,6 @@ clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/path/field.rs
 clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/path/menu.rs 2
 clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/path/paint_element.rs 2
 clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/rail/element.rs 2
-clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/tabs/bar.rs 2
 clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/window/rename_field.rs 2
 clone_lines crates/flea-gui/src/g2/op1/line.rs crates/flea-gui/src/window/root.rs 3
 clone_lines crates/flea-gui/src/g2/op1/palette.rs crates/flea-gui/src/g2/st1/seams.rs 1
@@ -563,8 +524,8 @@ clone_lines crates/flea-gui/src/g2/op2/cards.rs crates/flea-gui/src/g2/op3/shell
 clone_lines crates/flea-gui/src/g2/op2/compress.rs crates/flea-gui/src/g2/op2/extract.rs 10
 clone_lines crates/flea-gui/src/g2/op2/compress_view.rs crates/flea-gui/src/g2/op2/extract.rs 1
 clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op2/draw_flash.rs 1
-clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op3/shell/draw.rs 8
 clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op3/shell/draw/frame.rs 4
+clone_lines crates/flea-gui/src/g2/op2/draw.rs crates/flea-gui/src/g2/op3/shell/field.rs 8
 clone_lines crates/flea-gui/src/g2/op2/draw_flash_rows.rs crates/flea-gui/src/g2/op2/draw_flash_rows.rs 5
 clone_lines crates/flea-gui/src/g2/op2/host.rs crates/flea-gui/src/window/properties.rs 1
 clone_lines crates/flea-gui/src/g2/op2/host/layer.rs crates/flea-gui/src/g2/plugins/input.rs 1
@@ -583,7 +544,7 @@ clone_lines crates/flea-gui/src/g2/op3/permissions/host/ime.rs crates/flea-gui/s
 clone_lines crates/flea-gui/src/g2/op3/permissions/host/ime.rs crates/flea-gui/src/path/input.rs 3
 clone_lines crates/flea-gui/src/g2/op3/permissions/host/ime.rs crates/flea-gui/src/strips/query_input.rs 1
 clone_lines crates/flea-gui/src/g2/op3/permissions/host/ime.rs crates/flea-gui/src/window/rename_input.rs 1
-clone_lines crates/flea-gui/src/g2/op3/shell/draw.rs crates/flea-gui/src/g2/op3/shell/draw.rs 3
+clone_lines crates/flea-gui/src/g2/op3/shell/draw.rs crates/flea-gui/src/g2/op3/shell/draw.rs 6
 clone_lines crates/flea-gui/src/g2/op3/shell/draw.rs crates/flea-gui/src/g2/op3/shell/pressable.rs 2
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/g2/op4/preview.rs 4
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/g2/pk1/text.rs 3
@@ -612,7 +573,7 @@ clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/path/f
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/op4/body_scroll.rs crates/flea-gui/src/window/root.rs 9
 clone_lines crates/flea-gui/src/g2/op4/combine.rs crates/flea-gui/src/g2/op4/input.rs 1
@@ -651,7 +612,7 @@ clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/path/field
 clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/path/menu.rs 4
 clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/path/paint_element.rs 4
 clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/rail/element.rs 4
-clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/tabs/bar.rs 4
+clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/tabs/bar_element.rs 2
 clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/op4/preview.rs crates/flea-gui/src/window/root.rs 4
 clone_lines crates/flea-gui/src/g2/op4/printer_menu.rs crates/flea-gui/src/g2/op4/printer_menu.rs 6
@@ -689,7 +650,7 @@ clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/path/field.rs
 clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/path/menu.rs 3
 clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/path/paint_element.rs 3
 clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/rail/element.rs 3
-clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/tabs/bar.rs 3
+clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/tabs/bar_element.rs 1
 clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/window/rename_field.rs 3
 clone_lines crates/flea-gui/src/g2/pk1/text.rs crates/flea-gui/src/window/root.rs 3
 clone_lines crates/flea-gui/src/g2/pk2/surface.rs crates/flea-gui/src/g2/pk2/surface.rs 1
@@ -724,7 +685,7 @@ clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/path/menu.rs 
 clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/path/paint_element.rs 4
 clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/rail/element.rs 4
 clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/row/marks.rs 1
-clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/tabs/bar.rs 4
+clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/tabs/bar_element.rs 2
 clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/pl1/mark.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/pl1/rail_events.rs crates/flea-gui/src/window/unlock.rs 2
@@ -751,7 +712,7 @@ clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/path/field
 clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/pl2/browser.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/g2/pl3/glyph.rs 4
@@ -777,7 +738,7 @@ clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/path/menu.
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/path/paint.rs 1
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/pl2/drawing.rs crates/flea-gui/src/window/root.rs 4
 clone_lines crates/flea-gui/src/g2/pl2/input.rs crates/flea-gui/src/g2/pl4/producer_ime.rs 1
@@ -807,7 +768,7 @@ clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/window/rename_field.rs 7
 clone_lines crates/flea-gui/src/g2/pl3/glyph.rs crates/flea-gui/src/window/root.rs 9
 clone_lines crates/flea-gui/src/g2/pl3/ink.rs crates/flea-gui/src/g2/st1/seams.rs 1
@@ -839,7 +800,7 @@ clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/path/menu.rs 
 clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/rail/element.rs 17
 clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/rail/text.rs 1
-clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/pl3/list.rs crates/flea-gui/src/window/root.rs 8
 clone_lines crates/flea-gui/src/g2/pl4/producer_ime.rs crates/flea-gui/src/path/input.rs 2
@@ -855,7 +816,7 @@ clone_lines crates/flea-gui/src/g2/pv1/glyph.rs crates/flea-gui/src/g2/st2/glyph
 clone_lines crates/flea-gui/src/g2/pv1/glyph.rs crates/flea-gui/src/row/marks.rs 2
 clone_lines crates/flea-gui/src/g2/pv1/observed_frames.rs crates/flea-gui/src/window/selection_preview_frames.rs 3
 clone_lines crates/flea-gui/src/g2/pv1/photo.rs crates/flea-gui/src/g2/pv1/photo.rs 1
-clone_lines crates/flea-gui/src/g2/pv1/photo_png.rs crates/flea-gui/src/g2/pv1/photo_png_first.rs 32
+clone_lines crates/flea-gui/src/g2/pv1/photo_png.rs crates/flea-gui/src/g2/pv1/photo_png_first.rs 21
 clone_lines crates/flea-gui/src/g2/pv1/scroller.rs crates/flea-gui/src/g2/pv1/scroller_overlay.rs 1
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/g2/pv3/strip.rs 6
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/g2/pv3/view.rs 6
@@ -876,7 +837,7 @@ clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/path/field.
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/g2/pv1/shield.rs crates/flea-gui/src/window/root.rs 4
 clone_lines crates/flea-gui/src/g2/pv2/code/selection.rs crates/flea-gui/src/g2/pv2/markdown/selection.rs 2
@@ -908,7 +869,7 @@ clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/path/menu.rs
 clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/path/paint.rs 1
 clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/path/paint_element.rs 8
 clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/rail/element.rs 8
-clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/tabs/bar.rs 8
+clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/tabs/bar_element.rs 6
 clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/pv3/strip.rs crates/flea-gui/src/window/root.rs 5
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/g2/pv4/element.rs 8
@@ -929,7 +890,7 @@ clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/path/menu.rs 
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/path/paint_element.rs 8
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/rail/element.rs 8
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/rail/text.rs 1
-clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/tabs/bar.rs 8
+clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/tabs/bar_element.rs 6
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/pv3/view.rs crates/flea-gui/src/window/root.rs 5
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/g2/pv4/parts.rs 22
@@ -948,7 +909,7 @@ clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/path/field
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/path/menu.rs 17
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/pv4/element.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/g2/sd1/view.rs 17
@@ -966,7 +927,7 @@ clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/path/menu.rs 16
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/path/paint_element.rs 16
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/rail/element.rs 16
-clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/tabs/bar.rs 16
+clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/tabs/bar_element.rs 14
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/pv4/parts.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/sd1/join_process.rs crates/flea-gui/src/window/network_path.rs 1
@@ -986,7 +947,8 @@ clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/path/menu.rs 
 clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/path/paint.rs 1
 clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/path/paint_element.rs 16
 clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/rail/element.rs 16
-clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/tabs/bar.rs 1
+clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/tabs/bar_element.rs 14
 clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/sd1/view.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/g2/sr1/contents.rs 10
@@ -1002,7 +964,7 @@ clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/window/rename_field.rs 7
 clone_lines crates/flea-gui/src/g2/sd2/sweep.rs crates/flea-gui/src/window/root.rs 9
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/g2/sr1/strip.rs 14
@@ -1017,7 +979,7 @@ clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/path/fiel
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/path/menu.rs 16
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/path/paint_element.rs 16
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/rail/element.rs 16
-clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/tabs/bar.rs 16
+clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/tabs/bar_element.rs 14
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/sr1/contents.rs crates/flea-gui/src/window/root.rs 8
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/g2/sr2/strip.rs 9
@@ -1031,7 +993,7 @@ clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/path/menu.rs 9
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/path/paint_element.rs 9
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/rail/element.rs 9
-clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/tabs/bar.rs 9
+clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/tabs/bar_element.rs 7
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/sr1/strip.rs crates/flea-gui/src/window/root.rs 7
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/g2/st1/input/field.rs 9
@@ -1045,7 +1007,7 @@ clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/path/menu.rs
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/path/paint_element.rs 9
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/rail/element.rs 9
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/strips/filter_query.rs 1
-clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/tabs/bar.rs 9
+clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/tabs/bar_element.rs 7
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/window/rename_field.rs 5
 clone_lines crates/flea-gui/src/g2/sr2/strip.rs crates/flea-gui/src/window/root.rs 5
 clone_lines crates/flea-gui/src/g2/st1/input.rs crates/flea-gui/src/path/render.rs 8
@@ -1058,7 +1020,7 @@ clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/path/f
 clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/path/menu.rs 17
 clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/g2/st1/input/field.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/g2/st1/panel/search_keys.rs crates/flea-gui/src/g2/st1/sheet_view.rs 1
@@ -1075,7 +1037,7 @@ clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/path/field.rs
 clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/path/menu.rs 5
 clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/path/paint_element.rs 5
 clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/rail/element.rs 5
-clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/tabs/bar.rs 5
+clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/tabs/bar_element.rs 3
 clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/window/rename_field.rs 7
 clone_lines crates/flea-gui/src/g2/st2/mark.rs crates/flea-gui/src/window/root.rs 9
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/list/element.rs 17
@@ -1085,7 +1047,7 @@ clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/path/f
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/path/menu.rs 24
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/grid/element/paint.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/grid/geometry.rs crates/flea-gui/src/list/measure.rs 3
@@ -1104,7 +1066,7 @@ clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/path/field.r
 clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/path/menu.rs 17
 clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/list/element.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/locale_geometry.rs 3
@@ -1112,41 +1074,41 @@ clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/path/
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/path/menu.rs 8
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/path/paint_element.rs 8
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/rail/element.rs 8
-clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/tabs/bar.rs 8
+clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/tabs/bar_element.rs 6
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/list/header_element.rs crates/flea-gui/src/window/root.rs 4
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/path/field.rs 3
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/path/menu.rs 3
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/path/paint_element.rs 3
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/rail/element.rs 3
-clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/tabs/bar.rs 3
+clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/tabs/bar_element.rs 2
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/window/rename_field.rs 4
 clone_lines crates/flea-gui/src/locale_geometry.rs crates/flea-gui/src/window/root.rs 5
 clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/path/menu.rs 17
 clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/path/field.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/path/input.rs crates/flea-gui/src/strips/query_input.rs 1
 clone_lines crates/flea-gui/src/path/input.rs crates/flea-gui/src/window/rename_input.rs 1
 clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/path/paint_element.rs 17
 clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/path/menu.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/path/paint.rs crates/flea-gui/src/tabs/bar.rs 1
 clone_lines crates/flea-gui/src/path/paint_element.rs crates/flea-gui/src/rail/element.rs 17
-clone_lines crates/flea-gui/src/path/paint_element.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/path/paint_element.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/path/paint_element.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/path/paint_element.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/presentation/service.rs crates/flea-gui/src/window/locale.rs 2
-clone_lines crates/flea-gui/src/rail/element.rs crates/flea-gui/src/tabs/bar.rs 17
+clone_lines crates/flea-gui/src/rail/element.rs crates/flea-gui/src/tabs/bar_element.rs 15
 clone_lines crates/flea-gui/src/rail/element.rs crates/flea-gui/src/window/rename_field.rs 6
 clone_lines crates/flea-gui/src/rail/element.rs crates/flea-gui/src/window/root.rs 6
 clone_lines crates/flea-gui/src/strips/query_input.rs crates/flea-gui/src/window/rename_input.rs 1
-clone_lines crates/flea-gui/src/tabs/bar.rs crates/flea-gui/src/window/rename_field.rs 6
-clone_lines crates/flea-gui/src/tabs/bar.rs crates/flea-gui/src/window/root.rs 6
+clone_lines crates/flea-gui/src/tabs/bar_element.rs crates/flea-gui/src/window/rename_field.rs 4
+clone_lines crates/flea-gui/src/tabs/bar_element.rs crates/flea-gui/src/window/root.rs 4
 clone_lines crates/flea-gui/src/tabs/context.rs crates/flea-gui/src/window/dispatch/rail_menu.rs 7
 clone_lines crates/flea-gui/src/window/columns_gestures.rs crates/flea-gui/src/window/columns_gestures.rs 2
 clone_lines crates/flea-gui/src/window/columns_readers.rs crates/flea-gui/src/window/columns_readers.rs 3
@@ -1179,17 +1141,18 @@ clone_lines crates/flea-gui/src/window/navigate.rs crates/flea-gui/src/window/tr
 clone_lines crates/flea-gui/src/window/network.rs crates/flea-gui/src/window/network_menu.rs 1
 clone_lines crates/flea-gui/src/window/network_menu.rs crates/flea-gui/src/window/rename_menu.rs 3
 clone_lines crates/flea-gui/src/window/open_with.rs crates/flea-gui/src/window/properties.rs 4
-clone_lines crates/flea-gui/src/window/open_with.rs crates/flea-gui/src/window/rename_bulk.rs 8
+clone_lines crates/flea-gui/src/window/open_with.rs crates/flea-gui/src/window/rename_bulk.rs 2
 clone_lines crates/flea-gui/src/window/open_with.rs crates/flea-gui/src/window/run_card.rs 4
 clone_lines crates/flea-gui/src/window/properties.rs crates/flea-gui/src/window/rename_bulk.rs 2
 clone_lines crates/flea-gui/src/window/properties.rs crates/flea-gui/src/window/run_card.rs 4
 clone_lines crates/flea-gui/src/window/quick_look.rs crates/flea-gui/src/window/quick_look_compare.rs 4
-clone_lines crates/flea-gui/src/window/quick_look_docs.rs crates/flea-gui/src/window/selection_preview_docs.rs 7
+clone_lines crates/flea-gui/src/window/quick_look.rs crates/flea-gui/src/window/quick_look_interim.rs 1
+clone_lines crates/flea-gui/src/window/quick_look_docs.rs crates/flea-gui/src/window/selection_preview_docs.rs 6
 clone_lines crates/flea-gui/src/window/quick_look_wire.rs crates/flea-gui/src/window/selection_preview_wire.rs 82
 clone_lines crates/flea-gui/src/window/rename_bulk.rs crates/flea-gui/src/window/run_card.rs 2
 clone_lines crates/flea-gui/src/window/rename_field.rs crates/flea-gui/src/window/root.rs 18
 clone_lines crates/flea-gui/src/window/rename_place.rs crates/flea-gui/src/window/rename_place.rs 3
-clone_lines crates/flea-gui/src/window/selection_preview_fitted.rs crates/flea-gui/src/window/selection_preview_picture.rs 5
+clone_lines crates/flea-gui/src/window/selection_preview_fitted.rs crates/flea-gui/src/window/selection_preview_picture.rs 4
 clone_lines src/backend/actionmanifest.rs src/ui_logic_mn2/plugins.rs 12
 clone_lines src/backend/archivepass.rs src/backend/archivework.rs 1
 clone_lines src/backend/archivereq.rs src/backend/jobwork.rs 2
@@ -1197,6 +1160,7 @@ clone_lines src/backend/copyfile.rs src/backend/copyfile.rs 7
 clone_lines src/backend/jobs.rs src/backend/jobstart.rs 2
 clone_lines src/backend/jobs.rs src/ui_logic_sd2/wire.rs 2
 clone_lines src/backend/mediaprobe.rs src/backend/metareq.rs 1
+clone_lines src/backend/menu_worker.rs src/backend/menu_worker.rs 2
 clone_lines src/backend/movebatch.rs src/backend/movebatch.rs 7
 clone_lines src/backend/opsreq.rs src/backend/opsreq.rs 1
 clone_lines src/backend/rawbmff.rs src/backend/rawbmff.rs 4
@@ -1223,7 +1187,6 @@ clone_lines src/ui_logic_pl3/dates.rs src/ui_logic_pl4/today.rs 6
 clone_lines src/ui_logic_pv2/code_view.rs src/ui_logic_pv2/csv_wire.rs 1
 clone_lines src/ui_logic_pv2/markdown_entity.rs src/ui_logic_pv2/markdown_url.rs 1
 clone_lines src/uimigrate.rs src/uimigrate.rs 1
-clone_lines src/vulkan.rs src/vulkan.rs 1
 backend_imports crates/flea-gui/src/g2/pl2/bookmarks.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/g2/pv1/photo.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/g2/pv2/code/selection_source.rs flea::backend::regfile 1
@@ -1236,6 +1199,7 @@ backend_imports crates/flea-gui/src/presentation/face_cache.rs flea::backend::re
 backend_imports crates/flea-gui/src/presentation/source.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/preview_quality/helper.rs flea::backend::rastertemp 1
 backend_imports crates/flea-gui/src/window/network_cloud.rs flea::backend::regfile 1
+backend_imports crates/flea-gui/src/window/quick_look_replies.rs flea::backend::imagesize 1
 backend_imports crates/flea-gui/src/window/selection_preview_text.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/window/settings/store.rs flea::backend::regfile 1
 backend_imports crates/flea-gui/src/window/user_keys.rs flea::backend::regfile 1
@@ -1248,12 +1212,11 @@ unwraps crates/flea-gui/src/columns/element/paint.rs 1
 unwraps crates/flea-gui/src/compositor.rs 6
 unwraps crates/flea-gui/src/feedback/spinner_player.rs 5
 unwraps crates/flea-gui/src/g2/dg1/carry.rs 1
-unwraps crates/flea-gui/src/g2/dg2/join.rs 1
+unwraps crates/flea-gui/src/g2/dg2/join.rs 2
 unwraps crates/flea-gui/src/g2/dg2/spring.rs 1
 unwraps crates/flea-gui/src/g2/dg2/tab_drop.rs 1
 unwraps crates/flea-gui/src/g2/fb1/observe.rs 1
 unwraps crates/flea-gui/src/g2/mn1/delivery.rs 1
-unwraps crates/flea-gui/src/g2/mn1/element/icons.rs 1
 unwraps crates/flea-gui/src/g2/mn1/fix2_width_proof.rs 3
 unwraps crates/flea-gui/src/g2/mn1/host_input.rs 2
 unwraps crates/flea-gui/src/g2/mn1/keys.rs 1
@@ -1298,10 +1261,13 @@ unwraps crates/flea-gui/src/g2/pv1/photo_frames.rs 1
 unwraps crates/flea-gui/src/g2/pv1/resize.rs 1
 unwraps crates/flea-gui/src/g2/pv2/code/selection_source.rs 1
 unwraps crates/flea-gui/src/g2/pv2/markdown/asks.rs 1
+unwraps crates/flea-gui/src/g2/sd1/activation.rs 2
+unwraps crates/flea-gui/src/g2/sd1/mod.rs 1
 unwraps crates/flea-gui/src/g2/sr2/strip.rs 1
 unwraps crates/flea-gui/src/g2/st1/geometry.rs 1
 unwraps crates/flea-gui/src/grid/element/paint.rs 2
 unwraps crates/flea-gui/src/grid/host.rs 2
+unwraps crates/flea-gui/src/grid/pictures/readers.rs 2
 unwraps crates/flea-gui/src/grid/transition.rs 4
 unwraps crates/flea-gui/src/input/element.rs 1
 unwraps crates/flea-gui/src/input/pointer.rs 1
@@ -1338,6 +1304,7 @@ unwraps crates/flea-gui/src/window/open_with.rs 1
 unwraps crates/flea-gui/src/window/properties.rs 2
 unwraps crates/flea-gui/src/window/quick_look.rs 1
 unwraps crates/flea-gui/src/window/quick_look_compare.rs 1
+unwraps crates/flea-gui/src/window/quick_look_interim.rs 1
 unwraps crates/flea-gui/src/window/quick_look_keys.rs 1
 unwraps crates/flea-gui/src/window/quick_look_mount.rs 3
 unwraps crates/flea-gui/src/window/quick_look_plugin.rs 1
@@ -1352,7 +1319,7 @@ unwraps crates/flea-gui/src/window/rename_menu.rs 1
 unwraps crates/flea-gui/src/window/render.rs 3
 unwraps crates/flea-gui/src/window/search_tag.rs 1
 unwraps crates/flea-gui/src/window/selection_preview_frames.rs 1
-unwraps crates/flea-gui/src/window/selection_preview_render.rs 1
+unwraps crates/flea-gui/src/window/selection_preview_thumbnail_observer.rs 1
 unwraps crates/flea-gui/src/window/settings/apply.rs 1
 unwraps crates/flea-gui/src/window/settings/messages.rs 1
 unwraps crates/flea-gui/src/window/settings/mod.rs 1
@@ -1377,9 +1344,10 @@ unwraps src/backend/gitreq.rs 5
 unwraps src/backend/gitstatus.rs 1
 unwraps src/backend/lazy.rs 4
 unwraps src/backend/mediaprobe.rs 3
-unwraps src/backend/menu_actions.rs 6
+unwraps src/backend/menu_actions.rs 3
 unwraps src/backend/menu_registry.rs 8
 unwraps src/backend/menu_slot.rs 4
+unwraps src/backend/menu_worker.rs 4
 unwraps src/backend/menudelete.rs 1
 unwraps src/backend/menuproperties_remote.rs 7
 unwraps src/backend/menutags_io.rs 3
@@ -1413,6 +1381,7 @@ unwraps src/backend/searchwalk_queue.rs 2
 unwraps src/backend/searchwalkread.rs 1
 unwraps src/backend/searchwatch.rs 15
 unwraps src/backend/tags.rs 1
+unwraps src/backend/thumbidentity.rs 5
 unwraps src/backend/thumbs.rs 7
 unwraps src/backend/trashbrowse.rs 1
 unwraps src/backend/trashdelete.rs 2
@@ -1466,7 +1435,6 @@ unwraps src/ui_logic_pv2/code_view.rs 2
 unwraps src/ui_logic_st1/search.rs 1
 unwraps src/ui_logic_st2/builtin.rs 1
 unwraps src/uischema.rs 1
-unwraps src/vulkan.rs 3
 unwraps tools/flea-matchbench/build.rs 3
 unwraps tools/flea-matchbench/src/adapters.rs 2
 unwraps tools/flea-searchbench/engine/rust/linux_walk.rs 3
