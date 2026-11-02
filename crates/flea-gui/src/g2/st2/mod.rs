@@ -10,6 +10,8 @@ pub mod seam;
 pub mod view;
 
 #[cfg(test)]
+mod fact_tests;
+#[cfg(test)]
 mod page_tests;
 #[cfg(test)]
 mod scroll_tests;
