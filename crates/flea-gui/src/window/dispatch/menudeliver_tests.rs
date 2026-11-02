@@ -50,19 +50,38 @@ pub(super) fn open_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext, kinds
     answer(shell, cx, kinds);
 }
 
-/// Clicks the drawn row with this action, at the position the card painted it.
+/// Scrolls the action into view, then clicks its drawn row through the real pointer route.
 fn click(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: &str) {
     let index = actions(shell, cx)
         .iter()
         .position(|row| row == action)
         .unwrap_or_else(|| panic!("the menu offers {action}: {:?}", actions(shell, cx)));
-    let (x, y) = shell.read_with(cx, |shell, _| {
-        let menu = shell.menu.menu.borrow();
-        let card = menu.card.as_ref().expect("a drawn card");
-        (card.frame.x + 24., card.row_screen_top(index) + 5.)
-    });
-    press_at(cx, x, y);
-    super::menus_tests::settle(cx);
+    for _ in 0..=index {
+        let (row, wheel) = shell.read_with(cx, |shell, _| {
+            let menu = shell.menu.menu.borrow();
+            let card = menu.card.as_ref().expect("a drawn card");
+            let x = card.frame.x + 24.;
+            let y = card.row_screen_top(index)
+                + card.built.metrics.height(&card.entries[index]) as f32 / 2.;
+            (
+                (card.row_at(x, y) == Some(index)).then_some((x, y)),
+                point(px(x), px(card.frame.y + card.frame.h / 2.)),
+            )
+        });
+        if let Some((x, y)) = row {
+            press_at(cx, x, y);
+            super::menus_tests::settle(cx);
+            return;
+        }
+        cx.simulate_event(gpui::ScrollWheelEvent {
+            position: wheel,
+            delta: gpui::ScrollDelta::Lines(point(0., -3.)),
+            modifiers: Modifiers::none(),
+            touch_phase: gpui::TouchPhase::Moved,
+        });
+        super::menus_tests::settle(cx);
+    }
+    panic!("the menu did not scroll {action} into view");
 }
 
 /// One left press and release at this window position.
