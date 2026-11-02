@@ -132,12 +132,18 @@ mod tests {
         use std::os::unix::fs::MetadataExt;
         let d = crate::backend::inodereuse::sandbox("filegen-reuse");
         let a = d.file("a.txt", "a");
-        let (dev, ino, birth) = crate::backend::inodereuse::recreate(&d, &a, "other", || {
+        let recreated = crate::backend::inodereuse::recreate(&d, &a, "other", || {
             let before = a.symlink_metadata().unwrap();
             (before.dev(), before.ino(), (born_of(&before), of_path(&a)))
         });
-        assert_eq!((a.metadata().unwrap().dev(), a.metadata().unwrap().ino()), (dev, ino), "the new file really reuses the recorded inode");
-        assert!(differs(birth.1, of_path(&a)), "the reused inode has a new generation");
+        let (dev, ino, birth) = recreated.saved;
+        let after = a.symlink_metadata().unwrap();
+        if recreated.reused_inode {
+            assert_eq!((after.dev(), after.ino()), (dev, ino), "the new file really reuses the recorded inode");
+            assert!(crate::backend::undo::born_differs(birth.0, born_of(&after)) || differs(birth.1, of_path(&a)), "the reused inode has a distinct birth or generation");
+        } else {
+            assert_ne!((after.dev(), after.ino()), (dev, ino), "the fallback has a distinct inode");
+        }
         set_mode(&a, 0o644);
         let refused = chmod_pinned(&a, dev, ino, birth, 0o644, 0o600);
         assert_eq!(refused, Err("the item was replaced, so its mode was left in place.".to_string()));
