@@ -99,6 +99,20 @@ fn check_answer(lines: &[String], n: usize) {
     assert!(lines[2].contains(r#""partial":false"#), "{lines:?}");
 }
 
+// Sibling test forks cannot inherit this writer and delay IN_CLOSE_WRITE beyond the returned path.
+fn external_file(d: &TestDir, name: &str, body: &str) -> std::path::PathBuf {
+    let path = d.join(name);
+    d.assert_contains(&path);
+    let status = std::process::Command::new("/bin/sh")
+        .args(["-c", "printf '%s' \"$2\" > \"$1\"", "sh"])
+        .arg(&path)
+        .arg(body)
+        .status()
+        .expect("external fixture writer starts");
+    assert!(status.success(), "external fixture writer completes");
+    path
+}
+
 #[test]
 fn a_watch_delta_after_walk_landing_is_published_once() {
     for held in [false, true] {
@@ -118,7 +132,7 @@ fn a_watch_delta_after_walk_landing_is_published_once() {
         assert_eq!(wire.st.listing.len(), 0);
         assert!(wire.st.search_session.as_ref().unwrap().landing().is_none());
 
-        let path = d.file("docs/needle-a", "a");
+        let path = external_file(&d, "docs/needle-a", "a");
         let delta = wire.next(|event| matches!(event, Event::SearchDelta(_)));
         let token = match &delta { Event::SearchDelta(token) => *token, _ => unreachable!() };
         assert_eq!(token, wire.st.search_session.as_ref().unwrap().watch_token());
@@ -145,7 +159,7 @@ fn a_watch_delta_after_walk_landing_is_published_once() {
         assert_eq!(wire.st.listing.name(0), "docs/needle-a");
 
         assert!(wire.delta_queue_is_empty(), "all kernel, channel and buffered deltas precede needle-b");
-        let second = d.file("docs/needle-b", "b");
+        let second = external_file(&d, "docs/needle-b", "b");
         let later_delta = wire.next(|event| matches!(event, Event::SearchDelta(_)));
         assert!(matches!(&later_delta, Event::SearchDelta(later_token) if *later_token == token));
         assert!(wire.event(Event::SearchDelta(wrong_owner)).is_empty());
@@ -158,6 +172,15 @@ fn a_watch_delta_after_walk_landing_is_published_once() {
         assert!(wire.event(Event::SearchDelta(token)).is_empty(), "the later delta also publishes once");
         wire.st.search_session.take().unwrap().close();
     }
+}
+
+#[test]
+fn a_watch_landing_publishes_once_beside_forking_siblings() {
+    crate::backend::testdir::with_forking_siblings(|| {
+        for _ in 0..4 {
+            a_watch_delta_after_walk_landing_is_published_once();
+        }
+    });
 }
 
 #[test]
