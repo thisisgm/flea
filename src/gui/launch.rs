@@ -1,6 +1,3 @@
-use super::{
-    apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme,
-};
 use crate::{prefetch, shelfplugin, thp, uistatecli, uistore};
 use std::ffi::OsStr;
 use std::os::unix::fs::PermissionsExt;
@@ -17,12 +14,13 @@ mod legacy_command;
 #[path = "legacy_identity.rs"]
 mod legacy_identity;
 
-pub fn use_gpui() -> bool {
-    frontend_is_gpui(std::env::var_os("FLEA_FRONTEND").as_deref())
-}
-
-fn frontend_is_gpui(frontend: Option<&OsStr>) -> bool {
-    frontend == Some(OsStr::new("gpui"))
+pub(crate) fn reject_legacy_frontend() -> bool {
+    if std::env::var_os("FLEA_FRONTEND").as_deref() == Some(OsStr::new("qml")) {
+        eprintln!("flea: the QML frontend is no longer available; unset FLEA_FRONTEND to open the GPUI window");
+        true
+    } else {
+        false
+    }
 }
 
 fn gpui_binary(executable: Option<&Path>, is_file: impl Fn(&Path) -> bool) -> PathBuf {
@@ -48,12 +46,12 @@ fn gpui_argv(binary: &Path, start: Option<&str>, select: Option<&str>) -> Comman
 }
 
 pub(crate) fn settle_state() {
-    // Both frontends settle state before the first paint; a refusal still opens on the original file.
+    // Settle state before the first paint; a refusal still opens on the original file.
     match uistore::Store::user().and_then(|store| store.settle()) {
         Ok(()) => {}
         Err(e) => eprintln!("flea: the view state was not settled ({})", e),
     }
-    // Refresh an enabled shelf's installed plugin before either frontend opens.
+    // Refresh an enabled shelf's installed plugin before the window opens.
     if let Ok(store) = uistore::Store::user() {
         if let Err(e) = shelfplugin::refresh(uistatecli::shelf_enabled(&store.read())) {
             eprintln!("flea: the shelf plugin was not refreshed ({})", e);
@@ -100,6 +98,7 @@ fn binary_usable(binary: &Path) -> std::io::Result<()> {
 }
 
 fn exec_window(start: Option<&str>, select: Option<&str>, special: Option<(&str, &str)>) -> i32 {
+    if reject_legacy_frontend() { return 2; }
     let executable = std::env::current_exe().ok();
     let binary = gpui_binary(executable.as_deref(), |path| path.is_file());
     if let Err(error) = binary_usable(&binary) {
@@ -156,17 +155,13 @@ fn gpui_pick_argv(binary: &Path, reply: &str) -> Command {
     cmd
 }
 
-// The chooser needs a graphical session, then runs on GPUI when chosen; None leaves it to Quickshell.
-pub(super) fn chooser_frontend(reply: &str) -> Option<i32> {
+// flea --pick under the GPUI frontend: FLEA_PICKER rides the environment, the reply path the argument.
+pub(super) fn exec_gpui_pick(reply: &str) -> i32 {
+    if reject_legacy_frontend() { return 2; }
     if !crate::paths::has_display() {
         eprintln!("flea: there is no graphical session to open a file chooser in");
-        return Some(2);
+        return 2;
     }
-    use_gpui().then(|| exec_gpui_pick(reply))
-}
-
-// flea --pick under the GPUI frontend: FLEA_PICKER rides the environment, the reply path the argument.
-fn exec_gpui_pick(reply: &str) -> i32 {
     let executable = std::env::current_exe().ok();
     let binary = gpui_binary(executable.as_deref(), |path| path.is_file());
     let mut cmd = gpui_pick_argv(&binary, reply);
@@ -205,42 +200,9 @@ fn set_backend_binary(cmd: &mut Command) {
     }
 }
 
-pub(super) fn configure_shell(cmd: &mut Command) {
-    configure_child(cmd);
-    flea::qscrash::disable(cmd);
-    skip_gtk_platform_theme(cmd);
-    set_backend_binary(cmd);
-    // Before the probe and qs in every arm, so neither loads a driver for a GPU vendor this box does not hold.
-    crate::icdexclude::exclude_absent_vendors();
-    // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
-    if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
-        // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
-        cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-        // Vulkan on a hybrid GPU still has to present on the compositor's device; pinning is not a renderer change.
-        if std::env::var_os("QSG_RHI_BACKEND").as_deref() == Some(OsStr::new("vulkan")) {
-            pin_display_icd(cmd, None);
-        }
-    } else {
-        apply_renderer(cmd, automatic_renderer(crate::vkprobecache::usable()));
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn only_the_exact_developer_switch_selects_gpui() {
-        for value in [
-            None,
-            Some(OsStr::new("")),
-            Some(OsStr::new("qml")),
-            Some(OsStr::new("GPUI")),
-        ] {
-            assert!(!frontend_is_gpui(value));
-        }
-        assert!(frontend_is_gpui(Some(OsStr::new("gpui"))));
-    }
 
     #[test]
     fn a_gpui_pick_hands_the_reply_path_as_its_one_argument() {

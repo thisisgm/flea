@@ -67,6 +67,7 @@ jobs:
             echo "::error::packaging/flea-bin/PKGBUILD's depends or optdepends differ from PKGBUILD's"; fail=1
           fi
           [ "$fail" -eq 0 ] || exit 1
+          FLEA_FIXTURE_ROOT=/tmp/flea-package-verify tests/figure-package.sh
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "verified candidate $version at $GITHUB_SHA"
 

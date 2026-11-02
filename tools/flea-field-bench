@@ -1003,7 +1003,7 @@ kill_entrant() {
 # The same roster scopes ONLY before setup and builds launch commands again once the temporary paths exist.
 build_entrants() {
   local strata_id=strata-stable
-  local FLEA_FRONTEND=${FLEA_FRONTEND:-qml}
+  local FLEA_FRONTEND=${FLEA_FRONTEND:-gpui}
   local flea_class=com.thisisgm.flea flea_comm=qs flea_token=$FLEA_UI
   if [ "$FLEA_FRONTEND" = gpui ]; then flea_comm=flea-gui; flea_token=$(dirname "$FLEA_BIN")/flea-gui; fi
   # Fields: id|kind|class|comm|token|helper_comm|helper_token|command; the command holds any later pipe, and its \$TUI_DUMP_FLAG is read by each launch's eval.
@@ -1095,7 +1095,7 @@ if [ "$WITH_ANCHOR" = yes ]; then KILL_TARGETS=("${KILL_TARGETS[0]}" "qs|$ANCHOR
 # The processes in KILL_TARGETS one entrant owns. Two ids are not named after their own process.
 kill_comms_for() {
   case $1 in
-    flea) if [ "${FLEA_FRONTEND:-qml}" = gpui ]; then printf 'flea-gui\nflea\n'; else printf 'qs\nflea\n'; fi ;;
+    flea) if [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then printf 'flea-gui\nflea\n'; else printf 'qs\nflea\n'; fi ;;
     flea-anchor) printf 'qs\nflea\n' ;;
     strata-stable|strata-nightly|strata-nightly-channel) printf 'strata\n' ;;
     # tumblerd outlives thunar by 300 s, and a full-field start refuses to begin beside it.
@@ -1190,7 +1190,7 @@ WARM_KILL_POLLS=100
 WARM_JOIN_POLL_S=0.01
 WARM_MAP_MS=60000
 warm_qml_cache() {
-  [ "${FLEA_FRONTEND:-qml}" = gpui ] && return 0
+  [ "${FLEA_FRONTEND:-gpui}" = gpui ] && return 0
   local state quiet=0 polls=0 n pid cg="$BENCH_CG/run-warm"
   [ -e "$PREFETCH" ] && fail "a prefetch list is already at $PREFETCH before the warm launch, so the warm guard could pass from a stale list"
   mkdir -p "$FLEA_QMLCACHE" || fail "cannot make $FLEA_QMLCACHE"

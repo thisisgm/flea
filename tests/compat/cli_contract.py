@@ -94,10 +94,10 @@ def main():
     (root / "files/a b.txt").write_text("contract\n")
     recorder = '''#!/usr/bin/python3
 import json, os
-print(json.dumps({k: os.environ.get(k) for k in ("FLEA_PATH", "FLEA_SELECT", "FLEA_PICKER", "FLEA_PICKER_REPLY", "FLEA_UNLOCK")}, sort_keys=True, separators=(",", ":")))
+print(json.dumps(dict({k: os.environ.get(k) for k in ("FLEA_PATH", "FLEA_SELECT", "FLEA_PICKER", "FLEA_PICKER_REPLY", "FLEA_UNLOCK")}, frontend="qml"), sort_keys=True, separators=(",", ":")))
 '''
     # flea-gui takes its start and selection only as arguments, so its record maps them onto the same fields.
-    gui_recorder = recorder.replace("import json, os\n", """import json, os, sys
+    gui_recorder = recorder.replace('frontend="qml"', 'frontend="gpui"').replace("import json, os\n", """import json, os, sys
 args = sys.argv[1:]
 assert os.environ.get("FLEA_PATH") is None and os.environ.get("FLEA_SELECT") is None, "start or selection leaked through the environment"
 os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), ("FLEA_SELECT", "--select"), ("FLEA_PICKER_REPLY", "--pick")) if f in args})
@@ -113,6 +113,10 @@ os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), 
     expected = {} if CAPTURE else json.loads(GOLDEN.read_text())
     for name, changes in ({} if CAPTURE else deltas.load("cli")).items():
         expected[name] = dict(expected[name], stdout=deltas.apply(name, expected[name]["stdout"], changes))
+    usage_changes = [] if CAPTURE else deltas.load("cli-usage").get("actions", [])
+    for name, record in expected.items():
+        if b"usage: flea " in base64.b64decode(record["stderr"]):
+            record["stderr"] = deltas.apply(name, record["stderr"], usage_changes)
     chosen = sys.argv[sys.argv.index("--case") + 1] if "--case" in sys.argv else None
     mismatched = []
     for name, args, extra in cases(root):

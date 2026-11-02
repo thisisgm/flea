@@ -3636,7 +3636,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "\"libvulkan.so.1 has no {}, {}\",",
-      "line": 100,
+      "line": 97,
       "path": "src/vulkan.rs",
       "pattern": "libvulkan.so.1 has no {}, {}",
       "possible_keys": [],
@@ -3645,7 +3645,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "return Err(format!(\"libvulkan.so.1 did not load, {}\", dl_reason()));",
-      "line": 125,
+      "line": 122,
       "path": "src/vulkan.rs",
       "pattern": "libvulkan.so.1 did not load, {}",
       "possible_keys": [],
@@ -164695,7 +164695,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: --pick needs FLEA_PICKER, the portal request tools/flea-portal puts in the environment\");",
-      "line": 124,
+      "line": 87,
       "literal": "flea: --pick needs FLEA_PICKER, the portal request tools/flea-portal puts in the environment",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164704,7 +164704,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: --pick needs the reply file tools/flea-portal names, and it was empty\");",
-      "line": 128,
+      "line": 91,
       "literal": "flea: --pick needs the reply file tools/flea-portal names, and it was empty",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164712,26 +164712,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"flea: Vulkan is unusable, {reason}, so the shell starts on OpenGL\");",
-      "line": 164,
-      "literal": "flea: Vulkan is unusable, {reason}, so the shell starts on OpenGL",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "eprintln!(\"flea: the only Vulkan GPU is hasvk (Intel Ivy Bridge to Broadwell), which draws garbled text, so the shell starts on OpenGL\");",
-      "line": 170,
-      "literal": "flea: the only Vulkan GPU is hasvk (Intel Ivy Bridge to Broadwell), which draws garbled text, so the shell starts on OpenGL",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "eprintln!(\"flea: Vulkan sees a GPU with no display, but no ICD file names vendor {vendor:#06x}, so the loader's own list stands\");",
-      "line": 223,
+      "line": 108,
       "literal": "flea: Vulkan sees a GPU with no display, but no ICD file names vendor {vendor:#06x}, so the loader's own list stands",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164740,7 +164722,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: Vulkan sees a GPU with no display, so the shell starts on {:#06x}:{:#06x} through {icd}\", gpu.0, gpu.1);",
-      "line": 226,
+      "line": 111,
       "literal": "flea: Vulkan sees a GPU with no display, so the shell starts on {:#06x}:{:#06x} through {icd}",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164748,53 +164730,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"flea: the window could not start: Quickshell is not installed or could not run\");",
-      "line": 283,
-      "literal": "flea: the window could not start: Quickshell is not installed or could not run",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "_ => panic!(\"a Haswell-only probe must fall back\"),",
-      "line": 373,
-      "literal": "a Haswell-only probe must fall back",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "match automatic_renderer(Err(String::from(\"vkCreateInstance answered -9\"))) {",
-      "line": 396,
-      "literal": "vkCreateInstance answered -9",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "_ => panic!(\"an unusable loader must downgrade\"),",
-      "line": 398,
-      "literal": "an unusable loader must downgrade",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "apply_renderer(&mut cmd, automatic_renderer(Err(String::from(\"vkCreateInstance answered -9\"))));",
-      "line": 401,
-      "literal": "vkCreateInstance answered -9",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": ".expect(\"a gvfs launch with a list warms\");",
-      "line": 418,
+      "line": 230,
       "literal": "a gvfs launch with a list warms",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164803,7 +164740,7 @@
     },
     {
       "excerpt": "let cmd = launch_warm_command(Path::new(\"flea\"), Some(list.as_path()), None).expect(\"a local launch with a list warms\");",
-      "line": 426,
+      "line": 238,
       "literal": "a local launch with a list warms",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164812,7 +164749,7 @@
     },
     {
       "excerpt": "assert!(dest.is_file(), \"both jobs are done when the helper returns\");",
-      "line": 464,
+      "line": 276,
       "literal": "both jobs are done when the helper returns",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164821,7 +164758,7 @@
     },
     {
       "excerpt": "assert!(body.contains(\"smb://h/share/a.txt\"), \"gio's listing landed, not a failure marker: {body}\");",
-      "line": 466,
+      "line": 278,
       "literal": "gio's listing landed, not a failure marker: {body}",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164830,7 +164767,7 @@
     },
     {
       "excerpt": "assert!(started_job.load(Ordering::Relaxed), \"the warm ran beside gio, which waited for its start\");",
-      "line": 467,
+      "line": 279,
       "literal": "the warm ran beside gio, which waited for its start",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164839,7 +164776,7 @@
     },
     {
       "excerpt": "assert!(finished_job.load(Ordering::Relaxed), \"and the warm finished before the helper returned\");",
-      "line": 468,
+      "line": 280,
       "literal": "and the warm finished before the helper returned",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164847,8 +164784,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "eprintln!(\"flea: the QML frontend is no longer available; unset FLEA_FRONTEND to open the GPUI window\");",
+      "line": 19,
+      "literal": "flea: the QML frontend is no longer available; unset FLEA_FRONTEND to open the GPUI window",
+      "owner": "controller",
+      "path": "src/gui/launch.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "Err(e) => eprintln!(\"flea: the view state was not settled ({})\", e),",
-      "line": 54,
+      "line": 52,
       "literal": "flea: the view state was not settled ({})",
       "owner": "controller",
       "path": "src/gui/launch.rs",
@@ -164857,7 +164803,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the shelf plugin was not refreshed ({})\", e);",
-      "line": 59,
+      "line": 57,
       "literal": "flea: the shelf plugin was not refreshed ({})",
       "owner": "controller",
       "path": "src/gui/launch.rs",
@@ -164866,7 +164812,7 @@
     },
     {
       "excerpt": "\"flea: the window could not start: {}: {error}\",",
-      "line": 107,
+      "line": 106,
       "literal": "flea: the window could not start: {}: {error}",
       "owner": "controller",
       "path": "src/gui/launch.rs",
@@ -164875,7 +164821,7 @@
     },
     {
       "excerpt": "\"flea: the window could not start: {}: {error}\",",
-      "line": 147,
+      "line": 146,
       "literal": "flea: the window could not start: {}: {error}",
       "owner": "controller",
       "path": "src/gui/launch.rs",
@@ -164893,7 +164839,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the file chooser could not start: {}: {error}\", binary.display());",
-      "line": 176,
+      "line": 171,
       "literal": "flea: the file chooser could not start: {}: {error}",
       "owner": "controller",
       "path": "src/gui/launch.rs",
@@ -165316,7 +165262,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: {}, so the share lists without a head start\", e);",
-      "line": 135,
+      "line": 130,
       "literal": "flea: {}, so the share lists without a head start",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165325,7 +165271,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: gvfs prefetch destination has no parent directory\");",
-      "line": 149,
+      "line": 144,
       "literal": "flea: gvfs prefetch destination has no parent directory",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165334,7 +165280,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: gvfs prefetch destination {} is not inside the runtime dir\", dest.display());",
-      "line": 154,
+      "line": 149,
       "literal": "flea: gvfs prefetch destination {} is not inside the runtime dir",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165343,7 +165289,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: gvfs prefetch needs a gvfs path, got {}\", path);",
-      "line": 158,
+      "line": 153,
       "literal": "flea: gvfs prefetch needs a gvfs path, got {}",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165352,7 +165298,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: gvfs prefetch for {} failed ({}), the window lists it itself\", path, e);",
-      "line": 176,
+      "line": 171,
       "literal": "flea: gvfs prefetch for {} failed ({}), the window lists it itself",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165361,7 +165307,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"gvfs prefetch temp {} could not be created ({:?})\", tmp.display(), e.kind()))",
-      "line": 191,
+      "line": 186,
       "literal": "gvfs prefetch temp {} could not be created ({:?})",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165370,7 +165316,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"gvfs prefetch temp {} could not be written ({:?})\", tmp.display(), e.kind()))",
-      "line": 195,
+      "line": 190,
       "literal": "gvfs prefetch temp {} could not be written ({:?})",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -165379,7 +165325,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"gvfs prefetch {} could not be published ({:?})\", dest.display(), e.kind()))",
-      "line": 199,
+      "line": 194,
       "literal": "gvfs prefetch {} could not be published ({:?})",
       "owner": "controller",
       "path": "src/gvfsprefetch.rs",
@@ -168592,7 +168538,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: {} is not valid UTF-8, and Flea takes text paths\", bad.to_string_lossy());",
-      "line": 105,
+      "line": 106,
       "literal": "flea: {} is not valid UTF-8, and Flea takes text paths",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168601,7 +168547,7 @@
     },
     {
       "excerpt": "usage(\"--version takes nothing\");",
-      "line": 130,
+      "line": 131,
       "literal": "--version takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168610,7 +168556,7 @@
     },
     {
       "excerpt": "usage(\"--launch-warm takes a list, a gvfs path and a destination\");",
-      "line": 158,
+      "line": 159,
       "literal": "--launch-warm takes a list, a gvfs path and a destination",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168619,7 +168565,7 @@
     },
     {
       "excerpt": "usage(\"--prewarm takes a path, a first index and a destination\");",
-      "line": 173,
+      "line": 174,
       "literal": "--prewarm takes a path, a first index and a destination",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168628,7 +168574,7 @@
     },
     {
       "excerpt": "usage(\"--terminal takes one directory\");",
-      "line": 189,
+      "line": 190,
       "literal": "--terminal takes one directory",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168637,7 +168583,7 @@
     },
     {
       "excerpt": "usage(\"--update takes nothing, or check\");",
-      "line": 210,
+      "line": 211,
       "literal": "--update takes nothing, or check",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168646,7 +168592,7 @@
     },
     {
       "excerpt": "if args.len() == 3 && args[1] == \"--default\" && args[2] == \"off\" {",
-      "line": 217,
+      "line": 218,
       "literal": "off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168655,7 +168601,7 @@
     },
     {
       "excerpt": "usage(\"--default takes nothing, or off\");",
-      "line": 221,
+      "line": 222,
       "literal": "--default takes nothing, or off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168664,7 +168610,7 @@
     },
     {
       "excerpt": "usage(\"--youleftmeforstrata takes nothing\");",
-      "line": 229,
+      "line": 230,
       "literal": "--youleftmeforstrata takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168673,7 +168619,7 @@
     },
     {
       "excerpt": "if args.len() == 3 && args[1] == \"--picker\" && args[2] == \"off\" {",
-      "line": 236,
+      "line": 237,
       "literal": "off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168682,7 +168628,7 @@
     },
     {
       "excerpt": "usage(\"--picker takes nothing, or off\");",
-      "line": 240,
+      "line": 241,
       "literal": "--picker takes nothing, or off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168691,7 +168637,7 @@
     },
     {
       "excerpt": "usage(\"--pick takes one reply file\");",
-      "line": 248,
+      "line": 249,
       "literal": "--pick takes one reply file",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168700,7 +168646,7 @@
     },
     {
       "excerpt": "usage(\"--clip-own takes nothing\");",
-      "line": 256,
+      "line": 257,
       "literal": "--clip-own takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168709,7 +168655,7 @@
     },
     {
       "excerpt": "usage(\"--clip takes get, set copy|cut, or clear TOKEN\");",
-      "line": 270,
+      "line": 271,
       "literal": "--clip takes get, set copy|cut, or clear TOKEN",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168718,7 +168664,7 @@
     },
     {
       "excerpt": "None => usage(\"--print-target needs --select <uri|path> naming a target with a parent\"),",
-      "line": 299,
+      "line": 300,
       "literal": "--print-target needs --select <uri|path> naming a target with a parent",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168727,7 +168673,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the terminal interface needs a terminal on stdin and stdout\");",
-      "line": 313,
+      "line": 314,
       "literal": "flea: the terminal interface needs a terminal on stdin and stdout",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168736,7 +168682,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: there is no graphical session to open a window in\");",
-      "line": 320,
+      "line": 324,
       "literal": "flea: there is no graphical session to open a window in",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168745,7 +168691,7 @@
     },
     {
       "excerpt": "assert!(!flash_picker(&bare), \"a bare flash is a path, not the picker\");",
-      "line": 345,
+      "line": 338,
       "literal": "a bare flash is a path, not the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168754,7 +168700,7 @@
     },
     {
       "excerpt": "assert!(flash_picker(&picker), \"flash choose runs the picker\");",
-      "line": 347,
+      "line": 340,
       "literal": "flash choose runs the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -169519,7 +169465,7 @@
     },
     {
       "excerpt": "assert!(!root.join(\"by-id\").join(gone).exists(), \"{gone} was pruned\");",
-      "line": 183,
+      "line": 173,
       "literal": "{gone} was pruned",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169528,7 +169474,7 @@
     },
     {
       "excerpt": "assert!(!root.join(\"by-shell\").join(\"flea\").join(gone).exists(), \"{gone}'s shell link was pruned\");",
-      "line": 184,
+      "line": 174,
       "literal": "{gone}'s shell link was pruned",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169537,7 +169483,7 @@
     },
     {
       "excerpt": "assert!(!root.join(\"by-pid\").join(format!(\"9{gone}\")).exists(), \"{gone}'s pid link was pruned\");",
-      "line": 185,
+      "line": 175,
       "literal": "{gone}'s pid link was pruned",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169546,7 +169492,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"flea\").join(kept).is_symlink(), \"{kept}'s shell link remains\");",
-      "line": 189,
+      "line": 179,
       "literal": "{kept}'s shell link remains",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169555,7 +169501,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-pid\").join(format!(\"9{kept}\")).is_symlink(), \"{kept}'s pid link remains\");",
-      "line": 190,
+      "line": 180,
       "literal": "{kept}'s pid link remains",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169564,7 +169510,7 @@
     },
     {
       "excerpt": "assert!(other_dir.is_dir(), \"another shell's dead entry is untouched\");",
-      "line": 192,
+      "line": 182,
       "literal": "another shell's dead entry is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169573,7 +169519,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"omarchy\").join(\"other\").is_symlink(), \"another shell's link is untouched\");",
-      "line": 193,
+      "line": 183,
       "literal": "another shell's link is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169582,7 +169528,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"flea\").join(\"evil\").is_symlink(), \"the outside link is untouched\");",
-      "line": 194,
+      "line": 184,
       "literal": "the outside link is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169591,7 +169537,7 @@
     },
     {
       "excerpt": "assert!(outside.is_dir(), \"the outside target is untouched\");",
-      "line": 195,
+      "line": 185,
       "literal": "the outside target is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169600,7 +169546,7 @@
     },
     {
       "excerpt": "assert!(spoof_dir.is_dir(), \"the divergent by-id dir is untouched\");",
-      "line": 196,
+      "line": 186,
       "literal": "the divergent by-id dir is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169609,7 +169555,7 @@
     },
     {
       "excerpt": "assert!(target_dir.is_dir(), \"the divergent link target is untouched\");",
-      "line": 197,
+      "line": 187,
       "literal": "the divergent link target is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169618,7 +169564,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_link(root.join(\"by-shell\").join(\"flea\").join(\"spoof\")).unwrap(), target_dir, \"the divergent link is untouched\");",
-      "line": 198,
+      "line": 188,
       "literal": "the divergent link is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169627,7 +169573,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(root.join(\"by-shell\").join(\"flea\")).unwrap().count(), 7, \"a second call changes nothing\");",
-      "line": 200,
+      "line": 190,
       "literal": "a second call changes nothing",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169636,7 +169582,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(root.join(\"by-shell\").join(\"flea\").join(\"w73gone\")).is_err(), \"the stale link is gone\");",
-      "line": 214,
+      "line": 204,
       "literal": "the stale link is gone",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169645,7 +169591,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(&missing).is_err(), \"nothing is created to remove it\");",
-      "line": 215,
+      "line": 205,
       "literal": "nothing is created to remove it",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169654,7 +169600,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(root.join(\"by-shell\").join(\"flea\")).unwrap().count(), 0, \"a second call changes nothing\");",
-      "line": 217,
+      "line": 207,
       "literal": "a second call changes nothing",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169663,7 +169609,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"flea\").join(kept).is_symlink(), \"{kept} is kept\");",
-      "line": 240,
+      "line": 230,
       "literal": "{kept} is kept",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169672,7 +169618,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"omarchy\").join(\"w73foreign\").is_symlink(), \"another shell is untouched\");",
-      "line": 242,
+      "line": 232,
       "literal": "another shell is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169681,7 +169627,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(root.join(\"by-id\").join(\"w73phantom\")).is_ok(), \"the phantom by-id link is untouched\");",
-      "line": 243,
+      "line": 233,
       "literal": "the phantom by-id link is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169690,7 +169636,7 @@
     },
     {
       "excerpt": "assert!(root.join(\"by-shell\").join(\"flea\").join(\"w73direntry\").is_dir(), \"the directory entry is untouched\");",
-      "line": 244,
+      "line": 234,
       "literal": "the directory entry is untouched",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -169699,7 +169645,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(root.join(\"by-shell\").join(\"flea\")).unwrap().count(), count, \"a second call changes nothing\");",
-      "line": 247,
+      "line": 237,
       "literal": "a second call changes nothing",
       "owner": "controller",
       "path": "src/qsregistry.rs",
@@ -184486,7 +184432,7 @@
     },
     {
       "excerpt": "crate::usage(\"--unlock takes one device path under /dev\")",
-      "line": 17,
+      "line": 15,
       "literal": "--unlock takes one device path under /dev",
       "owner": "controller",
       "path": "src/unlock.rs",
@@ -184495,7 +184441,7 @@
     },
     {
       "excerpt": "Err(\"flea: --unlock takes one device path under /dev\".to_string())",
-      "line": 28,
+      "line": 26,
       "literal": "flea: --unlock takes one device path under /dev",
       "owner": "controller",
       "path": "src/unlock.rs",
@@ -184504,7 +184450,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: there is no graphical session to open a window in\");",
-      "line": 40,
+      "line": 41,
       "literal": "flea: there is no graphical session to open a window in",
       "owner": "controller",
       "path": "src/unlock.rs",
@@ -184512,17 +184458,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(child_sees(&plain, ENV, parent), None, \"a plain launch inherited the parent's {}\", ENV);",
-      "line": 79,
-      "literal": "a plain launch inherited the parent's {}",
-      "owner": "controller",
-      "path": "src/unlock.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "let message = validate(bad).expect_err(\"the device must be refused\");",
-      "line": 94,
+      "line": 60,
       "literal": "the device must be refused",
       "owner": "controller",
       "path": "src/unlock.rs",
@@ -184531,7 +184468,7 @@
     },
     {
       "excerpt": "assert!(message.contains(\"--unlock\"), \"{} should name {}, got {}\", bad, \"--unlock\", message);",
-      "line": 95,
+      "line": 61,
       "literal": "{} should name {}, got {}",
       "owner": "controller",
       "path": "src/unlock.rs",
@@ -184792,7 +184729,7 @@
     },
     {
       "excerpt": "return String::from(\"the dynamic loader gave no reason\");",
-      "line": 90,
+      "line": 87,
       "literal": "the dynamic loader gave no reason",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -184801,7 +184738,7 @@
     },
     {
       "excerpt": "return Err(format!(\"vkCreateInstance answered {created} for {asked}\"));",
-      "line": 147,
+      "line": 144,
       "literal": "vkCreateInstance answered {created} for {asked}",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -184810,7 +184747,7 @@
     },
     {
       "excerpt": "return Err(format!(\"vkCreateInstance took {asked} and returned no instance\"));",
-      "line": 150,
+      "line": 147,
       "literal": "vkCreateInstance took {asked} and returned no instance",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -184819,7 +184756,7 @@
     },
     {
       "excerpt": "return Err(format!(\"vkEnumeratePhysicalDevices answered {listed}\"));",
-      "line": 156,
+      "line": 153,
       "literal": "vkEnumeratePhysicalDevices answered {listed}",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -184828,7 +184765,7 @@
     },
     {
       "excerpt": "return Err(String::from(\"vkEnumeratePhysicalDevices succeeded and listed no device\"));",
-      "line": 160,
+      "line": 157,
       "literal": "vkEnumeratePhysicalDevices succeeded and listed no device",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -184837,7 +184774,7 @@
     },
     {
       "excerpt": "return Err(format!(\"vkEnumeratePhysicalDevices answered {listed}\"));",
-      "line": 178,
+      "line": 175,
       "literal": "vkEnumeratePhysicalDevices answered {listed}",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -245739,13 +245676,13 @@
     "src/figurecache.rs": "f9de7409e009c84afb7d57d3124df7a8787a9579c1d3f2fe108a984f4bc894a7",
     "src/figurehelper.rs": "e6c3c4a371744e5948a805f7c67eec0adc32a905fca879b9293a4d6f0fa7ecac",
     "src/figurestore.rs": "52a7ba2cd2757e771880ed2b2a021f965124a3e1de783208c5b9a8a2b3327202",
-    "src/gui.rs": "6ab6f60ed7c77e2fda8667e05a54d3053a9d3107bfa3bb2725159e197e974440",
+    "src/gui.rs": "e5825e46c17cd9b4e52c3f56ffed8cdac7cb2de08453498486177fdc1215df73",
     "src/gui/gpui_renderer.rs": "52ea639d78dbbef0d69aa6def7ba0cba0fdb0d4b3bdc8522ee059cf9addecd3e",
-    "src/gui/launch.rs": "0ff23a6636a678225a38063fbf9faaa71f1f5aa29a110474737a0a287e726cbb",
+    "src/gui/launch.rs": "a72a62583677081382d4baa47bcad466d689c361c68dec70da234c904d4b1bdc",
     "src/gui/legacy.rs": "3654eb9bbf147c07171da252ded09d4b8b96ea1f045af58445db3f6bba9b1be3",
     "src/gui/legacy_command.rs": "667aa077bbda89def46f5cf7fb1f53c79413d91e3e3f279717540514c6005f63",
     "src/gui/legacy_identity.rs": "c5560e64772efe3f7ce5dd16ebcf7a783bafebdfc467c5cad8cd6d40d78630ad",
-    "src/gvfsprefetch.rs": "76dbce1b9d7f7ad2ffbeceb2b4059649f485ff2e1acb59e5ad2bf31dd7aa91e6",
+    "src/gvfsprefetch.rs": "b8b3ee7fdf94b7f8532f4dbbea6120ba56a1f610c9b0bb779fc40d40e6677a95",
     "src/heap.rs": "fb0e41cab93135f400298acf114d3fc3334505d31ebb1c03b3406e0d685ea6bd",
     "src/hyprkeys.rs": "e68742cc4839d9698cd477b5821eb888d632e57f347d375151c79acc59580861",
     "src/i18n/catalog.rs": "47f84e1986eb647af8f511e73ad197e2d2e3f50b16073bb985cd3eebd6fdd580",
@@ -245782,23 +245719,23 @@
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
     "src/lib.rs": "4b034c17ef26700cc8367e0c3b3698b74c0a74ab8e731ef5c373353a0b6f8d8e",
-    "src/main.rs": "7f0ce1b600d98579176a19714f685e199e728d7401e6b64120c0c012cb331298",
+    "src/main.rs": "11f566b65ef9cc7a2f925119f439eac3386ca93e6c54025ce05a1060f401d6f3",
     "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
     "src/open.rs": "5b8bc6ab8ca9ff891268a98ec8c92a3c8a25a2e6b0e55c708109bfc4e66c7732",
     "src/open_selection.rs": "7a6b0089d5b7a04ebd19af24665f43fd89d6aa2be6820b147601ee55382dca87",
-    "src/paths.rs": "06c1b19910d2b044e2c204e58c2355b9d9e4349dcdc8426f6265d6e50286b945",
+    "src/paths.rs": "8685b85ca9767240d8c892ffe9151ea701e6ec67171d112edadd8db14e09a562",
     "src/persistdoc.rs": "57bb6e8db402e13fef931e5cf01db2bdda909ac7a45409e8b3908a9942025444",
     "src/plugin_runtime.rs": "59ebc7f638f4697b1be51e21c32b5550f45a43b6a7182cb02f6078ecea885b94",
     "src/plugin_runtime/process.rs": "78ba5581ceabc8a271aa9a7cfe67405003a6a8b55ebe3fb8a607736a0c102edc",
     "src/plugin_runtime/protocol.rs": "906aad2e9863ed4121eb42ca5c2a97e043a250f6bfe9f2231ba06c5123d7233b",
     "src/plugin_runtime/session.rs": "ca7e1911902c98555e7210120151cef0f564766a449c153773d74b11d4a4681a",
     "src/plugincli.rs": "bc03c244d05b9064eabee529f4113feac86dac50473b9cdf91364ec5b92372be",
-    "src/prefetch.rs": "11421a7915332c3fc4d908d6b15593aa4d2ff9c27c8a97ad57f1613b018642a7",
+    "src/prefetch.rs": "9f50583663defde0493e607cb862f880b4d8906cffca30a7bdf318d4e45857f2",
     "src/preview_model.rs": "873bb9d07d692ef99f36f5423168446578f57e210b8171557af447aeb124bb2e",
     "src/procsignal.rs": "b8e84f378c153d0a6fbc2fc421f4a5f06c94d01ddedfa495fb7f36d3cfc4d069",
     "src/protocol.rs": "6a544c617ee87a68685ce36bfa2fab9281d2465158f97d152ce05c6988be8e86",
     "src/qscrash.rs": "ce5db46de6d437e19b46507668cd2bb9ad2156118b002397fd04c1691262217e",
-    "src/qsregistry.rs": "1e78d20ae9e79a8120e58fea52fe7a888c192bed756575cc4586ab468b3c58e8",
+    "src/qsregistry.rs": "ff4081be9a8ac4342937ae11d0f751914dbfb695c1c717049c5ba950f878cd00",
     "src/runfile.rs": "73c746de9af77ad4aaf327d492fb2f2322535aca2a17595e4160a9806658e64c",
     "src/runharden.rs": "9c87b01797b68457ebae0d9460a0ac24158bd246fe3a21eebe425aa0699f0a3a",
     "src/runid.rs": "54b0665f710c50e44afd609c26b11b0f621c45a78f1979ccef68dcfff0789acd",
@@ -246250,19 +246187,19 @@
     "src/uistate.rs": "802b6a2dff1c3f68378dc279a8b8f554abb3834c3b15bae44673481ce1b7ef24",
     "src/uistatecli.rs": "c629c0f34474bbe67edb0276457b295e8ed33bfd028e2c73779dfd05ab7cc30e",
     "src/uistore.rs": "8df2c75485947e0b6495ab3846a38cb17c48b1eace425a406e7b23af24cc4474",
-    "src/unlock.rs": "63e84bd386bc725c4a2b84cfec87e19210455812305f6caeb86f5ceb86c43c36",
+    "src/unlock.rs": "4eee4e2d6ead20e15e87b67c7a3c40384ca7e02103a9a0a0f6f5b6f877d38d8a",
     "src/update.rs": "51deae597a60a2fb334c3e4d6e586aad68f8ca499bcdc774c25055ed035ba921",
     "src/usage.rs": "a163bff996a84232983b94297061326414a52c07262eff7da6e0f6d29dcd164f",
     "src/userfile.rs": "c8ba8011cccc3b6c00b40ea2b39039d1309d8281605856ef2cb8c760afb5cf22",
     "src/vkprobecache.rs": "10ae20a28ff710494f07d7b04027d3e0844810e47c4a1a4c2c60699da5f62dca",
     "src/vkprobekey.rs": "30e18a889c5c5e79c89c934f669c62aa75a8ab635fcd46416874ad1140b76824",
     "src/vkprobelibs.rs": "dfbc3ef59774576d969649bf95f95e61debfdd88eafacfbd0eba85fe81cba877",
-    "src/vulkan.rs": "2d841261e8ad5da8d06cfdcf1abfa20205a837dab216cef53b5f4a8132dbd28f",
+    "src/vulkan.rs": "14c42e5c9efeac51acfaebb617224dd41de42f448ceb07b431ef4ddae134e3c4",
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
     "tools/flea-acceptance-drive": "829980e913b1dce2f601942ae55a699afb4c9e81c72085434cdc1c2efb7d121a",
     "tools/flea-b3-capture/capture.py": "3e8e82edd813e82751acd790cabbf90eeebf9ab88ae7102a55a3dee579a51d66",
     "tools/flea-bench": "1b395041bce3037315d6aadb87d3fcdbdba0ee75f36284ca0b764cf50e5f64b8",
-    "tools/flea-bench-capability": "5abdd2f3905d5e7fac26c6379a5d35bc24f66cced2d59bdc8fbc4b46ace0c592",
+    "tools/flea-bench-capability": "9faa117e795c4e89d9829291680ff85a507529b8e287bed51b5b7cd663403f2c",
     "tools/flea-bench-chart": "59e158f5710e5661a60143dc487cd26a42cc5e446abcd2f6976696bdf0b796b2",
     "tools/flea-bench-fleet": "ee3d654cff65190589164228ef0240975b62174c334201a506c0beb3143e8f71",
     "tools/flea-bench-gate": "ea01811587ffb3a697f6cdfc8bc9d9170e5e1f435948f164c22cf7ebfd5da458",
@@ -246286,7 +246223,7 @@
     "tools/flea-clippy": "47f960c3bb29bb67858e50d66add12e96640665c5c43fb43658606ae7d4e855a",
     "tools/flea-commit-msg": "730f04fe39bcfd815f1ee3ed92845976e2d44c8ed680e8f5f396a5ef7a273d73",
     "tools/flea-commit-rules": "e376873facbe1955b3ac31eec5a387af46da79f7b5a65bdd3019fbb579fda9e8",
-    "tools/flea-field-bench": "37a5a33ae70953faa4e02b6892233fead64ed2177b78719066bdef7fd8bc7f1e",
+    "tools/flea-field-bench": "03d16bc5c0fbdc7376b4f9dbb00e71a5919b28c20b6b047ab42fc50b4d0bc76b",
     "tools/flea-field-instant": "78655961dcb1a870cbe313f88a4ac88d557ae3541e245e0012d16fed3aa2d195",
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
@@ -246307,7 +246244,7 @@
     "tools/flea-i18n-manifest": "c693ffbb0438691c753cd998ccf30697da1eda13afdbcc412709bf4e009e211e",
     "tools/flea-i18n-quality": "f38eff8ea84188f921dc5efe5d1e5f481e1214a4c91d49d70be30d3a930e5f72",
     "tools/flea-i18n-roster": "15ebc5b098f014643154e00a5a2c3f9f0f08568a09ccd254dcf2935bfc2d6783",
-    "tools/flea-ipc": "b6907958280b1adf40602eb46c89a2e493fe4858ae086552446c569d8cf422fc",
+    "tools/flea-ipc": "68bf9a3290ea6bad56831a3e025fbe4870f058b2d027100714ac1d83524edc88",
     "tools/flea-ipc-pid": "111739583c9d10e2e7058e0eefb147c94a2a8b4a0777d09361b0c6827ab77518",
     "tools/flea-keymap-gen": "a36c7ff57d665edf8cd72b5eea9384cea73ef494df55582df3c4476da3bac487",
     "tools/flea-keymap-lint": "685dd15739937f99b51ddb241c104ed291b11c8c893d239a1ff6b41d6b68d7dd",
@@ -246391,7 +246328,7 @@
     "tools/flea-walkbench/src/run.rs": "32a9dfb7ac075de027668ecbcb51fcc58c7598e98fd782166c9a2605b13731c5",
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "32b0d9109cde20e6629c2ae5d156b381de678158e8e6066ea206df196795c09d",
-    "tools/flea_ipc.py": "0a0c390872be4cc21c29be6806df7ee8093de5492e3d9a3f168fdf60260f5fa7",
+    "tools/flea_ipc.py": "d088ef240adc6fce6fbe5ea848e59adcb99e5075dfcf809fae9c1905fa474871",
     "tools/gpui-lint.json": "d957f2c97369a953d40604ce16ee3f097b25c8f394736f4960ea9be5b11f903b",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
@@ -246823,12 +246760,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "4b0137e3002784f6d139c3e8d57bd8a99c854dda",
-  "source_sha": "4b0137e3002784f6d139c3e8d57bd8a99c854dda",
+  "source_ref_sha": "9e654705fe3840d5979ceed321091afe60dca92a",
+  "source_sha": "9e654705fe3840d5979ceed321091afe60dca92a",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
-      "missing_literal_candidates": 5720,
+      "missing_literal_candidates": 5713,
       "source_files": 834
     },
     "generated/tooling": {

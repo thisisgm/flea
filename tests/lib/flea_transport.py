@@ -236,7 +236,7 @@ class Window:
     @classmethod
     def start(cls, path, *, parent=None, binary=None, backend=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None,
               wrap=(), select=None, share=None):
-        frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "qml")
+        frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "gpui")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
         direct_qml = command and Path(command[0]).name in ("qs", "quickshell")
