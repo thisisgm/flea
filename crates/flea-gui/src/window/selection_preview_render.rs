@@ -3,6 +3,7 @@ pub(crate) use super::fitted::column_media;
 #[cfg(test)]
 pub(crate) use super::fitted::column_picture;
 use super::*;
+use crate::g2::pv2::html::capture;
 use crate::g2::pv3::{
     self,
     strip::StripElement,
@@ -148,15 +149,7 @@ impl Render for SelectionPreview {
             .rounded(px(self.corner))
             .overflow_hidden()
             .child(frame_probe)
-            .children(crate::g2::pv2::html::capture::frame(
-                match &frame.mounted {
-                    Mounted::Doc(docs::Doc::Html(view)) => Some(view.clone()),
-                    _ => None,
-                },
-                FRAME_BORDER,
-                roles.muted_frame,
-                gpui::Hsla::transparent_black(),
-            ))
+            .children(capture::column(frame, FRAME_BORDER, roles.muted_frame))
             .debug_selector(|| "column-preview-frame".into());
         media = if kind.tall() {
             media.flex_1().min_h_0()
