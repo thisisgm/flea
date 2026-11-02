@@ -100,7 +100,16 @@ jobs:
       - name: Install what GPUI and the test suite need
         run: packaging/flea-release-build install-deps
 
+      # The debug flea-gui build outgrew the arm runner's memory and the runner was shut down (run 41513658726).
+      - name: Add swap for the debug GPUI build
+        run: |
+          free -h && df -h /
+          sudo fallocate -l 8G /flea-swap && sudo chmod 600 /flea-swap
+          sudo mkswap /flea-swap >/dev/null && sudo swapon /flea-swap && free -h
+
       - name: Test
+        env:
+          CARGO_PROFILE_DEV_DEBUG: line-tables-only
         run: packaging/flea-release-build test
 
       - name: Build
