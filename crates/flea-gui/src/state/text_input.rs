@@ -50,7 +50,7 @@ impl Shell {
         .then_some(Owner::Filter(side))
     }
 
-    /// Runs first in every key and every root frame, so a composition owns the keyboard exactly while its field does.
+    /// Called by every key before the key reads the owner, and by every root frame, so a composition owns the keyboard exactly while its field does.
     pub(crate) fn sync_text_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let owner = self.text_input_owner(window, cx);
         let previous = self.keyboard.text_owner();
