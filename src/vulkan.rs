@@ -216,7 +216,7 @@ pub fn display_pin(devices: &[(u32, u32, u32)]) -> DisplayPin {
 }
 
 // Split from display_pin so a test can drive the whole chain against a fake sysfs and icd dir.
-fn display_pin_in(devices: &[(u32, u32, u32)], drm: &Path, icd_dirs: &[PathBuf]) -> DisplayPin {
+pub(crate) fn display_pin_in(devices: &[(u32, u32, u32)], drm: &Path, icd_dirs: &[PathBuf]) -> DisplayPin {
     icd_for_displays(devices, &display_pci_ids(drm), &card_pci_ids(drm), icd_dirs)
 }
 
@@ -273,8 +273,7 @@ fn icd_for_displays(devices: &[(u32, u32, u32)], displays: &[(u32, u32)], cards:
             if path.extension().and_then(|e| e.to_str()) != Some("json") {
                 continue;
             }
-            let Ok(body) = std::fs::read_to_string(&path) else { continue };
-            let Some(lib) = icd_library(&body) else { continue };
+            let Some(lib) = crate::icdexclude::manifests::manifest_library_path(&path) else { continue };
             let Some(vendor) = vendor_of_library(&lib) else { continue };
             if !displays.iter().any(|(v, _)| *v == vendor) {
                 continue;
@@ -307,10 +306,9 @@ pub(crate) fn icd_library(body: &str) -> Option<String> {
     crate::jsondoc::parse(library).ok()?.as_str().filter(|path| !path.contains('\0')).map(str::to_owned)
 }
 
-// One name test for the hasvk ICD, which the display pin skips.
-// Sample input: "libvulkan_intel_hasvk.so", and "libvulkan_intel.so" for the ANV ICD beside it.
+#[cfg(test)]
 fn is_hasvk_library(lib: &str) -> bool {
-    lib.to_ascii_lowercase().contains("hasvk")
+    Path::new(lib).file_name() == Some(OsStr::new("libvulkan_intel_hasvk.so"))
 }
 
 // Mesa's hasvk drives Gen7 and Gen8 Intel (Ivy Bridge to Broadwell, Bay Trail), whose ids all sit below this one.
@@ -349,21 +347,12 @@ pub fn hasvk_only(devices: &[(u32, u32, u32)]) -> bool {
 
 // Sample input: "libGLX_nvidia.so.0", "libvulkan_intel.so", "libvulkan_intel_hasvk.so".
 fn vendor_of_library(lib: &str) -> Option<u32> {
-    let lib = lib.to_ascii_lowercase();
-    // hasvk is Haswell/Broadwell, not the display GPU beside a modern iGPU ICD.
-    if is_hasvk_library(&lib) {
-        return None;
-    }
-    if lib.contains("nvidia") || lib.contains("nouveau") {
-        Some(PCI_VENDOR_NVIDIA)
-    } else if lib.contains("intel") {
-        Some(PCI_VENDOR_INTEL)
-    } else if lib.contains("radeon") || lib.contains("amdvlk") || lib.contains("amd_") {
-        Some(PCI_VENDOR_AMD)
-    } else if lib.contains("virtio") {
-        Some(PCI_VENDOR_VIRTIO)
-    } else {
-        None
+    match Path::new(lib).file_name()?.to_str()? {
+        "libGLX_nvidia.so.0" | "libvulkan_nouveau.so" => Some(PCI_VENDOR_NVIDIA),
+        "libvulkan_intel.so" => Some(PCI_VENDOR_INTEL),
+        "libvulkan_radeon.so" | "amdvlk64.so" | "amdvlk32.so" => Some(PCI_VENDOR_AMD),
+        "libvulkan_virtio.so" => Some(PCI_VENDOR_VIRTIO),
+        _ => None,
     }
 }
 
@@ -397,6 +386,11 @@ pub(crate) fn is_card(name: &str) -> bool {
         Some(digits) => !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()),
         None => false,
     }
+}
+
+pub(crate) fn is_render_node(name: &str) -> bool {
+    name.strip_prefix("renderD")
+        .is_some_and(|digits| !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()))
 }
 
 // corner: a connected connector is the proxy for the compositor's render device, so a lid-closed box wired to the other GPU needs the operator's own VK_DRIVER_FILES.

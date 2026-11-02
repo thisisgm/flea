@@ -1,5 +1,5 @@
 use super::{
-    apply_display_pin, apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme,
+    apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme,
 };
 use crate::{prefetch, shelfplugin, thp, uistatecli, uistore};
 use std::ffi::OsStr;
