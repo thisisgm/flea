@@ -122,9 +122,9 @@ impl PaneHost {
                             gpui::div()
                                 .text_size(self.list.borrow().typeface.caption)
                                 .font_family(self.list.borrow().typeface.font.family.clone())
-                                .text_color(input.palette.metadata)
+                                .text_color(input.palette.muted)
                                 .child(self.state_text.message.clone()),
-                            self.list.borrow().typeface.caption,
+                            &self.list.borrow().typeface,
                             window,
                         )),
                 )

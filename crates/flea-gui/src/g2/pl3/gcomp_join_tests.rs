@@ -3,6 +3,119 @@ use super::join_tests::{call, draw, opened, root, shell};
 use flea::ui_logic_fb1::status::Hint;
 
 #[test]
+fn feedback_remainder_ey21_trash_text_size_chords_paint_each_notice() {
+    let mut cx = crate::list::bench::real_cx();
+    let window = root(&mut cx);
+    shell(&mut cx, window, |shell, window, cx| {
+        let (theme, parsed) = crate::palette::Theme::from_text_observed("");
+        shell.apply_presentation(
+            crate::presentation::Snapshot {
+                theme,
+                parsed,
+                fonts: crate::presentation::Fonts::from_sources(
+                    "[font]\nbase-size=14",
+                    "",
+                    "monospace".into(),
+                ),
+            },
+            window,
+            cx,
+        );
+        shell.status_note("ordinary retained message", cx);
+    });
+    opened(&mut cx, window);
+    for (stroke, expected) in [
+        ("ctrl-shift-+", "Text size 16px."),
+        ("ctrl-shift-+", "Text size 20px."),
+        ("ctrl-shift--", "Text size 16px."),
+        ("ctrl-shift-0", "Text size follows Omarchy, 14px"),
+    ] {
+        cx.simulate_keystrokes(window.into(), stroke);
+        draw(&mut cx, window);
+        let message = call(&mut cx, window, "lastMessage", &[]);
+        eprintln!("EY21 Trash {stroke}: {message:?}");
+        assert!(message.starts_with(expected), "{stroke}: {message:?}");
+        shell(&mut cx, window, |shell, _, cx| {
+            let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+            let displayed = footer.message_line();
+            let line = displayed.read(cx);
+            let painted = line
+                .painted
+                .get("primary")
+                .expect("Trash paints the notice");
+            assert_eq!(painted.text.as_ref(), message);
+            assert!(painted.bounds.size.width > gpui::px(0.));
+            assert_eq!(
+                footer.line.read(cx).drawn().primary.as_ref(),
+                "ordinary retained message"
+            );
+        });
+    }
+    cx.simulate_keystrokes(window.into(), "backspace");
+    draw(&mut cx, window);
+    assert_eq!(
+        call(&mut cx, window, "lastMessage", &[]),
+        "ordinary retained message"
+    );
+}
+
+#[test]
+fn feedback_remainder_ey21_trash_shows_a_global_recent_refusal() {
+    let mut cx = crate::list::bench::real_cx();
+    let window = root(&mut cx);
+    shell(&mut cx, window, |shell, _, cx| {
+        shell.status_note("ordinary retained message", cx);
+    });
+    opened(&mut cx, window);
+    let expected = shell(&mut cx, window, |shell, window, cx| {
+        shell.panes[0].as_mut().unwrap().recent.on = true;
+        assert!(shell.settings_action("toggleHidden", window, cx));
+        shell.locale.catalog.tr("places.recent.hidden_refused")
+    });
+    draw(&mut cx, window);
+    assert_eq!(call(&mut cx, window, "lastMessage", &[]), expected);
+    shell(&mut cx, window, |shell, _, cx| {
+        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+        let displayed = footer.message_line();
+        assert_eq!(
+            displayed
+                .read(cx)
+                .painted
+                .get("primary")
+                .unwrap()
+                .text
+                .as_ref(),
+            expected
+        );
+        assert_eq!(
+            footer.line.read(cx).drawn().primary.as_ref(),
+            "ordinary retained message"
+        );
+    });
+}
+
+#[test]
+fn feedback_remainder_ey21_a_note_during_trash_close_uses_the_new_footer_owner() {
+    let mut cx = crate::list::bench::real_cx();
+    let window = root(&mut cx);
+    opened(&mut cx, window);
+    shell(&mut cx, window, |shell, window, cx| {
+        shell.drop_trash(0, window, cx);
+        assert!(!shell.trash_opened(cx));
+        shell.status_note("ordinary note after closing Trash", cx);
+    });
+    draw(&mut cx, window);
+    assert_eq!(
+        call(&mut cx, window, "lastMessage", &[]),
+        "ordinary note after closing Trash"
+    );
+    shell(&mut cx, window, |shell, _, cx| {
+        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+        assert_eq!(footer.message_line(), footer.line);
+    });
+}
+
+#[test]
 fn gcomp_batch_u32_arm_paints_in_the_real_footer_and_close_restores_its_prior_owner() {
     let mut cx = crate::list::bench::real_cx();
     let window = root(&mut cx);

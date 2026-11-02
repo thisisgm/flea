@@ -242,7 +242,7 @@ impl Shell {
                         loading_tile(
                             mark,
                             &typeface,
-                            palette.metadata,
+                            palette.muted,
                             self.locale.catalog.tr("window.loading").into(),
                             window,
                         )
@@ -253,7 +253,7 @@ impl Shell {
                 track = track.child(loading_tile(
                     Rc::clone(&host.pane.swap.mark),
                     &typeface,
-                    palette.metadata,
+                    palette.muted,
                     host.state_text.message.clone().into(),
                     window,
                 ));

@@ -26,7 +26,7 @@ pub(super) fn loading_tile(
                 .font_family(typeface.font.family.clone())
                 .text_color(ink)
                 .child(line),
-            typeface.caption,
+            typeface,
             window,
         ))
 }

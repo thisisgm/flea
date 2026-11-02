@@ -251,16 +251,20 @@ pub fn paint_rects(motion: &Motion, slot: Bounds<Pixels>, ink: Hsla, window: &mu
 /// The loading stack reserves one caption line, so a changed message cannot recenter the mark.
 pub fn hero(
     mark: Rc<Crawl>,
-    caption: impl IntoElement,
-    font_size: Pixels,
+    caption: gpui::Div,
+    typeface: &crate::list::Typeface,
     window: &Window,
 ) -> gpui::Div {
     use gpui::prelude::*;
+    #[cfg(test)]
+    let caption = super::loading_caption_tests::watch_caption(caption, Rc::clone(&mark));
     let line = window
         .text_style()
         .line_height
-        .to_pixels(font_size.into(), window.rem_size())
+        .to_pixels(typeface.caption.into(), window.rem_size())
         .round();
+    // LoadingState.qml centres its caption under bodySmall * 3.7; Omi keeps its own slot.
+    let caption_offset = px((HERO - (f32::from(typeface.body_small) * 3.7).round()) / 2.);
     gpui::div()
         .flex()
         .flex_col()
@@ -269,7 +273,13 @@ pub fn hero(
         .flex_shrink_0()
         .gap(px(GAP))
         .child(Slot(mark))
-        .child(gpui::div().flex_shrink_0().child(caption))
+        .child(
+            gpui::div()
+                .relative()
+                .top(-caption_offset)
+                .flex_shrink_0()
+                .child(caption),
+        )
 }
 
 /// The mark's place in the pane's layout; it records its bounds and its pane's clip and paints nothing, so a crawl frame leaves the pane alone.
