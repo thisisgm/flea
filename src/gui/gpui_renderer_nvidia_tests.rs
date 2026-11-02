@@ -90,8 +90,8 @@ fn l_nvidia_nvidia_nvk_only() {
 }
 
 #[test]
-fn l_nvidia_nouveau_box_does_not_pin_an_icd() {
-    matrix("nouveau-no-vulkan", &[NVIDIA], Some(0));
+fn l_nvidia_both_nvidia_drivers_installed_does_not_pin_an_icd() {
+    matrix("both-nvidia-drivers", &[NVIDIA], Some(0));
 }
 
 #[test]
