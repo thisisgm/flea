@@ -155,3 +155,88 @@ fn card_rate_real_presentation_restarts_after_fold_and_stops_after_completion() 
     assert_eq!(presentation.due(530), None);
     assert_eq!(model.jobs.rows[0].rate, 99_000);
 }
+
+#[test]
+fn eta_warmup_first_three_bytes_keep_legacy_zero_rate_without_eta() {
+    let catalog = crate::test_catalogs::english();
+    for kind in ["extract", "copy", "move"] {
+        let mut rates = Rates::default();
+        let mut input = row(1, 3);
+        input.kind = kind.into();
+        input.total_bytes = Some(60_800_000);
+        let sample = publish(&mut rates, &input, 5);
+        let block = jobs::block(&catalog, &sample);
+        let line = flea::ui_logic_op1::joined(&block.line);
+        assert_eq!(line, "3 B of 60.8 MB · 0 B/s", "{kind}");
+        assert_eq!((sample.rate, sample.left), (0, None));
+        input.bytes = Some(4);
+        let before_beat = publish(&mut rates, &input, 254);
+        assert_eq!(
+            (before_beat.bytes, before_beat.rate, before_beat.left),
+            (Some(3), 0, None)
+        );
+        let on_beat = publish(&mut rates, &input, 255);
+        assert_eq!(
+            (on_beat.bytes, on_beat.rate, on_beat.left),
+            (Some(4), 4, Some(15_199_999))
+        );
+    }
+}
+
+#[test]
+fn eta_warmup_zero_sample_hides_the_byte_line_until_the_publish_beat() {
+    let catalog = crate::test_catalogs::english();
+    let mut rates = Rates::default();
+    let mut input = row(1, 0);
+    input.kind = "extract".into();
+    input.total_bytes = Some(60_817_408);
+    let sample = publish(&mut rates, &input, 0);
+    assert!(jobs::block(&catalog, &sample).line.is_empty());
+    input.bytes = Some(3);
+    let sample = publish(&mut rates, &input, 5);
+    assert!(jobs::block(&catalog, &sample).line.is_empty());
+    let sample = publish(&mut rates, &input, 250);
+    assert_eq!((sample.bytes, sample.rate), (Some(3), 12));
+}
+
+#[test]
+fn eta_warmup_sparse_sample_can_reproduce_the_reported_eta() {
+    let catalog = crate::test_catalogs::english();
+    let mut rates = Rates::default();
+    let mut input = row(1, 0);
+    input.kind = "extract".into();
+    input.total_bytes = Some(60_817_408);
+    publish(&mut rates, &input, 0);
+    input.bytes = Some(3);
+    let sample = publish(&mut rates, &input, 3000);
+    assert_eq!(
+        flea::ui_logic_op1::joined(&jobs::block(&catalog, &sample).line),
+        "3 B of 60.8 MB · 1 B/s · 16893:43:25 left"
+    );
+}
+
+#[test]
+fn eta_warmup_steady_sample_keeps_the_extracting_board_line() {
+    let catalog = crate::test_catalogs::english();
+    let mut rates = Rates::default();
+    let mut input = row(1, 100_000);
+    input.kind = "extract".into();
+    input.total_bytes = Some(9_700_000);
+    publish(&mut rates, &input, 0);
+    input.bytes = Some(3_700_000);
+    let sample = publish(&mut rates, &input, 1500);
+    let block = jobs::block(&catalog, &sample);
+    assert_eq!(
+        flea::ui_logic_op1::joined(&block.line),
+        "3.7 MB of 9.7 MB · 2.4 MB/s · 0:02 left"
+    );
+    assert_eq!(
+        block
+            .line
+            .iter()
+            .filter(|part| part.figure)
+            .map(|part| part.text.as_str())
+            .collect::<Vec<_>>(),
+        ["3.7 MB", "9.7 MB", "2.4 MB/s", "0:02"]
+    );
+}
