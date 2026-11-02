@@ -23,6 +23,8 @@ pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
 #[cfg(test)]
+mod fixlist_mark_ink_tests;
+#[cfg(test)]
 mod gh315_filter_tests;
 #[cfg(test)]
 mod gh315_filter_views_tests;
@@ -83,8 +85,10 @@ pub struct RowStates {
     /// The listing these indices belong to; a snapshot from another listing marks no row but the cursor.
     pub listing: usize,
     pub cursor: Option<usize>,
-    /// The listing holds the keyboard: the cursor is the accent rung and marks take the plate; else both go grey.
+    /// The listing holds the keyboard: the cursor is the accent rung; else it goes grey.
     pub focused: bool,
+    /// The dual window's other pane (v0.3.12 paneFocused false), whose marks alone take the grey selected fill.
+    pub other_pane: bool,
     /// Marked rows in ascending order; None is no selection, which costs nothing.
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,

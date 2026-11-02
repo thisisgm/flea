@@ -6,7 +6,7 @@ use super::{
     columns::{Column, Layout},
     pane::Held,
     ListState, Metrics, Palette, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM, GREY_CURSOR,
-    HOVER, MATCH_WASH, TRACK,
+    HOVER, MATCH_WASH,
 };
 use crate::palette::Theme;
 use crate::row::{
@@ -409,10 +409,10 @@ impl Element for ListElement {
                             palette.foreground.opacity(GREY_CURSOR)
                         })
                     } else if s.selected {
-                        Some(if focused {
-                            palette.marked
+                        Some(if self.states.other_pane && !focused {
+                            palette.foreground.opacity(GREY_CURSOR)
                         } else {
-                            palette.foreground.opacity(TRACK)
+                            palette.marked
                         })
                     } else if s.hovered {
                         Some(palette.foreground.opacity(HOVER))
@@ -476,8 +476,9 @@ impl Element for ListElement {
                         checks_painted += super::picker::paint_check(
                             shown, view, metrics, palette, origin, window, cx,
                         );
+                        let ink = super::picker::mark_ink(shown, view, palette, &self.states);
                         let (marks, pictures) = super::picker::paint_icon(
-                            shown, view, metrics, palette, origin, window, cx,
+                            shown, view, metrics, ink, origin, window, cx,
                         );
                         marks_painted += marks;
                         pictures_painted += pictures;

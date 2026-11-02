@@ -29,8 +29,7 @@ pub fn lane(face: &crate::list::Typeface) -> f32 {
 }
 pub const DIVIDER: f32 = 1.;
 
-// The body-14 footer expected by the fixed-size geometry fixtures.
-#[cfg(test)]
+/// ColumnPane.qml's footer band at body 14: the peek tracks draw fixed-height rows, so their footer is fixed too.
 pub const FOOTER: f32 = 7.;
 
 /// The active track's scroll content: its rows, the refused rename's band and the footer.

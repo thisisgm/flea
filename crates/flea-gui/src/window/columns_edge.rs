@@ -143,13 +143,17 @@ pub(super) fn surface(shell: &Shell, side: usize, cx: &Context<Shell>) -> Option
                                 return;
                             }
                             let _ = up.update(cx, |shell, cx| {
-                                let Some(columns) = shell.panes[side]
-                                    .as_mut()
-                                    .and_then(|host| host.columns.as_mut())
-                                else {
+                                let Some(host) = shell.panes[side].as_mut() else {
+                                    return;
+                                };
+                                let input = &mut host.input;
+                                let Some(columns) = host.columns.as_mut() else {
                                     return;
                                 };
                                 if columns.area.host.edge.dragging {
+                                    // The drag kept its moves, so the release places the still pointer the next frame re-hovers from.
+                                    input.last_pointer = Some(event.position);
+                                    input.pointer_origin = true;
                                     columns.area.edge_release();
                                     shell.persist_columns_edge(side, window, cx);
                                     cx.stop_propagation();

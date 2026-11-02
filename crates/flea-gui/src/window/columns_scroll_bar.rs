@@ -54,6 +54,7 @@ pub(super) fn surface(
                     } else {
                         columns.area.scroll(slot)
                     };
+                    // ColumnPane.qml gives every column its footer band, so a long one scrolled to its end keeps a blank press target.
                     let content = if slot == Slot::Active {
                         crate::columns::geometry::active_content(
                             grow,
@@ -62,7 +63,7 @@ pub(super) fn surface(
                             &host.list.borrow().typeface,
                         )
                     } else {
-                        grow.content(total, row)
+                        grow.content(total, row) + crate::columns::geometry::FOOTER
                     };
                     if slot == Slot::Active {
                         host.pane.scroll_extent = Some(content);

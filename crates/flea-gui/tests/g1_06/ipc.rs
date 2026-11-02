@@ -147,7 +147,7 @@ fn header_readers_answer_titles_cells_and_the_drag_trace() {
         .header
         .drag
         .move_to(Column::Size, 580.);
-    let _ = pane.list.borrow_mut().end_drag();
+    let _ = pane.list.borrow_mut().end_drag(true);
     assert_eq!(
         ask(&mut cx, &pane, "headerDragTrace", &[]).unwrap(),
         "600|580|70|90",

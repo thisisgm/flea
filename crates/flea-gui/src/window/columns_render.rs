@@ -3,6 +3,8 @@ use super::Columns;
 use render_tile::{loading_tile, tile};
 #[path = "columns_render/render_tile.rs"]
 mod render_tile;
+#[path = "columns_render/rest.rs"]
+mod rest;
 use crate::{
     columns::{element::TrackElement, geometry::Slot, paint::Focus, TrackRows, TrackState},
     state::Shell,
@@ -39,6 +41,8 @@ impl Shell {
         let host = self.panes[side].as_mut()?;
         let active = host.columns.as_mut()?;
         active.settle_hover(host.pane.held.listing, blocked || host.pane.busy());
+        rest::rehover(host, blocked, window);
+        let active = host.columns.as_mut()?;
         rows.hovered = active
             .hover
             .as_ref()

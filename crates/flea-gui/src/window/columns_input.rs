@@ -3,7 +3,7 @@ use crate::{
     columns::{geometry::Slot, TrackRows},
     state::Shell,
 };
-use gpui::{Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
+use gpui::{px, Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
 
 #[cfg(test)]
 #[path = "s1_columns_tests.rs"]
@@ -57,8 +57,14 @@ impl Shell {
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
             let position = drawn.grow.position_at(y, drawn.row_height);
-            // Under a filter a position past its rows is background, never the listing row of that number.
-            let index = drawn.row_at(position).unwrap_or(usize::MAX);
+            // ColumnPane.qml's rows stop at Scroll.contentWidth, so the lane and the divider inside it are blank space too.
+            let in_lane = event.position.x >= drawn.bounds.right() - px(drawn.lane);
+            let index = if in_lane {
+                usize::MAX
+            } else {
+                // Under a filter a position past its rows is background, never the listing row of that number.
+                drawn.row_at(position).unwrap_or(usize::MAX)
+            };
             let row = match &drawn.view().rows {
                 TrackRows::Peek(rows) => rows.get(index).map(|row| (row.name.clone(), row.dir)),
                 TrackRows::Listing => drawn
