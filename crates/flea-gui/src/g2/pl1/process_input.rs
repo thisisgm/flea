@@ -51,7 +51,7 @@ extern "C" {
     fn fcntl(fd: i32, command: i32, ...) -> i32;
 }
 
-fn nonblocking(stream: &ChildStdin) -> io::Result<()> {
+pub(super) fn nonblocking(stream: &impl AsRawFd) -> io::Result<()> {
     const F_GETFL: i32 = 3;
     const F_SETFL: i32 = 4;
     const O_NONBLOCK: i32 = 0o4000;
