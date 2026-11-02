@@ -182,7 +182,7 @@ fn a_label_wider_than_the_board_column_widens_it_to_hold_that_label(cx: &mut Tes
     super::test_shell::land(&shell, cx, "/files", rows, 1);
     let lines = local(&shell, cx, "/files");
     meta(&shell, cx, &lines, r#","w":640,"h":360,"ms":4000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     cx.simulate_resize(size(px(1500.), px(1013.)));
     pump(cx);
     let facts = read(&shell, cx, "previewFacts", &[]);

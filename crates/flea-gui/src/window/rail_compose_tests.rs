@@ -162,9 +162,8 @@ fn accepted_settings_and_typeface_reach_the_mounted_producer(cx: &mut TestAppCon
             .any(|entry| entry.kind == Kind::Trash));
         assert_eq!(producer.typeface, shell.active_typeface());
         assert_eq!(f32::from(producer.typeface.base), 18.);
-        let expected =
-            (crate::list::Metrics::for_typeface(&producer.typeface).nominal_row * 0.78).round();
-        assert_eq!(producer.laid.borrow().rows[0].rect.height, expected);
+        // The approved rail anchors interpolate body14's 29 px to body20's 41 px.
+        assert_eq!(producer.laid.borrow().rows[0].rect.height, 37.);
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
