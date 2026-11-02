@@ -20,11 +20,7 @@ const THUMBNAILERS_SUBDIR: &str = "thumbnailers";
 // The one group whose keys are honoured, because a key outside it names a program nothing may run.
 const ENTRY_GROUP: &str = "[Thumbnailer Entry]";
 const JPEG_MIME: &str = "image/jpeg";
-// The camera RAW types whose embedded JPEG is thumbnailed, by canonical name; the shared-mime-info alias image/x-panasonic-raw2 canonicalises to the RW2 entry.
-const RAW_MIMES: [&str; 11] = [
-    "image/x-canon-cr2", "image/x-canon-cr3", "image/x-nikon-nef", "image/x-nikon-nrw", "image/x-sony-arw", "image/x-sony-sr2",
-    "image/x-adobe-dng", "image/x-fuji-raf", "image/x-olympus-orf", "image/x-panasonic-rw2", "image/x-pentax-pef",
-];
+pub(crate) const IIQ_MIME: &str = "image/x-phaseone-iiq";
 
 impl Thumbnailers {
     pub fn load(aliases: &Aliases) -> Thumbnailers {
@@ -100,7 +96,10 @@ impl Thumbnailers {
     // A camera RAW no thumbnailer declares is thumbnailed by the image/jpeg spec on the JPEG it embeds; none when the type is not a RAW, a thumbnailer declares it, or no image/jpeg thumbnailer is installed.
     pub fn raw_route(&self, mime: &str, aliases: &Aliases) -> Option<&Spec> {
         let canonical = aliases.canonical(mime);
-        if RAW_MIMES.contains(&canonical) && !self.by_mime.contains_key(canonical) { self.by_mime.get(JPEG_MIME) } else { None }
+        let raw = flea::rawname::FORMATS.iter().any(|(_, mime)| aliases.canonical(mime) == canonical);
+        if raw && !self.by_mime.contains_key(canonical) {
+            self.by_mime.get(if canonical == IIQ_MIME { "image/tiff" } else { JPEG_MIME })
+        } else { None }
     }
 }
 
@@ -236,3 +235,7 @@ pub(crate) fn is_runnable(program: &str) -> bool {
 #[cfg(test)]
 #[path = "thumbspec_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "raw_gap64_tests.rs"]
+mod gap64_tests;

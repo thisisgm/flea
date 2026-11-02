@@ -212,3 +212,5 @@ mod plural_tests;
 mod load_tests;
 #[cfg(test)]
 mod adv_c_tests;
+#[cfg(test)]
+mod gap64_tests;

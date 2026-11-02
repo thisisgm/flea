@@ -80,10 +80,10 @@ impl Db {
         };
         let lower = name.to_lowercase();
         if let Some((_, mime)) = self.by_name_cs.get(name) {
-            return Some(mime);
+            return Some(camera_type(mime, name));
         }
         if let Some((_, mime)) = self.by_name.get(&lower) {
-            return Some(mime);
+            return Some(camera_type(mime, name));
         }
         // Lowercasing never adds or removes a dot, so the two strings' dots pair up and each offset indexes its own string.
         let dots = name.match_indices('.').zip(lower.match_indices('.'));
@@ -94,13 +94,21 @@ impl Db {
                 continue;
             }
             if let Some((_, mime)) = self.by_suffix_cs.get(&name[dot..]) {
-                return Some(mime);
+                return Some(camera_type(mime, name));
             }
             if let Some((_, mime)) = self.by_suffix.get(&lower[dot_lower..]) {
-                return Some(mime);
+                return Some(camera_type(mime, name));
             }
         }
-        None
+        flea::rawname::mime_for_name(name)
+    }
+}
+
+fn camera_type<'a>(mime: &'a str, name: &str) -> &'a str {
+    if mime == "application/octet-stream" {
+        flea::rawname::mime_for_name(name).unwrap_or(mime)
+    } else {
+        mime
     }
 }
 

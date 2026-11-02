@@ -288,6 +288,7 @@ pub(crate) fn publish(temp: &Path, key_uri: &str, mtime: i64, final_path: PathBu
 // What the thumbnailer is handed: a camera RAW's embedded JPEG, copied out once per file version, or the file itself.
 pub(crate) fn input_for(tables: &Tables, job: &Job, raw_dir: &Path) -> Option<PathBuf> {
     match tables.specs.raw_route(&job.mime, &tables.aliases) {
+        Some(_) if tables.aliases.canonical(&job.mime) == super::thumbspec::IIQ_MIME => Some(job.path.clone()),
         Some(_) => rawpreview::ensure_in(raw_dir, &job.path).map(|copy| copy.file),
         None => Some(job.path.clone()),
     }
