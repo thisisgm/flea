@@ -38,9 +38,9 @@ pub fn parse(line: &str) -> Result<Option<Answer>, String> {
     })
 }
 
-/// One line against the requests in flight, `live` the oldest id awaited or None with nothing asked.
-pub fn read(line: &str, live: Option<u64>) -> Result<Line, String> {
-    scan(line, Some(live))
+/// One line against the requests in flight, `oldest` the oldest id awaited or None with nothing asked.
+pub fn read(line: &str, oldest: Option<u64>) -> Result<Line, String> {
+    scan(line, Some(oldest))
 }
 
 // The members of one flat object as raw byte spans, found without decoding a value.

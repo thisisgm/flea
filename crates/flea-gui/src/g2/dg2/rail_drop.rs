@@ -5,7 +5,7 @@ use flea::ui_logic_pl3::dropping;
 use flea::ui_logic_pl4::rail::Kind;
 
 // The status line's activity owner for the held drag's line (FileDrag.qml dragFeedbackOwner).
-const DRAG_LINE: u64 = 1 << 33;
+pub(super) const DRAG_LINE: u64 = 1 << 33;
 
 /// Where a rail row sends a drop: a place's folder, or the Trash.
 #[derive(Clone, Debug, PartialEq)]
@@ -43,19 +43,6 @@ fn held_line(catalog: &flea::i18n::I18n, count: usize, ctrl: bool, shift: bool) 
         _ => core::MOVE_TO_FOLDER,
     };
     catalog.tr_args(key, &[&items])
-}
-
-/// The folder row of `side` a held drag rests on in this window, with its caption.
-pub(crate) fn row_cue(
-    window: &Window,
-    cx: &App,
-    side: usize,
-) -> Option<(usize, gpui::SharedString)> {
-    let aim = cx.try_global::<Drags>()?.aims.get(&window_key(window))?;
-    match aim.spot {
-        Spot::Row(row) if aim.side == side => Some((row, aim.label.clone()?)),
-        _ => None,
-    }
 }
 
 impl Shell {
@@ -300,7 +287,7 @@ impl Shell {
             Spot::Rail(row) => Some(row),
             Spot::Row(_) | Spot::Tab(_) => None,
         };
-        self.show_rail_cue(rail, said, cx);
+        self.show_rail_cue(key, rail, said, cx);
     }
 
     // TabBar.qml hoverSwitch: a drag resting on another tab selects it once the switch delay has passed.
@@ -339,7 +326,7 @@ impl Shell {
                 modifiers.control,
                 modifiers.shift,
             );
-            self.show_rail_cue(None, Some((String::new(), line)), cx);
+            self.show_rail_cue(window_key(window), None, Some((String::new(), line)), cx);
         }
     }
 
@@ -360,7 +347,7 @@ impl Shell {
                 .any(|entry| entry.owner == DRAG_LINE)
         });
         if held || said {
-            self.show_rail_cue(None, None, cx);
+            self.show_rail_cue(key, None, None, cx);
         }
     }
 
@@ -373,8 +360,9 @@ impl Shell {
         }
     }
 
-    fn show_rail_cue(
+    pub(super) fn show_rail_cue(
         &mut self,
+        key: u64,
         rail: Option<usize>,
         cue: Option<(String, String)>,
         cx: &mut Context<Self>,
@@ -393,12 +381,19 @@ impl Shell {
             });
         }
         let line = cue.map(|(_, line)| line).unwrap_or_default();
-        self.status_messages(cx, |messages, now| {
+        let published = self.status_messages(cx, |messages, now| {
             // FileDrag.say: a running transfer keeps the bar; an empty line always leaves.
-            if line.is_empty() || !messages.activities().iter().any(|entry| entry.running) {
+            let publish =
+                line.is_empty() || !messages.activities().iter().any(|entry| entry.running);
+            if publish {
                 messages.set_activity(DRAG_LINE, &line, 0, false, false, now);
             }
+            publish
         });
+        // The file cue shares this owner, so the line it said no longer stands once the rail writes.
+        if published {
+            cx.default_global::<Drags>().said.remove(&key);
+        }
         cx.notify();
     }
 

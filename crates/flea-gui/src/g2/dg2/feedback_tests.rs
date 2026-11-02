@@ -58,14 +58,28 @@ fn vf_look_held_drag_has_a_native_flock_and_folder_feedback(cx: &mut TestAppCont
                     .map(|a| a.text.clone())
                     .collect::<Vec<_>>()
             });
-            assert!(
-                lines
-                    .iter()
-                    .any(|s| s == "Move 1 item to alpha · ctrl copies, shift moves"),
-                "{lines:?}"
-            );
+            let alpha = "Move 1 item to alpha · ctrl copies, shift moves";
+            assert!(lines.iter().any(|s| s == alpha), "{lines:?}");
+            let lines = |shell: &mut crate::state::Shell,
+                         cx: &mut gpui::Context<crate::state::Shell>| {
+                shell.status_messages(cx, |messages, _| {
+                    messages
+                        .activities()
+                        .iter()
+                        .map(|a| a.text.clone())
+                        .collect::<Vec<_>>()
+                })
+            };
+            // The rail writes the same activity owner without touching the cached pane line.
+            shell.say_held_drag(window, cx);
+            assert!(!lines(shell, cx).iter().any(|s| s == alpha));
+            shell.refresh_file_cue(window, cx);
+            let relined = lines(shell, cx);
+            assert!(relined.iter().any(|s| s == alpha), "{relined:?}");
             assert!(shell.escape_file_drag(window, cx));
             assert!(shell.list_states(0, window, cx).drop_target.is_none());
+            let after = lines(shell, cx);
+            assert!(!after.iter().any(|s| s.contains("alpha")), "{after:?}");
         })
         .unwrap();
 }

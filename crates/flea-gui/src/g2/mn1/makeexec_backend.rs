@@ -32,7 +32,7 @@ fn binary(root: &Path) -> &'static Path {
                 let name = path.file_name().unwrap().to_string_lossy();
                 name.starts_with("libflea-") && name.ends_with(".rlib")
             })
-            .expect("cargo built the zero-dependency core library for this test");
+            .expect("cargo built the core library for this test");
         let binary = root.join("flea-backend");
         let output = Command::new("rustc")
             .arg("--edition=2021")
@@ -40,8 +40,7 @@ fn binary(root: &Path) -> &'static Path {
             .arg(workspace.join("src/main.rs"))
             .arg("--extern")
             .arg(format!("flea={}", library.display()))
-            .arg("--extern")
-            .arg(foldhash::extern_arg(&workspace, dependencies))
+            .args(foldhash::backend_extern_args(&workspace, dependencies))
             .arg("-L")
             .arg(format!("dependency={}", dependencies.display()))
             .arg("-o")

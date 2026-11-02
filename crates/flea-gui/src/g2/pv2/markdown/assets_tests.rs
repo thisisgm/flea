@@ -24,3 +24,12 @@ fn an_svg_figure_keeps_its_own_size_at_every_window_scale() {
     assert_eq!(figure_size(1.), (30., 18.));
     assert_eq!(figure_size(2.), (30., 18.));
 }
+
+#[test]
+fn a_figure_with_an_open_ticket_is_asked() {
+    let mut doc = super::super::doc::Doc::default();
+    assert!(!doc.figure_asked(2));
+    doc.figure_tickets.insert(7, 2);
+    assert!(doc.figure_asked(2));
+    assert!(!doc.figure_asked(3));
+}

@@ -2,7 +2,7 @@
 use super::*;
 
 fn printer_name(field: &str) -> (String, String) {
-    let c = I18n::default();
+    let c = crate::test_catalogs::english();
     let mut m = draft(Action::Print, Kind::Pdf, &["garden-report.pdf"]);
     let id = printer_ticket(&m).request;
     let line = format!(

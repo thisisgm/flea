@@ -50,36 +50,4 @@ impl Shell {
             columns.file_tap = Some(target);
         }
     }
-
-    pub(crate) fn columns_row_menu_landed(
-        &mut self,
-        side: usize,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let Some(host) = self.panes[side].as_mut() else {
-            return;
-        };
-        let Some(columns) = host.columns.as_mut() else {
-            return;
-        };
-        if !host.nav.menus.row_menu {
-            columns.row_menu = None;
-            return;
-        }
-        if host.pane.busy() {
-            return;
-        }
-        host.nav.menus.row_menu = false;
-        let Some(target) = columns.row_menu.take() else {
-            return;
-        };
-        let landed = host.nav.landed == Some((host.pane.held.listing, host.pane.cursor));
-        let own_row = host.pane.held.row(host.pane.cursor).is_some_and(|row| {
-            crate::navigation::history::join(&host.path, &row.name) == target.select
-        });
-        if landed && own_row && host.path == target.open {
-            self.menu_keyboard_open(window, cx);
-        }
-    }
 }

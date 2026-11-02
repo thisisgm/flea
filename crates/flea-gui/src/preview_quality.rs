@@ -194,13 +194,11 @@ impl Refinement {
                 wake,
                 seed: Arc::new(Mutex::new(seed)),
             };
-            // The first decode, or a kept refinement of this file version, already drew these exact device pixels.
+            // A kept refinement of this file version already drew these exact device pixels.
             let identity = reuse::file_identity(&request.path);
-            self.primed = reuse::take(&request.path, request.size).or_else(|| {
-                reuse::kept(&request.path, request.version)
-                    .filter(|(size, _)| *size == request.size)
-                    .map(|(_, image)| image)
-            });
+            self.primed = reuse::kept(&request.path, request.version)
+                .filter(|(size, _)| *size == request.size)
+                .map(|(_, image)| image);
             if let Some(image) = &self.primed {
                 reuse::keep(
                     &request.path,

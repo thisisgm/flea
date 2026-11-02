@@ -262,3 +262,46 @@ fn a_deferred_side_one_listing_does_not_open_ipc_for_a_held_side_zero(cx: &mut T
         flea::ipc::registry::no_target()
     );
 }
+
+#[gpui::test]
+fn vf_readers_delayed_first_listing_opens_ipc_for_painted_rows(cx: &mut TestAppContext) {
+    let (handle, send) = open(cx);
+    handle
+        .update(cx, |shell, window, cx| {
+            let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+            pane.swap.mark_shown(true, pane.now());
+            for reply in [
+                Reply::Listed {
+                    path: "/files".into(),
+                    total: 1,
+                },
+                Reply::Rows {
+                    start: 0,
+                    rows: vec![flea::protocol::RowFacts::default()],
+                    listing: 1,
+                },
+            ] {
+                shell.receive(0, BackendEvent::Reply(reply), window, cx);
+            }
+            assert!(
+                shell.panes[0].as_ref().unwrap().pane.busy(),
+                "first screen holds the drawn loading minimum"
+            );
+            assert!(shell.ipc_cold);
+        })
+        .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(200));
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.advance_transition(0, window, cx);
+            assert_eq!(shell.panes[0].as_ref().unwrap().pane.held.total, 1);
+            assert!(
+                !shell.ipc_cold,
+                "a delayed commit must open the IPC reader with the painted rows"
+            );
+        })
+        .unwrap();
+    let served = call(&send, "bodyPx");
+    cx.run_until_parked();
+    assert_eq!(served.try_recv().unwrap().reply.code, 0);
+}

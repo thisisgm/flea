@@ -125,6 +125,11 @@ impl Doc {
             })
     }
 
+    /// A figure whose drawing is asked for and not yet answered.
+    pub fn figure_asked(&self, ordinal: usize) -> bool {
+        self.figure_tickets.values().any(|at| *at == ordinal)
+    }
+
     fn asked_current(&self, i: usize) -> bool {
         self.asked.get(i).is_some_and(|(generation, version)| {
             *generation == self.generation && *version >= self.dirty.get(i).copied().unwrap_or(0)

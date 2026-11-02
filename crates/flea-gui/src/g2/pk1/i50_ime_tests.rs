@@ -142,7 +142,7 @@ fn i50_picker_filter_compose(cx: &mut TestAppContext) {
         picker.replace_text_in_range(None, "no", window, cx);
     });
     assert_eq!(f.read(|picker| picker.find.owner.query().to_owned()), "no");
-    let id = f.read(|picker| picker.find.owner.live().unwrap());
+    let id = f.read(|picker| picker.find.owner.asked().unwrap().id);
     f.listing.say(Line::Reply(format!(
         r#"{{"t":"filtered","id":{id},"query":"no","n":1,"rows":[0],"ms":0.010,"listing":1}}"#
     )));

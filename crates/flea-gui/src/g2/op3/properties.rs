@@ -1,4 +1,6 @@
 //! The Properties card: one item's two-column facts with a folder walk counted off the UI thread, or several items' summary.
+mod readers;
+
 use super::{
     keys::Key,
     shell::{Block, Button, Card, Fact, Ink},

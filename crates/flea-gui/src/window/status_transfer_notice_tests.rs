@@ -37,7 +37,19 @@ fn ey477_invalidated_journal_is_not_revived_by_the_old_receipt(cx: &mut TestAppC
         let before = state(cx, handle);
         assert_eq!(before.get("undoAvailable").unwrap().as_bool(), Some(true));
         let notice = before.get("notice").unwrap().as_str().unwrap();
-        assert_eq!(notice.contains("z undoes"), !split);
+        assert_eq!(notice, "Copied 1 item · z undoes");
+        assert_eq!(
+            before
+                .get("transferCard")
+                .unwrap()
+                .get("undo")
+                .unwrap()
+                .get("label")
+                .unwrap()
+                .as_str(),
+            Some("z undoes"),
+            "both receipt formats paint the footer's own undo target"
+        );
         assert_eq!(
             before
                 .get("transferCard")
@@ -47,7 +59,8 @@ fn ey477_invalidated_journal_is_not_revived_by_the_old_receipt(cx: &mut TestAppC
                 .get("enabled")
                 .unwrap()
                 .as_bool(),
-            Some(split)
+            Some(true),
+            "both receipt formats expose the journal's undo target"
         );
         cx.executor().advance_clock(Duration::from_millis(1000));
         line(

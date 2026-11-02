@@ -12,6 +12,10 @@ use std::time::Duration;
 mod state;
 use state::State;
 
+#[path = "mpv_property.rs"]
+mod properties;
+use properties::property;
+
 #[cfg(test)]
 #[path = "mpv_tests.rs"]
 mod tests;
@@ -26,6 +30,9 @@ const HEIGHT: u64 = 6;
 const VIDEO: u64 = 7;
 // The clock the strip draws moves in steps no finer than this.
 const POSITION_STEP_MS: i64 = 100;
+// A frame released before the clip's size is known renders into a 2x2 RGBA scrap nobody shows.
+const SCRAP_SIDE: u32 = 2;
+const SCRAP_STRIDE: usize = SCRAP_SIDE as usize * 4;
 
 unsafe extern "C" fn wake(data: *mut c_void) {
     // SAFETY: data is the SyncSender `run` keeps alive until both callbacks are cleared.
@@ -161,14 +168,16 @@ fn play(
                     }
                     set(api, handle, "pause", "no")?;
                 }
-                Command::Pause => set(api, handle, "pause", "yes")?,
+                Command::Pause => {
+                    state.transport.pause();
+                    set(api, handle, "pause", "yes")?;
+                }
                 Command::Stop => {
-                    let stopped = state.transport.stop();
                     set(api, handle, "pause", "yes")?;
                     seek(api, handle, &mut state, 0);
                     // A stop's rewind is not a user seek, so it reports no Seeked.
                     state.seeking = None;
-                    io(out.event(stopped))?;
+                    io(out.event(state.transport.stop()))?;
                 }
                 Command::Seek(target) => seek(api, handle, &mut state, target),
                 Command::Mute(muted) => set(api, handle, "mute", if muted { "yes" } else { "no" })?,
@@ -223,11 +232,18 @@ fn play(
                     }
                 }
                 EVENT_PLAYBACK_RESTART => {
-                    if let Some(target) = state.seeking.take() {
-                        io(out.event(Event::Seeked(target)))?;
+                    if let Some(target) = state.seeking {
+                        if let Some((paused, eof, at_end)) = completed_seek(api, handle, target) {
+                            state.seeking = None;
+                            io(out.event(Event::Seeked(target)))?;
+                            if let Some(news) = state.transport.seek_completed(paused, eof, at_end)
+                            {
+                                io(out.event(news))?;
+                            }
+                        }
                     }
                 }
-                EVENT_PROPERTY_CHANGE => property(event, &mut state, out)?,
+                EVENT_PROPERTY_CHANGE => property(api, handle, event, &mut state, out)?,
                 _ => {}
             }
         }
@@ -236,8 +252,15 @@ fn play(
         let pending = update & RENDER_UPDATE_FRAME != 0;
         let draw = super::draw(pending, state.size.0 > 0, owed || redraw);
         if draw == super::Draw::Release {
-            let mut scrap = [0_u8; 16];
-            render(api, context, 2, 2, 8, &mut scrap)?;
+            let mut scrap = [0_u8; SCRAP_STRIDE * SCRAP_SIDE as usize];
+            render(
+                api,
+                context,
+                SCRAP_SIDE,
+                SCRAP_SIDE,
+                SCRAP_STRIDE,
+                &mut scrap,
+            )?;
             owed = true;
         }
         if draw == super::Draw::Frame && (owed || redraw || frame_due(api, context)?) {
@@ -262,71 +285,12 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
     };
     let seconds = format!("{:.3}", target.max(0) as f64 / 1000.);
     match command(api, handle, &["seek", &seconds, "absolute+exact"]) {
-        Ok(()) => state.seeking = Some(target),
+        Ok(()) => {
+            state.transport.seek_accepted();
+            state.seeking = Some(target);
+        }
         Err(error) => eprintln!("flea-media: seek dropped: {error}"),
     }
-}
-
-fn property(event: &MpvEvent, state: &mut State, out: &mut Output) -> Result<(), String> {
-    // SAFETY: PROPERTY_CHANGE carries an mpv_event_property.
-    let changed = unsafe { &*(event.data as *const Property) };
-    if event.userdata == VIDEO {
-        // vid is unavailable for audio-only files; that is a valid false value.
-        let id = if changed.data.is_null() {
-            0
-        } else {
-            unsafe { *(changed.data as *const i64) }
-        };
-        if let Some(news) = state.metadata(VIDEO, id) {
-            return out.event(news).map_err(|error| error.to_string());
-        }
-        return Ok(());
-    }
-    if changed.data.is_null() {
-        return Ok(());
-    }
-    let io = |result: std::io::Result<()>| result.map_err(|error| error.to_string());
-    // SAFETY: each id was observed with the format read here.
-    let flag = || unsafe { *(changed.data as *const c_int) } != 0;
-    let double = || unsafe { *(changed.data as *const f64) };
-    let int = || unsafe { *(changed.data as *const i64) };
-    match event.userdata {
-        PAUSE => {
-            if let Some(news) = state.transport.paused(flag()) {
-                io(out.event(news))?;
-            }
-        }
-        TIME => {
-            state.position_ms = ms(double());
-            if (state.position_ms - state.sent_ms).abs() >= POSITION_STEP_MS {
-                state.sent_ms = state.position_ms;
-                io(out.event(Event::Position(state.position_ms)))?;
-            }
-        }
-        DURATION => {
-            if let Some(news) = state.metadata(DURATION, ms(double())) {
-                io(out.event(news))?;
-            }
-        }
-        EOF => {
-            if let Some(news) = state.transport.ended(flag()) {
-                io(out.event(news))?;
-            }
-        }
-        WIDTH => state.clip.0 = int(),
-        HEIGHT => state.clip.1 = int(),
-        _ => {}
-    }
-    if matches!(event.userdata, WIDTH | HEIGHT) {
-        let (w, h) = state.clip;
-        state.size = decode_size(
-            w.clamp(0, 1 << 16) as u32,
-            h.clamp(0, 1 << 16) as u32,
-            state.box_size.0,
-            state.box_size.1,
-        );
-    }
-    Ok(())
 }
 
 fn frame_due(api: &Api, context: Handle) -> Result<bool, String> {

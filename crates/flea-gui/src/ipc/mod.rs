@@ -1,5 +1,6 @@
 pub(crate) mod archive_cards;
 pub(crate) mod browse_state;
+pub(crate) mod card_geometry;
 pub mod chrome;
 pub mod columns;
 pub(crate) mod columns_preview;
@@ -63,3 +64,12 @@ mod readers3_tests;
 mod readers_nav_tests;
 #[cfg(test)]
 mod vf3_tests;
+
+#[cfg(test)]
+mod vfix_tests;
+
+#[cfg(test)]
+mod vfix_table_tests;
+
+#[cfg(test)]
+mod vfix_card_tests;

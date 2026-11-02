@@ -84,7 +84,7 @@ impl Editor {
     }
     #[cfg(test)]
     pub fn valid(&mut self) -> bool {
-        self.valid_localized(&crate::i18n::I18n::default())
+        self.valid_localized(&crate::i18n::test_catalogs::english())
     }
     pub fn valid_localized(&mut self, i18n: &crate::i18n::I18n) -> bool {
         if !self.full_name && self.editable_end == 0 {

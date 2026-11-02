@@ -276,10 +276,11 @@ fn pv2_code_plain_text_draws_no_gutter(cx: &mut TestAppContext) {
     answer(cx, view, 1, Answer::Plain, &ask, 50);
     let (numbers, left, inset) = with(cx, view, |v| {
         let advance = gpui::px(8.);
+        assert_eq!(v.gutter_right(advance), v.metrics.inset);
         (v.cache.shaped(), v.text_left(advance), v.metrics.inset)
     });
     assert!(numbers > 0, "the lines were shaped");
-    assert_eq!(left, inset, "with no gutter the text starts at the inset");
+    assert_eq!(left, inset + 16., "plain text keeps the two-cell lead");
     let shaped_numbers = with(cx, view, |v| {
         (0..v.lines.shown())
             .filter(|line| v.has_number(*line))

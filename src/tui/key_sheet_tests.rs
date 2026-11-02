@@ -269,20 +269,32 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
             language_file: root.join(format!("language-{code}")),
             catalogs: vec![root.join("catalogs")],
         });
-        assert_eq!((m.i18n.language(), m.i18n.locale().right_to_left), (code, code == "fa"), "the {code} fixture loaded");
         let rows = screen(&m, &theme).0.join("\n");
+        let rtl = m.i18n.locale().right_to_left && crate::tui::cells::mirrors("columns");
+        assert_eq!(rtl, code == "fa", "{code} mirrors the sheet only when right to left");
+        // A mirrored row reads its words first, then the isolated keycaps padded to their column.
+        let wrap = crate::tui::cells::isolate(crate::tui::cells::Run::Number, "x");
+        let open = wrap.split_once('x').unwrap().0;
         for (keys, label) in [
             ("z / ctrl-z", "keys.undo"),
             ("ctrl-shift-z / ctrl-y", "keys.redo"),
             ("escape", "keys.escape"),
         ] {
             let words = m.i18n.tr(label);
-            assert_ne!(words, label, "{code} {label} is translated in the fixture");
-            // The base sheet mirrors its columns in a right-to-left language, so the words lead there.
-            let beside = rows.lines().any(|line| match (line.find(keys), line.find(words.as_str())) {
-                (Some(at_keys), Some(at_words)) if m.i18n.locale().right_to_left => at_words + words.len() <= at_keys,
-                _ => line.contains(&format!("{keys}  {words}")),
-            });
+            assert!(
+                !words.is_ascii(),
+                "{code} {label} reads the fixture catalog, not the English fallback"
+            );
+            let beside = if rtl {
+                rows.lines().any(|line| {
+                    line.split(&format!("{words}  ")).nth(1).is_some_and(|rest| {
+                        rest.trim_start_matches(|c: char| c == ' ' || open.contains(c))
+                            .starts_with(keys)
+                    })
+                })
+            } else {
+                rows.contains(&format!("{keys}  {words}"))
+            };
             assert!(beside, "{code}: {keys} beside {words}\n{rows}");
         }
     }

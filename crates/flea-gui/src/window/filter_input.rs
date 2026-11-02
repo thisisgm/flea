@@ -46,9 +46,9 @@ impl Shell {
         if self.filter_entry_key(event, cx) {
             return true;
         }
-        let host = self.panes[side]
-            .as_ref()
-            .expect("filter pane remains mounted");
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
         let owner = &host.filter.owner;
         let preset = self
             .launch
@@ -100,7 +100,7 @@ impl Shell {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return false;
         };
-        match wire::read(line, host.filter.owner.live()) {
+        match wire::read(line, host.filter.owner.oldest()) {
             Ok(Line::Other) => false,
             Ok(Line::Stale) => true,
             Ok(Line::Answer(answer)) => {

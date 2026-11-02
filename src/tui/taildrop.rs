@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 const UNREAD: &str = "tui.taildrop.unread";
 const TOO_LARGE: &str = "tui.taildrop.too_large";
 const MAX_STATUS_BYTES: u64 = 4 * 1024 * 1024;
+const SENDER: &str = "omarchy-tailscale-send";
 
 // The reader thread: the status call's whole answer, or InvalidData once it passes its limit.
 fn read_status(output: impl Read + Send + 'static) -> mpsc::Receiver<io::Result<Vec<u8>>> {
@@ -228,6 +229,9 @@ impl Taildrop {
         }
     }
     pub fn send(&mut self, peer: &Peer, paths: &[String]) -> io::Result<()> {
+        self.send_with(SENDER, peer, paths)
+    }
+    fn send_with(&mut self, sender: &str, peer: &Peer, paths: &[String]) -> io::Result<()> {
         if self.child.is_some() {
             return Err(io::Error::other(Text::Key("tui.taildrop.busy")));
         }
@@ -239,19 +243,32 @@ impl Taildrop {
             return Err(io::Error::other(Text::Key("tui.taildrop.absolute")));
         }
         self.child = Some(
-            Command::new("omarchy-tailscale-send")
+            Command::new(sender)
                 .arg(&peer.address)
                 .args(paths)
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
-                .spawn()?,
+                .spawn()
+                .map_err(|error| spawn_failure(sender, &peer.label, &error))?,
         );
         self.sending = Some(peer.label.clone());
         self.sent = None;
         self.outcome = None;
         Ok(())
     }
+}
+
+// A sender that cannot start names Taildrop, the peer, the sender program and the OS cause, since tailscale itself may be running fine.
+fn spawn_failure(sender: &str, label: &str, error: &io::Error) -> io::Error {
+    let cause = format!("{sender}: {}", crate::error::io_message(error));
+    io::Error::other(Text::Args(
+        "jobs.taildrop.reason",
+        vec![Text::Args(
+            "tui.taildrop.failed",
+            vec![label.to_string().into(), cause.into()],
+        )],
+    ))
 }
 
 impl Drop for Taildrop {

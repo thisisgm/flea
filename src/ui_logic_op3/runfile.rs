@@ -28,6 +28,15 @@ impl Kind {
         }
     }
 
+    /// The ask line's word for the kind, as `parse` reads it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Script => "script",
+            Self::Elf => "elf",
+            Self::AppImage => "appimage",
+        }
+    }
+
     fn key(self) -> &'static str {
         match self {
             Self::Script => "dialogs.file.run.kind_script",
@@ -44,6 +53,18 @@ pub enum Button {
     Text,
     Handler,
     Terminal,
+}
+
+impl Button {
+    /// RunFile.js's name for the button, as the card's IPC reader reports it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Cancel => "cancel",
+            Self::Text => "text",
+            Self::Handler => "handler",
+            Self::Terminal => "terminal",
+        }
+    }
 }
 
 /// The ask line `flea --open` prints with status 4, carrying the identity the run checks again.
@@ -77,7 +98,15 @@ pub fn parse_ask(text: &str) -> Option<Ask> {
     // A number may ride as a JSON number or as its decimal string, as the oracle's Number() read either.
     let number = |key| {
         let value = message.get(key);
-        value.and_then(Json::as_f64).or_else(|| value.and_then(Json::as_str).and_then(|s| s.trim().parse().ok())).filter(|n: &f64| n.is_finite()).unwrap_or(0.)
+        value
+            .and_then(Json::as_f64)
+            .or_else(|| {
+                value
+                    .and_then(Json::as_str)
+                    .and_then(|s| s.trim().parse().ok())
+            })
+            .filter(|n: &f64| n.is_finite())
+            .unwrap_or(0.)
     };
     Some(Ask {
         kind,
@@ -94,7 +123,11 @@ pub fn parse_ask(text: &str) -> Option<Ask> {
 
 /// The handler where the desktop names one for an AppImage, Run in Terminal everywhere else.
 pub fn default_button(kind: Kind, has_handler: bool) -> Button {
-    if kind == Kind::AppImage && has_handler { Button::Handler } else { Button::Terminal }
+    if kind == Kind::AppImage && has_handler {
+        Button::Handler
+    } else {
+        Button::Terminal
+    }
 }
 
 /// Left to right, with Open as Text a script's alone since a binary is not text.
@@ -116,8 +149,19 @@ pub fn start_focus(buttons: &[Button], tweak: Option<Button>) -> Button {
         return tweak;
     }
     let handler = buttons.contains(&Button::Handler);
-    let fallback = default_button(if handler { Kind::AppImage } else { Kind::Script }, handler);
-    if buttons.contains(&fallback) { fallback } else { buttons[0] }
+    let fallback = default_button(
+        if handler {
+            Kind::AppImage
+        } else {
+            Kind::Script
+        },
+        handler,
+    );
+    if buttons.contains(&fallback) {
+        fallback
+    } else {
+        buttons[0]
+    }
 }
 
 /// The keys the ring answers: h and l stop at the ends, Tab and Backtab come round.
@@ -131,8 +175,19 @@ pub enum Step {
 
 pub fn moved(buttons: &[Button], focus: Button, step: Step) -> Button {
     let handler = buttons.contains(&Button::Handler);
-    let fallback = default_button(if handler { Kind::AppImage } else { Kind::Script }, handler);
-    let at = buttons.iter().position(|b| *b == focus).or_else(|| buttons.iter().position(|b| *b == fallback)).unwrap_or(0);
+    let fallback = default_button(
+        if handler {
+            Kind::AppImage
+        } else {
+            Kind::Script
+        },
+        handler,
+    );
+    let at = buttons
+        .iter()
+        .position(|b| *b == focus)
+        .or_else(|| buttons.iter().position(|b| *b == fallback))
+        .unwrap_or(0);
     let last = buttons.len() - 1;
     match step {
         Step::Left => buttons[at.saturating_sub(1)],
@@ -155,9 +210,7 @@ pub fn label_for(i18n: &I18n, button: Button, handler_name: &str, shift: bool) -
 
 /// Control and bidi characters are shown escaped, never raw, and a clean name passes through byte for byte.
 pub fn escape_name(name: &str) -> String {
-    let spoofed = |c: char| {
-        matches!(c as u32, 0x00..=0x1F | 0x7F..=0x9F | 0x061C | 0x200E | 0x200F | 0x2028 | 0x2029 | 0x202A..=0x202E | 0x2066..=0x2069 | 0xFEFF)
-    };
+    let spoofed = |c: char| matches!(c as u32, 0x00..=0x1F | 0x7F..=0x9F | 0x061C | 0x200E | 0x200F | 0x2028 | 0x2029 | 0x202A..=0x202E | 0x2066..=0x2069 | 0xFEFF);
     let mut out = String::with_capacity(name.len());
     for c in name.chars() {
         if spoofed(c) {
@@ -174,7 +227,10 @@ pub fn title(i18n: &I18n, name: &str) -> String {
 }
 
 pub fn subtitle(i18n: &I18n, kind: Kind, bytes: u64) -> String {
-    i18n.tr_args("dialogs.file.run.subtitle", &[&i18n.tr(kind.key()), &i18n.locale().format_size(bytes)])
+    i18n.tr_args(
+        "dialogs.file.run.subtitle",
+        &[&i18n.tr(kind.key()), &i18n.locale().format_size(bytes)],
+    )
 }
 
 /// The name row's own mark: the code glyph beside a script, the listed row's mark for a binary when one is known.
@@ -197,13 +253,23 @@ pub enum Action {
 }
 
 pub fn argv(flea: &str, action: Action, ask: &Ask) -> Vec<String> {
-    let identity = [ask.dev.clone(), ask.ino.clone(), ask.size.to_string(), ask.mtime_s.to_string(), ask.mtime_ns.to_string()];
+    let identity = [
+        ask.dev.clone(),
+        ask.ino.clone(),
+        ask.size.to_string(),
+        ask.mtime_s.to_string(),
+        ask.mtime_ns.to_string(),
+    ];
     let mut out = vec![flea.to_string()];
     match action {
         Action::Run => out.extend(["--run".into(), ask.target.clone()]),
         Action::Terminal => out.extend(["--run-terminal".into(), ask.target.clone()]),
         Action::Text => return vec![flea.to_string(), "--open-text".into(), ask.target.clone()],
-        Action::Handler => out.extend(["--open-handler".into(), ask.target.clone(), ask.handler_id.clone()]),
+        Action::Handler => out.extend([
+            "--open-handler".into(),
+            ask.target.clone(),
+            ask.handler_id.clone(),
+        ]),
     }
     out.extend(identity);
     out
@@ -233,7 +299,17 @@ pub fn exit_outcome(i18n: &I18n, action: Action, status: Option<i32>) -> Exit {
         Some(RUN_CHANGED) => message("dialogs.file.run.changed_run"),
         Some(RUN_NOEXEC) => message("dialogs.file.run.noexec"),
         Some(RUN_HANDLER_GONE) => message("dialogs.file.run.handler_gone"),
-        Some(RUN_SPAWN) => message(key("dialogs.file.run.spawn_run", "dialogs.file.run.spawn_terminal", "dialogs.file.run.spawn_handler", "dialogs.file.run.spawn_text")),
-        _ => message(key("dialogs.file.run.failed_run", "dialogs.file.run.failed_terminal", "dialogs.file.run.failed_handler", "dialogs.file.run.failed_text")),
+        Some(RUN_SPAWN) => message(key(
+            "dialogs.file.run.spawn_run",
+            "dialogs.file.run.spawn_terminal",
+            "dialogs.file.run.spawn_handler",
+            "dialogs.file.run.spawn_text",
+        )),
+        _ => message(key(
+            "dialogs.file.run.failed_run",
+            "dialogs.file.run.failed_terminal",
+            "dialogs.file.run.failed_handler",
+            "dialogs.file.run.failed_text",
+        )),
     }
 }

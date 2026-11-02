@@ -18,10 +18,9 @@ src/tui/cells.rs 426
 src/tui/parity_listing_tests.rs 410
 src/tui/preview.rs 406
 src/tui/frame_tests.rs 408
-src/backend/contents_review_tests.rs 433
+src/backend/contents_review_tests.rs 446
 crates/flea-gui/src/columns/geometry.rs 428
 crates/flea-gui/src/dual/divider_tests.rs 446
-crates/flea-gui/src/g2/dg2/feedback.rs 410
 crates/flea-gui/src/g2/op4/tests.rs 409
 crates/flea-gui/src/g2/pk1/tests.rs 463
 crates/flea-gui/src/g2/pl3/trashview_tests.rs 413
@@ -29,11 +28,10 @@ crates/flea-gui/src/g2/sr2/tests_flow.rs 408
 crates/flea-gui/src/navigation/steps.rs 409
 crates/flea-gui/src/window/dispatch/fileops.rs 411
 crates/flea-gui/src/window/dispatch/openwith_tests.rs 447
-crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 422
+crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 427
 crates/flea-gui/src/window/events_ipc.rs 425
 crates/flea-gui/src/window/network.rs 402
 crates/flea-gui/src/window/status.rs 408
-crates/flea-gui/src/window/events_ipc.rs 419
 crates/flea-gui/src/g2/mn1/delivery.rs 403
 src/backend/mod.rs 407
 crates/flea-gui/src/window/columns_render.rs 407
@@ -91,7 +89,7 @@ crates/flea-gui/src/g2/op3/card_tests.rs 474
 crates/flea-gui/src/g2/pl3/pane.rs 456
 crates/flea-gui/src/g2/pl3/list.rs 419
 crates/flea-gui/src/g2/st1/panel.rs 421
-crates/flea-gui/src/window/settings/fix1_tests.rs 404
+crates/flea-gui/src/window/settings/fix1_tests.rs 406
 crates/flea-gui/src/g2/pl3/tests.rs 527
 crates/flea-gui/src/g2/sr1/contents.rs 430
 crates/flea-gui/src/grid/element/paint.rs 444
@@ -134,7 +132,7 @@ src/backend/durable.rs 809
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
-src/backend/renamecompat.rs 728
+src/backend/renamecompat.rs 738
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
@@ -334,9 +332,9 @@ src/ui_logic_mn1/rows_tests.rs 1095
 crates/flea-gui/src/window/view_tests.rs 405
 crates/flea-gui/src/navigation/mod.rs 406
 crates/flea-gui/src/navigation/landing.rs 429
-crates/flea-gui/src/g2/dg2/rail_drop.rs 444
+crates/flea-gui/src/g2/dg2/rail_drop.rs 439
 crates/flea-gui/src/window/columns.rs 406
-crates/flea-gui/src/g2/mn1/join.rs 453
+crates/flea-gui/src/g2/mn1/join.rs 437
 "
 
 status=0

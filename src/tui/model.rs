@@ -346,11 +346,7 @@ impl Model {
             menu_count: 0,
             menu_view: super::render::menu_layout::View::new(settings),
             rounded: Default::default(),
-            #[cfg(not(test))]
-            i18n: Default::default(),
-            // Tests read English only, whatever the host's Omarchy language.
-            #[cfg(test)]
-            i18n: crate::i18n::test_catalogs::english(),
+            i18n: i18n.clone(),
             locale_revision: 0,
             keycaps: None,
             keycap_labels: Default::default(),
@@ -447,7 +443,13 @@ impl Model {
             if self.restore_path.is_none() && self.menu_action != "deleteRestore" { self.restore_path = self.current_path(); }
         }
         self.parity17.copy_text = None;
-        self.discard_clipboard |= self.pending_clipboard;
+        // A copy still resolving its rows ends with the listing it came from, so the older clipboard and its cut flag go too and the footer says so.
+        if self.pending_clipboard && !self.discard_clipboard {
+            self.discard_clipboard = true;
+            self.clipboard.clear();
+            self.cut = false;
+            self.fail_key("clipboard.stale");
+        }
         self.pending = Some(path.clone());
         let result = wire.send(vec![
             ("c", word("list")),

@@ -795,7 +795,14 @@ fn handle_line(
             let written = super::tagsreq::handle(out, ops, st, tags);
             note_tag_writes(st, &written);
         }
-        Request::Paths { rows } => super::linkheld::request(out, ops.tx.clone(), resolve_rows(Vec::new(), &rows, &st.base, &st.listing), st.generation, crate::json::field_bool(line, "hold"), crate::json::field_usize(line, "id").unwrap_or(0)),
+        Request::Paths { rows } => {
+            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
+            if crate::json::field_bool(line, "hold") {
+                super::linkheld::request(out, ops.tx.clone(), paths, st.generation, true, crate::json::field_usize(line, "id").unwrap_or(0));
+            } else {
+                say(out, &paths_line(&paths));
+            }
+        }
         Request::ImagePaths(ask) => say(
             out,
             &paths_line(&super::viewerpaths::ordered(

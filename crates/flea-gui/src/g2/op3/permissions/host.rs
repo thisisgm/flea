@@ -5,7 +5,7 @@ use crate::{
         op1::{editor::Drawn, palette::CardPalette},
         op3::{
             keys::{key_of, Key},
-            shell::{Card, Control, DialogShell, Interactive, Mount},
+            shell::{Card, Control, Interactive, Mount},
             Effect,
         },
     },
@@ -30,6 +30,8 @@ pub struct View {
     pub catalog: Arc<I18n>,
     pub corner: f32,
     pub opened: bool,
+    pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
+    pub(crate) painted: Option<Card>,
     focus: FocusHandle,
     editor: crate::path::entry::Entry,
     drawn: RefCell<Drawn>,
@@ -54,6 +56,8 @@ impl View {
             catalog,
             corner,
             opened: true,
+            probe: Default::default(),
+            painted: None,
             focus: cx.focus_handle(),
             editor: crate::path::entry::Entry::default(),
             drawn: RefCell::default(),
@@ -222,18 +226,20 @@ impl Render for View {
                 cx.stop_propagation();
             })
         };
+        self.painted = snapshot.clone();
         let card = snapshot.map(|snapshot| {
             Interactive {
                 wire: &wire,
                 surface: theme.surface,
                 mount: self.editor.editing.then_some(&mount as &Mount),
             }
-            .present(
+            .present_observed(
                 &snapshot,
                 &palette,
                 &typeface,
                 self.corner,
                 f32::from(window.viewport_size().width),
+                &self.probe,
             )
         });
         div()
