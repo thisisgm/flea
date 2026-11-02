@@ -51,7 +51,7 @@ fn child(cx: &mut TestAppContext) -> (WindowHandle<Shell>, Point<Pixels>, Reques
 }
 
 #[test]
-fn gm_columns_click_child_folder_responds_without_clicking_its_parent() {
+fn columns_click_child_folder_responds_without_clicking_its_parent() {
     let mut cx = host::context();
     let (handle, at, _requests) = child(&mut cx);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
@@ -68,7 +68,7 @@ fn gm_columns_click_child_folder_responds_without_clicking_its_parent() {
 }
 
 #[test]
-fn gm_columns_click_child_right_click_opens_its_row_menu() {
+fn columns_click_child_right_click_opens_its_row_menu() {
     let mut cx = host::context();
     let (handle, at, _requests) = child(&mut cx);
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
@@ -84,7 +84,7 @@ fn gm_columns_click_child_right_click_opens_its_row_menu() {
 }
 
 #[test]
-fn gm_columns_click_child_file_selects_its_folder_and_exact_row() {
+fn columns_click_child_file_selects_its_folder_and_exact_row() {
     let mut cx = host::context();
     let (handle, folder, _requests) = child(&mut cx);
     let at = point(folder.x, folder.y + px(crate::pane::ROW_HEIGHT));
@@ -104,7 +104,7 @@ fn gm_columns_click_child_file_selects_its_folder_and_exact_row() {
 }
 
 #[test]
-fn gm_columns_click_child_file_double_click_opens_it_before_the_listing_lands() {
+fn columns_click_child_file_double_click_opens_it_before_the_listing_lands() {
     let mut cx = host::context();
     let (handle, folder, _requests) = child(&mut cx);
     OPENED.with(|paths| paths.borrow_mut().clear());
@@ -135,7 +135,7 @@ fn gm_columns_click_child_file_double_click_opens_it_before_the_listing_lands() 
 }
 
 #[test]
-fn gm_columns_click_child_file_drag_lifts_the_pressed_file() {
+fn columns_click_child_file_drag_lifts_the_pressed_file() {
     let mut cx = host::context();
     let (handle, folder, _requests) = child(&mut cx);
     let at = point(folder.x, folder.y + px(crate::pane::ROW_HEIGHT));
@@ -173,7 +173,7 @@ fn gm_columns_click_child_file_drag_lifts_the_pressed_file() {
 }
 
 #[test]
-fn gm_columns_click_scrolled_child_file_lands_in_the_active_column() {
+fn columns_click_scrolled_child_file_lands_in_the_active_column() {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     let names: Vec<_> = (0..60)

@@ -255,7 +255,7 @@ fn pb_columns2_named_preview_readers_are_mounted_even_without_a_preview() {
 }
 
 #[test]
-fn gm_columns_click_parent_file_single_tap_selects_and_double_tap_opens_only_it() {
+fn columns_click_parent_file_single_tap_selects_and_double_tap_opens_only_it() {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     host::change(&mut cx, handle, |shell, window, cx| {
