@@ -120,7 +120,7 @@ fn ipc_executor_reads_the_current_model_without_starting_io(cx: &mut TestAppCont
 
 #[gpui::test]
 fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut TestAppContext) {
-    let (backend, _) = Backend::test_channel();
+    let (backend, mut requests) = Backend::test_channel();
     let entity = cx.new(|cx| shell_with(backend, cx));
     entity.update(cx, |shell, cx| {
         shell.panes[0].as_mut().unwrap().answered = true;
@@ -162,8 +162,11 @@ fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut 
             revision: 2,
             catalog: shell.locale.catalog.clone(),
         };
+        assert_eq!(requests(), None);
         shell.apply_locale(snapshot, cx);
         assert_eq!(shell.locale.revision, 2);
+        assert_eq!(requests(), Some((0, 320)));
+        assert_eq!(requests(), None);
         assert_eq!(
             shell.panes[0].as_ref().unwrap().status.as_ref(),
             "1,000 items"
