@@ -7,6 +7,8 @@ use flea::{
 };
 use gpui::TestAppContext;
 
+#[path = "pvset_reveal_tests.rs"]
+mod pvset_reveal;
 #[path = "search_contents_quick_look_tests.rs"]
 mod quick_look_match;
 #[path = "search_contents_real_paint_tests.rs"]

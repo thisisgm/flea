@@ -281,7 +281,14 @@ pub(super) fn position(view: &View, cx: &mut VisualTestContext) -> f64 {
             }
         }
         View::Table(v) => v.read(cx).scroll.1,
-        View::Pdf(v) => v.read(cx).surface.page as f64,
+        View::Pdf(v) => {
+            let surface = &v.read(cx).surface;
+            if surface.continuous {
+                surface.view_top
+            } else {
+                surface.page as f64
+            }
+        }
         _ => panic!("document position"),
     })
 }
@@ -313,7 +320,14 @@ pub(super) fn step(view: &View, cx: &mut VisualTestContext) -> f64 {
         View::Office(v) if !v.read(cx).office.wants_sheets() => 1.,
         View::Office(v) => table_step(v.read(cx).table.read(cx)),
         View::Table(v) => table_step(v.read(cx)),
-        View::Pdf(_) => 1.,
+        View::Pdf(v) => {
+            let surface = &v.read(cx).surface;
+            if surface.continuous {
+                (surface.layout.height - surface.view_height).clamp(0., surface.view_height)
+            } else {
+                1.
+            }
+        }
         _ => panic!("document step"),
     })
 }

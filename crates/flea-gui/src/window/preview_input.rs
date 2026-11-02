@@ -123,7 +123,16 @@ impl Shell {
                     1
                 };
                 if let Some(pdf) = column_pdf(&preview, cx) {
-                    pdf.update(cx, |pdf, cx| pdf.turn(step, cx));
+                    pdf.update(cx, |pdf, cx| {
+                        if matches!(
+                            event.action,
+                            "previewPageForward" | "previewPageBack" | "pageDown" | "pageUp"
+                        ) {
+                            pdf.page_viewport(step, cx);
+                        } else {
+                            pdf.turn(step, cx);
+                        }
+                    });
                 }
             }
             // SelectionPreview.qml accepts every key: one the focused column cannot use is silent, never refused.
