@@ -423,6 +423,39 @@ class Volumes(unittest.TestCase):
         self.assertEqual(self.command("release", "/mnt/data/file"), {"ok": False, "err": "busy"})
         self.assertEqual([method for _, _, method, _ in calls], ["Unmount"])
 
+    def test_sol_gap64_post_unmount_refresh_races_never_lock_or_poweroff(self):
+        for race in ("daemon", "replacement", "protected"):
+            with self.subTest(race=race):
+                self.setUp()
+                self.data["drives"]["/drives/data"].update(Removable=True, CanPowerOff=True)
+                filesystem = self.data["blocks"]["/blocks/sdb2"]["Filesystem"]
+                if race == "protected":
+                    filesystem["MountPoints"].append("/mnt/alias")
+                original_call = Interface.call_sync
+                original_blocks = helper.blocks
+
+                def intercept(proxy, method, options, *args):
+                    result = original_call(proxy, method, options, *args)
+                    if method == "Unmount":
+                        if race == "daemon":
+                            def unavailable():
+                                raise helper.GLib.Error("daemon disappeared after Unmount")
+                            helper.blocks = unavailable
+                        elif race == "replacement":
+                            self.data["blocks"]["/blocks/sdb2"]["Block"]["Device"] = "/dev/replaced"
+                        else:
+                            filesystem["MountPoints"] = ["/boot"]
+                    return result
+
+                Interface.call_sync = intercept
+                try:
+                    expected = "busy" if race == "protected" else "error"
+                    self.assertEqual(self.command("release", "/mnt/data/file"), {"ok": False, "err": expected})
+                    self.assertEqual([method for _, _, method, _ in calls], ["Unmount"])
+                finally:
+                    Interface.call_sync = original_call
+                    helper.blocks = original_blocks
+
 
 if __name__ == "__main__":
     result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(Volumes))

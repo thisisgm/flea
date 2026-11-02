@@ -531,3 +531,4 @@ tool-preflight|^tool-preflight: PASS$|1
 opr-recipe|^opr-recipe: PASS recipes match outside release metadata and Maintainer$|1
 slop-ratchet|^slop-ratchet: PASS$|1
 preview-quality|^preview-quality: PASS [1-9][0-9]* regression tests$|1
+aur-versions|^aur-versions: 19 check\(s\), 0 failed$|1

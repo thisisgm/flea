@@ -43,7 +43,7 @@ non-object, structurally foreign, unparsable and future-version documents. Each 
 | CACHE/flea/office/*.pdf and fail/flea/*.txt | source-mtime-stamped PDF/failure text | Rust officepdf | Existing media/preview suites |
 | CACHE/flea/figures/key/manifest, math.bc, mermaid.bc | flea-figures 1 manifest, engine-specific bytecode | Rust figure compile | Existing figure-warm tests; stale engine keys remain misses |
 | same directory/key.lock, key.failed, temporary generations | build coordination/failure markers | Rust | Existing figure-warm tests |
-| CACHE/flea/figures/svg/*.svg | flea-figure-svg 1 framed key and SVG | Rust figure-store get/put/known | Fixture put and get, exact source bytes retained |
+| CACHE/flea/figures/svg/*.svg | flea-figure-svg 4 framed key and SVG | Rust figure-store get/put/known | Format-1 entries miss and can be replaced by a new render; document source and captured input bytes remain unchanged |
 | CACHE/flea/prefetch | flea-prefetch 2, byte ranges | Rust launcher reads; backend records | Existing prefetch tests; production prewarm remains disabled |
 | CACHE/flea/vulkan-probe | flea-vulkan-probe 1, fingerprint/device rows | Rust launcher | Existing vkprobecache tests |
 | Atomic-write scratch and decode work directories | target.pid.tmp, .flea-work-*, .flea-*.png, RAW/office/prefetch/Vulkan scratch | Rust writers; interrupted writers may retain them | Existing subsystem cleanup tests; never reinterpret as saved preferences |
