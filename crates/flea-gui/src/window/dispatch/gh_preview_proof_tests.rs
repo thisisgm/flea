@@ -331,6 +331,7 @@ include!("gh_preview_animation_test.rs");
 
 include!("gh_preview_zoom_test.rs");
 include!("gh_preview_own_size_test.rs");
+include!("fixpreview_zoom_test.rs");
 
 include!("mdlook_tests.rs");
 

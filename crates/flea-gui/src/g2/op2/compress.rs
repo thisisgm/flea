@@ -308,6 +308,10 @@ impl Compress {
         }
     }
 
+    pub fn eye_held(&self) -> bool {
+        self.held_password || self.held_confirm
+    }
+
     pub fn focus(&mut self, stop: Stop) {
         if self.opened && self.stops().contains(&stop) {
             self.focus = stop;

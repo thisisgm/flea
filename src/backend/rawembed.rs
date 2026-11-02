@@ -27,9 +27,7 @@ const RAF_MAGIC: &[u8] = b"FUJIFILMCCD-RAW ";
 const CR3_FTYP: &[u8] = b"ftyp";
 const CR3_BRAND: &[u8] = b"crx ";
 
-const RAW_EXTS: [&str; 12] = [
-    "cr2", "cr3", "nef", "nrw", "arw", "sr2", "srf", "dng", "raf", "orf", "rw2", "pef",
-];
+pub use flea::rawname::is_raw_name;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Preview {
@@ -52,16 +50,6 @@ pub struct RawFacts {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub orientation: Option<u16>,
-}
-
-// The extension alone decides; the bytes are checked again on open.
-pub fn is_raw_name(name: &str) -> bool {
-    let base = name.rsplit('/').next().unwrap_or(name);
-    let Some(dot) = base.rfind('.') else {
-        return false;
-    };
-    let ext = &base[dot + 1..];
-    !ext.is_empty() && RAW_EXTS.iter().any(|e| ext.eq_ignore_ascii_case(e))
 }
 
 // A file plus its length plus the two budgets every walk counts against.

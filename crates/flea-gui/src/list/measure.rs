@@ -107,12 +107,18 @@ impl ListState {
         if self.view.tags_shown {
             tokens.name_min += flea::ui_logic_pl4::tags::ROW_SLOT + metrics.gap;
         }
-        let mut layout = columns::resolve(
-            (width - metrics.lane).max(0.),
-            &tokens,
-            self.view.switched,
-            self.view.stored,
-        );
+        let row = (width - metrics.lane).max(0.);
+        let mut layout = if self.view.place_recent.is_some() {
+            super::recent::layout(
+                row,
+                &tokens,
+                self.view.switched,
+                self.view.stored,
+                self.view.dual,
+            )
+        } else {
+            columns::resolve(row, &tokens, self.view.switched, self.view.stored)
+        };
         layout = super::git::reserve(layout, !self.view.git.label.is_empty(), metrics.gap);
         let leading = super::picker::leading(&self.view, &metrics);
         layout.name.x += leading;

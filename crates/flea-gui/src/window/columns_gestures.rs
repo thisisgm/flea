@@ -59,6 +59,20 @@ pub(super) fn draggable(
         .id(("columns-file-drag", side))
         .size_full()
         .child(area)
+        .capture_any_mouse_down(
+            cx.listener(move |shell, event: &gpui::MouseDownEvent, _, _| {
+                let Some(host) = shell.panes[side].as_mut() else {
+                    return;
+                };
+                let pressed = (event.button == gpui::MouseButton::Left)
+                    .then(|| hover_at(host, event.position))
+                    .flatten()
+                    .map(|hover| (hover, event.modifiers));
+                if let Some(columns) = host.columns.as_mut() {
+                    columns.pressed = pressed;
+                }
+            }),
+        )
         .on_drag(Seed { side }, move |_, _, window, cx| {
             let _ = lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
             flock(cx)

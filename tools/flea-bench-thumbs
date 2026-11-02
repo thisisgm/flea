@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+"""Worker-timing mode of flea-field-bench; see flea-bench-thumbs.md for the method."""
+
+import argparse
+import json
+import math
+import os
+from pathlib import Path
+import platform
+import random
+import re
+import shutil
+import statistics
+import struct
+import subprocess
+import sys
+import tempfile
+import time
+import zlib
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "flea-bench-thumbs-lib"))
+import measure
+import inventory
+import wayland
+import raw_corpus
+
+REPO = Path(__file__).resolve().parent.parent
+SOURCE = "https://github.com/lgse/strata/pull/1660#issuecomment-6172896025"
+SPECS = {
+    "photo-jpeg": (6000, 4000, 2_900_000, "jpg"),
+    "desktop-png": (2560, 1440, 5_900_000, "png"),
+    "web-jpeg": (1200, 800, 100_000, "jpg"),
+}
+AFTER = {
+    "photo-jpeg": dict(all_thumbnails_ms=470, per_thumbnail_ms=113, preview_800_ms=134, user_cpu_s=2.81),
+    "desktop-png": dict(all_thumbnails_ms=350, per_thumbnail_ms=82, preview_800_ms=98, user_cpu_s=3.25),
+    "web-jpeg": dict(all_thumbnails_ms=83, per_thumbnail_ms=15, preview_800_ms=40, user_cpu_s=1.15),
+}
+IDS = ("flea", "flea-0312", "strata-stable", "strata-nightly", "krusader", "dolphin", "nautilus", "thunar", "pcmanfm", "nemo")
+digest = inventory.digest
+
+
+def marked_root(value):
+    path = Path(value)
+    if not path.is_absolute() or path.resolve() != path or path.is_symlink():
+        raise ValueError("root must be an absolute canonical directory")
+    marker = path / ".flea-test-sandbox"
+    if marker.is_symlink() or not marker.is_file():
+        raise ValueError("root needs its .flea-test-sandbox marker")
+    if len(path.parts) < 4:
+        raise ValueError("root is too shallow")
+    home = Path.home()
+    forbidden = [home, *(home / name for name in ("Work", ".config", ".local", ".cache", "tmp"))]
+    if path == home or any(path.is_relative_to(parent) for parent in forbidden[1:]):
+        raise ValueError("root must not target the operator's home or personal directories")
+    return path
+
+
+def save(path, value):
+    with path.open("x") as stream:
+        json.dump(value, stream, indent=2, sort_keys=True)
+        stream.write("\n")
+
+
+def png_chunk(kind, payload):
+    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload))
+
+
+def pixels(width, height, seed, png=False):
+    rng = random.Random(seed)
+    if png:
+        data = bytearray(rng.randbytes(width * height * 3))
+        for channel, mask in enumerate((240, 240, 224)):
+            data[channel::3] = data[channel::3].translate(bytes(n & mask for n in range(256)))
+        return bytes(data)
+    rows = []
+    for y in range(height):
+        noise = rng.randbytes(width)
+        row = bytearray(width * 3)
+        for channel in range(3):
+            level = 40 + (y * 120 // height) + channel * 12
+            row[channel::3] = noise.translate(bytes(level + (n & 63) for n in range(256)))
+        rows.append(row)
+    return b"".join(rows)
+
+
+def jpeg(base, target, directory):
+    low, high = 1, 100
+    best = None
+    while low <= high:
+        quality = (low + high) // 2
+        out = directory / f"quality-{quality}.jpg"
+        subprocess.run(["magick", str(base), "-strip", "-sampling-factor", "4:2:0", "-quality", str(quality), str(out)], check=True)
+        data = out.read_bytes()
+        if best is None or abs(len(data) - target) < abs(len(best) - target):
+            best = data
+        if len(data) < target:
+            low = quality + 1
+        else:
+            high = quality - 1
+    if abs(len(best) - target) > target * 0.1:
+        raise ValueError(f"JPEG encoder cannot reach target {target}: {len(best)} bytes")
+    return best
+
+
+def fixtures(root):
+    dest = root / "fixtures"
+    dest.mkdir()
+    manifest = {"generator": "seeded RGB v1; identical pixels, unique metadata per file", "zlib": zlib.ZLIB_RUNTIME_VERSION, "fixtures": {}}
+    manifest["magick"] = subprocess.check_output(["magick", "-version"], text=True).splitlines()[0]
+    for index, (name, (width, height, target, extension)) in enumerate(SPECS.items()):
+        directory = dest / name
+        directory.mkdir()
+        data = pixels(width, height, 7000 + index, extension == "png")
+        if extension == "png":
+            rows = b"".join(b"\0" + data[y * width * 3:(y + 1) * width * 3] for y in range(height))
+            encoded = b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+            encoded += png_chunk(b"IDAT", zlib.compress(rows, 6))
+        else:
+            base = root / f"{name}.ppm"
+            with base.open("xb") as stream:
+                stream.write(f"P6\n{width} {height}\n255\n".encode() + data)
+            encoder_root = root / f"{name}-encoder"
+            encoder_root.mkdir()
+            encoded = jpeg(base, target, encoder_root)
+        files = []
+        for sample in range(16):
+            label = f"sample-{sample:02d}"
+            if extension == "png":
+                content = encoded + png_chunk(b"tEXt", b"Sample\0" + label.encode()) + png_chunk(b"IEND", b"")
+            else:
+                comment = label.encode()
+                content = encoded[:2] + b"\xff\xfe" + struct.pack(">H", len(comment) + 2) + comment + encoded[2:]
+            path = directory / f"{label}.{extension}"
+            with path.open("xb") as stream:
+                stream.write(content)
+            files.append(dict(name=path.name, bytes=path.stat().st_size, sha256=digest(path)))
+        manifest["fixtures"][name] = dict(width=width, height=height, target_bytes=target, files=files)
+    save(root / "fixtures.json", manifest)
+    return manifest
+
+
+def verify_fixtures(root):
+    manifest = json.loads((root / "fixtures.json").read_text())
+    if set(manifest["fixtures"]) != set(SPECS):
+        raise ValueError("fixture roster differs")
+    for name, (width, height, target, extension) in SPECS.items():
+        directory = root / "fixtures" / name
+        files = manifest["fixtures"][name]["files"]
+        names = {f["name"] for f in files}
+        if len(files) != 16 or len(names) != 16 or set(p.name for p in directory.iterdir()) != names:
+            raise ValueError(f"{name} must hold exactly 16 named files")
+        for info in files:
+            path = directory / info["name"]
+            if path.is_symlink() or digest(path) != info["sha256"] or path.stat().st_size != info["bytes"] or abs(path.stat().st_size - target) > target * 0.1:
+                raise ValueError(f"fixture changed: {path}")
+            dimensions = subprocess.check_output(["magick", "identify", "-format", "%w %h", str(path)], text=True)
+            if dimensions != f"{width} {height}":
+                raise ValueError(f"fixture dimensions differ: {path}")
+    return manifest
+
+
+def roster_template():
+    rows = []
+    for ident in IDS:
+        binary = str(REPO / "target/release/flea") if ident == "flea" else ident
+        if ident == "flea-0312":
+            binary = "/home/gm/flea-work/h323/target/release/flea"
+        row = dict(id=ident, binary=binary, version="", sha256="", release_url="", checked_utc="", build_sha="")
+        if ident == "flea":
+            row["gui_sha256"] = ""
+        if ident in inventory.version_probe.PACKAGED:
+            row.update(package_name=ident, package_version="")
+        rows.append(row)
+    return rows
+
+
+def roster(path, installed=False):
+    rows = json.loads(path.read_text())
+    if installed and (not rows or len({r["id"] for r in rows}) != len(rows) or any(r["id"] not in IDS or r["id"] == "flea" for r in rows)):
+        raise ValueError("installed-only roster must contain unique known entrants and no 0.4.0 arm")
+    if not installed and (len(rows) != len(IDS) or {r["id"] for r in rows} != set(IDS)):
+        raise ValueError("roster must include both Flea builds and all eight rival entrants")
+    for row in rows:
+        binary = Path(row["binary"])
+        if not binary.is_absolute() or not binary.is_file() or not os.access(binary, os.X_OK):
+            raise ValueError(f"missing absolute executable: {binary}")
+        if not row.get("version") or digest(binary) != row.get("sha256"):
+            raise ValueError(f"version or binary checksum missing/different: {row['id']}")
+        if "b5_receipt" in row and digest(Path(row["b5_receipt"]["path"])) != row["b5_receipt"]["sha256"]:
+            raise ValueError("B5 version receipt snapshot changed")
+        checked = measure.utc_seconds(row.get("checked_utc", ""))
+        if not 0 <= time.time() - checked <= 86400:
+            raise ValueError(f"latest-release inventory must be refreshed within 24 hours: {row['id']}")
+        if row["id"].startswith("flea") and not installed:
+            if not re.fullmatch(r"[0-9a-f]{40}", row.get("build_sha", "")):
+                raise ValueError("both Flea builds need their exact build SHA")
+        elif not installed and not row.get("release_url", "").startswith("https://"):
+            raise ValueError(f"latest-release evidence URL required: {row['id']}")
+        if row["id"] == "flea" and row["version"] != "0.4.0":
+            raise ValueError("candidate must report 0.4.0")
+        if row["id"] == "flea" and digest(binary.with_name("flea-gui")) != row.get("gui_sha256"):
+            raise ValueError("candidate needs the exact sibling flea-gui checksum")
+        if row["id"] == "flea-0312" and row["version"] != "0.3.12":
+            raise ValueError("comparison must report 0.3.12")
+        if row["id"].startswith("strata"):
+            nightly = "nightly" in row["version"].lower()
+            if nightly != (row["id"] == "strata-nightly") or re.search(r"(?:rc|alpha|beta)[.\d-]", row["version"], re.I):
+                raise ValueError("Strata stable and nightly must be separate release channels")
+        if row["id"].startswith("strata"):
+            inventory.archive_identity(row.get("archive", {}), binary)
+    if len({r["binary"] for r in rows}) != len(rows):
+        raise ValueError("each entrant must name its own binary")
+    return rows
+
+
+def summary(rows):
+    output = []
+    for name in SPECS:
+        for ident in IDS:
+            selected = [r for r in rows if r["fixture"] == name and r["id"] == ident and r["round"] > 0]
+            metrics = {}
+            for metric, threshold in AFTER[name].items():
+                values = [r.get(metric) for r in selected]
+                valid = len(selected) == 6 and {r["round"] for r in selected} == set(range(1, 7))
+                valid = valid and all(r.get("verified") == 16 and not r.get("simulated") and not r.get("mutant") for r in selected)
+                valid = valid and all(type(v) in (int, float) and math.isfinite(v) and v > 0 for v in values)
+                stats = dict(median=statistics.median(values), minimum=min(values), maximum=max(values)) if valid else {}
+                metrics[metric] = dict(after=threshold, measured=valid, beats_after=valid and threshold is not None and stats["median"] < threshold, **stats)
+            declined = selected[0].get("declined") if selected and all(r.get("declined") for r in selected) else None
+            output.append(dict(id=ident, fixture=name, metrics=metrics, declined=declined))
+    for result in output:
+        for metric, value in result["metrics"].items():
+            rivals = [r["metrics"][metric] for r in output if r["fixture"] == result["fixture"] and r["id"] != result["id"]]
+            value["first"] = value["measured"] and all(r["measured"] and value["median"] < r["median"] for r in rivals)
+    return output
+
+
+def run(args, root):
+    fixture_manifest = verify_fixtures(root)
+    entrants = roster(args.roster, args.installed)
+    if args.only:
+        selected = args.only.split(",")
+        if len(set(selected)) != len(selected) or not set(selected) <= {row["id"] for row in entrants}:
+            raise ValueError("--only must name unique entrants in the inventoried roster")
+        entrants = [row for row in entrants if row["id"] in selected]
+    manifest = dict(host=platform.node(), kernel=platform.release(), date=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    source=SOURCE, entrants=entrants, fixtures=fixture_manifest, workers=4, rounds=6, warmups=1,
+                    python=sys.version, harness_sha256=digest(Path(__file__)),
+                    helper_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/measure.py"),
+                    wayland_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/wayland.py"),
+                    inventory_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/inventory.py"),
+                    versions_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/versions.py"),
+                    gpui_reader_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/gpui.py"),
+                    cgroup_cpu_sha256=digest(REPO / "tools/flea-bench-thumbs-lib/cgroup_cpu.py"),
+                    key_helper_sha256=digest(REPO / "tools/flea-bench-keys"),
+                    installed_only=args.installed, latest_releases_asserted=not args.installed,
+                    fixture_limit="Synthetic RGB, not the unpublished source corpus; absolute After comparison remains provisional.")
+    run_root = Path(tempfile.mkdtemp(prefix="run-", dir=root))
+    (run_root / ".flea-test-sandbox").touch()
+    rows = []
+    with wayland.Display(run_root) as display:
+        manifest["session"] = display.metadata()
+        save(run_root / "manifest.json", manifest)
+        for round_number in range(args.passes):
+            order = entrants if round_number % 2 == 0 else list(reversed(entrants))
+            for name in SPECS:
+                for entrant in order:
+                    print(f"round={round_number} fixture={name} entrant={entrant['id']}", flush=True)
+                    row = measure.run_one(REPO, run_root, display, root / "fixtures" / name, entrant, round_number, args.timeout)
+                    rows.append(dict(id=entrant["id"], fixture=name, round=round_number, **row))
+                    with (run_root / "runs.jsonl").open("a") as stream:
+                        stream.write(json.dumps(rows[-1], sort_keys=True) + "\n")
+    results = summary(rows)
+    save(run_root / "summary.json", results)
+    print(run_root)
+    return 0 if all(all(v["measured"] for v in r["metrics"].values()) for r in results) else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("roster", help="print the latest-release inventory template")
+    commands.add_parser("doctor", help="report collection prerequisites without launching an entrant")
+    for name in ("fixtures", "verify", "verify-raw", "installed-roster", "run"):
+        command = commands.add_parser(name)
+        command.add_argument("--root", required=True, help="absolute marked sandbox; never the operator's cache")
+        if name == "installed-roster":
+            command.add_argument("--b5-root", required=True, type=Path, help="marked B5 root containing rival-versions.json")
+        if name == "verify-raw":
+            command.add_argument("--corpus-root", required=True, type=Path, help="parent containing official twelve/ and hundred/ sets")
+        if name == "run":
+            command.add_argument("--only", help="comma-separated inventoried entrants for a focused rerun")
+            command.add_argument("--passes", type=int, default=7, choices=range(1, 8), metavar="1-7",
+                                 help="rounds to run, the warm-up included; fewer than 7 is a focused proof and cannot rank")
+            command.add_argument("--roster", type=Path, required=True)
+            command.add_argument("--installed", action="store_true", help="early installed-version arms only, no candidate or latest-release claim")
+            command.add_argument("--timeout", type=float, default=15, help="per thumbnail/preview phase deadline in seconds")
+    args = parser.parse_args()
+    if args.command == "roster":
+        print(json.dumps(roster_template(), indent=2))
+        return 0
+    if args.command == "doctor":
+        required = (*wayland.TOOLS, "systemd-run", "systemctl")
+        paths = {name: shutil.which(name) for name in required}
+        print(json.dumps(dict(host=platform.node(), kernel=platform.release(), tools=paths), indent=2))
+        return 0 if all(paths.values()) else 2
+    root = marked_root(args.root)
+    if args.command == "fixtures":
+        print(json.dumps(fixtures(root), indent=2))
+    elif args.command == "verify":
+        print(json.dumps(verify_fixtures(root), indent=2))
+    elif args.command == "installed-roster":
+        print(json.dumps(inventory.installed(root, args.b5_root, IDS), indent=2))
+    elif args.command == "verify-raw":
+        print(json.dumps(raw_corpus.verify(REPO, root, args.corpus_root), indent=2))
+    else:
+        if args.timeout <= 0 or args.timeout > 60:
+            raise ValueError("timeout must be in (0, 60]")
+        return run(args, root)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"bench-thumbs: {error}", file=sys.stderr)
+        sys.exit(2)

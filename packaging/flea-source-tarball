@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds flea-vX.Y.Z.tar.gz, the release's source tarball that OPR and the AUR flea package build from.
+# Builds flea-vX.Y.Z.tar.gz, the release's source tarball that the OPR flea package builds from.
 # Usage: packaging/flea-source-tarball <tag> <outdir>
 set -euo pipefail
 

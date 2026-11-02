@@ -1,6 +1,7 @@
 """Keep legacy filter sentinels and chooser retries working through the real picker launcher."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -8,6 +9,9 @@ import sandbox
 
 repo = Path(__file__).resolve().parents[2]
 failures = []
+# flea prefers a flea-gui beside its own executable, so a copy with no sibling is what reaches the stub on PATH.
+launcher = sandbox.make("chooser-launcher-") / "flea"
+shutil.copy2(sys.argv[1], launcher)
 
 
 def fixture():
@@ -15,13 +19,14 @@ def fixture():
     for area in ("home", "config", "state", "data", "cache", "runtime", "bin", "chosen"):
         (root / area).mkdir(mode=0o700)
     (root / "chosen/image.iso").write_text("chosen image\n")
-    stub = root / "bin/qs"
+    stub = root / "bin/flea-gui"
     stub.write_text('''#!/usr/bin/python3
-import json, os
+import json, os, sys
 from pathlib import Path
 root = Path(os.environ["CHOOSER_ROOT"]).resolve()
 assert root.is_absolute() and (root / ".flea-test-sandbox").is_file()
-reply = Path(os.environ["FLEA_PICKER_REPLY"]).resolve()
+assert sys.argv[1] == "--pick"
+reply = Path(sys.argv[2]).resolve()
 assert reply.is_absolute() and reply.is_relative_to(root)
 chosen = Path(os.environ["CHOOSER_CHOSEN"]).resolve()
 assert chosen.is_relative_to(root)
@@ -39,13 +44,13 @@ with (root / "invocations").open("a") as log:
            "XDG_RUNTIME_DIR": str(root / "runtime"), "XDG_DATA_DIRS": str(root / "missing"),
            "FLEA_UI": str(repo / "ui"), "QSG_RHI_BACKEND": "opengl",
            "VK_DRIVER_FILES": str(root / "missing.json"), "WAYLAND_DISPLAY": "fixture",
-           "CHOOSER_ROOT": str(root), "FLEA_FRONTEND": "qml"}
+           "CHOOSER_ROOT": str(root)}
     return root, env
 
 
 def invoke(root, env, consumer, index, accepted, label):
     chosen = root / ("chosen/image.iso" if consumer == "flash" else "chosen")
-    result = subprocess.run([sys.argv[1], consumer, "choose"],
+    result = subprocess.run([str(launcher), consumer, "choose"],
                             env=env | {"CHOOSER_FILTER": index, "CHOOSER_CHOSEN": str(chosen)},
                             cwd=root, capture_output=True, timeout=8)
     reply = root / "state/omarchy/flea-shelf/reply.json"

@@ -23,6 +23,14 @@ class TransportError(RuntimeError):
     pass
 
 
+def drain_timeout():
+    """Seconds an owned process group may take to drain on its own before teardown forces it (FLEA_TEST_DRAIN_TIMEOUT)."""
+    value = float(os.environ.get("FLEA_TEST_DRAIN_TIMEOUT", "30"))
+    if not 0 < value < float("inf"):
+        raise TransportError("transport deadlines must be positive and finite")
+    return value
+
+
 def private(path):
     path = Path(path)
     info = path.lstat()
@@ -228,7 +236,7 @@ class Window:
     @classmethod
     def start(cls, path, *, parent=None, binary=None, backend=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None,
               wrap=(), select=None, share=None):
-        frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "qml")
+        frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "gpui")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
         direct_qml = command and Path(command[0]).name in ("qs", "quickshell")
@@ -269,7 +277,7 @@ class Window:
                        log=str(log or root / "window.log"), command=command if direct_qml else None, wrap=list(wrap),
                        backend=backend, share=None if share is None else str(share),
                        owner=int(os.environ.get("FLEA_TEST_OWNER_PID", os.getpid())),
-                       drain_timeout=float(os.environ.get("FLEA_TEST_DRAIN_TIMEOUT", "30")))
+                       drain_timeout=drain_timeout())
         if not all(0 < options[key] < float("inf") for key in ("timeout", "drain_timeout")):
             raise TransportError("transport deadlines must be positive and finite")
         options["owner_start"] = identity(options["owner"])["start"]

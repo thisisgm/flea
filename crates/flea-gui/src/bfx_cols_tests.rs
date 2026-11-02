@@ -382,3 +382,6 @@ fn bfx_cols_kind_left_divider_pins_painted_header_and_cells() {
         })
         .unwrap();
 }
+
+#[path = "bfx_cols_fixlist_tests.rs"]
+mod fixlist;

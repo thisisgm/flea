@@ -9,8 +9,22 @@ use gpui::{
 };
 use std::{cell::Cell, rc::Rc};
 
-/// Where the first secret field's eye painted, for archiveCardsState's eye centre.
+/// Where a secret field's eye painted, for the pointer and archiveCardsState's eye centre.
 pub type EyeProbe = Rc<Cell<Option<Bounds<Pixels>>>>;
+
+/// The open card's eye probes, handed to its secret fields in body order.
+pub(super) struct Eyes<'a> {
+    probes: &'a [EyeProbe],
+    at: usize,
+}
+
+impl Eyes<'_> {
+    fn next(&mut self) -> Option<(usize, EyeProbe)> {
+        let at = self.at;
+        self.at += 1;
+        self.probes.get(at).map(|probe| (at, probe.clone()))
+    }
+}
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
@@ -21,6 +35,15 @@ pub(super) fn chip_frame(t: &Tokens, on: bool, focused: bool) -> Hsla {
         (true, true) => t.accent_frame,
         (true, false) => t.fg,
         (false, _) => t.muted_frame,
+    }
+}
+
+/// SettingsSegment.qml:68: the chosen chip's text in the foreground, every other one in Theme.color.muted.
+pub(super) fn chip_ink(t: &Tokens, on: bool) -> Hsla {
+    if on {
+        t.fg
+    } else {
+        t.muted
     }
 }
 
@@ -59,7 +82,7 @@ impl Draw<'_> {
                     .border_1()
                     .border_color(chip_frame(&t, on, chips.focused))
                     .rounded(self.px(self.r))
-                    .text_color(if on { t.fg } else { t.muted })
+                    .text_color(chip_ink(&t, on))
                     .child(option.clone()),
             );
         }
@@ -81,14 +104,14 @@ impl Draw<'_> {
     }
 
     /// The eye glyph, recording its painted bounds into the probe when one is given.
-    fn eye(&self, probe: Option<EyeProbe>) -> Div {
+    fn eye(&self, probe: Option<(usize, EyeProbe)>) -> Div {
         let eye = div().flex_none().relative().child(glyph(
             Glyph::Eye,
             super::cards::EYE * self.s,
             self.t.muted_frame,
         ));
         match probe {
-            Some(probe) => eye.child(
+            Some((at, probe)) => eye.debug_selector(move || format!("op2-eye-{at}")).child(
                 canvas(
                     |_, _, _| {},
                     move |painted, _, _, _| probe.set(Some(painted)),
@@ -102,7 +125,7 @@ impl Draw<'_> {
         }
     }
 
-    fn field_probed(&self, field: &Field, probe: Option<EyeProbe>) -> Div {
+    fn field_probed(&self, field: &Field, probe: Option<(usize, EyeProbe)>) -> Div {
         let t = self.t;
         let caret = || div().w(px(1.)).h(self.px(CARET)).flex_none().bg(t.fg);
         let mut line = div()
@@ -221,11 +244,11 @@ impl Draw<'_> {
             )
     }
 
-    pub(super) fn block(&self, block: &Block, probe: &mut Option<EyeProbe>) -> AnyElement {
+    pub(super) fn block(&self, block: &Block, eyes: &mut Eyes) -> AnyElement {
         match block {
             Block::Chips(chips) => self.chips(chips).into_any_element(),
             Block::Field(field) if field.secret && field.eye => {
-                self.field_probed(field, probe.take()).into_any_element()
+                self.field_probed(field, eyes.next()).into_any_element()
             }
             Block::Field(field) => self.field(field).into_any_element(),
             Block::CheckLine(check) => self.checkline(check).into_any_element(),
@@ -283,12 +306,12 @@ impl super::cards::DialogShell for StandIn {
         room: f32,
         radius: f32,
     ) -> AnyElement {
-        self.present_probed(card, palette, typeface, room, radius, None)
+        self.present_probed(card, palette, typeface, room, radius, &[])
     }
 }
 
 impl StandIn {
-    /// The card with the first secret field's eye bounds recorded into the probe.
+    /// The card with each secret field's eye bounds recorded into its probe, in body order.
     pub fn present_probed(
         &self,
         card: &Card,
@@ -296,7 +319,7 @@ impl StandIn {
         typeface: &Typeface,
         room: f32,
         radius: f32,
-        mut probe: Option<EyeProbe>,
+        probes: &[EyeProbe],
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
@@ -333,7 +356,7 @@ impl StandIn {
             .line_height(relative(1.2))
             .child(head)
             .child(draw.hairline());
-        frame = draw.body(card, frame, &mut probe);
+        frame = draw.body(card, frame, &mut Eyes { probes, at: 0 });
         let mut buttons = div()
             .mt(draw.px(ABOVE_BUTTONS))
             .flex()

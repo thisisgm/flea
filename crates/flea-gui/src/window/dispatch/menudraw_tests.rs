@@ -32,6 +32,7 @@ fn native_frames(cx: &mut VisualTestContext) {
 
 #[gpui::test]
 fn menudraw_rail_key_menu_is_painted_under_its_favourite(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, cx) = open_root_with(cx, r#""view":"list","keys":"default""#, None);
     let record = jsondoc::parse(r#"{"path":"/docs","label":"Docs"}"#).unwrap();
     shell.update(cx, |shell, _| {

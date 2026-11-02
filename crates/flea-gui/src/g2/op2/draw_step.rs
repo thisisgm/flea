@@ -32,6 +32,12 @@ pub(super) enum ActionFrame {
     Muted,
 }
 
+#[cfg(test)]
+thread_local! {
+    /// The text ink the step action's label resolved to when it last painted, as gpui cascades it.
+    pub(super) static LABEL_INK: std::cell::Cell<Option<Hsla>> = const { std::cell::Cell::new(None) };
+}
+
 /// The step action's per-frame inputs: the view, the press clock and the window it measures with.
 pub(super) struct ActionIn<'a> {
     pub view: &'a View,
@@ -85,6 +91,15 @@ impl StandIn {
                 }
             }
             StepAction::Hidden => ActionFrame::Muted,
+        }
+    }
+
+    /// DialogButton.qml:47: a live button labels in the foreground, an unavailable one in Theme.color.muted.
+    pub(super) fn action_ink(t: &super::cards::Tokens, available: bool) -> Hsla {
+        if available {
+            t.fg
+        } else {
+            t.muted
         }
     }
 
@@ -145,7 +160,7 @@ impl StandIn {
         } else {
             draw.t.accent.opacity(0.)
         };
-        let ink = if available { draw.t.fg } else { draw.t.muted };
+        let ink = Self::action_ink(&draw.t, available);
         let wash = if step.action_pressed && step.action_hover && available {
             Some((ink.opacity(WASH_PRESS), SEL_STEP_WASH_PRESS))
         } else if !step.action_pressed && step.action_hover && available {
@@ -179,17 +194,29 @@ impl StandIn {
             .px(pad)
             .flex()
             .items_center()
-            .text_color(draw.t.fg)
+            .text_color(ink)
             .opacity(if available { 1. } else { DISABLED_OPACITY })
             .whitespace_nowrap()
-            .child(
-                div()
+            .child({
+                let text = div()
                     .flex_1()
                     .min_w_0()
                     .overflow_hidden()
                     .text_ellipsis()
-                    .child(label),
-            );
+                    .child(label);
+                #[cfg(test)]
+                let text = text.child(
+                    gpui::canvas(
+                        |_, window, _| {
+                            LABEL_INK.with(|ink| ink.set(Some(window.text_style().color)))
+                        },
+                        |_, _, _, _| {},
+                    )
+                    .absolute()
+                    .size_0(),
+                );
+                text
+            });
         if let Some(hover) = &taps.hover {
             let hover = hover.clone();
             button = button.on_hover(move |over, window, cx| hover(over, window, cx));
@@ -210,6 +237,18 @@ impl StandIn {
             frame_div.border_1()
         };
         button = button.child(frame_div);
+        if let Some(probe) = taps.action_probe.clone() {
+            button = button.child(
+                gpui::canvas(
+                    |_, _, _| {},
+                    move |painted, _, _, _| probe.set(Some((action, painted))),
+                )
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full(),
+            );
+        }
         if let Some((color, probe)) = wash {
             button = button.child(
                 div()

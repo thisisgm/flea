@@ -179,21 +179,33 @@ fn between_beats_a_timer_waits_and_hidden_heroes_have_no_deadline() {
     assert_eq!(hero.next_deadline(), None);
 }
 
+/// EY-249: the beats are the catalog's four pane.empty keys, and the loop runs on past the last one while shown.
 #[test]
-fn the_phrases_are_the_oem_seven_in_sentence_case() {
+fn fixchrome_ey249_the_beats_are_the_catalog_keys_and_loop_while_shown() {
     let catalog = english();
     let words: Vec<_> = PHRASES.iter().map(|key| catalog.tr(key)).collect();
     assert_eq!(
         words,
         [
-            "Nothing here yet",
-            "A very tidy folder",
-            "Not a file in sight",
-            "Quiet in here",
-            "No clutter to report",
-            "Waiting for something to land",
-            "Empty, and that is fine",
+            "NOTHING HERE YET",
+            "A VERY TIDY FOLDER",
+            "NOT A FILE IN SIGHT",
+            "QUIET IN HERE",
         ]
+    );
+    let mut hero = Rotation::default();
+    hero.show(0, true);
+    let shown: Vec<_> = (1..=2 * PHRASES.len() as u64)
+        .map(|beat| {
+            let now = beat * ROTATE_MS + CLOSE_MS;
+            hero.advance(now);
+            hero.index()
+        })
+        .collect();
+    assert_eq!(shown, [1, 2, 3, 0, 1, 2, 3, 0], "no stop on the last beat");
+    assert_eq!(
+        hero.next_deadline(),
+        Some((2 * PHRASES.len() as u64 + 1) * ROTATE_MS)
     );
 }
 

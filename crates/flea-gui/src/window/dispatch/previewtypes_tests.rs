@@ -1,6 +1,6 @@
 //! F and B page a shown document, and p, m and the strip's play mark play media, through the production Shell.
 pub(super) use super::previewtypes_fixture_tests::{
-    answer, ask, field, file, local, meta, open, open_at, open_with_preview, pump,
+    answer, ask, field, file, local, meta, open, open_at, open_with_preview, pump, thumbed,
 };
 use crate::{
     g2::pv3::{
@@ -153,7 +153,7 @@ fn p_the_play_mark_and_m_play_and_mute_a_column_clip(cx: &mut TestAppContext) {
     let lines = local(&shell, cx, "/files");
     assert!(ask(&lines, "meta").contains(r#""media":true"#));
     meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":4000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
     assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
@@ -224,7 +224,7 @@ fn a_column_focused_before_its_clip_draws_takes_the_media_keys(cx: &mut TestAppC
     // Focused while the clip still loads, so the context taken at focus is the plain preview one.
     cx.simulate_keystrokes("ctrl-tab");
     meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":4000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "video");
     cx.simulate_keystrokes("m");
@@ -257,7 +257,7 @@ fn ey206_strip_centres_come_from_drawn_boxes_and_a_paused_clip_reads_zero(cx: &m
     });
     let lines = local(&shell, cx, "/files");
     meta(&shell, cx, &lines, r#","w":2,"h":2,"ms":2000"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
     assert_eq!(

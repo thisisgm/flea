@@ -61,7 +61,7 @@ fn drawn(
     (cx, visual, window)
 }
 
-fn at(visual: &mut VisualTestContext, selector: &str) -> Bounds<Pixels> {
+pub(super) fn at(visual: &mut VisualTestContext, selector: &str) -> Bounds<Pixels> {
     // debug_bounds takes a 'static selector; the leak is a few bytes per test.
     visual
         .debug_bounds(Box::leak(selector.to_owned().into_boxed_str()))
@@ -234,14 +234,17 @@ fn the_erase_warning_takes_the_theme_error_role() {
 }
 
 /// Catppuccin Latte's own colours: a theme whose muted and metadata frames differ, as on the desktop.
-fn latte() -> Theme {
+pub(super) fn latte() -> Theme {
     Theme::from_text(
         "background='#eff1f5'\nforeground='#4c4f69'\naccent='#1e66f5'\ncolor1='#d20f39'\nmuted='#9ca0b0'",
     )
 }
 
 /// The flash drawn under `theme`, with the quads the frame actually painted and the palette it read.
-fn painted(live: LiveFlash, theme: Theme) -> (VisualTestContext, Vec<gpui::Quad>, Palette, f32) {
+pub(super) fn painted(
+    live: LiveFlash,
+    theme: Theme,
+) -> (VisualTestContext, Vec<gpui::Quad>, Palette, f32) {
     let mut cx = real_cx();
     cx.update(|cx| cx.set_global(theme));
     let window = cx.open_window(size(px(908.), px(673.)), move |_, _| live);
@@ -256,7 +259,7 @@ fn painted(live: LiveFlash, theme: Theme) -> (VisualTestContext, Vec<gpui::Quad>
     (visual, quads, palette, scale)
 }
 
-fn quads_at(quads: &[gpui::Quad], b: Bounds<Pixels>, scale: f32) -> Vec<&gpui::Quad> {
+pub(super) fn quads_at(quads: &[gpui::Quad], b: Bounds<Pixels>, scale: f32) -> Vec<&gpui::Quad> {
     let want = rect(b);
     let want = [want.0, want.1, want.2, want.3].map(|v| v * scale);
     quads

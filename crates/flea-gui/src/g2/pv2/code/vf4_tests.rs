@@ -1,8 +1,8 @@
 use super::*;
-use gpui::{black, px};
+use gpui::px;
 
 fn view(numbered: bool) -> CodeView {
-    let ink = black();
+    let ink = crate::palette::Theme::default().foreground;
     let mut view = CodeView::new(
         "look",
         Typeface {

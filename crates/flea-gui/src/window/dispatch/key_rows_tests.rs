@@ -9,7 +9,7 @@ use crate::{
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 // The sweep's key rows: a native root launch selecting notes.txt (row 2 of 4), every pane listed.
-fn launched<'a>(
+pub(super) fn launched<'a>(
     cx: &'a mut TestAppContext,
     view: &str,
 ) -> (Entity<Shell>, &'a mut VisualTestContext) {
@@ -29,7 +29,7 @@ fn launched<'a>(
 }
 
 // The focused pane's cursor and marks.
-fn state(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (usize, Vec<usize>) {
+pub(super) fn state(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (usize, Vec<usize>) {
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[shell.focus_side].as_ref().unwrap();
         (host.pane.cursor, host.selected.clone())

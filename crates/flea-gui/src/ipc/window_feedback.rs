@@ -13,13 +13,20 @@ pub(crate) struct FeedbackAdapter<'a> {
     pub pane_focused: bool,
     /// The list's keyboard focus, Pane.qml's listArea.activeFocus.
     pub list_focused: bool,
-    /// The list draws a drop target this frame, so a drag is over one of its rows.
+    pub share_focused: bool,
+    /// IpcPreviewState.listingDropActive: a drag is over the listing's floor, past or between folder rows, landing in the shown folder.
     pub drop_active: bool,
 }
 
 impl Adapter for FeedbackAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         let value = match function {
+            // GPUI-only: v0.3.12 kept Pane.clipboardText off IPC; this answers the system clipboard's text, "" with none.
+            "clipboardText" => self
+                .cx
+                .read_from_clipboard()
+                .and_then(|item| item.text())
+                .unwrap_or_default(),
             "shareBrowserOpen" | "shareBrowserEntries" => {
                 let browser = self
                     .shell
@@ -41,8 +48,11 @@ impl Adapter for FeedbackAdapter<'_> {
                     .as_ref()
                     .and_then(|rail| rail.network.as_ref())
                     .map(|network| &network.shares.read(self.cx).model);
-                let owner = browser.and_then(|browser| self.shell.network_side(browser.origin));
-                let active = browser.is_some_and(|browser| browser.open) && owner.is_some();
+                // v0.3.12 shareBrowserState: active and owner follow the browser even while its pane is hidden.
+                let active = browser.is_some_and(|browser| browser.open);
+                let owner = browser
+                    .and_then(|browser| self.shell.network_origin_side(browser.origin))
+                    .map_or(-1, |side| side as i32);
                 let panes = self
                     .shell
                     .panes
@@ -59,9 +69,8 @@ impl Adapter for FeedbackAdapter<'_> {
                 let cursor = browser
                     .filter(|browser| browser.generation > 0)
                     .map_or(-1, |browser| browser.cursor as i64);
-                let owner = owner.map_or(-1, |side| side as i32);
                 let rect = self.browser_rect();
-                format!("{{\"active\":{active},\"owner\":{owner},\"rect\":\"{rect}\",\"baseUri\":\"{}\",\"cursor\":{cursor},\"paneRects\":[{panes}]}}", flea::json::escape(uri))
+                format!("{{\"active\":{active},\"focused\":{},\"owner\":{owner},\"rect\":\"{rect}\",\"baseUri\":\"{}\",\"cursor\":{cursor},\"paneRects\":[{panes}]}}", self.share_focused, flea::json::escape(uri))
             }
             // Browser.close keeps the cursor, so a closed browser still answers the row it was left on.
             "shareBrowserCursor" => self
@@ -129,13 +138,35 @@ impl FeedbackAdapter<'_> {
             return String::new();
         }
         browser.painted_bounds().map_or_else(String::new, |bounds| {
-            format!(
-                "{} {} {} {}",
-                f32::from(bounds.left()).round(),
-                f32::from(bounds.top()).round(),
-                f32::from(bounds.size.width).round(),
-                f32::from(bounds.size.height).round()
+            super::rows::rect_of(
+                f32::from(bounds.origin.x),
+                f32::from(bounds.origin.y),
+                f32::from(bounds.size.width),
+                f32::from(bounds.size.height),
             )
         })
+    }
+}
+
+impl Shell {
+    /// PaneWire.qml's floor DropInto: List and Grid only, under the rows, so a folder row's own target hides it.
+    pub(crate) fn listing_floor_active(
+        &self,
+        host: &crate::window::pane::PaneHost,
+        list: &crate::list::ListState,
+        states: &crate::list::RowStates,
+        window: &gpui::Window,
+        cx: &App,
+    ) -> bool {
+        let floor = match host.drawn_view {
+            Some(crate::window::startup::View::List) => Some(list.drawn.bounds),
+            Some(crate::window::startup::View::Grid) => {
+                host.grid.as_ref().map(|grid| grid.state.borrow().bounds)
+            }
+            _ => None,
+        };
+        cx.has_active_drag()
+            && states.drop_target.is_none()
+            && floor.is_some_and(|bounds| bounds.contains(&window.mouse_position()))
     }
 }

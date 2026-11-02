@@ -26,15 +26,17 @@ pub(super) fn run(
         "properties" => {
             chosen.captured.ready && !chosen.captured.background && !chosen.captured.rows.is_empty()
         }
-        // Menu.js OPEN_WITH_OTHER opens the Open With card on the one row; any other leaf names the application to launch.
+        // Menu.js OPEN_WITH_OTHER opens the Open With card on the one row; any other leaf launches on every captured row.
         "openWith" => {
             !chosen.leaf.is_empty()
                 && chosen.captured.ready
                 && !chosen.captured.background
-                && chosen.captured.rows.len() == 1
+                && (chosen.captured.rows.len() == 1
+                    || (!chosen.captured.rows.is_empty()
+                        && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER))
         }
-        "selectAll" | "invertSelection" | "toggleLangMarks" | "settings" | "updateFlea"
-        | "extThumbs" | "addFavourite" => true,
+        "selectAll" | "invertSelection" | "toggleHidden" | "toggleLangMarks" | "settings"
+        | "updateFlea" | "extThumbs" | "addFavourite" => true,
         _ => false,
     };
     if !wanted || !chosen.claim() {
@@ -85,6 +87,12 @@ pub(super) fn run(
             // input_action reads the focused pane, so it points at the menu's own pane for this one call.
             let focused = std::mem::replace(&mut shell.focus_side, chosen.captured.side);
             shell.input_action(&chosen.action, window, cx);
+            shell.focus_side = focused;
+        }
+        // Pane.qml toggleHidden: the . key's own settings write, so the relist is a fresh listing as the key's is.
+        "toggleHidden" => {
+            let focused = std::mem::replace(&mut shell.focus_side, chosen.captured.side);
+            shell.settings_action("toggleHidden", window, cx);
             shell.focus_side = focused;
         }
         // ViewState.qml toggles langMarks, which every view reads from ui.json.

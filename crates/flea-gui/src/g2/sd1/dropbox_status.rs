@@ -38,7 +38,10 @@ impl ProviderSend {
     }
 
     pub(super) fn dropbox_refresh(&mut self) -> Option<Action> {
-        if !self.row_on(Role::Dropbox) || !self.facts.dropbox_ready {
+        if !self.row_on(Role::Dropbox)
+            || !self.facts.dropbox_ready
+            || self.facts.dropbox_command.is_empty()
+        {
             return None;
         }
         if self.db.checking {

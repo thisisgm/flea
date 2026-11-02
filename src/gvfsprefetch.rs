@@ -114,11 +114,6 @@ fn sweep_dir(dir: &Path, now: SystemTime) {
     }
 }
 
-// The launcher's side: our dir, last leftovers gone, this launch's file named.
-pub fn prepare(path: &str) -> Option<(PathBuf, u64)> {
-    prepare_for(path, runtime_dir())
-}
-
 // Split so a test names the runtime dir without writing this process's environment.
 pub(crate) fn prepare_for(path: &str, runtime: Option<PathBuf>) -> Option<(PathBuf, u64)> {
     if !gvfslist::is_gvfs(Path::new(path)) {

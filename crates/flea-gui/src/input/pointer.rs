@@ -116,6 +116,7 @@ impl Shell {
             }
         } else if moved {
             host.input.pointer_origin = true;
+            host.input.surface_pointer = hovered.then_some(event.position);
             host.input.hovered = hovered.then(|| host.input.hit(event.position)).flatten();
             // The gesture surface sits on the active track only, so a peek track's row reads the window's move by its bounds.
             let hover = crate::window::columns::hover_at(host, event.position);

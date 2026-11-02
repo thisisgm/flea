@@ -61,6 +61,7 @@ pub struct Menu {
     pub card: Option<Card>,
     pub flyout: Option<Flyout>,
     pub faded: Option<fade::Faded>,
+    pub fades: fade::Fades,
     // The selection the menu opened over, which a choice must still find.
     pub identity: String,
     // The handle a rail or Places menu acts on, such as place:2:/home/gm/Work.
@@ -73,6 +74,12 @@ pub struct Menu {
 impl Menu {
     pub fn opened(&self) -> bool {
         self.card.is_some()
+    }
+
+    /// Where the menu was asked to open, before the fit moves its frame.
+    #[cfg(test)]
+    pub fn anchor(&self) -> (f32, f32) {
+        self.at
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -98,6 +105,7 @@ impl Menu {
         // Every open lands on the first live row, the pointer's included, as v0.3.12 place() does.
         let cursor = Card::first(&entries);
         self.card = Some(Card::new(entries, built, frame, cursor));
+        self.fades.closing = None;
         self.face = face;
         self.identity = identity.to_owned();
         self.work = work;
@@ -136,7 +144,7 @@ impl Menu {
 
     pub fn close(&mut self) -> Outcome {
         let was = self.opened();
-        self.card = None;
+        self.fades.closing = self.card.take().or(self.fades.closing.take());
         self.retire_flyout();
         self.handle.clear();
         if was {
@@ -223,6 +231,10 @@ impl Menu {
                 Outcome::Redraw
             }
             Submenu::Lone => {
+                // No main row is its parent, so none stays lit beside it, as v0.3.12 lights only the leaf.
+                if let Some(card) = &mut self.card {
+                    card.cursor = None;
+                }
                 self.open_flyout(None, action, rows::flyout_entries(action), env, window);
                 Outcome::Redraw
             }

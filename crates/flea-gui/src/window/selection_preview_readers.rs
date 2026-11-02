@@ -2,7 +2,11 @@
 use super::*;
 use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
+use flea::ui_logic_pv2::refusal::Refusal;
 use gpui::{App, Bounds, Pixels};
+
+#[path = "selection_preview_animation_reader.rs"]
+mod animation;
 
 pub(crate) struct Reader<'a> {
     pub view: Option<&'a SelectionPreview>,
@@ -10,7 +14,7 @@ pub(crate) struct Reader<'a> {
     pub cx: &'a App,
     pub window: &'a gpui::Window,
 }
-fn rect(bounds: Option<Bounds<Pixels>>) -> String {
+pub(crate) fn rect(bounds: Option<Bounds<Pixels>>) -> String {
     bounds
         .map(|bounds| {
             format!(
@@ -23,7 +27,7 @@ fn rect(bounds: Option<Bounds<Pixels>>) -> String {
         })
         .unwrap_or_default()
 }
-fn centre(bounds: Bounds<Pixels>) -> String {
+pub(crate) fn centre(bounds: Bounds<Pixels>) -> String {
     let centre = bounds.center();
     format!(
         "{} {}",
@@ -34,9 +38,7 @@ fn centre(bounds: Bounds<Pixels>) -> String {
 impl Reader<'_> {
     pub(crate) fn value(&self, function: &str, arguments: &[String]) -> Option<String> {
         let view = self.view.filter(|v| self.active && v.visible);
-        let loading = view.is_some_and(|v| {
-            v.pending.is_some() && (!v.port.0.borrow().holding || v.drawn.is_none())
-        });
+        let loading = view.is_some_and(SelectionPreview::loading);
         let frame = view.and_then(|v| (!loading).then_some(v.drawn.as_ref()).flatten());
         let pdf = frame.and_then(|f| match &f.mounted {
             Mounted::Pdf(pdf) => Some(pdf.read(self.cx)),
@@ -47,12 +49,14 @@ impl Reader<'_> {
             _ => None,
         });
         Some(match function {
+            "columnAnimationState" => animation::state(view, frame),
             "pdfState" => {
                 if arguments.first().is_some_and(|overlay| overlay == "true") {
                     return None;
                 }
-                view.zip(pdf)
-                    .map_or("null".into(), |(v, p)| pdf_state(v, p, self.window))
+                view.zip(pdf).map_or("null".into(), |(v, p)| {
+                    pdf_state(v, p, self.window, self.cx)
+                })
             }
             "columnPdfPages" => pdf.map_or(0, |p| p.surface.page_count()).to_string(),
             "columnPdfPage" => pdf.map_or(-1, |p| p.surface.page as i64).to_string(),
@@ -104,7 +108,14 @@ impl Reader<'_> {
                 .zip(view)
                 .and_then(|(f, v)| v.failure(f, self.cx))
                 .unwrap_or_default(),
-            "columnTextLines" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("|")),
+            "columnTextLines" => frame.map_or(String::new(), |frame| {
+                if let Mounted::Doc(docs::Doc::Code(code)) = &frame.mounted {
+                    if code.read(self.cx).refusal() == Some(Refusal::TooLarge) {
+                        return "too large".into();
+                    }
+                }
+                doc_lines(frame, self.cx).join("|")
+            }),
             "previewText" => frame.map_or(String::new(), |f| doc_lines(f, self.cx).join("\n")),
             "columnArchiveNames" => {
                 frame
@@ -119,11 +130,11 @@ impl Reader<'_> {
             }
             "previewSurfaceRect" => rect(view.and_then(|v| *v.rect.borrow())),
             "columnFrameRect" => rect(view.and_then(|v| *v.frame_rect.borrow())),
-            "columnPictureRect" | "previewPictureRect" => rect(
-                frame
-                    .zip(view)
-                    .and_then(|(frame, view)| picture_rect(view, frame, self.cx)),
-            ),
+            "columnPictureRect" | "previewPictureRect" => {
+                rect(frame.zip(view).and_then(|(frame, view)| {
+                    picture_rect(view, frame, self.window.scale_factor(), self.cx)
+                }))
+            }
             "columnLinesRect" => rect(
                 frame
                     .filter(|f| matches!(f.mounted, Mounted::Doc(_)))
@@ -139,13 +150,16 @@ impl Reader<'_> {
                 .and(view.and_then(|v| v.caches.strip.borrow().play))
                 .map_or(String::new(), centre),
             // ColumnsArea.qml factsLine: "Kind=MPEG-4 video|Duration=1:12|...".
-            "previewFacts" => frame.zip(view).map_or(String::new(), |(f, v)| {
-                v.facts(f, self.cx)
-                    .iter()
-                    .map(|(k, v)| format!("{k}={v}"))
-                    .collect::<Vec<_>>()
-                    .join("|")
-            }),
+            "previewFacts" => {
+                view.and_then(|v| v.presented().map(|f| (f, v)))
+                    .map_or(String::new(), |(f, v)| {
+                        v.facts(f, self.cx)
+                            .iter()
+                            .map(|(k, v)| format!("{k}={v}"))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    })
+            }
             // Without a preview class the pane's own fsinfo class answers, so the reader falls through.
             "storageClass" => view
                 .and_then(|v| v.class.as_ref())
@@ -177,7 +191,7 @@ fn doc_lines(frame: &Frame, cx: &App) -> Vec<String> {
     }
 }
 
-fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window) -> String {
+fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window, cx: &App) -> String {
     use flea::jsondoc::Json;
     let s = &pdf.surface;
     let number = |n: f64| Json::Num(n.to_string());
@@ -201,7 +215,11 @@ fn pdf_state(view: &SelectionPreview, pdf: &PdfView, window: &gpui::Window) -> S
         ("pages".into(), number(s.page_count() as f64)),
         ("page".into(), number(s.page as f64)),
         ("scrollY".into(), number(s.view_top)),
-        ("focused".into(), Json::Bool(view.focus.is_focused(window))),
+        // PreviewColumn.qml activeFocus: the column or the PDF inside it holds the keyboard.
+        (
+            "focused".into(),
+            Json::Bool(view.focus.contains_focused(window, cx)),
+        ),
         ("loading".into(), Json::Bool(s.render_busy())),
         ("frame".into(), Json::Str(rect(*view.frame_rect.borrow()))),
         ("lastPage".into(), Json::Str(last_rect)),
@@ -249,7 +267,12 @@ fn swap_state(view: &SelectionPreview) -> String {
     ]))
 }
 
-fn picture_rect(view: &SelectionPreview, frame: &Frame, cx: &App) -> Option<Bounds<Pixels>> {
+fn picture_rect(
+    view: &SelectionPreview,
+    frame: &Frame,
+    device: f32,
+    cx: &App,
+) -> Option<Bounds<Pixels>> {
     let bounds = (*view.frame_rect.borrow())?;
     let player = match &frame.mounted {
         Mounted::Media(Some(player)) => player.read(cx).frame.as_ref(),
@@ -257,12 +280,23 @@ fn picture_rect(view: &SelectionPreview, frame: &Frame, cx: &App) -> Option<Boun
     };
     let image = player.or(frame.image.as_ref())?;
     let size = image.size(0);
-    let [x, y, width, height] = flea::ui_logic_pv3::picture::fit(
-        size.width.0 as f32,
-        size.height.0 as f32,
-        (f32::from(bounds.size.width) - 2.).max(0.),
-        (f32::from(bounds.size.height) - 2.).max(0.),
+    let (room_w, room_h) = (
+        (f32::from(bounds.size.width) - 2.).max(1.),
+        (f32::from(bounds.size.height) - 2.).max(1.),
     );
+    let [x, y, width, height] = if frame.kind == Kind::Image {
+        // The same size the column paints, own pixels included, centred inside the border.
+        let (width, height) = super::fitted::drawn(
+            frame,
+            (size.width.0 as f64, size.height.0 as f64),
+            f32::from(bounds.size.width),
+            f32::from(bounds.size.height),
+            device,
+        );
+        [(room_w - width) / 2., (room_h - height) / 2., width, height]
+    } else {
+        flea::ui_logic_pv3::picture::fit(size.width.0 as f32, size.height.0 as f32, room_w, room_h)
+    };
     Some(Bounds::new(
         bounds.origin + gpui::point(gpui::px(1. + x), gpui::px(1. + y)),
         gpui::size(gpui::px(width), gpui::px(height)),

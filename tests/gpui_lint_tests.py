@@ -79,6 +79,41 @@ source = "{SOURCE}"
         self.write("crates/flea-gui/src/list.rs", LIST.replace("theme.background;", code))
         return self.errors()
 
+    def test_ci_green4_port_methods_do_not_reach_unrelated_free_functions(self):
+        self.write("crates/flea-gui/src/worker.rs", '''
+fn collect() { std::thread::sleep(delay); }
+fn read() { std::fs::read("x"); }
+fn store() { std::fs::write("x", bytes); }
+''')
+        self.assertEqual(self.check_body('items.collect(); entity.read(cx); flag.store(value);'), [])
+        self.assertTrue(self.check_body('crate::worker::collect();'))
+        self.assertTrue(self.check_body('crate::worker::read();'))
+        self.assertTrue(self.check_body('crate::worker::store();'))
+
+    def test_ci_green4_port_receiver_methods_and_local_helpers_still_block(self):
+        self.write("crates/flea-gui/src/worker.rs", '''
+struct Reader;
+impl Reader { fn read(&self) { std::fs::read("x"); } }
+''')
+        self.assertTrue(self.check_body('reader.read(cx);'))
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("theme.background;", 'read();')
+                   + '\nfn read() { std::fs::read("x"); }\n')
+        self.assertTrue(self.errors())
+
+    def test_ci_green4_port_boolean_background_is_not_a_colour_setter(self):
+        self.assertEqual(self.check_body('click(if background { 300. } else { 45. });'), [])
+        self.assertTrue(self.check_body('div().background(300.);'))
+        self.assertTrue(self.check_body('if background { gpui::rgb(1); }'))
+
+    def test_ci_green4_port_exact_method_exception_survives_resolution(self):
+        self.write("crates/flea-gui/src/worker.rs", 'impl Owner { fn output(&self) {} }')
+        self.assertTrue(self.check_body('owner.output();'))
+        self.policy["blocking_exceptions"] = [{"caller": "flea_gui::list::ListElement::paint",
+                                               "symbol": "output", "reason": "Fixture's non-I/O method."}]
+        self.assertEqual(self.check_body('owner.output();'), [])
+        self.policy["blocking_exceptions"][0]["caller"] = "flea_gui::other::paint"
+        self.assertTrue(self.check_body('owner.output();'))
+
     def test_comments_strings_chars_and_raw_identifiers(self):
         code = '''// std::fs::read("x"); div(); rgb(0xff); }
         /* outer /* std::thread::sleep(1); */ red() */
@@ -206,15 +241,15 @@ source = "{SOURCE}"
         self.assertTrue(any("empty" in e for e in rust_checks([], self.policy)))
 
     def test_ui_reach_stays_in_its_compilation_target(self):
-        # A test crate's free fn named like an iterator method is not the paint path's .next().
+        # A test crate's method named like an iterator method is not the paint path's .next().
         self.write("crates/flea-gui/tests/probe.rs", "mod transport;")
-        self.write("crates/flea-gui/tests/probe/transport.rs", "fn next() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/tests/probe/transport.rs", "impl IteratorProbe { fn next(&mut self) { replies.recv_blocking(); } }")
         self.assertEqual([], self.check_body("rows.iter().next();"))
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("replies.recv_blocking();")))
-        # The same helper inside the product crate is still reached and flagged.
+        # The same receiver method inside the product crate is still reached and flagged.
         (self.root / "crates/flea-gui/tests/probe/transport.rs").unlink()
         (self.root / "crates/flea-gui/tests/probe.rs").unlink()
-        self.write("crates/flea-gui/src/row.rs", "fn next() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/row.rs", "impl IteratorProbe { fn next(&mut self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
         self.write("crates/flea-gui/src/window.rs", "fn open() { replies.recv_blocking(); }")
         self.policy["ui_callbacks"] = ["flea_gui::window::open"]
@@ -223,7 +258,7 @@ source = "{SOURCE}"
     def test_ui_reach_follows_another_workspace_package(self):
         # A helper in another native package's library is reached through the paint path and flagged.
         self.write("crates/helper/Cargo.toml", '[package]\nname = "helper"\nversion = "0.4.0"\n')
-        self.write("crates/helper/src/lib.rs", "pub fn next() { replies.recv_blocking(); }")
+        self.write("crates/helper/src/lib.rs", "pub impl IteratorProbe { fn next(&mut self) { replies.recv_blocking(); } }")
         self.metadata["workspace_members"].append("helper")
         self.metadata["packages"].append({"id": "helper", "name": "helper", "version": "0.4.0", "source": None,
                                           "manifest_path": str(self.root / "crates/helper/Cargo.toml"),
@@ -233,25 +268,25 @@ source = "{SOURCE}"
         (self.root / "crates/helper/src/lib.rs").unlink()
         for path in ("crates/helper/tests/probe.rs", "crates/helper/src/main.rs", "crates/helper/src/bin/tool.rs",
                      "crates/helper/src/bin/tool/main.rs"):
-            self.write(path, "fn next() { replies.recv_blocking(); }")
+            self.write(path, "impl IteratorProbe { fn next(&mut self) { replies.recv_blocking(); } }")
             self.assertEqual([], self.check_body("rows.iter().next();"), path)
             (self.root / path).unlink()
         # The lint treats one package's src/ files as one target (a path cannot tell a binary's module from the library's), so this reach is followed.
-        self.write("crates/flea-gui/src/main.rs", "fn next() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/main.rs", "impl IteratorProbe { fn next(&mut self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
 
     def test_test_only_items_join_no_ui_reach(self):
         # A #[cfg(test)] fn, impl, file module or #[path] module is never compiled into the paint path.
         self.write("crates/flea-gui/src/lib.rs", "mod list; mod probe;")
         blocking = "replies.recv_blocking();"
-        self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\npub(super) fn shape() {{ {blocking} }}")
+        self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\npub(super) impl ShapeProbe {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertEqual([], self.check_body("text.shape();"))
         self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\nimpl Recorder {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertEqual([], self.check_body("text.shape();"))
         self.write("crates/flea-gui/src/probe.rs", f"impl Recorder {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
         self.write("crates/flea-gui/src/probe.rs", "mod support { mod fake; }")
-        self.write("crates/flea-gui/src/probe/support/fake.rs", f"fn shape() {{ {blocking} }}")
+        self.write("crates/flea-gui/src/probe/support/fake.rs", f"impl ShapeProbe {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
         self.write("crates/flea-gui/src/probe.rs", "#[cfg(test)]\nmod support { mod fake; }")
         self.assertEqual([], self.check_body("text.shape();"))
@@ -259,10 +294,10 @@ source = "{SOURCE}"
         self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)]\nmod gate;\nmod probe;")
         self.write("crates/flea-gui/src/gate.rs", "mod receipt;")
         self.write("crates/flea-gui/src/probe.rs", "#[cfg(test)]\n#[path = \"other/bridge.rs\"]\nmod bridge;")
-        self.write("crates/flea-gui/src/gate/receipt.rs", f"fn shape() {{ {blocking} }}")
+        self.write("crates/flea-gui/src/gate/receipt.rs", f"impl ShapeProbe {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertEqual([], self.check_body("text.shape();"))
         (self.root / "crates/flea-gui/src/gate/receipt.rs").unlink()
-        self.write("crates/flea-gui/src/other/bridge.rs", f"fn shape() {{ {blocking} }}")
+        self.write("crates/flea-gui/src/other/bridge.rs", f"impl ShapeProbe {{ fn shape(&self) {{ {blocking} }} }}")
         self.assertEqual([], self.check_body("text.shape();"))
         # Without the attribute the same file is product code and is reached.
         self.write("crates/flea-gui/src/probe.rs", "#[path = \"other/bridge.rs\"]\nmod bridge;")
@@ -270,19 +305,19 @@ source = "{SOURCE}"
         # The attribute ends with its item, and a test-only twin never hides the product function.
         (self.root / "crates/flea-gui/src/other/bridge.rs").unlink()
         for item in ("use std::fs;", "fn helper() {}", "struct Fake {}"):
-            self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\n{item}\nfn shape() {{ {blocking} }}")
+            self.write("crates/flea-gui/src/probe.rs", f"#[cfg(test)]\n{item}\nimpl ShapeProbe {{ fn shape(&self) {{ {blocking} }} }}")
             self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")), item)
         self.write("crates/flea-gui/src/probe.rs", f"#[cfg(not(test))]\npub fn hold() {{ {blocking} }}\n#[cfg(test)]\npub fn hold() {{}}")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("crate::probe::hold();")))
 
     def test_product_and_test_declarations_keep_shared_code_visible(self):
         self.write("crates/flea-gui/src/lib.rs", "#[cfg(not(test))]\nmod probe;\n#[cfg(test)]\nmod probe;")
-        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/probe.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_product_and_test_path_alias_keep_shared_code_visible(self):
         self.write("crates/flea-gui/src/lib.rs", 'mod probe;\n#[cfg(test)]\n#[path = "probe.rs"]\nmod probe_tests;')
-        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/probe.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_conditional_product_path_keeps_shared_code_visible(self):
@@ -313,31 +348,31 @@ source = "{SOURCE}"
 
     def test_inline_test_path_cannot_hide_a_sibling_product_file(self):
         self.write("crates/flea-gui/src/lib.rs", 'mod probe;\n#[cfg(test)]\nmod support { #[path = "probe.rs"] mod fake; }')
-        self.write("crates/flea-gui/src/probe.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/probe.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.write("crates/flea-gui/src/support/probe.rs", "fn harmless() {}")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_inline_test_path_excludes_the_actual_nested_file(self):
         self.write("crates/flea-gui/src/lib.rs", 'mod support { #[cfg(test)] #[path = "fake.rs"] mod fake; }')
-        self.write("crates/flea-gui/src/support/fake.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/support/fake.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertEqual([], self.check_body("text.shape();"))
 
     def test_non_mod_rs_inline_test_path_uses_its_module_directory(self):
         self.write("crates/flea-gui/src/lib.rs", "mod probe;")
         self.write("crates/flea-gui/src/probe.rs", 'mod support { #[cfg(test)] #[path = "fake.rs"] mod fake; }')
-        self.write("crates/flea-gui/src/probe/support/fake.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/probe/support/fake.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertEqual([], self.check_body("text.shape();"))
 
     def test_external_test_module_propagates_to_its_path_child(self):
         self.write("crates/flea-gui/src/lib.rs", "#[cfg(test)]\nmod gate;")
         self.write("crates/flea-gui/src/gate.rs", '#[path = "helper.rs"]\nmod helper;')
-        self.write("crates/flea-gui/src/helper.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/helper.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertEqual([], self.check_body("text.shape();"))
 
     def test_shared_external_module_keeps_its_path_child_in_product(self):
         self.write("crates/flea-gui/src/lib.rs", "#[cfg(not(test))]\nmod gate;\n#[cfg(test)]\nmod gate;")
         self.write("crates/flea-gui/src/gate.rs", '#[path = "helper.rs"]\nmod helper;')
-        self.write("crates/flea-gui/src/helper.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/helper.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_path_owned_module_uses_containing_directory_for_child(self):

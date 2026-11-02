@@ -171,3 +171,6 @@ fn accepted_settings_and_typeface_reach_the_mounted_producer(cx: &mut TestAppCon
 
 #[path = "rail_shortcut_tests.rs"]
 mod shortcuts;
+
+#[path = "fixcards_flash_tests.rs"]
+mod fixcards_flash;

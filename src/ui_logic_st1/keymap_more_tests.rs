@@ -358,3 +358,25 @@ fn hinted_all_names_every_key_or_none() {
     assert_eq!(hinted_all(&catalog, "%1 and %2 step", "default", &["textSizeUp", "textSizeDown"]), "Ctrl+Shift++ and Ctrl+Shift+- step", "a sentence with several keys names them all");
     assert_eq!(hinted_all(&catalog, "%1 and %2 step", "default", &["textSizeUp", "noSuchAction"]), "", "and is empty when the preset binds none of one of them");
 }
+
+// KeyName.js: the comment's samples, keyOf for one modifier kind, and hinted empty when the preset binds no key.
+#[test]
+fn noscene_key_name_spells_samples_and_names_one_modifier_kind() {
+    use crate::keys::presentation::key_of;
+    assert_eq!(spelled("ctrl-shift-n"), "Ctrl+Shift+N");
+    assert_eq!(spelled("delete"), "Delete");
+    assert_eq!(spelled("ctrl-shift-plus"), "Ctrl+Shift++");
+    assert_eq!(key_of("default", "deletePermanently", "shift"), "Shift+Delete", "the shift row, spelled");
+    assert_eq!(key_of("default", "deletePermanently", "super"), "", "no row of that kind names no key");
+    assert_eq!(key_of("default", "noSuchAction", "none"), "", "an unbound action names no key");
+}
+
+#[test]
+fn noscene_hinted_is_empty_when_the_preset_binds_no_key() {
+    use crate::keys::presentation::{hinted, key_for};
+    let catalog = english();
+    let undo = key_for("default", "undo");
+    assert!(!undo.is_empty() && undo != "undo", "undo is bound in the default preset: {undo}");
+    assert_eq!(hinted(&catalog, "feedback.hint.undo", "default", "undo"), format!("{undo} undoes"), "a bound action fills %1 with its key");
+    assert_eq!(hinted(&catalog, "feedback.hint.undo", "default", "noSuchAction"), "", "and an unbound one leaves no hint");
+}

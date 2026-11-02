@@ -100,9 +100,34 @@ impl Shell {
             .strip_prefix("favourite:")
             .and_then(|s| s.parse::<usize>().ok())
         {
-            let path = pages::at(&self.launch.settings.data, &["places", "favourites"])
+            let row = pages::at(&self.launch.settings.data, &["places", "favourites"])
                 .and_then(Json::as_array)
                 .and_then(|rows| rows.get(index))
+                .cloned();
+            // Places.js openEntry: a bad record says why in the status line, and nothing opens.
+            if let Some(error) = row
+                .as_ref()
+                .and_then(flea::ui_logic_pl4::places::record_error)
+            {
+                let catalog = self.locale.catalog.clone();
+                let label = row
+                    .as_ref()
+                    .and_then(|row| row.get("label"))
+                    .and_then(Json::as_str)
+                    .unwrap_or_default()
+                    .to_owned();
+                let text = catalog.tr_args(
+                    "places.favorite.open_failed",
+                    &[&label, &catalog.tr(error.key())],
+                );
+                self.status_messages(cx, |messages, now| {
+                    messages.say(&text, true, "", flea::ui_logic_fb1::status::Hint::None, now)
+                });
+                cx.notify();
+                return;
+            }
+            let path = row
+                .as_ref()
                 .and_then(|row| row.get("path"))
                 .and_then(Json::as_str)
                 .map(str::to_owned);

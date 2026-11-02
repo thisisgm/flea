@@ -72,6 +72,8 @@ pub struct PaneInput {
     pub(crate) press: Option<pointer::Press>,
     pub(crate) tap: Option<pointer::Tap>,
     pub last_pointer: Option<Point<Pixels>>,
+    /// Where the pointer last moved over this pane's own surface, nothing drawn over it.
+    pub surface_pointer: Option<Point<Pixels>>,
     pub in_lane: bool,
     pub moved_at: Option<std::time::Instant>,
     pub timer: Option<gpui::Task<()>>,
@@ -198,8 +200,8 @@ impl PaneInput {
         }) {
             self.cancel(selected, cursor);
             self.press = None;
+            // The old row is gone, but a still pointer keeps the hover; rehover re-reads the row now under it.
             self.hovered = None;
-            self.pointer_origin = false;
             self.moved_at = None;
             self.halt();
         }
@@ -275,7 +277,35 @@ impl PaneInput {
                 .find(|(_, rect)| rect.contains(&point))
                 .map(|(row, _)| *row);
         }
-        frame.row_at(point).map(|row| self.index(row))
+        frame.row_at(point).and_then(|row| self.drawn_row(row))
+    }
+    /// The listing row drawn at this position; under a filter the frame spans every held row, so a position past the drawn ones is blank ground.
+    pub fn drawn_row(&self, view: usize) -> Option<usize> {
+        match &self.shown {
+            Some(shown) => shown.get(view).copied(),
+            None => Some(view),
+        }
+    }
+    /// Where a still pointer rests, while it owns the hover and no press, band or grab holds it; Columns reads it by track bounds.
+    pub fn resting(&self) -> Option<Point<Pixels>> {
+        (self.pointer_origin && self.press.is_none())
+            .then_some(self.last_pointer)
+            .flatten()
+            .filter(|_| self.band.is_none() && self.grab.is_none())
+    }
+    /// Qt re-hovers what moves under a still pointer, so a wheel scroll or a released drag lights the List row now there.
+    pub fn rehover(&mut self, scroll: f32) {
+        let Some(at) = self
+            .resting()
+            .filter(|&at| self.surface_pointer == Some(at))
+        else {
+            return;
+        };
+        // The painted frame's bounds at this frame's scroll, so the frame being prepared paints the row now there.
+        let Some(frame) = self.frame else {
+            return;
+        };
+        self.hovered = self.hit_in(Frame { scroll, ..frame }, at);
     }
     pub fn keyboard(&mut self) {
         self.pointer_origin = false;

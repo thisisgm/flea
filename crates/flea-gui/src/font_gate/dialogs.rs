@@ -33,8 +33,22 @@ pub(super) fn check() -> Vec<String> {
         );
         assert!(shell.rail.as_ref().unwrap().unlock.is_some());
     });
+    // Complete each dialog before measuring the text it actually paints.
     surfaces::case("properties", &mut failed, |shell, window, cx| {
         assert!(shell.properties_listing(window, cx));
+        let id = shell.menu.sequence;
+        for line in [
+            format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[33188]}}"#),
+            format!(
+                r#"{{"t":"menuaction","id":{id},"op":"properties","ok":true,"path":"/files/file-0.txt","name":"file-0.txt","directory":false,"bytes":12,"mode":"0644"}}"#
+            ),
+        ] {
+            shell.receive(0, crate::backend::Event::Producer(line), window, cx);
+        }
+        // Its reply subscription runs after the shell is constructed.
+        cx.defer_in(window, |shell, _, _| {
+            assert!(shell.properties.as_ref().unwrap().card.ready());
+        });
     });
     surfaces::case("run-file", &mut failed, |shell, _, cx| {
         shell.open_run_card(0, "/files/run.sh".into(), r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/files/run.sh"}"#.into(), false, cx);
@@ -142,9 +156,18 @@ pub(super) fn check() -> Vec<String> {
     surfaces::case("flash", &mut failed, |shell, _, _| {
         shell.operations.archive.flash.open();
     });
-    surfaces::case("open-with", &mut failed, |shell, _, cx| {
+    surfaces::case("open-with", &mut failed, |shell, window, cx| {
         shell.open_open_with(0, "/files/file-0.txt".into(), cx);
-        assert!(shell.open_with.is_some());
+        let id = shell.open_with.as_ref().unwrap().id;
+        for line in [
+            format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[33188]}}"#),
+            format!(
+                r#"{{"t":"menuaction","id":{id},"op":"applications","ok":true,"kind":"Plain text document","mime":"text/plain","applications":[{{"id":"a.desktop","label":"Font gate app","icon":"","default":true}}],"installed":[]}}"#
+            ),
+        ] {
+            shell.receive(0, crate::backend::Event::Producer(line), window, cx);
+        }
+        assert!(shell.open_with.as_ref().unwrap().card.ready());
     });
     surfaces::case("permissions", &mut failed, |shell, _, cx| {
         let model = crate::g2::op3::tests::permissions();

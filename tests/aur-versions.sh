@@ -58,7 +58,9 @@ check "a pkgrel 2 rebuild expects its own pkgrel" "0" "$status"
 check "the rebuild prints one line per package" "3" "$(printf '%s\n' "$out" | grep -c ': ok ')"
 
 tools/flea-aur-versions >/dev/null 2>&1; check "no args exits 2" "2" "$?"
-tools/flea-aur-versions --json tests/aur-versions-pass.json 0.3 >/dev/null 2>&1; check "a short version exits 2" "2" "$?"
+out=$(cd "$pbox" && "$tool" --json "$pbox/pass.json" 0.3 "$psha" 2>&1)
+status=$?
+check "a short version exits 2 with its diagnostic" "2:flea-aur-versions: '0.3' is not X.Y.Z" "$status:$out"
 tools/flea-aur-versions --json tests/aur-versions-pass.json 0.3.7 abc >/dev/null 2>&1; check "a short commit exits 2" "2" "$?"
 tools/flea-aur-versions --json tests/aur-versions-pass.json 0.3.7 abc1234zz >/dev/null 2>&1; check "a non-hex commit tail exits 2" "2" "$?"
 out=$(cd "$pbox" && "$tool" --json "$repo/tests/does-not-exist.json" 0.3.7 "$psha" 2>&1)

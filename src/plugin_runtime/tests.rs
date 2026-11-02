@@ -94,13 +94,32 @@ fn plugin_runtime_hang_crash_and_malformed_are_bounded() {
 }
 
 #[test]
-fn plugin_runtime_budget_and_declared_kinds_fail_closed() {
-    let dir = TestDir::new("plugin-budget");
-    let runtime = Runtime::new(config(&dir, "#!/bin/sh\nexit 4\n"));
+fn plugin_runtime_starts_again_on_each_request_after_a_failure() {
+    // EY-553: the owner blocks a failed plugin itself, so the session holds no budget that refuses a fourth start.
+    let dir = TestDir::new("plugin-restart");
+    let script = format!(
+        "#!/bin/sh\necho start >> starts\n[ \"$(wc -l < starts)\" -gt 3 ] || exit 4\n{}",
+        ECHO.trim_start_matches("#!/bin/sh\n")
+    );
+    let runtime = Runtime::new(config(&dir, &script));
     for _ in 0..3 {
         assert!(runtime.ensure_ready().is_err());
+        assert!(runtime.failure().is_some());
     }
-    assert!(runtime.ensure_ready().unwrap_err().contains("budget"));
+    runtime.ensure_ready().unwrap();
+    assert!(runtime.failure().is_none());
+    assert_eq!(
+        std::fs::read_to_string(dir.join("starts"))
+            .unwrap()
+            .lines()
+            .count(),
+        4
+    );
+}
+
+#[test]
+fn plugin_runtime_declared_kinds_fail_closed() {
+    let dir = TestDir::new("plugin-kinds");
     let config = config(&dir, ECHO);
     assert!(protocol::operation(&config.manifest, &json(r#"{"op":"targets"}"#)).is_err());
     assert!(protocol::operation(
@@ -154,7 +173,7 @@ fn plugin_runtime_progress_arrives_before_completion_and_shutdown_cancels_a_hang
 }
 
 #[test]
-fn plugin_runtime_invalid_requests_do_not_kill_the_child_or_charge_restart_budget() {
+fn plugin_runtime_invalid_requests_do_not_kill_the_child() {
     let dir = TestDir::new("plugin-request-refusals");
     let script = format!(
         "#!/bin/sh\necho $$ >> '{}/starts'\n{}",

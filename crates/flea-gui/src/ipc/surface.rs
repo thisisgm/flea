@@ -36,6 +36,17 @@ impl Surface<'_> {
             Ok(function) => function,
             Err(reply) => return Answer { reply, quit: false },
         };
+        // A bool parameter accepts 1 and 0 as Quickshell does; readers compare against "true", so spell them out once here.
+        let arguments: Vec<String> = function
+            .parameters
+            .iter()
+            .zip(arguments)
+            .map(|((_, kind), value)| match (*kind, value.as_str()) {
+                ("bool", "1") => "true".into(),
+                ("bool", "0") => "false".into(),
+                _ => value,
+            })
+            .collect();
         let adapted = (target == "flea")
             .then(|| {
                 adapters
@@ -126,6 +137,41 @@ mod tests {
             answer.reply,
             Reply::error(3, "FLEA_IPC_NOT_PORTED fleapicker.path")
         );
+    }
+
+    struct Echo;
+
+    impl Adapter for Echo {
+        fn call(&self, _: &str, arguments: &[String]) -> Option<Reply> {
+            Some(Reply::value(arguments.join(",")))
+        }
+    }
+
+    // A bool parameter's 1 and 0 reach every adapter as true and false; an int parameter's 1 stays 1.
+    #[test]
+    fn fixreaders_bool_arguments_accept_one_and_zero() {
+        let surface = Surface {
+            path: "/",
+            total: 0,
+            cursor: 0,
+            selected: &[],
+        };
+        let call = |function: &str, argument: &str| {
+            surface
+                .dispatch_to(
+                    Request::Call {
+                        target: "flea".into(),
+                        function: function.into(),
+                        arguments: vec![argument.into()],
+                    },
+                    &[&Echo],
+                )
+                .reply
+        };
+        assert_eq!(call("pdfState", "1"), Reply::value("true"));
+        assert_eq!(call("pdfState", "0"), Reply::value("false"));
+        assert_eq!(call("pdfState", "true"), Reply::value("true"));
+        assert_eq!(call("railRowCentre", "1"), Reply::value("1"));
     }
 
     // Review g2-pk1-r2-2: a main window refuses the chooser's quit, so `flea ipc call fleapicker quit` never closes it.

@@ -2,7 +2,7 @@ use super::{
     parse::{self, Hit, Record},
     Ask, Outcome, Snapshot,
 };
-use crate::backend::{jail, sandbox};
+use crate::backend::{jail, sandbox, sort::name_order};
 use flea::ui_logic_sr1::ContentsMatch;
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
@@ -191,7 +191,7 @@ fn execute(
     let Some((mut hits, scanned, partial)) = result? else {
         return Ok(None);
     };
-    hits.sort_by(|a, b| a.path.cmp(&b.path));
+    hits.sort_by(|a, b| ranked(&a.path, &b.path));
     let unsafe_names: HashSet<String> = hits
         .iter()
         .filter(|hit| std::str::from_utf8(&hit.path).is_err())
@@ -222,6 +222,20 @@ fn execute(
         ms: started.elapsed().as_secs_f64() * 1000.,
         partial,
     }))
+}
+
+// CHANGES.md search-ranked: nearest the searched folder first, then by the file's own name, then by its folders.
+pub(super) fn ranked(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
+    fn depth(path: &[u8]) -> usize {
+        path.iter().filter(|&&byte| byte == b'/').count()
+    }
+    fn name(path: &[u8]) -> &[u8] {
+        path.rsplit(|&byte| byte == b'/').next().unwrap_or(path)
+    }
+    depth(a)
+        .cmp(&depth(b))
+        .then_with(|| name_order(name(a), name(b)))
+        .then_with(|| name_order(a, b))
 }
 
 fn collect(

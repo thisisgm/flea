@@ -58,6 +58,8 @@ pub(crate) mod readers;
 pub(crate) mod render;
 #[path = "selection_preview_text.rs"]
 mod text;
+#[path = "selection_preview_thumbnail_observer.rs"]
+pub(crate) mod thumbnail_observer;
 #[path = "selection_preview_wire.rs"]
 pub(crate) mod wire;
 
@@ -248,6 +250,7 @@ pub(crate) struct Frame {
     /// The meta reply as Facts.js reads it.
     pub facts: Option<Meta>,
     pub thumb_answered: bool,
+    pub thumb_observation: Option<thumbnail_observer::Observation>,
     pub source: Option<gpui::Resource>,
     pub image: Option<Arc<RenderImage>>,
     /// An animated GIF's own frames, loaded from the original over its still frame.
@@ -378,6 +381,7 @@ pub struct SelectionPreview {
     pub(crate) automatic: bool,
     pub(crate) media_backend: Option<Rc<dyn crate::g2::pv3::engine::Backend>>,
     pub(crate) caches: crate::g2::pv3::surface::Caches,
+    pub(crate) loading_mark: Rc<crate::feedback::spinner::Crawl>,
     pub(crate) epoch: Instant,
     pub(crate) timer: Option<(u64, Task<()>)>,
     pub(crate) gif: Option<picture::GifClock>,

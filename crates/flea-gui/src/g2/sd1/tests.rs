@@ -8,6 +8,7 @@ use flea::ui_logic_sd1::providers::{
 use std::cell::RefCell;
 use std::path::PathBuf;
 mod browser;
+mod fixmenus;
 mod link;
 mod localsend;
 mod plugins;
@@ -41,11 +42,13 @@ fn english() -> I18n {
 fn facts() -> Facts {
     Facts {
         tailscale_command: "/usr/bin/tailscale".into(),
+        tailscale_unusable: false,
         send_command: "/usr/bin/omarchy-tailscale-send".into(),
         localsend_command: "/usr/bin/localsend-cli".into(),
         localsend_reason: String::new(),
         dropbox_command: "/usr/bin/dropbox-cli".into(),
         dropbox_ready: true,
+        ..Facts::default()
     }
 }
 

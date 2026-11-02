@@ -53,7 +53,7 @@ fn listed(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (String, Vec<Str
                     rows.iter()
                         .filter_map(|row| match row {
                             AppRow::App { label, .. } => Some(label.clone()),
-                            AppRow::Eyebrow { .. } => None,
+                            AppRow::Eyebrow { .. } | AppRow::Empty { .. } => None,
                         })
                         .collect(),
                 ),

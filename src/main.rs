@@ -30,6 +30,7 @@ mod open;
 mod paths;
 mod prefetch;
 mod procsignal;
+#[cfg(test)]
 mod qsregistry;
 mod tearoff;
 mod runfile;
@@ -67,7 +68,6 @@ mod cachewrite;
 mod update;
 mod userfile;
 mod usage;
-mod vkprobecache;
 mod vulkan;
 
 pub(crate) use usage::usage;
@@ -316,23 +316,15 @@ fn main() {
         exit(tui::run(open_path.as_deref(), select_path.as_deref(), &tui_options));
     }
 
+    if gui::reject_legacy_frontend() {
+        exit(2);
+    }
     if !paths::has_display() {
         eprintln!("flea: there is no graphical session to open a window in");
         exit(2);
     }
-    if gui::use_gpui() {
-        exit(gui::exec_gpui(open_path.as_deref(), select_path.as_deref()));
-    }
-    match paths::ui_dir() {
-        Some(ui) => {
-            gui::settle_state();
-            exit(gui::exec_qs(&ui, open_path.as_deref(), select_path.as_deref()))
-        }
-        None => {
-            eprintln!("{}", paths::missing_ui_message());
-            exit(2);
-        }
-    }
+
+    exit(gui::exec_gpui(open_path.as_deref(), select_path.as_deref()));
 }
 
 #[cfg(test)]

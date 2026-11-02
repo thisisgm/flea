@@ -9,6 +9,12 @@ use flea::{
 use gpui::{AnyView, Entity, TestAppContext, VisualTestContext};
 
 fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    cx.update(|cx| {
+        cx.set_global(crate::g2::pl1::source::fixture::Services {
+            runner: crate::window::network::default_runner(),
+            hostname: "testhost".into(),
+        })
+    });
     let (backend, receiver) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
@@ -96,7 +102,16 @@ fn reads(
     rows: Vec<Row1>,
     cx: &mut VisualTestContext,
 ) {
-    shell.update(cx, |shell, _| {
+    shell.update(cx, |shell, cx| {
+        shell
+            .rail
+            .as_ref()
+            .unwrap()
+            .devices
+            .update(cx, |source, cx| {
+                source.fixture_mount_listing().answered = listed;
+                cx.notify();
+            });
         let network = shell
             .rail
             .as_mut()

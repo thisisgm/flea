@@ -117,7 +117,9 @@ impl SelectionPreview {
 
     /// The state Facts.js draws: Error only for PreviewColumn.qml's failure; a picture or model that failed keeps its kind.
     pub(crate) fn state(&self, frame: &Frame, cx: &gpui::App) -> State {
-        if self.failure(frame, cx).is_some() {
+        if self.loading_frame(frame) {
+            State::Loading
+        } else if self.failure(frame, cx).is_some() {
             State::Error
         } else {
             frame.kind.state()

@@ -115,6 +115,115 @@ fn pvcode_quick_look_wheel_reveals_then_retires_the_scroll_thumb(cx: &mut TestAp
     );
 }
 
+// EY-428: at a Quick Look text's end the last line keeps the top pad below it, and the thumb ends where the lines do.
+#[gpui::test]
+fn pvcode_quick_look_end_keeps_the_pad_under_the_last_line(cx: &mut TestAppContext) {
+    use super::preview_tests::{code_reply, opened, sent, token};
+    let (shell, cx, mut requests) = opened(cx);
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![file("long.log", "text-plain", "Log", 0o100644)],
+        1,
+    );
+    super::test_shell::set_cursor(&shell, cx, 0);
+    cx.simulate_keystrokes("space");
+    super::preview_tests::draw(cx);
+    let asks = sent(&mut requests, "code");
+    let text: Vec<String> = (0..120).map(|n| format!("line {n}")).collect();
+    let lines: Vec<&str> = text.iter().map(String::as_str).collect();
+    super::preview_tests::answer(&shell, cx, code_reply(token(&asks[0]), &lines, 120));
+    super::preview_tests::draw(cx);
+    let Some(Body::Doc(doc)) = super::preview_tests::body(&shell, cx) else {
+        panic!("Quick Look draws the text")
+    };
+    let View::Code(code) = doc.view else {
+        panic!("Quick Look draws the text")
+    };
+    let card = cx.debug_bounds("pv1-doc").unwrap();
+    for _ in 0..60 {
+        cx.simulate_event(ScrollWheelEvent {
+            position: card.center(),
+            delta: ScrollDelta::Lines(point(0., -3.)),
+            ..Default::default()
+        });
+    }
+    super::preview_tests::draw(cx);
+    let (pad, row) = cx.read(|cx| (code.read(cx).metrics.top, code.read(cx).metrics.row));
+    let last = cx.update(|window, cx| {
+        code.update(cx, |code, cx| {
+            let bounds = Bounds::new(point(px(0.), px(0.)), card.size);
+            let frame = code.layout(bounds, window, cx);
+            frame.rows.last().map(|(y, _)| *y).unwrap()
+        })
+    });
+    let foot = f32::from(card.size.height) - pad;
+    assert!(
+        (pad + last + row - foot).abs() < 0.5,
+        "the last line ends one pad above the card foot: {} vs {foot}",
+        pad + last + row
+    );
+    let knob = cx.debug_bounds("pv1-scroll-knob").unwrap();
+    let gap = f32::from(card.bottom() - knob.bottom()) - pad;
+    assert!(
+        (0. ..=3.).contains(&gap),
+        "the thumb ends with the lines, {gap} px short"
+    );
+}
+
+// EY-170: CodeLines takes its pitch from the actual body font, so wrapping cannot spend fewer lines per wheel notch.
+#[gpui::test]
+fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &mut TestAppContext) {
+    use super::preview_tests::{code_reply, opened, sent, token};
+    let (shell, cx, mut requests) = opened(cx);
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![file("long.rs", "text-x-rust", "Rust source code", 0o100644)],
+        1,
+    );
+    super::test_shell::set_cursor(&shell, cx, 0);
+    cx.simulate_keystrokes("space");
+    super::preview_tests::draw(cx);
+    let asks = sent(&mut requests, "code");
+    let line = "let measured_value = values.iter().map(|value| value + 1).collect(); ".repeat(40);
+    super::preview_tests::answer(&shell, cx, code_reply(token(&asks[0]), &[&line], 1));
+    for wrap in [false, true] {
+        if wrap {
+            cx.simulate_keystrokes("w");
+        }
+        super::preview_tests::draw(cx);
+        let Some(Body::Doc(doc)) = super::preview_tests::body(&shell, cx) else {
+            panic!("Quick Look draws code")
+        };
+        let View::Code(code) = doc.view else {
+            panic!("Quick Look draws code")
+        };
+        cx.update(|window, cx| {
+            let code = code.read(cx);
+            assert_eq!(code.wrap, wrap, "w changes the Quick Look wrapping mode");
+            if wrap {
+                assert!(code.rows_of(0) > 1, "the long source line visibly wraps");
+            } else {
+                assert_eq!(code.rows_of(0), 1, "unwrapped source stays on one row");
+            }
+            let run = crate::g2::pv2::code::shape::glyphs(
+                window,
+                "0",
+                &code.typeface.font,
+                code.typeface.body,
+            );
+            let pitch = f32::from(run.line().ascent + run.line().descent).ceil();
+            assert_eq!(
+                code.metrics.row, pitch,
+                "the body font determines the pitch, wrap={wrap}"
+            );
+        });
+    }
+}
+
 #[gpui::test]
 fn pvcode_columns_end_on_a_whole_line_at_rest_and_after_paging(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "/files");

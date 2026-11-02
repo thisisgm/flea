@@ -12,6 +12,9 @@ use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+#[path = "searchrowstamp.rs"]
+mod stamp;
+
 pub(crate) const ROW_CAP: usize = 350;
 const WATCH_CAP: usize = 350;
 // A window moving more rows than this reads cold, since arming costs a watch call per path; a steady window arms and reuses its rows.
@@ -49,8 +52,16 @@ pub(super) fn word(bytes: &[u8], at: usize, field: usize) -> [u8; 4] {
 
 struct Entry {
     meta: Meta,
+    stamp: stamp::Stamp,
     directory: bool,
     rendered: Option<(String, String)>,
+}
+
+impl Entry {
+    fn bytes(&self, path: &Path) -> usize {
+        path.as_os_str().len() + self.meta.target.len() + std::mem::size_of::<Self>()
+            + self.rendered.as_ref().map_or(0, |(row, kind)| row.len() + kind.len())
+    }
 }
 
 #[derive(Default)]
@@ -66,6 +77,8 @@ pub(crate) struct Cache {
     requested: HashSet<PathBuf>,
     // A hash of each name the last window asked for, armed or cold.
     last: HashSet<u64>,
+    // A cold response reads current facts without changing the armed entries underneath it.
+    reuse_rendered: bool,
     bytes: usize,
     #[cfg(test)]
     pub(crate) misses: usize,
@@ -77,6 +90,7 @@ pub(crate) struct Cache {
 
 impl Cache {
     pub(crate) fn clear(&mut self) {
+        self.reuse_rendered = false;
         if let Some(fd) = self.fd.as_ref() {
             for (_, wd) in std::mem::take(&mut self.watches) {
                 super::searchrowinodes::remove_watch(fd.as_raw_fd(), wd, &mut self.refs, &mut self.retired, #[cfg(test)] &self.counts);
@@ -148,10 +162,8 @@ impl Cache {
     fn recount(&mut self) {
         let dependencies = self.requested.iter().chain(self.watches.keys())
             .map(|path| path.as_os_str().len() + std::mem::size_of::<PathBuf>() + PATH_OVERHEAD_BYTES).sum::<usize>();
-        self.bytes = dependencies + self.inodes.bytes() + self.entries.iter().map(|(path, entry)| {
-            path.as_os_str().len() + entry.meta.target.len() + std::mem::size_of::<Entry>()
-                + entry.rendered.as_ref().map_or(0, |(row, kind)| row.len() + kind.len())
-        }).sum::<usize>();
+        self.bytes = dependencies + self.inodes.bytes() + self.entries.iter()
+            .map(|(path, entry)| entry.bytes(path)).sum::<usize>();
     }
 
     // Ancestor and inode coverage are bounded independently to 350 paths each and armed before any miss is read.
@@ -233,6 +245,7 @@ impl Cache {
 
     pub(crate) fn window(&mut self, base: &Path, listing: &Listing, start: usize, count: usize, body: &str) -> (Vec<Meta>, f64) {
         let begun = Instant::now();
+        self.reuse_rendered = false;
         let start = start.min(listing.len());
         if count == 0 || start == listing.len() { self.clear(); return (Vec::new(), 0.0); }
         let end = start.saturating_add(count).min(listing.len());
@@ -242,14 +255,19 @@ impl Cache {
             return (super::meta::stat_range(base, listing, start, end - start).0, begun.elapsed().as_secs_f64() * 1000.0);
         }
         self.begin(base, listing, start, count, body);
+        self.reuse_rendered = true;
         let mut metas = Vec::with_capacity(end - start);
         let mut devices = HashMap::new();
         for row in start..end {
             let path = base.join(listing.name(row));
             let directory = listing.is_dir(row);
-            if let Some(entry) = self.entries.get(&path).filter(|entry| entry.directory == directory) {
+            let stamp = self.requested.contains(&path).then(|| stamp::read(&path)).flatten();
+            if let Some(entry) = self.entries.get(&path).filter(|entry| entry.directory == directory && Some(entry.stamp) == stamp) {
                 metas.push(entry.meta.clone());
                 continue;
+            }
+            if let Some(old) = self.entries.remove(&path) {
+                self.bytes = self.bytes.saturating_sub(old.bytes(&path));
             }
             #[cfg(test)]
             { self.misses += 1; self.counts.misses.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
@@ -259,24 +277,26 @@ impl Cache {
                 .is_some_and(|kind| super::netfs::can_wedge(&kind)));
             let bytes = path.as_os_str().len() + meta.target.len() + std::mem::size_of::<Entry>();
             // Symlink targets and vanished rows have dependencies outside the directory watch, so each is a miss.
-            if self.fd.is_some() && self.inodes.covered(&path) && self.requested.contains(&path) && meta.mode != 0 && meta.mode & S_IFMT != S_IFLNK
-                && !device_remote && self.bytes + bytes <= BYTE_CAP {
+            if let Some(stamp) = stamp.filter(|_| self.fd.is_some() && self.inodes.covered(&path) && self.requested.contains(&path) && meta.mode != 0 && meta.mode & S_IFMT != S_IFLNK
+                && !device_remote && self.bytes + bytes <= BYTE_CAP) {
                 self.bytes += bytes;
-                self.entries.insert(path, Entry { meta: meta.clone(), directory, rendered: None });
+                self.entries.insert(path, Entry { meta: meta.clone(), stamp, directory, rendered: None });
             }
             metas.push(meta);
         }
+        self.recount();
         (metas, begun.elapsed().as_secs_f64() * 1000.0)
     }
 
     pub(crate) fn rendered(&self, path: &Path) -> Option<&(String, String)> {
+        if !self.reuse_rendered { return None; }
         self.entries.get(path)?.rendered.as_ref()
     }
 
     pub(crate) fn remember(&mut self, path: &Path, row: &str, kind: &str) {
         #[cfg(test)]
         { self.renders += 1; }
-        if self.bytes + row.len() + kind.len() > BYTE_CAP { return; }
+        if !self.reuse_rendered || self.bytes + row.len() + kind.len() > BYTE_CAP { return; }
         if let Some(entry) = self.entries.get_mut(path) {
             if entry.rendered.is_none() {
                 entry.rendered = Some((row.to_string(), kind.to_string()));
@@ -312,3 +332,7 @@ mod probe_tests;
 #[cfg(test)]
 #[path = "searchrowcache_events_tests.rs"]
 mod events_tests;
+
+#[cfg(test)]
+#[path = "searchrowcache_gap64_tests.rs"]
+mod gap64_tests;

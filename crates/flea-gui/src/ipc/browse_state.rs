@@ -28,6 +28,8 @@ impl Adapter for BrowseState<'_> {
                         format!("chrome:{}", glyph.unwrap_or_default())
                     }
                     "strip" => format!("strip:{}", self.shell.strip.bar.focused_index),
+                    // No pane stop: FocusAdapter answers from the preview, Trash and Settings owners.
+                    "" => return None,
                     view => view.into(),
                 };
                 Some(Reply::value(stop))

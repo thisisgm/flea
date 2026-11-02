@@ -110,12 +110,7 @@ impl Picker {
         let read = cx.background_spawn(async move {
             let marks = std::fs::read_to_string(bookmarks).unwrap_or_default();
             let info = std::fs::read_to_string(mountinfo).unwrap_or_default();
-            let rows = flea::ui_logic_pl2::rail::rebuild(
-                &gio,
-                &flea::ui_logic_pl2::mounts::non_file_bookmarks(&marks),
-                &info,
-            );
-            crate::window::network::section(&rows, true)
+            share_rows(&gio, &marks, &info)
         });
         network.read = Some(cx.spawn(async move |this, cx| {
             let rows = read.await;
@@ -181,7 +176,6 @@ impl Picker {
                 if let Some(network) = self.rail.network.as_mut() {
                     network.waiting = None;
                 }
-                self.refresh_mounts(cx);
                 if matches!(effect, Effect::OpenFile { .. }) {
                     self.path_out(
                         crate::path::view::Out::Open {
@@ -191,7 +185,7 @@ impl Picker {
                         cx,
                     );
                 } else {
-                    self.open_folder(path, cx);
+                    self.rail_open(path, cx);
                 }
             }
             Effect::RefreshMounts => self.refresh_mounts(cx),
@@ -325,4 +319,15 @@ impl Picker {
         });
         true
     }
+}
+
+// PickerPlaces lists shares, never the gvfs FUSE root every share sits under (EY-506).
+pub(super) fn share_rows(gio: &str, marks: &str, mountinfo: &str) -> Vec<RailSection> {
+    let mut rows = flea::ui_logic_pl2::rail::rebuild(
+        gio,
+        &flea::ui_logic_pl2::mounts::non_file_bookmarks(marks),
+        mountinfo,
+    );
+    rows.retain(|row| row.fstype != "fuse.gvfsd-fuse");
+    crate::window::network::section(&rows, true)
 }

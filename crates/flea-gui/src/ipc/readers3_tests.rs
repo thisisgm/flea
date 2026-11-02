@@ -106,7 +106,7 @@ fn ipc_readers3_menu_dialog_state_is_closed_without_a_card(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn ipc_readers3_open_with_card_reports_its_model_without_geometry(cx: &mut TestAppContext) {
+fn ipc_readers3_open_with_card_reports_its_model_and_its_painted_parts(cx: &mut TestAppContext) {
     let handle = open(cx);
     value(cx, handle, "openWithState", &[], "{\"opened\":false}");
     update(cx, handle, |shell, _, _| {
@@ -115,16 +115,41 @@ fn ipc_readers3_open_with_card_reports_its_model_without_geometry(cx: &mut TestA
             side: 0,
             id: 1,
             card,
+            frame: Default::default(),
+            initial: Default::default(),
         });
     });
     // The design CI tabs through these controls; every field the reader does not send is named, so a probe that reads one fails on its name.
-    value(
-        cx,
-        handle,
-        "openWithState",
-        &[],
-        r#"{"opened":true,"busy":true,"committing":false,"kind":"","mime":"","name":"photo.png","always":false,"error":"","search":"","cursor":0,"rows":[],"controls":[{"name":"Field","focused":true,"enabled":true},{"name":"Applications","focused":false,"enabled":true},{"name":"Always","focused":false,"enabled":true},{"name":"Cancel","focused":false,"enabled":true},{"name":"Open","focused":false,"enabled":false}],"unavailable":"rect, rowHeight, eyebrowHeight, titleRuleRect, searchRect, gap, searchTrail, listRect, rowRect, controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect"}"#,
+    let state = json(cx, handle, "openWithState");
+    let text = |key| state.get(key).and_then(Json::as_str).map(str::to_owned);
+    let model = r#"{"opened":true,"busy":true,"committing":false,"kind":"","mime":"","name":"photo.png","always":false,"error":"","search":"","cursor":0,"rows":[],"controls":[{"name":"Field","focused":true,"enabled":true},{"name":"Applications","focused":false,"enabled":true},{"name":"Always","focused":false,"enabled":true},{"name":"Cancel","focused":false,"enabled":true},{"name":"Open","focused":false,"enabled":false}],"#;
+    assert!(read(cx, handle, "openWithState", &[])
+        .stdout
+        .starts_with(model));
+    assert_eq!(
+        text("unavailable").as_deref(),
+        Some("controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect")
     );
+    // No frame has painted the card in this test, so every part reads empty rather than invented.
+    for key in [
+        "rect",
+        "titleRuleRect",
+        "searchRect",
+        "listRect",
+        "rowRect",
+        "noMatchRect",
+    ] {
+        assert_eq!(text(key).as_deref(), Some(""), "{key}");
+    }
+    for key in ["rowHeight", "eyebrowHeight", "gap", "searchTrail"] {
+        assert!(
+            state
+                .get(key)
+                .and_then(Json::as_f64)
+                .is_some_and(|token| token > 0.),
+            "{key}"
+        );
+    }
     refused(
         cx,
         handle,
@@ -144,16 +169,16 @@ fn uish_open_with_card_reports_v0312_model_facts(cx: &mut TestAppContext) {
             side: 0,
             id: 1,
             card,
+            frame: Default::default(),
+            initial: Default::default(),
         });
     });
-    // ui/Ipc.qml openWithState's model fields, in its names and row shapes.
-    value(
-        cx,
-        handle,
-        "openWithState",
-        &[],
-        r#"{"opened":true,"busy":false,"committing":false,"kind":"Plain text document","mime":"text/plain","name":"notes.txt","always":false,"error":"","search":"","cursor":0,"rows":[{"eyebrow":"Registered for Plain text document","rule":false},{"id":"nvim.desktop","label":"Neovim","icon":"nvim","isDefault":true},{"eyebrow":"All applications","rule":true},{"id":"xfce4-about.desktop","label":"About Xfce","icon":"","isDefault":false}],"controls":[{"name":"Field","focused":true,"enabled":true},{"name":"Applications","focused":false,"enabled":true},{"name":"Always","focused":false,"enabled":true},{"name":"Cancel","focused":false,"enabled":true},{"name":"Open","focused":false,"enabled":true}],"unavailable":"rect, rowHeight, eyebrowHeight, titleRuleRect, searchRect, gap, searchTrail, listRect, rowRect, controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect"}"#,
-    );
+    // ui/Ipc.qml openWithState's model fields, in its names and row shapes, before the painted parts.
+    let model = r#"{"opened":true,"busy":false,"committing":false,"kind":"Plain text document","mime":"text/plain","name":"notes.txt","always":false,"error":"","search":"","cursor":0,"rows":[{"eyebrow":"Registered for Plain text document","rule":false},{"id":"nvim.desktop","label":"Neovim","icon":"nvim","isDefault":true},{"eyebrow":"All applications","rule":true},{"id":"xfce4-about.desktop","label":"About Xfce","icon":"","isDefault":false}],"controls":[{"name":"Field","focused":true,"enabled":true},{"name":"Applications","focused":false,"enabled":true},{"name":"Always","focused":false,"enabled":true},{"name":"Cancel","focused":false,"enabled":true},{"name":"Open","focused":false,"enabled":true}],"#;
+    let state = read(cx, handle, "openWithState", &[]).stdout;
+    let state = state.trim_end();
+    assert!(state.starts_with(model), "{state}");
+    assert!(state.ends_with(r#","unavailable":"controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect"}"#), "{state}");
 }
 
 #[gpui::test]

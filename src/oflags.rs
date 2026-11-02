@@ -17,8 +17,35 @@ pub const O_DIRECTORY: i32 = 0o200000;
 #[cfg(target_arch = "aarch64")]
 pub const O_DIRECTORY: i32 = 0o40000;
 
+// O_DIRECT swaps bits with O_DIRECTORY between the two supported Linux architectures.
+#[cfg(target_arch = "x86_64")]
+pub const O_DIRECT: i32 = 0o40000;
+#[cfg(target_arch = "aarch64")]
+pub const O_DIRECT: i32 = 0o200000;
+
 // open(2) O_NONBLOCK, 0o4000 on both Linux architectures flea is built for; a FIFO's open returns for the fstat to refuse it.
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 pub const O_NONBLOCK: i32 = 0o4000;
 #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
 compile_error!("O_NONBLOCK needs a verified value for this architecture");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Evaluated even by a cross-target cargo check, which cannot run target tests.
+    const _: () = {
+        assert!(O_NOFOLLOW == libc::O_NOFOLLOW);
+        assert!(O_DIRECTORY == libc::O_DIRECTORY);
+        assert!(O_DIRECT == libc::O_DIRECT);
+        assert!(O_NONBLOCK == libc::O_NONBLOCK);
+    };
+
+    #[test]
+    fn arm_oflags_shared_constants_match_the_build_target_libc() {
+        assert_eq!(O_NOFOLLOW, libc::O_NOFOLLOW);
+        assert_eq!(O_DIRECTORY, libc::O_DIRECTORY);
+        assert_eq!(O_DIRECT, libc::O_DIRECT);
+        assert_eq!(O_NONBLOCK, libc::O_NONBLOCK);
+    }
+}

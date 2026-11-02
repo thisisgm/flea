@@ -8,6 +8,9 @@ use crate::row::{format, is_symlink};
 
 /// ColumnFit.cellText(): the string a row draws in one column, measured by an autofit.
 pub fn cell_text(column: Column, held: &Held, index: usize, view: &ListView) -> Option<String> {
+    if column == Column::Mode && view.place_recent.is_some() {
+        return None;
+    }
     let facts = held.row(index)?;
     // Before the catalog words a date and a link's size word print nothing, so a fit there has nothing to measure.
     let worded = column == Column::Date || (column == Column::Size && is_symlink(facts.mode));
@@ -24,7 +27,10 @@ pub fn cell_text(column: Column, held: &Held, index: usize, view: &ListView) -> 
             };
             format::size_text(facts, walked, &view.words)
         }
-        Column::Date => format::date_text(facts.mtime, &view.words),
+        Column::Date => view.date_stamp(facts).map_or_else(
+            || "--".into(),
+            |stamp| format::date_text(stamp, &view.words),
+        ),
         // ColumnFit.cellText: the Kind name the row paints, so an autofit measures it.
         Column::Kind => facts.kind.clone(),
     })

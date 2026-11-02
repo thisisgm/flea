@@ -2,10 +2,10 @@
 use super::{browse::Browse, Picker};
 use crate::g2::fb1::hero::EmptyHero;
 use crate::g2::pk2::view::ListingView;
-use gpui::{div, prelude::*, px, AnyView, Context, Entity, IntoElement, Render, Window};
+use gpui::{div, prelude::*, AnyView, Context, Entity, IntoElement, Render, Window};
 
 // The path strip's band above the listing, 27 px under the 34 px title on the picker-path board.
-const PATH_HEIGHT: f32 = 27.;
+pub(super) const PATH_HEIGHT: f32 = 27.;
 
 // The body slot: the path strip over the places rail and the listing, as picker-open draws them.
 struct Body {
@@ -51,7 +51,7 @@ impl Render for Body {
             .child(
                 div()
                     .flex_none()
-                    .h(px(PATH_HEIGHT))
+                    .h(super::size::Size::of(window, cx).px(PATH_HEIGHT))
                     .child(self.path.clone()),
             )
             .child(

@@ -171,6 +171,31 @@ impl Shell {
         if let Some(host) = self.panes[side].as_mut() {
             host.nav.gate.clip_pending = pending;
         }
+        if let Some(menu_side) = self.menu.captured.as_ref().map(|capture| capture.side) {
+            let (available, failed, _) = self.clipboard_menu_facts(menu_side);
+            if (
+                self.menu.context.clipboard_available,
+                self.menu.context.clipboard_watch_failed,
+            ) != (available, failed)
+            {
+                self.menu.context.clipboard_available = available;
+                self.menu.context.clipboard_watch_failed = failed;
+                if let Some(host) = self.panes[menu_side]
+                    .as_ref()
+                    .filter(|_| self.menu_opened())
+                {
+                    let entries = self.menu_entries();
+                    let list = host.list.borrow();
+                    self.menu.menu.borrow_mut().refresh(
+                        entries,
+                        &self.menu_env(&list.typeface),
+                        window,
+                    );
+                } else {
+                    self.refresh_menu(window, cx);
+                }
+            }
+        }
         for line in said {
             let hint = if line.paste_hint {
                 Hint::Paste
@@ -188,6 +213,20 @@ impl Shell {
             cx.write_to_clipboard(ClipboardItem::new_string(text));
         }
         for (ask, captured) in asks.0 {
+            // A running transfer leaves navigation and other operation producers live, but a paste refuses until it ends.
+            if self
+                .operation_view(side)
+                .is_some_and(|view| view.read(cx).model.wire.transfer.running)
+            {
+                let sentence = self.locale.catalog.tr("jobs.error.busy");
+                if let Some(host) = self.panes[side].as_mut() {
+                    host.status = sentence.clone().into();
+                }
+                self.status_messages(cx, |messages, now| {
+                    messages.say(&sentence, true, "", Hint::None, now)
+                });
+                continue;
+            }
             let Some((request, cut)) = request(&ask) else {
                 self.clipboard_image(side, &ask, cx);
                 continue;

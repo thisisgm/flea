@@ -13,6 +13,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
+#[cfg(test)]
+use super::fact_tests;
+
 pub struct PluginsPane {
     pub(super) editor: Editor,
     pub(super) input_focus: FocusHandle,
@@ -248,10 +251,13 @@ impl PluginsPane {
     }
 
     fn line(&self, index: usize) -> Stateful<Div> {
-        self.probe
+        let row = self
+            .probe
             .attach(div(), format!("row:{}", self.page.rows()[index].id()))
-            .relative()
-            .id(("st2-row", index))
+            .relative();
+        #[cfg(test)]
+        let row = fact_tests::measure(row, index, self.probe.clone());
+        row.id(("st2-row", index))
             .h(px(m::ROW))
             .flex()
             .items_center()
@@ -446,8 +452,17 @@ impl PluginsPane {
             Row::Fact { text, value } => self
                 .line(index)
                 .child(self.slot("", m::ROW_GLYPH, ""))
-                .child(Self::label(text, t.muted))
-                .child(row_value(value, t.muted)),
+                .child(
+                    Self::label(text, t.muted).when(!value.is_empty(), |label| label.flex_none()),
+                )
+                .when(!value.is_empty(), |line| {
+                    line.child(
+                        row_value(value, t.muted)
+                            .flex_1()
+                            .min_w_0()
+                            .text_ellipsis_middle(),
+                    )
+                }),
             Row::Action {
                 id,
                 label,

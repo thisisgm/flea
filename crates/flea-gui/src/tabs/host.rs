@@ -43,6 +43,9 @@ pub(crate) struct Host {
     pub geometry: transfer::Geometry,
     pub frames: Rc<RefCell<super::held::StripFrames>>,
     pub clients: super::geometry::Clients,
+    /// Lifts that asked for the window rectangle, and the compositor client lists they asked, for tabTearoffState.
+    pub lifts: usize,
+    pub client_queries: usize,
     pub launch_started: bool,
     pub adopted_view: Option<&'static str>,
 }
@@ -75,6 +78,8 @@ impl Host {
             geometry: Default::default(),
             frames: Default::default(),
             clients: super::geometry::hyprland(),
+            lifts: 0,
+            client_queries: 0,
             launch_started: false,
             adopted_view: None,
         }
@@ -186,6 +191,7 @@ impl Shell {
     }
 
     pub(crate) fn tabs_changed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.reset_tab_overlays(window, cx);
         for side in 0..2 {
             if std::mem::take(&mut self.strip.trash_dropped[side]) {
                 self.drop_trash(side, window, cx);

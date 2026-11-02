@@ -16,9 +16,7 @@ const GAP: f32 = 9.;
 const HEIGHT: f32 = 30.;
 pub(super) const WIDTH: f32 = 300.;
 const INSET: f32 = 9.;
-const TEXT: f32 = 14.;
-pub(super) const LABEL: f32 = 12.;
-// The label's caption line, which the row centres.
+// The label's caption line, which the row centres; the field and label type are the body and caption tokens.
 const LABEL_LINE: f32 = 16.;
 
 // What one key did to the field, for the picker to act on.
@@ -169,6 +167,7 @@ impl Render for Filename {
             .try_global::<crate::list::Typeface>()
             .cloned()
             .unwrap_or_else(crate::list::Typeface::omarchy_default);
+        let size = super::size::Size::of(window, cx);
         let field = self
             .probe
             .attach(div().relative(), "field")
@@ -180,11 +179,11 @@ impl Render for Filename {
             .min_w_0()
             .flex()
             .items_center()
-            .h(px(HEIGHT))
-            .px(px(INSET))
+            .h(size.px(HEIGHT))
+            .px(size.px(INSET))
             .overflow_hidden()
             .whitespace_nowrap()
-            .text_size(px(TEXT))
+            .text_size(px(size.body))
             .text_color(palette.foreground)
             .rounded(px(crate::compositor::corner(cx)))
             .border_1()
@@ -202,7 +201,7 @@ impl Render for Filename {
             .flex()
             .flex_row()
             .items_center()
-            .gap(px(GAP))
+            .gap(size.px(GAP))
             .flex_1()
             .min_w_0()
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
@@ -210,8 +209,8 @@ impl Render for Filename {
             .child(div().flex_none().child(Tracked {
                 text: self.label.clone(),
                 font: face.font,
-                size: px(LABEL),
-                line: px(LABEL_LINE),
+                size: px(size.caption),
+                line: size.px(LABEL_LINE),
                 tracking: px(self.tracking),
                 color: palette.muted,
             }))

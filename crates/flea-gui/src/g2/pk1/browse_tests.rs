@@ -254,6 +254,43 @@ fn a_typed_folder_lists_and_a_missing_path_says_so(cx: &mut TestAppContext) {
     assert_eq!(f.read(|picker| picker.listing.location.clone()), "/d/sub");
 }
 
+// EY-498: PathBar.js hands a typed smb:// line back untouched and the chooser peeks it as it peeks a path.
+#[gpui::test]
+fn ey498_a_typed_share_is_peeked_and_a_missing_one_says_so(cx: &mut TestAppContext) {
+    let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    f.cx.run_until_parked();
+    listed(&mut f, "/d", &[("sub", true)]);
+    let path = f.update(|picker, cx| picker.browse.path_view(cx));
+    let asked = f.listing.sent().len();
+    f.cx.update(|window, cx| path.update(cx, |view, cx| view.open(window, cx)));
+    f.cx.run_until_parked();
+    answer_jumps(&mut f, asked);
+    let asked = f.listing.sent().len();
+    f.cx.simulate_input("smb://127.0.0.1/missing-wave2");
+    f.cx.run_until_parked();
+    answer_jumps(&mut f, asked);
+    f.cx.simulate_keystrokes("enter");
+    f.cx.run_until_parked();
+    assert_eq!(
+        f.listing.sent().last().map(String::as_str),
+        Some(
+            r#"{"c":"peek","path":"smb://127.0.0.1/missing-wave2","first":0,"hidden":false,"hiddenLast":false}"#
+        ),
+        "the typed share is peeked, never dropped"
+    );
+    f.listing.say(Line::Reply(r#"{"t":"peeked","path":"smb://127.0.0.1/missing-wave2","hidden":0,"hiddenLast":false,"first":0,"n":0,"failed":true,"rows":[]}"#.into()));
+    f.cx.run_until_parked();
+    let message = f.read(|picker| picker.message.clone());
+    assert!(
+        message.as_ref().is_some_and(
+            |message| message.error && message.text.contains("smb://127.0.0.1/missing-wave2")
+        ),
+        "a missing share is said loud: {:?}",
+        message.map(|message| message.text)
+    );
+    assert_eq!(f.read(|picker| picker.listing.location.clone()), "/d");
+}
+
 #[test]
 fn each_child_takes_only_its_own_role_lines() {
     use process::{admits, CHECKS, LISTING};

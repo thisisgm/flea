@@ -68,7 +68,7 @@ impl Draw<'_> {
                 } else {
                     line(CAPTION)
                         .h(px(0.))
-                        .min_h_0()
+                        .min_h(px(0.))
                         .overflow_hidden()
                         .text_color(gpui::transparent_black())
                         .child((*name).clone())

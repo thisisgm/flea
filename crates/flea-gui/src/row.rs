@@ -4,6 +4,24 @@ mod elide;
 #[cfg(test)]
 pub(crate) mod fit_tests;
 pub mod format;
+/// Text.ElideLeft for Recent's fixed Location cell: keep the parent path's tail.
+pub fn left_elide(text: &str, max_cells: usize) -> Cow<'_, str> {
+    if text.len() <= max_cells || units(text).map(|unit| unit.1).sum::<usize>() <= max_cells {
+        return text.into();
+    }
+    let budget = max_cells.saturating_sub(1);
+    let mut used = 0;
+    let mut start = text.len();
+    for (at, cells) in units(text).collect::<Vec<_>>().into_iter().rev() {
+        if used + cells > budget {
+            break;
+        }
+        used += cells;
+        start = at;
+    }
+    format!("\u{2026}{}", &text[start..]).into()
+}
+
 #[cfg(test)]
 mod language_tests;
 pub mod marks;
@@ -282,5 +300,19 @@ mod tests {
             "e\u{301}e\u{301}\u{2026}"
         );
         assert_eq!(right_elide("abc", 0), "\u{2026}");
+    }
+    #[test]
+    fn left_elide_keeps_path_tails_and_whole_character_units() {
+        assert_eq!(
+            left_elide("/home/user/work/StageDocs", 12),
+            "\u{2026}k/StageDocs"
+        );
+        assert_eq!(left_elide("short", 5), "short");
+        assert_eq!(left_elide("abc", 0), "\u{2026}");
+        assert_eq!(
+            left_elide("\u{4f60}\u{597d}\u{754c}\u{9762}", 5),
+            "\u{2026}\u{754c}\u{9762}"
+        );
+        assert_eq!(left_elide("ae\u{301}be\u{301}", 3), "\u{2026}be\u{301}");
     }
 }

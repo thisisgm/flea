@@ -788,7 +788,14 @@ permissions_backend_owned() {
         && "$(stat -c '%u' "/proc/$pid")" == "$(id -u)" ]] || return 1
     backend_pids | grep -Fx "$pid" >/dev/null || return 1
     tr '\0' '\n' < "/proc/$pid/environ" | grep -Fx "FLEA_BIN=$flea_bin" >/dev/null || return 1
-    tr '\0' '\n' < "/proc/$pid/environ" | grep -Fx "FLEA_PATH=$permissions_listing" >/dev/null || return 1
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        # GPUI passes the start folder in argv (flea-gui -- PATH), not FLEA_PATH, so the parent window's last argument is read.
+        local parent
+        parent=$(awk '/^PPid:/ {print $2}' "/proc/$pid/status") || return 1
+        [[ "$(tr '\0' '\n' < "/proc/$parent/cmdline" | tail -n 1)" == "$permissions_listing" ]] || return 1
+    else
+        tr '\0' '\n' < "/proc/$pid/environ" | grep -Fx "FLEA_PATH=$permissions_listing" >/dev/null || return 1
+    fi
     tr '\0' '\n' < "/proc/$pid/environ" | grep -Fx "XDG_STATE_HOME=$XDG_STATE_HOME" >/dev/null
 }
 

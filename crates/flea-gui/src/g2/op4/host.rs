@@ -41,6 +41,8 @@ pub struct OutputView {
     pub(super) focus: FocusHandle,
     check: Option<Task<()>>,
     pub(super) select_all: bool,
+    /// The card and title boxes the last paint drew, for convertCardRect and convertTitleCentre.
+    pub observed: super::observations::Observations,
 }
 
 impl EventEmitter<OutputEvent> for OutputView {}
@@ -67,6 +69,7 @@ impl OutputView {
             printer_menu: Default::default(),
             body_scroll: Default::default(),
             released: vec![],
+            observed: Default::default(),
         }
     }
 
@@ -332,6 +335,8 @@ impl Render for OutputView {
         }
         if self.printer_menu.opened() {
             root = root.child(super::printer_menu::overlay(self, cx));
+        } else {
+            root = root.children(super::printer_menu::closing(self));
         }
         root.text_size(px(14.))
     }

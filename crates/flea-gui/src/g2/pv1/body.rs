@@ -83,9 +83,9 @@ impl Body {
     }
 
     /// The text, unsupported and compare cards are framed surfaces; a picture or a document pane fills a bare background.
-    pub fn framed(&self) -> bool {
+    pub fn framed(&self, cx: &gpui::App) -> bool {
         if let Self::Doc(doc) = self {
-            return doc.framed();
+            return doc.framed(cx);
         }
         matches!(
             self,

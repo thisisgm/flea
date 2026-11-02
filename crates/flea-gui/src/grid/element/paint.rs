@@ -223,12 +223,8 @@ impl GridElement {
             let painted = window
                 .paint_image(at, at, Corners::default(), image.clone(), 0, false)
                 .is_ok();
-            if let Some((trace, full)) = self
-                .decor
-                .pictures()
-                .and_then(|pictures| pictures.trace(drawn.listing))
-            {
-                trace.stage(window, painted, full);
+            if let Some(pictures) = self.decor.pictures() {
+                pictures.record_paint(drawn.listing, at, window, painted);
             }
         } else {
             let (key, data) = drawn.language.clone().unwrap_or_else(|| {
@@ -358,7 +354,9 @@ impl Element for GridElement {
         state.frames += 1;
         let state = &*state;
         let origin = bounds.origin;
-        window.paint_quad(fill(bounds, ink.background));
+        // On glass the floor takes the window alpha, as the List and Columns floors do.
+        let floor = crate::window::glass::ground(ink.background, window, cx);
+        window.paint_quad(fill(bounds, floor));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             for drawn in &state.drawn {
                 let frame = bounds_of(

@@ -440,8 +440,8 @@ fn review_u08_r1_current_place_keeps_deepest_ancestor_highlight(cx: &mut TestApp
     let lit = producer(&shell, cx).read_with(cx, |producer, _| producer.model.borrow().lit);
     assert_eq!(lit, Some(1), "the deepest containing place must remain lit inside a child directory");
 }
-
 }
-
+#[path = "fixreaders_rail_tests.rs"]
+mod fixreaders;
 #[path = "tag_places_tests.rs"]
 mod tag_places_tests;

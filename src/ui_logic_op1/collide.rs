@@ -348,6 +348,16 @@ pub struct Merged<'a> {
 }
 
 pub fn merged_line(catalog: &I18n, preset: &str, m: Merged<'_>) -> String {
+    let line = merged_body(catalog, m);
+    if m.merged > 0 {
+        line + &super::undo_hint(catalog, preset)
+    } else {
+        line
+    }
+}
+
+/// The merge receipt alone, for a footer that draws its undo advice as a separate target.
+pub fn merged_body(catalog: &I18n, m: Merged<'_>) -> String {
     let mut segments = vec![catalog.trn_args("jobs.merged.into", n(m.merged), &[m.into])];
     if m.kept_both > 0 {
         segments.push(catalog.tr_args("jobs.merged.kept_both", &[&count(catalog, m.kept_both)]));
@@ -364,12 +374,7 @@ pub fn merged_line(catalog: &I18n, preset: &str, m: Merged<'_>) -> String {
     if m.merged > 0 && !m.note.is_empty() {
         segments.push(m.note.into());
     }
-    let line = segments.join(&catalog.tr("jobs.merged.join"));
-    if m.merged > 0 {
-        line + &super::undo_hint(catalog, preset)
-    } else {
-        line
-    }
+    segments.join(&catalog.tr("jobs.merged.join"))
 }
 
 pub fn explain(catalog: &I18n) -> String {

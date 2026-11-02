@@ -18,7 +18,7 @@ fn feedback_follows_a_live_language_change_with_per_string_fallback() {
     std::fs::create_dir_all(root.join("catalog/de")).unwrap();
     root.file(
         "catalog/de/flea.json",
-        r#"{"feedback.error.unread_named":"%1 konnte nicht gelesen werden.","feedback.reload":{"one":"Neu geladen · %1 Element geändert","other":"Neu geladen · %1 Elemente geändert"},"feedback.hint.undo":"%1 macht rückgängig","feedback.empty.phrase_1":"Noch nichts hier"}"#,
+        r#"{"feedback.error.unread_named":"%1 konnte nicht gelesen werden.","feedback.reload":{"one":"Neu geladen · %1 Element geändert","other":"Neu geladen · %1 Elemente geändert"},"feedback.hint.undo":"%1 macht rückgängig","pane.empty.initial":"NOCH NICHTS HIER"}"#,
     );
     root.file("language", "de");
     let english = crate::i18n::test_catalogs::english_only();
@@ -34,8 +34,8 @@ fn feedback_follows_a_live_language_change_with_per_string_fallback() {
         reload_line(3, &catalog),
         "Neu geladen · 3 Elemente geändert"
     );
-    assert_eq!(catalog.tr(PHRASES[0]), "Noch nichts hier");
-    assert_eq!(catalog.tr(PHRASES[1]), "A very tidy folder");
+    assert_eq!(catalog.tr(PHRASES[0]), "NOCH NICHTS HIER");
+    assert_eq!(catalog.tr(PHRASES[1]), "A VERY TIDY FOLDER");
     let backend = sentence("transfer", "the destination is not a folder", "");
     assert_eq!(backend.render(&catalog), "The destination is not a folder.");
     let mut bar = Messages::new("default");

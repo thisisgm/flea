@@ -1,6 +1,6 @@
 //! I50-25: the Japanese save chooser keeps New Folder…, Cancel and Save whole on one row, at real shaped metrics.
 use super::tests::fixture::fixture;
-use super::view::{BUTTON_HEIGHT, BUTTON_SIDE, TEXT};
+use super::view::{BUTTON_HEIGHT, BUTTON_SIDE};
 use crate::window::locale::Snapshot;
 use flea::i18n::{I18n, Paths};
 use gpui::{px, size, Bounds, Pixels, SharedString, TestAppContext, TestDispatcher};
@@ -62,8 +62,8 @@ fn i50_fit_cjk_picker() {
             f.cx.debug_bounds(selector)
                 .unwrap_or_else(|| panic!("{selector} is drawn"));
         let whole = f.cx.update(|window, cx| {
-            let font = crate::list::Typeface::for_window(window, cx).font;
-            crate::g2::fb1::caption::measure(label.clone(), font, px(TEXT), px(0.), window)
+            let face = crate::list::Typeface::for_window(window, cx);
+            crate::g2::fb1::caption::measure(label.clone(), face.font, face.body, px(0.), window)
         });
         assert_eq!(
             f32::from(button.size.height),

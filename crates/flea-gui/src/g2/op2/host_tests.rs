@@ -15,6 +15,7 @@ use std::{cell::Cell, rc::Rc};
 
 mod compress_geometry;
 mod extract;
+mod fixcards2;
 mod flash;
 mod flash_look;
 mod reader;

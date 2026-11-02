@@ -12,6 +12,9 @@ use gpui::{Context, Window};
 // The status line's arm owner for the listing's dd pair; the Trash view's own pair is owner 1.
 const ARM_OWNER: u64 = 2;
 
+#[path = "fileops_route.rs"]
+mod route;
+
 /// What the family holds between orders: the dd arm and the Delete permanently snapshot each side has out.
 #[derive(Default)]
 pub(crate) struct Held {
@@ -161,8 +164,10 @@ impl Shell {
             return;
         };
         let base = chosen.map_or(host.path.as_str(), |chosen| chosen.captured.path.as_str());
-        if !flea::ui_logic_pl1::mounts::trashable(base, None) {
-            return self.fileops_delete(side, chosen, cx);
+        match self.fileops_route(side, base) {
+            trash::Route::Refuse => return self.fileops_no_trash(side, cx),
+            trash::Route::ConfirmPermanent => return self.fileops_delete(side, chosen, cx),
+            trash::Route::Trash => {}
         }
         let (listing, rows, menu) = match chosen {
             Some(chosen) => (
@@ -206,41 +211,6 @@ impl Shell {
         let anchor = current.then(|| self.deletion_capture(side, rows)).flatten();
         self.operations.fileops.trash_anchors[side].push_back(anchor);
         self.fileops_send(side, line, cx);
-    }
-
-    // Trash.js arm: the first press says what a second press inside ARM_MS does, the second trashes.
-    fn fileops_arm(&mut self, side: usize, seat: Seat, cx: &mut Context<Self>) {
-        let Some(host) = self.panes[side].as_ref() else {
-            return;
-        };
-        let has_trash = flea::ui_logic_pl1::mounts::trashable(&host.path, None);
-        let now = host.pane.now();
-        let held = &mut self.operations.fileops;
-        // A pair belongs to one listing, cursor, view and pane; a press anywhere else arms again.
-        if held.seat != Some(seat) {
-            held.arm.disarm();
-        }
-        held.seat = Some(seat);
-        if held.arm.press(now) == trash::Press::Act {
-            held.seat = None;
-            self.status_messages(cx, |messages, now| messages.owner_stamp(0, now));
-            return self.fileops_trash(side, None, cx);
-        }
-        let stamp = held.arm.stamp;
-        let rows = self.fileops_targets(side).map_or(0, |(_, rows)| rows.len());
-        let prompt = if has_trash {
-            trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows)
-        } else {
-            trash::review_prompt(&self.locale.catalog, &self.fileops_preset())
-        };
-        if let Some(host) = self.panes[side].as_mut() {
-            host.status = prompt.clone().into();
-        }
-        self.status_messages(cx, |messages, now| {
-            messages.set_arm_owner(ARM_OWNER, stamp, now);
-            messages.say_arm(&prompt, trash::ARM_MS, now);
-        });
-        cx.notify();
     }
 
     // Pane.qml act: Delete permanently reviews the rows on a snapshot of its own, then opens the permanent-delete card.

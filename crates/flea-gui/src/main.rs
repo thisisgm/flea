@@ -10,10 +10,14 @@ use flea_gui::{
 use gpui::App;
 use std::io::Write;
 
+mod backend_log;
 mod renderer;
 
 #[cfg(test)]
 mod renderer_tests;
+
+#[cfg(test)]
+mod backend_log_tests;
 
 fn finish_opening<T>(opened: Result<T, String>) -> T {
     opened.unwrap_or_else(|error| {
@@ -34,6 +38,13 @@ fn main() {
     let words: Vec<String> = std::env::args().skip(1).collect();
     if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
         std::process::exit(status);
+    }
+    if let Err(error) = backend_log::install() {
+        eprintln!("flea: graphics backend reporting could not start: {error}");
+    }
+    #[cfg(test)]
+    if backend_log_tests::emit_if_requested() {
+        return;
     }
     let (service, locale) = Service::launch(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");

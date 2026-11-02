@@ -96,7 +96,7 @@ pub(super) fn prepare(
         }
         location
     } else {
-        if view.recent {
+        if view.recent || view.place_recent.is_some() {
             display.to_mut().name = facts
                 .name
                 .rsplit('/')
@@ -110,7 +110,9 @@ pub(super) fn prepare(
     let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query, Some(&width));
     let words = &view.words;
     let date = || {
-        let full = format::date_text(facts.mtime, words);
+        let full = view
+            .date_stamp(facts)
+            .map_or_else(|| "--".into(), |stamp| format::date_text(stamp, words));
         if view.picker.is_some() {
             full.split(' ').next().unwrap_or(&full).to_owned()
         } else {
@@ -131,7 +133,17 @@ pub(super) fn prepare(
             format::size_text(facts, extra.walked, words)
         }),
         date: cell(Column::Date, &date),
-        mode: cell(Column::Mode, &|| format::permissions(facts.mode)),
+        mode: cell(Column::Mode, &|| {
+            if view.place_recent.is_some() {
+                row::left_elide(
+                    &view.recent_location(&facts.name),
+                    shaping.cells[Column::Mode.slot()],
+                )
+                .into_owned()
+            } else {
+                format::permissions(facts.mode)
+            }
+        }),
         // Row.kindText(): the reply's kinds[k], empty when the row names none.
         kind: cell(Column::Kind, &|| facts.kind.clone()),
         mark: Mark::for_facts(facts, shaping.languages),

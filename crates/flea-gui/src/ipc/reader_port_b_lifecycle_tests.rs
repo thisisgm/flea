@@ -222,7 +222,8 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
                     .and_then(flea::jsondoc::Json::as_bool),
                 Some(false)
             );
-            press(cx, handle, "tab", true);
+            // Tab walks the PDF strip; Ctrl+Tab would close the card, as PdfViewer.qml does at v0.3.12 (EY-438).
+            press(cx, handle, "tab", false);
         }
         press(cx, handle, "escape", false);
         let state = keyboard(cx, handle);
@@ -245,6 +246,68 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
                 .get("paneFocus")
                 .and_then(flea::jsondoc::Json::as_bool),
             Some(true)
+        );
+    });
+}
+
+// EY-438: PdfViewer.qml at v0.3.12 keeps the cursor keys from the listing and closes on focusPreview.
+#[gpui::test]
+fn quick_look_pdf_takes_cursor_keys_and_closes_on_focus_preview(cx: &mut TestAppContext) {
+    crate::g2::pv2::render::without_threads(|| {
+        let (handle, _read) = open(cx);
+        edit(cx, handle, |shell, window, cx| {
+            shell.view = crate::window::startup::View::Columns;
+            let host = shell.panes[0].as_mut().unwrap();
+            host.pane
+                .receive(flea::protocol::Reply::Listed {
+                    path: "/files".into(),
+                    total: 2,
+                })
+                .unwrap();
+            let row = |name: &str, icon: &str| flea::protocol::RowFacts {
+                name: name.into(),
+                icon: icon.into(),
+                mode: 0o100644,
+                ..Default::default()
+            };
+            host.pane
+                .receive(flea::protocol::Reply::Rows {
+                    start: 0,
+                    listing: 3,
+                    rows: vec![
+                        row("book.pdf", "application-pdf"),
+                        row("after.txt", "text-plain"),
+                    ],
+                })
+                .unwrap();
+            shell.sync_columns(window, cx);
+            shell.sync_selection_previews(window, cx);
+            shell.selection_preview(0).unwrap().update(cx, |view, _| {
+                view.class = Some(("/files".into(), "local".into()))
+            });
+            shell.sync_selection_previews(window, cx);
+            assert!(shell.open_quick_look(0, window, cx))
+        });
+        assert_eq!(
+            keyboard(cx, handle)
+                .get("activeFocusItem")
+                .and_then(flea::jsondoc::Json::as_str),
+            Some("PdfViewer")
+        );
+        press(cx, handle, "down", false);
+        assert_eq!(value(cx, handle, "previewOpen"), "true");
+        edit(cx, handle, |shell, _, _| {
+            assert_eq!(
+                shell.panes[0].as_ref().unwrap().pane.cursor,
+                0,
+                "Down stays in the PDF card and leaves the listing cursor"
+            )
+        });
+        press(cx, handle, "tab", true);
+        assert_eq!(
+            value(cx, handle, "previewOpen"),
+            "false",
+            "Ctrl+Tab closes a PDF card"
         );
     });
 }

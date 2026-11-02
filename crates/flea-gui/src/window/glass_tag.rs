@@ -11,6 +11,8 @@ pub use events::{follow, start};
 
 /// The Hyprland tag Omarchy's transparency hotkey sets; Omarchy's own rule then draws the window at its Transparent opacity.
 pub const TAG: &str = "transparent";
+/// The Hyprland rule that gives Flea Nautilus's Glassy opacity; one name, so a later pass updates or disables it.
+pub const RULE: &str = "flea-glassy";
 // The key under [flea] in shell.toml that sets Flea's own background alpha.
 const ALPHA_KEY: &str = "background-alpha";
 
@@ -164,6 +166,57 @@ pub fn dispatch_ran(reply: &str) -> bool {
 /// The Lua dispatch Omarchy's hotkey runs for one window argument and one tag argument.
 pub fn lua_tag(window: &str, tag: &str) -> String {
     format!("hl.dsp.window.tag({{ window = \"{window}\", tag = \"{tag}\" }})")
+}
+
+/// The opacity Omarchy's Glassy toggle gives Nautilus, as (active, inactive); one value sets both, as in Hyprland.
+/// Sample input: `o.window("org\\.gnome\\.Nautilus", { opacity = "0.75 0.75" })`.
+pub fn nautilus_opacity(toggle: &str) -> Option<(f64, f64)> {
+    let unit = |v: &f64| (0. ..=1.).contains(v);
+    toggle
+        .lines()
+        .filter_map(|line| line.split("--").next())
+        .filter(|line| line.contains("Nautilus"))
+        .find_map(|line| {
+            let quoted = line.split_once("opacity")?.1.split('"').nth(1)?;
+            let values: Vec<f64> = quoted
+                .split_whitespace()
+                .map(str::parse)
+                .collect::<Result<_, _>>()
+                .ok()?;
+            match values.as_slice() {
+                [both] if unit(both) => Some((*both, *both)),
+                [active, inactive] if unit(active) && unit(inactive) => Some((*active, *inactive)),
+                _ => None,
+            }
+        })
+}
+
+/// The Lua `hyprctl eval` runs: Nautilus's Glassy opacity on every Flea window, or with None that rule disabled until the next reload drops it.
+pub fn lua_rule(opacity: Option<(f64, f64)>) -> String {
+    match opacity {
+        Some((active, inactive)) => format!(
+            "hl.window_rule({{ name = \"{RULE}\", enabled = true, match = {{ class = \"^{}$\" }}, opacity = \"{active} {inactive}\" }})",
+            APP_ID.replace('.', "\\\\.")
+        ),
+        None => format!("hl.window_rule({{ name = \"{RULE}\", enabled = false }})"),
+    }
+}
+
+/// The rule to evaluate this pass; `ruled` is None until this process evaluated it, and under Glassy that first pass disables a rule another process left on.
+pub fn rule_step(
+    wanted: Option<(f64, f64)>,
+    windows: &[Props],
+    ruled: Option<bool>,
+    glassy: bool,
+) -> Option<Option<(f64, f64)>> {
+    let Some((active, inactive)) = wanted else {
+        return (ruled == Some(true) || (glassy && ruled.is_none())).then_some(None);
+    };
+    let off = |seen: f64, want: f64| seen.is_finite() && (seen - want).abs() > 1e-3;
+    windows
+        .iter()
+        .any(|window| off(window.opacity, active) || off(window.inactive, inactive))
+        .then_some(wanted)
 }
 
 /// Whether a shell.toml sets [flea] background-alpha to a value the font reader accepts.

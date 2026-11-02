@@ -82,8 +82,8 @@ impl Shell {
                     }
                 }
             }
-            let eye = Some(archive.eye.clone());
-            let drawn = StandIn.present_probed(&card, &palette, &typeface, room, radius, eye);
+            let eyes = [archive.eye.clone(), archive.confirm_eye.clone()];
+            let drawn = StandIn.present_probed(&card, &palette, &typeface, room, radius, &eyes);
             let ground = cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
                 let archive = &mut shell.operations.archive;
                 let side = archive.card_side;
@@ -96,6 +96,39 @@ impl Shell {
                 };
                 shell.archive_effects(side, effects, window, cx);
             });
+            // DialogField's pressed state: a press held on a field's eye reveals that field alone until any release.
+            let probes = eyes;
+            let eye = cx.listener(move |shell: &mut Shell, event: &MouseDownEvent, _, cx| {
+                cx.stop_propagation();
+                let archive = &mut shell.operations.archive;
+                let on = |at: usize| {
+                    probes[at]
+                        .get()
+                        .is_some_and(|eye| eye.contains(&event.position))
+                };
+                match archive.compress.as_mut().filter(|card| card.opened()) {
+                    Some(card) if on(0) => card.eye_press(compress::Stop::Password),
+                    Some(card) if on(1) => card.eye_press(compress::Stop::Confirm),
+                    None if on(0) => archive.extract.eye_press(),
+                    _ => return,
+                }
+                cx.notify();
+            });
+            let release = || {
+                cx.listener(|shell: &mut Shell, _: &MouseUpEvent, _, cx| {
+                    let archive = &mut shell.operations.archive;
+                    let held = archive.compress.as_mut().filter(|card| card.eye_held());
+                    if !archive.extract.eye_held() && held.is_none() {
+                        return;
+                    }
+                    archive.extract.eye_release();
+                    if let Some(card) = held {
+                        card.eye_release(compress::Stop::Password);
+                        card.eye_release(compress::Stop::Confirm);
+                    }
+                    cx.notify();
+                })
+            };
             return Some(
                 div()
                     .id("op2-scrim")
@@ -109,10 +142,13 @@ impl Shell {
                         .background
                         .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
                     .on_mouse_down(MouseButton::Left, ground)
+                    .capture_any_mouse_up(release())
+                    // A release dragged off the window misses the scrim's hitbox, so it masks here.
+                    .on_mouse_up_out(MouseButton::Left, release())
                     .child(
                         div()
                             .size_full()
-                            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                            .on_mouse_down(MouseButton::Left, eye)
                             .child(drawn),
                     )
                     .into_any_element(),
@@ -199,7 +235,10 @@ impl Shell {
             down: Some(down),
             up: Some(up),
             cancel: Some(cancel),
+            action_probe: Some(self.operations.archive.flash_action.clone()),
         };
+        // A hidden step action paints nothing, so the last frame's action is forgotten first.
+        self.operations.archive.flash_action.set(None);
         // The flash covers its pane's slot as Trash does, so the rail and the status bar stay drawn.
         let slot = self.geometry(window).panes[self.operations.archive.flash_side];
         let archive = &mut self.operations.archive;

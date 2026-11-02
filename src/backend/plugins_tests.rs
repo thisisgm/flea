@@ -179,6 +179,27 @@ fn st2_backend_enabling_asks_the_plugin_to_start_and_a_silent_one_failed_to_star
 }
 
 #[test]
+fn st2_backend_a_hello_timeout_names_the_plugin_and_an_early_exit_keeps_its_error() {
+    // EY-551: plugins.invalid.start says "%1 did not answer hello", so only a hello timeout puts the plugin's name in %1.
+    let dir = TestDir::new("st2-hello");
+    let mut env = env(&dir);
+    env.ready_deadline = Duration::from_millis(400);
+    for (folder, id, script) in [("a", "me.silent", "#!/bin/sh\ncat >/dev/null\n"), ("b", "me.gone", "#!/bin/sh\nexit 4\n")] {
+        let source = plugin(&dir, folder, id, script);
+        assert_eq!(code(ask(&env, &format!(r#"{{"c":"plugins","op":"add","id":1,"source":"{}"}}"#, source.display())).0), "");
+    }
+    let (_, listing) = ask(&env, r#"{"c":"plugins","op":"enable","id":2,"plugin":"me.silent"}"#);
+    let silent = get(&listing, "me.silent").failure.clone().unwrap();
+    assert_eq!((silent.code, silent.detail.as_str()), ("start", "Tool"));
+    let i18n = crate::i18n::test_catalogs::library_english();
+    assert_eq!(i18n.tr_args(&silent.key(), &[&silent.detail]), "Tool did not answer hello within five seconds");
+    let (_, listing) = ask(&env, r#"{"c":"plugins","op":"enable","id":3,"plugin":"me.gone"}"#);
+    let gone = get(&listing, "me.gone").failure.clone().unwrap();
+    assert_eq!(gone.code, "start");
+    assert!(matches!(gone.detail.as_str(), "plugin closed stdout" | "Broken pipe (os error 32)"), "an early exit keeps the error it hit at hello: {gone:?}");
+}
+
+#[test]
 fn st2_backend_a_setting_is_clamped_before_it_is_stored_and_remove_forgets_it() {
     let dir = TestDir::new("st2-set");
     let env = env(&dir);

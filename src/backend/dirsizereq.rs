@@ -77,7 +77,7 @@ mod tests {
             listing,
             base,
             asked: Vec::new(),
-            thumb_mtimes: HashMap::new(),
+            thumb_mtimes: HashMap::new(), thumb_replies: Default::default(),
             outstanding: 0,
             deferred: Default::default(),
             window_meta: HashMap::new(),

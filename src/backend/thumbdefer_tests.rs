@@ -91,7 +91,7 @@ fn every_row_of_a_wide_request_answers_once_its_job_has_run() {
             break;
         }
         for job in batch {
-            report_done(&mut out, &mut st, &pool, Done { mtime: job.mtime, path: job.path, trash_identity: job.trash_identity, result: Outcome::Failed, ms: 0.0, trace: None });
+            report_done(&mut out, &mut st, &pool, Done { replies: None, mtime: job.mtime, path: job.path, trash_identity: job.trash_identity, result: Outcome::Failed, ms: 0.0, trace: None });
         }
     }
     let text = String::from_utf8(out).unwrap();
@@ -187,7 +187,7 @@ fn cancel_all_forgets_deferred_rows_before_any_later_report() {
     assert_eq!(st.outstanding, 0, "queued and deferred jobs release their accounting");
     assert!(out.is_empty(), "cancel-all writes no answer");
     // Leave the deferred queue untouched before this report, so a leftover job would be submitted by the real pump.
-    report_done(&mut out, &mut st, &pool, Done {
+    report_done(&mut out, &mut st, &pool, Done { replies: None,
         trash_identity: None,
         path: cancelled,
         mtime: 0,
@@ -268,7 +268,7 @@ fn a_path_asked_again_after_a_listing_change_answers_its_new_row() {
     st.listing = resorted;
     thumb_rows(&mut out, &[1], &mut st, &tb, &pool, &cache, false);
     assert_eq!(pool.pending(), 1, "the path is queued again, not blocked by the job still running");
-    report_done(&mut out, &mut st, &pool, Done { mtime: running[0].mtime, path: running[0].path.clone(), trash_identity: None, result: Outcome::Ready(PathBuf::from("/cache/a.png")), ms: 0.0, trace: None });
+    report_done(&mut out, &mut st, &pool, Done { replies: None, mtime: running[0].mtime, path: running[0].path.clone(), trash_identity: None, result: Outcome::Ready(PathBuf::from("/cache/a.png")), ms: 0.0, trace: None });
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains("\"row\":1,\"file\":\"/cache/a.png\""), "the new row takes the answer: {}", text);
     assert!(!text.contains("\"row\":0,"), "the old row number is never answered: {}", text);

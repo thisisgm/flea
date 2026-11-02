@@ -33,12 +33,14 @@ case "\$1" in
     fi
     # The product passes --anonymous on smb, so the location is the last argument, not the second.
     shift \$(( \$# - 1 ))
-    if [ "\$1" = "$share2_uri" ]; then
+    # Sample last argument: smb://stubhost/share3 or smb://stubhost/share3/.
+    asked="\${1%/}/"
+    if [ "\$asked" = "$share2_uri" ]; then
       # gvfsd composes this refusal, so no client locale makes it English: it stays Spanish.
       echo "gio: \$1: La ubicacion ya esta montada" >&2
       exit 2
     fi
-    if [ "\$1" = "$share3_uri" ]; then
+    if [ "\$asked" = "$share3_uri" ]; then
       # A genuine failure, translated by the same daemon, and the control the already-mounted half
       # never had: same nonzero exit, opposite verdict, told apart only by the gio info below.
       echo "gio: \$1: No se pudo conectar con el servidor" >&2
@@ -47,9 +49,9 @@ case "\$1" in
     exit 0
     ;;
   info)
-    # ui/NetworkMounts.qml normalizes before it asks, so the trailing slash is off by here; real gio
-    # answers either spelling and this literal double is made to as well.
-    asked="\${2%/}/"
+    # The URI follows gio options; accept either trailing-slash spelling.
+    shift \$(( \$# - 1 ))
+    asked="\${1%/}/"
     case "\$asked" in
       "$share1_uri") printf '%s: %s\n' "\$local_path_label" "$share1_dir" ;;
       "$share2_uri") printf '%s: %s\n' "\$local_path_label" "$share2_dir" ;;
@@ -145,14 +147,15 @@ EOS
     settle
     [[ "$(ipc cursor)" == "1" ]] || fail "sharebrowser: keyboard nav is dead after Escape, cursor is $(ipc cursor)"
 
-    # Pointer-opened overlay leaves list focus underneath, so l must route through the active overlay.
+    # GPUI gives the active overlay its own focus handle; l must route through that observed owner.
     click_rail_row "$(rail_row_of StubNAS)" left
     for _attempt in $(seq 1 100); do
         [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
         sleep 0.05
     done
     [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: pointer reactivation of StubNAS did not reopen the overlay"
-    [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: pointer activation moved focus to $(ipc focusView)"
+    ipc shareBrowserState | jq -e '.active and .focused' >/dev/null \
+        || fail "sharebrowser: pointer activation did not focus the active overlay: $(ipc shareBrowserState)"
     [[ "$(ipc shareBrowserCursor)" == "0" ]] || fail "sharebrowser: the overlay did not reset its cursor to 0, got $(ipc shareBrowserCursor)"
     key l >/dev/null
     for _attempt in $(seq 1 100); do
@@ -164,7 +167,7 @@ EOS
     [[ "$(ipc total)" == "1" ]] || fail "sharebrowser: share1's own listing did not load, total is $(ipc total)"
     shot sharebrowser-opened-share1
 
-    # Pointer reopens the overlay over list focus; retained Return drives the already-mounted share.
+    # Pointer reopens the focused overlay; Return drives the already-mounted share.
     [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: opening share1 moved focus to $(ipc focusView)"
     click_rail_row "$(rail_row_of StubNAS)" left
     for _attempt in $(seq 1 100); do
@@ -172,7 +175,8 @@ EOS
         sleep 0.05
     done
     [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: second pointer reactivation of StubNAS did not reopen the overlay"
-    [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: second pointer activation moved focus to $(ipc focusView)"
+    ipc shareBrowserState | jq -e '.active and .focused' >/dev/null \
+        || fail "sharebrowser: second pointer activation did not focus the overlay: $(ipc shareBrowserState)"
     key j >/dev/null
     settle
     [[ "$(ipc shareBrowserCursor)" == "1" ]] || fail "sharebrowser: cursor did not move to share2, got $(ipc shareBrowserCursor)"
@@ -434,7 +438,7 @@ STATES
         mv -- "$path/b-cursor.txt" "$saved" || fail 'providers: cannot retain cursor original'
         providers_write "${path#"$menu_box/"}/b-cursor.txt" replacement
         providers_release "$name"
-        menus_error 'Selected item changed' "$action refuses an asynchronously replaced unmarked cursor"
+        menus_error 'Selected items changed' "$action refuses an asynchronously replaced unmarked cursor"
         providers_expect '(.refreshing | not) and (.pendingActivation | not)' 'refused activation has no pending provider work'
         if [[ "$action" == taildrop ]]; then menus_equal 'stale Taildrop never reaches sender' "$before" "$(providers_calls omarchy-tailscale-send)"
         else menus_equal 'stale Share Link makes only its fresh status query' "$((before + 1))" "$(providers_calls dropbox-cli)"; fi

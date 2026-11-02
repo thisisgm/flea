@@ -6,7 +6,7 @@ use super::{
     columns::{Column, Layout},
     pane::Held,
     ListState, Metrics, Palette, RowStates, CACHE_SCREENS, CURSOR_WASH, CUT_DIM, GREY_CURSOR,
-    HOVER, MATCH_WASH, TRACK,
+    HOVER, MATCH_WASH,
 };
 use crate::palette::Theme;
 use crate::row::{
@@ -188,6 +188,7 @@ impl Element for ListElement {
         state.drawn_cursor = self.states.cursor;
         state.drawn_focused = self.states.focused;
         state.drawn_rows = Rc::clone(&self.held);
+        state.drawn_filter = self.shown.clone();
         let held = &*self.held;
         let ListState {
             typeface,
@@ -273,6 +274,7 @@ impl Element for ListElement {
                     prepared: None,
                     clip: None,
                     state: marks,
+                    bold_match: false,
                     picture: None,
                 });
                 continue;
@@ -300,7 +302,8 @@ impl Element for ListElement {
                     let shaping = super::outline::shaping(&shaping, facts, &metrics, advance.body);
                     prepare(facts, extra, &shaping, view, &layout, blank, window)
                 });
-            if marks.cursor && prepared.run.is_some() {
+            let bold_match = marks.cursor && (view.searching || !marks.selected);
+            if bold_match && prepared.run.is_some() {
                 prepared
                     .bold
                     .get_or_init(|| bold_name(&prepared, &shaping, window));
@@ -311,6 +314,7 @@ impl Element for ListElement {
                 prepared: Some(prepared),
                 clip,
                 state: marks,
+                bold_match,
                 // Row.qml dims a cut row's thumbnail with the rest of its mark.
                 picture: pictures.lend(index, facts).map(|picture| {
                     let dim = if clip == Some(ClipMark::Cut) {
@@ -384,7 +388,7 @@ impl Element for ListElement {
         let focused = self.states.focused;
         window.paint_quad(fill(
             bounds,
-            crate::window::glass::list_ground(palette.background, window, cx),
+            crate::window::glass::ground(palette.background, window, cx),
         ));
         window.with_content_mask(
             Some(ContentMask {
@@ -407,10 +411,10 @@ impl Element for ListElement {
                             palette.foreground.opacity(GREY_CURSOR)
                         })
                     } else if s.selected {
-                        Some(if focused {
-                            palette.marked
+                        Some(if self.states.other_pane && !focused {
+                            palette.foreground.opacity(GREY_CURSOR)
                         } else {
-                            palette.foreground.opacity(TRACK)
+                            palette.marked
                         })
                     } else if s.hovered {
                         Some(palette.foreground.opacity(HOVER))
@@ -434,7 +438,8 @@ impl Element for ListElement {
                         continue;
                     };
                     // At rest a match run sits on the accent wash; the cursor row draws it bold instead.
-                    let (Some((start, end)), false) = (prepared.run, s.cursor) else {
+                    let (Some((start, end)), true) = (prepared.run, s.washes_run(view.searching))
+                    else {
                         continue;
                     };
                     let line = prepared.name.line();
@@ -473,8 +478,9 @@ impl Element for ListElement {
                         checks_painted += super::picker::paint_check(
                             shown, view, metrics, palette, origin, window, cx,
                         );
+                        let ink = super::picker::mark_ink(shown, view, palette, &self.states);
                         let (marks, pictures) = super::picker::paint_icon(
-                            shown, view, metrics, palette, origin, window, cx,
+                            shown, view, metrics, ink, origin, window, cx,
                         );
                         marks_painted += marks;
                         pictures_painted += pictures;
@@ -489,10 +495,12 @@ impl Element for ListElement {
                         if shown.state.drop_target {
                             continue;
                         }
-                        let recent = view
-                            .today
-                            .zip(self.held.row(shown.index))
-                            .is_some_and(|(today, facts)| format::is_recent(facts.mtime, today));
+                        let recent = view.today.zip(self.held.row(shown.index)).is_some_and(
+                            |(today, facts)| {
+                                view.date_stamp(facts)
+                                    .is_some_and(|stamp| format::is_recent(stamp, today))
+                            },
+                        );
                         for (column, line) in [
                             (Column::Mode, &prepared.mode),
                             (Column::Size, &prepared.size),

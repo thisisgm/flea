@@ -190,6 +190,11 @@ pub(crate) fn apply_own_patch(data: &mut flea::jsondoc::Json, command: &super::C
 }
 
 impl super::Navigator {
+    pub(crate) fn fresh_preferences(&mut self, pane: &mut crate::pane::Pane) -> bool {
+        self.orders.preferences = None;
+        self.fresh(pane).unwrap_or(false)
+    }
+
     // Shared settings refresh the listing options while an explicit order stays with the open folder.
     pub(crate) fn reread_preferences(
         &mut self,
@@ -386,6 +391,9 @@ impl super::Navigator {
         }
     }
 }
+
+#[path = "sort_json.rs"]
+mod json;
 
 #[cfg(test)]
 #[path = "sort_inline_tests.rs"]

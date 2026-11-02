@@ -389,3 +389,6 @@ fn search_listing_gate_replays_enter_the_worker_and_keep_ordinary_request_order(
 
 #[path = "run_newfolder_tests.rs"]
 mod newfolder_tests;
+
+#[path = "run_thumb_identity_tests.rs"]
+mod thumb_identity_tests;

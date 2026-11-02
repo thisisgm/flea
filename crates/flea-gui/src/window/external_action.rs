@@ -151,7 +151,7 @@ impl Shell {
 
     /// Whatever holds the keyboard would take the key first, so an outside action waits until it closes.
     fn keyboard_taken(&self, window: &Window, cx: &gpui::App) -> bool {
-        self.input_blocked(cx)
+        self.wheel_blocked(cx)
             || self
                 .rename
                 .edit

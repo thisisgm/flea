@@ -5,6 +5,8 @@ mod board_tests;
 pub mod build;
 #[cfg(test)]
 mod build_tests;
+#[cfg(test)]
+mod convert_gate_tests;
 pub mod copyas;
 pub mod entry;
 #[cfg(test)]
@@ -14,6 +16,8 @@ pub mod fit;
 mod fit_fold_tests;
 #[cfg(test)]
 mod fit_tests;
+#[cfg(test)]
+mod fixmenus_tests;
 pub mod flyouts;
 #[cfg(test)]
 mod flyouts_tests;
@@ -21,12 +25,14 @@ pub mod inventory;
 pub mod places;
 #[cfg(test)]
 mod places_tests;
-pub mod refresh;
 #[cfg(test)]
 mod rclone_tests;
+pub mod refresh;
 pub mod rows;
 #[cfg(test)]
 mod rows_tests;
+#[cfg(test)]
+mod s2_tests;
 #[cfg(test)]
 pub(crate) mod testkit;
 

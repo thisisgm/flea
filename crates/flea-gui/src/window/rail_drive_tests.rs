@@ -29,6 +29,16 @@ fn root_with<'a>(
     places: &str,
     blocks: &str,
 ) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
+    root_devices(cx, places, blocks, "")
+}
+
+// The window over a places object, an lsblk answer and a gio volume answer of the test's own.
+fn root_devices<'a>(
+    cx: &'a mut TestAppContext,
+    places: &str,
+    blocks: &str,
+    phone: &str,
+) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
     let service = Rc::new(FakeDevices::default());
     let runner = service.clone();
     cx.update(|cx| {
@@ -69,7 +79,7 @@ fn root_with<'a>(
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
     cx.run_until_parked();
     service.answer("lsblk", 0, blocks);
-    service.answer("gio", 0, "");
+    service.answer("gio", 0, phone);
     frame(cx);
     cx.executor().advance_clock(Duration::from_millis(900));
     frame(cx);
@@ -97,6 +107,15 @@ fn walk_to_stick(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
 ) -> crate::g2::pl4::rows::LaidRow {
+    walk_to(shell, "128GB", cx)
+}
+
+// Tab into the rail and walk down to the row with this label, as the sweep does.
+fn walk_to(
+    shell: &Entity<Shell>,
+    label: &str,
+    cx: &mut VisualTestContext,
+) -> crate::g2::pl4::rows::LaidRow {
     cx.simulate_keystrokes("tab");
     frame(cx);
     let producer = producer(shell, cx);
@@ -106,9 +125,9 @@ fn walk_to_stick(
             .borrow()
             .rows
             .iter()
-            .find(|row| row.label == "128GB")
+            .find(|row| row.label == label)
             .cloned()
-            .expect("the rail paints the 128GB stick")
+            .unwrap_or_else(|| panic!("the rail paints the {label} row"))
     });
     for _ in 0..16 {
         if producer.read_with(cx, |p, _| p.cursor()) == Some(stick.index) {
@@ -119,6 +138,36 @@ fn walk_to_stick(
     }
     assert_eq!(producer.read_with(cx, |p, _| p.cursor()), Some(stick.index));
     stick
+}
+
+// The ids of the rows the open menu holds, separators dropped.
+fn menu_rows(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
+    shell.read_with(cx, |shell, _| {
+        shell
+            .menu
+            .menu
+            .borrow()
+            .card
+            .as_ref()
+            .map(|card| {
+                card.entries
+                    .iter()
+                    .filter(|entry| !entry.separator)
+                    .map(|entry| entry.id.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    })
+}
+
+// Every job the fake device runner started, one argv line each.
+fn argv_lines(service: &FakeDevices) -> Vec<String> {
+    service
+        .jobs
+        .borrow()
+        .iter()
+        .map(|(argv, _, _)| argv.join(" "))
+        .collect()
 }
 
 #[gpui::test]
@@ -136,29 +185,14 @@ fn raildrive_return_on_a_mounted_stick_opens_its_mount(cx: &mut TestAppContext) 
 
 #[gpui::test]
 fn raildrive_menu_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, _service, cx) = root_at(cx);
     let stick = walk_to_stick(&shell, cx);
     crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());
     cx.simulate_keystrokes("m");
     native_frames(cx);
-    let actions = shell.read_with(cx, |shell, _| {
-        shell
-            .menu
-            .menu
-            .borrow()
-            .card
-            .as_ref()
-            .map(|card| {
-                card.entries
-                    .iter()
-                    .filter(|entry| !entry.separator)
-                    .map(|entry| entry.id.to_string())
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default()
-    });
     assert_eq!(
-        actions,
+        menu_rows(&shell, cx),
         ["open", "unmountVolume", "eject", "flashImage"],
         "rail-menu-device rows"
     );
@@ -186,12 +220,7 @@ fn raildrive_device_menu_eject_runs_on_the_stick(cx: &mut TestAppContext) {
     for _ in 0..3 {
         frame(cx);
     }
-    let jobs: Vec<String> = service
-        .jobs
-        .borrow()
-        .iter()
-        .map(|(argv, _, _)| argv.join(" "))
-        .collect();
+    let jobs = argv_lines(&service);
     assert!(
         jobs.iter()
             .any(|job| job == "gio mount -e /run/media/gm/128GB"),
@@ -203,6 +232,9 @@ fn raildrive_device_menu_eject_runs_on_the_stick(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "rail_drive_menu_tests.rs"]
+mod menu;
 
 #[path = "rail_drive_rows_tests.rs"]
 mod rows;

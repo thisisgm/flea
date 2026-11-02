@@ -117,6 +117,27 @@ impl Shell {
         self.slots.states[side] = None;
     }
 
+    /// The empty hero's hint line, empty while key hints are off or the preset binds no newFolder chord.
+    fn empty_hint(&self) -> gpui::SharedString {
+        let hints = self
+            .launch
+            .settings
+            .data
+            .get("keyHints")
+            .and_then(flea::jsondoc::Json::as_bool)
+            == Some(true);
+        if !hints {
+            return gpui::SharedString::default();
+        }
+        flea::keys::presentation::hinted(
+            &self.locale.catalog,
+            "pane.empty.hint_new_folder",
+            self.key_preset(),
+            "newFolder",
+        )
+        .into()
+    }
+
     /// Mounts or drops one pane's state surface to match its state; a pane that shows no state builds nothing.
     pub(crate) fn sync_surfaces(&mut self, side: usize, cx: &mut Context<Self>) {
         // The pane the renderer draws on this side, so a pane left out of the frame keeps no caption running.
@@ -139,6 +160,15 @@ impl Shell {
         }
         let kind = host.pane.state.kind;
         let key = (kind, self.view, self.locale.revision);
+        // PaneStates.qml: with key hints on, the empty hero names the bound newFolder chord; a settings change lands without a state change.
+        let hint = if kind == Kind::Empty {
+            self.empty_hint()
+        } else {
+            gpui::SharedString::default()
+        };
+        if let Some(hero) = self.surfaces[side].hero.clone() {
+            hero.update(cx, |hero, cx| hero.set_hint(hint.clone(), cx));
+        }
         let surfaces = &mut self.surfaces[side];
         if surfaces.shown == Some(key) {
             return;
@@ -172,6 +202,7 @@ impl Shell {
             hero.update(cx, |hero, cx| {
                 hero.set_typeface(typeface.clone(), cx);
                 hero.translated(&catalog);
+                hero.set_hint(hint, cx);
                 if entered {
                     hero.show(true, cx);
                 }

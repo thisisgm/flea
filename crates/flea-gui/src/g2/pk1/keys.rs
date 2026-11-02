@@ -39,8 +39,7 @@ impl Picker {
             }
             // PickerList.qml is disabled while submitting or without a backend, so the period re-lists nothing then.
             "toggleHidden" if !self.backend_unavailable() && !self.accept_state().submitting() => {
-                self.req.hidden =
-                    Some(!self.req.hidden.unwrap_or(self.preferences.followed.hidden));
+                self.req.hidden = Some(!self.show_hidden());
                 let path = self.listing.location.clone();
                 self.open_folder(&path, cx);
             }
@@ -146,6 +145,7 @@ impl Picker {
         );
         if self.browse.listing.read(cx).view_mode() == "grid"
             && !text_focus
+            && action != "historyBack"
             && !(chord.control || chord.alt || chord.platform || chord.shift)
             && matches!(key, "left" | "right" | "h" | "l")
         {
@@ -159,6 +159,9 @@ impl Picker {
             self.go_up(cx);
         } else if action == "historyBack" {
             self.go_back(cx);
+        } else if action == "pathBar" {
+            // The shared entry opens in key(), before a Grid l can move the cursor.
+            return false;
         } else if action == "selectAll" && !text_focus {
             self.select_all(cx);
         } else if key == "space" && !text_focus {
@@ -233,3 +236,7 @@ impl Picker {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "picker_grid_remainder_tests.rs"]
+mod picker_grid_remainder_tests;

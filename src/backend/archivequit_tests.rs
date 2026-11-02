@@ -118,7 +118,7 @@ fn a_thumb_finishing_during_the_detached_wait_is_reported() {
     });
     // The thumb lands while the detached job is still running.
     let thumb_file = d.join("pic.png");
-    ev_tx.send(Event::Thumb(Done { mtime: 0, path: row_path, trash_identity: None, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
+    ev_tx.send(Event::Thumb(Done { replies: None, mtime: 0, path: row_path, trash_identity: None, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
     let mut out = Vec::new();
     let began = Instant::now();
     drain(&mut out, &mut st, &mut ops, &mut flash, &ev_rx, &pool, &cache);

@@ -98,7 +98,8 @@ fn fix1_retry_and_label_only_submission_keep_canonical_encoded_address() {
     d.password.push_str("synthetic-secret");
     assert!(matches!(d.submit().as_slice(), [DialogEffect::Mount { uri: got, .. }] if got == uri));
     d.mount_finished(d.request, uri, Err("network.refused"), true);
-    assert!(d.password.is_empty());
+    assert_eq!(d.password.expose(), b"synthetic-secret");
+    d.password.clear();
     d.password.push_str("replacement-secret");
     assert!(matches!(d.submit().as_slice(), [DialogEffect::Mount { uri: got, .. }] if got == uri));
 }

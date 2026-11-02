@@ -32,6 +32,7 @@ pub struct Messages {
     path: String,
     preset: String,
     errors: Vec<ErrorEntry>,
+    error_serial: u64,
     notice: String,
     notice_hint: Hint,
     notice_serial: u64,
@@ -208,6 +209,25 @@ impl Messages {
     pub fn forget(&mut self, text: &str, now: u64) {
         if !text.is_empty() {
             self.errors.retain(|entry| entry.text != text);
+            self.follow(now);
+        }
+    }
+
+    /// A producer can replace its own failure without acknowledging identical text from another producer.
+    pub fn say_tracked_error(&mut self, text: &str, now: u64) -> Option<u64> {
+        if text.is_empty() {
+            return None;
+        }
+        self.say(text, true, "", Hint::None, now);
+        let serial = self.error_serial.checked_add(1)?;
+        self.error_serial = serial;
+        self.errors.last_mut()?.serial = serial;
+        Some(serial)
+    }
+
+    pub fn forget_error(&mut self, serial: u64, now: u64) {
+        if serial != 0 {
+            self.errors.retain(|entry| entry.serial != serial);
             self.follow(now);
         }
     }

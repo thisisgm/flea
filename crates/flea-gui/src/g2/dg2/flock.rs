@@ -56,19 +56,31 @@ pub(super) fn captured(
     window: &Window,
     cx: &mut App,
 ) -> gpui::Entity<Flock> {
-    let list = host.list.borrow();
-    let flock = Rc::new(carry::Flock {
+    let lang_marks = host.list.borrow().view.lang_marks;
+    let flock = carry::Flock {
         marks: rows
             .iter()
             .take(carry::LAYERS.len())
             .filter_map(|&i| host.pane.held.row(i))
-            .map(|row| Mark::for_facts(row, list.view.lang_marks))
+            .map(|row| Mark::for_facts(row, lang_marks))
             .collect(),
         name: rows
             .first()
             .and_then(|&i| host.pane.held.row(i))
             .map_or_else(String::new, |row| row.name.clone()),
-    });
+    };
+    pictured(host, flock, window, cx)
+}
+
+/// The drag's in-window picture and platform image of a flock, drawn in the pane's own typeface.
+pub(super) fn pictured(
+    host: &PaneHost,
+    flock: carry::Flock,
+    window: &Window,
+    cx: &mut App,
+) -> gpui::Entity<Flock> {
+    let flock = Rc::new(flock);
+    let list = host.list.borrow();
     let theme = cx
         .try_global::<crate::palette::Theme>()
         .copied()

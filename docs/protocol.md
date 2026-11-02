@@ -1980,12 +1980,16 @@ so no file operation can act on that stale watcher state. See `clip` below.
 ### plugins
 
 `{"c":"plugins","op":"list","id":1}`, and `enable`, `disable`, `update` and `remove` with `"plugin":"<id>"`,
-`set` with `"plugin"`, `"key"` and `"value"`, `add` and `validate` with `"source"` (a Git URL, or an absolute folder
-or `~/` folder).
+`set` with `"plugin"`, `"key"` and `"value"`, and `add` with `"source"` (a Git URL, or an absolute folder or `~/`
+folder). For `validate`, supply `"source"` as an absolute folder path; it neither clones Git nor expands a literal
+`~/` prefix. `runtime` takes `"plugin"` and a nested `"request"` object, as described under **plugins runtime**.
 
-Settings > Plugins and `flea plugin <verb>`. Answered on its own thread, so a clone, a pull or a start check never
-holds the loop. `list` answers one `plugins` line; every other verb answers one `pluginop` line and then the
-`plugins` listing it left, both carrying the request's `id`. Changes run one at a time.
+Settings > Plugins and `flea plugin <verb>` use the management operations. Requests are answered on their own
+threads, so a clone, a pull or a start check does not hold the loop. `list` answers one `plugins` line. The management
+operations `enable`, `disable`, `set`, `add`, `update`, `remove` and `validate` answer one `pluginop` line and then
+the `plugins` listing they left, both carrying the request's `id`. Management changes run one at a time. A `runtime`
+request instead answers one terminal `pluginruntime` line, optionally preceded by `pluginprogress` lines; it does
+not append a `pluginop` line or a `plugins` listing.
 
 The listing names the four built-ins first (Shelf, LocalSend, Tailscale, Dropbox), then every folder under
 `$XDG_CONFIG_HOME/flea/plugins/` whose name does not start with a dot, in name order. Each plugin carries its
@@ -2011,6 +2015,90 @@ plugin; the listing reads that record only as a regular file of at most 4 KiB, a
 config, hooks or fsmonitor, and `update` refuses with `git` a plugin whose `.git` is not a plain folder or whose config
 holds anything a clone does not write (`core.worktree`, `core.hooksPath` and `core.fsmonitor` among them).
 `remove` deletes the plugin's folder and its settings; a built-in refuses `remove` and `update` with `builtin`.
+
+### plugins runtime
+
+```json
+{"c":"plugins","op":"runtime","id":41,"plugin":"example.send-target","request":{"op":"targets"}}
+```
+
+`plugin` identifies the installed plugin. `id` correlates the outer request with its progress and terminal replies.
+`request` is the plugin operation object. The outer `op` is always `runtime`; the nested `op` selects the operation.
+This envelope is accepted by `flea --backend` and the application-wide `flea --plugin-host` process. The latter
+accepts only `c:"plugins"` requests.
+
+Except for `cancel`, the plugin must be enabled and have no recorded failure. Ordinary operations must match a kind
+declared by the manifest. `run` must also name a declared action. A `folder` field requires declared `folder` access
+and an absolute path without NUL. If supplied, `paths` is an array of at most 512 absolute paths without NUL;
+`targets` and `section` refuse a `paths` field. An action that declares text input requires the matching one-key
+`input` object with a nonblank string within its declared character limit and no control characters.
+
+| Nested `op` | Declared kind | Terminal plugin `op` |
+| --- | --- | --- |
+| `targets` | `send-target` | `targets`, with a `targets` array. |
+| `send` | `send-target` | `done`. |
+| `run` | `menu-action` | `done`. |
+| `section` | `rail-section` | `section`, with a `rows` array. |
+| `list` | `place` | `list`, with an `entries` array. |
+| `copy`, `move`, `rename`, `delete` | `place` | `done`. |
+| `preview` | `previewer` | `preview`. |
+| `shelf` | `shelf` | `done`. |
+| `settings` | A plugin eligible for a lasting session | `done`. |
+
+Every ordinary operation may finish with `{"op":"error","message":"..."}` instead. An operation whose normal
+terminal response is `done` may emit progress before that response. See [PLUGINS.md](../PLUGINS.md) for the
+operation-specific request and response fields and the shelf routing rules.
+
+For a preview, the backend envelope names the actual selected local file:
+
+```json
+{"c":"plugins","op":"runtime","id":47,"plugin":"example.torrent-preview","request":{"op":"preview","paths":["/home/me/sample.torrent"],"width":900,"height":600}}
+```
+
+The file must be a regular file matching the previewer's declared MIME patterns. The backend binds that file
+read-only inside the sandbox and sends the executable `{"op":"preview","path":"/in/file","outDir":"/out","width":900,"height":600}`.
+The `/in/file` path in the guide's executable exchange is a sandbox path, not the host file to send in the outer
+request. `width` and `height` accept numbers from 1 through 8,192 and are rounded; each defaults to 900 when absent
+or invalid.
+
+Two nested operations are handled by the host rather than forwarded as ordinary plugin requests:
+
+```json
+{"c":"plugins","op":"runtime","id":42,"plugin":"example.send-target","request":{"op":"ready"}}
+{"c":"plugins","op":"runtime","id":43,"plugin":"example.send-target","request":{"op":"cancel"}}
+```
+
+For an installed executable plugin, `ready` checks startup and returns `message:{"op":"ready"}` on success.
+Built-ins use in-process adapters rather than the executable handshake. `cancel` stops that installed plugin's
+lasting session and returns `message:{"op":"done"}`. Cancellation identifies the plugin, not a particular request
+id. When a lasting subprocess is stopped, Flea attempts to write `{"op":"cancel"}` and immediately kills its
+process group; the subprocess has no guaranteed cleanup interval.
+
+The subprocess protocol uses UTF-8 JSON objects separated by newlines. Protocol version 1 is negotiated on that
+separate stream, rather than on the outer backend envelope. The initial exchange is:
+
+```json
+{"op":"hello","protocolVersion":1,"flea":"0.4.0","language":"en","decimal":".","settings":{},"kinds":["send-target"]}
+{"op":"ready","protocolVersion":1}
+```
+
+`flea` is the package version; `language` and `decimal` describe Flea's locale. `settings` contains values clamped to
+the manifest's schema, and `kinds` contains its declared kinds. The startup deadline is five seconds. A `ready`
+response may omit `protocolVersion`; if present, it must be the number `1`.
+
+A lasting session handles one call at a time. A concurrent ordinary request is refused with `busy` rather than
+queued. If the host's `ready` check collides with an active call, its refusal instead uses `start`.
+Previewer-only plugins do not accept runtime `settings` calls; their fresh startup hello supplies settings.
+Ordinary lasting-session requests have a 30-second deadline. The subprocess is stopped after 30 seconds idle; a
+later request starts a new subprocess. Previewers instead run once per request in the thumbnail sandbox, with a
+10-second response deadline after readiness.
+
+Subprocess messages are limited to 65,536 bytes, result arrays to 256 rows, and progress to 128 messages and
+1,048,576 aggregate bytes per request. These are subprocess message limits, not the size of a terminal backend
+envelope that also contains retained progress. Required row strings and `op`, error `message`, progress `message`
+and preview `png` strings are at most 4,096 bytes and contain no NUL. Row identities (`id`, or `name` for entries)
+must be nonempty and unique within an answer. Entry names additionally cannot be `.`, `..` or contain `/`.
+Preview `text` is bounded by the message size rather than the 4,096-byte string limit.
 
 ### quit
 
@@ -2885,6 +2973,58 @@ plugin's own SVG when it has one. `shelf` is `null` on every plugin but the Shel
 One change's outcome. A refusal has `ok` false and a `code` with one `detail` argument; the codes are the ones
 `src/ui_logic_st2.rs` and `src/ui_logic_st2/wire.rs` list, each selecting a `plugins.error.*` or
 `plugins.invalid.*` catalog sentence. `version` is the plugin's version after an `add` or `update`.
+
+### pluginprogress
+
+```json
+{"t":"pluginprogress","id":44,"plugin":"example.send-target","message":{"op":"progress","done":1,"total":1,"message":"Receiving selection."}}
+```
+
+A progress event for the outer runtime request identified by `id` and `plugin`. The outer `message` holds the
+plugin's progress object. Its `done` and `total` are whole numbers from 0 through 9,000,000,000,000,000, with
+`done` no greater than `total`. The inner `message` is an optional string. Progress is streamed while the request
+runs, before its terminal `pluginruntime` reply. Clients should correlate events by `id` rather than count lines.
+
+### pluginruntime
+
+```json
+{"t":"pluginruntime","id":41,"plugin":"example.send-target","ok":true,"message":{"op":"targets","targets":[{"id":"receiver","label":"Local Receiver","state":"ready"},{"id":"offline","label":"Offline Receiver","state":"offline"}]},"progress":[],"code":"","error":""}
+```
+
+The terminal outcome of one runtime request. The envelope always includes `t`, `id`, `plugin`, `ok`, `message`,
+`progress`, `code` and `error`. `id` and `plugin` identify the outer request. On success, `ok` is true, `message`
+contains the result object, and `code` and `error` are empty strings. `progress` holds the accepted progress objects
+in order, including objects already sent through `pluginprogress`. Do not apply them twice.
+
+For example, this send emits the progress line above and then the terminal line below:
+
+```json
+{"c":"plugins","op":"runtime","id":44,"plugin":"example.send-target","request":{"op":"send","target":"receiver","paths":["/home/me/notes.txt"]}}
+{"t":"pluginruntime","id":44,"plugin":"example.send-target","ok":true,"message":{"op":"done","message":"Selection received."},"progress":[{"op":"progress","done":1,"total":1,"message":"Receiving selection."}],"code":"","error":""}
+```
+
+A plugin's `error` result is an operation failure: `ok` is false, `code` is `operation`, `error` is the plugin's
+message string, and the original error object remains in `message`. Accepted progress is retained. This result
+does not itself mark the plugin failed.
+
+```json
+{"t":"pluginruntime","id":45,"plugin":"example.send-target","ok":false,"message":{"op":"error","message":"Choose the ready receiver and at least one file."},"progress":[],"code":"operation","error":"Choose the ready receiver and at least one file."}
+```
+
+A host refusal or runtime failure instead has `ok:false`, `message:null`, `progress:[]`, and a `code` and `error`
+describing the failure. Previously streamed progress can therefore exist even when the terminal array is empty.
+Codes include `unknown` for an unrecognized installed id, `request` for an invalid operation or its validated
+fields, `busy` for a concurrent ordinary lasting-session request or a full plugin-host worker pool, `start` for startup or
+runtime failures and for a disabled or failed plugin, and `write` when the host cannot initialize plugin storage.
+These fields are `code` and `error`, rather than the management reply's `code` and `detail`.
+
+```json
+{"t":"pluginruntime","id":46,"plugin":"example.send-target","ok":false,"message":null,"progress":[],"code":"busy","error":"plugin busy"}
+```
+
+Preview results are normalized before they reach this envelope. Text is reduced to at most 1,000 plain lines with
+control characters other than tab removed from each line. A PNG result's `png` names the retained host file, with
+`width` and `height`; it is not the subprocess's `/out/preview.png` path.
 
 ### error
 

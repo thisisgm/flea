@@ -88,13 +88,16 @@ impl Shell {
                 self.fileops_created_target(side, kind, None, path, window, cx);
                 true
             }
-            // PaneWire.qml onTrashed clears the marks; the operations overlay says the line.
+            // PaneWire.qml onTrashed clears the marks unless the reply names no rows; the operations overlay says the line.
             "trashed" => {
                 let anchor = self.operations.fileops.trash_anchors[side]
                     .pop_front()
                     .flatten();
-                let landed = document.get("ok").and_then(Json::as_f64).unwrap_or(0.) > 0.;
-                self.deletion_landed(side, anchor, landed, window, cx);
+                let count = |key| document.get(key).and_then(Json::as_f64).unwrap_or(0.);
+                let (ok, failed) = (count("ok"), count("failed"));
+                if ok + failed > 0. {
+                    self.deletion_landed(side, anchor, ok > 0., window, cx);
+                }
                 false
             }
             "menuaction" if text("op") == "creation" => {

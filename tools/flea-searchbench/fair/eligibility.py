@@ -226,6 +226,7 @@ GROUP = ['fixture', 'profile', 'query_kind', 'prefix', 'query', 'location', 'met
 
 
 def compare(samples, candidate, reference, minimum=30, iterations=2000, profiles=None):
+    minimum = max(30, minimum)
     groups = collections.defaultdict(lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
     resolutions = collections.defaultdict(list)
     for row in samples:
@@ -245,7 +246,10 @@ def compare(samples, candidate, reference, minimum=30, iterations=2000, profiles
             raise ValueError('nonfinite or negative performance sample')
         groups[key][row['engine'], row['phase']][str(row['run'])].append(value)
         if row.get('resolution') not in ('', None):
-            resolutions[key].append(float(row['resolution']))
+            resolution = float(row['resolution'])
+            if not math.isfinite(resolution) or resolution <= 0:
+                raise ValueError(f"searchbench {row['engine']} {row['metric']} {row['phase']} run {row['run']}: invalid instrument resolution {row['resolution']!r}")
+            resolutions[key].append(resolution)
     reports = []
     for key, populations in sorted(groups.items()):
         left, right = populations[candidate, 'measured'], populations[reference, 'measured']
@@ -269,9 +273,13 @@ def compare(samples, candidate, reference, minimum=30, iterations=2000, profiles
         boot = sorted(statistics.median(generator.choices(delta, k=len(delta))) for _ in range(iterations))
         lo, hi = boot[int(iterations * .025)], boot[min(iterations - 1, int(iterations * .975))]
         resolution = .001 if report['unit'] == 'us' else .000001 if report['unit'] == 'ms' else 1
+        if 'ticks' in report['metric'] and report['unit'] in {'us', 'ms'}:
+            resolution = (1000000 if report['unit'] == 'us' else 1000) / os.sysconf('SC_CLK_TCK')
         threshold = max(2 * max(shifts), resolution, *resolutions[key])
         verdict = 'win' if lo > threshold else 'loss' if hi < -threshold else 'tie-or-unresolved'
-        reports.append(dict(report, verdict=verdict, gain=statistics.median(delta), ci95=[lo, hi], noise_threshold=threshold))
+        reports.append(dict(report, verdict=verdict, gain=statistics.median(delta), ci95=[lo, hi], noise_threshold=threshold,
+                            candidate_p50=statistics.median(statistics.median(v) for v in left.values()),
+                            reference_p50=statistics.median(statistics.median(v) for v in right.values())))
     return reports
 
 

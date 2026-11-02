@@ -21,6 +21,8 @@ pub(crate) mod rail_menu;
 #[cfg(test)]
 mod recent_parity_tests;
 mod rename;
+#[cfg(test)]
+mod s5_preview_tests;
 mod tabs;
 mod tag_capability;
 mod tag_places;
@@ -33,15 +35,8 @@ use gpui::{Context, Window};
 
 pub(crate) use fileops::Held as FileOps;
 
-/// What a producer hands the window to run.
-pub(crate) enum Order {
-    Action(ActionEvent),
-    Menu(Chosen),
-    Place(crate::g2::pl4::producer::Request),
-    Device(crate::g2::pl1::source::Request),
-    /// A key the network menu or share browser resolved while one of them is open.
-    Network(ActionEvent),
-}
+mod order;
+pub(crate) use order::Order;
 
 /// A family runs the orders it owns and answers whether it ran this one.
 type Family = fn(&mut Shell, &Order, &mut Window, &mut Context<Shell>) -> bool;
@@ -69,41 +64,7 @@ const FAMILIES: &[Family] = &[
     clipboard::run,
 ];
 
-impl Shell {
-    /// Runs the order through its family; one nobody ran is emitted for observers, and an unclaimed menu choice is refused.
-    pub(crate) fn dispatch(&mut self, order: Order, window: &mut Window, cx: &mut Context<Self>) {
-        self.dispatch_claimed(order, window, cx);
-    }
-
-    /// `dispatch`, answering whether a family ran the order; an outside `flea --action` reads the refusal from it.
-    pub(crate) fn dispatch_claimed(
-        &mut self,
-        order: Order,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> bool {
-        // Pane.qml act: every dispatched action ends a pending slow click.
-        self.slow_cancel();
-        if FAMILIES
-            .iter()
-            .any(|family| family(self, &order, window, cx))
-        {
-            return true;
-        }
-        match order {
-            Order::Action(event) => {
-                let text = self.locale.catalog.tr("feedback.action.unavailable");
-                self.status_note(&text, cx);
-                cx.emit(event)
-            }
-            Order::Network(event) => cx.emit(event),
-            Order::Menu(chosen) => cx.emit(chosen),
-            Order::Place(request) => cx.emit(request),
-            Order::Device(request) => cx.emit(request),
-        }
-        false
-    }
-}
+mod run;
 
 #[cfg(test)]
 mod band_shift_tests;
@@ -132,6 +93,18 @@ mod fileops_tests;
 #[cfg(test)]
 mod filterkeys_tests;
 #[cfg(test)]
+mod fix_fileops_2_tests;
+#[cfg(test)]
+mod fix_preview_2_tests;
+#[cfg(test)]
+mod fixcards_compare_tests;
+#[cfg(test)]
+mod fixchrome_ey522_tests;
+#[cfg(test)]
+mod fixmenus_hidden_tests;
+#[cfg(test)]
+mod fixmenus_tests;
+#[cfg(test)]
 mod frame_gate_tests;
 #[cfg(test)]
 mod gh_rename_proof_lane;
@@ -144,7 +117,13 @@ mod guard_tests;
 #[cfg(test)]
 mod key_delivery_preview_tests;
 #[cfg(test)]
+mod key_rows_focus_tests;
+#[cfg(test)]
 mod key_rows_tests;
+#[cfg(test)]
+mod key_rows_trash_reload_tests;
+#[cfg(test)]
+mod key_rows_trash_tests;
 #[cfg(test)]
 mod listing_marks_tests;
 #[cfg(test)]
@@ -186,7 +165,19 @@ mod opener_selection_tests;
 #[cfg(test)]
 mod opener_tests;
 #[cfg(test)]
+mod openwith_card_icons_tests;
+#[cfg(test)]
+mod openwith_controls_tests;
+#[cfg(test)]
+mod openwith_icon_tests;
+#[cfg(test)]
+mod openwith_multi_tests;
+#[cfg(test)]
+mod openwith_painted_tests;
+#[cfg(test)]
 mod openwith_tests;
+#[cfg(test)]
+mod openwith_wheel_tests;
 #[cfg(test)]
 mod pb_fileops_tests;
 #[cfg(test)]
@@ -304,6 +295,12 @@ mod tags_tests;
 #[cfg(test)]
 mod gh_preview_proof_tests;
 #[cfg(test)]
+mod pb_grid_band_tests;
+#[cfg(test)]
+mod pb_grid_tap_tests;
+#[cfg(test)]
+mod pb_grid_tests;
+#[cfg(test)]
 mod pb_preview_fixture;
 #[cfg(test)]
 mod pb_preview_keys_tests;
@@ -335,6 +332,8 @@ mod pb_rest_prepare_tests;
 #[cfg(test)]
 mod parity_preview_column_tests;
 #[cfg(test)]
+mod parity_preview_switch_tests;
+#[cfg(test)]
 mod parity_preview_tests;
 #[cfg(test)]
 mod railrecent_tests;
@@ -346,6 +345,8 @@ mod railrecent_owner_tests;
 mod columns_preview_readers_tests;
 #[cfg(test)]
 mod pb_rest_2_tests;
+#[cfg(test)]
+mod pb_tabs_overlay_tests;
 #[cfg(test)]
 mod railrecent_dual_tests;
 
@@ -369,3 +370,12 @@ mod quick_look_plugin_tests;
 mod rtl_mirror_tests;
 #[cfg(test)]
 mod vf5_zoom_tests;
+
+#[cfg(test)]
+mod thumbnail_policy_tests;
+
+#[cfg(test)]
+mod quick_look_interim_tests;
+
+#[cfg(test)]
+mod s4_tests;

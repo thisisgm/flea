@@ -8,6 +8,85 @@ use crate::ui_logic_op1::transfer::Transfer;
 use crate::ui_logic_op1::TransferDone;
 
 #[test]
+fn done_receipts_split_the_undo_advice_from_the_line() {
+    let cat = Catalog::english();
+    let i18n = &cat.i18n;
+    let copy = Transfer::started(1, false, 2, false);
+    let cases = [
+        (
+            TransferDone {
+                ok: 2,
+                ..Default::default()
+            },
+            "Copied 2 items",
+            true,
+        ),
+        (
+            TransferDone {
+                failed: 2,
+                ..Default::default()
+            },
+            "Copied 0 of 2 · 2 failed",
+            false,
+        ),
+        (
+            TransferDone {
+                into: "trip".into(),
+                merged: 3,
+                ok: 1,
+                ..Default::default()
+            },
+            "Merged 3 items into trip",
+            true,
+        ),
+        (
+            TransferDone {
+                into: "trip".into(),
+                failed: 1,
+                ..Default::default()
+            },
+            "Merged 0 items into trip · 1 failed",
+            false,
+        ),
+        // The merge arm answers from merged, never ok: a kept-both-only merge offers no undo.
+        (
+            TransferDone {
+                into: "trip".into(),
+                merged: 2,
+                ..Default::default()
+            },
+            "Merged 2 items into trip",
+            true,
+        ),
+        (
+            TransferDone {
+                into: "trip".into(),
+                kept_both: 2,
+                ok: 2,
+                ..Default::default()
+            },
+            "Merged 0 items into trip · 2 kept both",
+            false,
+        ),
+    ];
+    for (done, body, undo) in cases {
+        assert_eq!(
+            lines::done_receipt(i18n, &copy, &done),
+            (body.to_owned(), undo)
+        );
+        let whole = lines::done_line(i18n, "default", &copy, &done);
+        assert_eq!(
+            whole,
+            if undo {
+                format!("{body} · z undoes")
+            } else {
+                body.to_owned()
+            }
+        );
+    }
+}
+
+#[test]
 fn done_lines_follow_the_drive_verdict_and_the_merge() {
     let cat = Catalog::english();
     let i18n = &cat.i18n;

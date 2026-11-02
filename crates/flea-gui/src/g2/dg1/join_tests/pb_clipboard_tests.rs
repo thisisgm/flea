@@ -3,6 +3,9 @@ use super::{edit, frame, key, open, reply, Handle};
 use gpui::{point, px, ClipboardItem, MouseButton, TestAppContext, VisualTestContext};
 use std::time::Duration;
 
+#[path = "sol_clipboard_tests.rs"]
+mod sol_clipboard_tests;
+
 const FORMS: [(&str, &str); 6] = [
     ("copyPath", "/files/a.txt\n/files/b.txt"),
     ("copyName", "a.txt\nb.txt"),

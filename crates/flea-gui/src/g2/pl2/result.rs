@@ -41,7 +41,9 @@ impl ResultState {
             Effect::Run { .. } | Effect::Peek { .. } | Effect::EnsureBridge { .. } => {
                 Some(Self::Resolving)
             }
-            Effect::Open { .. } | Effect::OpenFile { .. } => Some(Self::Mounted),
+            Effect::Open { .. } | Effect::OpenFile { .. } | Effect::Shares { .. } => {
+                Some(Self::Mounted)
+            }
             Effect::Completed {
                 error: Some(key), ..
             }

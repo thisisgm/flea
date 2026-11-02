@@ -1,6 +1,52 @@
 //! Taildrop status runs, their re-asks, the stale and checking refusals, and the timed-out run.
 use super::*;
 
+#[test]
+fn uish_misc_activation_refresh_asks_only_the_chosen_provider() {
+    for role in [Role::Tailscale, Role::Dropbox] {
+        let mut sender = ProviderSend::default();
+        let wire = Fake::default();
+        let actions = sender.menu_refresh(&wire, &facts(), Some(&states()), &[], 0, Some(role));
+        assert!(
+            wire.lines.borrow().is_empty(),
+            "activation must not discover LocalSend"
+        );
+        assert_eq!(actions.len(), 1, "{role:?}: {actions:?}");
+        assert!(matches!(
+            (&role, &actions[0]),
+            (Role::Tailscale, Action::Run(RunKind::TaildropStatus(_), _))
+                | (Role::Dropbox, Action::Run(RunKind::DropboxStatus(_), _))
+        ));
+    }
+}
+
+#[test]
+fn uish_misc_activation_waits_for_a_new_status_after_an_existing_run() {
+    let mut sender = ProviderSend::default();
+    let wire = Fake::default();
+    sender.menu_opened(&wire, &facts(), Some(&states()), &[], 0);
+    let actions = sender.menu_refresh(
+        &wire,
+        &facts(),
+        Some(&states()),
+        &[],
+        1,
+        Some(Role::Tailscale),
+    );
+    assert!(actions.is_empty());
+    assert!(sender.taildrop_refreshing());
+    let actions = sender.taildrop_done(FIRST_RUN, 0, &ready_status(), "", &english());
+    assert_eq!(status_runs(&actions), 1);
+    assert!(sender.taildrop_refreshing());
+    assert!(
+        sender.peers_for(Role::Tailscale).is_empty(),
+        "the old answer cannot validate activation"
+    );
+    sender.taildrop_done(FIRST_RUN + 1, 0, &ready_status(), "", &english());
+    assert!(!sender.taildrop_refreshing());
+    assert_eq!(sender.peers_for(Role::Tailscale).len(), 1);
+}
+
 // r1-1: one status run at a time, as ui/Taildrop.qml holds one statusProcess; a reopen waits for it.
 #[test]
 fn r1_1_status_runs_never_overlap() {

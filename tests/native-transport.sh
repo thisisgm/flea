@@ -5,13 +5,16 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo"
 . "$repo/tests/lib/flea-transport-ci.sh"
 flea_transport_ci "$0" "$@"
+if [[ ${1:-} != controls && ${FLEA_TEST_FRONTEND:-gpui} == gpui && -z ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]]; then
+    exec bash "$repo/tests/native-transport-gpui.sh" "$@"
+fi
 mkdir -p "$repo/.superpowers/g010t"
 python3 -B "$repo/tests/lib/flea_transport_controls.py"
 if [[ ${1:-} == controls ]]; then exit 0; fi
 root=$(mktemp -d "$repo/.superpowers/g010t/native.XXXXXX")
 : > "$root/.flea-test-sandbox"
 export FLEA_TEST_WINDOWS_ROOT="$root"
-if [[ ${FLEA_TEST_FRONTEND:-qml} == qml ]]; then
+if [[ ${FLEA_TEST_FRONTEND:-gpui} == qml ]]; then
     . tools/flea-sandbox-guard
     . tests/headless-commons.sh
     FIXTURE_ROOT="$root"

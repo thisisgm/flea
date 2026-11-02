@@ -1,8 +1,19 @@
 //! The picker's bare chrome marks surround its shared path strip.
+use super::body::PATH_HEIGHT;
+use super::view::{GAP, SIDE};
 use super::Picker;
 use crate::{g2::pk2::chrome::PathBar, list::Palette};
-use gpui::{div, prelude::*, px, Context, Entity, Render, WeakEntity, Window};
+use gpui::{div, prelude::*, Context, Entity, Render, WeakEntity, Window};
 use std::{cell::RefCell, rc::Rc};
+
+// picker-path: each bare chrome mark takes a 24 px slot the strip's height.
+const MARK_WIDTH: f32 = 24.;
+
+#[cfg(test)]
+thread_local! {
+    /// The marks the last render drew, for a test that reads each mark's painted ink.
+    pub(crate) static DRAWN: std::cell::Cell<Option<Rc<RefCell<crate::path::chrome::Frame>>>> = const { std::cell::Cell::new(None) };
+}
 
 pub struct ChromeView {
     pub picker: WeakEntity<Picker>,
@@ -20,7 +31,10 @@ impl Render for ChromeView {
             .copied()
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
+        let size = super::size::Size::of(window, cx);
         let frame = Rc::new(RefCell::new(crate::path::chrome::Frame::default()));
+        #[cfg(test)]
+        DRAWN.set(Some(frame.clone()));
         let mode = owner.browse.listing.read(cx).view_mode();
         let buttons = [
             (
@@ -49,8 +63,8 @@ impl Render for ChromeView {
                 .attach(div().relative(), id)
                 .id(id)
                 .debug_selector(move || id.into())
-                .w(px(24.))
-                .h(px(27.))
+                .w(size.px(MARK_WIDTH))
+                .h(size.px(PATH_HEIGHT))
                 .flex_none()
                 .flex()
                 .items_center()
@@ -69,11 +83,12 @@ impl Render for ChromeView {
                 let now = cx.background_executor().now();
                 pressed.update(cx, |picker, _| picker.chrome.pressed_at = Some(now));
             });
+            // Enter and Space act on their press in control_key; gpui's keyboard click on the release would step a second time (EY-355).
             controls.push(control.on_click(move |event, window, cx| {
                 let held = handle.read(cx).chrome.pressed_at;
                 let long = matches!(event, gpui::ClickEvent::Mouse(_))
                     && !crate::path::tap::short_press(held, cx.background_executor().now());
-                if !enabled || long {
+                if !enabled || long || event.is_keyboard() {
                     return;
                 }
                 handle.update(cx, |picker, cx| {
@@ -92,8 +107,8 @@ impl Render for ChromeView {
             .size_full()
             .flex()
             .items_center()
-            .gap(px(9.))
-            .px(px(14.))
+            .gap(size.px(GAP))
+            .px(size.px(SIDE))
             .border_b_1()
             .border_color(palette.foreground.opacity(0.12))
             .children(controls.next())

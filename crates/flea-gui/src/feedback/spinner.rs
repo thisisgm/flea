@@ -50,7 +50,7 @@ pub struct Crawl {
     slot: Cell<Bounds<Pixels>>,
     mask: Cell<ContentMask<Pixels>>,
     ink: Cell<Hsla>,
-    /// A listing's loading mark: v0.3.12's Spinner.qml spiral crawl at the hero mark side, never the Omi.
+    /// The retained legacy spiral painter; production listing loaders select Omi.
     spiral: Cell<bool>,
     spiral_side: Cell<f32>,
     since: Cell<Option<std::time::Instant>>,
@@ -102,7 +102,7 @@ impl Crawl {
             self.since.set(None);
         }
     }
-    /// The listing loading mark, drawn as v0.3.12's spiral crawl (EY-354).
+    /// Selects the retained v0.3.12 spiral painter for an explicit caller.
     pub fn show_spiral(&self, shown: bool, ink: Hsla) {
         self.spiral.set(true);
         self.show(shown, ink);

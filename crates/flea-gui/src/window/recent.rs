@@ -31,6 +31,9 @@ impl PaneHost {
             };
         }
         self.recent = RecentMode::default();
+        if was {
+            self.list.borrow_mut().set_recent_place(None);
+        }
         was
     }
 
@@ -131,6 +134,9 @@ impl Shell {
         host.recent.on = true;
         host.recent.paths = visits.iter().map(|visit| visit.path.clone()).collect();
         host.recent.visits = recent::visits(&visits);
+        host.list
+            .borrow_mut()
+            .set_recent_place(Some(host.recent.visits.clone()));
         host.nav.order = Order {
             key: "mtime",
             desc: true,
@@ -221,8 +227,6 @@ impl Shell {
             }
             // A file row opens as it does anywhere; the history stays standing behind it.
             Step::OpenCursor => None,
-            // The folder step owns Recent's hidden-toggle refusal sentence.
-            Step::ToggleHidden => None,
             // A history has no next folder and no order to forget.
             Step::Forward | Step::ForgetSort => Some(Ok(false)),
             // Sorting re-orders the history's own rows; leaving Recent still hands the folder's order back.

@@ -61,6 +61,14 @@ pub const VISUAL: &[Function] = &[
     function!("flea", "dragState", "string", &[]),
     function!("flea", "railIconSize", "int", &[]),
     function!("flea", "previewQuality", "string", &[]),
+    // GPUI-only readers v0.3.12 never exposed over IPC: the Combine card, the pane's folder walks and their cancels, the Columns counters, the clipboard text and the tab tear-off.
+    function!("flea", "combineState", "string", &[]),
+    function!("flea", "dirSizeState", "string", &[]),
+    function!("flea", "columnsState", "string", &[]),
+    function!("flea", "columnAnimationState", "string", &[]),
+    function!("flea", "clipboardText", "string", &[]),
+    function!("flea", "dirSizeCancels", "int", &[]),
+    function!("flea", "tabTearoffState", "string", &[]),
 ];
 
 /// The action entry point behind `flea --action` and `flea --actions`; see PLUGINS.md "Run an action from outside".

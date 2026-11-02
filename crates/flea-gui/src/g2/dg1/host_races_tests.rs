@@ -38,6 +38,16 @@ fn a_spent_transfer_clears_its_capture_on_the_one_claiming_owner() {
         &mut rig.sink,
         &mut rig.owner,
     );
+    rig.board.line(
+        &rig.en,
+        7,
+        r#"{"t":"clip","op":"changed","clip":"cut","paths":["/dest/B"],"token":"cut-token"}"#,
+        take("/dest"),
+        landing("/dest"),
+        &rig.wire,
+        &mut rig.sink,
+        &mut rig.owner,
+    );
     let landing_here = landing("/dest");
     let said = rig.board.paste(
         &rig.en,

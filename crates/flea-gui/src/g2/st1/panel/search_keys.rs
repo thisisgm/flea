@@ -166,8 +166,11 @@ impl Rows<'_> {
         cx: &mut Context<SettingsView>,
     ) -> Stateful<Div> {
         let row = line.row;
-        let clicks = matches!(row.kind, Kind::Check | Kind::Action | Kind::Group)
-            || (row.kind == Kind::Choice && row.labels.is_empty() && row.values.is_empty());
+        let clicks =
+            matches!(
+                row.kind,
+                Kind::Check | Kind::Action | Kind::Group | Kind::Favourite
+            ) || (row.kind == Kind::Choice && row.labels.is_empty() && row.values.is_empty());
         if let Some(hit) = line.hit {
             return base
                 .on_mouse_move(cx.listener(move |view, _: &MouseMoveEvent, _, cx| {

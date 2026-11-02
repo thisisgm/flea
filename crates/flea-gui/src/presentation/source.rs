@@ -156,7 +156,6 @@ impl Sources {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
         let (mut theme, parsed) = Theme::from_text_observed(text(0));
         theme.glass = crate::window::glass::Inputs::resolve(
-            text(0),
             text(1),
             text(2),
             input[5].is_some(),

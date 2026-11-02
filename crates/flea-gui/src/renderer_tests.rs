@@ -82,7 +82,7 @@ fn neither_renderer_exits_during_startup() {
     );
     assert_eq!(
         output.status.code(),
-        Some(renderer::UNAVAILABLE),
+        Some(1),
         "headless startup child failed: {stderr}"
     );
     assert_eq!(

@@ -27,6 +27,14 @@ struct Recorder {
 impl Runner for Recorder {
     fn start(&self, job: Job) -> Handle {
         let (handle, send) = Handle::detached();
+        if job.argv.first().is_some_and(|program| program == "lsblk") {
+            send.try_send(Proc::Exited(Outcome {
+                code: 0,
+                stdout: "{\"blockdevices\":[]}".into(),
+                stderr: String::new(),
+            }))
+            .unwrap();
+        }
         self.jobs.borrow_mut().push(job);
         self.answers.borrow_mut().push(send);
         handle
@@ -67,10 +75,13 @@ fn open<'a>(
         let mut shell = shell_with(backend, cx);
         cx.on_release(move |_, _| drop(receiver)).detach();
         shell.launch.settings.data = state.clone();
-        let mut join = mount(
+        let mut join = mount_with_source(
             shell.locale.catalog.clone(),
             &shell.launch.settings.data,
             shell.focus_side,
+            recorder.clone(),
+            Some("testhost".into()),
+            None,
             cx,
         );
         join.network_runner = recorder;
@@ -185,9 +196,11 @@ fn reveal_lists_the_shares_at_once_and_draws_network(cx: &mut TestAppContext) {
     let docked = docked_headings(SHARE_OUTPUT, cx);
     let recorder = Rc::new(Recorder::default());
     let (shell, cx) = open(r#"{"places":{"autoHide":true}}"#, recorder.clone(), cx);
+    shell.update(cx, |shell, cx| shell.network_list(cx));
+    frame(cx);
     assert!(
         recorder.listings().is_empty(),
-        "a hidden rail starts no share listing"
+        "an explicit refresh keeps the hidden rail parked until reveal"
     );
     reveal(cx);
     assert!(polling(&shell, cx), "the pointer revealed the rail");

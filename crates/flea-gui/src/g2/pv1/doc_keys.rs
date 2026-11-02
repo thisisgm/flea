@@ -65,7 +65,7 @@ fn pdf_press(pdf: &Entity<PdfView>, index: usize, cx: &mut App) -> Outcome {
 
 impl Doc {
     // An office document's pages, once they stand; its sheets and its idle states are not a PDF.
-    fn pages(&self, cx: &App) -> Option<Entity<PdfView>> {
+    pub(super) fn pages(&self, cx: &App) -> Option<Entity<PdfView>> {
         match &self.view {
             View::Pdf(pdf) => Some(pdf.clone()),
             View::Office(office) => {
@@ -74,6 +74,16 @@ impl Doc {
                     && !office.office.wants_sheets())
                 .then(|| office.pdf.clone())
             }
+            _ => None,
+        }
+    }
+
+    /// The wrap w toggles on this view; None for a view without one.
+    pub fn wrap(&self, cx: &App) -> Option<bool> {
+        match &self.view {
+            View::Code(code) => Some(code.read(cx).wrap),
+            View::Html(html) => Some(html.read(cx).wrap),
+            View::Markdown(markdown) => Some(markdown.read(cx).wrap),
             _ => None,
         }
     }

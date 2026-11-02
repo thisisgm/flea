@@ -22,7 +22,7 @@ fn place(label: &str, path: &str, group: Group, kind: Kind) -> RailEntry {
 }
 
 // The window's own rail, with a Home place in the test root and the Trash row.
-fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
+pub(super) fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
     handle
         .update(cx, |shell, _, cx| shell.mount_rail(cx))
         .unwrap();
@@ -50,7 +50,7 @@ fn rail(cx: &mut TestAppContext, handle: WindowHandle<Shell>, home: &str) {
 }
 
 // The centre of a rail row as the rows last painted it, in window coordinates.
-fn rail_centre(
+pub(super) fn rail_centre(
     cx: &mut TestAppContext,
     handle: WindowHandle<Shell>,
     index: usize,
@@ -86,6 +86,13 @@ pub(super) fn hold(
     vcx.simulate_mouse_move(to, Some(MouseButton::Left), keys);
     vcx.run_until_parked();
     vcx.simulate_mouse_move(to, Some(MouseButton::Left), keys);
+    vcx.run_until_parked();
+}
+
+// The held pointer moves in place with new keys, as a key pressed mid-drag reaches the next drag move.
+pub(super) fn hold_keys(vcx: &mut VisualTestContext, at: Point<Pixels>, keys: Modifiers) {
+    vcx.simulate_mouse_move(point(at.x + px(1.), at.y), Some(MouseButton::Left), keys);
+    vcx.simulate_mouse_move(at, Some(MouseButton::Left), keys);
     vcx.run_until_parked();
 }
 
@@ -144,7 +151,7 @@ fn transfer(
         .expect("a transfer after the empty collisions answer")
 }
 
-fn home(root: &Root) -> String {
+pub(super) fn home(root: &Root) -> String {
     let home = format!("{}/home", root.src().trim_end_matches("/src"));
     std::fs::create_dir_all(&home).unwrap();
     home
@@ -269,5 +276,49 @@ fn ey221_raildrop_release_on_trash_sends_the_trash_request() {
     assert!(
         sent.iter().all(|line| !line.contains("transfer")),
         "{sent:?}"
+    );
+}
+
+#[test]
+fn pb_drag_3_raildrop_entries_changing_under_a_held_drag_re_aim_it() {
+    let root = Root::new("railreaim");
+    let home = home(&root);
+    let docs = format!("{}/docs", root.src().trim_end_matches("/src"));
+    std::fs::create_dir_all(&docs).unwrap();
+    let mut cx = bench::real_cx();
+    let (handle, _lines) = open(&mut cx, root.src());
+    frame(&mut cx, handle);
+    rail(&mut cx, handle, &home);
+    let file = centre(&mut cx, handle, 1);
+    let to = rail_centre(&mut cx, handle, 0);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    hold(&mut vcx, file, to, Modifiers::default());
+    assert_eq!(cue(&mut vcx, handle).0, Some((0, "move here".to_owned())));
+    // A place lands above Home while the drag rests: the row under the pointer is now Docs.
+    handle
+        .update(&mut vcx, |shell, _, cx| {
+            let places = shell.rail.as_ref().unwrap().places.clone();
+            places.update(cx, |producer, cx| {
+                producer.replace_sections(
+                    vec![RailSection {
+                        heading: Heading::Key("places.heading.places"),
+                        rows: vec![
+                            place("Docs", &docs, Group::Favourite, Kind::Favourite),
+                            place("Home", &home, Group::Home, Kind::Home),
+                            place("Trash", "", Group::Trash, Kind::Trash),
+                        ],
+                    }],
+                    cx,
+                )
+            });
+        })
+        .unwrap();
+    frame(&mut vcx, handle);
+    vcx.run_until_parked();
+    frame(&mut vcx, handle);
+    let (_, lines) = cue(&mut vcx, handle);
+    assert!(
+        lines.contains(&"Move 1 item to Docs · ctrl copies, shift moves".to_owned()),
+        "{lines:?}"
     );
 }

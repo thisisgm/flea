@@ -81,6 +81,9 @@ impl Shell {
             self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
             return;
         }
+        if !capture.background && capture.ready && self.provider_before_activation(window, cx) {
+            return;
+        }
         if refresh::validate_choice(
             &self.menu_choice_entries(&action, &leaf),
             &action,
@@ -195,7 +198,8 @@ impl Shell {
         match operation {
             "snapshot" => {
                 let capture = self.menu.captured.as_mut().expect("current snapshot");
-                capture.ready = true;
+                // Only a capture's first snapshot reply may start discovery; a later one would ask again and hold a chosen row.
+                let first = !std::mem::replace(&mut capture.ready, true);
                 capture.kinds = reply
                     .get("kinds")
                     .and_then(Json::as_array)
@@ -216,7 +220,7 @@ impl Shell {
                 }
                 if self.menu.pending.is_some() {
                     self.activate_menu(window, cx);
-                } else {
+                } else if first {
                     self.discover_menu(window, cx);
                 }
             }
@@ -288,7 +292,12 @@ impl Shell {
         }
     }
 
-    fn deliver_menu(&mut self, paths: Vec<String>, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn deliver_menu(
+        &mut self,
+        paths: Vec<String>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some((action, leaf)) = self.menu.pending.take() else {
             return;
         };
@@ -319,7 +328,6 @@ impl Shell {
             "open" if !self.menu.context.row_is_file && capture.rows.len() <= 1 => {
                 paths.first().map(|path| Step::Open(path.clone()))
             }
-            "toggleHidden" => Some(Step::ToggleHidden),
             "sort" if leaf == flea::ui_logic_mn1::rows::SORT_DEFAULT => Some(Step::ForgetSort),
             "sort" => Some(Step::SortColumn(leaf.clone())),
             _ => None,
@@ -349,9 +357,11 @@ impl Shell {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            self.menu
-                .actions
-                .run_sent(usize::try_from(capture.id).unwrap_or(usize::MAX));
+            self.menu.actions.run_named_on(
+                side,
+                usize::try_from(capture.id).unwrap_or(usize::MAX),
+                &leaf,
+            );
             self.menu_send(side, request, cx);
             self.retire_menu(window, cx);
         } else {
@@ -378,21 +388,7 @@ impl Shell {
                     return;
                 }
                 if !claimed.get() {
-                    if !capture.background {
-                        shell.menu_send(
-                            side,
-                            format!(
-                                "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
-                                capture.id
-                            ),
-                            cx,
-                        );
-                    }
-                    shell.menu_notice(
-                        side,
-                        shell.locale.catalog.tr("menu.refusal.unavailable"),
-                        cx,
-                    );
+                    shell.menu_unclaimed(&capture, cx);
                 }
                 shell.free_menu_gate(side, window, cx);
                 cx.notify();

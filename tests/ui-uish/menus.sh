@@ -1,4 +1,21 @@
 # GPUI overrides for UISH: the HIG boards' title-case menus and wording; seeded from the unchanged oracle at 4d09bd7f5.
+menus_visit() {
+    local path="$1" count="$2" observed="" deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    menus_guard "$path"
+    key -M ctrl -k l -m ctrl >/dev/null || fail 'menus: the address shortcut failed'
+    menus_expect pathBarOpen '. == true' 'the address field opens before typing'
+    key "$path" >/dev/null || fail 'menus: address text delivery failed'
+    while (( $(date +%s%3N) < deadline )); do
+        observed=$(ipc pathBarText) || fail 'menus: the address text reader failed'
+        [[ "$observed" == "$path" ]] && break
+        sleep 0.05
+    done
+    [[ "$observed" == "$path" ]] || fail "menus: the address field reads $observed, expected $path"
+    key -k Return >/dev/null || fail 'menus: address confirmation failed'
+    wait_path "$path"
+    wait_listing "$count"
+}
+
 # GPUI narrows the drawn rows on the frame after the query lands, so the count is polled within async_wait_ms.
 querypaste_drawn() {
     local deadline=$(( $(date +%s%3N) + async_wait_ms ))
@@ -198,8 +215,11 @@ case_background() {
     # Four orders, because src/backend/ordering.rs answers kind as well as the three in sort.rs.
     [[ "$(ipc contextMenuSubmenuEntries)" == "Name|Size|Modified|Kind" ]] \
         || fail "background: the Sort by flyout is $(ipc contextMenuSubmenuEntries)"
-    [[ "$(ipc contextMenuSubmenuGlyphs)" == "sort|sort|sort|sort" ]] \
-        || fail "background: the sort flyout drew $(ipc contextMenuSubmenuGlyphs)"
+    # The background-menu board (CHANGES.md, APL-MENU-22) marks only the order in effect, with a checkmark.
+    [[ "$(ipc sortMark)" == "name:asc" ]] \
+        || fail "background: the case expects name:asc before the flyout, read $(ipc sortMark)"
+    [[ "$(ipc contextMenuSubmenuGlyphs)" == "checkmark|||" ]] \
+        || fail "background: the sort flyout drew $(ipc contextMenuSubmenuGlyphs), not checkmark|||"
     key -k Down >/dev/null
     key -k Return >/dev/null
     settle
@@ -593,4 +613,17 @@ case_columnsbackground() {
     kill_flea
 
     printf 'COLUMNSBACKGROUND parent+active+child+empty-active+empty-child=ok\n'
+}
+
+# Sample statusActivityState: {"errors":2}; Escape acknowledges exactly the currently displayed error.
+menus_acknowledge() {
+    local shown
+    shown=$(ipc statusError) || fail 'menus: the statusError reader failed'
+    if [[ "$shown" == true ]]; then
+        local before
+        before=$(ipc statusActivityState | jq -er '.errors') || fail "menus: error count unavailable"
+        (( before > 0 )) || fail "menus: displayed error is absent from its queue"
+        key -k Escape >/dev/null
+        menus_expect statusActivityState ".errors == $((before - 1))" "Escape acknowledges the current queued error"
+    fi
 }

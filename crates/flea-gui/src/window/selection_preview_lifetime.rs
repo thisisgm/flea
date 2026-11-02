@@ -55,6 +55,7 @@ impl SelectionPreview {
         if let Some(image) = frame.animation.take() {
             window.defer(cx, move |window, cx| cx.drop_image(image, Some(window)));
         }
+        frame.thumb_observation = None;
         self.retired.push(frame);
         let entity = cx.entity().downgrade();
         window.defer(cx, move |_, cx| {
@@ -75,6 +76,7 @@ impl SelectionPreview {
         }
     }
     pub(crate) fn hide(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.loading_mark.show(false, Default::default());
         self.cancel_pending(window, cx);
         if let Some(frame) = self.drawn.take() {
             self.dispose(frame, window, cx);

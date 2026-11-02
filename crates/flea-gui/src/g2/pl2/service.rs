@@ -135,8 +135,12 @@ impl Service {
                                     if this.child.ended(run) {
                                         this.child_generation = None;
                                         let now = this.now(cx);
-                                        let effects =
+                                        let mut effects =
                                             this.mounts.exited(generation, phase, &out, now);
+                                        // NetworkMounts.qml infoProcess.onExited: every Open follows this exit, so this is the one re-list a mount gets.
+                                        if phase == super::mount::Phase::Info {
+                                            effects.insert(0, Effect::RefreshMounts);
+                                        }
                                         this.apply(effects, now, cx);
                                     }
                                 });
@@ -155,9 +159,10 @@ impl Service {
                         .as_ref()
                         .is_some_and(|b| b.generation == generation)
                     {
-                        self.bridge = None;
+                        let origin = self.bridge.take().map_or(0, |b| b.origin);
                         self.check.kill();
                         self.check_busy = false;
+                        cx.emit(ServiceEvent(Effect::Settled { origin }));
                     }
                 }
                 Effect::EnsureBridge {
@@ -276,6 +281,7 @@ impl Service {
                     self.bridge = None;
                     self.check.kill();
                     self.check_busy = false;
+                    cx.emit(ServiceEvent(Effect::Settled { origin }));
                     let effects = self
                         .mounts
                         .bridge_ready(generation, &path, now)
@@ -297,7 +303,7 @@ impl Service {
                         .collect();
                     self.apply(effects, now, cx);
                 }
-                Action::Show => cx.emit(ServiceEvent(Effect::Say {
+                Action::Show => cx.emit(ServiceEvent(Effect::Starting {
                     note: Note::new("network.bridge_starting", &[&label]),
                     origin,
                 })),
@@ -306,6 +312,7 @@ impl Service {
                     self.check.kill();
                     self.check_busy = false;
                     self.mounts.bridge_failed(generation);
+                    cx.emit(ServiceEvent(Effect::Settled { origin }));
                     cx.emit(ServiceEvent(Effect::Say {
                         note: Note::new("network.bridge_failed_timeout", &[&label]),
                         origin,

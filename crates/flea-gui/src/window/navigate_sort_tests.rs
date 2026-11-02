@@ -204,3 +204,33 @@ fn ey139_remember_on_keeps_each_folder_sort_and_leaves_global_untouched(cx: &mut
 
 #[path = "sort_atomic_tests.rs"]
 mod atomic;
+
+#[gpui::test]
+fn uish_misc_showing_hidden_files_lands_the_cursor_on_row_zero(cx: &mut TestAppContext) {
+    let (backend, mut requests) = Backend::test_lines();
+    let (shell, cx) = mount(backend, cx, false);
+    while requests().is_some() {}
+    cx.simulate_keystrokes("down");
+    assert_eq!(read(&shell, cx, "cursor", &[]), "1");
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            let data = flea::uistate::patched(
+                &shell.launch.settings.data,
+                &flea::jsondoc::parse(r#"{"hidden":true}"#).unwrap(),
+            )
+            .unwrap();
+            shell.apply_settings(data, window, cx);
+        })
+    });
+    let list = request(&mut requests, "list");
+    assert_eq!(list.get("hidden").and_then(Json::as_bool), Some(true));
+    let listing = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().pane.held.listing + 1
+    });
+    land(&shell, cx, "/work", listing, &[".dot", "A", "Empty"]);
+    assert_eq!(
+        read(&shell, cx, "cursor", &[]),
+        "0",
+        "Pane.qml re-opens the folder when hidden changes, so the cursor goes back to row 0"
+    );
+}

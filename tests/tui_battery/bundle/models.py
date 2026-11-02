@@ -12,6 +12,7 @@ BRACKET_TRIANGLES = 4212
 KNOB_SEGMENTS = 360
 ORANGE = ((255, 106, 19), (138, 50, 4))
 WHITE = ((238, 238, 236), (119, 118, 123))
+FOREGROUND = ((198, 179, 149), (106, 89, 62))  # the board theme's #c6b395 and its OKLCH shade: a part with no material
 P1S_PLATE = (256, 256)
 MK4_PLATE = (250, 210)
 SHELF_KIT = [(70, 80), (70, 136), (165, 128)]  # plate 1: two brackets and the knob, plate millimetres
@@ -206,7 +207,7 @@ def obj(tris, name, target):
 
 
 def model_xml(objects, items, unit="millimeter", materials=None, bed=None):
-    """objects: [(id, name, tris)]; items: [(object id, x, y)] as translations."""
+    """objects: [(id, name, tris)]; items: [(object id, x, y)] as translations; materials: {object id: pindex}, others carry none."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            f'<model unit="{unit}" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
            '<metadata name="Application">flea fixture</metadata>']
@@ -216,11 +217,10 @@ def model_xml(objects, items, unit="millimeter", materials=None, bed=None):
                 f'<metadata name="printable_area">0x0,{width}x0,{width}x{depth},0x{depth}</metadata>']
     out.append("<resources>")
     if materials:
-        out += ['<basematerials id="1024"><base name="white" displaycolor="#EEEEEC"/>',
-                '<base name="orange" displaycolor="#FF6A13"/></basematerials>']
+        out.append('<basematerials id="1024"><base name="orange" displaycolor="#FF6A13"/></basematerials>')
     for oid, name, tris in objects:
         vertices, faces = indexed(tris)
-        material = f' pid="1024" pindex="{materials[oid]}"' if materials else ""
+        material = f' pid="1024" pindex="{materials[oid]}"' if materials and oid in materials else ""
         out.append(f'<object id="{oid}" name="{name}" type="model"{material}><mesh><vertices>')
         out += [f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>' for x, y, z in vertices]
         out.append("</vertices><triangles>")
@@ -276,7 +276,7 @@ def benchy_3mf(target):
     def parts(tris):
         return [("[Content_Types].xml", CONTENT_TYPES_3MF, False), ("_rels/.rels", RELS_3MF, False),
                 ("3D/3dmodel.model", model_xml([(1, "benchy", tris)], [(1, BENCHY_AT[0], BENCHY_AT[1])],
-                                            materials={1: 1}, bed=P1S_PLATE), False),
+                                            materials={1: 0}, bed=P1S_PLATE), False),
                 ("Metadata/thumbnail.png", thumb, False), ("Metadata/plate_1.png", thumb, False),
                 ("Metadata/slice_info.config", slice_info(1, "4320", "13.42"), False)]
     return threemf(parts, base, target)
@@ -302,10 +302,10 @@ def model_settings(plates):
     return ("\n".join(out) + "\n").encode()
 
 
-def kit_meshes(plate):
+def kit_meshes(plate, bracket_ink=WHITE):
     if plate == 1:
         (ax, ay), (bx, by), (kx, ky) = SHELF_KIT
-        return [(bracket(ax, ay), *WHITE), (bracket(bx, by), *WHITE), (knob(kx, ky), *ORANGE)]
+        return [(bracket(ax, ay), *bracket_ink), (bracket(bx, by), *bracket_ink), (knob(kx, ky), *ORANGE)]
     return [(knob(*PLATE2_KNOB), *ORANGE)]
 
 
@@ -319,7 +319,7 @@ def shelf_kit_3mf(target):
         objects = [(1, "bracket", shape), (2, "bracket", shape), (3, "knob", knob_tris), (4, "knob", knob_tris)]
         items = [(1, ax, ay), (2, bx, by), (3, kx, ky), (4, PLATE_PITCH + PLATE2_KNOB[0], PLATE2_KNOB[1])]
         return [("[Content_Types].xml", CONTENT_TYPES_3MF, False), ("_rels/.rels", RELS_3MF, False),
-                ("3D/3dmodel.model", model_xml(objects, items, materials={1: 0, 2: 0, 3: 1, 4: 1}, bed=P1S_PLATE), False),
+                ("3D/3dmodel.model", model_xml(objects, items, materials={3: 0, 4: 0}, bed=P1S_PLATE), False),
                 ("Metadata/model_settings.config", model_settings([[1, 2, 3], [4]]), False),
                 ("Metadata/slice_info.config", slice_info(2, "2580", "31.80"), False),
                 ("Metadata/thumbnail.png", plate1, False), ("Metadata/plate_1.png", plate1, False),
@@ -329,7 +329,7 @@ def shelf_kit_3mf(target):
 
 def kit_reference(width, height, az):
     """Plate 1 of shelf-kit.3mf on the whole P1S plate, the independent render a Quick Look reference uses."""
-    return raster.render(kit_meshes(1), width, height, az=az, fill=0.88, plate=P1S_PLATE)
+    return raster.render(kit_meshes(1, FOREGROUND), width, height, az=az, fill=0.88, plate=P1S_PLATE)
 
 
 def layer_loops(z, ox, oy):

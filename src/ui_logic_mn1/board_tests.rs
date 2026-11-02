@@ -295,15 +295,11 @@ fn every_board_card_draws_the_boards_rows_width_place_and_scroll() {
         let name = card.board;
         let drawn: Vec<String> = rows.iter().map(|e| row(&i18n, e, hints)).collect();
         // Print's ctrl-p waits for the print unit's binding in keys.toml, so its key is pinned once that lands.
-        let mut want: Vec<String> = card
+        let want: Vec<String> = card
             .rows
             .split('|')
             .map(|r| r.replace(" ^ctrl-p", ""))
             .collect();
-        if name == "file-menu-combine" {
-            // Open With acts on one item, as v0.3.12 dims it; the board names no change, so the dimmed row stays.
-            want[1] = "Open With [app-window] dis >".into();
-        }
         if name == "lang-de-menu" {
             // The German catalog belongs to the languages unit; until it lands the rows are pinned by mark, ink and shape.
             let shape = |r: &str| {

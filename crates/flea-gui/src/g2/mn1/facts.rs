@@ -1,5 +1,4 @@
 //! The menu facts: the cursor rows' context, the rows Settings hides, the backend's archive answer and the Update Flea hint.
-use super::join::flag;
 use crate::{state::Shell, window::pane::PaneHost};
 use flea::{
     jsondoc::Json,
@@ -22,14 +21,10 @@ impl Shell {
                     .map(str::to_owned)
                     .collect::<Vec<_>>()
             });
+        // Add to Shelf follows any shelf plugin switched on and ready, the built-in Shelf (shelf.enabled) or one added.
         inventory::effective_hidden(
             stored.as_deref(),
-            self.launch
-                .settings
-                .data
-                .get("shelf")
-                .is_some_and(|s| flag(s, "enabled"))
-                && self.declared_menu_plugins("shelf").next().is_some(),
+            self.declared_menu_plugins("shelf").next().is_some(),
         )
     }
 
@@ -69,10 +64,17 @@ impl Shell {
             row_is_file: facts.is_some_and(|r| !r.dir),
             row_is_symlink: facts.is_some_and(|r| r.link.is_some()),
             row_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            flash_zip_member: facts.map_or_else(String::new, |r| {
+                let base = host.search.owner.session.base_of(&host.path);
+                self.menu.zip[side]
+                    .member_for(&crate::navigation::history::join(base, &r.name))
+                    .to_owned()
+            }),
             row_is_archive: facts
                 .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
             archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
             row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
+            row_is_document: facts.is_some_and(|r| crate::window::output::kind(r).paged()),
             selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
             printable: kinds.len() == rows.len() && flea::ui_logic_op4::output::can_print(&kinds),
             can_convert: self.output.convert[side] != Some(false),
@@ -91,6 +93,7 @@ impl Shell {
             clipboard_available,
             clipboard_watch_failed,
             can_link,
+            can_trash: flea::ui_logic_pl1::mounts::trashable(&host.path, None),
             // Menu.js greys New Folder, New File, Paste and every writing row where the backend cannot write the folder.
             dir_writable: host
                 .backend

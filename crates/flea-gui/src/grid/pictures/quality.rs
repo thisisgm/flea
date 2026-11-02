@@ -156,6 +156,12 @@ pub(super) fn bounds(
 }
 
 pub(super) fn begin_trace(map: &mut Map, row: usize, directory: &str, name: &str) {
+    if crate::bench_thumbs::enabled() {
+        crate::bench_thumbs::begin(
+            "thumbnail",
+            &crate::navigation::history::join(directory, name),
+        );
+    }
     if let Some(trace) = crate::preview_trace::Trace::begin(
         "grid",
         &crate::navigation::history::join(directory, name),

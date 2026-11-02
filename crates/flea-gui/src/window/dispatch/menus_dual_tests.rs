@@ -5,7 +5,7 @@ use crate::{state::Shell, window::startup::View};
 use gpui::{px, Entity, VisualTestContext};
 
 // A point inside a pane's drawn rows: on a row's middle, or below the last row for the folder's own menu.
-fn spot(
+pub(super) fn spot(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     side: usize,

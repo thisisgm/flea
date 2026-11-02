@@ -1,6 +1,5 @@
 //! Paste and Copy As dispatch: every paste verb reads the same file selection, including the no-watcher fallback; a port of Clipboard.paste, Ops.paste, Ops.pasteLink and Ops.copyAs, with link kinds from the Paste As leaves and Copy As formats from mn1's words.
 use super::clipboard::Clip;
-use super::wire::paste_image_line;
 use super::{Out, PasteAsk, Said};
 use crate::i18n::I18n;
 use crate::ui_logic_mn1::copyas::{self, Format};
@@ -159,8 +158,10 @@ pub fn plan(
     }
     if current.paths.is_empty() && pending.link.is_none() {
         // No paths: the backend pastes an image as a stamped file, or answers its own sentence.
-        let line = paste_image_line(&pending.dest, &image_name(stamp));
-        return vec![Out::Send(line)];
+        return vec![Out::Ask(PasteAsk::Image {
+            dest: pending.dest.clone(),
+            name: image_name(stamp),
+        })];
     }
     if current.paths.is_empty() {
         let said = Said { text: i18n.tr("menu.refusal.empty_clipboard"), error: false, paste_hint: false };

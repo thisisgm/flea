@@ -50,6 +50,12 @@ fn call(
 }
 
 fn root(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
+    cx.update(|cx| {
+        cx.set_global(crate::g2::pl1::source::fixture::Services {
+            runner: crate::window::network::default_runner(),
+            hostname: "testhost".into(),
+        })
+    });
     let (backend, _) = Backend::test_lines();
     let (root, cx) = cx.add_window_view(|window, cx| crate::window::root::Root {
         shell: cx.new(|cx| {
@@ -81,7 +87,16 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
         call(&shell, "flea", "networkFocus", &[], cx),
         Reply::value("Host")
     );
-    shell.update(cx, |shell, _| {
+    shell.update(cx, |shell, cx| {
+        shell
+            .rail
+            .as_ref()
+            .unwrap()
+            .devices
+            .update(cx, |source, _| {
+                source.fixture_mount_listing().text =
+                    "Mount(0): Saved share -> smb://nas/share\n".into();
+            });
         let network = shell.network().unwrap();
         network.listing.text = "Mount(0): Saved share -> smb://nas/share\n".into();
     });
@@ -113,6 +128,22 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
         call(&shell, "flea", "networkEntries", &[], cx),
         Reply::value("Saved share|network|share|true"),
         "an empty mountinfo snapshot removes injected kernel rows, retaining gio"
+    );
+}
+
+#[gpui::test]
+fn sol_gh374_375_mac_cifs_children_do_not_flood_the_mounted_rail(cx: &mut TestAppContext) {
+    let (shell, cx) = root(cx);
+    let fixture = include_str!("../../../../src/ui_logic_pl2/fixtures/gh374.mountinfo");
+    assert_eq!(
+        call(&shell, "flea", "networkFeedMountinfo", &[fixture], cx),
+        Reply::value("fed")
+    );
+    frame(cx);
+    assert_eq!(
+        call(&shell, "flea", "networkEntries", &[], cx),
+        Reply::value("MacMini|network|share|true\nMediaDrive|network|share|true"),
+        "23 iCloud Documents submounts belong to MacMini, while MediaDrive stays independent"
     );
 }
 

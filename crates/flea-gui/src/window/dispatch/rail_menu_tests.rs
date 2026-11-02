@@ -8,7 +8,7 @@ use gpui::{
     VisualTestContext,
 };
 
-fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestContext) {
+pub(super) fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = open_root_with(
         cx,
         if full {
@@ -42,7 +42,7 @@ fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestC
     (shell, cx)
 }
 
-fn row(
+pub(super) fn row(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     kind: Kind,
@@ -370,3 +370,6 @@ fn ey358_escape_on_an_auto_hidden_favourite_menu_returns_to_the_rail_row(cx: &mu
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "rail_overlay_focus_tests.rs"]
+mod overlay_focus;

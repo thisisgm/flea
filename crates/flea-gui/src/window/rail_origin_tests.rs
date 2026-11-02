@@ -60,3 +60,34 @@ fn gcomp39_real_rail_focus_handoff_preserves_queued_origins_invalid_targets_and_
     // PB-RAIL-2: the Trash row's menu is a handled order now (window/dispatch/rail_menu.rs), so it no longer reaches observers.
     assert_eq!(requests[2].event, Event::Trash);
 }
+
+#[gpui::test]
+fn uish_misc_l_on_a_rail_row_opens_it_as_enter_does(cx: &mut TestAppContext) {
+    let (shell, cx) = open(false, cx);
+    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
+    let sink = heard.clone();
+    let _subscription = cx.update(|_, cx| {
+        cx.subscribe(&shell, move |_, request: &Request, _| {
+            sink.borrow_mut().push(request.clone());
+        })
+    });
+    let producer = producer(&shell, cx);
+    cx.update(|_, cx| {
+        producer.update(cx, |producer, cx| {
+            producer.key_action("cursorFirst", cx);
+            producer.key_action("pageForward", cx);
+        });
+    });
+    cx.run_until_parked();
+    frame(cx);
+    let requests = heard.borrow();
+    assert_eq!(
+        requests
+            .iter()
+            .map(|request| &request.event)
+            .collect::<Vec<_>>(),
+        [&Event::Trash],
+        "l on the rail did not open the row under the cursor"
+    );
+}

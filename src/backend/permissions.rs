@@ -6,6 +6,9 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 
+mod target;
+use target::{mode, Target};
+
 const O_PATH: i32 = 0o10000000;
 const AT_EMPTY_PATH: i32 = 0x1000;
 // Linux assigns fchmodat2 number 452 on both supported 64-bit architectures.
@@ -26,15 +29,6 @@ struct Reviewed {
     file: File,
     dev: u64,
     ino: u64,
-}
-
-// Sample input: "644" or "0644"; special bits and partial/whitespace inputs are not ordinary modes.
-fn mode(text: &str) -> Result<u32, String> {
-    let ordinary = text.len() == 3 || (text.len() == 4 && text.starts_with('0'));
-    if !ordinary || !text.bytes().all(|b| (b'0'..=b'7').contains(&b)) {
-        return Err("Enter three octal digits or a leading-zero four-digit mode.".into());
-    }
-    u32::from_str_radix(text, 8).map_err(|e| e.to_string())
 }
 
 fn reason(meta: &Metadata, uid: u32) -> String {
@@ -157,9 +151,9 @@ pub fn apply_many(items: &[(PathBuf, String)]) -> Result<Vec<crate::backend::und
         return Err(BatchError { msg: "Permissions needs at least one selected item.".into(), applied: Vec::new() });
     }
     let uid = unsafe { geteuid() };
-    let mut checked: Vec<(PathBuf, u32)> = Vec::with_capacity(items.len());
+    let mut checked: Vec<(PathBuf, Target)> = Vec::with_capacity(items.len());
     for (path, text) in items {
-        let requested = mode(text).map_err(|e| BatchError { msg: e, applied: Vec::new() })?;
+        let requested = Target::parse(text).map_err(|e| BatchError { msg: e, applied: Vec::new() })?;
         if !path.is_absolute() {
             return Err(BatchError { msg: "Permissions requires an absolute path and request identity.".into(), applied: Vec::new() });
         }
@@ -184,9 +178,10 @@ pub fn apply_many(items: &[(PathBuf, String)]) -> Result<Vec<crate::backend::und
             check_shape(&before).map_err(str::to_string)?;
             let (dev, ino, before_bits) = (before.dev(), before.ino(), before.mode() & 0o777);
             let (born, generation) = (born_of(&before), super::filegen::of_path(path));
-            chmod_pinned(path, dev, ino, (born, generation), before_bits, *requested)
+            let target = requested.resolve(before_bits);
+            chmod_pinned(path, dev, ino, (born, generation), before_bits, target)
                 .map_err(|e| format!("Could not change mode: {}.", e))?;
-            Ok(crate::backend::undo::Step::Mode { path: path.clone(), before: before_bits, after: *requested, dev, ino, born, generation })
+            Ok(crate::backend::undo::Step::Mode { path: path.clone(), before: before_bits, after: target, dev, ino, born, generation })
         })();
         match outcome {
             Ok(step) => steps.push(step),

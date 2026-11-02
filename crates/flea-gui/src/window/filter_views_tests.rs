@@ -13,6 +13,9 @@ mod columns;
 #[path = "filter_exit_columns_tests.rs"]
 mod columns_exit;
 
+#[path = "fixreaders_filter_tests.rs"]
+mod fixreaders;
+
 type Handle = WindowHandle<Root>;
 
 fn open(cx: &mut TestAppContext) -> Handle {
@@ -239,4 +242,43 @@ fn ey390_grid_captions_mark_the_filter_run(cx: &mut TestAppContext) {
             "HIG grid-filter-matches.png and v0.3.12 wash the typed run in every other tile: {marked:?}"
         );
     });
+}
+
+/// EY-470: stateLayers reports the no-match headline the pane draws, as message true with its text.
+#[gpui::test]
+fn ey470_state_layers_reads_the_drawn_filter_no_match_headline(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, cx| {
+        filter(shell, "zzz", 1000, 2, "", cx)
+    });
+    frame(cx, handle);
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    assert!(
+        visual.debug_bounds("no-match-hero").is_some(),
+        "the headline is drawn"
+    );
+    let reply = edit(cx, handle, |shell, window, cx| {
+        let (answer, receive) = std::sync::mpsc::sync_channel(1);
+        shell.ipc(
+            crate::ipc::server::Event::Call {
+                request: flea::ipc::wire::Request::Call {
+                    target: "flea".into(),
+                    function: "stateLayers".into(),
+                    arguments: vec![],
+                },
+                answer,
+            },
+            window,
+            cx,
+        );
+        receive.try_recv().unwrap().reply
+    });
+    assert_eq!(reply.code, 0, "{}", reply.stderr);
+    let layers = flea::jsondoc::parse(reply.stdout.trim()).unwrap();
+    assert_eq!(layers.get("message").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        layers.get("headline").and_then(|v| v.as_str()),
+        Some("NOTHING MATCHES zzz")
+    );
 }

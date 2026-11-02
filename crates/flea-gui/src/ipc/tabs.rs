@@ -123,10 +123,19 @@ pub struct MountedTabsAdapter<'a> {
     pub frame: Option<&'a bar::Frame>,
     pub identities: &'a [u64],
     pub bounds: Option<gpui::Bounds<gpui::Pixels>>,
+    /// Live tear-off catchers, lifts and compositor client queries, for the GPUI-only tabTearoffState.
+    pub tearoff: [usize; 3],
 }
 
 impl Adapter for MountedTabsAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        // GPUI-only: the tabtearoff.qml catcher layer (namespace flea-tab-tearoff) and TabDragGeometry's one client query per lift.
+        if function == "tabTearoffState" {
+            let [catchers, lifts, queries] = self.tearoff;
+            return Some(Reply::value(format!(
+                r#"{{"catchers":{catchers},"namespace":"flea-tab-tearoff","lifts":{lifts},"clientQueries":{queries}}}"#
+            )));
+        }
         // A drawn strip answers its painted labels; an undrawn one (one tab, the dual view) the model's (Ipc.qml tabLabels).
         if let (Some(frame), "tabLabels") = (self.frame, function) {
             let labels = frame

@@ -1,16 +1,13 @@
 //! The menu card as one custom Element: the frame, each row's wash, mark, label and trailing parts, and the edge fades.
-pub(crate) mod icons;
+pub(super) mod frames;
 
-use super::glyphs;
 use super::lines::{paint_text, Ink, Lead, Line};
 use super::menu::{Card, Menu};
-use crate::list::Palette;
-use crate::palette::Theme;
+use super::{app_icons, glyphs};
 use flea::ui_logic_mn1::fit::Metrics;
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, size, App, BorderStyle, Bounds,
-    ContentMask, Element, ElementId, GlobalElementId, Hsla, InspectorElementId, IntoElement,
-    LayoutId, Pixels, Position, Style, TransformationMatrix, Window,
+    ContentMask, Hsla, IntoElement, Pixels, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -39,6 +36,7 @@ thread_local! {
 mod ink;
 pub use ink::MenuInk;
 
+#[derive(IntoElement)]
 pub struct MenuElement {
     menu: Rc<RefCell<Menu>>,
     // The compositor's corner radius, which the window module reads from Hyprland.
@@ -63,14 +61,7 @@ impl MenuElement {
     }
 }
 
-impl IntoElement for MenuElement {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
-fn paint_mark(
+pub(super) fn paint_mark(
     key: gpui::SharedString,
     data: &'static [u8],
     bounds: Bounds<Pixels>,
@@ -153,15 +144,15 @@ fn paint_lead(
                 color,
             ));
         }
-        Lead::Icon(name) => {
-            let side = metrics.of(16.);
-            let scale = window.scale_factor().ceil().max(1.) as u32;
-            if let Some(image) = icons::image(name, side as u32, scale, window, cx) {
-                let bounds = slot(at, side, side, metrics);
-                let fit = gpui::ObjectFit::Contain.get_bounds(bounds, image.size(0));
-                let _ = window.paint_image(bounds, fit, gpui::Corners::default(), image, 0, false);
-                return;
-            }
+        Lead::Icon(path)
+            if app_icons::paint(
+                path,
+                metrics.slot,
+                slot(at, metrics.slot, metrics.slot, metrics),
+                window,
+                cx,
+            ) => {}
+        Lead::Icon(_) => {
             let (key, data) = glyphs::mark("app-window");
             paint_mark(
                 key,
@@ -240,11 +231,11 @@ fn paint_row(
         }
         edge -= px(metrics.chevron + metrics.gap);
     }
-    for (part, width) in line
+    for (part, width, state) in line
         .key
         .iter()
-        .map(|key| (key, key.width()))
-        .chain(line.word.iter().map(|word| (word, line.word_width())))
+        .map(|key| (key, key.width(), false))
+        .chain(line.word.iter().map(|word| (word, line.word_width(), true)))
     {
         let x = edge - px(width);
         if let Some(caption) = &line.wrapped {
@@ -257,12 +248,27 @@ fn paint_row(
             paint_text(
                 part,
                 point(x, top),
-                ink.muted.opacity(dim),
+                if state && line.hint_square {
+                    label_ink
+                } else {
+                    ink.muted.opacity(dim)
+                },
                 metrics.row,
                 window,
             );
         }
         edge = x - px(metrics.gap);
+    }
+    if line.hint_square {
+        let side = metrics.of(super::lines::STATUS_SQUARE);
+        let x = edge + px(metrics.gap) - px(line.status_width());
+        window.paint_quad(fill(
+            Bounds::new(
+                point(x, top + px((metrics.row as f32 - side) / 2.)),
+                size(px(side), px(side)),
+            ),
+            ink.accent.opacity(dim),
+        ));
     }
     if let Some(state) = line.tag_state {
         super::tag_checks::paint(state, edge, top, label_ink, metrics, window, cx);
@@ -362,84 +368,4 @@ fn paint_card(
             ));
         }
     });
-}
-
-impl Element for MenuElement {
-    type RequestLayoutState = ();
-    type PrepaintState = MenuInk;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let style = Style {
-            position: Position::Absolute,
-            size: size(gpui::relative(1.).into(), gpui::relative(1.).into()),
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) -> MenuInk {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        // A failed provider and a destructive row read in the theme's error role.
-        MenuInk {
-            error: theme.error,
-            tags: theme.tag_menu_inks,
-            ..MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
-        }
-    }
-
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        ink: &mut MenuInk,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        let menu = self.menu.borrow();
-        let card = if self.faded {
-            menu.faded.as_ref().map(|faded| &faded.flyout.card)
-        } else {
-            menu.card.as_ref()
-        };
-        let Some(card) = card else { return };
-        let ink = *ink;
-        let lit = (!self.faded)
-            .then(|| menu.flyout.as_ref().and_then(|f| f.parent))
-            .flatten();
-        paint_card(card, lit, self.radius, &ink, bounds.origin, window, cx);
-        if let Some(flyout) = menu.flyout.as_ref().filter(|_| !self.faded) {
-            paint_card(
-                &flyout.card,
-                None,
-                self.radius,
-                &ink,
-                bounds.origin,
-                window,
-                cx,
-            );
-        }
-    }
 }

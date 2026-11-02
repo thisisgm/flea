@@ -116,7 +116,7 @@ fn pb_rest_2_enter_resolves_selected_rows_outside_the_viewport(cx: &mut TestAppC
 }
 
 #[gpui::test]
-fn pb_rest_2_escape_deselects_without_clearing_a_standing_filter(cx: &mut TestAppContext) {
+fn s1_pb_rest_2_escape_clears_a_standing_filter_before_the_marks(cx: &mut TestAppContext) {
     let (shell, cx) = start(cx, false, false);
     cx.simulate_keystrokes("/ a");
     reply(
@@ -124,21 +124,20 @@ fn pb_rest_2_escape_deselects_without_clearing_a_standing_filter(cx: &mut TestAp
         cx,
         r#"{"t":"filtered","id":1,"query":"a","n":1000,"rows":[0,1],"ms":0.01,"listing":1}"#,
     );
-    cx.simulate_keystrokes("ctrl-a escape");
+    // Enter hands the keyboard to the list, whose Ctrl+A marks the matches (EY-115: the typed line keeps it).
+    cx.simulate_keystrokes("enter ctrl-a escape");
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
-        assert!(host.selected.is_empty(), "Escape clears marks first");
-        assert!(host.filter.owner.up(), "the standing filter stays visible");
-        assert_eq!(host.filter.owner.query(), "a");
-        assert_eq!(host.filter.shown.as_deref(), Some(&[0, 1][..]));
+        assert_eq!(host.selected, vec![0, 1], "Focus.js:187 keeps the marks");
+        assert!(!host.filter.owner.up(), "Escape closes the standing filter");
+        assert!(host.filter.shown.is_none(), "every row is back");
     });
     cx.simulate_keystrokes("escape");
-    assert!(!shell.read_with(cx, |shell, _| shell.panes[0]
-        .as_ref()
-        .unwrap()
-        .filter
-        .owner
-        .up()));
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.selected.is_empty(), "the next Escape clears the marks");
+        assert!(!host.filter.owner.up());
+    });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

@@ -11,6 +11,8 @@ use flea::{
 };
 use gpui::{AppContext, Context, TestAppContext, Window, WindowHandle};
 
+#[path = "gcomp_background_menu_tests.rs"]
+mod background_menu;
 #[path = "gcomp_batch_tests.rs"]
 mod batch;
 #[path = "footer_feedback_tests.rs"]

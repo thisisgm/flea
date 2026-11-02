@@ -34,7 +34,7 @@ fn success(m: &mut Mounts) {
 }
 
 #[test]
-fn review_password_cleared_when_connect_errors() {
+fn review_password_retained_for_retry_and_cleared_when_closed() {
     let mut d = Dialog::default();
     d.open();
     d.form.host = "host".into();
@@ -44,9 +44,12 @@ fn review_password_cleared_when_connect_errors() {
     let uri = d.pending_uri.clone();
     d.mount_finished(d.request, &uri, Err("network.password_refused"), true);
     assert!(
-        d.password.is_empty(),
-        "connection error retained draft password"
+        d.password.expose() == b"synthetic-secret",
+        "connection error lost the live Retry draft"
     );
+    assert!(!d.reveal);
+    d.close();
+    assert!(d.password.is_empty());
 }
 
 #[test]

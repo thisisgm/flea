@@ -191,7 +191,13 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
         );
         shell.view = View::List;
     });
-    // Ctrl+A on the line marks every exact row and hands the keyboard to the list.
+    // Ctrl+A on the typed line stays on it (EY-115); after Enter the list's Ctrl+A marks every exact row.
+    press(cx, handle, "a", None, true);
+    edit(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.selected.is_empty() && host.filter.owner.typing());
+    });
+    press(cx, handle, "enter", None, false);
     press(cx, handle, "a", None, true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -208,16 +214,16 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
             .cursor),
         5
     );
-    // Escape clears marks first; another Escape closes the standing filter.
-    press(cx, handle, "escape", None, false);
-    assert_eq!(shown(cx, handle), Some(vec![3, 5, 700]));
-    edit(cx, handle, |shell, _, _| {
-        assert!(shell.panes[0].as_ref().unwrap().selected.is_empty())
-    });
+    // Focus.js:187: Escape closes the standing filter and keeps the marks; another Escape clears them.
     press(cx, handle, "escape", None, false);
     assert_eq!(shown(cx, handle), None);
     edit(cx, handle, |shell, _, _| {
-        assert!(shell.slots.strips[0].is_none())
+        assert!(shell.slots.strips[0].is_none());
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, vec![3, 5, 700]);
+    });
+    press(cx, handle, "escape", None, false);
+    edit(cx, handle, |shell, _, _| {
+        assert!(shell.panes[0].as_ref().unwrap().selected.is_empty())
     });
     frame(cx, handle);
     assert_eq!(drawn_list(cx, handle).first(), Some(&(0, 0)));
@@ -234,6 +240,7 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
         r#"{"t":"filtered","id":2,"query":"x","n":1000,"rows":[],"close":[9,4],"ms":0.010,"listing":2}"#,
     );
     assert_eq!(shown(cx, handle), Some(vec![9, 4]));
+    press(cx, handle, "enter", None, false);
     press(cx, handle, "a", None, true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

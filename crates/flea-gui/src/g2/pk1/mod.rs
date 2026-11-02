@@ -34,6 +34,7 @@ mod restore;
 mod route;
 pub mod selection;
 mod settings;
+mod size;
 mod text;
 mod view;
 
@@ -67,6 +68,14 @@ mod ey377_list_wheel_tests;
 #[cfg(test)]
 mod face_tests;
 #[cfg(test)]
+mod filter_fade_tests;
+#[cfg(test)]
+mod fix_picker_2b_tests;
+#[cfg(test)]
+mod fixchrome_tests;
+#[cfg(test)]
+mod fixlogic_ey485_tests;
+#[cfg(test)]
 mod header_tests;
 #[cfg(test)]
 mod i50_fit_tests;
@@ -92,7 +101,13 @@ mod save_enabled_tests;
 #[cfg(test)]
 mod board_parity_tests;
 #[cfg(test)]
+mod ey_chooser_tests;
+#[cfg(test)]
+mod fix_picker_2a_tests;
+#[cfg(test)]
 mod frame_gate_tests;
+#[cfg(test)]
+mod gm338_hidden_tests;
 #[cfg(test)]
 mod recent_parity_tests;
 #[cfg(test)]

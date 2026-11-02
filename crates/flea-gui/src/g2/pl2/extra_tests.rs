@@ -176,7 +176,7 @@ fn pl2_protocol_focus_hides_no_live_field() {
     dialog.open();
     dialog.focus = Focus::Domain;
     dialog.pick(1);
-    assert_eq!(dialog.focus, Focus::Host);
+    assert_eq!(dialog.focus, Focus::User);
     for _ in 0..dialog.ring().len() {
         dialog.step(false);
         assert!(dialog.ring().contains(&dialog.focus));

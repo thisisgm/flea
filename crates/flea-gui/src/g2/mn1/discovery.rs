@@ -4,6 +4,9 @@ use crate::state::Shell;
 use flea::{json::escape, jsondoc::Json, ui_logic_mn1::build::Peer};
 use gpui::{Context, Window};
 
+/// How long a menu waits on the applications catalogue before it draws without it.
+pub(crate) const APPLICATIONS_WAIT_MS: u64 = 400;
+
 impl Shell {
     pub(crate) fn discover_menu(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(capture) = self.menu.captured.clone() else {
@@ -33,7 +36,7 @@ impl Shell {
             .menu
             .captured
             .clone()
-            .filter(|c| c.rows.len() == 1 && self.menu.pending.is_none())
+            .filter(|c| !c.rows.is_empty() && !c.background && self.menu.pending.is_none())
         else {
             self.menu.context.open_with_loaded = true;
             self.refresh_menu(window, cx);
@@ -48,6 +51,27 @@ impl Shell {
             ),
             cx,
         );
+        // A hung catalogue draws as a refusal after the deadline; a late answer still fills Open With.
+        let id = capture.id;
+        cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(APPLICATIONS_WAIT_MS))
+                .await;
+            let _ = cx.update(|window, cx| {
+                this.update(cx, |shell, cx| {
+                    let waiting = shell.menu.reading
+                        && !shell.menu.context.open_with_loaded
+                        && shell.menu.captured.as_ref().is_some_and(|c| c.id == id);
+                    if waiting {
+                        shell.menu.reading = false;
+                        shell.menu.context.open_with_loaded = true;
+                        shell.menu.context.open_with_apps.clear();
+                        shell.refresh_menu(window, cx);
+                    }
+                })
+            });
+        })
+        .detach();
     }
 
     pub(crate) fn menu_discovery_reply(

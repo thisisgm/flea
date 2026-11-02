@@ -1,6 +1,6 @@
 //! The column preview animates a GIF and keeps a GIF past the raster budget a still.
 use super::previewtypes_kinds_tests::Root;
-use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
+use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump, thumbed};
 use crate::window::u07_tests::read;
 use gpui::{TestAppContext, VisualTestContext};
 use std::{cell::Cell, rc::Rc};
@@ -19,6 +19,80 @@ const STILL_PNG: [u8; 73] = [
     0, 0, 38, 147, 9, 41, 0, 0, 0, 16, 73, 68, 65, 84, 120, 156, 99, 56, 81, 161, 1, 71, 12, 196,
     113, 0, 83, 82, 22, 129, 25, 170, 14, 207, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
 ];
+
+#[gpui::test]
+fn s5_native_gif_reader_reports_loaded_and_painted_indices_without_driving_them(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = Root::new("s5-gif-reader");
+    let dir = root.0.to_string_lossy().into_owned();
+    std::fs::write(root.0.join("anim.gif"), ANIMATED_GIF).unwrap();
+    std::fs::write(root.0.join("still.png"), STILL_PNG).unwrap();
+    let (shell, cx) = open(cx, &dir);
+    super::test_shell::land(
+        &shell,
+        cx,
+        &dir,
+        vec![
+            file("anim.gif", "image-gif", "GIF image", 0o100644),
+            file("other.gif", "image-gif", "GIF image", 0o100644),
+        ],
+        1,
+    );
+    let lines = local(&shell, cx, &dir);
+    meta(&shell, cx, &lines, r#","frames":2,"w":8,"h":8"#);
+    thumbed(&shell, cx, &lines, 0, &format!("{dir}/still.png"));
+    settle_pictures(cx);
+    let state = |cx: &mut VisualTestContext| {
+        flea::jsondoc::parse(&read(&shell, cx, "columnAnimationState", &[])).unwrap()
+    };
+    let first = state(cx);
+    assert_eq!(
+        first
+            .get("loadedFrames")
+            .and_then(flea::jsondoc::Json::as_f64),
+        Some(2.)
+    );
+    let index = |json: &flea::jsondoc::Json| {
+        json.get("paintedIndex")
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap() as usize
+    };
+    assert_eq!(
+        Some(index(&first)),
+        shown_frame(cx),
+        "the reader reports the painted canvas index"
+    );
+    assert_eq!(first, state(cx), "reading never advances a frame");
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(550));
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    let second = state(cx);
+    assert_eq!(index(&second), (index(&first) + 1) % 2);
+    assert_eq!(Some(index(&second)), shown_frame(cx));
+    cx.simulate_keystrokes("down");
+    let lines = pump(cx);
+    meta(&shell, cx, &lines, r#","frames":1,"w":8,"h":8"#);
+    thumbed(&shell, cx, &lines, 1, &format!("{dir}/still.png"));
+    settle_pictures(cx);
+    let replacement = state(cx);
+    assert_eq!(
+        replacement
+            .get("loadedFrames")
+            .and_then(flea::jsondoc::Json::as_f64),
+        Some(0.)
+    );
+    assert_eq!(
+        replacement.get("paintedIndex"),
+        Some(&flea::jsondoc::Json::Null),
+        "a replacement cannot report the retired GIF's index"
+    );
+    super::preview_tests::close(&shell, cx);
+}
 
 /// Frames and real time for a picture decode, which runs on the background executor.
 fn settle_pictures(cx: &mut VisualTestContext) {
@@ -78,11 +152,7 @@ fn an_animated_gif_animates_in_the_column_and_stops_when_the_preview_leaves_it(
     super::test_shell::land(&shell, cx, &dir, rows, 1);
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","frames":4,"w":8,"h":8"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, still.display()),
-    );
+    thumbed(&shell, cx, &lines, 0, &still.to_string_lossy());
     settle_pictures(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image");
     let frames = shell.read_with(cx, |shell, cx| {
@@ -194,11 +264,7 @@ fn a_gif_past_the_raster_budget_stays_a_still_in_the_column(cx: &mut TestAppCont
     super::test_shell::land(&shell, cx, &dir, rows, 1);
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","frames":4,"w":4000,"h":4000"#);
-    answer(
-        &shell,
-        cx,
-        &format!(r#"{{"t":"thumbed","row":0,"file":"{}"}}"#, still.display()),
-    );
+    thumbed(&shell, cx, &lines, 0, &still.to_string_lossy());
     settle_pictures(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image");
     let moving = shell.read_with(cx, |shell, cx| {

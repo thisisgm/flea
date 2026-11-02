@@ -131,16 +131,6 @@ closed_reader!(
 closed_reader!(ipc_share_entries_unbuilt, "shareBrowserEntries", "");
 closed_reader!(ipc_share_open_unbuilt, "shareBrowserOpen", "false");
 
-macro_rules! unavailable_reader {
-    ($test:ident, $name:literal) => {
-        #[gpui::test]
-        fn $test(cx: &mut TestAppContext) {
-            let (handle, _backend) = open(cx);
-            blocked(cx, handle, $name);
-        }
-    };
-}
-
 closed_reader!(
     ipc_menu_dialog_closed_without_a_card,
     "menuDialogState",
@@ -162,12 +152,15 @@ closed_reader!(
     "{\"opened\":false}"
 );
 
-unavailable_reader!(ipc_flash_closed_requires_a_built_lifetime, "flashState");
+closed_reader!(ipc_flash_unbuilt, "flashState", "{\"opened\":false}");
 
 #[path = "reader_port_a_live_tests.rs"]
 mod live;
 #[path = "reader_port_a_unlock_tests.rs"]
 mod unlock;
+
+#[path = "uish_native_reader_tests.rs"]
+mod uish_native;
 
 #[gpui::test]
 fn ipc_status_busy_reads_live_footer(cx: &mut TestAppContext) {

@@ -16,7 +16,7 @@ mkdir -p "$box/stub"
 printf '#include <stdio.h>\nint main(void) { puts("%s"); return 0; }\n' "$version" | cc -x c -o "$box/stub/flea" -
 cp "$box/stub/flea" "$box/stub/flea-gui"
 TMPDIR="$box" SOURCE_DATE_EPOCH=1 packaging/flea-bin-tarball "$box/stub/flea" "$version" "$arch" "$box/stub" >/dev/null
-for name in root flea flea-git flea-bin; do
+for name in root flea-bin; do
     (
         if [ "$name" = root ]; then
             . "$repo/PKGBUILD"
@@ -33,8 +33,7 @@ for name in root flea flea-git flea-bin; do
         printf 'package binary fixture\n' > "$srcdir/target/release/flea"
         printf 'GUI package binary fixture\n' > "$srcdir/target/release/flea-gui"
         case "$name" in
-            root|flea) tree="$srcdir/$pkgname-$pkgver" ;;
-            flea-git) tree="$srcdir/$pkgname" ;;
+            root) tree="$srcdir/$pkgname-$pkgver" ;;
             flea-bin) tree="$srcdir/$_pkgname-$pkgver-linux-$CARCH" ;;
         esac
         mkdir -p "$tree"
@@ -54,6 +53,7 @@ for name in root flea flea-git flea-bin; do
     )
 done
 python3 - "$box" "$repo" <<'PY'
+import os
 import pathlib
 import re
 import shlex
@@ -151,7 +151,7 @@ def helper_installed(base, name):
         return False
 # Sample inputs: import { renderFigure } from "../js/FigureWorker.mjs"; await import("./math.mjs").
 imports = re.compile(r'\b(?:from\s*|import\s*\(\s*|import\s*)["\'](\.[^"\']+)["\']')
-for package in ("root", "flea", "flea-git", "flea-bin"):
+for package in ("root", "flea-bin"):
     checks += 2
     actual_licenses = (root / f"{package}.licenses").read_text().splitlines()
     if len(actual_licenses) != len(expected_licenses) or set(actual_licenses) != expected_licenses:
@@ -236,6 +236,30 @@ for package in ("root", "flea", "flea-git", "flea-bin"):
             if not valid:
                 failures += 1
                 print(f"FAIL {package}: {module.relative_to(ui)} imports missing {relative}")
+# flea-bin's package() must install what the root package's make install does, each package's own licenses directory read as one name.
+# Sample input: usr/share/licenses/flea-bin/LICENSE at 644, read for "flea-bin", gives ("usr/share/licenses/$pkgname/LICENSE", "0o644", "").
+def package_rows(base, licenses):
+    rows = set()
+    prefix = f"usr/share/licenses/{licenses}"
+    for top, dirs, files in os.walk(base):
+        for name in dirs + files:
+            path = pathlib.Path(top) / name
+            relative = path.relative_to(base).as_posix()
+            if relative == prefix or relative.startswith(prefix + "/"):
+                relative = "usr/share/licenses/$pkgname" + relative[len(prefix):]
+            link = os.readlink(path) if path.is_symlink() else ""
+            rows.add((relative, "link" if link else oct(path.lstat().st_mode & 0o7777), link))
+    return rows
+root_rows = package_rows(root / "root" / "pkg", "flea")
+bin_rows = package_rows(root / "flea-bin" / "pkg", "flea-bin")
+checks += 1
+if root_rows != bin_rows:
+    failures += 1
+    for row in sorted(root_rows - bin_rows):
+        print(f"FAIL flea-bin: lacks {' '.join(filter(None, row))}, which the root package installs")
+    for row in sorted(bin_rows - root_rows):
+        print(f"FAIL flea-bin: installs {' '.join(filter(None, row))}, which the root package does not")
+print(f"package trees compared: {len(root_rows)} root, {len(bin_rows)} flea-bin")
 # Sample input: `install -Dm644 "$repo"/ui/js/*.js "$repo"/ui/js/*.mjs -t "$root/ui/js"` gives (["$repo/ui/js/*.js", "$repo/ui/js/*.mjs"], "$root/ui/js", True).
 def install_statements(text):
     statements = []
@@ -300,10 +324,10 @@ for label, doctored, expected in controls:
         print(f"control {label}: reported only {expected}, as a broken script must")
 # A copied package tree with one shelf file and one helper removed must report exactly those two names.
 control_pkg = root / "control" / "pkg"
-shutil.copytree(root / "flea" / "pkg", control_pkg, symlinks=True)
+shutil.copytree(root / "root" / "pkg", control_pkg, symlinks=True)
 shelf_victim = sorted(shelf_files)[0] if shelf_files else None
 helper_victim = sorted(helper_names)[0] if helper_names else None
-# An empty set or a victim the flea package lacks reports one named FAIL and skips the control.
+# An empty set or a victim the root package lacks reports one named FAIL and skips the control.
 control_ready = (shelf_victim is not None and helper_victim is not None
     and (control_pkg / "usr/share/flea/shelf" / shelf_victim).is_file()
     and (control_pkg / "usr/lib/flea" / helper_victim).is_file())
@@ -330,10 +354,14 @@ else:
         print(f"FAIL control helper removed: reported {reported_helpers}, want only {helper_victim}")
     else:
         print(f"control helper removed: reported only {helper_victim}, as a broken script must")
-checks += 1
-if (root / "root.licenses").read_text() != (root / "flea.licenses").read_text():
-    failures += 1
-    print("FAIL root: license identifiers differ from packaging/flea/PKGBUILD")
+    checks += 1
+    reported_rows = sorted(row[0] for row in root_rows - package_rows(control_pkg, "flea"))
+    want_rows = sorted([f"usr/share/flea/shelf/{shelf_victim}", f"usr/lib/flea/{helper_victim}"])
+    if reported_rows != want_rows:
+        failures += 1
+        print(f"FAIL control package trees: reported {reported_rows}, want only {want_rows}")
+    else:
+        print(f"control package trees: reported only {', '.join(want_rows)}, as a drifted package() must")
 print(f"figure-package: {checks} check(s), {failures} failed")
 sys.exit(bool(failures))
 PY

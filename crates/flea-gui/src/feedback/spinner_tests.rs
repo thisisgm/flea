@@ -272,7 +272,7 @@ fn the_pane_describe_reports_the_marks_counters(cx: &mut TestAppContext) {
     let described = data.get("mark").unwrap();
     assert_eq!(
         described.get("mode").and_then(flea::jsondoc::Json::as_str),
-        Some("spiral")
+        Some(mark.mode().id())
     );
     assert_eq!(
         described.get("label").and_then(flea::jsondoc::Json::as_str),

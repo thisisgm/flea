@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
+use crate::oflags::{O_DIRECTORY, O_NOFOLLOW};
 
 // A cancelled caller may leave one syscall behind; another session must not start a second reader on that mount.
 fn active_mounts() -> &'static Mutex<HashSet<PathBuf>> {
@@ -115,7 +116,7 @@ pub(crate) fn bounded_observed(
 // Raw getdents64 into a stack buffer: fdopendir would add an fstat, two fcntl calls and a 32 KiB heap buffer per directory.
 fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), follow: bool, stop: impl Fn() -> bool) -> std::io::Result<Directory> {
     let path = CString::new(dir.as_os_str().as_bytes())?;
-    let flags = 0x80000 | 0x10000 | if follow { 0 } else { 0x20000 };
+    let flags = 0x80000 | O_DIRECTORY | if follow { 0 } else { O_NOFOLLOW };
     let raw = unsafe { open(path.as_ptr(), flags) };
     if raw < 0 { return Err(std::io::Error::last_os_error()); }
     let handle = OpenFd(raw);
@@ -179,6 +180,27 @@ fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), fo
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+
+    #[test]
+    fn arm_oflags_search_refuses_symlinks_unless_following_is_requested() {
+        let dir = TestDir::new("arm-oflags-search");
+        let target = dir.dir("target");
+        std::fs::write(target.join("file"), "body").unwrap();
+        let link = dir.join("link");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert!(
+            read(&link).is_err(),
+            "a directory symlink must be refused at open"
+        );
+        let followed = read_root(&link).unwrap();
+        assert!(followed.partial.is_none());
+        assert_eq!(followed.entries, vec![(OsString::from("file"), false)]);
+        let plain = dir.file("plain", "body");
+        assert!(
+            read(&plain).is_err(),
+            "a regular file must be refused as a directory"
+        );
+    }
 
     #[test]
     fn search_typed_entries_never_call_the_metadata_fallback() {

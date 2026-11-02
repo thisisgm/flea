@@ -168,6 +168,7 @@ impl Shell {
                 });
             }
         }
+        super::docs::wrap_saved(&doc.view, &self.launch.settings.data, cx);
         if was_prepared {
             if let crate::g2::pv1::doc::View::Markdown(view) = &doc.view {
                 let wire = self.quick_look.as_ref().unwrap().wire.clone();

@@ -10,6 +10,8 @@ impl QuickLook {
         let now = self.observation_time(cx);
         self.observations.borrow_mut().closed(now);
         self.closing = Some(subject);
+        self.strip_hide_task = None;
+        self.strip_shown = false;
         self.ground.reset();
         self.revealed = false;
         self.focused = None;
@@ -54,6 +56,8 @@ impl QuickLook {
         self.revealed = false;
         self.expanded = false;
         self.strip_shown = false;
+        self.waiting_due = false;
+        self.waiting_hold = None;
         self.focused = None;
         self.hovered = None;
         self.pressed = None;

@@ -179,3 +179,57 @@ fn ey48_keyboard_sheet_finds_the_locked_menus_rows_even_when_menus_hides_them(
         })
         .unwrap();
 }
+
+// Census w2.locked.target-copy: no shipped Locked row reaches Pane.qml performLocked's fallback, so a row outside the whitelist drives it.
+#[gpui::test]
+fn ruling34_a_locked_tile_row_nobody_runs_says_the_action_is_not_available_yet(
+    cx: &mut TestAppContext,
+) {
+    let handle = locked(cx, Some("[]"));
+    handle
+        .update(cx, |shell, window, cx| {
+            assert!(shell.menu_opened(), "the locked menu opens");
+            let action = "outsideLockedWhitelist";
+            assert!(
+                !shell
+                    .menu_entries()
+                    .iter()
+                    .any(|entry| entry.action == action),
+                "the row is outside the Locked whitelist"
+            );
+            shell.menu.pending = Some((action.into(), String::new()));
+            shell.deliver_menu(vec!["/files".into()], window, cx);
+        })
+        .unwrap();
+    frame(cx, handle);
+    assert_eq!(
+        read(cx, handle, "lastMessage"),
+        Reply::value("That action is not available yet")
+    );
+    assert_eq!(
+        read(cx, handle, "statusError"),
+        Reply::value("false"),
+        "Pane.qml says it as a plain message"
+    );
+}
+
+#[path = "fixlogic2_locked_menu_tests.rs"]
+mod fixlogic2_locked;
+
+// EY-496: m over the Locked hero opens its menu at the middle of the list slot, as Pane.qml openCursorMenu anchors it.
+#[gpui::test]
+fn fixmenus_ey496_the_locked_menu_opens_at_its_hero_not_the_first_row(cx: &mut TestAppContext) {
+    let handle = locked(cx, Some("[]"));
+    handle
+        .update(cx, |shell, window, _| {
+            assert!(shell.menu_opened(), "the locked menu opens");
+            let pane = shell
+                .geometry(window)
+                .rows(0, false, shell.slots.strip_height);
+            assert_eq!(
+                shell.menu.menu.borrow().anchor(),
+                (pane.x + pane.width / 2., pane.y + pane.height / 2.)
+            );
+        })
+        .unwrap();
+}

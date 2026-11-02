@@ -17,6 +17,17 @@ mod tests;
 /// Flea's own drag marker type, offered beside the uri-list (Drag.js ROWS_MIME).
 pub const ROWS_MIME: &str = "application/x-flea-rows";
 
+/// The drop shelf's drag type (DragOut rule 4): the single-use token it minted, then the intent fixed at the lift, one per line.
+pub const SHELF_MIME: &str = "application/x-flea-shelf";
+
+/// A shelf drag's token and whether its intent copies (Drag.shelfToken, shelfCopying); None when it carries no token.
+/// Sample input: "opaque-token\ncopy"
+pub fn shelf(payload: &str) -> Option<(&str, bool)> {
+    let mut lines = payload.split('\n');
+    let token = lines.next().filter(|token| !token.is_empty())?;
+    Some((token, lines.next() == Some("copy")))
+}
+
 pub const INSIDE_DRAG: &str = "drag.inside";
 pub const ALREADY_HERE: &str = "drag.already_here";
 pub const NO_LOCAL_FILES: &str = "drag.no_local_files";

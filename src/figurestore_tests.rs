@@ -9,6 +9,9 @@ const ADVANCES: &str = "#101315|#c0caf5|#7aa2f7|||||monospace|14|7|1f2e3d4c|5a6b
 const SVG: &str = "<svg width=\"10\"><text>caf\u{e9} \u{1d11e}</text></svg>";
 const LARGE: usize = 1 << 20;
 
+#[path = "figurestore_gap64_tests.rs"]
+mod gap64;
+
 fn key(kind: &str, theme: &str, display: bool, source: &str) -> String {
     format!("{kind}\n{theme}\n{display}\n{source}")
 }

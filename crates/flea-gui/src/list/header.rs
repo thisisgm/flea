@@ -71,40 +71,9 @@ impl Drag {
     }
 }
 
-/// One grab zone over a drawn column's left edge: ResizeHandle.qml's nine pixels, offset by half so the hairline sits in its middle.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Handle {
-    pub column: Column,
-    pub x: f32,
-    pub width: f32,
-}
-
-/// Header.qml's handles Loader: zones exist only in a single pane's list header with no search on, one per drawn column.
-pub fn handles(
-    layout: &Layout,
-    metrics: &Metrics,
-    view: &ListView,
-) -> impl Iterator<Item = Handle> {
-    let active = !view.dual && !view.searching;
-    let width = metrics.handle;
-    let half = (width / 2.).floor();
-    let layout = *layout;
-    Column::ALL.into_iter().filter_map(move |column| {
-        let cell = layout.cell(column).filter(|_| active)?;
-        Some(Handle {
-            column,
-            x: cell.x - half,
-            width,
-        })
-    })
-}
-
-/// The zone under a header-local x, if any.
-pub fn handle_at(layout: &Layout, metrics: &Metrics, view: &ListView, x: f32) -> Option<Column> {
-    handles(layout, metrics, view)
-        .find(|handle| x >= handle.x && x < handle.x + handle.width)
-        .map(|handle| handle.column)
-}
+#[path = "header_handles.rs"]
+mod handles;
+pub use handles::{handle_at, handles, Handle};
 
 /// The patch one remembered edge writes through `flea --ui-state`, merged into ui.json's columnWidths map.
 pub fn width_patch(column: Column, width: u32) -> String {
@@ -288,18 +257,33 @@ impl ListState {
         Some(width_patch(column, next))
     }
 
-    /// A release: writes once after a real move, never on a click.
-    pub fn end_drag(&mut self) -> Option<String> {
+    /// A release over the header (`over`) or off it: writes once after a real move, never on a click.
+    pub fn end_drag(&mut self, over: bool) -> Option<String> {
+        // A release off the header lights no zone, even after a drag that moved no edge.
+        if !over {
+            self.header.hot = None;
+        }
         let (column, width) = self.header.drag.end()?;
+        let drag = self.header.drag;
+        // ResizeHandle.qml stays lit under a still pointer only while the edge followed it, never once the rails clamped it.
+        let followed =
+            (drag.preview - (drag.start_width - (drag.last_x - drag.start_x))).abs() < 1.;
+        self.header.hot = (over && followed).then_some(column);
         self.write_width(column, width)
     }
 
-    /// Header.autofitColumn(): a double click ends any drag, then fits one drawn column over the held rows only.
+    /// A double click or F4 ends any drag, then fits an enabled column over the held rows only.
     pub fn autofit(&mut self, column: Column, held: &Held, window: &Window) -> Option<String> {
         self.header.drag.cancel();
-        if self.view.dual || self.view.searching || !self.drawn.layout.shown(column) {
+        if self.view.dual
+            || self.view.searching
+            || !self.view.switched.on(column)
+            || (self.view.recent && matches!(column, Column::Mode | Column::Kind))
+        {
             return None;
         }
+        // A fit moves the edges under a still pointer, so no zone stays lit from before it.
+        self.header.hot = None;
         let (_, tokens) = self.measure(window);
         let current = tokens.wanted(column, self.view.stored);
         let text = window.text_system();

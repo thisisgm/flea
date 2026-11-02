@@ -31,12 +31,25 @@ pub fn palette() -> Palette {
         surface: theme.surface,
         foreground: theme.foreground,
         bright: theme.foreground_bright,
-        figure_muted: theme.muted,
-        muted: theme.metadata,
+        figure_muted: flea_gui::palette::Theme::from_text("foreground='#b3b3b3'").foreground,
+        muted: flea_gui::palette::Theme::from_text("foreground='#999999'").foreground,
         muted_frame: theme.metadata_frame,
         accent_frame: theme.accent_frame,
         inks: theme.code_inks,
     }
+}
+
+#[test]
+fn ci_green4_port_markdown_roles_remain_distinct() {
+    let palette = palette();
+    assert_ne!(
+        palette.code, palette.surface,
+        "code blocks must differ from card surfaces"
+    );
+    assert_ne!(
+        palette.figure_muted, palette.muted,
+        "figure and body captions must differ"
+    );
 }
 
 /// The English catalog from the repository, whatever the box's language.

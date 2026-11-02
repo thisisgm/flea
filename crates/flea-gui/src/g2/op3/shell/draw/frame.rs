@@ -19,6 +19,7 @@ pub(super) fn present(
         probe,
         wire: live.map(|live| live.wire),
         mount: live.and_then(|live| live.mount),
+        measure: live.and_then(|live| live.measure),
     };
     if let Some(surface) = live.and_then(|live| live.surface) {
         draw.t.surface = surface;
@@ -37,6 +38,8 @@ pub(super) fn present(
         draw.px(ROW_GAP),
     )
     .when(facts, |d| d.flex_none());
+    // The buttons close the frame; a measured card also ends on its own tracking canvas.
+    let tail = 1 + usize::from(draw.measure.is_some());
     let frame = div()
         .on_children_prepainted({
             let probe = probe.cloned();
@@ -44,7 +47,7 @@ pub(super) fn present(
                 if let (Some(probe), Some(bounds)) = (
                     probe.as_ref(),
                     children
-                        .get(2..children.len().saturating_sub(1))
+                        .get(2..children.len().saturating_sub(tail))
                         .and_then(|body| body.iter().copied().reduce(|a, b| a.union(&b))),
                 ) {
                     probe.probe.record("body", bounds);
@@ -71,7 +74,10 @@ pub(super) fn present(
         .on_any_mouse_down(|_, _, cx| cx.stop_propagation())
         .on_scroll_wheel(|_, _, cx| cx.stop_propagation())
         .child(head)
-        .child(draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))));
+        .child(draw.track(
+            draw.hairline().when(card.bleed, |d| d.mx(draw.px(-PAD))),
+            "titleRule",
+        ));
     if let Some(probe) = probe {
         probe.clear();
     }
@@ -102,6 +108,6 @@ pub(super) fn present(
         .when_some(probe, |root, probe| {
             root.on_children_prepainted(probe.probe.first_child("card"))
         })
-        .child(frame.child(buttons))
+        .child(draw.track(frame.child(buttons), "card"))
         .into_any_element()
 }

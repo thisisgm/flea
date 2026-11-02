@@ -3,6 +3,8 @@ use super::Columns;
 use render_tile::{loading_tile, tile};
 #[path = "columns_render/render_tile.rs"]
 mod render_tile;
+#[path = "columns_render/rest.rs"]
+mod rest;
 use crate::{
     columns::{element::TrackElement, geometry::Slot, paint::Focus, TrackRows, TrackState},
     state::Shell,
@@ -27,7 +29,7 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let no_match = self.no_match_hero(side, window, cx);
-        let blocked = self.input_blocked(cx);
+        let blocked = self.input_blocked(cx) || cx.has_active_drag(); // No hover under a held drag, as List.
         let renaming = self.renaming_row(side);
         let grow = self.grows[side];
         let tag_slot = self.panes[side]
@@ -39,6 +41,8 @@ impl Shell {
         let host = self.panes[side].as_mut()?;
         let active = host.columns.as_mut()?;
         active.settle_hover(host.pane.held.listing, blocked || host.pane.busy());
+        rest::rehover(host, blocked, window);
+        let active = host.columns.as_mut()?;
         rows.hovered = active
             .hover
             .as_ref()

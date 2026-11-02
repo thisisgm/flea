@@ -44,7 +44,7 @@ fn trash_thumb_uses_shared_pool_once_and_the_backing_uri_cache_key() {
     std::fs::create_dir_all(cache.large_dir()).unwrap();
     crate::backend::thumbwrite::write_marker(&file, &crate::backend::thumbcache::uri_for(&path), mtime, None).unwrap();
     let job = pool.cancel_all().pop().unwrap();
-    report_done(&mut out, &mut st, &pool, Done { path, mtime, trash_identity: job.trash_identity, result: Outcome::Ready(file.clone()), ms: 0.0, trace: None });
+    report_done(&mut out, &mut st, &pool, Done { replies: None, path, mtime, trash_identity: job.trash_identity, result: Outcome::Ready(file.clone()), ms: 0.0, trace: None });
     let replies = String::from_utf8(out).unwrap();
     assert_eq!(replies.lines().map(|line| field_usize(line, "id").unwrap()).collect::<Vec<_>>(), vec![1, 2]);
     assert!(replies.lines().all(|line| field_str(line, "file") == Some(file.to_string_lossy().into_owned())));
@@ -82,8 +82,8 @@ fn trashthumb_replacement_while_the_predecessor_runs_queues_and_delivers_its_own
             assert_eq!((pool.pending(), st.outstanding), (1, 2), "replacement queues its own job while predecessor runs, listing={listing}");
             let queued = pool.cancel_all().pop().unwrap();
             assert_eq!(queued.mtime, replacement_mtime);
-            let old = Done { path: path.clone(), mtime, trash_identity: running.trash_identity, result: Outcome::Ready(d.join("predecessor.png")), ms: 0.0, trace: None };
-            let new = Done { path: path.clone(), mtime: replacement_mtime, trash_identity: queued.trash_identity, result: Outcome::Ready(d.join("replacement.png")), ms: 0.0, trace: None };
+            let old = Done { replies: None, path: path.clone(), mtime, trash_identity: running.trash_identity, result: Outcome::Ready(d.join("predecessor.png")), ms: 0.0, trace: None };
+            let new = Done { replies: None, path: path.clone(), mtime: replacement_mtime, trash_identity: queued.trash_identity, result: Outcome::Ready(d.join("replacement.png")), ms: 0.0, trace: None };
             let (first, second) = if newest_first { (new, old) } else { (old, new) };
             report_done(&mut out, &mut st, &pool, first);
             assert_eq!(st.trash_asked.iter().any(|ask| ask.id == 2), !newest_first, "only the matching completion consumes the new subscriber");
@@ -121,8 +121,8 @@ fn same_mtime_replacement(failed: bool) {
         assert_eq!((pool.pending(), st.outstanding), (1, 2), "same-mtime replacement queues independently, failed={failed}");
         let queued = pool.cancel_all().pop().unwrap();
         let result = if failed { Outcome::Failed } else { Outcome::Ready(d.join("predecessor.png")) };
-        let old = Done { path: running.path, mtime: running.mtime, trash_identity: running.trash_identity, result, ms: 0.0, trace: None };
-        let new = Done { path: queued.path, mtime: queued.mtime, trash_identity: queued.trash_identity, result: Outcome::Ready(d.join("replacement.png")), ms: 0.0, trace: None };
+        let old = Done { replies: None, path: running.path, mtime: running.mtime, trash_identity: running.trash_identity, result, ms: 0.0, trace: None };
+        let new = Done { replies: None, path: queued.path, mtime: queued.mtime, trash_identity: queued.trash_identity, result: Outcome::Ready(d.join("replacement.png")), ms: 0.0, trace: None };
         let (first, second) = if newest_first { (new, old) } else { (old, new) };
         report_done(&mut out, &mut st, &pool, first);
         assert_eq!(st.trash_asked.iter().any(|ask| ask.id == 2), !newest_first, "only the replacement's own completion consumes its subscriber");
@@ -178,7 +178,7 @@ fn trash_thumb_cancellation_and_replacement_drop_late_images() {
             std::fs::rename(&path, d.join("files/reviewed.jpg")).unwrap();
             std::fs::write(&path, "replacement").unwrap();
         }
-        report_done(&mut out, &mut st, &pool, Done { path, mtime, trash_identity: job.trash_identity, result: Outcome::Ready(d.join("cached.png")), ms: 0.0, trace: None });
+        report_done(&mut out, &mut st, &pool, Done { replies: None, path, mtime, trash_identity: job.trash_identity, result: Outcome::Ready(d.join("cached.png")), ms: 0.0, trace: None });
         if cancelled { assert!(out.is_empty(), "cancelled running work emits nothing"); }
         else { assert_eq!(field_str(&String::from_utf8(out).unwrap(), "file"), Some(String::new())); }
         assert_eq!(st.outstanding, 0);
@@ -329,7 +329,7 @@ fn producer_publication(d: &TestDir, tb: &mut Tables, path: &Path, mtime: i64, i
     let entry = format!("[Thumbnailer Entry]\nExec={} %i %o\nMimeType=image/jpeg;\n", decoder.display());
     tb.thumbs = Arc::new(Thumbnailers::from_entries(&[("producer.thumbnailer".into(), entry)], &tb.aliases)).into();
     let tables = crate::backend::thumbs::Tables { aliases: Arc::clone(&tb.aliases), specs: Arc::clone(&tb.thumbs), cache: Cache::at(d.join("cache")), worker: None };
-    let mut job = Job { path: path.into(), mtime, trash_identity: identity.map(str::to_owned), mime: "image/jpeg".into(), trace: None };
+    let mut job = Job { replies: None, path: path.into(), mtime, trash_identity: identity.map(str::to_owned), mime: "image/jpeg".into(), trace: None };
     let result = crate::backend::thumbs::run_one_in(&tables, &mut job, &d.join("raw"));
     assert_eq!(job.trash_identity.as_deref(), identity);
     let uri = crate::backend::thumbcache::uri_for(path);

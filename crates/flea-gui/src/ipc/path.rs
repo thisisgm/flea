@@ -28,24 +28,29 @@ fn rect(bounds: Bounds<Pixels>) -> String {
 impl PathAdapter<'_> {
     /// A crumb's centre, or "" while its strip is hidden or the crumb lies outside it.
     fn crumb_centre(&self, slot: usize, index: Option<usize>) -> String {
+        index
+            .and_then(|index| self.crumb_box(slot, index))
+            .map_or_else(String::new, |(x, y, width, height)| {
+                centre(x, y, width, height)
+            })
+    }
+
+    /// A crumb's painted box as x, y, width and height, None while its strip is hidden or the crumb lies outside it.
+    pub(crate) fn crumb_box(&self, slot: usize, index: usize) -> Option<(f32, f32, f32, f32)> {
         let paint = self.view.paint.borrow();
-        let (Some(index), Some(bounds)) = (index, paint.strips[slot]) else {
-            return String::new();
-        };
-        let Some((left, width)) = self.view.strips[slot].extent(index) else {
-            return String::new();
-        };
+        let bounds = paint.strips[slot]?;
+        let (left, width) = self.view.strips[slot].extent(index)?;
         let pad = crate::path::paint::strip_pad(slot != 0, &paint.scale());
         let x = f32::from(bounds.origin.x) + pad + left;
         if x < f32::from(bounds.origin.x) || x + width > f32::from(bounds.right()) {
-            return String::new();
+            return None;
         }
-        centre(
+        Some((
             x,
             f32::from(bounds.origin.y),
             width,
             f32::from(bounds.size.height),
-        )
+        ))
     }
 
     fn crumb_text(&self, slot: usize) -> String {

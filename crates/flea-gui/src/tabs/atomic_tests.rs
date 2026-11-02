@@ -249,9 +249,10 @@ fn u25_a_tab_held_past_the_cap_draws_and_answers_its_centre(cx: &mut TestAppCont
             );
             let home = shell.locale.catalog.tr("tabs.home");
             let adapter = shell.tab_adapter(&home);
+            // EY-517: the loading tab keeps the live path's label, the one the path bar still reads.
             assert_eq!(
                 adapter.call("tabLabels", &[]).unwrap(),
-                Reply::value("files|held")
+                Reply::value("files|files")
             );
             let bounds = shell.strip.bounds.get().expect("the strip is drawn");
             let width = shell.strip.snapshot.as_ref().unwrap().frame.tab_width;
@@ -266,6 +267,37 @@ fn u25_a_tab_held_past_the_cap_draws_and_answers_its_centre(cx: &mut TestAppCont
                 ))
             );
             assert_eq!(shell.geometry(window).tabs.height, 27.);
+        })
+    });
+}
+
+// EY-517: a loading tab is labelled by the live path the path bar reads, as v0.3.12 TabBar.qml titles it.
+#[gpui::test]
+fn fix_views_2_ey517_a_loading_tab_is_labelled_by_its_live_path(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    cx.update(|window, cx| shell.update(cx, |shell, cx| key(shell, "t", window, cx)));
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.open_tab(0, "/next".into(), window, cx);
+            let host = shell.panes[0].as_mut().unwrap();
+            host.pane.swap.holding = false;
+            assert!(host.pane.busy(), "the listing of /next has not landed");
+            shell.sync_tabs(window, cx);
+            let host = shell.panes[0].as_ref().unwrap();
+            assert_eq!(host.pane.path(), "/files", "the path bar still reads files");
+            let frame = &shell.strip.snapshot.as_ref().unwrap().frame;
+            assert_eq!(frame.current, 2);
+            assert_eq!(
+                frame
+                    .labels
+                    .iter()
+                    .map(|label| label.as_ref())
+                    .collect::<Vec<_>>(),
+                ["files", "files", "files"],
+                "the tab and the path bar agree"
+            );
         })
     });
 }

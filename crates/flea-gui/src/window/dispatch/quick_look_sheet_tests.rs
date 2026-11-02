@@ -15,6 +15,7 @@ fn rows() -> Vec<RowFacts> {
         file("budget.xlsx", "x-office-spreadsheet"),
         file("single.xlsx", "x-office-spreadsheet"),
         file("book.pdf", "application-pdf"),
+        file("report.docx", "x-office-document"),
     ]
 }
 
@@ -112,9 +113,9 @@ fn brackets_turn_a_workbooks_sheets_in_the_open_card(cx: &mut TestAppContext) {
     close(&shell, cx);
 }
 
-// One sheet has nothing to turn: ] closes the card and steps to the next tab, as before the sheet keys.
+// One sheet has nothing to turn: ] keeps the card and moves no tab, as v0.3.12 keeps tab keys in Quick Look (EY-438).
 #[gpui::test]
-fn a_single_sheet_keeps_the_tab_step(cx: &mut TestAppContext) {
+fn a_single_sheet_keeps_tab_keys_in_the_card(cx: &mut TestAppContext) {
     let (shell, cx, mut requests) = three_tabs(cx);
     open_workbook(&shell, cx, &mut requests, 2, &["Only"]);
     assert_eq!(open(&shell, cx), "true", "the workbook opens the card");
@@ -126,15 +127,15 @@ fn a_single_sheet_keeps_the_tab_step(cx: &mut TestAppContext) {
     );
     cx.simulate_keystrokes("]");
     draw(cx);
-    assert_eq!(open(&shell, cx), "false", "] closes a one-sheet card");
-    assert_eq!(context(&shell, cx), Context::Listing);
-    assert_eq!(strip(&shell, cx), (3, 2), "] steps to the next tab");
+    assert_eq!(open(&shell, cx), "true", "] keeps a one-sheet card");
+    assert_eq!(sheet(&shell, cx), (0, 1), "the one sheet stays");
+    assert_eq!(strip(&shell, cx), (3, 1), "] moves no tab");
     close(&shell, cx);
 }
 
-// A PDF card binds [ and ] in its context too, yet it has no sheets: [ closes it and steps back a tab.
+// A PDF card binds [ and ] in its context too, yet it has no sheets: [ keeps the card and moves no tab.
 #[gpui::test]
-fn a_pdf_card_keeps_the_tab_step(cx: &mut TestAppContext) {
+fn a_pdf_card_keeps_tab_keys_in_the_card(cx: &mut TestAppContext) {
     let (shell, cx, _requests) = three_tabs(cx);
     set_cursor(&shell, cx, 3);
     cx.simulate_keystrokes("space");
@@ -143,9 +144,33 @@ fn a_pdf_card_keeps_the_tab_step(cx: &mut TestAppContext) {
     assert_eq!(context(&shell, cx), Context::Pdf);
     cx.simulate_keystrokes("[");
     draw(cx);
-    assert_eq!(open(&shell, cx), "false", "[ closes the PDF card");
-    assert_eq!(context(&shell, cx), Context::Listing);
-    assert_eq!(strip(&shell, cx), (3, 0), "[ steps to the previous tab");
+    assert_eq!(open(&shell, cx), "true", "[ keeps the PDF card");
+    assert_eq!(context(&shell, cx), Context::Pdf);
+    assert_eq!(strip(&shell, cx), (3, 1), "[ moves no tab");
+    close(&shell, cx);
+}
+
+// EY-46: a workbook's table sits on the outlined card as a CSV table does; a document's pages stay on the bare ground.
+#[gpui::test]
+fn a_workbook_card_is_framed_and_a_document_card_is_not(cx: &mut TestAppContext) {
+    let (shell, cx, mut requests) = three_tabs(cx);
+    open_workbook(&shell, cx, &mut requests, 2, &["Only"]);
+    let framed = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        let body = body(shell, cx).expect("a mounted view");
+        assert!(matches!(&body, Body::Doc(doc) if matches!(doc.view, View::Office(_))));
+        cx.read(|cx| body.framed(cx))
+    };
+    assert!(framed(&shell, cx), "the workbook card draws its outline");
+    cx.simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(open(&shell, cx), "false", "escape closes the workbook card");
+    set_cursor(&shell, cx, 4);
+    cx.simulate_keystrokes("space");
+    draw(cx);
+    assert!(
+        !framed(&shell, cx),
+        "a document's pages keep the bare ground"
+    );
     close(&shell, cx);
 }
 

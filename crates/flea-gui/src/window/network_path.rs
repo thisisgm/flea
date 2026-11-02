@@ -3,6 +3,43 @@ use super::*;
 use crate::g2::pl2::routing::{address, AddressRoute};
 
 impl Shell {
+    /// A successful connect retires its own earlier failures, leaving other producers' errors alone.
+    pub(super) fn network_connected(&mut self, side: usize, cx: &mut Context<Self>) {
+        let Some(network) = self.network() else {
+            return;
+        };
+        let errors = std::mem::take(&mut network.connect_errors[side]);
+        let resolved: Vec<_> = errors
+            .iter()
+            .filter(|text| {
+                !network
+                    .connect_errors
+                    .iter()
+                    .flatten()
+                    .any(|other| other == *text)
+            })
+            .cloned()
+            .collect();
+        if let Some(host) = self.panes[side].as_mut() {
+            if errors.iter().any(|text| host.status.as_ref() == text) {
+                host.status = Default::default();
+            }
+        }
+        self.status_messages(cx, |messages, now| {
+            for text in resolved {
+                messages.forget(&text, now);
+            }
+        });
+    }
+
+    pub(super) fn network_connect_error(&mut self, side: usize, text: &str) {
+        if let Some(network) = self.network() {
+            if !network.connect_errors[side].iter().any(|old| old == text) {
+                network.connect_errors[side].push(text.to_owned());
+            }
+        }
+    }
+
     pub(super) fn network_address(
         &mut self,
         side: usize,

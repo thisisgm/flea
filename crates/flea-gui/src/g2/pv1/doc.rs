@@ -160,9 +160,13 @@ impl Doc {
         }
     }
 
-    /// The card's surface: media and the text kinds sit on the framed card, pages on the bare background.
-    pub fn framed(&self) -> bool {
-        !matches!(self.view, View::Pdf(_) | View::Office(_))
+    /// The card's surface: media, the text kinds and a spreadsheet's table sit on the framed card, pages on the bare background.
+    pub fn framed(&self, cx: &App) -> bool {
+        match &self.view {
+            View::Pdf(_) => false,
+            View::Office(v) => v.read(cx).office.wants_sheets(),
+            _ => true,
+        }
     }
 
     /// Media draws its strip and no bar; an archive card opens on its own name heading with no bar (ql-archive); every other kind has the chrome bar.

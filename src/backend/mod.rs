@@ -187,6 +187,7 @@ mod menu_snapshot_names_tests;
 mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
+mod menu_many;
 mod menucontents;
 mod menuproperties;
 #[cfg(test)]
@@ -354,7 +355,7 @@ mod manifestfsize_tests;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
-// Test-only: a disk-backed sandbox and bounded recreation on a genuinely reused inode.
+// Test-only: bounded inode-reuse attempts and an asserted replacement identity on every filesystem.
 #[cfg(test)]
 mod inodereuse;
 // Test-only: the fifo, writer and bound every hang test shares.

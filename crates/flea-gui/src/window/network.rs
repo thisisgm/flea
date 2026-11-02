@@ -1,7 +1,7 @@
 //! The live network join: PL2's mount service, its card, its share browser and the rail's NETWORK rows, owned per window.
 use crate::g2::op1::palette::CardPalette;
-use crate::g2::pl1::listing::{Effect as Listed, Listing};
-use crate::g2::pl1::process::{Event as Proc, Runner, Slot};
+use crate::g2::pl1::listing::Listing;
+use crate::g2::pl1::process::Runner;
 use crate::g2::pl1::secret::Secret;
 use crate::g2::pl2::{
     bookmarks,
@@ -22,7 +22,6 @@ use gpui::{AppContext, Context, Entity, Subscription, Task, Window};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
-use std::time::Duration;
 
 /// The pane a request came from: its side and that pane's own list, so a reply never lands on a pane opened later in its place.
 struct Origin {
@@ -42,6 +41,7 @@ pub struct Network {
     /// True once rows were rebuilt from a gio listing and a mountinfo read.
     pub built: bool,
     pub listing: Listing,
+    listing_generation: u64,
     /// The last mountinfo read was non-empty, so networkBuilt can tell a built group from an unbuilt one.
     pub mountinfo_ready: bool,
     pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
@@ -50,9 +50,9 @@ pub struct Network {
     pub(crate) bookmarks: PathBuf,
     origins: Vec<Origin>,
     next_origin: u64,
-    listing_slot: Slot,
+    return_focus: Option<(usize, bool)>,
+    connect_errors: [Vec<String>; 2],
     tasks: Vec<Task<()>>,
-    poll: Option<Task<()>>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -103,6 +103,7 @@ impl Shell {
             return;
         }
         let runner = join.network_runner.clone();
+        let devices = join.devices.clone();
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -119,6 +120,7 @@ impl Shell {
         let card = cx.new(|cx| NetworkView::new(catalog.clone(), palette, cx));
         let shares = cx.new(|cx| ShareView::new(catalog, palette, cx));
         let subscriptions = vec![
+            cx.observe(&devices, |shell, _, cx| shell.network_sync_mounts(cx)),
             cx.subscribe_in(
                 &cx.entity(),
                 window,
@@ -161,16 +163,9 @@ impl Shell {
                     let service = network.service.clone();
                     service.update(cx, |service, _| service.close_browser(closed.0));
                 }
-                window.focus(&shell.focus, cx);
-                cx.notify();
+                shell.network_restore_focus(window, cx);
             }),
         ];
-        let poll = cx.spawn(async move |this, cx| loop {
-            let _ = this.update(cx, |shell, cx| shell.network_tick(cx));
-            cx.background_executor()
-                .timer(Duration::from_millis(crate::g2::pl1::listing::POLL_MS))
-                .await;
-        });
         if let Some(join) = &mut self.rail {
             join.network = Some(Network {
                 sources: cloud::Sources::default(),
@@ -181,6 +176,7 @@ impl Shell {
                 rows_generation: 0,
                 built: false,
                 listing: Listing::new(),
+                listing_generation: 0,
                 mountinfo_ready: false,
                 menu: Rc::default(),
                 menu_row: None,
@@ -188,13 +184,14 @@ impl Shell {
                 bookmarks: bookmarks_path(),
                 origins: Vec::new(),
                 next_origin: 0,
-                listing_slot: Slot::default(),
+                return_focus: None,
+                connect_errors: Default::default(),
                 tasks: Vec::new(),
-                poll: Some(poll),
                 _subscriptions: subscriptions,
             });
             self.chrome.network = true;
         }
+        self.network_sync_mounts(cx);
     }
 
     /// The NETWORK group is built and shown, so an empty group is an answer rather than the unbuilt state.
@@ -231,6 +228,12 @@ impl Shell {
 
     /// The side a token still names: the same pane, alive and shown; anything else is a stale reply.
     pub(crate) fn network_side(&self, token: u64) -> Option<usize> {
+        let side = self.network_origin_side(token)?;
+        (side == 0 || self.view == crate::window::startup::View::Dual).then_some(side)
+    }
+
+    /// Readers retain a hidden pane's origin while navigation still requires network_side's visible owner.
+    pub(crate) fn network_origin_side(&self, token: u64) -> Option<usize> {
         let origin = self
             .rail
             .as_ref()?
@@ -240,13 +243,11 @@ impl Shell {
             .iter()
             .find(|origin| origin.token == token)?;
         let host = self.panes.get(origin.side)?.as_ref()?;
-        let shown = origin.side == 0 || self.view == crate::window::startup::View::Dual;
-        (shown
-            && origin
-                .list
-                .upgrade()
-                .is_some_and(|list| Rc::ptr_eq(&list, &host.list)))
-        .then_some(origin.side)
+        origin
+            .list
+            .upgrade()
+            .is_some_and(|list| Rc::ptr_eq(&list, &host.list))
+            .then_some(origin.side)
     }
 
     /// The pane's state surface, withheld while the share browser covers it, as WindowBody.qml hides it in v0.3.12.
@@ -263,6 +264,7 @@ impl Shell {
     pub(crate) fn network_add(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.ensure_network(window, cx);
         let origin = self.network_origin(side);
+        self.network_remember_focus();
         let Some(network) = self.network() else {
             return;
         };
@@ -276,9 +278,7 @@ impl Shell {
             .as_ref()
             .and_then(|join| join.network.as_ref())
             .is_some_and(|network| {
-                network.card.read(cx).model.opened
-                    || network.shares.read(cx).model.open
-                    || network.menu.borrow().opened()
+                network.card.read(cx).model.opened || network.menu.borrow().opened()
             })
     }
 
@@ -370,9 +370,6 @@ impl Shell {
         let Some(network) = self.network() else {
             return;
         };
-        network.poll = None;
-        network.listing_slot.kill();
-        network.listing.active = false;
         let service = network.service.clone();
         let done = service.update(cx, |service, cx| service.shutdown(cx));
         if let Some(network) = self.network() {
@@ -383,6 +380,8 @@ impl Shell {
 
 #[path = "network_effects.rs"]
 mod effects;
+#[path = "network_focus.rs"]
+mod focus;
 #[path = "network_menu.rs"]
 mod menu;
 #[path = "network_path.rs"]

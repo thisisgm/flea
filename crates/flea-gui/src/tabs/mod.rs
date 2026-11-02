@@ -11,6 +11,9 @@ mod regression_tests;
 #[cfg(test)]
 pub mod test_support;
 
+mod accessibility;
+#[cfg(test)]
+mod accessibility_tests;
 mod atomic;
 pub(crate) mod catcher;
 mod geometry;
@@ -21,6 +24,7 @@ mod join_tests;
 mod landing;
 mod live;
 mod native;
+mod overlays;
 pub(crate) mod trace;
 mod view;
 
@@ -28,6 +32,8 @@ mod view;
 mod mounted_tests;
 #[cfg(test)]
 mod router_tests;
+#[cfg(test)]
+mod s2_tests;
 
 mod middle;
 

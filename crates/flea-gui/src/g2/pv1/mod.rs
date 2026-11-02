@@ -13,6 +13,7 @@ mod doc_keys;
 pub mod glyph;
 mod lifetime;
 pub mod look;
+mod media_strip;
 pub(crate) mod observations;
 pub(crate) mod observed_frames;
 pub(crate) mod photo;
@@ -25,6 +26,7 @@ mod photo_source_tests;
 #[cfg(test)]
 mod photo_tests;
 mod picture;
+mod pointer;
 #[cfg(test)]
 mod quality_tests;
 pub(crate) mod raster;
@@ -36,8 +38,12 @@ pub mod scroller;
 pub mod shield;
 mod svg;
 mod viewport;
+pub(crate) mod waiting;
 
-pub use raster::{RasterRefusal, RasterState, Rasterizer};
+pub use raster::{
+    for_path as raster_for_path, run as raster_run, Job as RasterJob, RasterOutcome, RasterRefusal,
+    RasterState, Rasterizer,
+};
 
 use flea::i18n::I18n;
 use flea::ui_logic_pv1::{
@@ -92,6 +98,7 @@ struct SvgPicture {
     image: Option<Arc<RenderImage>>,
     refusal: Option<RasterRefusal>,
     quality: crate::preview_quality::Refinement,
+    interim: bool,
 }
 
 impl SvgPicture {
@@ -125,12 +132,19 @@ pub struct QuickLook {
     raster_in_flight: bool,
     /// The window the card last drew in; a retired tile is freed there even after the host unmounts.
     window: Option<AnyWindowHandle>,
+    /// LATENCY-ATOMIC's hold ran out with the subject's answer still out, so the waiting mark draws.
+    waiting_due: bool,
+    waiting_hold: Option<gpui::Task<()>>,
     retired: Vec<Arc<RenderImage>>,
+    /// Every tile freed from the atlas, so a test can tell a freed interim from a kept one.
+    #[cfg(test)]
+    pub(crate) retired_ids: Vec<gpui::ImageId>,
     retire_scheduled: bool,
     ground: Ground,
     pub(crate) revealed: bool,
     pub(crate) expanded: bool,
     pub(crate) strip_shown: bool,
+    strip_hide_task: Option<gpui::Task<()>>,
     pub(crate) focused: Option<Hit>,
     pub(crate) hovered: Option<Hit>,
     pub(crate) pressed: Option<Hit>,
@@ -164,12 +178,17 @@ impl QuickLook {
             raster_latest: Arc::new(AtomicU64::new(0)),
             raster_in_flight: false,
             window: None,
+            waiting_due: false,
+            waiting_hold: None,
             retired: Vec::new(),
+            #[cfg(test)]
+            retired_ids: Vec::new(),
             retire_scheduled: false,
             ground: Ground::default(),
             revealed: false,
             expanded: false,
             strip_shown: false,
+            strip_hide_task: None,
             focused: None,
             hovered: None,
             pressed: None,
@@ -239,6 +258,11 @@ impl QuickLook {
         })
     }
 
+    #[doc(hidden)]
+    pub fn svg_refused(&self) -> bool {
+        self.svg.as_ref().is_some_and(|s| s.refusal.is_some())
+    }
+
     /// An injected rasterizer for #336's tests; unset, the app's SVG renderer runs.
     #[doc(hidden)]
     pub fn set_svg_raster(&mut self, raster: Rasterizer) {
@@ -276,6 +300,10 @@ impl QuickLook {
         self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
         self.trace = crate::preview_trace::Trace::begin("look", &subject.name);
         self.subject = Some(subject);
+        self.strip_hide_task = None;
+        self.strip_shown = false;
+        self.reveal_strip(cx);
+        self.arm_waiting(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
         self.revealed = revealed;
@@ -291,79 +319,6 @@ impl QuickLook {
         self.observe_reveal(false, cx);
         self.revealed = true;
         cx.notify();
-    }
-
-    /// One pointer event the shield already consumed: the viewport's wheel, lane and knob first, then the ground's policy.
-    pub fn pointer(&mut self, hand: Hand, cx: &mut Context<Self>) {
-        if self.subject.is_none() {
-            return;
-        }
-        let Hand {
-            pointer,
-            at,
-            inside,
-            wheel,
-            held,
-        } = hand;
-        match pointer {
-            Pointer::Release { .. } => {
-                let held = self.pressed.take().is_some();
-                if self.scroll.release() || held {
-                    cx.notify();
-                }
-            }
-            Pointer::Move => {
-                let (changed, dragged) = self.scroll.hover(at, held);
-                if let Some(axis) = dragged {
-                    self.hold(axis, cx);
-                }
-                if changed {
-                    cx.notify();
-                }
-            }
-            Pointer::Press {
-                button: Button::Left,
-                ..
-            } if self.revealed && inside => {
-                if let Some(axis) = self.scroll.press(at) {
-                    self.hold(axis, cx);
-                }
-            }
-            Pointer::Wheel if self.revealed => {
-                for axis in wheel.map(|d| self.scroll.wheel(at, d)).unwrap_or_default() {
-                    self.hold(axis, cx);
-                }
-            }
-            _ => {}
-        }
-        match self.ground.handle(pointer, inside, self.revealed) {
-            Effect::Swallow => {}
-            Effect::Reveal => self.reveal(cx),
-            Effect::RevealStrip => {
-                if !self.strip_shown {
-                    self.strip_shown = true;
-                    cx.notify();
-                }
-            }
-            Effect::Close => self.close(cx),
-        }
-    }
-
-    /// The view moved on an axis: its bar shows now and leaves HOLD_MS after the last move.
-    fn hold(&mut self, axis: Axis, cx: &mut Context<Self>) {
-        let generation = self.scroll.moved(axis);
-        cx.notify();
-        cx.spawn(async move |this, cx| {
-            cx.background_executor()
-                .timer(Duration::from_millis(flea::ui_logic_pv1::scroll::HOLD_MS))
-                .await;
-            let _ = this.update(cx, |ql, cx| {
-                if ql.scroll.settle(axis, generation) {
-                    cx.notify();
-                }
-            });
-        })
-        .detach();
     }
 
     /// The card's window rect for a window of this size, the same arithmetic as Theme.qml.

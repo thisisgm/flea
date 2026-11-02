@@ -1,12 +1,15 @@
 //! The menu primitive every Flea menu opens through: file, background, header, rail, tags, Copy As and Paste As.
 #[cfg(test)]
 mod app_icon_tests;
+pub(crate) mod app_icons;
 mod delivery;
 mod discovery;
 pub mod element;
 #[cfg(test)]
 mod elide_tests;
 mod facts;
+#[cfg(test)]
+mod fixmenus_tests;
 #[cfg(test)]
 #[path = "makeexec_foldhash.rs"]
 pub(crate) mod foldhash;
@@ -36,6 +39,8 @@ mod review_r2_tests;
 #[cfg(test)]
 mod review_tests;
 pub mod shebang;
+#[cfg(test)]
+mod surface_tests;
 mod tag_checks;
 pub(crate) mod tags;
 mod tags_wire;
@@ -46,11 +51,16 @@ mod target_tests;
 #[cfg(test)]
 mod tests;
 mod wrap;
+mod zip;
 
+#[cfg(test)]
+mod close_fade_tests;
 #[cfg(test)]
 mod join_delivery_tests;
 #[cfg(test)]
 mod join_pointer_tests;
+#[cfg(test)]
+mod s2_tests;
 
 #[cfg(test)]
 mod join_atomic_tests;
@@ -69,5 +79,7 @@ mod join_fix2_tests;
 mod ey339_writable_tests;
 #[cfg(test)]
 mod review_wrap_tests;
+#[cfg(test)]
+mod s6_tests;
 #[cfg(test)]
 mod wrap_layout_tests;

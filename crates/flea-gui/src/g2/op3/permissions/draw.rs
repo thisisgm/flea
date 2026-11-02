@@ -117,6 +117,14 @@ impl Permissions {
                     buttons: vec![cancel(true)],
                 };
             }
+            // A failed batch keeps its refusal visible while its modes are read again.
+            Phase::Reading if self.error.is_empty() && self.refused.is_empty() => {
+                return super::super::initial::loading(
+                    i18n,
+                    "dialogs.file.permissions.title",
+                    WIDTH,
+                )
+            }
             Phase::Reading => body.push(Block::Note {
                 text: tr("dialogs.file.permissions.reading"),
                 inset: 0.,
@@ -127,9 +135,8 @@ impl Permissions {
         }
         if self.several() && self.phase != Phase::Reading {
             body.push(self.grid(i18n));
-            if self.summary().mixed {
-                body.push(Self::note(tr("dialogs.file.permissions.mixed")));
-            }
+            // PermissionsDialog.qml's scopeLabel says it on every several-item card, mixed boxes or not.
+            body.push(Self::note(tr("dialogs.file.permissions.mixed")));
             let note = self.store.note_text(i18n, &self.paths);
             if !note.is_empty() {
                 body.push(Self::note(note));
@@ -165,9 +172,13 @@ impl Permissions {
                 glyph: None,
                 focused: self.focus == Stop::Octal,
             };
-            body.push(Block::Stack(vec![
+            let mut stack = vec![
                 Block::Subject {
-                    glyph: Glyph::File,
+                    glyph: if self.held.directory {
+                        Glyph::Folder
+                    } else {
+                        Glyph::File
+                    },
                     name: logic::leaf_of(&self.held.path).to_string(),
                     kind,
                 },
@@ -197,6 +208,14 @@ impl Permissions {
                         &[&self.held.gid.to_string()],
                     ),
                 },
+            ];
+            // v0.3.12 PermissionsDialog.qml:551-568: a folder's scope box sits flush under Owner and Group.
+            if self.held.directory {
+                stack.push(Block::Scope(tr(
+                    "dialogs.file.permissions.scope_folder_note",
+                )));
+            }
+            stack.extend([
                 Block::Rule {
                     above: 11.,
                     below: 9.,
@@ -209,7 +228,8 @@ impl Permissions {
                         tr(scope),
                     ],
                 },
-            ]));
+            ]);
+            body.push(Block::Stack(stack));
             if logic::parse(&self.text).is_none() {
                 body.push(Block::Note {
                     text: tr("dialogs.file.permissions.octal_invalid"),

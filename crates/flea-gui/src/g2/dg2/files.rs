@@ -12,6 +12,8 @@ pub struct Arrived {
     pub marker: Option<String>,
     pub urls: Vec<String>,
     pub plain: Option<String>,
+    /// The drop shelf's token and intent, which the drop redeems rather than reading the URIs.
+    pub shelf: Option<String>,
     pub action: Option<NativeDragAction>,
     pub ctrl: bool,
     pub shift: bool,
@@ -39,7 +41,11 @@ fn carries_files(types: &[String]) -> bool {
         .iter()
         .any(|kind| kind == crate::tabs::transfer::TAB_MIME)
         && types.iter().any(|kind| {
-            kind == URILIST || kind == ROWS_MIME || kind == PLAIN || kind == core::PLAIN_UTF8
+            kind == URILIST
+                || kind == ROWS_MIME
+                || kind == PLAIN
+                || kind == core::PLAIN_UTF8
+                || kind == core::SHELF_MIME
         })
 }
 
@@ -71,6 +77,7 @@ impl Client for Files {
                 .get(URILIST)
                 .map_or(Vec::new(), |bytes| core::uri_lines(&bytes)),
             plain: text(PLAIN).or_else(|| text(core::PLAIN_UTF8)),
+            shelf: text(core::SHELF_MIME),
             action: native.action,
             ctrl: native.ctrl,
             shift: native.shift,

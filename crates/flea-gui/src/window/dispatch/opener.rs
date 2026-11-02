@@ -140,11 +140,11 @@ pub(super) fn run(
                 true
             }
         }
-        // Pane.qml openTerminal: the folder the menu stands in, or the denied folder a locked menu delivers as its one path.
+        // A locked menu's denied folder or a row menu's one row, else the folder the menu stands in.
         Order::Menu(chosen) if chosen.action == "openTerminal" => {
             menu_claim(shell, chosen, cx) && {
                 let folder = match chosen.paths.as_slice() {
-                    [locked] if chosen.captured.background => locked.clone(),
+                    [one] => one.clone(),
                     _ => chosen.captured.path.clone(),
                 };
                 shell.open_terminal(chosen.captured.side, folder, window, cx);

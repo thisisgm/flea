@@ -16,6 +16,8 @@ pub(crate) mod rail;
 #[cfg(test)]
 mod place_validation_tests;
 #[cfg(test)]
+mod plugin_place_paste_tests;
+#[cfg(test)]
 mod rail_place_fixture;
 #[cfg(test)]
 mod rail_place_tests;

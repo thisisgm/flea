@@ -201,11 +201,6 @@ impl Folders {
             escape(path)
         ))
     }
-
-    pub fn toggle_hidden(&mut self) -> String {
-        self.hidden = !self.hidden;
-        format!("{{\"hidden\":{}}}", self.hidden)
-    }
 }
 
 fn user_dir(line: &str, home: &str) -> Option<(String, Option<String>)> {
@@ -343,3 +338,7 @@ mod window_tests {
         });
     }
 }
+
+#[cfg(test)]
+#[path = "folder_sorts_tests.rs"]
+mod folder_sorts_tests;

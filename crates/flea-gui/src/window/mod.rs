@@ -17,6 +17,7 @@ pub(crate) mod frame_feedback;
 mod frame_style;
 pub(crate) mod glass;
 pub mod glass_tag;
+mod gpu_report;
 pub mod input;
 pub(crate) mod key_delivery;
 pub mod lifecycle;
@@ -65,6 +66,10 @@ mod user_keys_tests;
 #[cfg(test)]
 mod vf6_tests;
 
+#[cfg(test)]
+pub(crate) mod fixchrome_tests;
+#[cfg(test)]
+mod fixreaders_cohesion_tests;
 #[cfg(test)]
 mod u07_chrome_tests;
 #[cfg(test)]
@@ -128,6 +133,7 @@ pub fn open(
             shell.follow_file_drags(window, cx);
             shell.start_update_polling(window, cx);
         });
+        gpu_report::start(&shell, window, cx);
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {
             weak.update(cx, |shell, cx| {
@@ -217,6 +223,8 @@ mod native31_tests;
 
 #[cfg(test)]
 mod caption_loop_tests;
+#[cfg(test)]
+mod glass_rule_tests;
 #[cfg(test)]
 mod glass_tag_tests;
 

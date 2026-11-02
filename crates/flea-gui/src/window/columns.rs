@@ -71,6 +71,8 @@ pub(crate) struct Columns {
     pub counters: Counters,
     /// The track row under the pointer, drawn as the hover plate of its row.
     pub hover: Option<gestures::Hover>,
+    /// The track row the left button last went down on and the keys held then, so a drag lifts the pressed row and not the one its motion reached.
+    pub(crate) pressed: Option<(gestures::Hover, gpui::Modifiers)>,
     path: String,
     seen: Option<Seen>,
     held: std::rc::Rc<crate::list::pane::Held>,
@@ -130,6 +132,7 @@ impl Columns {
             arm_entry: true,
             counters: Counters::default(),
             hover: None,
+            pressed: None,
             path: String::new(),
             seen: None,
             held: Default::default(),

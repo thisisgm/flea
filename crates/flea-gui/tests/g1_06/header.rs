@@ -124,7 +124,7 @@ fn a_drag_previews_the_header_alone_then_writes_one_clamped_width_on_release() {
         );
     }
     let wanted = (size.width + 30.) as u32;
-    let patch = pane.list.borrow_mut().end_drag();
+    let patch = pane.list.borrow_mut().end_drag(true);
     assert_eq!(patch, Some(width_patch(Column::Size, wanted)));
     assert_eq!(
         patch.as_deref(),
@@ -135,7 +135,7 @@ fn a_drag_previews_the_header_alone_then_writes_one_clamped_width_on_release() {
         Some(wanted)
     );
     assert_eq!(
-        pane.list.borrow_mut().end_drag(),
+        pane.list.borrow_mut().end_drag(true),
         None,
         "a second release wrote again"
     );
@@ -156,7 +156,7 @@ fn a_drag_previews_the_header_alone_then_writes_one_clamped_width_on_release() {
         .drag
         .move_to(Column::Size, size.x - 5_000.);
     assert_eq!(
-        pane.list.borrow_mut().end_drag(),
+        pane.list.borrow_mut().end_drag(true),
         Some(width_patch(Column::Size, 480))
     );
     pane.frame(&mut cx, 0.);
