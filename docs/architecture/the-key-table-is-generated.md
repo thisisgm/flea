@@ -1,42 +1,30 @@
 ## The key table is generated
 
-`keys.toml` at the repository root is the single source of truth for every binding.
-`ui/js/Keymap.js` is generated from it by `tools/flea-keymap-gen` and must not be hand
-edited: change `keys.toml`, run the tool, commit its output.
+`keys.toml` at the repository root defines the shared key and pointer tables.
+Running `tools/flea-keymap-gen` without arguments generates `ui/js/Keymap.js` for the QML
+reference frontend and `src/keys_generated.rs` for the Rust key API. It also refreshes the
+`keys.*` entries in `i18n/en/flea.json`. Change the table and regenerate these outputs rather
+than editing generated bindings by hand. The QML-specific notes below describe that reference
+frontend; the Rust and TUI consumers are described at the end of this chapter.
 
 `docs/images/glyphs.svg` is generated the same way, by `tools/flea-glyph-sheet` from the `PATHS`
 table in `ui/js/Icons.js`. It has no diff guard, so re-run the tool whenever a mark joins or
 leaves that table: the sheet kept drawing `send` twelve minutes after `e4b4911` took it out, and
 never drew `drive`, `filter` or `lock` at all.
 
-Three guards cover it, and each catches what the others cannot. `./tests/keymap-gen.sh`
-regenerates into a temp file and diffs that against the committed one, so an edit to
-`keys.toml` with no regeneration and a hand edit to `Keymap.js` both turn it red, and the
-diff names the stale file either way. The same script then hands every `Qt.Key_*` the
-generator emitted to a `qml6` probe and fails naming any that is `undefined`, because a
-mistyped `key = "Downn"` generates `key === Qt.Key_Downn`, which is false forever and diffs
-perfectly clean. `tests/js/keymap.js`, run by `./tests/js.sh`, asserts the lookups
-themselves, so it catches a binding wired to the wrong action; it is a hand-maintained list,
-so it says nothing about a binding nobody wrote an assertion for.
+`./tests/keymap-gen.sh` regenerates JavaScript and Rust into a temporary directory and
+compares them with `ui/js/Keymap.js` and `src/keys_generated.rs`, reporting stale output.
+The same script hands every emitted `Qt.Key_*` to a `qml6` probe and fails naming any that
+is `undefined`; the generator also rejects invalid key names before emission.
+`tests/js/keymap.js`, run by `./tests/js.sh`, asserts lookup behavior. These checks cover the
+cases they assert, not every possible binding or frontend input path.
 
-The reasoning the hand-written `Keymap.js` used to carry lives in `keys.toml` now, one
-comment above the block it explains: control-modified keys are checked first, so plain `d`
-can mean cut while ctrl-d pages, and the character is authoritative for letters, so shift-g
-is distinguishable from `g`. The generated file carries only the header saying where it came
-from.
-
-A `[[shift]]` table joined this for Task 9's shift+arrow selection extend. Unlike `[[ctrl]]`,
-whose block returns `""` on no match so an unbound ctrl-combo never falls through to a plain
-binding, the generated `[[shift]]` block has no such return: a shift-modified letter is
-already distinguished by its own capital text (the `G` idiom above), so an unmatched
-shift+key needs to fall through to the ordinary key and text switches rather than being
-swallowed. The table exists only to give the arrow keys, which carry no text at all, a
-shift-modified meaning.
-
-The generator's block parser is a plain `while read` loop over `name = value` lines, not the
-multi-statement `awk` the plan sketched, because the project's code rules send a
-multi-statement `awk` back for exactly that rewrite and the loop came out shorter and needs
-no second language. Do not restore the `awk`.
+The generator is Python and parses `keys.toml` with `tomllib`; `tools/keymap_rust.py` supplies
+validation, Rust emission and catalog entries. The JavaScript output carries binding data and
+lookup functions. Preset rows are checked before shared rows, with context and frontend filters.
+Text rows match the character with no modifier except optional Shift, so `G` remains distinct
+from `g`. Other rows match the key code and modifier mask exactly, including `[[ctrl]]` and
+`[[shift]]` rows; an unbound Ctrl chord therefore cannot match a plain text binding.
 
 A `[[pointer]]` table joined this on 2026-09-02, when a single left click stopped opening a
 row and the second tap started to. It declares what each button, modifier and tap count does
@@ -103,10 +91,10 @@ passes by having nothing in it.
 
 A `[[preset]]` table joined this with the settings panel's Keys section, and it is the whole of
 the four-value chooser SettingsKeys.html draws. Each row names the preset it belongs to, the modifier state, the Qt key,
-the chord as the Keys section prints it, the action and a label. The generator emits it twice
-from that one row: as `Keymap.PRESET_KEYS`, which the settings panel lists, and as the if-chain
-inside `Keymap.lookupPreset`, which `lookup()` consults before every shared table. Emitting both
-from one row is what stops the panel advertising a chord the preset does not bind, and emitting
+the chord as the Keys section prints it, the action and a label. The generator emits
+`Keymap.PRESET_KEYS`, which the settings panel lists and
+`Keymap.presetMatch` searches before the shared table in `lookupFor`. Using the same rows
+for display and lookup keeps their bindings aligned, and emitting
 the binding as a literal `Qt.Key_*` is what keeps it inside the `qml6` probe above.
 
 The live preset is a module-level `var preset` in the generated file, set by `ui/ViewState.qml`'s
@@ -142,9 +130,16 @@ on neither; Windows Page Up loses `pageup` beside `ctrl-u` because ctrl-d is not
 mirrors by data, undo and redo, copy and cut, browse in and parent, are left alone. `tests/js/keymap.js` asserts the
 pairs across every preset and both frontends.
 
-The tool emits JavaScript only. Plan 6 adds the Rust output together with the terminal key
-type that consumes it; a generated module with no caller is dead code, so the second output
-waits for its consumer.
+`src/keys.rs` includes and re-exports `src/keys_generated.rs` as `flea::keys`. The GPUI window
+uses that API for keyboard lookup in `crates/flea-gui/src/window/keyboard.rs`. The TUI's
+`src/tui/keymap.rs` instead parses the embedded `keys.toml` through `include_str!`, including
+its terminal-specific `[[tui]]` rows; `src/tui/key_sheet.rs` uses `flea::keys::display` for
+keycap labels. Generating Rust bindings does not replace the TUI's map parser.
+
+For temporary output, pass a JavaScript destination as the first argument and use
+`--rust <path>` for Rust. A second positional argument selects an alternate input table;
+`--catalog <path>` selects the catalog to refresh. With an explicit JavaScript destination,
+Rust and catalog files are written only when their options are supplied.
 
 ---
 
