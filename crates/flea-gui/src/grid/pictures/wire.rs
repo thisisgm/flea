@@ -153,6 +153,18 @@ impl Shell {
                     });
                     let file = document.get("file").and_then(flea::jsondoc::Json::as_str);
                     if let (Some(row), Some(file)) = (row, file) {
+                        if crate::bench_thumbs::enabled() && !file.is_empty() {
+                            if let (Some(facts), Some(flea::jsondoc::Json::Num(ms))) =
+                                (host.pane.held.row(row), document.get("ms"))
+                            {
+                                if let Ok(ms) = ms.parse::<f64>() {
+                                    crate::bench_thumbs::worker(
+                                        &crate::navigation::history::join(&host.path, &facts.name),
+                                        ms,
+                                    );
+                                }
+                            }
+                        }
                         pictures.thumbed(host.pane.held.listing, &host.path, row, file, cx);
                     }
                 }

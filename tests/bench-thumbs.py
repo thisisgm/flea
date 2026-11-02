@@ -98,6 +98,13 @@ class Contracts(unittest.TestCase):
                 row["round"] = 5
         self.assertFalse(bench.summary(rows)[0]["metrics"]["all_thumbnails_ms"]["measured"])
 
+    def test_bench_thumbs_reader_delay_mutants_cannot_rank(self):
+        rows = self.rows()
+        for row in rows:
+            if row["id"] == "flea":
+                row["mutant"] = True
+        self.assertTrue(all(not metric["measured"] for metric in bench.summary(rows)[0]["metrics"].values()))
+
     def test_marker_and_symlink_are_required_to_guard_writes(self):
         path = Path(tempfile.mkdtemp(dir=ROOT))
         with self.assertRaises(ValueError):
@@ -163,12 +170,12 @@ class Contracts(unittest.TestCase):
         with self.assertRaises(ValueError):
             bench.roster(path, installed=True)
 
-    def test_candidate_is_not_launched_without_thumbnail_handles(self):
+    def test_candidate_requires_a_real_versioned_binary_before_launch(self):
         from unittest import mock
         with mock.patch.object(measure.subprocess, "Popen") as launch:
-            result = measure.run_one(REPO, ROOT, None, ROOT, dict(id="flea"), 1, 15)
+            with self.assertRaises(KeyError):
+                measure.run_one(REPO, ROOT, None, ROOT, dict(id="flea"), 1, 15)
         launch.assert_not_called()
-        self.assertTrue(all(result[metric] is None for metric in bench.AFTER["photo-jpeg"]))
 
     def test_existing_field_entry_dispatches_before_shared_cache_setup(self):
         result = subprocess.run([str(REPO / "tools/flea-field-bench"), "--thumbs", "roster"], env={"PATH": os.environ["PATH"]}, capture_output=True, text=True)

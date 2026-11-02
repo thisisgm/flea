@@ -213,6 +213,7 @@ impl Shell {
             return;
         }
         self.presentation.window = Some(window.window_handle().window_id());
+        crate::bench_thumbs::observe(window, cx);
         self.presentation.pending = VecDeque::with_capacity(RETAINED);
         self.presentation.activity.follow(cx);
         let weak = cx.entity().downgrade();

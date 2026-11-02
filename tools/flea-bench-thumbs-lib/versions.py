@@ -4,7 +4,7 @@ import re
 import subprocess
 
 PACKAGED = frozenset(("krusader", "dolphin", "nautilus", "thunar", "pcmanfm", "nemo"))
-CLI = frozenset(("flea-0312", "strata-stable", "strata-nightly"))
+CLI = frozenset(("flea", "flea-0312", "strata-stable", "strata-nightly"))
 VERSION = re.compile(r"\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9.]+)?")
 
 

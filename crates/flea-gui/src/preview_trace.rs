@@ -18,7 +18,7 @@ const KEPT: usize = 512;
 extern "C" {
     fn clock_gettime(clock: i32, time: *mut [i64; 2]) -> i32;
 }
-fn now() -> Option<Duration> {
+pub(crate) fn now() -> Option<Duration> {
     let mut time = [0i64; 2];
     // SAFETY: Linux CLOCK_MONOTONIC and a writable timespec with the platform ABI.
     if unsafe { clock_gettime(CLOCK_MONOTONIC, &mut time) } != 0

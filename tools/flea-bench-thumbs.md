@@ -39,6 +39,9 @@ and versions again before samples. Package versions use display-free package
 ownership and `pacman -Q`, preserving epoch and pkgrel; archive versions use
 `--version` and verified B5 receipts, including embedded source commits.
 Packaged roster rows include `package_name` and the exact `package_version`.
+The candidate also requires `gui_sha256`, the checksum of the `flea-gui`
+sibling that the inventoried `flea` launcher executes. Both binaries must
+come from the same release build receipt.
 
 `installed-roster --root ROOT --b5-root INVENTORY` inventories nine installed
 arms from a marked B5 root with `rival-versions.json`. `FLEA_0312_BIN`,
@@ -63,15 +66,58 @@ window-map-to-cache interval, outside the four ranked columns. A default policy
 decline, including Nemo's 1 MiB limit, remains listed and incomplete; it cannot
 remove a rival from first-place eligibility.
 
-Preview logs and screenshots alone do not prove successful 800 px decode and
-render, so `preview_800_ms` stays empty. Inherited `perf task-clock:u` wraps
-the private session bus, including activated helper descendants and the bus
-itself. This is diagnostic user CPU, not certified whole-cgroup user CPU or
-the unpublished source's run boundary. `user_cpu_s` stays empty until the full
-workload and whole-cgroup accounting are proven. A missing counter never
-becomes zero. The candidate remains unlaunched while thumbnail handles are
-unavailable. These limitations prevent a completed benchmark or release win
-claim from this recovered harness alone.
+GPUI Flea uses the existing `FLEA_B7_BENCH` sample token to enable a receipt
+producer. With the token absent, it creates no observer or job clocks. For
+each thumbnail it records the real viewport request and the backend's
+`thumbed.ms` worker duration. A receipt requires a successful decoded-image
+paint, visible paint bounds, the exact submitted draw and its compositor
+`Presented` terminal with `CLOCK_MONOTONIC` timestamp. Neither cache writes,
+pixel differences nor diagnostics can produce this receipt. Sixteen distinct
+fixture paths and sixteen independently decoded 256 px cache entries are
+required. The native run retains the receipt and a capture immediately after
+the reader observes the final presented thumbnail.
+
+The thumbnail batch boundary is first thumbnail enqueue to last successful
+output, never process launch or window mapping. Flea records enqueue at the
+viewport's actual request and ends at native presentation of the last decoded
+thumbnail; Strata and 0.3.12 retain their existing worker-log and trace ends.
+Flea therefore includes delivery, upload and compositor latency after worker
+completion, which those rival logs do not expose. Per-thumbnail time remains
+the median worker interval excluding queue time, read from `thumbed.ms`, not
+the batch interval divided by sixteen. Rival methods are unchanged.
+
+After thumbnails complete, Flea follows the same Home, Space and fifteen
+Right steps as the Strata arms. In marked B7 runs Quick Look requests a real
+800 px longest-edge raster from the original through its normal decode path,
+independent of monitor size. `preview_800_ms` is the median of sixteen
+request-to-presented-output intervals. A successful paint of a smaller interim
+or a failed raster cannot complete it. Every preview has a capture and a
+receipt with decoded dimensions and native time. Rivals' unverified preview
+logs remain diagnostic and their ranked preview cells remain empty.
+
+Flea runs the private application command in a fresh systemd user scope.
+`user_cpu_s` is the difference of cgroup v2 `cpu.stat`'s cumulative `user_usec`
+immediately before executing the private session command and after graceful quit
+and the last descendant's exit. This spans listing, all sixteen thumbnails,
+all sixteen previews and shutdown, the same launch-to-graceful-exit boundary
+that wraps the rivals. Backend workers, decode helpers and the private session
+bus remain in the scope; system CPU is excluded. The collector retains the
+before/after counters, monotonic boundaries, cgroup path and empty final process
+set. Forced cleanup, remaining helpers, missing counters or missing preview
+outputs leave CPU empty. Rival inherited `perf task-clock:u` remains diagnostic;
+those arms still lack certified whole-cgroup CPU. No absent counter becomes zero.
+The start marker executes inside the prepared sandbox, directly before
+`dbus-run-session`, matching the rivals' perf boundary and excluding sandbox
+setup and the collector's Python imports from the counter difference.
+
+`FLEA_B7_DELAY_MS=1000` is a bench-only negative control: it withholds receipt
+staging for 1000 ms after the first successful thumbnail paint while the app
+continues painting. The eventually stamped presented frame and measured batch
+time must move by the delay. The token gates this control, the value is
+bounded at 5000 ms, and mutant samples are excluded from rankings. Run this
+control in a separate private sample and retain both captures and receipts.
+Different rival output coverage and the unpublished source corpus still
+prevent a completed benchmark or release win claim from the recovered harness.
 
 The display lock serializes the native lane. Ownership requires both descent
 from the launched process and the sample marker in `/proc/PID/environ`.

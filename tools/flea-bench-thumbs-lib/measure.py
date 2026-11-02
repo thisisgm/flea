@@ -16,6 +16,8 @@ import tempfile
 import time
 
 import versions as version_probe
+import gpui
+import cgroup_cpu
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 # Sample input: '2026-10-20T08:00:00.100Z browser worker completed operation=Image queue_ms=80 elapsed_ms=20'.
@@ -300,19 +302,20 @@ def quit_entrant(display, window, token, process, ident):
 
 def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
     ident = entrant["id"]
-    if ident == "flea":
-        return dict(all_thumbnails_ms=None, per_thumbnail_ms=None, preview_800_ms=None, user_cpu_s=None,
-                    verified=None, reasons=["candidate thumbnail handles are unavailable; measurements disabled"], evidence=None)
     root = Path(tempfile.mkdtemp(prefix=f"{fixture.name}-{ident}-{round_number}-", dir=parent))
     directories(root)
     prefix = sandbox(root, display)
     env = environment(root, display)
     token = root.name
     env["FLEA_B7_BENCH"] = token
+    if ident == "flea" and os.environ.get("FLEA_B7_DELAY_MS"):
+        env["FLEA_B7_DELAY_MS"] = os.environ["FLEA_B7_DELAY_MS"]
     binary = entrant["binary"]
     from inventory import digest
     if digest(binary) != entrant["sha256"]:
         raise ValueError(f"binary checksum differs from inventory: {ident}")
+    if ident == "flea" and digest(Path(binary).with_name("flea-gui")) != entrant.get("gui_sha256"):
+        raise ValueError("GPUI sibling checksum differs from candidate inventory")
     identity = version_probe.probe(ident, binary, prefix, env, root)
     version_probe.check(entrant, identity)
     version_output = identity["version_output"]
@@ -345,8 +348,10 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
     subprocess.run([str(repo / "tools/flea-bench-keys"), "map", str(fixture), str(keymap)], check=True)
     perf = ["perf", "stat", "-x,", "-o", str(root / "cpu.csv"), "-e", "task-clock:u", "--"]
     with (root / "cpu-probe.log").open("xb") as log:
-        supported = subprocess.run(prefix + ["perf", "stat", "-e", "task-clock:u", "--", "true"], env=env, cwd=root, stdout=log, stderr=log, timeout=5).returncode == 0
+        supported = ident != "flea" and subprocess.run(prefix + ["perf", "stat", "-e", "task-clock:u", "--", "true"], env=env, cwd=root, stdout=log, stderr=log, timeout=5).returncode == 0
     command = (perf if supported else []) + ["dbus-run-session", "--", *argv]
+    scope = cgroup_cpu.Scope(root) if ident == "flea" else None
+    reader = gpui.Receipts(root / "app.log", token, fixture) if scope else None
     process = None
     error = ""
     events = []
@@ -357,7 +362,8 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
     tail = TraceTail(root / "trace.log") if ident == "flea-0312" else None
     try:
         with (root / "app.log").open("xb") as log:
-            process = subprocess.Popen(prefix + command, env=env, cwd=root, stdout=log, stderr=log, start_new_session=True)
+            launch = scope.command(["dbus-run-session", "--", *argv], env, prefix) if scope else prefix + command
+            process = subprocess.Popen(launch, env=None if scope else env, cwd=root, stdout=log, stderr=log, start_new_session=True)
         window = display.wait_window(token, process, timeout)
         mapped = time.monotonic()
         (root / "window.json").write_text(json.dumps(dict(token=token, launcher_pid=process.pid, **{k: window.get(k) for k in ("address", "pid", "class", "title", "at", "size")})) + "\n")
@@ -368,29 +374,43 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
         # A rival that declines by its own default writes nothing, so it gets a short look rather than the full wait.
         deadline = time.monotonic() + (min(timeout, DECLINE_WAIT) if declined else timeout)
         while time.monotonic() < deadline and process.poll() is None:
+            if reader:
+                reader.poll()
             if tail:
                 tail.poll()
             if ident.startswith("strata"):
                 events = worker_events((root / "app.log").read_text(errors="replace"))
             if settle is None and settled_count(root / "cache", stems) >= 16:
                 settle = time.monotonic() - mapped
-            clock_done = sum(e["kind"] == "Image" for e in events) >= 16 if ident.startswith("strata") else len(tail.jobs) >= 16 if tail else True
+            clock_done = reader.complete("thumbnail") if reader else sum(e["kind"] == "Image" for e in events) >= 16 if ident.startswith("strata") else len(tail.jobs) >= 16 if tail else True
             if clock_done and settle is not None:
                 break
             time.sleep(0.01)
+        if reader and not reader.complete("thumbnail"):
+            raise ValueError("GPUI did not present all 16 decoded thumbnails")
+        before = time.monotonic_ns()
         display.screenshot(root, window, token, "thumbnails")
-        if ident.startswith("strata") and len(verified_cache(root / "cache", fixture)) == 16:
+        if reader:
+            gpui.capture_receipt(root, "thumbnails", reader, before, time.monotonic_ns())
+        if (reader or ident.startswith("strata")) and len(verified_cache(root / "cache", fixture)) == 16:
             display.key(window, token, "Home", "space")
             for sample in range(16):
                 deadline = time.monotonic() + timeout
                 while time.monotonic() < deadline and process.poll() is None:
+                    if reader:
+                        reader.poll()
+                        if len(reader.outputs("preview")) >= sample + 1:
+                            break
                     events = worker_events((root / "app.log").read_text(errors="replace"))
                     if sum(e["kind"] == "PreviewImage" for e in events) >= sample + 1:
                         break
                     time.sleep(0.05)
                 else:
                     raise ValueError("preview worker did not finish")
+                before = time.monotonic_ns()
                 display.screenshot(root, window, token, f"preview-{sample:02d}")
+                if reader:
+                    gpui.capture_receipt(root, f"preview-{sample:02d}", reader, before, time.monotonic_ns())
                 if sample < 15:
                     display.key(window, token, "Right")
         quit_method = quit_entrant(display, window, token, process, ident)
@@ -398,11 +418,17 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
         error = str(failure)
     finally:
         stop(process)
+        if scope:
+            scope.stop()
     events = worker_events((root / "app.log").read_text(errors="replace"))
     if tail:
         tail.poll()
     verified = len(verified_cache(root / "cache", fixture, 256))
-    if ident.startswith("strata"):
+    if reader:
+        reader.poll()
+        metrics = reader.metrics(verified)
+        method = "GPUI decoded image paint and exact CLOCK_MONOTONIC compositor presentation; thumbed.ms worker duration"
+    elif ident.startswith("strata"):
         metrics = worker_metrics(events, verified)
         method = "worker-clock (browser worker completion log)"
     elif tail:
@@ -415,7 +441,7 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
         metrics = {key: None for key in metrics}
     cpu = perf_user((root / "cpu.csv").read_text()) if (root / "cpu.csv").exists() else None
     reasons = [error] if error else []
-    if not supported:
+    if not supported and not scope:
         reasons.append("perf user counter unavailable; app still ran without CPU collection")
     if tail and len(tail.jobs) != 16:
         reasons.append(f"{len(tail.jobs)} trace lines, expected 16; trace is per reported job")
@@ -429,8 +455,14 @@ def run_one(repo, parent, display, fixture, entrant, round_number, timeout):
         reasons.append(f"{verified}/16 valid fixture cache entries")
         log_text = (root / "app.log").read_text(errors="replace").splitlines()
         reasons.append("app.log tail: " + " | ".join(line.strip()[:160] for line in log_text[-6:]))
-    reasons.append("800px successful preview output needs verification; screenshots and raw worker timings retained")
+    if not reader:
+        reasons.append("800px successful preview output needs verification; screenshots and raw worker timings retained")
+    elif not reader.complete("preview"):
+        reasons.append("GPUI did not present all 16 successful 800 px previews")
+    cgroup_user = scope.result() if scope and not error and reader.complete("preview") else None
+    if scope and cgroup_user is None:
+        reasons.append("complete whole-cgroup user CPU receipt unavailable")
     settle_ms = round(settle * 1000, 1) if settle is not None and verified == 16 and not error else None
-    return dict(**metrics, all_thumbnails_settle_ms=settle_ms, thumbnail_method=method, quit_method=quit_method, cache_written=cache_inventory(root / "cache"),
-                user_cpu_s=None, user_cpu_s_diagnostic=cpu, verified=verified, declined=outcome, version_output=version_output, version_identity=identity,
-                evidence=str(root), reasons=reasons, argv=argv, cpu_method="inherited perf task-clock:u, including private session bus")
+    return dict(**metrics, all_thumbnails_settle_ms=settle_ms, thumbnail_method=method, quit_method=quit_method, cache_written=cache_inventory(root / "cache"), mutant=bool(env.get("FLEA_B7_DELAY_MS")),
+                user_cpu_s=cgroup_user, user_cpu_s_diagnostic=cpu, verified=verified, declined=outcome, version_output=version_output, version_identity=identity,
+                evidence=str(root), reasons=reasons, argv=argv, cpu_method="cgroup v2 cpu.stat user_usec, launch to graceful exit and all helper exits" if scope else "inherited perf task-clock:u, including private session bus")
