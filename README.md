@@ -248,6 +248,8 @@ Pass a directory to open it, or `--select <path>` to reveal a file.
 `./tests/run-all.sh` runs the headless suites, and [the protocol guide](docs/protocol.md) documents
 the backend.
 
+See [PLUGINS.md](PLUGINS.md) to write, validate, install and debug a Flea plugin, with a working example for each kind.
+
 ## Support
 
 If this saved you an afternoon, you can
