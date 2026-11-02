@@ -7,6 +7,8 @@ use gpui::{AppContext, TestAppContext};
 mod capture;
 #[path = "columns_finder_tests.rs"]
 mod finder;
+#[path = "columns_fixlist_tests.rs"]
+mod fixlist;
 #[path = "columns_gesture_tests.rs"]
 mod gestures;
 #[path = "columns_test_host.rs"]

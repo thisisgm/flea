@@ -195,6 +195,15 @@ pub struct TrackPaint {
 }
 
 impl TrackPaint {
+    /// The name a drawn row was shaped to, cut or whole, for tests that read the painted label.
+    #[cfg(test)]
+    pub fn drawn_label(&self, index: usize) -> Option<String> {
+        self.visible
+            .iter()
+            .find(|(at, _, _)| *at == index)
+            .and_then(|(_, prepared, _)| prepared.as_ref())
+            .map(|prepared| prepared.label.clone())
+    }
     pub fn new(typeface: Typeface) -> Self {
         Self {
             drawn: None,
@@ -322,6 +331,8 @@ pub struct Painters {
     slots: [Option<Rc<RefCell<TrackPaint>>>; 5],
     pub constructed: usize,
     pub dropped: usize,
+    /// The painted state a resting pointer's hover already asked one catch-up frame for, while the paint lagged.
+    pub rest_retried: Option<(usize, u32)>,
 }
 
 impl Painters {

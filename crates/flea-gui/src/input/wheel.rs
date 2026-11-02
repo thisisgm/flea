@@ -184,7 +184,10 @@ impl Shell {
                 elapsed: 0.,
             });
         }
-        input.keyboard();
+        // The wheel lands under the pointer, so the row the scroll brings there takes the hover once the frame is drawn.
+        input.pointer_origin = true;
+        input.surface_pointer = Some(event.position);
+        input.last_pointer = Some(event.position);
         if before != host.pane.scroll_y {
             input.scrolled(host.pane.scroll_y, &mut host.pane.cursor);
             input.moved(now);

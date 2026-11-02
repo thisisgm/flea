@@ -257,9 +257,18 @@ impl ListState {
         Some(width_patch(column, next))
     }
 
-    /// A release: writes once after a real move, never on a click.
-    pub fn end_drag(&mut self) -> Option<String> {
+    /// A release over the header (`over`) or off it: writes once after a real move, never on a click.
+    pub fn end_drag(&mut self, over: bool) -> Option<String> {
+        // A release off the header lights no zone, even after a drag that moved no edge.
+        if !over {
+            self.header.hot = None;
+        }
         let (column, width) = self.header.drag.end()?;
+        let drag = self.header.drag;
+        // ResizeHandle.qml stays lit under a still pointer only while the edge followed it, never once the rails clamped it.
+        let followed =
+            (drag.preview - (drag.start_width - (drag.last_x - drag.start_x))).abs() < 1.;
+        self.header.hot = (over && followed).then_some(column);
         self.write_width(column, width)
     }
 
@@ -269,6 +278,8 @@ impl ListState {
         if self.view.dual || self.view.searching || !self.drawn.layout.shown(column) {
             return None;
         }
+        // A fit moves the edges under a still pointer, so no zone stays lit from before it.
+        self.header.hot = None;
         let (_, tokens) = self.measure(window);
         let current = tokens.wanted(column, self.view.stored);
         let text = window.text_system();

@@ -208,11 +208,9 @@ fn fix1_knob_drag_pulls_the_cursor_into_the_view(cx: &mut TestAppContext) {
     );
 }
 
-// r1-6: Ipc.qml:90 Style.selectedFill is the wash Row.qml:127 paints under a marked row in a pane without focus.
+// r1-6, EY-417: Row.qml:127 greys marks only in the pane that is not current, so a blurred window keeps the plate.
 #[gpui::test]
-fn fix1_selected_fill_is_the_wash_the_list_paints_for_an_unfocused_marked_row(
-    cx: &mut TestAppContext,
-) {
+fn fix1_a_blurred_window_keeps_the_marked_plate_under_a_marked_row(cx: &mut TestAppContext) {
     let (shell, cx) = mounted(cx);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -230,7 +228,7 @@ fn fix1_selected_fill_is_the_wash_the_list_paints_for_an_unfocused_marked_row(
         let host = shell.panes[0].as_ref().unwrap();
         let drawn = host.input.drawn.unwrap();
         (
-            drawn.fill,
+            host.list.borrow().drawn.palette.unwrap().marked,
             drawn.frame,
             host.selected.clone(),
             host.pane.cursor,
@@ -248,7 +246,7 @@ fn fix1_selected_fill_is_the_wash_the_list_paints_for_an_unfocused_marked_row(
     });
     assert!(
         on_marked_row,
-        "the reader names a wash the marked row never painted: {fill:?}"
+        "a blurred window greyed the marked row: {fill:?} never painted"
     );
 }
 
@@ -299,12 +297,8 @@ fn ey210_selected_fill_names_the_grey_token_in_each_focus_state(cx: &mut TestApp
             crate::ipc::rows::colour(palette.marked),
             "focused {focused}: selectedFill is not the focused marked plate"
         );
-        let plate = if focused {
-            palette.marked
-        } else {
-            palette.foreground.opacity(crate::list::TRACK)
-        };
-        let painted = format!("{plate:?}");
+        // EY-417: Row.qml:127 keeps the marked plate in the current pane whatever the window's focus.
+        let painted = format!("{:?}", palette.marked);
         assert!(
             quads.iter().any(|quad| {
                 quad.bounds.origin.y == top.scale(scale)

@@ -330,3 +330,6 @@ fn colwheel_list_and_grid_notch_distances_remain_byte_identical() {
         }
     }
 }
+
+#[path = "columns_wheel_fixlist_tests.rs"]
+mod fixlist;

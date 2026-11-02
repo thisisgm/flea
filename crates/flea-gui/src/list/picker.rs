@@ -1,11 +1,11 @@
 //! The chooser reuses list rows with a leading check slot and compact foreground metadata.
 use super::{
     element::{paint_mark, Shown},
-    ListView, Metrics, Palette,
+    ListView, Metrics, Palette, RowStates,
 };
 use crate::grid::element::pictures::paint_in_slot;
 use crate::row::marks::{ClipMark, Mark};
-use gpui::{outline, point, px, size, App, BorderStyle, Bounds, Pixels, Window};
+use gpui::{outline, point, px, size, App, BorderStyle, Bounds, Hsla, Pixels, Window};
 
 pub fn check_size(small: f32, hairline: f32) -> f32 {
     small + hairline + 4. * hairline
@@ -91,11 +91,32 @@ pub(super) fn paint_check(
     1
 }
 
+/// Row.qml:178 and the dual board: a dual pane rests every mark in the muted frame and lifts only the current pane's cursor.
+pub(super) fn mark_ink(
+    shown: &Shown,
+    view: &ListView,
+    palette: Palette,
+    states: &RowStates,
+) -> Hsla {
+    let state = shown.state;
+    if view.dual {
+        if state.cursor && !states.other_pane {
+            palette.foreground
+        } else {
+            palette.muted_frame
+        }
+    } else if state.lifted() {
+        palette.foreground
+    } else {
+        palette.metadata_frame
+    }
+}
+
 pub(super) fn paint_icon(
     shown: &Shown,
     view: &ListView,
     metrics: Metrics,
-    palette: Palette,
+    ink: Hsla,
     origin: (Pixels, Pixels, Option<&flea::protocol::RowFacts>),
     window: &mut Window,
     cx: &mut App,
@@ -131,11 +152,6 @@ pub(super) fn paint_icon(
     if let Some((_, key, data)) =
         row.and_then(|row| super::outline::chevron(view, row, shown.state.hovered))
     {
-        let ink = if shown.state.lifted() {
-            palette.foreground
-        } else {
-            palette.metadata_frame
-        };
         paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
         return (1, 0);
     }
@@ -144,11 +160,6 @@ pub(super) fn paint_icon(
         .as_ref()
         .map_or(Mark::File, |prepared| prepared.mark);
     let (key, data) = mark.svg();
-    let ink = if shown.state.lifted() {
-        palette.foreground
-    } else {
-        palette.metadata_frame
-    };
     paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
     (1, 0)
 }
