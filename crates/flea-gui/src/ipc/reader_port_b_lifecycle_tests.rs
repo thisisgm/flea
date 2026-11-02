@@ -250,7 +250,7 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
     });
 }
 
-// EY-438: PdfViewer.qml at v0.3.12 scrolls on the cursor keys and closes on focusPreview.
+// EY-438: PdfViewer.qml at v0.3.12 keeps the cursor keys from the listing and closes on focusPreview.
 #[gpui::test]
 fn quick_look_pdf_takes_cursor_keys_and_closes_on_focus_preview(cx: &mut TestAppContext) {
     crate::g2::pv2::render::without_threads(|| {
@@ -300,7 +300,7 @@ fn quick_look_pdf_takes_cursor_keys_and_closes_on_focus_preview(cx: &mut TestApp
             assert_eq!(
                 shell.panes[0].as_ref().unwrap().pane.cursor,
                 0,
-                "Down scrolls the PDF and leaves the listing cursor"
+                "Down stays in the PDF card and leaves the listing cursor"
             )
         });
         press(cx, handle, "tab", true);
