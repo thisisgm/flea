@@ -1,0 +1,61 @@
+name: ARM direct I/O diagnostic
+
+on:
+  push:
+    branches: ['diagnostics/arm-direct-ctl2']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arm-direct-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  direct:
+    if: github.ref == 'refs/heads/diagnostics/arm-direct-ctl2'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Initialize durable receipts
+        run: |
+          mkdir arm-direct-receipts
+          printf 'control_commit=%s\nevent=%s\nref=%s\n' "$GITHUB_SHA" "$GITHUB_EVENT_NAME" "$GITHUB_REF" > arm-direct-receipts/dispatch.txt
+
+      - name: Diagnostic scripts from the dispatched commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: control
+          persist-credentials: false
+
+      - name: Immutable current production source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: cf8d11ef922f110a00e783abe63dba29c1708b96
+          path: source
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-12
+        with:
+          toolchain: stable
+
+      - name: Install diagnostic prerequisites only
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          sudo apt-get update -o Acquire::Retries=3 2>&1 | tee arm-direct-receipts/apt-update.log
+          sudo apt-get install -y -o Acquire::Retries=3 build-essential pkg-config strace 2>&1 | tee arm-direct-receipts/apt-install.log
+
+      - name: Bounded native ARM control
+        timeout-minutes: 22
+        run: python3 control/tools/diagnostics/arm-direct.py source arm-direct-receipts
+
+      - name: Durable raw receipts, including failed or timed out controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: arm-direct-${{ github.run_id }}-${{ github.run_attempt }}
+          path: arm-direct-receipts/
+          if-no-files-found: error
+          retention-days: 14
