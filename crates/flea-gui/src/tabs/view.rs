@@ -360,6 +360,7 @@ impl Shell {
         }
         let started = self.with_tabs(|bar, panes| bar.tab_lift_moved(panes, 0., true));
         if !started {
+            self.publish_tab_notices(cx);
             return None;
         }
         self.strip.capacity.set(true);

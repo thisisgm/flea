@@ -118,9 +118,12 @@ impl Shell {
             return;
         };
         let row = match host.drawn_view {
-            // An empty folder draws the hero and no row surface, so its whole pane is blank ground.
-            Some(drawn @ (View::List | View::Dual | View::Grid))
-                if !host.drawn_list && host.pane.state.kind == Kind::Empty =>
+            // Heroes have no row surface. A Locked hero opens the denied folder's menu.
+            Some(drawn)
+                if !host.drawn_list
+                    && (host.pane.state.kind == Kind::Locked
+                        || (host.pane.state.kind == Kind::Empty
+                            && matches!(drawn, View::List | View::Dual | View::Grid))) =>
             {
                 let geometry = self.geometry(window);
                 let strip = self.slots.strip_height_for(side);

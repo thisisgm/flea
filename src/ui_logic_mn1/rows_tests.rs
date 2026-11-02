@@ -976,7 +976,7 @@ fn choices_validate_against_live_rows() {
     check(
         "lone copyPath refuses with its named reason",
         i18n.tr(super::refresh::Refusal::Moved.key()),
-        "Selected items changed; reopen the menu.".into(),
+        "Selected item moved or disappeared; reopen the menu.".into(),
     );
     check(
         "lone unknown refuses with its named reason",

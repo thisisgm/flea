@@ -1025,6 +1025,7 @@
   "keys.label.bcf58eaeff52": "返回瀏覽紀錄的上一處；無紀錄時前往上層資料夾",
   "keys.label.bd0b7be215ce": "關閉編輯器",
   "keys.label.bfa65befcad0": "前往檔案所在的資料夾並選取檔案",
+  "keys.label.704fb7f8818b": "無操作",
   "keys.label.c2fc6e7bc3be": "下一個工作表",
   "keys.label.c5f15f85156b": "如同相鄰項目，點按一次即進入該資料夾",
   "keys.label.c7ad88ff7f52": "窺覽中的列沒有選單",
@@ -1130,7 +1131,7 @@
   "menu.print": "列印…",
   "menu.refusal.empty_clipboard": "沒有可貼上的項目；按 y 複製，按 x 剪下。",
   "menu.refusal.favourite_unread": "無法讀取選取的資料夾。",
-  "menu.refusal.moved": "選取項目已變更；請重新開啟選單。",
+  "menu.refusal.moved": "選取項目已移動或消失；請重新開啟選單。",
   "menu.refusal.nocursor": "游標下沒有可開啟選單的項目",
   "menu.refusal.recent_new_file": "無法在「最近使用」中建立檔案。請先開啟資料夾",
   "menu.refusal.unavailable": "該動作已無法使用；請重新開啟選單。",
@@ -1623,7 +1624,7 @@
   },
   "preview.link_target": "→ %1",
   "preview.list_separator": "、",
-  "preview.loadHint": "按 %1 載入預覽",
+  "preview.loadHint": "%1 載入預覽",
   "preview.loading": "正在載入…",
   "preview.more": {
     "other": "另有 %1 個"

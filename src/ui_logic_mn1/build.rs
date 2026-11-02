@@ -276,9 +276,6 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             e.submenu = Some(rows::copy_as_entries());
         }
     }
-    if action == "invertSelection" && count == 0 {
-        return false;
-    }
     if (action == "run" || action == "openAsText") && (count != 1 || is_dir) {
         return false;
     }

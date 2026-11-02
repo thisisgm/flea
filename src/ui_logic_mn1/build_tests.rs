@@ -669,7 +669,7 @@ fn optional_rows_and_counts() {
         true,
     );
     check(
-        "Invert selection is absent with nothing selected",
+        "Invert selection remains present with nothing selected",
         entry(
             &listing_entries(&st(|p| {
                 p.has_row = false;
@@ -678,7 +678,7 @@ fn optional_rows_and_counts() {
             })),
             "invertSelection",
         )
-        .is_none(),
+        .is_some(),
         true,
     );
     check(

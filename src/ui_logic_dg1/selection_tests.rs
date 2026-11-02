@@ -113,7 +113,7 @@ fn a_landing_whose_listing_moved_is_dropped_and_said_stale() {
 
 // EY-490: a sent copy landing on a moved listing says Errors.js's stale refusal in error ink, as v0.3.12 does.
 #[test]
-fn fixlogic_ey490_a_sent_copy_landing_on_a_moved_listing_says_the_stale_error() {
+fn s2_int94_a_sent_copy_landing_on_a_moved_listing_says_the_stale_error() {
     let en = english();
     let mut pane = Pane::new();
     pane.clip(&en, false, None, vec![0]);

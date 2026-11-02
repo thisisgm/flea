@@ -25,12 +25,14 @@ pub mod inventory;
 pub mod places;
 #[cfg(test)]
 mod places_tests;
-pub mod refresh;
 #[cfg(test)]
 mod rclone_tests;
+pub mod refresh;
 pub mod rows;
 #[cfg(test)]
 mod rows_tests;
+#[cfg(test)]
+mod s2_tests;
 #[cfg(test)]
 pub(crate) mod testkit;
 
