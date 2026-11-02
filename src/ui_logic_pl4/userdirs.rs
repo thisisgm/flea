@@ -5,6 +5,22 @@ use super::leaf;
 pub struct UserDir {
     pub path: String,
     pub label: String,
+    pub label_key: &'static str,
+}
+
+// Only a role's standard folder name is product copy; renamed folders retain their own names.
+fn label_key(role: &str, label: &str) -> &'static str {
+    match (role, label) {
+        ("DESKTOP", "Desktop") => "places.row.desktop",
+        ("DOCUMENTS", "Documents") => "places.row.documents",
+        ("DOWNLOAD", "Downloads") => "places.row.downloads",
+        ("MUSIC", "Music") => "places.row.music",
+        ("PICTURES", "Pictures") => "places.row.pictures",
+        ("VIDEOS", "Videos") => "places.row.videos",
+        ("TEMPLATES", "Templates") => "places.row.templates",
+        ("PUBLICSHARE", "Public") => "places.row.public",
+        _ => "",
+    }
 }
 
 // Sample input: XDG_DOWNLOAD_DIR="$HOME/Photo\"Inbox" # local inbox gives ("DOWNLOAD", Some(".../Photo\"Inbox")).
@@ -68,9 +84,14 @@ pub fn user_dirs(body: &str, home: &str) -> Vec<UserDir> {
     read_roles(body, home)
         .into_iter()
         .filter(|(_, path)| path != home)
-        .map(|(_, path)| UserDir {
+        .map(|(role, path)| UserDir {
+            label_key: label_key(&role, leaf(&path)),
             label: leaf(&path).to_owned(),
             path,
         })
         .collect()
 }
+
+#[cfg(test)]
+#[path = "userdirs_language_tests.rs"]
+mod language_tests;
