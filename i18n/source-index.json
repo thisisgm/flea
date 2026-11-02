@@ -79187,14 +79187,14 @@
         },
         {
           "excerpt": "\"pane.row_request\",",
-          "line": 146,
+          "line": 148,
           "path": "crates/flea-gui/src/backend/plugin_route.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "\"pane.row_request\",",
-          "line": 150,
+          "line": 152,
           "path": "crates/flea-gui/src/backend/plugin_route.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -105898,7 +105898,7 @@
     },
     {
       "excerpt": "\"Plugin request queue is full.\",",
-      "line": 147,
+      "line": 149,
       "literal": "Plugin request queue is full.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/plugin_route.rs",
@@ -105907,7 +105907,7 @@
     },
     {
       "excerpt": "\"Plugin place owner has stopped.\",",
-      "line": 151,
+      "line": 153,
       "literal": "Plugin place owner has stopped.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/plugin_route.rs",
@@ -110695,7 +110695,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid place listing\")?;",
-      "line": 66,
+      "line": 58,
       "literal": "invalid place listing",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110704,7 +110704,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin entry name\".into());",
-      "line": 71,
+      "line": 63,
       "literal": "invalid plugin entry name",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110713,7 +110713,7 @@
     },
     {
       "excerpt": "_ => return Err(\"invalid plugin entry kind\".into()),",
-      "line": 76,
+      "line": 68,
       "literal": "invalid plugin entry kind",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110722,7 +110722,7 @@
     },
     {
       "excerpt": "Some(Json::Num(n)) => n.parse::<u64>().map_err(|_| \"invalid plugin entry size\")?,",
-      "line": 80,
+      "line": 72,
       "literal": "invalid plugin entry size",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110731,7 +110731,7 @@
     },
     {
       "excerpt": "_ => return Err(\"invalid plugin entry size\".into()),",
-      "line": 81,
+      "line": 73,
       "literal": "invalid plugin entry size",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110740,7 +110740,7 @@
     },
     {
       "excerpt": "Some(Json::Num(n)) => n.parse::<i64>().map_err(|_| \"invalid plugin entry mtime\")?,",
-      "line": 85,
+      "line": 77,
       "literal": "invalid plugin entry mtime",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110749,7 +110749,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin entry mtime\")?,",
-      "line": 87,
+      "line": 79,
       "literal": "invalid plugin entry mtime",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110758,7 +110758,7 @@
     },
     {
       "excerpt": "_ => return Err(\"invalid plugin entry mtime\".into()),",
-      "line": 88,
+      "line": 80,
       "literal": "invalid plugin entry mtime",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110767,7 +110767,7 @@
     },
     {
       "excerpt": ".ok_or(\"plugin listing exhausted\")?;",
-      "line": 146,
+      "line": 138,
       "literal": "plugin listing exhausted",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110776,7 +110776,7 @@
     },
     {
       "excerpt": "return Err(\"no plugin operation paths\".into());",
-      "line": 198,
+      "line": 190,
       "literal": "no plugin operation paths",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110785,7 +110785,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin path\".into())",
-      "line": 206,
+      "line": 198,
       "literal": "invalid plugin path",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110794,7 +110794,7 @@
     },
     {
       "excerpt": "return Err(\"plugin listing changed\".into());",
-      "line": 211,
+      "line": 203,
       "literal": "plugin listing changed",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110803,7 +110803,7 @@
     },
     {
       "excerpt": ".ok_or(\"missing plugin rows\")?;",
-      "line": 216,
+      "line": 208,
       "literal": "missing plugin rows",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110812,7 +110812,7 @@
     },
     {
       "excerpt": "return Err(\"no plugin operation rows\".into());",
-      "line": 218,
+      "line": 210,
       "literal": "no plugin operation rows",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110821,7 +110821,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin row\")? as usize;",
-      "line": 225,
+      "line": 217,
       "literal": "invalid plugin row",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110830,7 +110830,7 @@
     },
     {
       "excerpt": "let row = self.rows.get(index).ok_or(\"plugin row no longer exists\")?;",
-      "line": 226,
+      "line": 218,
       "literal": "plugin row no longer exists",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_model.rs",
@@ -110847,8 +110847,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": ".ok_or(\"invalid plugin paths request\")?",
+      "line": 61,
+      "literal": "invalid plugin paths request",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "let (plugin, relative) = path(source).ok_or(\"invalid plugin rename path\")?;",
-      "line": 97,
+      "line": 107,
       "literal": "invalid plugin rename path",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110857,7 +110866,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin rename name\".into());",
-      "line": 105,
+      "line": 115,
       "literal": "invalid plugin rename name",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110866,7 +110875,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin rename path\")?;",
-      "line": 109,
+      "line": 119,
       "literal": "invalid plugin rename path",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110875,7 +110884,7 @@
     },
     {
       "excerpt": "return Err(\"Destination already exists.\".into());",
-      "line": 112,
+      "line": 122,
       "literal": "Destination already exists.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110884,7 +110893,7 @@
     },
     {
       "excerpt": "return Err(\"no plugin operation paths\".into());",
-      "line": 129,
+      "line": 139,
       "literal": "no plugin operation paths",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110893,7 +110902,7 @@
     },
     {
       "excerpt": "\"duplicate\" | \"trash\" | \"mkdir\" | \"newfile\" | \"bulkrename\" | \"link\" | \"undo\"",
-      "line": 149,
+      "line": 159,
       "literal": "link",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110902,7 +110911,7 @@
     },
     {
       "excerpt": "| \"redo\" => Err(\"This operation is unavailable in a plugin place.\".into()),",
-      "line": 150,
+      "line": 160,
       "literal": "This operation is unavailable in a plugin place.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110911,7 +110920,7 @@
     },
     {
       "excerpt": "_ => Err(\"This operation is unavailable in a plugin place.\".into()),",
-      "line": 153,
+      "line": 163,
       "literal": "This operation is unavailable in a plugin place.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110920,7 +110929,7 @@
     },
     {
       "excerpt": ".ok_or(\"Plugin selection changed. Reopen the menu.\")?;",
-      "line": 160,
+      "line": 170,
       "literal": "Plugin selection changed. Reopen the menu.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110929,7 +110938,7 @@
     },
     {
       "excerpt": "return Err(\"Plugin selection changed. Reopen the menu.\".into());",
-      "line": 162,
+      "line": 172,
       "literal": "Plugin selection changed. Reopen the menu.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110938,7 +110947,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin menu\".into());",
-      "line": 172,
+      "line": 182,
       "literal": "invalid plugin menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110947,7 +110956,7 @@
     },
     {
       "excerpt": "return Err(\"Delete confirmation expired. Review the selection again.\".into());",
-      "line": 242,
+      "line": 252,
       "literal": "Delete confirmation expired. Review the selection again.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110956,7 +110965,7 @@
     },
     {
       "excerpt": "let (plugin, _) = path(&snapshot.path).ok_or(\"invalid plugin place\")?;",
-      "line": 244,
+      "line": 254,
       "literal": "invalid plugin place",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110965,7 +110974,7 @@
     },
     {
       "excerpt": "_ => Err(\"invalid plugin delete path\"),",
-      "line": 251,
+      "line": 261,
       "literal": "invalid plugin delete path",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110974,7 +110983,7 @@
     },
     {
       "excerpt": "_ => Err(\"This menu operation is unavailable in a plugin place.\".into()),",
-      "line": 273,
+      "line": 283,
       "literal": "This menu operation is unavailable in a plugin place.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110983,7 +110992,7 @@
     },
     {
       "excerpt": ".ok_or(\"Plugin selection changed. Reopen the menu.\")?;",
-      "line": 283,
+      "line": 293,
       "literal": "Plugin selection changed. Reopen the menu.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -110992,7 +111001,7 @@
     },
     {
       "excerpt": "_ => return Err(\"invalid plugin transfer operation\".into()),",
-      "line": 293,
+      "line": 303,
       "literal": "invalid plugin transfer operation",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -111001,7 +111010,7 @@
     },
     {
       "excerpt": ".ok_or(\"missing plugin transfer owner\")?;",
-      "line": 301,
+      "line": 311,
       "literal": "missing plugin transfer owner",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -111010,7 +111019,7 @@
     },
     {
       "excerpt": "Some(_) => Err(\"Copy between different plugin places is unavailable.\".into()),",
-      "line": 305,
+      "line": 315,
       "literal": "Copy between different plugin places is unavailable.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -111019,7 +111028,7 @@
     },
     {
       "excerpt": "_ => Err(\"invalid plugin transfer path\".into()),",
-      "line": 307,
+      "line": 317,
       "literal": "invalid plugin transfer path",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/place_ops.rs",
@@ -111027,8 +111036,26 @@
       "surface": "gui"
     },
     {
+      "excerpt": "println!(\"TRACE plugin place refusal wire: {response}\");",
+      "line": 88,
+      "literal": "TRACE plugin place refusal wire: {response}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/plugins/rail_place_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "string(\"This operation is unavailable in a plugin place.\"),",
+      "line": 216,
+      "literal": "This operation is unavailable in a plugin place.",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/plugins/rail_place_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "_ => panic!(\"unexpected fixture request: {line}\"),",
-      "line": 146,
+      "line": 237,
       "literal": "unexpected fixture request: {line}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/rail_place_fixture.rs",
@@ -162786,8 +162813,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "else { Err(\"the text clipboard needs one NUL-free value\".into()) };",
-      "line": 49,
+      "excerpt": "Err(\"the text clipboard needs one NUL-free value\".into())",
+      "line": 55,
       "literal": "the text clipboard needs one NUL-free value",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162796,7 +162823,7 @@
     },
     {
       "excerpt": "return Err(\"the clipboard operation must be copy or cut\".to_string());",
-      "line": 52,
+      "line": 59,
       "literal": "the clipboard operation must be copy or cut",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162805,7 +162832,7 @@
     },
     {
       "excerpt": "return Err(\"the clipboard names no path\".to_string());",
-      "line": 56,
+      "line": 63,
       "literal": "the clipboard names no path",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162814,7 +162841,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"a clipboard token could not be made ({})\", e))?;",
-      "line": 212,
+      "line": 235,
       "literal": "a clipboard token could not be made ({})",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162822,8 +162849,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Err(format!(\"{} items are selected, and the clipboard takes at most {}\", paths.len(), MAX_CLIP_PATHS));",
-      "line": 221,
+      "excerpt": "\"{} items are selected, and the clipboard takes at most {}\",",
+      "line": 245,
       "literal": "{} items are selected, and the clipboard takes at most {}",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162832,7 +162859,7 @@
     },
     {
       "excerpt": "return Err(format!(\"{} holds a NUL byte\", p));",
-      "line": 231,
+      "line": 258,
       "literal": "{} holds a NUL byte",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162841,7 +162868,7 @@
     },
     {
       "excerpt": "return Err(format!(\"{} is not an absolute path\", p));",
-      "line": 234,
+      "line": 261,
       "literal": "{} is not an absolute path",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -162850,7 +162877,7 @@
     },
     {
       "excerpt": "return Err(format!(\"{} climbs out of its directory\", p));",
-      "line": 237,
+      "line": 264,
       "literal": "{} climbs out of its directory",
       "owner": "controller",
       "path": "src/clip/format.rs",
@@ -168961,7 +168988,7 @@
     },
     {
       "excerpt": "return Err(\"plugin message exceeds 64 KiB\".into());",
-      "line": 33,
+      "line": 48,
       "literal": "plugin message exceeds 64 KiB",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -168970,7 +168997,7 @@
     },
     {
       "excerpt": "let text = std::str::from_utf8(line).map_err(|_| \"plugin message is not UTF-8\")?;",
-      "line": 35,
+      "line": 50,
       "literal": "plugin message is not UTF-8",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -168979,7 +169006,7 @@
     },
     {
       "excerpt": ".ok_or(\"plugin message must be an object\")?;",
-      "line": 39,
+      "line": 54,
       "literal": "plugin message must be an object",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -168988,7 +169015,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"invalid plugin {key}\"))",
-      "line": 48,
+      "line": 63,
       "literal": "invalid plugin {key}",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -168997,7 +169024,7 @@
     },
     {
       "excerpt": ".ok_or(\"unknown plugin operation\")?;",
-      "line": 56,
+      "line": 71,
       "literal": "unknown plugin operation",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169006,7 +169033,7 @@
     },
     {
       "excerpt": "return Err(\"plugin did not declare this kind\".into());",
-      "line": 58,
+      "line": 73,
       "literal": "plugin did not declare this kind",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169015,7 +169042,7 @@
     },
     {
       "excerpt": "return Err(\"plugin did not declare folder access\".into());",
-      "line": 66,
+      "line": 81,
       "literal": "plugin did not declare folder access",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169024,7 +169051,7 @@
     },
     {
       "excerpt": "return Err(\"plugin discovery receives no selection paths\".into());",
-      "line": 70,
+      "line": 85,
       "literal": "plugin discovery receives no selection paths",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169033,7 +169060,7 @@
     },
     {
       "excerpt": "return Err(\"plugin did not declare this action\".into());",
-      "line": 82,
+      "line": 97,
       "literal": "plugin did not declare this action",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169042,7 +169069,7 @@
     },
     {
       "excerpt": "let value = values[0].1.as_str().ok_or(\"invalid plugin action input\")?;",
-      "line": 90,
+      "line": 105,
       "literal": "invalid plugin action input",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169051,7 +169078,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin action input\".into());",
-      "line": 95,
+      "line": 110,
       "literal": "invalid plugin action input",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169060,7 +169087,7 @@
     },
     {
       "excerpt": "_ => return Err(\"plugin action input does not match its declaration\".into()),",
-      "line": 99,
+      "line": 114,
       "literal": "plugin action input does not match its declaration",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169069,7 +169096,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin selection\")?;",
-      "line": 106,
+      "line": 121,
       "literal": "invalid plugin selection",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169078,7 +169105,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin selection path\".into());",
-      "line": 111,
+      "line": 126,
       "literal": "invalid plugin selection path",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169087,7 +169114,7 @@
     },
     {
       "excerpt": "return Err(\"plugin did not answer ready\".into());",
-      "line": 119,
+      "line": 134,
       "literal": "plugin did not answer ready",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169096,7 +169123,7 @@
     },
     {
       "excerpt": "return Err(\"unsupported plugin protocol version\".into());",
-      "line": 125,
+      "line": 140,
       "literal": "unsupported plugin protocol version",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169105,7 +169132,7 @@
     },
     {
       "excerpt": ".ok_or(\"invalid plugin progress\")?;",
-      "line": 141,
+      "line": 156,
       "literal": "invalid plugin progress",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169114,7 +169141,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin progress\".into());",
-      "line": 143,
+      "line": 158,
       "literal": "invalid plugin progress",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169123,7 +169150,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin progress\".into());",
-      "line": 148,
+      "line": 163,
       "literal": "invalid plugin progress",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169132,7 +169159,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| \"invalid plugin preview text\".into())",
-      "line": 166,
+      "line": 181,
       "literal": "invalid plugin preview text",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169141,7 +169168,7 @@
     },
     {
       "excerpt": "Err(\"invalid plugin preview output\".into())",
-      "line": 172,
+      "line": 187,
       "literal": "invalid plugin preview output",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169150,7 +169177,7 @@
     },
     {
       "excerpt": "_ => Err(\"unexpected plugin response\".into()),",
-      "line": 181,
+      "line": 196,
       "literal": "unexpected plugin response",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169159,7 +169186,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"invalid plugin {key}\"))?;",
-      "line": 190,
+      "line": 205,
       "literal": "invalid plugin {key}",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169168,7 +169195,7 @@
     },
     {
       "excerpt": "row.as_object().ok_or(\"invalid plugin row\")?;",
-      "line": 193,
+      "line": 208,
       "literal": "invalid plugin row",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169177,7 +169204,7 @@
     },
     {
       "excerpt": "return Err(\"duplicate or empty plugin row identity\".into());",
-      "line": 199,
+      "line": 214,
       "literal": "duplicate or empty plugin row identity",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -169186,7 +169213,7 @@
     },
     {
       "excerpt": "return Err(\"invalid plugin entry name\".into());",
-      "line": 202,
+      "line": 217,
       "literal": "invalid plugin entry name",
       "owner": "controller",
       "path": "src/plugin_runtime/protocol.rs",
@@ -175423,7 +175450,7 @@
     },
     {
       "excerpt": "cancelled: flag(doc, \"cancelled\"),",
-      "line": 224,
+      "line": 225,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -175432,7 +175459,7 @@
     },
     {
       "excerpt": "cancelled: flag(doc, \"cancelled\"),",
-      "line": 246,
+      "line": 247,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -175441,7 +175468,7 @@
     },
     {
       "excerpt": "cancelled: flag(&doc, \"cancelled\"),",
-      "line": 324,
+      "line": 326,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -244206,7 +244233,7 @@
     "crates/flea-gui/examples/presented-probe.rs": "a5f09cf617d84e3305057651584adfb95371098272d47d4cf9953ab34813f28e",
     "crates/flea-gui/src/backend.rs": "83e02130833d9f7b35835a9ab4d695b8fcbcdd9c514b1494e681e41e5dabe746",
     "crates/flea-gui/src/backend/native31_fixture.rs": "145b7ab5c4284e97e798038ad206eb6e7c4c61fd7a53b1e935ad59228135e860",
-    "crates/flea-gui/src/backend/plugin_route.rs": "46b021a64dbb865b42924ad645c7ef38e92cee93eafca5bfa7b9722ee3c33169",
+    "crates/flea-gui/src/backend/plugin_route.rs": "3def5b1ffed6055818d2b1c4303cbfcf5df2d76cfce60613e35c5baaacc44364",
     "crates/flea-gui/src/backend/status.rs": "c5245c1deb92cb1a48015615092cae40474891c12578d1c207f49e09c1133228",
     "crates/flea-gui/src/backend/transport.rs": "bdfbc9780952303854f8aecbd879712809a9fc96b7840a65c4eb409def223a55",
     "crates/flea-gui/src/backend/worker.rs": "e24fbcb7b9a5a6bd0fa8cfc06354dadf99c0f629ad91be30629101afae199537",
@@ -244357,7 +244384,7 @@
     "crates/flea-gui/src/g2/mod.rs": "6a0a43968804b9a182dcd63cdf6e991db12cd45a1526610d35c23eb61306fddd",
     "crates/flea-gui/src/g2/op1/card_rate.rs": "60a7d59a52509005e2ddf7888ce400dfb51973520912ba7fff8ad93e9c4b929c",
     "crates/flea-gui/src/g2/op1/cards.rs": "2aa7df61f594759cf771f3e243f8f575dc55be3f358d33ff9d9f72d5a014e769",
-    "crates/flea-gui/src/g2/op1/cards_copy.rs": "a364dc36f3ab6ee3dc057f1924ea57289981f611f816d2d87a724ff4d8826657",
+    "crates/flea-gui/src/g2/op1/cards_copy.rs": "6c1c21c842ecc2ecaaf877bcdcb9a55cf2120ff4bbd8ec4084fbc6f2c69a492a",
     "crates/flea-gui/src/g2/op1/cards_open.rs": "218a37f57766cec384eec1c569f29d988c2c405c75847c97838c923849bc8f7e",
     "crates/flea-gui/src/g2/op1/chosen.rs": "dec716ef546ffb62b6577663423eb1048bdbb4603d21a202942475bfc922e028",
     "crates/flea-gui/src/g2/op1/collision.rs": "edf17c44af8bbbbfeaf4093ffd96afcc7ee816334aca065c042e617b03cff7bc",
@@ -244634,12 +244661,12 @@
     "crates/flea-gui/src/g2/plugins/menu_layout.rs": "0accd9333440fab92babad01c542c138c2fcb3bf72f9fa623a6b1d6967cb1a16",
     "crates/flea-gui/src/g2/plugins/menu_selection.rs": "f39e386944cd3e51eb26b62a7efcddbc718fbf2a847701f0476605a363b215b0",
     "crates/flea-gui/src/g2/plugins/menu_send.rs": "2762eeb8444d78a17360899f0d0ed19b1e0aab8d9e992296fc35115408943db6",
-    "crates/flea-gui/src/g2/plugins/mod.rs": "78dcf30cfa37a60025571f059223f7f8e97e1dce63db1f04d35bb4ae578f220c",
-    "crates/flea-gui/src/g2/plugins/place.rs": "c4c7591de6e32b1096864756d380f0c944bb874081afc1f9129011e02069f99d",
-    "crates/flea-gui/src/g2/plugins/place_model.rs": "9e7b99b45fafb90d25af503540c8015b41e2fb93ec11a44505b6792ccab126b0",
-    "crates/flea-gui/src/g2/plugins/place_ops.rs": "313e70fef6b9f27ef9de6d1710d6d22db58b66d5c9272d14ca2a79268d5749b6",
+    "crates/flea-gui/src/g2/plugins/mod.rs": "4313e8e90692661f1c7b5d558af8dab275a862640943b7eccc0dea16db256c62",
+    "crates/flea-gui/src/g2/plugins/place.rs": "d8f130daef83f520f230433c7511b5b89e4cfd0cc21ec3ee96a3c23911b45536",
+    "crates/flea-gui/src/g2/plugins/place_model.rs": "e0e726a41ab98687155e5e3c48c7f78cd3797112dc5652000c99a7a4daac9aa4",
+    "crates/flea-gui/src/g2/plugins/place_ops.rs": "0ef8eb1b35e126bbd3c8435439d0c0ec895cd52e4bc7448e485cf36c045d2693",
     "crates/flea-gui/src/g2/plugins/rail.rs": "aa7ca69ef9189c82ee4607e71bcc0a1667f9abd7a62e5e7d962c7d7a5307143a",
-    "crates/flea-gui/src/g2/plugins/rail_place_fixture.rs": "b4a941ced3f20a1cad18e297c625e65fe5753debbfb2548f1ef1df2941207197",
+    "crates/flea-gui/src/g2/plugins/rail_place_fixture.rs": "dda57e0a0649dcb36cde970f1545c98a08d084918aadceb26b550686033c9e56",
     "crates/flea-gui/src/g2/plugins/shelf.rs": "e6d14ed4382247e7c28c9d3fac9633e7132fa97f86c682f9042513d6d397d60a",
     "crates/flea-gui/src/g2/pv1/act.rs": "fdd5c82a052dce785aab4418eff59ff6a138f1833d39532f01f9904570e69d82",
     "crates/flea-gui/src/g2/pv1/bar.rs": "5ce715cf0ab88c10b885f8b64f45c84b814494ad8a664eb69fc6c4be0a05e5f2",
@@ -245685,7 +245712,7 @@
     "src/clip/control.rs": "73cf5002c238aa0a4b806c7af0084fa9c4e0d420133ce035373a94a0d76cb46c",
     "src/clip/end.rs": "ac74fcca8727f4df9f4932da8dc2aa111f6400666430f7df44cada078b0761df",
     "src/clip/end_fault_fixture.rs": "0bc3c93224381ebea23a21be8bafd70b88b69f17a1640efc3536ddfc4aa7433a",
-    "src/clip/format.rs": "474151f8bde9a36ad03f8837a832de3192e9643a762a6bc99ff49e444de7d9a2",
+    "src/clip/format.rs": "1ecfbefddf9755d492e2e61430634d884c1500643ae308e96642d77b2c4e691d",
     "src/clip/mod.rs": "cb29e94ea907d56f1ad8295d7a8e902bbefbc7830650b04a2d97e87b5b67b162",
     "src/clip/own.rs": "9a399baee7a5581f4579e372c30c512cf136fbb8e71680877abef7e2ea0b250b",
     "src/clip/owner.rs": "82c50b09f6e163ef4be5de48d963b62fe495b528810b0ccff62ecb21ecbb9ece",
@@ -245755,7 +245782,7 @@
     "src/persistdoc.rs": "57bb6e8db402e13fef931e5cf01db2bdda909ac7a45409e8b3908a9942025444",
     "src/plugin_runtime.rs": "59ebc7f638f4697b1be51e21c32b5550f45a43b6a7182cb02f6078ecea885b94",
     "src/plugin_runtime/process.rs": "78ba5581ceabc8a271aa9a7cfe67405003a6a8b55ebe3fb8a607736a0c102edc",
-    "src/plugin_runtime/protocol.rs": "906aad2e9863ed4121eb42ca5c2a97e043a250f6bfe9f2231ba06c5123d7233b",
+    "src/plugin_runtime/protocol.rs": "5bb62af43761651364462962278586163c7537d5dc4ee4f17be56e2756add2af",
     "src/plugin_runtime/session.rs": "ca7e1911902c98555e7210120151cef0f564766a449c153773d74b11d4a4681a",
     "src/plugincli.rs": "bc03c244d05b9064eabee529f4113feac86dac50473b9cdf91364ec5b92372be",
     "src/prefetch.rs": "9f50583663defde0493e607cb862f880b4d8906cffca30a7bdf318d4e45857f2",
@@ -245879,7 +245906,7 @@
     "src/ui_logic_dg1/harness.rs": "93c75fa03afe53508f8722c7b55c25f7d870bfe1be7fcef0540a0f354b2025c9",
     "src/ui_logic_dg1/marks.rs": "2042733e28f32f3c7b6958b62b4a62b40874b4111d5efeaa5b62b34daa1a282b",
     "src/ui_logic_dg1/paste.rs": "29423529b4962af4c8236294cbb365eb4221ec3da5d0e0be5c45e5112d594d1d",
-    "src/ui_logic_dg1/payload.rs": "06ebcc82db4874c4908c1c712e16eb83093fe88e3fa560b18131e7cc23517097",
+    "src/ui_logic_dg1/payload.rs": "7261f01942cf2554c4a3d287d2a94a4c7ee9604861244ec52af9f98a37e019ed",
     "src/ui_logic_dg1/selection.rs": "5ecdcb77c468818bb581c534d2d48232c985ea73c226aef2012b6c0e564a655d",
     "src/ui_logic_dg1/wire.rs": "9b0a682504faf89471534858531718330db350b4486f8f3d661d38a3e7b01fac",
     "src/ui_logic_dg1/words.rs": "7cc6d4d3c512252514218feaadc1cece765193ef8b8959e1f076a6d74a4c649e",
@@ -245927,7 +245954,7 @@
     "src/ui_logic_op1/testcat.rs": "d24fb6b7c74ed8c19d4d8b1693aa91bba2ebd8a7793487d1e301e2a5c5f439cd",
     "src/ui_logic_op1/transfer.rs": "453bb463cc3b176208135193cc15704d6d3a05b297fcbc6426d9f644fcea869a",
     "src/ui_logic_op1/trash.rs": "691395c9627cf04e93a6e06c317566db9f3589ee19f80a52b138d7281365111b",
-    "src/ui_logic_op1/wire.rs": "bd3c997b444f8aa0d32e72cad19aca7f4537cf8c0b3a9d727543f58973fb10b5",
+    "src/ui_logic_op1/wire.rs": "63e19af351d5d6ebce1802701ce3590da83769ff17e8537728590369519e37f5",
     "src/ui_logic_op2.rs": "cd886a6725b47f3579f591bd0d489d86aaef9e67450ee58d230b87ab453be2d1",
     "src/ui_logic_op2/archive.rs": "298cfccc8d673052121d4fef3a5dee35d68b00ad549fb9ce3e8888fd195a48b1",
     "src/ui_logic_op2/cards.rs": "f6d6ca08a4180ca322aac359a0396af31b0d473d6a98a0bb9cbffb12a526221f",
@@ -246788,8 +246815,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "1f07730fb3b382dde82ef7b6f55c4883c79d881f",
-  "source_sha": "1f07730fb3b382dde82ef7b6f55c4883c79d881f",
+  "source_ref_sha": "25425d1d24e88d4ce6c33bcda6d166d4a3e0a29c",
+  "source_sha": "25425d1d24e88d4ce6c33bcda6d166d4a3e0a29c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -246803,7 +246830,7 @@
     },
     "gui": {
       "keys_with_occurrences": 530,
-      "missing_literal_candidates": 2083,
+      "missing_literal_candidates": 2086,
       "source_files": 1107
     },
     "qml-reference": {

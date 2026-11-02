@@ -61,7 +61,7 @@ impl Operations {
         if path.is_empty() {
             return;
         }
-        if !path.starts_with('/') {
+        if !path.starts_with('/') && flea::plugin_runtime::protocol::place_path(&path).is_none() {
             if let Some(Dialog::CopyTo { error, .. }) = &mut self.dialog {
                 *error = catalog.tr("jobs.copyto.relative");
             }
@@ -105,11 +105,22 @@ impl Operations {
             return;
         }
         self.dialog = None;
-        let request = Request::new()
+        let mut request = Request::new()
             .with("c", &collide::text("transfer"))
             .with("op", &collide::text(if moving { "move" } else { "copy" }))
             .with("menuId", &menu.to_string())
             .with("dest", &collide::text(&reply.dest));
+        if reply.dest.starts_with("plugin://")
+            || reply.paths.iter().any(|path| path.starts_with("plugin://"))
+        {
+            let paths: Vec<_> = reply.paths.iter().map(String::as_str).collect();
+            // The validated selection survives closing its source menu and routing to a different owner.
+            request = Request::new()
+                .with("c", &collide::text("transfer"))
+                .with("op", &collide::text(if moving { "move" } else { "copy" }))
+                .with("paths", &collide::texts(&paths))
+                .with("dest", &collide::text(&reply.dest));
+        }
         self.ask(catalog, &request, &[], false);
         self.outbox.push(menu_close(menu));
     }

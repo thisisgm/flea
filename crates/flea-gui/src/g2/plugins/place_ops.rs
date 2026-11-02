@@ -55,10 +55,20 @@ impl Model {
                 self.settings(doc);
                 replies(self.publish(doc)?)
             }
-            "paths" => replies(vec![object(&[
-                ("t", string("paths")),
-                ("paths", array(&self.targets(doc)?)),
-            ])]),
+            "paths" => {
+                let mut request = doc
+                    .as_object()
+                    .ok_or("invalid plugin paths request")?
+                    .to_vec();
+                // Clipboard reads resolve the current rows; its queue checks the captured listing on reply.
+                if doc.get("listing").is_none() {
+                    request.push(("listing".into(), number(self.listing)));
+                }
+                replies(vec![object(&[
+                    ("t", string("paths")),
+                    ("paths", array(&self.targets(&Json::Obj(request))?)),
+                ])])
+            }
             "locate" => {
                 let locate = |uri: &str| {
                     self.rows.iter().position(|r| {
