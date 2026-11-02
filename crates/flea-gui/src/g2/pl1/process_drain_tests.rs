@@ -58,7 +58,7 @@ if os.fork() == 0:
 os.read(r,1)
 member=os.fork()
 if member == 0:
- time.sleep(2)
+ time.sleep(10)
  os._exit(0)
 with socket.create_connection(('127.0.0.1',int(os.environ['FLEA_DRAIN_PORT']))) as peer:
  peer.sendall(('%d %d\n'%(os.getpid(),member)).encode())
