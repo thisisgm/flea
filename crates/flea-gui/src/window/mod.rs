@@ -40,6 +40,7 @@ mod permissions_tests;
 mod presentation;
 mod preview_facts;
 mod preview_input;
+mod preview_locale;
 pub(crate) mod properties;
 pub(crate) mod quick_look;
 pub mod rail;

@@ -134,6 +134,11 @@ impl Model3dView {
         &self.session
     }
 
+    pub fn set_catalog(&mut self, catalog: Arc<I18n>, cx: &mut Context<Self>) {
+        self.i18n = catalog;
+        cx.notify();
+    }
+
     fn surface(&self) -> Surface {
         self.live.borrow().surface
     }

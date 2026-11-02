@@ -39,6 +39,7 @@ impl Shell {
             host.translated(&locale);
         }
         self.locale = locale;
+        self.previews_translated(cx);
         self.output_translated(cx);
         self.settings_translated(cx);
         if let Some(chrome) = &self.chrome.view {

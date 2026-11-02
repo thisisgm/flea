@@ -4,6 +4,7 @@ pub mod bar;
 pub mod body;
 pub mod button;
 pub mod card;
+mod catalog;
 pub mod chrome;
 pub mod column;
 pub mod decode;
