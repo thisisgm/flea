@@ -50,7 +50,7 @@ fn check(title: &str, mark: &str, name: &str, width: usize, expected: &str) {
     let at = format!("{name:?} mark={mark:?} width={width}");
     assert_eq!(title, expected, "{at}");
     assert_eq!(text_width(&plain(title)), width, "{at}");
-    assert_eq!(plain(title), ellipsis(&format!("{mark}{name}"), width), "{at}");
+    assert_eq!(plain(title), plain(&ellipsis(&format!("{mark}{name}"), width)), "{at}");
 }
 
 #[test]
@@ -326,15 +326,23 @@ fn ey_tui_typedtitle_rtl_file_title_sanitizes_a_hostile_name_without_touching_it
         let cursor = m.cursor;
         m.rows.insert(cursor, linked_row(hostile, "../مجلد/target 7.txt"));
         m.preview_path = m.current_path().unwrap();
-        for columns in [8, 20, 50] {
+        for (columns, clean_name) in [(8, "تقر\u{2026}"), (20, "تقريرgpj.exe202\u{2026}"), (50, "تقريرgpj.exe2025.txt")] {
             let title = title_row(&m, columns);
             assert!(balanced(&title), "{code} {columns}: {title:?}");
             assert!(!title.contains(['\u{202e}', '\n']), "{code} {columns}: {title:?}");
             assert_eq!(text_width(&plain(&title)), columns - 2 * pane_padding(columns), "{code} {columns}: {title:?}");
             let runs = isolated(&title);
             assert!(runs.iter().all(|(open, _)| *open == '\u{2068}'), "{code} {columns}: {runs:?}");
-            // The RTL row draws the target first; the name's run is the last one.
-            assert!(runs.last().unwrap().1.starts_with("تق"), "{code} {columns}: {runs:?}");
+            // HIG CHANGES.md:2012,2838: the name leads after its mark; the target follows it.
+            let mut expected = vec![('\u{2068}', clean_name.to_string())];
+            if columns == 50 { expected.push(('\u{2068}', "→ ../مجلد/target 7.txt".into())); }
+            assert_eq!(runs, expected, "{code} {columns}: {title:?}");
+            let transport = cells::visual::frame(&title);
+            assert!(!transport.contains(['\u{202e}', '\n', '\u{2066}', '\u{2068}', '\u{2069}']), "{code} {columns}: {transport:?}");
+            if columns == 50 {
+                let shown = plain(&transport);
+                assert!(shown.find("gpj.exe2025.txtريرقت").zip(shown.find("target 7.txt")).is_some_and(|(name, target)| name < target), "{code}: {transport:?}");
+            }
         }
         assert_eq!(m.rows[&cursor].name, hostile, "the stored name keeps its original bytes");
         assert_eq!(m.rows[&cursor].link, "../مجلد/target 7.txt");
@@ -347,14 +355,20 @@ fn ey_tui_typedtitle_english_rtl_filename_keeps_the_name_only_bold_recipe() {
     let icon = icons::row(&entry("שלום עולם 12.txt", false, 99), true);
     let mark = format!("{icon} ");
     let name = "שלום עולם 12.txt";
-    for (columns, expected) in [
-        (30, named(&theme, &mark, name, &" ".repeat(30 - 2 * pane_padding(30) - text_width(&mark) - text_width(name)))),
-        (12, named(&theme, &mark, "שלום עו\u{2026}", "")),
-        (4, named(&theme, &mark, "ש\u{2026}", "")),
-        (3, format!("{}{icon} \u{2026}{}", theme.foreground, theme.meta)),
+    // HIG CHANGES.md:2019,2838 and rtl-policy.json:42: mark plain, bold name isolated before transport.
+    for (columns, expected, visual_name) in [
+        (30, named(&theme, &mark, &format!("\u{2068}{name}\u{2069}"), &" ".repeat(30 - 2 * pane_padding(30) - text_width(&mark) - text_width(name))), "txt.12 םלוע םולש          "),
+        (12, named(&theme, &mark, "\u{2068}שלום עו\u{2026}\u{2069}", ""), "\u{2026}וע םולש"),
+        (4, named(&theme, &mark, "\u{2068}ש\u{2026}\u{2069}", ""), "\u{2026}ש"),
+        (3, format!("{}{icon} \u{2026}{}", theme.foreground, theme.meta), "\u{2026}"),
     ] {
         let width = columns - 2 * pane_padding(columns);
-        check(&file_title(name, true, columns), &mark, name, width, &expected);
+        let title = file_title(name, true, columns);
+        check(&title, &mark, name, width, &expected);
+        assert!(balanced(&title), "{columns}: {title:?}");
+        let transport = cells::visual::frame(&title);
+        assert_eq!(plain(&transport), format!("{mark}{visual_name}"), "{columns}: {transport:?}");
+        assert!(!transport.contains(['\u{2068}', '\u{2069}']), "{columns}: {transport:?}");
     }
 }
 
