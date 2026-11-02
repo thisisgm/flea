@@ -8,9 +8,36 @@ mod cache_types;
 use cache_types::*;
 #[path = "ui_logic_pv4/model_wire.rs"]
 mod reader;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+struct Checked<'a, R> {
+    input: R,
+    cancel: &'a AtomicBool,
+}
+
+impl<R: std::io::Read> std::io::Read for Checked<'_, R> {
+    fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+        if self.cancel.load(Ordering::Relaxed) {
+            return Err(std::io::Error::other("model render cancelled"));
+        }
+        self.input.read(bytes)
+    }
+}
+
+fn decode(input: impl std::io::Read, cancel: &AtomicBool) -> Result<Model> {
+    reader::read(std::io::BufReader::new(Checked { input, cancel }))
+}
 
 /// Reads only a regular cached FL3D file, never an original STL, project or toolpath.
 pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_pv4::scene::Scene> {
+    read_cancellable(path, &AtomicBool::new(false))
+}
+
+/// The TUI's retired render can stop while the shared cache decoder is reading.
+pub fn read_cancellable(
+    path: &std::path::Path,
+    cancel: &AtomicBool,
+) -> Result<crate::ui_logic_pv4::scene::Scene> {
     use crate::ui_logic_pv4::scene::{bed_from_metadata, Layer, Scene, Segment};
     let (file, metadata) =
         crate::backend::regfile::open_if_regular_with_meta(path, crate::oflags::O_NOFOLLOW)
@@ -18,7 +45,7 @@ pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_pv4::scene::Scene>
     if metadata.len() > reader::MAX_WIRE as u64 {
         return Err("3D wire exceeds its bound".into());
     }
-    let model = reader::read(std::io::BufReader::new(file))?;
+    let model = decode(file, cancel)?;
     let mut scene = Scene {
         positions: model.vertices.iter().map(|v| v.position).collect(),
         bed: bed_from_metadata(model.metadata.iter().map(|(k, v)| (k.as_str(), v.as_str()))),
@@ -73,6 +100,10 @@ pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_pv4::scene::Scene>
     scene.check().map_err(str::to_owned)?;
     Ok(scene)
 }
+
+#[cfg(test)]
+#[path = "preview_model_gap64_tests.rs"]
+mod gap64_tests;
 
 /// Reads bounded metadata from the same cache handoff without constructing a scene.
 pub fn header(path: &std::path::Path) -> std::result::Result<String, String> {

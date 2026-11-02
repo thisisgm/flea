@@ -21,20 +21,20 @@ fn render(cache: &mut Cache, base: &Path, listing: &Listing, start: usize, count
 }
 
 #[test]
-fn search_row_cache_stats_and_xattrs_equal_only_intersecting_window_misses() {
+fn search_row_cache_stats_each_row_and_reuses_only_fresh_intersecting_tags() {
     let d = TestDir::new("search-row-counts");
     for name in ["a.txt", "b.txt", "c.txt", "d.txt"] { d.file(name, name); }
     let l = listing(&["a.txt", "b.txt", "c.txt", "d.txt"]);
     let mut cache = Cache::default();
     counts();
     render(&mut cache, d.path(), &l, 0, 3, "");
-    assert_eq!(counts(), (3, 3));
+    assert_eq!(counts(), (6, 3));
     render(&mut cache, d.path(), &l, 1, 3, "");
-    assert_eq!(counts(), (1, 1), "two carried identities reuse complete rows, including tags");
+    assert_eq!(counts(), (4, 1), "two carried identities validate metadata and reuse tags");
     assert_eq!(cache.entries.len(), 3);
     assert!(!cache.entries.contains_key(&d.join("a.txt")), "scrolled-past identity is discarded");
     render(&mut cache, d.path(), &l, 0, 3, "");
-    assert_eq!(counts(), (1, 1), "returning to an evicted identity is a cold miss");
+    assert_eq!(counts(), (4, 1), "returning to an evicted identity is a cold miss");
 }
 
 #[test]

@@ -340,7 +340,7 @@ pub fn pixels(room: (usize, usize), cell: (usize, usize)) -> Option<(usize, usiz
 // The cache is decoded by the same shared reader the GUI preview uses, never by a terminal format parser.
 pub fn scene(path: &std::path::Path, cancel: &AtomicBool) -> Result<Scene, String> {
     if cancel.load(Ordering::Relaxed) { return Err("model render cancelled".into()); }
-    let mut scene = flea::preview_model::read(path)?;
+    let mut scene = flea::preview_model::read_cancellable(path, cancel)?;
     scene.recentre();
     Ok(scene)
 }
