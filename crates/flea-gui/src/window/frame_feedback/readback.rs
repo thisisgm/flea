@@ -45,6 +45,29 @@ impl Presentation {
 }
 
 impl Presentation {
+    /// Report-only read of the actual submitted List scene, before or after its ordinary observer.
+    pub(in crate::window) fn gpu_report_scene(&self, draw_id: u64, frame_id: u64) -> Option<f32> {
+        let staged = self.staged.borrow();
+        let draw = staged
+            .as_ref()
+            .filter(|draw| draw.id == draw_id)
+            .or_else(|| {
+                self.pending
+                    .iter()
+                    .find(|frame| frame.id == frame_id)
+                    .map(|frame| &frame.draw)
+            })?;
+        let frame = draw.panes[0].as_ref()?;
+        let list = frame.list.borrow();
+        (frame.ready
+            && !frame.loading
+            && !frame.blank
+            && frame.content.held.total == 10_000
+            && !frame.content.painted_rows.is_empty()
+            && frame.content.painted_rows.len() == list.visible().len())
+        .then_some(list.drawn.scroll_y)
+    }
+
     /// Lost submissions or terminals so far, and the oldest submission still awaiting its terminal.
     pub(crate) fn search_coverage(&self) -> (usize, Option<u64>) {
         (

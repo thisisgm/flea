@@ -17,6 +17,7 @@ pub(crate) mod frame_feedback;
 mod frame_style;
 pub(crate) mod glass;
 pub mod glass_tag;
+mod gpu_report;
 pub mod input;
 pub(crate) mod key_delivery;
 pub mod lifecycle;
@@ -128,6 +129,7 @@ pub fn open(
             shell.follow_file_drags(window, cx);
             shell.start_update_polling(window, cx);
         });
+        gpu_report::start(&shell, window, cx);
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {
             weak.update(cx, |shell, cx| {
