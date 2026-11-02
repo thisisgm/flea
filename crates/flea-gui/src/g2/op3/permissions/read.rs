@@ -1,4 +1,4 @@
-//! The open card's permissionsState: v0.3.12's facts, edit state and controls, without the painted bounds GPUI does not record.
+//! The open card's permissionsState: v0.3.12's facts, edit state and controls; painted_state adds the painted bounds.
 use super::{Permissions, Phase, Stop};
 use crate::g2::op3::shell::Tri;
 use flea::jsondoc::Json;

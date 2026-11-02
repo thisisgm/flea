@@ -184,7 +184,6 @@ impl Shell {
         let drawn = shell::DialogShell::present(
             &shell::Interactive {
                 wire: &wire,
-                frame: &|frame| frame,
                 surface: theme.surface,
                 entry: &self.rename.ime.entry,
             },

@@ -215,7 +215,6 @@ impl Render for View {
         let card = snapshot.map(|snapshot| {
             Interactive {
                 wire: &wire,
-                frame: &|frame| frame,
                 surface: theme.surface,
                 entry: &self.editor,
             }

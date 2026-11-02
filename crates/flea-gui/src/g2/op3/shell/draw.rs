@@ -155,7 +155,6 @@ impl DialogShell for OpenWithShell<'_> {
     ) -> AnyElement {
         let live = Live {
             wire: self.wire,
-            frame: None,
             surface: Some(self.surface),
             entry: None,
             measure: Some(self.measure),
@@ -213,7 +212,6 @@ impl StandIn {
         };
         let live = Live {
             wire: &wire,
-            frame: None,
             surface: None,
             entry: None,
             measure: None,
@@ -233,7 +231,6 @@ impl DialogShell for Interactive<'_> {
     ) -> AnyElement {
         let live = Live {
             wire: self.wire,
-            frame: Some(self.frame),
             surface: Some(self.surface),
             entry: Some(self.entry),
             measure: None,
@@ -254,7 +251,6 @@ impl Interactive<'_> {
     ) -> AnyElement {
         let live = Live {
             wire: self.wire,
-            frame: Some(self.frame),
             surface: Some(self.surface),
             entry: Some(self.entry),
             measure: None,
@@ -274,7 +270,6 @@ impl Interactive<'_> {
 /// The one live path every card takes: its wired controls, and the window's surface and text entry where it has them.
 struct Live<'a> {
     wire: &'a Wire,
-    frame: Option<&'a dyn Fn(Stateful<Div>) -> Stateful<Div>>,
     surface: Option<Hsla>,
     entry: Option<&'a crate::path::entry::Entry>,
     measure: Option<&'a crate::g2::op1::measured::Frame>,
