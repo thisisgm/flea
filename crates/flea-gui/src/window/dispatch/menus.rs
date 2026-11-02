@@ -89,7 +89,7 @@ pub(super) fn run(
             shell.input_action(&chosen.action, window, cx);
             shell.focus_side = focused;
         }
-        // Pane.qml toggleHidden: the . key's own settings write, so the relist keeps the cursor row as the key's does.
+        // Pane.qml toggleHidden: the . key's own settings write, so the relist is a fresh listing as the key's is.
         "toggleHidden" => {
             let focused = std::mem::replace(&mut shell.focus_side, chosen.captured.side);
             shell.settings_action("toggleHidden", window, cx);
