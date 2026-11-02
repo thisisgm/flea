@@ -49,7 +49,7 @@ impl Element for StripElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Self::PrepaintState {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let theme = crate::window::glass::producers::chrome_theme(window, cx);
         self.labels.borrow_mut().prepare(&self.frame, window);
         // Every tab and New tab take the pointing hand, as the shipped strip's HoverHandlers did.
         let reach = px(self.frame.tab_width) * self.frame.labels.len() as f32 + px(HIT_MIN);
@@ -123,7 +123,9 @@ impl Element for StripElement {
                 };
                 let tab = Bounds::new(point(x, top), size(width, px(TAB_HEIGHT)));
                 if current {
-                    if crate::window::glass::alpha(window, cx) >= 1. || frame.ghost != Some(index) {
+                    if crate::window::glass::producers::requested(window, cx) >= 1.
+                        || frame.ghost != Some(index)
+                    {
                         window.paint_quad(fill(
                             tab,
                             crate::window::glass::ground(palette.background, window, cx)

@@ -5,7 +5,6 @@ use super::{
 };
 use crate::{
     list::{Metrics, Palette, Typeface},
-    palette::Theme,
     window::startup::View,
 };
 use gpui::{
@@ -171,7 +170,7 @@ impl ChromeView {
 
 impl Render for ChromeView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let theme = crate::window::glass::producers::chrome_theme(window, cx);
         let palette = Palette::inherited(&window.text_style(), theme);
         for control in &mut self.frame.borrow_mut().controls {
             if control.visible {
@@ -243,7 +242,10 @@ impl Render for ChromeView {
         let toolbar = div()
             .size_full()
             .relative()
-            .bg(crate::window::glass::ground(theme.chrome(), window, cx))
+            .child(crate::window::glass::producers::backdrop(
+                crate::window::glass::producers::Producer::Chrome,
+                theme.chrome(),
+            ))
             .child(
                 div()
                     .size_full()

@@ -1,4 +1,10 @@
 //! Glass is observed through the real mounted Shell and its ordinary IPC dispatch.
+#[path = "glass/paint_pass_controls.rs"]
+mod paint_pass_controls;
+#[path = "glass/producer_controls.rs"]
+mod producer_controls;
+#[path = "glass/visual_alpha_controls.rs"]
+mod visual_alpha_controls;
 use super::startup::View;
 use crate::{backend::Backend, ipc::server::Event, presentation::fixture::Fixture, state::Shell};
 use flea::{
@@ -270,15 +276,16 @@ fn op_glass_explicit_alpha_reaches_the_painted_chrome_without_an_opaque_canvas(
 }
 
 #[gpui::test]
-fn op_glass_automatic_glassy_paints_solid_for_the_compositor_to_fade(cx: &mut TestAppContext) {
+fn op_glass_automatic_glassy_reads_actual_independent_material_grounds(cx: &mut TestAppContext) {
     let value = read_glass(cx, "op-glass-automatic", &[(6, "")]);
     assert_eq!(value.get("mode").and_then(Json::as_str), Some("glassy"));
     assert_eq!(value.get("automatic").and_then(Json::as_bool), Some(true));
-    assert_eq!(value.get("material").and_then(Json::as_bool), Some(false));
-    // Omarchy fades Nautilus whole under Glassy, so Flea's grounds and inks stay as drawn and Hyprland fades the window.
-    for key in ["alpha", "listAlpha", "requestedAlpha", "requestedListAlpha"] {
-        assert_eq!(value.get(key).and_then(Json::as_f64), Some(1.), "{key}");
-    }
+    assert_eq!(value.get("material").and_then(Json::as_bool), Some(true));
+    assert!((value.get("alpha").and_then(Json::as_f64).unwrap() - 192. / 255.).abs() < 0.0001);
+    assert!(
+        value.get("listAlpha").and_then(Json::as_f64).unwrap()
+            >= value.get("alpha").and_then(Json::as_f64).unwrap()
+    );
 }
 
 #[gpui::test]
@@ -362,3 +369,11 @@ fn op_glass_list_and_columns_panes_draw_the_user_alpha(cx: &mut TestAppContext) 
 mod grid;
 #[path = "glass_tab_tests.rs"]
 mod tab;
+
+#[gpui::test]
+fn sol_glassy_ground_automatic_alpha_matches_v0312(cx: &mut TestAppContext) {
+    let value = read_glass(cx, "sol-glassy-ground-alpha", &[(6, "")]);
+    assert_eq!(value.get("mode").and_then(Json::as_str), Some("glassy"));
+    let alpha = value.get("alpha").and_then(Json::as_f64).unwrap();
+    assert_eq!((alpha * 255.).round() as u8, 192, "{value:?}");
+}

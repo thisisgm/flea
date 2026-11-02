@@ -35,7 +35,7 @@ impl Element for CrumbElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (Hitbox, Ink, bool) {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let theme = crate::window::glass::producers::chrome_theme(window, cx);
         let slot = self.place.slot();
         let paint = self.view.read(cx).paint.clone();
         let mut paint = paint.borrow_mut();
@@ -102,14 +102,17 @@ impl Element for CrumbElement {
         let mut paint = view.paint.borrow_mut();
         let pane = self.place != Place::Chrome;
         if pane {
-            window.paint_quad(fill(
+            crate::window::glass::producers::paint(
+                crate::window::glass::producers::Producer::Path,
                 bounds,
                 if *focused {
                     ink.surface
                 } else {
                     ink.background
                 },
-            ));
+                window,
+                cx,
+            );
             let rule = Bounds::new(
                 point(bounds.origin.x, bounds.bottom() - px(1.)),
                 size(bounds.size.width, px(1.)),

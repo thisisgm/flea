@@ -1,7 +1,6 @@
 //! What the path surfaces draw with: the inks, the face's advances, a bounded cache of shaped pieces and the crumb strip Element.
 use super::{menu::Piece, scale::Scale, strip::Strip, suggestions::Popup, view::PathView};
 use crate::list::{Palette, Typeface};
-use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, CursorStyle, Element, ElementId,
     Entity, FontWeight, GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla,

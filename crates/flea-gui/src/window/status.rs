@@ -5,7 +5,6 @@ use crate::{
         observe::Paint,
     },
     list::{Metrics, Palette, Typeface},
-    palette::Theme,
     pane::states::Kind,
     state::Shell,
     strips::status_host,
@@ -291,7 +290,7 @@ impl Shell {
 impl Render for Footer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.painted.clear();
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let theme = crate::window::glass::producers::chrome_theme(window, cx);
         let ink = Palette::inherited(&window.text_style(), theme);
         let typeface = Typeface::for_window(window, cx);
         let height = Metrics::for_typeface(&typeface).header;
@@ -349,7 +348,7 @@ impl Render for Footer {
             .flex_none()
             .border(self.border_width)
             // HIG list and rail-favorites: the status bar stands on --surface under its --hair edge.
-            .bg(super::glass::ground(theme.surface, window, cx))
+            .child(super::glass::producers::status_backdrop(theme.surface))
             .font_family(typeface.font.family)
             .text_size(typeface.caption)
             .text_color(ink.foreground)

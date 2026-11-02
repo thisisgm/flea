@@ -247,7 +247,7 @@ pub(crate) fn render(
         };
     let chrome = surface(geometry.chrome.element(), "chrome", probe.clone())
         .when(glass.glassy && slots.chrome.is_none(), |div| {
-            div.bg(glass.planes[1])
+            div.child(glass.chrome())
         })
         .track_focus(&focus.chrome)
         .on_any_mouse_down(keep_the_keys)
@@ -297,7 +297,7 @@ pub(crate) fn render(
         if dual {
             let id = format!("path-{side}");
             let row = surface(div(), id.clone(), probe.clone())
-                .when(glass.glassy, |div| div.bg(glass.path(side)))
+                .children(glass.path_fallback(side, slots.paths[side].is_some()))
                 .relative()
                 .h(px(metrics.header))
                 .flex_none()
@@ -317,7 +317,7 @@ pub(crate) fn render(
         }
         let id = format!("header-{side}");
         let header = surface(div(), id.clone(), probe.clone())
-            .when(glass.glassy, |div| div.bg(glass.planes[0]))
+            .when(glass.glassy, |div| div.child(glass.header()))
             .relative()
             .h(px(headers[side]
                 .as_ref()
@@ -361,7 +361,7 @@ pub(crate) fn render(
         if let Some(view) = &slots.strips[side] {
             pane = pane.child(
                 div()
-                    .when(glass.glassy, |div| div.bg(glass.planes[1]))
+                    .when(glass.glassy, |div| div.child(glass.chrome()))
                     .h(px(slots.strip_height))
                     .flex_none()
                     .child(view.clone()),
@@ -382,7 +382,7 @@ pub(crate) fn render(
     }
     let bar = surface(geometry.status.element(), "status", probe.clone())
         .when(glass.glassy && slots.status.is_none(), |div| {
-            div.bg(glass.planes[1])
+            div.child(glass.status_backdrop())
         })
         .px(px(metrics.pad))
         .text_size(typeface.caption);
