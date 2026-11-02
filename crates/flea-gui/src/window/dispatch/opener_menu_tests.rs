@@ -73,6 +73,25 @@ fn the_menu_open_on_a_file_runs_the_opener(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn search_enter_reveal_menu_open_still_opens_the_audio_result(cx: &mut TestAppContext) {
+    let (shell, cx, _, _keep) = shell(cx);
+    cx.simulate_keystrokes("f s");
+    super::search_open_tests::answer(
+        &shell,
+        cx,
+        1,
+        vec![
+            row("Music/Album", true),
+            row("Music/Album/track.flac", false),
+        ],
+    );
+    cx.simulate_keystrokes("enter down");
+    assert!(menu_open(&shell, cx, 1, &["/files/Music/Album/track.flac"]));
+    assert_eq!(launched(), ["/files/Music/Album/track.flac"]);
+    quit(&shell, cx);
+}
+
+#[gpui::test]
 fn the_menu_open_on_an_archive_hands_it_to_quick_look(cx: &mut TestAppContext) {
     let (shell, cx, (actions, _), _keep) = shell(cx);
     set_cursor(&shell, cx, 2);

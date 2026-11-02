@@ -100,6 +100,9 @@ impl Shell {
                 }
                 Effect::Relist(path, select, relist) => {
                     host.select = (!select.is_empty()).then_some(select);
+                    if !relist {
+                        host.nav.pending_select = host.select.clone();
+                    }
                     // A search's exit under Recent lists the history again, and a reveal leaves Recent for its folder.
                     if host.recent.on && relist {
                         let _ = host
@@ -228,6 +231,20 @@ impl Shell {
             return false;
         }
         let key = StripKey::from_event(event);
+        // Enter on a file result uses the same reveal as o; query Enter still commits the line.
+        if !host.search.owner.typing()
+            && matches!(key, StripKey::Enter)
+            && crate::window::input::modifiers(event.keystroke.modifiers) == 0
+            && !host.pane.busy()
+            && !host.search.owner.session.leaving
+            && host
+                .pane
+                .held
+                .row(host.pane.cursor)
+                .is_some_and(|row| !flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon))
+        {
+            return self.search_action("reveal", window, cx);
+        }
         if !host.search.owner.typing() && !matches!(key, StripKey::Escape) {
             return false;
         }
