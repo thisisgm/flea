@@ -52,7 +52,10 @@ fn ey166_down_after_new_folder_moves_selection_and_footer(cx: &mut TestAppContex
     land(&shell, cx, "/files", home(None), 1);
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("ctrl-shift-n");
-    assert_eq!(sent(), [r#"{"c":"mkdir","path":"/files","request":1}"#]);
+    assert_eq!(
+        sent(),
+        [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
+    );
     reply(
         &shell,
         cx,

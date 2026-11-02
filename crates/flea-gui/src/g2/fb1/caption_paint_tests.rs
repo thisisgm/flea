@@ -178,8 +178,15 @@ fn an_indic_language_draws_the_caption_untracked(cx: &mut TestAppContext) {
         assert_eq!(tracking_for(code), 0., "{code}");
     }
     let root = root();
+    std::fs::create_dir_all(root.join("catalog/en")).unwrap();
+    std::fs::write(
+        root.join("catalog/en/flea.json"),
+        r#"{"pane.empty.initial":"Nothing here yet"}"#,
+    )
+    .unwrap();
     let catalog = fallback(&root, "hi");
     assert_eq!(catalog.language(), "hi");
+    assert_eq!(catalog.tr("pane.empty.initial"), "Nothing here yet");
     cx.update(|cx| cx.set_reduce_motion(true));
     let handle = cx.add_window(|window, cx| {
         window.set_rem_size(px(14.));
