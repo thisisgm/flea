@@ -8,6 +8,11 @@ impl Backend {
         self.plugin_output.clone()
     }
 
+    /// A folder's listed "w", as the reader thread records it from a listed line.
+    pub(crate) fn test_writable(&self, folder: &str, writable: bool) {
+        self.folders.lock().unwrap().record(folder.into(), writable);
+    }
+
     pub(crate) fn test_reply_line(line: &str) -> Event {
         transport::parse(line).expect("valid fixture wire")
     }

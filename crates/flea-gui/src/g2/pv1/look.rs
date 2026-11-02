@@ -44,6 +44,9 @@ impl Look {
     pub fn of_text(style: &gpui::TextStyle, theme: crate::palette::Theme) -> Self {
         let mut look = Self::inherited(&Palette::inherited(style, theme));
         look.surface = theme.surface;
+        // CompareView.qml inkOf: an added row in the code inks' green, a hunk header in their cyan.
+        look.green = theme.code_inks[1];
+        look.cyan = theme.code_inks[5];
         look
     }
 
@@ -180,5 +183,40 @@ mod tests {
             look.muted.l > look.foreground.l,
             "on a light theme the muted words read lighter than the name"
         );
+    }
+    /// EY-487: CompareView.qml's inkOf draws an added row in the code inks' green and a hunk header in their cyan, on every theme.
+    #[test]
+    fn fixpreview_ey487_compare_added_and_hunk_take_the_code_inks() {
+        use crate::palette::Theme;
+        let latte = "background='#eff1f5'\nforeground='#4c4f69'\naccent='#1e66f5'\ndark_background='#e3e4e8'\ngreen='#40a02b'\ncyan='#179299'";
+        let sunset = "background='#1c120d'\nforeground='#c6b395'\naccent='#d28a41'\ndark_background='#150d0a'\ncolor2='#799a55'\ncolor6='#599181'";
+        for (name, text) in [("catppuccin-latte", latte), ("sunset", sunset)] {
+            let theme = Theme::from_text(text);
+            let look = Look::of_text(&gpui::TextStyle::default(), theme);
+            assert_eq!(look.green, theme.code_inks[1], "{name}: added rows");
+            assert_eq!(look.cyan, theme.code_inks[5], "{name}: the hunk header");
+            // The themes' green sits near 89 to 109 degrees and their cyan near 163 to 183.
+            let degrees = |ink: gpui::Hsla| ink.h * 360.;
+            assert!(
+                (70. ..140.).contains(&degrees(look.green)),
+                "{name}: added rows draw green"
+            );
+            assert!(
+                (150. ..200.).contains(&degrees(look.cyan)),
+                "{name}: the hunk header draws cyan"
+            );
+            assert_ne!(
+                look.green, look.foreground,
+                "{name}: added is not the context ink"
+            );
+            assert_ne!(
+                look.cyan, look.foreground,
+                "{name}: the hunk is not the context ink"
+            );
+            assert_eq!(
+                look.error, theme.error,
+                "{name}: removed rows keep the error ink"
+            );
+        }
     }
 }

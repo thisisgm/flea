@@ -58,6 +58,7 @@ impl Render for Shell {
         self.settle_rail(window, cx);
         for side in 0..2 {
             self.flush_operations(side, cx);
+            self.check_menu_zip(side);
             let shown = self.panes[side]
                 .as_ref()
                 .is_some_and(|host| self.tag_slot(side, host.pane.held.listing));
@@ -108,7 +109,7 @@ impl Render for Shell {
             };
             let mark = &host.pane.swap.mark;
             mark.rendered();
-            mark.show_spiral(drawn, palette.muted_frame);
+            mark.show(drawn, palette.accent);
         }
         let pane_width =
             |side: usize| viewport.map_or(geometry.panes[side].width, |size| f32::from(size.width));
@@ -251,7 +252,7 @@ impl Render for Shell {
             );
             let lifter = cx.entity().downgrade();
             let payload = cx.entity().downgrade();
-            let floor = super::glass::list_ground(theme.background, window, cx);
+            let floor = super::glass::ground(theme.background, window, cx);
             panes[side] = Some(
                 div()
                     .id(("file-drag", side))

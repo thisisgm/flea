@@ -15,6 +15,9 @@ mod quality;
 mod quality_tests;
 #[path = "pictures/readers.rs"]
 mod readers;
+#[cfg(test)]
+#[path = "pictures/slot_tests.rs"]
+mod slot_tests;
 #[path = "pictures/surface.rs"]
 pub(crate) mod surface;
 #[path = "pictures/wire.rs"]
@@ -68,9 +71,13 @@ enum Slot {
         file: String,
     },
     // Answered with nothing, or with a file that would not decode: the mark stays.
-    Refused,
+    Refused {
+        observed: Identity,
+    },
     // A cache-only ask the shared cache could not answer.
-    Missed,
+    Missed {
+        observed: Identity,
+    },
 }
 
 impl Slot {
@@ -80,7 +87,7 @@ impl Slot {
             | Self::Decoding { identity, .. }
             | Self::Failed { identity, .. } => Some(identity),
             Self::Ready { picture, .. } => Some(&picture.identity),
-            Self::Refused | Self::Missed => None,
+            Self::Refused { .. } | Self::Missed { .. } => None,
         }
     }
 }

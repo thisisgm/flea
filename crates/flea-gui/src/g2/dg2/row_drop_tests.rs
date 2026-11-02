@@ -136,6 +136,7 @@ fn another_windows_shift_drag_over_a_folder_row_says_move() {
                     .map(|path| flea::ui_logic_dg2::uri_for(path))
                     .collect(),
                 plain: None,
+                shelf: None,
                 action: None,
                 ctrl: false,
                 shift: true,
@@ -250,4 +251,57 @@ fn a_lift_away_in_another_window_keeps_the_line_until_it_ends() {
     vcx.run_until_parked();
     let (_, _, lines) = cue(&mut vcx, handle);
     assert!(lines.is_empty(), "{lines:?}");
+}
+
+fn drop_active(vcx: &mut VisualTestContext, handle: WindowHandle<Shell>) -> String {
+    handle
+        .update(vcx, |shell, window, cx| {
+            let (answer, receive) = std::sync::mpsc::sync_channel(1);
+            shell.ipc(
+                crate::ipc::server::Event::Call {
+                    request: flea::ipc::wire::Request::Call {
+                        target: "flea".into(),
+                        function: "listingDropActive".into(),
+                        arguments: Vec::new(),
+                    },
+                    answer,
+                },
+                window,
+                cx,
+            );
+            receive.try_recv().unwrap().reply.stdout.trim().to_owned()
+        })
+        .unwrap()
+}
+
+// Judge X 2125: listingDropActive is PaneWire.qml's floor, so a held folder row hides it and the listing past the rows shows it.
+#[test]
+fn fixreaders_listing_drop_active_reads_the_floor_not_a_folder_row() {
+    let root = Root::new("rowfloor");
+    let mut cx = bench::real_cx();
+    let (handle, _lines) = open(&mut cx, root.src());
+    frame(&mut cx, handle);
+    let folder = centre(&mut cx, handle, 0);
+    let file = centre(&mut cx, handle, 1);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    assert_eq!(drop_active(&mut vcx, handle), "false", "no drag");
+    hold(&mut vcx, file, folder);
+    assert_eq!(cue(&mut vcx, handle).0, Some(0));
+    assert_eq!(
+        drop_active(&mut vcx, handle),
+        "false",
+        "a folder row holds it"
+    );
+    hold_on(&mut vcx, file);
+    assert_eq!(cue(&mut vcx, handle).0, None);
+    assert_eq!(drop_active(&mut vcx, handle), "true", "the listing's floor");
+    vcx.simulate_mouse_up(file, MouseButton::Left, Modifiers::default());
+    vcx.run_until_parked();
+    frame(&mut cx, handle);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    assert_eq!(
+        drop_active(&mut vcx, handle),
+        "false",
+        "the release ends it"
+    );
 }

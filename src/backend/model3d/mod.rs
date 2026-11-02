@@ -181,7 +181,7 @@ fn color(value: &str) -> Result<Color> {
 }
 
 #[cfg(test)]
-pub(super) mod testdata;
+pub(crate) mod testdata;
 #[cfg(test)]
 mod tests;
 

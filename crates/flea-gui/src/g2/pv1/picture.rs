@@ -101,35 +101,15 @@ impl QuickLook {
         // As in PreviewImage.qml, a picture without its first frame cannot zoom in.
         if next != self.zoom && (next <= 1. || self.svg.as_ref().is_some_and(|s| s.image.is_some()))
         {
-            let prior = self.scroll.view;
-            self.zoom = next;
-            if let Some(window) = self.window {
-                let _ = window.update(cx, |_, window, _| {
-                    let card = self.card(window.viewport_size());
-                    if let Some(view) = self.picture_viewport(card, window.scale_factor().into()) {
-                        let (fx, fy) = prior
-                            .map(|old| {
-                                let w = f64::from(f32::from(old.bounds.size.width));
-                                let h = f64::from(f32::from(old.bounds.size.height));
-                                (
-                                    (self.scroll.x + w / 2.) / old.content_w,
-                                    (self.scroll.y + h / 2.) / old.content_h,
-                                )
-                            })
-                            .unwrap_or((0.5, 0.5));
-                        self.scroll.x =
-                            fx * view.content_w - f64::from(f32::from(view.bounds.size.width)) / 2.;
-                        self.scroll.y = fy * view.content_h
-                            - f64::from(f32::from(view.bounds.size.height)) / 2.;
-                        // A second zoom before the next frame anchors on this view, not the drawn one.
-                        self.scroll.fit(view);
-                    } else {
-                        self.scroll.x = 0.;
-                        self.scroll.y = 0.;
-                        self.scroll.view = None;
-                    }
-                });
+            // The next frame centres the new viewport on this point: a key runs inside the window's own update, so no window is borrowed here.
+            self.scroll.anchor = (next > 1.).then(|| self.scroll.centre());
+            if next <= 1. {
+                self.scroll.x = 0.;
+                self.scroll.y = 0.;
+                self.scroll.pan = None;
+                self.scroll.view = None;
             }
+            self.zoom = next;
             cx.notify();
         }
         true
@@ -145,7 +125,7 @@ impl QuickLook {
         cx: &mut Context<Self>,
     ) -> Vec<AnyElement> {
         let device = self.svg.as_ref().map_or(1., |picture| picture.scale);
-        let Some((_, fit, source)) = self.picture_fit(w, h, device) else {
+        let Some((path, fit, source)) = self.picture_fit(w, h, device) else {
             return Vec::new();
         };
         let mut parts = Vec::new();
@@ -188,9 +168,47 @@ impl QuickLook {
             .top(px(y as f32))
             .w(px(logical_w))
             .h(px(logical_h))
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| observed.picture = Some(bounds),
+            ))
             .debug_selector(|| "pv1-picture".into());
         if let Some(image) = raster.image.clone() {
-            picture = picture.child(img(image).size_full().object_fit(ObjectFit::Fill));
+            if crate::bench_thumbs::enabled() {
+                let path = path.to_string_lossy().into_owned();
+                let decoded = image.size(0);
+                let edge = i64::from(decoded.width.0.max(decoded.height.0));
+                let marked = edge == i64::from(crate::bench_thumbs::PREVIEW_EDGE);
+                picture = picture.child(
+                    gpui::canvas(
+                        |_, _, _| {},
+                        move |bounds, _, window, _| {
+                            let painted = window
+                                .paint_image(
+                                    bounds,
+                                    bounds,
+                                    gpui::Corners::default(),
+                                    image,
+                                    0,
+                                    false,
+                                )
+                                .is_ok();
+                            if painted && marked {
+                                crate::bench_thumbs::painted(
+                                    "preview",
+                                    &path,
+                                    (decoded.width.0 as u32, decoded.height.0 as u32),
+                                    bounds,
+                                    window,
+                                );
+                            }
+                        },
+                    )
+                    .size_full(),
+                );
+            } else {
+                picture = picture.child(img(image).size_full().object_fit(ObjectFit::Fill));
+            }
         }
         // The zoom strip is outside the clipped viewport and never covered by the picture.
         let caption = if self.zoom > 1. {
@@ -208,6 +226,11 @@ impl QuickLook {
             .right_0()
             .bottom(px(bottom))
             .overflow_hidden()
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| observed.surface = Some(bounds),
+            ))
+            .debug_selector(|| "pv1-surface".into())
             .child(
                 div()
                     .absolute()

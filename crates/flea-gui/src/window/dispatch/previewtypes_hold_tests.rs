@@ -1,5 +1,7 @@
 //! An unloaded manual preview draws the empty frame until the operator requests the selection.
-use super::previewtypes_tests::{answer, file, local, meta, open_at, open_with_preview, pump};
+use super::previewtypes_tests::{
+    answer, file, local, meta, open_at, open_with_preview, pump, thumbed,
+};
 use crate::{state::Shell, window::u07_tests::read};
 use gpui::{px, Entity, TestAppContext, VisualTestContext};
 
@@ -109,7 +111,7 @@ fn manual_preview_load_restores_the_selected_file_and_next_move_returns_to_empty
     cx.simulate_keystrokes("ctrl-space");
     let lines = pump(cx);
     meta(&shell, cx, &lines, r#","w":800,"h":600"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "columnManualHold", &[]), "false");
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "image");

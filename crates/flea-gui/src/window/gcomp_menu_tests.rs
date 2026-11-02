@@ -52,6 +52,7 @@ fn right_press(cx: &mut TestAppContext, handle: Handle, at: gpui::Point<gpui::Pi
 #[test]
 fn gcomp_batch7_menu_uses_live_font_drawn_list_geometry_and_actual_root_paint() {
     let mut cx = crate::list::bench::real_cx();
+    cx.update(|cx| cx.set_reduce_motion(true));
     let handle = open(&mut cx);
     let (backend, mut requests) = Backend::test_lines();
     edit(&mut cx, handle, |shell, window, cx| {

@@ -38,7 +38,7 @@ impl Registry {
         Ok(())
     }
 
-    fn query(&self, args: &[&OsStr], cancel: &Cancellation) -> Result<String, String> {
+    pub(super) fn query(&self, args: &[&OsStr], cancel: &Cancellation) -> Result<String, String> {
         let mut command = crate::backend::locale::command("gio");
         command.args(args);
         self.capture(&mut command, cancel)
@@ -88,16 +88,16 @@ impl Registry {
         Ok(index)
     }
 
-    pub fn launch(&self, desktop: &Path, path: &Path, cancel: &Cancellation) -> Result<(), String> {
+    pub fn launch(&self, desktop: &Path, paths: &[&Path], cancel: &Cancellation) -> Result<(), String> {
         use std::os::raw::c_ulong;
         const PR_SET_THP_DISABLE: i32 = 41;
         extern "C" { fn prctl(option: i32, ...) -> i32; }
         let mut command = Command::new("gio");
-        command.arg("launch").arg(desktop).arg(path);
+        command.args(super::menu_many::launch_args(desktop, paths));
         // Foreign applications retain the released THP policy; this child hook cannot allocate.
         unsafe { command.pre_exec(|| if prctl(PR_SET_THP_DISABLE, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong) == 0 { Ok(()) } else { Err(std::io::Error::last_os_error()) }); }
         self.launch_command(&mut command, cancel)
-            .map_err(|error| format!("Could not open {} with {}: {}.", path.display(), desktop.display(), error.trim_end_matches('.')))
+            .map_err(|error| format!("Could not open {} with {}: {}.", super::menu_many::named(paths), desktop.display(), error.trim_end_matches('.')))
     }
 
     fn launch_command(&self, command: &mut Command, cancel: &Cancellation) -> Result<(), String> {
@@ -204,7 +204,7 @@ pub(crate) struct Application {
     pub default: bool,
     // Tests retain the checked Exec value to verify this caller's reader.
     #[cfg(test)]
-    exec: String,
+    pub(super) exec: String,
 }
 
 // The flyout's registry, plus the whole installed set and the kind's own name that the dialog groups by.

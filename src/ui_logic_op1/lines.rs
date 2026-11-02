@@ -3,7 +3,9 @@ use super::{count, hint, leaf, n, transfer::Transfer, undo_hint};
 use crate::i18n::I18n;
 
 mod link;
+mod receipt;
 pub use link::{linked_line, linked_receipt};
+pub use receipt::{done_line, done_receipt};
 
 pub fn items(catalog: &I18n, value: u64) -> String {
     catalog.trn("jobs.items", n(value))
@@ -57,6 +59,16 @@ pub struct Outcome<'a> {
 
 // Only what landed is said: a verdict note with nothing copied stays unsaid, and so does the undo.
 pub fn transfer_done(catalog: &I18n, preset: &str, t: &Transfer, o: Outcome<'_>) -> String {
+    let line = transfer_body(catalog, t, o);
+    if o.ok > 0 {
+        with_undo(catalog, preset, line)
+    } else {
+        line
+    }
+}
+
+/// The transfer receipt alone, for a footer that draws its undo advice as a separate target.
+pub fn transfer_body(catalog: &I18n, t: &Transfer, o: Outcome<'_>) -> String {
     let partial = o.failed > 0 || o.skipped > 0 || o.cancelled;
     let mut line = if partial {
         catalog.tr_args(
@@ -81,11 +93,7 @@ pub fn transfer_done(catalog: &I18n, preset: &str, t: &Transfer, o: Outcome<'_>)
     if o.ok > 0 && !o.note.is_empty() {
         line += &note(catalog, o.note);
     }
-    if o.ok > 0 {
-        with_undo(catalog, preset, line)
-    } else {
-        line
-    }
+    line
 }
 
 pub fn transfer_failure(catalog: &I18n, moving: bool, name: &str, error: &str) -> String {
@@ -97,30 +105,6 @@ pub fn transfer_failure(catalog: &I18n, moving: bool, name: &str, error: &str) -
         },
         &[name, error],
     )
-}
-
-// The done line off the transferdone line itself, so a refused merge never mislabels the next copy.
-pub fn done_line(catalog: &I18n, preset: &str, t: &Transfer, done: &super::TransferDone) -> String {
-    if done.into.is_empty() {
-        let o = Outcome {
-            ok: done.ok,
-            failed: done.failed,
-            skipped: done.skipped,
-            cancelled: done.cancelled,
-            note: &done.note,
-        };
-        return transfer_done(catalog, preset, t, o);
-    }
-    let m = super::collide::Merged {
-        merged: done.merged,
-        kept_both: done.kept_both,
-        into: &done.into,
-        failed: done.failed,
-        skipped: done.skipped,
-        cancelled: done.cancelled,
-        note: &done.note,
-    };
-    super::collide::merged_line(catalog, preset, m)
 }
 
 // Only an identity-checked locate reply supplies these matches.

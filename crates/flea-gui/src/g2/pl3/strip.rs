@@ -166,6 +166,7 @@ impl TrashPane {
             true,
         ));
         div()
+            .debug_selector(|| "trash-header".into())
             .h(px(board.header_h))
             .flex_none()
             .flex()
@@ -263,20 +264,13 @@ impl Render for TrashPane {
         if self.presentation_loading {
             self.loading_at
                 .get_or_insert(cx.background_executor().now());
-            return div()
-                .size_full()
-                .flex()
-                .items_center()
-                .justify_center()
-                .bg(ink.background)
-                .font_family(self.paint.borrow().font.family.clone())
-                .text_size(self.board().body)
-                .text_color(ink.muted)
-                .track_focus(&self.focus)
-                .child(SharedString::from(self.catalog.tr("trash.reading")))
-                .into_any_element();
         }
-        let empty = self.empty_line().map(|(text, error)| {
+        let empty = if self.presentation_loading {
+            Some((self.catalog.tr("trash.reading"), false))
+        } else {
+            self.empty_line()
+        }
+        .map(|(text, error)| {
             div()
                 .debug_selector(|| "trash-empty-line".into())
                 .absolute()
@@ -295,7 +289,9 @@ impl Render for TrashPane {
             .relative()
             .flex_1()
             .min_h(px(0.))
-            .child(TrashList(self.paint.clone()))
+            .when(!self.presentation_loading, |list| {
+                list.child(TrashList(self.paint.clone()))
+            })
             .on_mouse_move(cx.listener(move |pane, event: &MouseMoveEvent, _, cx| {
                 if pane.bar_move(
                     event.position,
@@ -352,7 +348,9 @@ impl Render for TrashPane {
                 pane.wheel(-f32::from(event.delta.pixel_delta(row).y), cx);
                 cx.stop_propagation();
             }))
-            .child(self.scrollbar(window, cx));
+            .when(!self.presentation_loading, |list| {
+                list.child(self.scrollbar(window, cx))
+            });
         div()
             .debug_selector(|| "trash-view".into())
             .relative()

@@ -13,6 +13,9 @@ use flea::ui_logic_mn1::{
 use gpui::{div, prelude::*, Context as GpuiContext, Render, TestAppContext, Window, WindowHandle};
 use std::{cell::RefCell, rc::Rc};
 
+#[path = "uish_misc_review_tests.rs"]
+mod uish_misc;
+
 struct Host;
 
 impl Render for Host {

@@ -333,3 +333,6 @@ fn rail2_recent_uses_current_filter_and_reloads_when_changed(cx: &mut TestAppCon
 fn rail2_recent_request_is_allowed_through_the_real_listing_transport() {
     assert!(super::process::LISTING.contains(&"listpaths"));
 }
+
+#[path = "fixlogic2_picker_tests.rs"]
+mod fixlogic2_picker;

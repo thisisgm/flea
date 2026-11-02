@@ -218,14 +218,6 @@ pub(super) fn refusal(doc: &Json, path: &str, error: &str) -> Json {
             ("ok", Json::Bool(false)),
             ("error", string(error)),
         ]),
-        "transfer" => object(&[
-            ("t", string("transferdone")),
-            ("id", number(num(doc, "id"))),
-            ("ok", number(0)),
-            ("failed", number(1)),
-            ("skipped", number(0)),
-            ("note", string(error)),
-        ]),
         _ => object(&[
             ("t", string("error")),
             (

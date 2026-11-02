@@ -1,7 +1,7 @@
 # Maintainer: taxin-404 <taxin404@duck.com>
 # Contributor: GM <gianmarcomorales@icloud.com>
 
-# The release workflow's binaries with flea's own closure, whose reasons live beside it in the root PKGBUILD.
+# The release workflow's prebuilt binaries, for installers that build from a release; the root PKGBUILD is the published recipe.
 pkgname=flea-bin
 _pkgname=flea
 pkgver=0.4.0
@@ -10,29 +10,30 @@ pkgdesc='Fast, keyboard-first file manager for Omarchy (prebuilt binary)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
 license=('Apache-2.0' 'BSD-2-Clause' 'BSD-3-Clause' 'CC0-1.0' 'ISC' 'MIT' 'MPL-2.0' 'Unicode-3.0' 'Zlib')
-depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'freetype2' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libglvnd' 'libheif' 'libx11' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
-optdepends=('libarchive: archive listing and extraction'
-            '7zip: 7z archive support'
+# The root PKGBUILD's depends and optdepends in its order, which says what uses each; verify refuses a tag where they differ.
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'gcc-libs' 'gdk-pixbuf2' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'libglvnd' 'libheif' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'mpv' 'omarchy' 'poppler-glib' 'python' 'python-gobject' 'quickjs-ng' 'qt6-declarative' 'qt6-webengine' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+optdepends=('7zip: 7z archive support'
+            'dropbox-cli: Dropbox browsing and share links'
+            'ffmpeg: media metadata previews'
+            'ffmpegthumbnailer: video thumbnails'
             'imagemagick: image conversion'
+            'libarchive: archive listing and extraction'
+            'libreoffice: office document previews'
             'tailscale: Taildrop sharing'
-             'ffmpeg: media metadata in the preview column'
-             'ffmpegthumbnailer: video thumbnails, made by one pre-linked worker through libffmpegthumbnailer.so.4, or by the ffmpegthumbnailer program per video when that library will not load'
-             'dropbox-cli: Dropbox share links'
-             'libreoffice: office document previews'
-             'zoxide: frecent folders in the folder jump of the path bar')
+            'zoxide: frecent folders in the folder jump of the path bar')
 provides=("$_pkgname=$pkgver")
 # All three own /usr/bin/flea, so pacman refuses the pair rather than leaving one half-installed.
 conflicts=("$_pkgname" "$_pkgname-git")
 # The release profile already stripped the binary, so there is nothing to strip and no debug package.
 options=('!strip' '!debug')
-# SKIP here keeps a version bump to one line; the release workflow pins both before the AUR ever sees them.
+# SKIP here keeps a version bump to one line; a build pins its architecture's sum from the release first.
 # The local names carry pkgrel, so a rebuilt release is downloaded again, never read from a stale yay cache.
 source_x86_64=("$_pkgname-v$pkgver-$pkgrel-linux-x86_64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-v$pkgver-linux-x86_64.tar.gz")
 source_aarch64=("$_pkgname-v$pkgver-$pkgrel-linux-aarch64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-v$pkgver-linux-aarch64.tar.gz")
 sha256sums_x86_64=('SKIP')
 sha256sums_aarch64=('SKIP')
 
-# The source PKGBUILD's package() with the binary read from the tarball's root; the release workflow diffs the two.
+# The Makefile's install target as install lines, with the binaries and data read from the tarball's root.
 package() {
   cd "$_pkgname-$pkgver-linux-$CARCH"
   install -Dm755 flea "$pkgdir/usr/bin/flea"

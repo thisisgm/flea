@@ -92,6 +92,12 @@ impl Shell {
                 self.rail_focus(false, cx);
                 window.focus(&self.focus, cx);
                 self.keyboard.context = flea::keys::Context::Listing;
+                // v0.3.12 FlashView.qml: Escape closes a flash covering this pane even after Tab gave the rail its keys.
+                let side = self.operations.archive.flash_side;
+                if self.focus_side == side && self.flash_covers(side) {
+                    let effects = self.operations.archive.flash.close();
+                    self.archive_effects(side, effects, window, cx);
+                }
             } else {
                 producer.update(cx, |producer, cx| producer.key_action(action, cx));
             }

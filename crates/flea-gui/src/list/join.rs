@@ -80,13 +80,18 @@ impl Shell {
         RowStates {
             drop_target: cue.as_ref().map(|cue| cue.0),
             drop_label: cue.map(|cue| cue.1),
+            // v0.3.12 Row.qml reads only the current pane, so a showing Jobs card keeps the focused look (EY-522).
             focused: side == self.focus_side
                 && self.focus.is_focused(window)
-                && !self.wheel_blocked(cx)
-                && (!self.jobs_card_showing(cx) || self.extraction_progress(side, cx)),
+                && !self.wheel_blocked(cx),
+            other_pane: self.view == View::Dual && side != self.focus_side,
             selected: host.input.selection.snapshot.clone(),
+            // A held drag is a platform drag in v0.3.12, which delivers no hover, so no row lights under it.
             hovered: host.input.hovered.filter(|_| {
-                host.input.pointer_origin && host.input.band.is_none() && !self.input_blocked(cx)
+                host.input.pointer_origin
+                    && host.input.band.is_none()
+                    && !cx.has_active_drag()
+                    && !self.input_blocked(cx)
             }),
             renaming: self.renaming_row(side),
             grow: self.grows[side],
@@ -273,7 +278,8 @@ impl Shell {
                 if blocked || self.view != View::List {
                     list.header.drag.cancel();
                 }
-                list.end_drag()
+                let over = list.header.drawn.bounds.contains(&event.position);
+                list.end_drag(over)
             });
             if let Some(patch) = patch {
                 self.save_list_width(side, patch);

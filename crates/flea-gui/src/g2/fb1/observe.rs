@@ -12,28 +12,31 @@ pub struct Text {
 }
 
 #[derive(Clone, Default)]
-pub struct Paint(Rc<RefCell<[Option<Text>; 15]>>);
+pub struct Paint(Rc<RefCell<[Option<Text>; SLOTS.len()]>>);
+
+/// Every painted part has one slot, so the store is exactly as long as this list.
+const SLOTS: &[&str] = &[
+    "frame",
+    "mark",
+    "caption",
+    "counts",
+    "disk",
+    "lane",
+    "primary",
+    "secondary",
+    "hint",
+    "extra",
+    "undo",
+    "undo-dot",
+    "cancel",
+    "headline",
+    "byte-line",
+    "source",
+    "dismiss",
+];
 
 fn slot(name: &str) -> Option<usize> {
-    [
-        "frame",
-        "mark",
-        "caption",
-        "counts",
-        "disk",
-        "lane",
-        "primary",
-        "secondary",
-        "hint",
-        "extra",
-        "undo",
-        "undo-dot",
-        "cancel",
-        "headline",
-        "byte-line",
-    ]
-    .iter()
-    .position(|part| *part == name)
+    SLOTS.iter().position(|part| *part == name)
 }
 
 impl Paint {

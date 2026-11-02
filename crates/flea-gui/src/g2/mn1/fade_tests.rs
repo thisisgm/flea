@@ -45,6 +45,8 @@ fn app() -> HeadlessAppContext {
         gpui_platform::current_headless_renderer,
     );
     app.update(|cx| {
+        // The edge fades are judged on a card at rest, past its open fade.
+        cx.set_reduce_motion(true);
         cx.set_text_rendering_mode(TextRenderingMode::Grayscale);
         cx.text_system()
             .add_fonts(vec![Cow::Borrowed(
@@ -313,6 +315,7 @@ fn menu_edge_fade_closing_card_keeps_its_own_ink_and_draws_once() {
         },
         id: 1,
         started: None,
+        from: 1.,
         painted: Rc::new(Cell::new(1.)),
     });
     handle.update(&mut app, |host, _, _| host.3 = true).unwrap();

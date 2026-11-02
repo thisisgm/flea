@@ -982,6 +982,7 @@
   "keys.label.bcf58eaeff52": "履歴を戻るか、履歴がなければ親ディレクトリへ移動",
   "keys.label.bd0b7be215ce": "エディターを閉じる",
   "keys.label.bfa65befcad0": "ファイルのあるディレクトリに移動し、そのファイルを選択",
+  "keys.label.704fb7f8818b": "操作なし",
   "keys.label.c5f15f85156b": "隣の項目と同様に、1 回のタップでそのディレクトリに移動",
   "keys.label.c7ad88ff7f52": "プレビュー中の行にはメニューがありません",
   "keys.label.c7af3cadc955": "現在のフォルダーの部分、省略記号、またはパス横の帯からパスを入力",
@@ -1083,7 +1084,7 @@
   "menu.place.opens_here": "%1 はこのタブでのみ開きます",
   "menu.print": "印刷…",
   "menu.refusal.empty_clipboard": "貼り付けるものがありません。y でコピー、x で切り取りができます。",
-  "menu.refusal.moved": "選択した項目が変更されました。メニューを開き直してください。",
+  "menu.refusal.moved": "選択した項目が移動または削除されました。メニューを開き直してください。",
   "menu.refusal.unavailable": "その操作は利用できなくなりました。メニューを開き直してください。",
   "menu.row.add_favourite": "お気に入りに追加",
   "menu.row.add_to_shelf": "シェルフに追加",
@@ -1246,6 +1247,7 @@
   "network.retry": "再試行",
   "network.retry_title": "ネットワーク共有に接続",
   "network.save_committed": "%1",
+  "network.save_busy": "お気に入りの変更を保存中です。この場所を保存するには再試行してください。",
   "network.save_failed": "%1",
   "network.saved_read_failed": "保存された場所を読み取れなかったため、何も変更しませんでした。",
   "network.saved_remove_read_failed": "保存された場所を読み取れなかったため、何も削除しませんでした。",
@@ -1563,7 +1565,7 @@
   },
   "preview.link_target": "→ %1",
   "preview.list_separator": "、",
-  "preview.loadHint": "%1 でプレビューを読み込み",
+  "preview.loadHint": "%1 で読み込み",
   "preview.loading": "読み込み中…",
   "preview.more": {
     "other": "ほか %1 項目"

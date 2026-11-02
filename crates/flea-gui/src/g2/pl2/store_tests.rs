@@ -36,6 +36,24 @@ impl Drop for Root {
 }
 
 #[test]
+fn uish_misc_a_first_saved_place_creates_the_missing_gtk_folder() {
+    let root = Root::new();
+    let path = root.0.join("gtk-3.0/bookmarks");
+    let edit = Edit::Rename {
+        uri: "smb://198.51.100.1/".into(),
+        label: "Saved personal".into(),
+    };
+    assert_eq!(
+        bookmarks::submit(path.clone(), edit)
+            .recv_blocking()
+            .unwrap(),
+        Ok(true)
+    );
+    let body = fs::read_to_string(&path).unwrap();
+    assert!(body.starts_with("smb://198.51.100.1") && body.ends_with(" Saved personal\n"));
+}
+
+#[test]
 fn pl2_legacy_bookmark_edits_read_the_file_again_and_retain_other_lines() {
     let root = Root::new();
     let path = root.path();

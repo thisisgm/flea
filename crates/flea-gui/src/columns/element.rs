@@ -162,10 +162,8 @@ impl Element for TrackElement {
             font: paint.typeface.font.clone(),
             body: paint.typeface.body,
             caption: paint.typeface.caption,
-            plain_cells: name_budget_in(width, lane, shows_size, false, advance)
-                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
-            chevron_cells: name_budget_in(width, lane, shows_size, true, advance)
-                .saturating_sub(tags::reserved_cells(self.tag_slot, advance)),
+            plain_cells: name_budget_in(width, lane, shows_size, false, advance),
+            chevron_cells: name_budget_in(width, lane, shows_size, true, advance),
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
             languages: self.languages,
@@ -173,6 +171,13 @@ impl Element for TrackElement {
             words: Rc::clone(&self.words),
             locating: self.locating,
             query: Rc::clone(&self.query),
+        };
+        // ColumnRow.qml reserves the tag slot only on a row that shows tags, so an untagged name keeps the whole budget.
+        let reserve = tags::reserved_cells(self.tag_slot, advance);
+        let tagged_shaping = Shaping {
+            plain_cells: shaping.plain_cells.saturating_sub(reserve),
+            chevron_cells: shaping.chevron_cells.saturating_sub(reserve),
+            ..shaping.clone()
         };
         let dropping = self
             .focus
@@ -226,15 +231,19 @@ impl Element for TrackElement {
                 }
                 _ => None,
             };
+            let tagged = reserve > 0
+                && matches!(row, Some(Row::Listing(facts))
+                    if facts.tags.as_ref().is_some_and(|names| !names.is_empty()));
+            let row_shaping = if tagged { &tagged_shaping } else { &shaping };
             let narrow = dropping
                 .filter(|(target, _)| *target == index)
                 .map(|(_, label_width)| {
-                    let mut narrow = shaping.clone();
+                    let mut narrow = row_shaping.clone();
                     let room = ((width - PAD_X - label_width - GAP - super::geometry::NAME_X)
                         / advance.max(1.))
                     .floor()
                     .max(0.) as usize;
-                    let room = room.saturating_sub(tags::reserved_cells(self.tag_slot, advance));
+                    let room = room.saturating_sub(if tagged { reserve } else { 0 });
                     narrow.plain_cells = narrow.plain_cells.min(room);
                     narrow.chevron_cells = narrow.chevron_cells.min(room);
                     narrow
@@ -245,7 +254,7 @@ impl Element for TrackElement {
                     row,
                     mark != Clip::None,
                     walk,
-                    narrow.as_ref().unwrap_or(&shaping),
+                    narrow.as_ref().unwrap_or(row_shaping),
                     window,
                 )
             });

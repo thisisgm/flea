@@ -20,6 +20,11 @@ pub(crate) struct Catchers {
 }
 
 impl Catchers {
+    /// The live Bottom-layer catchers, one per display while a tab drag is out.
+    pub fn count(&self) -> usize {
+        self.windows.borrow().len()
+    }
+
     pub fn contains(&self, window: AnyWindowHandle) -> bool {
         self.windows
             .borrow()

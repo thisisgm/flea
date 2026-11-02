@@ -263,3 +263,70 @@ case_combinepdf() (
     kill_flea
     printf 'COMBINE_PDF native_checks=%s pages=1 size=253x80 written=ok\n' "$menus_checks"
 )
+
+# GPUI-only: single and batched native keys preserve Combine focus and choices.
+case_ey367() (
+    [[ "$test_frontend" == gpui ]] || fail "ey367 requires the GPUI frontend"
+    ey367_capture() { settle; shot "$1"; }
+    local menu_box menus_checks=0 listing name target
+    sandbox_require "$fixture_root"
+    menu_box=$(mktemp -d "$fixture_root/ey367.XXXXXXXX") || fail "ey367: fixture creation failed"
+    printf 'EY-367 native fixture\n' > "$menu_box/.flea-test-sandbox"
+    for name in state config cache data pictures; do menus_guard "$menu_box/$name"; mkdir "$menu_box/$name"; done
+    listing="$menu_box/pictures"
+    magick -size 120x80 xc:steelblue "$listing/a.png"
+    magick -size 80x80 xc:orange "$listing/b.png"
+    magick -size 80x120 xc:seagreen "$listing/c.png"
+    export XDG_STATE_HOME="$menu_box/state" XDG_CONFIG_HOME="$menu_box/config" XDG_CACHE_HOME="$menu_box/cache" XDG_DATA_HOME="$menu_box/data"
+    "$flea_bin" --ui-state '{"view":"list","keys":"default","display":{"textSize":{"mode":14}},"menu":{"hidden":[]}}' >/dev/null
+    launch "$listing"
+    wait_listing 3
+    readme_float_size 1100 700
+    # Pointer seeding keeps a broken logical Tab from preventing the card from opening.
+    click_row 0 left
+    click_row 2 left --mods shift
+    menus_expect dualState '.panes[.focused].selected | length == 3' 'ey367 three images marked'
+    click_row 1 right
+    menus_expect menuState '.opened and .hasRow and .snapshotReady' 'ey367 file menu ready'
+    target=$(ipc menuState | jq -er '.entries | to_entries[] | select(.value.action == "combineImages" and .value.disabled != true) | .key')
+    menus_point "$(ipc contextMenuRowCentre "$target")"
+    menus_expect combineState '.opened and .focus == "submit" and .layout == "row" and .format == "png"' 'ey367 Combine opens on its default'
+    ey367_capture ey367-opened
+    key -k Left -k Up -k Tab >/dev/null
+    menus_expect combineState '.focus == "preview"' 'ey367 batched Tab enters preview'
+    key -k Right >/dev/null
+    menus_expect combineState '.focus == "preview" and .focusedImage == 0' 'ey367 native Right focuses first image'
+    ey367_capture ey367-row-first
+    key -k Right >/dev/null
+    menus_expect combineState '.focus == "preview" and .focusedImage == 1' 'ey367 native Right focuses second image'
+    ey367_capture ey367-row-second
+    key -k Tab >/dev/null
+    menus_expect combineState '.focus == "layout"' 'ey367 Tab enters layout'
+    key -k Left -k Up -k Right >/dev/null
+    menus_expect combineState '.focus == "layout" and .layout == "column"' 'ey367 batched Right chooses Column'
+    ey367_capture ey367-column
+    key -k Right >/dev/null
+    menus_expect combineState '.focus == "layout" and .layout == "grid"' 'ey367 Right chooses Grid'
+    ey367_capture ey367-grid
+    key -M shift -k Tab -m shift >/dev/null
+    menus_expect combineState '.focus == "preview" and .focusedImage == 1' 'ey367 Shift+Tab returns to preview'
+    key -k Left >/dev/null
+    menus_expect combineState '.focus == "preview" and .focusedImage == 0 and .columns == 2' 'ey367 Left returns to first grid image'
+    key -k Down >/dev/null
+    menus_expect combineState '.focus == "preview" and .focusedImage == 2' 'ey367 Down steps one grid row'
+    ey367_capture ey367-grid-third
+    key -k Tab >/dev/null
+    menus_expect combineState '.focus == "layout"' 'ey367 Tab leaves preview'
+    key -k Tab >/dev/null
+    menus_expect combineState '.focus == "columns"' 'ey367 Grid enables Columns focus'
+    key -k Tab >/dev/null
+    menus_expect combineState '.focus == "format"' 'ey367 Tab leaves the Columns editor'
+    key -k Right >/dev/null
+    menus_expect combineState '.focus == "format" and .format == "jpg" and .name == "a (combined).jpg"' 'ey367 Right chooses JPEG'
+    ey367_capture ey367-jpeg
+    key -k Escape >/dev/null
+    menus_expect combineState '.opened == false' 'ey367 Escape closes card'
+    [[ $(find "$listing" -maxdepth 1 -type f | wc -l) == 3 ]] || fail "ey367: navigation wrote an output"
+    kill_flea
+    printf 'EY367 native_checks=%s\n' "$menus_checks"
+)

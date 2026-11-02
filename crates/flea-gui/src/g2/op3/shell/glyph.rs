@@ -55,6 +55,17 @@ const CROSS: &[(&[(f32, f32)], bool)] = &[
     (&[(6., 6.), (18., 18.)], false),
     (&[(18., 6.), (6., 18.)], false),
 ];
+const FOLDER: &[(&[(f32, f32)], bool)] = &[(
+    &[
+        (2., 20.),
+        (2., 3.),
+        (8., 3.),
+        (10., 6.),
+        (22., 6.),
+        (22., 20.),
+    ],
+    true,
+)];
 const FOLDER_OPEN: &[(&[(f32, f32)], bool)] = &[
     (
         &[
@@ -93,6 +104,7 @@ fn paint_glyph(mark: Glyph, bounds: Bounds<Pixels>, size: f32, ink: Hsla, window
         Glyph::Alert => (ALERT, 2.),
         Glyph::Drive => (DRIVE, 2.),
         Glyph::Cross => (CROSS, 2.),
+        Glyph::Folder => (FOLDER, 2.),
         Glyph::FolderOpen => (FOLDER_OPEN, 2.),
     };
     let at = |(x, y): (f32, f32)| {

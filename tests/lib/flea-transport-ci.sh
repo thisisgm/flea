@@ -36,7 +36,7 @@ PY_CHECK
         TMPDIR="$root/tmp" XDG_RUNTIME_DIR="$root/runtime" LANG=C.UTF-8 LC_ALL=C.UTF-8 \
         DISPLAY="${DISPLAY:-}" WAYLAND_DISPLAY="$wayland" XAUTHORITY="${XAUTHORITY:-}" \
         FLEA_TRANSPORT_CI=1 FLEA_TEST_PARENT_PID_NS="$parent_ns" \
-        FLEA_TEST_FRONTEND="${FLEA_TEST_FRONTEND:-qml}" \
+        FLEA_TEST_FRONTEND="${FLEA_TEST_FRONTEND:-gpui}" \
         CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" \
         RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}" \
         bash "$@" </dev/null

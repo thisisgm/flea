@@ -7,6 +7,8 @@ use flea::ui_logic_pl1::Note;
 use flea::ui_logic_pl2::{self as logic, smb};
 use std::collections::HashMap;
 
+use super::mount_lifetime::completion;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     Mount,
@@ -75,6 +77,14 @@ pub enum Effect {
         note: Note,
         origin: u64,
     },
+    /// The bridge's Starting line, which stands with the busy mark until Settled.
+    Starting {
+        note: Note,
+        origin: u64,
+    },
+    Settled {
+        origin: u64,
+    },
 }
 
 #[derive(Debug)]
@@ -110,6 +120,7 @@ pub struct Mounts {
     pub(super) flight: Option<Flight>,
     pub(super) bridges: Vec<BridgeWait>,
     pub(super) browsers: HashMap<u64, super::child::BrowserSession>,
+    pub(super) passwords: HashMap<String, Secret>,
 }
 
 impl Mounts {
@@ -117,6 +128,7 @@ impl Mounts {
         self.flight = None;
         self.bridges.clear();
         self.browsers.clear();
+        self.passwords.clear();
         self.generation += 1;
     }
     pub fn busy(&self) -> bool {
@@ -154,6 +166,7 @@ impl Mounts {
             };
         }
         request.uri = logic::mounts::normalize(&request.uri);
+        self.recall(&mut request);
         self.browsers.remove(&request.origin);
         self.generation += 1;
         let phase = if request.mounted {
@@ -205,7 +218,8 @@ impl Mounts {
             Phase::Auth => self.fail(match out.code {
                 124 => "network.no_answer",
                 -1 | 126 | 127 => "network.no_prompt",
-                _ => "network.password_refused",
+                77 => "network.password_refused",
+                _ => "network.failed",
             }),
             Phase::Info => {
                 let f = self.flight.as_mut().unwrap();
@@ -347,6 +361,9 @@ impl Mounts {
                 {
                     args.push(picked.users.join(", "))
                 }
+                Effect::Say { note, .. } if key == "network.mounted_as" => {
+                    note.args.push(picked.users.join(", "))
+                }
                 _ => {}
             }
         }
@@ -368,19 +385,5 @@ impl Mounts {
 impl Mounts {
     pub fn bridge_failed(&mut self, generation: u64) {
         self.bridges.retain(|b| b.generation != generation);
-    }
-}
-
-pub(super) fn completion(request: &Request, error: Option<&'static str>) -> Vec<Effect> {
-    if request.id == 0 {
-        Vec::new()
-    } else {
-        vec![Effect::Completed {
-            id: request.id,
-            uri: request.uri.clone(),
-            error,
-            args: Vec::new(),
-            connect_failed: error.is_some_and(|key| key != "network.password_needed"),
-        }]
     }
 }

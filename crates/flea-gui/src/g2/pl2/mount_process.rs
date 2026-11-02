@@ -4,6 +4,9 @@ use crate::g2::pl1::{process::Job, secret::Secret};
 
 impl Mounts {
     pub(super) fn run(&mut self, phase: Phase, now: u64) -> Vec<Effect> {
+        if phase == Phase::Info {
+            self.keep_flight();
+        }
         let Some(f) = &mut self.flight else {
             return Vec::new();
         };

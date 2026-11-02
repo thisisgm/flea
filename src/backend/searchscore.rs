@@ -311,6 +311,17 @@ fn resolve_row<P: Parents>(matcher: &Matcher, index: &Index, parents: &mut P, te
     let tier = if hit.0 == PENDING_ALIGNED { ALIGNED } else { NAME };
     // Only a row at the scope's top scores on its basename alone; every other match takes the whole-path DP.
     let path = entry.parent != EMPTY;
+    // A basename contains no slash, so a query ending in one can only have finished in its parent.
+    #[cfg(test)]
+    let parent_score = matcher.parent_score;
+    #[cfg(not(test))]
+    let parent_score = true;
+    if parent_score && path && matcher.needle.last() == Some(&'/') {
+        if let Some(score) = parents.parent_state(matcher, index, entry.parent).score(tier) {
+            hit.0 = score;
+            return;
+        }
+    }
     // The path DP's basename-only alignments score the name's own score, and bound caps every one that takes a parent letter.
     if let Some(own) = owned.get(entry.name).filter(|_| hit.0 == PENDING_NAME) {
         if !path || lift_bound(parents.parent_state(matcher, index, entry.parent), matcher.needle.len(), own.lift()) <= own.score() {

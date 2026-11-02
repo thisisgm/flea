@@ -1,4 +1,5 @@
 //! The clipboard payload bytes, one place for every front end: GNOME's copy/cut form, the URI list, plain paths, KDE's cut mark and Flea's token; byte for byte the backend shapes (src/clip/format.rs) and the fork MIME contract. X11 stays out.
+use crate::plugin_runtime::protocol::place_path;
 use std::collections::HashSet;
 
 pub const GNOME: &str = "x-special/gnome-copied-files";
@@ -9,9 +10,12 @@ pub const PLAIN: &str = "text/plain";
 pub const UTF8_STRING: &str = "UTF8_STRING";
 pub const FLEA: &str = "application/x-flea-clip";
 
-// A path as a file:// URI: every byte outside the unreserved set and '/' is percent-encoded, so a name never reads as a fragment or query.
+// Keep a place's scheme and percent-encode its path just as for a local file.
 fn encode_uri(path: &str) -> String {
-    let mut out = String::from("file://");
+    let (mut out, path) = match place_path(path) {
+        Some((id, relative)) => (format!("plugin://{id}"), relative),
+        None => (String::from("file://"), path),
+    };
     for byte in path.as_bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~' | b'/') {
             out.push(*byte as char);
@@ -23,12 +27,14 @@ fn encode_uri(path: &str) -> String {
 }
 
 // Sample input: "file:///tmp/a%20b" reads "/tmp/a b"; "file://host/x" and "file:///tmp/%+1" read None.
-// Only file:// with an empty or localhost host becomes a path; anything else, a NUL, a relative path or a dot component is refused, never failed.
+// Local files and validated plugin locations retain their distinct owners.
 fn decode_uri(uri: &[u8]) -> Option<String> {
-    let rest = uri.strip_prefix(b"file://")?;
+    let plugin = uri.starts_with(b"plugin://");
+    let scheme: &[u8] = if plugin { b"plugin://" } else { b"file://" };
+    let rest = uri.strip_prefix(scheme)?;
     let slash = rest.iter().position(|byte| *byte == b'/')?;
     let (host, path) = rest.split_at(slash);
-    if !host.is_empty() && host != b"localhost" {
+    if !plugin && !host.is_empty() && host != b"localhost" {
         return None;
     }
     let mut raw = Vec::with_capacity(path.len());
@@ -54,7 +60,13 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     if !path.starts_with('/') || path.split('/').any(|part| part == "." || part == "..") {
         return None;
     }
-    Some(path)
+    if plugin {
+        let uri = format!("plugin://{}{path}", std::str::from_utf8(host).ok()?);
+        place_path(&uri)?;
+        Some(uri)
+    } else {
+        Some(path)
+    }
 }
 
 pub fn is_op(word: &str) -> bool {
@@ -172,11 +184,25 @@ pub struct ForeignSel {
 
 // Sample input: GNOME cut bytes with our token read ("cut", paths, token).
 pub fn choose(offers: &[Offer<'_>]) -> Option<ForeignSel> {
-    let bytes_of = |mime: &str| offers.iter().find(|offer| offer.mime == mime).map(|offer| offer.bytes);
-    let token = bytes_of(FLEA).and_then(parse_flea).map_or(String::new(), |(_, token)| token);
+    let bytes_of = |mime: &str| {
+        offers
+            .iter()
+            .find(|offer| offer.mime == mime)
+            .map(|offer| offer.bytes)
+    };
+    let token = bytes_of(FLEA)
+        .and_then(parse_flea)
+        .map_or(String::new(), |(_, token)| token);
     // A GNOME offer that does not parse or names no files falls through to the URI list, as the backend reads it.
-    if let Some((op, paths, _)) = bytes_of(GNOME).and_then(parse_gnome).filter(|(_, paths, _)| !paths.is_empty()) {
-        return Some(ForeignSel { clip: op, paths, token });
+    if let Some((op, paths, _)) = bytes_of(GNOME)
+        .and_then(parse_gnome)
+        .filter(|(_, paths, _)| !paths.is_empty())
+    {
+        return Some(ForeignSel {
+            clip: op,
+            paths,
+            token,
+        });
     }
     if let Some(bytes) = bytes_of(URILIST) {
         let (paths, _) = parse_urilist(bytes);
@@ -185,7 +211,11 @@ pub fn choose(offers: &[Offer<'_>]) -> Option<ForeignSel> {
         }
         let cut = bytes_of(KDE_CUT).is_some_and(parse_kde_cut);
         let clip = if cut { "cut" } else { "copy" };
-        return Some(ForeignSel { clip: clip.into(), paths, token });
+        return Some(ForeignSel {
+            clip: clip.into(),
+            paths,
+            token,
+        });
     }
     None
 }

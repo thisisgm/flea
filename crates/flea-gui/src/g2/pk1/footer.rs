@@ -1,6 +1,7 @@
 //! The chooser's status bar: what is checked or said on the left, the keys on the right (PickerWindow.qml status).
 use super::drawn::Slot;
-use super::view::{GAP, SIDE, STATUS_HEIGHT, STATUS_TEXT};
+use super::size::Size;
+use super::view::{GAP, SIDE, STATUS_HEIGHT};
 use super::Picker;
 use crate::list::Palette;
 use gpui::{div, prelude::*, px, Context, Div, Hsla, SharedString, Window};
@@ -25,15 +26,16 @@ impl Picker {
         cx: &gpui::App,
     ) -> f32 {
         let font = crate::list::Typeface::for_window(window, cx).font;
+        let size = Size::of(window, cx);
         let said = match message {
             Some(message) => message.text.clone(),
             None if self.marks_allowed() => self.selection_status().into(),
             None => SharedString::default(),
         };
-        let hints = super::answers::shaped_width(window, &font, self.hints(), STATUS_TEXT);
-        let said = super::answers::shaped_width(window, &font, said, STATUS_TEXT);
+        let hints = super::answers::shaped_width(window, &font, self.hints(), size.caption);
+        let said = super::answers::shaped_width(window, &font, said, size.caption);
         let bar = f32::from(window.viewport_size().width);
-        hints.min((bar - 2. * SIDE - GAP - said.min(bar / 2.)).max(0.))
+        hints.min((bar - 2. * size.len(SIDE) - size.len(GAP) - said.min(bar / 2.)).max(0.))
     }
 
     pub(super) fn footer(
@@ -46,6 +48,7 @@ impl Picker {
     ) -> Div {
         let message = self.message.clone();
         let hints_width = self.hints_width(message.as_ref(), window, cx);
+        let size = Size::of(window, cx);
         div()
             .debug_selector(|| "picker-status-band".into())
             .relative()
@@ -54,9 +57,9 @@ impl Picker {
             .flex()
             .flex_row()
             .items_center()
-            .h(px(STATUS_HEIGHT))
-            .px(px(SIDE))
-            .text_size(px(STATUS_TEXT))
+            .h(size.px(STATUS_HEIGHT))
+            .px(size.px(SIDE))
+            .text_size(px(size.caption))
             .text_color(palette.foreground)
             .bg(theme.surface)
             .border_t_1()
@@ -66,7 +69,7 @@ impl Picker {
                     .debug_selector(|| "picker-status-message".into())
                     .flex_1()
                     .min_w_0()
-                    .mr(px(GAP))
+                    .mr(size.px(GAP))
                     .overflow_hidden()
                     .whitespace_nowrap()
                     .text_ellipsis()

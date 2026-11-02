@@ -39,11 +39,13 @@ impl Shell {
         };
         let token = self.strip.bar.out_token.clone();
         if self.strip.geometry.begin(&token, strip) {
+            self.strip.lifts += 1;
             self.ask_tab_geometry(cx);
         }
     }
 
     fn ask_tab_geometry(&mut self, cx: &mut Context<Self>) {
+        self.strip.client_queries += 1;
         let clients = self.strip.clients.clone();
         cx.spawn(async move |this, cx| {
             let text = cx

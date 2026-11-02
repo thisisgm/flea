@@ -231,7 +231,7 @@ impl Filter {
         true
     }
 
-    /// Ctrl+A marks exact rows and focuses the list; an empty line keeps its caret so Backspace cannot leave the folder.
+    /// The list's Ctrl+A over a standing filter: marks exact rows and focuses the list; an empty query marks nothing.
     pub fn select_all(&mut self, pane: &mut dyn PaneSeam) {
         if self.query.is_empty() {
             return;
@@ -273,10 +273,8 @@ impl Filter {
             }
             // Tab's subfolder scope waits on the joined recursive producer (sr1's searchopen and searchquery), so it is consumed and inert.
             LineKey::Tab => (true, None),
-            LineKey::SelectAll => {
-                self.select_all(pane);
-                (true, None)
-            }
+            // EY-115: v0.3.12's Filter.js typeKey swallows Ctrl+A, so the line keeps its caret, query and marks.
+            LineKey::SelectAll => (true, None),
             LineKey::Leaves => {
                 self.commit(pane);
                 (false, None)

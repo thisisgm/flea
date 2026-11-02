@@ -218,7 +218,8 @@ impl Producer {
             "cursorUp" => self.model.borrow_mut().cursor = Some(index.saturating_sub(1)),
             "cursorFirst" => self.model.borrow_mut().cursor = Some(0),
             "cursorLast" => self.model.borrow_mut().cursor = Some(last),
-            "open" if cursor.is_some() => self.activate(index, cx),
+            // Focus.js: l (pageForward) on the rail opens its row, as Enter does.
+            "open" | "pageForward" if cursor.is_some() => self.activate(index, cx),
             "rename" if cursor.is_some() => {
                 self.start_rename(index, cx);
             }

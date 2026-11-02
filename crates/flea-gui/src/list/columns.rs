@@ -220,6 +220,8 @@ impl Cell {
 pub struct Layout {
     pub name: Cell,
     pub cells: [Option<Cell>; 4],
+    /// Recent uses the Mode geometry for the fixed Location column.
+    pub recent_location: bool,
 }
 
 impl Layout {
@@ -236,7 +238,11 @@ impl Layout {
         let mut out = String::from("name");
         for column in Column::ALL.into_iter().filter(|column| self.shown(*column)) {
             out.push(',');
-            out.push_str(column.key());
+            out.push_str(if self.recent_location && column == Column::Mode {
+                "location"
+            } else {
+                column.key()
+            });
         }
         out
     }
@@ -251,7 +257,10 @@ impl Layout {
             widths[column.slot()] = width;
         }
         let on = Column::ALL.map(|each| self.shown(each));
-        chain(row, tokens, on, widths)
+        Self {
+            recent_location: self.recent_location,
+            ..chain(row, tokens, on, widths)
+        }
     }
 }
 
@@ -311,7 +320,7 @@ pub fn resolve(row: f32, tokens: &Tokens, switched: Switched, stored: StoredWidt
 }
 
 // Lays the chain from the right edge: each drawn column takes its width and the gap before it, and the name keeps the rest.
-fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) -> Layout {
+pub(super) fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) -> Layout {
     let mut cells = [None; 4];
     let mut right = row - tokens.pad;
     for column in Column::DROP_ORDER {
@@ -332,5 +341,6 @@ fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) -> Layout {
             width: (right - x).max(0.),
         },
         cells,
+        recent_location: false,
     }
 }

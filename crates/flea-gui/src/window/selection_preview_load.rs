@@ -159,7 +159,7 @@ impl SelectionPreview {
             }
             _ => Mounted::Basic,
         };
-        let frame = Frame {
+        let mut frame = Frame {
             subject,
             generation,
             kind,
@@ -167,6 +167,7 @@ impl SelectionPreview {
             meta: None,
             facts: None,
             thumb_answered: !kind.thumbed(),
+            thumb_observation: None,
             source: None,
             image: None,
             animation: None,
@@ -191,10 +192,7 @@ impl SelectionPreview {
                 kind == Kind::Archive
             ));
             if kind.thumbed() {
-                self.outbox.borrow_mut().push(format!(
-                    r#"{{"c":"thumb","rows":[{}]}}"#,
-                    frame.subject.index
-                ));
+                self.outbox.borrow_mut().push(frame.thumbnail_request());
             }
         }
         let mut frame = frame;
@@ -256,14 +254,8 @@ impl SelectionPreview {
                 frame.facts = flea::ui_logic_pv1::meta::parse(line);
             }
             "thumbed" if number("row") as usize == frame.subject.index => {
-                frame.thumb_answered = true;
-                // PreviewColumn.qml frameSource: an image with no cache file decodes the original, never enlarged.
-                let file = match text("file") {
-                    "" if frame.kind == Kind::Image => frame.subject.path(),
-                    file => file.to_owned(),
-                };
-                if file.starts_with('/') {
-                    frame.source = Some(std::path::PathBuf::from(file).into());
+                if !frame.accept_thumbnail(doc) {
+                    return taken;
                 }
                 // PaneWire.onThumbed answers the row too: the cursor row's own thumbnail lands from the same reply.
                 cx.notify();

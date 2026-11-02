@@ -33,7 +33,15 @@ impl Render for Ghost {
 }
 
 impl Render for Strip {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Only a running screen reader pays for the accessible controls.
+        let controls = window
+            .is_a11y_active()
+            .then(|| self.shell.upgrade())
+            .flatten()
+            .and_then(|shell| {
+                super::accessibility::Controls::new(self.shell.clone(), shell.read(cx))
+            });
         let geometry = self.bounds.clone();
         let drop_zone = self.drop_zone.clone();
         let drag = self.shell.clone();
@@ -168,7 +176,8 @@ impl Render for Strip {
             )
             .child(
                 StripElement::new(self.frame.clone(), self.labels.clone())
-                    .with_feedback(self.frames.clone()),
+                    .with_feedback(self.frames.clone())
+                    .with_controls(controls),
             )
     }
 }
@@ -237,7 +246,8 @@ impl Shell {
         self.strip.bar.caption = f32::from(host.list.borrow().typeface.caption);
         let frame = self.strip.bar.frame(
             &self.strip.tabs[side],
-            host.pane.place(),
+            // TabBar.qml titles the current tab from the pane's live path, the one the path bar reads.
+            host.pane.path(),
             &self.strip.home,
             &self.locale.catalog.tr("tabs.home"),
         );
@@ -350,6 +360,7 @@ impl Shell {
         }
         let started = self.with_tabs(|bar, panes| bar.tab_lift_moved(panes, 0., true));
         if !started {
+            self.publish_tab_notices(cx);
             return None;
         }
         self.strip.capacity.set(true);

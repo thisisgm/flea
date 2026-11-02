@@ -571,8 +571,8 @@ coh_fixture() {
     printf '# Guide\n\nA paragraph with a [link](https://example.com).\n\n- one\n- two\n' > "$dir/guide.md"
     chmod 0644 "$dir/notes.txt" "$dir/other.txt" || fail "cohesion: fixture modes failed"
     magick -size 320x200 gradient:'#336699-#99ccff' "$dir/photo.png" || fail "cohesion: magick produced no photo.png"
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf" || fail "cohesion: magick produced no manual.pdf"
 }
 

@@ -1,6 +1,6 @@
 use super::fake::{picture, Script};
 use super::player_tests::{player, send, subject};
-use crate::g2::pv3::surface::{column_view, picture as shown, Facts};
+use crate::g2::pv3::surface::{column_view, look_view, picture as shown, Facts};
 use crate::g2::pv3::view::Picture;
 use flea::ui_logic_pv3::frame::{Command, Event};
 use flea::ui_logic_pv3::player::Status;
@@ -94,6 +94,44 @@ fn video_end(cx: &mut TestAppContext, column: bool) {
 #[gpui::test]
 fn vf4_quick_look_video_end_holds_last_frame_and_duration(cx: &mut TestAppContext) {
     video_end(cx, false);
+}
+
+// EY-52: ql-video.png and v0.3.12 show an ended clip as the empty card under the play mark at 0:02 / 0:02.
+#[gpui::test]
+fn pv3_quick_look_video_end_shows_the_empty_card_at_full_length(cx: &mut TestAppContext) {
+    let script = Rc::new(Script::default());
+    let (player, _) = player(cx, &script, None);
+    let catalog = crate::test_catalogs::english();
+    player.update(cx, |player, cx| player.open(subject("clip.mp4", true), cx));
+    send(
+        cx,
+        &script,
+        Event::Loaded {
+            video: true,
+            duration_ms: 2_000,
+        },
+    );
+    script.sender().frame(picture(1));
+    send(cx, &script, Event::Playing);
+    script.sender().frame(picture(2));
+    send(cx, &script, Event::Position(1_960));
+    send(cx, &script, Event::Ended);
+    player.read_with(cx, |player, cx| {
+        let (picture, strip) = look_view(player, &Facts::default(), &catalog, cx);
+        assert_eq!(
+            picture,
+            Picture::Video {
+                frame: None,
+                poster: true
+            },
+            "no frame under the play mark"
+        );
+        assert_eq!(
+            (strip.position, strip.duration, strip.playing),
+            (2_000, 2_000, false),
+            "the strip reads the whole clip"
+        );
+    });
 }
 
 #[gpui::test]

@@ -1,9 +1,10 @@
 // COPY-SRC (0.3.10): the sentences the top-level files print, pinned as written, for the lines no function can be called to reach.
-const SOURCES: [(&str, &str); 20] = [
+const SOURCES: [(&str, &str); 21] = [
     ("chooser.rs", include_str!("chooser.rs")),
     ("defaults.rs", include_str!("defaults.rs")),
     ("favourites.rs", include_str!("favourites.rs")),
     ("gui.rs", include_str!("gui.rs")),
+    ("gui/launch.rs", include_str!("gui/launch.rs")),
     ("hyprkeys.rs", include_str!("hyprkeys.rs")),
     ("launchargs.rs", include_str!("launchargs.rs")),
     ("main.rs", include_str!("main.rs")),
@@ -69,7 +70,7 @@ const WRITTEN: [(&str, &str, usize); 35] = [
     ("favourites.rs", "A favorite name needs visible text.", 2),
     ("favourites.rs", "Favorites changed in another window; try again.", 1),
     ("favourites.rs", "This favorite is damaged and cannot be renamed. Remove it instead.", 1),
-    ("gui.rs", "flea: the window could not start: Quickshell is not installed or could not run", 1),
+    ("gui/launch.rs", "flea: the window could not start: {}: {error}", 2),
     ("hyprkeys.rs", "block appended to {}. Hyprland could not be reached, so run hyprctl reload inside the session.", 2),
     ("hyprkeys.rs", "block removed from {}. Hyprland could not be reached, so run hyprctl reload inside the session.", 1),
     ("launchargs.rs", "--tui and --gui cannot be used together", 1),
@@ -83,7 +84,7 @@ const WRITTEN: [(&str, &str, usize); 35] = [
     ("shelfplaces.rs", "{} was not written, so the chooser answered nothing: {}", 2),
     ("shelfzip.rs", "flea: those items have no folder in common to archive them from", 1),
     ("shelfzip.rs", "flea: the staged archive stayed behind at {}: {}", 1),
-    ("terminal.rs", "flea: that folder could not be opened in a terminal; check that it still exists", 2),
+    ("terminal.rs", "flea: that folder could not be opened in a terminal; check that it still exists", 1),
     ("uistatecli.rs", "flea: the shelf plugin was not installed ({})", 1),
     ("uistatecli.rs", "flea: the shelf plugin was not removed ({})", 1),
     ("update.rs", "pacman could not find the package that installed Flea", 1),

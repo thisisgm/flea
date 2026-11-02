@@ -1261,7 +1261,7 @@
   "menu.state.symlink": "pautan simbolik",
   "menu.state.special_file": "fail khas",
   "menu.state.not_yours": "bukan milik anda",
-  "menu.refusal.moved": "Item yang dipilih berubah; buka menu semula.",
+  "menu.refusal.moved": "Item yang dipilih berpindah atau hilang; buka menu semula.",
   "menu.refusal.unavailable": "Tindakan itu tidak lagi tersedia; buka menu semula.",
   "menu.refusal.empty_clipboard": "Tiada apa-apa untuk ditampal; y menyalin dan x memotong.",
   "menu.refusal.favourite_unread": "Folder yang dipilih tidak dapat dibaca.",
@@ -1724,7 +1724,7 @@
   "media.buffering": "Menimbal",
   "pdf.page": "Halaman %1 daripada %2 · %3%",
   "preview.loading": "Memuatkan…",
-  "preview.loadHint": "%1 untuk memuatkan pratonton",
+  "preview.loadHint": "%1 memuatkannya",
   "preview.tooLarge": "Fail ini terlalu besar untuk dipratonton.",
   "preview.entries": {
     "other": "%1 entri"
@@ -1786,6 +1786,7 @@
   "network.password_needed": "Masukkan kata laluan untuk melekapkan lokasi ini.",
   "network.save_failed": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Perubahan Kegemaran masih sedang disimpan. Cuba lagi untuk menyimpan lokasi ini.",
   "network.backend_died": "Tidak dapat menyambung: lokasi rangkaian tidak dapat dibuka.",
   "network.another_opening": "Lokasi rangkaian lain masih sedang dibuka. Cuba lagi apabila dibuka",
   "network.refused": "Tidak dapat menyambung: pelayan menolak sambungan.",
@@ -2021,6 +2022,7 @@
   "keys.label.37962655f9c9": "maju semula selepas kembali, dan tiada tindakan jika tiada sejarah",
   "keys.label.c5f15f85156b": "masuk ke direktori itu dengan satu ketikan, seperti direktori bersebelahan",
   "keys.label.bfa65befcad0": "pergi ke fail dalam direktorinya sendiri, dalam keadaan dipilih",
+  "keys.label.704fb7f8818b": "tiada tindakan",
   "keys.label.a22b048d011a": "buka menu konteks pada penuding, untuk pilihan yang merangkumi baris ini",
   "keys.label.17f30d3d5153": "buka direktori dalam tab baharu",
   "keys.label.700673165abf": "buka direktori yang dinamakan segmen laluan itu, pada ketikan pertama",

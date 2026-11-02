@@ -143,6 +143,14 @@ fn focused_chip_frames_in_the_accent() {
         error: theme.error,
         rule: theme.metadata_frame,
     };
+    assert_ne!(
+        t.accent_frame, t.fg,
+        "focused and resting chips must be distinguishable"
+    );
+    assert_ne!(
+        t.accent_frame, t.muted_frame,
+        "chosen and unchosen chips must be distinguishable"
+    );
     assert_eq!(
         chip_frame(&t, true, true),
         t.accent_frame,

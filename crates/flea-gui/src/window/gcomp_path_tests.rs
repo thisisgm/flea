@@ -2,6 +2,36 @@
 use super::*;
 use crate::columns::peeks::{Lens, Peeked};
 
+#[gpui::test]
+fn uish_misc_mounted_address_field_commits_batched_text_and_enter(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let stroke = |cx: &mut TestAppContext, text: &str| {
+        // Sample keystrokes: "ctrl-l", "/", "D", "enter".
+        cx.dispatch_keystroke(handle.into(), gpui::Keystroke::parse(text).unwrap());
+    };
+    stroke(cx, "ctrl-l");
+    frame(cx, handle);
+    let path = edit(cx, handle, |shell, _, cx| {
+        shell.chrome.view.as_ref().unwrap().read(cx).path.clone()
+    });
+    let target = "/files/Dropbox";
+    for character in target.chars() {
+        stroke(cx, &character.to_string());
+    }
+    edit(cx, handle, |_, window, cx| {
+        let view = path.read(cx);
+        assert!(view.holds_keyboard(window));
+        assert_eq!(view.entry.text, target);
+    });
+    stroke(cx, "enter");
+    frame(cx, handle);
+    edit(cx, handle, |shell, window, cx| {
+        assert!(!path.read(cx).entry.editing);
+        assert_eq!(path.read(cx).entry.text, target);
+        assert_eq!(shell.focus_view(window, cx), "list");
+    });
+}
+
 #[test]
 fn gcomp_batch6_foreign_peek_reaches_the_real_columns_owner_once_without_losing_wire_fields() {
     let mut cx = crate::list::bench::real_cx();

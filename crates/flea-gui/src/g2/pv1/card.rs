@@ -8,27 +8,47 @@ use super::{
     Body, QuickLook, RasterRefusal,
 };
 use crate::row::marks::Mark;
-use flea::ui_logic_pv1::{
-    compare::{DiffRow, Kind},
-    scroll,
-};
+use flea::ui_logic_pv1::scroll;
 use gpui::{
     div, prelude::*, px, AnyElement, Bounds, Context, Hsla, Pixels, Render, SharedString, Window,
 };
 use std::{borrow::Cow, rc::Rc};
 
+#[path = "card_diff.rs"]
+mod diff;
+use diff::diff_row;
+
+#[cfg(test)]
+#[path = "s5_motion_tests.rs"]
+mod s5_tests;
+
 impl Render for QuickLook {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.window = Some(window.window_handle());
-        for image in std::mem::take(&mut self.retired) {
-            let _ = window.drop_image(image);
-        }
+        self.forget_painted_bounds();
+        self.drop_retired(window);
         if !self.visible() {
             return div().into_any_element();
         }
         let active = self.subject.is_some();
+        let picture = self.subject.as_ref().is_some_and(|subject| {
+            matches!(
+                subject.body,
+                Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
+            )
+        });
+        // Decoding begins before the reveal clock, so the first raster gets the full fade and rise.
+        if picture {
+            let card = self.card(window.viewport_size());
+            self.picture_raster(
+                f64::from(f32::from(card.size.width)),
+                f64::from(f32::from(card.size.height)),
+                window,
+                cx,
+            );
+        }
         let motion = self.motion.sample(
-            active && self.revealed,
+            active && self.revealed && (!picture || self.content_ready(cx)),
             cx.background_executor().now(),
             cx.reduce_motion(),
         );
@@ -69,11 +89,19 @@ impl Render for QuickLook {
         // Unrevealed, the ground still takes every event but draws nothing, so the held listing shows through.
         let ground = look.scrim().opacity(motion.opacity);
         let mut overlay = div().absolute().size_full().when(active, |overlay| {
-            overlay
-                .child(Shield::new(card, ground, on_pointer).dragging(self.scroll.drag.is_some()))
+            overlay.child(
+                Shield::new(card, ground, on_pointer)
+                    .dragging(self.scroll.drag.is_some() || self.scroll.pan.is_some()),
+            )
         });
         // A mounted view lays out unseen while held back, so it can ask for its first screen before the reveal.
-        let laying = self.has_doc();
+        let laying = self.has_doc()
+            || self.subject.as_ref().is_some_and(|subject| {
+                matches!(
+                    subject.body,
+                    Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
+                )
+            });
         if self.revealed || laying || !active {
             let shown = motion.opacity;
             let surface = self.surface(card, &look, window, cx);
@@ -84,7 +112,7 @@ impl Render for QuickLook {
         }
         let ready = self.content_ready(cx);
         let landed = self.observations.borrow().landed;
-        if self.revealed && ready && !landed {
+        if self.revealed && self.content_landed(cx) && !landed {
             self.observe_reveal(false, cx);
         }
         let trace = self.trace.clone();
@@ -174,19 +202,21 @@ impl QuickLook {
             .h(card.size.height)
             .flex()
             .flex_col()
-            .overflow_hidden();
-        surface = if shown.framed() {
+            .overflow_hidden()
+            .child(super::observations::bounds(
+                &self.observations,
+                |observed, bounds| {
+                    observed.surface = Some(bounds);
+                },
+            ));
+        surface = if shown.framed(cx) {
             surface
                 .bg(look.surface)
                 .border_1()
                 .border_color(look.muted_frame)
                 .rounded(look.corner)
         } else {
-            surface.bg(crate::window::glass::list_ground(
-                look.background,
-                window,
-                cx,
-            ))
+            surface.bg(crate::window::glass::ground(look.background, window, cx))
         };
         let mark_of = subject.mark_with_languages(self.languages);
         let children: Vec<AnyElement> = match shown.as_ref() {
@@ -220,6 +250,10 @@ impl QuickLook {
                             .into_any_element()
                     });
                     let pane = pane(look::TEXT_TOP, look::PAD, look::TEXT_VIEW_BOTTOM)
+                        .child(super::observations::bounds(
+                            &self.observations,
+                            |observed, bounds| observed.surface = Some(bounds),
+                        ))
                         .children(rows)
                         .children(self.scroll.bars(look));
                     // File content keeps its own layout in a mirrored window.
@@ -283,6 +317,10 @@ impl QuickLook {
                 parts
             }
             Body::Doc(doc) => self.doc_parts(subject, doc, look, window, cx),
+            // A Compare whose diff is still out draws its bar alone, and the waiting mark after the hold.
+            Body::Refused { title, sentence } if sentence.is_empty() => {
+                vec![bar::refusal_bar(mark_of, title, look, self, cx)]
+            }
             Body::Refused { title, sentence } => vec![
                 bar::refusal_bar(mark_of, title, look, self, cx),
                 recipe(
@@ -295,7 +333,10 @@ impl QuickLook {
                 ),
             ],
         };
-        surface.children(children).into_any_element()
+        surface
+            .children(children)
+            .children(self.waiting_mark(look, cx))
+            .into_any_element()
     }
 }
 
@@ -324,57 +365,5 @@ pub(super) fn recipe(
         .child(mark(glyph, look::MARK, mark_ink))
         .child(text(sentence, look::BODY, ink))
         .children(button)
-        .into_any_element()
-}
-
-/// One patch row at the view's position: the two muted numbers, the marker and the text in the row's ink; a hunk header sits at the text's column alone.
-fn diff_row(
-    index: usize,
-    row: &DiffRow,
-    look: &Look,
-    (x, y): (f64, f64),
-    width: f64,
-) -> AnyElement {
-    let at = f64::from(look::DIFF_MARGIN) + index as f64 * f64::from(look::DIFF_LINE) - y;
-    let top = px(at as f32);
-    let ink = match row.kind {
-        Kind::Removed => look.error,
-        Kind::Added => look.green,
-        Kind::Hunk => look.cyan,
-        Kind::Note => look.muted,
-        Kind::Context => look.foreground,
-    };
-    let cell = |left: f32| div().absolute().left(px(left)).top_0();
-    let mut line = div()
-        .debug_selector(move || format!("pv1-diff-{index}"))
-        .absolute()
-        .left(px(-x as f32))
-        .w(px(width as f32))
-        .top(top)
-        .h(px(look::DIFF_LINE))
-        .line_height(px(look::DIFF_LINE))
-        .text_size(px(look::BODY))
-        .whitespace_nowrap()
-        .text_color(ink);
-    if matches!(row.kind, Kind::Context | Kind::Removed | Kind::Added) {
-        let number = |n: u64, left: f32| {
-            cell(left)
-                .w(px(look::DIFF_NUMBER_W))
-                .flex()
-                .justify_end()
-                .text_color(look.muted)
-                .child(if n > 0 { n.to_string() } else { String::new() })
-        };
-        let marker = match row.kind {
-            Kind::Removed => "-",
-            Kind::Added => "+",
-            _ => " ",
-        };
-        line = line
-            .child(number(row.old_no, look::DIFF_OLD))
-            .child(number(row.new_no, look::DIFF_NEW))
-            .child(cell(look::DIFF_MARKER).child(marker));
-    }
-    line.child(cell(look::DIFF_TEXT).child(SharedString::from(row.text.clone())))
         .into_any_element()
 }

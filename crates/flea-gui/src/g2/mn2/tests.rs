@@ -377,3 +377,6 @@ fn int3_only_a_held_run_has_its_refusal_said_once() {
         "a held run's refusal is said once"
     );
 }
+
+#[path = "uish_misc_tests.rs"]
+mod uish_misc;

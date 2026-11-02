@@ -379,6 +379,7 @@ fn retained_frame(fixture: &Fixture) -> crate::window::selection_preview::Frame 
         meta: None,
         facts: None,
         thumb_answered: true,
+        thumb_observation: None,
         source: None,
         image: None,
         animation: None,

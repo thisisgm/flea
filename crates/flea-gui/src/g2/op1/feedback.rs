@@ -16,6 +16,17 @@ pub(super) fn label(paint: Option<&Paint>) -> Label<'_> {
     }
 }
 
+pub(super) fn file(palette: &CardPalette, text: &str, paint: Option<&Paint>) -> Option<Div> {
+    if text.is_empty() {
+        return None;
+    }
+    let element = super::view::small(text.into(), palette.muted);
+    Some(match paint {
+        Some(paint) => paint.watch(element.relative(), "source", text.to_owned().into()),
+        None => element,
+    })
+}
+
 impl Styled for Label<'_> {
     fn style(&mut self) -> &mut StyleRefinement {
         self.element.style()

@@ -231,3 +231,65 @@ fn gh336_fallback_scaling_preserves_transparent_edge_colour() {
         );
     }
 }
+
+#[test]
+fn gh336_png_final_downscale_matches_original_catmull_rom() {
+    let root = Root::new();
+    let source = image::RgbaImage::from_fn(29, 23, |x, y| {
+        image::Rgba([
+            ((x * 67 + y * 13) % 256) as u8,
+            if x < 13 { 240 } else { 10 },
+            ((x * 11 + y * 97) % 256) as u8,
+            255,
+        ])
+    });
+    let path = root.0.join("detail.png");
+    source.save(&path).unwrap();
+    let expected = image::imageops::resize(&source, 11, 9, image::imageops::FilterType::CatmullRom);
+    let actual = super::photo::decode_sharp(&path, (11, 9), &|| true).unwrap();
+    for (rgba, bgra) in expected
+        .pixels()
+        .zip(actual.as_bytes(0).unwrap().as_chunks::<4>().0.iter())
+    {
+        let expected = [rgba[2], rgba[1], rgba[0], rgba[3]];
+        assert!(
+            expected.iter().zip(bgra).all(|(a, b)| a.abs_diff(*b) <= 1),
+            "GM 2026-10-31 12:06 requires a Catmull-Rom or Lanczos3 class final filter: {expected:?} != {bgra:?}"
+        );
+    }
+}
+
+#[test]
+fn gh336_png_signed_filter_returns_straight_bgra_for_gpui() {
+    let root = Root::new();
+    let source = image::RgbaImage::from_raw(
+        4,
+        1,
+        vec![255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0],
+    )
+    .unwrap();
+    let path = root.0.join("signed-alpha.png");
+    source.save(&path).unwrap();
+    let actual = super::photo::decode_sharp(&path, (3, 1), &|| true).unwrap();
+    // GPUI accepts straight BGRA and applies alpha in its compositor, including on premultiplied targets.
+    assert_eq!(&actual.as_bytes(0).unwrap()[..4], &[0, 0, 255, 177]);
+}
+
+#[test]
+fn gh336_png_signed_alpha_overshoot_preserves_constant_colour() {
+    let root = Root::new();
+    let source = image::RgbaImage::from_raw(
+        4,
+        1,
+        vec![128, 0, 0, 0, 128, 0, 0, 255, 128, 0, 0, 255, 128, 0, 0, 255],
+    )
+    .unwrap();
+    let path = root.0.join("alpha-overshoot.png");
+    source.save(&path).unwrap();
+    let actual = super::photo::decode_sharp(&path, (3, 1), &|| true).unwrap();
+    assert_eq!(
+        &actual.as_bytes(0).unwrap()[4..8],
+        &[0, 0, 128, 255],
+        "clipping the encoded alpha must not brighten a constant straight colour"
+    );
+}

@@ -26,6 +26,8 @@ mod words;
 #[cfg(test)]
 mod bfx_net_tests;
 #[cfg(test)]
+mod bridge_line_tests;
+#[cfg(test)]
 mod child_tests;
 #[cfg(test)]
 mod dialog_tests;
@@ -54,6 +56,11 @@ mod mount_bridge;
 mod mount_process;
 
 mod mount_lifetime;
+
+mod session;
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;
 
 mod view_observe;
 mod view_render;

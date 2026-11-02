@@ -46,6 +46,9 @@ impl Adapter for DialogAdapter<'_> {
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
             // The menu actions' card is Open With, the run card or Delete permanently's review; with none open the Root has no dialog to describe.
             "menuDialogState" => {
+                if let Some(state) = plugin_input_state(self.shell) {
+                    return Some(Reply::value(state));
+                }
                 if let Some(open) = &self.shell.properties {
                     return Some(Reply::value(
                         open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
@@ -60,9 +63,18 @@ impl Adapter for DialogAdapter<'_> {
                     .and_then(|overlay| menu_delete_state(overlay.read(self.cx)))
                     .unwrap_or_else(|| "{\"opened\":false}".into())
             }
-            // The card's model facts the design CI drives; every other ui/Ipc.qml field is named under unavailable, as a refusal would.
+            // The card's model facts and painted parts the design CI drives; every other ui/Ipc.qml field is named under unavailable, as a refusal would.
             "openWithState" => match &self.shell.open_with {
-                Some(open) => open_with_state(&open.card, &self.shell.locale.catalog),
+                Some(open) => open_with_state(
+                    &open.card,
+                    &super::open_with_painted::fields(
+                        open,
+                        f32::from(self.shell.active_typeface().body)
+                            / crate::g2::op3::shell::BOARD_BODY,
+                        &self.shell.locale.catalog,
+                    ),
+                    &self.shell.locale.catalog,
+                ),
                 None => "{\"opened\":false}".into(),
             },
             "runCardState" => self.shell.run_card.as_ref().map_or_else(
@@ -83,8 +95,30 @@ impl Adapter for DialogAdapter<'_> {
     }
 }
 
-/// The ui/Ipc.qml openWithState fields this reader does not send: the painted bounds GPUI does not record.
-const OPEN_WITH_UNAVAILABLE: &str = "rect, rowHeight, eyebrowHeight, titleRuleRect, searchRect, gap, searchTrail, listRect, rowRect, controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect";
+fn plugin_input_state(shell: &Shell) -> Option<String> {
+    let open = shell.plugins.input.as_ref()?;
+    let entry = &shell.rename.ime.entry;
+    let state = object([
+        ("opened", Json::Bool(true)),
+        ("kind", Json::Str("pluginInput".into())),
+        ("value", Json::Str(open.value.clone())),
+        ("editorValue", Json::Str(entry.text.clone())),
+        (
+            "selection",
+            Json::Arr(vec![
+                number(entry.selected.start),
+                number(entry.selected.end),
+            ]),
+        ),
+        ("caret", number(entry.cursor())),
+        ("offsetUnit", Json::Str("utf8-bytes".into())),
+        ("unavailable", Json::Str("rect, controls".into())),
+    ]);
+    Some(flea::jsondoc::render(&state).trim_end().to_owned())
+}
+
+/// The ui/Ipc.qml openWithState fields this reader does not send: the controls' painted state.
+const OPEN_WITH_UNAVAILABLE: &str = "controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect";
 
 /// ui/Ipc.qml's row shapes: an eyebrow with its rule, or an application with its default claim.
 fn open_with_rows(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
@@ -114,7 +148,7 @@ fn open_with_rows(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
         .join(",")
 }
 
-fn open_with_state(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
+fn open_with_state(card: &OpenWith, painted: &str, i18n: &flea::i18n::I18n) -> String {
     let controls = [
         ("Field", Stop::Search, true),
         ("Applications", Stop::List, true),
@@ -132,7 +166,7 @@ fn open_with_state(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
     let catalogue = card.catalogue();
     let fact = |pick: fn(&Catalogue) -> &str| flea::json::escape(catalogue.map_or("", pick));
     format!(
-        r#"{{"opened":true,"busy":{},"committing":{},"kind":"{}","mime":"{}","name":"{}","always":{},"error":"{}","search":"{}","cursor":{},"rows":[{}],"controls":[{controls}],"unavailable":"{OPEN_WITH_UNAVAILABLE}"}}"#,
+        r#"{{"opened":true,"busy":{},"committing":{},"kind":"{}","mime":"{}","name":"{}","always":{},"error":"{}","search":"{}","cursor":{},"rows":[{}],"controls":[{controls}],{painted},"unavailable":"{OPEN_WITH_UNAVAILABLE}"}}"#,
         catalogue.is_none() && card.error().is_none(),
         card.opening(),
         fact(|c| &c.kind),
@@ -185,14 +219,16 @@ fn menu_delete_state(overlay: &Overlay) -> Option<String> {
     };
     let control = |name: &'static str, button: Button| {
         let press = Press::Delete(button);
-        let bounds = overlay
-            .frame
-            .part(&format!("button-{}", press.code()))
-            .map(|part| part.bounds);
+        let part = overlay.frame.part(&format!("button-{}", press.code()));
+        let bounds = part.as_ref().map(|part| part.bounds);
         let visible =
             bounds.is_some_and(|b| b.size.width > gpui::px(0.) && b.size.height > gpui::px(0.));
         object([
             ("name", Json::Str(name.into())),
+            (
+                "label",
+                Json::Str(part.map_or_else(String::new, |part| part.text)),
+            ),
             ("visible", Json::Bool(visible)),
             (
                 "enabled",
@@ -211,11 +247,15 @@ fn menu_delete_state(overlay: &Overlay) -> Option<String> {
             ("rect", Json::Str(rect(bounds))),
         ])
     };
-    // v0.3.12 hands the reply's numeric token through; a token that is not a number stays a string.
-    let token = review
-        .token
-        .parse::<u64>()
-        .map_or_else(|_| Json::Str(review.token.clone()), number);
+    // v0.3.12 hands the reply's numeric token through (snapshot.token || 0, so none reads 0); a token that is not a number stays a string.
+    let token = if review.token.is_empty() {
+        number(0)
+    } else {
+        review
+            .token
+            .parse::<u64>()
+            .map_or_else(|_| Json::Str(review.token.clone()), number)
+    };
     let count = review.count.unwrap_or(0);
     let catalog = &overlay.catalog;
     let card = Json::Str(rect(overlay.frame.part("card").map(|part| part.bounds)));

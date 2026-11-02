@@ -315,6 +315,7 @@ impl Render for LiveFlash {
             down: Some(down),
             up: Some(up),
             cancel: Some(cancel),
+            action_probe: None,
         };
         StandIn.present_flash(FlashFrame {
             view: &seen,
@@ -337,3 +338,6 @@ mod pointer;
 
 #[path = "draw_flash_look_tests.rs"]
 mod look;
+
+#[path = "fixchrome_ey297_tests.rs"]
+mod fixchrome_ey297;

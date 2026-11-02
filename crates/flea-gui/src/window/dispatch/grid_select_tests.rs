@@ -247,3 +247,35 @@ fn ey445_grid_keyboard_range_shrinks_and_stays_deliberate(cx: &mut TestAppContex
     assert_eq!(marks(&shell, cx), (vec![0], end));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// 1605: tile clicks mark the tiles the Grid paints, and selectionCount and selectedIndices read those marks, not the cursor.
+#[gpui::test]
+fn fixreaders_grid_selection_count_reads_the_painted_tile(cx: &mut TestAppContext) {
+    use crate::window::u07_tests::read;
+    let (shell, cx) = open(cx, 4);
+    let painted = |shell: &Entity<Shell>, cx: &mut VisualTestContext| -> Vec<usize> {
+        shell.read_with(cx, |shell, _| {
+            let grid = shell.panes[0].as_ref().unwrap().grid.as_ref().unwrap();
+            let state = grid.state.borrow();
+            state
+                .drawn()
+                .iter()
+                .filter(|tile| tile.selected)
+                .map(|tile| tile.listing)
+                .collect()
+        })
+    };
+    click(&shell, cx, 1, Modifiers::none());
+    assert_eq!(painted(&shell, cx), vec![1]);
+    assert_eq!(read(&shell, cx, "selectionCount", &[]), "1");
+    assert_eq!(read(&shell, cx, "selectedIndices", &[]), "1");
+    let ctrl = Modifiers {
+        control: true,
+        ..Default::default()
+    };
+    click(&shell, cx, 3, ctrl);
+    assert_eq!(painted(&shell, cx), vec![1, 3]);
+    assert_eq!(read(&shell, cx, "selectionCount", &[]), "2");
+    assert_eq!(read(&shell, cx, "selectedIndices", &[]), "1,3");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

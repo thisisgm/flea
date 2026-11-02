@@ -50,6 +50,7 @@ impl PaneHost {
                 .then(|| crate::input::views::grid_hit_boxes(host, bounds))
                 .flatten();
             let grid = host.grid.as_ref()?;
+            grid.state.borrow_mut().bounds = bounds;
             let state = grid.state.borrow();
             let layout = state.layout?;
             Some((

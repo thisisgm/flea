@@ -386,3 +386,6 @@ fn nav_actions_ey134_row_drag_scrolls_while_held_at_the_top(cx: &mut TestAppCont
     });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "band_noscene_tests.rs"]
+mod noscene;

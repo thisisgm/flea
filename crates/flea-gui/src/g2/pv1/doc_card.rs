@@ -65,18 +65,20 @@ impl QuickLook {
             .is_some_and(|s| s.body.doc().is_some())
     }
 
-    /// A key for the mounted view; None leaves it to the card's own rules (cursor keys always follow).
+    /// Cursor keys scroll a mounted PDF; other kinds keep the card's listing-follow rules.
     pub(super) fn doc_action(
         &mut self,
         doc: &Doc,
         action: &str,
         cx: &mut Context<Self>,
     ) -> Option<Command> {
-        if matches!(action, "preview" | "escape") {
+        if matches!(action, "preview" | "escape")
+            || (action == "focusPreview" && doc.pages(cx).is_some())
+        {
             self.close(cx);
             return Some(Command::Close);
         }
-        if matches!(action, "cursorDown" | "cursorUp") {
+        if matches!(action, "cursorDown" | "cursorUp") && doc.pages(cx).is_none() {
             return None;
         }
         match doc.action(action, cx) {
@@ -140,6 +142,7 @@ impl QuickLook {
                 .unwrap_or_default();
             // Preview.qml: audio's strip never hides; a video's shows while paused and on pointer contact.
             let paused = media.player.read(cx).state.playback != Playback::Playing;
+            let weak = cx.entity().downgrade();
             let card = pv3::surface::QuickLook {
                 player: &media.player,
                 known: &media.known,
@@ -148,13 +151,19 @@ impl QuickLook {
                 typeface: media.typeface.clone(),
                 caches: &media.caches,
                 strip_shown: self.strip_shown || paused,
-                touched: None,
+                touched: Some(std::rc::Rc::new(move |_, cx| {
+                    let _ = weak.update(cx, |look, cx| look.reveal_strip(cx));
+                })),
             }
             .build(cx);
             return vec![div()
                 .debug_selector(|| "pv1-media".into())
                 .size_full()
                 .child(card)
+                .child(super::observations::bounds(
+                    &self.observations,
+                    |observed, bounds| observed.surface = Some(bounds),
+                ))
                 .into_any_element()];
         }
         // ql-archive: no bar over the card; its own heading opens it, and a failure recipe sits at the top.
@@ -181,7 +190,11 @@ impl QuickLook {
                     .min_h_0()
                     .w_full()
                     .overflow_hidden()
-                    .child(doc.element()),
+                    .child(doc.element())
+                    .child(super::observations::bounds(
+                        &self.observations,
+                        |observed, bounds| observed.surface = Some(bounds),
+                    )),
             )
             .into_any_element(),
         };
@@ -193,7 +206,7 @@ impl QuickLook {
             subject.mark_with_languages(self.languages),
             &subject.name,
             &chrome,
-            !doc.framed(),
+            !doc.framed(cx),
             look,
             self,
             cx,

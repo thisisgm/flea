@@ -143,7 +143,7 @@ fn check_refusals(guide: &str) -> Result<(), String> {
 
 #[test]
 fn plugins_doc_every_manifest_passes_the_real_validator() {
-    assert_eq!(validate_examples(GUIDE).unwrap(), 7);
+    assert_eq!(validate_examples(GUIDE).unwrap(), 8);
 }
 
 #[test]

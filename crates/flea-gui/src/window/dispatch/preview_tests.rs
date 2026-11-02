@@ -50,6 +50,27 @@ pub(super) fn sent(requests: &mut Lines, command: &str) -> Vec<Json> {
         .collect()
 }
 
+/// The backend's thumbed reply to the last tagged thumbnail request naming `row`, echoing its identity.
+pub(super) fn thumbed_reply(asked: &[Json], row: usize, file: &str) -> String {
+    let names_row = |ask: &&Json| {
+        ask.get("rows")
+            .and_then(Json::as_array)
+            .is_some_and(|rows| rows.iter().any(|r| r.as_f64() == Some(row as f64)))
+    };
+    let ask = asked
+        .iter()
+        .filter(|ask| ask.get("thumbToken").is_some())
+        .rfind(names_row)
+        .expect("a tagged thumbnail request for the row");
+    let echo = |key| jsondoc::render_at(ask.get(key).expect("thumbnail identity"), 0);
+    format!(
+        r#"{{"t":"thumbed","row":{row},"file":"{file}","thumbToken":{},"thumbPath":{},"thumbListing":{}}}"#,
+        echo("thumbToken"),
+        echo("thumbPath"),
+        echo("thumbListing")
+    )
+}
+
 pub(super) fn token(doc: &Json) -> u64 {
     doc.get("token").and_then(Json::as_f64).expect("a token") as u64
 }
@@ -142,7 +163,7 @@ fn space_opens_quick_look_on_the_cursor_file_and_space_or_escape_closes_it(
         code_reply(token(&asked[0]), &["first line", "second line"], 2),
     );
     assert_eq!(read(&shell, cx, "previewKind", &[]), "text");
-    assert_eq!(read(&shell, cx, "previewState", &[]), "text");
+    assert_eq!(read(&shell, cx, "previewState", &[]), "ready");
     // The card mounts the column's code view, unnumbered, so w wraps plain text too.
     let shown = shell.read_with(cx, |shell, cx| {
         let host = shell.quick_look.as_ref()?;

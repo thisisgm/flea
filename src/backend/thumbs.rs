@@ -21,6 +21,7 @@ pub const THUMB_SIZE: u32 = 256;
 pub(crate) const JOB_TIMEOUT: Duration = Duration::from_secs(20);
 
 pub struct Job {
+    pub replies: Option<super::thumbreq::identity::Shared>,
     pub path: PathBuf,
     pub mtime: i64,
     // The submitted Reviewed identity for Trash; unknown listing and shelf identities stay None.
@@ -56,6 +57,7 @@ pub enum Outcome {
 }
 
 pub struct Done {
+    pub replies: Option<super::thumbreq::identity::Shared>,
     pub path: PathBuf,
     pub mtime: i64,
     pub trash_identity: Option<String>,
@@ -192,7 +194,7 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job);
         let ms = started.elapsed().as_secs_f64() * 1000.0;
-        if results.send(Done { path: job.path, mtime: job.mtime, trash_identity: job.trash_identity, result: outcome, ms, trace: job.trace }).is_err() {
+        if results.send(Done { replies: job.replies, path: job.path, mtime: job.mtime, trash_identity: job.trash_identity, result: outcome, ms, trace: job.trace }).is_err() {
             return;
         }
     }
@@ -286,6 +288,7 @@ pub(crate) fn publish(temp: &Path, key_uri: &str, mtime: i64, final_path: PathBu
 // What the thumbnailer is handed: a camera RAW's embedded JPEG, copied out once per file version, or the file itself.
 pub(crate) fn input_for(tables: &Tables, job: &Job, raw_dir: &Path) -> Option<PathBuf> {
     match tables.specs.raw_route(&job.mime, &tables.aliases) {
+        Some(_) if tables.aliases.canonical(&job.mime) == super::thumbspec::IIQ_MIME => Some(job.path.clone()),
         Some(_) => rawpreview::ensure_in(raw_dir, &job.path).map(|copy| copy.file),
         None => Some(job.path.clone()),
     }

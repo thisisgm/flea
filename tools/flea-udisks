@@ -362,11 +362,11 @@ def cmd_open(dev, serial, size, root):
     except GLib.Error:
         fail_sock(sock, STATUS_ERROR, "udisks answered nothing")
         return 1
-    # call_with_unix_fd_list_sync answers (result, out_fd_list); the (h) handle indexes the list.
+    # The proxy call takes no reply type (that is Gio.DBusConnection's) and answers (result, out_fd_list); the (h) handle indexes the list.
     try:
         result, out_list = proxy.call_with_unix_fd_list_sync(
             "OpenDevice", GLib.Variant("(sa{sv})", ("rw", {"flags": GLib.Variant("i", OPEN_FLAGS)})),  # udisks reads flags as "i"; any other type leaves flags 0
-            GLib.VariantType("(h)"), Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None, None)
+            Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None, None)
         fd = out_list.get(result.unpack()[0])
     except GLib.Error as error:
         name = error_name(error)

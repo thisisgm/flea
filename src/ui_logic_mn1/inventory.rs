@@ -77,6 +77,15 @@ pub const INVENTORY: &[Spec] = &[
         "F",
         "open",
     ),
+    // Make Executable sits with Open, as v0.3.12's Run Script did (FINDER-BEHAVIOR, CTL2 2026-10-31).
+    acting(
+        "makeExecutable",
+        "menu.row.make_executable",
+        "play",
+        "F",
+        "open",
+        "makeExecutable",
+    ),
     // Move to Trash leads the group after the open group; only Delete Permanently shares it.
     spec("trash", "menu.row.trash", "trash", "F", "trash"),
     acting(
@@ -200,14 +209,6 @@ pub const INVENTORY: &[Spec] = &[
         "lock",
         "F",
         "inspect",
-    ),
-    acting(
-        "makeExecutable",
-        "menu.row.make_executable",
-        "play",
-        "F",
-        "inspect",
-        "makeExecutable",
     ),
     acting(
         "copyAs",

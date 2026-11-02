@@ -44,8 +44,15 @@ fn unpainted(function: &str) -> Option<Reply> {
         "gridColumns" | "visibleRows" => "1",
         "rowHovered" | "rowThumbReady" => "false",
         "gridCaptionState" => "{}",
-        "visibleRowName" | "rowRect" | "rowCentre" | "rowNameRect" | "rowNameCentre"
-        | "rowNameText" | "rowThumbRect" | "rowNameColor" => "",
+        "listingBackgroundCentre"
+        | "visibleRowName"
+        | "rowRect"
+        | "rowCentre"
+        | "rowNameRect"
+        | "rowNameCentre"
+        | "rowNameText"
+        | "rowThumbRect"
+        | "rowNameColor" => "",
         _ => return None,
     };
     Some(Reply::value(value))
@@ -67,6 +74,7 @@ fn grid_rows(
     let window_rect = |r: crate::grid::geometry::Rect| rect_of(x + r.x, y + r.y, r.width, r.height);
     let centre = |r: crate::grid::geometry::Rect| centre_of(x + r.x, y + r.y, r.width, r.height);
     let value = match function {
+        "listingBackgroundCentre" => super::rows::centre_of_bounds(bounds),
         "listAreaRect" => rect_of(
             x,
             y,

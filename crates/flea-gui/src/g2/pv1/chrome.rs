@@ -20,7 +20,35 @@ fn strip_slot(
         item.enabled.then_some(Hit::Strip(item.index))
     };
     let ring = item.focused || (hit.is_some() && state.focused == hit);
-    ring_slot(item.glyph, hit, look::SLOT_H, ring, look, state, cx)
+    let index = item.index;
+    let hover = state.observations.clone();
+    div()
+        .id(SharedString::from(format!("pv1-strip-observe-{index}")))
+        .relative()
+        .flex_none()
+        .child(ring_slot(
+            item.glyph,
+            hit,
+            look::SLOT_H,
+            ring,
+            look,
+            state,
+            cx,
+        ))
+        .child(super::observations::bounds(
+            &state.observations,
+            move |observed, bounds| {
+                if let Some(slot) = observed.strip.get_mut(index) {
+                    *slot = Some(bounds);
+                }
+            },
+        ))
+        .on_hover(move |over, _, _| {
+            if let Some(slot) = hover.borrow_mut().strip_hovered.get_mut(index) {
+                *slot = *over;
+            }
+        })
+        .into_any_element()
 }
 
 /// A bare caption word: the view in effect, the sheet shown or the plate chosen in foreground, the others muted.

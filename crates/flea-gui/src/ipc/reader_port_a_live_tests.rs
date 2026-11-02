@@ -1,7 +1,7 @@
 //! Non-default states travel through the normal window's mounted readers.
 use super::*;
 use flea::{
-    jsondoc::parse,
+    jsondoc::{parse, Json},
     ui_logic_fb1::status::Hint,
     ui_logic_op4::{output::Kind, selection::Source},
 };
@@ -191,8 +191,21 @@ fn ipc_share_open_reads_the_network_browser_the_window_mounts(cx: &mut TestAppCo
             )
         });
     });
+    let focused = |cx: &mut TestAppContext| {
+        // Sample shareBrowserState: {"active":true,"focused":true,"owner":-1,"rect":"","baseUri":"","cursor":-1,"paneRects":[]}.
+        parse(&read(cx, handle, "shareBrowserState").stdout)
+            .unwrap()
+            .get("focused")
+            .and_then(Json::as_bool)
+    };
     value(cx, handle, "shareBrowserOpen", "true");
     value(cx, handle, "shareBrowserEntries", "media\ndocs");
+    assert_eq!(focused(cx), Some(true));
+    update(cx, handle, |shell, window, cx| {
+        window.focus(&shell.focus, cx)
+    });
+    assert_eq!(focused(cx), Some(false));
+    value(cx, handle, "shareBrowserOpen", "true");
     update(cx, handle, |shell, _, cx| {
         let shares = shell
             .rail
@@ -318,5 +331,47 @@ fn ipc_archive_cards_answer_the_open_extract_card(cx: &mut TestAppContext) {
         reply.stdout.contains("\"extractOpened\":true"),
         "{}",
         reply.stdout
+    );
+}
+
+#[gpui::test]
+fn uish_misc_convert_title_centre_reads_the_painted_title_inside_the_card(cx: &mut TestAppContext) {
+    let (handle, _backend) = open(cx);
+    convert(cx, handle);
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    let numbers = |name: &str, cx: &mut TestAppContext| -> Vec<i64> {
+        let reply = read(cx, handle, name);
+        assert_eq!(reply.code, 0, "{name}: {}", reply.stderr);
+        reply
+            .stdout
+            .split_whitespace()
+            .map(|n| n.parse().unwrap())
+            .collect()
+    };
+    let painted = gpui::VisualTestContext::from_window(handle.into(), cx)
+        .debug_bounds("op4-title")
+        .expect("the title has an independently observed painted box");
+    let card = numbers("convertCardRect", cx);
+    let title = numbers("convertTitleCentre", cx);
+    assert_eq!(
+        title,
+        vec![
+            f32::from(painted.center().x).round() as i64,
+            f32::from(painted.center().y).round() as i64,
+        ],
+        "the reader must name the painted title, not the containing card"
+    );
+    assert_eq!((card.len(), title.len()), (4, 2), "{card:?} {title:?}");
+    assert!(
+        title[0] > card[0]
+            && title[0] < card[0] + card[2]
+            && title[1] > card[1]
+            && title[1] < card[1] + card[3],
+        "title {title:?} outside card {card:?}"
     );
 }

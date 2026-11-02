@@ -489,7 +489,7 @@
   "jobs.delete.failed": "Die actie kon niet worden voltooid.",
   "dialogs.file.properties.err_item_changed": "Geselecteerd item gewijzigd; open het menu opnieuw.",
   "dialogs.file.properties.err_items_changed": "Geselecteerde items gewijzigd; open het menu opnieuw.",
-  "menu.refusal.moved": "Geselecteerde items gewijzigd; open het menu opnieuw.",
+  "menu.refusal.moved": "Geselecteerd item verplaatst of verdwenen; open het menu opnieuw.",
   "dialogs.file.properties.err_menu_stopped": "Het menu reageert niet meer; open dit venster opnieuw.",
   "dialogs.file.properties.err_moved": "Geselecteerd item verplaatst of verdwenen; open het menu opnieuw.",
   "dialogs.file.properties.err_running": "Er loopt nog een menuverzoek; probeer het opnieuw zodra dat klaar is.",
@@ -627,6 +627,7 @@
   "dialogs.output.error.legacy": "%1",
   "feedback.error.backend": "%1",
   "network.save_committed": "%1",
+  "network.save_busy": "Een wijziging aan favorieten wordt nog opgeslagen. Probeer het opnieuw om deze locatie op te slaan.",
   "network.save_failed": "%1",
   "picker.browser.list_failed_reason": "%1",
   "send.rclone.reason": "%1",
@@ -1318,6 +1319,7 @@
   "keys.label.bcf58eaeff52": "ga terug in de geschiedenis, of één map omhoog als die er niet is",
   "keys.label.bd0b7be215ce": "Editor sluiten",
   "keys.label.bfa65befcad0": "ga naar het bestand in zijn eigen map en selecteer het",
+  "keys.label.704fb7f8818b": "geen actie",
   "keys.label.c5f15f85156b": "ga met één tik die map in, net als bij de naastgelegen mappen",
   "keys.label.c7ad88ff7f52": "een vooraf bekeken rij heeft geen menu",
   "keys.label.c7af3cadc955": "typ het pad: het segment van de huidige map, de samengevouwen markering of de strook naast het pad",
@@ -1868,7 +1870,7 @@
     "other": "%1 video's"
   },
   "preview.link_target": "→ %1",
-  "preview.loadHint": "%1 om voorbeeld te laden",
+  "preview.loadHint": "%1 laadt het",
   "preview.more": {
     "one": "+ nog %1",
     "other": "+ nog %1"

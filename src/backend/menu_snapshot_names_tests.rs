@@ -46,3 +46,6 @@ fn plugin_runtime_snapshot_omits_optional_names_above_512_items() {
         513
     );
 }
+
+#[path = "fixlogic2_menu_tests.rs"]
+mod fixlogic2;

@@ -167,15 +167,15 @@ impl Picker {
             return;
         }
         match out {
-            Out::Open { path, .. } => {
+            // PathBar.js hands a typed smb:// line back untouched, and the chooser peeks it as it peeks a path.
+            Out::Open { path, .. } | Out::Network(path) => {
                 let view = self.browse.path_view(cx);
                 self.chrome.restore = Some(view.read(cx).focus.clone());
                 self.chrome.restore_path = Some(view.read(cx).entry.text.clone());
                 self.chrome.reopen_path = false;
                 self.browse.route.asked = path.clone();
                 self.browse.route.leaf.clear();
-                let hidden = self.req.hidden.unwrap_or(false);
-                self.send_listing(&crate::path::peek_line(&path, 0, hidden));
+                self.send_listing(&crate::path::peek_line(&path, 0, self.show_hidden()));
             }
             Out::Send { line, .. } => {
                 self.send_listing(&line);
@@ -188,7 +188,7 @@ impl Picker {
                 cx.notify();
             }
             Out::ReadHistory => self.read_jump_history(cx),
-            Out::Network(_) | Out::Focus(_) => {}
+            Out::Focus(_) => {}
         }
     }
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-magick-font"
 # Drives the selected frontend's real window and asserts through its read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
@@ -11,7 +12,7 @@ fail() {
 
 # Select the driver before any compositor, session, fixture or native evidence setup.
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-test_frontend=${FLEA_TEST_FRONTEND:-qml}
+test_frontend=${FLEA_TEST_FRONTEND:-gpui}
 ui_driver=${FLEA_UI_DRIVER:-native}
 case "$test_frontend" in qml|gpui) ;; *) fail "unknown test frontend: $test_frontend" ;; esac
 case "$ui_driver" in
@@ -507,12 +508,12 @@ window_addr_of_pid() {
 # Positive equality against the expected class: a negated test reads an empty class as a pass; with ipc_pid set the pid is the identity, since two Flea windows share a class.
 assert_focus() {
     local seen
-    [[ "${test_frontend:-qml}" != gpui || -n "$ipc_pid" ]] || fail "native input has no owned PID"
+    [[ "${test_frontend:-gpui}" != gpui || -n "$ipc_pid" ]] || fail "native input has no owned PID"
     if [[ -n "$ipc_pid" ]]; then
         seen=$(focused_pid)
         [[ "$seen" == "$ipc_pid" ]] \
             || fail "focus is on qs pid '$seen', not $ipc_pid, so this case sends no more keys"
-        [[ "${test_frontend:-qml}" == gpui ]] || return
+        [[ "${test_frontend:-gpui}" == gpui ]] || return
     fi
     seen=$(focused_class || true)
     [[ "$seen" == "$flea_window_class" ]] \
@@ -559,7 +560,7 @@ assert_theme() {
     local loaded seen
     # The seam is built after the first listing, so a window that has just mapped may not answer yet.
     local -a route=(-p "$flea_ui/boot")
-    [[ "${test_frontend:-qml}" != gpui || -z "$ipc_pid" ]] || route=(--pid "$ipc_pid")
+    [[ "${test_frontend:-gpui}" != gpui || -z "$ipc_pid" ]] || route=(--pid "$ipc_pid")
     flea_ipc_wait "${route[@]}" flea ready true --timeout 20 >/dev/null \
         || fail "the IPC seam never answered ready, so no reader of this window can be trusted"
     for _attempt in $(seq 1 100); do
@@ -589,7 +590,7 @@ fixture_home_make() {
         mkdir -p "$home/.config/omarchy"
         cp "$real_user_shell_toml" "$home/.config/omarchy/shell.toml"
     fi
-    if [[ "${test_frontend:-qml}" == gpui ]]; then
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
         python3 -B "$repo/tests/lib/flea_native_inputs.py" "${real_user_shell_toml%/.config/omarchy/shell.toml}" "$home" \
             || fail "cannot copy native fixture font inputs"
     fi
@@ -599,7 +600,7 @@ assert_window() {
     # A window behind a heavy writeback sets its title within async_wait_ms, the bound every other async answer gets.
     local count class deadline clients
     deadline=$(( $(date +%s%3N) + async_wait_ms ))
-    if [[ "${test_frontend:-qml}" == gpui ]]; then
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
         [[ "$ipc_pid" =~ ^[1-9][0-9]*$ ]] || fail "native launch has no owned PID"
         while :; do
             clients=$(hyprctl clients -j) || fail "cannot inspect native launch ownership"
@@ -700,7 +701,7 @@ launch_window() {
         || fail "owned window launch failed"
     if [[ -n "$launch_config" ]]; then export XDG_CONFIG_HOME="$launch_config"; else unset XDG_CONFIG_HOME; fi
     ipc_pid=$FLEA_TEST_PID
-    if [[ "${test_frontend:-qml}" == gpui ]]; then
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
         local addr deadline=$(( $(date +%s%3N) + async_wait_ms ))
         while ! addr=$(window_addr_of_pid "$ipc_pid" 2>/dev/null); do
             (( $(date +%s%3N) < deadline )) || fail "owned native PID $ipc_pid never mapped"
@@ -7975,8 +7976,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 
@@ -10995,6 +10996,9 @@ EOS
     sandbox_remove "$fixture_home"
 }
 
+# The GPUI frontend ends gio's options with "--" (gio mount -- URI, gio mount -u -- URI); a positional stub drops that one word first.
+gio_stub_args='if [ "${2:-}" = -- ]; then _a=$1; shift 2; set -- "$_a" "$@"; elif [ "${3:-}" = -- ]; then _a=$1 _b=$2; shift 3; set -- "$_a" "$_b" "$@"; fi'
+
 # Writes the gio stub case_phones and the README phone frames share: MTP, GPhoto2 and AFC volumes under <dir>.
 phones_gio_stub() {
     local dir="$1"
@@ -11020,6 +11024,7 @@ phones_gio_stub() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 mounted="$dir/mounted"
 afcmounted="$dir/afcmounted"
 case "\$1 \${2:-}" in
@@ -14276,7 +14281,7 @@ xwtab_own_trace_tail=10 # Keep the last source receipts in a timeout diagnostic.
 # The fork offers only at window entry; its own-strip return is proven by painted centres and the held pointer.
 xwtab_gpui_own_hit() {
     local id ax ay bx by cursor cx cy step left right tolerance=3
-    [[ ${test_frontend:-qml} == gpui && ${xwtab_button_down:-false} == true ]] || return 1
+    [[ ${test_frontend:-gpui} == gpui && ${xwtab_button_down:-false} == true ]] || return 1
     flea_process_owned "$xwtab_source" && xwdrag_assert_focus "$xwtab_source" || return 1
     id=$(xwdrag_qsid "$xwtab_source") || return 1
     [[ $(xwdrag_qs "$id" tabBarVisible) == true && $(xwdrag_qs "$id" tabCount) == 2 ]] || return 1
@@ -15000,6 +15005,10 @@ hover_row() {
 # ctrl-1 list, ctrl-2 columns, ctrl-3 grid, per keys.toml; the reader proves the switch landed.
 switch_view() {
     local want="$1" chord drew
+    if [[ "${test_frontend:-gpui}" == gpui && "$(ipc focusView)" == rail ]]; then
+        key -k Tab >/dev/null
+        settle
+    fi
     case "$want" in list) chord=1 ;; columns) chord=2 ;; grid) chord=3 ;; esac
     key -M ctrl -k "$chord" -m ctrl >/dev/null
     settle

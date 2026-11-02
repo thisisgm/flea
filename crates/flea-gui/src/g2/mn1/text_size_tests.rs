@@ -4,6 +4,7 @@ use gpui::AppContext;
 
 #[gpui::test]
 fn ey380_trash_rail_menu_rows_and_width_follow_the_text_size(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let (handle, shared) = window(cx);
     for (body, row_pitch, width) in [(14, 47., 257.), (20, 67., 367.)] {
         let mut fixture = Fixture::new();

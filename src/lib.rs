@@ -26,6 +26,7 @@ pub mod protocol;
 pub mod plugin_runtime;
 pub mod qscrash;
 pub mod preview_model;
+pub mod rawname;
 pub mod theme;
 pub mod ui_logic_fb1;
 pub mod ui_logic_dg1;
@@ -60,6 +61,8 @@ pub mod backend {
     pub mod nearbyrows;
     #[cfg(test)]
     pub mod fifotest;
+    // Quick Look reads a picture's header beside its meta ask, so the picture draws before the reply.
+    pub mod imagesize;
     pub mod rastertemp;
     pub mod regfile;
     #[cfg(test)]

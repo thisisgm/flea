@@ -1,5 +1,8 @@
 //! The hyprctl chain and Hyprland's event socket, run off the UI thread; the decisions come from glass_tag.
-use super::{dispatch_ran, lua_tag, own_addresses, plan, uses_default, Action, Mode, TAG};
+use super::{
+    dispatch_ran, lua_rule, lua_tag, nautilus_opacity, own_addresses, parse_props, plan, rule_step,
+    uses_default, Action, Mode, RULE, TAG,
+};
 use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fs;
@@ -20,6 +23,8 @@ pub(crate) struct State {
     // One rerun is queued at a time, however many requests land while a pass runs.
     pub(crate) rerun: bool,
     pub(crate) tagged: BTreeSet<String>,
+    // Whether this process last enabled (Some(true)) or disabled its Glassy rule; None until its first eval.
+    pub(crate) ruled: Option<bool>,
     // The glass inputs the window last applied, so only a change among them asks for a pass.
     pub(crate) followed: Option<crate::window::glass::Inputs>,
     // Told under the lock that clears busy, so a test can tell a pass that ended from one never started.
@@ -74,15 +79,23 @@ impl Sources {
         }
     }
 
-    // Read on every pass, so a Window Transparency switch shows on the next one.
-    fn read(&self) -> (Mode, bool) {
+    // Read on every pass, so a Window Transparency switch shows on the next one; Nautilus's Glassy opacity is wanted only at the default alpha.
+    fn read(&self) -> (Mode, bool, Option<(f64, f64)>) {
+        let glassy = fs::read_to_string(self.toggles.join("window-glassy.lua")).ok();
         let mode = Mode::from_toggles(
-            self.toggles.join("window-glassy.lua").is_file(),
+            glassy.is_some(),
             self.toggles.join("window-opaque.lua").is_file(),
         );
         let shell = |path: &Path| fs::read_to_string(path).unwrap_or_default();
         let uses = uses_default(&shell(&self.user_shell), &shell(&self.theme_shell));
-        (mode, uses)
+        let wanted = glassy.filter(|_| uses).and_then(|text| {
+            let opacity = nautilus_opacity(&text);
+            if opacity.is_none() {
+                warn_once("Omarchy's Glassy toggle gives Nautilus no opacity Flea can follow");
+            }
+            opacity
+        });
+        (mode, uses, wanted)
     }
 }
 
@@ -150,7 +163,7 @@ impl Tagger {
 
     /// One pass runs clients, one probe per window of this process, then the dispatches the plan asks for.
     pub(crate) fn pass(&self) {
-        let (mode, uses_default) = self.sources.read();
+        let (mode, uses_default, wanted) = self.sources.read();
         let Some(clients) = self.query(&["clients", "-j"]) else {
             return;
         };
@@ -184,6 +197,14 @@ impl Tagger {
             }
         }
         self.lock().tagged = outcome.tagged;
+        let windows: Vec<_> = probe.lines().filter_map(parse_props).collect();
+        let ruled = self.lock().ruled;
+        if let Some(opacity) = rule_step(wanted, &windows, ruled, mode == Mode::Glassy) {
+            match self.dispatched(&["eval", lua_rule(opacity).as_str()]) {
+                Ok(()) => self.lock().ruled = Some(opacity.is_some()),
+                Err(reply) => warn_once(&format!("hyprctl eval did not set {RULE}: {reply}")),
+            }
+        }
     }
 
     /// Runs hyprctl for its stdout; a failure logs once and reads as no answer.

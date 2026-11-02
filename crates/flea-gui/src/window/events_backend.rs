@@ -6,20 +6,33 @@ use gpui::{Context, Window};
 use std::io::Write;
 
 impl Shell {
-    pub(super) fn backend_line(&self, event: BackendEvent) -> BackendEvent {
-        // One unreadable line is logged and refused as v0.3.12's "parse" failure: only a listing in flight ends.
+    pub(super) fn backend_line(
+        &mut self,
+        side: usize,
+        event: BackendEvent,
+        cx: &mut Context<Self>,
+    ) -> Option<BackendEvent> {
+        // One unreadable line is logged and refused as v0.3.12's "parse" failure: the footer says it, a listing out still lands.
         match event {
             BackendEvent::Garbled(error) => {
                 let diagnostic = self.locale.catalog.tr_args(error.key, &[&error.detail]);
                 let _ = writeln!(std::io::stderr().lock(), "flea-gui: {diagnostic}");
-                BackendEvent::Refused {
+                if self.trash.as_ref().is_some_and(|host| {
+                    host.backend_side == side && host.pane.read(cx).view().opened
+                }) {
+                    let text = flea::ui_logic_fb1::errors::sentence("parse", "", "")
+                        .render(&self.locale.catalog);
+                    self.trash_say(&text, true, cx);
+                    return None;
+                }
+                Some(BackendEvent::Refused {
                     operation: "parse".into(),
                     path: String::new(),
                     message: "the backend sent a line this build cannot read".into(),
                     mode: 0,
-                }
+                })
             }
-            event => event,
+            event => Some(event),
         }
     }
 

@@ -8,6 +8,9 @@ mod notice_tests;
 #[path = "menu_backend.rs"]
 mod backend;
 
+#[path = "menu_shelf_plugin_tests.rs"]
+mod shelf_plugin_tests;
+
 #[track_caller]
 pub(super) fn wait(cx: &mut TestAppContext, mut ready: impl FnMut(&mut TestAppContext) -> bool) {
     let deadline = Instant::now() + Duration::from_secs(10);

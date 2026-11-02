@@ -86,6 +86,8 @@ pub struct Context {
     pub row_is_file: bool,
     pub row_is_symlink: bool,
     pub row_is_image: bool,
+    // A PDF or an office document, which Convert takes alone.
+    pub row_is_document: bool,
     pub row_is_archive: bool,
     pub row_name: String,
     pub archive_name: String,
@@ -138,65 +140,8 @@ pub struct Context {
     pub rail: Option<RailEntry>,
 }
 
-impl Default for Context {
-    fn default() -> Self {
-        Self {
-            has_row: true,
-            selection_count: 1,
-            row_mode: 0,
-            row_is_file: false,
-            row_is_symlink: false,
-            row_is_image: false,
-            row_is_archive: false,
-            row_name: String::new(),
-            archive_name: String::new(),
-            flash_zip_member: String::new(),
-            selection_modes: Vec::new(),
-            compare_kinds: None,
-            selection_images: 0,
-            printable: false,
-            has_shebang: false,
-            cursor_is_target: false,
-            clipboard_available: false,
-            clipboard_watch_failed: false,
-            can_trash: true,
-            can_link: true,
-            dir_writable: true,
-            archive_formats: Vec::new(),
-            can_extract: false,
-            can_convert: false,
-            tag_submenu: None,
-            open_with_apps: Vec::new(),
-            open_with_loaded: false,
-            taildrop_installed: false,
-            taildrop_peers: Vec::new(),
-            taildrop_refreshing: false,
-            taildrop_code: String::new(),
-            localsend_installed: false,
-            localsend_peers: Vec::new(),
-            localsend_checking: false,
-            rclone_remotes: Vec::new(),
-            dropbox_installed: false,
-            dropbox_path: String::new(),
-            dropbox_refreshing: false,
-            dropbox_code: String::new(),
-            row_in_dropbox: false,
-            scripts: Vec::new(),
-            hidden: Vec::new(),
-            show_hidden: false,
-            lang_marks: true,
-            storage_class: String::new(),
-            thumbs: ThumbPrefs::default(),
-            update_version: String::new(),
-            has_folder_sort: false,
-            sort_by: String::new(),
-            place_favourite: false,
-            trash_total: 0,
-            busy: false,
-            rail: None,
-        }
-    }
-}
+#[path = "build_context_default.rs"]
+mod context_default;
 
 pub fn listing_entries(p: &Context) -> Vec<Entry> {
     build_entries(
@@ -278,7 +223,13 @@ fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool) {
     e.submenu = Some(
         peers
             .iter()
-            .map(|peer| Entry::leaf(peer.id.clone(), Text::Data(peer.label.clone())))
+            .map(|peer| {
+                let mut entry = Entry::leaf(peer.id.clone(), Text::Data(peer.label.clone()));
+                if brand == Brand::Tailscale {
+                    entry.glyph = Some("server");
+                }
+                entry
+            })
             .collect(),
     );
     e.disabled = reading || peers.is_empty();
@@ -324,9 +275,6 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         } else {
             e.submenu = Some(rows::copy_as_entries());
         }
-    }
-    if action == "invertSelection" && count == 0 {
-        return false;
     }
     if (action == "run" || action == "openAsText") && (count != 1 || is_dir) {
         return false;
@@ -404,12 +352,12 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
     if action == "extract" && !rows::extract_entry(e, p, count) {
         return false;
     }
-    // Convert takes one image or a selection of images only.
+    // Convert takes one image, one PDF, one office document or a selection of images only.
     if action == "convert"
         && !(p.can_convert
             && count >= 1
             && (if count == 1 {
-                p.row_is_image
+                p.row_is_image || p.row_is_document
             } else {
                 p.selection_images == count
             }))
@@ -425,11 +373,11 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         return false;
     }
     if action == "openWith" {
-        if p.open_with_loaded && p.open_with_apps.is_empty() {
+        if count == 1 && p.open_with_loaded && p.open_with_apps.is_empty() {
             return false;
         }
-        e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps));
-        e.disabled = count != 1;
+        e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps, count == 1));
+        e.disabled = count == 0 || (count > 1 && p.open_with_apps.is_empty());
     }
     if action == "sendRclone" {
         if p.rclone_remotes.is_empty() {
@@ -448,6 +396,10 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             &[]
         };
         provider(e, Brand::Tailscale, peers, p.taildrop_refreshing);
+        // Menu.js submenuGlyph: a Taildrop peer is a machine, so its row draws the server mark.
+        for leaf in e.submenu.iter_mut().flatten() {
+            leaf.glyph = Some(rows::submenu_glyph(action));
+        }
     }
     if action == "localsend" {
         if !p.localsend_installed {

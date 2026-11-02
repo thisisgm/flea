@@ -214,3 +214,41 @@ fn ey379_a_changed_listing_refuses_external_validation(cx: &mut TestAppContext) 
         assert_eq!(shell.menu.context.row_name, "other.txt");
     });
 }
+
+#[gpui::test]
+fn a_peeked_pdf_or_office_document_offers_convert(cx: &mut TestAppContext) {
+    let rows = [
+        ("garden-report.pdf", true),
+        ("garden-report.docx", true),
+        ("notes.txt", false),
+    ];
+    for (name, document) in rows {
+        let fixture = open(cx);
+        let id = change(cx, &fixture, |shell, window, cx| {
+            shell.launch.settings.data = flea::jsondoc::parse(r#"{"menu":{"hidden":[]}}"#).unwrap();
+            let row = RowFacts {
+                name: name.into(),
+                mode: 0o100644,
+                ..Default::default()
+            };
+            let target = PathMenu {
+                base: "/parent".into(),
+                row: Some(row),
+            };
+            shell.begin_menu(0, Some(0), (30., 50.), (false, Some(target)), window, cx);
+            shell.menu.captured.as_ref().unwrap().id
+        });
+        ready(cx, &fixture, id);
+        change(cx, &fixture, |shell, _, _| {
+            let context = &shell.menu.context;
+            assert_eq!(context.row_name, name);
+            assert_eq!(
+                (context.row_is_document, context.row_is_image),
+                (document, false)
+            );
+            let entries = flea::ui_logic_mn1::build::listing_entries(context);
+            let convert = entries.iter().any(|e| e.action == "convert");
+            assert_eq!(convert, document, "{name}");
+        });
+    }
+}

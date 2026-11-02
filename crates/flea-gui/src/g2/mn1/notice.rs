@@ -1,4 +1,5 @@
 //! Menu notices: a failed backend send, a refused choice and a menu that explains why it did not open.
+use super::join::Captured;
 use crate::{backend::Failure, state::Shell};
 use gpui::Context;
 
@@ -32,6 +33,23 @@ impl Shell {
             self.menu_notice(side, sentence, cx);
             cx.notify();
         }
+    }
+
+    // Pane.qml performLocked's last line: a Locked tile row nobody ran says so plainly; any other menu asks to reopen it.
+    pub(crate) fn menu_unclaimed(&mut self, capture: &Captured, cx: &mut Context<Self>) {
+        let side = capture.side;
+        if capture.background && self.locked_folder(side).is_some() {
+            let text = self.locale.catalog.tr("feedback.action.unavailable");
+            return self.menu_explain(text, cx);
+        }
+        if !capture.background {
+            let close = format!(
+                "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
+                capture.id
+            );
+            self.menu_send(side, close, cx);
+        }
+        self.menu_notice(side, self.locale.catalog.tr("menu.refusal.unavailable"), cx);
     }
 
     pub(crate) fn menu_refuse(&mut self, key: &str, cx: &mut Context<Self>) {

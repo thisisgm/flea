@@ -231,14 +231,14 @@ fn a_listed_line_says_when_the_directory_cannot_be_written() {
 #[test]
 fn a_thumb_request_carries_its_rows_in_order() {
     match parse_request(r#"{"c":"thumb","rows":[2,17,140]}"#) {
-        Request::Thumb { rows, cache_only } => {
+        Request::Thumb { rows, cache_only, .. } => {
             assert_eq!(rows, vec![2, 17, 140]);
             assert!(!cache_only, "absent is today's full path");
         }
         _ => panic!("expected Thumb"),
     }
     match parse_request(r#"{"c":"thumb","rows":[2],"cacheOnly":true}"#) {
-        Request::Thumb { rows, cache_only } => {
+        Request::Thumb { rows, cache_only, .. } => {
             assert_eq!(rows, vec![2]);
             assert!(cache_only, "an off class names it");
         }

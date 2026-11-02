@@ -95,6 +95,8 @@ impl Shell {
                 dragged: false,
             });
         } else if event.button == MouseButton::Left && !frame.in_lane(event.position) {
+            // SelectionBand.qml: a ground press ends the pending slow click, or its timer renames the sole selected row.
+            self.rename.slow = None;
             let (x, y) = frame.local(event.position);
             host.input.band = Some(Band {
                 start: event.position,

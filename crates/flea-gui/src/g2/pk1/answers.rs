@@ -1,6 +1,7 @@
 //! The existing answer row gains its leading actions without changing the IME-backed Filename.
-use super::filename::{LABEL, WIDTH as FIELD};
-use super::view::{BUTTON_HEIGHT, BUTTON_SIDE, GAP, SIDE, TEXT};
+use super::filename::WIDTH as FIELD;
+use super::size::Size;
+use super::view::{BUTTON_HEIGHT, BUTTON_SIDE, GAP, SIDE};
 use super::Picker;
 use crate::g2::op1::glyph::{Glyph, Paint};
 use crate::list::Palette;
@@ -26,13 +27,14 @@ impl Picker {
         window: &Window,
         cx: &mut Context<Self>,
     ) -> Div {
+        let size = Size::of(window, cx);
         let mut row = div()
             .flex_1()
             .min_w_0()
             .flex()
             .items_center()
-            .gap(px(9.))
-            .text_size(px(14.));
+            .gap(size.px(GAP))
+            .text_size(px(size.body));
         if flea::ui_logic_pk1::saving(&self.req) {
             let focused = self.chrome.new_folder.is_focused(window);
             row = row.child(
@@ -43,8 +45,8 @@ impl Picker {
                     .debug_selector(|| "picker-new-folder".into())
                     .track_focus(&self.chrome.new_folder)
                     .flex_none()
-                    .h(px(30.))
-                    .px(px(9.))
+                    .h(size.px(BUTTON_HEIGHT))
+                    .px(size.px(BUTTON_SIDE))
                     .flex()
                     .items_center()
                     .rounded(px(crate::compositor::corner(cx)))
@@ -60,7 +62,7 @@ impl Picker {
                         cx.listener(|picker, _, window, cx| picker.open_new_folder(window, cx)),
                     ),
             );
-            row = row.child(div().flex_none().w(px(SPACER)));
+            row = row.child(div().flex_none().w(size.px(SPACER)));
         }
         row = row.children(self.filter.clone());
         if !self.filter_stacks(window, cx) {
@@ -80,6 +82,7 @@ impl Picker {
             return None;
         }
         let focused = self.chrome.filter.is_focused(window);
+        let size = Size::of(window, cx);
         let enabled = !self.backend_unavailable() && !self.accept_state().submitting();
         Some(
             self.chrome
@@ -91,11 +94,12 @@ impl Picker {
                 .w(px(FILTER_WIDTH))
                 .flex_none()
                 .min_w_0()
-                .h(px(BUTTON_HEIGHT))
-                .px(px(FILTER_INSET))
+                .h(size.px(BUTTON_HEIGHT))
+                .px(size.px(FILTER_INSET))
                 .flex()
                 .items_center()
-                .gap(px(GAP))
+                .gap(size.px(GAP))
+                .text_size(px(size.body))
                 .rounded(px(crate::compositor::corner(cx)))
                 .when(!enabled, |view| view.opacity(REFUSED))
                 .hover(|view| view.bg(palette.foreground.opacity(HOVER)))
@@ -115,8 +119,8 @@ impl Picker {
                 .child(
                     div()
                         .debug_selector(|| "picker-filter-chevron".into())
-                        .w(px(CHEVRON))
-                        .h(px(CHEVRON))
+                        .w(size.px(CHEVRON))
+                        .h(size.px(CHEVRON))
                         .flex_none()
                         .children(crate::g2::st1::glyphs::svg("chevron-down").map(
                             |(key, data)| {
@@ -124,14 +128,19 @@ impl Picker {
                                     .debug_selector(|| "picker-filter-chevron-glyph".into())
                                     .child(Glyph {
                                         paint: Paint::Svg(key, data),
-                                        side: CHEVRON,
+                                        side: size.len(CHEVRON),
                                         ink: palette.foreground.opacity(CHEVRON_INK),
                                     })
                             },
                         )),
                 )
                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                .on_click(cx.listener(|picker, _, window, cx| picker.open_filter(window, cx))),
+                // Enter, Space and Down open the menu on their press in control_key; gpui's keyboard click on the release would reopen it after a pick.
+                .on_click(cx.listener(|picker, event: &gpui::ClickEvent, window, cx| {
+                    if !event.is_keyboard() {
+                        picker.open_filter(window, cx);
+                    }
+                })),
         )
     }
 
@@ -142,26 +151,34 @@ impl Picker {
         }
         // The buttons and label draw in the root's live typeface, never the window's default text style.
         let font = crate::list::Typeface::for_window(window, cx).font;
-        let measure = |text: SharedString, size: f32| shaped_width(window, &font, text, size);
-        let button = |text: SharedString| measure(text, TEXT) + 2. * (BUTTON_SIDE + FRAME);
+        let size = Size::of(window, cx);
+        let button = |text: SharedString| {
+            shaped_width(window, &font, text, size.body) + 2. * (size.len(BUTTON_SIDE) + FRAME)
+        };
         let catalog = &self.locale.catalog;
         let label: SharedString = catalog.tr("picker.browser.save_as").to_uppercase().into();
         let tracking = crate::g2::fb1::caption::tracking_for(catalog.language());
-        let label =
-            crate::g2::fb1::caption::measure(label, font.clone(), px(LABEL), px(tracking), window);
-        let need = 2. * SIDE
+        let label = crate::g2::fb1::caption::measure(
+            label,
+            font.clone(),
+            px(size.caption),
+            px(tracking),
+            window,
+        );
+        let gap = size.len(GAP);
+        let need = 2. * size.len(SIDE)
             + button(catalog.tr("picker.browser.new_folder").into())
-            + GAP
-            + SPACER
-            + GAP
+            + gap
+            + size.len(SPACER)
+            + gap
             + label
-            + GAP
+            + gap
             + FIELD
-            + GAP
+            + gap
             + FILTER_WIDTH
-            + GAP
+            + gap
             + button(self.labels.cancel.clone())
-            + GAP
+            + gap
             + button(self.answer_label());
         need > f32::from(window.viewport_size().width)
     }

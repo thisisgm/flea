@@ -19,7 +19,7 @@ fail() { echo "::error::flea-default-check $(basename "$package"): $1"; exit 1; 
 
 # -dd: only the flea binary runs here, and quickshell is not in Arch's own repositories.
 pacman -Udd --noconfirm --noprogressbar "$package" >/dev/null
-# -y: the container ships no sync databases, and the flea-bin leg syncs nothing before this.
+# -y: the container ships no sync databases.
 pacman -Syu --noconfirm --needed --noprogressbar xdg-utils >/dev/null
 useradd -m "$user"
 # Hyprland is not running here, so hyprctl answers nothing and reloads nothing, as on a box whose config loads.

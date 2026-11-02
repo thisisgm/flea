@@ -2,7 +2,7 @@
 use super::*;
 use flea::{ipc::wire::Request, jsondoc::Json};
 
-fn state(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Json {
+pub(super) fn state(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Json {
     let reply = shell.update_in(cx, |shell, window, cx| {
         let (answer, receive) = std::sync::mpsc::sync_channel(1);
         shell.ipc(

@@ -100,6 +100,9 @@ impl ShareView {
     pub(crate) fn painted_bounds(&self) -> Option<Bounds<Pixels>> {
         self.slot_bounds.filter(|_| self.model.open)
     }
+    pub(crate) fn inside(&self, window: &Window, cx: &App) -> bool {
+        self.focus.contains_focused(window, cx)
+    }
     // G1 dispatch passes the generated action name and retains ownership of the keymap.
     pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> bool {
         if !self.model.open {
@@ -109,7 +112,7 @@ impl ShareView {
             "escape" => self.close(cx),
             "cursorDown" => self.model.step(1, self.visible),
             "cursorUp" => self.model.step(-1, self.visible),
-            "open" => self.activate(cx),
+            "open" | "pageForward" => self.activate(cx),
             _ => return false,
         }
         cx.notify();
@@ -175,8 +178,9 @@ impl gpui::Render for ShareView {
         )
         .on_mouse_down(
             gpui::MouseButton::Left,
-            cx.listener(|this, e: &gpui::MouseDownEvent, _, cx| {
+            cx.listener(|this, e: &gpui::MouseDownEvent, window, cx| {
                 cx.stop_propagation();
+                window.focus(&this.focus, cx);
                 this.pressed = this.row_at(e.position);
                 cx.notify();
             }),

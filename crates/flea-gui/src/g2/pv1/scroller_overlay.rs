@@ -14,6 +14,14 @@ pub(crate) struct Overlay {
     timers: [Option<gpui::Task<()>>; 2],
 }
 
+#[cfg(test)]
+impl Overlay {
+    // The vertical bar shows: the view moved within the last HOLD_MS.
+    pub(crate) fn vertical_shown(&self) -> bool {
+        self.scroll.moving[0]
+    }
+}
+
 pub(crate) trait Owner: Sized + 'static {
     fn overlay(&mut self) -> &mut Overlay;
     fn viewport(&self, bounds: Bounds<Pixels>) -> Option<(View, (f64, f64))>;

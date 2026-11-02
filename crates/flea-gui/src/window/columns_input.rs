@@ -3,7 +3,11 @@ use crate::{
     columns::{geometry::Slot, TrackRows},
     state::Shell,
 };
-use gpui::{Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
+use gpui::{px, Context, MouseButton, MouseDownEvent, ScrollWheelEvent, Window};
+
+#[cfg(test)]
+#[path = "s1_columns_tests.rs"]
+mod s1_tests;
 
 /// Menu owners consume this only after the clicked directory's own rows have committed.
 #[derive(Clone, Debug, PartialEq)]
@@ -53,8 +57,14 @@ impl Shell {
             }
             let y = f32::from(event.position.y - drawn.bounds.origin.y) + drawn.scroll;
             let position = drawn.grow.position_at(y, drawn.row_height);
-            // Under a filter a position past its rows is background, never the listing row of that number.
-            let index = drawn.row_at(position).unwrap_or(usize::MAX);
+            // ColumnPane.qml's rows stop at Scroll.contentWidth, so the lane and the divider inside it are blank space too.
+            let in_lane = event.position.x >= drawn.bounds.right() - px(drawn.lane);
+            let index = if in_lane {
+                usize::MAX
+            } else {
+                // Under a filter a position past its rows is background, never the listing row of that number.
+                drawn.row_at(position).unwrap_or(usize::MAX)
+            };
             let row = match &drawn.view().rows {
                 TrackRows::Peek(rows) => rows.get(index).map(|row| (row.name.clone(), row.dir)),
                 TrackRows::Listing => drawn
@@ -85,7 +95,27 @@ impl Shell {
             self.keyboard.context = flea::keys::Context::Listing;
         }
         cx.stop_propagation();
-        if host.pane.busy() || !view.enabled || host.nav.gate.owned() {
+        // ColumnsArea.qml:543-546: the child column takes a background right click while its shown folder still loads.
+        // Finder rule 5 keeps the columns still, so it opens that folder's path menu as an answered child does.
+        let waiting_child = event.button == MouseButton::Right
+            && view.slot == Slot::Child
+            && row.is_none()
+            && host.columns.as_ref().is_some_and(|columns| {
+                columns.area.host.fallback_at.is_none()
+                    && columns.area.host.shown.child == view.path
+            })
+            && match &view.rows {
+                TrackRows::Peek(rows) => rows.is_empty(),
+                _ => true,
+            };
+        let locked_menu = event.button == MouseButton::Right
+            && view.slot == Slot::Active
+            && host.pane.state.kind == crate::pane::states::Kind::Locked
+            && !blocked;
+        if host.pane.busy()
+            || !(view.enabled || waiting_child || locked_menu)
+            || host.nav.gate.owned()
+        {
             return;
         }
         if event.button == MouseButton::Left {
@@ -165,8 +195,16 @@ impl Shell {
                 cx,
             );
         }
-        if !dir && view.slot != Slot::Active && event.click_count == 1 && !blocked {
-            self.columns_neighbour_file(side, &view.path, &name, window, cx);
+        if !dir && view.slot != Slot::Active && !blocked {
+            if event.click_count == 1
+                && flea::keys::pointer("neighbour", "file", "left", 0, 1)
+                    .is_some_and(|binding| binding.effect == "reveal")
+            {
+                self.columns_neighbour_file(side, &view.path, &name, window, cx);
+            } else if event.click_count == 2 {
+                let path = crate::navigation::history::join(&view.path, &name);
+                self.open_file(side, path, window, cx);
+            }
         }
         self.sync_columns(window, cx);
         cx.notify();

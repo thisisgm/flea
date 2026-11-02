@@ -279,7 +279,7 @@ impl Tracks {
         self.scrolls[slot.index()].2
     }
 
-    /// A wheel or drag over a peek track, clamped to its rows.
+    /// A wheel or drag over a peek track, clamped to its rows and ColumnPane.qml's footer band below them.
     pub fn scroll_by(&mut self, slot: Slot, dy: f32) -> f32 {
         let total = self
             .views
@@ -289,7 +289,7 @@ impl Tracks {
                 TrackRows::Peek(rows) => rows.len(),
                 _ => 0,
             });
-        let end = (total as f32 * ROW_HEIGHT - self.height).max(0.);
+        let end = (total as f32 * ROW_HEIGHT + super::geometry::FOOTER - self.height).max(0.);
         let held = &mut self.scrolls[slot.index()];
         held.2 = (held.2 + dy).clamp(0., end);
         held.2

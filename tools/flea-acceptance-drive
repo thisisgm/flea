@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/flea-magick-font"
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Sourced for definitions by callers with no binary, so the binary keeps the same default chain tools/flea-acceptance sets.
 flea_ipc_init "${BIN:-${FLEA_BIN:-flea}}"
@@ -435,9 +436,9 @@ drive_fixture_build() {
     magick -size 320x200 gradient:'#0e1112-#b38956' "$DRIVE_FIXTURE/b-image.png" 2>/dev/null && HAVE_IMAGE=1
     # Each page in its own parentheses, or magick draws one annotation onto every page. The pages
     # carry different text because the page turn is asserted by reading the page back off the screen.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
            "$DRIVE_FIXTURE/c-doc.pdf" 2>/dev/null && HAVE_PDF=1
   fi
   if command -v ffmpeg >/dev/null; then

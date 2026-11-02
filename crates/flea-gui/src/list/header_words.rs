@@ -13,8 +13,10 @@ pub(super) fn label(view: &ListView, column: Option<Column>) -> &str {
     let words = &view.words;
     match column {
         None => &words.name,
+        Some(Column::Mode) if view.place_recent.is_some() => &words.location,
         Some(Column::Mode) => &words.mode,
         Some(Column::Size) => &words.size,
+        Some(Column::Date) if view.place_recent.is_some() => &words.used,
         Some(Column::Date) => &words.modified,
         Some(Column::Kind) => &words.kind,
     }

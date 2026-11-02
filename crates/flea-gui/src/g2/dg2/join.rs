@@ -13,6 +13,8 @@ use std::rc::Rc;
 mod crumb_drop;
 #[path = "owned.rs"]
 mod owned;
+#[path = "peek_lift.rs"]
+mod peek_lift;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
 #[path = "spring.rs"]
@@ -110,6 +112,19 @@ impl Shell {
         self.clear_file_rest(window, cx);
         self.clear_file_cue(window, cx);
         self.clear_rail_aim(window, cx);
+        let drags = cx.default_global::<Drags>();
+        drags.serial += 1;
+        let serial = FILE_SERIALS | drags.serial;
+        if let Some((lifted, picture)) = self.peek_lift(side, window, serial) {
+            let host = self.panes[side]
+                .as_ref()
+                .expect("the source pane remains mounted");
+            let flock = image::pictured(host, picture, window, cx);
+            cx.default_global::<Drags>().flocks.insert(key, flock);
+            cx.default_global::<Drags>().put(key, lifted);
+            self.say_held_drag(window, cx);
+            return true;
+        }
         let Some(host) = self.panes[side].as_ref() else {
             return false;
         };
@@ -122,9 +137,8 @@ impl Shell {
         if !current || host.pane.busy() {
             return false;
         }
-        let drags = cx.default_global::<Drags>();
-        drags.serial += 1;
-        let serial = FILE_SERIALS | drags.serial;
+        // FileDrag.liftBegan: a lift ends the pending slow click, so the next tap on the row only records itself.
+        self.rename.slow = None;
         let modifiers = press.event.modifiers;
         let Some(lifted) = lift(
             &HostRows(host),
@@ -221,8 +235,8 @@ impl Shell {
             _ => &[],
         };
         let dest = pane_spot(host, point, carried);
-        // Recent stands on "/" with no folder of its own, so a drop on its blank ground lands nowhere.
-        if host.recent.on && dest == host.path {
+        // Recent stands on "/" and search results on their root, neither a folder of its own, so a drop on their blank ground lands nowhere (PaneWire.qml).
+        if (host.recent.on || host.search.owner.active()) && dest == host.path {
             return;
         }
         self.land_then(side, wide::Then::Into(dest), owned, window, cx);
@@ -271,6 +285,11 @@ impl Shell {
             .as_ref()
             .is_none_or(|host| host.path != path)
         {
+            return;
+        }
+        if let Some((request, probe)) = owned.shelf_ask(dest) {
+            let probe: Vec<&str> = probe.iter().map(String::as_str).collect();
+            self.ask_operation(side, &request, &probe, false, window, cx);
             return;
         }
         match decide(&owned.dropping(), dest, facts) {

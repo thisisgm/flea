@@ -61,6 +61,7 @@ impl Shell {
 
     pub(crate) fn open_sheet(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.settings.opened = false;
+        self.settings.opened_from = self.keyboard.context;
         self.keyboard.disarm();
         let preset =
             flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["keys"], "default");

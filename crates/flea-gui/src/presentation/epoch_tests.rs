@@ -49,7 +49,7 @@ fn shaped_in_window_is_current(cx: &mut TestAppContext) -> bool {
         let run = TextRun {
             len: text.len(),
             font: gpui::font(FAMILY),
-            color: gpui::black(),
+            color: window.text_style().color,
             background_color: None,
             underline: None,
             strikethrough: None,

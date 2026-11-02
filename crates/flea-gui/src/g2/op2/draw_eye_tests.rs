@@ -26,7 +26,7 @@ impl Render for EyeCard {
             &typeface,
             f32::from(window.viewport_size().width),
             0.,
-            Some(self.eye.clone()),
+            std::slice::from_ref(&self.eye),
         )
     }
 }

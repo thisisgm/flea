@@ -1,6 +1,6 @@
-//! One bounded raster job reads, parses and rasterizes SVG bytes, or decodes a TIFF, ICO or AVIF, off the UI thread (#336, SW-13).
+//! One bounded job rasterizes SVG or decodes images through their own format decoder off the UI thread (#336, SW-13).
 use flea::ui_logic_pv1::pixels::{
-    decode_byte_bound, is_avif_name, is_compressed_vector, is_vector_name, svg_within_byte_bound,
+    decode_byte_bound, is_compressed_vector, is_heif_name, is_vector_name, svg_within_byte_bound,
     within_decode_bound, MAX_SVG_BYTES,
 };
 use gpui::{size, DevicePixels, RenderImage, SvgRenderer, SvgSize};
@@ -65,7 +65,7 @@ pub fn default_raster(renderer: SvgRenderer) -> Rasterizer {
     })
 }
 
-/// The decoder a host-decoded file takes by its name: the app's SVG renderer, libheif for AVIF, the image crate otherwise.
+/// The decoder a host-decoded file takes by its name: SVG renderer, libheif for HEIF containers, image crate otherwise.
 pub fn for_path(path: &std::path::Path, renderer: SvgRenderer) -> Rasterizer {
     let name = path
         .file_name()
@@ -73,7 +73,7 @@ pub fn for_path(path: &std::path::Path, renderer: SvgRenderer) -> Rasterizer {
         .unwrap_or_default();
     if is_vector_name(name) {
         default_raster(renderer)
-    } else if is_avif_name(name) {
+    } else if is_heif_name(name) {
         super::decode::heif_raster(super::decode::LIBHEIF)
     } else {
         super::decode::picture_raster()
@@ -134,7 +134,7 @@ pub fn run(job: &Job) -> RasterOutcome {
     if job.latest.load(Ordering::SeqCst) != job.epoch {
         return RasterOutcome::Superseded;
     }
-    // SVG, TIFF, ICO and AVIF read their bounded bytes into the job's decoder; every other picture decodes scaled through photo.
+    // Host-decoded formats keep their byte bounds; other photos use scaled decoding.
     let own = job
         .path
         .file_name()

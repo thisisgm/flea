@@ -4,6 +4,8 @@ The final PLUGIN-ACTIONS join records exact composed ceilings: `crates/flea-gui/
 
 The COMPOSE-M3 plugin-family integration records exact composed ceilings from `wc -l`: `src/backend/mod.rs` 406, `crates/flea-gui/src/g2/mn1/join.rs` 451, `crates/flea-gui/src/g2/st1/panel.rs` 419, `crates/flea-gui/src/state.rs` 404, `crates/flea-gui/src/window/selection_preview_load.rs` 415. These combine the supplied plugin packets with the current menu targets, scaled Settings and preview owners. Parent-only debt is classified separately in the integration evidence. Global limits remain unchanged; no code or comments were compressed.
 
+U-OPENWITH-MULTI (SU-openwith, COMPOSE-M4) declares `mod menu_many` in `src/backend/mod.rs`, recorded at 407.
+
 The VF-3 drag-cue join adds the column target snapshot to its existing composition. Its exact scoped ceiling is `crates/flea-gui/src/window/columns_render.rs` 406 lines, re-derived with `wc -l`; the global 400-line cap is unchanged. The growing track painter is split into its existing Element policy and a separate paint unit. The Columns Element now fits the global cap, so its old exception is removed. The drag lifecycle now lives with its owner, and the drag join fits the global cap.
 
 PLUGIN-KEYS records three small composition ceilings, measured with `wc -l`: `crates/flea-gui/src/g2/st1/panel.rs` 402, `crates/flea-gui/src/state.rs` 401 and `crates/flea-gui/src/window/settings/apply.rs` 402. The added state carries the user key file, and its settings callback refreshes conflicts when the active preset or plugins change. The new parser and key-preview code live in their own files. Existing code is not compressed or moved to hide the count, and the global 400-line Rust cap is unchanged.

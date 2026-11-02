@@ -3,18 +3,24 @@ use crate::{
     g2::op3::{
         keys::{key_of, Key},
         openwith::OpenWith,
-        shell::{Block, StandIn},
+        shell::{Block, Control, DialogShell, OpenWithShell},
         Effect,
     },
     state::Shell,
 };
 use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Window};
 
+#[path = "open_with_initial.rs"]
+mod initial;
+
 /// The open card, the side that asked for it, and the menuaction id its snapshot and requests carry.
 pub(crate) struct Open {
     pub(crate) side: usize,
     pub(crate) id: u64,
     pub(crate) card: OpenWith,
+    /// The parts the card painted last, which openWithState reports.
+    pub(crate) frame: crate::g2::op1::measured::Frame,
+    pub(crate) initial: crate::g2::op3::initial::Initial,
 }
 
 impl Shell {
@@ -63,6 +69,8 @@ impl Shell {
                     side: target.side,
                     id: target.id,
                     card: OpenWith::open(target.id, &row.name),
+                    frame: Default::default(),
+                    initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
                 });
             }
             return true;
@@ -105,6 +113,8 @@ impl Shell {
             side,
             id,
             card: OpenWith::open(id, name),
+            frame: Default::default(),
+            initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
         });
         cx.notify();
     }
@@ -203,7 +213,12 @@ impl Shell {
         if self.open_with.is_none() {
             return false;
         }
-        if self.dialog_key(event, cx) {
+        if self
+            .open_with
+            .as_ref()
+            .is_some_and(|open| open.initial.published())
+            && self.dialog_key(event, cx)
+        {
             return true;
         }
         cx.stop_propagation();
@@ -211,16 +226,20 @@ impl Shell {
             cx.notify();
             return true;
         };
-        let effects = self.open_with.as_mut().expect("an open card").card.key(key);
+        let open = self.open_with.as_mut().expect("an open card");
+        let Some(key) = open.initial.key(key) else {
+            return true;
+        };
+        let effects = open.card.key(key);
         self.open_with_effects(effects, cx);
         true
     }
 
-    fn press_open_with(&mut self, at: usize, cx: &mut Context<Self>) {
+    fn activate_open_with(&mut self, control: Control, cx: &mut Context<Self>) {
         let Some(open) = self.open_with.as_mut() else {
             return;
         };
-        let effects = open.card.press_at(at);
+        let effects = open.card.activate(control);
         self.open_with_effects(effects, cx);
     }
 
@@ -280,13 +299,13 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
         self.sync_dialog_editor();
+        let mut card = self.initial_open_with_card(cx)?;
         let open = self.open_with.as_ref()?;
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let mut card = open.card.card(&self.locale.catalog);
         self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
             &palette,
             self.corner,
@@ -297,18 +316,54 @@ impl Shell {
                 search.input = Some(cx.entity());
             }
         }
+        self.load_open_with_icons(&card, window, cx);
+        // Parts the card no longer draws, such as the list behind a no-match note, leave the record.
+        open.frame.clear();
         let room = f32::from(window.viewport_size().width);
-        let press = cx.listener(|shell: &mut Shell, at: &usize, _, cx| {
-            shell.press_open_with(*at, cx);
-        });
-        let drawn = StandIn.present_pressable(
-            &card,
-            &palette,
-            &self.active_typeface(),
-            self.corner,
-            room,
-            press,
-        );
+        let weak = cx.entity().downgrade();
+        let wire = move |control, element: gpui::Stateful<gpui::Div>| {
+            let weak = weak.clone();
+            if control == crate::g2::op3::shell::Control::Applications {
+                return element.on_scroll_wheel(move |event, _, cx| {
+                    let _ = weak.update(cx, |shell, cx| {
+                        let row = crate::g2::op3::shell::APP_ROW
+                            * f32::from(shell.active_typeface().body)
+                            / crate::g2::op3::shell::BOARD_BODY;
+                        if let Some(open) = shell.open_with.as_mut() {
+                            open.card.scroll(event, row);
+                            cx.notify();
+                        }
+                    });
+                    cx.stop_propagation();
+                });
+            }
+            let hover = weak.clone();
+            element
+                .on_mouse_move(move |_, _, cx| {
+                    if let crate::g2::op3::shell::Control::Application(at) = control {
+                        let _ = hover.update(cx, |shell, cx| {
+                            if shell
+                                .open_with
+                                .as_mut()
+                                .is_some_and(|open| open.card.hover(at))
+                            {
+                                cx.notify();
+                            }
+                        });
+                        cx.stop_propagation();
+                    }
+                })
+                .on_click(move |_, _, cx| {
+                    let _ = weak.update(cx, |shell, cx| shell.activate_open_with(control, cx));
+                    cx.stop_propagation();
+                })
+        };
+        let drawn = OpenWithShell {
+            wire: &wire,
+            surface: theme.surface,
+            measure: &open.frame,
+        }
+        .present(&card, &palette, &self.active_typeface(), self.corner, room);
         let scrim = cx.listener(|shell: &mut Shell, _: &gpui::MouseDownEvent, _, cx| {
             if let Some(open) = shell.open_with.as_mut() {
                 let effects = open.card.press_at(0);

@@ -24,7 +24,8 @@ impl MediaInk {
         let palette = Palette::inherited(style, theme);
         Self {
             background: palette.background,
-            surface: palette.background,
+            // MediaStrip's well is Theme.color.surface, the card ground, never the pane's (EY-429, EY-436).
+            surface: theme.surface,
             foreground: palette.foreground,
             muted: palette.muted,
             muted_frame: palette.muted_frame,

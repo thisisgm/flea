@@ -88,7 +88,9 @@ impl Shell {
                                     pane.view().opened && pane.focus.contains_focused(window, cx)
                                 })
                                 .map(|_| "list")
-                        }),
+                        })
+                        // EY-150: Settings leaves the pane's focusView alone and its close hands the keyboard back to the list.
+                        .or_else(|| self.settings.opened.then_some("list")),
                     input: &host.input,
                     chrome_glyph,
                 };
@@ -251,6 +253,7 @@ impl Shell {
                 };
                 // Quick Look answers before the column, so previewState reads the card while it is open.
                 let look = crate::window::quick_look::readers::Reader {
+                    pdf_focused: crate::ipc::keyboard_state::pdf_focused(self, window, cx),
                     host: self.quick_look.as_ref(),
                     view: self.quick_look.as_ref().map(|host| host.view.read(cx)),
                     viewport: window.viewport_size(),
@@ -268,10 +271,10 @@ impl Shell {
                 };
                 let thumbnails = crate::ipc::thumbnails::Thumbnails {
                     host,
-                    mode: crate::grid::element::pictures::policy::Policy::read(
+                    policy: crate::grid::element::pictures::policy::Policy::read(
                         &self.launch.settings.data,
-                    )
-                    .mode,
+                    ),
+                    preview: preview.thumbnail_policy(host),
                 };
                 let preview_text = crate::ipc::preview_text::PreviewText {
                     shell: self,
@@ -291,7 +294,12 @@ impl Shell {
                     view: focus.view.unwrap_or(""),
                     pane_focused: self.focus.is_focused(window),
                     list_focused: states.focused,
-                    drop_active: states.drop_target.is_some(),
+                    share_focused: self
+                        .rail
+                        .as_ref()
+                        .and_then(|rail| rail.network.as_ref())
+                        .is_some_and(|network| network.shares.read(cx).inside(window, cx)),
+                    drop_active: self.listing_floor_active(host, &list, &states, window, cx),
                 };
                 let archive_preview =
                     crate::ipc::fileops_preview::PreviewAdapter { shell: self, cx };
@@ -305,6 +313,7 @@ impl Shell {
                 let preview_look = crate::ipc::preview_look::PreviewLook {
                     look: look.view,
                     cx,
+                    pdf_focused: look.pdf_focused,
                 };
                 let preview_html = crate::ipc::preview_html::PreviewHtml {
                     shell: self,
@@ -386,6 +395,7 @@ impl Shell {
                 } else {
                     adapters.len() - 1
                 };
+                let cohesion = self.cohesion_inputs(host, &states, &rows, cx);
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
                         chrome.read_with(cx, |view, _| (view.path.clone(), view.frame.clone()));
@@ -393,8 +403,11 @@ impl Shell {
                         let path = crate::ipc::path::PathAdapter { view: path };
                         let frame = frame.borrow();
                         let chrome = crate::ipc::chrome::ChromeAdapter { frame: &frame };
+                        let laid = cohesion.laid.as_ref().map(|laid| laid.borrow());
+                        let cohesion = cohesion.adapter(&frame, &path, laid.as_deref());
                         let mut mounted = adapters[..count].to_vec();
                         mounted.extend([&path as &dyn crate::ipc::Adapter, &chrome, &tabs]);
+                        mounted.push(&cohesion);
                         surface.dispatch_to(request, &mounted)
                     })
                 } else {

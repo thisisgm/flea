@@ -43,6 +43,8 @@ pub struct EmptyHero {
     column_painted: Option<(bool, f32, f32)>,
     rotation: Rotation,
     phrases: Vec<SharedString>,
+    /// PaneStates.qml's hint under the caption: sentence case in the metadata ink, empty when key hints are off.
+    hint: SharedString,
     typeface: Typeface,
     base: Instant,
     reduced: bool,
@@ -72,6 +74,7 @@ impl EmptyHero {
             column_painted: None,
             rotation: Rotation::default(),
             phrases: Vec::new(),
+            hint: SharedString::default(),
             typeface: Typeface::omarchy_default(),
             base: cx.background_executor().now(),
             reduced: cx.reduce_motion(),
@@ -110,8 +113,21 @@ impl EmptyHero {
             .collect();
     }
 
+    #[cfg(test)]
+    pub fn hint(&self) -> &SharedString {
+        &self.hint
+    }
+
     pub fn phrases(&self) -> &[SharedString] {
         &self.phrases
+    }
+
+    /// The caller's resolved hint line, or empty for none; only a change repaints.
+    pub fn set_hint(&mut self, hint: SharedString, cx: &mut Context<Self>) {
+        if self.hint != hint {
+            self.hint = hint;
+            cx.notify();
+        }
     }
 
     pub fn reduced(&self) -> bool {
@@ -133,6 +149,15 @@ impl EmptyHero {
                     window,
                 )
             })
+            .chain((!self.hint.is_empty()).then(|| {
+                super::caption::measure(
+                    self.hint.clone(),
+                    self.typeface.font.clone(),
+                    self.typeface.caption,
+                    px(0.),
+                    window,
+                )
+            }))
             .fold(super::mark::HERO, f32::max)
     }
 
@@ -281,6 +306,11 @@ impl Render for EmptyHero {
             })
             .fold(0., f32::max);
         let mark_side = super::mark::HERO;
+        let hint_line = if self.hint.is_empty() {
+            0.
+        } else {
+            metrics.gap + metrics.caption_line
+        };
         let root = div()
             .relative()
             .size_full()
@@ -294,7 +324,10 @@ impl Render for EmptyHero {
                         .flex()
                         .flex_col()
                         .items_center()
-                        .h(px(mark_side + metrics.gap + metrics.caption_line))
+                        .h(px(mark_side
+                            + metrics.gap
+                            + metrics.caption_line
+                            + hint_line))
                         .flex_shrink_0()
                         .gap(px(metrics.gap))
                         .mt(px(2. * frame.offset))
@@ -322,7 +355,23 @@ impl Render for EmptyHero {
                                     width: widest,
                                     line: face.line,
                                 }),
-                        ),
+                        )
+                        .when(!self.hint.is_empty(), |column| {
+                            column.child(
+                                self.painted.watch(
+                                    div()
+                                        .relative()
+                                        .debug_selector(|| "fb1-empty-key-hint".into())
+                                        .h(face.line)
+                                        .text_size(self.typeface.caption)
+                                        .text_color(ink.metadata)
+                                        .whitespace_nowrap()
+                                        .child(self.hint.clone()),
+                                    "hint",
+                                    self.hint.clone(),
+                                ),
+                            )
+                        }),
                 )
             })
             .when(!overlay, |root| root.child(Layer(cx.entity())));

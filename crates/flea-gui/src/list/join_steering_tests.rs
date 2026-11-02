@@ -1,6 +1,9 @@
 //! Controller native findings: walked folder bytes and selection from the same painted frame.
 use super::{ask, frame, open};
 
+#[path = "s4_size_tests.rs"]
+mod s4_size_tests;
+
 #[path = "join_cursor_tests.rs"]
 mod cursor;
 #[path = "join_size_key_tests.rs"]
@@ -105,6 +108,7 @@ fn settle(cx: &mut TestAppContext) {
     advance(cx, 120);
 }
 
+#[track_caller]
 fn quiet(cx: &mut TestAppContext, handle: WindowHandle<crate::state::Shell>) {
     let replies = handle
         .update(cx, |shell, _, _| {
@@ -122,7 +126,8 @@ fn quiet(cx: &mut TestAppContext, handle: WindowHandle<crate::state::Shell>) {
     while Instant::now() < deadline {
         assert!(
             replies.is_empty(),
-            "a cancelled, early or hidden viewport issued work"
+            "a cancelled, early or hidden viewport issued work: {:?}",
+            replies.try_recv()
         );
         std::thread::sleep(Duration::from_millis(2));
     }
@@ -375,3 +380,9 @@ fn u04_preference_marks_are_normalized_before_list_membership() {
         })
         .unwrap();
 }
+
+#[path = "fixreaders_steering_tests.rs"]
+mod fixreaders;
+
+#[path = "join_filter_sizes_tests.rs"]
+mod filter_sizes;

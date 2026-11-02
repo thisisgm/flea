@@ -84,7 +84,7 @@ impl Pictures {
                         .order
                         .iter()
                         .copied()
-                        .filter(|row| matches!(map.slots.get(row), Some(Slot::Missed)))
+                        .filter(|row| matches!(map.slots.get(row), Some(Slot::Missed { .. })))
                         .collect();
                     for row in misses {
                         map.forget(row);
@@ -221,7 +221,11 @@ impl Pictures {
                 map.forget(row);
                 map.key = None;
             } else {
-                let slot = if cache { Slot::Missed } else { Slot::Refused };
+                let slot = if cache {
+                    Slot::Missed { observed: identity }
+                } else {
+                    Slot::Refused { observed: identity }
+                };
                 map.counters.refused += usize::from(!cache);
                 map.remember(row, slot);
             }

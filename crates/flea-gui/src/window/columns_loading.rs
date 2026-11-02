@@ -32,7 +32,7 @@ impl Shell {
             .filter(|track| track.state == TrackState::Loading)
         {
             if let Some(mark) = &columns.loading[track.slot.index()] {
-                mark.show_spiral(true, palette.muted_frame);
+                mark.show(true, palette.accent);
                 marks[track.slot.index()] = Some(Rc::clone(mark));
             }
         }

@@ -37,6 +37,73 @@ pub(super) fn palette() -> CardPalette {
 struct Offset {
     shares: Entity<ShareView>,
 }
+
+#[gpui::test]
+fn uish_misc_native_protocol_click_keeps_a_visible_field_and_its_selection(
+    cx: &mut gpui::TestAppContext,
+) {
+    use super::dialog::Focus;
+    let (_root, catalog) = catalog();
+    let (host, cx) = cx.add_window_view(|_, cx| GlobalKey {
+        card: cx.new(|cx| NetworkView::new(catalog, palette(), cx)),
+        f6: Rc::new(Cell::new(false)),
+    });
+    let card = cx.update(|_, cx| host.read(cx).card.clone());
+    cx.update(|window, cx| {
+        card.update(cx, |v, cx| {
+            v.open(window, cx);
+            v.model.form.path = "before/after".into();
+            v.model.focus = Focus::Path;
+            v.load_input();
+            v.input.move_to(3);
+            v.input.select_to(6);
+            v.changed(cx);
+        })
+    });
+    for (field, protocol, expected) in [
+        (Focus::Path, 2, Focus::Path),
+        (Focus::Domain, 1, Focus::User),
+    ] {
+        cx.update(|_, cx| {
+            card.update(cx, |v, cx| {
+                if field != Focus::Path {
+                    v.model.pick(0);
+                    v.model.focus = field;
+                    v.load_input();
+                    v.changed(cx);
+                }
+            })
+        });
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        let position = cx.update(|_, cx| {
+            let v = card.read(cx);
+            let d = v.drawn.borrow();
+            let (_, r) = d
+                .hits
+                .iter()
+                .find(|(f, _)| *f == Focus::Protocol(protocol))
+                .unwrap();
+            point(
+                px(d.origin.0 + r.x + r.w / 2.),
+                px(d.origin.1 + r.y + r.h / 2.),
+            )
+        });
+        cx.simulate_mouse_down(position, gpui::MouseButton::Left, gpui::Modifiers::none());
+        cx.simulate_mouse_up(position, gpui::MouseButton::Left, gpui::Modifiers::none());
+        cx.update(|_, cx| {
+            let v = card.read(cx);
+            assert_eq!(v.model.focus, expected);
+            if field == Focus::Path {
+                assert_eq!(
+                    v.input.selected,
+                    3..6,
+                    "a protocol click preserves the live selection"
+                );
+                assert_eq!(v.input.text, "before/after");
+            }
+        });
+    }
+}
 impl Render for Offset {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div().size_full().relative().child(

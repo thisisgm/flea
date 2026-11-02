@@ -15,12 +15,15 @@ pub(crate) mod painted_row;
 mod palette;
 #[cfg(test)]
 mod palette_tests;
+mod recent;
 mod row_text;
 mod tags;
 mod text_revision;
 pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{mark_bounds_at, CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
+#[cfg(test)]
+mod fixlist_mark_ink_tests;
 #[cfg(test)]
 mod gh315_filter_tests;
 #[cfg(test)]
@@ -82,8 +85,10 @@ pub struct RowStates {
     /// The listing these indices belong to; a snapshot from another listing marks no row but the cursor.
     pub listing: usize,
     pub cursor: Option<usize>,
-    /// The listing holds the keyboard: the cursor is the accent rung and marks take the plate; else both go grey.
+    /// The listing holds the keyboard: the cursor is the accent rung; else it goes grey.
     pub focused: bool,
+    /// The dual window's other pane (v0.3.12 paneFocused false), whose marks alone take the grey selected fill.
+    pub other_pane: bool,
     /// Marked rows in ascending order; None is no selection, which costs nothing.
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,
@@ -162,6 +167,7 @@ pub struct ListView {
     pub picker_directory: bool,
     /// The picker's Recent history: each row names its leaf, and no title carries a sort arrow (picker-recent-list).
     pub recent: bool,
+    pub(crate) place_recent: Option<recent::PlaceRecent>,
     pub clip: ClipMarks,
     pub order: Order,
     /// Highlight today's dates: today's local midnight while the setting is on.
@@ -191,6 +197,7 @@ impl Default for ListView {
             picker: None,
             picker_directory: false,
             recent: false,
+            place_recent: None,
             clip: ClipMarks::default(),
             order: Order::default(),
             today: None,
@@ -280,6 +287,8 @@ pub struct ListState {
     pub drawn: Drawn,
     /// The bounded snapshot the last frame drew, retained until its replacement is painted.
     pub drawn_rows: Rc<pane::Held>,
+    /// The listing rows a standing filter left that frame, at their view positions; None with no filter up.
+    pub drawn_filter: Option<Rc<[usize]>>,
     pub header: header::HeaderState,
     // The one empty line every hidden cell shares, so a column that is not drawn shapes nothing.
     blank: Arc<LineLayout>,
@@ -314,6 +323,7 @@ impl ListState {
             view: ListView::default(),
             drawn: Drawn::default(),
             drawn_rows: Rc::default(),
+            drawn_filter: None,
             header: header::HeaderState::default(),
             blank: Arc::new(LineLayout::default()),
             palette_reads: 0,
@@ -363,6 +373,7 @@ impl ListState {
         self.rows = RowCache::default();
         self.visible = Vec::new();
         self.drawn_rows = Rc::default();
+        self.drawn_filter = None;
         self.header.forget_titles();
     }
 }

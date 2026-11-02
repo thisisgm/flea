@@ -14,10 +14,12 @@ pub mod focus;
 pub mod grid;
 pub(crate) mod grid_rows;
 pub(crate) mod keyboard_state;
+pub(crate) mod main_cohesion;
 pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;
 pub(crate) mod network_mountinfo;
+mod open_with_painted;
 pub(crate) mod outline;
 pub(crate) mod output_cards;
 pub mod pane;
@@ -33,6 +35,7 @@ pub mod rows;
 pub mod server;
 pub(crate) mod settings;
 pub(crate) mod status;
+mod status_activity;
 mod status_card;
 pub mod strips;
 mod surface;
@@ -45,6 +48,8 @@ pub(crate) mod window_feedback;
 mod preview_scroll_tests;
 
 #[cfg(test)]
+mod fixreaders_tests;
+#[cfg(test)]
 mod reader_port_b_tests;
 
 pub use surface::{Adapter, Surface};
@@ -54,6 +59,8 @@ pub(crate) mod preview_text;
 mod pb_ipc_fixture;
 #[cfg(test)]
 mod pb_ipc_tests;
+#[cfg(test)]
+mod plugin_input_tests;
 #[cfg(test)]
 mod reader_port_a_tests;
 #[cfg(test)]

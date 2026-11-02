@@ -103,6 +103,7 @@ impl Shell {
             },
             origin: (f32::from(at.x), f32::from(at.y)),
             serial: CARRY_SERIALS | lifted.serial,
+            left: true,
         };
         let Some(host) = self.panes[side].as_ref() else {
             return true;

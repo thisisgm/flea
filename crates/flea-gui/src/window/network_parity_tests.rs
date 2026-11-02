@@ -46,7 +46,20 @@ fn pb_network_2_tls_label_keeps_the_shipped_sentence(cx: &mut TestAppContext) {
 #[gpui::test]
 fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut TestAppContext) {
     use crate::window::dispatch::test_shell::{land, open_root};
+    let recorder = Rc::new(Recorder::default());
+    cx.update(|cx| {
+        cx.set_global(crate::g2::pl1::source::fixture::Services {
+            runner: recorder.clone(),
+            hostname: "testhost".into(),
+        })
+    });
     let (shell, cx) = open_root(cx, "default");
+    let first = *recorder
+        .find("-li")
+        .last()
+        .expect("the shared mount listing");
+    recorder.answer(first, 0, "Mount(0): NAS -> sftp://user@host/folder\n");
+    cx.run_until_parked();
     land(&shell, cx, "/files", Vec::new(), 1);
     shell.update(cx, |shell, cx| {
         shell.network_publish(Some(vec![share()]), cx)
@@ -178,6 +191,8 @@ fn remove_from_network(
         shell.network_menu(side, &entries[index], window, cx);
     });
     frame(cx);
+    // 1610 (EY-280): the share's open row menu reads as visible.
+    assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
     let rows = read(&shell, cx, "contextMenuEntries", &[]);
     let remove = rows
         .split('|')

@@ -412,34 +412,26 @@ fn the_open_with_card_draws_each_applications_own_icon(cx: &mut TestAppContext) 
             icons[0], icons[1]
         ),
     );
-    let mut images = Vec::new();
+    let mut painted = Vec::new();
     for _ in 0..12 {
         cx.run_until_parked();
-        images = cx.update(|window, cx| {
-            let images: Vec<_> = icons
-                .iter()
-                .filter_map(|path| {
-                    let resource =
-                        gpui::Resource::Path(std::sync::Arc::from(std::path::Path::new(path)));
-                    cx.fetch_asset::<gpui::ImageAssetLoader>(&resource)?.ok()
-                })
-                .collect();
+        crate::g2::mn1::app_icons::PAINTED.with(|held| *held.borrow_mut() = Some(Vec::new()));
+        cx.update(|window, cx| {
             window.refresh();
-            images
+            window.draw(cx).clear(cx);
         });
-        if images.len() == icons.len() {
+        painted = crate::g2::mn1::app_icons::PAINTED
+            .with(|held| held.borrow_mut().take().unwrap_or_default());
+        if icons.iter().all(|icon| painted.contains(icon)) {
             break;
         }
     }
-    assert_eq!(images.len(), icons.len(), "both fixture icons decode");
-    cx.update(|window, _| {
-        for image in &images {
-            assert!(
-                window.has_image_atlas_entry(image),
-                "the card paints each application's icon, not an empty slot"
-            );
-        }
-    });
+    for icon in &icons {
+        assert!(
+            painted.contains(icon),
+            "the card paints each application's icon, not an empty slot: {painted:?}"
+        );
+    }
     quit(&shell, cx);
 }
 

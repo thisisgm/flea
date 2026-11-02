@@ -32,6 +32,98 @@ fn opened(cx: &mut TestAppContext) -> (Entity<NetworkView>, &mut VisualTestConte
     (card, cx)
 }
 
+#[gpui::test]
+fn uish_misc_network_backtab_moves_inside_the_modal_card(cx: &mut TestAppContext) {
+    let (card, cx) = opened(cx);
+    let first = cx.update(|_, cx| card.read(cx).model.focus);
+    let focused = cx.update(|window, cx| window.focused(cx));
+    cx.simulate_keystrokes("tab");
+    frame(cx);
+    assert_ne!(cx.update(|_, cx| card.read(cx).model.focus), first);
+    cx.simulate_keystrokes("backtab");
+    frame(cx);
+    cx.update(|window, cx| {
+        let view = card.read(cx);
+        assert!(view.model.opened, "Backtab must remain in the open card");
+        assert_eq!(view.model.focus, first);
+        assert_eq!(window.focused(cx), focused);
+    });
+}
+
+#[gpui::test]
+fn uish_misc_network_overlay_close_restores_origin_key_routing(cx: &mut TestAppContext) {
+    for (browser, from_rail) in [(false, false), (false, true), (true, false), (true, true)] {
+        let (shell, cx, _lines) = open(Rc::new(Recorder::default()), cx);
+        let card = card_of(&shell, cx);
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                shell.ensure_network(window, cx);
+                shell.rail_focus(from_rail, cx);
+                shell.keyboard.context = if from_rail {
+                    flea::keys::Context::Rail
+                } else {
+                    flea::keys::Context::Listing
+                };
+                window.focus(
+                    if from_rail {
+                        &shell.dual_focus.rail
+                    } else {
+                        &shell.focus
+                    },
+                    cx,
+                );
+            })
+        });
+        frame(cx);
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                if browser {
+                    let origin = shell.network_origin(0);
+                    shell.network_service(
+                        &Effect::Shares {
+                            uri: "smb://stub/".into(),
+                            label: "Stub".into(),
+                            names: vec!["share".into()],
+                            origin,
+                        },
+                        window,
+                        cx,
+                    );
+                } else {
+                    shell.network_add(0, window, cx);
+                }
+            })
+        });
+        frame(cx);
+        cx.simulate_keystrokes("escape");
+        frame(cx);
+        shell.read_with(cx, |shell, cx| {
+            assert!(!card.read(cx).model.opened);
+            assert_eq!(
+                shell.keyboard.context,
+                if from_rail {
+                    flea::keys::Context::Rail
+                } else {
+                    flea::keys::Context::Listing
+                },
+                "browser={browser} from_rail={from_rail}"
+            );
+            let join = shell.rail.as_ref().unwrap();
+            assert_eq!(join.places.read(cx).model.borrow().focused, from_rail);
+            assert!(!join.network.as_ref().unwrap().shares.read(cx).model.open);
+        });
+        if from_rail {
+            cx.simulate_keystrokes("escape");
+            frame(cx);
+        }
+        cx.update(|window, cx| {
+            let shell = shell.read(cx);
+            assert_eq!(shell.keyboard.context, flea::keys::Context::Listing);
+            assert!(shell.focus.is_focused(window));
+        });
+    }
+}
+
 fn printable(key: &str) -> gpui::KeyDownEvent {
     gpui::KeyDownEvent {
         keystroke: gpui::Keystroke {

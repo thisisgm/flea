@@ -10,6 +10,7 @@ import subprocess
 import time
 
 from cold import cache_gate
+from fair.eligibility import compare
 
 
 def p95(values):
@@ -169,26 +170,42 @@ def summarize(output, samples, required):
     summary = []
     keys = sorted({(s['stage'], s['fixture'], s['cache'], s['rival']) for s in samples})
     for stage, fixture, cache, rival in keys:
-        group = [s for s in samples if (s['stage'], s['fixture'], s['cache'], s['rival']) == (stage, fixture, cache, rival) and s['phase'] == 'measured']
+        population = [s for s in samples if (s['stage'], s['fixture'], s['cache'], s['rival']) == (stage, fixture, cache, rival)]
+        group = [s for s in population if s['phase'] == 'measured']
         if not group:
             continue
         reference = group[0].get('reference') or ('flea/native' if stage == 'engine' else 'flea-search/native' if stage == 'match' else 'flea-search')
         for metric in columns:
-            higher = metric in {'quality_mrr', 'coverage_exact'}
             by_run = {}
-            for sample in group:
+            performance = metric not in {'quality_mrr', 'coverage_exact'}
+            unit = 'bytes' if metric == 'memory_bytes' else 'ms'
+            rows = []
+            for sample in population:
                 if (sample['status'] == 'ok' and sample.get('eligible') and isinstance(sample.get(metric), (int, float))
-                        and (metric in {'quality_mrr', 'coverage_exact'} or (sample.get('quality_pass', True) and sample.get('comparable', True)))):
-                    by_run.setdefault(sample['run'], {})[sample['entrant']] = sample[metric]
+                        and (not performance or (sample.get('quality_pass', True) and sample.get('comparable', True)))):
+                    if sample['phase'] == 'measured':
+                        by_run.setdefault(sample['run'], {}).setdefault(sample['entrant'], []).append(sample[metric])
+                    floor = 1024 if unit == 'bytes' else .000001
+                    resolution = sample.get('resolutions', {}).get(metric)
+                    if resolution is not None and (not math.isfinite(resolution) or resolution <= 0):
+                        raise ValueError(f"searchbench {sample['entrant']} {metric} {sample['phase']} run {sample['run']}: invalid instrument resolution {resolution!r}")
+                    rows.append(dict(engine=sample['entrant'], phase={'pilot-a': 'noise-a', 'pilot-b': 'noise-b'}.get(sample['phase'], sample['phase']),
+                                     run=sample['run'], fixture=fixture, profile='', metric=metric, unit=unit,
+                                     value=sample[metric], status='ok', eligible='yes', quality='ok',
+                                     resolution=max(floor, resolution) if resolution is not None else floor))
+            by_run = {run: {entrant: statistics.median(values) for entrant, values in entrants.items()} for run, entrants in by_run.items()}
             pairs = [v for v in by_run.values() if reference in v and rival in v]
             a, b = [v[reference] for v in pairs], [v[rival] for v in pairs]
             delta = [v[reference] - v[rival] for v in pairs]
             ci = interval(delta)
             winner = 'unproven'
-            if len(pairs) >= required and ci:
-                winner = reference if (ci['low'] > 0 if higher else ci['high'] < 0) else rival if (ci['high'] < 0 if higher else ci['low'] > 0) else 'overlap'
+            admitted = compare(rows, reference, rival, minimum=required) if performance else []
+            admission = admitted[0] if admitted else dict(verdict='non-performance-metric' if not performance else 'insufficient-pairs')
+            if admission['verdict'] in {'win', 'loss', 'tie-or-unresolved'}:
+                winner = {'win': reference, 'loss': rival, 'tie-or-unresolved': 'overlap'}[admission['verdict']]
             summary.append(dict(stage=stage, fixture=fixture, cache=cache, rival=rival, metric=metric,
                                 reference=reference, reference_ci=interval(a), rival_ci=interval(b), difference_ci=ci,
-                                winner=winner, above_4_pairs=sum(s['batch']['above_4'] for s in group if s['entrant'] == reference)))
+                                winner=winner, admission=admission['verdict'], noise_threshold=admission.get('noise_threshold'),
+                                above_4_pairs=sum(s['batch']['above_4'] for s in group if s['entrant'] == reference)))
     (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
     return summary

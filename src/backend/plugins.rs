@@ -200,7 +200,7 @@ pub fn installed(env: &Env) -> Vec<Installed> {
         if enabled && failure.is_none() {
             failure = pluginfs::entry(&folder, &manifest.run)
                 .err()
-                .or_else(|| super::pluginruntime::failure(env, &manifest.id))
+                .or_else(|| super::pluginruntime::failure(env, &manifest))
                 .or_else(|| start_failure(&manifest.id));
         }
         let settings = schema::settings(

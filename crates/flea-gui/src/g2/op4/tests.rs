@@ -23,7 +23,7 @@ pub fn selected(kind: Kind, names: &[&str]) -> Selection {
             .collect(),
     }
 }
-fn draft(action: Action, kind: Kind, names: &[&str]) -> Model {
+pub(super) fn draft(action: Action, kind: Kind, names: &[&str]) -> Model {
     let mut m = Model::default();
     assert!(m.open(
         action,
@@ -32,7 +32,7 @@ fn draft(action: Action, kind: Kind, names: &[&str]) -> Model {
     ));
     m
 }
-fn checked(m: &mut Model) {
+pub(super) fn checked(m: &mut Model) {
     let ticket = match m.card.as_ref().unwrap() {
         Card::Convert(c) => c.pending.unwrap(),
         Card::Combine(c) => c.pending.unwrap(),

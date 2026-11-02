@@ -26,14 +26,7 @@ impl Shell {
                 return None;
             };
             let crumb = strip.crumbs().get(index)?;
-            let (left, _) = strip.extent(index)?;
-            let name_end = crumb
-                .text
-                .strip_suffix('/')
-                .filter(|name| !name.is_empty())
-                .map_or(crumb.text.len(), str::len);
-            let width = f32::from(paint.runs[slot].get(index)?.line().x_for_index(name_end));
-            (crumb.parent() && !crumb.path.is_empty() && x < left + width).then(|| {
+            (crumb.parent() && !crumb.path.is_empty()).then(|| {
                 (
                     if slot == 0 {
                         view.inputs.side

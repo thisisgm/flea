@@ -1,22 +1,28 @@
 //! IpcPreviewState's Quick Look Markdown, media and PDF-overlay readers; the column's own readers stay in window/selection_preview_readers.rs.
 use super::Adapter;
-use crate::g2::{
-    pv1::{doc::View, QuickLook},
-    pv2::{
-        code::CodeView,
-        markdown::{MarkdownView, View as Shown},
+use crate::{
+    g2::{
+        pv1::{doc::View, observations::Observations, Hit, QuickLook},
+        pv2::{
+            code::CodeView,
+            markdown::{MarkdownView, View as Shown},
+            PdfView,
+        },
+        pv3::sound::MediaSound,
     },
-    pv3::sound::MediaSound,
+    window::selection_preview::readers::{centre, rect},
 };
 use flea::{
     ipc::wire::Reply,
     ui_logic_pv2::markdown::{markdown_layout::FigureState, Block},
 };
-use gpui::{App, Entity};
+use gpui::{App, Bounds, Entity, Pixels};
 
 pub(crate) struct PreviewLook<'a> {
     pub look: Option<&'a QuickLook>,
     pub cx: &'a App,
+    /// keyDeliveryState's focus item is the PdfViewer, IpcPreviewState pdfState's p.activeFocus.
+    pub pdf_focused: bool,
 }
 
 impl PreviewLook<'_> {
@@ -71,19 +77,8 @@ impl PreviewLook<'_> {
 
     /// The top-level block kinds of a ready document: `heading`, `fence:rust`, `list[run,run]`.
     fn block_kinds(&self) -> String {
-        let Some(view) = self.markdown() else {
-            return String::new();
-        };
-        let doc = &view.read(self.cx).doc;
-        if !doc.content_ready() {
-            return String::new();
-        }
-        let kinds: Vec<String> = doc
-            .blocks()
-            .iter()
-            .map(|block| format!("\"{}\"", flea::json::escape(&kind_of(block))))
-            .collect();
-        format!("[{}]", kinds.join(","))
+        self.markdown()
+            .map_or_else(String::new, |view| block_kinds(view.read(self.cx)))
     }
 
     /// IpcPreviewState.previewFigures: `index=state` per top-level figure block, "" until the document is ready.
@@ -104,13 +99,87 @@ impl PreviewLook<'_> {
         })
     }
 
-    fn pdf_overlay(&self) -> bool {
-        self.look
-            .filter(|look| look.is_open())
-            .and_then(QuickLook::subject)
-            .and_then(|subject| subject.body.doc())
-            .is_some_and(|doc| matches!(doc.view, View::Pdf(_)))
+    /// The open card's PDF, None while the card is closed or shows another kind.
+    fn pdf(&self) -> Option<&PdfView> {
+        match self.view() {
+            Some(View::Pdf(pdf)) => Some(pdf.read(self.cx)),
+            _ => None,
+        }
     }
+
+    /// IpcPreviewState pdfState(true): the card's page, zoom and scroll, and each strip control as it draws.
+    fn pdf_state(&self) -> String {
+        use flea::{jsondoc::Json, ui_logic_pv2::viewer::CONTROLS};
+        let (Some(look), Some(pdf)) = (self.look, self.pdf()) else {
+            return "null".into();
+        };
+        let Some(viewer) = pdf.viewer.as_ref() else {
+            return "null".into();
+        };
+        let (page, count) = (pdf.surface.page, pdf.surface.page_count());
+        let number = |n: f64| Json::Num(n.to_string());
+        let painted = look.observations.borrow().strip;
+        let i18n = &look.i18n;
+        let controls = viewer
+            .strip(page, count)
+            .iter()
+            .zip(CONTROLS)
+            .enumerate()
+            .map(|(index, (item, control))| {
+                // The strip's close is the card's own close control; the rest are strip slots.
+                let hit = if control == flea::ui_logic_pv2::viewer::Control::Close {
+                    Hit::Close
+                } else {
+                    Hit::Strip(index)
+                };
+                let ring = item.focused || look.focused() == Some(hit);
+                Json::Obj(vec![
+                    ("name".into(), Json::Str(i18n.tr(control.name_key()))),
+                    ("enabled".into(), Json::Bool(item.enabled)),
+                    ("visible".into(), Json::Bool(item.visible)),
+                    (
+                        "centre".into(),
+                        Json::Str(painted[index].map_or_else(String::new, centre)),
+                    ),
+                    ("hovered".into(), Json::Bool(look.hovered() == Some(hit))),
+                    ("pressed".into(), Json::Bool(look.pressed() == Some(hit))),
+                    ("ring".into(), Json::Bool(ring)),
+                ])
+            })
+            .collect();
+        flea::jsondoc::render(&Json::Obj(vec![
+            ("page".into(), number(page as f64)),
+            ("pages".into(), number(count as f64)),
+            ("zoom".into(), number(viewer.zoom)),
+            ("scrollY".into(), number(pdf.surface.view_top)),
+            ("focused".into(), Json::Bool(self.pdf_focused)),
+            (
+                "control".into(),
+                number(viewer.control.map_or(-1., |index| index as f64)),
+            ),
+            ("controls".into(), Json::Arr(controls)),
+        ]))
+    }
+
+    /// The open card's painted boxes, None while the card is closed so the column answers.
+    fn painted(&self, pick: impl Fn(&Observations) -> Option<Bounds<Pixels>>) -> Option<String> {
+        let look = self.look.filter(|look| look.is_open())?;
+        Some(rect(pick(&look.observations.borrow())))
+    }
+}
+
+/// IpcPreviewState.previewBlockKinds for one Markdown view: its top-level block kinds as JSON, "" until the document is ready.
+pub(crate) fn block_kinds(view: &MarkdownView) -> String {
+    let doc = &view.doc;
+    if !doc.content_ready() {
+        return String::new();
+    }
+    let kinds: Vec<String> = doc
+        .blocks()
+        .iter()
+        .map(|block| format!("\"{}\"", flea::json::escape(&kind_of(block))))
+        .collect();
+    format!("[{}]", kinds.join(","))
 }
 
 /// The kind word IpcPreviewState.kindOf writes: the block type, a fence's info tag, and nested part kinds in brackets.
@@ -152,16 +221,13 @@ fn figure_word(state: Option<FigureState>, busy: bool) -> &'static str {
     }
 }
 
-/// The reader answers for a part GPUI does not yet know, as the IPC contract does for any unported name.
-fn not_ported(function: &str) -> Reply {
-    Reply::error(3, format!("FLEA_IPC_NOT_PORTED flea.{function}"))
-}
-
 impl Adapter for PreviewLook<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
-        let overlay = arguments.first().is_some_and(|flag| flag == "true");
+        // pdfState(overlay) and previewBlockKinds(column) take one bool each.
+        let flag = arguments.first().is_some_and(|flag| flag == "true");
         Some(match function {
-            "previewBlockKinds" if overlay => not_ported(function),
+            // previewBlockKinds(true) reads the column's Markdown; ColumnsPreview answers it ahead of this adapter.
+            "previewBlockKinds" if flag => return None,
             "previewBlockKinds" => Reply::value(self.block_kinds()),
             "previewMarkdownView" => {
                 Reply::value(self.markdown().map_or(
@@ -180,8 +246,10 @@ impl Adapter for PreviewLook<'_> {
                 MediaSound::get(self.cx).muted
             )),
             "previewTextLength" => Reply::value(self.text_length().to_string()),
-            "pdfState" if overlay && self.pdf_overlay() => not_ported(function),
-            "pdfState" if overlay => Reply::value("null"),
+            "pdfState" if flag => Reply::value(self.pdf_state()),
+            // IpcPreviewState reads both boxes from Quick Look's surface item; a closed card leaves the column's.
+            "previewSurfaceRect" => Reply::value(self.painted(|observed| observed.surface)?),
+            "previewPictureRect" => Reply::value(self.painted(|observed| observed.picture)?),
             _ => return None,
         })
     }

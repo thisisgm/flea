@@ -7,6 +7,8 @@ pub mod combine;
 mod controls;
 pub mod convert;
 #[cfg(test)]
+mod convert_document_tests;
+#[cfg(test)]
 mod draw_tests;
 #[cfg(test)]
 mod fix1_tests;
@@ -18,6 +20,7 @@ mod m9_g2rows_21;
 #[cfg(test)]
 mod m9_g2rows_21_artifacts;
 pub mod model;
+mod observations;
 #[cfg(test)]
 mod pointer_tests;
 mod preview;

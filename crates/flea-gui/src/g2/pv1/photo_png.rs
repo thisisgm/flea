@@ -106,7 +106,7 @@ pub(super) fn decode(
     }
     let mut bytes = Vec::with_capacity(w as usize * h as usize * 4);
     for sum in sums {
-        let alpha = sum[3].clamp(0., 255.);
+        let alpha = sum[3];
         for value in &sum[..3] {
             bytes.push(if alpha > 0. {
                 (value * 255. / alpha).round().clamp(0., 255.) as u8
@@ -114,7 +114,7 @@ pub(super) fn decode(
                 0
             });
         }
-        bytes.push(alpha.round() as u8);
+        bytes.push(alpha.round().clamp(0., 255.) as u8);
     }
     let pixels = image::RgbaImage::from_raw(w, h, bytes).ok_or(())?;
     let mut upright = image::DynamicImage::ImageRgba8(pixels);

@@ -52,9 +52,18 @@ fn pb_preview_focused_pdf_scrolls_and_return_expands(cx: &mut TestAppContext) {
     crate::g2::pv2::render::without_threads(|| {
         let (shell, cx, _) = super::pb_preview_fixture::pdf(cx);
         cx.simulate_keystrokes("ctrl-tab");
+        let state = |cx: &mut gpui::VisualTestContext| {
+            flea::jsondoc::parse(&read(&shell, cx, "pdfState", &["false"])).unwrap()
+        };
+        // PreviewColumn.qml activeFocus: the PDF inside the column holds the keyboard.
+        assert_eq!(
+            state(cx)
+                .get("focused")
+                .and_then(flea::jsondoc::Json::as_bool),
+            Some(true)
+        );
         let scroll = |cx: &mut gpui::VisualTestContext| {
-            flea::jsondoc::parse(&read(&shell, cx, "pdfState", &["false"]))
-                .unwrap()
+            state(cx)
                 .get("scrollY")
                 .and_then(flea::jsondoc::Json::as_f64)
                 .unwrap()

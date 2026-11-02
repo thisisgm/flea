@@ -3,15 +3,6 @@ use crate::state::Shell;
 use gpui::{App, Context, Window};
 
 impl Shell {
-    pub(crate) fn extraction_progress(&self, side: usize, cx: &App) -> bool {
-        self.overlay.as_ref().is_some_and(|view| {
-            let card = view.read(cx);
-            card.owner == Some(side)
-                && card.model.jobs.blocks().next().is_some()
-                && card.model.jobs.blocks().all(|job| job.kind == "extract")
-        })
-    }
-
     /// An overlay entity can outlive its card, so only a card still showing takes the keyboard from the list.
     pub(crate) fn card_holds_keyboard(&self, cx: &App) -> bool {
         self.modal_card_holds_keyboard(cx) || self.jobs_card_showing(cx)
@@ -36,7 +27,7 @@ impl Shell {
                 .is_some_and(|overlay| overlay.read_with(cx, |card, cx| card.modal(cx)))
     }
 
-    /// The Jobs card: it holds the keyboard and blocks presses on it, but never a wheel beside it.
+    /// The non-modal Jobs card blocks listing presses, but leaves listing keys and wheels beside it available.
     pub(crate) fn jobs_card_showing(&self, cx: &App) -> bool {
         self.overlay
             .as_ref()

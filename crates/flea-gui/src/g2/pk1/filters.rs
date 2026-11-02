@@ -30,7 +30,12 @@ impl Picker {
             .try_global::<crate::list::Typeface>()
             .cloned()
             .unwrap_or_else(crate::list::Typeface::omarchy_default);
-        let menu = cx.new(|_| ChipMenu::new((*self.locale.catalog).clone(), face));
+        // A reopen inside the close fade keeps the closing menu, so its card fades back up from where it stood.
+        let menu = self
+            .chrome
+            .menu_closing
+            .take()
+            .unwrap_or_else(|| cx.new(|_| ChipMenu::new((*self.locale.catalog).clone(), face)));
         let height = f32::from(window.viewport_size().height);
         let at = self
             .chrome
@@ -56,8 +61,12 @@ impl Picker {
         // An outside click closes the card inside ChipMenu, so its notify is the picker's only sign to drop it.
         self.chrome.filter_close = Some(cx.observe(&menu, |picker, menu, cx| {
             if !menu.read(cx).opened() && picker.chrome.menu_view.as_ref() == Some(&menu) {
-                picker.chrome.menu_view = None;
+                picker.retire_filter_menu();
                 picker.chrome.menu = None;
+                cx.notify();
+            } else if !menu.read(cx).visible() && picker.chrome.menu_closing.as_ref() == Some(&menu)
+            {
+                picker.chrome.menu_closing = None;
                 cx.notify();
             }
         }));
@@ -67,12 +76,19 @@ impl Picker {
         cx.notify();
     }
 
+    // The open chip menu stops taking input but stays drawn through its close fade.
+    fn retire_filter_menu(&mut self) {
+        if let Some(menu) = self.chrome.menu_view.take() {
+            self.chrome.menu_closing = Some(menu);
+        }
+    }
+
     pub fn choose_filter(&mut self, index: i64, cx: &mut Context<Self>) {
         if index < -1 || index >= self.req.filters.len() as i64 {
             return;
         }
         self.chrome.menu = None;
-        self.chrome.menu_view = None;
+        self.retire_filter_menu();
         if index != self.listing.chip {
             self.listing.chip = index;
             let path = self.listing.location.clone();
@@ -98,7 +114,7 @@ impl Picker {
         if let Some(index) = chosen {
             self.choose_filter(index, cx);
         } else if !menu.read(cx).opened() {
-            self.chrome.menu_view = None;
+            self.retire_filter_menu();
             self.chrome.menu = None;
             cx.notify();
         }

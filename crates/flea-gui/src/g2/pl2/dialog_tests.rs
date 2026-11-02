@@ -2,6 +2,66 @@
 use super::dialog::{Dialog, Effect};
 
 #[test]
+fn uish_misc_saved_location_retry_with_changed_uri_closes_without_save() {
+    let mut dialog = Dialog::default();
+    dialog.open_location("smb://user@old.test/share", "Share", false);
+    dialog.form.host = "corrected.test".into();
+    dialog.password.push_str("synthetic");
+    let effects = dialog.submit();
+    assert!(
+        matches!(effects.as_slice(), [Effect::Mount { uri, .. }] if uri == "smb://user@corrected.test/share")
+    );
+    let uri = dialog.pending_uri.clone();
+    let effects = dialog.mount_finished(dialog.request, &uri, Ok(()), false);
+    assert!(effects
+        .iter()
+        .any(|effect| matches!(effect, Effect::Closed)));
+    assert!(!effects
+        .iter()
+        .any(|effect| matches!(effect, Effect::Save { .. })));
+    assert!(!dialog.opened && !dialog.saving && !dialog.save_new);
+    assert!(
+        dialog.replace.is_none(),
+        "Retry is separate from Edit Address"
+    );
+}
+
+#[test]
+fn uish_misc_native8_network_retry_retains_only_the_live_masked_draft() {
+    for key in [
+        "network.no_prompt",
+        "network.no_answer",
+        "network.refused",
+        "network.password_refused",
+    ] {
+        let mut d = Dialog::default();
+        d.open();
+        d.form.host = "host".into();
+        d.form.user = "user".into();
+        d.password.push_str("synthetic-secret");
+        d.reveal = true;
+        let effects = d.submit();
+        assert!(
+            matches!(effects.as_slice(), [Effect::Mount { password, .. }] if password.expose() == b"synthetic-secret")
+        );
+        let uri = d.pending_uri.clone();
+        d.mount_finished(d.request, &uri, Err(key), true);
+        assert!(d.opened && d.retry && d.failed_connect && !d.reveal);
+        assert_eq!(d.password.expose(), b"synthetic-secret", "{key}");
+        assert!(
+            matches!(d.submit().as_slice(), [Effect::Mount { password, .. }] if password.expose() == b"synthetic-secret")
+        );
+        d.close();
+        assert!(d.password.is_empty(), "closing retires the draft");
+        d.open();
+        assert!(
+            d.password.is_empty(),
+            "reopening has no retained credential"
+        );
+    }
+}
+
+#[test]
 fn pl2_edit_address_is_armed_until_its_own_successful_changed_mount() {
     let mut d = Dialog::default();
     d.open_location("smb://nas:445/share/", "Saved", true);

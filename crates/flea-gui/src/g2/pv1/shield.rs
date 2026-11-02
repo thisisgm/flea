@@ -15,7 +15,7 @@ pub struct Hand {
     pub at: Point<Pixels>,
     pub inside: bool,
     pub wheel: Option<ScrollDelta>,
-    /// A move made with the left button down; a held knob ends on a move without it.
+    /// A move made with the left button down; a held knob or pan ends on a move without it.
     pub held: bool,
 }
 
@@ -41,7 +41,7 @@ impl Shield {
         }
     }
 
-    /// A held knob keeps the pointer grab, so its moves and release count even outside the window.
+    /// A held knob or pan keeps the pointer grab, so its moves and release count even outside the window.
     pub fn dragging(mut self, dragging: bool) -> Self {
         self.dragging = dragging;
         self

@@ -9,12 +9,14 @@ use gpui::{
 pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Option<Div> {
     let now = cx.background_executor().now();
     let reduced = cx.reduce_motion();
-    shell.update(cx, |state, _| {
-        state.menu.menu.borrow_mut().settle_fade(now, reduced)
+    shell.update(cx, |state, cx| {
+        state.menu.menu.borrow_mut().settle_fade(now, reduced);
+        state.load_app_icons(window, cx);
     });
     let state = shell.read(cx);
     let fading = state.menu.menu.borrow().faded.as_ref().map(|faded| {
         let id = faded.id;
+        let from = faded.from;
         let painted = faded.painted.clone();
         let element = MenuElement::fading(state.menu.menu.clone(), px(state.corner));
         div()
@@ -28,15 +30,28 @@ pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Opt
                 ("flyout-fade", id as usize),
                 Animation::new(super::menu::fade::CLOSE).with_easing(|t| 1. - (1. - t).powi(3)),
                 move |element, delta| {
-                    painted.set(1. - delta);
-                    element.opacity(1. - delta)
+                    painted.set(from * (1. - delta));
+                    element.opacity(from * (1. - delta))
                 },
             )
     });
-    if !state.menu_opened() && state.menu.presentation.at.is_none() {
-        return fading.map(|fading| div().absolute().top_0().left_0().size_full().child(fading));
-    }
     let element = MenuElement::new(state.menu.menu.clone(), px(state.corner));
+    if !state.menu_opened() && state.menu.presentation.at.is_none() {
+        // A closing card still fades out, but the listing under it takes the pointer at once.
+        let closing = state.menu.menu.borrow().visible().then_some(element);
+        if closing.is_none() && fading.is_none() {
+            return None;
+        }
+        return Some(
+            div()
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full()
+                .children(closing)
+                .children(fading),
+        );
+    }
     let loading = state.menu.presentation.loading.then(|| {
         let at = state.menu.presentation.at.unwrap_or_default();
         let viewport = window.viewport_size();
@@ -103,15 +118,24 @@ impl Shell {
             return;
         };
         let row = match host.drawn_view {
-            // An empty folder draws the hero and no row surface, so its whole pane is blank ground.
-            Some(View::List | View::Dual)
-                if !host.drawn_list && host.pane.state.kind == Kind::Empty =>
+            // Heroes have no row surface. A Locked hero opens the denied folder's menu.
+            Some(drawn)
+                if !host.drawn_list
+                    && (host.pane.state.kind == Kind::Locked
+                        || (host.pane.state.kind == Kind::Empty
+                            && matches!(drawn, View::List | View::Dual | View::Grid))) =>
             {
-                let pane = self.geometry(window).rows(
-                    side,
-                    self.view == View::Dual,
-                    self.slots.strip_height_for(side),
-                );
+                let geometry = self.geometry(window);
+                let strip = self.slots.strip_height_for(side);
+                // Grid has no header row: its ground is the whole pane below this pane's strip.
+                let pane = if drawn == View::Grid {
+                    let mut pane = geometry.panes[side];
+                    pane.y += strip;
+                    pane.height = (pane.height - strip).max(0.);
+                    pane
+                } else {
+                    geometry.rows(side, self.view == View::Dual, strip)
+                };
                 let (x, y) = (f32::from(event.position.x), f32::from(event.position.y));
                 if x < pane.x || x >= pane.x + pane.width || y < pane.y || y >= pane.y + pane.height
                 {
@@ -136,7 +160,7 @@ impl Shell {
                 }
                 frame
                     .row_at(event.position)
-                    .map(|row| host.input.index(row))
+                    .and_then(|row| host.input.drawn_row(row))
             }
             Some(View::Grid) => {
                 let Some(grid) = &host.grid else { return };
@@ -185,7 +209,7 @@ impl Shell {
         let Some(host) = &self.panes[side] else {
             return;
         };
-        if self.input_blocked(cx) {
+        if self.wheel_blocked(cx) {
             return;
         }
         if host.pane.held.row(host.pane.cursor).is_none() && self.locked_folder(side).is_none() {
@@ -197,10 +221,16 @@ impl Shell {
         let pane = geometry.rows(side, self.view == View::Dual, self.slots.strip_height);
         let y = pane.y + host.pane.cursor as f32 * host.pane.row_height() - host.pane.scroll_y
             + host.pane.row_height() / 2.;
+        // Pane.qml openCursorMenu: the locked hero has no rows, so its menu opens at the listing's centre.
+        let locked = self.locked_folder(side).is_some();
+        let centre = (pane.x + pane.width / 2., pane.y + pane.height / 2.);
         // In Columns the cursor row is in the active column, so the menu opens over that column's row.
-        let at = self
-            .columns_cursor_anchor(side)
-            .unwrap_or((pane.x + 14., y));
+        let at = if locked {
+            centre
+        } else {
+            self.columns_cursor_anchor(side)
+                .unwrap_or((pane.x + 14., y))
+        };
         self.open_menu(side, row, at, window, cx);
     }
 
@@ -211,7 +241,7 @@ impl Shell {
             .as_ref()
             .is_some_and(|host| host.pane.held.total == 0);
         // A locked folder keeps its own menu or its own refusal in open_menu.
-        if empty && self.locked_folder(side).is_none() && !self.input_blocked(cx) {
+        if empty && self.locked_folder(side).is_none() && !self.wheel_blocked(cx) {
             let sentence = self.locale.catalog.tr("menu.refusal.nocursor");
             if let Some(host) = &mut self.panes[side] {
                 host.status = sentence.clone().into();

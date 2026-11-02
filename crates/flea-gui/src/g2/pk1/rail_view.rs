@@ -18,10 +18,9 @@ const RULE: f32 = 0.24;
 const CURSOR_WASH: f32 = 0.18;
 const PLACE_FILL: f32 = 0.18;
 const UNMOUNTED: f32 = 0.5;
-// The keyboard row's accent edge, the mount square's inset from the rail's edge, and the body text size.
+// The keyboard row's accent edge and the mount square's inset from the rail's edge.
 const EDGE: f32 = 2.;
 const DOT_INSET: f32 = 2.;
-const TEXT: f32 = 14.;
 
 // SidebarRow.qml showsDot: shares, removable volumes and phones carry a mount square.
 pub(super) fn dot(entry: &RailEntry) -> Option<bool> {
@@ -53,6 +52,8 @@ impl Render for RailView {
         let palette = Palette::inherited(&window.text_style(), theme);
         let focused = owner.rail.focus.is_focused(window);
         let current = owner.listing.location.as_str();
+        let caption = crate::list::Typeface::for_window(window, cx).caption;
+        let size = super::size::Size::of(window, cx);
         let rows = owner.rail.entries.iter().enumerate().map(|(index, entry)| {
             let label = owner.rail.labels.get(index).cloned().unwrap_or_default();
             // The keyboard's row takes the accent wash and edge; otherwise the folder the listing stands on takes the grey fill.
@@ -75,9 +76,9 @@ impl Render for RailView {
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(GAP))
-                .h(px(ROW))
-                .px(px(SIDE))
+                .gap(size.px(GAP))
+                .h(size.px(ROW))
+                .px(size.px(SIDE))
                 .whitespace_nowrap()
                 .when(cursor, |row| {
                     row.bg(palette.accent.opacity(CURSOR_WASH)).child(
@@ -95,7 +96,7 @@ impl Render for RailView {
                 .children(glyph::svg(entry.glyph).map(|(key, data)| {
                     div().flex_none().child(Glyph {
                         paint: Paint::Svg(key, data),
-                        side: MARK,
+                        side: size.len(MARK),
                         ink: palette.foreground,
                     })
                 }))
@@ -109,15 +110,35 @@ impl Render for RailView {
                         .child(label),
                 )
                 .children(dot(entry).map(|mounted| {
-                    div()
-                        .flex_none()
-                        .mr(px(DOT_INSET))
-                        .size(px(DOT))
-                        .bg(if mounted {
-                            palette.executable
+                    // SidebarRow.qml RailEject: a releasable row draws the eject mark in the square's own slot.
+                    if entry.releasable {
+                        let ink = if cursor {
+                            palette.foreground
                         } else {
-                            palette.muted_frame.opacity(UNMOUNTED)
-                        })
+                            palette.muted_frame
+                        };
+                        div()
+                            .flex_none()
+                            .debug_selector(move || format!("picker-rail-eject-{index}"))
+                            // SidebarRow.qml's row tap skips a press on the mark, and PickerPlaces.qml connects no eject.
+                            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                            .children(glyph::svg("eject").map(|(key, data)| Glyph {
+                                paint: Paint::Svg(key, data),
+                                side: f32::from(caption),
+                                ink,
+                            }))
+                    } else {
+                        div()
+                            .flex_none()
+                            .debug_selector(move || format!("picker-rail-dot-{index}"))
+                            .mr(px(DOT_INSET))
+                            .size(size.px(DOT))
+                            .bg(if mounted {
+                                palette.executable
+                            } else {
+                                palette.muted_frame.opacity(UNMOUNTED)
+                            })
+                    }
                 }))
                 .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                     handle.update(cx, |picker, cx| {
@@ -138,11 +159,11 @@ impl Render for RailView {
             .flex_none()
             .h_full()
             .w(px(WIDTH + 1.))
-            .pt(px(TOP))
+            .pt(size.px(TOP))
             .border_r_1()
             .border_color(palette.foreground.opacity(RULE))
             .bg(palette.background)
-            .text_size(px(TEXT))
+            .text_size(px(size.body))
             .text_color(palette.foreground)
             .track_focus(&owner.rail.focus)
             .overflow_y_scroll()

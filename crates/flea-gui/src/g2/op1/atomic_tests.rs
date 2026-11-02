@@ -340,3 +340,6 @@ fn u13_fix1_escape_cannot_cancel_an_unseen_new_job(cx: &mut TestAppContext) {
 
 #[path = "jobs_visibility_tests.rs"]
 mod jobs_visibility_tests;
+
+#[path = "uish_escape_tests.rs"]
+mod uish_escape_tests;

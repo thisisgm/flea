@@ -4,6 +4,9 @@ use super::test_shell::{asked, land, open_with, row};
 use crate::state::Shell;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+#[path = "selection_follow_tests.rs"]
+mod selection_follow;
+
 fn launched_on_beta<'a>(
     cx: &'a mut TestAppContext,
     view: &str,

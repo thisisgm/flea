@@ -93,6 +93,11 @@ fn tui_combine_layout_dimensions_match_output() {
 fn tui_combine_half_block_mode_uses_numbered_boxes() {
     super::combine_process_tests::scenario("graphics");
 }
+
+#[test]
+fn tui_combine_fontconfig_failure_still_renders_numbered_previews() {
+    super::combine_process_tests::scenario("font-fallback");
+}
 #[test]
 fn tui_combine_jpeg_and_background_constraints_hold() {
     super::combine_process_tests::scenario("jpeg");

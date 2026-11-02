@@ -1437,6 +1437,7 @@ name = "flea"
 version = "0.4.0"
 dependencies = [
  "foldhash 0.2.0",
+ "libc",
  "regex",
  "regex-syntax",
  "unicode-normalization",
@@ -1452,6 +1453,7 @@ dependencies = [
  "gpui-pre",
  "gpui-pre-platform",
  "image",
+ "log",
  "omi",
  "png",
  "unicode-bidi",

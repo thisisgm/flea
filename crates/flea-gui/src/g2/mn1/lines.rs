@@ -12,6 +12,10 @@ use flea::ui_logic_mn1::{
 use gpui::{point, px, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::cell::Cell;
 
+// MenuRow.qml's available-update status square and the gap before its version.
+pub(super) const STATUS_SQUARE: f32 = 6.;
+pub(super) const STATUS_GAP: f32 = 7.;
+
 /// What a row draws in its 18 pixel slot.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Lead {
@@ -57,6 +61,7 @@ pub struct Line {
     pub elided: Option<Shaped>,
     // A state word or the default caption, which keeps the chevron's column.
     pub word: Option<Shaped>,
+    pub hint_square: bool,
     // The key the row's action is bound to, while key hints are on.
     pub key: Option<Shaped>,
     pub chevron: bool,
@@ -112,6 +117,14 @@ impl Line {
         )
     }
 
+    pub fn status_width(&self) -> f32 {
+        if self.hint_square {
+            self.metrics.of(STATUS_SQUARE) + self.metrics.of(STATUS_GAP)
+        } else {
+            0.
+        }
+    }
+
     /// The label's clip after the trailing parts the painter actually shapes.
     pub fn label_room(&self, width: f32) -> f32 {
         let metrics = self.metrics;
@@ -128,7 +141,7 @@ impl Line {
             edge -= key.width() + metrics.gap;
         }
         if self.word.is_some() {
-            edge -= self.word_width() + metrics.gap;
+            edge -= self.word_width() + self.status_width() + metrics.gap;
         }
         if self.tag_state.is_some() {
             edge -= metrics.of(flea::ui_logic_pl4::tags::SWATCH_SIZE) + metrics.gap;
@@ -248,6 +261,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                     label: None,
                     elided: None,
                     word: None,
+                    hint_square: false,
                     key: None,
                     chevron: false,
                     hint_wrap: false,
@@ -268,6 +282,14 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 .as_ref()
                 .map(|text| shape(text.resolve(env.catalog), caption, env.typeface, window));
             let wrapping = entry.hint_wrap && word.is_some();
+            let hint_square = !wrapping
+                && entry.hint_square
+                && word.as_ref().is_some_and(|word| !word.text.is_empty());
+            let status_width = if hint_square {
+                metrics.of(STATUS_SQUARE) + metrics.of(STATUS_GAP)
+            } else {
+                0.
+            };
             let key = (!wrapping)
                 .then_some(entry.key_text(env.preset, env.key_hints))
                 .filter(|k| !k.is_empty())
@@ -278,7 +300,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 word: if wrapping {
                     0.
                 } else {
-                    word.as_ref().map_or(0., Shaped::width)
+                    word.as_ref().map_or(0., Shaped::width) + status_width
                 },
                 key: key.as_ref().map_or(0., Shaped::width),
                 chevron: entry.has_submenu(),
@@ -309,6 +331,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 label,
                 elided: None,
                 word,
+                hint_square,
                 key,
                 chevron: entry.has_submenu(),
                 hint_wrap: entry.hint_wrap,

@@ -123,6 +123,7 @@ fn op4_printer_popup_uses_shared_menu_without_resizing_or_dismissing_the_card(
 
 #[gpui::test]
 fn op4_printer_menu_resolves_its_inherited_roles_once_across_frames(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
     let theme = crate::palette::Theme::default();
     assert_ne!(
         theme.surface, theme.background,

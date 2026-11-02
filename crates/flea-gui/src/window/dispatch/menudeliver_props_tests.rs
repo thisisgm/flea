@@ -190,3 +190,62 @@ fn properties_tags_lead_with_solid_squares(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[gpui::test]
+fn fixcards_ey482_the_card_stays_inside_a_650x320_window_and_the_wheel_scrolls_its_body(
+    cx: &mut TestAppContext,
+) {
+    // EY-482: through the window's own Properties layer, a wrapped Path makes the facts taller than the window can hold.
+    let path = "/home/flea-sandbox/fn.T2ARuojP/arms/pf.dcw-rest.pf1-card-body-scroll.current.gpui/fixture/work/A";
+    let (shell, cx) = properties_on(cx, "Folder", path, "");
+    cx.simulate_resize(gpui::size(gpui::px(650.), gpui::px(320.)));
+    cx.run_until_parked();
+    let card = cx
+        .debug_bounds("op3-card")
+        .expect("the Properties card is drawn");
+    let window = cx.update(|window, _| window.viewport_size());
+    assert!(
+        card.top() >= gpui::px(0.) && card.bottom() <= window.height,
+        "the title and Close stay inside the window: {card:?} in {window:?}"
+    );
+    let body = cx
+        .debug_bounds("op3-facts-body")
+        .expect("the fact body is drawn");
+    let close = cx.debug_bounds("op3-button-0").expect("Close is drawn");
+    assert!(
+        body.bottom() <= close.top(),
+        "Close is pinned under the body"
+    );
+    let last = cx
+        .debug_bounds("op3-fact-6")
+        .expect("the Group fact is drawn");
+    assert!(
+        last.bottom() > body.bottom(),
+        "the facts overflow the body here, so the wheel has room to scroll: {last:?} past {body:?}"
+    );
+    cx.simulate_mouse_move(body.center(), None, gpui::Modifiers::none());
+    cx.simulate_event(gpui::ScrollWheelEvent {
+        position: body.center(),
+        delta: gpui::ScrollDelta::Pixels(gpui::point(gpui::px(0.), gpui::px(-500.))),
+        ..Default::default()
+    });
+    cx.run_until_parked();
+    let last = cx
+        .debug_bounds("op3-fact-6")
+        .expect("the Group fact is drawn");
+    assert!(
+        last.bottom() <= body.bottom() + gpui::px(1.),
+        "the wheel scrolls the body down to Group: {last:?} inside {body:?}"
+    );
+    assert_eq!(
+        cx.debug_bounds("op3-button-0"),
+        Some(close),
+        "Close stays pinned"
+    );
+    assert_eq!(
+        cx.debug_bounds("op3-card"),
+        Some(card),
+        "the title stays pinned"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

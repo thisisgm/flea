@@ -7,22 +7,24 @@ use gpui::SharedString;
 const LINE: u64 = super::rail_drop::DRAG_LINE;
 
 #[derive(Clone, Debug, PartialEq)]
-struct Target {
-    side: usize,
-    listing: usize,
-    folder: String,
+pub(super) struct Target {
+    pub(super) side: usize,
+    pub(super) listing: usize,
+    pub(super) folder: String,
     row: Option<usize>,
     slot: Option<crate::columns::geometry::Slot>,
     dest: String,
 }
 
 pub(super) struct Cue {
-    target: Target,
+    pub(super) target: Target,
     serial: u64,
     count: usize,
     flags: Option<(bool, bool)>,
+    /// A shelf drag's verb, fixed at its lift whatever keys are held (Drag.feedbackFor).
+    fixed: Option<Verb>,
     source_keys: Option<(bool, bool)>,
-    own: bool,
+    pub(super) own: bool,
     proposed: Proposed,
     facts: Facts,
 }
@@ -105,6 +107,7 @@ impl Shell {
                     paths.first()?.clone(),
                     paths.len(),
                     Some((lift.marker.copy, lift.marker.shift)),
+                    None,
                     Proposed::default(),
                 ))
             })
@@ -130,15 +133,21 @@ impl Shell {
                     arrived.action,
                 )
                 .proposed;
+                let fixed = arrived
+                    .shelf
+                    .as_deref()
+                    .and_then(core::shelf)
+                    .map(|(_, copy)| if copy { Verb::Copy } else { Verb::Move });
                 Some((
                     paths.first()?.clone(),
                     paths.len(),
                     marker.map(|m| (m.copy, m.shift)),
+                    fixed,
                     proposed,
                 ))
             })
         };
-        let Some((first, count, flags, proposed)) = source else {
+        let Some((first, count, flags, fixed, proposed)) = source else {
             self.clear_file_cue(window, cx);
             return;
         };
@@ -152,6 +161,7 @@ impl Shell {
                 serial,
                 count,
                 flags,
+                fixed,
                 source_keys: None,
                 own,
                 proposed,

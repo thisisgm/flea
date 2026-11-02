@@ -13,6 +13,51 @@ use flea::{
 use gpui::{px, size, Entity, VisualTestContext};
 use harness::{ask, bytes, document, draw, drawn, open, root, unrelated, Drawn};
 
+#[test]
+fn sol_gh374_375_f4_fits_enabled_columns_dropped_at_a_narrow_width() {
+    let mut cx = bench::real_cx();
+    let data = jsondoc::parse(&document(r#"{"mode":"system"}"#)).unwrap();
+    let (shell, vcx, _done) = open(&mut cx, data, 440.);
+    let before = drawn(&shell, vcx);
+    assert!(!before.row_names.split(',').any(|key| key == "kind"));
+    assert_eq!(before.stored[Column::Kind.slot()], Some(295));
+    vcx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
+    vcx.simulate_keystrokes("f4");
+    draw(vcx);
+    let fitted = drawn(&shell, vcx);
+    assert!(
+        fitted.stored[Column::Kind.slot()].is_some_and(|width| width < 295),
+        "F4 left an enabled but dropped Kind column unfitted: {:?}",
+        fitted.stored
+    );
+    assert_eq!(
+        fitted.stored[Column::Mode.slot()],
+        Some(480),
+        "hidden Mode changed"
+    );
+    assert_eq!(fitted.sent, 1, "one F4 must write one widths patch");
+    vcx.simulate_resize(size(px(1580.), px(900.)));
+    vcx.run_until_parked();
+    draw(vcx);
+    assert_eq!(drawn(&shell, vcx).row_names, "name,size,date,kind");
+    vcx.update(|window, cx| {
+        shell.update(cx, |shell, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            let mut list = host.list.borrow_mut();
+            list.view.set_recent(true);
+            for column in [Column::Mode, Column::Kind] {
+                let before = list.view.stored.get(column);
+                assert!(list.autofit(column, &host.pane.held, window).is_none());
+                assert_eq!(
+                    list.view.stored.get(column),
+                    before,
+                    "Recent fitted {column:?}"
+                );
+            }
+        })
+    });
+}
+
 // One face, one window width: the mounted header and rows agree, the name keeps its floor, and only a column whose minimum no longer fits drops, in the oracle's order.
 fn check(shell: &Entity<Shell>, vcx: &mut VisualTestContext, width: f32, face: &str) -> Drawn {
     vcx.simulate_resize(size(px(width), px(900.)));

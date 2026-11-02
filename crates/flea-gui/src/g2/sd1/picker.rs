@@ -19,6 +19,18 @@ impl ProviderSend {
         hidden: &[String],
         now_ms: u64,
     ) -> Vec<Action> {
+        self.menu_refresh(wire, facts, states, hidden, now_ms, None)
+    }
+
+    pub(super) fn menu_refresh(
+        &mut self,
+        wire: &dyn Wire,
+        facts: &Facts,
+        states: Option<&[ProviderState]>,
+        hidden: &[String],
+        now_ms: u64,
+        only: Option<Role>,
+    ) -> Vec<Action> {
         self.hidden = hidden.to_vec();
         self.gated = states.is_some();
         self.facts = facts.clone();
@@ -40,6 +52,7 @@ impl ProviderSend {
             self.ls_answered_once = false;
             self.ls_reason.clear();
         } else if self.row_on(Role::LocalSend)
+            && only.is_none()
             && localsend::should_refresh(true, self.ls_checking, self.ls_asked_at_ms, now_ms)
         {
             let id = self.request_id();
@@ -49,7 +62,7 @@ impl ProviderSend {
             }
         }
         // One status process at a time, as ui/Taildrop.qml holds; a menu opened over it waits.
-        if self.row_on(Role::Tailscale) {
+        if self.row_on(Role::Tailscale) && only.is_none_or(|role| role == Role::Tailscale) {
             if self.td_checking {
                 self.td_waiting = true;
             } else if let Some(argv) = self.start_status() {
@@ -59,7 +72,9 @@ impl ProviderSend {
                 ));
             }
         }
-        out.extend(self.dropbox_refresh());
+        if only.is_none_or(|role| role == Role::Dropbox) {
+            out.extend(self.dropbox_refresh());
+        }
         out
     }
 

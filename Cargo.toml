@@ -26,6 +26,10 @@ regex = "1.13.1"
 regex-syntax = "0.8.11"
 unicode-normalization = "0.1.25"
 
+[dev-dependencies]
+# An independent target ABI oracle for the hand-declared Linux flags.
+libc = "=0.2.191"
+
 [features]
 # Bench-only: the flasher's loop-device seam for a marked root, never enabled by packaging or any default build.
 flash-test-seam = []

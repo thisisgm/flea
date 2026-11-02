@@ -7,10 +7,12 @@ use flea::ui_logic_pl4::tags;
 use flea::ui_logic_pl4::tagtheme::{tag_theme, TagTheme};
 use gpui::{Hsla, Rgba, SharedString};
 
-/// A tag's mark: the 14px swatch in its colour, or in the fallback the 2px frame and 10px bold digit; no colour draws in the foreground.
+/// A tag's mark: the 14px swatch in its colour; with no resolved colour the painter takes the window theme's tag ink at `index`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TagMark {
     pub fill: Option<Hsla>,
+    /// The tag's place in the seven, 0 for Red.
+    pub index: usize,
     pub digit: &'static str,
     pub fallback: bool,
 }
@@ -75,6 +77,7 @@ pub fn tag_mark(theme: &TagTheme, name: &str, ground: Ground) -> TagMark {
     };
     TagMark {
         fill: ink(hex),
+        index: at,
         digit: tags::key_for(name),
         fallback: theme.fallback,
     }

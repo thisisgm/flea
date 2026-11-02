@@ -313,6 +313,15 @@ impl Adapter for Reader<'_> {
                 .active(|paint, drawn| self.row_box(paint, drawn, index))
                 .map(|(x, y, w, h)| rect_of(x, y, w, h))
                 .unwrap_or_default(),
+            // Ipc.qml rowNameText: the decorated name of a row the active column draws, "" for any other.
+            "rowNameText" if self.visible => self
+                .active(|paint, drawn| {
+                    self.row_box(paint, drawn, index)?;
+                    drawn.held.as_ref()?.row(index).map(|facts| {
+                        crate::row::decorated_name(&crate::list::outline::display(facts))
+                    })
+                })
+                .unwrap_or_default(),
             "rowNameRect" if self.visible => self
                 .name_box(index)
                 .map(|(x, y, w, h, _)| rect_of(x, y, w, h))

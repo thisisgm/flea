@@ -70,6 +70,8 @@ pub(super) fn deliver(
             };
             match word(command, "phase")? {
                 "move" => visual.simulate_mouse_move(position, None, modifiers),
+                // A move with the button still held, so a band or a drag that cancels on a bare move can form.
+                "drag" => visual.simulate_mouse_move(position, Some(button), modifiers),
                 "down" => visual.simulate_mouse_down(position, button, modifiers),
                 "up" => visual.simulate_mouse_up(position, button, modifiers),
                 "click" => {

@@ -347,3 +347,28 @@ fn uishlist_review_footer_follows_the_text_size() {
         assert_eq!(pane.pane.scroll_extent, Some(expected));
     });
 }
+
+// SCN-DEV-1 cols-drag-row-move: rowNameText in Columns reads the active column's drawn row, as rowRect does.
+#[test]
+fn fixreaders_columns_row_name_text_reads_the_active_column() {
+    let mut cx = host::context();
+    let (window, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, window, |shell, window, cx| {
+        host::peek(shell, "/srv/a/b", &[("c", true)], false, window, cx);
+    });
+    host::frame(&mut cx, window);
+    host::change(&mut cx, window, |shell, window, cx| {
+        let held = shell.panes[0].as_ref().unwrap().pane.held.clone();
+        let expected = crate::row::decorated_name(held.row(0).expect("row 0 is listed"));
+        assert!(!expected.is_empty());
+        let reply = host::call(shell, "rowNameText", &["0"], window, cx);
+        assert_eq!(reply.stdout.trim(), expected);
+        assert_eq!(
+            host::call(shell, "rowNameText", &["2"], window, cx)
+                .stdout
+                .trim(),
+            "",
+            "no row 2 is drawn"
+        );
+    });
+}

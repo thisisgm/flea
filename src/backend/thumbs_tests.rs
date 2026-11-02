@@ -57,6 +57,7 @@ impl Drop for TestPool {
 
 fn job(path: &str) -> Job {
     Job {
+        replies: None,
         path: PathBuf::from(path),
         mtime: 0,
         trash_identity: None,
@@ -275,6 +276,7 @@ fn a_real_file_round_trips_to_a_stamped_cache_entry() {
     // A real thumbnailer needs a real image, and the fail marker writer already makes the smallest valid one.
     write_marker(&src, "file:///input", 0, None).unwrap();
     fixture.pool.submit(Job {
+        replies: None,
         path: src.clone(),
         mtime: FIXTURE_MTIME,
         trash_identity: None,
@@ -345,6 +347,7 @@ fn a_decoder_failure_records_its_marker_under_the_loaded_table() {
     let fixture = TestPool::new("thumbs-failtable", aliases, Arc::clone(&specs));
     let src = fixture.sandbox.file("in.jpg", "bytes the decoder refuses");
     fixture.pool.submit(Job {
+        replies: None,
         path: src.clone(),
         mtime: FIXTURE_MTIME,
         trash_identity: None,

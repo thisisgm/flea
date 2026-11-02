@@ -246,6 +246,10 @@ fn u06_live_menu_keyboard_keeps_marks_outside_cursor_and_refuses_changed_availab
         assert_eq!(shell.menu.captured.as_ref().unwrap().rows, [2, 4])
     });
     receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[32768,32768]}}"));
+    // Several marks ask the applications their types share before the menu draws.
+    let apps = (fixture.requests)().expect("the menu asks its application producer");
+    assert!(apps.contains("\"op\":\"applications\""), "{apps}");
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"applications\":[]}}"));
     seek(cx, handle, "rename");
     key(cx, handle, "enter");
     assert!((fixture.requests)()

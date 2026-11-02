@@ -180,6 +180,27 @@ impl Shell {
         );
     }
 
+    /// A folder that sprang open under a still pointer: the cue its old listing named re-aims at the row now under the pointer.
+    pub(crate) fn reaim_file_cue(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !cx.has_active_drag() {
+            return;
+        }
+        let key = window_key(window);
+        let stale = cx
+            .try_global::<Drags>()
+            .and_then(|drags| drags.cue.as_ref())
+            .filter(|(owner, _)| *owner == key)
+            .and_then(|(_, cue)| {
+                let aimed = &cue.target;
+                let host = self.panes[aimed.side].as_ref()?;
+                let moved = host.path != aimed.folder || host.pane.held.listing != aimed.listing;
+                (!host.pane.busy() && moved).then_some(cue.own)
+            });
+        if let Some(own) = stale {
+            self.aim_file_cue(window.mouse_position(), own, window, cx);
+        }
+    }
+
     pub(super) fn clear_file_rest(&mut self, window: &Window, cx: &mut App) {
         cx.default_global::<Drags>()
             .rests

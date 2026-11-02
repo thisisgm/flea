@@ -101,6 +101,10 @@ impl Shell {
                 frame.scroll = host.pane.scroll_y;
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);
+                // Grid and Columns re-read a resting pointer through their own hover, never this list frame.
+                if matches!(view, View::List | View::Dual) && !blocked && !host.pane.busy() {
+                    host.input.rehover(host.pane.scroll_y);
+                }
                 #[cfg(test)]
                 {
                     prepared[side] = Some(frame);

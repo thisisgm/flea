@@ -31,6 +31,8 @@ mod draw_tests;
 #[cfg(test)]
 mod extract_tests;
 #[cfg(test)]
+mod fixcards_tests;
+#[cfg(test)]
 mod flash_tests;
 #[cfg(test)]
 mod host_tests;

@@ -12,13 +12,13 @@ use std::{
 };
 
 // Linux CLOCK_MONOTONIC, the clock the compositor stamps presented frames with.
-const CLOCK_MONOTONIC: i32 = 1;
+pub(crate) const CLOCK_MONOTONIC: i32 = 1;
 // Draws and submitted frames a trace remembers; anything older can no longer be presented.
 const KEPT: usize = 512;
 extern "C" {
     fn clock_gettime(clock: i32, time: *mut [i64; 2]) -> i32;
 }
-fn now() -> Option<Duration> {
+pub(crate) fn now() -> Option<Duration> {
     let mut time = [0i64; 2];
     // SAFETY: Linux CLOCK_MONOTONIC and a writable timespec with the platform ABI.
     if unsafe { clock_gettime(CLOCK_MONOTONIC, &mut time) } != 0

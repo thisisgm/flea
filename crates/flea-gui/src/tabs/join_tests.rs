@@ -2,7 +2,7 @@ use crate::{backend::Backend, ipc::server::Event, state::tests::shell_with};
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, KeyDownEvent, Keystroke, TestAppContext};
 
-fn read(
+pub(super) fn read(
     shell: &mut crate::state::Shell,
     function: &str,
     window: &mut gpui::Window,
@@ -40,7 +40,7 @@ fn u25_native_tab_actions_reach_the_mounted_strip(cx: &mut TestAppContext) {
     });
 }
 
-fn key(
+pub(super) fn key(
     shell: &mut crate::state::Shell,
     chord: &str,
     window: &mut gpui::Window,
@@ -61,7 +61,7 @@ fn key(
     );
 }
 
-fn land(
+pub(super) fn land(
     shell: &mut crate::state::Shell,
     path: &str,
     names: &[(&str, bool)],

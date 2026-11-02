@@ -7,12 +7,16 @@ use gpui::{AppContext, TestAppContext};
 mod capture;
 #[path = "columns_finder_tests.rs"]
 mod finder;
+#[path = "columns_fixlist_tests.rs"]
+mod fixlist;
 #[path = "columns_gesture_tests.rs"]
 mod gestures;
 #[path = "columns_test_host.rs"]
 pub(crate) mod host;
 #[path = "columns_hover_tests.rs"]
 mod hover;
+#[path = "columns_neighbour_tab_tests.rs"]
+mod neighbour_tab;
 #[path = "columns_pointer_tests.rs"]
 mod pointer;
 #[path = "columns_review_tests.rs"]

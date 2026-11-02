@@ -166,7 +166,17 @@ impl Shell {
         let host = self
             .trash
             .as_ref()
-            .filter(|host| host.menu.borrow().opened())?;
+            .filter(|host| host.menu.borrow().visible())?;
+        // A closing card fades out without taking the pointer.
+        if !host.menu.borrow().opened() {
+            return Some(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .child(MenuElement::new(host.menu.clone(), px(self.corner)))
+                    .into_any_element(),
+            );
+        }
         Some(
             div()
                 .absolute()

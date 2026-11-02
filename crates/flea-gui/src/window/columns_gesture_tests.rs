@@ -275,3 +275,6 @@ fn ey147_columns_escape_cancels_drag_without_transfer_or_rename() {
         );
     });
 }
+
+#[path = "columns_peek_drag_tests.rs"]
+mod peek_drag;

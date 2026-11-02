@@ -96,6 +96,42 @@ fn compare_scrolls_sideways_to_its_longest_line(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn sol_preview_remainder_ey584_shared_corner_reveals_both_overflow_bars(cx: &mut TestAppContext) {
+    let mut subject = long_patch(&english());
+    if let Body::Diff { rows, .. } = &mut subject.body {
+        rows[3].text = "x".repeat(400);
+    }
+    let (cx, seen, _, _) = host(cx, subject, Arm::Fix);
+    let card = cx.debug_bounds("pv1-card").unwrap();
+    let corner = point(card.right() - px(6.), card.bottom() - px(6.));
+    assert!(!drawn(cx, "pv1-scroll-knob-x"));
+    cx.simulate_mouse_move(corner, None, Modifiers::none());
+    cx.run_until_parked();
+    assert!(
+        drawn(cx, "pv1-scroll-knob-x"),
+        "Compare's horizontal thumb must remain visible at the shared corner"
+    );
+    assert!(drawn(cx, "pv1-scroll-knob"));
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
+    cx.run_until_parked();
+    assert!(drawn(cx, "pv1-scroll-knob-x") && drawn(cx, "pv1-scroll-knob"));
+    wheel(cx, corner, ScrollDelta::Lines(point(-300., -300.)));
+    let horizontal = cx.debug_bounds("pv1-scroll-knob-x").unwrap();
+    let vertical = cx.debug_bounds("pv1-scroll-knob").unwrap();
+    assert_eq!(horizontal.size.height, px(10.));
+    assert_eq!(vertical.size.width, px(10.));
+    assert!(horizontal.right() <= card.right() - px(14.));
+    assert!(vertical.bottom() <= card.bottom() - px(14.));
+    cx.simulate_mouse_move(card.center(), None, Modifiers::none());
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(1001));
+    cx.run_until_parked();
+    assert!(!drawn(cx, "pv1-scroll-knob-x") && !drawn(cx, "pv1-scroll-knob"));
+    assert_eq!(*seen.borrow(), Seen::default());
+}
+
+#[gpui::test]
 fn a_short_patch_takes_the_wheel_and_moves_nothing(cx: &mut TestAppContext) {
     let (cx, seen, _, _) = host(cx, compare_diff(&english()), Arm::Fix);
     let card = cx.debug_bounds("pv1-card").unwrap();

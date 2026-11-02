@@ -71,6 +71,69 @@ fn extern_arg(dependencies: &Path, package: &str, version: &str) -> String {
     format!("{name}={}", library.display())
 }
 
+// Sample input, a test unit's fingerprint json, cut to its flea entry ([unit id, crate, public, fingerprint]):
+// {"rustc":1625334936438085654,"deps":[[8834117861150897078,"flea",false,7573756887539753601]],"local":[]}
+fn flea_fingerprint(unit: &str) -> Option<u64> {
+    let (_, entry) = unit.split_once(",\"flea\",")?;
+    let (_, value) = entry.split_once(',')?;
+    value[..value.find(']')?].parse().ok()
+}
+
+// A shared target dir holds several libflea rlibs, so the one this test links is the one its own cargo fingerprint names.
+pub(crate) fn core_library(dependencies: &Path, test_binary: &Path) -> PathBuf {
+    let fingerprints = dependencies
+        .parent()
+        .unwrap_or_else(|| panic!("deps dir {} has no target dir", dependencies.display()))
+        .join(".fingerprint");
+    let name = test_binary.file_name().unwrap().to_string_lossy();
+    let (_, hash) = name
+        .rsplit_once('-')
+        .unwrap_or_else(|| panic!("test binary {name} carries no cargo hash"));
+    let unit_dir = fingerprints.join(format!("flea-gui-{hash}"));
+    let unit = std::fs::read_dir(&unit_dir)
+        .unwrap_or_else(|error| {
+            panic!(
+                "cannot read test fingerprint {}: {error}",
+                unit_dir.display()
+            )
+        })
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .find(|path| {
+            let name = path.file_name().unwrap().to_string_lossy();
+            name.starts_with("test-") && name.ends_with(".json")
+        })
+        .unwrap_or_else(|| panic!("cargo wrote no test fingerprint in {}", unit_dir.display()));
+    let recorded = std::fs::read_to_string(&unit)
+        .unwrap_or_else(|error| panic!("cannot read test fingerprint {}: {error}", unit.display()));
+    let linked = flea_fingerprint(&recorded).unwrap_or_else(|| {
+        panic!(
+            "test fingerprint {} lists no flea dependency",
+            unit.display()
+        )
+    });
+    // cargo writes lib-flea as the fingerprint's little-endian bytes in hex.
+    let wanted = format!("{:016x}", linked.swap_bytes());
+    std::fs::read_dir(&fingerprints)
+        .unwrap_or_else(|error| panic!("cannot read {}: {error}", fingerprints.display()))
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let library_hash = name.strip_prefix("flea-")?.to_owned();
+            let recorded = std::fs::read_to_string(entry.path().join("lib-flea")).ok()?;
+            (recorded.trim() == wanted).then_some(library_hash)
+        })
+        .map(|library_hash| dependencies.join(format!("libflea-{library_hash}.rlib")))
+        .find(|library| library.is_file())
+        .unwrap_or_else(|| {
+            panic!(
+                "no flea rlib in {} carries fingerprint {wanted}, which {} links",
+                dependencies.display(),
+                unit.display()
+            )
+        })
+}
+
 // -L resolves transitive crates, but each direct dependency also needs --extern.
 pub(crate) fn backend_extern_args(workspace: &Path, dependencies: &Path) -> Vec<String> {
     let lock = std::fs::read_to_string(workspace.join("Cargo.lock")).unwrap();

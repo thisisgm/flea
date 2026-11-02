@@ -1,7 +1,7 @@
 //! A small raster in the column keeps its own pixels, one to each device pixel and centred.
 use super::{
     preview_quality_tests::{column, wait, Root},
-    previewtypes_tests::{answer, file, local, meta, open},
+    previewtypes_tests::{file, local, meta, open, thumbed},
 };
 use crate::window::u07_tests::read;
 use gpui::TestAppContext;
@@ -27,13 +27,12 @@ fn column_keeps_own_pixels(cx: &mut TestAppContext, source: image::RgbaImage, th
     );
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, &format!(r#","w":{w},"h":{h}"#));
-    answer(
+    thumbed(
         &shell,
         cx,
-        &format!(
-            r#"{{"t":"thumbed","row":0,"file":"{}"}}"#,
-            root.0.join("small-thumb.png").display()
-        ),
+        &lines,
+        0,
+        &root.0.join("small-thumb.png").display().to_string(),
     );
     for scale in [1.25f32, 1.6, 2.] {
         cx.simulate_scale_factor_change(scale);

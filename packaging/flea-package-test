@@ -87,7 +87,7 @@ fi
 [ -n "$pkg" ] || { fail "no package was produced"; exit 1; }
 package_name=$(bsdtar -xOf "$pkg" .PKGINFO | sed -n 's/^pkgname = //p')
 case "$package_name" in
-  flea|flea-bin|flea-git) ;;
+  flea|flea-bin) ;;
   *) fail "unexpected package name $package_name"; exit 1 ;;
 esac
 

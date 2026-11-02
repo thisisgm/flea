@@ -2,6 +2,17 @@ use super::*;
 use std::collections::BTreeSet;
 
 #[test]
+fn s5_native_animation_reader_is_registered_outside_the_frozen_oracle() {
+    let function = validate("flea", "columnAnimationState", &[]).unwrap();
+    assert_eq!(function.result, "string");
+    assert!(function.parameters.is_empty());
+    assert!(!ORACLE
+        .iter()
+        .any(|entry| entry.name == "columnAnimationState"));
+    assert!(VISUAL.contains(function));
+}
+
+#[test]
 fn registry_matches_every_target_signature_in_the_frozen_oracle() {
     let mut expected = BTreeSet::new();
     for (target, text) in [

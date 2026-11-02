@@ -4,9 +4,14 @@ pub mod bulkrename;
 mod card_props_tests;
 #[cfg(test)]
 mod card_tests;
+#[cfg(test)]
+mod fixcards2_tests;
+#[cfg(test)]
+mod fixcards_tests;
 pub mod keys;
 pub mod lane;
 pub mod openwith;
+pub(crate) mod initial;
 pub mod permissions;
 #[cfg(test)]
 mod permissions_tests;

@@ -62,6 +62,8 @@ impl Shell {
         }
         context.selection_count = usize::from(capture.target.is_some());
         context.tag_submenu = None;
+        // The zip probe follows the listing's own target, never a peeked path.
+        context.flash_zip_member.clear();
         context.dir_writable = host
             .columns
             .as_ref()
@@ -85,6 +87,7 @@ impl Shell {
             context.row_is_archive =
                 flea::ui_logic_mn1::archive::row_is_archive(&row.name, row.dir);
             context.row_is_image = image;
+            context.row_is_document = crate::window::output::kind(row).paged();
             context.selection_images = usize::from(image);
             context.selection_modes = vec![row.mode];
             context.printable =

@@ -32,12 +32,12 @@ impl Shell {
                 label,
                 origin,
             } => {
-                self.network_list(cx);
                 self.network_opening(*origin, "", cx);
                 let Some(side) = self.network_side(*origin) else {
                     self.drop_rail_network_open(*origin);
                     return;
                 };
+                self.network_connected(side, cx);
                 if matches!(effect, Effect::Open { .. }) {
                     self.remember_path_alias(path, label, uri);
                 }
@@ -49,26 +49,52 @@ impl Shell {
                     path.clone()
                 };
                 let opened = self.open_rail_place(side, &folder, window, cx);
-                self.land_rail_network_open(
-                    *origin,
-                    side,
-                    opened && matches!(effect, Effect::Open { .. }),
-                    window,
-                    cx,
-                );
+                let landed = opened && matches!(effect, Effect::Open { .. });
+                self.land_rail_network_open(*origin, side, landed, window, cx);
+                // A completed card whose Closed event is still queued returns the keyboard to the opened list.
+                if landed
+                    && self.lifecycle.phase() == crate::window::lifecycle::Phase::Open
+                    && side == self.focus_side
+                    && self.keyboard.context == flea::keys::Context::Rail
+                    && !card.read(cx).model.opened
+                    && card.read(cx).holds_focus(window, cx)
+                {
+                    if let Some(network) = self.network() {
+                        if network.return_focus == Some((side, true)) {
+                            network.return_focus = Some((side, false));
+                        }
+                    }
+                }
             }
-            Effect::RefreshMounts => self.network_list(cx),
+            Effect::RefreshMounts => {
+                // The phone rows read the rail source's own listing, so a mount that lands re-lists it too, as v0.3.12's one shared poll did.
+                if let Some(join) = &self.rail {
+                    let source = join.devices.clone();
+                    source.update(cx, |source, cx| source.poll_mounts(cx));
+                }
+                self.network_list(cx);
+            }
             Effect::Shares {
                 uri,
                 label,
                 names,
                 origin,
             } => {
-                if self.network_side(*origin).is_some() {
+                if let Some(side) = self.network_side(*origin) {
+                    self.network_connected(side, cx);
+                    self.network_remember_focus();
+                    let previous = window.focused(cx);
                     let (uri, label, names) = (uri.clone(), label.clone(), names.clone());
                     shares.update(cx, |shares, cx| {
                         shares.show(uri, label, names, *origin, window, cx)
                     });
+                    if side != self.focus_side {
+                        if let Some(previous) = previous {
+                            window.focus(&previous, cx);
+                        } else {
+                            window.blur(cx);
+                        }
+                    }
                     cx.notify();
                 } else {
                     service.update(cx, |service, _| service.close_browser(*origin));
@@ -105,7 +131,11 @@ impl Shell {
                     .locale
                     .catalog
                     .tr_args(error, &args.iter().map(String::as_str).collect::<Vec<_>>());
+                if *connect_failed {
+                    self.network_connect_error(side, &text);
+                }
                 self.network_say(side, text, *connect_failed, cx);
+                self.network_remember_focus();
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
@@ -120,11 +150,7 @@ impl Shell {
                 }
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
-                    if role == SayRole::Opening {
-                        self.network_opening(*origin, &text, cx);
-                    } else {
-                        self.network_say(side, text, role == SayRole::Error, cx);
-                    }
+                    self.network_say(side, text, role == SayRole::Error, cx);
                 }
             }
             Effect::Peek {
@@ -132,6 +158,13 @@ impl Shell {
                 path,
                 count,
             } => self.network_peek(*generation, path.clone(), *count, cx),
+            Effect::Starting { note, origin } if self.network_side(*origin).is_some() => {
+                let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
+                self.network_opening(*origin, &text, cx);
+            }
+            Effect::Starting { .. } => {}
+            // Settled clears whatever origin it names, so a pane closed mid-wait never strands the line.
+            Effect::Settled { origin } => self.network_opening(*origin, "", cx),
             Effect::Run { .. } | Effect::Kill(_) | Effect::EnsureBridge { .. } => {}
         }
     }
@@ -199,7 +232,11 @@ impl Shell {
         let Some(network) = self.network() else {
             return;
         };
-        let (service, runner) = (network.service.clone(), network.runner.clone());
+        let (service, runner, shares) = (
+            network.service.clone(),
+            network.runner.clone(),
+            network.shares.clone(),
+        );
         match effect {
             dialog::Effect::Save {
                 id,
@@ -207,6 +244,10 @@ impl Shell {
                 label,
                 replace,
             } => {
+                if replace.is_none() {
+                    self.save_network_favourite(*id, uri, label, window, cx);
+                    return;
+                }
                 let edit = match replace {
                     Some(old) => bookmarks::Edit::Replace {
                         old: old.clone(),
@@ -221,8 +262,11 @@ impl Shell {
                 self.network_save(edit, Some(*id), None, cx);
             }
             dialog::Effect::Closed => {
-                window.focus(&self.focus, cx);
-                cx.notify();
+                // Only a browser on the focused pane keeps the keyboard; one on the other pane must not strand it.
+                let browser = &shares.read(cx).model;
+                if !browser.open || self.network_side(browser.origin) != Some(self.focus_side) {
+                    self.network_restore_focus(window, cx);
+                }
             }
             dialog::Effect::InstallDropbox => {
                 let argv = flea::ui_logic_pl2::DROPBOX_INSTALL

@@ -244,9 +244,8 @@ fn row_states_resolve_per_row_and_never_outlive_their_listing() {
         selected: Some(Rc::from(vec![1, 3, 5])),
         hovered: Some(7),
         renaming: Some(2),
-        grow: Default::default(),
         drop_target: Some(8),
-        drop_label: None,
+        ..Default::default()
     };
     with_states(&mut cx, &pane, states.clone());
     {

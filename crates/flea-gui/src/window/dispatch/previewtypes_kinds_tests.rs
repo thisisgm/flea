@@ -1,5 +1,5 @@
 //! Each row kind mounts its own view in the preview column of the production Shell, walked with the Down key.
-use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
+use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump, thumbed};
 use crate::window::{
     selection_preview::{docs::Doc, Mounted},
     u07_tests::read,
@@ -123,7 +123,7 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     cx.simulate_keystrokes("down");
     let lines = pump(cx);
     meta(&shell, cx, &lines, r#","target":"/elsewhere/photo.png""#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":3,"file":""}"#);
+    thumbed(&shell, cx, &lines, 3, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "symlink");
     let facts = read(&shell, cx, "previewFacts", &[]);
@@ -140,7 +140,7 @@ fn markdown_csv_html_archive_symlink_and_data_rows_draw_their_own_preview(cx: &m
     cx.simulate_keystrokes("down");
     let lines = pump(cx);
     meta(&shell, cx, &lines, "");
-    answer(&shell, cx, r#"{"t":"thumbed","row":4,"file":""}"#);
+    thumbed(&shell, cx, &lines, 4, "");
     pump(cx);
     assert_eq!(read(&shell, cx, "previewColumnState", &[]), "unsupported");
     assert_eq!(read(&shell, cx, "columnFailure", &[]), "");
@@ -284,7 +284,7 @@ fn an_image_that_fails_to_decode_keeps_its_image_facts(cx: &mut TestAppContext) 
     super::test_shell::land(&shell, cx, &dir, rows, 1);
     let lines = local(&shell, cx, &dir);
     meta(&shell, cx, &lines, r#","w":2,"h":2"#);
-    answer(&shell, cx, r#"{"t":"thumbed","row":0,"file":""}"#);
+    thumbed(&shell, cx, &lines, 0, "");
     pump(cx);
     let failed = shell.read_with(cx, |shell, cx| {
         let preview = shell.selection_preview(0).expect("the column is mounted");

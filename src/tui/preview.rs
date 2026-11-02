@@ -277,11 +277,11 @@ context = "listing"
         m.preview_auto = false;
         m.hints = crate::tui::keymap::Hints::new(&crate::tui::keymap::Map::load(), "default");
         load(&mut m, false);
-        assert_eq!(m.preview.last().unwrap(), "Ctrl+Space to load preview");
+        assert_eq!(m.preview.last().unwrap(), "Ctrl+Space loads it");
         m.hints = crate::tui::keymap::Hints::new(&rebound, "default");
         m.preview_path.clear();
         load(&mut m, false);
-        assert_eq!(m.preview.last().unwrap(), "Ctrl+P to load preview");
+        assert_eq!(m.preview.last().unwrap(), "Ctrl+P loads it");
         m.hints.load_preview.clear();
         m.preview_path.clear();
         load(&mut m, false);

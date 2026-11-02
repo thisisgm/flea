@@ -25,7 +25,7 @@ impl Render for Root {
             // A field that lost focus since the last key lets go of its composition before this frame draws it.
             shell.sync_text_input(window, cx);
             // A plugin action's own input card keeps the menu's validated capture leased until it closes.
-            if shell.card_holds_keyboard(cx)
+            if shell.modal_card_holds_keyboard(cx)
                 && shell.plugins.input.is_none()
                 && shell.menu.captured.is_some()
             {

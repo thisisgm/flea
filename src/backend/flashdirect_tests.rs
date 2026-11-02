@@ -102,3 +102,16 @@ fn b7_a_failed_flag_read_is_not_o_direct() {
     assert!(direct_flag(O_DIRECT_FLAG), "the flag itself reads as on");
     assert!(!direct_flag(0));
 }
+
+#[test]
+fn arm_oflags_flash_recognizes_the_target_direct_io_bit() {
+    assert!(
+        direct_flag(libc::O_DIRECT),
+        "the helper's native O_DIRECT must be recognized"
+    );
+    assert!(
+        !direct_flag(libc::O_DIRECTORY),
+        "O_DIRECTORY must never authorize a direct I/O descriptor"
+    );
+    assert_eq!(O_DIRECT_FLAG, libc::O_DIRECT);
+}

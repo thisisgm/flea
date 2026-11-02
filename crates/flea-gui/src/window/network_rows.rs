@@ -2,81 +2,29 @@
 use super::*;
 
 impl Shell {
-    /// The poll asks only while the rail polls; a listing that overruns its deadline is killed and the last good one stands.
-    pub(super) fn network_tick(&mut self, cx: &mut Context<Self>) {
-        let polling = self
-            .rail
-            .as_ref()
-            .is_some_and(|join| join.places.read(cx).polling);
-        if !polling {
+    /// Network and device rows consume the same complete gio listing, including its timeout verdict.
+    pub(super) fn network_sync_mounts(&mut self, cx: &mut Context<Self>) {
+        let Some(devices) = self.rail.as_ref().map(|join| join.devices.clone()) else {
             return;
-        }
+        };
+        let (generation, listing) = devices.read(cx).mount_snapshot();
         let Some(network) = self.network() else {
             return;
         };
-        let service = network.service.clone();
-        let now = service.update(cx, |service, cx| service.now(cx));
-        let effects = self
-            .network()
-            .map(|n| n.listing.tick(now))
-            .unwrap_or_default();
-        self.network_listing(effects, cx);
+        let changed = generation != network.listing_generation;
+        network.listing = listing;
+        network.listing_generation = generation;
+        if changed {
+            self.network_rows(cx);
+        }
     }
 
-    /// An immediate re-list, after a mount lands, a share releases or a place is saved.
     pub(crate) fn network_list(&mut self, cx: &mut Context<Self>) {
-        let Some(network) = self.network() else {
+        let Some(devices) = self.rail.as_ref().map(|join| join.devices.clone()) else {
             return;
         };
-        let service = network.service.clone();
-        let now = service.update(cx, |service, cx| service.now(cx));
-        let effects = self
-            .network()
-            .map(|n| n.listing.poll(now))
-            .unwrap_or_default();
-        self.network_listing(effects, cx);
-    }
-
-    fn network_listing(&mut self, effects: Vec<Listed>, cx: &mut Context<Self>) {
-        for effect in effects {
-            let Some(network) = self.network() else {
-                return;
-            };
-            match effect {
-                // The timed-out exit still has to release Listing::running and admit the next poll.
-                Listed::Kill => network.listing_slot.stop(),
-                Listed::Listed => self.network_rows(cx),
-                Listed::Start(job) => {
-                    let handle = network.runner.start(job);
-                    let events = handle.events.clone();
-                    let run = network.listing_slot.start(handle);
-                    let task = cx.spawn(async move |this, cx| {
-                        while let Ok(event) = events.recv().await {
-                            if let Proc::Exited(out) = event {
-                                let _ = this.update(cx, |shell, cx| {
-                                    let Some(network) = shell.network() else {
-                                        return;
-                                    };
-                                    if !network.listing_slot.ended(run) {
-                                        return;
-                                    }
-                                    let service = network.service.clone();
-                                    let now = service.update(cx, |service, cx| service.now(cx));
-                                    let next = shell
-                                        .network()
-                                        .map(|n| n.listing.exited(&out, now))
-                                        .unwrap_or_default();
-                                    shell.network_listing(next, cx);
-                                });
-                                break;
-                            }
-                        }
-                    });
-                    network.tasks.retain(|task| !task.is_ready());
-                    network.tasks.push(task);
-                }
-            }
-        }
+        devices.update(cx, |source, cx| source.poll_mounts(cx));
+        self.network_sync_mounts(cx);
     }
 
     /// A saved bookmark write landed: the rows and crumb labels rebuild from the file it just wrote.

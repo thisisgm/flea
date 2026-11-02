@@ -7,6 +7,13 @@ use crate::{
 use gpui::{px, Bounds, Font, GlyphRun, Pixels, SharedString, Window};
 use std::{rc::Rc, sync::Arc};
 
+impl RowState {
+    /// A cursor bolds its match, and a marked filter row carries no match wash.
+    pub fn washes_run(self, searching: bool) -> bool {
+        !self.cursor && (searching || !self.selected)
+    }
+}
+
 /// The drag owner's caption for a drop target row, shaped once per label, face and size.
 pub struct DropLine {
     label: SharedString,
@@ -53,6 +60,8 @@ pub struct Shown {
     pub prepared: Option<Rc<Prepared>>,
     pub clip: Option<ClipMark>,
     pub state: RowState,
+    /// A cursor match is bold unless this is a marked row under a filter.
+    pub bold_match: bool,
     /// The thumbnail drawn in the mark slot, lent while the row's facts match the answer.
     pub picture: Option<Arc<Thumbnail>>,
 }
@@ -64,7 +73,7 @@ impl Shown {
             prepared
                 .bold
                 .get()
-                .filter(|_| self.state.cursor)
+                .filter(|_| self.bold_match)
                 .unwrap_or(&prepared.name),
         )
     }

@@ -347,9 +347,10 @@ fn pv2_code_wrapped_long_line_shapes_and_paints_only_the_rows_in_view(cx: &mut T
         .unwrap();
     draw(cx, view);
     let (deep, top, offset) = with(cx, view, |v| (v.cache.shaped() as usize, v.top, v.offset));
+    // Quick Look measures its row pitch from the body font (EY-170), so the step is the view's own row.
     assert_eq!(
         (top, offset),
-        (0, 2_000. * METRICS.row),
+        (0, 2_000. * with(cx, view, |v| v.metrics.row)),
         "two thousand rows into the one line"
     );
     assert!(

@@ -26,20 +26,19 @@ depends=(
   'gvfs-smb'           # SMB shares
   'hicolor-icon-theme' # owns the directory the desktop icon is installed into
   'jq'                 # formats JSON previews
-  'kimageformats'      # Qt's HEIC decoder for photo previews, with libheif
   'libglvnd'           # libEGL, which flea-gui loads for its OpenGL renderer fallback
-  'libheif'            # the HEIC codec kimageformats loads
+  'libheif'            # GPUI HEIC and AVIF photo decoding
   'libxcb'             # linked by flea-gui for X11 windows
   'libxkbcommon'       # keyboard maps, linked by flea-gui
   'libxkbcommon-x11'   # X11 keyboard maps, linked by flea-gui
-  'omarchy'            # owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into
+  'mpv'                # libmpv.so.2 for the jailed GPUI audio/video decoder
+  'omarchy'            # desktop integration and the optional Omarchy bar shelf plugin
   'poppler-glib'       # PDF previews, which flea-gui loads at runtime
   'python'             # runs tools/flea-portal and tools/flea-filemanager1, which D-Bus activates
   'python-gobject'     # the D-Bus binding those two services answer with
   'quickjs-ng'         # qjs, which flea --figure-helper runs for Markdown maths and diagrams
-  'quickshell'         # runs the QML UI
-  'qt6-multimedia'     # QtMultimedia for ui/PreviewMedia.qml
-  'qt6-webengine'      # QtQuick.Pdf for ui/PreviewPdf.qml
+  'qt6-declarative'    # HTML preview helper (src/backend/htmlreq.rs) until flea-html lands
+  'qt6-webengine'      # HTML preview helper (src/backend/htmlreq.rs) until flea-html lands
   'shared-mime-info'   # the MIME database Flea reads file types from
   'udisks2'            # udisksctl, for unlocking and the relock after unmount
   'usbmuxd'            # the iPhone connection gvfs-afc talks to
@@ -53,6 +52,8 @@ depends=(
 )
 # git fetches the pinned GPUI fork in prepare(), and pkgconf locates its system libraries.
 makedepends=('cargo' 'git' 'pkgconf')
+# qml6 runs tests/js.sh; the same package also serves the runtime HTML helper.
+checkdepends=('qt6-declarative')
 optdepends=(
   '7zip: 7z archive support'
   'dropbox-cli: Dropbox browsing and share links'
@@ -141,10 +142,7 @@ check() {
   # back to the next create, so on the builder's /tmp the stranger is
   # identical and undo walks it back. tmpfs allocates inode numbers from a
   # counter and never reuses one, which is what the test assumes.
-  # tagsreq::undo_tests::redo_refuses_a_file_recreated_on_the_freed_inode is
-  # the same case for tags: on the builder's /tmp the freed inode came back
-  # and redo could not tell the new file from the old one. On tmpfs the
-  # inode is never reused, and the test skips that leg itself.
+  # Tags redo asserts replacement refusal with real inode reuse where available and a guaranteed new inode otherwise.
   # copymanifest's garbage-stream test opens its O_TMPFILE manifest in its
   # own test dir; the module's other tests must stay off tmpfs, because
   # Writer::create wants a runtime dir on a different filesystem from the

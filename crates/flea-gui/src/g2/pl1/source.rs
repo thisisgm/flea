@@ -56,6 +56,7 @@ pub struct Source {
     pub phones: Phones,
     pub sections: Vec<RailSection>,
     listing: Listing,
+    listing_generation: u64,
     network: NetworkSnapshot,
     show_devices: bool,
     show_network: bool,
@@ -84,6 +85,7 @@ impl Source {
             phones: Phones::default(),
             sections: Vec::new(),
             listing: Listing::new(),
+            listing_generation: 0,
             // No NETWORK producer is joined yet, so its empty section has already finished discovery.
             network: NetworkSnapshot {
                 answered: true,
@@ -213,6 +215,10 @@ impl Source {
         let effects = self.listing.poll(now);
         self.listing_effects(effects, cx);
         self.arm(cx);
+    }
+
+    pub(crate) fn mount_snapshot(&self) -> (u64, Listing) {
+        (self.listing_generation, self.listing.clone())
     }
 
     /// Resolve the current row by identity; a vanished device never activates the next row instead.

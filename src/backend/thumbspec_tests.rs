@@ -18,19 +18,21 @@ fn a_declared_type_finds_its_spec() {
     assert!(t.for_mime("image/jpeg", &a).is_none());
 }
 
-// The eleven camera RAW types as the mime database names them, spelled out so the table in the code is not its own witness.
-const ELEVEN: [&str; 11] = [
+// These thirteen RAW types use embedded JPEGs; IIQ uses the TIFF thumbnailer.
+const JPEG_RAW: [&str; 13] = [
     "image/x-canon-cr2",
     "image/x-canon-cr3",
     "image/x-nikon-nef",
     "image/x-nikon-nrw",
     "image/x-sony-arw",
     "image/x-sony-sr2",
+    "image/x-sony-srf",
     "image/x-adobe-dng",
     "image/x-fuji-raf",
     "image/x-olympus-orf",
     "image/x-panasonic-rw2",
     "image/x-pentax-pef",
+    "image/x-samsung-srw",
 ];
 
 #[test]
@@ -38,7 +40,7 @@ fn each_camera_raw_type_takes_the_jpeg_spec_and_only_when_one_is_installed() {
     let a = Aliases::from_str("image/x-panasonic-raw2 image/x-panasonic-rw2\n");
     let jpeg =
         one("[Thumbnailer Entry]\nTryExec=/bin/sh\nExec=/bin/sh -j %i %o\nMimeType=image/jpeg;\n");
-    for m in ELEVEN.iter().chain(&["image/x-panasonic-raw2"]) {
+    for m in JPEG_RAW.iter().chain(&["image/x-panasonic-raw2"]) {
         assert_eq!(
             jpeg.raw_route(m, &a).map(|s| s.exec[1].as_str()),
             Some("-j"),
@@ -46,8 +48,8 @@ fn each_camera_raw_type_takes_the_jpeg_spec_and_only_when_one_is_installed() {
         );
         assert!(jpeg.for_mime(m, &a).is_some(), "{m}");
     }
-    // Not a RAW type: the PNG, the Sony SRF the walker reads but this route does not list, and an unknown name.
-    for m in ["image/png", "image/x-sony-srf", "nonsense/nothing"] {
+    // IIQ is RAW, but a JPEG-only thumbnailer cannot serve its TIFF route.
+    for m in ["image/png", "image/x-phaseone-iiq", "nonsense/nothing"] {
         assert!(
             jpeg.raw_route(m, &a).is_none() && jpeg.for_mime(m, &a).is_none(),
             "{m}"
@@ -56,7 +58,7 @@ fn each_camera_raw_type_takes_the_jpeg_spec_and_only_when_one_is_installed() {
     // Without an image/jpeg thumbnailer a RAW has none, as before.
     let video =
         one("[Thumbnailer Entry]\nTryExec=/bin/sh\nExec=/bin/sh %i %o\nMimeType=video/mp4;\n");
-    assert!(ELEVEN.iter().all(|m| video.for_mime(m, &a).is_none()));
+    assert!(JPEG_RAW.iter().all(|m| video.for_mime(m, &a).is_none()));
     // A thumbnailer that declares the RAW itself still serves it when no image/jpeg one exists, and the route stays off.
     let own = one("[Thumbnailer Entry]\nTryExec=/bin/sh\nExec=/bin/sh -r %i %o\nMimeType=image/x-canon-cr2;\n");
     assert_eq!(

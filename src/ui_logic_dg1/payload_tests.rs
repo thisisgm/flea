@@ -6,12 +6,32 @@ fn paths(list: &[&str]) -> Vec<String> {
 }
 
 #[test]
+fn plugin_place_paste_frontend_payload_preserves_plugin_scheme_and_cut() {
+    let paths = paths(&["plugin://example.virtual-place/renamed %.txt"]);
+    assert_eq!(
+        build_urilist(&paths),
+        b"plugin://example.virtual-place/renamed%20%25.txt\r\n"
+    );
+    assert_eq!(parse_urilist(&build_urilist(&paths)), (paths.clone(), 0));
+    assert_eq!(
+        parse_gnome(&build_gnome("cut", &paths)),
+        Some(("cut".into(), paths, 0))
+    );
+    assert!(parse_urilist(b"plugin://example.virtual-place/%2e%2e/x")
+        .0
+        .is_empty());
+}
+
+#[test]
 fn the_fork_docs_cut_example_builds_exactly() {
     let mine = paths(&["/example/a b"]);
     assert_eq!(build_urilist(&mine), b"file:///example/a%20b\r\n");
     assert_eq!(build_gnome("cut", &mine), b"cut\nfile:///example/a%20b");
     // The fork doc writes a final newline; both shapes read as the same selection.
-    assert_eq!(parse_gnome(b"cut\nfile:///example/a%20b\n").unwrap().1, mine);
+    assert_eq!(
+        parse_gnome(b"cut\nfile:///example/a%20b\n").unwrap().1,
+        mine
+    );
 }
 
 #[test]
@@ -71,9 +91,18 @@ fn the_chooser_prefers_gnome_then_uri_then_nothing() {
     let uri = build_urilist(&mine);
     let flea = build_flea("cut", "ab12cd34ab12cd34ab12cd34ab12cd34");
     let foreign = choose(&[
-        Offer { mime: URILIST, bytes: &uri },
-        Offer { mime: GNOME, bytes: &gnome },
-        Offer { mime: FLEA, bytes: &flea },
+        Offer {
+            mime: URILIST,
+            bytes: &uri,
+        },
+        Offer {
+            mime: GNOME,
+            bytes: &gnome,
+        },
+        Offer {
+            mime: FLEA,
+            bytes: &flea,
+        },
     ]);
     assert_eq!(
         foreign,
@@ -83,14 +112,38 @@ fn the_chooser_prefers_gnome_then_uri_then_nothing() {
             token: "ab12cd34ab12cd34ab12cd34ab12cd34".into()
         })
     );
-    let uri_only = choose(&[Offer { mime: URILIST, bytes: &uri }]);
+    let uri_only = choose(&[Offer {
+        mime: URILIST,
+        bytes: &uri,
+    }]);
     assert_eq!(uri_only.unwrap().clip, "copy");
     let kde = build_kde_cut();
-    let uri_cut = choose(&[Offer { mime: URILIST, bytes: &uri }, Offer { mime: KDE_CUT, bytes: &kde }]);
+    let uri_cut = choose(&[
+        Offer {
+            mime: URILIST,
+            bytes: &uri,
+        },
+        Offer {
+            mime: KDE_CUT,
+            bytes: &kde,
+        },
+    ]);
     assert_eq!(uri_cut.unwrap().clip, "cut");
     let plain = build_plain(&mine);
-    assert_eq!(choose(&[Offer { mime: PLAIN, bytes: &plain }]), None);
-    assert_eq!(choose(&[Offer { mime: URILIST, bytes: b"" }]), None);
+    assert_eq!(
+        choose(&[Offer {
+            mime: PLAIN,
+            bytes: &plain
+        }]),
+        None
+    );
+    assert_eq!(
+        choose(&[Offer {
+            mime: URILIST,
+            bytes: b""
+        }]),
+        None
+    );
 }
 
 #[test]
@@ -104,8 +157,37 @@ fn a_signed_escape_is_a_skip_like_any_bad_escape() {
 fn a_gnome_offer_that_does_not_parse_falls_through_to_the_uri_list() {
     let gnome = b"copy\r\nfile:///tmp/a\r\n";
     let uri = b"file:///tmp/b\r\n";
-    let foreign = choose(&[Offer { mime: GNOME, bytes: gnome }, Offer { mime: URILIST, bytes: uri }]);
-    assert_eq!(foreign, Some(ForeignSel { clip: "copy".into(), paths: vec!["/tmp/b".into()], token: String::new() }));
-    let empty = choose(&[Offer { mime: GNOME, bytes: b"cut\n" }, Offer { mime: URILIST, bytes: uri }]);
-    assert_eq!(empty.map(|sel| sel.paths), Some(vec!["/tmp/b".to_string()]), "a GNOME offer naming no files falls through too");
+    let foreign = choose(&[
+        Offer {
+            mime: GNOME,
+            bytes: gnome,
+        },
+        Offer {
+            mime: URILIST,
+            bytes: uri,
+        },
+    ]);
+    assert_eq!(
+        foreign,
+        Some(ForeignSel {
+            clip: "copy".into(),
+            paths: vec!["/tmp/b".into()],
+            token: String::new()
+        })
+    );
+    let empty = choose(&[
+        Offer {
+            mime: GNOME,
+            bytes: b"cut\n",
+        },
+        Offer {
+            mime: URILIST,
+            bytes: uri,
+        },
+    ]);
+    assert_eq!(
+        empty.map(|sel| sel.paths),
+        Some(vec!["/tmp/b".to_string()]),
+        "a GNOME offer naming no files falls through too"
+    );
 }

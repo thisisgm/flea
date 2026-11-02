@@ -3,6 +3,29 @@ use crate::ui_logic_fb1::messages::{Escape, Messages, MESSAGE_MS};
 use crate::ui_logic_fb1::status::{Hint, Note};
 
 #[test]
+fn plugin_action_recovery_replaces_only_its_tracked_error_even_when_text_matches() {
+    let mut bar = Messages::new("default");
+    bar.say("Checksum does not match.", true, "", Hint::None, 0);
+    let own = bar
+        .say_tracked_error("Checksum does not match.", 1)
+        .unwrap();
+    bar.say("Checksum does not match.", true, "", Hint::None, 2);
+    let other = bar.say_tracked_error("Another plugin failed.", 3).unwrap();
+    bar.forget_error(own, 4);
+    assert_eq!(bar.errors().len(), 3);
+    assert_eq!(bar.errors()[0].serial, 0);
+    assert_eq!(bar.errors()[1].serial, 0);
+    assert_eq!(bar.errors()[2].serial, other);
+    bar.forget_error(own, 5);
+    bar.forget_error(0, 6);
+    assert_eq!(
+        bar.errors().len(),
+        3,
+        "stale or untracked tokens acknowledge nothing"
+    );
+}
+
+#[test]
 fn a_matching_withdraw_clears_the_notice_and_keeps_the_error() {
     let mut bar = Messages::new("default");
     bar.say("The last tab cannot be closed", false, "", Hint::None, 0);

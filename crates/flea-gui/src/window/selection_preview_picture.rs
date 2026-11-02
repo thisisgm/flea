@@ -84,7 +84,9 @@ fn fitted(
     (width, height): (f32, f32),
     device: f32,
     selector: &'static str,
+    painted: std::rc::Rc<std::cell::RefCell<super::frame_feedback::Frames>>,
 ) -> AnyElement {
+    let generation = frame.generation;
     let size = image.size(0);
     let (w, h) = (size.width.0 as f64, size.height.0 as f64);
     let original = frame
@@ -127,7 +129,7 @@ fn fitted(
                     canvas(
                         |_, _, _| {},
                         move |bounds, _, window, _| {
-                            let _ = window.paint_image(
+                            let result = window.paint_image(
                                 bounds,
                                 bounds,
                                 Corners::default(),
@@ -135,6 +137,13 @@ fn fitted(
                                 at,
                                 false,
                             );
+                            painted.borrow_mut().animation =
+                                Some(super::frame_feedback::AnimationPaint {
+                                    generation,
+                                    index: at,
+                                    draw: window.current_draw_id(),
+                                    error: result.err().map(|error| error.to_string()),
+                                });
                         },
                     )
                     .size_full(),
@@ -150,6 +159,7 @@ pub(crate) fn moving(
     width: f32,
     height: f32,
     device: f32,
+    painted: std::rc::Rc<std::cell::RefCell<super::frame_feedback::Frames>>,
 ) -> Option<AnyElement> {
     frame.animation.clone().and_then(|image| {
         (image.frame_count() > 1).then(|| {
@@ -160,6 +170,7 @@ pub(crate) fn moving(
                 (width, height),
                 device,
                 "column-preview-animation",
+                painted,
             )
         })
     })

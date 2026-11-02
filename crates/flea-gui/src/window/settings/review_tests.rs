@@ -12,7 +12,7 @@ fn shell(backend: Backend, cx: &mut gpui::Context<Shell>) -> Shell {
 }
 
 #[gpui::test]
-fn u11_unreadable_settings_uses_the_real_error_queue_and_escape(cx: &mut TestAppContext) {
+fn s6_unreadable_settings_names_favourites_and_escape_clears_it(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
         let shell = shell(backend, cx);
@@ -23,7 +23,7 @@ fn u11_unreadable_settings_uses_the_real_error_queue_and_escape(cx: &mut TestApp
         shell.receive_settings(super::store::Update::Unreadable, window, cx);
         assert_eq!(
             shell.settings_message(cx).as_deref(),
-            Some("Your saved settings could not be read, so these are the defaults.")
+            Some("Favorites could not be refreshed because ui.json could not be read. The old list stays.")
         );
     });
     cx.simulate_keystrokes("escape");

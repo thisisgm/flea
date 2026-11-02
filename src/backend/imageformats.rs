@@ -1,15 +1,15 @@
-// Header-only, bounded sizes for the kinds imagesize.rs does not read: TIFF, ICO, AVIF, SVG and SVGZ.
+// Header-only, bounded sizes for the kinds imagesize.rs does not read: TIFF, ICO, HEIF containers, SVG and SVGZ.
 use crate::backend::imagesize::{self, Header};
 use crate::backend::imagevector::{gunzip, svg};
 use crate::backend::regfile::open_regular;
-use flea::ui_logic_pv1::pixels::{is_avif_name, is_host_decoded, is_vector_name};
+use flea::ui_logic_pv1::pixels::{is_heif_name, is_host_decoded, is_vector_name};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 // The first bytes name the kind, and hold every ICO directory and SVG root this reads.
 const PROBE: u64 = 65_536;
-// A TIFF directory past this many entries, or an AVIF meta box past this size, is not a picture to measure.
+// A TIFF directory past this many entries, or a HEIF meta box past this size, is not a picture to measure.
 const TIFF_ENTRIES: usize = 4096;
 const BMFF_META: u64 = 1024 * 1024;
 const BMFF_BOXES: usize = 64;
@@ -36,8 +36,8 @@ pub fn header(path: &Path) -> Option<Header> {
         } else {
             svg(&head)?
         }
-    } else if is_avif_name(name) {
-        if head.get(4..8) != Some(b"ftyp") || !avif_brand(&head) {
+    } else if is_heif_name(name) {
+        if head.get(4..8) != Some(b"ftyp") || !heif_brand(&head) {
             return None;
         }
         avif(&mut file)?
@@ -136,14 +136,33 @@ fn ico(head: &[u8], file: &mut File) -> Option<(u32, u32, u8)> {
 }
 
 // Sample input: size(4) "ftyp" major(4) minor(4) compatible brands(4 each), such as "avif" "mif1" "miaf".
-fn avif_brand(head: &[u8]) -> bool {
+fn heif_brand(head: &[u8]) -> bool {
     let size = head
         .get(0..4)
         .map_or(0, |b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]) as usize);
-    let brands = head.get(8..size.min(head.len())).unwrap_or(&[]);
-    brands
-        .chunks_exact(4)
-        .any(|brand| brand == b"avif" || brand == b"avis")
+    let supported = |brand: &[u8]| {
+        matches!(
+            brand,
+            b"avif"
+                | b"avis"
+                | b"heic"
+                | b"heix"
+                | b"hevc"
+                | b"hevx"
+                | b"heim"
+                | b"heis"
+                | b"hevm"
+                | b"hevs"
+                | b"mif1"
+                | b"msf1"
+        )
+    };
+    supported(head.get(8..12).unwrap_or(&[]))
+        || head
+            .get(16..size.min(head.len()))
+            .unwrap_or(&[])
+            .chunks_exact(4)
+            .any(supported)
 }
 
 // Sample input: size(4) type(4) [largesize(8)] body; answers each child's type and body.

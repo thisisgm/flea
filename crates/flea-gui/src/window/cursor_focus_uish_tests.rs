@@ -81,9 +81,10 @@ fn focus_handoffs(view: View) {
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
     host::change(&mut cx, handle, |shell, window, cx| {
+        let accent = crate::palette::Theme::from_text("background='#00aa66'").background;
         cx.set_global(crate::palette::Theme {
-            accent: gpui::rgb(0x00aa66).into(),
-            accent_frame: gpui::rgb(0x00aa66).into(),
+            accent,
+            accent_frame: accent,
             ..Default::default()
         });
         host::settle(shell, window, cx);

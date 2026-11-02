@@ -42,8 +42,9 @@ fn ey468_one_garbled_backend_line_keeps_the_listing_and_selection(cx: &mut TestA
         .unwrap();
 }
 
+// EY-468 garble@list: the line lands while the list is out; v0.3.12 still lands the pair that follows it.
 #[gpui::test]
-fn ey468_a_garbled_line_during_navigation_ends_only_the_pending_listing(cx: &mut TestAppContext) {
+fn ey468_a_garbled_line_after_the_list_request_keeps_the_listing(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();
     let handle = cx.add_window(|_, cx| crate::state::tests::shell_with(backend, cx));
     frame(cx, handle);
@@ -51,21 +52,41 @@ fn ey468_a_garbled_line_during_navigation_ends_only_the_pending_listing(cx: &mut
         .update(cx, |shell, window, cx| {
             let pane = &mut shell.panes[0].as_mut().unwrap().pane;
             assert!(pane.begin("/next".into(), Default::default(), pane.now()));
-            assert!(pane.busy());
             shell.receive(0, Backend::test_wire_line("garbled"), window, cx);
-            let pane = &shell.panes[0].as_ref().unwrap().pane;
-            assert!(!pane.busy());
-            assert_eq!(pane.state.kind, crate::pane::states::Kind::Error);
-            assert_eq!(pane.held.total, 0);
-            assert_eq!(pane.state.target, "/next");
+            assert!(
+                shell.panes[0].as_ref().unwrap().pane.busy(),
+                "the list stays out"
+            );
+            let rows = vec![flea::protocol::RowFacts::default(); 10];
+            for reply in [
+                flea::protocol::Reply::Listed {
+                    path: "/next".into(),
+                    total: 10,
+                },
+                flea::protocol::Reply::Rows {
+                    start: 0,
+                    rows,
+                    listing: 3,
+                },
+            ] {
+                shell.receive(0, crate::backend::Event::Reply(reply), window, cx);
+            }
         })
         .unwrap();
-    frame(cx, handle);
-    assert_eq!(read(cx, handle, "state"), Reply::value("error"));
+    for _ in 0..4 {
+        frame(cx, handle);
+    }
+    assert_eq!(read(cx, handle, "state"), Reply::value("ready"));
     assert_eq!(
         read(cx, handle, "lastMessage"),
         Reply::value("That action could not be completed; try again.")
     );
+    handle
+        .update(cx, |shell, _, _| {
+            let pane = &shell.panes[0].as_ref().unwrap().pane;
+            assert_eq!((pane.path(), pane.held.total), ("/next", 10));
+        })
+        .unwrap();
 }
 
 #[test]

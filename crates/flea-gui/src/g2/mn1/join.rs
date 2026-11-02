@@ -14,6 +14,9 @@ use std::{
     rc::Rc,
 };
 
+#[path = "join_target.rs"]
+mod target;
+
 #[derive(Clone, Debug)]
 pub struct Captured {
     pub side: usize,
@@ -93,6 +96,8 @@ pub struct Joined {
     pub tags_reading: bool,
     // Open With flyout launches still waiting on their answer: the side and the menu id whose snapshot they hold.
     pub(crate) launching: Vec<(usize, u64)>,
+    // Each side's Flash to drive zip probe, asked as the target row changes and read when a menu opens.
+    pub(crate) zip: [super::zip::ZipProbe; 2],
 }
 
 pub type AgentLaunch = Rc<dyn Fn(&std::path::Path) -> std::io::Result<()>>;
@@ -368,6 +373,8 @@ impl Shell {
             background,
             target: target.and_then(|target| target.row),
         };
+        // A right click that moves the cursor onto a zip asks about it ahead of the snapshot.
+        self.check_menu_zip(side);
         self.menu.context = self.captured_menu_context(&capture);
         self.menu.captured = Some(capture.clone());
         if !header {
@@ -401,22 +408,6 @@ impl Shell {
             self.refresh_menu(window, cx);
         }
         cx.notify();
-    }
-
-    /// A row action that reads the listing's own cursor first takes the target a Columns right click left unselected.
-    pub(crate) fn adopt_menu_target(&mut self, captured: &Captured) {
-        let Some(host) = self.panes[captured.side].as_mut() else {
-            return;
-        };
-        if captured.background || host.pane.held.listing != captured.listing {
-            return;
-        }
-        host.pane.cursor = captured.cursor;
-        if captured.rows.len() > 1 {
-            host.selected = captured.rows.clone();
-        } else if host.selected != captured.rows {
-            host.selected.clear();
-        }
     }
 
     pub(crate) fn menu_env<'a>(&'a self, typeface: &'a crate::list::Typeface) -> Env<'a> {

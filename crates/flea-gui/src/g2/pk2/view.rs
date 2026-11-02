@@ -18,6 +18,7 @@ pub struct ListingView {
     strip: Option<AnyView>,
     pub(super) last_tap: String,
     pub(super) picture_policy: crate::grid::element::pictures::Policy,
+    pub(super) bars: crate::g2::pv1::scroller::overlay::Overlay,
 }
 
 impl ListingView {
@@ -57,6 +58,7 @@ impl ListingView {
             picture_policy: crate::grid::element::pictures::Policy::read(
                 &flea::jsondoc::Json::Null,
             ),
+            bars: Default::default(),
         }
     }
 
@@ -179,6 +181,16 @@ impl Render for ListingView {
             self.listing.failure_line(&self.i18n)
         };
         let body = self.surface_element();
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = crate::list::Palette::inherited(&window.text_style(), theme).foreground;
+        let bars = crate::g2::pv1::scroller::overlay::surface(
+            cx.entity(),
+            ink,
+            crate::compositor::corner(cx),
+        );
         div()
             .size_full()
             .flex()
@@ -198,9 +210,11 @@ impl Render for ListingView {
             }))
             .child(
                 div()
+                    .relative()
                     .flex_1()
                     .debug_selector(|| "pk2-listing".into())
-                    .child(body),
+                    .child(body)
+                    .child(bars),
             )
             .when(!failure.is_empty(), |view| {
                 view.child(div().debug_selector(|| "pk2-failure".into()).child(failure))

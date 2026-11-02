@@ -10,6 +10,8 @@ impl Pane {
         mode: u32,
         now: u64,
     ) -> bool {
+        // PaneWire.qml onFailed: a failure that names a folder names the pane that never listed.
+        self.named |= !path.is_empty();
         if operation == "stale" || operation == "sort" {
             // A refused sort answers no pair, so its asked count leaves the queue with it.
             if operation == "sort" {
@@ -47,6 +49,10 @@ impl Pane {
         {
             self.retire_anchor();
             return self.swap.can_land(now) && self.commit(now);
+        }
+        // EY-468: one unreadable line is not the listing's answer, so a listing out still lands its pair as v0.3.12 does.
+        if operation == "parse" {
+            return false;
         }
         if operation == "window" {
             if path == self.path && !self.busy() {

@@ -20,7 +20,7 @@ impl Shell {
         self.trash.as_mut().expect("mounted").message_watches = vec![arm, drawn];
     }
 
-    pub(super) fn trash_say(&mut self, text: &str, error: bool, cx: &mut Context<Self>) {
+    pub(crate) fn trash_say(&mut self, text: &str, error: bool, cx: &mut Context<Self>) {
         self.trash_say_detail(text, "", error, cx);
     }
 
@@ -78,6 +78,20 @@ impl Shell {
         });
     }
 
+    /// TrashHost.qml open: any action into a closed Trash opens it and drops the selection of the pane under it.
+    pub(super) fn clear_under_trash(&mut self, cx: &gpui::App) {
+        let opens = self.trash.as_ref().is_some_and(|host| {
+            let view = host.pane.read(cx).view();
+            !view.opened && !view.confirming
+        });
+        if !opens {
+            return;
+        }
+        if let Some(under) = self.panes[self.focus_side].as_mut() {
+            under.input.selection.clear(&mut under.selected);
+        }
+    }
+
     pub(crate) fn trash_message(&self) -> Option<gpui::SharedString> {
         let host = self.trash.as_ref()?;
         (host.side == self.focus_side && self.slots.covers[host.side].is_some())
@@ -96,8 +110,9 @@ impl Shell {
             });
         }
         let line = host.messages.read(cx);
+        // StatusBar.qml escapePressed takes only a standing error; a plain note leaves Escape to close Trash.
         host.dismissible
-            .set(!line.messages().shown().text.is_empty() && !line.messages().arm_live());
+            .set(line.messages().shown().is_error && !line.messages().arm_live());
         if !opened || host.presentation.stage == super::presentation::Stage::Ready {
             let primary = line.drawn().primary.clone();
             self.trash.as_mut().expect("mounted").drawn_message = primary;
@@ -105,3 +120,7 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+#[path = "fixlogic3_tests.rs"]
+mod fixlogic3_tests;

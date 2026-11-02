@@ -5,7 +5,7 @@ use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
 use flea::ui_logic_mn1::Brand;
-mod joined;
+pub(super) mod joined;
 pub(crate) use joined::JoinedAdapter;
 
 pub struct MenuAdapter<'a> {

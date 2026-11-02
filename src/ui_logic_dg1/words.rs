@@ -52,3 +52,8 @@ pub fn resolving(i18n: &I18n) -> String {
 pub fn stale(i18n: &I18n) -> String {
     i18n.tr(STALE)
 }
+
+// A request already sent and held when its listing moved: the backend's stale refusal Errors.js says, in error ink.
+pub fn landed_stale(i18n: &I18n) -> Said {
+    Said { text: crate::ui_logic_fb1::errors::sentence("stale", "", "").render(i18n), error: true, paste_hint: false }
+}

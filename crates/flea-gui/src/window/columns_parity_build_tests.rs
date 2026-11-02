@@ -183,20 +183,17 @@ fn pb_columns2_neighbour_double_click_runs_the_file_opener() {
                     let host = shell.panes[0].as_ref().unwrap();
                     assert_eq!(
                         host.pane.place(),
-                        "/srv/a/b",
-                        "the first tap lists the file's folder"
+                        "/srv/a/b/c",
+                        "the first tap keeps the pane's folder"
                     );
-                    assert_eq!(
-                        host.nav.pending_select.as_deref(),
-                        Some("/srv/a/b/neighbour.txt")
-                    );
+                    assert_eq!(host.nav.pending_select.as_deref(), None);
                 })
                 .unwrap();
         }
     }
     handle
         .read_with(&vcx, |shell, _| {
-            assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/srv/a/b")
+            assert_eq!(shell.panes[0].as_ref().unwrap().pane.place(), "/srv/a/b/c")
         })
         .unwrap();
 }
@@ -255,10 +252,10 @@ fn pb_columns2_named_preview_readers_are_mounted_even_without_a_preview() {
 }
 
 #[test]
-fn finder_neighbour_file_tap_lands_its_cursor_and_the_second_tap_opens_only_it() {
+fn s2_neighbour_file_single_tap_keeps_listing_and_double_tap_opens_only_it() {
     assert_eq!(
         flea::keys::pointer("neighbour", "file", "left", 0, 1).map(|binding| binding.effect),
-        Some("reveal")
+        Some("nothing")
     );
     let mut cx = host::context();
     let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
@@ -285,6 +282,12 @@ fn finder_neighbour_file_tap_lands_its_cursor_and_the_second_tap_opens_only_it()
         .unwrap();
     OPENED.with(|paths| paths.borrow_mut().clear());
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    let before = handle
+        .update(&mut vcx, |shell, _, _| {
+            let host = shell.panes[0].as_ref().unwrap();
+            (host.pane.cursor, host.nav.counters.lists)
+        })
+        .unwrap();
     vcx.simulate_event(MouseDownEvent {
         position: at,
         button: MouseButton::Left,
@@ -294,29 +297,13 @@ fn finder_neighbour_file_tap_lands_its_cursor_and_the_second_tap_opens_only_it()
     vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
     vcx.run_until_parked();
     handle
-        .update(&mut vcx, |shell, window, cx| {
-            for reply in [
-                flea::protocol::Reply::Listed {
-                    path: "/srv/a/b".into(),
-                    total: 2,
-                },
-                flea::protocol::Reply::Rows {
-                    start: 0,
-                    listing: 4,
-                    rows: vec![host::row("neighbour.txt", false), host::row("c", true)],
-                },
-            ] {
-                shell.receive(0, crate::backend::Event::Reply(reply), window, cx);
-            }
+        .update(&mut vcx, |shell, _, _| {
             let host = shell.panes[0].as_ref().unwrap();
-            assert_eq!(host.pane.place(), "/srv/a/b");
+            assert_eq!(host.pane.place(), "/srv/a/b/c");
             assert_eq!(
-                host.pane
-                    .held
-                    .row(host.pane.cursor)
-                    .map(|row| row.name.as_str()),
-                Some("neighbour.txt"),
-                "the tapped file holds the cursor once its folder lands"
+                (host.pane.cursor, host.nav.counters.lists),
+                before,
+                "one tap changes neither cursor nor listing requests"
             );
         })
         .unwrap();

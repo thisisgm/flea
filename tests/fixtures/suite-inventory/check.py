@@ -113,8 +113,8 @@ def mutant(name, kind, suite, change, repair):
 
 
 mutant('orphan-run-all', 'missing-row', 'inventory-orphan',
-       lambda d: replace(d / 'run-all.sh', 'headless="suite-inventory ', 'headless="inventory-orphan suite-inventory '),
-       lambda d: replace(d / 'run-all.sh', 'headless="inventory-orphan suite-inventory ', 'headless="suite-inventory '))
+       lambda d: replace(d / 'run-all.sh', 'headless="', 'headless="inventory-orphan '),
+       lambda d: replace(d / 'run-all.sh', 'headless="inventory-orphan ', 'headless="'))
 
 
 def duplicate(directory):
@@ -206,9 +206,17 @@ mutant('missing-script', 'missing-script', 'protocol', missing_script,
 mutant('non-executable-script', 'non-executable-script', 'protocol', non_executable_script,
        lambda d: shutil.copystat(repo / 'tests/protocol.sh', d / 'tests/protocol.sh'))
 
+
+def without_aur_suites(path):
+    # The frozen stage runner and layout still schedule the two AUR suites this tree removed with the AUR packages.
+    for name in ('aurpush', 'aur-versions'):
+        replace(path, f' {name} ', ' ')
+
+
 cross_tree = sandbox('cross-tree-layout')
 script_snapshot(cross_tree)
 shutil.copyfile(fixture / 'batches/default.runner', cross_tree / 'tests/run-all.sh')
+without_aur_suites(cross_tree / 'tests/run-all.sh')
 cross_command = tool + ['--layout-only', '--tree', str(cross_tree),
                         '--layout', str(cross_tree / 'layouts/default.layout'),
                         '--evidence', str(cross_tree / 'suite-evidence.txt')]
@@ -216,8 +224,9 @@ red = execute(cross_command, expected=1)
 check('layout-unregistered suite=jobs:' in red.stderr, 'F1 suites cannot be scheduled on the stage runner')
 check('SUITE_LAYOUT PASS' not in red.stdout, 'cross-tree layout never prints a pass')
 shutil.copyfile(fixture / 'batches/default.layout', cross_tree / 'layouts/default.layout')
+without_aur_suites(cross_tree / 'layouts/default.layout')
 twin = execute(cross_command)
-check('SUITE_LAYOUT PASS layout=default.layout suites=303' in twin.stdout,
+check('SUITE_LAYOUT PASS layout=default.layout suites=301' in twin.stdout,
       'the stage runner passes against its own layout')
 mutants += 1
 diagnostic = next(line for line in red.stderr.splitlines() if 'layout-unregistered suite=jobs:' in line)
@@ -236,6 +245,7 @@ entry = ['bash', '-c', 'source "$1"; suite_inventory_layout "$2"',
          'suite-inventory-input', str(repo / 'tests/suite-inventory.sh'), str(repo)]
 check(execute(entry, env=environment).stdout == baseline, 'suite reads the CI-staged selected layout and evidence')
 shutil.copyfile(fixture / 'batches/default.layout', ci_input / 'suite-inventory.layout')
+without_aur_suites(ci_input / 'suite-inventory.layout')
 check('layout-missing suite=jobs:' in execute(entry, expected=1, env=environment).stderr,
       'suite rejects a selected layout missing suites registered by its own tree')
 shutil.copyfile(fixture / 'layouts/default.layout', ci_input / 'suite-inventory.layout')

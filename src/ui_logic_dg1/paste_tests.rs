@@ -64,8 +64,11 @@ fn an_empty_clipboard_pastes_an_image_but_a_link_refuses() {
     let mut pane = Pane::new();
     pane.paste(&en, PendingPaste::transfer("/dest"));
     assert_eq!(
-        pane.sent[0],
-        r#"{"c":"pasteimage","dest":"/dest","name":"Pasted image 2026-09-23 at 10.14.32.png"}"#
+        pane.asked[0],
+        PasteAsk::Image {
+            dest: "/dest".into(),
+            name: "Pasted image 2026-09-23 at 10.14.32.png".into(),
+        }
     );
     pane.paste(&en, PendingPaste::link("/dest", LinkKind::Relative));
     assert_eq!(pane.said[0].text, "There is nothing to paste; y copies and x cuts.");
@@ -113,7 +116,7 @@ fn a_fallback_plain_text_pastes_no_files() {
     pane.watch_error();
     pane.paste(&en, PendingPaste::transfer("/dest"));
     pane.get_ok(&en, "none", Vec::new(), "");
-    assert!(pane.asked.is_empty());
+    assert_eq!(pane.pasted(), "image");
 }
 
 #[test]

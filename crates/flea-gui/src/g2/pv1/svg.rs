@@ -20,6 +20,30 @@ impl QuickLook {
         }
     }
 
+    /// Borrow only first paint; its zero request size forces a fresh original-file raster at layout.
+    pub(crate) fn picture_interim(
+        &mut self,
+        path: PathBuf,
+        image: Arc<RenderImage>,
+        cx: &mut Context<Self>,
+    ) {
+        if self.svg.is_some() || !self.subject.as_ref().is_some_and(|subject| {
+            matches!(&subject.body, Body::Image { path: current, .. } if *current == path)
+        }) {
+            return;
+        }
+        self.svg = Some(SvgPicture {
+            path,
+            scale: 0.,
+            size: (0, 0),
+            image: Some(image),
+            refusal: None,
+            quality: Default::default(),
+            interim: true,
+        });
+        self.reveal(cx);
+    }
+
     /// The open picture at its zoomed fit times device scale, bounded by source pixels for a photo.
     pub(super) fn picture_image(
         &mut self,
@@ -44,6 +68,7 @@ impl QuickLook {
             source.1,
             vector,
         );
+        let (dw, dh) = crate::bench_thumbs::preview_size(source, (dw, dh));
         if dw == 0 || dh == 0 {
             return RasterState::default();
         }
@@ -57,15 +82,23 @@ impl QuickLook {
             self.refine_picture(window, cx);
             return self.svg.as_ref().map(SvgPicture::state).unwrap_or_default();
         }
+        if crate::bench_thumbs::enabled() {
+            crate::bench_thumbs::begin("preview", &path.to_string_lossy());
+        }
         // The same path keeps drawing its last raster until the new one lands; a new path retires it.
         let prior = self.svg.take();
         let keep = prior
             .as_ref()
             .filter(|s| s.path == path)
             .and_then(|s| s.image.clone());
+        let interim = prior
+            .as_ref()
+            .is_some_and(|prior| prior.path == path && prior.interim);
         if let Some(mut prior) = prior {
             prior.quality.clear(cx);
-            if prior.path != path {
+            if prior.path != path && prior.interim {
+                self.retire_interim(prior.image, cx);
+            } else if prior.path != path {
                 self.retire(prior.image, cx);
             }
         }
@@ -76,6 +109,7 @@ impl QuickLook {
             image: keep,
             refusal: None,
             quality: Default::default(),
+            interim,
         });
         // A new request invalidates the job in flight; the next one starts when that job ends.
         self.raster_latest.fetch_add(1, Ordering::SeqCst);
@@ -102,8 +136,13 @@ impl QuickLook {
                 .as_ref()
                 .is_none_or(|old| !Arc::ptr_eq(old, &image))
             {
+                let borrowed = std::mem::take(&mut picture.interim);
                 let old = picture.image.replace(image);
-                self.retire(old, cx);
+                if borrowed {
+                    self.retire_interim(old, cx);
+                } else {
+                    self.retire(old, cx);
+                }
                 cx.notify();
             }
         }
@@ -153,19 +192,30 @@ impl QuickLook {
                     raster::RasterOutcome::Raster(image) => {
                         if let Some(svg) = ql.svg.as_mut() {
                             svg.refusal = None;
-                            if let Some(old) = svg.image.replace(image) {
-                                ql.retire(Some(old), cx);
+                            let borrowed = std::mem::take(&mut svg.interim);
+                            let old = svg.image.replace(image);
+                            if borrowed {
+                                ql.retire_interim(old, cx);
+                            } else {
+                                ql.retire(old, cx);
                             }
                         }
                     }
                     raster::RasterOutcome::Refused(refusal) => {
                         if let Some(svg) = ql.svg.as_mut() {
+                            // A refused original must not leave the column's interim posing as the picture.
+                            let interim = svg.interim.then(|| svg.image.take()).flatten();
+                            svg.interim = false;
                             if svg.image.is_none() {
                                 svg.refusal = Some(refusal);
                             }
+                            ql.retire_interim(interim, cx);
                         }
                     }
                     raster::RasterOutcome::Superseded => {}
+                }
+                if !ql.revealed && ql.content_ready(cx) {
+                    ql.reveal(cx);
                 }
                 cx.notify();
             });
@@ -179,6 +229,11 @@ impl QuickLook {
             self.retired.push(image);
         }
         self.schedule_retire(cx);
+    }
+
+    /// The column may still paint a borrowed interim, so only its last owner frees the tile.
+    fn retire_interim(&mut self, image: Option<Arc<RenderImage>>, cx: &mut Context<Self>) {
+        self.retire(image.filter(|image| Arc::strong_count(image) == 1), cx);
     }
 
     /// Frees retired tiles at the end of this effect cycle, so a close frees its tile before the next frame.
@@ -195,21 +250,32 @@ impl QuickLook {
             let _ = window.update(cx, |_, window, app| {
                 let _ = entity.update(app, |ql, _| {
                     ql.retire_scheduled = false;
-                    for image in std::mem::take(&mut ql.retired) {
-                        let _ = window.drop_image(image);
-                    }
+                    ql.drop_retired(window);
                 });
             });
         });
     }
 
+    /// Frees every retired tile from the window's atlas.
+    pub(super) fn drop_retired(&mut self, window: &mut gpui::Window) {
+        for image in std::mem::take(&mut self.retired) {
+            #[cfg(test)]
+            self.retired_ids.push(image.id);
+            let _ = window.drop_image(image);
+        }
+    }
+
     /// Retires the open vector's raster and invalidates every in-flight request for it.
     pub(super) fn retire_svg(&mut self, cx: &mut Context<Self>) {
-        let image = self.svg.take().and_then(|mut s| {
+        let (image, interim) = self.svg.take().map_or((None, false), |mut s| {
             s.quality.clear(cx);
-            s.image
+            (s.image, s.interim)
         });
-        self.retire(image, cx);
+        if interim {
+            self.retire_interim(image, cx);
+        } else {
+            self.retire(image, cx);
+        }
         let _ = self.raster_latest.fetch_add(1, Ordering::SeqCst);
     }
 }

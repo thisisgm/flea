@@ -43,6 +43,11 @@ impl Render for SelectionPreview {
             .copied()
             .unwrap_or_default();
         let roles = crate::list::Palette::inherited(&window.text_style(), theme);
+        let loading = self.loading();
+        self.loading_mark.show(
+            self.visible && (loading || self.drawn.is_none()),
+            theme.accent,
+        );
         let ink = pv3::ink::MediaInk::inherited(&window.text_style(), theme);
         let metrics = crate::list::Metrics::for_typeface(&self.face);
         let trace = self.drawn.as_ref().and_then(|frame| frame.trace.clone());
@@ -54,8 +59,7 @@ impl Render for SelectionPreview {
         let frames = self.frames.clone();
         let stamp = super::frame_feedback::Stamp {
             generation: self.drawn.as_ref().map_or(0, |frame| frame.generation),
-            loading: self.pending.is_some()
-                && (!self.port.0.borrow().holding || self.drawn.is_none()),
+            loading,
             held: self.port.0.borrow().holding && self.drawn.is_some(),
             blank: false,
         };
@@ -86,6 +90,8 @@ impl Render for SelectionPreview {
             .font_family(self.face.font.family.clone())
             .text_size(self.face.caption)
             .track_focus(&self.focus)
+            // SelectionPreview.qml takes the keyboard from focusPreview alone; a click leaves the listing focused.
+            .capture_any_mouse_down(|_, window, _| window.prevent_default())
             .debug_selector(|| "column-preview".into())
             .child(outer);
         // A pending document lays out unseen at its frame's size, so the view sends the asks its first screen needs.
@@ -109,13 +115,12 @@ impl Render for SelectionPreview {
                 );
             }
         }
-        let loading =
-            self.pending.is_some() && (!self.port.0.borrow().holding || self.drawn.is_none());
-        if loading || self.drawn.is_none() {
-            return root.child(self.loading_view(roles.metadata));
-        }
-        let gif_at = self.gif_frame(cx);
-        let frame = self.drawn.as_ref().unwrap();
+        let gif_at = if loading { 0 } else { self.gif_frame(cx) };
+        let Some(frame) = self.presented() else {
+            *self.frame_rect.borrow_mut() = None;
+            *self.play_rect.borrow_mut() = None;
+            return root.child(self.loading_view(roles.muted));
+        };
         if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {
             *self.play_rect.borrow_mut() = None;
         }
@@ -162,7 +167,9 @@ impl Render for SelectionPreview {
                 .children(note.map(|note| div().text_color(roles.metadata).child(note)))
         };
         let failure = self.failure(frame, cx);
-        if empty {
+        if loading {
+            media = media.child(self.loading_view(roles.muted));
+        } else if empty {
             media = media.child(
                 state_mark(
                     Glyph::Row(Mark::File),
@@ -200,8 +207,14 @@ impl Render for SelectionPreview {
             );
         } else {
             let fitted = super::fitted::fitted(frame, width, height, window.scale_factor());
-            let moving =
-                super::picture::moving(frame, gif_at, width, height, window.scale_factor());
+            let moving = super::picture::moving(
+                frame,
+                gif_at,
+                width,
+                height,
+                window.scale_factor(),
+                self.frames.clone(),
+            );
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
                 if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
             media = match &frame.mounted {
@@ -281,7 +294,7 @@ impl Render for SelectionPreview {
         if empty {
             return root;
         }
-        if let Mounted::Media(player) = &frame.mounted {
+        if let (false, Mounted::Media(player)) = (loading, &frame.mounted) {
             let entity = cx.entity().downgrade();
             let on_input = Rc::new(move |input, window: &mut Window, cx: &mut gpui::App| {
                 let _ = entity.update(cx, |view, cx| view.play(input, window, cx));

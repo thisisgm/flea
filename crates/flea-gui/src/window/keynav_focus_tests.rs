@@ -296,3 +296,18 @@ fn keynav_vfix_composition_owns_raw_control_navigation_and_activation(cx: &mut T
     key(cx, handle, "right");
     chrome(cx, handle, "search");
 }
+
+#[gpui::test]
+fn pb_tabs_strip_stop_keeps_the_global_close_chord(cx: &mut TestAppContext) {
+    let handle = listing(cx);
+    key(cx, handle, "t");
+    key(cx, handle, "shift-tab");
+    strip(cx, handle, 2);
+    key(cx, handle, "ctrl-q");
+    edit(cx, handle, |shell, _, _| {
+        assert_eq!(
+            shell.lifecycle.phase(),
+            crate::window::lifecycle::Phase::Draining
+        )
+    });
+}

@@ -74,7 +74,7 @@ pub(super) fn picture(meta: &Meta, path: String, link: Option<&str>, catalog: &I
 }
 
 // EXIF orientations 5 to 8 turn the picture a quarter, so its upright width is the stored height.
-fn upright(w: u32, h: u32, orient: u32) -> (f64, f64) {
+pub(super) fn upright(w: u32, h: u32, orient: u32) -> (f64, f64) {
     if orient >= 5 {
         (h.into(), w.into())
     } else {
@@ -83,7 +83,7 @@ fn upright(w: u32, h: u32, orient: u32) -> (f64, f64) {
 }
 
 impl Shell {
-    /// Every key while the card is open goes to the card alone, so no family behind it runs; unbound keys are kept.
+    /// Every key stays in Quick Look, including unbound window and tab keys, as v0.3.12 keeps them (EY-438).
     pub(crate) fn quick_look_key(
         &mut self,
         event: &KeyDownEvent,
@@ -110,28 +110,8 @@ impl Shell {
             .get("keys")
             .and_then(Json::as_str)
             .unwrap_or("default");
-        // A tab switch the card does not bind closes it, and the key then runs where it was bound.
         let held = window.modifiers();
         let mirrored = window.layout_mirrored();
-        let card = self
-            .keyboard
-            .lookup(name, self.keyboard.context, event, held, mirrored);
-        let listing = self
-            .keyboard
-            .lookup(name, Keys::Listing, event, held, mirrored);
-        // [ and ] bind only while a workbook of two or more sheets shows; any other card leaves them unbound.
-        let sheet_key = matches!(
-            card,
-            flea::keys::Match::Action("previousSheet" | "nextSheet")
-        );
-        let card_bound = matches!(card, flea::keys::Match::Action(_))
-            && (!sheet_key || self.quick_look_turns_sheet(cx));
-        if let (false, flea::keys::Match::Action(action)) = (card_bound, listing) {
-            if action == "openTab" || action.starts_with("tab") {
-                self.quick_look_tab_switch(window, cx);
-                return false;
-            }
-        }
         let pair_armed = self.keyboard.pair_armed(name, seat);
         let resolved = self.keyboard.resolve(name, event, held, mirrored, seat);
         if let crate::window::input::Dispatch::Action(action) = resolved {
@@ -164,6 +144,15 @@ impl Shell {
         };
         let command = view.update(cx, |view, cx| view.action(event.action, cx));
         self.quick_look_drain();
+        // Preview.qml toggleWrap: ui.json keeps the choice for the next card (EY-570).
+        let wrapped = (event.action == "toggleWrap")
+            .then(|| view.read(cx).subject()?.body.doc()?.wrap(cx))
+            .flatten();
+        if let Some(wrap) = wrapped {
+            let leaf = Json::Obj(vec![("wrap".into(), Json::Bool(wrap))]);
+            let patch = Json::Obj(vec![("preview".into(), leaf)]);
+            self.change_settings(patch, window, cx);
+        }
         match command {
             Command::Close => self.quick_look_closed(window, cx),
             // PreviewKeys.act cursorDown: the cursor moves under the card and the card follows a file row.
@@ -180,14 +169,7 @@ impl Shell {
         true
     }
 
-    /// True while the card shows a workbook with more than one sheet, so [ and ] turn sheets.
-    fn quick_look_turns_sheet(&self, cx: &gpui::App) -> bool {
-        self.quick_look
-            .as_ref()
-            .is_some_and(|host| host.view.read(cx).turns_sheet(cx))
-    }
-
-    /// QuickLook::close on a tab switch: the card closes and the keyboard goes back to the listing.
+    /// QuickLook::close on an accepted tab change: the card closes and the keyboard goes back to the listing.
     pub(crate) fn quick_look_tab_switch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(view) = self.quick_look.as_ref().map(|host| host.view.clone()) else {
             return;

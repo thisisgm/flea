@@ -356,6 +356,10 @@ fn vf_readers_picker_recent_has_painted_control(cx: &mut TestAppContext) {
         .and_then(flea::jsondoc::Json::as_str)
         .unwrap()
         .is_empty());
+    assert_eq!(
+        recent.get("enabled").and_then(flea::jsondoc::Json::as_bool),
+        Some(true)
+    );
     f.update(|picker, cx| picker.accept(cx));
     f.cx.run_until_parked();
     assert!(f.read(|picker| picker.accept_state().submitting()));
@@ -377,7 +381,7 @@ fn vf_readers_picker_recent_has_painted_control(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn vf_readers_picker_path_follows_the_live_entry(cx: &mut TestAppContext) {
+fn vf_readers_picker_path_bar_open_follows_the_entry(cx: &mut TestAppContext) {
     let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
     seeded(&mut f);
     let focus = f.read(|picker| picker.focus.clone());
@@ -387,3 +391,6 @@ fn vf_readers_picker_path_follows_the_live_entry(cx: &mut TestAppContext) {
     f.cx.simulate_keystrokes("escape");
     assert_eq!(endpoint(&mut f, "pathBarOpen", &[]), Reply::value("false"));
 }
+
+#[path = "fixreaders_geometry_tests.rs"]
+mod fixreaders;

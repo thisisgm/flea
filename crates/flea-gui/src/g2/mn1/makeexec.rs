@@ -48,7 +48,7 @@ impl Shell {
         }
         let batch = Batch {
             paths: paths.to_vec(),
-            modes: vec![permissions::octal((context.row_mode | 0o100) & 0o7777)],
+            modes: vec!["u+x".into()],
             ..Batch::default()
         };
         let execution = &mut self.menu.shebang.execution;

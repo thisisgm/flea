@@ -6,6 +6,8 @@ use crate::jsondoc::{self, Json};
 use flea::ui_logic_sr1::{parse_line, ContentsMatch, Line, Request, Scope, Session};
 use std::{collections::BTreeMap, io, path::PathBuf};
 
+mod failure;
+
 #[derive(Clone)]
 pub(super) struct Query {
     pub gen: usize,
@@ -169,12 +171,8 @@ pub(super) fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Resul
     let kind = text(value, "t");
     let gen = count(value, "gen");
     let listing = count(value, "listing");
-    if kind == "error" && text(value, "where") == "searchcontents" {
-        if m.find.asked.as_ref().is_some_and(|q| q.gen == gen) || m.find.waiting && gen == 0 {
-            restore(m);
-            m.fail(text(value, "msg").into());
-        }
-        return Ok(true);
+    if kind == "error" {
+        return Ok(failure::receive(m, value));
     }
     if !matches!(
         kind,
