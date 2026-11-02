@@ -44,7 +44,10 @@ impl Render for SelectionPreview {
             .unwrap_or_default();
         let roles = crate::list::Palette::inherited(&window.text_style(), theme);
         let loading = self.loading();
-        self.loading_mark.show(loading, theme.accent);
+        self.loading_mark.show(
+            self.visible && (loading || self.drawn.is_none()),
+            theme.accent,
+        );
         let ink = pv3::ink::MediaInk::inherited(&window.text_style(), theme);
         let metrics = crate::list::Metrics::for_typeface(&self.face);
         let trace = self.drawn.as_ref().and_then(|frame| frame.trace.clone());
@@ -116,7 +119,7 @@ impl Render for SelectionPreview {
         let Some(frame) = self.presented() else {
             *self.frame_rect.borrow_mut() = None;
             *self.play_rect.borrow_mut() = None;
-            return root;
+            return root.child(self.loading_view(roles.muted));
         };
         if frame.manual || !matches!(frame.mounted, Mounted::Media(_)) {
             *self.play_rect.borrow_mut() = None;
