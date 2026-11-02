@@ -1,5 +1,5 @@
 //! The column's mounted image is only first paint; Quick Look still lands the original.
-use super::{previewtypes_tests as host, test_shell::land};
+use super::{preview_quality_tests::Root, previewtypes_tests as host, test_shell::land};
 use crate::{
     backend::Backend,
     navigation::folder_state::Writer,
@@ -12,34 +12,14 @@ use crate::{
     },
 };
 use gpui::{px, size, AppContext, Entity, ImageId, RenderImage, TestAppContext, VisualTestContext};
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
-struct Root(PathBuf);
-impl Root {
-    fn new() -> Self {
-        let output = std::process::Command::new("mktemp")
-            .args(["-d", "/tmp/flea-ql-interim.XXXXXXXX"])
-            .output()
-            .unwrap();
-        assert!(output.status.success());
-        let root = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
-        assert!(root.is_absolute() && root.starts_with("/tmp"));
-        std::fs::write(root.join(".flea-test-sandbox"), "QL-INTERIM\n").unwrap();
-        image::RgbaImage::from_pixel(80, 60, image::Rgba([20, 40, 220, 255]))
-            .save(root.join("picture.png"))
-            .unwrap();
-        Self(root)
-    }
-}
-impl Drop for Root {
-    fn drop(&mut self) {
-        assert!(
-            self.0.is_absolute()
-                && self.0.starts_with("/tmp")
-                && self.0.join(".flea-test-sandbox").is_file()
-        );
-        std::fs::remove_dir_all(&self.0).unwrap();
-    }
+fn root() -> Root {
+    let root = Root::new();
+    image::RgbaImage::from_pixel(80, 60, image::Rgba([20, 40, 220, 255]))
+        .save(root.0.join("picture.png"))
+        .unwrap();
+    root
 }
 
 fn meta_line(token: u64, w: u32, h: u32) -> String {
@@ -150,7 +130,7 @@ fn column<'a>(
 #[gpui::test]
 fn quick_look_column_interim_paints_without_cap_and_lands_the_original(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
-    let root = Root::new();
+    let root = root();
     let (shell, cx, interim, _requests) = column(cx, &root);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -233,7 +213,7 @@ fn quick_look_column_interim_paints_without_cap_and_lands_the_original(cx: &mut 
 }
 
 fn reject_interim(cx: &mut TestAppContext, pending: bool) {
-    let root = Root::new();
+    let root = root();
     let (shell, cx, interim, _requests) = column(cx, &root);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -295,7 +275,7 @@ fn quick_look_column_interim_rejects_pending_frame(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn quick_look_column_interim_metadata_refusal_lands_the_error_card(cx: &mut TestAppContext) {
-    let root = Root::new();
+    let root = root();
     let (shell, cx, interim, _requests) = column(cx, &root);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -331,7 +311,7 @@ fn quick_look_column_interim_metadata_refusal_lands_the_error_card(cx: &mut Test
 #[gpui::test]
 fn quick_look_column_interim_raster_refusal_drops_the_interim(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
-    let root = Root::new();
+    let root = root();
     let (shell, cx, interim, _requests) = column(cx, &root);
     std::fs::write(root.0.join("picture.png"), b"not a png").unwrap();
     cx.update(|window, cx| {
@@ -370,7 +350,7 @@ fn quick_look_column_interim_raster_refusal_drops_the_interim(cx: &mut TestAppCo
 #[gpui::test]
 fn quick_look_column_interim_frees_the_tile_the_column_let_go(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
-    let root = Root::new();
+    let root = root();
     let (shell, cx, interim, _requests) = column(cx, &root);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
