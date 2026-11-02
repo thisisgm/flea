@@ -117,13 +117,20 @@ impl Permissions {
                     buttons: vec![cancel(true)],
                 };
             }
-            Phase::Reading => {
+            // A failed batch keeps its refusal visible while its modes are read again.
+            Phase::Reading if self.error.is_empty() && self.refused.is_empty() => {
                 return super::super::initial::loading(
                     i18n,
                     "dialogs.file.permissions.title",
                     WIDTH,
                 )
             }
+            Phase::Reading => body.push(Block::Note {
+                text: tr("dialogs.file.permissions.reading"),
+                inset: 0.,
+                ink: Ink::Muted,
+                lift: 0.,
+            }),
             _ => {}
         }
         if self.several() && self.phase != Phase::Reading {

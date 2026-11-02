@@ -268,6 +268,9 @@ fn several_items_permissions_close_every_inspect_id_and_a_failed_batch_names_its
     let i18n = english();
     let paths: Vec<String> = (0..2).map(|n| format!("/fx/p/{n}.jpg")).collect();
     let (mut card, _) = Permissions::open(3, paths, "");
+    let initial = card.card(&i18n);
+    assert_eq!(notes(&initial), vec![("Working…".into(), Ink::Muted)]);
+    assert_eq!(buttons(&initial), "Cancel@");
     card.reply(
         &i18n,
         &parse(r#"{"op":"inspect","id":3000,"ok":true,"mode":"0644","reason":""}"#).unwrap(),
