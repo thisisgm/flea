@@ -307,9 +307,9 @@ impl Render for Shell {
                                         .font_family(
                                             host.list.borrow().typeface.font.family.clone(),
                                         )
-                                        .text_color(palette.metadata)
+                                        .text_color(palette.muted)
                                         .child(host.state_text.message.clone()),
-                                    host.list.borrow().typeface.caption,
+                                    &host.list.borrow().typeface,
                                     window,
                                 )),
                         )

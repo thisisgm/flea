@@ -23,6 +23,8 @@ mod counts;
 mod detail;
 #[path = "status_filesystem.rs"]
 mod filesystem;
+#[path = "status_footer.rs"]
+mod handoff;
 pub(crate) use filesystem::Filesystem;
 
 #[cfg(test)]
@@ -142,9 +144,7 @@ impl Shell {
 
     /// Says a translated sentence in the footer as a note, for input the pane holds or cannot act on.
     pub(crate) fn status_note(&mut self, text: &str, cx: &mut Context<Self>) {
-        self.status_messages(cx, |messages, now| {
-            messages.say(text, false, "", Hint::None, now)
-        });
+        handoff::note(self, text, cx);
     }
 
     pub(crate) fn sync_footer(&mut self, width: f32, cx: &mut Context<Self>) {
