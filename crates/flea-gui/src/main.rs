@@ -125,5 +125,6 @@ fn main() {
         });
         cx.activate(true);
     });
+    window::glass_tag::stop();
     flea_gui::g2::pv2::reap();
 }

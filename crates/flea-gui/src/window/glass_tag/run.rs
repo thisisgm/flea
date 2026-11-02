@@ -1,7 +1,7 @@
 //! The hyprctl chain and Hyprland's event socket, run off the UI thread; the decisions come from glass_tag.
 use super::{
-    dispatch_ran, lua_rule, lua_tag, nautilus_opacity, own_addresses, parse_props, plan, rule_step,
-    uses_default, Action, Mode, RULE, TAG,
+    dispatch_ran, lua_exit_rule, lua_owned_rule, lua_tag, nautilus_opacity, own_addresses,
+    parse_props, plan, rule_step, uses_default, Action, Mode, RULE, TAG,
 };
 use std::collections::BTreeSet;
 use std::ffi::OsString;
@@ -22,6 +22,8 @@ pub(crate) struct State {
     pub(crate) busy: bool,
     // One rerun is queued at a time, however many requests land while a pass runs.
     pub(crate) rerun: bool,
+    // Shutdown blocks queued passes from enabling the rule after cleanup.
+    pub(crate) stopped: bool,
     pub(crate) tagged: BTreeSet<String>,
     // Whether this process last enabled (Some(true)) or disabled its Glassy rule; None until its first eval.
     pub(crate) ruled: Option<bool>,
@@ -106,6 +108,7 @@ pub(crate) struct Tagger {
     hyprctl: OsString,
     sources: Sources,
     state: Arc<Mutex<State>>,
+    pass_gate: Arc<Mutex<()>>,
 }
 
 impl Tagger {
@@ -115,6 +118,7 @@ impl Tagger {
             hyprctl,
             sources,
             state: Arc::default(),
+            pass_gate: Arc::default(),
         }
     }
 
@@ -125,6 +129,9 @@ impl Tagger {
     /// Starts a pass now, or while one runs asks again after RERUN_GAP.
     pub(crate) fn retag(&self) {
         let mut state = self.lock();
+        if state.stopped {
+            return;
+        }
         if state.busy {
             if !std::mem::replace(&mut state.rerun, true) {
                 drop(state);
@@ -163,7 +170,18 @@ impl Tagger {
 
     /// One pass runs clients, one probe per window of this process, then the dispatches the plan asks for.
     pub(crate) fn pass(&self) {
+        let _pass = self
+            .pass_gate
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        if self.lock().stopped {
+            return;
+        }
         let (mode, uses_default, wanted) = self.sources.read();
+        // Clear a stale global rule even before a client has mapped or its properties can be read.
+        if wanted.is_none() && rule_step(wanted, &[], self.lock().ruled).is_some() {
+            self.set_rule(None);
+        }
         let Some(clients) = self.query(&["clients", "-j"]) else {
             return;
         };
@@ -197,13 +215,37 @@ impl Tagger {
             }
         }
         self.lock().tagged = outcome.tagged;
+        if wanted.is_none() {
+            return;
+        }
         let windows: Vec<_> = probe.lines().filter_map(parse_props).collect();
         let ruled = self.lock().ruled;
-        if let Some(opacity) = rule_step(wanted, &windows, ruled, mode == Mode::Glassy) {
-            match self.dispatched(&["eval", lua_rule(opacity).as_str()]) {
-                Ok(()) => self.lock().ruled = Some(opacity.is_some()),
-                Err(reply) => warn_once(&format!("hyprctl eval did not set {RULE}: {reply}")),
-            }
+        if let Some(opacity) = rule_step(wanted, &windows, ruled) {
+            self.set_rule(opacity);
+        }
+    }
+
+    /// Waits for an in-flight pass, then lets Hyprland atomically retire this process's ownership.
+    pub(crate) fn stop(&self) {
+        let _pass = self
+            .pass_gate
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        self.lock().stopped = true;
+        if self.lock().ruled != Some(true) {
+            return;
+        }
+        self.eval_rule(&lua_exit_rule(self.pid), false);
+    }
+
+    fn set_rule(&self, opacity: Option<(f64, f64)>) {
+        self.eval_rule(&lua_owned_rule(self.pid, opacity), opacity.is_some());
+    }
+
+    fn eval_rule(&self, lua: &str, enabled: bool) {
+        match self.dispatched(&["eval", lua]) {
+            Ok(()) => self.lock().ruled = Some(enabled),
+            Err(reply) => warn_once(&format!("hyprctl eval did not set {RULE}: {reply}")),
         }
     }
 
