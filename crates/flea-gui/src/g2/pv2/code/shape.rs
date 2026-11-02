@@ -88,6 +88,10 @@ impl<K: Copy + Eq + Hash, V: Clone> Lru<K, V> {
         self.entries.get(key).map(|(value, _)| value)
     }
 
+    pub(super) fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
+        self.entries.iter().map(|(key, (value, _))| (key, value))
+    }
+
     pub fn bound(&mut self, capacity: usize) {
         self.capacity = capacity.max(1);
         while self.entries.len() > self.capacity {

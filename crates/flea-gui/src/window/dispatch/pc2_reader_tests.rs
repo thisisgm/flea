@@ -13,6 +13,9 @@ use flea::jsondoc::{self, Json};
 use gpui::{point, px, Entity, ScrollDelta, ScrollWheelEvent, TestAppContext, VisualTestContext};
 use std::{sync::Arc, time::Duration};
 
+#[path = "pc2_reader_contract_tests.rs"]
+mod contracts;
+
 fn frame(cx: &mut VisualTestContext) {
     cx.update(|window, cx| {
         window.refresh();

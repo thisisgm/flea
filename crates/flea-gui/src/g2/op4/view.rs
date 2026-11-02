@@ -140,7 +140,10 @@ pub fn card(view: &OutputView, room: (f32, f32), cx: &mut Context<OutputView>) -
                         .children(body),
                 ),
             )
-            .child(buttons),
+            .child(buttons)
+            .when(matches!(card, Card::Convert(_)), |element| {
+                view.observed.retain_convert(element)
+            }),
     )
 }
 

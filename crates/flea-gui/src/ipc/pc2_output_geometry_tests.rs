@@ -112,3 +112,115 @@ fn pc2_ey598_print_observation_uses_outer_painted_frame(cx: &mut TestAppContext)
 fn pc2_ey598_combine_observation_uses_outer_painted_frame(cx: &mut TestAppContext) {
     card(cx, Action::Combine);
 }
+
+#[gpui::test]
+fn pc2_contract_convert_geometry_retained_after_close_and_other_cards(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let empty = flea::ipc::wire::Reply::value("");
+    assert_eq!(read(cx, handle, "convertCardRect", &[]), empty);
+    assert_eq!(read(cx, handle, "convertTitleCentre", &[]), empty);
+    let draw = |cx: &mut TestAppContext| {
+        cx.update_window(handle.into(), |_, window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let show = |cx: &mut TestAppContext, action| {
+        update(cx, handle, |shell, window, cx| {
+            assert!(shell.open_output(
+                0,
+                action,
+                0,
+                vec![Source {
+                    path: "/files/photo.png".into(),
+                    kind: Kind::Image,
+                }],
+                window,
+                cx
+            ));
+        });
+    };
+    // Building another output card does not build the lazily retained Convert observer.
+    show(cx, Action::Print);
+    draw(cx);
+    assert_eq!(read(cx, handle, "convertCardRect", &[]), empty);
+    assert_eq!(read(cx, handle, "convertTitleCentre", &[]), empty);
+    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("escape");
+    draw(cx);
+    show(cx, Action::Convert);
+    draw(cx);
+    let rect = read(cx, handle, "convertCardRect", &[]);
+    let title = read(cx, handle, "convertTitleCentre", &[]);
+    assert_ne!(rect, empty);
+    assert_ne!(title, empty);
+    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("escape");
+    draw(cx);
+    assert_eq!(
+        read(cx, handle, "convertOpen", &[]),
+        flea::ipc::wire::Reply::value("false")
+    );
+    assert_eq!(read(cx, handle, "convertCardRect", &[]), rect);
+    assert_eq!(read(cx, handle, "convertTitleCentre", &[]), title);
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    assert!(
+        visual.debug_bounds("op4-card").is_none(),
+        "retention does not reopen the card"
+    );
+    show(cx, Action::Print);
+    draw(cx);
+    assert_eq!(read(cx, handle, "convertCardRect", &[]), rect);
+    assert_eq!(read(cx, handle, "convertTitleCentre", &[]), title);
+}
+
+#[gpui::test]
+fn pc2_contract_convert_retention_records_this_single_paint(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    update(cx, handle, |shell, window, cx| {
+        assert!(shell.open_output(
+            0,
+            Action::Convert,
+            0,
+            vec![Source {
+                path: "/files/photo.png".into(),
+                kind: Kind::Image
+            }],
+            window,
+            cx,
+        ));
+    });
+    let output = update(cx, handle, |shell, _, _| shell.output.view.clone().unwrap());
+    for width in [1100., 820., 360.] {
+        VisualTestContext::from_window(handle.into(), cx)
+            .simulate_resize(size(px(width), px(700.)));
+        cx.update_window(handle.into(), |_, window, cx| {
+            let observed = &output.read(cx).observed;
+            // Empty all samples so a callback using an earlier paint cannot satisfy this check.
+            for sample in [
+                &observed.card,
+                &observed.title,
+                &observed.convert_card,
+                &observed.convert_title,
+            ] {
+                sample.set(None);
+            }
+            window.refresh();
+            window.draw(cx).clear(cx);
+            let observed = &output.read(cx).observed;
+            assert!(observed.card.get().is_some());
+            assert!(observed.title.get().is_some());
+            assert_eq!(
+                observed.convert_card.get(),
+                observed.card.get(),
+                "card, width {width}"
+            );
+            assert_eq!(
+                observed.convert_title.get(),
+                observed.title.get(),
+                "title, width {width}"
+            );
+        })
+        .unwrap();
+    }
+}

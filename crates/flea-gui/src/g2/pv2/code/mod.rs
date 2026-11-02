@@ -1,6 +1,7 @@
 //! The code view (ui/CodeLines.qml, PreviewText.qml, CodeRefusal.qml): the lines of one file or text coloured by the
 //! backend, asked a screen and a margin at a time, painted as pre-shaped glyph runs with a muted number gutter.
 pub mod bar;
+mod capture;
 pub mod paint;
 mod scroll;
 mod search_match;

@@ -71,6 +71,7 @@ impl PreviewHtml<'_> {
         let catalog = &self.shell.locale.catalog;
         let size = self.window.viewport_size();
         let style = view.frame_style.get();
+        let (y, viewport_height, content_height) = view.viewport_metrics(self.cx);
         let lane = view.vertical_lane(self.cx).map_or(Json::Null, |lane| {
             object([
                 ("shown", Json::Bool(lane.shown)),
@@ -104,10 +105,10 @@ impl PreviewHtml<'_> {
             ("file", text(view.doc.image_file.clone())),
             ("width", number(view.doc.rendered_width)),
             ("deviceWidth", number(view.doc.device_width)),
-            ("y", number(view.scroll_y)),
+            ("y", number(y)),
             ("zoom", number(view.doc.zoom)),
             ("facts", text(facts)),
-            ("frame", text(rect(view.bounds))),
+            ("frame", text(rect(view.frame_bounds.get()))),
             ("column", Json::Bool(column)),
             (
                 "window",
@@ -127,8 +128,8 @@ impl PreviewHtml<'_> {
                 style.map_or(Json::Null, |s| text(colour(s.canvas))),
             ),
             ("lane", lane),
-            ("viewportHeight", number(view.frame.1)),
-            ("contentHeight", number(view.page_size().1)),
+            ("viewportHeight", number(viewport_height)),
+            ("contentHeight", number(content_height)),
             ("close", if column { Json::Null } else { self.close() }),
         ]);
         flea::jsondoc::render(&state).trim_end().into()
