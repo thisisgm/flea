@@ -55,7 +55,7 @@ def owned(pid, record):
             current = identity(pid)
             if current["state"] == "Z":
                 return current
-            continue
+            raise
         except PermissionError:
             if attempt < 3:
                 time.sleep(0.05)
@@ -259,8 +259,6 @@ class Window:
         if direct_qml and select is not None:
             raise TransportError(f"a select target needs the flea --gui launch, not a direct qs command: {select}")
         gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
-        if frontend == "gpui" and picker:
-            raise TransportError("FLEA_IPC_NOT_PORTED fleapicker.launch")
         if backend is not None:
             backend = sandbox_backend(backend)
         elif direct_qml:
@@ -434,7 +432,8 @@ def serve(root):
         if options["picker"]:
             environment["FLEA_PICKER_REPLY"] = str(root / "picker-reply")
             environment["FLEA_PICKER"] = json.dumps({"folder": options["path"]})
-            command = [options["binary"], "--pick", str(root / "picker-reply")]
+            if not options["command"]:
+                command = [options["binary"], "--pick", str(root / "picker-reply")]
         with open(options["log"], "ab") as output:
             child = subprocess.Popen(options["wrap"] + command, env=environment, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
                                      start_new_session=True)

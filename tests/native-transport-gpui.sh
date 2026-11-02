@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run the stage native window through the same transport and report missing capabilities.
+# Run prebuilt product binaries through owned IPC on a real display.
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo"
@@ -13,13 +13,20 @@ if [[ -z ${DISPLAY:-}${WAYLAND_DISPLAY:-} && -z ${FLEA_TEST_PRIVATE_X11:-} ]]; t
     done
     root=$(mktemp -d "$repo/.superpowers/g010t/x11.XXXXXX")
     : > "$root/.flea-test-sandbox"
-    exec bwrap --bind / / --bind "$root" /tmp --setenv FLEA_TEST_PRIVATE_X11 1 -- bash "$0"
+    # /tmp itself stays unmarked so the escape controls can still create an untrusted directory.
+    mkdir -m 1777 "$root/tmp"
+    exec bwrap --bind / / --dev /dev --bind "$root/tmp" /tmp --setenv FLEA_TEST_PRIVATE_X11 1 -- bash "$0" "$@"
 fi
-cargo build --locked -p flea-gui --bin flea-gui
+for binary in flea flea-gui; do
+    [[ -x ${CARGO_TARGET_DIR:-$repo/target}/debug/$binary ]] || {
+        printf 'TRANSPORT_NATIVE BLOCKED: build %s through the build helper first\n' "$binary" >&2
+        exit 1
+    }
+done
 if [[ -z ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]]; then
     command -v Xvfb >/dev/null || { echo 'TRANSPORT_NATIVE BLOCKED: Xvfb is required without a graphical session' >&2; exit 1; }
     root=$(mktemp -d "$repo/.superpowers/g010t/xvfb.XXXXXX")
     : > "$root/.flea-test-sandbox"
-    exec python3 -B "$repo/tests/lib/flea_transport_xvfb.py" "$root" bash "$repo/tests/native-transport.sh"
+    exec python3 -B "$repo/tests/lib/flea_transport_xvfb.py" "$root" bash "$repo/tests/native-transport.sh" "$@"
 fi
-bash "$repo/tests/native-transport.sh"
+bash "$repo/tests/native-transport.sh" "$@"

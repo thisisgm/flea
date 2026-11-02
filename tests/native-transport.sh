@@ -14,6 +14,10 @@ if [[ ${1:-} == controls ]]; then exit 0; fi
 root=$(mktemp -d "$repo/.superpowers/g010t/native.XXXXXX")
 : > "$root/.flea-test-sandbox"
 export FLEA_TEST_WINDOWS_ROOT="$root"
+if [[ ${1:-} == material ]]; then
+    [[ ${FLEA_TEST_FRONTEND:-gpui} == gpui ]] || { echo 'material product proof requires GPUI' >&2; exit 2; }
+    exec python3 -B "$repo/tests/lib/flea_transport_material.py" "$root"
+fi
 if [[ ${FLEA_TEST_FRONTEND:-gpui} == qml ]]; then
     . tools/flea-sandbox-guard
     . tests/headless-commons.sh
