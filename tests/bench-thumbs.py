@@ -100,6 +100,7 @@ class Contracts(unittest.TestCase):
 
     def test_bench_thumbs_reader_delay_mutants_cannot_rank(self):
         rows = self.rows()
+        self.assertEqual(bench.summary(rows)[0]["id"], "flea")
         self.assertTrue(all(metric["measured"] for metric in bench.summary(rows)[0]["metrics"].values()))
         for row in rows:
             if row["id"] == "flea":
