@@ -50,12 +50,18 @@ pub(super) fn sent(requests: &mut Lines, command: &str) -> Vec<Json> {
         .collect()
 }
 
-/// The backend's thumbed reply to the last tagged thumbnail request, echoing its identity.
+/// The backend's thumbed reply to the last tagged thumbnail request naming `row`, echoing its identity.
 pub(super) fn thumbed_reply(asked: &[Json], row: usize, file: &str) -> String {
+    let names_row = |ask: &&Json| {
+        ask.get("rows")
+            .and_then(Json::as_array)
+            .is_some_and(|rows| rows.iter().any(|r| r.as_f64() == Some(row as f64)))
+    };
     let ask = asked
         .iter()
-        .rfind(|ask| ask.get("thumbToken").is_some())
-        .expect("a tagged thumbnail request");
+        .filter(|ask| ask.get("thumbToken").is_some())
+        .rfind(names_row)
+        .expect("a tagged thumbnail request for the row");
     let echo = |key| jsondoc::render_at(ask.get(key).expect("thumbnail identity"), 0);
     format!(
         r#"{{"t":"thumbed","row":{row},"file":"{file}","thumbToken":{},"thumbPath":{},"thumbListing":{}}}"#,

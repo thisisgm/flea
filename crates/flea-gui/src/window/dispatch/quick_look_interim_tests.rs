@@ -217,6 +217,7 @@ fn quick_look_column_interim_paints_without_cap_and_lands_the_original(cx: &mut 
         );
         assert_eq!(&final_image.as_bytes(0).unwrap()[..4], &[220, 40, 20, 255]);
     });
+    host::pump(cx);
     cx.update(|_, cx| {
         assert!(
             !retired(&shell, interim, cx),
@@ -348,6 +349,7 @@ fn quick_look_column_interim_raster_refusal_drops_the_interim(cx: &mut TestAppCo
         host::pump(cx);
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
+    host::pump(cx);
     cx.update(|_, cx| {
         let look = shell.read(cx).quick_look.as_ref().unwrap().view.read(cx);
         assert!(
