@@ -1,37 +1,44 @@
-// Test-only: the one runtime probe the sandboxed tests share. bwrap sits on PATH inside a container
-// and still cannot build a namespace there, so nine tests went red for the box and not for flea.
-use crate::backend::sandbox::wrap_readonly;
+// Test-only capability check shared by sandbox integration tests.
 use std::io::Write;
-use std::path::Path;
+use std::process::Command;
+use std::sync::OnceLock;
 
-// A program every Linux carries, run through the production jail so this is not a second sandbox.
-const TRIVIAL: &str = "/usr/bin/true";
-
-// Prints one line naming what is missing and answers true; on a box whose jail works it answers false.
+// Probe the kernel boundary independently of the product's sandbox argument builder.
 pub fn skipped() -> bool {
-    let why = match unusable() {
-        None => return false,
-        Some(why) => why,
-    };
-    // libtest names the thread after the test, so the line cannot drift from the test it belongs to.
-    let who = std::thread::current().name().unwrap_or("a sandboxed test").to_string();
-    // The handle and not eprintln!, which libtest captures and then throws away for a test that passes.
-    let line = format!("SKIP {}: the bwrap sandbox cannot run here: {}\n", who, why);
-    std::io::stderr().write_all(line.as_bytes()).ok();
+    static FAILURE: OnceLock<Option<String>> = OnceLock::new();
+    let failure = FAILURE.get_or_init(|| {
+        match Command::new(super::sandbox::BWRAP)
+            .args([
+                "--unshare-user",
+                "--unshare-pid",
+                "--unshare-net",
+                "--die-with-parent",
+                "--ro-bind",
+                "/",
+                "/",
+                "--proc",
+                "/proc",
+                "/usr/bin/true",
+            ])
+            .output()
+        {
+            Ok(output) if output.status.success() => None,
+            Ok(output) => Some(
+                String::from_utf8_lossy(&output.stderr)
+                    .lines()
+                    .next()
+                    .unwrap_or("it exited non-zero and said nothing")
+                    .to_owned(),
+            ),
+            Err(error) => Some(error.to_string()),
+        }
+    });
+    let Some(reason) = failure else { return false };
+    let thread = std::thread::current();
+    let name = thread.name().unwrap_or("sandbox integration test");
+    let _ = writeln!(
+        std::io::stderr(),
+        "SKIP {name}: the bwrap sandbox cannot run here: {reason}"
+    );
     true
-}
-
-// The real wrapper argv and nothing else, so a box that can jail a process never skips a test.
-fn unusable() -> Option<String> {
-    let argv = wrap_readonly(&[TRIVIAL.to_string()], Path::new(TRIVIAL));
-    let out = match std::process::Command::new(&argv[0]).args(&argv[1..]).output() {
-        Ok(out) => out,
-        Err(e) => return Some(format!("{} could not run: {}", argv[0], e)),
-    };
-    if out.status.success() {
-        return None;
-    }
-    // Sample stderr: "bwrap: No permissions to create new namespace, likely because the kernel ...".
-    let text = String::from_utf8_lossy(&out.stderr);
-    Some(text.lines().next().unwrap_or("it exited non-zero and said nothing").to_string())
 }

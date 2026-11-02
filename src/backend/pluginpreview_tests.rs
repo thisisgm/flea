@@ -33,6 +33,9 @@ pub(super) fn request(path: &Path) -> Json {
 }
 
 fn sandboxed(name: &str) -> bool {
+    if super::sandboxprobe::skipped() {
+        return false;
+    }
     let there = super::sandbox::available();
     if !there {
         eprintln!("SKIP {name}: bwrap or prlimit is not on PATH");
@@ -120,6 +123,9 @@ fn plugin_preview_refuses_two_paths_a_folder_and_an_undeclared_type_before_start
 
 #[test]
 fn plugin_preview_text_is_plain_and_runs_through_the_runtime_route() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if !sandboxed("plugin_preview_text_is_plain_and_runs_through_the_runtime_route") {
         return;
     }
@@ -153,6 +159,9 @@ fn plugin_preview_text_is_plain_and_runs_through_the_runtime_route() {
 
 #[test]
 fn plugin_preview_cannot_read_home_or_write_outside_its_output() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if !sandboxed("plugin_preview_cannot_read_home_or_write_outside_its_output") {
         return;
     }
@@ -206,6 +215,9 @@ fn plugin_preview_hang_malformed_and_wrong_output_fail_within_the_deadline() {
 
 #[test]
 fn plugin_preview_png_header_is_checked_and_the_picture_moves_out_of_the_jail() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if !sandboxed("plugin_preview_png_header_is_checked_and_the_picture_moves_out_of_the_jail") {
         return;
     }

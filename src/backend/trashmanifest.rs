@@ -6,11 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-#[cfg(target_arch = "x86_64")]
-const O_DIRECTORY: i32 = 0o200000;
-#[cfg(target_arch = "aarch64")]
-const O_DIRECTORY: i32 = 0o40000;
-const O_TMPFILE: i32 = 0o20000000 | O_DIRECTORY;
+mod anonymous;
 const LENGTH_BYTES: u64 = 8;
 
 #[derive(Clone, Debug, Default)]
@@ -269,12 +265,13 @@ impl Manifest {
         self.file.sync_all().map_err(|e| format!("Could not sync recovery record: {}", e))
     }
     pub fn new(root: &Path) -> Result<Self, String> {
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .mode(0o600)
-            .custom_flags(O_TMPFILE)
-            .open(root)
+        Self::new_with_location(root, true)
+    }
+    pub(crate) fn new_on_filesystem(root: &Path) -> Result<Self, String> {
+        Self::new_with_location(root, false)
+    }
+    fn new_with_location(root: &Path, delete_review: bool) -> Result<Self, String> {
+        let file = anonymous::open(root, delete_review)
             .map_err(|e| format!("Could not create anonymous Trash review in {}: {}", root.display(), e))?;
         Ok(Self { file: Arc::new(LockedFile(file)), end: 0 })
     }

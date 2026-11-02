@@ -78,6 +78,9 @@ fn tui_office_r4_stdout_captures_close_saved_descriptors() {
 
 #[test]
 fn tui_office_thumbnail_shows_until_the_page_replaces_it() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
@@ -134,6 +137,9 @@ fn tui_office_thumbnail_shows_until_the_page_replaces_it() {
 
 #[test]
 fn tui_office_thumbnail_holds_until_the_page_is_drawn() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
@@ -253,6 +259,9 @@ fn tui_office_r3_frame_keeps_thumbnail_until_page_bytes_land() {
 
 #[test]
 fn tui_office_r3_handoff_keeps_the_page_image() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
@@ -311,6 +320,9 @@ fn tui_office_r3_handoff_keeps_the_page_image() {
 
 #[test]
 fn tui_office_count_label_follows_the_group() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path("deck.odp");
     let converted = root.path("deck.pdf");

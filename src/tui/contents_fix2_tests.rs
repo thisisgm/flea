@@ -153,6 +153,9 @@ fn settled(m: &mut Model, wire: &mut wire::Wire) {
 
 #[test]
 fn tui_contents_fix2_failed_navigation_restores_real_search_paging() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     for contents in [false, true] {
         let root = Root::new();
         let search = root.0.join("search");

@@ -164,6 +164,9 @@ pub(super) fn find(m: &mut Model, wire: &mut Wire, value: &str) -> io::Result<()
 }
 #[test]
 fn tui_contents_real_process_finds_text_and_pages() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Root::new();
     for index in 0..7 {
         std::fs::write(
@@ -205,6 +208,9 @@ fn tui_contents_real_process_finds_text_and_pages() {
 }
 #[test]
 fn tui_contents_real_process_missing_rg_reports_failure() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Root::new();
     let mut wire = root.backend(true);
     let mut m = Model::new(root.0.clone(), &Json::Null);
@@ -222,6 +228,9 @@ fn tui_contents_real_process_missing_rg_reports_failure() {
 
 #[test]
 fn tui_contents_real_process_cancels_the_shared_worker() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     use std::os::unix::fs::PermissionsExt;
     let root = Root::new();
     let tool = root.0.join("tools/rg");

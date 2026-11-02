@@ -269,6 +269,9 @@ fn seven_failure(root: &TestDir, archive: &Path) -> String {
 // 7z under -bse1 reports a damaged member on stdout, and that line is the failure the card shows.
 #[test]
 fn bfx264_a_damaged_seven_archive_answers_with_its_own_error() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = TestDir::new("extract-seven-damaged");
     let source = root.join("big.bin");
     let mut state = 0x2545_f491_4f6c_dd1du64;
@@ -307,6 +310,9 @@ fn bfx264_a_damaged_seven_archive_answers_with_its_own_error() {
 // The jail refuses before 7z runs, and its own sentence still reaches the card.
 #[test]
 fn bfx264_a_jail_refusal_still_names_its_cause_under_seven() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = TestDir::new("extract-seven-jail");
     let message = seven_failure(&root, &root.join("missing.7z"));
     assert!(message.starts_with("bwrap: "), "{message}");

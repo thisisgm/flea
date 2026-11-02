@@ -139,10 +139,16 @@ macro_rules! publication {
     ($window:ident, $sort:ident, $publish:ident) => {
         #[test]
         fn $window() {
+            if crate::backend::sandboxprobe::skipped() {
+                return;
+            }
             check($publish, false);
         }
         #[test]
         fn $sort() {
+            if crate::backend::sandboxprobe::skipped() {
+                return;
+            }
             check($publish, true);
         }
     };
@@ -171,6 +177,9 @@ publication!(
 
 #[test]
 fn m9_g2rows_01_lifecycle_own_sort_preserves_pending_contents() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = held();
     std::fs::write(f.root.join("next.txt"), "needle next\n").unwrap();
     f.search(false, 2, FIRST);
@@ -190,6 +199,9 @@ fn m9_g2rows_01_lifecycle_own_sort_preserves_pending_contents() {
 
 #[test]
 fn m9_g2rows_01_lifecycle_foreign_publication_discards_pending_contents() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let mut f = held();
     f.search(false, 2, FIRST);
     assert!(f.st.contents.busy());

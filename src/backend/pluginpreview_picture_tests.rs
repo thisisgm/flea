@@ -36,6 +36,9 @@ fn plugin_preview_rejects_crc_valid_chunks_with_invalid_compressed_pixels() {
 
 #[test]
 fn plugin_preview_retention_uses_host_generation_instead_of_plugin_timestamps() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let dir = TestDir::new("plugin-preview-retention");
     let root = dir.dir("previews");
     let mut kept = Vec::new();
@@ -65,6 +68,9 @@ fn plugin_preview_retention_uses_host_generation_instead_of_plugin_timestamps() 
 
 #[test]
 fn plugin_preview_validates_pixel_formats_and_compressed_scanlines() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let dir = TestDir::new("plugin-preview-scanlines");
     let root = dir.dir("previews");
     // Independent fixtures: palette, sixteen-bit RGBA and a two-by-two Adam7 image.
@@ -114,6 +120,9 @@ fn plugin_preview_retention_child() {
 
 #[test]
 fn plugin_preview_retention_preserves_another_process_fresh_publication() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let dir = TestDir::new("plugin-preview-shared-retention");
     let root = dir.path();
     for _ in 0..KEPT {
@@ -156,6 +165,9 @@ fn plugin_preview_retention_preserves_another_process_fresh_publication() {
 
 #[test]
 fn plugin_preview_checks_palette_samples_after_all_filters_and_packing() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let dir = TestDir::new("plugin-preview-palette");
     let root = dir.path();
     // Valid indices with all five filters, packed samples and Adam7 pass resets.

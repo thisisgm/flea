@@ -29,6 +29,9 @@ impl Drop for Held {
 
 #[test]
 fn tui_office_vfix1_capture_precedes_request_and_refuses_early_ready() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let old_pdf = root.path("a.pdf");
@@ -74,6 +77,9 @@ fn tui_office_vfix1_capture_precedes_request_and_refuses_early_ready() {
 
 #[test]
 fn tui_office_vfix1_rewrite_after_capture_never_adopts_old_page() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let old_pdf = root.path("a.pdf");
@@ -114,6 +120,9 @@ fn tui_office_vfix1_rewrite_after_capture_never_adopts_old_page() {
 
 #[test]
 fn tui_office_vfix1_replaced_request_recaptures_before_retry() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("b.pdf");
@@ -167,6 +176,9 @@ fn tui_office_vfix1_replaced_request_recaptures_before_retry() {
 
 #[test]
 fn tui_office_stalled_identity_never_holds_the_loop() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("stall.pdf");
@@ -245,6 +257,9 @@ fn tui_office_stalled_sniff_is_left_behind_not_joined() {
 
 #[test]
 fn tui_office_rewritten_pdf_asks_again() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");

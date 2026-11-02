@@ -5,6 +5,9 @@ use crate::backend::testdir::TestDir;
 
 #[test]
 fn plugin_preview_keeps_stdin_open_until_async_reply_arrives() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if !sandbox::available() {
         eprintln!(
             "SKIP plugin_preview_keeps_stdin_open_until_async_reply_arrives: sandbox unavailable"
@@ -37,6 +40,9 @@ for line in sys.stdin:
 
 #[test]
 fn plugin_preview_binds_the_open_selected_file_after_path_is_replaced_with_directory_link() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     if !sandbox::available() {
         eprintln!("SKIP plugin_preview_binds_the_open_selected_file_after_path_is_replaced_with_directory_link: sandbox unavailable");
         return;

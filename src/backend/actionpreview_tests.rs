@@ -30,6 +30,9 @@ fn preview(run: Vec<String>, input: &Path, slot: &str) -> String {
 
 #[test]
 fn multicall_preview_keeps_its_invocation_name() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = TestDir::new("preview-multicall");
     let real = std::fs::canonicalize("/usr/bin/xz").expect("xz installed");
     let alias = root.dir("bin").join("xzcat");
@@ -63,6 +66,9 @@ fn multicall_preview_keeps_its_invocation_name() {
 
 #[test]
 fn overflowing_preview_reports_the_output_cap_before_exit_failure() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = TestDir::new("preview-cap");
     let input = root.file("input.txt", "input");
     let positive = preview(

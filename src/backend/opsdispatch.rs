@@ -2094,15 +2094,20 @@ mod tests {
         let mut quiet = out();
         start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0, 0);
         assert!(text(&quiet).contains(r#""t":"trashstarted""#), "trash elsewhere acknowledges acceptance in sync: {}", text(&quiet));
+        let mut trash_journaled = None;
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the trash reports through the op channel");
             let terminal = matches!(&msg, OpMsg::Trashed { .. });
+            if let OpMsg::Trashed { entry, .. } = &msg {
+                trash_journaled = Some(usize::from(!entry.steps.is_empty()));
+            }
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
                 break;
             }
         }
+        let trash_journaled = trash_journaled.expect("the trash batch must complete before the sweep continues");
         assert!(o.live.running().is_none(), "the trash frees the slot it claimed");
         // A menu selection on the held mount waits even when the paths name files elsewhere.
         let remote_sel = remote.file("sel.txt", "s");
@@ -2329,7 +2334,7 @@ mod tests {
         let mut done = out();
         do_permissions_batch(&mut done, &mut o, vec![local_perm.to_string_lossy().to_string()], vec!["644".to_string()], 82);
         assert!(text(&done).contains(r#""ok":true"#), "permissions elsewhere apply: {}", text(&done));
-        // Releasing the accepted rename files it first, then the seven writes held behind its reservation.
+        // Eight known writes journal once; Trash adds one only when its completed receipt has steps.
         let journaled = o.journal.len();
         drop(release);
         let landed = rx.recv_timeout(LAND_BOUND).expect("the released write reports through the op channel");
@@ -2337,7 +2342,7 @@ mod tests {
         report_op(&mut late, &mut o, landed);
         assert!(text(&late).contains(r#""t":"renamed""#), "the released rename journals late: {}", text(&late));
         assert_eq!(journaled, 0, "the accepted rename holds later entries behind its reservation");
-        assert_eq!(o.journal.len(), 8, "the rename and all seven later writes each journal exactly once");
+        assert_eq!(o.journal.len(), 8 + trash_journaled, "every completed write journals exactly once; an empty Trash receipt journals nothing");
         assert!(o.live.running().is_none(), "no pending entry survives the late Done");
         assert!(o.pending.is_empty(), "the late Done clears its own pending entry");
     }

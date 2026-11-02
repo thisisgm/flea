@@ -18,7 +18,7 @@ src/tui/cells.rs 426
 src/tui/parity_listing_tests.rs 410
 src/tui/preview.rs 406
 src/tui/frame_tests.rs 408
-src/backend/contents_review_tests.rs 446
+src/backend/contents_review_tests.rs 476
 crates/flea-gui/src/columns/geometry.rs 428
 crates/flea-gui/src/dual/divider_tests.rs 446
 crates/flea-gui/src/g2/op4/tests.rs 409

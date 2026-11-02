@@ -2,12 +2,12 @@
 .import "../../ui/js/Contrast.js" as Contrast
 .import "sourcefixture.js" as Source
 
-// Live stock palettes; js.sh compares every installed colors.toml against this complete inventory.
+// Frozen stock palettes keep the pure contrast checks independent of the builder's Omarchy version.
 var THEMES = ["catppuccin", "catppuccin-latte", "ethereal", "everforest", "flexoki-light", "gruvbox",
               "hackerman", "jade-horse", "kanagawa", "last-horizon", "lumon", "lupine", "matte-black", "miasma",
               "nord", "retro-82", "ristretto", "rose-pine", "solitude", "starship", "tokyo-night",
               "vantablack", "white"]
-var THEME_DIR = "file:///usr/share/omarchy/themes/"
+var FIXTURE = "tests/fixtures/theme-palettes.json"
 
 // Every threshold carries the rule it answers to; none of them is fitted to what the palettes do.
 var TEXT_MIN = 4.5          // HANDOFF rule 2: body text on its own ground, WCAG AA.
@@ -150,14 +150,14 @@ function run(check) {
     mirrorFallbacks(check)
     brightSamples(check)
     errorOnSurfaceSamples(check)
-    // A truncated table would iterate few times and report every check it did run as green, so the
-    // table's own size is checked first; tests/themes.sh compares it with the directory itself.
-    check("the table still names the 23 stock themes this box ships", THEMES.length, 23)
+    var palettes = JSON.parse(Source.source(FIXTURE)).palettes
+    check("the frozen table retains all 23 palette cases", THEMES.length, 23)
+    check("the frozen inventory matches every palette case",
+          Object.keys(palettes).sort().join(","), THEMES.slice().sort().join(","))
     for (var i = 0; i < THEMES.length; i++) {
         var name = THEMES[i]
-        var got = read(THEME_DIR + name + "/colors.toml")
-        var body = got.body
-        check(name + ": colors.toml is there to read", got.status, 200)
+        var body = palettes[name] || ""
+        check(name + ": frozen colors.toml is present", body.length > 0, true)
         check(name + ": colors.toml parses to a palette", Palette.isPalette(Palette.parse(body)), true)
         // A theme that did not read is one red check, not a throw that leaves the rest unmeasured.
         if (body.length === 0)

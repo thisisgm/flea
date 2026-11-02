@@ -73,16 +73,25 @@ fn extract_password_round_trip(encrypt_names: bool) {
 
 #[test]
 fn fix_7zpass_encrypted_header_round_trip() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     extract_password_round_trip(true);
 }
 
 #[test]
 fn fix_7zpass_encrypted_data_round_trip() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     extract_password_round_trip(false);
 }
 
 #[test]
 fn fix_7zpass_menu_extract_uses_cursor_archive_and_reaches_password_gate() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     use crate::backend::{archivereq, menu_actions::MenuActions, opsdispatch, opsreq::OpMsg};
     use std::sync::{mpsc::channel, Arc};
     use std::time::Duration;
