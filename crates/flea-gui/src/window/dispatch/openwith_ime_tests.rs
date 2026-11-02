@@ -78,10 +78,9 @@ fn ready(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, u64
 }
 
 #[gpui::test]
-fn i50_openwith_catalogue_arrival_keeps_preedit_unfiltered(cx: &mut TestAppContext) {
-    let (shell, cx, id) = opened(cx);
-    sent();
-    draw(cx);
+fn i50_openwith_catalogue_refresh_keeps_preedit_unfiltered(cx: &mut TestAppContext) {
+    let (shell, cx, id) = ready(cx);
+    assert!(cx.debug_bounds("op3-openwith-scrim").is_some());
     mark(&shell, cx, "bt");
     answer(&shell, cx, id);
     assert_eq!(listed(&shell, cx), (String::new(), both()));
@@ -246,6 +245,10 @@ fn i50_openwith_replaced_card_refuses_the_old_sessions_callback(cx: &mut TestApp
     });
     assert_eq!(listed(&shell, cx).0, "");
     draw(cx);
+    let id = shell.read_with(cx, |s, _| s.open_with.as_ref().unwrap().id);
+    answer(&shell, cx, id);
+    draw(cx);
+    assert!(cx.debug_bounds("op3-openwith-scrim").is_some());
     cx.simulate_input("n");
     assert_eq!(
         listed(&shell, cx).0,
