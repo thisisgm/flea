@@ -110109,6 +110109,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "writer.write_all(b\"buffered past the cap\").unwrap();",
+      "line": 171,
+      "literal": "buffered past the cap",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pl1/process_io.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "probe_timeout(\"gio mount -li\", crate::g2::pl1::listing::TIMEOUT_MS)",
       "line": 90,
       "literal": "gio mount -li",
@@ -244523,8 +244532,9 @@
     "crates/flea-gui/src/g2/pl1/phones.rs": "b8730a2a3e3a74d9a764e9e715b18776d845dcdd96e00dd31e7f775196c0f0ce",
     "crates/flea-gui/src/g2/pl1/private_entry.rs": "f5f107ba650d8fca7b4873c2675e3a21a6b8d3e26f36b073097b1b0dd43db2fb",
     "crates/flea-gui/src/g2/pl1/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
-    "crates/flea-gui/src/g2/pl1/process.rs": "0bfe24c837c2efd78d2827dcfe8117e15ad7ee78597ac3d72d92de4153c3577f",
-    "crates/flea-gui/src/g2/pl1/process_input.rs": "12f7358c84d7d60b7f38650dff0f50bb53e2f620d2dbe2ee5fb724dc70aa0bee",
+    "crates/flea-gui/src/g2/pl1/process.rs": "94a05c1a5846c61b3cd634a2a09bb9396f27303d322597f15f23dbfac3dd13aa",
+    "crates/flea-gui/src/g2/pl1/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
+    "crates/flea-gui/src/g2/pl1/process_io.rs": "bb11b3a6b2f71d96df5d2200757f9a701b8769ba6594cb4c1cc1eef38910ffd2",
     "crates/flea-gui/src/g2/pl1/rail_events.rs": "f42092e6a33609a3f0adf6d5b009d6531f872ef6f3abcbe5746bd8cfefec5050",
     "crates/flea-gui/src/g2/pl1/seams.rs": "d5eef58a76c157061d64a90360091396ab8930fb6135017816885bf6c0e8dbaa",
     "crates/flea-gui/src/g2/pl1/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
@@ -246778,8 +246788,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "b324af16e3e7079cebfe6b2ffd133252135de4e9",
-  "source_sha": "b324af16e3e7079cebfe6b2ffd133252135de4e9",
+  "source_ref_sha": "1f07730fb3b382dde82ef7b6f55c4883c79d881f",
+  "source_sha": "1f07730fb3b382dde82ef7b6f55c4883c79d881f",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
@@ -246793,8 +246803,8 @@
     },
     "gui": {
       "keys_with_occurrences": 530,
-      "missing_literal_candidates": 2082,
-      "source_files": 1106
+      "missing_literal_candidates": 2083,
+      "source_files": 1107
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

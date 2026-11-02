@@ -3,6 +3,9 @@ use super::process::{Event, Job, Runner, ThreadRunner};
 use super::secret::Secret;
 use std::time::{Duration, Instant};
 
+#[path = "process_drain_tests.rs"]
+mod drain;
+
 const CANARY: &str = "S3cr3t-canary-1006";
 
 fn finish(
