@@ -3634,24 +3634,6 @@
       "surface": "core/backend"
     },
     {
-      "coverage": "dynamic-needs-owner-verification",
-      "excerpt": "\"libvulkan.so.1 has no {}, {}\",",
-      "line": 97,
-      "path": "src/vulkan.rs",
-      "pattern": "libvulkan.so.1 has no {}, {}",
-      "possible_keys": [],
-      "surface": "core/backend"
-    },
-    {
-      "coverage": "dynamic-needs-owner-verification",
-      "excerpt": "return Err(format!(\"libvulkan.so.1 did not load, {}\", dl_reason()));",
-      "line": 122,
-      "path": "src/vulkan.rs",
-      "pattern": "libvulkan.so.1 did not load, {}",
-      "possible_keys": [],
-      "surface": "core/backend"
-    },
-    {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "\"file.open\"",
@@ -164861,7 +164843,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: --pick needs FLEA_PICKER, the portal request tools/flea-portal puts in the environment\");",
-      "line": 87,
+      "line": 86,
       "literal": "flea: --pick needs FLEA_PICKER, the portal request tools/flea-portal puts in the environment",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164870,7 +164852,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: --pick needs the reply file tools/flea-portal names, and it was empty\");",
-      "line": 91,
+      "line": 90,
       "literal": "flea: --pick needs the reply file tools/flea-portal names, and it was empty",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164878,26 +164860,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"flea: Vulkan sees a GPU with no display, but no ICD file names vendor {vendor:#06x}, so the loader's own list stands\");",
-      "line": 108,
-      "literal": "flea: Vulkan sees a GPU with no display, but no ICD file names vendor {vendor:#06x}, so the loader's own list stands",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "eprintln!(\"flea: Vulkan sees a GPU with no display, so the shell starts on {:#06x}:{:#06x} through {icd}\", gpu.0, gpu.1);",
-      "line": 111,
-      "literal": "flea: Vulkan sees a GPU with no display, so the shell starts on {:#06x}:{:#06x} through {icd}",
-      "owner": "controller",
-      "path": "src/gui.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": ".expect(\"a gvfs launch with a list warms\");",
-      "line": 230,
+      "line": 166,
       "literal": "a gvfs launch with a list warms",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164906,7 +164870,7 @@
     },
     {
       "excerpt": "let cmd = launch_warm_command(Path::new(\"flea\"), Some(list.as_path()), None).expect(\"a local launch with a list warms\");",
-      "line": 238,
+      "line": 174,
       "literal": "a local launch with a list warms",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164915,7 +164879,7 @@
     },
     {
       "excerpt": "assert!(dest.is_file(), \"both jobs are done when the helper returns\");",
-      "line": 276,
+      "line": 212,
       "literal": "both jobs are done when the helper returns",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164924,7 +164888,7 @@
     },
     {
       "excerpt": "assert!(body.contains(\"smb://h/share/a.txt\"), \"gio's listing landed, not a failure marker: {body}\");",
-      "line": 278,
+      "line": 214,
       "literal": "gio's listing landed, not a failure marker: {body}",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164933,7 +164897,7 @@
     },
     {
       "excerpt": "assert!(started_job.load(Ordering::Relaxed), \"the warm ran beside gio, which waited for its start\");",
-      "line": 279,
+      "line": 215,
       "literal": "the warm ran beside gio, which waited for its start",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -164942,7 +164906,7 @@
     },
     {
       "excerpt": "assert!(finished_job.load(Ordering::Relaxed), \"and the warm finished before the helper returned\");",
-      "line": 280,
+      "line": 216,
       "literal": "and the warm finished before the helper returned",
       "owner": "controller",
       "path": "src/gui.rs",
@@ -168704,7 +168668,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: {} is not valid UTF-8, and Flea takes text paths\", bad.to_string_lossy());",
-      "line": 106,
+      "line": 105,
       "literal": "flea: {} is not valid UTF-8, and Flea takes text paths",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168713,7 +168677,7 @@
     },
     {
       "excerpt": "usage(\"--version takes nothing\");",
-      "line": 131,
+      "line": 130,
       "literal": "--version takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168722,7 +168686,7 @@
     },
     {
       "excerpt": "usage(\"--launch-warm takes a list, a gvfs path and a destination\");",
-      "line": 159,
+      "line": 158,
       "literal": "--launch-warm takes a list, a gvfs path and a destination",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168731,7 +168695,7 @@
     },
     {
       "excerpt": "usage(\"--prewarm takes a path, a first index and a destination\");",
-      "line": 174,
+      "line": 173,
       "literal": "--prewarm takes a path, a first index and a destination",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168740,7 +168704,7 @@
     },
     {
       "excerpt": "usage(\"--terminal takes one directory\");",
-      "line": 190,
+      "line": 189,
       "literal": "--terminal takes one directory",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168749,7 +168713,7 @@
     },
     {
       "excerpt": "usage(\"--update takes nothing, or check\");",
-      "line": 211,
+      "line": 210,
       "literal": "--update takes nothing, or check",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168758,7 +168722,7 @@
     },
     {
       "excerpt": "if args.len() == 3 && args[1] == \"--default\" && args[2] == \"off\" {",
-      "line": 218,
+      "line": 217,
       "literal": "off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168767,7 +168731,7 @@
     },
     {
       "excerpt": "usage(\"--default takes nothing, or off\");",
-      "line": 222,
+      "line": 221,
       "literal": "--default takes nothing, or off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168776,7 +168740,7 @@
     },
     {
       "excerpt": "usage(\"--youleftmeforstrata takes nothing\");",
-      "line": 230,
+      "line": 229,
       "literal": "--youleftmeforstrata takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168785,7 +168749,7 @@
     },
     {
       "excerpt": "if args.len() == 3 && args[1] == \"--picker\" && args[2] == \"off\" {",
-      "line": 237,
+      "line": 236,
       "literal": "off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168794,7 +168758,7 @@
     },
     {
       "excerpt": "usage(\"--picker takes nothing, or off\");",
-      "line": 241,
+      "line": 240,
       "literal": "--picker takes nothing, or off",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168803,7 +168767,7 @@
     },
     {
       "excerpt": "usage(\"--pick takes one reply file\");",
-      "line": 249,
+      "line": 248,
       "literal": "--pick takes one reply file",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168812,7 +168776,7 @@
     },
     {
       "excerpt": "usage(\"--clip-own takes nothing\");",
-      "line": 257,
+      "line": 256,
       "literal": "--clip-own takes nothing",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168821,7 +168785,7 @@
     },
     {
       "excerpt": "usage(\"--clip takes get, set copy|cut, or clear TOKEN\");",
-      "line": 271,
+      "line": 270,
       "literal": "--clip takes get, set copy|cut, or clear TOKEN",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168830,7 +168794,7 @@
     },
     {
       "excerpt": "None => usage(\"--print-target needs --select <uri|path> naming a target with a parent\"),",
-      "line": 300,
+      "line": 299,
       "literal": "--print-target needs --select <uri|path> naming a target with a parent",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168839,7 +168803,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the terminal interface needs a terminal on stdin and stdout\");",
-      "line": 314,
+      "line": 313,
       "literal": "flea: the terminal interface needs a terminal on stdin and stdout",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168848,7 +168812,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: there is no graphical session to open a window in\");",
-      "line": 324,
+      "line": 323,
       "literal": "flea: there is no graphical session to open a window in",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168857,7 +168821,7 @@
     },
     {
       "excerpt": "assert!(!flash_picker(&bare), \"a bare flash is a path, not the picker\");",
-      "line": 338,
+      "line": 337,
       "literal": "a bare flash is a path, not the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -168866,7 +168830,7 @@
     },
     {
       "excerpt": "assert!(flash_picker(&picker), \"flash choose runs the picker\");",
-      "line": 340,
+      "line": 339,
       "literal": "flash choose runs the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -184903,116 +184867,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "const OFF: &str = \"off\";",
-      "line": 17,
-      "literal": "off",
-      "owner": "controller",
-      "path": "src/vkprobecache.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": ".unwrap_or_else(|| String::from(\"unknown\"))",
-      "line": 150,
-      "literal": "unknown",
-      "owner": "controller",
-      "path": "src/vkprobekey.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return String::from(\"absent libvulkan.so.1\");",
-      "line": 71,
-      "literal": "absent libvulkan.so.1",
-      "owner": "controller",
-      "path": "src/vkprobelibs.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return String::from(\"the dynamic loader gave no reason\");",
-      "line": 87,
-      "literal": "the dynamic loader gave no reason",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(format!(\"vkCreateInstance answered {created} for {asked}\"));",
-      "line": 144,
-      "literal": "vkCreateInstance answered {created} for {asked}",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(format!(\"vkCreateInstance took {asked} and returned no instance\"));",
-      "line": 147,
-      "literal": "vkCreateInstance took {asked} and returned no instance",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(format!(\"vkEnumeratePhysicalDevices answered {listed}\"));",
-      "line": 153,
-      "literal": "vkEnumeratePhysicalDevices answered {listed}",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(String::from(\"vkEnumeratePhysicalDevices succeeded and listed no device\"));",
-      "line": 157,
-      "literal": "vkEnumeratePhysicalDevices succeeded and listed no device",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(format!(\"vkEnumeratePhysicalDevices answered {listed}\"));",
-      "line": 175,
-      "literal": "vkEnumeratePhysicalDevices answered {listed}",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "std::io::stderr().write_all(format!(\"SKIP {}: this box has no libvulkan.so.1\\n\", test).as_bytes()).ok();",
-      "line": 458,
-      "literal": "SKIP {}: this box has no libvulkan.so.1\n",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(alone.starts_with(\"vkCreateInstance answered\"), \"{alone}\");",
-      "line": 471,
-      "literal": "vkCreateInstance answered",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(beside.starts_with(\"vkCreateInstance answered\"), \"{beside}\");",
-      "line": 473,
-      "literal": "vkCreateInstance answered",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "assert_eq!(icd_library(lower).as_deref(), Some(\"libvulkan_radeon.so\"), \"cJSON matches either key in any case\");",
-      "line": 536,
+      "line": 101,
       "literal": "cJSON matches either key in any case",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185021,7 +184877,7 @@
     },
     {
       "excerpt": "let metadata = \"{\\\"comment\\\":\\\"library_path caf\\\\u00e9\\\",\\\"ICD\\\":{\\\"library_path\\\":\\\"libvulkan_radeon.so\\\",\\\"note\\\":\\\"library_path\\\"}}\";",
-      "line": 537,
+      "line": 102,
       "literal": "{\"comment\":\"library_path caf\\u00e9\",\"ICD\":{\"library_path\":\"libvulkan_radeon.so\",\"note\":\"library_path\"}}",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185030,7 +184886,7 @@
     },
     {
       "excerpt": "assert_eq!(icd_library(metadata).as_deref(), Some(\"libvulkan_radeon.so\"), \"only the two keys can be ambiguous\");",
-      "line": 538,
+      "line": 103,
       "literal": "only the two keys can be ambiguous",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185039,7 +184895,7 @@
     },
     {
       "excerpt": "assert!(is_hasvk_intel((PCI_VENDOR_INTEL, 0x0412)), \"Haswell GT2\");",
-      "line": 563,
+      "line": 119,
       "literal": "Haswell GT2",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185048,7 +184904,7 @@
     },
     {
       "excerpt": "assert!(is_hasvk_intel((PCI_VENDOR_INTEL, 0x0166)), \"Ivy Bridge GT2\");",
-      "line": 564,
+      "line": 120,
       "literal": "Ivy Bridge GT2",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185057,7 +184913,7 @@
     },
     {
       "excerpt": "assert!(is_hasvk_intel((PCI_VENDOR_INTEL, 0x0f31)), \"Bay Trail\");",
-      "line": 565,
+      "line": 121,
       "literal": "Bay Trail",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185066,7 +184922,7 @@
     },
     {
       "excerpt": "assert!(is_hasvk_intel((PCI_VENDOR_INTEL, 0x1616)), \"Broadwell GT2, Gen8\");",
-      "line": 566,
+      "line": 122,
       "literal": "Broadwell GT2, Gen8",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185075,7 +184931,7 @@
     },
     {
       "excerpt": "assert!(is_hasvk_intel((PCI_VENDOR_INTEL, 0x22b0)), \"Cherryview, Gen8 above the ceiling\");",
-      "line": 567,
+      "line": 123,
       "literal": "Cherryview, Gen8 above the ceiling",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185084,7 +184940,7 @@
     },
     {
       "excerpt": "assert!(!is_hasvk_intel((PCI_VENDOR_INTEL, 0x0a84)), \"Broxton, Gen9 below the ceiling\");",
-      "line": 568,
+      "line": 124,
       "literal": "Broxton, Gen9 below the ceiling",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185093,7 +184949,7 @@
     },
     {
       "excerpt": "assert!(!is_hasvk_intel((PCI_VENDOR_INTEL, 0x1916)), \"Skylake GT2, Gen9\");",
-      "line": 569,
+      "line": 125,
       "literal": "Skylake GT2, Gen9",
       "owner": "controller",
       "path": "src/vulkan.rs",
@@ -185102,35 +184958,8 @@
     },
     {
       "excerpt": "assert!(!is_hasvk_intel((PCI_VENDOR_INTEL, 0xa788)), \"a modern iGPU\");",
-      "line": 570,
+      "line": 126,
       "literal": "a modern iGPU",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "std::fs::write(root.join(\"nvidia_icd.json\"), \"{\\\"comment\\\":\\\"library_path caf\\\\u00e9\\\",\\\"ICD\\\":{\\\"library_path\\\":\\\"libGLX_nvidia.so.0\\\"}}\\n\").unwrap();",
-      "line": 633,
-      "literal": "{\"comment\":\"library_path caf\\u00e9\",\"ICD\":{\"library_path\":\"libGLX_nvidia.so.0\"}}\n",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "_ => panic!(\"a hybrid tree must pin the display GPU\"),",
-      "line": 645,
-      "literal": "a hybrid tree must pin the display GPU",
-      "owner": "controller",
-      "path": "src/vulkan.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "_ => panic!(\"a hybrid tree must pin the display GPU\"),",
-      "line": 682,
-      "literal": "a hybrid tree must pin the display GPU",
       "owner": "controller",
       "path": "src/vulkan.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -246183,7 +246012,7 @@
     "src/figurecache.rs": "f9de7409e009c84afb7d57d3124df7a8787a9579c1d3f2fe108a984f4bc894a7",
     "src/figurehelper.rs": "e6c3c4a371744e5948a805f7c67eec0adc32a905fca879b9293a4d6f0fa7ecac",
     "src/figurestore.rs": "52a7ba2cd2757e771880ed2b2a021f965124a3e1de783208c5b9a8a2b3327202",
-    "src/gui.rs": "ef6454ccab83a5d0671843712ff163e189b5774b31882a99110c8010f5275245",
+    "src/gui.rs": "13cca394977069938a2c5d835a1dd5922a8c6fc32a6cf06c45f1667646c16287",
     "src/gui/gpui_renderer.rs": "52ea639d78dbbef0d69aa6def7ba0cba0fdb0d4b3bdc8522ee059cf9addecd3e",
     "src/gui/launch.rs": "a72a62583677081382d4baa47bcad466d689c361c68dec70da234c904d4b1bdc",
     "src/gui/legacy.rs": "3654eb9bbf147c07171da252ded09d4b8b96ea1f045af58445db3f6bba9b1be3",
@@ -246226,7 +246055,7 @@
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
     "src/lib.rs": "cbcc64f502146e5868a7233fa9be5cc96559060c6c3be9e8f5c23e3cb8059349",
-    "src/main.rs": "11f566b65ef9cc7a2f925119f439eac3386ca93e6c54025ce05a1060f401d6f3",
+    "src/main.rs": "5026258af2a12c8552f53e64958a3ccd8395e8fad1896bfeafeda2e051e6799b",
     "src/oflags.rs": "f436ea9e2d34d2d2d850c9388753ab6a16fcba579d7e3613cc75f7e1f49e66db",
     "src/open.rs": "5b8bc6ab8ca9ff891268a98ec8c92a3c8a25a2e6b0e55c708109bfc4e66c7732",
     "src/open_selection.rs": "7a6b0089d5b7a04ebd19af24665f43fd89d6aa2be6820b147601ee55382dca87",
@@ -246700,10 +246529,7 @@
     "src/update.rs": "51deae597a60a2fb334c3e4d6e586aad68f8ca499bcdc774c25055ed035ba921",
     "src/usage.rs": "a163bff996a84232983b94297061326414a52c07262eff7da6e0f6d29dcd164f",
     "src/userfile.rs": "c8ba8011cccc3b6c00b40ea2b39039d1309d8281605856ef2cb8c760afb5cf22",
-    "src/vkprobecache.rs": "10ae20a28ff710494f07d7b04027d3e0844810e47c4a1a4c2c60699da5f62dca",
-    "src/vkprobekey.rs": "30e18a889c5c5e79c89c934f669c62aa75a8ab635fcd46416874ad1140b76824",
-    "src/vkprobelibs.rs": "dfbc3ef59774576d969649bf95f95e61debfdd88eafacfbd0eba85fe81cba877",
-    "src/vulkan.rs": "14c42e5c9efeac51acfaebb617224dd41de42f448ceb07b431ef4ddae134e3c4",
+    "src/vulkan.rs": "d63c0f31e555096e373f08545fd37a2bda701fa2d91828b293774578e0b2b433",
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
     "tools/flea-acceptance-drive": "4370066f30f088f1779280dd0b77201f859cdbfc14fe561c5e4f2b484b177178",
     "tools/flea-aur-versions": "93192e47ebda8e230ecbdda40a7379b4e8f1d2dc96d5e3ceccb95e69ed57dfd6",
@@ -246746,7 +246572,7 @@
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
     "tools/flea-gio-auth": "91009376f4107dd546e6689ba77b2b8254c297d3689fa3ee62482c95864e618d",
     "tools/flea-glyph-sheet": "4b50385f212b2a450c63c28d7b67a5057b3756399c80e96c83b4d6242876428e",
-    "tools/flea-gpu-report": "5751d42b6dc901ed2515ce7aa9e82fecb422411264137964a379265108af97c1",
+    "tools/flea-gpu-report": "7a9864f2040b8aa80383c79fa12c127bc9e3afc21b442d6cbb2ee5f647e246e9",
     "tools/flea-gpui-lint": "743b41ac5f316e2cab68bddebdb1808be73058162a2623c03b1cd66145e3b976",
     "tools/flea-gvfs-fixture": "b4f44dffebe508a8959061cecdcdcfc0c18b128c89a8f9d7019998d7d38d105b",
     "tools/flea-hook-check": "c445b12efd903e95d3b226809a66a48bd37341db729e1dc4be0f6454d28b40a4",
@@ -247273,13 +247099,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "0ea0ec9049a4fe0e6831ae987b9c9354f11c7577",
-  "source_sha": "0ea0ec9049a4fe0e6831ae987b9c9354f11c7577",
+  "source_ref_sha": "aee94395f64336de15b5ecc0934661dac4397038",
+  "source_sha": "aee94395f64336de15b5ecc0934661dac4397038",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
-      "missing_literal_candidates": 5714,
-      "source_files": 836
+      "missing_literal_candidates": 5697,
+      "source_files": 833
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,

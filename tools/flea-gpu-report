@@ -201,7 +201,7 @@ def run(binary):
         env = {key: value for key, value in original.items()
                if key in allowed or key.startswith(("VK_", "MESA_", "__GL_"))}
         env.update(FLEA_GPU_REPORT="1", FLEA_GPUI_CAPTURE="1", FLEA_FRONTEND="gpui",
-                   FLEA_VK_PROBE_CACHE="off", FLEA_BIN=binary, HOME=str(root / "home"))
+                   FLEA_BIN=binary, HOME=str(root / "home"))
         (root / "home").mkdir(mode=0o700)
         (root / "shm").mkdir(mode=0o700)
         for key in list(env):

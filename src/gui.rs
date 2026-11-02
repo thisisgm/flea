@@ -1,5 +1,4 @@
 use crate::prefetch;
-use crate::vulkan;
 use std::ffi::OsStr;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
@@ -94,28 +93,6 @@ pub fn pick(reply: &str) -> i32 {
     launch::exec_gpui_pick(reply)
 }
 
-// An exported but empty VK_DRIVER_FILES or VK_ICD_FILENAMES is absent, not the operator's choice.
-#[cfg(test)]
-fn operator_chose_icd(driver: Option<&OsStr>, icd: Option<&OsStr>) -> bool {
-    driver.is_some_and(|value| !value.is_empty()) || icd.is_some_and(|value| !value.is_empty())
-}
-
-// A test drives this with the pin answers a single-GPU box can never produce.
-fn apply_display_pin(cmd: &mut Command, pin: vulkan::DisplayPin) {
-    match pin {
-        vulkan::DisplayPin::NotNeeded => {}
-        vulkan::DisplayPin::Unmatched { vendor } => {
-            eprintln!("flea: Vulkan sees a GPU with no display, but no ICD file names vendor {vendor:#06x}, so the loader's own list stands");
-        }
-        vulkan::DisplayPin::Pin { icd, gpu } => {
-            eprintln!("flea: Vulkan sees a GPU with no display, so the shell starts on {:#06x}:{:#06x} through {icd}", gpu.0, gpu.1);
-            cmd.env("VK_DRIVER_FILES", &icd);
-            cmd.env("VK_ICD_FILENAMES", &icd);
-            cmd.env(vulkan::PIN_MARKER, "1");
-        }
-    }
-}
-
 // Old windows may pass this marker through an upgrade.
 pub const THEME_MARKER: &str = "FLEA_QT_THEME";
 
@@ -146,39 +123,6 @@ mod tests {
             .map(|value| value.to_string_lossy().into_owned())
     }
 
-    #[test]
-    fn a_display_gpu_pin_sets_both_loader_variables() {
-        let icd = String::from("/usr/share/vulkan/icd.d/nvidia_icd.json");
-        let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::Pin { icd: icd.clone(), gpu: (0x10de, 0x27e0) });
-        assert_eq!(override_of(&cmd, "VK_DRIVER_FILES").as_deref(), Some(icd.as_str()));
-        assert_eq!(override_of(&cmd, "VK_ICD_FILENAMES").as_deref(), Some(icd.as_str()));
-    }
-
-    #[test]
-    fn a_pin_marks_itself_so_a_child_can_tell_it_from_the_operators_own_list() {
-        let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::Pin { icd: String::from("/x.json"), gpu: (0x10de, 0x27e0) });
-        assert_eq!(override_of(&cmd, vulkan::PIN_MARKER).as_deref(), Some("1"));
-    }
-
-    #[test]
-    fn an_exported_but_empty_loader_variable_is_absent_not_a_choice() {
-        assert!(!operator_chose_icd(None, None));
-        assert!(!operator_chose_icd(Some(OsStr::new("")), Some(OsStr::new(""))));
-        assert!(operator_chose_icd(Some(OsStr::new("/a.json")), None));
-        assert!(operator_chose_icd(None, Some(OsStr::new("/b.json"))));
-    }
-
-    #[test]
-    fn a_box_needing_no_pin_sets_no_loader_variable() {
-        let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::NotNeeded);
-        assert_eq!(override_of(&cmd, "VK_DRIVER_FILES"), None);
-        assert_eq!(override_of(&cmd, "VK_ICD_FILENAMES"), None);
-        assert_eq!(override_of(&cmd, vulkan::PIN_MARKER), None);
-    }
-
     // A removal is a present key with no value, which override_of cannot tell from an absent one.
     fn removed(cmd: &Command, key: &str) -> bool {
         cmd.get_envs().any(|(name, value)| name == OsStr::new(key) && value.is_none())
@@ -205,14 +149,6 @@ mod tests {
         let mut cmd = Command::new("true");
         apply_theme_restore(&mut cmd, Some(OsStr::new("")));
         assert_eq!(cmd.get_envs().count(), 0);
-    }
-
-    #[test]
-    fn a_display_gpu_with_no_icd_file_sets_no_loader_variable() {
-        let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::Unmatched { vendor: 0x10de });
-        assert_eq!(override_of(&cmd, "VK_DRIVER_FILES"), None);
-        assert_eq!(override_of(&cmd, "VK_ICD_FILENAMES"), None);
     }
 
     // The argv a launch helper carries, read back from the built command.
