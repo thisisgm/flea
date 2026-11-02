@@ -246002,7 +246002,7 @@
     "src/figurecache.rs": "f9de7409e009c84afb7d57d3124df7a8787a9579c1d3f2fe108a984f4bc894a7",
     "src/figurehelper.rs": "e6c3c4a371744e5948a805f7c67eec0adc32a905fca879b9293a4d6f0fa7ecac",
     "src/figurestore.rs": "52a7ba2cd2757e771880ed2b2a021f965124a3e1de783208c5b9a8a2b3327202",
-    "src/gui.rs": "e5825e46c17cd9b4e52c3f56ffed8cdac7cb2de08453498486177fdc1215df73",
+    "src/gui.rs": "ef6454ccab83a5d0671843712ff163e189b5774b31882a99110c8010f5275245",
     "src/gui/gpui_renderer.rs": "52ea639d78dbbef0d69aa6def7ba0cba0fdb0d4b3bdc8522ee059cf9addecd3e",
     "src/gui/launch.rs": "a72a62583677081382d4baa47bcad466d689c361c68dec70da234c904d4b1bdc",
     "src/gui/legacy.rs": "3654eb9bbf147c07171da252ded09d4b8b96ea1f045af58445db3f6bba9b1be3",
@@ -247090,8 +247090,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "5bd0213074356f14db1026c82c1b3d28eabba229",
-  "source_sha": "5bd0213074356f14db1026c82c1b3d28eabba229",
+  "source_ref_sha": "bc3fa119b615d70945d371a49689c9a07e17543a",
+  "source_sha": "bc3fa119b615d70945d371a49689c9a07e17543a",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
