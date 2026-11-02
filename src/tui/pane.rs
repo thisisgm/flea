@@ -1,4 +1,4 @@
-use super::{cells::{self, ellipsis, fit, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme, words::{title::typed, Text}};
+use super::{cells::{self, ellipsis, fit, name_title, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme, words::{title::typed, Text}};
 use super::layout::{pane_padding, preview_area, selection_bytes};
 
 // The roles a preview control draws in.
