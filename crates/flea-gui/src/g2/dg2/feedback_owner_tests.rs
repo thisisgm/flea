@@ -14,6 +14,81 @@ fn shown(shell: &mut Shell, cx: &mut Context<Shell>) -> Option<String> {
 }
 
 #[gpui::test]
+fn vf_look_review_empty_drag_hint_clears_a_rail_line(cx: &mut TestAppContext) {
+    let root = Root::new("hint-clear");
+    let (handle, _) = open(cx, root.src());
+    handle
+        .update(cx, |shell, window, cx| {
+            let key = window_key(window);
+            shell.show_rail_cue(
+                key,
+                None,
+                Some((String::new(), "Move 1 item to Downloads".into())),
+                cx,
+            );
+            assert_eq!(
+                shown(shell, cx).as_deref(),
+                Some("Move 1 item to Downloads")
+            );
+            assert!(!cx.global::<Drags>().said.contains_key(&key));
+            shell.publish_file_line(window, String::new(), cx);
+            assert_eq!(
+                shown(shell, cx),
+                None,
+                "an empty line clears an uncached rail line"
+            );
+        })
+        .unwrap();
+}
+
+#[gpui::test]
+fn vf_look_review_drag_hint_retries_after_running_activity(cx: &mut TestAppContext) {
+    let root = Root::new("hint-retry");
+    let (handle, _) = open(cx, root.src());
+    handle
+        .update(cx, |shell, window, cx| {
+            shell.status_messages(cx, |messages, now| {
+                messages.set_activity(9, "Copying file", 9, true, false, now);
+            });
+            let hint = "Move 1 item to alpha";
+            shell.publish_file_line(window, hint.into(), cx);
+            assert!(!shell.status_messages(cx, |messages, _| {
+                messages.activities().iter().any(|entry| entry.text == hint)
+            }));
+            assert!(
+                !cx.global::<Drags>().said.contains_key(&window_key(window)),
+                "a hint held back by a transfer is not cached"
+            );
+            shell.status_messages(cx, |messages, now| {
+                messages.set_activity(9, "", 9, false, false, now);
+            });
+            shell.publish_file_line(window, hint.into(), cx);
+            assert!(
+                shell.status_messages(cx, |messages, _| {
+                    messages.activities().iter().any(|entry| entry.text == hint)
+                }),
+                "the next refresh publishes a hint a transfer held back"
+            );
+        })
+        .unwrap();
+}
+
+#[gpui::test]
+fn vf_look_review_window_teardown_removes_cached_drag_hint(cx: &mut TestAppContext) {
+    let root = Root::new("hint-teardown");
+    let (handle, _) = open(cx, root.src());
+    handle
+        .update(cx, |shell, window, cx| {
+            let key = window_key(window);
+            shell.publish_file_line(window, "Move 1 item to alpha".into(), cx);
+            assert!(cx.global::<Drags>().said.contains_key(&key));
+            shell.forget_file_drags(window, cx);
+            assert!(!cx.global::<Drags>().said.contains_key(&key));
+        })
+        .unwrap();
+}
+
+#[gpui::test]
 fn vf_look_review_file_retire_keeps_the_rail_line(cx: &mut TestAppContext) {
     let root = Root::new("retire-rail");
     let (handle, _) = open(cx, root.src());
