@@ -5,6 +5,8 @@ mod fixture;
 mod flyleaf;
 #[path = "makeexec_menurefuse_tests.rs"]
 mod menurefuse;
+#[path = "makeexec_review_tests.rs"]
+mod review;
 #[path = "makeexec_sw03_tests.rs"]
 mod sw03;
 use crate::g2::mn1::join_tests::read;
@@ -141,7 +143,7 @@ fn makeexec_action_uses_the_permissions_batch_sets_only_owner_x_and_refreshes_mo
         let mode = batch.get("modes").unwrap().as_array().unwrap()[0]
             .as_str()
             .unwrap();
-        assert_eq!(mode, format!("{after:04o}"));
+        assert_eq!(mode, "u+x");
         assert!(
             std::path::Path::new(path).is_absolute()
                 && std::path::Path::new(path).starts_with(&fixture.root)
@@ -294,7 +296,7 @@ fn makeexec_real_batch_failure_keeps_the_file_and_reports_the_backend_sentence(
     fixture.probe(cx, &request);
     let batch = fixture.choose(cx);
     let reply = Process::new(&fixture.root).request(&batch, "permissions");
-    let error = "Enter three octal digits or a leading-zero four-digit mode.";
+    let error = "Special permissions cannot be edited.";
     assert_eq!(
         jsondoc::parse(&reply)
             .unwrap()

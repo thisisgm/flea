@@ -150114,17 +150114,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Err(\"Enter three octal digits or a leading-zero four-digit mode.\".into());",
-      "line": 35,
-      "literal": "Enter three octal digits or a leading-zero four-digit mode.",
-      "owner": "controller",
-      "path": "src/backend/permissions.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "return format!(\"Read-only: {} bit is present.\", label);",
-      "line": 43,
+      "line": 37,
       "literal": "Read-only: {} bit is present.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150133,7 +150124,7 @@
     },
     {
       "excerpt": "return \"Read-only: you are not the owner.\".into();",
-      "line": 47,
+      "line": 41,
       "literal": "Read-only: you are not the owner.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150142,7 +150133,7 @@
     },
     {
       "excerpt": "return Err(\"Permissions takes one item, not a link.\");",
-      "line": 145,
+      "line": 139,
       "literal": "Permissions takes one item, not a link.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150151,7 +150142,7 @@
     },
     {
       "excerpt": "return Err(\"Special permissions cannot be edited.\");",
-      "line": 148,
+      "line": 142,
       "literal": "Special permissions cannot be edited.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150160,7 +150151,7 @@
     },
     {
       "excerpt": "return Err(BatchError { msg: \"Permissions needs at least one selected item.\".into(), applied: Vec::new() });",
-      "line": 157,
+      "line": 151,
       "literal": "Permissions needs at least one selected item.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150169,7 +150160,7 @@
     },
     {
       "excerpt": "return Err(BatchError { msg: \"Permissions requires an absolute path and request identity.\".into(), applied: Vec::new() });",
-      "line": 164,
+      "line": 158,
       "literal": "Permissions requires an absolute path and request identity.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150178,7 +150169,7 @@
     },
     {
       "excerpt": ".map_err(|e| BatchError { msg: format!(\"Could not inspect permissions: {}.\", crate::error::io_message(&e)), applied: Vec::new() })?;",
-      "line": 167,
+      "line": 161,
       "literal": "Could not inspect permissions: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150187,7 +150178,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Could not inspect permissions: {}.\",",
-      "line": 179,
+      "line": 173,
       "literal": "Could not inspect permissions: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150196,7 +150187,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not inspect permissions: {}.\", crate::error::io_message(&e)))?;",
-      "line": 183,
+      "line": 177,
       "literal": "Could not inspect permissions: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150205,7 +150196,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not change mode: {}.\", e))?;",
-      "line": 188,
+      "line": 183,
       "literal": "Could not change mode: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150214,7 +150205,7 @@
     },
     {
       "excerpt": "return Err(BatchError { msg: format!(\"{} No change was applied.\", failure), applied: Vec::new() });",
-      "line": 204,
+      "line": 199,
       "literal": "{} No change was applied.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150223,7 +150214,7 @@
     },
     {
       "excerpt": "msg: format!(\"{} {} of {} items were changed; undo restores them.\", failure, stuck.len(), items.len()),",
-      "line": 207,
+      "line": 202,
       "literal": "{} {} of {} items were changed; undo restores them.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150232,7 +150223,7 @@
     },
     {
       "excerpt": "return \"This drive ignores permission changes, so nothing was changed.\".into();",
-      "line": 229,
+      "line": 224,
       "literal": "This drive ignores permission changes, so nothing was changed.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150241,7 +150232,7 @@
     },
     {
       "excerpt": "format!(\"This {fs} drive ignores permission changes, so nothing was changed.\")",
-      "line": 231,
+      "line": 226,
       "literal": "This {fs} drive ignores permission changes, so nothing was changed.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150250,7 +150241,7 @@
     },
     {
       "excerpt": "return Err(\"Permissions takes one item, not a link.\".into());",
-      "line": 238,
+      "line": 233,
       "literal": "Permissions takes one item, not a link.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150259,7 +150250,7 @@
     },
     {
       "excerpt": "return Err(\"the item was replaced, so its mode was left in place.\".into());",
-      "line": 255,
+      "line": 250,
       "literal": "the item was replaced, so its mode was left in place.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150268,7 +150259,7 @@
     },
     {
       "excerpt": "return Err(\"the mode changed since, so it was left in place.\".into());",
-      "line": 258,
+      "line": 253,
       "literal": "the mode changed since, so it was left in place.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150277,7 +150268,7 @@
     },
     {
       "excerpt": "return Err(\"the item was replaced, so its mode was left in place.\".into());",
-      "line": 263,
+      "line": 258,
       "literal": "the item was replaced, so its mode was left in place.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150286,7 +150277,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown permissions operation.\".into()),",
-      "line": 293,
+      "line": 288,
       "literal": "Unknown permissions operation.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150295,7 +150286,7 @@
     },
     {
       "excerpt": "return Err(\"Permissions requires an absolute path and request identity.\".into());",
-      "line": 308,
+      "line": 303,
       "literal": "Permissions requires an absolute path and request identity.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150304,7 +150295,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not inspect permissions: {}.\", crate::error::io_message(&e)))?;",
-      "line": 312,
+      "line": 307,
       "literal": "Could not inspect permissions: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150313,7 +150304,7 @@
     },
     {
       "excerpt": "return Err(\"Permissions takes one item, not a link.\".into());",
-      "line": 314,
+      "line": 309,
       "literal": "Permissions takes one item, not a link.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150322,7 +150313,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not open selected item for permissions: {}.\", crate::error::io_message(&e)))?;",
-      "line": 320,
+      "line": 315,
       "literal": "Could not open selected item for permissions: {}.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150331,7 +150322,7 @@
     },
     {
       "excerpt": "return Err(\"Selected item changed; reopen Permissions.\".into());",
-      "line": 323,
+      "line": 318,
       "literal": "Selected item changed; reopen Permissions.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150340,7 +150331,7 @@
     },
     {
       "excerpt": ".ok_or(\"Selected item changed; reopen Permissions.\")?;",
-      "line": 354,
+      "line": 349,
       "literal": "Selected item changed; reopen Permissions.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150349,7 +150340,7 @@
     },
     {
       "excerpt": ".map_err(|_| \"Selected item moved or disappeared; reopen Permissions.\")?;",
-      "line": 359,
+      "line": 354,
       "literal": "Selected item moved or disappeared; reopen Permissions.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150358,7 +150349,7 @@
     },
     {
       "excerpt": "return Err(\"Selected item changed; reopen Permissions.\".into());",
-      "line": 364,
+      "line": 359,
       "literal": "Selected item changed; reopen Permissions.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150367,7 +150358,7 @@
     },
     {
       "excerpt": "return Err(\"Selected item changed; reopen Permissions.\".into());",
-      "line": 367,
+      "line": 362,
       "literal": "Selected item changed; reopen Permissions.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150376,7 +150367,7 @@
     },
     {
       "excerpt": "return Err(\"Special permissions cannot be edited.\".into());",
-      "line": 374,
+      "line": 369,
       "literal": "Special permissions cannot be edited.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150385,7 +150376,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not change mode: {e}. No change was applied.\"))?;",
-      "line": 378,
+      "line": 373,
       "literal": "Could not change mode: {e}. No change was applied.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150394,7 +150385,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Could not change mode: {refusal} No change was applied.\"));",
-      "line": 381,
+      "line": 376,
       "literal": "Could not change mode: {refusal} No change was applied.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150403,7 +150394,7 @@
     },
     {
       "excerpt": "assert!(verify_applied_fd(&file, &path, 0o644).is_ok(), \"a mode that landed verifies\");",
-      "line": 402,
+      "line": 397,
       "literal": "a mode that landed verifies",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150412,7 +150403,7 @@
     },
     {
       "excerpt": "let err = verify_applied_fd(&file, &path, 0o600).expect_err(\"a mode that never landed must refuse\");",
-      "line": 403,
+      "line": 398,
       "literal": "a mode that never landed must refuse",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150421,7 +150412,7 @@
     },
     {
       "excerpt": "assert!(err.contains(\"ignores permission changes\"), \"the refusal names the cause: {err}\");",
-      "line": 404,
+      "line": 399,
       "literal": "ignores permission changes",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150430,7 +150421,7 @@
     },
     {
       "excerpt": "assert!(err.contains(\"ignores permission changes\"), \"the refusal names the cause: {err}\");",
-      "line": 404,
+      "line": 399,
       "literal": "the refusal names the cause: {err}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150439,7 +150430,7 @@
     },
     {
       "excerpt": "assert!(!fs.is_empty(), \"the fixture sits on a named filesystem\");",
-      "line": 406,
+      "line": 401,
       "literal": "the fixture sits on a named filesystem",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150448,7 +150439,7 @@
     },
     {
       "excerpt": "assert!(err.contains(&fs), \"the refusal names the filesystem: {err}\");",
-      "line": 407,
+      "line": 402,
       "literal": "the refusal names the filesystem: {err}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150457,7 +150448,7 @@
     },
     {
       "excerpt": "assert!(verify_applied_fd(&file, &other, 0o600).is_ok(), \"the descriptor's mode verifies against another path's name\");",
-      "line": 418,
+      "line": 413,
       "literal": "the descriptor's mode verifies against another path's name",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150466,7 +150457,7 @@
     },
     {
       "excerpt": "assert!(verify_applied_fd(&other_file, &other, 0o600).is_err(), \"the other file's own descriptor sees its mode and refuses\");",
-      "line": 420,
+      "line": 415,
       "literal": "the other file's own descriptor sees its mode and refuses",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150475,7 +150466,7 @@
     },
     {
       "excerpt": "escape(&d.join(\"missing\").to_string_lossy())",
-      "line": 428,
+      "line": 423,
       "literal": "missing",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150484,7 +150475,7 @@
     },
     {
       "excerpt": "assert_eq!(field_str(&missing, \"error\").unwrap(), \"Could not inspect permissions: item not found.\");",
-      "line": 430,
+      "line": 425,
       "literal": "Could not inspect permissions: item not found.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150493,7 +150484,7 @@
     },
     {
       "excerpt": "let path = d.file(\"locked/file\", \"retained contents\");",
-      "line": 432,
+      "line": 427,
       "literal": "retained contents",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150502,7 +150493,7 @@
     },
     {
       "excerpt": "assert_eq!(refused.unwrap_err(), \"Could not inspect permissions: permission denied.\");",
-      "line": 437,
+      "line": 432,
       "literal": "Could not inspect permissions: permission denied.",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150511,7 +150502,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read(path).unwrap(), b\"retained contents\");",
-      "line": 438,
+      "line": 433,
       "literal": "retained contents",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150520,7 +150511,7 @@
     },
     {
       "excerpt": "let link = d.join(\"link\");",
-      "line": 486,
+      "line": 481,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150529,7 +150520,7 @@
     },
     {
       "excerpt": "assert!(p.inspect(3, &d.join(\"missing\")).is_err());",
-      "line": 490,
+      "line": 485,
       "literal": "missing",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150538,7 +150529,7 @@
     },
     {
       "excerpt": "assert!(reason(&meta, meta.uid().wrapping_add(1)).contains(\"not the owner\"));",
-      "line": 507,
+      "line": 502,
       "literal": "not the owner",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150547,7 +150538,7 @@
     },
     {
       "excerpt": "assert!(refused.is_err(), \"a path swapped for a link is refused, got {:?}\", refused);",
-      "line": 522,
+      "line": 517,
       "literal": "a path swapped for a link is refused, got {:?}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150556,7 +150547,7 @@
     },
     {
       "excerpt": "assert!(item.symlink_metadata().unwrap().file_type().is_symlink(), \"the swap is still a link\");",
-      "line": 523,
+      "line": 518,
       "literal": "the swap is still a link",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150565,7 +150556,7 @@
     },
     {
       "excerpt": "assert_eq!(victim.metadata().unwrap().mode() & 0o777, 0o640, \"the swap target keeps its mode\");",
-      "line": 524,
+      "line": 519,
       "literal": "the swap target keeps its mode",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150574,7 +150565,7 @@
     },
     {
       "excerpt": "assert!(refused.is_err(), \"a file swapped after the checks is refused, got {:?}\", refused);",
-      "line": 553,
+      "line": 548,
       "literal": "a file swapped after the checks is refused, got {:?}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150583,7 +150574,7 @@
     },
     {
       "excerpt": "assert_eq!(item.metadata().unwrap().mode() & 0o777, 0o644, \"the replacement keeps its mode\");",
-      "line": 554,
+      "line": 549,
       "literal": "the replacement keeps its mode",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150592,7 +150583,7 @@
     },
     {
       "excerpt": "assert!(refused.is_err(), \"a link swapped after the checks is refused, got {:?}\", refused);",
-      "line": 572,
+      "line": 567,
       "literal": "a link swapped after the checks is refused, got {:?}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150601,7 +150592,7 @@
     },
     {
       "excerpt": "assert!(item.symlink_metadata().unwrap().file_type().is_symlink(), \"the swap is still a link\");",
-      "line": 573,
+      "line": 568,
       "literal": "the swap is still a link",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150610,7 +150601,7 @@
     },
     {
       "excerpt": "assert_eq!(victim.metadata().unwrap().mode() & 0o777, 0o644, \"the swap target keeps its mode\");",
-      "line": 574,
+      "line": 569,
       "literal": "the swap target keeps its mode",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150619,7 +150610,7 @@
     },
     {
       "excerpt": "assert!(refused.is_err(), \"a file with another birth time is refused, got {:?}\", refused);",
-      "line": 585,
+      "line": 580,
       "literal": "a file with another birth time is refused, got {:?}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150628,7 +150619,7 @@
     },
     {
       "excerpt": "assert_eq!(a.metadata().unwrap().mode() & 0o777, 0o644, \"the mode stays until the identity matches\");",
-      "line": 586,
+      "line": 581,
       "literal": "the mode stays until the identity matches",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150637,7 +150628,7 @@
     },
     {
       "excerpt": "let steps = apply_many(&[(a.clone(), \"600\".to_string()), (b.clone(), \"600\".to_string()), (c.clone(), \"600\".to_string())]).expect(\"three ordinary files\");",
-      "line": 597,
+      "line": 592,
       "literal": "three ordinary files",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150646,7 +150637,7 @@
     },
     {
       "excerpt": "assert_eq!(journal.undo().expect(\"one undo restores all three\"), \"permissions\");",
-      "line": 604,
+      "line": 599,
       "literal": "one undo restores all three",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150655,7 +150646,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"No change was applied\"), \"unexpected message: {}\", err.msg);",
-      "line": 621,
+      "line": 616,
       "literal": "No change was applied",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150664,7 +150655,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"No change was applied\"), \"unexpected message: {}\", err.msg);",
-      "line": 621,
+      "line": 616,
       "literal": "unexpected message: {}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150673,7 +150664,7 @@
     },
     {
       "excerpt": "assert!(err.applied.is_empty(), \"a batch that rolled back whole journals nothing\");",
-      "line": 622,
+      "line": 617,
       "literal": "a batch that rolled back whole journals nothing",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150682,7 +150673,7 @@
     },
     {
       "excerpt": "assert_eq!(a.metadata().unwrap().mode() & 0o777, 0o644, \"the first change was rolled back\");",
-      "line": 623,
+      "line": 618,
       "literal": "the first change was rolled back",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150691,7 +150682,7 @@
     },
     {
       "excerpt": "assert_eq!(b.metadata().unwrap().mode() & 0o777, 0o644, \"the failed item was never changed\");",
-      "line": 624,
+      "line": 619,
       "literal": "the failed item was never changed",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150700,7 +150691,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"1 of 2 items were changed\"), \"unexpected message: {}\", err.msg);",
-      "line": 640,
+      "line": 635,
       "literal": "1 of 2 items were changed",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150709,7 +150700,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"1 of 2 items were changed\"), \"unexpected message: {}\", err.msg);",
-      "line": 640,
+      "line": 635,
       "literal": "unexpected message: {}",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150718,7 +150709,7 @@
     },
     {
       "excerpt": "assert_eq!(err.applied.len(), 1, \"the step that would not go back stays journalled\");",
-      "line": 641,
+      "line": 636,
       "literal": "the step that would not go back stays journalled",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150727,7 +150718,7 @@
     },
     {
       "excerpt": "assert_eq!(a.metadata().unwrap().mode() & 0o777, 0o600, \"the stuck change is still applied\");",
-      "line": 642,
+      "line": 637,
       "literal": "the stuck change is still applied",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150736,7 +150727,7 @@
     },
     {
       "excerpt": "assert_eq!(journal.undo().expect(\"one undo restores what stayed applied\"), \"permissions\");",
-      "line": 645,
+      "line": 640,
       "literal": "one undo restores what stayed applied",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150745,7 +150736,7 @@
     },
     {
       "excerpt": "let steps = apply_many(&[(a.clone(), \"600\".to_string())]).expect(\"one ordinary file\");",
-      "line": 653,
+      "line": 648,
       "literal": "one ordinary file",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150754,7 +150745,7 @@
     },
     {
       "excerpt": "d.replace_file(&a, \"new secret\");",
-      "line": 656,
+      "line": 651,
       "literal": "new secret",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150763,7 +150754,7 @@
     },
     {
       "excerpt": "let err = journal.undo().expect_err(\"a replaced file keeps nothing to restore to\");",
-      "line": 660,
+      "line": 655,
       "literal": "a replaced file keeps nothing to restore to",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150772,7 +150763,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"left in place\"), \"{}\", err.msg);",
-      "line": 661,
+      "line": 656,
       "literal": "left in place",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150781,7 +150772,7 @@
     },
     {
       "excerpt": "\"undo widened a file it never changed\");",
-      "line": 663,
+      "line": 658,
       "literal": "undo widened a file it never changed",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150790,7 +150781,7 @@
     },
     {
       "excerpt": "let steps = apply_many(&[(a.clone(), \"600\".to_string())]).expect(\"one ordinary file\");",
-      "line": 670,
+      "line": 665,
       "literal": "one ordinary file",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150799,7 +150790,7 @@
     },
     {
       "excerpt": "let err = journal.undo().expect_err(\"a setuid added since keeps nothing to restore to\");",
-      "line": 675,
+      "line": 670,
       "literal": "a setuid added since keeps nothing to restore to",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150808,7 +150799,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"left in place\"), \"{}\", err.msg);",
-      "line": 676,
+      "line": 671,
       "literal": "left in place",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150817,7 +150808,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::metadata(&a).unwrap().mode() & 0o7777, 0o4600, \"undo cleared a setuid it never set\");",
-      "line": 677,
+      "line": 672,
       "literal": "undo cleared a setuid it never set",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150826,7 +150817,7 @@
     },
     {
       "excerpt": ".expect(\"two ordinary files\");",
-      "line": 688,
+      "line": 683,
       "literal": "two ordinary files",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150835,7 +150826,7 @@
     },
     {
       "excerpt": "let err = journal.undo().expect_err(\"one replaced path is skipped with a note\");",
-      "line": 694,
+      "line": 689,
       "literal": "one replaced path is skipped with a note",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150844,7 +150835,7 @@
     },
     {
       "excerpt": "assert!(err.msg.contains(\"left in place\"), \"{}\", err.msg);",
-      "line": 695,
+      "line": 690,
       "literal": "left in place",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150853,7 +150844,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::metadata(&a).unwrap().mode() & 0o777, 0o600, \"the replacement keeps its mode\");",
-      "line": 696,
+      "line": 691,
       "literal": "the replacement keeps its mode",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
@@ -150862,10 +150853,19 @@
     },
     {
       "excerpt": "assert_eq!(b.metadata().unwrap().mode() & 0o777, 0o644, \"the untouched file still restores\");",
-      "line": 697,
+      "line": 692,
       "literal": "the untouched file still restores",
       "owner": "controller",
       "path": "src/backend/permissions.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"Enter three octal digits or a leading-zero four-digit mode.\".into());",
+      "line": 29,
+      "literal": "Enter three octal digits or a leading-zero four-digit mode.",
+      "owner": "controller",
+      "path": "src/backend/permissions/target.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -243157,7 +243157,7 @@
     "crates/flea-gui/src/g2/mn1/join_target.rs": "e162e3e101eac9aea84293e270ba362923b672b239fb5a2b1b3ba65bac97f15b",
     "crates/flea-gui/src/g2/mn1/keys.rs": "af26196bb01c4a80f84cfb7d66e9ff7b8bddab659d390ef1c65faba463b88387",
     "crates/flea-gui/src/g2/mn1/lines.rs": "19d86fc8287775141909ab9bf77e9847424dd8ced2e66f0fd406d6399cfeafc4",
-    "crates/flea-gui/src/g2/mn1/makeexec.rs": "3e6db1dd2bf98f9e0ecb68d5d834520e591d14901ecd2e5135b6f8b3c1cefd57",
+    "crates/flea-gui/src/g2/mn1/makeexec.rs": "d6e87e0fed8cb0a47c865ced242d5f5480d93d9ecce0de3011a4360ebe6ad71b",
     "crates/flea-gui/src/g2/mn1/makeexec_backend.rs": "50f0dfed49176c1188b6772dd8c7af9e7b4f1675c35da68701a930359b716c98",
     "crates/flea-gui/src/g2/mn1/makeexec_fixture.rs": "27399f50af66c1142ee1103e05447ed9b1cc936cf2a83af75d007b6761688e74",
     "crates/flea-gui/src/g2/mn1/makeexec_foldhash.rs": "1eb017a7aef0572d2a049c7e6539fde4a968cbb32ab8f9cd47bfbe632bf83820",
@@ -244349,7 +244349,8 @@
     "src/backend/peekdetail.rs": "2d58ccee0f4cb7c7539decd5dc71b118b703162d0805f5559e4b1f7fbfb572fe",
     "src/backend/peekpump.rs": "4ef1b5a74fb2f6f6f5a5b222a1e1cf99ef3d1c154348b973fc33e8ea7b16d1d6",
     "src/backend/peekwatch.rs": "4413212e23d20c89f628026ea1eef804172f8fd2a1083adf1613c501741e420d",
-    "src/backend/permissions.rs": "e006f7a01aecc22375ff0d93ad50c68460b5ed0e897c5d716833587e54ceabd1",
+    "src/backend/permissions.rs": "4cc679499fecf5cf68793b3fead08307438e00f42c7e24b7eddb4ecdbbd5072d",
+    "src/backend/permissions/target.rs": "cdda58d4b822a8421c15cf2712fc9c357417f4092e72d72b53b8a2cd76c495a2",
     "src/backend/picker.rs": "9002a13e58643dd80a4a596695c54033a6886a74a07c8c634d54a6b86bd63703",
     "src/backend/picker_limits.rs": "16ce628a55875765c65dd784298b98971e9dc65d40bbc8b2cc746b188135c73a",
     "src/backend/pluginadd.rs": "c24a42e99df9581eef7cb0fbda7aac3c2fb5928c6c39ab93f7b8a16c1cd4097a",
@@ -245614,13 +245615,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "311782fa78e13c8398096ebef43ba0b82ffff1b5",
-  "source_sha": "311782fa78e13c8398096ebef43ba0b82ffff1b5",
+  "source_ref_sha": "7f5d8e33c9611f2c24523b9567b2a9b56df6c3cb",
+  "source_sha": "7f5d8e33c9611f2c24523b9567b2a9b56df6c3cb",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
       "missing_literal_candidates": 5716,
-      "source_files": 833
+      "source_files": 834
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
