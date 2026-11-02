@@ -205,6 +205,8 @@ pub fn notice_shown(slot: &Slot) -> bool {
 /// One standing error; `place` is set only for a no-Trash refusal, which belongs to where it was raised.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ErrorEntry {
+    /// An opaque receipt token; zero belongs to an untracked error.
+    pub serial: u64,
     pub text: String,
     pub detail: String,
     pub hint: Hint,
@@ -251,6 +253,7 @@ pub fn with_error(
     place: Option<&str>,
 ) {
     let entry = ErrorEntry {
+        serial: 0,
         text: text.into(),
         detail: detail.into(),
         hint,

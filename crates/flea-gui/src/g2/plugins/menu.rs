@@ -3,7 +3,6 @@ use super::Response;
 use crate::state::Shell;
 use flea::{
     jsondoc::Json,
-    ui_logic_fb1::status::Hint,
     ui_logic_mn1::Entry,
     ui_logic_mn2::{plugins, rows},
     ui_logic_st2::{contributions, store, wire::Plugin},
@@ -28,6 +27,8 @@ mod prompt;
 mod selection;
 #[path = "menu_send.rs"]
 mod send;
+#[path = "menu_verdict.rs"]
+mod verdict;
 pub(crate) use send::send_role;
 #[cfg(test)]
 #[path = "menu_tests.rs"]
@@ -42,6 +43,8 @@ pub(crate) struct Menus {
     pub(super) plugins: Vec<Plugin>,
     pub(super) targets: HashMap<String, Json>,
     pub(super) pending: HashMap<u64, usize>,
+    errors: HashMap<verdict::Owner, Vec<u64>>,
+    attempts: verdict::Attempts,
     pub(super) target_pending: HashSet<String>,
     pub(super) target_due: HashMap<String, Instant>,
     observers: Vec<Subscription>,
@@ -210,8 +213,12 @@ impl Shell {
                     }
                     if let Some(side) = shell.menu.plugin_runtime.pending.get(&response.id).copied()
                     {
+                        let current = shell.plugin_action_response(side, response, terminal);
                         if terminal {
                             shell.menu.plugin_runtime.pending.remove(&response.id);
+                        }
+                        if !current {
+                            return;
                         }
                         let said = if response.ok {
                             response
@@ -222,21 +229,26 @@ impl Shell {
                         } else {
                             &response.error
                         };
-                        if !said.is_empty() {
+                        if !response.ok || !said.is_empty() {
                             let said: String = said
                                 .chars()
                                 .filter(|c| !c.is_control())
                                 .take(super::limits::TEXT)
                                 .collect();
                             let sentence = if response.ok {
+                                if said.is_empty() {
+                                    return;
+                                }
                                 said
+                            } else if said.trim().is_empty() {
+                                shell.locale.catalog.tr("feedback.error.generic")
                             } else {
                                 shell
                                     .locale
                                     .catalog
-                                    .tr_args(crate::g2::mn2::model::START_KEY, &[&said])
+                                    .tr_args("feedback.error.backend", &[&said])
                             };
-                            shell.owner_notice(side, &sentence, !response.ok, Hint::None, cx);
+                            shell.plugin_response_notice(side, response, &sentence, cx);
                         }
                     }
                 },

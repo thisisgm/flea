@@ -85,6 +85,7 @@ impl Shell {
         request: Json,
         cx: &mut Context<Self>,
     ) {
+        let error_owner = super::verdict::owner(side, plugin, &request);
         let envelope = flea::ui_logic_st2::wire::request_line(
             u64::MAX,
             "runtime",
@@ -118,6 +119,7 @@ impl Shell {
             })
         });
         if let Some(id) = sent {
+            self.plugin_action_sent(error_owner, id, cx);
             self.menu.plugin_runtime.pending.insert(id, side);
         } else {
             self.menu_notice(side, self.locale.catalog.tr("menu.refusal.unavailable"), cx);
