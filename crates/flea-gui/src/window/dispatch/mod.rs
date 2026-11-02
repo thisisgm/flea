@@ -368,3 +368,6 @@ mod thumbnail_policy_tests;
 
 #[cfg(test)]
 mod quick_look_interim_tests;
+
+#[cfg(test)]
+mod s4_tests;
