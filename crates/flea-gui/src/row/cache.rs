@@ -103,6 +103,24 @@ pub struct RowCache {
 }
 
 impl RowCache {
+    /// Retain prepared cells by file identity when an in-place answer renumbers rows.
+    pub(crate) fn reindex(&mut self, held: &crate::list::pane::Held) {
+        if let Some(shaping) = self.shaping.as_mut() {
+            shaping.listing = held.listing;
+        }
+        self.entries = std::mem::take(&mut self.entries)
+            .into_values()
+            .filter_map(|mut entry| {
+                let at = held
+                    .rows
+                    .iter()
+                    .position(|row| row.name == entry.facts.name)?;
+                entry.revision = UNRESOLVED;
+                Some((held.start + at, entry))
+            })
+            .collect();
+    }
+
     /// The facts retained for a prepared row, so observations never mix its frame with a newer reply.
     pub(crate) fn facts(&self, index: usize) -> Option<&RowFacts> {
         self.entries.get(&index).map(|entry| &entry.facts)

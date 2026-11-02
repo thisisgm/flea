@@ -230,11 +230,12 @@ impl Pane {
         self.swap.busy()
     }
 
-    pub fn begin(&mut self, path: String, options: Options, now: u64) -> bool {
+    pub fn begin(&mut self, path: String, mut options: Options, now: u64) -> bool {
         if self.busy() && path == self.place() {
             return false;
         }
         let crossing = path.starts_with("plugin://") != self.path.starts_with("plugin://");
+        options.in_place &= path == self.path && !self.state.search;
         if !self
             .swap
             .begin(path, self.first_count(), &self.state, options, now)
@@ -305,46 +306,11 @@ impl Pane {
         }
     }
 
-    pub(crate) fn commit(&mut self, now: u64) -> bool {
-        let Some(mut pending) = self.swap.pending.take() else {
-            return false;
-        };
-        let Some(held) = pending.ready.take() else {
-            self.swap.pending = Some(pending);
-            return false;
-        };
-        let held = pending.following.take().unwrap_or(held);
-        let cursor = self.landing_cursor(&pending, &held);
-        self.scroll_extent = None;
-        self.path = pending.path;
-        self.named = true;
-        self.swap.listing_first = pending.first;
-        self.greatest_listing = held.listing;
-        self.cursor = cursor;
-        self.scroll_y = held.start as f32 * self.row_height;
-        self.state = State {
-            kind: if held.total == 0 {
-                Kind::Empty
-            } else {
-                Kind::Ready
-            },
-            target: self.path.clone(),
-            query: pending.options.kept_query,
-            search: pending.options.search,
-            ..State::default()
-        };
-        self.held = Rc::new(held);
-        self.scroll_by(0.);
-        self.requests.initial_first = Some((self.scroll_y / self.row_height).floor() as usize);
-        self.swap.counters.commits += 1;
-        self.swap.stamp_rows(now);
-        self.swap.end(now, "landed");
-        true
-    }
-
     pub fn tick(&mut self, now: u64) -> bool {
         if self.swap.pending.as_ref().is_some_and(|pending| {
-            pending.ready.is_some() && pending.parked_until.is_none_or(|until| now >= until)
+            pending.ready.is_some()
+                && pending.retained_start.is_none()
+                && pending.parked_until.is_none_or(|until| now >= until)
         }) && self.swap.can_land(now)
         {
             if self
@@ -397,3 +363,10 @@ mod geometry;
 
 #[path = "pane_failure.rs"]
 mod failure;
+
+#[path = "pane_commit.rs"]
+mod commit;
+
+#[cfg(test)]
+#[path = "pane_retained_window_tests.rs"]
+mod retained_window_tests;

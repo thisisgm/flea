@@ -54,7 +54,9 @@ impl Shell {
             if blocked || host.pane.busy() {
                 host.input.cancel(&mut host.selected, &mut host.pane.cursor);
                 host.input.press = None;
-                host.input.hovered = None;
+                if blocked || !host.pane.swap.retains_rows() {
+                    host.input.hovered = None;
+                }
             }
             let now = cx.background_executor().now();
             // Resolve shared font metrics during frame preparation, never inside an observer.

@@ -113,6 +113,8 @@ fn builtin_actions_run_the_key_path_and_refuse_as_the_window_does(cx: &mut TestA
             ready: None,
             following: None,
             parked_until: None,
+            retained_start: None,
+            retained_cursor: None,
             options: Default::default(),
         });
     });

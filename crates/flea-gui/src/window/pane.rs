@@ -201,6 +201,11 @@ impl PaneHost {
         let generation = self.pane.held.listing;
         let before = std::mem::take(&mut self.path);
         if generation != self.applied_listing {
+            if before == self.pane.path()
+                && self.pane.swap.retained_listing == Some(self.applied_listing)
+            {
+                self.list.borrow_mut().rows.reindex(&self.pane.held);
+            }
             let keep_all = before == self.pane.path()
                 && self.nav.sort_landing(&self.pane)
                 && self.selected.len() == self.pane.held.total

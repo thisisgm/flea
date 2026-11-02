@@ -64,12 +64,15 @@ impl Shell {
         let Some(host) = &mut self.panes[side] else {
             return;
         };
-        if blocked || host.pane.busy() {
+        if blocked || (host.pane.busy() && !host.pane.swap.retains_rows()) {
             host.input.cancel(&mut host.selected, &mut host.pane.cursor);
             host.input.hovered = None;
             if let Some(columns) = host.columns.as_mut() {
                 columns.hover = None;
             }
+            return;
+        }
+        if host.pane.busy() {
             return;
         }
         let Some(mut frame) = host.input.frame else {

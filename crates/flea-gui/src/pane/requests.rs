@@ -200,21 +200,15 @@ impl Pane {
                     return Ok(false);
                 }
                 Self::check_complete(start, rows.len(), total, pending.first)?;
-                self.swap
-                    .pending
-                    .as_mut()
-                    .expect("pending listing")
-                    .following = Some(Held {
+                let pending = self.swap.pending.as_mut().expect("pending listing");
+                pending.following = Some(Held {
                     listing,
                     total,
                     start,
                     rows,
                 });
-                self.swap
-                    .pending
-                    .as_mut()
-                    .expect("pending listing")
-                    .parked_until = None;
+                pending.parked_until = None;
+                pending.retained_start = None;
                 self.requests.cancel();
                 self.swap.counters.waits += 1;
                 return Ok(false);
@@ -232,12 +226,19 @@ impl Pane {
                 rows,
             };
             self.swap.pending.as_mut().expect("pending listing").ready = Some(held);
+            if let Some((start, cursor)) = self.retained_window() {
+                let pending = self.swap.pending.as_mut().expect("pending listing");
+                pending.retained_start = Some(start);
+                pending.retained_cursor = Some(cursor);
+                return Ok(false);
+            }
             let parked = self.swap.pending.as_ref().is_some_and(|pending| {
-                pending.options.restore_name.as_ref().is_some_and(|name| {
-                    pending.ready.as_ref().is_some_and(|held| {
-                        held.total > 0 && !held.rows.iter().any(|row| &row.name == name)
+                !pending.options.in_place
+                    && pending.options.restore_name.as_ref().is_some_and(|name| {
+                        pending.ready.as_ref().is_some_and(|held| {
+                            held.total > 0 && !held.rows.iter().any(|row| &row.name == name)
+                        })
                     })
-                })
             });
             if parked {
                 let until = now
