@@ -348,3 +348,7 @@ mod caller_tests;
 #[cfg(test)]
 #[path = "words_preview_join_tests.rs"]
 mod preview_join_tests;
+
+#[cfg(test)]
+#[path = "ar_tui_copy_tests.rs"]
+mod ar_tui_copy_tests;

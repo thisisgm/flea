@@ -2835,7 +2835,7 @@
   "tui.external_editor.the_editor_command_needs_a_program": "يتطلب أمر المحرر برنامجًا",
   "tui.frame.combined": "الإجمالي · ⁦%1⁩",
   "tui.frame.detail": "عمود التفاصيل · ⁨%1⁩",
-  "tui.frame.keys": "⁦%1⁩ للمفاتيح",
+  "tui.frame.keys": "⁦%1⁩ الاختصارات",
   "tui.frame.outside": {
     "zero": "لا عناصر معلّمة خارج الصفوف المحمّلة (العدد: ⁦%1⁩)",
     "one": "⁦%1⁩ عنصر معلّم خارج الصفوف المحمّلة",

@@ -315,3 +315,5 @@ mod gap64_tests;
 
 #[cfg(test)]
 mod opr_reds_tests;
+#[cfg(test)]
+mod ar_tui_copy_tests;
