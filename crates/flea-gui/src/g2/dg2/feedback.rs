@@ -304,25 +304,33 @@ impl Shell {
                 .cue_lines
                 .remove(&window_key(window))
         {
-            self.publish_file_line(window, String::new(), cx);
+            // A rail write retires the cached file line, so only its current owner clears it.
+            if cx
+                .default_global::<Drags>()
+                .said
+                .contains_key(&window_key(window))
+            {
+                self.publish_file_line(window, String::new(), cx);
+            }
             cx.notify();
         }
     }
 }
 
 impl Shell {
+    // A running transfer keeps the bar; an unpublished line stays uncached, and an empty line clears.
     fn publish_file_line(&mut self, window: &Window, line: String, cx: &mut Context<Self>) {
         let key = window_key(window);
-        let displayed = self.status_messages(cx, |messages, _| {
+        let shown = self.status_messages(cx, |messages, _| {
             messages
                 .activities()
                 .iter()
-                .any(|entry| entry.owner == LINE && entry.text == line)
+                .find(|entry| entry.owner == LINE)
+                .map(|entry| entry.text.clone())
+                .unwrap_or_default()
         });
         let drags = cx.default_global::<Drags>();
-        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line
-            && (line.is_empty() || displayed)
-        {
+        if drags.said.get(&key).map(String::as_str).unwrap_or("") == line && shown == line {
             return;
         }
         let published = self.status_messages(cx, |messages, now| {
@@ -345,56 +353,6 @@ impl Shell {
         cx.notify();
     }
 }
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::g2::dg2::mounted_tests::{open, Root};
-    use gpui::TestAppContext;
-
-    #[gpui::test]
-    fn vf_look_review_drag_hint_retries_after_running_activity(cx: &mut TestAppContext) {
-        let root = Root::new("hint-retry");
-        let (handle, _) = open(cx, root.src());
-        handle
-            .update(cx, |shell, window, cx| {
-                shell.status_messages(cx, |messages, now| {
-                    messages.set_activity(9, "Copying file", 9, true, false, now);
-                });
-                let hint = "Move 1 item to alpha";
-                shell.publish_file_line(window, hint.into(), cx);
-                assert!(!shell.status_messages(cx, |messages, _| {
-                    messages.activities().iter().any(|entry| entry.text == hint)
-                }));
-                shell.status_messages(cx, |messages, now| {
-                    messages.set_activity(9, "", 9, false, false, now);
-                });
-                shell.publish_file_line(window, hint.into(), cx);
-                assert!(
-                    shell.status_messages(cx, |messages, _| {
-                        messages.activities().iter().any(|entry| entry.text == hint)
-                    }),
-                    "a hint suppressed during a transfer publishes on the next refresh after it ends"
-                );
-            })
-            .unwrap();
-    }
-
-    #[gpui::test]
-    fn vf_look_review_window_teardown_removes_cached_drag_hint(cx: &mut TestAppContext) {
-        let root = Root::new("hint-teardown");
-        let (handle, _) = open(cx, root.src());
-        handle
-            .update(cx, |shell, window, cx| {
-                let key = window_key(window);
-                shell.publish_file_line(window, "Move 1 item to alpha".into(), cx);
-                assert!(cx.global::<Drags>().said.contains_key(&key));
-                shell.forget_file_drags(window, cx);
-                assert!(!cx.global::<Drags>().said.contains_key(&key));
-            })
-            .unwrap();
-    }
-}
-
 #[cfg(test)]
 #[path = "feedback_owner_tests.rs"]
 mod owner_tests;

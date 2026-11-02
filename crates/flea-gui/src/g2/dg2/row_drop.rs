@@ -38,6 +38,7 @@ impl Shell {
         }
     }
 
+    /// A lift still held elsewhere keeps its unnamed line; a lift whose native drag ended is dropped here.
     pub(crate) fn settle_row_drag(&mut self, window: &Window, cx: &mut Context<Self>) {
         self.clear_file_cue(window, cx);
         let key = window_key(window);
