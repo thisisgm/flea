@@ -434,11 +434,11 @@ chmod 0755 "$D/prog.so"
 # Row order is sub, cert.pem, empty.txt, linkdir, prog.so, three.txt.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
 check "a symlink to a directory keeps d false" "false" "$(echo "$out" | sed -n 2p | grep -oE '"n":"linkdir","d":(true|false)' | cut -d: -f3)"
-check "and draws as a folder" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"linkdir","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"folder"')"
+check "and draws as a folder" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"linkdir","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"folder"')"
 # Each icon grep is anchored to its own row's fields: a .* here spans into the next row's icon.
-check "a pem is not an executable" "0" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
-check "a pem draws as a generic file" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-generic"')"
-check "an executable shared object still draws as an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"prog.so","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
+check "a pem is not an executable" "0" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
+check "a pem draws as a generic file" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-generic"')"
+check "an executable shared object still draws as an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"prog.so","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
 
 # An extensionless ELF has no glob, so its execute bit alone makes it a program; the same bytes without the bit stay a document.
 setup
@@ -447,8 +447,8 @@ chmod 0755 "$D/PinyonShiftLauncher"
 cp /usr/bin/true "$D/PinyonNoExec"
 chmod 0644 "$D/PinyonNoExec"
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
-check "an extensionless pie with its execute bit draws an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonShiftLauncher","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
-check "the same bytes without the bit draw a document" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonNoExec","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"text-x-generic"')"
+check "an extensionless pie with its execute bit draws an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonShiftLauncher","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
+check "the same bytes without the bit draw a document" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonNoExec","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"text-x-generic"')"
 
 # Row order after setup plus the copy is sub, empty.txt, photo.jpg, three.txt, so the indices are 1, 3 and 4.
 setup

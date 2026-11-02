@@ -1,17 +1,17 @@
 //! Element frames for the probes that read a drawn row: its name, its budget and a narrowed listing.
 use super::check::Checks;
 use super::fixture::{peek_row, row};
-use super::frames::{frame, held, open, read, real_cx, set, typeface, View};
+use super::frames::{frame, held, open, read, real_cx, set, View};
+pub use super::text_oracle::{fitted_name, says};
 pub use super::theme::test_theme;
 use flea::protocol::RowFacts;
 use flea_gui::columns::{
     geometry::{cells, name_budget, Slot, GAP},
-    middle_elide,
     paint::{Clip, ClipMarks, Focus, Palette, TrackPaint, CLIP},
     peeks::PeekRow,
     TrackRows, TrackState, TrackView,
 };
-use gpui::{GlyphRun, Hsla, TestAppContext, TextRun, Window, WindowHandle};
+use gpui::{TestAppContext, Window, WindowHandle};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -54,28 +54,6 @@ pub fn peeks(rows: &[(&str, bool)]) -> TrackRows {
 
 pub fn files(names: impl IntoIterator<Item = String>) -> Vec<RowFacts> {
     names.into_iter().map(|name| row(&name, false)).collect()
-}
-
-/// The run's glyphs are exactly the shaping of this text in the track's face.
-pub fn says(window: &Window, run: &GlyphRun, text: &str) -> bool {
-    let face = typeface();
-    let style = TextRun {
-        len: text.len(),
-        font: face.font.clone(),
-        color: Hsla::default(),
-        background_color: None,
-        underline: None,
-        strikethrough: None,
-    };
-    let want = window
-        .text_system()
-        .layout_line(text, face.body, &[style], None);
-    let glyphs = |runs: &[gpui::ShapedRun]| {
-        runs.iter()
-            .flat_map(|run| run.glyphs.iter().map(|glyph| glyph.id))
-            .collect::<Vec<_>>()
-    };
-    run.line().len == want.len && glyphs(&run.line().runs) == glyphs(&want.runs)
 }
 
 /// Inside one window update: the slot's paint state, the face's advance, and the window for shaping.
@@ -139,7 +117,11 @@ pub fn paints(
         let budget = name_budget(width, true, false, advance);
         range.clone().all(|index| {
             paint.prepared(index).is_some_and(|row| {
-                says(window, row.name(false), &middle_elide(&name(index), budget))
+                says(
+                    window,
+                    row.name(false),
+                    &fitted_name(window, &name(index), budget, advance),
+                )
             })
         }) && paint.visible().count() == range.len()
     })
@@ -276,7 +258,12 @@ fn a_long_name_takes_its_track_budget_in_every_track() {
         vec![0],
     );
     let (prepared, whole) = look(&mut cx, one, Slot::Active, |paint, advance, window| {
-        let want = middle_elide(LONG, name_budget(366., true, false, advance));
+        let want = fitted_name(
+            window,
+            LONG,
+            name_budget(366., true, false, advance),
+            advance,
+        );
         (
             paint.prepared(0).is_some(),
             paint
@@ -335,7 +322,9 @@ fn a_long_name_takes_its_track_budget_in_every_track() {
                     let chevron = *dir;
                     let budget = name_budget(width, shows_size, chevron, advance);
                     let run = paint.prepared(index).map(|row| row.name(chevron));
-                    named &= run.is_some_and(|run| says(window, run, &middle_elide(name, budget)));
+                    named &= run.is_some_and(|run| {
+                        says(window, run, &fitted_name(window, name, budget, advance))
+                    });
                     let geometry = cells(width, shows_size, chevron);
                     fits &= run.is_some_and(|run| {
                         f32::from(run.line().width) <= geometry.name_right - geometry.name_x
@@ -373,8 +362,18 @@ fn a_long_name_takes_its_track_budget_in_every_track() {
     });
     frame(&mut cx, window);
     let (file, folder) = look(&mut cx, window, Slot::Active, |paint, advance, window| {
-        let plain = middle_elide(LONG, name_budget(366., true, false, advance));
-        let chevron = middle_elide(LONG, name_budget(366., true, true, advance));
+        let plain = fitted_name(
+            window,
+            LONG,
+            name_budget(366., true, false, advance),
+            advance,
+        );
+        let chevron = fitted_name(
+            window,
+            LONG,
+            name_budget(366., true, true, advance),
+            advance,
+        );
         (
             paint
                 .prepared(0)
@@ -406,7 +405,12 @@ fn a_long_name_takes_its_track_budget_in_every_track() {
     let (clipped, mark) = look(&mut cx, window, Slot::Active, |paint, advance, window| {
         let take = ((GAP + CLIP) / advance).ceil() as usize;
         // A clipped row elides to the chevron budget, so its mark keeps one slot with or without a chevron.
-        let want = middle_elide(LONG, name_budget(366., true, true, advance) - take);
+        let want = fitted_name(
+            window,
+            LONG,
+            name_budget(366., true, true, advance) - take,
+            advance,
+        );
         let geometry = cells(366., true, true);
         let slot = geometry.name_right - geometry.name_x - GAP - CLIP;
         let fits = paint.prepared(0).is_some_and(|row| {

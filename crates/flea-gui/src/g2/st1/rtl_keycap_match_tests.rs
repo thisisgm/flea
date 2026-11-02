@@ -120,7 +120,7 @@ fn sol_rtl_keycap_match_label_moves_as_one_unit_like_the_resting_label() {
 
 #[test]
 fn sol_rtl_keycap_match_highlight_keeps_the_recipe_and_character_range() {
-    let wash = crate::palette::Theme::from_text("").accent.opacity(0.14);
+    let wash = crate::palette::Theme::default().accent.opacity(0.14);
     let bold = HighlightStyle {
         font_weight: Some(FontWeight::BOLD),
         ..HighlightStyle::default()

@@ -40,3 +40,4 @@ west tools suites aur-versions bench-b3-capture bench-raw-corpus-contract prove-
 west slop suites slop-ratchet
 
 west m4-inventory suites bench-thumbs nvidia-gpui
+west triage-startup suites startup-order-tool

@@ -321,7 +321,7 @@ impl Reader { fn read(&self) { std::fs::read("x"); } }
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_conditional_product_path_keeps_shared_code_visible(self):
-        self.write("crates/flea-gui/src/shared.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/shared.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         for attribute in ('#[cfg_attr(unix, path="shared.rs")]',
                           '#[cfg_attr(unix, allow(dead_code), path="shared.rs")]',
                           '#[cfg_attr(unix, cfg_attr(feature="live", path="shared.rs"))]'):
@@ -343,7 +343,7 @@ impl Reader { fn read(&self) { std::fs::read("x"); } }
 
     def test_conditional_inline_path_keeps_product_child_visible(self):
         self.write("crates/flea-gui/src/lib.rs", '#[cfg_attr(unix, path="live")] mod owner { mod shared; } #[cfg(test)] #[path="live/shared.rs"] mod fixture;')
-        self.write("crates/flea-gui/src/live/shared.rs", "fn shape() { replies.recv_blocking(); }")
+        self.write("crates/flea-gui/src/live/shared.rs", "impl ShapeProbe { fn shape(&self) { replies.recv_blocking(); } }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("text.shape();")))
 
     def test_inline_test_path_cannot_hide_a_sibling_product_file(self):

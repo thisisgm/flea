@@ -47,6 +47,21 @@ plugins_value() {
 }
 
 sandbox_make "$SANDBOX" || exit 1
+mkdir -p "$SANDBOX/bin" || exit 1
+cp "$BIN" "$SANDBOX/bin/flea" || exit 1
+BIN="$SANDBOX/bin/flea"
+cat > "$SANDBOX/bin/flea-gui" <<'WINDOW_PY'
+#!/usr/bin/python3
+import os
+from pathlib import Path
+
+capture = os.environ.get("UI_STATE_TEST_CAPTURE")
+if capture:
+    state = Path(os.environ["XDG_STATE_HOME"]) / "flea/ui.json"
+    Path(capture).write_bytes(state.read_bytes())
+print("UI_STATE_TEST_WINDOW_STARTED")
+WINDOW_PY
+chmod +x "$SANDBOX/bin/flea-gui" || exit 1
 
 # A read answers the whole shape and writes nothing: a first launch leaves no file behind.
 fresh
@@ -289,7 +304,7 @@ out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-
       XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
 check "a failed settle says the view state was not settled" "1" "$(echo "$out" | grep -c 'the view state was not settled')"
 check "and names the link as the reason" "1" "$(echo "$out" | grep -c 'symbolic link')"
-check "and the launch goes on to the window" "1" "$(echo "$out" | grep -c 'the window could not start')"
+check "and the launch goes on to the window" "1" "$(echo "$out" | grep -c '^UI_STATE_TEST_WINDOW_STARTED$')"
 check "and the link still points at untouched bytes" "planted" "$(cat "$SANDBOX/run/planted.json")"
 
 # The other settle failure, and the one nothing drove at all: a state directory this cannot write in.
@@ -300,7 +315,7 @@ chmod 500 "$STATE"
 out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
       XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
 check "an unwritable state directory is a settle failure too" "1" "$(echo "$out" | grep -c 'the view state was not settled')"
-check "and that launch also goes on to the window" "1" "$(echo "$out" | grep -c 'the window could not start')"
+check "and that launch also goes on to the window" "1" "$(echo "$out" | grep -c '^UI_STATE_TEST_WINDOW_STARTED$')"
 out=$(env XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --ui-state '{"hidden":true}' </dev/null 2>&1); rc=$?
 check "a patch into an unwritable state directory exits 2" "2" "$rc"
 check "and no state file appears under it" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
@@ -347,16 +362,17 @@ out=$(flea_ui '{"stateVersion":0}' 2>&1); rc=$?
 check "a patch that names the stamp exits 2" "2" "$rc"
 check "and names the stamp it refused" "1" "$(echo "$out" | grep -c 'stateVersion')"
 
-# The migration runs before the window, so an upgraded install's first paint reads it. The launch is
-# driven to the point where qs is missing from PATH, which is after the migration and before any window.
+# The real launcher settles the migration before executing the private window double's marker.
 fresh
 mkdir -p "$CONFIG/flea"
 printf '{"hiddenCols":["kind"],"uiScale":1.4}\n' > "$CONFIG/flea/view.json"
-out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+capture="$SANDBOX/run/at-window.json"
+out=$(env UI_STATE_TEST_CAPTURE="$capture" WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
       XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
-check "the launch got past the migration to the missing shell" "1" "$(echo "$out" | grep -c 'the window could not start')"
+check "the launch got past the migration to the window" "1" "$(echo "$out" | grep -c '^UI_STATE_TEST_WINDOW_STARTED$')"
 check "the window launch migrated view.json first" "1" "$(tr -d ' \n' < "$UI" | grep -c '"columns":\["name","mode","size","date"\]')"
 check "the launch migration dropped uiScale" "0" "$(grep -c uiScale "$UI")"
+check "the window received the migrated state before startup" "$(cat "$UI")" "$(cat "$capture" 2>/dev/null)"
 before_migrate=$(cat "$UI")
 before_migrate_ino=$(stat -c '%i' "$UI")
 env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
@@ -372,12 +388,14 @@ check "and does not rewrite the file to say so" "$before_migrate_ino" "$(stat -c
 fresh
 mkdir -p "$STATE/flea"
 printf '{"columns":["name","size","owner"],"density":"comfortable","fromANewerFlea":{"a":1}}\n' > "$UI"
-env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+capture="$SANDBOX/run/at-window.json"
+env UI_STATE_TEST_CAPTURE="$capture" WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
     XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
 check "the launch settles a refused value out of the file" "0" "$(grep -c 'owner' "$UI")"
 check "the settled file carries the shipped columns instead" "1" "$(tr -d ' \n' < "$UI" | grep -c '"columns":\["name","size","date"\]')"
 check "the settle leaves a good key beside it alone" "1" "$(grep -c '"density": "comfortable"' "$UI")"
 check "the settle keeps a newer Flea's own key" "1" "$(grep -c 'fromANewerFlea' "$UI")"
+check "the window received only settled state before startup" "$(cat "$UI")" "$(cat "$capture" 2>/dev/null)"
 settled=$(cat "$UI")
 settled_ino=$(stat -c '%i' "$UI")
 env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
@@ -398,7 +416,7 @@ broken_sha=$(sha256sum "$UI" | cut -d' ' -f1)
 broken_ino=$(stat -c '%i' "$UI")
 out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
       XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
-check "the launch got past the settle to the missing shell" "1" "$(echo "$out" | grep -c 'the window could not start')"
+check "the launch got past the settle to the window" "1" "$(echo "$out" | grep -c '^UI_STATE_TEST_WINDOW_STARTED$')"
 check "a ui.json the settle cannot parse is left byte for byte" "$broken_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
 check "and it is not replaced by a new file either" "$broken_ino" "$(stat -c '%i' "$UI")"
 check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"

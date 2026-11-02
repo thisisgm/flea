@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
+test_frontend=qml
 # tests/ui.sh and tests/ui-captures-dropmods.sh window helpers against hyprctl, omarchy-drive and ipc doubles: geometry, focus, keys and the cursor seek are per qs pid, and a lookup or a key that fails ends the case.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -240,6 +242,12 @@ glide_red
 [ "$(tail -n 2 "$box/glide-argv")" = "$(printf 'mousemove -x 1 -y 0\nmousemove -x -1 -y 0')" ] \
     && ok "a glide landing on its crossing move still ends with the out-and-back" \
     || bad "the argv log must end with the 1 px out-and-back, got: $(paste -sd'|' "$box/glide-argv")"
+
+reset_drive
+out=$( (test_frontend=gpui; ipc_pid=""; key g) 2>&1)
+[ "$out" = 'FAIL: native input has no owned PID' ] && [ ! -s "$box/argv" ] \
+    && ok "the native route refuses input before sending a key without an owned PID" \
+    || bad "unowned native input must be refused without a key, got: $out"
 
 [ "$failed" = 0 ] || exit 1
 printf 'DROPMODSWINDOWS DONE\n'

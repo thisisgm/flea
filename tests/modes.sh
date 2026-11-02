@@ -289,12 +289,12 @@ out=$(env VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json FLEA_VK_DISABLE=flea-
   WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "a filter its leaked marker does not name is the operator's" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
 check "and the stale marker is not handed on" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
-# GPUI strips obsolete QML renderer choices and inherited prefetch ownership.
+# A main window strips obsolete renderer choices and replaces inherited prefetch ownership.
 out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale FLEA_PREFETCH=stale FLEA_PREFETCH_SHELL=1 \
   WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "GPUI clears the Qt renderer choice" "RENDERER " "$(echo "$out" | grep '^RENDERER ')"
 check "GPUI clears the QML retry marker" "AUTOMATIC unset" "$(echo "$out" | grep '^AUTOMATIC ')"
-check "GPUI drops inherited prefetch ownership" "PREFETCH unset" "$(echo "$out" | grep '^PREFETCH ')"
+check "GPUI replaces inherited prefetch ownership with its current list" "PREFETCH $CACHE_ROOT/flea/prefetch" "$(echo "$out" | grep '^PREFETCH ')"
 out=$(env -u FLEA_BIN WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an unset FLEA_BIN is derived from the running binary" "FLEA_BIN $BIN_REAL" "$(echo "$out" | grep '^FLEA_BIN ')"
 out=$(env FLEA_FRONTEND=qml WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)

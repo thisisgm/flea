@@ -1,11 +1,11 @@
 //! Settings and the keyboard sheet: the panel's state and drawing over the core's rows, edits, search and sheet ranking.
 #[cfg(test)]
+mod about_logo_gap64_tests;
+#[cfg(test)]
 mod board_strings;
 #[cfg(test)]
 mod board_tests;
 pub mod claim;
-#[cfg(test)]
-mod about_logo_gap64_tests;
 mod draw;
 pub mod geometry;
 #[cfg(test)]

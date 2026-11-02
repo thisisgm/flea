@@ -2,6 +2,7 @@
 use super::check::Checks;
 use super::fixture::{drain_asks, reply, row, Pane, Producers, SETTINGS};
 use super::frames::{allocations, frame, held, open, read, real_cx, set};
+use super::text_oracle::{fitted_name, says};
 use flea_gui::columns::{
     geometry::{name_budget, Slot},
     paint::{Clip, ClipMarks, Focus, CACHE_SCREENS},
@@ -313,11 +314,18 @@ fn a_folder_row_shapes_its_chevron_budget_only_when_it_differs() {
                 .prepared(1)
                 .cloned()
                 .expect("the short row is prepared");
+            let plain = name_budget(width, true, false, advance);
+            let chevron = name_budget(width, true, true, advance);
+            let plain_expected = fitted_name(window, long, plain, advance);
+            let chevron_expected = fitted_name(window, long, chevron, advance);
             (
-                name_budget(width, true, false, advance),
-                name_budget(width, true, true, advance),
-                long_row.plain.line().len,
-                long_row.chevron.as_ref().map(|run| run.line().len),
+                plain,
+                chevron,
+                says(window, &long_row.plain, &plain_expected),
+                long_row
+                    .chevron
+                    .as_ref()
+                    .map(|run| says(window, run, &chevron_expected)),
                 short_row.chevron.is_none(),
             )
         })
@@ -328,18 +336,13 @@ fn a_folder_row_shapes_its_chevron_budget_only_when_it_differs() {
         "the chevron budget is smaller than the plain one",
         chevron < plain,
     );
-    // The middle ellipsis is one cell of three bytes, so an elided ASCII name is its cells plus two bytes.
-    c.eq(
-        71,
-        "the plain name fills its whole budget",
-        plain_len,
-        plain + 2,
-    );
+    // Compare the exact glyphs with an exhaustive width oracle, including proportional fallback faces.
+    c.eq(71, "the plain name fills its whole budget", plain_len, true);
     c.eq(
         72,
         "the chevron variant fills the smaller budget",
         chevron_len,
-        Some(chevron + 2),
+        Some(true),
     );
     c.ok(
         73,

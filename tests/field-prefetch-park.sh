@@ -136,6 +136,7 @@ signal_case() {
   cat > "$warm/run.sh" <<'EOS'
 set -uo pipefail
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
+FIELD_FRONTEND=qml; FLEA_FRONTEND=qml
 now_ms() { NOW_MS=$(( $(date +%s%N) / 1000000 )); }
 wait_for_window() { return 0; }
 kill_entrant() { :; }

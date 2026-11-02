@@ -274,8 +274,10 @@ STUB
     capture_pid=$(tail -1 "$replay/launches")
     printf '%s\n' "$capture_pid" > "$replay/focus-pid"
     ipc_pid=""
-    if ( key g ) > "$replay/ambiguous.log" 2>&1; then fail "broad selector was accepted"; fi
+    if ( test_frontend=qml; key g ) > "$replay/ambiguous.log" 2>&1; then fail "broad selector was accepted"; fi
     grep -qx 'ambiguous selector flea: 3 fixture windows' "$replay/ambiguous.log" || fail "broad selector failed for another reason"
+    if ( test_frontend=gpui; key g ) > "$replay/unowned.log" 2>&1; then fail "unowned native selector was accepted"; fi
+    grep -q '^FAIL.*native input has no owned PID$' "$replay/unowned.log" || fail "unowned native selector failed for another reason"
     ipc_pid="$capture_pid"
     printf '12\n' > "$replay/focus-pid"
     if ( key g ) > "$replay/focus.log" 2>&1; then fail "foreign focus was accepted"; fi

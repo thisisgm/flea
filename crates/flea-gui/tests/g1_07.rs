@@ -1,6 +1,8 @@
 //! G1.07 Columns view: the model, geometry, peeks and track Elements, each check naming the v0.3.12 source line it ports.
 #[path = "../../../src/i18n/test_catalogs.rs"]
 mod test_catalogs;
+#[path = "g1_07/text_oracle.rs"]
+mod text_oracle;
 // test_catalogs reaches the catalog types through super.
 use flea::i18n::{I18n, Paths};
 #[path = "g1_07/board.rs"]

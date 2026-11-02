@@ -180,15 +180,16 @@ check "the updater got no inherited pipe, on stdout or stderr" "1|1" \
 check "the updater leads its own process group" "1" "$(echo "$out" | grep -c '^PGID MATCH$')"
 check "the updater runs with huge pages on" "1" "$(echo "$out" | grep -c '^THP_enabled:[[:space:]]*1')"
 
-# The window runs flea --update from qs, which inherits huge pages off, so the updater must get them back.
+# The window inherits huge pages off, so the updater it starts must get them back.
 : > "$ran"
-printf '#!/bin/sh\n/usr/bin/grep -i "^THP_enabled" /proc/self/status | /usr/bin/sed "s/^/QS /" >> %q\nexec %q --update\n' "$ran" "$BIN_REAL" > "$D/bin/qs"
-chmod +x "$D/bin/qs"
-# FLEA_UI is named rather than walked to, because the walk starts from the resolved binary and a linked target/ leads elsewhere.
-env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_STATE_HOME="$D/home/state" FLEA_UI="$PWD/ui" WAYLAND_DISPLAY=flea-update-test-display PATH="$D/bin" \
-  "$BIN" --gui >"$D/gui.log" 2>&1 </dev/null
+mkdir -p "$D/gui"
+cp "$BIN_REAL" "$D/gui/flea"
+printf '#!/bin/sh\n/usr/bin/grep -i "^THP_enabled" /proc/self/status | /usr/bin/sed "s/^/GUI /" >> %q\nexec %q --update\n' "$ran" "$BIN_REAL" > "$D/gui/flea-gui"
+chmod +x "$D/gui/flea-gui"
+env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" XDG_STATE_HOME="$D/home/state" WAYLAND_DISPLAY=flea-update-test-display PATH="$D/bin" \
+  "$D/gui/flea" --gui >"$D/gui.log" 2>&1 </dev/null
 wait_for_line "$ran" '^THP_enabled'
-check "the shell inherited huge pages off" "1" "$(grep -c '^QS THP_enabled:[[:space:]]*0' "$ran")"
+check "the window inherited huge pages off" "1" "$(grep -c '^GUI THP_enabled:[[:space:]]*0' "$ran")"
 check "and the updater it started got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$ran")"
 
 out=$(env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" PATH="$D/empty" "$BIN" --update 2>&1); rc=$?
