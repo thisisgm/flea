@@ -176863,7 +176863,7 @@
     },
     {
       "excerpt": ".find_map(|line| line.trim().strip_prefix(\"local path: \"))",
-      "line": 26,
+      "line": 27,
       "literal": "local path: ",
       "owner": "controller",
       "path": "src/ui_logic_pl2.rs",
@@ -195065,6 +195065,1275 @@
       "literal": "not measured",
       "owner": "controller",
       "path": "tools/flea-bench-report",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Worker-timing mode of flea-field-bench; see flea-bench-thumbs.md for the method.\"\"\"",
+      "line": 2,
+      "literal": "Worker-timing mode of flea-field-bench; see flea-bench-thumbs.md for the method.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"root must be an absolute canonical directory\")",
+      "line": 46,
+      "literal": "root must be an absolute canonical directory",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"root needs its .flea-test-sandbox marker\")",
+      "line": 49,
+      "literal": "root needs its .flea-test-sandbox marker",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"root is too shallow\")",
+      "line": 51,
+      "literal": "root is too shallow",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "forbidden = [home, *(home / name for name in (\"Work\", \".config\", \".local\", \".cache\", \"tmp\"))]",
+      "line": 53,
+      "literal": "Work",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"root must not target the operator's home or personal directories\")",
+      "line": 55,
+      "literal": "root must not target the operator's home or personal directories",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"JPEG encoder cannot reach target {target}: {len(best)} bytes\")",
+      "line": 102,
+      "literal": "JPEG encoder cannot reach target {target}: {len(best)} bytes",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "manifest = {\"generator\": \"seeded RGB v1; identical pixels, unique metadata per file\", \"zlib\": zlib.ZLIB_RUNTIME_VERSION, \"fixtures\": {}}",
+      "line": 109,
+      "literal": "seeded RGB v1; identical pixels, unique metadata per file",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"fixture roster differs\")",
+      "line": 146,
+      "literal": "fixture roster differs",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"{name} must hold exactly 16 named files\")",
+      "line": 152,
+      "literal": "{name} must hold exactly 16 named files",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"fixture changed: {path}\")",
+      "line": 156,
+      "literal": "fixture changed: {path}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"fixture dimensions differ: {path}\")",
+      "line": 159,
+      "literal": "fixture dimensions differ: {path}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"installed-only roster must contain unique known entrants and no 0.4.0 arm\")",
+      "line": 179,
+      "literal": "installed-only roster must contain unique known entrants and no 0.4.0 arm",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"roster must include both Flea builds and all eight rival entrants\")",
+      "line": 181,
+      "literal": "roster must include both Flea builds and all eight rival entrants",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"missing absolute executable: {binary}\")",
+      "line": 185,
+      "literal": "missing absolute executable: {binary}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"version or binary checksum missing/different: {row['id']}\")",
+      "line": 187,
+      "literal": "version or binary checksum missing/different: {row['id']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 version receipt snapshot changed\")",
+      "line": 189,
+      "literal": "B5 version receipt snapshot changed",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"latest-release inventory must be refreshed within 24 hours: {row['id']}\")",
+      "line": 192,
+      "literal": "latest-release inventory must be refreshed within 24 hours: {row['id']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"both Flea builds need their exact build SHA\")",
+      "line": 195,
+      "literal": "both Flea builds need their exact build SHA",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"latest-release evidence URL required: {row['id']}\")",
+      "line": 197,
+      "literal": "latest-release evidence URL required: {row['id']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"candidate must report 0.4.0\")",
+      "line": 199,
+      "literal": "candidate must report 0.4.0",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"comparison must report 0.3.12\")",
+      "line": 201,
+      "literal": "comparison must report 0.3.12",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"Strata stable and nightly must be separate release channels\")",
+      "line": 205,
+      "literal": "Strata stable and nightly must be separate release channels",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"each entrant must name its own binary\")",
+      "line": 209,
+      "literal": "each entrant must name its own binary",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"--only must name unique entrants in the inventoried roster\")",
+      "line": 241,
+      "literal": "--only must name unique entrants in the inventoried roster",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "fixture_limit=\"Synthetic RGB, not the unpublished source corpus; absolute After comparison remains provisional.\")",
+      "line": 252,
+      "literal": "Synthetic RGB, not the unpublished source corpus; absolute After comparison remains provisional.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "commands.add_parser(\"roster\", help=\"print the latest-release inventory template\")",
+      "line": 277,
+      "literal": "print the latest-release inventory template",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "commands.add_parser(\"doctor\", help=\"report collection prerequisites without launching an entrant\")",
+      "line": 278,
+      "literal": "report collection prerequisites without launching an entrant",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--root\", required=True, help=\"absolute marked sandbox; never the operator's cache\")",
+      "line": 281,
+      "literal": "absolute marked sandbox; never the operator's cache",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--b5-root\", required=True, type=Path, help=\"marked B5 root containing rival-versions.json\")",
+      "line": 283,
+      "literal": "marked B5 root containing rival-versions.json",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--corpus-root\", required=True, type=Path, help=\"parent containing official twelve/ and hundred/ sets\")",
+      "line": 285,
+      "literal": "parent containing official twelve/ and hundred/ sets",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--only\", help=\"comma-separated inventoried entrants for a focused rerun\")",
+      "line": 287,
+      "literal": "comma-separated inventoried entrants for a focused rerun",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "help=\"rounds to run, the warm-up included; fewer than 7 is a focused proof and cannot rank\")",
+      "line": 289,
+      "literal": "rounds to run, the warm-up included; fewer than 7 is a focused proof and cannot rank",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--installed\", action=\"store_true\", help=\"early installed-version arms only, no candidate or latest-release claim\")",
+      "line": 291,
+      "literal": "early installed-version arms only, no candidate or latest-release claim",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "command.add_argument(\"--timeout\", type=float, default=15, help=\"per thumbnail/preview phase deadline in seconds\")",
+      "line": 292,
+      "literal": "per thumbnail/preview phase deadline in seconds",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"timeout must be in (0, 60]\")",
+      "line": 313,
+      "literal": "timeout must be in (0, 60]",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Record and reject animated or active wallpapers before a native benchmark.\"\"\"",
+      "line": 1,
+      "literal": "Record and reject animated or active wallpapers before a native benchmark.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"background target is not a regular file\")",
+      "line": 16,
+      "literal": "background target is not a regular file",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"truncated WebP background\")",
+      "line": 27,
+      "literal": "truncated WebP background",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"truncated WebP chunk\")",
+      "line": 31,
+      "literal": "truncated WebP chunk",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"WebP chunk exceeds RIFF bounds\")",
+      "line": 35,
+      "literal": "WebP chunk exceeds RIFF bounds",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "result[\"failures\"].append(\"FAIL B7_BACKGROUND_CHANGED: background link changed during preflight\")",
+      "line": 74,
+      "literal": "FAIL B7_BACKGROUND_CHANGED: background link changed during preflight",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "result[\"failures\"].append(\"FAIL B7_BACKGROUND_OWE_CHANGED: owe-render appeared or exited during preflight\")",
+      "line": 80,
+      "literal": "FAIL B7_BACKGROUND_OWE_CHANGED: owe-render appeared or exited during preflight",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "result[\"failures\"].append(f\"FAIL B7_BACKGROUND_OWE_CHANGED: owe-render pid {pid} changed identity\")",
+      "line": 85,
+      "literal": "FAIL B7_BACKGROUND_OWE_CHANGED: owe-render pid {pid} changed identity",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "result[\"failures\"].append(f\"FAIL B7_BACKGROUND_OWE_BUSY: pid {pid} used {delta} CPU ticks over 5 s\")",
+      "line": 87,
+      "literal": "FAIL B7_BACKGROUND_OWE_BUSY: pid {pid} used {delta} CPU ticks over 5 s",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "print(\"FAIL B7_BACKGROUND_ROOT: evidence needs a canonical marked directory\", file=sys.stderr)",
+      "line": 100,
+      "literal": "FAIL B7_BACKGROUND_ROOT: evidence needs a canonical marked directory",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/background_preflight.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Installed entrant identities, including verified B5 release archives.\"\"\"",
+      "line": 1,
+      "literal": "Installed entrant identities, including verified B5 release archives.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 archive path or binary checksum differs\")",
+      "line": 27,
+      "literal": "B5 archive path or binary checksum differs",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 archive URL/checksum is missing\")",
+      "line": 29,
+      "literal": "B5 archive URL/checksum is missing",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"B5 archive {key} is missing\")",
+      "line": 32,
+      "literal": "B5 archive {key} is missing",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 archive embedded source commit differs\")",
+      "line": 34,
+      "literal": "B5 archive embedded source commit differs",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 archive version receipt is not verified\")",
+      "line": 37,
+      "literal": "B5 archive version receipt is not verified",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 archive tag differs from its executable version\")",
+      "line": 39,
+      "literal": "B5 archive tag differs from its executable version",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 root must be canonical and marked\")",
+      "line": 46,
+      "literal": "B5 root must be canonical and marked",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"B5 version receipt is older than 24 hours\")",
+      "line": 51,
+      "literal": "B5 version receipt is older than 24 hours",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"{ident}: explicit B5 archive binary is required\")",
+      "line": 65,
+      "literal": "{ident}: explicit B5 archive binary is required",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"installed entrant is absent: {ident}\")",
+      "line": 68,
+      "literal": "installed entrant is absent: {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"FLEA_0312_BIN must name the installed 0.3.12 release\")",
+      "line": 73,
+      "literal": "FLEA_0312_BIN must name the installed 0.3.12 release",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "release_url=\"\", channel=\"installed, latest not asserted\",",
+      "line": 76,
+      "literal": "installed, latest not asserted",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"actual archive version differs: {ident}\")",
+      "line": 81,
+      "literal": "actual archive version differs: {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"stable and nightly require their literal release channels, not an RC\")",
+      "line": 84,
+      "literal": "stable and nightly require their literal release channels, not an RC",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "row.update(source=\"official release archive\", archive=archive, release_url=archive[\"url\"], channel=ident)",
+      "line": 85,
+      "literal": "official release archive",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"B5 package receipt is missing: {ident}\")",
+      "line": 89,
+      "literal": "B5 package receipt is missing: {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"installed package differs from B5 receipt: {ident}\")",
+      "line": 91,
+      "literal": "installed package differs from B5 receipt: {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"package version differs from B5 receipt: {ident}: {output}\")",
+      "line": 94,
+      "literal": "package version differs from B5 receipt: {ident}: {output}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/inventory.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Private sample state and worker timing in the shared Hyprland session.\"\"\"",
+      "line": 1,
+      "literal": "Private sample state and worker timing in the shared Hyprland session.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "EVENT = re.compile(r\"(?P<at>\\d{4}-\\d\\d-\\d\\dT[\\d:.]+Z).*browser worker completed.*operation=(?P<kind>Image|PreviewImage)\\b.*queue_ms=(?P<queue>\\d+).*elapsed_ms=(?P<elapsed>\\d+)\")",
+      "line": 22,
+      "literal": "(?P<at>\\d{4}-\\d\\d-\\d\\dT[\\d:.]+Z).*browser worker completed.*operation=(?P<kind>Image|PreviewImage)\\b.*queue_ms=(?P<queue>\\d+).*elapsed_ms=(?P<elapsed>\\d+)",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "TRACE = re.compile(r\"flea: trace row=(?P<row>\\d+) depth=\\d+ queued=(?P<queued>[\\d.]+) setup=[\\d.]+ child=[\\d.]+ after=[\\d.]+ total=(?P<total>[\\d.]+)\")",
+      "line": 29,
+      "literal": "flea: trace row=(?P<row>\\d+) depth=\\d+ queued=(?P<queued>[\\d.]+) setup=[\\d.]+ child=[\\d.]+ after=[\\d.]+ total=(?P<total>[\\d.]+)",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"timestamp needs a timezone\")",
+      "line": 39,
+      "literal": "timestamp needs a timezone",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "thumbnails = [event for event in events if event[\"kind\"] == \"Image\"]",
+      "line": 56,
+      "literal": "Image",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Reads the backend trace file as it grows and stamps each line with the time this poll saw it.\"\"\"",
+      "line": 81,
+      "literal": "Reads the backend trace file as it grows and stamps each line with the time this poll saw it.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Per-job times from the installed 0.3.12 trace. The line carries no wall clock, so the batch starts at the earliest\n    seen-time minus total and ends at the last seen-time; the error is one poll interval.\"\"\"",
+      "line": 103,
+      "literal": "Per-job times from the installed 0.3.12 trace. The line carries no wall clock, so the batch starts at the earliest\n    seen-time minus total and ends at the last seen-time; the error is one poll interval.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Cheap per-poll count of complete cache PNGs for the fixture; the full decode check runs once at the end.\"\"\"",
+      "line": 139,
+      "literal": "Cheap per-poll count of complete cache PNGs for the fixture; the full decode check runs once at the end.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"What an entrant wrote, by directory and edge, so a count of zero still explains itself.\"\"\"",
+      "line": 152,
+      "literal": "What an entrant wrote, by directory and edge, so a count of zero still explains itself.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "XDG_CURRENT_DESKTOP=\"Hyprland\", GIO_USE_VFS=\"local\", GTK_USE_PORTAL=\"0\", NO_AT_BRIDGE=\"1\",",
+      "line": 207,
+      "literal": "Hyprland",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"nemo\": dict(setting=\"org.nemo.preferences thumbnail-limit\", limit_bytes=1048576,",
+      "line": 236,
+      "literal": "org.nemo.preferences thumbnail-limit",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The state a user's account already has when the rival first runs; no setting of the rival is written.\"\"\"",
+      "line": 242,
+      "literal": "The state a user's account already has when the rival first runs; no setting of the rival is written.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The rival's default decline when every fixture file is over its limit, else None.\"\"\"",
+      "line": 248,
+      "literal": "The rival's default decline when every fixture file is over its limit, else None.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"FLEA_BIN is the product's own dev seam for the backend path. The backend's stderr is discarded by Quickshell, so\n    this exec passthrough sends it, and only it, to a file; every other child runs untouched.\"\"\"",
+      "line": 257,
+      "literal": "FLEA_BIN is the product's own dev seam for the backend path. The backend's stderr is discarded by Quickshell, so\n    this exec passthrough sends it, and only it, to a file; every other child runs untouched.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"entrant exited with status {status}; sample incomplete\")",
+      "line": 271,
+      "literal": "entrant exited with status {status}; sample incomplete",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Quit through the entrant's own action: its documented chord, else the compositor close request. If it is still\n    running after QUIT_WAIT seconds the other action follows, then the sample is called incomplete.\"\"\"",
+      "line": 278,
+      "literal": "Quit through the entrant's own action: its documented chord, else the compositor close request. If it is still\n    running after QUIT_WAIT seconds the other action follows, then the sample is called incomplete.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"entrant did not quit within {QUIT_WAIT * 2} s ({'+'.join(methods) or 'no quit action reached it'}); CPU sample incomplete\")",
+      "line": 298,
+      "literal": "entrant did not quit within {QUIT_WAIT * 2} s ({'+'.join(methods) or 'no quit action reached it'}); CPU sample incomplete",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "verified=None, reasons=[\"candidate thumbnail handles are unavailable; measurements disabled\"], evidence=None)",
+      "line": 305,
+      "literal": "candidate thumbnail handles are unavailable; measurements disabled",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"binary checksum differs from inventory: {ident}\")",
+      "line": 315,
+      "literal": "binary checksum differs from inventory: {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "env.update(RUST_LOG=\"strata=info,strata::sandbox::browser=debug\", STRATA_THUMBNAIL_WORKERS=\"4\")",
+      "line": 328,
+      "literal": "4",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "(root / \"config/krusaderrc\").write_text(\"First Time=false\\nConfig Version=1\\n\\n[ViewerModule]\\nFirstRun=false\\n\\n[Look&Feel]\\nDefault Panel Type=0\\nSingle Instance Mode=false\\nShow splashscreen=false\\nWarn On Exit=false\\n\\n[Startup]\\nLeft Side Is Active=true\\n\\n[KrInterDetailedView]\\nWith Icons=true\\nShowPreviews=true\\n\\n[KrInterBriefView]\\nWith Icons=true\\nShowPreviews=true\\n\")",
+      "line": 331,
+      "literal": "First Time=false\nConfig Version=1\n\n[ViewerModule]\nFirstRun=false\n\n[Look&Feel]\nDefault Panel Type=0\nSingle Instance Mode=false\nShow splashscreen=false\nWarn On Exit=false\n\n[Startup]\nLeft Side Is Active=true\n\n[KrInterDetailedView]\nWith Icons=true\nShowPreviews=true\n\n[KrInterBriefView]\nWith Icons=true\nShowPreviews=true\n",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "clock_done = sum(e[\"kind\"] == \"Image\" for e in events) >= 16 if ident.startswith(\"strata\") else len(tail.jobs) >= 16 if tail else True",
+      "line": 377,
+      "literal": "Image",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "display.key(window, token, \"Home\", \"space\")",
+      "line": 383,
+      "literal": "Home",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"preview worker did not finish\")",
+      "line": 392,
+      "literal": "preview worker did not finish",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "display.key(window, token, \"Right\")",
+      "line": 395,
+      "literal": "Right",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "method = \"worker-clock (browser worker completion log)\"",
+      "line": 407,
+      "literal": "worker-clock (browser worker completion log)",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "method = \"flea thumb trace (FLEA_THUMB_TRACE through the FLEA_BIN seam, seen-time polled every 10 ms)\"",
+      "line": 410,
+      "literal": "flea thumb trace (FLEA_THUMB_TRACE through the FLEA_BIN seam, seen-time polled every 10 ms)",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "method = \"cache-settle (no per-job completion log)\"",
+      "line": 413,
+      "literal": "cache-settle (no per-job completion log)",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(\"perf user counter unavailable; app still ran without CPU collection\")",
+      "line": 419,
+      "literal": "perf user counter unavailable; app still ran without CPU collection",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(f\"{len(tail.jobs)} trace lines, expected 16; trace is per reported job\")",
+      "line": 421,
+      "literal": "{len(tail.jobs)} trace lines, expected 16; trace is per reported job",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "outcome = dict(declined, rule=\"declined by the rival's default policy; no setting was changed\")",
+      "line": 425,
+      "literal": "declined by the rival's default policy; no setting was changed",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(f\"declined: {declined['setting']} default {declined['limit_bytes']} bytes, smallest fixture file \"",
+      "line": 426,
+      "literal": "declined: {declined['setting']} default {declined['limit_bytes']} bytes, smallest fixture file ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(f\"{verified}/16 valid fixture cache entries\")",
+      "line": 429,
+      "literal": "{verified}/16 valid fixture cache entries",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(\"app.log tail: \" + \" | \".join(line.strip()[:160] for line in log_text[-6:]))",
+      "line": 431,
+      "literal": "app.log tail: ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "reasons.append(\"800px successful preview output needs verification; screenshots and raw worker timings retained\")",
+      "line": 432,
+      "literal": "800px successful preview output needs verification; screenshots and raw worker timings retained",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "evidence=str(root), reasons=reasons, argv=argv, cpu_method=\"inherited perf task-clock:u, including private session bus\")",
+      "line": 436,
+      "literal": "inherited perf task-clock:u, including private session bus",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/measure.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Delegate camera RAW validation to the pinned corpus owner's verifier.\"\"\"",
+      "line": 1,
+      "literal": "Delegate camera RAW validation to the pinned corpus owner's verifier.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/raw_corpus.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"stage official tools/flea-raw-corpus and tools/flea-raw-corpus.tsv first\")",
+      "line": 14,
+      "literal": "stage official tools/flea-raw-corpus and tools/flea-raw-corpus.tsv first",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/raw_corpus.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"RAW corpus root must be an existing canonical absolute directory\")",
+      "line": 17,
+      "literal": "RAW corpus root must be an existing canonical absolute directory",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/raw_corpus.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"RAW {name} verification failed, exit {result.returncode}; see {proof}\")",
+      "line": 26,
+      "literal": "RAW {name} verification failed, exit {result.returncode}; see {proof}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/raw_corpus.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Display-free executable identities shared by inventory and sample checks.\"\"\"",
+      "line": 1,
+      "literal": "Display-free executable identities shared by inventory and sample checks.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"cannot inventory {ident}: {record['stdout']} {record['stderr']}\".strip())",
+      "line": 19,
+      "literal": "cannot inventory {ident}: {record['stdout']} {record['stderr']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"unexpected package owner for {ident}: {owner}\")",
+      "line": 25,
+      "literal": "unexpected package owner for {ident}: {owner}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"invalid package version for {ident}: {record['stdout']}\")",
+      "line": 29,
+      "literal": "invalid package version for {ident}: {record['stdout']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"invalid package version for {ident}: {package_version}\")",
+      "line": 33,
+      "literal": "invalid package version for {ident}: {package_version}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"no display-free version policy for {ident}\")",
+      "line": 37,
+      "literal": "no display-free version policy for {ident}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"cannot inventory {ident}: {output}\")",
+      "line": 42,
+      "literal": "cannot inventory {ident}: {output}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"binary differs from inventoried version: {ident}: {actual['version_output']}\")",
+      "line": 49,
+      "literal": "binary differs from inventoried version: {ident}: {actual['version_output']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"package version differs from inventory: {ident}: {actual['version_output']}\")",
+      "line": 53,
+      "literal": "package version differs from inventory: {ident}: {actual['version_output']}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/versions.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Owned-window control in the operator's serialized Hyprland benchmark session.\"\"\"",
+      "line": 1,
+      "literal": "Owned-window control in the operator's serialized Hyprland benchmark session.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"True when pid is root or one of its descendants, read from the host /proc parent links.\"\"\"",
+      "line": 21,
+      "literal": "True when pid is root or one of its descendants, read from the host /proc parent links.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"unexpected omarchy-drive session environment format\")",
+      "line": 44,
+      "literal": "unexpected omarchy-drive session environment format",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"benchmark needs the /run/user/1000 Hyprland session\")",
+      "line": 48,
+      "literal": "benchmark needs the /run/user/1000 Hyprland session",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"invalid session field: {name}\")",
+      "line": 51,
+      "literal": "invalid session field: {name}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"One Hyprland 0.56 Lua dispatch. A miss prints a warning and still exits 0, so only the exact answer ok counts.\"\"\"",
+      "line": 70,
+      "literal": "One Hyprland 0.56 Lua dispatch. A miss prints a warning and still exits 0, so only the exact answer ok counts.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"Hyprland did not accept {expression}: {answer!r}\")",
+      "line": 73,
+      "literal": "Hyprland did not accept {expression}: {answer!r}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"hyprctl clients did not return a list\")",
+      "line": 78,
+      "literal": "hyprctl clients did not return a list",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"missing executable: {program}\")",
+      "line": 84,
+      "literal": "missing executable: {program}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"the selected Wayland socket is absent\")",
+      "line": 88,
+      "literal": "the selected Wayland socket is absent",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"display lock is not an owned regular file\")",
+      "line": 94,
+      "literal": "display lock is not an owned regular file",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The compositor's client list as one line, with each client's ownership verdict, for a failed sample.\"\"\"",
+      "line": 127,
+      "literal": "The compositor's client list as one line, with each client's ownership verdict, for a failed sample.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "return f\"client list unreadable: {error}\"",
+      "line": 131,
+      "literal": "client list unreadable: {error}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "return \"observed clients: \" + (\", \".join(rows) if rows else \"none\")",
+      "line": 132,
+      "literal": "observed clients: ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "return \"observed clients: \" + (\", \".join(rows) if rows else \"none\")",
+      "line": 132,
+      "literal": ", ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"entrant mapped more than one window before input; \" + self.observed(token))",
+      "line": 142,
+      "literal": "entrant mapped more than one window before input; ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"no owned entrant window mapped (launcher exit {process.poll()}); \" + self.observed(token))",
+      "line": 144,
+      "literal": "no owned entrant window mapped (launcher exit {process.poll()}); ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The window's address, only when the compositor still lists it as this sample's own native client.\"\"\"",
+      "line": 150,
+      "literal": "The window's address, only when the compositor still lists it as this sample's own native client.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"owned window is not listed by the compositor; \" + self.observed(token))",
+      "line": 153,
+      "literal": "owned window is not listed by the compositor; ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The compositor's close request for the verified owned window: the entrant's own close handler runs, as for its close button.\"\"\"",
+      "line": 162,
+      "literal": "The compositor's close request for the verified owned window: the entrant's own close handler runs, as for its close button.",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"focus is not on the owned window (active {active.get('address')}/pid={active.get('pid')}); refusing keyboard input\")",
+      "line": 173,
+      "literal": "focus is not on the owned window (active {active.get('address')}/pid={active.get('pid')}); refusing keyboard input",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Each chord goes to the focused window through wtype, because send_shortcut cannot resolve letters or digits on this box.\n\n        The owned window must be the active one immediately before and after each chord; a change between the two\n        fails the sample, since the chord may then have reached another window.\n        \"\"\"",
+      "line": 177,
+      "literal": "Each chord goes to the focused window through wtype, because send_shortcut cannot resolve letters or digits on this box.\n\n        The owned window must be the active one immediately before and after each chord; a change between the two\n        fails the sample, since the chord may then have reached another window.\n        ",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"unsupported benchmark keyboard chord\")",
+      "line": 186,
+      "literal": "unsupported benchmark keyboard chord",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(f\"focus moved while {chord} was delivered; the chord may have reached another window: {error}\") from None",
+      "line": 199,
+      "literal": "focus moved while {chord} was delivered; the chord may have reached another window: {error}",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"owned window disappeared before capture\")",
+      "line": 206,
+      "literal": "owned window disappeared before capture",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"invalid owned-window capture geometry\")",
+      "line": 210,
+      "literal": "invalid owned-window capture geometry",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "raise ValueError(\"grim did not produce a PNG\")",
+      "line": 215,
+      "literal": "grim did not produce a PNG",
+      "owner": "controller",
+      "path": "tools/flea-bench-thumbs-lib/wayland.py",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "generated/tooling"
     },
@@ -221161,7 +222430,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: UI blocking call {target} in {name}\")",
-      "line": 133,
+      "line": 137,
       "literal": "{function.path}:{line}: UI blocking call {target} in {name}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221170,7 +222439,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}: drawing/callback modules cannot be colour parsing exemptions\")",
-      "line": 143,
+      "line": 147,
       "literal": "{unit['path']}: drawing/callback modules cannot be colour parsing exemptions",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221179,7 +222448,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception\")",
-      "line": 154,
+      "line": 158,
       "literal": "{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221188,7 +222457,7 @@
     },
     {
       "excerpt": "image_pixel = path[:2] in ((\"image\", \"Rgb\"), (\"image\", \"Rgba\")) and not image_shadowed",
-      "line": 167,
+      "line": 171,
       "literal": "Rgb",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221197,7 +222466,7 @@
     },
     {
       "excerpt": "image_pixel = path[:2] in ((\"image\", \"Rgb\"), (\"image\", \"Rgba\")) and not image_shadowed",
-      "line": 167,
+      "line": 171,
       "literal": "Rgba",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221206,7 +222475,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles\")",
-      "line": 180,
+      "line": 184,
       "literal": "{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221215,7 +222484,7 @@
     },
     {
       "excerpt": "errors.append(\"hot surfaces must register list, columns, grid and long_menus\")",
-      "line": 185,
+      "line": 189,
       "literal": "hot surfaces must register list, columns, grid and long_menus",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221224,7 +222493,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: pending surface exists; register its Element and row_height\")",
-      "line": 191,
+      "line": 195,
       "literal": "{entry['path']}: pending surface exists; register its Element and row_height",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221233,7 +222502,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: registered hot surface has no custom Element {entry['element']}\")",
-      "line": 195,
+      "line": 199,
       "literal": "{entry['path']}: registered hot surface has no custom Element {entry['element']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221242,7 +222511,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: custom Element must implement layout, prepaint and paint\")",
-      "line": 200,
+      "line": 204,
       "literal": "{entry['path']}: custom Element must implement layout, prepaint and paint",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221251,7 +222520,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}\")",
-      "line": 205,
+      "line": 209,
       "literal": "{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221260,7 +222529,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: Element file does not use its fixed row height {entry['row_height']}\")",
-      "line": 207,
+      "line": 211,
       "literal": "{entry['path']}: Element file does not use its fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221269,7 +222538,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: hot surface builds child tree with {symbol}\")",
-      "line": 218,
+      "line": 222,
       "literal": "{function.path}:{line}: hot surface builds child tree with {symbol}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -221278,7 +222547,7 @@
     },
     {
       "excerpt": "errors.append(\"empty native source or hot-surface scan\")",
-      "line": 223,
+      "line": 227,
       "literal": "empty native source or hot-surface scan",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -242492,7 +243761,7 @@
     "crates/flea-gui/src/list/gh315_backend_fixture.rs": "7490e6b67f3bfdeb33886cff59bb9978fcc927c4d59bc2ae401210d89a3b4835",
     "crates/flea-gui/src/list/gh333_harness.rs": "1afe29ea00d834c224634af2b390cf9e74c6e393f157504e971cedc6f4ca5712",
     "crates/flea-gui/src/list/git.rs": "384dd6c6fba01f6499c8394f797edc7e2346d2a09962ae5089b3d31fd6b99bbc",
-    "crates/flea-gui/src/list/header.rs": "477e45ccb5478b4f0f30ae2ac04ed423b9604b6f95e6ec0a18088445c3cf8cb2",
+    "crates/flea-gui/src/list/header.rs": "82611e5b7bcc51518ac3109cc129d29f7397efe34384e7508632ebf0c2ad21fb",
     "crates/flea-gui/src/list/header_element.rs": "6eb0419e595ce2fbedf47bf1481adc143f9f0fc04ba3db554cce53f6beae5c71",
     "crates/flea-gui/src/list/header_fit.rs": "1404e52a3be29e7db1675dbb2f5b9c5e569ea0de35df010a27f65f564cac7815",
     "crates/flea-gui/src/list/header_handles.rs": "25b0afc3afe0eedf37ebc23405cf0766e0f10ad537c0de1fc22b548e47a8e0fa",
@@ -243534,14 +244803,15 @@
     "src/ui_logic_pl1/protocols.rs": "cba14ac4983909e58fcd5ced5011e1c5e482e2196ae5b8fcc7b052ff9b970ccd",
     "src/ui_logic_pl1/rail.rs": "c86cf23f41d931edf4775fb4b33b27038b8aa24d8f6eeb0af70e90e31e62f0bb",
     "src/ui_logic_pl1/unlock.rs": "086294f9f36e748b664714c0ea67e378b069065ec2d58ae0e19a7f809976a7cd",
-    "src/ui_logic_pl2.rs": "2db053caaed392e4042725f29e4b9f361ab3ece2266e1c85041c9203e152e52a",
+    "src/ui_logic_pl2.rs": "97327b10b8bcefd0c3269788e69e707d94f2e7689f8d79a53e2b1e90c6006a2b",
     "src/ui_logic_pl2/bridge.rs": "3e808924757ba97d190a492ce60cc2fe028cc7e63cc53f28da9c302a14abcb26",
     "src/ui_logic_pl2/browser.rs": "654f76fd0787b8b02228d26fd1c1b906a017bd20f4e5e7326bd1b90624248c8f",
     "src/ui_logic_pl2/cloud.rs": "1578e7da6cd5b2735063810a1169293b67eb1fec734be9fc982985f3142f8197",
     "src/ui_logic_pl2/form.rs": "393f82e51bddc2d17284f31c7c52c1b131303e08e76edc8a9a5ac23b1707a441",
     "src/ui_logic_pl2/heading.rs": "4c8ecb7179ddc58609d95fe31e4f176ebfcf7e5f3bb2123f778ae45473a726fd",
+    "src/ui_logic_pl2/kernel_mounts.rs": "b8e3f89ae0fde49697ccf41a0c92bccf1d21cdcb5e5b0261fc035735e25d22a5",
     "src/ui_logic_pl2/places.rs": "7b71b284abf51fcd14836558d5661a36403154353ef9cf1e913f6e67d40e4f51",
-    "src/ui_logic_pl2/rail.rs": "e0132cb73c3194e8ffbf352d2db9a03d14386ea2f5e17a2c2e5514df2b7c3a92",
+    "src/ui_logic_pl2/rail.rs": "0c1e706aed515db13cfc1767fa855d0598097e904701aa2e13c32c015058ad74",
     "src/ui_logic_pl2/smb.rs": "2f89873f68e5eb954568c2426d85c4ec8cae1a770c525c70d0586e0ddbc3750f",
     "src/ui_logic_pl3.rs": "ba57a1939bae3b8e6139fddfaa2baf81eae79aa6cc5a5ddd82680d0b7440ced0",
     "src/ui_logic_pl3/dates.rs": "2947c888a56c2ce9e78a478eaac46e63e187d05527acde4fd0f34c93e6c0cf1e",
@@ -243791,6 +245061,13 @@
     "tools/flea-bench-markdown-matrix.json": "971eab84a4193de72179007e87ea9ed9afcd4bf78c0a5c6288e75616df8713e9",
     "tools/flea-bench-readme": "31c145d7c485f630e049ee8b70a4379a86552f268dcee8e295e25e02fdeb7f6e",
     "tools/flea-bench-report": "cc61ab2d7c142b99c49ae0bbfec0080050f457155781b859d21b3e49f35b3682",
+    "tools/flea-bench-thumbs": "5016e11b60265e01806d7bd1635979c719fb633fba9c7578d9b41380999385f4",
+    "tools/flea-bench-thumbs-lib/background_preflight.py": "03b93d6c819565bbd5b2cec0127f4e9d32ddc68e76e3b8b5b666942fd5d73aa3",
+    "tools/flea-bench-thumbs-lib/inventory.py": "719f40400a3821788d494c77eea49339db81b8758a9218a17cd709491b12f624",
+    "tools/flea-bench-thumbs-lib/measure.py": "f3662fb406d32193012466ac465e1e649861b6a517bf5ee6a5b336d4cfa632ab",
+    "tools/flea-bench-thumbs-lib/raw_corpus.py": "9896179015828b68eb82a3d9c702624220fd46085d12f451f834bac8110569cd",
+    "tools/flea-bench-thumbs-lib/versions.py": "89b865ee9588fdf23be7cd0f3c5da90b01a63533cae76a4dabdf3f1ac61f54c1",
+    "tools/flea-bench-thumbs-lib/wayland.py": "f509622b752de7b16dbf4a74413abd62bec0cacbe7b7ebfdb3f69234f14d12d2",
     "tools/flea-bench-tui/lf/cleaner.sh": "1d109e1b2bf33c21a668b16e99e9c66ff66eeb46f8d0931097b34539e3bc2efa",
     "tools/flea-bench-tui/lf/lfrc": "6050e59cafced04cde7770a105700a18aa791ad8f03e6fad396bfbe7540f0ff2",
     "tools/flea-bench-tui/lf/previewer.sh": "45bbd91cd8e64fcb06b1652aa0ba86e785de6f127ba25efa2393a8a5b5cead27",
@@ -243903,11 +245180,11 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "32b0d9109cde20e6629c2ae5d156b381de678158e8e6066ea206df196795c09d",
     "tools/flea_ipc.py": "0a0c390872be4cc21c29be6806df7ee8093de5492e3d9a3f168fdf60260f5fa7",
-    "tools/gpui-lint.json": "be19a52dffc8cc96d42e8490689069f8b350be9c6d2e02cec4d7e73dd49b462d",
+    "tools/gpui-lint.json": "d957f2c97369a953d40604ce16ee3f097b25c8f394736f4960ea9be5b11f903b",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "d696a197480762215ae69e81a723c7993c1ecd5c0fad4cfa14c0abed0278dfbd",
-    "tools/gpui_lint/checks.py": "24e01f71756be90b4fe3ba0bdb125aea00ee57728c4457990055cf343b3811ff",
+    "tools/gpui_lint/checks.py": "c30e4174c4ec0fd5032780f60173d1402ab27293c498ef44f60033a4f53a83c9",
     "tools/gpui_lint/lex.py": "abe3dcd4cfc820f9680e705716bd0e8688dd9356b4beab6e3c69624fec63bab4",
     "tools/gpui_lint/rust.py": "565f301b3910a542f009c31aac909aaa821bb4283a2b1ff875543ad62395ff03",
     "tools/keymap_rust.py": "3c40a74fa6c255a8f1243b8eb2d53d415152c4f4977ddeb47e4feadec1656d33",
@@ -244334,18 +245611,18 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "0959a5ccf8ee468f5d4a5ca4d76c3869d024bd20",
-  "source_sha": "0959a5ccf8ee468f5d4a5ca4d76c3869d024bd20",
+  "source_ref_sha": "bcac24335054296938c78df31c8e037752f9c126",
+  "source_sha": "bcac24335054296938c78df31c8e037752f9c126",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
       "missing_literal_candidates": 5716,
-      "source_files": 832
+      "source_files": 833
     },
     "generated/tooling": {
       "keys_with_occurrences": 153,
-      "missing_literal_candidates": 4837,
-      "source_files": 145
+      "missing_literal_candidates": 4978,
+      "source_files": 152
     },
     "gui": {
       "keys_with_occurrences": 530,
