@@ -5,30 +5,26 @@ provided by `vulkan-swrast`), and then GL (provided by `mesa`). Each adapter mus
 create a device and configure the actual window surface before it is accepted.
 The pinned GPUI fork implements this device and surface check and the GL retry.
 
-The launcher keeps the display GPU's automatic ICD pin. It adds the Lavapipe
-manifest to that pin so a failed hardware device can still reach software Vulkan
-before GL. When the Vulkan probe finds no hardware device, it pins Lavapipe alone
-if its manifest is installed. Both `VK_DRIVER_FILES` and `VK_ICD_FILENAMES` name
-the chosen manifest list. `FLEA_VK_PIN` marks that list for removal from programs
-opened by Flea; a marked list inherited from another Flea launch is dropped and
-chosen again. A nonempty operator ICD override remains authoritative, including
-an override that deliberately hides Lavapipe. Without a pin, the loader's normal
-driver discovery includes the installed Lavapipe driver.
+The launcher clears Qt renderer settings and drops a legacy `FLEA_VK_PIN` and its
+`VK_DRIVER_FILES` and `VK_ICD_FILENAMES` list inherited from an older window.
+It applies the absent-vendor ICD filter, but adds no display GPU pin, Lavapipe pin
+or Vulkan probe cache; GPUI selects adapters using compositor feedback and the real window surface.
+A nonempty operator ICD override remains authoritative.
 
-`QSG_RHI_BACKEND` and the old Qt downgrade and retry logic do not choose a renderer
-on the GPUI launch path. Direct `flea-gui` launches use the fork's Vulkan then GL
-selection with the inherited Vulkan loader environment.
+`QSG_RHI_BACKEND`, `FLEA_RENDERER_AUTOMATIC` and `QT_VK_PHYSICAL_DEVICE_INDEX` are removed
+from the GPUI child's environment.
+Direct `flea-gui` launches enter the GPUI application without the launcher's environment cleanup.
 
-When no renderer can open the window, `flea-gui` exits with status 78 and writes
-this single sentence to stderr and the system journal:
+When no renderer can open the window, `flea-gui` exits with status 1 and reports
+this sentence followed by the underlying error to stderr and the system journal:
 
 ```text
 flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui
 ```
 
-The launcher execs `flea-gui`, so it preserves status 78. Journal delivery uses
+The launcher execs `flea-gui`, so it preserves status 1 on renderer failure. Journal delivery uses
 the local syslog socket, with the native journal socket as a fallback. A system
-without either socket still receives the sentence on stderr and status 78.
+without either socket still receives both messages on stderr and status 1.
 The failure branch reports, flushes stdout and stderr, and exits directly from
 the startup callback, so termination never depends on the event loop starting.
 

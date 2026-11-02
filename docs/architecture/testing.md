@@ -110,8 +110,8 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   instrument behind `docs/baseline-2026-08-30b.md`. **Run it from a copy outside this tree**, because
   it launches the tree it measures; `~/bench/` is where it runs here. A working NOPASSWD rule for
   `drop_caches` needs no stdin; otherwise the sudo password is read from stdin. It launches Flea through `$FLEA_BIN --gui`, never `qs` directly:
-  measuring Flea by a path no user takes cost a whole field run, since `qs` alone misses the
-  `prctl` in `exec_qs` and reads 104 MB against the real path's 45 MB.
+  the GPUI launcher applies its environment policy and calls `thp::disable()` before execing
+  `flea-gui`, so a direct GUI launch bypasses those steps.
 - `tools/flea-field-nav measure` with the `ql` column journeys Quick Look on a 40-row-table-first Markdown document
   (`ql_md_table_first`) against a tableless one of the same 4096 bytes (`ql_md_plain`) and a byte-identical twin as
   the negative control (`ql_md_plain_b`), each in a fresh launch, key to `settled_ms`, and `report` prints INCOMPLETE
@@ -406,9 +406,9 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   as well as the exit code, because the no-tty refusal below it exits 2 too, so the exit
   code alone cannot prove the mutual-exclusion guard fired. It cannot exercise the window
   itself, since that needs a graphical session; see "Modes" above.
-- The transparent huge page check inside `./tests/modes.sh` puts a stub `qs` on `PATH` that
+- The transparent huge page check inside `./tests/modes.sh` launches a stub `flea-gui` that
   prints `THP_enabled` out of its own `/proc/self/status`, so what it asserts is the kernel's
-  view of the process `exec_qs` launched and not the return value of a function. It reddens if
+  view of the process `gui::exec_gpui` launched and not the return value of a function. It reddens if
   the `prctl` is removed and it reddens if the call fails; a second check asserts the stub
   reported at all, so a broken stub cannot be mistaken for a passing gate. See "Transparent
   huge pages" under "Deliberate corners".

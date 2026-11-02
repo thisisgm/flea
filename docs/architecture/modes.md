@@ -40,7 +40,7 @@ still prints its line and adds one sentence on stderr. `--update` alone has `--t
 one merges that JSON object through the shared update path, and anything more is a usage error. See
 "The state file".
 
-`--unlock <device>` is matched in its exact shape (`args.len() == 3`), execs the window with `FLEA_UNLOCK` naming the device, which `qs_command` removes from every other launch, and exits `2` with one `flea:` sentence on any other argv, a path outside /dev, a missing display or a missing UI directory.
+`--unlock <device>` is matched in its exact shape (`args.len() == 3`) and opens the GPUI window with `FLEA_UNLOCK` naming the device; ordinary launches remove an inherited unlock request. Invalid argv, a path outside /dev, a missing display or `FLEA_FRONTEND=qml` exits `2` with one `flea:` sentence; a GPUI executable that cannot be started exits `1`.
 
 `--clip` and `--clip-own` are matched in their exact shapes. A malformed `--clip` leaves by the usage
 error `--clip takes get, set copy|cut, or clear TOKEN` and `--clip-own` with anything after it by
@@ -146,19 +146,15 @@ HTML previews use a separate jailed, headless qml6 and QtWebEngine process to re
 `./tests/modes.sh` checks the window default with redirected handles and with a real pty
 provided by `script`. It also checks conflicting flags and refusal of `--tui` without a tty.
 
-`paths::ui_dir()` finds the UI the same way `FLEA_BIN` finds the backend binary (see "Where
-the backend binary comes from" below): `FLEA_UI` first, then the packaged
-`/usr/share/flea/ui`, then the dev tree's `ui/` found by walking up three parents from the
-running binary (`target/debug/flea` to the repository root). Each candidate is confirmed by
-checking for its `boot/shell.qml` before being accepted, and an empty `FLEA_UI` is rejected before
-that check because `PathBuf::from("")` would test the working directory, so a stale or empty
-`FLEA_UI` falls through instead of handing `qs` a broken path.
+`paths::ui_dir()` still resolves the retained QML data: `FLEA_UI` first, then
+`/usr/share/flea/ui`, then the dev tree's `ui/`, accepting a candidate only when it holds
+`boot/shell.qml` and treating an empty `FLEA_UI` as absent.
+The GPUI window launch does not use that lookup; it resolves the `flea-gui` executable.
 
-`gui::exec_qs` calls `Command::exec`, replacing this process instead of spawning a child, so
-`flea` never leaves an orphaned pid behind and signals sent to it reach `qs` directly. It also
-calls `prctl(PR_SET_THP_DISABLE)` immediately before that `exec`, because the setting is
-preserved across `exec` and this is the last point that can hand it to `qs`; see "Transparent
-huge pages" below for what it is worth and what it cost.
+`gui::exec_gpui` calls `Command::exec`, replacing the launcher process with `flea-gui`,
+so signals sent to that pid reach the GUI directly.
+It calls `thp::disable()` immediately before the exec; see "Transparent huge pages" for
+the inherited setting and its restoration for programs Flea opens.
 
 ---
 

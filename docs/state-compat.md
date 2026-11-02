@@ -45,7 +45,7 @@ non-object, structurally foreign, unparsable and future-version documents. Each 
 | same directory/key.lock, key.failed, temporary generations | build coordination/failure markers | Rust | Existing figure-warm tests |
 | CACHE/flea/figures/svg/*.svg | flea-figure-svg 4 framed key and SVG | Rust figure-store get/put/known | Format-1 entries miss and can be replaced by a new render; document source and captured input bytes remain unchanged |
 | CACHE/flea/prefetch | flea-prefetch 2, byte ranges | Rust launcher reads; backend records | Existing prefetch tests; production prewarm remains disabled |
-| CACHE/flea/vulkan-probe | flea-vulkan-probe 1, fingerprint/device rows | Rust launcher | Existing vkprobecache tests |
+| CACHE/flea/vulkan-probe | Legacy 0.3.12 flea-vulkan-probe 1, fingerprint/device rows | Retained legacy cache file | The GPUI launcher does not read or write a Vulkan probe cache |
 | Atomic-write scratch and decode work directories | target.pid.tmp, .flea-work-*, .flea-*.png, RAW/office/prefetch/Vulkan scratch | Rust writers; interrupted writers may retain them | Existing subsystem cleanup tests; never reinterpret as saved preferences |
 | CONFIG/mimeapps.list | freedesktop INI | Rust default claim/release | Existing modes/filemanager1 suites |
 | DATA/dbus-1/services/org.freedesktop.FileManager1.service | D-Bus INI, ownership comment | Rust default claim/release | Existing filemanager1 suite |
@@ -55,7 +55,7 @@ non-object, structurally foreign, unparsable and future-version documents. Each 
 | CONFIG/user-dirs.dirs, CONFIG/flea/scripts/* | XDG assignments; script files | Shared read-only inputs | GPUI rail, scripts and capture units preserve existing sources |
 | DATA/applications, icons, thumbnailers | desktop entries, icon assets, thumbnail specs | Shared read-only inputs | Backend and GPUI icon/handler units |
 | Omarchy current theme and toggle files | Omarchy-owned formats | QML reads, never Flea-owned persistence | GPUI theme unit owns matching reads |
-| CONFIG/DATA Vulkan manifests/settings | Vulkan JSON | Rust reads only | Existing launcher tests |
+| CONFIG/DATA Vulkan manifests/settings | Vulkan JSON | Rust absent-vendor filter reads only | Existing ICD filter tests; GPUI launch adds no display pin |
 
 There is no separately versioned QML settings format to translate: `ui.json` is shared Rust-owned
 persistence. GUI responsibilities above are grouped by their owning surface. Each implementation must

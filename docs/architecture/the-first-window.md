@@ -1,8 +1,14 @@
 ## The first window
 
-`flea --gui` maps its window with its first screen already in it. The sections below explain what
-keeps that map early, what decides the first frame's contents, the one accepted cost, and how the
-file chooser, which is off the measured path, keeps its own window whole.
+`flea --gui` execs `flea-gui`, which opens the GPUI window.
+The launcher settles shared view state, configures the child environment and disables transparent
+huge pages before the exec; GPUI creates the window through `window::open`.
+Qt renderer settings, the old display ICD pin and the Vulkan probe cache do not select this window's renderer;
+see [GUI renderer fallback](../gui-renderer.md).
+
+### QML startup reference
+
+The QML entry and components below remain in the tree as reference files; the production GPUI launcher does not load them.
 
 **The context menu waits for the first frame (2026-10-13).** Each pane builds `ui/MenuHost.qml`, which holds the menu's inputs, its closed state and reply validation (`ui/js/MenuContext.js`), and loads `ui/ContextMenu.qml` asynchronously one idle second after the first frame swaps and the listing settles; a menu asked for before then loads it synchronously, so the first right-click or menu key never waits on that timer. The merged startup gate pins 587 objects by the census after Drag to Trash (583 before), 172 first-frame units and 1,639,271 bytes by the `wc -c` sum over `tests/startup-units.txt`: `tests/startup-objects.sh` checks that the nine units only the menu uses and the ContextMenu root are absent at its cut, and `tests/menu-settle.sh` that a warmed menu keeps one root across reopen. The merged ceilings are `ui/Pane.qml` 1234, `ui/PaneMenuActions.qml` 527, `ui/ContextMenu.qml` 737 and `tests/js/menu.js` 669, each re-derived with `wc -l`; both unqualified-read profiles follow the merged source lines, with the available profile measured by `tests/staticgates.py`.
 
@@ -54,32 +60,10 @@ set true on Quickshell 0.3.1, so hiding the window until the rows land is not av
 `Loader.Error` logs and quits: an empty window that stays empty is the failure that would otherwise
 say nothing at all.
 
-**A cold launch is disk first, so the launcher prefetches.** In a separate session the same day, whose
-warm map was 261 to 267 ms rather than the five-launch set above, the build without the prefetch mapped
-at 436 to 484 with the page cache dropped, and reading every file the launch opens before starting it
-brought that back to 287 to 290: the whole difference is reading. So `src/gui.rs` starts
-`flea --launch-warm` before its Vulkan probe, the first cold read a launch makes. The helper forks
-once for both jobs, gio first with the page-cache warm on a thread, so the launcher waits only
-for the fork and the shell it becomes never holds an unreaped child, then queues
-`posix_fadvise(WILLNEED)` on each range of `$XDG_CACHE_HOME/flea/prefetch`. The backend writes that
-list when it sends its first rows, from its parent shell's own `/proc/<pid>/maps` and `pagemap`: the
-pages the shell had in memory, not whole files. The moment matters: a second in, a media folder has
-decoded thumbnails and Qt has loaded every image plugin, and a list recorded then made the next cold
-launch 13 to 47 ms slower, four paired rounds on the media fixture. Whole files read about three times the bytes, and with the
-disk queue 127 requests deep the shell's own reads wait behind them: whole files measured 406 to 417
-cold, the pages 331 to 346, on 2026-09-22 with the studio folder, four and five launches. The list is
-the next launch's, so the first launch after an install has none and behaves as before. This is not
-rule 4's prewarm: it reads nothing of the directory being opened and hands the shell no data, it only
-warms the page cache for files the shell maps anyway. The helper takes only a regular file, checked
-before the open because opening a device node can act on the device, opens it without following a
-final symlink, and bounds the list at 1 MiB and 4096 ranges; the list is written at 0600 through an
-exclusive temp file and a rename. `exec_qs` sets `FLEA_PREFETCH` and `FLEA_PREFETCH_SHELL`, its own
-pid, which exec makes the shell's; `qs_command` removes both, so a chooser started from a Flea terminal
-cannot overwrite the main window's list. Terminals the shell starts still inherit them, so a backend
-records only when its parent is that pid: a TUI or a test suite run from a Flea terminal does not. The
-list's second line names the shell by pid and start time, and a backend skips the record when the list
-already names its shell, so a second pane or window opened later cannot replace the launch's pages
-with its late-life ones.
+**Launch helpers and prefetch state.** `flea --launch-warm` still runs the page-cache and GVFS
+jobs through `src/gui.rs`, and the TUI starts the GVFS warm through `src/tui/warm.rs`.
+`configure_child` removes inherited page-cache and GVFS prefetch variables. The main-window
+launch supplies its own warming and recording identity through `exec_window`, as described below.
 
 **The GPUI window prefetches the same way (2026-11-02).** `exec_window` in `src/gui/launch.rs` starts the
 same `flea --launch-warm` helper before it execs `flea-gui`, and hands the window `FLEA_PREFETCH` and
@@ -126,15 +110,11 @@ never answers ends in `waiting` after 10 s, which builds it too), so the first w
 exists a few milliseconds after the rows. A client that drives or times a launch through IPC waits for `ready` (`tests/ui.sh assert_theme`)
 and never assumes the target at map, so a native case holding the first listing reads no `loading` over IPC: `ui:cap_heldcolumns` takes that proof from a live `ipc ready` answer with no seam ("Target not found.") on each side of its reading shot, shooting every Columns limit from 2 to 5, and `tests/heldcolumns.sh` pins loading, waiting and the landing offscreen once at the shipped limit 3, since held rows read no column count; the Loader is the one object this adds to the startup gate, which is why `startupObjectLimit` was 619 then; it is 628 on today's tree, the total the startup-objects suite measures, and "The startup object gate" records the objects that joined since (background-only opacity, the spinner's still second, the list's cursor mark, the rail's lit place, the Quick Look warm loader, the hidden rail's dwell, the New tab mark's frame, the held button's mark and the flasher's result `Connections`) as history, not as a sum. The move takes the `ui/WindowBody.qml` ceiling from 651 to 657, re-derived with `wc -l`.
 
-**`QT_QPA_PLATFORMTHEME=gtk3` starts GTK inside the shell**, about 60 ms warm and 7 MB of PSS, and
-the one thing Flea takes from that theme is the icon theme name. Omarchy writes the same name to
-`~/.local/state/omarchy/current/theme/icons.theme`, and Quickshell reads `QS_ICON_THEME` and calls
-`QIcon::setThemeName` itself, so `src/gui.rs` sets `QS_ICON_THEME` from that file and removes
-`QT_QPA_PLATFORMTHEME` from the child. A missing or empty file changes nothing, and an operator who
-set `QS_ICON_THEME` keeps whatever platform theme they chose. Without gtk3 the Qt defaults differ:
-application font `Sans Serif 9` rather than `Adwaita Sans 11`, `colorScheme` Unknown rather than
-Dark, cursor flash 1000 rather than 1200 ms. Every shipped surface is compared with and without it,
-and a surface that differs is fixed with an explicit font or hint rather than by keeping gtk3.
+**The GPUI launcher does not trade the Qt platform theme.** Its child configuration removes
+the Qt renderer controls, but does not replace `QT_QPA_PLATFORMTHEME` with `QS_ICON_THEME`.
+`src/gui.rs` retains `restore_platform_theme` for programs opened from an older window that
+passed `FLEA_QT_THEME`; only a nonempty marker restores the saved theme and removes the marker
+and `QS_ICON_THEME` from that child.
 
 **The window's own colour is never seen.** The body's Rectangle covers it on the first frame, so
 the entry carries `ui/Theme.qml`'s literal fallback and nothing more. A glass launch makes it

@@ -251,6 +251,8 @@ memory levers that were measured and dropped".
 
 ### Thumbnail requests in the GUI
 
+The QML-specific launch and geometry discussion below describes the retained reference components; the production GPUI window is created by `crates/flea-gui/src/window/mod.rs`.
+
 `ui/Pane.qml` decides which rows are asked about and `ui/js/Thumbs.js` does the arithmetic, as
 pure functions with no QML imports so `./tests/js.sh` can redden on a mutation. **`Thumbs.viewport`
 is the range rule itself**, the viewport in row indices clamped to the last row of the listing, and

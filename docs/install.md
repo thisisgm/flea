@@ -389,8 +389,9 @@ meaning the window. Launcher stdio is beside the point either way, and every lau
 hands over none: glib routes the launch through the session bus, so the child's stdio is the user
 manager's.
 
-`StartupWMClass` because the window's app id comes from the `AppId` pragma at `ui/boot/shell.qml:1` and
-is not the binary name. `packaging/flea-package-test` reads both and fails if they drift apart.
+`StartupWMClass` matches the GPUI window's `APP_ID`, `com.thisisgm.flea`, set in
+`crates/flea-gui/src/window/mod.rs`. The retained QML entry has the same `AppId`;
+`packaging/flea-package-test` still compares that pragma with the desktop entry.
 
 ## Proving it
 

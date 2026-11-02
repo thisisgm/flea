@@ -51,175 +51,24 @@ Markdown navigation links are relative to the document containing them.
    was rejected as slower and stale-capable; it remains disabled until the prewarm file
    can prove it is still fresh and a new measurement proves a real win.
 
-5. **Vulkan where the loader can deliver it, lazy multimedia later.** `src/gui.rs` sets
-   `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer and `src/vulkan.rs` has
-   created a throwaway instance and seen a device, which costs 2.4x less memory than the OpenGL
-   default and initialises 35 ms faster, with identical frame timing. The same probe now reads
-   each device's PCI id and matches it against `/sys/class/drm` connectors whose `status` is
-   `connected`. Flea sets `VK_DRIVER_FILES` and `VK_ICD_FILENAMES` to the ICD whose `library_path`
-   belongs to the display GPU when Vulkan lists a display GPU beside one that owns no connector and
-   that other GPU's PCI vendor differs. The vendor condition is load bearing: an ICD list is vendor
-   granular, so two cards from one vendor, an AMD APU beside a Radeon or an Intel iGPU beside an Arc,
-   cannot be separated by one, and a pin there would claim a restriction it did not make.
-   That is the hybrid-GPU blank window: Hyprland compositing on NVIDIA while Qt
-   opens Intel, which presents a mapped window with no buffer. An index pin (`QT_VK_PHYSICAL_DEVICE_INDEX`)
-   cannot be used: the reporting laptop enumerates NVIDIA then Intel to `vkEnumeratePhysicalDevices` and
-   Intel then NVIDIA to QRhi, so the index Flea would hand Qt is the other GPU. Restricting the
-   ICD list does not care about order. Forcing the NVIDIA ICD on every NVIDIA laptop would blank
-   classic Optimus, where the compositor sits on Intel and the connected connector is Intel's.
-   An explicit `QSG_RHI_BACKEND=vulkan` now runs the full probe too, where before this merge an
-   explicit renderer skipped it entirely: measured on a quiet box, 25 interleaved pairs of the whole
-   launch to a stub `qs`, the explicit Vulkan arm takes 10.0 to 10.6 ms against 1.9 to 2.0 ms for the
-   explicit OpenGL arm, so it pays the same roughly 8 ms the automatic arm already paid.
-   An explicit `VK_DRIVER_FILES` or `VK_ICD_FILENAMES` is the operator's, and an exported-but-empty
-   one is absent, the same rule `QSG_RHI_BACKEND` follows. The pin is said once on stderr and names
-   the chosen GPU's PCI pair and the ICD path, because a silent device change is the defect the
-   OpenGL downgrade already refused to hide, and a hybrid box whose display GPU matches no ICD file
-   says that instead and pins nothing. A connected connector is only a proxy for the compositor's
-   render device, so a lid-closed box whose one connected panel hangs off the other GPU is a shape
-   this heuristic can get wrong; the operator's own `VK_DRIVER_FILES` is the escape, and this box is
-   single-GPU so neither the heuristic nor its limit can be validated here. The pin belongs to Qt and
-   to nothing else Flea starts, so it carries a marker, `FLEA_VK_PIN`, and `src/open.rs` and
-   `src/terminal.rs` drop the pair and the marker together when it is set. Without the marker they
-   drop nothing, because an operator who exported a list of their own must keep it in the program
-   they opened. Another GPU must also own a DRM card: a software ICD such as lavapipe is a Vulkan
-   device owning no connector, and without that condition it would make a plain single-GPU box pin.
-   A box whose
-   every Vulkan device owns a connected connector, or that has no DRM connectors at all, leaves
-   the loader's default and says nothing.
-   **A driver for a GPU vendor the box does not hold is not loaded where the loader can be told so,
-   and that is not the pin.** On an AMD-only box (an RX 7900 XTX beside a Granite Ridge iGPU) with
-   `nvidia-utils` 610.57.04 installed, the NVIDIA ICD made `vkCreateInstance` take 0.63 to 1.1 s and
-   found no device: it runs `nvidia-modprobe` twice, and each run took 365 to 370 ms there. Qt then
-   paid the same again, so Super+Shift+F mapped the window 1.56 to 1.62 s after the key. In a clean
-   Omarchy 4.0.4 lab guest with the same package and a virtio GPU, `nvidia-modprobe` returns in 2 ms
-   and the NVIDIA ICD costs the launch about 20 ms, 17 to 31 ms against 2.9 to 6.2 ms over 12
-   interleaved pairs of launches to a stub `qs`, so the size of the win is the box's and not the
-   driver's. The pin cannot help, because every device the probe lists is AMD. `src/icdexclude.rs`
-   runs before the probe and before `qs` in every renderer arm, because the OpenGL retry inherits the
-   shell's filter and zink draws GL through Vulkan. It sets `VK_LOADER_DRIVERS_DISABLE` to the
-   manifest file names whose `ICD.library_path` file name is, whole, one of six packaged hardware
-   driver libraries (`libGLX_nvidia.so.0`, `libvulkan_nouveau.so`, `libvulkan_radeon.so`,
-   `amdvlk64.so`, `amdvlk32.so`, `libvulkan_intel.so`) whose vendor no PCI display controller (base
-   class 0x03) and no PCI-backed DRM card carries; a vendor word inside any other name names nothing,
-   because only these are known to drive one vendor alone. Venus, `libvulkan_virtio.so`, is kept:
-   its vtest transport serves Vulkan from whatever GPU or software renderer backs it, with no virtio
-   device on the box. Vendors are read from
-   sysfs, never from Vulkan, which is the call being avoided, so a dGPU whose `nvidia-drm` is not
-   loaded keeps its driver. Nothing is excluded when the operator set `VK_DRIVER_FILES`,
-   `VK_ICD_FILENAMES`, `VK_ADD_DRIVER_FILES`, `VK_LOADER_DRIVERS_SELECT` or
-   `VK_LOADER_DRIVERS_DISABLE`, when `vulkan/loader_settings.d/vk_loader_settings.json` exists under
-   any root searched, when a display controller's or DRM card's vendor or device id cannot be read,
-   when any DRM card's device is not on the PCI bus (a SoC GPU, a virtio-mmio GPU, an evdi dock),
-   when neither a display controller nor a DRM card names a vendor, or when the search lists more
-   than 256 manifests, counted before any is opened. A driver it cannot name is kept: lavapipe,
-   swiftshader, any other library, and any manifest that is not a regular file, runs past 4 KiB
-   (packaged ones are a few hundred bytes, and jsondoc's object parse is quadratic in its keys) or
-   does not parse. `libvulkan_intel_hasvk.so` is excluded when no present display device is
-   hasvk-class (Gen7 and Gen8 Intel), and kept beside one, where the probe's `hasvk_only` and the
-   display pin decide; loading it costs a cold launch 12.7 ms, range 6.9 to 25.3, on minipc, and
-   finds no device. Manifests are opened through `backend/regfile`, non-blocking, so a fifo swapped
-   in after the check cannot hold Flea's read; a fifo the loader itself opens still holds its
-   probe, as it did before this. The loader's filter names files and not paths, compares them
-   case-insensitively and reads only its first 16 entries, so a name any kept manifest on the search
-   path shares is kept, a name its glob would read as more than itself is never written, and NVIDIA's
-   names go first in a list that stops at 16. The search is a superset of the loader's, read as raw
-   bytes: config home, `XDG_CONFIG_DIRS`, `/etc/xdg`, `/etc`, data home, `XDG_DATA_DIRS`,
-   `/usr/local/share` and `/usr/share`. `vulkan::icd_library` reads `ICD.library_path` through
-   `jsondoc`, for the pin as well, because a first-match text scan read a decoy key placed before it.
-   `src/jsonmembers.rs` finds both keys the way the loader's cJSON does, without regard to case, and
-   sees an exact repeat, which `jsondoc::parse` folds into the last while cJSON takes the first, so a
-   repeat of either key names no library. cJSON hands names and the path to the loader as C strings,
-   so a name is compared only up to its first NUL, which makes `ICD\u0000x` a repeat of `ICD`, and a
-   path holding a NUL names no library. A member anywhere else, or a string holding the words,
-   changes nothing, which keeps the pin working for manifests with metadata. Measured on the AMD box,
-   `vkCreateInstance` then takes 6 to 8 ms and the window maps in
-   154 to 185 ms over two warm launches against 1622 to 1950 ms over three for the installed 0.3.7;
-   deciding costs well under a millisecond: over 25 interleaved pairs of the launch to a stub `qs`,
-   the same build given the operator's own filter, which skips the decision, differs by a paired
-   median of 0.06 ms both on the AMD box (deciding slower in 14 of 25 pairs, inside the noise) and in
-   the 4.0.4 guest (19 of 25), and the explicit OpenGL arm measured above now pays it too. A loader
-   older than 1.3.234 ignores the variable and is as slow as before. Nothing is said on stderr,
-   because no device changes. The marker `FLEA_VK_DISABLE` holds the exact filter written: a launch
-   inheriting a filter its marker names, a new window or the OpenGL retry, decides again, and
-   `src/open.rs` and `src/terminal.rs` drop that pair; a filter its marker does not name is the
-   operator's, so only the stale marker goes. Helpers QML starts directly inherit the filter, as they
-   inherit the pin; it names only drivers for absent vendors, so an eGPU of such a vendor plugged in
-   while Flea runs is the one shape it hides from them. A new window inheriting Flea's own pin adds no
-   filter, because the pin's `VK_DRIVER_FILES` already loads only the display GPU's ICD.
-   A loader that cannot deliver a
-   Vulkan device is given `opengl` before `qs` starts at all, because Quickshell hands
-   `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
-   the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
-   is not silent: `usable()` answers with the call or library that refused, and with the
-   extensions in the two arms that asked for them, and `src/gui.rs` prints that as one sentence
-   on stderr, because a 2.4x memory regression the operator cannot see is the defect and not the
-   report of it. The probe is `dlopen` plus `vkCreateInstance` plus `vkEnumeratePhysicalDevices`,
-   and it costs an implicit launch roughly 8 ms on this box, so about a quarter of that init
-   advantage is what buys the crash out; dropping the device count would save only 2 of those
-   milliseconds and would stop catching a loader that creates an instance and then lists nothing.
-   A fingerprinted cache in front of it (`src/vkprobecache.rs`) skips the probe when boot, GPUs, manifests, loader, environment and binary all match.
-   A scene-graph failure after launch still relaunches once with OpenGL and drains the failed
-   backend; an explicit `QSG_RHI_BACKEND` is never replaced, and
-   an exported-but-empty one is absent rather than a choice, the same rule `paths::has_display()`
-   applies. What the probe proves is exactly what it asks the loader for: an instance carrying
-   `VK_KHR_surface` and the session's own surface extension, `VK_KHR_wayland_surface` here and
-   `VK_KHR_xcb_surface` where only `DISPLAY` is set, plus a physical device. Those three names are
-   Qt's own: `libQt6Gui.so.6`, `libQt6XcbQpa.so.6` and `libQt6WaylandClient.so.6` here carry exactly
-   those and no other surface name. The request is not satisfiable without a driver either: with
-   every ICD hidden this loader enumerates 5 instance extensions and no surface one, and
-   `vkCreateInstance` answers `VK_ERROR_INCOMPATIBLE_DRIVER`. What it does not prove is that a
-   device can present, which an instance-level request cannot ask and this probe never does. The
-   cost is measured against a probe-free build of the same tree, 25 interleaved pairs of the whole
-   implicit launch to a stub `qs`, timed in microseconds: 10.6 to 11.6 ms with the probe against
-   2.6 to 3.2 ms without it, medians about 8 ms apart, so the probe is most of that launch rather
-   than a component hidden inside it. An earlier note here read 11 to 12 ms in both arms, which is
-   wrong: only the probe arm is near that, and a 1 ms instrument resolves this gap eight times over.
-   The retry arm is covered in two halves, because no whole of it can be driven here.
-   `ui/js/Renderer.js` is the decision and the argv, driven by `tests/js/renderer.js`; the signal
-   reaching that decision is driven by `tests/ui.sh renderer`, which starts Qt's GL backend with
-   no EGL vendor file to load. That is the one scene-graph failure found to be raisable on this
-   box: a broken Vulkan loader cannot stand in for it, because the shell dies first, which is the
-   whole of issue #14. Measured here with every ICD hidden, `qs` warns `No QVulkanInstance set for
-   QQuickWindow` and exits 255 without raising anything; the SIGSEGV is issue #14's own report on a
-   QEMU Virtio GPU. `bodyLoader.Window.window` is null while `ui/boot/shell.qml` loads and holds
-   the `QQuickWindow` once it exists, and that same `Connections` was measured receiving
-   `sceneGraphInitialized`, the signal Qt raises at the phase `sceneGraphError` replaces. What no
-   test reaches is the positive arm, a Vulkan failure leaving `QVulkanInstance` valid and failing
-   at `QRhi::create`, which no environment variable here was able to produce.
-   **`ui/boot/shell.qml` no longer carries the `//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan`
-   line**, so `src/gui.rs` is the only thing that chooses a renderer for a launch, the one OpenGL
-   relaunch in `ui/boot/shell.qml` aside, and a direct `qs -p ui/boot` launch bypasses it entirely:
-   `tools/flea-metrics-gate`, `tests/ui.sh`, `tests/drag.sh` and the
-   `README.md` dev loop each state `QSG_RHI_BACKEND` for themselves, so their numbers stay on the
-   Vulkan baseline they were recorded against. A direct launch now bypasses two more things the
-   launcher does, `FLEA_FIRST_PAINT` and the gtk3 trade of "The first window", so anything that
-   TIMES a launch goes through `$FLEA_BIN --gui` instead: `tools/flea-field-bench` always did, and
-   `tools/flea-first-paint` was moved onto it when this landed. `tools/flea-metrics-gate` starts
-   nothing and times nothing, it reads the token seam over IPC from a Flea the operator started, and
-   the four direct `qs` launches in `tests/ui.sh` assert a cursor, a selection, a scene-graph error
-   and the retry helper's argv rather than a duration, so each is still the right launch for its job.
-   Preview and QtMultimedia are in the tree and instantiated lazily: `ui/PreviewMedia.qml` is the
-   only file that imports QtMultimedia, and `ui/PreviewPdf.qml` the only one that imports
-   QtQuick.Pdf, each reached through a `Loader` built by the first press of play or the first
-   PDF open. Compiling is a separate step: `ui/QuickLookWarm.qml` calls `Qt.createComponent`
-   for the unit of the cursor's file kind (Markdown, PDF, clip or audio, image, text) after a
-   1 s rest on such a file, so a rest on a clip or audio file resolves `import QtMultimedia` and
-   a rest on a PDF resolves `QtQuick.Pdf` with Quick Look never opened, which buys a first Space
-   that compiles nothing, and a window that never rests on one of those loads neither library.
-   Headless offscreen `qs` (`tests/quicklook-firstkind.sh`, five runs, a fresh process each),
-   PSS from `/proc/self/smaps_rollup` after the rest: a text file median 121,816 kB (range
-   89,788 to 127,020), a clip median 129,359 kB (range 68,826 to 147,303), the per-run clip
-   minus text difference median +5,309 kB (-20,962 to +25,487, three of five runs within 5,000
-   to 6,100). The spread is wide because the run shares the box, so this is a headless
-   estimate and not a field number.
-   Issue #160: when every Vulkan GPU is a Gen7 or Gen8 Intel GPU (Ivy Bridge to Broadwell and Cherryview, served only by
-   Mesa's hasvk), the launcher starts the shell on OpenGL instead and says so once on stderr naming
-   hasvk and the fallback, with no retry marker; a CPU-type device such as lavapipe is not a GPU and does
-   not count, a hasvk device beside another Vulkan GPU keeps Vulkan,
-   and an explicit `QSG_RHI_BACKEND` is never touched. The environment is the only setter either way:
-   `ui/boot/shell.qml` carries no `DefaultEnv` pragma for it, so what `src/gui.rs` puts in the `qs`
-   environment is what Qt reads.
+5. **The GPUI launcher leaves adapter selection to GPUI.** `src/main.rs` sends a window
+   launch to `gui::exec_gpui`, which finds `flea-gui` beside the launcher first and then on
+   `PATH`, settles the shared view state and replaces the launcher with that executable.
+   `FLEA_FRONTEND=qml` is refused; `ui/boot/shell.qml` is no longer a launch route.
+   `src/gui/gpui_renderer.rs` removes `QSG_RHI_BACKEND`, `FLEA_RENDERER_AUTOMATIC` and
+   `QT_VK_PHYSICAL_DEVICE_INDEX` from the child environment, drops an inherited
+   `FLEA_VK_PIN` and its ICD list, and adds no display GPU pin or Vulkan probe cache.
+   GPUI uses compositor feedback and checks adapters against the window surface.
+
+   **The absent-vendor ICD filter remains.** Before the exec, `src/icdexclude.rs` can set
+   `VK_LOADER_DRIVERS_DISABLE` for known driver manifests whose hardware is absent, with
+   `FLEA_VK_DISABLE` holding the filter Flea wrote.
+   An operator's nonempty driver override or a loader settings file prevents that automatic
+   exclusion; an inherited filter still matching Flea's marker is reconsidered.
+   `src/open.rs` and `src/terminal.rs` remove Flea's marked filter and legacy display pin
+   from programs they launch, preserving an operator's unmarked choices.
+   The remaining hasvk classification in `src/vulkan.rs` serves the absent-driver filter,
+   rather than selecting an OpenGL launch for an older Intel GPU.
 
 6. **A hidden view is not a free view.** `visible: false` does NOT stop a QML view doing
    model work: it keeps its geometry, stays bound to the listing, and pays per row. All
