@@ -14,9 +14,7 @@ use gpui::{Entity, TestAppContext, VisualTestContext};
 const FILE: u32 = 0o100644;
 
 #[gpui::test]
-fn fixmenus_ey385_background_show_hidden_relists_fresh_as_the_key_does(
-    cx: &mut TestAppContext,
-) {
+fn fixmenus_ey385_background_show_hidden_relists_fresh_as_the_key_does(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     let rows = (0..4)
         .map(|at| entry(&format!("file-{at}.txt"), FILE))

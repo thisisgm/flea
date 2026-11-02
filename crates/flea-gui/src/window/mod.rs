@@ -64,9 +64,9 @@ mod user_keys_tests;
 mod vf6_tests;
 
 #[cfg(test)]
-mod fixreaders_cohesion_tests;
-#[cfg(test)]
 pub(crate) mod fixchrome_tests;
+#[cfg(test)]
+mod fixreaders_cohesion_tests;
 #[cfg(test)]
 mod u07_chrome_tests;
 #[cfg(test)]
@@ -216,9 +216,9 @@ mod native31_tests;
 #[cfg(test)]
 mod caption_loop_tests;
 #[cfg(test)]
-mod glass_tag_tests;
-#[cfg(test)]
 mod glass_rule_tests;
+#[cfg(test)]
+mod glass_tag_tests;
 
 #[cfg(test)]
 mod glass_tests;
