@@ -285,8 +285,13 @@ impl Service {
         self.generation += 1;
         self.starting = true;
         self.idle_at = None;
-        self.commands
-            .push(Command::HelperSpawn(self.warm_kinds.clone()));
+        // A queued figure initializes its own kind; throwaway warm renders would delay its answer.
+        let warm = if self.pending.is_empty() {
+            self.warm_kinds.clone()
+        } else {
+            Vec::new()
+        };
+        self.commands.push(Command::HelperSpawn(warm));
         true
     }
 

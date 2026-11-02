@@ -1,6 +1,8 @@
 // Ported from tests/js/figureservice.js: the service's own handlers on a fake helper and a fake clock.
 use super::*;
 
+#[path = "markdown_figure_cold_tests.rs"]
+mod cold;
 #[path = "markdown_figure_disk_tests.rs"]
 mod disk;
 #[path = "markdown_figure_exit_tests.rs"]
