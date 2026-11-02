@@ -125,7 +125,7 @@ impl QuickLook {
         cx: &mut Context<Self>,
     ) -> Vec<AnyElement> {
         let device = self.svg.as_ref().map_or(1., |picture| picture.scale);
-        let Some((_, fit, source)) = self.picture_fit(w, h, device) else {
+        let Some((path, fit, source)) = self.picture_fit(w, h, device) else {
             return Vec::new();
         };
         let mut parts = Vec::new();
@@ -175,37 +175,37 @@ impl QuickLook {
             .debug_selector(|| "pv1-picture".into());
         if let Some(image) = raster.image.clone() {
             if crate::bench_thumbs::enabled() {
-                if let Some((path, _, _)) = self.picture_fit(w, h, device) {
-                    let path = path.to_string_lossy().into_owned();
-                    let decoded = image.size(0);
-                    picture = picture.child(
-                        gpui::canvas(
-                            |_, _, _| {},
-                            move |bounds, _, window, _| {
-                                let painted = window
-                                    .paint_image(
-                                        bounds,
-                                        bounds,
-                                        gpui::Corners::default(),
-                                        image,
-                                        0,
-                                        false,
-                                    )
-                                    .is_ok();
-                                if painted && decoded.width.0.max(decoded.height.0) == 800 {
-                                    crate::bench_thumbs::painted(
-                                        "preview",
-                                        &path,
-                                        (decoded.width.0 as u32, decoded.height.0 as u32),
-                                        bounds,
-                                        window,
-                                    );
-                                }
-                            },
-                        )
-                        .size_full(),
-                    );
-                }
+                let path = path.to_string_lossy().into_owned();
+                let decoded = image.size(0);
+                let edge = i64::from(decoded.width.0.max(decoded.height.0));
+                let marked = edge == i64::from(crate::bench_thumbs::PREVIEW_EDGE);
+                picture = picture.child(
+                    gpui::canvas(
+                        |_, _, _| {},
+                        move |bounds, _, window, _| {
+                            let painted = window
+                                .paint_image(
+                                    bounds,
+                                    bounds,
+                                    gpui::Corners::default(),
+                                    image,
+                                    0,
+                                    false,
+                                )
+                                .is_ok();
+                            if painted && marked {
+                                crate::bench_thumbs::painted(
+                                    "preview",
+                                    &path,
+                                    (decoded.width.0 as u32, decoded.height.0 as u32),
+                                    bounds,
+                                    window,
+                                );
+                            }
+                        },
+                    )
+                    .size_full(),
+                );
             } else {
                 picture = picture.child(img(image).size_full().object_fit(ObjectFit::Fill));
             }

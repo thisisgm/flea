@@ -100,6 +100,7 @@ class Contracts(unittest.TestCase):
 
     def test_bench_thumbs_reader_delay_mutants_cannot_rank(self):
         rows = self.rows()
+        self.assertTrue(all(metric["measured"] for metric in bench.summary(rows)[0]["metrics"].values()))
         for row in rows:
             if row["id"] == "flea":
                 row["mutant"] = True
@@ -170,11 +171,18 @@ class Contracts(unittest.TestCase):
         with self.assertRaises(ValueError):
             bench.roster(path, installed=True)
 
-    def test_candidate_requires_a_real_versioned_binary_before_launch(self):
+    def test_candidate_requires_its_inventoried_gpui_sibling_before_launch(self):
         from unittest import mock
-        with mock.patch.object(measure.subprocess, "Popen") as launch:
-            with self.assertRaises(KeyError):
-                measure.run_one(REPO, ROOT, None, ROOT, dict(id="flea"), 1, 15)
+        from inventory import digest
+        path = Path(tempfile.mkdtemp(dir=ROOT))
+        binary = path / "flea"
+        binary.write_text("stub binary")
+        (path / "flea-gui").write_text("stub gui")
+        entrant = dict(id="flea", binary=str(binary), sha256=digest(binary), gui_sha256=digest(binary), version="0.4.0")
+        with mock.patch.object(measure.subprocess, "Popen") as launch, mock.patch.object(measure.version_probe, "probe") as probe:
+            with self.assertRaisesRegex(ValueError, "GPUI sibling checksum"):
+                measure.run_one(REPO, ROOT, None, ROOT, entrant, 1, 15)
+        probe.assert_not_called()
         launch.assert_not_called()
 
     def test_existing_field_entry_dispatches_before_shared_cache_setup(self):

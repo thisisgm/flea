@@ -83,3 +83,27 @@ fn bench_thumbs_reader_discarded_frame_cannot_complete_decoded_output() {
     assert!(!state.jobs[0].done);
     assert!(state.pending.is_empty());
 }
+
+#[test]
+fn bench_thumbs_delay_control_withholds_every_job_until_first_paint_plus_delay() {
+    let mut state = State::default();
+    let first = Duration::from_secs(10);
+    assert!(state.withheld(Some(first), Some(1000)), "the first matched paint arms the delay");
+    assert!(
+        state.withheld(Some(first + Duration::from_millis(999)), Some(1000)),
+        "another job painted inside the window is withheld too"
+    );
+    assert!(!state.withheld(Some(first + Duration::from_millis(1000)), Some(1000)));
+    assert!(
+        !state.withheld(Some(first + Duration::from_millis(1001)), Some(1000)),
+        "the delay is armed once per process"
+    );
+}
+
+#[test]
+fn bench_thumbs_delay_control_is_bounded_and_off_by_default() {
+    let at = Some(Duration::from_secs(10));
+    assert!(State::default().withheld(at, Some(MAX_DELAY_MS)));
+    assert!(!State::default().withheld(at, Some(MAX_DELAY_MS + 1)));
+    assert!(!State::default().withheld(at, None));
+}
