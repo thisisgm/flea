@@ -1,7 +1,7 @@
-total clone_lines 5120 250843
+total clone_lines 5120 251254
 total bool_structs 95
 total backend_imports 16
-total unwraps 528
+total unwraps 532
 bool_structs crates/flea-gui/src/columns/menu.rs Busy 1
 bool_structs crates/flea-gui/src/columns/preview_host.rs Moment 1
 bool_structs crates/flea-gui/src/columns/sets.rs Set 1
@@ -1427,6 +1427,7 @@ unwraps src/tui/prompts.rs 2
 unwraps src/tui/stage.rs 1
 unwraps src/tui/tmux.rs 2
 unwraps src/tui/trashview.rs 1
+unwraps src/tui/visual.rs 4
 unwraps src/ui_logic_op4/composition.rs 4
 unwraps src/ui_logic_pl3/dates.rs 1
 unwraps src/ui_logic_pl3/thumbs.rs 2
