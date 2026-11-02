@@ -31,7 +31,7 @@ fn tui_parity17_hig_properties_uses_the_listings_mime_description() {
 
 #[test]
 fn properties_keep_the_shared_folder_link_and_special_descriptions() {
-    let i18n = crate::i18n::I18n::default();
+    let i18n = crate::i18n::test_catalogs::english();
     for (kind, directory, expected) in [
         ("Directory", true, "Folder"),
         ("Symbolic link", false, "Symbolic link"),

@@ -1,4 +1,4 @@
-//! A local JPEG reaches sharp device pixels from one read of the file, in the column and in Quick Look.
+//! A local JPEG reaches sharp device pixels directly in the column and after a bounded first frame in Quick Look.
 use super::previewtypes_tests::{answer, file, local, meta, open, pump};
 use crate::{state::Shell, window::u07_tests::read};
 use gpui::{Entity, TestAppContext, VisualTestContext};
@@ -204,13 +204,14 @@ fn preview_quality_reuse_column_going_back_draws_the_kept_picture(cx: &mut TestA
 }
 
 #[gpui::test]
-fn preview_quality_reuse_quick_look_jpeg_reads_the_file_once(cx: &mut TestAppContext) {
+fn preview_quality_reuse_quick_look_jpeg_ends_on_sharp_full_source_frame(cx: &mut TestAppContext) {
     use super::preview_tests::{press, sent, token};
     cx.executor().allow_parking();
     let root = Root::new();
     // Larger than the card's device fit, so the first decode is already a reduction, as for a camera photo.
     image::RgbImage::from_fn(2400, 1600, |x, y| {
-        image::Rgb([(x % 251) as u8, (y % 241) as u8, 90])
+        let v = if (x / 3 + y / 5) % 2 == 0 { 230 } else { 25 };
+        image::Rgb([v, 255 - v, (x % 256) as u8])
     })
     .save(root.0.join("big.jpg"))
     .unwrap();
@@ -233,9 +234,55 @@ fn preview_quality_reuse_quick_look_jpeg_reads_the_file_once(cx: &mut TestAppCon
     }
     let settled = quality(&shell, cx);
     assert_eq!(settled, refined, "{settled}");
+    // GH336 requires one bounded first frame before the single full-source sharp decode.
     assert!(
         settled.starts_with(r#"{"surface":"look","kind":"image""#)
-            && decode_count(&settled) == Some(1.),
-        "the first sharp decode stands as the refinement: {settled}"
+            && decode_count(&settled) == Some(2.),
+        "one bounded first frame and one sharp refinement settle without another decode: {settled}"
+    );
+    let look = shell.read_with(cx, |shell, _| {
+        shell.quick_look.as_ref().unwrap().view.clone()
+    });
+    let final_frame = look.read_with(cx, |look, _| look.svg_raster()).unwrap();
+    let size = final_frame.size(0);
+    let target = (size.width.0 as u32, size.height.0 as u32);
+    assert!(target.0 < 2400 && target.1 < 1600, "a reduced camera photo");
+    assert_eq!(
+        look.read_with(cx, |look, _| look.quality_pixels()),
+        Some((target, true)),
+        "the mounted sharp frame has the requested device pixels"
+    );
+    let source = image::open(root.0.join("big.jpg")).unwrap().into_rgba8();
+    let mut expected = image::imageops::resize(
+        &source,
+        target.0,
+        target.1,
+        image::imageops::FilterType::CatmullRom,
+    );
+    for pixel in expected.pixels_mut() {
+        pixel.0.swap(0, 2);
+    }
+    // A separate path keeps the negative control out of the preview's decode ledger.
+    let reference = root.0.join("reference.jpg");
+    std::fs::copy(root.0.join("big.jpg"), &reference).unwrap();
+    let bounded = crate::g2::pv1::raster::run(&crate::g2::pv1::raster::Job {
+        path: reference,
+        size: target,
+        epoch: 1,
+        latest: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
+        raster: std::sync::Arc::new(|_, _| panic!("JPEG must use the bounded photo decoder")),
+    });
+    let crate::g2::pv1::raster::RasterOutcome::Raster(bounded) = bounded else {
+        panic!("the JPEG first-frame job decodes its bounded negative control");
+    };
+    assert_ne!(
+        bounded.as_bytes(0).unwrap(),
+        expected.as_raw().as_slice(),
+        "the fixture distinguishes the bounded first frame from full-source sharp pixels"
+    );
+    assert_eq!(
+        final_frame.as_bytes(0).unwrap(),
+        expected.as_raw().as_slice(),
+        "Quick Look ends on the full-source sharp pixels, never the bounded first frame"
     );
 }

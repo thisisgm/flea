@@ -52,6 +52,30 @@ pub fn scaled(board: f32, body: f32, room: f32) -> f32 {
         .max(0.)
 }
 
+/// The shared title and escape hint, using each card family's resolved text styles.
+pub(crate) fn card_heading(
+    title: &str,
+    esc: &str,
+    title_text: Div,
+    hint_text: Div,
+    gap: gpui::Pixels,
+) -> Div {
+    use gpui::{div, prelude::*};
+
+    title_text
+        .flex()
+        .items_center()
+        .gap(gap)
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(title.to_owned()),
+        )
+        .child(hint_text.ml_auto().child(esc.to_owned()))
+}
+
 /// The board's marks, drawn from their own 24 unit paths.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Glyph {
@@ -299,9 +323,9 @@ struct Draw<'a> {
     s: f32,
     typeface: &'a Typeface,
     language: &'a str,
+    probe: Option<&'a crate::ipc::card_geometry::CardGeometry>,
     wire: Option<&'a Wire>,
     mount: Option<&'a Mount>,
-    probe: Option<&'a crate::g2::st1::probe::Probe>,
 }
 
 /// The controls whose pointer activation a live card serves through its model.

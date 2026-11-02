@@ -1620,12 +1620,11 @@ COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. 
 
 - `src/tui/preview.rs`: 406. Composed preview media/facts and localized fallback state from the TUI family.
 - `src/tui/frame_tests.rs`: 408. Preserves both M1 language-aware heading tests and the joined TUI frame assertions.
-- `src/backend/contents_review_tests.rs`: 433. Preserves the composed content-search regression fixtures and assertions.
+- `src/backend/contents_review_tests.rs`: 446. Preserves the composed content-search regression fixtures and assertions, and the ignore-glob partial-walk cases.
 - `crates/flea-gui/src/columns/geometry.rs`: 428. Combines scaled column geometry with joined divider and target geometry.
 - `crates/flea-gui/src/dual/divider_tests.rs`: 446. Retains the divider tests from both the base and composed UI units.
 - `crates/flea-gui/src/feedback/spinner_surface_tests.rs`: 402. Retains the composed spinner surface module/test registration.
-- `crates/flea-gui/src/g2/dg2/feedback.rs`: 410. Retains the reviewed drag appearance and held payload feedback together.
-- `crates/flea-gui/src/g2/dg2/rail_drop.rs`: 444. Combines the rail target cues with the existing validated drop owner.
+- `crates/flea-gui/src/g2/dg2/rail_drop.rs`: 439. Combines the rail target cues with the existing validated drop owner.
 - `crates/flea-gui/src/g2/mn1/element.rs`: 451. Preserves both localized/scaled menu layout and drawn reader geometry.
 - `crates/flea-gui/src/g2/op4/tests.rs`: 409. Retains the composed operation-card regressions.
 - `crates/flea-gui/src/g2/pk1/tests.rs`: 463. Retains the composed picker regression assertions.
@@ -1638,10 +1637,17 @@ COMPOSE-M3 records exact scoped ceilings for the small composed overruns below. 
 - `crates/flea-gui/src/navigation/steps.rs`: 409. Retains the composed navigation state plumbing.
 - `crates/flea-gui/src/window/dispatch/fileops.rs`: 406. Combines reviewed file operation dispatch with native preview/menu retirement.
 - `crates/flea-gui/src/window/dispatch/openwith_tests.rs`: 444. Retains base and composed Open With routing assertions.
-- `crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs`: 422. Retains base and composed Quick Look state assertions.
+- `crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs`: 427. Retains base and composed Quick Look state assertions.
 - `crates/flea-gui/src/window/events_ipc.rs`: 425. Combines reviewed plugin actions and richer window IPC observers.
 - `crates/flea-gui/src/window/network.rs`: 402. Retains reviewed network placement beside refreshed preview state.
 - `crates/flea-gui/src/window/selection_preview_load.rs`: 427. Combines reviewed lazy media, reader, quality and plugin preview delivery.
 - `crates/flea-gui/src/window/status.rs`: 408. Retains reviewed status labels and IPC state from the composed units.
 
 COMPOSE-M3 applies the fmt gate to newly unformatted files only. This formatting-only correction expands five TUI files without changing behavior or assertions: `src/tui/parity_candidate_tests.rs` 696, `src/tui/office.rs` 403, `src/tui/preview_locale_tests.rs` 513, `src/tui/cells.rs` 426, `src/tui/parity_listing_tests.rs` 410. Their exact ceilings retain all code and tests. The duplicate navigation steps registry row introduced while composing its new ceiling is removed; its single exact ceiling remains 409. Global limits are unchanged.
+
+The M3 drag-status correction retains a single published held-drag hint by retiring the legacy rail fallback before publishing the shared cue, including repeated lines. The feedback owner stays under the hard cap, so it carries no scoped ceiling; no unrelated ceiling or global limit changes.
+
+The M3 mounted Settings fixture applies its initial font restyle before appending the ordinary wrapping control row. The two-line fixture correction records the exact `crates/flea-gui/src/window/settings/fix1_tests.rs` ceiling at 406, preserving both one-line claim and ordinary wrapping assertions; global limits stay unchanged.
+The archive publish fix (issue 370) moves one ceiling, re-derived with `wc -l`: `src/backend/renamecompat.rs` 728 to 738 for `rename_cancellable` and `copy_then_remove_with`, which carry an archive job's cancel into the copy fallback its compress, extract and convert now publish through. `src/backend/archiveops.rs` stands at 270, over the soft budget and under the hard cap, with the copy-fallback publish tests in `src/backend/archiveopsrclone_tests.rs` at 252.
+
+The COMPOSE-M3 closing join removed a duplicate `menu_identity` from `crates/flea-gui/src/g2/mn1/join.rs`, so its exact ceiling ratchets down to the re-derived `wc -l` count, 437. Global limits are unchanged.

@@ -137,15 +137,14 @@ impl Background {
     }
 }
 
-/// The two menus a navigation defers until its rows land: a neighbour background's and a neighbour row's.
+/// The menu a navigation defers until its rows land: a neighbour background's.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Deferred {
     pub background: Background,
-    pub row_menu: bool,
 }
 
 impl Deferred {
-    /// onFailed: a terminal failure or an ended listing drops both; any other failure leaves the listing, and both, still out.
+    /// onFailed: a terminal failure or an ended listing drops it; any other failure leaves the listing, and it, still out.
     pub fn failed(&mut self, operation: &str, ended: bool) {
         if ended || matches!(operation, "backend" | "read") {
             *self = Self::default();
@@ -253,7 +252,7 @@ pub fn activate_neighbour(base: &str, name: &str, is_dir: bool) -> Activate {
     }
 }
 
-/// menuOnNeighbour: the peek's directory becomes the listing, the cursor lands on the row and its menu opens once the rows land.
+/// menuOnNeighbour: the peek's directory a neighbour tap opens and the row it selects there.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NeighbourMenu {
     pub open: String,

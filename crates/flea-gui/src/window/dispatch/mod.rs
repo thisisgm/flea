@@ -106,6 +106,8 @@ impl Shell {
 }
 
 #[cfg(test)]
+mod band_shift_tests;
+#[cfg(test)]
 mod band_tests;
 #[cfg(test)]
 mod clipboard_tests;

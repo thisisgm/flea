@@ -111,7 +111,7 @@ impl Filter {
         self.asked.last()
     }
     /// The oldest id still awaited, for `wire::read`; None while nothing is asked.
-    pub fn live(&self) -> Option<u64> {
+    pub fn oldest(&self) -> Option<u64> {
         self.asked.first().map(|asked| asked.id)
     }
     /// FilterStrip's `up`: the line has the caret or a query stands.
@@ -245,7 +245,11 @@ impl Filter {
         }
         self.typing = false;
         self.entry.borrow_mut().close();
-        pane.focus_list();
+        if self.query.is_empty() {
+            self.close(pane);
+        } else {
+            pane.focus_list();
+        }
     }
 
     /// The query line's own keys while it has the caret; a key that leaves the line commits first and is not consumed.

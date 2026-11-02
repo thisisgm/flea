@@ -320,6 +320,37 @@ fn ey188_row_clip_mark_answers_in_grid_and_columns(cx: &mut TestAppContext) {
             Reply::value("unavailable"),
             "{view:?}: a row the frame did not draw"
         );
+        // A held row the frame did not draw answers unavailable, where the List's held-window path would answer its mark.
+        let hidden = handle
+            .update(cx, |shell, _, _| {
+                let host = shell.panes[0].as_ref().unwrap();
+                let drawn = |row: usize| match view {
+                    View::Grid => {
+                        let state = host.grid.as_ref().unwrap().state.borrow();
+                        state.drawn_row(row).is_some()
+                    }
+                    _ => {
+                        let columns = host.columns.as_ref().unwrap();
+                        let paint = columns.painters.get(Slot::Active).unwrap().borrow();
+                        paint.prepared(row).is_some()
+                    }
+                };
+                let held = &host.pane.held;
+                let row = (held.start..held.start + held.rows.len())
+                    .find(|&row| !drawn(row))
+                    .expect("a held row past the frame");
+                let name = held.row(row).unwrap().name.clone();
+                let mut list = host.list.borrow_mut();
+                list.view.clip.set(&[format!("/files/{name}")], false);
+                list.view.clip.scope("/files");
+                row
+            })
+            .unwrap();
+        assert_eq!(
+            ipc(cx, handle, "rowClipMark", hidden),
+            Reply::value("unavailable"),
+            "{view:?}: a held row the frame did not draw"
+        );
     }
 }
 

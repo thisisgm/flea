@@ -34,10 +34,6 @@ fn vf_more_open_with_paints_the_desktop_entry_icon(cx: &mut TestAppContext) {
     .unwrap();
     cx.run_until_parked();
     cx.update_window(handle.into(), |_, window, cx| {
-        let image = cx
-            .fetch_asset::<ImageAssetLoader>(&source)
-            .unwrap()
-            .unwrap();
         let catalog = crate::test_catalogs::english();
         let typeface = Typeface::omarchy_default();
         let env = Env {
@@ -64,6 +60,17 @@ fn vf_more_open_with_paints_the_desktop_entry_icon(cx: &mut TestAppContext) {
             &env,
             window,
         );
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    // The first menu paint starts the asynchronous icon resolver; the next paints its answer.
+    cx.run_until_parked();
+    cx.update_window(handle.into(), |_, window, cx| {
+        let image = cx
+            .fetch_asset::<ImageAssetLoader>(&source)
+            .unwrap()
+            .unwrap();
         window.refresh();
         window.draw(cx).clear(cx);
         assert!(

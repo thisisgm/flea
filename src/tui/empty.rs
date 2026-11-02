@@ -23,7 +23,7 @@ pub(super) fn shown(m: &super::model::Model, columns: usize, lines: usize) -> bo
 // Captions loop while the empty folder is shown; each appearance supplies a fresh elapsed clock.
 #[cfg(test)]
 pub fn line(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration) -> String {
-    localized(y, height, width, marks, elapsed, &crate::i18n::I18n::default())
+    localized(y, height, width, marks, elapsed, &crate::i18n::test_catalogs::english())
 }
 pub fn localized(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration, i18n: &crate::i18n::I18n) -> String {
     let keys = ["pane.empty.initial", "pane.empty.beat_one", "pane.empty.rest"];

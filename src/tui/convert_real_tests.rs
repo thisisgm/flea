@@ -207,7 +207,10 @@ pub fn safe(root: &Path, w: &mut Wire) {
     let mut m = open(&files, w, &["photo.png"]);
     press(&mut m, w, Key::named("Down", ""));
     press(&mut m, w, Key::named("Return", ""));
-    until(&mut m, w, |_| root.join("held").is_file());
+    // The shell creates held before printf writes the pid, so wait for the whole line.
+    until(&mut m, w, |_| {
+        std::fs::read_to_string(root.join("held")).is_ok_and(|pid| pid.ends_with('\n'))
+    });
     let pid: u32 = std::fs::read_to_string(root.join("held"))
         .unwrap()
         .trim()

@@ -45,7 +45,11 @@ impl From<&str> for Text {
 }
 impl std::fmt::Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.render(&I18n::default()))
+        #[cfg(not(test))]
+        let i18n = I18n::default();
+        #[cfg(test)]
+        let i18n = crate::i18n::test_catalogs::english();
+        f.write_str(&self.render(&i18n))
     }
 }
 impl std::error::Error for Text {}
