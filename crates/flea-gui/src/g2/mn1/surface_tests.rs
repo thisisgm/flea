@@ -13,8 +13,8 @@ impl Render for Probe {
 #[gpui::test]
 fn openwith_parent_and_flyout_use_the_theme_surface(cx: &mut TestAppContext) {
     let theme = Theme {
-        background: gpui::rgb(0x172820).into(),
-        surface: gpui::rgb(0x071008).into(),
+        background: Theme::from_text("background='#172820'").background,
+        surface: Theme::from_text("background='#071008'").background,
         ..Theme::default()
     };
     cx.update(|cx| cx.set_global(theme));

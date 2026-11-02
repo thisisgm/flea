@@ -113,8 +113,8 @@ def mutant(name, kind, suite, change, repair):
 
 
 mutant('orphan-run-all', 'missing-row', 'inventory-orphan',
-       lambda d: replace(d / 'run-all.sh', 'headless="suite-inventory ', 'headless="inventory-orphan suite-inventory '),
-       lambda d: replace(d / 'run-all.sh', 'headless="inventory-orphan suite-inventory ', 'headless="suite-inventory '))
+       lambda d: replace(d / 'run-all.sh', 'headless="', 'headless="inventory-orphan '),
+       lambda d: replace(d / 'run-all.sh', 'headless="inventory-orphan ', 'headless="'))
 
 
 def duplicate(directory):

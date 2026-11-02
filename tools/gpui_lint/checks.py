@@ -114,6 +114,9 @@ def source_checks(units, policy):
         errors.append(f"callback registration names no function: {name}")
     roots.update(s for s in known if s.split("::")[-1] in ("paint", "prepaint"))
     helpers = set(policy["blocking_helpers"])
+    methods = {name for name, function in known.items()
+               if any(t.value == "self" and function.signature[j + 1].value != "::"
+                      for j, t in enumerate(function.signature[:-1]))}
     exceptions = {(e["caller"], e["symbol"]): e["reason"] for e in policy["blocking_exceptions"]}
     pending, seen = list(roots), set()
     while pending:
@@ -123,13 +126,14 @@ def source_checks(units, policy):
         seen.add(name)
         function = known[name]
         for symbol, line, args, method in calls(function, known):
-            target = resolve(symbol, function, set(known) | helpers)
+            target = resolve(symbol, function, (methods if method else set(known)) | helpers)
             # Another target is reached only through a package's library; a test, example, bench, build script or binary is not.
             if target in known:
                 callee, library = compilation_target(known[target].path)
                 if not library and callee != compilation_target(function.path)[0]:
                     target = symbol
-            if blocking(target, args, method, helpers) and (name, target) not in exceptions:
+            if (blocking(target, args, method, helpers) and (name, target) not in exceptions
+                    and (name, symbol) not in exceptions):
                 errors.append(f"{function.path}:{line}: UI blocking call {target} in {name}")
             if target in known:
                 pending.append(target)
@@ -172,7 +176,7 @@ def source_checks(units, policy):
             args = ts[end + 1:matched[end]] if following in ("(", "{") else []
             literal = any(t.kind in ("number", "string") for t in args)
             direct = immediate(ts, matched, end + 1, matched[end]) if following in ("(", "{") else []
-            text_color = name in COLOR_SETTERS - {"fill", "stroke"} and (
+            text_color = following == "(" and name in COLOR_SETTERS - {"fill", "stroke"} and (
                 any(t.kind == "number" for t in direct) or any(t.kind == "string" and (
                 t.value[1:-1].lower() in COLOR_NAMES or t.value[1:-1].startswith("#")) for t in direct)
             )
