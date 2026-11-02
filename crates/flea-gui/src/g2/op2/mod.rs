@@ -37,6 +37,8 @@ mod flash_tests;
 #[cfg(test)]
 mod host_tests;
 #[cfg(test)]
+mod label_tracking_tests;
+#[cfg(test)]
 mod scene_tests;
 #[cfg(test)]
 mod tests;

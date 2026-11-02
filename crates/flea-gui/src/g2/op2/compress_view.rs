@@ -78,6 +78,7 @@ impl Compress {
             }));
         }
         Card {
+            language: i18n.language().into(),
             title: logic::compress_title(i18n, self.paths.len()),
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
