@@ -5,7 +5,9 @@ case_settings_plugin_source_row() (
     [ "$VISUAL_FRONTEND" = gpui ] || return 77
     local root origin target cursor attempt
     local rail_limit=10 pane_limit=50 poll_seconds=0.1
-    root=$(mktemp -d /tmp/flea-visual-plugin-source.XXXXXXXX) || return 1
+    # Under the case fixture like the gh315 cases, so reset_fixture removes it before the next case.
+    root=$C/plugin-source
+    mkdir -p "$root" || return 1
     : > "$root/.flea-test-sandbox" || return 1
     origin="$root/a long local plugin parent/another long parent/keep the final folder/checksums"
     mkdir -p "$origin" "$root/data" || return 1
