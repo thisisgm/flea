@@ -134310,8 +134310,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!((a.metadata().unwrap().dev(), a.metadata().unwrap().ino()), (dev, ino), \"the new file really reuses the recorded inode\");",
-      "line": 139,
+      "excerpt": "assert_eq!((after.dev(), after.ino()), (dev, ino), \"the new file really reuses the recorded inode\");",
+      "line": 142,
       "literal": "the new file really reuses the recorded inode",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134319,9 +134319,18 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert!(differs(birth.1, of_path(&a)), \"the reused inode has a new generation\");",
-      "line": 140,
-      "literal": "the reused inode has a new generation",
+      "excerpt": "assert!(crate::backend::undo::born_differs(birth.0, born_of(&after)) || differs(birth.1, of_path(&a)), \"the reused inode has a distinct birth or generation\");",
+      "line": 143,
+      "literal": "the reused inode has a distinct birth or generation",
+      "owner": "controller",
+      "path": "src/backend/filegen.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_ne!((after.dev(), after.ino()), (dev, ino), \"the fallback has a distinct inode\");",
+      "line": 145,
+      "literal": "the fallback has a distinct inode",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -134329,7 +134338,7 @@
     },
     {
       "excerpt": "assert_eq!(refused, Err(\"the item was replaced, so its mode was left in place.\".to_string()));",
-      "line": 143,
+      "line": 149,
       "literal": "the item was replaced, so its mode was left in place.",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134338,7 +134347,7 @@
     },
     {
       "excerpt": "assert_eq!(a.metadata().unwrap().mode() & 0o777, 0o644, \"its mode stays\");",
-      "line": 144,
+      "line": 150,
       "literal": "its mode stays",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134347,7 +134356,7 @@
     },
     {
       "excerpt": "let with = crate::backend::undocodec::decode(&step(&format!(r#\",\"gen\":{}\"#, u64::MAX))).expect(\"a step with a generation decodes\");",
-      "line": 150,
+      "line": 156,
       "literal": "a step with a generation decodes",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134356,7 +134365,7 @@
     },
     {
       "excerpt": "assert!(matches!(&with.undo[0].steps[0], crate::backend::undo::Step::Mode { generation: Some(u64::MAX), .. }), \"the generation comes back exact\");",
-      "line": 151,
+      "line": 157,
       "literal": "the generation comes back exact",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134365,7 +134374,7 @@
     },
     {
       "excerpt": "let without = crate::backend::undocodec::decode(&step(\"\")).expect(\"an older step decodes\");",
-      "line": 153,
+      "line": 159,
       "literal": "an older step decodes",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -134374,7 +134383,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::jsondoc::render(&crate::backend::undocodec::encode(&without)).matches(r#\"\"gen\"\"#).count(), 1, \"only the push counter, no generation key\");",
-      "line": 155,
+      "line": 161,
       "literal": "only the push counter, no generation key",
       "owner": "controller",
       "path": "src/backend/filegen.rs",
@@ -136938,17 +136947,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "panic!(\"inode reuse needs a disk-backed sandbox outside HOME; temp, current and /var/tmp roots were unsuitable\");",
-      "line": 18,
-      "literal": "inode reuse needs a disk-backed sandbox outside HOME; temp, current and /var/tmp roots were unsuitable",
-      "owner": "controller",
-      "path": "src/backend/inodereuse.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "let before = path.symlink_metadata().expect(\"the original file\");",
-      "line": 25,
+      "line": 29,
       "literal": "the original file",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
@@ -136957,7 +136957,7 @@
     },
     {
       "excerpt": "std::fs::remove_file(path).expect(\"unlink the recorded file inside its sandbox\");",
-      "line": 28,
+      "line": 33,
       "literal": "unlink the recorded file inside its sandbox",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
@@ -136966,7 +136966,7 @@
     },
     {
       "excerpt": "std::fs::write(path, body).expect(\"recreate the recorded file inside its sandbox\");",
-      "line": 29,
+      "line": 34,
       "literal": "recreate the recorded file inside its sandbox",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
@@ -136975,7 +136975,7 @@
     },
     {
       "excerpt": "let after = path.symlink_metadata().expect(\"the recreated file\");",
-      "line": 30,
+      "line": 35,
       "literal": "the recreated file",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
@@ -136983,18 +136983,18 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"inode-reuse proof: inode={} attempts={attempt} filesystem={:?}\", after.ino(), super::fsinfo::read(dir.path()).map(|info| info.name));",
-      "line": 32,
-      "literal": "inode-reuse proof: inode={} attempts={attempt} filesystem={:?}",
+      "excerpt": "eprintln!(\"inode-reuse proof: arm=reused-inode inode={} attempts={attempt} filesystem={:?}\", after.ino(), super::fsinfo::read(dir.path()).map(|info| info.name));",
+      "line": 39,
+      "literal": "inode-reuse proof: arm=reused-inode inode={} attempts={attempt} filesystem={:?}",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
     {
-      "excerpt": "panic!(\"the disk-backed filesystem did not reuse an inode in {REUSE_TRIES} fresh identity attempts\");",
-      "line": 36,
-      "literal": "the disk-backed filesystem did not reuse an inode in {REUSE_TRIES} fresh identity attempts",
+      "excerpt": "eprintln!(\"inode-reuse proof: arm=different-inode attempts={REUSE_TRIES} filesystem={:?}\", super::fsinfo::read(dir.path()).map(|info| info.name));",
+      "line": 45,
+      "literal": "inode-reuse proof: arm=different-inode attempts={REUSE_TRIES} filesystem={:?}",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -137002,7 +137002,7 @@
     },
     {
       "excerpt": "assert!(records >= 2, \"a held inode cannot be reused on the first try\");",
-      "line": 51,
+      "line": 61,
       "literal": "a held inode cannot be reused on the first try",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
@@ -137010,9 +137010,45 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(old_id, (now.dev(), now.ino()), \"the returned record belongs to the inode actually reused\");",
-      "line": 53,
+      "excerpt": "assert_eq!(recreated.saved, (now.dev(), now.ino()), \"the returned record belongs to the inode actually reused\");",
+      "line": 64,
       "literal": "the returned record belongs to the inode actually reused",
+      "owner": "controller",
+      "path": "src/backend/inodereuse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_ne!(recreated.saved, (now.dev(), now.ino()), \"the fallback replaces the recorded identity\");",
+      "line": 66,
+      "literal": "the fallback replaces the recorded identity",
+      "owner": "controller",
+      "path": "src/backend/inodereuse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!recreated.reused_inode, \"holding each original prevents reuse on every attempt\");",
+      "line": 84,
+      "literal": "holding each original prevents reuse on every attempt",
+      "owner": "controller",
+      "path": "src/backend/inodereuse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(records, REUSE_TRIES + 1, \"the fallback records its own original\");",
+      "line": 85,
+      "literal": "the fallback records its own original",
+      "owner": "controller",
+      "path": "src/backend/inodereuse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(recreated.saved.0, records, \"the returned record is the last original, not a missed attempt\");",
+      "line": 86,
+      "literal": "the returned record is the last original, not a missed attempt",
       "owner": "controller",
       "path": "src/backend/inodereuse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -245362,7 +245398,7 @@
     "src/backend/fatnames.rs": "67d3ececf878506206ec00b95cbb70ca104b590a8badc17a672c75b6f12f05fa",
     "src/backend/fdpass.rs": "c064ed49ba69ed3c3dd78a94424b5a58350aab51cdb1e500b612eb6a941a1d24",
     "src/backend/fifotest.rs": "51fdb8991e45d4a70bf6000a0b230860fe9c87815e531b5f3b48c38678d1d187",
-    "src/backend/filegen.rs": "0aa844ad95fa8a135237fd0de9d9c6cf31ee2c6a4d9012769d0731f3839fe889",
+    "src/backend/filegen.rs": "a2f12bb184775cc5f666d00518dc4b90259a337ca526dca4942cb220f523809f",
     "src/backend/filter.rs": "61a14e666906ae73c3a0b6f91bc05917dca312ddaebd4a63d9f4d2624447424d",
     "src/backend/findnames.rs": "97d0181995e94ec5e05f4dedc2eb5cc2a3039996150d3db9370ec0daa5f286d6",
     "src/backend/findnormalizer.rs": "58ff0cc36cf1a96f0f14d1c8b25f53b3ffc9e91156df329a618f6e5bb4381363",
@@ -245410,7 +245446,7 @@
     "src/backend/imagesize.rs": "b95e5f7f52e5027592909761250b230556a3a95e06a5c1a59afbb24a4f16f844",
     "src/backend/imagevector.rs": "919901b248c1a2d90105f01f169acc07d2128fab0b8134a9e8de373051a3e540",
     "src/backend/inbox.rs": "204d1f90cb25063ba71cf4817a9449ea0bbc60e4d05c85032c969bad41488b98",
-    "src/backend/inodereuse.rs": "a6e8d782cf73119bb669fd680729583d201a8c15e7f5e98b3f87f01e592fcabf",
+    "src/backend/inodereuse.rs": "18f68c415ee0c314befc777fe6e876f9d40df2614d7af8d3ed0c0c33417389f7",
     "src/backend/inotifyburst.rs": "44b8ce97d0071f3361ff3dbe841c6552f14ed154896b06506ca643e3c2456331",
     "src/backend/iomount.rs": "5aaaa8efaaad4f028217f9cc3e85790e0c941d199a114b3b629f6e3cf9412488",
     "src/backend/jail.rs": "459eddc9cff901b45ca152f642c02e8b6235aed03d6875760e987818aa70d000",
@@ -245460,7 +245496,7 @@
     "src/backend/metarow.rs": "7aa447b2e60755e1c6df3514b514b9bfbeba34b63fb5b1d41209ee6192a7ce22",
     "src/backend/metasort.rs": "b147824816ec8aa7b2428fba5d6d8a70ab6f338bc64f2b5218d548bb0850239c",
     "src/backend/mime.rs": "938e568e1640fe08fdf20359ee69b74272b41c2c64f53b65a3803dd129839ea1",
-    "src/backend/mod.rs": "46b5d456df2268672be166bd3635bd8fc603c8bfe4a7d1d7f0bc9214fb14a975",
+    "src/backend/mod.rs": "a75ffef138f5c78e034f791c3c96d5aca784ef46e9d9ba199597a158d3a18b4e",
     "src/backend/model3d/amf.rs": "8213147933005346105ec28f5ceadabaa6a669db1ad2ceb3cf3ccdaf5e8a5505",
     "src/backend/model3d/bgcode.rs": "28f87b299f411af3d35f46852c8e618f52f77a1f1a25086fe3262c018af1892c",
     "src/backend/model3d/codecs.rs": "5efc5aa7b4e2053d238f2e541982ab048472333d7425683960757c70c4daad7c",
@@ -246787,12 +246823,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "686dbcf2c0baa10b65cfe737b2bc346a273d775f",
-  "source_sha": "686dbcf2c0baa10b65cfe737b2bc346a273d775f",
+  "source_ref_sha": "e4bfe129bfdaedfe104f7f0394a2abeb50db8b63",
+  "source_sha": "e4bfe129bfdaedfe104f7f0394a2abeb50db8b63",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1284,
-      "missing_literal_candidates": 5716,
+      "missing_literal_candidates": 5720,
       "source_files": 834
     },
     "generated/tooling": {
