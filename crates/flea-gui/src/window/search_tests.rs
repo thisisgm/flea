@@ -24,6 +24,7 @@ pub(super) fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<S
             shell
         }),
     });
+    crate::list::bench::activate_window(cx, handle);
     (handle, read)
 }
 

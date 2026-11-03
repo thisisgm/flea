@@ -48,10 +48,7 @@ fn open(cx: &mut TestAppContext) -> WindowHandle<Shell> {
         host.list.borrow_mut().typeface = bench::bench_typeface();
         shell
     });
-    handle
-        .update(cx, |_, window, _| window.activate_window())
-        .unwrap();
-    cx.run_until_parked();
+    bench::activate_window(cx, handle);
     handle
 }
 

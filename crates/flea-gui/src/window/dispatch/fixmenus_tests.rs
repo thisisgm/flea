@@ -151,7 +151,13 @@ fn fixmenus_ey504_under_a_filter_the_ground_below_the_drawn_rows_opens_the_folde
         cx,
         r#"{"t":"filtered","id":1,"query":"n","n":10,"rows":[3],"ms":0.01,"listing":1}"#,
     );
-    cx.simulate_keystrokes("enter");
+    shell.read_with(cx, |shell, _| {
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().filter.shown.as_deref(),
+            Some(&[3][..])
+        );
+    });
+    cx.simulate_keystrokes("down");
     settle(cx);
     let (x, y) = spot(&shell, cx, 0, Some(3));
     // One row lower is still inside the frame's held span of ten rows, but nothing is drawn there.

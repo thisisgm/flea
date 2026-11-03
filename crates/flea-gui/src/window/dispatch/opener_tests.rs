@@ -288,9 +288,20 @@ fn explicit_open_on_a_search_result_file_opens_that_result(cx: &mut TestAppConte
     cx.simulate_keystrokes("enter down");
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
-            shell.input_action("open", window, cx);
+            let host = shell.panes[0].as_ref().unwrap();
+            assert_eq!(host.pane.cursor, 1);
+            assert_eq!(host.pane.held.listing, 11);
+            assert_eq!(host.pane.held.row(1).unwrap().name, "sub/found.txt");
+            assert!(!host.pane.busy() && !host.stopped);
+            assert!(host.search.owner.operable(11, 1));
+            shell.dispatch(
+                Order::Action(ActionEvent::bare("open", flea::keys::Context::Listing)),
+                window,
+                cx,
+            );
         })
     });
+    cx.run_until_parked();
     assert_eq!(
         launched(),
         ["/files/sub/found.txt"],

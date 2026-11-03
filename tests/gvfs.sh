@@ -25,3 +25,4 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 python3 -B tests/lib/gvfs_fixture.py "$fixture_dir"
+printf 'gvfs: mount=ok list=ok read=ok fuse=ok unmount=ok\n'

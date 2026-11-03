@@ -55,6 +55,7 @@ fn open(cx: &mut TestAppContext) -> Handle {
             shell
         }),
     });
+    crate::list::bench::activate_window(cx, handle);
     edit(cx, handle, |shell, window, cx| {
         for (side, path) in [(0, "/files"), (1, "/right")] {
             if side == 0 {

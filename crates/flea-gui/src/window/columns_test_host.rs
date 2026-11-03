@@ -60,6 +60,7 @@ pub fn open_at(
         shell.set_view(View::Columns, window, cx);
         shell
     });
+    crate::list::bench::activate_window(cx, window);
     (window, requests)
 }
 

@@ -299,8 +299,11 @@ def actions(backend, root, a, b):
     backend.send(c='jobs', op='cancel', id=ident)
     assert backend.state(ident, 'done')['cancelled']
     end = time.monotonic() + 3
-    while Path(f'/proc/{child}/stat').exists():
-        stat = Path(f'/proc/{child}/stat').read_text()
+    while True:
+        try:
+            stat = Path(f'/proc/{child}/stat').read_text()
+        except FileNotFoundError:
+            break
         if stat.rsplit(')', 1)[1].split()[0] == 'Z':
             break
         assert time.monotonic() < end, 'SIGTERM-ignoring child survived Cancel'

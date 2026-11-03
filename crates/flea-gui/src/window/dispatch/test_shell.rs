@@ -170,6 +170,7 @@ fn build_at<'a>(
         );
         *writer.borrow_mut() = Writer::default();
     });
+    crate::list::bench::activate_visual(cx);
     cx.simulate_resize(size(px(1100.), px(700.)));
     cx.run_until_parked();
     (shell, cx)

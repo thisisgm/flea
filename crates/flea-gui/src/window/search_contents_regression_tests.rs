@@ -188,8 +188,20 @@ fn g12_vfix_local_opener_refuses_inoperable_and_missing_contents_identity(cx: &m
     edit(cx, handle, |shell, _, _| shell.opener[0].launch = record);
     LAUNCHED.with(|seen| seen.borrow_mut().clear());
     key(cx, handle, "enter", None);
-    key(cx, handle, "enter", None);
-    cx.run_until_parked();
+    let explicit_open = |cx: &mut TestAppContext| {
+        edit(cx, handle, |shell, window, cx| {
+            shell.dispatch(
+                crate::window::dispatch::Order::Action(crate::window::input::ActionEvent::bare(
+                    "open",
+                    flea::keys::Context::Listing,
+                )),
+                window,
+                cx,
+            );
+        });
+        cx.run_until_parked();
+    };
+    explicit_open(cx);
     LAUNCHED.with(|seen| {
         assert!(
             seen.borrow().is_empty(),
@@ -205,8 +217,7 @@ fn g12_vfix_local_opener_refuses_inoperable_and_missing_contents_identity(cx: &m
             .matches
             .clear();
     });
-    key(cx, handle, "enter", None);
-    cx.run_until_parked();
+    explicit_open(cx);
     LAUNCHED.with(|seen| {
         assert!(
             seen.borrow().is_empty(),
@@ -214,8 +225,12 @@ fn g12_vfix_local_opener_refuses_inoperable_and_missing_contents_identity(cx: &m
         )
     });
     reply(cx, handle, 0, &matches(6, 16, "raw\u{fffd}.txt", true));
-    key(cx, handle, "enter", None);
-    cx.run_until_parked();
+    edit(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.held.listing, 16);
+        assert!(host.search.owner.operable(16, host.pane.cursor));
+    });
+    explicit_open(cx);
     LAUNCHED.with(|seen| {
         let seen = seen.borrow();
         assert_eq!(
