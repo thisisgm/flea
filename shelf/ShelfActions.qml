@@ -230,6 +230,35 @@ Item {
     }
   }
 
+  // Copy to Clipboard: the files themselves, through Flea's own clipboard owner. It never takes the
+  // transfer's slot, so a copy to the clipboard still works while a move runs.
+  function clip(paths) {
+    if (paths.length === 0) {
+      return
+    }
+    if (clipper.running) {
+      root.refused("The clipboard is still taking the last copy.")
+      return
+    }
+    clipper.count = paths.length
+    clipper.command = [root.fleaCommand, "shelf", "clip"].concat(paths)
+    clipper.running = true
+  }
+
+  Process {
+    id: clipper
+    property int count: 0
+    running: false
+    stderr: StdioCollector { id: clipError; waitForEnd: true }
+    onExited: function (code) {
+      if (code === 0) {
+        root.landed(Run.clippedText(clipper.count))
+      } else {
+        root.refused(Run.clipFailedText(String(clipError.text).split("\n")[0]))
+      }
+    }
+  }
+
   // Paths: the card puts them on the clipboard, because a clipboard is a display and not a file.
   function yank(paths) {
     return paths.join("\n")

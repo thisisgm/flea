@@ -10,6 +10,7 @@ pub mod reply;
 pub mod watch;
 pub mod own;
 pub mod cli;
+pub mod content;
 
 #[cfg(test)]
 pub(crate) mod testutil;

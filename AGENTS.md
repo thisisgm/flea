@@ -1641,7 +1641,15 @@ direct use: it reads `<op> NUL <token> NUL <path> NUL ...` on stdin, offers ever
 prints `ready`, then points its stdio at /dev/null so the copy outlives the pipes of the process that
 started it (`setsid` gives it a session of its own). It exits `0` when a newer copy cancels it, and
 `2` for a payload it refuses (one `flea:` sentence on stderr, before `ready`) or a compositor
-connection that is lost.
+connection that is lost. A `+content` field between the token and the paths (no path starts with
+anything but `/`) asks the owner to offer one regular file's own bytes too, first, under its MIME type
+from `globs2` (`application/octet-stream` when no glob claims the name), so a chat app or a browser
+pastes the file rather than its path. `src/clip/content.rs` reads it before the compositor connection:
+only for a single path, only a regular file of at most 32 MiB, opened non-blocking, and never under a
+type the path list already offers (a `.txt` stays the path list as `text/plain`); anything else is
+offered by reference only. The flag rides the payload rather than argv because `end.rs`'s owner check
+matches the argv `[flea, --clip-own]` exactly. Only `flea shelf clip` sets it, through
+`own::spawn_owner_content`; the window's Ctrl+C never does.
 
 `--default` and `--default off` are matched the same way, in their own exact shape
 (`args.len() == 2`, and `args.len() == 3` with `args[2] == "off"`), dispatching to `main.rs`'s own
@@ -4256,6 +4264,8 @@ The controller extension to the language-mark port uses the same demand-built ma
 Before the default-ON ruling, the language-mark startup follow-up kept the filename map, 35-key list and demand-construction helper in `ui/js/LangMarks.js` (114 lines, 3,453 bytes). The unchanged SVG table and lookup move to `ui/js/LangMarkPaths.js` (47 lines, 108,011 bytes), imported in production only by the demand-created `ui/LangMark.qml`. The first-frame unit set remains 173 and its source byte pin is 1,643,188, adding 3,917 bytes over b8: the mapping unit plus 464 bytes in the existing row bindings. The startup gate explicitly refuses both language QML units and the path-data unit before its startup cut; the object census remains exactly 585 with zero language objects.
 
 The default-ON language-mark ruling keeps the existing glyph slot and ink and respects a saved false. The first real default-ON startup census measured 600 objects, three LangMark and three LangMarkLoader objects, against 585 with explicit OFF. The unchanged two-object headroom puts the default ceiling at 602 and keeps explicit OFF at 587; both exact baselines are asserted. The measured default unit set is 176, adding LangMark.qml, LangMarkLoader.qml and js/LangMarkPaths.js to the prior 173; current source-byte sums are 1755027 ON and 1644293 OFF. The saved-OFF profile retains the same unit names and cold language units. File ceilings are re-derived with wc -l: src/uischema.rs 595, src/uistore.rs 568 and tests/js/settings.js 398 for missing/invalid fallback, actual pre-GUI settle and saved-false checks. No artwork, key or geometry changes.
+
+The shelf's Copy to Clipboard moves three ceilings, each re-derived with `wc -l`: `shelf/Model.js` 701 to 702 for the `clipboard` mark, `shelf/Panel.qml` 443 to 448 for the one line that hands a row's `clipRequested` to `ShelfActions.clip` and the `clip` arm of `actOn`, and `shelf/ShelfCard.qml` 444 to 453 for the `clipRequested` signal with its comment, the `shift + c` branch ahead of the action letters (an unshifted `c` stays Copy to a folder), and the strip's `clipboard` action, named for its glyph, which leads the strip only while a row is chosen and carries `chord` so `actionFor` never maps its key to a letter. The hover button lives in `shelf/ShelfRow.qml` (232) and the process in `shelf/ShelfActions.qml` (267), both under the hard cap, and the reader is the new `src/clip/content.rs` (39) with `src/clip/content_tests.rs` (59).
 
 ## The key table is generated
 

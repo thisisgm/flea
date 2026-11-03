@@ -57,7 +57,8 @@ decides whether the card has opened on the way.
 
 The card is an Omarchy panel, hosted the way every other panel is: a click outside it, a focus loss,
 `esc` or another panel opening closes it. It is one list of three sections, the pile, `Pinned` and
-`Screenshots & recordings`, each a one-line row with its mark, its name and its size, and the six
+`Screenshots & recordings`, each a one-line row with its mark, its name, its size and, while the
+pointer is on it, a Copy to Clipboard button, and the six
 actions as icon buttons under the last separator, one of which, Send, is absent on a box with no
 Tailscale. A row whose file has a thumbnail in the
 freedesktop cache draws it in the mark slot instead of the kind mark; the cache is Flea's own, asked
@@ -106,6 +107,7 @@ The plugin never writes any of them: `flea shelf` does, and the plugin watches.
 | `t` | send them with Taildrop, on a box that has it |
 | `p` | pins the chosen rows, or the cursor row, and unpins a pinned one |
 | `y` | yank the paths to the clipboard |
+| `shift + c` | copy the files themselves to the clipboard: the chosen rows, or the cursor row when none are chosen |
 | `1` to `9` | in a flyout, take that destination or that peer |
 | `shift + x` | clears the shelf, and it becomes the last pile |
 | `z` | undo: puts the last move back where it came from, or brings the last cleared pile back, whichever happened later |
@@ -115,6 +117,14 @@ The plugin never writes any of them: `flea shelf` does, and the plugin watches.
 While an action runs, the card is its transfer surface and `esc` cancels it rather than closing the
 card. Every file action is chosen-or-whole: with rows chosen it takes those, with none chosen it takes
 the pile, and the card's own line says which while a subset is being chosen.
+
+Copy to Clipboard puts the files on the clipboard the way Flea's own copy does, so a file manager
+pastes copies of them. A single regular file of at most 32 MiB also offers its own bytes under its
+type, unconverted, so a chat app or a browser pastes the file (a PNG screenshot pastes as a picture);
+several files paste as files only where the target accepts files. The row's button and `shift + c`
+take the chosen rows, or that one row when none are chosen, the way a drag does, and never the whole
+pile. While any row is chosen, Copy to Clipboard also leads the action strip and copies
+those rows.
 
 An action's tooltip names its key, and only while Flea's keyboard-hints setting is on: the strip
 draws no legend of its own, and this table is the map.

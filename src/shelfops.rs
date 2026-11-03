@@ -164,6 +164,23 @@ pub fn paths(rest: &[String]) -> i32 {
     0
 }
 
+// flea shelf clip <path>...: the files themselves on the clipboard, the way Flea's own copy puts
+// them, so a file manager pastes copies; one regular file also offers its own bytes under its type,
+// so a chat app or a browser pastes the file rather than its path.
+pub fn clip(rest: &[String]) -> i32 {
+    if rest.is_empty() {
+        eprintln!("flea: shelf clip takes the paths");
+        return 2;
+    }
+    match crate::clip::own::spawn_owner_content(rest) {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("flea: {}", e);
+            2
+        }
+    }
+}
+
 // flea shelf send <peer> <path>...: Taildrop already ships in Flea, and a pile gathered from five
 // folders is the best payload it will ever get. Rule 4: a send leaves the pile exactly as it was,
 // because a send reports only by notification and nobody here knows whether it landed.

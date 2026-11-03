@@ -13,7 +13,11 @@ var WORDS = {
   sentOne: "Sent %1 item to %2",
   sentMany: "Sent %1 items to %2",
   moveFailed: "The items could not be moved.",
-  copyFailed: "The items could not be copied."
+  copyFailed: "The items could not be copied.",
+  clippedOne: "Copied %1 item to the clipboard",
+  clippedMany: "Copied %1 items to the clipboard",
+  clipFailed: "The items could not be copied to the clipboard.",
+  clipFailedWhy: "The items could not be copied to the clipboard: %1."
 }
 
 function idle() {
@@ -121,6 +125,21 @@ function copiedPathsText(count) {
     return ""
   }
   return "Copied " + Model.grouped(n) + (n === 1 ? " path" : " paths")
+}
+
+// The files themselves are on the clipboard, which is not the same claim as copiedPathsText's.
+function clippedText(count) {
+  var n = Number(count)
+  if (!isFinite(n) || n <= 0) {
+    return ""
+  }
+  return Model.fill(n === 1 ? WORDS.clippedOne : WORDS.clippedMany, Model.grouped(n))
+}
+
+// The owner's own reason when it gave one, its "flea: " prefix dropped, or the plain refusal.
+function clipFailedText(error) {
+  var why = String(error || "").trim().replace(/^flea: /, "")
+  return why.length > 0 ? Model.fill(WORDS.clipFailedWhy, why) : WORDS.clipFailed
 }
 
 // A send reports only by notification, so the shelf says what it handed over and keeps the pile.
