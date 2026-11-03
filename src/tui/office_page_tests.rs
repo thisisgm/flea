@@ -262,6 +262,21 @@ fn tui_office_r3_handoff_keeps_the_page_image() {
     if crate::backend::sandboxprobe::skipped() {
         return;
     }
+    const CHILD: &str = "FLEA_OFFICE_HANDOFF_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let output = std::process::Command::new("/usr/bin/setsid")
+            .arg("-w")
+            .arg(std::env::current_exe().unwrap())
+            .args(["--exact", "tui::office::page_tests::tui_office_r3_handoff_keeps_the_page_image", "--nocapture"])
+            .env(CHILD, "1")
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(output.status.success(), "{stdout}{}", String::from_utf8_lossy(&output.stderr));
+        assert!(stdout.contains("OFFICE_HANDOFF_ASSERTIONS_PASSED"), "the isolated assertion path did not run: {stdout}");
+        return;
+    }
     let root = Fixture::new();
     let source = root.path(DOCX);
     let converted = root.path("converted.pdf");
@@ -314,6 +329,7 @@ fn tui_office_r3_handoff_keeps_the_page_image() {
         !written.contains("a=d,d=I,i=42"),
         "the hand-off deleted the page image id 42: {written:?}"
     );
+    println!("OFFICE_HANDOFF_ASSERTIONS_PASSED");
     drop(graphics);
     wire::finish(wire, reader);
 }
