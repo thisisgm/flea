@@ -58371,7 +58371,7 @@
       "call_sites": [
         {
           "excerpt": "let text = self.locale.catalog.tr(\"feedback.autofit.list_required\");",
-          "line": 297,
+          "line": 298,
           "path": "crates/flea-gui/src/list/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -77166,7 +77166,7 @@
         },
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 352,
+          "line": 353,
           "path": "crates/flea-gui/src/list/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -121864,7 +121864,7 @@
     },
     {
       "excerpt": "let width = layout.cell(column).expect(\"a drawn handle\").width;",
-      "line": 134,
+      "line": 135,
       "literal": "a drawn handle",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/join.rs",
@@ -121873,7 +121873,7 @@
     },
     {
       "excerpt": "let host = self.panes[side].as_ref().expect(\"a mounted pane\");",
-      "line": 229,
+      "line": 230,
       "literal": "a mounted pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/join.rs",
@@ -247231,7 +247231,7 @@
     "crates/flea-gui/src/list/header_probe.rs": "2d17566724149bdc7e3de65adb6690e8644ad94f40722483a41e3b060477c36c",
     "crates/flea-gui/src/list/header_words.rs": "95173fb784e8986d24178848ec315aaf992ab72437b2db8c5a2574d1e409400d",
     "crates/flea-gui/src/list/hit.rs": "7563a4f3d31b78d3b35c7849da8488889b0432efc31ee4abe32f04000fc909b0",
-    "crates/flea-gui/src/list/join.rs": "0f7afcf6077b935e8113c003f1e39f5c67424dbd731a65a3b03b27fb22fc799b",
+    "crates/flea-gui/src/list/join.rs": "8428923f2ef82501a10fe1e2443d88ccc101563911460749fb208d5d74b2d94e",
     "crates/flea-gui/src/list/join_frame.rs": "79db5af8f8bc6fd6faf5810b7f18fe30f88efaf6e7900693c6d2d2480b950f28",
     "crates/flea-gui/src/list/lang.rs": "a16313192b2d81c698c8b1da2c999b8463793a58ad3e733b5e8dcdc390fc4758",
     "crates/flea-gui/src/list/loading.rs": "316d9d2ba88b2eb9dce771e862b0a85bdbe4231ee23c9582aa7fdfe19b2eec8c",
@@ -249105,9 +249105,9 @@
     "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
-  "source_ref": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_ref_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
+  "source_ref": "367da4d2612958f35c62bda8c44145d5f7767459",
+  "source_ref_sha": "367da4d2612958f35c62bda8c44145d5f7767459",
+  "source_sha": "367da4d2612958f35c62bda8c44145d5f7767459",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1294,
