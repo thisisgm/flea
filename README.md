@@ -101,7 +101,7 @@ move, or both to link. Drop files on Trash in the sidebar to trash them, and `z`
 Drag a file into a terminal to paste its path.
 
 <p align="center">
-  <img src="docs/images/shelf.png" width="49%" alt="The shelf card open over Flea, with thumbnails, pins and the last three screenshots">
+  <img src="docs/images/shelf.png" width="49%" alt="The shelf card open over Flea, with thumbnails, pins and the latest recordings">
   <img src="docs/images/iphone.png" width="49%" alt="An iPhone camera roll browsed over AFC, with HEIC thumbnails and a preview">
 </p>
 
