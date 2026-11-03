@@ -123,17 +123,17 @@ are recorded with the data.
 ### 100,000 files
 
 One folder of empty files on btrfs, three runs per app. Flea and Strata use List;
-the other apps use their installed icon views. Strata is stable 1.1.1.
+the other apps use their installed icon views.
 
-| File manager | First window | Settled | PSS | CPU |
-|---|---:|---:|---:|---:|
-| **Flea** | 319 ms | 0.75 s | 63.0 MiB | 0.53 s |
-| Dolphin | 791 ms | 5.25 s | 235.1 MiB | 8.18 s |
-| Nautilus | 931 ms | 20.33 s | 337.2 MiB | 21.67 s |
-| Nemo | 928 ms | 22.61 s | 479.3 MiB | 26.03 s |
-| PCManFM | 479 ms | 35.29 s | 124.4 MiB | 24.25 s |
-| Strata | 835 ms | 1.80 s | 159.1 MiB | 1.83 s |
-| Thunar | 601 ms | 19.71 s | 394.9 MiB | 19.82 s |
+| File manager | Version | First window | Settled | PSS | CPU |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **Flea** | 0.4.0 | 319 ms | 0.75 s | 63.0 MiB | 0.53 s |
+| Dolphin | 26.08.2 | 791 ms | 5.25 s | 235.1 MiB | 8.18 s |
+| Nautilus | 51.1.0 | 931 ms | 20.33 s | 337.2 MiB | 21.67 s |
+| Nemo | 6.6.4 | 928 ms | 22.61 s | 479.3 MiB | 26.03 s |
+| PCManFM | 1.4.0 | 479 ms | 35.29 s | 124.4 MiB | 24.25 s |
+| Strata | 1.1.1 | 835 ms | 1.80 s | 159.1 MiB | 1.83 s |
+| Thunar | 4.20.10 | 601 ms | 19.71 s | 394.9 MiB | 19.82 s |
 
 Flea's samples are fresh; unchanged rival measurements were reused after matching the
 machine, session, versions and fixture. First window means compositor registration;
@@ -143,12 +143,12 @@ settled means 500 ms of process-tree CPU quiet. Neither measures paint or input 
 
 Thirty measured runs per engine, plus two five-round noise batches.
 
-| Search engine | First result | Backend PSS after indexing |
-|---|---:|---:|
-| **Flea** | 166 ms | 75.7 MiB |
-| nd | 1617 ms | 145.6 MiB |
-| fff | 3172 ms | 221.2 MiB |
-| FSearch | 4938 ms | 157.0 MiB |
+| Search engine | Version | First result | Backend PSS after indexing |
+| --- | --- | ---: | ---: |
+| **Flea** | 0.4.0 | 166 ms | 75.7 MiB |
+| nd | 0.2.1 | 1617 ms | 145.6 MiB |
+| fff | 0.11.1 | 3172 ms | 221.2 MiB |
+| FSearch | 0.3.0 | 4938 ms | 157.0 MiB |
 
 The clock runs from backend `searchopen` to the first nonempty current-generation IPC rows.
 Process creation and initial listing are outside it. These are backend measurements, not
@@ -159,7 +159,7 @@ GUI-open timings. Flea's mixed typed-first quality still trails nd and fff;
 
 Three interleaved cold runs per build on the same minipc.
 
-| Metric | 0.4.0 candidate | 0.3.12 |
+| Metric | 0.4.0 | 0.3.12 |
 |---|---:|---:|
 | First window | 348 ms | 525 ms |
 | GUI + backend PSS | 58.6 MiB | 88.4 MiB |
