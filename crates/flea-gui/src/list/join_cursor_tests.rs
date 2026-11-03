@@ -83,3 +83,43 @@ fn u04_the_painted_cursor_follows_the_keyboard_across_panes_and_cards() {
     assert!(!painted(&mut cx, handle, 0).1);
     assert!(painted(&mut cx, handle, 1).1);
 }
+
+#[test]
+fn inactive_window_keeps_its_cursor_grey() {
+    let mut cx = bench::real_cx();
+    let source = open(&mut cx);
+    let receiver = open(&mut cx);
+    for handle in [source, receiver] {
+        handle
+            .update(&mut cx, |shell, window, cx| window.focus(&shell.focus, cx))
+            .unwrap();
+    }
+    for active in [source, receiver, source] {
+        active
+            .update(&mut cx, |_, window, _| window.activate_window())
+            .unwrap();
+        cx.run_until_parked();
+        for handle in [source, receiver] {
+            let expected = handle == active;
+            let (window_active, row_focused) = handle
+                .update(&mut cx, |shell, window, cx| {
+                    assert!(shell.focus.is_focused(window));
+                    (
+                        window.is_window_active(),
+                        shell.list_states(0, window, cx).focused,
+                    )
+                })
+                .unwrap();
+            assert_eq!(
+                window_active, expected,
+                "the real window activation changed"
+            );
+            assert_eq!(
+                row_focused, expected,
+                "an inactive window must not claim the keyboard cursor"
+            );
+            frame(&mut cx, handle);
+            assert_eq!(painted(&mut cx, handle, 0), (Some(0), expected));
+        }
+    }
+}
