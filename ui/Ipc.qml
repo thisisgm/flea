@@ -700,6 +700,14 @@ QtObject {
         function previewSliderCentre(): string { return root.previewReaders.previewSliderCentre() }
         // The same lookup as rowCentre, but for a rail row: the rail has no ListView, so Sidebar.railItemFor(i) walks its own Repeaters instead.
         function railRowCentre(i: int): string { return root.fleaWindow.centreOf(root.pane.sidebar.railItemFor(i)) }
+        // The FAVORITES heading's pin drop: the heading is not a rail row, so the drag suite asks for its target directly.
+        function railPinCentre(): string { return root.fleaWindow.centreOf(root.pane.sidebar.pinDropTarget) }
+        function railPinState(): string {
+            var pin = root.pane.sidebar.pinDropTarget
+            return JSON.stringify({ armed: pin.armed, pending: pin.pending, kind: pin.pendingKind })
+        }
+        // The menu's own removal path, so the drag suite can unpin without synthesising pointer menus.
+        function favouriteRemove(i: int): bool { return Favourites.remove(i) }
         function railLabel(i: int): string { var item = root.pane.sidebar.railItemFor(i); return item ? item.modelData.label : "" }
         function railLabels(): string { var out = []; for (var i = 0; i < root.pane.railCount; i++) { var item = root.pane.sidebar.railItemFor(i); out.push(item ? item.modelData.label : "") } return out.join("|") }
         // The sidebar pushes the row and the header right by its own width, so a pixel-crop test needs this rather than assuming x=0.

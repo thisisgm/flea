@@ -91,6 +91,8 @@ Item {
     signal trashRequested()
     // Folder drops share one receiver below the rows; Trash's own area answers above it.
     RailDrop { id: fileDrop; sidebar: root; viewport: scroller }
+    // The FAVORITES heading's own pin drop; ui/Ipc.qml answers the drag suite's ask for its centre and armed state.
+    readonly property alias pinDropTarget: favouritesPin
 
     // The saved place an Edit is rewriting, "" when none is; ui/js/RailMenu.js editPlace sets it.
     property string editingPlace: ""
@@ -543,11 +545,17 @@ Item {
                 delegate: RailTrashRow { rail: root }
             }
 
-            RailHeading {
-                id: favouritesHeading
-                visible: root.userFavouriteEntries.length > 0
-                text: "FAVORITES"
-                topExtra: placesHeading.visible ? Style.spacing.panelGap : 0
+            // Downstream (driveway-fm): the heading stays up as the pin drop's target, so one folder dragged
+            // onto FAVORITES pins even before the first favourite exists; drop-on-a-row keeps its move meaning.
+            PinHeadingDrop {
+                id: favouritesPin
+                sidebar: root
+                captionItem: favouritesHeading
+                RailHeading {
+                    id: favouritesHeading
+                    text: "FAVORITES"
+                    topExtra: placesHeading.visible ? Style.spacing.panelGap : 0
+                }
             }
             Repeater {
                 id: favRepeater

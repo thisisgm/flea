@@ -654,6 +654,7 @@ fn handle_line(
         }
         Request::Jump { id, ranking, favourites, recent } => super::jump::request(id, ranking, favourites, recent, ops.tx.clone()),
         Request::Devs { paths, id } => super::devsreq::request(paths, id, ops.tx.clone()),
+        Request::Kind { paths, id } => super::kindreq::request(paths, id, ops.tx.clone()),
         Request::Flash(req) => flashop::request(out, flash, req),
         Request::Quit => return Control::Quit,
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
@@ -739,6 +740,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::TrashBrowse { .. }
         | Request::Jump { .. }
         | Request::Devs { .. }
+        | Request::Kind { .. }
         | Request::Flash(_)
         | Request::ClipSet { .. }
         | Request::ClipGet
