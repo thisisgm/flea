@@ -1,6 +1,6 @@
 # Flea 0.4.0
 
-- Ship the GPUI interface and 50 language catalogs with 2,219 source strings.
+- Ship the GPUI interface and 50 language catalogs with 2,227 source strings.
 - Repair picker input and menu behavior (#324, @gjouret).
 - Decode Quick Look pictures at their displayed physical size and preserve animated GIF and WebP frames (#336, @gjouret).
 - Keep Kind pinned to the right edge during column divider drags (#349, @felixzsh).
