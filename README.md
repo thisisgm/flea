@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/release-0.3.0-themes.gif" alt="Flea 0.3.0 cycling through ten Omarchy themes, with the iPhone on the Devices rail and a photo in the preview column">
+  <img src="docs/images/release-0.4.0-themes.gif" alt="Flea 0.4.0 cycling through eight dark Omarchy themes at different transparencies, with a photo in the preview column">
 </p>
 
 - **Four views.** List, columns, grid and two panes, with tabs and natural sorting.
@@ -83,7 +83,7 @@ omarchy pkg drop flea
 
 <p align="center">
   <img src="docs/images/grid.png" width="49%" alt="Grid view with image and video thumbnails">
-  <img src="docs/images/list.png" width="49%" alt="Columns view with the preview column, file details and the iPhone on the Devices rail">
+  <img src="docs/images/list.png" width="49%" alt="Columns view with the preview column and file details">
 </p>
 
 **Space** opens Quick Look in any view. Page through a PDF, play media, zoom an image with `+` and
