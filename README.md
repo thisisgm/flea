@@ -116,96 +116,89 @@ background-alpha = 0.34
 
 ## Performance
 
-Measured on **12 October 2026**, using the **0.3.10** source tree.
-Cold caches, 3 runs per app, medians below. 7 GUI apps on the same machine.
+Measured on **2 November 2026**, using the **0.4.0 candidate at `8a7fd82f`**, before
+the final release cut. Values are **median [minimum, maximum]** from the recorded runs.
+Nine comparisons are complete; the four media comparisons below remain partial.
+[Data and provenance](docs/bench/0.4.0-20261102.md) preserve source and binary hashes,
+sample counts, versions, views and incomplete results.
 
-### Speed
+### Cold launch versus 0.3.12
 
-#### btrfs, 100000 visible entries, filesystem btrfs
+Three interleaved cold runs per build on the same Omarchy minipc, opening 100,000 empty
+files on btrfs. The 0.3.12 baseline is a frozen copy of its installed package.
 
-| File manager | Version | First window | Settled |
-|---|---|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 505 ms | 1.00 s |
-| Dolphin | 26.08.2-1 | 752 ms | 5.07 s |
-| Nautilus | 51.0.1-2 | 921 ms | 6.59 s |
-| Nemo | 6.6.4-1 | 857 ms | 21.78 s |
-| PCManFM | 1.4.0-2 | 448 ms | 33.54 s |
-| Strata | v1.0.0 | 588 ms | 1.84 s |
-| Thunar | 4.20.10-1 | 518 ms | 19.45 s |
+| Metric | Flea 0.4.0 candidate | Flea 0.3.12 |
+|---|---:|---:|
+| First window | 348 [343, 434] ms | 525 [522, 538] ms |
+| GUI + backend PSS | 58.63 [57.70, 58.69] MiB | 88.40 [88.27, 88.63] MiB |
+| Resident GPU memory | 83.45 [83.45, 83.45] MiB | 142.68 [142.68, 142.68] MiB |
 
-#### btrfs, 1700 visible entries, filesystem btrfs
+First window means Hyprland's window-open event. PSS and resident GPU memory are
+sampled three seconds after mapping. This clock does not measure first paint or input readiness.
 
-| File manager | Version | First window | Settled | Thumbnails |
-|---|---|---:|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 541 ms | 1.83 s | 43 |
-| Dolphin | 26.08.2-1 | 733 ms | 13.18 s | 500 |
-| Nautilus | 51.0.1-2 | 876 ms | 18.19 s | 641 |
-| Nemo | 6.6.4-1 | 842 ms | 1.71 s | not measured |
-| PCManFM | 1.4.0-2 | 416 ms | 114.99 s | 700 |
-| Strata | v1.0.0 | 656 ms | 3.26 s | not measured |
-| Thunar | 4.20.10-1 | 507 ms | 0.93 s | not measured |
+### A folder with 100,000 files
 
-Note: Nemo, Thunar: "unranked: nothing reached the thumbnail cache so its work was not measured".
-Note: Strata: "unranked: its watches saw 0 renders for 86 opened fixture files so neither is a count".
+The same empty-file btrfs fixture, three runs per arm. Flea's rows are fresh candidate
+measurements; unchanged rival measurements were reused after matching the machine,
+session, executable versions and fixture. Views are shown because they differ.
 
-#### btrfs, 2000 visible entries, filesystem btrfs
+| File manager / version / view | First window (ms) | Settled (ms) | PSS (MiB) | CPU (s) |
+|---|---:|---:|---:|---:|
+| **Flea 0.4.0 candidate / list** | 319 [318, 427] | 753 [751, 860] | 63.01 [62.87, 63.84] | 0.531 [0.512, 0.538] |
+| Dolphin 26.08.2-1 / icons | 791 [788, 795] | 5245 [5074, 5457] | 235.06 [220.27, 236.19] | 8.178 [8.066, 8.439] |
+| Nautilus 51.1-1 / icons | 931 [875, 1042] | 20328 [19782, 21076] | 337.22 [335.91, 338.76] | 21.672 [20.912, 21.908] |
+| Nemo 6.6.4-1 / icons | 928 [904, 954] | 22609 [22170, 22731] | 479.31 [479.00, 480.59] | 26.029 [25.380, 26.213] |
+| PCManFM 1.4.0-2 / icons | 479 [477, 524] | 35293 [33553, 35996] | 124.37 [123.85, 125.72] | 24.250 [23.402, 24.282] |
+| Strata 1.1.1 / columns | 766 [739, 817] | 34943 [34942, 34967] | 158.62 [156.50, 163.08] | 34.767 [34.724, 34.789] |
+| Strata 1.2.0-nightly.20261101 / columns | 765 [760, 769] | 36003 [35932, 39193] | 161.59 [155.73, 169.54] | 35.723 [35.613, 38.934] |
+| Strata 1.1.1 / list | 835 [814, 904] | 1802 [1785, 1832] | 159.12 [155.70, 161.72] | 1.826 [1.820, 1.894] |
+| Strata 1.2.0-nightly.20261101 / list | 790 [777, 805] | 1956 [1850, 2205] | 160.43 [159.28, 166.99] | 1.872 [1.821, 1.917] |
+| Thunar 4.20.10-1 / icons | 601 [555, 628] | 19707 [19642, 19769] | 394.88 [394.80, 395.12] | 19.820 [19.757, 20.043] |
 
-| File manager | Version | First window | Settled | Thumbnails |
-|---|---|---:|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 530 ms | 1.77 s | 43 |
-| Dolphin | 26.08.2-1 | 747 ms | 13.76 s | 642 |
-| Nautilus | 51.0.1-2 | 897 ms | 19.29 s | 641 |
-| Nemo | 6.6.4-1 | 862 ms | 3.40 s | 60 |
-| PCManFM | 1.4.0-2 | 420 ms | Timed out | 690 |
-| Strata | v1.0.0 | 599 ms | 3.45 s | not measured |
-| Thunar | 4.20.10-1 | 513 ms | 1.00 s | not measured |
+Flea ranks first among the seven tested families for these four metrics on this fixture.
+First window records compositor registration. Settled means 500 ms of process-tree CPU
+quiet; neither establishes that every row was painted or that input was ready. CPU includes helpers.
+PSS depends on library sharing and the session's other applications.
 
-Note: Strata: "unranked: its watches saw 0 renders for 86 opened fixture files so neither is a count".
-Note: Thunar: "unranked: nothing reached the thumbnail cache so its work was not measured".
+### Search across one million files
 
-### Memory and CPU
+Thirty measured samples per engine, plus two five-round noise batches, on a separate
+Omarchy machine. The clock starts at backend `searchopen` and stops at the first nonempty
+current-generation IPC rows. Process creation and the initial folder listing are outside
+the clock. Memory is backend PSS after indexing, before the query.
 
-#### btrfs, 100000 visible entries, filesystem btrfs
+| Engine / version | First result (ms) | Indexed backend PSS (MiB) |
+|---|---:|---:|
+| **Flea 0.4.0 candidate** | 165.87 [161.46, 169.59] | 75.65 [74.11, 76.92] |
+| nd v0.2.1 | 1617.36 [1602.04, 1733.15] | 145.65 [145.06, 155.93] |
+| fff 0.11.1-nightly, g7353971 | 3172.12 [3142.71, 3276.40] | 221.24 [174.49, 225.54] |
+| FSearch c20e6b1 | 4937.63 [4879.67, 5045.53] | 157.01 [156.96, 157.11] |
 
-| File manager | Version | Window PSS | CPU |
-|---|---|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 80.7 MiB | 0.75 s |
-| Dolphin | 26.08.2-1 | 202.6 MiB | 7.67 s |
-| Nautilus | 51.0.1-2 | 321.4 MiB | 8.27 s |
-| Nemo | 6.6.4-1 | 472.8 MiB | 25.00 s |
-| PCManFM | 1.4.0-2 | 123.0 MiB | 23.05 s |
-| Strata | v1.0.0 | 130.6 MiB | 1.53 s |
-| Thunar | 4.20.10-1 | 358.5 MiB | 19.33 s |
+These are backend engine measurements, not GUI-open or paint timings. Search quality is
+separate: Flea and nd placed all five final targets first, while Flea's mixed typed-first
+score of 39.39% trails nd's 48.48% and fff's 56.57%. Full-trace failures for fff and FSearch
+remain in the quality record; the table ranks only the two eligible engine metrics.
 
-#### btrfs, 1700 visible entries, filesystem btrfs
+### Media: incomplete comparison
 
-| File manager | Version | Window PSS | CPU |
-|---|---|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 93.6 MiB | 5.04 s |
-| Dolphin | 26.08.2-1 | 99.3 MiB | 64.30 s |
-| Nautilus | 51.0.1-2 | 176.4 MiB | 114.32 s |
-| Nemo | 6.6.4-1 | 45.1 MiB | 1.66 s |
-| PCManFM | 1.4.0-2 | 42.0 MiB | 171.36 s |
-| Strata | v1.0.0 | 86.3 MiB | 7.61 s |
-| Thunar | 4.20.10-1 | 34.2 MiB | 0.90 s |
+The 2,000-entry btrfs fixture contains 1,800 thumbnailable media files and 200 text controls.
+Flea's completed values below have three valid samples each.
 
-#### btrfs, 2000 visible entries, filesystem btrfs
+| Flea 0.4.0 candidate | Median [minimum, maximum] |
+|---|---:|
+| First window | 326 [320, 419] ms |
+| Settled | 1544 [1517, 1679] ms |
+| CPU | 4.475 [4.437, 4.693] s |
 
-| File manager | Version | Window PSS | CPU |
-|---|---|---:|---:|
-| **Flea** | 0.3.10, source 5816ab88 | 93.5 MiB | 4.82 s |
-| Dolphin | 26.08.2-1 | 102.8 MiB | 68.07 s |
-| Nautilus | 51.0.1-2 | 176.4 MiB | 120.73 s |
-| Nemo | 6.6.4-1 | 54.7 MiB | 9.38 s |
-| PCManFM | 1.4.0-2 | 39.6 MiB | 154.08 s |
-| Strata | v1.0.0 | 87.5 MiB | 7.32 s |
-| Thunar | 4.20.10-1 | 35.2 MiB | 0.95 s |
+Flea's memory result is partial: two of three samples qualified, spanning
+160.30 to 168.51 MiB.
+Those observed values are higher than Thunar's 125.41 to 126.29 MiB and Nemo's
+100.14 to 106.53 MiB. PCManFM did not reach an eligible endpoint within 120 seconds;
+Strata's render observer could not establish valid work counts; Nautilus and Dolphin
+lacked helper PSS. These gaps prevent a complete media ranking.
 
-"First window" records compositor registration. "Settled" means 500 ms without process-tree CPU activity; neither measures input readiness.
-PSS covers the window process, excluding helpers and GPU memory. CPU is everything the app started, counted from a control group of its own, so sandboxed thumbnailers are in it. Shared libraries affect PSS. Results describe this machine and workload.
-Settled time and CPU are not ranked against an app whose thumbnail work was not measured; the notes under each speed table name those apps.
-
-[Method](docs/benchmarks.md) · [Local CSV](docs/bench/local-0.3.10-20261012.csv) · [Local manifest](docs/bench/local-0.3.10-20261012.manifest.md) · [Matched CSV](docs/bench/matched-0.3.10-20261012.csv) · [Matched manifest](docs/bench/matched-0.3.10-20261012.manifest.md) · [Media CSV](docs/bench/media-0.3.10-20261012.csv) · [Media manifest](docs/bench/media-0.3.10-20261012.manifest.md)
+[Method](docs/benchmarks.md) · [November data and limitations](docs/bench/0.4.0-20261102.md) ·
+[Historical October measurements](docs/bench/local-0.3.10-20261012.manifest.md)
 
 ## Keyboard
 
