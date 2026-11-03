@@ -183,7 +183,8 @@ fn trash_font_window_accepts_a_350ms_fontconfig_answer_without_restart() {
                 shell
             }),
         });
-        let until = Instant::now() + Duration::from_secs(5);
+        // The first real draw pays GPUI's system font scan, seconds on a loaded runner; a match ends the wait early.
+        let until = Instant::now() + Duration::from_secs(20);
         let mut family = first.clone();
         while Instant::now() < until {
             cx.executor().advance_clock(Duration::from_millis(20));
