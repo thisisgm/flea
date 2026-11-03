@@ -342,30 +342,26 @@ fn paint_card(
     let (top, bottom) = metrics.fades(&card.entries, card.content_y, card.view_h);
     // Fades cross the padding and the cursor clearance, inside the one-pixel frame.
     let fade_h = metrics.pad + metrics.clear - 1;
-    let fade = |at: Pixels, angle: f32| {
-        let bounds = Bounds::new(
-            point(inner.origin.x, at),
-            size(inner.size.width, px(fade_h as f32)),
-        );
-        fill(
-            bounds,
+    let fade = |angle: f32| {
+        let extent = (fade_h as f32 / f32::from(inner.size.height).max(1.)).clamp(0., 1.);
+        let mut quad = fill(
+            inner,
             linear_gradient(
                 angle,
                 linear_color_stop(ink.surface, 0.),
-                linear_color_stop(ink.surface.opacity(0.), 1.),
+                linear_color_stop(ink.surface.opacity(0.), extent),
             ),
-        )
+        );
+        quad.corner_radii = gpui::Corners::all((radius - px(1.)).max(px(0.)));
+        quad
     };
     // Equal-order quads precede glyph sprites in GPUI; fades need their own later order.
     window.paint_layer(inner, |window| {
         if top {
-            window.paint_quad(fade(inner.origin.y, 180.));
+            window.paint_quad(fade(180.));
         }
         if bottom {
-            window.paint_quad(fade(
-                inner.origin.y + inner.size.height - px(fade_h as f32),
-                0.,
-            ));
+            window.paint_quad(fade(0.));
         }
     });
 }

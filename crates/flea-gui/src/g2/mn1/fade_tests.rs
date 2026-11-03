@@ -216,6 +216,20 @@ fn menu_edge_fade_attenuates_actual_glyphs_and_marks() {
                     if !required {
                         continue;
                     }
+                    if radius == 8. {
+                        let y = if top {
+                            frame.y + 1.
+                        } else {
+                            frame.y + frame.h - 2.
+                        } as u32;
+                        for x in [frame.x + 1., frame.x + frame.w - 2.] {
+                            if image.get_pixel(x as u32, y) != image.get_pixel(0, 0) {
+                                failures.push(format!(
+                                    "{name} top={top} frame corner painted at {x},{y}"
+                                ));
+                            }
+                        }
+                    }
                     for (part, x) in [("label", 43..77), ("mark", 15..33)] {
                         let (count, ratio) = edge_contrast(&image, frame, scroll, view, top, x);
                         println!("FADE_METRIC {name} top={top} part={part} pixels={count} contrast_ratio={ratio:.4}");
