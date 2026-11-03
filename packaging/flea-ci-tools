@@ -45,7 +45,7 @@ case "$mode" in
       cd "$build/source"
       # Keep the unused RAW delegate off, matching the Noble CI dependency set.
       ./configure --prefix="$prefix" --disable-shared --disable-openmp --disable-docs \
-        --without-perl --without-x --without-magick-plus-plus --without-raw --with-png=yes --enable-legacy-support
+        --without-perl --without-x --without-magick-plus-plus --without-raw --with-png=yes --with-jpeg=yes --with-tiff=yes --with-webp=yes --enable-legacy-support
       make -j"$build_jobs"
       make install
     )
@@ -60,6 +60,13 @@ case "$mode" in
       # Sample: Version: ImageMagick 7.1.1-43 Q16 x86_64 22550 https://imagemagick.org
       "$prefix/bin/$command" -version | tee "$build/$command-version.txt" \
         | grep -F "Version: ImageMagick $version "
+    done
+    # Sample: Delegates (built-in): fontconfig freetype jpeg png tiff webp zlib
+    native_delegates=$(sed -n 's/^Delegates (built-in): */ /p' "$build/magick-version.txt")
+    for codec in jpeg tiff webp; do
+      case " $native_delegates " in *" $codec "*) ;; *)
+        echo "flea-ci-tools: required native ImageMagick codec $codec missing: $native_delegates" >&2; exit 1 ;;
+      esac
     done
     # Unqualified montage needs a scalable default even when the ambient fallback is a bitmap font.
     font_config="$prefix/etc/ImageMagick-7"
@@ -86,6 +93,18 @@ EOF
     "$prefix/bin/magick" "$build/joined.png" -depth 8 "rgb:$build/actual.rgb"
     printf '\377\000\000\377\000\000\000\000\377\000\000\377' > "$build/expected.rgb"
     cmp "$build/expected.rgb" "$build/actual.rgb"
+    for codec in JPEG TIFF WEBP; do
+      encoded="$build/native-$codec"
+      "$prefix/bin/magick" "$build/joined.png" -define webp:lossless=true "$codec:$encoded"
+      actual=$("$prefix/bin/magick" "$encoded" -format '%m %w %h' info:)
+      [ "$actual" = "$codec $combined_size" ] || {
+        echo "flea-ci-tools: $codec roundtrip was $actual, expected $codec $combined_size" >&2; exit 1; }
+      if [ "$codec" != JPEG ]; then
+        "$prefix/bin/magick" "$encoded" -depth 8 "rgb:$build/$codec.rgb"
+        cmp "$build/expected.rgb" "$build/$codec.rgb"
+      fi
+    done
+    printf 'CI_IMAGEMAGICK_NATIVE_CODECS_PASS jpeg tiff webp\n'
     printf '%s\n%s\n%s\n' "$version" "$commit" "$archive_sha256" > "$prefix/.flea-ci-source"
     printf 'CI_IMAGEMAGICK_NATIVE_PNG_PASS %s %s %s\n' "$machine" "$prefix" "$build"
     ;;

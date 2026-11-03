@@ -16,7 +16,7 @@ case "${1:-}" in
       build-essential ca-certificates curl fontconfig git pkg-config \
       libfontconfig1-dev libfreetype6-dev libwayland-dev libxcb1-dev \
       libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libegl1-mesa-dev libvulkan-dev \
-      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd libpng-dev poppler-utils
+      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd libpng-dev libjpeg-dev libtiff-dev libwebp-dev poppler-utils
     "$here/flea-ci-tools" fonts "$HOME/.local/share/fonts/flea-ci"
     "$here/flea-ci-tools" imagemagick "$ci_tools"
     ;;
