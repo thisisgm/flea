@@ -280,7 +280,7 @@ fn pv2_code_plain_text_draws_no_gutter(cx: &mut TestAppContext) {
         (v.cache.shaped(), v.text_left(advance), v.metrics.inset)
     });
     assert!(numbers > 0, "the lines were shaped");
-    assert_eq!(left, inset + 16., "plain text keeps the two-cell lead");
+    assert_eq!(left, inset, "plain text starts at the frame's inset");
     let shaped_numbers = with(cx, view, |v| {
         (0..v.lines.shown())
             .filter(|line| v.has_number(*line))
