@@ -204,6 +204,10 @@ fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &m
         cx.update(|window, cx| {
             let code = code.read(cx);
             assert_eq!(code.wrap, wrap, "w changes the Quick Look wrapping mode");
+            assert_eq!(
+                code.metrics.inset, 15.,
+                "the numbered code pad starts inside the card frame, wrap={wrap}"
+            );
             if wrap {
                 assert!(code.rows_of(0) > 1, "the long source line visibly wraps");
             } else {

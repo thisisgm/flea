@@ -120,9 +120,9 @@ impl Look {
                 },
             },
             pv2::code::Metrics {
-                // ql-text keeps the plain lines at the card's text column; ql-code's gutter starts at the pad.
+                // Both text columns start inside the one-pixel card frame.
                 inset: if numbered {
-                    card::PAD
+                    card::PAD + 1.
                 } else {
                     card::TEXT_LEFT + 1.
                 },
