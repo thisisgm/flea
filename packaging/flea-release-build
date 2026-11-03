@@ -4,6 +4,8 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(dirname "$here")
 cd "$repo"
+ci_tools="$repo/.superpowers/ci-tools/imagemagick"
+export PATH="$ci_tools/bin:$PATH"
 
 case "${1:-}" in
   install-deps)
@@ -14,7 +16,9 @@ case "${1:-}" in
       build-essential ca-certificates curl fontconfig git pkg-config \
       libfontconfig1-dev libfreetype6-dev libwayland-dev libxcb1-dev \
       libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libegl1-mesa-dev libvulkan-dev \
-      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd
+      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd libpng-dev poppler-utils
+    "$here/flea-ci-tools" fonts "$HOME/.local/share/fonts/flea-ci"
+    "$here/flea-ci-tools" imagemagick "$ci_tools"
     ;;
   # Tests run the debug profile: GPUI compiles its debug selectors out of release builds, which the GUI tests query.
   test) cargo test --locked --workspace ;;
