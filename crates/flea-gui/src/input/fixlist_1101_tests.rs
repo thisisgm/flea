@@ -47,7 +47,6 @@ fn mounted<'a>(
         window.focus(&shell.focus, cx);
         shell
     });
-    crate::list::bench::activate_visual(cx);
     cx.update(|_, cx| cx.set_reduce_motion(true));
     cx.simulate_resize(size(px(1100.), px(600.)));
     cx.run_until_parked();

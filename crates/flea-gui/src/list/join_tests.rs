@@ -32,7 +32,7 @@ mod parity;
 
 fn open(cx: &mut TestAppContext) -> WindowHandle<Shell> {
     let (backend, _receive) = Backend::test_channel();
-    let handle = cx.open_window(size(px(1100.), px(700.)), |_, cx| {
+    cx.open_window(size(px(1100.), px(700.)), |_, cx| {
         let mut shell = shell_with(backend, cx);
         let host = shell.panes[0].as_mut().unwrap();
         host.backend = None;
@@ -47,9 +47,7 @@ fn open(cx: &mut TestAppContext) -> WindowHandle<Shell> {
         });
         host.list.borrow_mut().typeface = bench::bench_typeface();
         shell
-    });
-    bench::activate_window(cx, handle);
-    handle
+    })
 }
 
 fn frame(cx: &mut TestAppContext, handle: WindowHandle<Shell>) {

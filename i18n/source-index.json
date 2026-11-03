@@ -58371,7 +58371,7 @@
       "call_sites": [
         {
           "excerpt": "let text = self.locale.catalog.tr(\"feedback.autofit.list_required\");",
-          "line": 298,
+          "line": 297,
           "path": "crates/flea-gui/src/list/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -77166,7 +77166,7 @@
         },
         {
           "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
-          "line": 353,
+          "line": 352,
           "path": "crates/flea-gui/src/list/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -121720,7 +121720,7 @@
     },
     {
       "excerpt": "font: font(\"JetBrains Mono\"),",
-      "line": 130,
+      "line": 118,
       "literal": "JetBrains Mono",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -121729,7 +121729,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 184,
+      "line": 172,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -121738,7 +121738,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 189,
+      "line": 177,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -121864,7 +121864,7 @@
     },
     {
       "excerpt": "let width = layout.cell(column).expect(\"a drawn handle\").width;",
-      "line": 135,
+      "line": 134,
       "literal": "a drawn handle",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/join.rs",
@@ -121873,7 +121873,7 @@
     },
     {
       "excerpt": "let host = self.panes[side].as_ref().expect(\"a mounted pane\");",
-      "line": 230,
+      "line": 229,
       "literal": "a mounted pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/join.rs",
@@ -247217,7 +247217,7 @@
     "crates/flea-gui/src/ipc/window_feedback.rs": "fc79d233e6ae817cec2f09e493ac53cc8a6742c24586d6c122320ebd4a67d869",
     "crates/flea-gui/src/lib.rs": "a65dba7381663d32859a84dae192308b9c573db96363317c8898d79d01838175",
     "crates/flea-gui/src/list.rs": "01f1145e82bd15761d2317e4b2a7bcd018a4b4472dbd6748b631cb2d0ced91cf",
-    "crates/flea-gui/src/list/bench.rs": "e19b7e52f36679c110deb841cc2b3585eb3fa79219e8cc16b815d61233d6cb02",
+    "crates/flea-gui/src/list/bench.rs": "4b01aaada6e926743d581756304f522971093e3ee22dc0953a8c552739aeab7c",
     "crates/flea-gui/src/list/columns.rs": "77a28f1288ea8273f3648f7c99dc141d17426bd3171f5e4fcab8e7431e1937b9",
     "crates/flea-gui/src/list/element.rs": "333889cb05f483ed6171f7652293b5da4543ca9ce17b07c92bc0dfe2a5b6cf64",
     "crates/flea-gui/src/list/gh315_backend_fixture.rs": "7490e6b67f3bfdeb33886cff59bb9978fcc927c4d59bc2ae401210d89a3b4835",
@@ -247231,7 +247231,7 @@
     "crates/flea-gui/src/list/header_probe.rs": "2d17566724149bdc7e3de65adb6690e8644ad94f40722483a41e3b060477c36c",
     "crates/flea-gui/src/list/header_words.rs": "95173fb784e8986d24178848ec315aaf992ab72437b2db8c5a2574d1e409400d",
     "crates/flea-gui/src/list/hit.rs": "7563a4f3d31b78d3b35c7849da8488889b0432efc31ee4abe32f04000fc909b0",
-    "crates/flea-gui/src/list/join.rs": "8428923f2ef82501a10fe1e2443d88ccc101563911460749fb208d5d74b2d94e",
+    "crates/flea-gui/src/list/join.rs": "0f7afcf6077b935e8113c003f1e39f5c67424dbd731a65a3b03b27fb22fc799b",
     "crates/flea-gui/src/list/join_frame.rs": "79db5af8f8bc6fd6faf5810b7f18fe30f88efaf6e7900693c6d2d2480b950f28",
     "crates/flea-gui/src/list/lang.rs": "a16313192b2d81c698c8b1da2c999b8463793a58ad3e733b5e8dcdc390fc4758",
     "crates/flea-gui/src/list/loading.rs": "316d9d2ba88b2eb9dce771e862b0a85bdbe4231ee23c9582aa7fdfe19b2eec8c",
@@ -249105,9 +249105,9 @@
     "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
-  "source_ref": "62df44bad1899e3d2da999429d13788495cb7282",
-  "source_ref_sha": "62df44bad1899e3d2da999429d13788495cb7282",
-  "source_sha": "62df44bad1899e3d2da999429d13788495cb7282",
+  "source_ref": "390c15976361cff2820e6260bc30baabf2ab649a",
+  "source_ref_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
+  "source_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1294,

@@ -13,11 +13,9 @@ use gpui::{AppContext, Context, TestAppContext, Window, WindowBackgroundAppearan
 
 pub(super) fn open(cx: &mut TestAppContext) -> WindowHandle<Root> {
     let (backend, _receive) = Backend::test_channel();
-    let handle = cx.add_window(|_, cx| Root {
+    cx.add_window(|_, cx| Root {
         shell: cx.new(|cx| shell_with(backend, cx)),
-    });
-    crate::list::bench::activate_window(cx, handle);
-    handle
+    })
 }
 
 pub(super) fn update<R>(

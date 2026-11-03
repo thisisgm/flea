@@ -81,8 +81,7 @@ impl Shell {
             drop_target: cue.as_ref().map(|cue| cue.0),
             drop_label: cue.map(|cue| cue.1),
             // v0.3.12 Row.qml reads only the current pane, so a showing Jobs card keeps the focused look (EY-522).
-            focused: window.is_window_active()
-                && side == self.focus_side
+            focused: side == self.focus_side
                 && self.focus.is_focused(window)
                 && !self.wheel_blocked(cx),
             other_pane: self.view == View::Dual && side != self.focus_side,

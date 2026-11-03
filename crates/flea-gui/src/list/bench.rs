@@ -113,18 +113,6 @@ pub fn real_cx() -> TestAppContext {
     TestAppContext::build_with_text_system(TestDispatcher::new(0), None, text)
 }
 
-/// Activate a newly mounted test window through the real platform callbacks.
-pub fn activate_window(cx: &mut TestAppContext, handle: impl Into<gpui::AnyWindowHandle>) {
-    cx.update_window(handle.into(), |_, window, _| window.activate_window())
-        .unwrap();
-    cx.run_until_parked();
-}
-
-pub fn activate_visual(cx: &mut gpui::VisualTestContext) {
-    let handle = gpui::VisualContext::window_handle(cx);
-    activate_window(&mut cx.cx, handle);
-}
-
 pub fn bench_typeface() -> Typeface {
     Typeface {
         font: font("JetBrains Mono"),
