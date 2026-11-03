@@ -1,15 +1,8 @@
-// The canvas trim of ui/js/FigureWorker.mjs over real library output and over hand-built shapes: never a broken viewBox, never a label cut.
+// The post-pass over real library output and hand-built shapes: never a broken viewBox, never a cut label, one text per label line.
 import { postMermaid } from '../ui/js/FigureWorker.mjs';
+import { mermaidToSvg } from '../ui/vendor/mermaid.mjs';
+import { actors, nodes, parse, texts } from './mermaid-corpus.mjs';
 
-globalThis.global = globalThis;
-if (!globalThis.setTimeout) {
-    const os = await import('qjs:os');
-    globalThis.setTimeout = os.setTimeout;
-    globalThis.clearTimeout = os.clearTimeout;
-}
-const { mermaidToSvg } = await import('../ui/vendor/mermaid.mjs');
-
-const theme = { bg: '#101315', fg: '#c0caf5', accent: '#7aa2f7', font: 'sans-serif', bodyPx: 14 };
 // A full-width or other non-ASCII glyph advances one em, the widest a label's glyph goes.
 const FULL_WIDTH_ADVANCE_EM = 1;
 // Per-glyph maximum advance in em over DejaVu Sans, Liberation Sans and Noto Sans, measured with PIL at 1000 px.
@@ -27,12 +20,17 @@ const MAX_ADVANCE_EM = {
     '{': 0.636, '|': 0.551, '}': 0.636, '~': 0.838, ' ': 0.318
 };
 const ASCII_LIMIT = 0x7f;
+const TABLE_FIRST = 32;
+const TABLE_LENGTH = 95;
+const THOUSAND = 1000;
+// The widest face of the three, as the advance table a pane hands the helper, so the library sizes every label at its measured maximum.
+const widest = Array.from({ length: TABLE_LENGTH }, (unused, i) => Math.round(MAX_ADVANCE_EM[String.fromCharCode(TABLE_FIRST + i)] * THOUSAND));
+const theme = { bg: '#101315', fg: '#c0caf5', accent: '#7aa2f7', font: 'sans-serif', bodyPx: 14, advances: widest, boldAdvances: widest };
 const LABEL_FONT_PX = 13;
-// A centred label of twelve narrow glyphs at 13 px reaches 125 less about 50, so about 75, inside these bounds with the stroke pad.
-const NARROW_FLOOR = 70;
-// The canvas margin and stroke pad a trimmed canvas keeps above a glyph's top, so an untrimmed canvas at 0 fails.
-const DY_SLACK = 2;
-const NARROW_CEILING = 76;
+// v0.3.12's padding beside a box node's label at the body 13 layout, in px: the box is 41.95 wider than its label.
+const NODE_PAD = 20.975;
+// How far a narrow node may stand from its label's measured width and padding, in px: the layout rounds to a hundredth.
+const NARROW_SLACK = 0.05;
 const failures = [];
 let checks = 0;
 function check(ok, why) {
@@ -50,147 +48,130 @@ function sound(svg, why) {
     check(view.length === 4 && view.every(Number.isFinite) && view[2] > 0 && view[3] > 0
         && Number.isFinite(rootNumber(svg, 'width')) && rootNumber(svg, 'width') > 0, why + ': the canvas stays finite, got [' + view.join(' ') + ']');
 }
-// Sample input: "iW" advances 1.267 em, the measured maxima 0.278 and 0.989; "&lt;" is one glyph and a non-ASCII glyph advances one em.
-function glyphEm(content) {
-    const text = content.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+// Sample input: "iW" advances 1.267 em, the measured maxima 0.278 and 0.989; a non-ASCII glyph advances one em.
+function glyphEm(text) {
     return Array.from(text).reduce((em, glyph) => em + (glyph.codePointAt(0) > ASCII_LIMIT ? FULL_WIDTH_ADVANCE_EM : MAX_ADVANCE_EM[glyph]), 0);
 }
-// Sample input: <text x="70" font-size="13" text-anchor="middle"><tspan x="70">ab</tspan></text> reaches 70 less the glyphs' measured em, halved; a tspan inherits both from its text.
-function reachLeft(svg) {
-    let left = Infinity;
-    let parent = '';
-    for (const tag of svg.match(/<\/?(?:text|tspan)\b[^<>]*>[^<]*/g) || []) {
-        if (tag.startsWith('</')) {
-            if (tag.startsWith('</text')) parent = '';
-            continue;
-        }
-        const head = tag.match(/^<(?:text|tspan)\b[^<>]*>/)[0];
-        const content = tag.slice(head.length);
-        const isText = head.startsWith('<text');
-        if (isText) parent = head;
-        const x = head.match(/\sx="([^"]*)"/);
-        if (!x || content.trim() === '') continue;
-        const anchor = (head.match(/text-anchor="([^"]*)"/) || parent.match(/text-anchor="([^"]*)"/) || [0, 'start'])[1];
-        const share = anchor === 'middle' ? 0.5 : anchor === 'end' ? 1 : 0;
-        const size = Number((head.match(/font-size="([^"]*)"/) || parent.match(/font-size="([^"]*)"/) || [0, LABEL_FONT_PX])[1]);
-        left = Math.min(left, Number(x[1]) - share * glyphEm(content) * size);
-    }
-    return left;
+// Every label's [left, right] at the measured maximum advances, by its anchor and inherited size and offset.
+// Sample input: <g transform="translate(70,0)" font-size="13"><text text-anchor="middle">ab</text></g> reaches 70 less half of ab's 1.248 em at 13 px.
+function reaches(svg) {
+    return texts(parse(svg)).filter((t) => t.string.trim() !== '').map((t) => {
+        const w = glyphEm(t.string) * t.size;
+        const share = t.anchor === 'middle' ? 0.5 : t.anchor === 'end' ? 1 : 0;
+        return { string: t.string, left: t.x - share * w, right: t.x - share * w + w };
+    });
+}
+// No label reaches past either side of the canvas the library sized.
+function uncut(svg, why) {
+    const [x, , width] = box(svg);
+    const found = reaches(svg);
+    check(found.length > 0, why + ': the figure draws a label');
+    for (const r of found)
+        check(r.left >= x && r.right <= x + width, why + ': "' + r.string + '" stays inside the canvas, ' + r.left.toFixed(1) + ' to ' + r.right.toFixed(1) + ' of ' + x + ' to ' + (x + width));
+}
+// The library's own canvas, as the post-pass must keep it.
+function rawBox(source) {
+    return box(mermaidToSvg(source, theme));
 }
 function real(source) {
-    return postMermaid(mermaidToSvg(source, theme.bg, theme.fg, { font: theme.font, padding: 1 }), theme);
+    const out = postMermaid(mermaidToSvg(source, theme), theme);
+    check(box(out).join(' ') === rawBox(source).join(' '), source.split('\n')[0] + ' figure: the post-pass keeps the library canvas, got [' + box(out).join(' ') + ']');
+    return out;
 }
 const canvas = (inner) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100">' + inner + '</svg>';
 const frame = '<rect x="100" y="10" width="50" height="40" stroke="#fff" stroke-width="1"/>';
 
-// A text the left scan cannot read must leave the library's canvas alone, never an Infinity viewBox.
+// A text the post-pass cannot read must leave the canvas alone, never an Infinity viewBox.
 for (const [name, text] of [
     ['a self-closing text', '<text x="50" y="40" font-size="13"/>'],
     ['a text holding a title', '<text x="50" y="40" font-size="13"><title>a</title>hi</text>'],
-    ['a text whose tspan sets no x after the first line', '<text x="50" y="40" font-size="13"><tspan>a</tspan><tspan dy="14">b</tspan></text>'],
+    ['a text whose tspan sets no x after the first line', '<text x="50" y="40" font-size="13"><tspan>a</tspan><tspan y="54">b</tspan></text>'],
     ['a text taking its anchor from a style', '<text x="50" y="40" font-size="13" style="text-anchor: middle">hi</text>']
 ]) {
     const out = postMermaid(canvas(text), theme);
     sound(out, name);
-    check(box(out)[0] === 0 && box(out)[2] === 300, name + ': the library canvas is kept, got [' + box(out).join(' ') + ']');
+    check(box(out).join(' ') === '0 0 300 100', name + ': the canvas is kept, got [' + box(out).join(' ') + ']');
 }
-// With a rect beside it the bounds are finite, so only the count of texts the scan read keeps the canvas.
 for (const [name, text] of [
     ['a self-closing text beside a rect', '<text x="50" y="40" font-size="13"/>'],
     ['a text holding a title beside a rect', '<text x="50" y="40" font-size="13"><title>a</title>hi</text>']
 ]) {
     const out = postMermaid(canvas(frame + text), theme);
     sound(out, name);
-    check(box(out)[0] === 0 && box(out)[2] === 300, name + ': the library canvas is kept, got [' + box(out).join(' ') + ']');
+    check(box(out).join(' ') === '0 0 300 100', name + ': the canvas is kept, got [' + box(out).join(' ') + ']');
 }
 
-// A text with tspan children bounds the canvas by each tspan's own x and anchor, and a stack of lines by its dy steps.
-const own = postMermaid(canvas(frame + '<text x="125" y="30" font-size="13" text-anchor="middle"><tspan x="20" text-anchor="start" dy="0">a long label here</tspan></text>'), theme);
-sound(own, 'tspan with its own x and anchor');
-check(box(own)[0] === 20, 'tspan with its own x and anchor: the canvas starts at 20, got ' + box(own)[0]);
-const stack = postMermaid(canvas('<text x="125" y="30" font-size="13" text-anchor="middle"><tspan x="125" dy="-30">top</tspan><tspan x="125" dy="40">bottom</tspan></text>'), theme);
+// A text of positioned tspans becomes one text per line at the tspan's x and y, which QtSvg places, keeping the parent's anchor and size.
+const stack = postMermaid(canvas('<text font-size="26" text-anchor="middle"><tspan x="125" y="30">会議室会議</tspan><tspan x="125" y="60">会議室会議室会</tspan></text>'), theme);
 sound(stack, 'two stacked tspans');
-check(box(stack)[1] <= 30 - 30 - LABEL_FONT_PX && box(stack)[1] + box(stack)[3] >= 30 + 10, 'two stacked tspans: the canvas holds both lines, got [' + box(stack).join(' ') + ']');
-// SVG takes the first glyph's dy from the nearest element naming one: a tspan's dy replaces its text's, and a text's dy still moves a tspan that names only y.
-for (const [name, label] of [['a first tspan dy replacing the text dy', '<text x="125" y="60" dy="40" font-size="13" text-anchor="middle"><tspan x="125" dy="-30">top</tspan></text>'],
-    ['a text dy moving a first tspan with its own y', '<text x="125" y="90" dy="-30" font-size="13" text-anchor="middle"><tspan x="125" y="60">top</tspan></text>']]) {
-    const out = postMermaid(canvas(label), theme);
-    sound(out, name);
-    const top = 30 - LABEL_FONT_PX;
-    check(box(out)[1] <= top && box(out)[1] >= top - DY_SLACK && box(out)[1] + box(out)[3] >= 30, name + ': the trimmed canvas holds the line at baseline 30, got [' + box(out).join(' ') + ']');
-}
+const stacked = texts(parse(stack));
+check(stacked.length === 2 && stacked[0].y === 30 && stacked[1].y === 60 && stacked.every((t) => t.x === 125 && t.size === 26 && t.anchor === 'middle'),
+    'two stacked tspans: one text per line at its own x and y with the anchor and size of its parent, got ' + JSON.stringify(stacked));
+check(!/<tspan\b/.test(stack), 'two stacked tspans: no tspan is left for QtSvg to misplace');
+// A run that styles one word stays a tspan inside its line.
+const runs = postMermaid(canvas('<text text-anchor="middle"><tspan x="0" y="-9">The </tspan><tspan font-weight="bold">dog</tspan><tspan x="0" y="9">ran</tspan></text>'), theme);
+check(/<text text-anchor="middle" x="0" y="-9">The <tspan font-weight="bold">dog<\/tspan><\/text><text text-anchor="middle" x="0" y="9">ran<\/text>/.test(runs),
+    'a bold run stays inside its line, got ' + runs);
+// No bundle writes a tspan that moves by dy, which QtSvg ignores, so the vocabulary refuses one.
+const relative = '<text x="50" y="40" font-size="13"><tspan>a</tspan><tspan dy="14">b</tspan></text>';
+const moved = (() => { try { postMermaid(canvas(relative), theme); return ''; } catch (error) { return error.message; } })();
+check(moved === 'unsafe diagram: unlisted attribute dy', 'a tspan moving by dy is refused, got ' + moved);
 
-// A tspan takes its anchor and size from its text: the oracle must read them there, and the trim must reach the label.
-const inherited = postMermaid(canvas(frame + '<text x="125" y="30" font-size="26" text-anchor="middle"><tspan x="125">会議室会議</tspan><tspan x="125" dy="30">会議室会議室会</tspan></text>'), theme);
-sound(inherited, 'tspans inheriting anchor and size');
-const inheritedReach = 125 - 7 * 26 * FULL_WIDTH_ADVANCE_EM / 2;
-check(reachLeft(inherited) === inheritedReach, 'tspans inheriting anchor and size: the oracle reads the parent, got ' + reachLeft(inherited) + ' want ' + inheritedReach);
-check(box(inherited)[0] <= inheritedReach, 'tspans inheriting anchor and size: no label cut, canvas ' + box(inherited)[0]);
-
-// Mermaid's own multi-line labels are tspans: a sequence diagram with one trims to its drawing like one without.
+// Mermaid's own multi-line labels are tspans: each line becomes its own text, and the library's canvas holds every line.
 const lines = real('sequenceDiagram\n    A->>B: first<br>second line');
 sound(lines, 'real sequence with a two line message');
-check(/<tspan\b/.test(lines), 'real sequence with a two line message: the library did emit tspans');
-check(box(lines)[0] > 0, 'real sequence with a two line message: trimmed off the library margin, got ' + box(lines)[0]);
-check(box(lines)[0] <= reachLeft(lines), 'real sequence with a two line message: no label cut, canvas ' + box(lines)[0] + ' reach ' + reachLeft(lines));
-// The node's label is short enough that its priced width stays inside the library's node, so the left margin still trims.
+check(!/<tspan\b/.test(lines), 'real sequence with a two line message: no tspan is left');
+uncut(lines, 'real sequence with a two line message');
 const flow = real('flowchart TD\n    A["line one<br>line two"] --> B');
 sound(flow, 'real flowchart with a two line node');
-check(box(flow)[0] > 0, 'real flowchart with a two line node: trimmed off the library margin, got ' + box(flow)[0]);
-check(box(flow)[0] <= reachLeft(flow), 'real flowchart with a two line node: no label cut');
+uncut(flow, 'real flowchart with a two line node');
 
-// A glyph wider than the monospace cell must not let a centred label be cut.
-const wide = (word) => postMermaid(canvas(frame + '<text x="125" y="30" font-size="13" text-anchor="middle">' + word + '</text>'), theme);
+// A glyph wider than the monospace cell must not let a label be cut, in a node, an edge label and a message.
+const ENTITIES = { '"': '#quot;', '`': '#96;' };
+const node = (word) => real('flowchart LR\n    A["' + Array.from(word).map((g) => ENTITIES[g] || g).join('') + '"] --> B');
 for (const [name, word] of [['CJK', '会議室会議室会議室会議室'], ['capital W', 'WWWWWWWWWWWW'], ['at signs', '@@@@@@@@@@@@'],
     ['capitals and symbols', 'DOMAIN +=^ QUERY'], ['percent runs', '100%%%% #### +++++'], ['capitals', 'OQGDNHUCRBXZ']]) {
-    const out = wide(word);
+    const out = node(word);
     sound(out, name + ' label');
-    check(box(out)[0] <= 125 - glyphEm(word) * LABEL_FONT_PX / 2, name + ' label: the canvas reaches the label, got ' + box(out)[0]);
+    check(texts(parse(out)).some((t) => t.string === word), name + ' label: the node draws its label whole');
+    uncut(out, name + ' label');
 }
 // Every printable ASCII glyph, in a run, must stay inside the canvas at its measured maximum advance.
-const escapes = { '<': '&lt;', '>': '&gt;', '&': '&amp;' };
 // A space alone draws nothing, so it has no reach to check.
 for (const glyph of Object.keys(MAX_ADVANCE_EM).filter((g) => /\S/.test(g))) {
-    const out = wide((escapes[glyph] || glyph).repeat(12));
-    check(Number.isFinite(reachLeft(out)) && box(out)[0] <= reachLeft(out), 'the glyph "' + glyph + '" run: no label cut, canvas ' + box(out)[0] + ' reach ' + reachLeft(out));
+    const out = node(glyph.repeat(12));
+    check(texts(parse(out)).some((t) => t.string === glyph.repeat(12)), 'the glyph "' + glyph + '" run: the node draws all twelve');
+    uncut(out, 'the glyph "' + glyph + '" run');
 }
-// A narrow label keeps a tight estimate: the digit and lowercase price, not the widest class's.
-const narrow = box(wide('iiiiiiiiiiii'))[0];
-check(narrow > NARROW_FLOOR && narrow <= NARROW_CEILING, 'a narrow label keeps a tight estimate, got ' + narrow);
+// A narrow label keeps a narrow box: the library sizes it from the narrow glyphs' own advances, not the widest class's.
+const narrowLabel = 'iiiiiiiiiiii';
+const narrowNode = nodes(parse(node(narrowLabel))).find((n) => n.id === 'A');
+const narrowBox = narrowNode ? narrowNode.box[2] - narrowNode.box[0] : NaN;
+const narrowWant = glyphEm(narrowLabel) * LABEL_FONT_PX + 2 * NODE_PAD;
+check(Math.abs(narrowBox - narrowWant) <= NARROW_SLACK, 'a narrow label keeps a narrow box, ' + narrowBox + ' wide, want ' + narrowWant.toFixed(2));
 // A sequence message of capitals and symbols, and an edge label of at signs, must not be cut.
 const domain = real('sequenceDiagram\n    A->>B: DOMAIN <=> QUERY @@@@ %%%%');
 sound(domain, 'real sequence with a capitals and symbols message');
-check(box(domain)[0] <= reachLeft(domain), 'real sequence with a capitals and symbols message: no label cut, canvas ' + box(domain)[0] + ' reach ' + reachLeft(domain));
+uncut(domain, 'real sequence with a capitals and symbols message');
 const edge = real('flowchart LR\n    A -->|"@@@@@@@@ WWWW DOMAIN"| B');
 sound(edge, 'real flowchart with an at sign edge label');
-check(box(edge)[0] <= reachLeft(edge), 'real flowchart with an at sign edge label: no label cut, canvas ' + box(edge)[0] + ' reach ' + reachLeft(edge));
-// The library leaves a long CJK message inside its canvas between two actors; the trim must not cut it.
+uncut(edge, 'real flowchart with an at sign edge label');
+// A long CJK message between two actors stays inside the canvas.
 const message = real('sequenceDiagram\n    A->>B: ' + '会議室'.repeat(8));
 sound(message, 'real sequence with a long CJK message');
-check(box(message)[0] > 0, 'real sequence with a long CJK message: trimmed off the library margin, got ' + box(message)[0]);
-check(box(message)[0] <= reachLeft(message), 'real sequence with a long CJK message: no glyph cut, canvas ' + box(message)[0] + ' reach ' + reachLeft(message));
+uncut(message, 'real sequence with a long CJK message');
 
 // QtSvg ignores every dy, so a label sits at its y, the box centre; the cap height is the lowest of DejaVu Sans, Liberation Sans and Noto Sans at 1000 px.
 const CAP_HEIGHT_EM = 0.714;
 const CENTRE_TOLERANCE_PX = 1;
-// Sample input: <rect x="20" y="25" width="100" height="50"/> answers {x: 20, y: 25, w: 100, h: 50}.
-function boxes(svg) {
-    const out = [];
-    for (const tag of svg.match(/<rect\b[^<>]*>/g) || []) {
-        const n = (name) => Number((tag.match(new RegExp('\\s' + name + '="([^"]*)"')) || [0, NaN])[1]);
-        out.push({ x: n('x'), y: n('y'), w: n('width'), h: n('height') });
-    }
-    return out;
-}
-// The ink centre of a one-line label's capitals as QtSvg draws it, less its box's centre: Sample input: <text x="70" y="50" font-size="13" dy="4.55">A</text> in a box 25 to 75 answers 50 - 4.6 - 50.
+// The ink centre of a one-line label's capitals as QtSvg draws it, less the centre of the node or actor box that holds it.
+// Sample input: a text "A" at baseline 4.9 and 14 px in a box from -22 to 22 answers 4.9 - 5 - 0.
 function inkOffset(svg, label) {
-    const text = svg.match(new RegExp('<text\\b([^<>]*)>' + label + '</text>'));
+    const tree = parse(svg);
+    const text = texts(tree).find((t) => t.string === label);
     if (!text) return NaN;
-    const n = (name) => Number((text[1].match(new RegExp('\\s' + name + '="([^"]*)"')) || [0, NaN])[1]);
-    const x = n('x');
-    const y = n('y');
-    const home = boxes(svg).find((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
-    return home ? y - CAP_HEIGHT_EM * n('font-size') / 2 - (home.y + home.h / 2) : NaN;
+    const home = [...nodes(tree), ...actors(tree)].map((n) => n.box).find((b) => b && text.x >= b[0] && text.x <= b[2] && text.y >= b[1] && text.y <= b[3]);
+    return home ? text.y - CAP_HEIGHT_EM * text.size / 2 - (home[1] + home[3]) / 2 : NaN;
 }
 for (const [name, source] of [['flowchart', 'flowchart TD\n    A --> B'], ['sequence', 'sequenceDiagram\n    A->>B: hi']]) {
     const out = real(source);
@@ -198,11 +179,10 @@ for (const [name, source] of [['flowchart', 'flowchart TD\n    A --> B'], ['sequ
     const offset = inkOffset(out, 'A');
     check(Math.abs(offset) <= CENTRE_TOLERANCE_PX, name + ' label A: its ink centre sits ' + offset + ' px from its box centre, want within ' + CENTRE_TOLERANCE_PX);
 }
-// A two line label's lines stack on their own baselines, never on one: Sample input: dy="-3.9" then dy="16.9" from y="27.9" are baselines 24 and 40.9.
-const stacked = real('flowchart TD\n    A["line one<br>line two"] --> B').match(/<text\b[^<>]*>(?:<tspan\b[^<>]*>[^<]*<\/tspan>)+<\/text>/)[0];
-const lineYs = (stacked.match(/<tspan\b[^<>]*>/g) || []).map((tag) => Number((tag.match(/\sy="([^"]*)"/) || [0, NaN])[1]));
+// A two line label's lines stack on their own baselines, never on one: Sample input: y="-5.6" then y="15.4" are two baselines 21 apart.
+const lineYs = texts(parse(flow)).filter((t) => t.string === 'line one' || t.string === 'line two').map((t) => t.y);
 check(lineYs.length === 2 && lineYs.every(Number.isFinite) && lineYs[1] - lineYs[0] > LABEL_FONT_PX, 'a two line label stacks its lines on their own baselines, got [' + lineYs.join(' ') + ']');
 
 console.log('MARKDOWN_FIGTIGHTEN ' + checks + ' checks, ' + failures.length + ' failed');
 failures.forEach(why => console.log('FAIL ' + why));
-if (failures.length > 0) throw new Error(failures.length + ' figure trim checks failed');
+if (failures.length > 0) throw new Error(failures.length + ' figure post-pass checks failed');

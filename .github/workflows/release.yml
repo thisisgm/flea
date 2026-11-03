@@ -43,7 +43,7 @@ jobs:
           ref="$RELEASE_REF"
           [[ "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
             echo "::error::'$ref' is not a vX.Y.Z tag; releases build exact version tags only"; exit 1; }
-          # The aur environment admits v* refs only, so a run started from a branch would publish and then be refused.
+          # Started from a branch, the run would follow that branch's release.yml rather than the tag's.
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != "refs/tags/$ref" ]; then
             echo "::error::start Run workflow from the tag itself (Use workflow from: $ref), not from $GITHUB_REF"; exit 1
           fi
@@ -62,9 +62,7 @@ jobs:
           # Sample input: Cargo.toml line `version = "0.3.3"`.
           check "Cargo.toml version" \
             "$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)" "$version"
-          # flea-git is not here: its pkgver is what pkgver() prints, and publish-aur writes it.
-          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)
-          aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)
+          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD)
           for pkgbuild in "${versioned_pkgbuilds[@]}"; do
             # Sample input: PKGBUILD line `pkgver=0.3.3`.
             check "$pkgbuild pkgver" "$(grep -m1 '^pkgver=' "$pkgbuild" | cut -d= -f2)" "$version"
@@ -75,18 +73,13 @@ jobs:
             # ./ anchors the file: a bare name is looked up on PATH first, where a PKGBUILD executable would win.
             bash -c 'source "./$1"; printf "%s\n" "depends:" "${depends[@]}" "optdepends:" "${optdepends[@]}"' _ "$1"
           }
-          # Sample input: from `package() {` to the next line that is exactly `}`, minus comments, blank lines, the cd line and the binary line.
-          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^[[:space:]]*(#|$)|^  cd |/usr/bin/flea"$'; }
-          for pkgbuild in "${aur_pkgbuilds[@]}"; do
-            if ! diff <(closure PKGBUILD) <(closure "$pkgbuild"); then
-              echo "::error::$pkgbuild's depends or optdepends differ from PKGBUILD's"; fail=1
-            fi
-            if ! diff <(body PKGBUILD) <(body "$pkgbuild"); then
-              echo "::error::$pkgbuild's package() has drifted from PKGBUILD's"; fail=1
-            fi
-          done
+          # flea-bin packages the release's prebuilt binary, so it needs exactly what the root package needs.
+          if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then
+            echo "::error::packaging/flea-bin/PKGBUILD's depends or optdepends differ from PKGBUILD's"; fail=1
+          fi
 
           [ "$fail" -eq 0 ] || exit 1
+          FLEA_FIXTURE_ROOT=/tmp/flea-package-verify tests/figure-package.sh
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "verified $ref"
@@ -103,7 +96,8 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    # The GPUI workspace tests and the release build ran past 30 minutes on hosted runners (Candidate run 41508630731).
+    timeout-minutes: 120
     env:
       VERSION: ${{ needs.verify.outputs.version }}
       ARCH: ${{ matrix.arch }}
@@ -119,41 +113,29 @@ jobs:
           toolchain: stable
 
       # bsdtar, gio, libvulkan.so.1 and bwrap are what the suite calls beyond coreutils; it must run as a non-root user.
-      - name: Install what the test suite shells out to
-        run: |
-          set -eu
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1 bubblewrap
+      - name: Install what GPUI and the test suite need
+        run: packaging/flea-release-build install-deps
 
-      # The Rust half of check(); tests/js.sh and tests/keymap-gen.sh need qml6 and stay with the Arch build.
+      # The debug flea-gui build outgrew the arm runner's memory and the runner was shut down (run 41513658726).
+      - name: Add swap for the debug GPUI build
+        run: |
+          free -h && df -h /
+          sudo fallocate -l 8G /flea-swap && sudo chmod 600 /flea-swap
+          sudo mkswap /flea-swap >/dev/null && sudo swapon /flea-swap && free -h
+
       - name: Test
-        run: cargo test --release --locked
+        env:
+          CARGO_PROFILE_DEV_DEBUG: line-tables-only
+        run: packaging/flea-release-build test
 
       - name: Build
-        run: cargo build --release --locked
+        run: packaging/flea-release-build build
 
       - name: Stage the flea-bin tarball
-        run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist
+        run: packaging/flea-release-build stage
 
-      # Before anything is published: a path package() installs and the tarball lacks would only fail after the release exists.
       - name: The tarball holds every path flea-bin's package() installs
-        run: |
-          set -euo pipefail
-          unpacked=$(mktemp -d)
-          tar -xzf "dist/flea-v$VERSION-linux-$ARCH.tar.gz" -C "$unpacked"
-          cd "$unpacked/flea-$VERSION-linux-$ARCH"
-          # Sample input: `  install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals"`.
-          # shellcheck disable=SC2016 # the pattern matches a literal $pkgdir
-          sources=$(sed -n '/^package() {/,/^}/p' "$GITHUB_WORKSPACE/packaging/flea-bin/PKGBUILD" \
-            | grep -E '^[[:space:]]*install ' | tr -s ' ' '\n' | grep -vE '^(|install|-[A-Za-z0-9]+|"?\$pkgdir.*)$') \
-            || { echo "::error::no install path could be read from packaging/flea-bin/PKGBUILD's package()"; exit 1; }
-          missing=0
-          while read -r source; do
-            compgen -G "$source" >/dev/null || {
-              echo "::error::flea-bin's package() installs $source, which packaging/flea-bin-tarball did not stage"; missing=1; }
-          done <<< "$sources"
-          echo "checked $(wc -l <<< "$sources") paths flea-bin's package() installs"
-          exit "$missing"
+        run: packaging/flea-release-build check
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -161,7 +143,7 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # The source tarball OPR and the AUR flea package build from; the same tag and the same gzip always give the same bytes.
+  # The source tarball the OPR flea package builds from; the same tag and the same gzip always give the same bytes.
   source:
     needs: verify
     runs-on: ubuntu-24.04
@@ -189,7 +171,7 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # Creates the release or attaches to one; it never replaces a published asset, whose checksum the AUR or OPR pins.
+  # Creates the release or attaches to one; it never replaces a published asset, whose checksum may already be pinned.
   release:
     needs: [verify, build, source]
     runs-on: ubuntu-24.04
@@ -238,7 +220,7 @@ jobs:
             published=$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
             for asset in dist/*; do
               if grep -qxF "$(basename "$asset")" <<< "$published"; then
-                echo "::error::$tag already carries $(basename "$asset"), whose checksum the AUR or OPR pins; delete it from the release by hand to replace it on purpose"
+                echo "::error::$tag already carries $(basename "$asset"), whose checksum may already be pinned; delete it from the release by hand to replace it on purpose"
                 exit 1
               fi
             done
@@ -253,171 +235,3 @@ jobs:
             fi
             echo "created the $tag release"
           fi
-
-  # One leg per AUR package, each its own job, so a package the key cannot push yet fails red alone and the others still publish.
-  publish-aur:
-    needs: [verify, release]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    # The only holder of AUR_SSH_KEY; docs/release.md limits it to v* tags, so only a tag's own tree ever reads the key.
-    environment: aur
-    strategy:
-      fail-fast: false
-      matrix:
-        package: [flea-bin, flea, flea-git]
-    env:
-      VERSION: ${{ needs.verify.outputs.version }}
-      SHA: ${{ needs.verify.outputs.sha }}
-      PACKAGE: ${{ matrix.package }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.verify.outputs.sha }}
-          persist-credentials: false
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        if: matrix.package == 'flea-bin'
-        with:
-          path: dist
-          merge-multiple: true
-
-      # The tree's PKGBUILD says SKIP so that a version bump is one line; the AUR gets real hashes.
-      - name: Pin the flea-bin checksums
-        if: matrix.package == 'flea-bin'
-        run: |
-          set -euo pipefail
-          # Sample input: a sha256sum sidecar line `<64 hex>  flea-v0.3.3-linux-x86_64.tar.gz`.
-          x86=$(cut -d' ' -f1 "dist/flea-v$VERSION-linux-x86_64.tar.gz.sha256")
-          arm=$(cut -d' ' -f1 "dist/flea-v$VERSION-linux-aarch64.tar.gz.sha256")
-          for pair in "x86_64 $x86" "aarch64 $arm"; do
-            [[ "${pair#* }" =~ ^[0-9a-f]{64}$ ]] || {
-              echo "::error::dist/flea-v$VERSION-linux-${pair%% *}.tar.gz.sha256 starts '${pair#* }', not a sha256"; exit 1; }
-          done
-          sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$x86')/" packaging/flea-bin/PKGBUILD
-          sed -i "s/^sha256sums_aarch64=.*/sha256sums_aarch64=('$arm')/" packaging/flea-bin/PKGBUILD
-          if grep -q "'SKIP'" packaging/flea-bin/PKGBUILD; then
-            echo "::error::a SKIP survived pinning; the AUR never receives one"; exit 1
-          fi
-          grep '^sha256sums_' packaging/flea-bin/PKGBUILD
-
-      - name: Prove the flea-bin PKGBUILD against the published release
-        if: matrix.package == 'flea-bin'
-        run: |
-          set -euo pipefail
-          docker run --rm -v "$PWD/packaging/flea-bin/PKGBUILD:/pkg/PKGBUILD:ro" -v "$PWD/packaging/flea-default-check:/pkg/flea-default-check:ro" \
-            -e "VERSION=$VERSION" archlinux:base-devel bash -euo pipefail -c '
-            useradd -m build
-            mkdir /home/build/pkg && cp /pkg/PKGBUILD /home/build/pkg/ && chown -R build /home/build/pkg
-            cd /home/build/pkg
-            # The package names carry the pkgrel of the PKGBUILD, which a rebuilt release raises past 1.
-            rel=$(sed -n "s/^pkgrel=//p" PKGBUILD)
-            # makepkg refuses root; package() only installs files, so an aarch64 makepkg.conf builds it on this host.
-            sed "s/^CARCH=.*/CARCH=\"aarch64\"/; s/^CHOST=.*/CHOST=\"aarch64-unknown-linux-gnu\"/" /etc/makepkg.conf > /home/build/makepkg-aarch64.conf
-            su build -c "makepkg --nodeps --noconfirm --clean"
-            su build -c "makepkg --nodeps --noconfirm --clean --config /home/build/makepkg-aarch64.conf"
-            su build -c "makepkg --printsrcinfo" | tee .SRCINFO
-            list() { bsdtar -tf "$1" | grep -v "^\." | sort; }
-            list "flea-bin-$VERSION-$rel-x86_64.pkg.tar.zst" > x86_64.list
-            list "flea-bin-$VERSION-$rel-aarch64.pkg.tar.zst" > aarch64.list
-            diff x86_64.list aarch64.list
-            need() { grep -qx "$1" x86_64.list || { echo "::error::flea-bin $VERSION packages no $1"; exit 1; }; }
-            need usr/bin/flea
-            need usr/share/flea/ui/boot/shell.qml
-            echo "flea-bin $VERSION packages $(wc -l < x86_64.list) paths on both architectures"
-            /pkg/flea-default-check "flea-bin-$VERSION-$rel-x86_64.pkg.tar.zst"
-          '
-
-      # OPR's upstream.sh verifies the source tarball against this same manifest line, so both channels pin one checksum.
-      - name: Pin the flea checksum from the published SHASUMS256.txt
-        if: matrix.package == 'flea'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh release download "$RELEASE_REF" --repo "$GITHUB_REPOSITORY" --pattern SHASUMS256.txt --dir "$RUNNER_TEMP"
-          source_asset="flea-$RELEASE_REF.tar.gz"
-          # Sample input: "<64 hex>  flea-v0.3.3.tar.gz", read with the awk OPR's upstream.sh uses.
-          sum=$(awk -v asset="$source_asset" '$2 == asset { print $1 }' "$RUNNER_TEMP/SHASUMS256.txt")
-          [[ "$sum" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::the published SHASUMS256.txt has no single line for $source_asset"; exit 1; }
-          sed -i "s/^sha256sums=.*/sha256sums=('$sum')/" packaging/flea/PKGBUILD
-          if grep -q "'SKIP'" packaging/flea/PKGBUILD; then
-            echo "::error::a SKIP survived pinning; the AUR never receives one"; exit 1
-          fi
-          grep '^sha256sums=' packaging/flea/PKGBUILD
-
-      # --nocheck: check() needs qml6 and an installed Omarchy, and the build job already ran cargo test on this commit.
-      - name: Prove the flea PKGBUILD against the published source tarball
-        if: matrix.package == 'flea'
-        run: |
-          set -euo pipefail
-          docker run --rm -v "$PWD/packaging/flea/PKGBUILD:/pkg/PKGBUILD:ro" -v "$PWD/packaging/flea-default-check:/pkg/flea-default-check:ro" \
-            -e "VERSION=$VERSION" archlinux:base-devel bash -euo pipefail -c '
-            pacman -Syu --noconfirm --needed --noprogressbar rust
-            useradd -m build
-            mkdir /home/build/pkg && cp /pkg/PKGBUILD /home/build/pkg/ && chown -R build /home/build/pkg
-            cd /home/build/pkg
-            rel=$(sed -n "s/^pkgrel=//p" PKGBUILD)
-            su build -c "makepkg --nodeps --nocheck --noconfirm --clean"
-            bsdtar -tf "flea-$VERSION-$rel-x86_64.pkg.tar.zst" | grep -v "^\." | sort > flea.list
-            need() { grep -qx "$1" flea.list || { echo "::error::flea $VERSION packages no $1"; exit 1; }; }
-            need usr/bin/flea
-            need usr/share/flea/ui/boot/shell.qml
-            echo "flea $VERSION packages $(wc -l < flea.list) paths built from the published source tarball"
-            /pkg/flea-default-check "flea-$VERSION-$rel-x86_64.pkg.tar.zst"
-          '
-
-      # What pkgver() prints on the tag itself; aur-push ignores this line when it decides whether flea-git changed.
-      - name: Give flea-git the tag's own pkgver
-        if: matrix.package == 'flea-git'
-        run: |
-          set -euo pipefail
-          # pkgver() asks git describe for this many hex digits.
-          abbrev=7
-          sed -i "s/^pkgver=.*/pkgver=$VERSION.r0.g${SHA:0:abbrev}/" packaging/flea-git/PKGBUILD
-          grep '^pkgver=' packaging/flea-git/PKGBUILD
-
-      - id: gate
-        name: Decide whether this tag pushes to the AUR
-        env:
-          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-          AUR_COMMIT_NAME: ${{ vars.AUR_COMMIT_NAME }}
-          AUR_COMMIT_EMAIL: ${{ vars.AUR_COMMIT_EMAIL }}
-        run: |
-          set -euo pipefail
-          # Read at use time, not at verify, so a newer tag pushed mid-run is seen; the remote prints "<sha>\trefs/tags/v0.3.3".
-          newest=$(git ls-remote --tags --refs origin 'v*' | cut -f2 | cut -d/ -f3 | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
-          if [ "$RELEASE_REF" != "$newest" ]; then
-            echo "push=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=AUR push skipped::$RELEASE_REF is not the newest release tag, and the AUR keeps the newer version"
-            exit 0
-          fi
-          missing=""
-          for name in AUR_SSH_KEY AUR_COMMIT_NAME AUR_COMMIT_EMAIL; do
-            [ -n "${!name}" ] || missing="$missing $name"
-          done
-          if [ -n "$missing" ]; then
-            echo "push=false" >> "$GITHUB_OUTPUT"
-            # Loud but green: a release before the AUR account exists still ships, and "Re-run this job" pushes it later.
-            echo "::warning title=AUR push skipped::$PACKAGE was not pushed:$missing not set; docs/release.md sets them up once"
-            exit 0
-          fi
-          echo "push=true" >> "$GITHUB_OUTPUT"
-
-      # Inside Arch because makepkg writes .SRCINFO; the AUR host keys are pinned in packaging/aur.known_hosts, never scanned.
-      - name: Push ${{ matrix.package }} to the AUR
-        if: steps.gate.outputs.push == 'true'
-        env:
-          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-          AUR_COMMIT_NAME: ${{ vars.AUR_COMMIT_NAME }}
-          AUR_COMMIT_EMAIL: ${{ vars.AUR_COMMIT_EMAIL }}
-        run: |
-          set -euo pipefail
-          # On stdin, since docker run -e keeps the value in the container's on-disk config; aur-push loads it into an agent.
-          printf '%s\n' "$AUR_SSH_KEY" | docker run --rm -i -v "$PWD:/repo:ro" -e AUR_COMMIT_NAME -e AUR_COMMIT_EMAIL \
-            archlinux:base-devel bash -euo pipefail -c '
-              AUR_SSH_KEY=$(cat)
-              export AUR_SSH_KEY
-              env -u AUR_SSH_KEY pacman -Syu --noconfirm --needed --noprogressbar git openssh </dev/null
-              useradd -m build
-              runuser -u build -- /repo/packaging/aur-push "$@" </dev/null
-            ' _ "$PACKAGE" "/repo/packaging/$PACKAGE/PKGBUILD" "$PACKAGE $RELEASE_REF"

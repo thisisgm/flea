@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # The render sweep half of the theme battery: the candidate launched once per stock theme, with the
 # surfaces the colour rules govern shot and measured. tests/js/themes.js asserts the rules over the
 # palettes; this asserts that the roles the window really carries still satisfy them, which is what
@@ -25,12 +26,10 @@ command -v magick >/dev/null || { echo "themes.sh: magick is not installed, and 
 [ -x "$flea_bin" ] || { echo "themes.sh: no candidate at $flea_bin"; exit 1; }
 eval "$(omarchy-drive env)"
 
+. "$repo/tests/lib/stock-themes.sh"
 # The pure suite pins the same list; a theme shipped since then reddens here rather than being skipped.
-# Sample input, the block this reads out of tests/js/themes.js:
-#   var THEMES = ["catppuccin", "catppuccin-latte", "ethereal",
-#                 "everforest", ...]
-installed=$(ls -1 "$themes_dir" | sort | tr '\n' ' ')
-pinned=$(sed -n '/^var THEMES = \[/,/\]$/p' tests/js/themes.js | grep -o '"[a-z0-9-]*"' | tr -d '"' | sort | tr '\n' ' ')
+installed=$(stock_themes_installed "$themes_dir" | tr '\n' ' ')
+pinned=$(stock_themes_pinned tests/js/themes.js | tr '\n' ' ')
 if [ "$installed" != "$pinned" ]; then
     printf 'FAIL the installed themes are not the ones tests/js/themes.js pins\n  installed: %s\n  pinned:    %s\n' "$installed" "$pinned"
     failures=$((failures + 1))
@@ -103,9 +102,9 @@ printf 'background = "#1e1e2e"\nforeground = "#cdd6f4"\naccent = "#89b4fa"\nred 
 # literal: the two halves meeting on this value is what binds that mirror to the running window.
 no_muted_caption="#9299ae"
 
-ipc() { omarchy-drive ipc -p "$flea_ui/boot" flea "$@"; }
+ipc() { flea_ipc_drive -p "$flea_ui/boot" flea "$@"; }
 # Filtered to the window under test, as tests/ui.sh does: an unfiltered send goes wherever focus is.
-key() { omarchy-drive key --window flea "$@" >/dev/null; }
+key() { omarchy-drive key --window com.thisisgm.flea "$@" >/dev/null; }
 window_xy() { hyprctl clients -j | jq -r --arg c "$class" '[.[]|select(.class==$c)][0] | "\(.at[0]) \(.at[1])"'; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 
@@ -201,7 +200,7 @@ for colours in "$themes_dir"/*/colors.toml "$synthetic"; do
     fi
     omarchy-drive focus "$class" >/dev/null
     # The seam is built after the first listing, so the window has mapped before it answers.
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea ready true --timeout 20 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea ready true --timeout 20 >/dev/null \
         || { fail "$theme: the IPC seam never answered ready"; continue; }
     sleep 3
     [ "$(ipc themeLoaded)" = "true" ] || fail "$theme: the window did not load a palette"
@@ -259,7 +258,7 @@ for colours in "$themes_dir"/*/colors.toml "$synthetic"; do
     key j
     key v
     key j
-    if ! omarchy-drive wait ipc -p "$flea_ui/boot" flea cursor 2 --timeout 10 >/dev/null; then
+    if ! flea_ipc_wait -p "$flea_ui/boot" flea cursor 2 --timeout 10 >/dev/null; then
         fail "$theme: the cursor never reached row 2, so no shot of it can be measured"
         continue
     fi

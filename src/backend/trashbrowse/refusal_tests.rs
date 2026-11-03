@@ -139,7 +139,7 @@ fn a_record_that_will_not_read_after_the_confirmation_fails_its_item_and_the_res
     items.append(first_record.as_bytes()).unwrap();
     items.append(br#"{"uri":"trash:///b","original":"/original/b","size":7}"#).unwrap();
     items.append(third_record.as_bytes()).unwrap();
-    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 3, all: false };
+    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 3, nodes: 3, all: false };
     let reply = delete(&confirmation, &d);
     assert!(reply.starts_with(r#""done":2,"failed":1,"failures":["#), "{reply}");
     assert!(reply.contains(r#""uri":"trash:///b""#) && reply.contains("One Trash record could not be read, so that item was left in place."), "{reply}");
@@ -155,7 +155,7 @@ fn a_record_with_no_text_or_frame_fails_with_an_empty_uri() {
     let mut items = Manifest::new(d.path()).unwrap();
     items.append(first_record.as_bytes()).unwrap();
     items.append(&[0xff]).unwrap();
-    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 2, all: false };
+    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 2, nodes: 2, all: false };
     let reply = delete(&confirmation, &d);
     assert!(reply.starts_with(r#""done":1,"failed":1,"failures":[{"uri":"","#), "{reply}");
     assert!(!first.exists());
@@ -176,7 +176,7 @@ fn four_confirmed(d: &crate::backend::testdir::TestDir, order: [&str; 4], damage
     }
     damage(&items, item_at[damaged]);
     for &at in break_targets { damage(&targets, target_at[at]); }
-    (Confirmation { token: 1, items, trees, listing: Vec::new(), targets, count: 4, all: false }, paths)
+    (Confirmation { token: 1, items, trees, listing: Vec::new(), targets, count: 4, nodes: 4, all: false }, paths)
 }
 
 #[test]
@@ -237,7 +237,7 @@ fn a_damaged_frame_with_no_readable_targets_fails_every_item_it_left_in_one_row_
 fn an_item_with_no_backing_review_says_nothing_can_be_deleted_from_this_trash() {
     let item = Detail { item: Item { uri: "trash:///a".into(), original: "/tmp/a".into() }, size: 1, deleted: String::new(),
         identity: "id".into(), directory: false, icon: String::new(), backing: None };
-    let error = delete_one(&item, &Ok(std::path::PathBuf::from("/nonexistent-recovery"))).unwrap_err();
+    let error = delete_one(&item, &Ok(std::path::PathBuf::from("/nonexistent-recovery")), &mut ThumbnailPurge(Vec::new())).unwrap_err();
     assert_eq!(error, "This Trash cannot be checked, so nothing can be deleted from it.");
     assert!(failure(&item.item, "", &error).contains(r#""error":"This Trash cannot be checked, so nothing can be deleted from it.""#));
 }

@@ -1,101 +1,77 @@
+use super::cells::{centered, fit};
 use std::time::Duration;
 
-const SPIRAL: [&str; 10] = [
-    "███████████",
-    "█         █",
-    "█ ███████ █",
-    "█ █     █ █",
-    "█ █ ███ █ █",
-    "█ █ █ █ █ █",
-    "█ █ █   █ █",
-    "█ █ █████ █",
-    "█ █       █",
-    "█ █████████",
-];
-const PHRASES: [&str; 7] = [
-    "NOTHING HERE YET",
-    "A VERY TIDY FOLDER",
-    "NOT A FILE IN SIGHT",
-    "QUIET IN HERE",
-    "NO CLUTTER TO REPORT",
-    "WAITING FOR SOMETHING TO LAND",
-    "EMPTY, AND THAT IS FINE",
-];
-const ROTATE_MS: u128 = 2800;
-fn dimensions(width: usize, height: usize, cell: Option<(usize, usize)>) -> (usize, usize) {
-    let Some((cell_width, cell_height)) = cell.filter(|(w, h)| *w > 0 && *h > 0) else {
-        // ponytail: terminals without pixel geometry retain the caption until measured cells are available.
-        return (0, 0);
-    };
-    let source_width = SPIRAL[0].chars().count();
-    let rows = SPIRAL.len().div_ceil(2).min(height.saturating_sub(2))
-        .min(width * SPIRAL.len() * cell_width / (source_width * cell_height));
-    let columns = (source_width * rows * cell_height + SPIRAL.len() * cell_width / 2)
-        / (SPIRAL.len() * cell_width);
-    if columns == 0 { (0, 0) } else { (columns, rows) }
+#[cfg(test)]
+pub(super) const PHRASES: [&str; 3] = ["NOTHING HERE YET", "A VERY TIDY FOLDER", "QUIET IN HERE"];
+pub(super) const ROTATE_MS: u128 = 2800;
+// The Codicons search mark, the one the window's no-match notice draws.
+const SEARCH: &str = "\u{ea6d}";
+pub fn notice(y: usize, height: usize, width: usize, mark: &str, headline: &str) -> String {
+    let start = height.saturating_sub(3) / 2;
+    if y == start { centered(mark, width) }
+    else if y == start + 1 { centered(headline, width) }
+    else { fit("", width) }
 }
-pub fn line(y: usize, height: usize, width: usize, cell: Option<(usize, usize)>, elapsed: Duration) -> String {
-    let phrase = PHRASES[(elapsed.as_millis() / ROTATE_MS) as usize % PHRASES.len()];
-    let (columns, rows) = dimensions(width, height, cell);
-    let block_height = if rows > 0 { rows + 2 } else { 1 };
-    let start = height.saturating_sub(block_height) / 2;
-    let text = if y >= start && y < start + rows {
-        let source_width = SPIRAL[0].chars().count();
-        // Each terminal cell carries two raster rows; measured cell pixels preserve the mark's aspect.
-        let filled = |x: usize, half: usize| {
-            let source_y = ((y - start) * 2 + half) * SPIRAL.len() / (rows * 2);
-            SPIRAL[source_y].chars().nth(x * source_width / columns) == Some('█')
-        };
-        (0..columns).map(|x| match (filled(x, 0), filled(x, 1)) {
-            (true, true) => '█', (true, false) => '▀', (false, true) => '▄', _ => ' ',
-        }).collect::<String>()
-    } else if y == start + block_height - 1 {
-        phrase.into()
-    } else {
-        String::new()
-    };
-    let padding = width.saturating_sub(text.chars().count()) / 2;
-    super::render::fit(&format!("{}{}", " ".repeat(padding), text), width)
+// A filter that matches nothing shows the search mark over its sentence, in the empty notice's place.
+pub fn no_match(y: usize, height: usize, width: usize, marks: bool, headline: &str) -> String {
+    notice(y, height, width, if marks { SEARCH } else { "›" }, headline)
 }
+// Whether a frame of this size draws the empty caption, the one test the frame and the loop's wake share.
+pub(super) fn shown(m: &super::model::Model, columns: usize, lines: usize) -> bool {
+    columns >= 12 && lines > super::render::CHROME_ROWS && m.total == 0 && m.pending.is_none() && super::trashview::settled(m)
+}
+// Captions loop while the empty folder is shown; each appearance supplies a fresh elapsed clock.
+#[cfg(test)]
+pub fn line(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration) -> String {
+    localized(y, height, width, marks, elapsed, &crate::i18n::test_catalogs::english())
+}
+pub fn localized(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration, i18n: &crate::i18n::I18n) -> String {
+    let keys = ["pane.empty.initial", "pane.empty.beat_one", "pane.empty.rest"];
+    let phrase = i18n.tr(keys[(elapsed.as_millis() / ROTATE_MS % keys.len() as u128) as usize]);
+    notice(y, height, width, if marks { super::icons::FOLDER } else { "›" }, &phrase)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn spiral_uses_measured_cells_and_preserves_the_caption() {
-        assert_eq!(dimensions(100, 60, Some((9, 20))), (12, 5));
-        for cell in [(8, 16), (9, 20), (12, 28), (16, 16)] {
-            for width in [5, 12, 100] {
-                for height in [1, 3, 8, 60] {
-                    let (columns, rows) = dimensions(width, height, Some(cell));
-                    assert!(columns <= width && rows + usize::from(rows > 0) * 2 <= height);
-                    if rows > 0 {
-                        let actual = columns * cell.0 * SPIRAL.len();
-                        let expected = SPIRAL[0].chars().count() * rows * cell.1;
-                        assert!(actual.abs_diff(expected) <= cell.0 * SPIRAL.len() / 2);
-                    }
-                    for y in 0..height {
-                        assert_eq!(line(y, height, width, Some(cell), Duration::ZERO).chars().count(), width);
-                    }
+    fn captions_loop_three_cycles_and_stay_fixed_between_beats() {
+        let mut last = line(13, 27, 51, true, Duration::ZERO);
+        let cycle_ms = PHRASES.len() as u64 * ROTATE_MS as u64;
+        let sample_ms = ROTATE_MS as u64 / 4;
+        for cycle in 0..3 {
+            let mut paints = 0;
+            for step in 1..=cycle_ms / sample_ms {
+                let millis = cycle * cycle_ms + step * sample_ms;
+                let row = line(13, 27, 51, true, Duration::from_millis(millis));
+                assert_eq!(row.trim(), PHRASES[(millis as u128 / ROTATE_MS) as usize % PHRASES.len()]);
+                if row != last {
+                    assert_eq!(millis as u128 % ROTATE_MS, 0, "no terminal paint between beats");
+                    paints += 1;
                 }
+                last = row;
+            }
+            assert_eq!(paints, PHRASES.len());
+            eprintln!("TUI_CAPTION_CYCLE cycle={} caption_paints={paints} idle_paints=0", cycle + 1);
+        }
+        assert_eq!(line(13, 27, 51, true, Duration::ZERO).trim(), PHRASES[0]);
+    }
+    #[test]
+    fn empty_notice_matches_board_cells_and_stays_inside_every_pane() {
+        assert_eq!(line(12, 27, 51, true, Duration::ZERO).trim(), super::super::icons::FOLDER);
+        for width in [1, 5, 12, 51] {
+            for height in [1, 3, 27] {
+                for y in 0..height { assert_eq!(super::super::cells::text_width(&line(y, height, width, false, Duration::ZERO)), width); }
             }
         }
-        assert_eq!(dimensions(100, 60, None), (0, 0));
-        assert_eq!(line(2, 5, 40, None, Duration::ZERO).trim(), PHRASES[0]);
+        assert_eq!(line(12, 27, 51, false, Duration::ZERO).trim(), "›");
     }
+    // The board centres the search mark at row 14 and NOTHING MATCHES zzz at row 15 of a 27-row pane 51 cells wide.
     #[test]
-    fn captions_say_folder_and_keep_only_lines_true_of_an_empty_folder() {
-        assert!(PHRASES.contains(&"A VERY TIDY FOLDER"));
-        assert!(PHRASES.iter().all(|phrase| !phrase.contains("DIRECTORY") && !phrase.contains("SECRETS")), "{PHRASES:?}");
-    }
-    #[test]
-    fn caption_rotates_at_oem_cadence() {
-        assert_ne!(
-            line(7, 10, 40, Some((9, 20)), Duration::ZERO),
-            line(7, 10, 40, Some((9, 20)), Duration::from_millis(2800))
-        );
-        assert_eq!(
-            line(7, 10, 40, Some((9, 20)), Duration::ZERO),
-            line(7, 10, 40, Some((9, 20)), Duration::from_millis(1000))
-        );
+    fn no_match_notice_draws_the_search_mark_over_its_sentence() {
+        assert_eq!(no_match(12, 27, 51, true, "NOTHING MATCHES zzz"), format!("{}\u{ea6d}{}", " ".repeat(25), " ".repeat(25)));
+        assert_eq!(no_match(13, 27, 51, true, "NOTHING MATCHES zzz"), format!("{}NOTHING MATCHES zzz{}", " ".repeat(16), " ".repeat(16)));
+        assert_eq!(no_match(12, 27, 51, false, "x").trim(), "›");
+        assert_eq!(no_match(14, 27, 51, true, "x").trim(), "");
     }
 }

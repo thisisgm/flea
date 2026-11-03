@@ -1,0 +1,8 @@
+FROM docker.io/library/archlinux:base
+RUN pacman -Syu --noconfirm --needed base-devel meson ninja pkgconf glib2 pcre2 icu gtk3 rustup python git util-linux time zoxide
+ENV RUSTUP_HOME=/opt/findbench-rustup
+ENV CARGO_HOME=/opt/findbench-cargo
+RUN rustup toolchain install stable --profile minimal --component clippy,rustfmt,llvm-tools,rust-src,rust-analyzer
+RUN rustup default stable
+ENV LC_ALL=C.UTF-8
+

@@ -101,7 +101,7 @@ mod tests {
 
     // One State plus its tables and pool, so every answer test starts from the same harness.
     fn harness(cache: &std::path::Path) -> (State, Tables, Pool) {
-        let (tx, _rx) = channel();
+        let (tx, _rx) = crate::backend::events::channel();
         let (st, tb) = (State::new(Worker::new(tx)), Tables::load());
         let (results, _done) = channel();
         let pool = Pool::new(1, results, cache.to_path_buf(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));

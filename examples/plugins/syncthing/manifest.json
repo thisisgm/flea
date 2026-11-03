@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "example.syncthing",
+  "name": "Syncthing",
+  "version": "1.0.0",
+  "author": "Flea contributors",
+  "license": "MIT",
+  "description": "Example synced folders with deterministic local fixture paths.",
+  "kinds": ["rail-section"],
+  "entryPoints": {"run": "bin/run"},
+  "railSection": {"title": "Syncthing", "refreshSec": 5},
+  "access": []
+}

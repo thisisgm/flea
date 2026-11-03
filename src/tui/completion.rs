@@ -80,6 +80,12 @@ impl Drop for Completion {
     }
 }
 
+// A finished completion replaces the ghost the Go to field draws after its caret.
+pub fn land(model: &mut super::model::Model) {
+    if let Some(completion) = model.completer.poll() {
+        model.completion = completion;
+    }
+}
 pub fn expand(value: &str, home: &Path, current: &Path) -> PathBuf {
     if value == "~" {
         home.into()

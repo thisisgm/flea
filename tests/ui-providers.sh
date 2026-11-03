@@ -136,7 +136,10 @@ providers_disabled() {
     local action="$1" reason="$2" word="$3" state target before
     # A provider that cannot answer reads as red with its own state word, never its reason.
     [[ -n "$word" ]] || fail "providers: no expected word for $action ($reason)"
-    menus_expect menuState "any(.entries[]; .action == \"$action\" and .disabled and .errored and .hint == \"$word\")" "$action reads $word ($reason)"
+    # GPUI follows GM's 2026-10-29 ruling: an unavailable row only draws red, with no state word beside it.
+    local hint="$word"
+    [[ "${test_frontend:-qml}" != gpui ]] || hint=
+    menus_expect menuState "any(.entries[]; .action == \"$action\" and .disabled and .errored and .hint == \"$hint\")" "$action reads $word ($reason)"
     state=$(ipc menuState)
     target=$(jq -er --arg action "$action" '.entries | to_entries[] | select(.value.action == $action) | .key' <<< "$state")
     before=$(providers_calls omarchy-tailscale-send)
@@ -386,7 +389,7 @@ providers_sharelink_checks() {
         menus_expect statusActivityState '.errors == 1' "$scenario records one persistent error"
         menus_equal "$scenario clipboard dispatch count" "$((before + clipboard_calls))" "$(providers_calls wl-copy)"
         providers_expect '.listFocus and (.pendingActivation | not)' "$scenario returns menu ownership to the listing"
-        if [[ -n "$warning" ]]; then printf '%s\n' "$warning" >> "$expected_warnings"; fi
+        if [[ "$test_frontend" == qml && -n "$warning" ]]; then printf '%s\n' "$warning" >> "$expected_warnings"; fi
         menus_shot "providers-$scenario"
         providers_install dropbox-cli yes
         providers_install wl-copy yes
@@ -446,12 +449,11 @@ providers_dropbox_move_checks() {
     menus_expect menuState '.opened and .snapshotReady' 'native retry captures the retained original selection'
     providers_expect '(.refreshing | not) and .menuFocus' 'Dropbox retry refresh settles'
     providers_choose dropbox
-    menus_message 'Moved 1 item' 'Move to Dropbox retries the retained original through the real transfer'
+    menus_expect statusActivityState '.undoAvailable and .errors == 0 and (.activities | length) == 0 and (.notice | contains("Moved 1 item"))' 'Move to Dropbox retries the retained original with Undo'
     wait_listing 1
     [[ ! -e "$menu_dir/a-marked.txt" ]] || fail 'providers: successful move retained its source'
     menus_equal 'successful Dropbox move commits the original bytes' 'list/a-marked.txt original' "$(cat "$menu_box/Dropbox/a-marked.txt")"
     menus_equal 'successful Dropbox move leaves the unmarked cursor file alone' replacement "$(cat "$menu_dir/b-cursor.txt")"
-    menus_expect statusActivityState '.undoAvailable and .errors == 0 and (.activities | length) == 0' 'successful Dropbox move is undoable'
     menus_shot providers-dropbox-moved
 
     menus_guard "$menu_dir/a-marked.txt"
@@ -463,6 +465,12 @@ providers_dropbox_move_checks() {
     menus_equal 'Dropbox Undo restores original source bytes' 'list/a-marked.txt original' "$(cat "$menu_dir/a-marked.txt")"
     menus_equal 'Dropbox Undo leaves the name set aside untouched' 'Dropbox/a-marked.txt original' "$(cat "$menu_box/retired/dropbox-collision.txt")"
     menus_shot providers-dropbox-undone
+    # The refused move's Jobs row stands with Retry and Dismiss and holds the pointer, so its own Dismiss clears it.
+    local dismiss_centre
+    dismiss_centre=$(ipc statusActivityState | jq -er '.transferCard.dismiss | select(.visible and .enabled) | .centre') \
+        || fail "providers: the refused move's Jobs row offers no Dismiss: $(ipc statusActivityState | jq -c .transferCard)"
+    menus_point "$dismiss_centre"
+    menus_expect statusActivityState '.transferCard.visible | not' 'Dismiss clears the refused move from the Jobs card'
 }
 
 # Bounded local evidence for a LocalSend failure: calls, status and menu, to tell wrong dispatch from fast completion.
@@ -487,7 +495,11 @@ providers_localsend_checks() {
     menus_visit "$menu_dir" 2
     menus_expect listInFlight '. == false' 'LocalSend listing settles before selection'
     # Cursor-only: clear prior marks, then the first menu must gain its peer from zero-argument discovery.
-    key -k Escape -k Home >/dev/null
+    menus_expect pathBarOpen '. == false' 'the address field closes on its own folder'
+    key -k Escape >/dev/null || fail 'providers: cursor-only Escape delivery failed'
+    providers_expect '(.selected | length) == 0 and .listFocus' 'Escape leaves the listing focused with no marks'
+    key -k Home >/dev/null || fail 'providers: cursor-only Home delivery failed'
+    providers_expect '.cursorPath == "'"$menu_dir"'/a-marked.txt"' 'Home puts the cursor on the first row'
     key m >/dev/null
     menus_expect menuState '.opened and .snapshotReady' 'the cursor-only menu opens its own snapshot'
     providers_expect '(.selected | length) == 0 and .cursorPath == "'"$menu_dir"'/a-marked.txt"' 'the cursor-only case holds no selection'
@@ -764,7 +776,11 @@ case_providersinstalled() (
         key -k Escape >/dev/null || fail 'providersinstalled: peer cancellation failed'
         menus_expect menuState '.opened and (.submenu | not)' 'Escape cancels the real peer flyout without selecting a receiver'
     else
-        menus_expect menuState 'any(.entries[]; .action == "taildrop" and .disabled and (.hint | length) > 0)' 'no eligible real peer leaves a visible reason'
+        if [[ "${test_frontend:-qml}" == gpui ]]; then
+            menus_expect menuState 'any(.entries[]; .action == "taildrop" and .disabled and .errored)' 'no eligible real peer draws the row red'
+        else
+            menus_expect menuState 'any(.entries[]; .action == "taildrop" and .disabled and (.hint | length) > 0)' 'no eligible real peer leaves a visible reason'
+        fi
         printf 'PROVIDERS_INSTALLED_UNVERIFIED no currently eligible real peer; populated flyout not exercised\n'
     fi
     providers_close

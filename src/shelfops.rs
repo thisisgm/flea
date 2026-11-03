@@ -198,7 +198,7 @@ pub fn send(rest: &[String]) -> i32 {
 // flea shelf peers: the send flyout's rows. Sample input, the fields Taildrop.js reads of
 // `tailscale status --json`: {"Peer":{"nodekey:aa":{"DNSName":"macbookair.tail1234.ts.net.","HostName":"macbookair","Online":true}}}
 pub fn peers() -> i32 {
-    let out = std::process::Command::new("tailscale")
+    let out = crate::backend::locale::command("tailscale")
         .arg("status")
         .arg("--json")
         .stdin(std::process::Stdio::null())

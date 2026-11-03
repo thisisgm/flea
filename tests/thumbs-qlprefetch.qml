@@ -124,14 +124,14 @@ ShellRoot {
     property var settleCalls: []
     property int raceCacheOnly1: 0
 
-    // Exactly one non-repeating timer at the follow settle interval names it.
+    // The follow settle names itself: the rest of a load made at once shares its interval.
     function findSettle() {
         var found = null
         var count = 0
         var list = quick.item ? quick.item.resources : []
         for (var i = 0; i < list.length; i++) {
             var t = list[i]
-            if (t && t.repeat === false && t.interval === quick.item.followSettleMs) {
+            if (t && t.objectName === "followSettle") {
                 found = t
                 count += 1
             }

@@ -1,5 +1,41 @@
 use super::*;
 
+#[test]
+fn plugin_place_paste_clipboard_round_trips_plugin_paths() {
+    let paths = vec!["plugin://example.virtual-place/renamed %.txt".into()];
+    for op in ["copy", "cut"] {
+        assert_eq!(check_selection(op, &paths), Ok(()));
+        assert_eq!(parse_urilist(&build_urilist(&paths)), (paths.clone(), 0));
+        assert_eq!(
+            parse_gnome(&build_gnome(op, &paths)),
+            Some((op.into(), paths.clone(), 0))
+        );
+        assert!(String::from_utf8(build_urilist(&paths))
+            .unwrap()
+            .starts_with("plugin://"));
+    }
+}
+
+#[test]
+fn plugin_place_paste_clipboard_refuses_invalid_plugin_paths() {
+    for path in [
+        "plugin://invalid/x",
+        "plugin://example.virtual-place/../x",
+        "plugin://example.virtual-place/./x",
+        "plugin://example.virtual-place/x\n",
+        "plugin://example.virtual-place",
+    ] {
+        assert!(check_selection("copy", &[path.into()]).is_err(), "{path:?}");
+    }
+    for uri in [
+        b"plugin://example.virtual-place/%2e%2e/x".as_slice(),
+        b"plugin://example.virtual-place/%00",
+        b"plugin://invalid/x",
+    ] {
+        assert!(parse_urilist(uri).0.is_empty());
+    }
+}
+
 // Every format round trips a name holding a newline, %, #, ?, spaces and non-ASCII UTF-8.
 fn awkward() -> Vec<String> {
     vec![
@@ -51,7 +87,10 @@ fn comments_localhost_and_plain_text_behave() {
     let bytes = b"# a comment\nfile://localhost/tmp/a.txt\n/text/plain\n";
     let (got, skipped) = parse_urilist(bytes);
     assert_eq!(got, vec!["/tmp/a.txt".to_string()]);
-    assert_eq!(skipped, 1, "the bare path is refused, the comment is not counted");
+    assert_eq!(
+        skipped, 1,
+        "the bare path is refused, the comment is not counted"
+    );
     assert!(parse_gnome(b"hello\nfile:///tmp/a.txt").is_none());
     assert_eq!(build_plain(&["/a".to_string()]), b"/a");
 }
@@ -68,6 +107,7 @@ fn every_refusal_is_a_skip_and_never_a_failed_read() {
         b"file:///tmp/../etc.txt".to_vec(),
         b"file:///tmp/./a.txt".to_vec(),
         b"file:///tmp/%ff.txt".to_vec(),
+        b"file:///tmp/%+1.txt".to_vec(),
         b"file:///tmp/ok.txt".to_vec(),
         b"https://example.com/x".to_vec(),
         b"file:///tmp/second.txt".to_vec(),
@@ -75,8 +115,11 @@ fn every_refusal_is_a_skip_and_never_a_failed_read() {
     let bytes = lines.join(&b'\n');
     let (op, paths, skipped) = parse_gnome(&bytes).expect("a file selection");
     assert_eq!(op, "copy");
-    assert_eq!(paths, vec!["/tmp/ok.txt".to_string(), "/tmp/second.txt".to_string()]);
-    assert_eq!(skipped, 8);
+    assert_eq!(
+        paths,
+        vec!["/tmp/ok.txt".to_string(), "/tmp/second.txt".to_string()]
+    );
+    assert_eq!(skipped, 9);
 }
 
 #[test]
@@ -84,8 +127,14 @@ fn kde_and_flea_tokens_decide_cut_and_identity() {
     assert!(parse_kde_cut(b"1"));
     assert!(parse_kde_cut(b"1\r\n"));
     assert!(!parse_kde_cut(b"0"));
-    assert_eq!(parse_flea(b"cut ab12cd34ab12cd34ab12cd34ab12cd34"),
-        Some(("cut".into(), "ab12cd34ab12cd34ab12cd34ab12cd34".into(), None)));
+    assert_eq!(
+        parse_flea(b"cut ab12cd34ab12cd34ab12cd34ab12cd34"),
+        Some((
+            "cut".into(),
+            "ab12cd34ab12cd34ab12cd34ab12cd34".into(),
+            None
+        ))
+    );
     assert!(parse_flea(b"copy short").is_none());
     assert!(parse_flea(b"copy ab12cd34ab12cd34ab12cd34ab12cd3!").is_none());
     assert!(parse_flea(b"move ab12cd34ab12cd34ab12cd34ab12cd34").is_none());
@@ -120,8 +169,14 @@ fn clip_paths_are_absolute_without_nul_or_parent_climbs() {
     assert!(validate_clip_paths(&["/a/b".to_string()]).is_ok());
     assert!(validate_clip_paths(&["relative".to_string()]).is_err());
     assert!(validate_clip_paths(&["/a\0b".to_string()]).is_err());
-    assert_eq!(validate_clip_paths(&["/a/../b".to_string()]), Err("/a/../b climbs out of its directory".to_string()));
-    assert_eq!(validate_clip_paths(&["/tmp/./a".to_string()]), Err("/tmp/./a holds a . component".to_string()));
+    assert_eq!(
+        validate_clip_paths(&["/a/../b".to_string()]),
+        Err("/a/../b climbs out of its directory".to_string())
+    );
+    assert_eq!(
+        validate_clip_paths(&["/tmp/./a".to_string()]),
+        Err("/tmp/./a holds a . component".to_string())
+    );
 }
 
 #[test]
@@ -135,8 +190,13 @@ fn a_hundred_thousand_paths_is_the_most_any_payload_names() {
 
 #[test]
 fn a_selection_past_the_cap_names_its_size_and_the_limit_in_plain_words() {
-    let over: Vec<String> = (0..=MAX_CLIP_PATHS).map(|i| format!("/tmp/f{}", i)).collect();
-    assert_eq!(check_path_cap(&over), Err("100001 items are selected, and the clipboard takes at most 100000".to_string()));
+    let over: Vec<String> = (0..=MAX_CLIP_PATHS)
+        .map(|i| format!("/tmp/f{}", i))
+        .collect();
+    assert_eq!(
+        check_path_cap(&over),
+        Err("100001 items are selected, and the clipboard takes at most 100000".to_string())
+    );
 }
 
 #[test]
@@ -166,4 +226,17 @@ fn a_foreign_gnome_trailing_newline_is_not_a_refused_file() {
     assert_eq!(op, "copy");
     assert_eq!(paths, vec!["/tmp/a"]);
     assert_eq!(skipped, 0, "a formatting line is not a refused URI");
+}
+
+#[test]
+fn tui17_text_payload_offers_no_file_identity_or_uri_list() {
+    assert!(check_selection("text", &["é\nfilename".into()]).is_ok());
+    let payload = payloads("text", &["é\nfilename".into()], "unused");
+    assert_eq!(payload.len(), 3);
+    for (mime, bytes) in payload {
+        assert!(matches!(mime, PLAIN_UTF8 | PLAIN | UTF8_STRING));
+        assert_eq!(bytes, "é\nfilename".as_bytes());
+    }
+    assert!(check_selection("text", &["nul\0byte".into()]).is_err());
+    assert!(check_selection("text", &["a".into(), "b".into()]).is_err());
 }

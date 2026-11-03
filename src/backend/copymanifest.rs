@@ -103,7 +103,7 @@ pub fn finish_loud(writer: Option<Writer>) -> (Option<Handle>, Option<String>) {
 // Tests only: a handle whose stream verifies nothing, so remove_owned answers Fallback.
 #[cfg(test)]
 pub(crate) fn test_unverified(root: &std::path::Path) -> Handle {
-    let mut inner = crate::backend::trashmanifest::Manifest::new(root).expect("anonymous manifest");
+    let mut inner = crate::backend::trashmanifest::Manifest::new_on_filesystem(root).expect("anonymous manifest");
     inner.append(b"framing without a record inside").expect("one damaged frame");
     Handle { records: inner.records(), root: root.to_path_buf(), count: 1 }
 }
@@ -118,8 +118,8 @@ impl Writer {
         let forbid = forbid_for(src, root);
         let mut last = "no runtime directory for the copy manifest lives off the copy's own filesystems".to_string();
         for dir in qualifying_dirs(&candidate_dirs(uid), &forbid, uid) {
-            // A directory that qualifies can still refuse an anonymous file, so each one is tried in turn.
-            match Manifest::new(&dir) {
+            // Retry qualifying off-copy filesystems without moving the named fallback onto the copy.
+            match Manifest::new_on_filesystem(&dir) {
                 Ok(inner) => {
                     return Ok(Self { inner, root: root.to_path_buf(), count: 0, overflow: false, failed: None, buf: Vec::new(), ends: Vec::new() })
                 }

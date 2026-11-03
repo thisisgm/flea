@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""A deterministic rail provider. No network or filesystem changes."""
+import json
+import os
+import sys
+
+for line in sys.stdin:
+    request = json.loads(line)
+    if request["op"] == "hello":
+        answer = {"op": "ready", "protocolVersion": 1}
+    elif request["op"] == "section":
+        base = os.environ.get("FLEA_EXAMPLE_FOLDERS", "/tmp/flea-example-syncthing")
+        answer = {"op": "section", "rows": [
+            {"id": name.lower(), "label": name, "glyph": "folder",
+             "state": state, "opens": base + "/" + name}
+            for name, state in [("Photos", "on"), ("Notes", "on"), ("Music", "off")]
+        ]}
+    elif request["op"] == "settings":
+        answer = {"op": "done"}
+    elif request["op"] == "cancel":
+        continue
+    else:
+        answer = {"op": "error", "message": "Unsupported example request."}
+    print(json.dumps(answer), flush=True)

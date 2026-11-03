@@ -1,0 +1,43 @@
+# The default shards for this tree: every headless suite exactly once, West and East2 lanes.
+# host lane kind [args]
+west ctr cargo-test --release
+west ct cargo-test
+west qml qmllint-gate
+west budget file-budget
+west prep prep
+east2 prep prep
+east2 clippy clippy
+east2 commits commit-rules 54fe171381a328614a28cc96c8aefff1b9d77e23
+east2 s13a suites preview-hunt bootload figure-warm slowsource-load clickedge-origin search-exit-reads folderviews-flow touchpad-edge permissions-focus figure-package tagrows trash-view cursorback quicklook-tablewarm dropmods-box-proof fillroles navsupersede mediasession quicklook-code settings-ground
+east2 s13b suites xwstate menus-evidence markdown-blockcost filter-held mtp-scan search-keep xw-addr picker-selection menu-clipboard-hunt markdown-tables gridviewport settings-tail tui-wake unlock-poller search-rawnames dualdivider transferhold code-engine csv-preview
+east2 s9a suites pkgrel-check tabcatcher menu-shebang figure-store cursormark ui-captures-sheet search-exit-columns sheet-query scroll-bounds rename-scroll sweep-picker-env gridresize dialog-board glass unlock-host columns-held menu-contents tui-quit-playing code-column cohesion-reader
+east2 s9b suites startup-objects xwtab-scan markdown-render markdown-nest gridmark columnsfilter foldersort-keep xw-harness presskeep remote-start hoverready rename-frame field-write-guard spinner-still columns-peekdrag-noise gridjump keyreach fontpane quicklook-rect
+east2 s11a suites preview-select sidebarcost markdown-figures-render preview-layout-loop columnsfilter-edge network-kernel-mounts dropmods-windows gridbare permissions-skips watch-views gridcapbreak ring-bounds cursor-swap field-tui-frame devicelock holdoff-cap reveal mpris preview-pdf-flow fenceparity
+east2 s11b suites xwsettings flash-ending-focus markdown-memory gridprebuild rowscroll filter-firstkey search-sizes touchpad-tool sidebar-flows opener-ask heldkey menu-fit navframe unlock-lsblk-shim readme-grab mediastrip-volume transferlive-owners columns-pwid markdown-code
+east2 s2 suites filemanager1 empty-state sandbox trashthumb-backend locale empty-trash gio-auth ops update portal
+east2 s1 suites protocol suite-inventory js keymap-gen charts budget signalarity gpui-lint gpui-gates
+east2 s6 suites pdf-first menu-settle grid-gap rowcost headercost headerhandles listcost listnamebudget listhidden columnscost columnrow-geom columndividers columnsfolder columnspeekgate lockedmenu arm-prompt acceptance-matrix counts connections-style jump-gap gridhidden gridcaption menu-snapshot-retire statusbar-hint
+east2 s7 suites pdf-turn ui-fixture-home menu-scroll-width scroll-fill columnclip-empty g1-03 g1-04 gpui-visual-scenes g1-06 g1-07 g1-08 g2-op1 g2-pv2 g2-pl1 g2-st2
+east2 proto protocol
+east2 s3 suites shellload uiwriter settings-columns preview-frame picker-recent picker-stall
+east2 s4 suites preview-swap preview-decode media capability-ownership dragwire mount-listing
+east2 s5 suites jump-ui lazy-objects archive jobs rename-lag gvfs modes thumbs thumbs-exec network-open-share network-keyless uistate
+west s10a suites gui-render-fallback quicklook-followrest search-ci-lint searchprior-ci third-party-licenses preview-settle-live columnsback markdown-spec gridnarrow ui-captures-fences heldlisting button-system picker-header menu-backend-hunt quicklook-hold picker-save-wrap capsweep-check field-prefetch-park hidden-release field-instant slowsource-nas columnsdrawn pv-gif pv-compare-menu
+west s10b suites appimage-icon tabreceive eject-verdict poolpark columnshidden dropcase-guards search-answered fs-matrix-smoke hyprdispatch quicklook-firstframe pdf-idle gridgrowth framegap preview-holdframes columnsprebuild portal-startup railmotion glass-mode field-launch-order raw-fixture
+west s12a suites staticgates preview-colwork preview-geometry markdown-figures markdown-lazy listnarrow ui-captures-permissions wait-listing menu-refresh-scroll picker-grid rename-list-bottom click-chrome shelf-mark preview-earlyask emptybeats slowsource-load-cleanup quicklook-firstkind heldcolumns preview-tall pv-compare
+west s12b suites fatcopy runall-rule pane-states markdown-security fencehosts search-exit-deep columns-peekdrag sortnew touchpad scrolloff-view shelf-add-queue dragready chromering glass-boot archive-threat hiddenlast-views tagflyout mountfail-image preview-raw capture-port
+west s14a suites markdown-linearity markdown-preview-state langmarks3 glasspick-case viewerorder-backend properties-races tui-editor-stop volume-udisks g1-01 gpui-capture-smoke gui-ipc native-transport-r1 g1-10 g1-11 g1-12
+west s14b suites html-preview material-startup langtoggle raildrop properties-multi print-office-real matchtext-zerowidth unzip-progress g1-02 gpui-spinner native-transport g2-mn1 g2-pl3 g2-sr1
+west s8a suites markdown-html columnnarrow cap-drops-trash dropmods-wait menu-card-sink picker-hunt pointer-glide-proof run-card-sink griddroplive colwatch-gate field-entrant-sweep ui-gvfsbridge-env portal-startup-abort theme-contrast flingframe field-strata-src columnsmoves
+west s8b suites listprebuild search-warm search-live columnspeekorder scroll-lanes permissions-adv qslog-crash trash-locations rename-cost navcost unlock-stdin cap-filter-width quicklook-zoom permissions-point-proof pv-gif-reply preview-scroll
+west s15 suites parity rclone rclone-ci tui-battery tui-cwd tui-detail tui-owner-stall
+east2 x1 suites g1-13
+east2 x2 suites preview-quality g2-pv2-md g2-pv2-web g2-pv2-office raw-corpus field-product field-localsearch ui-uish-inventory ui-uish-fixtures ui-uish-native-admission
+east2 x3 suites bench-fleet-contract bench-markdown-matrix strata-bench g2-dg1 g2-mn2 g2-op2 g2-sr2 search-fb5 gpui-theme-gate ui-gpui-headless ui-uish-common-observers
+east2 x4 suites state-compat native-runtime legacy-upgrade legacy-helpers i18n-quality g1-14 g1-05 fs-instrument cli-contract cli-contract-mutations chooser-replies bench-gate-provenance bench-field-work
+west opr-rec suites opr-recipe
+west tools suites aur-versions bench-b3-capture bench-raw-corpus-contract prove-ci-runner tool-preflight
+west slop suites slop-ratchet
+
+west m4-inventory suites bench-thumbs nvidia-gpui
+west triage-startup suites startup-order-tool

@@ -71,8 +71,10 @@ if [ "$pass_count" -ne 1 ] || [ "$fail_count" -ne 0 ]; then
     verdict=1
 fi
 # The lane has no sound server and the offscreen platform cannot mask a FloatingWindow; these lines are the lane's, never the player's.
+# Qt 6.12 Multimedia's PipeWire registry also names the missing server in a coloured category, so the message alone is matched.
 warnings=$(printf '%s\n' "$output" | grep -aE 'TypeError|ReferenceError|WARN|ERROR' \
-    | grep -vF -e 'This plugin does not support setting window masks' -e 'No audio device detected' -e 'pa_context_connect() failed')
+    | grep -vF -e 'This plugin does not support setting window masks' -e 'No audio device detected' -e 'pa_context_connect() failed' \
+        -e 'Failed to connect to pipewire instance "Host is down"')
 if [ -n "$warnings" ]; then
     printf 'FAIL the harness logged a warning\n'
     printf '%s\n' "$warnings"

@@ -150,7 +150,7 @@ phase_a() {
   check "an empty password asks like no password at all" "1" "$(answered '"err":"encrypted"')"
   # 7z reads one stdin line, so a password with a line break is refused before it can lock an archive with half of it.
   compress broken.7z 7z 'pre\npost' true a.txt
-  check "a password with a line break is refused" "1" "$(answered 'a password cannot hold a line break')"
+  check "a password with a line break is refused naming the archive" "1" "$(answered 'the password for broken.7z cannot hold a line break')"
   check "and no archive is written" "0" "$([ -e "$D/broken.7z" ] && echo 1 || echo 0)"
 
   # The big job outlives a few samples, so a live 7z child is read while it works.

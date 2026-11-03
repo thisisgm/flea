@@ -68,7 +68,7 @@ if int(pid):
         require(environment.get(name.encode()) == os.environ[name].encode(), "sandbox environment differs: " + name)
         require(Path(os.environ[name]).resolve().is_relative_to(Path(sandbox)), "state escaped sandbox: " + name)
     require((process / "exe").resolve() == Path(shutil.which("qs")).resolve(), "window is not the native Quickshell executable")
-    instances = json.loads(subprocess.check_output(["qs", "list", "--all", "--json"]))
+    instances = json.loads(subprocess.check_output([os.environ["FLEA_IPC_HELPER"], "list", "--all", "--json"]))
     instances = [item for item in instances if item["pid"] == int(pid) and item["config_path"] == str(Path(ui, "boot", "shell.qml"))]
     require(len(instances) == 1, "window has no exact native UI instance")
     clients = json.loads(subprocess.check_output(["hyprctl", "clients", "-j"]))
@@ -493,7 +493,7 @@ SH
         (( SECONDS < deadline )) || fail "empty hero late query: real query did not reach the gate; evidence=$query_root"
         sleep 0.05
     done
-    before=$(qs ipc --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: hidden observer failed"
+    before=$(flea_ipc_call --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: hidden observer failed"
     jq -e '(.visible | not) and (.reducedMotion | not) and .opacity == 0' <<< "$before" >/dev/null \
         || fail "empty hero late query: query was not held before the empty entrance: $before"
     hidden_offset=$(jq -er '.offset | numbers' <<< "$before") || fail "empty hero late query: hidden offset unavailable"
@@ -503,11 +503,11 @@ SH
     assert_focus
     started=$(date +%s%3N)
     # Observe concurrently with native delivery so the command's own return cannot consume the entrance.
-    timeout "$query_wait_seconds" omarchy-drive key --window flea -k Return > "$query_root/key.log" 2>&1 &
+    timeout "$query_wait_seconds" omarchy-drive key --window com.thisisgm.flea -k Return > "$query_root/key.log" 2>&1 &
     key_job=$!
     deadline=$((SECONDS + query_wait_seconds))
     while :; do
-        before=$(qs ipc --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: entrance observer failed"
+        before=$(flea_ipc_call --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: entrance observer failed"
         if jq -e '.visible and (.reducedMotion | not) and (.opacity < 1 or .offset != 0)' <<< "$before" >/dev/null; then break; fi
         jq -e '.visible' <<< "$before" >/dev/null \
             && fail "EMPTY_HERO_LATE_UNVERIFIED: native observation missed the actual entrance: $before"
@@ -517,7 +517,7 @@ SH
     exec {release_fd}>&-
     release_fd=""
     while :; do
-        observed=$(qs ipc --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: reduced observer failed"
+        observed=$(flea_ipc_call --pid "$pid" call flea emptyHeroState) || fail "empty hero late query: reduced observer failed"
         if jq -e '.reducedMotion' <<< "$observed" >/dev/null; then break; fi
         (( SECONDS < deadline )) || fail "empty hero late query: actual response was never applied: $observed"
     done

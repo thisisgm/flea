@@ -44,19 +44,26 @@ the move keeps them.
 ```
 git clone https://github.com/thisisgm/flea.git
 cd flea
-makepkg -si
+mkdir -p ../flea-build
+cp PKGBUILD ../flea-build/
+pkgver=$(. ./PKGBUILD && echo "$pkgver")
+git archive --prefix="flea-$pkgver/" -o "../flea-build/flea-v$pkgver.tar.gz" HEAD
+(cd ../flea-build && makepkg -fCsi --skipchecksums)
 ```
 
-Three lines, and the third one is the whole build: `-s` pulls in anything missing from `depends`
-and `makedepends`, and `-i` hands the finished package to pacman.
-
-`source=()` is empty on purpose, and it is worth saying why, because it is not obvious: with no
-source array makepkg builds from `$startdir`, the directory the PKGBUILD sits in. So a fresh clone
-is the source, and so is a checkout you are editing. `build()` reads that directory in place and
-redirects `CARGO_TARGET_DIR` into makepkg's own source directory so a package build never disturbs
-the tree's `target/` under a benchmark. `check()` runs `cargo test --release`, so a package that
-builds is a package whose suite passed. **Build from a clean tree:** the checkout is the source, so
-uncommitted edits are what gets packaged.
+The repository's `PKGBUILD` is the Omarchy Package Repository's recipe, the same text apart from the
+release fields, so a local build is the build the repository makes. Its `source` is the release
+tarball. `git archive` writes that tarball from the checkout under the same name into `flea-build`,
+and makepkg uses a source file it finds beside the `PKGBUILD` instead of downloading one. The build
+runs there and not in the clone because makepkg unpacks into a `src/` beside the `PKGBUILD`, and the
+clone's `src/` is Flea's own code. `-f` builds again when the version has not changed, where makepkg
+would otherwise install the package it already has, and `-C` empties the previous build's `src/`
+first, so a file deleted since then is not packaged. `--skipchecksums` is needed because the
+recipe's checksum is a placeholder that only a release replaces; the tarball is your own commit, so
+git already vouches for it. `-s` pulls in anything missing from `depends` and `makedepends`, and
+`-i` hands the finished package to pacman. `check()` runs the test suites, so a package that builds
+is a package whose suites passed. **The last commit is the source:** `git archive` packages `HEAD`,
+so commit an edit before you build it.
 
 ## What lands on disk
 
@@ -65,6 +72,7 @@ uncommitted edits are what gets packaged.
 | `/usr/bin/flea` | the binary, backend and launcher both |
 | `/usr/share/flea/ui/` | the Quickshell UI, which `paths.rs` looks for by `boot/shell.qml` |
 | `/usr/share/flea/ui/Commons`, `/usr/share/flea/ui/Ui` | symlinks into `/usr/share/omarchy/shell/`, reached from QML as `qs.Commons` |
+| `/usr/share/flea/i18n/<code>/flea.json` | the translation catalogs, one per Omarchy language, which `src/i18n/mod.rs` reads |
 | `/usr/lib/flea/flea-portal` | the XDG portal backend, which answers `org.freedesktop.impl.portal.FileChooser` |
 | `/usr/lib/flea/flea-filemanager1` | the D-Bus service, which answers `org.freedesktop.FileManager1` for "Show in folder" |
 | `/usr/share/dbus-1/services/com.thisisgm.flea.FileManager1.service` | what D-Bus activates that with |
@@ -381,8 +389,9 @@ meaning the window. Launcher stdio is beside the point either way, and every lau
 hands over none: glib routes the launch through the session bus, so the child's stdio is the user
 manager's.
 
-`StartupWMClass` because the window's app id comes from the `AppId` pragma at `ui/boot/shell.qml:1` and
-is not the binary name. `packaging/flea-package-test` reads both and fails if they drift apart.
+`StartupWMClass` matches the GPUI window's `APP_ID`, `com.thisisgm.flea`, set in
+`crates/flea-gui/src/window/mod.rs`. The retained QML entry has the same `AppId`;
+`packaging/flea-package-test` still compares that pragma with the desktop entry.
 
 ## Proving it
 

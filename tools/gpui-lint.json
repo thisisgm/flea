@@ -1,0 +1,71 @@
+{
+  "fork": {
+    "url": "https://github.com/thisisgm/gpui-omarchy",
+    "rev": "04965e86d309e82eb0562e31a541032170379ba8"
+  },
+  "ui_callbacks": [
+    "flea_gui::window::open",
+    "flea_gui::state::Shell::new",
+    "flea_gui::window::events::Shell::receive",
+    "flea_gui::window::render::Shell::render"
+  ],
+  "blocking_helpers": [],
+  "blocking_exceptions": [
+    {
+      "caller": "flea_gui::g2::pl3::pane::TrashPane::pump",
+      "symbol": "status",
+      "reason": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call"
+    },
+    {
+      "caller": "flea_gui::columns::folder_size_tests::collect",
+      "symbol": "std::thread::sleep",
+      "reason": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback"
+    },
+    {
+      "caller": "flea_gui::window::network_cloud::Sources::read_mountinfo",
+      "symbol": "std::fs::read_to_string",
+      "reason": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure"
+    },
+    {
+      "caller": "flea_gui::window::network_cloud::Sources::load_rows",
+      "symbol": "read_to_string",
+      "reason": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure"
+    },
+    {
+      "caller": "flea_gui::tabs::geometry::hyprland",
+      "symbol": "output",
+      "reason": "Builds the clients closure only; ask_tab_geometry calls it inside cx.background_executor().spawn, and the call-graph walk does not see the stored closure"
+    }
+  ],
+  "non_color_hex_constants": [],
+  "color_modules": [
+    {
+      "module": "flea_gui::palette",
+      "kind": "palette",
+      "reason": "Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks."
+    }
+  ],
+  "hot_surfaces": [
+    {
+      "name": "list",
+      "path": "crates/flea-gui/src/list/element.rs",
+      "element": "ListElement",
+      "row_height": "ROW_HEIGHT"
+    },
+    {
+      "name": "columns",
+      "path": "crates/flea-gui/src/columns.rs",
+      "pending": true
+    },
+    {
+      "name": "grid",
+      "path": "crates/flea-gui/src/grid.rs",
+      "pending": true
+    },
+    {
+      "name": "long_menus",
+      "path": "crates/flea-gui/src/menus.rs",
+      "pending": true
+    }
+  ]
+}

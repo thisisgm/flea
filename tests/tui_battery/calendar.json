@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "driver_sha256": "e3f18db34c5423ff8450b59d649d0395388bf8c85a5a3f45c5854ecf680b24b5",
+  "identity_sha256": "10f86963175d3fe0d5a16d4af0e282e532a2e42c3d193e9b5ad8e9cc1a0add9b",
+  "states": [
+    "file-current-year-preview",
+    "file-current-year-properties",
+    "file-midnight-preview",
+    "file-midnight-properties",
+    "file-older-preview",
+    "file-older-properties",
+    "folder-a5-preview",
+    "folder-a5-properties",
+    "folder-a5-quicklook",
+    "folder-older-preview",
+    "folder-older-properties",
+    "image-a5-loaded",
+    "image-a5-preview",
+    "image-a5-properties",
+    "image-a5-quicklook",
+    "missing-preview",
+    "missing-properties"
+  ]
+}

@@ -1,0 +1,111 @@
+#!/bin/bash
+# Source once after choosing the launch binary, then invoke $FLEA_IPC_HELPER through timeout or env.
+
+flea_ipc_init() {
+    local launch=${1:-${FLEA_BIN:-flea}} frontend=${2:-${FLEA_FRONTEND:-gpui}}
+    case ${launch##*/} in
+        qs|quickshell) frontend=qml ;;
+        flea-gui) frontend=gpui ;;
+    esac
+    case $frontend in
+        gpui|qml) ;;
+        *) printf 'flea-ipc: unknown frontend: %s\n' "$frontend" >&2; return 2 ;;
+    esac
+    FLEA_IPC_KIND=$frontend
+    FLEA_IPC_BIN=${FLEA_BIN:-flea}
+    [[ ${launch##*/} != flea-gui && ${launch##*/} != qs && ${launch##*/} != quickshell ]] && FLEA_IPC_BIN=$launch
+    FLEA_IPC_HELPER=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/flea-ipc
+    export FLEA_IPC_KIND FLEA_IPC_BIN FLEA_IPC_HELPER
+}
+
+flea_ipc_call() {
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" route -- "$@"
+        return $?
+    fi
+    case ${FLEA_IPC_KIND:-} in
+        qml) LC_ALL=C.UTF-8 LANGUAGE= qs ipc "$@" ;;
+        gpui)
+            local arguments=() config= explicit=false pid
+            while [[ $# -gt 0 ]]; do
+                case $1 in
+                    call|show) arguments+=("$1"); shift; break ;;
+                    -p|--path) [[ $# -ge 2 ]] || return 2; config=$2; shift 2 ;;
+                    --pid|-i|--id|--any) explicit=true; arguments+=("$1"); shift ;;
+                    *) arguments+=("$1"); shift ;;
+                esac
+            done
+            if [[ -n $config && $explicit == false ]]; then
+                pid=$(LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" pid "$config") || return $?
+                arguments=(--pid "$pid" "${arguments[@]}")
+            fi
+            "${FLEA_IPC_BIN:-flea}" ipc "${arguments[@]}" "$@"
+            ;;
+        *) printf 'flea-ipc: select the launched frontend once with flea_ipc_init\n' >&2; return 2 ;;
+    esac
+}
+
+flea_ipc_drive() {
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" drive -- "$@"
+        return $?
+    fi
+    if [[ $FLEA_IPC_KIND == qml ]]; then LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive ipc "$@"; return; fi
+    local selector=()
+    while [[ ${1:-} == -p || ${1:-} == --path || ${1:-} == --pid ]]; do
+        [[ $# -ge 2 ]] || return 2
+        selector+=("$1" "$2")
+        shift 2
+    done
+    flea_ipc_call "${selector[@]}" call "$@"
+}
+
+flea_ipc_wait() {
+    if [[ $FLEA_IPC_KIND == qml && -z ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait ipc "$@"; return; fi
+    local selector=() timeout_s=10 expected target function answer status started=$SECONDS
+    while [[ ${1:-} == -p || ${1:-} == --path || ${1:-} == --pid ]]; do
+        [[ $# -ge 2 ]] || return 2
+        selector+=("$1" "$2")
+        shift 2
+    done
+    [[ $# -ge 3 ]] || return 2
+    target=$1 function=$2 expected=$3
+    shift 3
+    [[ $# == 0 || ( $# == 2 && $1 == --timeout && $2 =~ ^[0-9]+$ ) ]] || return 2
+    [[ $# == 0 ]] || timeout_s=$2
+    while :; do
+        answer=$(flea_ipc_call "${selector[@]}" call "$target" "$function")
+        status=$?
+        [[ $status != 3 ]] || return 3
+        [[ $status != 0 || $answer != "$expected" ]] || return 0
+        (( SECONDS - started < timeout_s )) || return 1
+        sleep 0.05
+    done
+}
+
+flea_ipc_list() {
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" list -- "$@"
+        return $?
+    fi
+    if [[ $FLEA_IPC_KIND == qml ]]; then
+        LC_ALL=C.UTF-8 LANGUAGE= qs list "$@"
+    else
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" list "$@"
+    fi
+}
+
+if [[ ${BASH_SOURCE[0]} != "$0" ]]; then
+    [[ -n ${FLEA_IPC_KIND:-} ]] || flea_ipc_init
+else
+    case ${FLEA_IPC_KIND:-} in qml|gpui) ;; *) echo 'flea-ipc: initialize the frontend once before calling IPC' >&2; exit 2 ;; esac
+    case ${1:-} in
+        list)
+            shift
+            flea_ipc_list "$@"
+            ;;
+        drive) shift; flea_ipc_drive "$@" ;;
+        wait) shift; flea_ipc_wait "$@" ;;
+        *) flea_ipc_call "$@" ;;
+    esac
+fi

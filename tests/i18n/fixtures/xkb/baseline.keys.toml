@@ -1,0 +1,2145 @@
+# The one key table. tools/flea-keymap-gen turns it into ui/js/Keymap.js, which is generated.
+
+# Control-modified keys are checked first, so plain d can mean cut while ctrl-d pages.
+[[ctrl]]
+key = "D"
+action = "pageDown"
+
+[[ctrl]]
+key = "U"
+action = "pageUp"
+
+[[ctrl]]
+key = "A"
+action = "selectAll"
+
+# Finder's table with Cmd read as Ctrl, which is also what Omarchy's universal clipboard injects
+# (SUPER+C/V/X arrive here as CTRL+C/V/X, see clipboard.lua) and what GTK binds. Every chord is
+# additive: the bare vim key beside it stays. Cmd+D is the one Finder chord not taken, because
+# Ctrl+D above already pages with Ctrl+U as its pair; Duplicate stays a menu row.
+[[ctrl]]
+key = "C"
+action = "copy"
+
+[[ctrl]]
+key = "V"
+action = "paste"
+
+[[ctrl]]
+key = "X"
+action = "cut"
+
+[[ctrl]]
+key = "Z"
+action = "undo"
+
+[[ctrl]]
+key = "F"
+action = "search"
+
+# Finder's Cmd+E. ui/js/Eject.js "release" ejects the rail's cursor row or the removable volume the
+# listing is inside, with the verdict from Mounts.railMenu, off the lsblk poll, never an exit code.
+[[ctrl]]
+key = "E"
+action = "eject"
+
+# RailAdditions rule 4 (issue 112, muellan): the rail hides and comes back on the chord every editor
+# binds for its own sidebar, and the choice is remembered in ui.json the way the view is.
+[[ctrl]]
+key = "B"
+action = "sidebar"
+
+# Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
+# Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
+[[ctrl]]
+key = "L"
+action = "pathBar"
+
+# Opens the default terminal in the directory being shown, through flea --terminal
+# (xdg-terminal-exec --dir=). Ctrl+T is unbound elsewhere here, and bare t below is tabNew.
+[[ctrl]]
+key = "T"
+action = "openTerminal"
+
+# Ctrl+Return opens the cursor folder in a new tab, the keyboard twin of the
+# middle click keys.toml already ships (Tap.tappedTab). Nautilus binds the same.
+[[ctrl]]
+key = "Return"
+action = "openTab"
+
+[[ctrl]]
+key = "Enter"
+action = "openTab"
+
+# The browser's own reload chord beside F5 above; every preset leaves both free.
+[[ctrl]]
+key = "R"
+action = "reload"
+# The settings panel's own chord, spelled ctrl-, by both presets and by every editor that has one;
+# the bare comma below is the key the Settings board draws beside the toolbar's sliders button.
+[[ctrl]]
+key = "Comma"
+action = "settings"
+
+# Checked before the plain ctrl rows and falling through when unmatched, so Ctrl+Shift+D still
+# pages. Ctrl+Shift+N is Nautilus's own New Folder and Finder's with Cmd read as Ctrl, and the
+# window reaches the backend's mkdir through Ops.newFolder. Shift+period is delivered as Greater
+# on a US layout and as Period elsewhere, so both rows name the one action.
+[[ctrlshift]]
+key = "N"
+action = "newFolder"
+
+# Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
+# alias onto the Display section's own control and its one stored stop, never a second engine. Plus
+# and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
+# 0 goes back to following Omarchy, so an override is never a state you are stuck in.
+[[ctrlshift]]
+key = "Plus"
+action = "textSizeUp"
+
+[[ctrlshift]]
+key = "Equal"
+action = "textSizeUp"
+
+[[ctrlshift]]
+key = "Minus"
+action = "textSizeDown"
+
+[[ctrlshift]]
+key = "Underscore"
+action = "textSizeDown"
+
+[[ctrlshift]]
+key = "0"
+action = "textSizeReset"
+
+[[ctrlshift]]
+key = "Greater"
+action = "toggleHidden"
+
+[[ctrlshift]]
+key = "Period"
+action = "toggleHidden"
+
+# Tabs040 callout 1: the reorder keys beside the drag. Checked before the plain
+# ctrl rows, so Ctrl+Shift+PageUp never falls through to a tab switch.
+[[ctrlshift]]
+key = "PageUp"
+action = "tabMoveLeft"
+
+[[ctrlshift]]
+key = "PageDown"
+action = "tabMoveRight"
+
+# MenuAdditions040: Ctrl+Shift+C copies the selection's paths, one per line,
+# through wl-copy, without opening a row; c opens Copy as at the cursor.
+[[ctrlshift]]
+key = "C"
+action = "copyPath"
+
+# Shift falls through instead of returning, because shift-modified letters already carry their
+# own capital text (see G below); this table only covers the arrow keys, which carry no text.
+# The preset overlay, the four-value chooser the Keys settings section walks: default, vim, mac and
+# windows, in SettingsKeys.html's own order. It is consulted before every table above, so a preset
+# can claim a chord the shared tables also bind, and a chord listed here is live only while its own
+# preset is selected. Decided 2026-09-06: every preset reaches every action this table governs,
+# so default and vim carry the three view chords SettingsKeys.html's inventory leaves as a dash. On
+# every other row a preset governs the shared tables already bind a bare key, and Default is what a
+# missing or unknown name means. A chord claimed twice inside one preset is a generator error, which
+# is SettingsKeys.html's "Conflicts fail the build"; across presets there is nothing to check.
+# mods is "ctrl" for a chord with Control and no Shift, "ctrlshift" for both. keys is what the Keys
+# section prints beside the label, and it is spelled the way SettingsKeys.html spells a chord. Each
+# block writes name, mods, key, keys, action, then label, in that order.
+
+# The four views are bound in no shared table, so a preset claiming nothing left a fresh install
+# with no keyboard route to them at all, on a keyboard-first file manager. Default and Vim take the
+# spelling the Mac rows below already use, because only one preset is ever live and the two never
+# meet; the bare digits are tab1 through tab9, so a chord is the only free shape here.
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "1"
+keys = "ctrl-1"
+action = "viewList"
+label = "list"
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "2"
+keys = "ctrl-2"
+action = "viewColumns"
+label = "columns"
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "3"
+keys = "ctrl-3"
+action = "viewGrid"
+label = "grid"
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "4"
+keys = "ctrl-4"
+action = "viewDual"
+label = "dual pane"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "1"
+keys = "ctrl-1"
+action = "viewList"
+label = "list"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "2"
+keys = "ctrl-2"
+action = "viewColumns"
+label = "columns"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "3"
+keys = "ctrl-3"
+action = "viewGrid"
+label = "grid"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "4"
+keys = "ctrl-4"
+action = "viewDual"
+label = "dual pane"
+
+# Finder's own chords, read with Cmd as Ctrl the way Omarchy's universal clipboard already delivers
+# them; ui/js/Keymap.js's shared ctrl table keeps only the chords both platforms agree on.
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "1"
+keys = "ctrl-1"
+action = "viewList"
+label = "list"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "2"
+keys = "ctrl-2"
+action = "viewColumns"
+label = "columns"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "3"
+keys = "ctrl-3"
+action = "viewGrid"
+label = "grid"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "4"
+keys = "ctrl-4"
+action = "viewDual"
+label = "dual pane"
+
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
+name = "mac"
+mods = "ctrl"
+key = "Up"
+keys = "ctrl-up"
+action = "parent"
+label = "up one level"
+
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
+name = "mac"
+mods = "ctrl"
+key = "Down"
+keys = "ctrl-down"
+action = "open"
+label = "open"
+
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
+name = "mac"
+mods = "ctrl"
+key = "Delete"
+keys = "ctrl-delete"
+action = "trash"
+label = "move to Trash"
+
+# Finder's Connect to Server. Bare a stays a shared key, so the Windows preset loses only the chord.
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "K"
+keys = "ctrl-k"
+action = "addNetwork"
+label = "connect to server"
+
+# Explorer's own chords. Backspace, Delete, F2, Ctrl+A, Ctrl+C/V/X, Ctrl+Z, Ctrl+F and Ctrl+Shift+N
+# are already in the shared tables because Finder and Explorer agree on them; these are the four
+# this product can honour where they differ.
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "H"
+keys = "ctrl-h"
+action = "toggleHidden"
+label = "hidden files"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "1"
+keys = "ctrl-shift-1"
+action = "viewList"
+label = "list"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "2"
+keys = "ctrl-shift-2"
+action = "viewColumns"
+label = "columns"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "3"
+keys = "ctrl-shift-3"
+action = "viewGrid"
+label = "grid"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "4"
+keys = "ctrl-shift-4"
+action = "viewDual"
+label = "dual pane"
+
+[[shift]]
+key = "Down"
+action = "extendDown"
+
+[[shift]]
+key = "Up"
+action = "extendUp"
+
+# Bindings on the key code, for the keys that carry no printable character.
+[[code]]
+key = "Down"
+action = "cursorDown"
+
+[[code]]
+key = "Up"
+action = "cursorUp"
+
+# Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
+# so ui/js/Focus.js takes them for free and tools/flea-acceptance derives each as its own driven
+# item; Home and End are g and G, the page pair is Ctrl+U and Ctrl+D half a screen each, and the
+# curated sheet below draws none of those eight, so all four of cursorFirst, cursorLast, pageUp and
+# pageDown have no row on it.
+[[code]]
+key = "Home"
+action = "cursorFirst"
+
+[[code]]
+key = "End"
+action = "cursorLast"
+
+[[code]]
+key = "PageUp"
+action = "pageUp"
+
+[[code]]
+key = "PageDown"
+action = "pageDown"
+
+[[code]]
+key = "Return"
+action = "open"
+
+[[code]]
+key = "Enter"
+action = "open"
+
+[[code]]
+key = "Backspace"
+action = "parent"
+
+[[code]]
+key = "Delete"
+action = "trash"
+
+[[code]]
+key = "Escape"
+action = "escape"
+
+# The only thing that moves focus between the list and the rail, see ui/js/Focus.js.
+[[code]]
+key = "Tab"
+action = "focusNext"
+
+# Space already owns "open preview" in the browsing state ui/js/Focus.js act handles, and
+# ui/js/PreviewKeys.js act reuses the same action name to mean "close" once a preview is open, on
+# every kind including media, so there is no free context left for a third meaning; v toggles selection.
+[[code]]
+key = "Space"
+action = "preview"
+
+# F2 shares the "rename" action "r" carries below; ui/js/Focus.js dispatches it by focus view.
+[[code]]
+key = "F2"
+action = "rename"
+
+# F5 re-reads the folder through the listing swap, the way a watched change does; the
+# notice names how many rows changed, and only when rows changed. TrashView owns its own.
+[[code]]
+key = "F5"
+action = "reload"
+
+# Decided 2026-09-13: the arrows are the letter pair's own spelling, so Left is h's parent and
+# Right is l's browse-in, in the list, the columns and both dual panes. A preview takes them back
+# through the preview-context rows at the end of this file, where they seek in media and turn the
+# page in a PDF, and the grid claims them as its own sideways move in ui/js/Focus.js before the map
+# is consulted at all. They were seekBack and seekForward here, which ui/js/Focus.js then discarded
+# everywhere but the grid, so the two arrows did nothing at all while browsing.
+[[code]]
+key = "Left"
+action = "parent"
+
+[[code]]
+key = "Right"
+action = "pageForward"
+
+# The character is authoritative for letters, so shift-g is distinguishable from g.
+[[text]]
+char = "j"
+action = "cursorDown"
+
+[[text]]
+char = "k"
+action = "cursorUp"
+
+[[text]]
+char = "g"
+action = "cursorFirst"
+
+[[text]]
+char = "G"
+action = "cursorLast"
+
+# Decided 2026-09-01: the keymap sheet's own letters. Selection moved off x, which now cuts,
+# onto v, which is also the TUI board's visual-mode key.
+[[text]]
+char = "v"
+action = "toggleSelect"
+
+[[text]]
+char = "J"
+action = "extendDown"
+
+[[text]]
+char = "K"
+action = "extendUp"
+
+[[text]]
+char = "h"
+action = "parent"
+
+# Narrows the rows already listed, in place and with no round trip, in every view; ui/js/Focus.js
+# drops it only while a search owns the header.
+[[text]]
+char = "/"
+action = "filter"
+
+# Search walks the subtree under the current directory; filter above narrows what is already listed.
+[[text]]
+char = "f"
+action = "search"
+
+# Only means something on a search result, so ui/js/Focus.js drops it everywhere else and o stays type-ahead.
+[[text]]
+char = "o"
+action = "reveal"
+
+# The path bar's own key, the vim line-command colon it is drawn as on the Tui board. Ctrl+L above
+# is the same action under the chord every browser and every GTK file manager already carries.
+[[text]]
+char = ":"
+action = "pathBar"
+
+[[text]]
+char = "t"
+action = "tabNew"
+
+# The Tags flyout's own key, from the listing; the seven digits toggle while that list is open.
+[[text]]
+char = "T"
+action = "tags"
+
+# Swaps the preview column's compact facts line for the full table (ui.json previewFacts); a no-op unless that column is on screen.
+[[text]]
+char = "i"
+action = "factsToggle"
+
+[[text]]
+char = "w"
+action = "tabClose"
+
+
+[[text]]
+char = "y"
+action = "copy"
+
+# The capital-is-the-variant shape g/G, j/J and s/S already use: y takes the file, Y takes the route.
+[[text]]
+char = "Y"
+action = "copydirpath"
+
+[[text]]
+char = "x"
+action = "cut"
+
+[[text]]
+char = "p"
+action = "paste"
+
+# Two presses, because a single d sat in the middle of the letters a name is typed with and trashed
+# the row on the third keystroke of "Vid". Delete and Ctrl+Delete still go on one press.
+[[text]]
+char = "d"
+action = "trashArm"
+keys = "dd"
+
+[[text]]
+char = "r"
+action = "rename"
+
+# The canvas draws this on the keymap sheet and again in the status line after a trash ("z undoes"),
+# so it is the one key the shipped table was missing rather than a new invention.
+[[text]]
+char = "z"
+action = "undo"
+
+# The TUI board draws "s cycles, r reverses", but r is rename in both front ends and the canvas's
+# own Operations sheet draws it that way, so the reverse key is S: the capital-is-the-variant shape
+# g/G, j/J and J/K already use. s steps only through the orders the backend can really produce,
+# see ui/js/Sort.js; the columns it cannot are refused on an aimed click instead.
+[[text]]
+char = "s"
+action = "sortNext"
+
+[[text]]
+char = "S"
+action = "sortReverse"
+
+[[text]]
+char = "."
+action = "toggleHidden"
+
+# Opens the Network group's add-location popup; works from either the list or the rail.
+[[text]]
+char = "a"
+action = "addNetwork"
+
+# The keyboard's way into the menu a right click raises: the row's own menu in the listing, Eject
+# and Unmount in the rail. The tagline is "keyboard-first" and before this key neither had one, so
+# m is no longer a type-ahead letter; ui/js/Focus.js routes it by which view has focus.
+[[text]]
+char = "m"
+action = "menu"
+
+# MenuAdditions040: c opens Copy as at the cursor, P opens Paste as, and V
+# flips the selection; c, P and V work with the rows hidden, like every key.
+[[text]]
+char = "c"
+action = "copyAs"
+
+[[text]]
+char = "P"
+action = "pasteAs"
+
+[[text]]
+char = "V"
+action = "invertSelection"
+
+# The Settings board's own key: "," from anywhere in the window, no modifier chord, because
+# Omarchy's universal clipboard consumes SUPER+C/V/X and a settings panel is the last place to
+# fight for one. ui/Pane.qml routes it from the list and from the rail alike.
+[[text]]
+char = ","
+action = "settings"
+
+# The sheet's own key. Shift falls through to the text switch, so ? needs no [[shift]] row.
+[[text]]
+char = "?"
+action = "keymapSheet"
+
+# The PDF viewer's own three, reachable only with a PDF preview open. ui/js/Focus.js discards them
+# everywhere else. Expand takes e because f is search and Space is preview; the canvas names no key,
+# but it gets one.
+[[text]]
+char = "-"
+action = "zoomOut"
+
+[[text]]
+char = "+"
+action = "zoomIn"
+
+[[text]]
+char = "e"
+action = "expand"
+
+# The page pair: h goes back in a PDF or to the parent while browsing; l goes forward, enters a directory, or previews a file.
+[[text]]
+char = "l"
+action = "pageForward"
+
+# Tabs040 callout 1: { and } move the current tab one place, the keys beside the
+# drag. The character is authoritative, so these need no [[shift]] row the way the
+# text-less arrows do; both are free in all four presets.
+[[text]]
+char = "{"
+action = "tabMoveLeft"
+
+[[text]]
+char = "}"
+action = "tabMoveRight"
+
+# Keys040: [ and ] step to the previous and next tab. Bare text like { and }
+# above; the only BracketLeft/BracketRight rows in any preset are mac's
+# super-modified history chords, a different modifier state, so both are free
+# in all four presets.
+[[text]]
+char = "["
+action = "tabPrevious"
+# CommandPalette draws the tab rows by their chords alone, so [ and ] stay bound but off the sheet.
+sheet = false
+
+[[text]]
+char = "]"
+action = "tabNext"
+sheet = false
+
+# KeymapSheet.html rule 1: a binding gets a group and the sheet reads it. The group is named by
+# action rather than written on every binding, because one action is spelled four different ways
+# across the presets and its group is the same in all four; the generator fails the build if an
+# action the listing binds is missing here or named twice. The order is the order the sheet draws,
+# and the heading is the key with its first letter capitalised.
+# Move is where the cursor, the pane or the window goes. Look is what is drawn and how big. Find
+# narrows or orders what is already listed. Change writes something, or opens the surface that does.
+[sheetgroups]
+move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
+        "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
+        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"]
+look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
+        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
+        "textSizeReset", "keymapSheet"]
+find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
+          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
+          "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+
+# The digit range, expanded by the generator into tab1 through tab9.
+[digits]
+from = 1
+to = 9
+prefix = "tab"
+
+# The keymap sheet ? opens, in the order the canvas's Keys panel draws it, two columns down.
+# A chord shares the row of the key it doubles, written ^c for ctrl and ^N (a capital, the table's
+# own shift convention) for ctrl-shift, so the sheet stays two columns. Two rows keep the bare key
+# alone: "f ^f" beside "find in subtree" and "a ^k" beside "add network place" overrun the 154 px
+# column at base-size 14 in JetBrainsMono (155 and 169 px measured); the README carries those two.
+# keys is what the cap prints, action is what the first of those keys must resolve to, and label is
+# the wording. tests/js/keymap.js checks every action against the table above, so a row here cannot
+# advertise a key that is not bound. Each block writes keys, then action, then label, in that order.
+
+[[sheet]]
+keys = "j k"
+action = "cursorDown"
+label = "move"
+
+[[sheet]]
+keys = "enter"
+action = "open"
+label = "open"
+
+[[sheet]]
+keys = "^enter"
+action = "openTab"
+label = "open in new tab"
+
+[[sheet]]
+keys = "h"
+action = "parent"
+label = "parent"
+
+[[sheet]]
+keys = "l"
+action = "pageForward"
+label = "browse in"
+
+[[sheet]]
+keys = "space"
+action = "preview"
+label = "quick look"
+
+# The canvas's Operations board draws / between space and f, and so does this.
+[[sheet]]
+keys = "/"
+action = "filter"
+label = "filter"
+
+[[sheet]]
+keys = "f"
+action = "search"
+label = "find"
+
+[[sheet]]
+keys = "o"
+action = "reveal"
+label = "reveal"
+
+[[sheet]]
+keys = "F5 ^r"
+action = "reload"
+label = "reload"
+
+# Issue 30 asked for a way to search the folder the pane is in, and tab on the query line is it, so
+# the sheet draws the key here rather than leaving the only control the issue got undocumented.
+[[sheet]]
+keys = "tab"
+action = "focusNext"
+label = "scope / focus"
+
+[[sheet]]
+keys = ": ^l"
+action = "pathBar"
+label = "path"
+
+[[sheet]]
+keys = "y ^c"
+action = "copy"
+label = "copy"
+
+[[sheet]]
+keys = "Y"
+action = "copydirpath"
+label = "folder path"
+
+[[sheet]]
+keys = "x ^x"
+action = "cut"
+label = "cut"
+
+[[sheet]]
+keys = "p ^v"
+action = "paste"
+label = "paste"
+
+[[sheet]]
+keys = "r"
+action = "rename"
+label = "rename"
+
+[[sheet]]
+keys = "F4"
+action = "autofitColumns"
+label = "autofit columns"
+
+[[sheet]]
+keys = "dd"
+action = "trashArm"
+label = "trash"
+
+[[sheet]]
+keys = "z ^z"
+action = "undo"
+label = "undo"
+
+[[sheet]]
+keys = "T"
+action = "tags"
+label = "tags"
+
+[[sheet]]
+keys = "i"
+action = "factsToggle"
+label = "facts"
+
+[[sheet]]
+keys = "^N"
+action = "newFolder"
+label = "new folder"
+
+[[sheet]]
+keys = "v"
+action = "toggleSelect"
+label = "select"
+
+[[sheet]]
+keys = "s"
+action = "sortNext"
+label = "sort"
+
+[[sheet]]
+keys = "S"
+action = "sortReverse"
+label = "reverse"
+
+[[sheet]]
+keys = ". ^>"
+action = "toggleHidden"
+label = "hidden files"
+
+[[sheet]]
+keys = "a"
+action = "addNetwork"
+label = "add network place"
+
+[[sheet]]
+keys = "m"
+action = "menu"
+label = "menu"
+
+[[sheet]]
+keys = "^e"
+action = "eject"
+label = "eject"
+
+[[sheet]]
+keys = "^t"
+action = "openTerminal"
+label = "terminal"
+
+[[sheet]]
+keys = "^+"
+action = "textSizeUp"
+label = "larger"
+
+[[sheet]]
+keys = "^-"
+action = "textSizeDown"
+label = "smaller"
+
+[[sheet]]
+keys = "^)"
+action = "textSizeReset"
+label = "reset size"
+
+[[sheet]]
+keys = ","
+action = "settings"
+label = "settings"
+
+[[sheet]]
+keys = "?"
+action = "keymapSheet"
+label = "keys"
+
+# The pointer contract, the mouse's half of this table. tools/flea-keymap-gen turns it into
+# Keymap.POINTER and tests/js/tap.js drives ui/js/Tap.js against every listing and neighbour row, so
+# a click cannot change meaning without this file saying so and this file cannot advertise a click
+# the code does not make.
+#
+# The effect field is "does" and not "action" on purpose. tools/flea-acceptance derives its whole key
+# checklist from every 'action = ' line in this file, without scoping to a table, so an action= here
+# would put a key on that checklist that nobody can press. Do not rename it back.
+#
+# where  listing    the list view, the grid view, and the columns view's own middle column
+#        column     the columns view's middle column alone, which answers every listing row above
+#                   and then the one row of its own that the other two views do not carry
+#        neighbour  the columns view's parent and child columns, which are peeks with no cursor
+#        rail       ui/SidebarRow.qml: favourites, mounts and network places
+#        window     a press that belongs to no row at all, taken by ui/shell.qml
+#        chrome     ui/ChromeBar.qml's path above the listing and a dual pane's own path, ui/PanePath.qml,
+#                   whose segments are their own targets, both drawn by ui/Crumb.qml
+# press  the button, then any modifier before it, then "x2" for the second tap of a double click
+# row    which rows the line covers: any, dir, file, parent, inert, place, renaming or result
+# does   backOrParent commitRename extendSelect forward goToCrumb menu nothing open openTab pathBar reveal selectOnly toggleSelect
+#
+# Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
+# opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
+# why the listing's two-tap rule stops at the rail's edge.
+
+[[pointer]]
+where = "listing"
+press = "left"
+row = "any"
+does = "selectOnly"
+label = "put the cursor on the row and drop any other selection"
+
+[[pointer]]
+where = "listing"
+press = "left x2"
+row = "any"
+does = "open"
+label = "open the row"
+
+# The operator's ruling on a search result: clicking one takes you to the file rather than launching
+# it, and one tap is what does it (2026-09-11), because a result you clicked is a result you are done
+# reading. ui/js/Search.js activateAction is what decides, and it answers "open" everywhere else,
+# which is why the row above still stands. Enter still opens and o still reveals, so only the pointer
+# reads the search this way. The reveal moves the pane, so the second tap of a double click lands on
+# another directory's row: it is declared below as doing nothing, the neighbour columns' own rule.
+[[pointer]]
+where = "listing"
+press = "left"
+row = "result"
+does = "reveal"
+label = "go to the file in its own directory, selected"
+
+[[pointer]]
+where = "listing"
+press = "left x2"
+row = "result"
+does = "reveal"
+label = "still the one reveal the first tap made"
+
+[[pointer]]
+where = "listing"
+press = "ctrl left"
+row = "any"
+does = "toggleSelect"
+label = "add the row to the selection"
+
+[[pointer]]
+where = "listing"
+press = "shift left"
+row = "any"
+does = "extendSelect"
+label = "extend the selection to the row"
+
+# A modifier never opens, whatever the tap count, and only the first tap of one counts: a ctrl-held
+# double click that toggled twice would put the selection back where it started.
+[[pointer]]
+where = "listing"
+press = "ctrl left x2"
+row = "any"
+does = "toggleSelect"
+label = "still only selects"
+
+[[pointer]]
+where = "listing"
+press = "shift left x2"
+row = "any"
+does = "extendSelect"
+label = "still only selects"
+
+# Finder commits an inline rename when you click away. A TapHandler never moves Qt focus, so
+# ui/RenameField.qml's onActiveFocusChanged cannot carry this and ui/js/Tap.js asks the pane
+# explicitly. The keyboard survives the close because the field gives up focus when it hides, in
+# ui/RenameField.qml, and not because the view takes focus back: forcing focus onto a ListView
+# re-selects the hidden field, which is the focus scope's remembered child.
+[[pointer]]
+where = "listing"
+press = "left"
+row = "renaming"
+does = "commitRename"
+label = "commit the open rename, then select the row"
+
+# The pressed row decides which rows the menu means, ui/js/Drag.js carried()'s rule for the pointer's
+# other gesture. A menu raised inside a multi-row selection acts on all of it, as Finder does, and one
+# raised outside collapses the selection to that row, because every entry the menu draws is built from
+# the cursor row while Move to Trash, Compress and Move to Dropbox all dispatch through the selection.
+[[pointer]]
+where = "listing"
+press = "right"
+row = "any"
+does = "menu"
+label = "open the context menu at the pointer, on the selection the row is in"
+
+# Middle click opens a directory in a new tab, the way a browser opens a link, and it is the mirror
+# of ui/TabBar.qml closing a tab on the same button. It moves neither the cursor nor the selection,
+# because the tab being left keeps its own; ui/js/Tap.js tappedTab decides, in all three views.
+[[pointer]]
+where = "listing"
+press = "middle"
+row = "dir"
+does = "openTab"
+label = "open the directory in a new tab"
+
+[[pointer]]
+where = "listing"
+press = "middle"
+row = "file"
+does = "nothing"
+label = "a file has no directory to open in a tab"
+
+# The operator's ruling, 2026-09-11: the columns view goes into a directory on one tap, the way both
+# of its own neighbour columns already do and the way Finder's column view does. Only a directory and
+# only here: a file in this column still waits for the second tap, and one tap in the list and the
+# grid still only selects. ui/ColumnsArea.qml is the sole caller of ui/js/Tap.js tappedMiddle, which
+# is what scopes this to the middle column; a modifier still selects, because it never opens anywhere.
+[[pointer]]
+where = "column"
+press = "left"
+row = "dir"
+does = "open"
+label = "go into that directory on one tap, as its neighbours do"
+
+# A neighbour column has no cursor, so one tap on a directory makes it the pane's own listing: that is
+# the column view's reveal, the gesture Finder's own column view answers a single click with, and not
+# an open. A file has nothing to reveal, so it waits for the second tap.
+[[pointer]]
+where = "neighbour"
+press = "left"
+row = "dir"
+does = "reveal"
+label = "show that directory in the middle column"
+
+[[pointer]]
+where = "neighbour"
+press = "left"
+row = "file"
+does = "nothing"
+label = "a file has no contents to reveal"
+
+[[pointer]]
+where = "neighbour"
+press = "left x2"
+row = "file"
+does = "open"
+label = "open the file"
+
+# Every menu action addresses the pane's cursor and a peeked row is another directory's, so the two
+# neighbour columns raise no menu at all rather than one whose entries would act somewhere else.
+[[pointer]]
+where = "neighbour"
+press = "right"
+row = "any"
+does = "nothing"
+label = "a peeked row has no menu"
+[[pointer]]
+where = "neighbour"
+press = "middle"
+row = "dir"
+does = "openTab"
+label = "open the peeked directory in a new tab"
+
+# Issue 45: the path above the listing is a control now as well as a label. Every segment but the
+# leaf opens its own directory on one tap, through the same pathEntered route the typed bar uses; the
+# leaf is the directory already listed, so it has nowhere of its own to go, and the frozen List view
+# board draws it in the foreground role while every segment above it is muted. The row column reads
+# "parent" for that reason: a row saying "crumb" would promise a press the leaf never answers. A
+# parent answers on the first tap (decided 2026-09-22), because waiting to rule out a double click held
+# every crumb click for the whole double-click interval, so the double click that opens the bar
+# lives only where a tap opens nothing: the leaf, the collapsed marker and the strip around them,
+# which the second row calls "inert".
+[[pointer]]
+where = "chrome"
+press = "left"
+row = "parent"
+does = "goToCrumb"
+label = "open the directory that segment of the path names, on the first tap"
+
+[[pointer]]
+where = "chrome"
+press = "left x2"
+row = "inert"
+does = "pathBar"
+label = "type the path: the current folder's own segment, the collapsed marker or the strip beside the path"
+
+# Issue 20: the mouse's side buttons. They belong to the window rather than to a row, so they are the
+# lines here with no listing under them; ui/js/Nav.js mouseBack and ui/js/MouseNav.js forward decide, and
+# ui/WindowBody.qml refuses both behind a dialog, an open preview, the share overlay and any field holding the keyboard.
+[[pointer]]
+where = "window"
+press = "back"
+row = "any"
+does = "backOrParent"
+label = "go back through the history, or up a directory when there is none"
+
+[[pointer]]
+where = "window"
+press = "forward"
+row = "any"
+does = "forward"
+label = "go forward again through a back, and nothing when there is none"
+
+[[pointer]]
+where = "rail"
+press = "left"
+row = "any"
+does = "open"
+label = "open the place"
+
+[[pointer]]
+where = "rail"
+press = "right"
+row = "any"
+does = "menu"
+label = "eject and unmount"
+
+# A Places or Favorites row, ui/js/PlaceMenu.js openTabAt: the same new tab the listing's middle click
+# opens. The Trash, a share and a volume answer nothing, because none has a folder until it is opened.
+[[pointer]]
+where = "rail"
+press = "middle"
+row = "place"
+does = "openTab"
+label = "open the place in a new tab"
+
+
+# Current Desktop SettingsKeys/KeyAudit routes.
+# mods=text compares the produced character; other modifiers match exactly.
+# Comma-separated contexts share controls only where focus scopes cannot overlap.
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "T"
+keys = "ctrl-t"
+action = "tabNew"
+label = "new tab"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "T"
+keys = "ctrl-t"
+action = "tabNew"
+label = "new tab"
+frontend = "all"
+context = "listing,rail"
+
+# Every preset, #182: Shift+Delete is permanent delete in Finder, Explorer, Nautilus and Dolphin alike,
+# and it still goes through the same confirmation the menu row does.
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Delete"
+keys = "shift-delete"
+action = "deletePermanently"
+label = "delete permanently"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "alt"
+key = "P"
+keys = "alt-p"
+action = "togglePreview"
+label = "preview column"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Space"
+keys = "ctrl-space"
+action = "loadPreview"
+label = "preview"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "W"
+keys = "ctrl-w"
+action = "tabClose"
+label = "close tab"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "PageDown"
+keys = "ctrl-pagedown"
+action = "tabNext"
+label = "next tab"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "PageUp"
+keys = "ctrl-pageup"
+action = "tabPrevious"
+label = "prev tab"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+keys = "ctrl-tab"
+action = "focusPreview"
+label = "focus preview"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Insert"
+keys = "ctrl-insert"
+action = "copy"
+label = "copy"
+frontend = "tui"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Insert"
+keys = "shift-insert"
+action = "paste"
+label = "paste"
+frontend = "tui"
+context = "listing"
+
+# H and L, not h and l: the character is authoritative for letters, and h and l are the shared
+# table's parent and browse-in. The cap has to spell what is bound or the sheet advertises a key
+# that does something else.
+[[preset]]
+name = "default"
+mods = "text"
+key = "H"
+keys = "H"
+action = "historyBack"
+label = "back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "H"
+keys = "H"
+action = "historyBack"
+label = "back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "default"
+mods = "text"
+key = "L"
+keys = "L"
+action = "historyForward"
+label = "forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "L"
+keys = "L"
+action = "historyForward"
+label = "forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "y"
+keys = "yy"
+action = "copyArm"
+label = "copy"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "d"
+keys = "dd"
+action = "cutArm"
+label = "cut"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "p"
+keys = "pp"
+action = "pasteArm"
+label = "paste"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "g"
+keys = "gg"
+action = "cursorFirstArm"
+label = "first row"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "D"
+keys = "D"
+action = "trash"
+label = "move to Trash"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "u"
+keys = "u"
+action = "undo"
+label = "undo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "l"
+keys = "l"
+action = "open"
+label = "open"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Return"
+keys = "enter"
+action = "rename"
+label = "rename"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Enter"
+keys = "enter"
+action = "rename"
+label = "rename"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "parent"
+label = "up one level"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "open"
+label = "open"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "X"
+keys = "ctrl-x"
+action = ""
+label = "Control+X is inert"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "C"
+keys = "super-c"
+action = "copy"
+label = "copy"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "V"
+keys = "super-v"
+action = "paste"
+label = "paste"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "superalt"
+key = "V"
+keys = "superalt-v"
+action = "movePaste"
+label = "move here"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "D"
+keys = "super-d"
+action = "duplicate"
+label = "duplicate"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "Z"
+keys = "super-z"
+action = "undo"
+label = "undo"
+frontend = "all"
+context = "listing"
+
+# Redo on the default preset. A legacy terminal sends Ctrl+Shift+Z as Ctrl+Z, so the TUI sees this chord only under the kitty keyboard protocol.
+[[preset]]
+name = "default"
+mods = "ctrlshift"
+key = "Z"
+keys = "ctrl-shift-z"
+action = "redo"
+label = "redo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Z"
+keys = "supershift-z"
+action = "redo"
+label = "redo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "A"
+keys = "super-a"
+action = "selectAll"
+label = "select all"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "I"
+keys = "super-i"
+action = "properties"
+label = "get info"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "N"
+keys = "super-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "BracketLeft"
+keys = "super-bracketleft"
+action = "historyBack"
+label = "back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "BracketRight"
+keys = "super-bracketright"
+action = "historyForward"
+label = "forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Period"
+keys = "supershift-period"
+action = "toggleHidden"
+label = "hidden files"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Greater"
+keys = "supershift-greater"
+action = "toggleHidden"
+label = "hidden files"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "trash"
+label = "move to Trash"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "Y"
+keys = "ctrl-y"
+action = "redo"
+label = "redo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Return"
+keys = "alt-return"
+action = "properties"
+label = "properties"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Enter"
+keys = "alt-enter"
+action = "properties"
+label = "properties"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Left"
+keys = "alt-left"
+action = "historyBack"
+label = "back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Right"
+keys = "alt-right"
+action = "historyForward"
+label = "forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Up"
+keys = "alt-up"
+action = "parent"
+label = "up one level"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Escape"
+keys = "escape"
+action = "escape"
+label = "escape"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Menu"
+keys = "menu"
+action = "menu"
+label = "context menu"
+frontend = "all"
+context = "listing,rail"
+
+# ListColumns040: F4 fits every drawn list column, the keyboard twin of the header's double click (GUI only).
+[[preset]]
+name = "all"
+mods = "none"
+key = "F4"
+keys = "f4"
+action = "autofitColumns"
+label = "autofit columns"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "F10"
+keys = "shift-f10"
+action = "menu"
+label = "context menu"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Down"
+keys = "down"
+action = "cursorDown"
+label = "cursorDown"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Up"
+keys = "up"
+action = "cursorUp"
+label = "cursorUp"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "j"
+keys = "j"
+action = "cursorDown"
+label = "cursorDown"
+frontend = "all"
+context = "rail,menu,panel,preview,media"
+
+# Space closes every preview now (decided 2026-09-11), so the media strip's play control needed a key of
+# its own: without one a keyboard-first file manager could only play and pause with the pointer.
+[[preset]]
+name = "all"
+mods = "text"
+key = "p"
+keys = "p"
+action = "playPause"
+label = "playPause"
+frontend = "all"
+context = "media"
+
+# MediaMute rule 4: m mutes while a media preview is open, and keeps its listing meaning everywhere
+# else, which the media context is what makes possible.
+[[preset]]
+name = "all"
+mods = "text"
+key = "m"
+keys = "m"
+action = "mute"
+label = "mute"
+frontend = "all"
+context = "media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "k"
+keys = "k"
+action = "cursorUp"
+label = "cursorUp"
+frontend = "all"
+context = "rail,menu,panel,preview,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Return"
+keys = "return"
+action = "open"
+label = "open"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Enter"
+keys = "enter"
+action = "open"
+label = "open"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Space"
+keys = "space"
+action = "preview"
+label = "preview"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Tab"
+keys = "tab"
+action = "focusNext"
+label = "focusNext"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Tab"
+keys = "shift-tab"
+action = "focusPrevious"
+label = "focus back"
+frontend = "all"
+context = "listing,rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Backtab"
+keys = "shift-backtab"
+action = "focusPrevious"
+label = "focus back"
+frontend = "all"
+context = "listing,rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "menuRight"
+label = "menuRight"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "parent"
+label = "parent"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "l"
+keys = "l"
+action = "menuRight"
+label = "menuRight"
+frontend = "all"
+context = "menu"
+
+# The Tags flyout's own digits: while that list is open 1 to 7 toggle the tag they name.
+[[preset]]
+name = "all"
+mods = "text"
+key = "1"
+keys = "1"
+action = "tag1"
+label = "tag 1"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "2"
+keys = "2"
+action = "tag2"
+label = "tag 2"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "3"
+keys = "3"
+action = "tag3"
+label = "tag 3"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "4"
+keys = "4"
+action = "tag4"
+label = "tag 4"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "5"
+keys = "5"
+action = "tag5"
+label = "tag 5"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "6"
+keys = "6"
+action = "tag6"
+label = "tag 6"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "7"
+keys = "7"
+action = "tag7"
+label = "tag 7"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "h"
+keys = "h"
+action = "parent"
+label = "parent"
+frontend = "all"
+context = "menu"
+
+# MenuAdditions040: each Copy as row's letter copies at once, and each Paste
+# as row's letter links at once. The letters work with key hints off and are
+# drawn only when key hints are on, like every menu hint.
+[[preset]]
+name = "all"
+mods = "text"
+key = "p"
+keys = "p"
+action = "copyPath"
+label = "copy path"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "n"
+keys = "n"
+action = "copyName"
+label = "copy name"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "e"
+keys = "e"
+action = "copyStem"
+label = "copy name without extension"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "f"
+keys = "f"
+action = "copydirpath"
+label = "copy folder path"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "u"
+keys = "u"
+action = "copyUri"
+label = "copy file URI"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "s"
+keys = "s"
+action = "copyQuoted"
+label = "copy shell-quoted"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "L"
+keys = "L"
+action = "pasteLink"
+label = "paste link"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "a"
+keys = "a"
+action = "pasteAbsoluteLink"
+label = "paste absolute link"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "H"
+keys = "H"
+action = "pasteHardLink"
+label = "paste hard link"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+keys = "ctrl-tab"
+action = "focusPreview"
+label = "focus listing"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "seekBack"
+label = "seekBack"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "seekForward"
+label = "seekForward"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "h"
+keys = "h"
+action = "seekBack"
+label = "seekBack"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "l"
+keys = "l"
+action = "pageForward"
+label = "pageForward"
+frontend = "all"
+context = "preview,pdf,media"
+
+# Decided 2026-10-03: r flips the open Markdown Quick Look to source and back, and the listing's r stays rename (preview context only).
+[[preset]]
+name = "all"
+mods = "text"
+key = "r"
+keys = "r"
+action = "markdownView"
+label = "rendered/source"
+frontend = "all"
+context = "preview"
+
+# w wraps the open code or text Quick Look and stays close tab in the listing (preview context only).
+[[preset]]
+name = "all"
+mods = "text"
+key = "w"
+keys = "w"
+action = "toggleWrap"
+label = "wrap"
+frontend = "all"
+context = "preview"
+
+# Compare's overlay: y copies the whole patch, headers included, and the listing's y stays copy (preview context only).
+[[preset]]
+name = "all"
+mods = "text"
+key = "y"
+keys = "y"
+action = "copyPatch"
+label = "copy patch"
+frontend = "all"
+context = "preview"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "-"
+keys = "-"
+action = "zoomOut"
+label = "zoomOut"
+frontend = "all"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "+"
+keys = "+"
+action = "zoomIn"
+label = "zoomIn"
+frontend = "all"
+context = "preview,pdf"
+
+# Media040 callout 3: 0 returns a Quick Look image to fit (image preview only; a PDF has no fit key).
+[[preset]]
+name = "all"
+mods = "text"
+key = "0"
+keys = "0"
+action = "zoomFit"
+label = "zoomFit"
+frontend = "all"
+context = "preview"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "e"
+keys = "e"
+action = "expand"
+label = "expand"
+frontend = "all"
+context = "pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Escape"
+keys = "escape"
+action = "escape"
+label = "close editor"
+frontend = "all"
+context = "editor"
+
+# Page the Columns preview while the listing keeps the keyboard.
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "F"
+keys = "F"
+action = "previewPageForward"
+label = "page preview forward"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "B"
+keys = "B"
+action = "previewPageBack"
+label = "page preview back"
+frontend = "gui"
+context = "listing"

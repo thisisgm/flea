@@ -51,6 +51,13 @@ omarchy-drive() {
 mkdir -p "$tmp/bin"
 export XW_HARNESS_TMP="$tmp" a_cursor=0 background_y=400
 export PATH="$tmp/bin:$PATH"
+# The extracted xw_ipc runs its helper under the real timeout, so the helper is an executable that answers through the qs stub.
+cat > "$tmp/bin/flea-ipc-helper" <<'STUB'
+#!/bin/sh
+exec qs ipc "$@"
+STUB
+chmod +x "$tmp/bin/flea-ipc-helper"
+FLEA_IPC_HELPER="$tmp/bin/flea-ipc-helper"
 cat > "$tmp/bin/qs" <<'STUB'
 #!/bin/bash
 set -uo pipefail

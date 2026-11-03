@@ -1,15 +1,33 @@
 #!/usr/bin/env bash
-# Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-magick-font"
+# Drives the selected frontend's real window and asserts through its read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
 set -o pipefail
-# Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
-. "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
     exit 1
 }
+
+# Select the driver before any compositor, session, fixture or native evidence setup.
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+test_frontend=${FLEA_TEST_FRONTEND:-gpui}
+ui_driver=${FLEA_UI_DRIVER:-native}
+case "$test_frontend" in qml|gpui) ;; *) fail "unknown test frontend: $test_frontend" ;; esac
+case "$ui_driver" in
+    native) ;;
+    headless)
+        exec python3 -B "$repo/tests/lib/flea_uish_inventory.py" --repo "$repo" --headless -- "$@"
+        ;;
+    *) fail "unknown UI driver: $ui_driver" ;;
+esac
+. "$repo/tools/flea-ipc"
+. "$repo/tests/lib/flea-transport.sh"
+PATH="${HOME:+$HOME/.local/bin:}$PATH" command -v omarchy-drive >/dev/null 2>&1 \
+    || fail "native UI tests require omarchy-drive (private helper); use FLEA_UI_DRIVER=headless for the supported headless cases"
+# Hard rule 9's guard owns every fixture create and delete in the native suite.
+. "$repo/tools/flea-sandbox-guard"
 
 . "$(dirname "$0")/lib/hypr-dispatch.sh"
 hypr_pointer_frame_offset=1
@@ -32,6 +50,7 @@ platform_theme_from_a_live_client() {
     tr '\0' '\n' < "/proc/$pid/environ" | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 
+if [[ "$test_frontend" == qml ]]; then
 if [[ -z "${QT_QPA_PLATFORMTHEME:-}" ]]; then
     export QT_QPA_PLATFORMTHEME="$(platform_theme)"
 fi
@@ -39,13 +58,19 @@ if [[ -z "$QT_QPA_PLATFORMTHEME" ]]; then
     export QT_QPA_PLATFORMTHEME="$(platform_theme_from_a_live_client)"
 fi
 [[ -n "$QT_QPA_PLATFORMTHEME" ]] || fail "no session, and no running client, published QT_QPA_PLATFORMTHEME, so every row would draw no icon at all"
+fi
 
-repo="$(cd "$(dirname "$0")/.." && pwd)"
 flea_ui="$repo/ui"
-# Every Flea this run launches announces its WorkerScript starts, so the log check below can match them to Qt's null connect lines.
+# QML windows announce WorkerScript starts so the log gate can match Qt's null connect lines.
 . "$repo/tests/qslog-gate.sh"
+if [[ "$test_frontend" == qml ]]; then
 export QT_LOGGING_RULES="$(qslog_rules "${QT_LOGGING_RULES:-}")"
+fi
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
+# The build these cases launch while their flea_bin points at a stub that stands in for the backend only.
+flea_launch_bin="$flea_bin"
+flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect noblank searchnoblank "
+flea_ipc_init "$flea_bin"
 # Sample input: let finished = Command::new("gio")
 # Every opener stub below is named from the product's own exec target, the same derivation
 # tests/modes.sh makes: a stub named by hand goes stale the day the target is renamed, and the run
@@ -83,9 +108,14 @@ drain_wait_s=30
 # Hard rule 9 covers writes, not only deletes: an overridable path that is truncated or written into
 # is the same hazard as one that is deleted, so both of these are pinned rather than taken from the
 # environment. Neither override had a caller.
-run_root=$(mktemp -d /tmp/flea-ui-run.XXXXXXXX) || fail "cannot create native evidence sandbox"
+[[ ! -L "$repo/.superpowers" && ! -L "$repo/.superpowers/m9-uish-01" ]] || fail "native evidence parent is a symlink"
+mkdir -p "$repo/.superpowers/m9-uish-01" || fail "cannot create run parent"
+run_root=$(mktemp -d "$repo/.superpowers/m9-uish-01/flea-ui-run.XXXXXXXX") || fail "cannot create native evidence sandbox"
 printf 'flea native evidence\n' > "$run_root/.flea-test-sandbox"
 export FLEA_TEST_RUN_ROOT="$run_root"
+export FLEA_TEST_WINDOWS_ROOT="$run_root/windows"
+mkdir -m 700 "$FLEA_TEST_WINDOWS_ROOT" || fail "cannot create owned window root"
+: > "$FLEA_TEST_WINDOWS_ROOT/.flea-test-sandbox"
 # A surviving copied-UI window can prove abandonment only after this runner has gone.
 printf '%s\n' "$$" > "$run_root/runner.pid" || fail "cannot record the native evidence runner"
 evidence_dir="$run_root/evidence"
@@ -108,6 +138,9 @@ printf 'NATIVE_EVIDENCE_ROOT=%s\n' "$run_root"
 suite_state="$run_root/state"
 mkdir -p "$suite_state" || fail "the suite state home could not be created at $suite_state"
 export XDG_STATE_HOME="$suite_state"
+# A runner's sandbox config and data homes are the seed each case copies; an unset one stays the transport's per-window home.
+suite_config_base="${XDG_CONFIG_HOME-}"
+suite_data_base="${XDG_DATA_HOME-}"
 # One scratch journal dir for the run; only the backend reads it, qs keeps the session runtime dir.
 suite_undo="$run_root/undo-journal"
 mkdir -p "$suite_undo" || fail "the suite undo dir could not be created at $suite_undo"
@@ -204,7 +237,7 @@ ipc() {
         xw_ipc "$ipc_pid" "$@"
         return
     fi
-    omarchy-drive ipc -p "$flea_ui/boot" flea "$@"
+    flea_ipc_drive -p "$flea_ui/boot" flea "$@"
 }
 
 # Window class used by every preflight, focus check and injected keystroke.
@@ -215,6 +248,10 @@ settle() {
 }
 
 flea_pids() {
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+        python3 -B "$flea_test_helper" pids "$FLEA_TEST_WINDOWS_ROOT"
+        return $?
+    fi
     local pid pids process result=0
     pids=$(pgrep -x qs) || result=$?
     (( result <= 1 )) || return "$result"
@@ -344,6 +381,10 @@ owned_trash_monitors() {
 
 kill_flea() {
     local pid pids found waited ownership deadline=$((SECONDS + drain_wait_s)) dead_pids=""
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+        dead_pids=$(flea_pids) || fail "cannot enumerate owned windows before teardown"
+        flea_test_stop_all || fail "owned process group teardown failed; fixtures kept"
+    fi
     [[ "$run_root" == /* && -f "$run_root/.flea-test-sandbox" ]] || fail "native process ownership root is missing"
     pids=$(flea_pids) || fail "cannot enumerate native windows for teardown"
     for pid in $pids; do
@@ -467,11 +508,12 @@ window_addr_of_pid() {
 # Positive equality against the expected class: a negated test reads an empty class as a pass; with ipc_pid set the pid is the identity, since two Flea windows share a class.
 assert_focus() {
     local seen
+    [[ "${test_frontend:-gpui}" != gpui || -n "$ipc_pid" ]] || fail "native input has no owned PID"
     if [[ -n "$ipc_pid" ]]; then
         seen=$(focused_pid)
         [[ "$seen" == "$ipc_pid" ]] \
             || fail "focus is on qs pid '$seen', not $ipc_pid, so this case sends no more keys"
-        return
+        [[ "${test_frontend:-gpui}" == gpui ]] || return
     fi
     seen=$(focused_class || true)
     [[ "$seen" == "$flea_window_class" ]] \
@@ -487,7 +529,7 @@ key() {
         omarchy-drive key --window "$addr" "$@"
         return
     fi
-    omarchy-drive key --window flea "$@"
+    omarchy-drive key --window com.thisisgm.flea "$@"
 }
 
 # omarchy-drive hotkey takes no --window and --global acts on the active window, so assert_focus is its only guard.
@@ -517,7 +559,9 @@ real_accent=$(grep -E '^accent' "$real_state_dir/theme/colors.toml" | grep -oE '
 assert_theme() {
     local loaded seen
     # The seam is built after the first listing, so a window that has just mapped may not answer yet.
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea ready true --timeout 20 >/dev/null \
+    local -a route=(-p "$flea_ui/boot")
+    [[ "${test_frontend:-gpui}" != gpui || -z "$ipc_pid" ]] || route=(--pid "$ipc_pid")
+    flea_ipc_wait "${route[@]}" flea ready true --timeout 20 >/dev/null \
         || fail "the IPC seam never answered ready, so no reader of this window can be trusted"
     for _attempt in $(seq 1 100); do
         seen=$(ipc themeForeground 2>/dev/null || true)
@@ -546,12 +590,33 @@ fixture_home_make() {
         mkdir -p "$home/.config/omarchy"
         cp "$real_user_shell_toml" "$home/.config/omarchy/shell.toml"
     fi
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
+        python3 -B "$repo/tests/lib/flea_native_inputs.py" "${real_user_shell_toml%/.config/omarchy/shell.toml}" "$home" \
+            || fail "cannot copy native fixture font inputs"
+    fi
 }
 
 assert_window() {
     # A window behind a heavy writeback sets its title within async_wait_ms, the bound every other async answer gets.
-    local count class deadline
+    local count class deadline clients
     deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
+        [[ "$ipc_pid" =~ ^[1-9][0-9]*$ ]] || fail "native launch has no owned PID"
+        while :; do
+            clients=$(hyprctl clients -j) || fail "cannot inspect native launch ownership"
+            count=$(jq --argjson pid "$ipc_pid" '[.[] | select(.pid == $pid)] | length' <<< "$clients") \
+                || fail "cannot parse native compositor clients"
+            [[ "$count" == 0 ]] || break
+            (( $(date +%s%3N) < deadline )) || break
+            sleep 0.05
+        done
+        [[ "$count" == 1 ]] || fail "expected one native window for owned PID $ipc_pid, got $count"
+        class=$(jq -r --argjson pid "$ipc_pid" '.[] | select(.pid == $pid) | .class' <<< "$clients")
+        [[ "$class" == "$flea_window_class" ]] || fail "unexpected native Flea class '$class'"
+        assert_focus
+        assert_theme
+        return
+    fi
     # The window can map before its title is set, and more so behind a heavy writeback: wait for the title, never a sleep.
     while :; do
         count=$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')
@@ -577,28 +642,81 @@ seed_ui_state() {
     export XDG_STATE_HOME="$state"
 }
 
-# DEFAULTS' twelve less placeMenu, runScript, extThumbs and openTerminal, so a case drives that row alone.
-terminal_shown='["delete","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection"]'
-# DEFAULTS' twelve less placeMenu, runScript and extThumbs; an exact-row-list case seeds this.
-menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection"]'
+# DEFAULTS' sixteen less placeMenu, runScript, extThumbs and openTerminal, so a case drives that row alone.
+terminal_shown='["delete","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText","openAgent","actions"]'
+# DEFAULTS' sixteen less placeMenu, runScript and extThumbs; an exact-row-list case seeds this.
+menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText","openAgent","actions"]'
 
-# launch() without its IPC wait, for a case that reads the window before the seam exists.
+# The HIG boards retitle 0.4.0's GPUI rows and lines; the QML shell keeps v0.3.12's words: by_frontend QML GPUI.
+by_frontend() { if [[ "$test_frontend" == gpui ]]; then printf '%s' "$2"; else printf '%s' "$1"; fi; }
+
+# launch() without its IPC wait, for a case that reads the window before the seam exists; a second argument is the --select target.
+# Each case's first launch moves it onto state, config and data homes of its own, unless the case already chose one,
+# so a view, saved place or setting a failed case left behind never reaches the next.
+case_homes() {
+    [[ -n "${running_case-}" && "${case_homes_for-}" != "$running_case" ]] || return 0
+    case_homes_for="$running_case"
+    local own="$run_root/case-homes/$running_case"
+    mkdir -p "$own/state" "$own/config" "$own/data" || fail "the case homes could not be created under $own"
+    if [[ "$XDG_STATE_HOME" == "$run_root/state" ]]; then
+        suite_state="$own/state"
+        export XDG_STATE_HOME="$suite_state"
+    fi
+    if [[ -n "$suite_config_base" && "${XDG_CONFIG_HOME-}" == "$suite_config_base" ]]; then
+        cp -a "$suite_config_base/." "$own/config/" || fail "the case config home could not be seeded"
+        export XDG_CONFIG_HOME="$own/config"
+    fi
+    if [[ -n "$suite_data_base" && "${XDG_DATA_HOME-}" == "$suite_data_base" ]]; then
+        export XDG_DATA_HOME="$own/data"
+    fi
+}
+
 launch_window() {
-    local start_path="$1"
+    local start_path="$1" select_target="${2-}"
     kill_flea
+    case_homes
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
     # Each case starts with an empty session journal, so one case never undoes another's operation.
     rm -f "$FLEA_UNDO_DIR/undo-journal" "$FLEA_UNDO_DIR/undo-journal.lock"
     # A case may set flea_launch_wrap, as cap_unlock does to start Flea in the graphical session polkit trusts.
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"} \
-        setsid nohup "$flea_bin" --gui "$start_path" >"$flea_log" 2>&1 </dev/null &
+    local -a wrap_args=()
+    local wrap_arg
+    for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
+    local -a select_args=()
+    [[ -z "$select_target" ]] || select_args=(--select "$select_target")
+    # A backend stub case's stub under the marked fixture root goes to the transport as FLEA_BIN; the launched flea stays this build.
+    local launch_bin="$flea_bin"
+    local -a backend_args=()
+    if [[ -n "${flea_launch_bin-}" && -n "${fixture_root-}" && "${flea_backend_stub_cases-}" == *" ${running_case-} "* \
+          && "$flea_bin" != "$flea_launch_bin" && "$flea_bin" == "$fixture_root"/* ]]; then
+        launch_bin="$flea_launch_bin"
+        backend_args=(--backend "$flea_bin")
+    fi
+    # A case's fixture HOME carries its GTK bookmarks and shell.toml under .config, which GPUI reads through XDG_CONFIG_HOME.
+    local launch_config="${XDG_CONFIG_HOME-}"
+    [[ "$HOME" != "$fixture_root"/* ]] || export XDG_CONFIG_HOME="$HOME/.config"
+    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$launch_bin" "${backend_args[@]}" \
+        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" \
+        || fail "owned window launch failed"
+    if [[ -n "$launch_config" ]]; then export XDG_CONFIG_HOME="$launch_config"; else unset XDG_CONFIG_HOME; fi
+    ipc_pid=$FLEA_TEST_PID
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then
+        local addr deadline=$(( $(date +%s%3N) + async_wait_ms ))
+        while ! addr=$(window_addr_of_pid "$ipc_pid" 2>/dev/null); do
+            (( $(date +%s%3N) < deadline )) || fail "owned native PID $ipc_pid never mapped"
+            sleep 0.05
+        done
+        omarchy-drive focus "$addr" >/dev/null || fail "cannot focus owned native window $addr"
+        assert_focus
+        return
+    fi
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
 }
 
 launch() {
-    launch_window "$1"
+    launch_window "$1" "${2-}"
     assert_window
     printf 'LAUNCH path=%q pid=%s\n' "$1" "$(flea_pid)"
 }
@@ -636,12 +754,12 @@ wait_listing_wall() {
     local want_total="$1" timeout_s="${2:-20}" total=unavailable row=loading state=unavailable
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        total=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea total 2>/dev/null || printf unavailable)
+        total=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea total 2>/dev/null || printf unavailable)
         if [[ "$want_total" == 0 ]]; then
-            state=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea state 2>/dev/null || printf unavailable)
+            state=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea state 2>/dev/null || printf unavailable)
             [[ "$total" == 0 && "$state" == empty ]] && return 0
         else
-            row=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea rowAt 0 2>/dev/null || printf loading)
+            row=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea rowAt 0 2>/dev/null || printf loading)
             [[ "$total" == "$want_total" && "$row" != "loading" ]] && return 0
         fi
         sleep 0.05
@@ -653,7 +771,7 @@ wait_path_wall() {
     local want="$1" timeout_s="${2:-20}" seen=unavailable
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea path 2>/dev/null || printf unavailable)
+        seen=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea path 2>/dev/null || printf unavailable)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.05
     done
@@ -664,9 +782,9 @@ find_row_wall() {
     local want="$1" timeout_s="${2:-20}" total=0 seen="" path=unavailable row
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        total=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea total 2>/dev/null || printf 0)
+        total=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea total 2>/dev/null || printf 0)
         for ((row = 0; row < total && $(date +%s%3N) < deadline; row++)); do
-            seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea rowAt "$row" 2>/dev/null || true)
+            seen=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea rowAt "$row" 2>/dev/null || true)
             if [[ "$seen" == "$want|"* ]]; then
                 printf '%s\n' "$row"
                 return 0
@@ -675,7 +793,7 @@ find_row_wall() {
         sleep 0.05
     done
     [[ "$total" =~ ^[0-9]+$ ]] || total=-1
-    path=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea path 2>/dev/null || printf unavailable)
+    path=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea path 2>/dev/null || printf unavailable)
     printf 'NETWORKLIVE traversal expected=%s total=%s path=%s\n' "$want" "$total" "$path" >&2
     return 1
 }
@@ -820,6 +938,29 @@ click_row_beside_name() {
 
 # Steps the menu cursor onto a row by its label rather than by a hardcoded number of Downs, so a
 # case survives the operations design's own rows landing between the ones it cares about.
+# The owned window's own HOME: the transport gives a window a sandbox home when the suite's HOME is unmarked.
+window_home() {
+    local home
+    home=$(tr '\0' '\n' < "/proc/$(flea_pid)/environ" | sed -n 's/^HOME=//p') || return 1
+    [[ "$home" == /* ]] || return 1
+    printf '%s' "$home"
+}
+
+# A menu row matches a case's label exactly; under GPUI the boards' title case and trailing ellipsis match too.
+menu_label_is() {
+    [[ "$1" == "$2" ]] && return 0
+    [[ "$test_frontend" == gpui ]] || return 1
+    local got="${1%…}" want="${2%…}"
+    [[ "${got,,}" == "${want,,}" ]]
+}
+
+# Whether a |-joined menu row list holds a row matching a case's label, by menu_label_is.
+menu_has() {
+    local label IFS='|'
+    for label in $1; do menu_label_is "$label" "$2" && return 0; done
+    return 1
+}
+
 menu_seek() {
     local want="$1" entries target i cursor steps step label
     entries=$(ipc contextMenuEntries)
@@ -827,7 +968,7 @@ menu_seek() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -852,7 +993,7 @@ menu_seek_submenu() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -874,7 +1015,7 @@ menu_row_index() {
     entries=$(ipc contextMenuEntries)
     local IFS='|'
     for label in $entries; do
-        if [[ "$label" == "$want" ]]; then
+        if menu_label_is "$label" "$want"; then
             unset IFS
             printf '%s' "$i"
             return 0
@@ -1104,6 +1245,9 @@ wait_terminal() {
     fail "openterminal: $what started no terminal in $want, log is $(cat "$log")"
 }
 
+# The trash-arm board says "or press Delete" in the GPUI frontend; v0.3.12's QML says "or Delete".
+dd_or="or"; if [[ "$test_frontend" == gpui ]]; then dd_or="or press"; fi
+
 # The status bar clears a transient after 4000 ms and an eject verdict arrives on the rail's own
 # 5000 ms poll, so a sentence that lands after a poll has to be caught as it lands, never slept for.
 wait_message() {
@@ -1112,7 +1256,7 @@ wait_message() {
     while (( $(date +%s%3N) < deadline )); do
         # 3 s, not 1: one ipc round trip costs hundreds of ms and grows under load, and a call that
         # times out returns nothing, which spends a sample of a sentence that stands for only 4 s.
-        seen=$(timeout 3 omarchy-drive ipc -p "$flea_ui/boot" flea lastMessage 2>/dev/null || true)
+        seen=$(timeout 3 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea lastMessage 2>/dev/null || true)
         if [[ "$seen" == "$want" ]]; then
             return 0
         fi
@@ -1128,7 +1272,7 @@ wait_network_result() {
     local want="$1" timeout_s="${2:-40}" seen=""
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea networkResult 2>/dev/null || true)
+        seen=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea networkResult 2>/dev/null || true)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.1
     done
@@ -1141,7 +1285,7 @@ wait_network_status() {
     local want="$1" timeout_s="${2:-40}" seen=""
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        seen=$(timeout 2 omarchy-drive ipc -p "$flea_ui/boot" flea networkStatus 2>/dev/null || true)
+        seen=$(timeout 2 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea networkStatus 2>/dev/null || true)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.1
     done
@@ -1152,7 +1296,7 @@ wait_network_entry_state() {
     local want="$1" timeout_s="${2:-20}" seen=""
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea networkEntries 2>/dev/null || true)
+        seen=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea networkEntries 2>/dev/null || true)
         [[ "$seen" == *"|network|share|$want" ]] && return 0
         sleep 0.1
     done
@@ -1164,7 +1308,7 @@ wait_network_entry_absent() {
     local row="$1" mount_uri="$2" timeout_s="${3:-20}" seen="" status=0 line present
     local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
     while (( $(date +%s%3N) < deadline )); do
-        if seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea networkEntries 2>/dev/null); then
+        if seen=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea networkEntries 2>/dev/null); then
             status=0
             present=false
             # networkEntries row: SFTP|network|share|true
@@ -1763,7 +1907,7 @@ case_terminal() {
     printf 'TERMINAL qs=%s backend=%s before state=%s total=%s row=%q\n' \
         "$qs_pid" "$backend_pid" "$(ipc state)" "$(ipc total)" "$(ipc rowAt 0)"
     kill "$backend_pid"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea state error --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea state error --timeout 15 >/dev/null \
         || fail "the pane stayed in state '$(ipc state)' after the backend died"
     [[ "$(ipc total)" == "0" ]] || fail "the stale total $(ipc total) survived the backend"
     [[ "$(ipc rowAt 0)" == "loading" ]] || fail "the stale row $(ipc rowAt 0) survived the backend"
@@ -1940,7 +2084,7 @@ case_open() {
     seek_row_named subdir
     key l >/dev/null
     wait_path "$dir/subdir"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea state empty --timeout 10 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea state empty --timeout 10 >/dev/null \
         || fail "open: subdir never reached its empty listing, state is $(ipc state)"
     [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to $open_handoff open"
     [[ -z "$(ipc lastMessage)" ]] || fail "open: entering the empty subdir said $(ipc lastMessage)"
@@ -2003,7 +2147,7 @@ case_open() {
     # because every archive type this box can name defaults to org.gnome.Nautilus.desktop.
     seek_row_named sample.zip
     key -k Return >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea previewState archive --timeout 10 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea previewState archive --timeout 10 >/dev/null \
         || fail "Enter on an archive left the preview at $(ipc previewState), kind $(ipc previewKind), and the log holds $(cat "$opened")"
     printf 'OPEN archive kind=%q state=%q log=%q\n' "$(ipc previewKind)" "$(ipc previewState)" "$(cat "$opened")"
     shot open-archive
@@ -3890,7 +4034,7 @@ case_xwsettings() {
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     local addrA addrB pidA pidB
     addrA=$(omarchy-drive windows --json | jq -r '[.windows[] | select(.title == "Flea")] | .[0].address // empty')
@@ -3898,13 +4042,13 @@ case_xwsettings() {
     omarchy-drive focus "$addrA" >/dev/null
     assert_window
     pidA=$(xwsettings_pid "$addrA" "$flea_ui") || fail "xwsettings: A has no owned qs pid"
-    local ipcA=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" qs ipc --pid "$pidA" call flea)
+    local ipcA=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidA" call flea)
     wait_listing 3
     [[ "$("${ipcA[@]}" path)" == "$dir" ]] || fail "xwsettings: A opened $("${ipcA[@]}" path), not $dir"
 
     # Window B on the copied tree, over the same state file.
     FLEA_UI="$uib" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null &
     local attempt count
     for (( attempt = 0; attempt < 150; attempt++ )); do
         count=$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')
@@ -3916,7 +4060,7 @@ case_xwsettings() {
         | jq -r --arg a "$addrA" '[.windows[] | select(.title == "Flea" and .address != $a)] | .[0].address // empty')
     [[ -n "$addrB" ]] || fail "xwsettings: the second window has no address of its own"
     pidB=$(xwsettings_pid "$addrB" "$uib") || fail "xwsettings: B has no owned qs pid"
-    local ipcB=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" qs ipc --pid "$pidB" call flea)
+    local ipcB=(timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pidB" call flea)
     omarchy-drive focus "$addrB" >/dev/null
     for (( attempt = 0; attempt < 150; attempt++ )); do
         [[ "$("${ipcB[@]}" path 2>/dev/null)" == "$dir" ]] && break
@@ -4208,7 +4352,7 @@ case_watch() {
     printf '%s' "$move_bytes" > "$dir/move-source.txt"
     mkdir "$dir/move-target"
     mv "$dir/move-source.txt" "$dir/move-target/move-source.txt"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea total 4 --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea total 4 --timeout 15 >/dev/null \
         || fail "watch: creating a directory and moving a file into it left the listing at $(ipc total) rows"
     [[ "$(ipc rowAt 0)" == move-target\|dir\|* ]] \
         || fail "watch: the moved-into directory is not row 0, got $(ipc rowAt 0)"
@@ -4242,7 +4386,7 @@ case_watch() {
     [[ "$(ipc selectionCount)" == 0 ]] || fail "watch: Escape did not release the folder selection"
     rm "$dir/move-target/move-source.txt"
     rmdir "$dir/move-target"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea total 3 --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea total 3 --timeout 15 >/dev/null \
         || fail "watch: move-case cleanup left the parent listing at $(ipc total) rows"
 
     # The reporter's four changes, from another process, while the window sits on the folder.
@@ -4251,7 +4395,7 @@ case_watch() {
     rm "$dir/beta.txt"
     mkdir "$dir/brand-new-folder"
     # The 400 ms settle plus the re-read; the reporter waited several seconds and saw nothing move.
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea total 4 --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea total 4 --timeout 15 >/dev/null \
         || fail "watch: the listing stayed at $(ipc total) rows after four outside changes"
     settle
     printf 'WATCH total=%s row0=%q row1=%q row2=%q\n' \
@@ -4274,7 +4418,7 @@ case_watch() {
     [[ "$(ipc rowAt "$(ipc cursor)")" == preview-me.txt\|* ]] \
         || fail "watch: the cursor did not start on preview-me.txt"
     printf 'z\n' > "$dir/AAA-above-the-cursor.txt"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea total 5 --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea total 5 --timeout 15 >/dev/null \
         || fail "watch: the second outside create left the listing at $(ipc total) rows"
     settle
     printf 'WATCH cursor=%s row=%q\n' "$(ipc cursor)" "$(ipc rowAt "$(ipc cursor)")"
@@ -4287,7 +4431,7 @@ case_watch() {
     settle
     [[ "$(ipc selectionCount)" == "1" ]] || fail "watch: v did not select the cursor row"
     printf 'held\n' > "$dir/BBB-while-selected.txt"
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea total 6 --timeout 15 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea total 6 --timeout 15 >/dev/null \
         || fail "watch: the listing did not re-read to 6 rows while a selection stood, total is $(ipc total)"
     settle
     [[ "$(ipc selectionCount)" == "1" ]] \
@@ -4413,7 +4557,7 @@ xw_second_window() {
     mkdir -p "$ui_copy" || fail "xwwatch: could not stage the second window's UI copy"
     cp -a "$flea_ui/." "$ui_copy/" || fail "xwwatch: could not copy the UI for the second window"
     FLEA_UI="$ui_copy" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$start_path" >>"$run_root/flea.A.log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$start_path" >>"$run_root/flea.A.log" 2>&1 </dev/null &
     pid=""
     for _attempt in $(seq 1 "$xw_window_poll_tries"); do
         pid=$(xw_owned_pid_for_arg "$ui_copy") && [[ -n "$pid" ]] && break || pid=""
@@ -4446,7 +4590,7 @@ xw_key() {
 xw_ipc() {
     local pid="$1"
     shift
-    timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" qs ipc --pid "$pid" call flea "$@"
+    timeout --kill-after="$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" --pid "$pid" call flea "$@"
 }
 
 # Aim at this address's own empty listing centre, then raise that window before the right click.
@@ -4581,7 +4725,7 @@ xw_menu_seek() {
     i=0
     local IFS='|'
     for label in $entries; do
-        [[ "$label" == "$want" ]] && { target=$i; break; }
+        menu_label_is "$label" "$want" && { target=$i; break; }
         i=$((i + 1))
     done
     unset IFS
@@ -4965,7 +5109,7 @@ case_select() {
     : > "$flea_log"
     # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
     QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/b.txt" FLEA_BIN="$flea_bin" \
-        setsid nohup qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -4983,7 +5127,7 @@ case_select() {
     : > "$flea_log"
     # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
     QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/does-not-exist.txt" FLEA_BIN="$flea_bin" \
-        setsid nohup qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -5356,6 +5500,197 @@ case_reclick() {
     kill_flea
 }
 
+# A GPUI neighbour-file tap reveals and selects without opening (COLUMNS-FINDER item 1).
+case_finderneighbour() {
+    local dir="$fixture_root/finderneighbour" fx fy wx wy _ww _wh row
+    local bindir="$fixture_root/finderneighbour-open-bin" opened="$fixture_root/finderneighbour-opened.log"
+    sandbox_scratch "$dir"
+    sandbox_scratch "$bindir"
+    mkdir -p "$dir/inner" || fail "finderneighbour: could not create fixtures"
+    printf 'neighbour body\n' > "$dir/note.txt" || fail "finderneighbour: could not seed note.txt"
+    printf 'inner body\n' > "$dir/inner/a.txt" || fail "finderneighbour: could not seed a.txt"
+    : > "$opened"
+    {
+        printf '#!/bin/sh\n'
+        printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+        printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$bindir/$open_handoff"
+    chmod +x "$bindir/$open_handoff"
+    seed_ui_state "$fixture_root/finderneighbour-state" '{"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    PATH="$bindir:$PATH" launch "$dir/inner"
+    xwdrag_place "$(flea_pid)" 80 80 1100 700
+    switch_view columns
+    wait_path "$dir/inner"
+    shot finderneighbour-before
+    # Dirs sort first, so the parent column lists inner at row 0 and note.txt at row 1.
+    read -r fx fy <<< "$(ipc columnParentRowCentre 1)"
+    [[ -n "$fy" ]] || fail "finderneighbour: the parent column shows no row 1 for note.txt"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    omarchy-drive click "$((wx + fx))" "$((wy + fy))" left >/dev/null
+    wait_path "$dir"
+    settle
+    row=$(ipc rowAt "$(ipc cursor)")
+    [[ "$row" == note.txt\|* ]] || fail "finderneighbour: one tap on note.txt left the cursor on '$row'"
+    [[ "$(ipc viewMode)" == "columns" ]] || fail "finderneighbour: the tap left Columns for $(ipc viewMode)"
+    [[ ! -s "$opened" ]] || fail "finderneighbour: one tap unexpectedly ran the opener"
+    shot finderneighbour-after
+    key -k Return >/dev/null || fail "finderneighbour: Enter was rejected"
+    for _attempt in $(seq 1 100); do
+        [[ -s "$opened" ]] && break
+        sleep 0.05
+    done
+    [[ "$(cat "$opened")" == "OPENED $dir/note.txt" ]] \
+        || fail "finderneighbour: Enter did not reach the monitored opener for note.txt"
+    printf 'FINDERNEIGHBOUR path=%s cursor=%s one_tap_open=none enter_open=%s\n' "$(ipc path)" "$row" "$dir/note.txt"
+    # The view is saved state, so the List goes back before the next case launches.
+    switch_view list
+    kill_flea
+}
+
+# GPUI Columns right-click targets its row while preserving cursor, marks and columns through Escape.
+case_finderrightclick() {
+    local dir="$fixture_root/finderrightclick" ax ay aw _ah wx wy _ww _wh cursor pid id
+    sandbox_scratch "$dir"
+    printf 'a\n' > "$dir/a.txt" || fail "finderrightclick: could not seed a.txt"
+    printf 'b\n' > "$dir/b.txt" || fail "finderrightclick: could not seed b.txt"
+    seed_ui_state "$fixture_root/finderrightclick-state" '{"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    launch "$dir"
+    xwdrag_place "$(flea_pid)" 80 80 1100 700
+    switch_view columns
+    wait_path "$dir"
+    key j >/dev/null
+    settle
+    cursor=$(ipc cursor)
+    [[ "$(ipc rowAt "$cursor")" == b.txt\|* ]] || fail "finderrightclick: j left the cursor on row $cursor"
+    read -r ax ay aw _ah <<< "$(ipc columnActiveRect)"
+    [[ -n "$aw" ]] || fail "finderrightclick: the active column has no rect"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    # Row 0, a.txt, is the active column's first row, so 8 px under its top is inside it at any text size.
+    omarchy-drive click "$((wx + ax + aw / 3))" "$((wy + ay + 8))" right >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "finderrightclick: the right click opened no menu"
+    [[ "$(ipc cursor)" == "$cursor" ]] || fail "finderrightclick: the right click moved the cursor to $(ipc cursor)"
+    [[ "$(ipc selectionCount)" == "0" ]] || fail "finderrightclick: the right click selected $(ipc selectionCount) rows"
+    [[ "$(ipc path)" == "$dir" ]] || fail "finderrightclick: the right click moved the columns to $(ipc path)"
+    shot finderrightclick-menu
+    key -k Escape >/dev/null || fail "finderrightclick: key Escape was rejected"
+    settle
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "finderrightclick: Escape left the menu open"
+    [[ "$(ipc cursor)" == "$cursor" ]] || fail "finderrightclick: Escape left the cursor on $(ipc cursor)"
+    [[ "$(ipc selectionCount)" == "0" && "$(ipc path)" == "$dir" ]] \
+        || fail "finderrightclick: Escape changed the selection or columns"
+    shot finderrightclick-after
+    omarchy-drive click "$((wx + ax + aw / 3))" "$((wy + ay + 8))" right >/dev/null
+    settle
+    menu_seek "Copy"
+    key -k Return >/dev/null || fail "finderrightclick: Copy was rejected"
+    pid=$(flea_pid) || fail "finderrightclick: no owned window"
+    id=$(xwdrag_qsid "$pid") || fail "finderrightclick: no instance id"
+    clipboard_wait "$id" copy "$dir/a.txt"
+    [[ "$(ipc cursor)" == "$cursor" && "$(ipc selectionCount)" == "0" && "$(ipc path)" == "$dir" ]] \
+        || fail "finderrightclick: Copy changed the cursor, selection or columns"
+    printf 'FINDERRIGHTCLICK cursor=%s path=%s copied=%s\n' "$cursor" "$(ipc path)" "$dir/a.txt"
+    switch_view list
+    kill_flea
+}
+
+# Column and sidebar hairlines drag; the docked rail uses its existing width stops.
+case_finderhairlines() {
+    local dir="$fixture_root/finderhairlines" ax ay aw _ah bx _by _bw _bh wx wy _ww _wh line y left
+    local rx ry rw rh px py pw ph parent_shift preview_shift stored default_edge
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/inner" || fail "finderhairlines: could not create fixtures"
+    printf 'a\n' > "$dir/inner/a.txt" || fail "finderhairlines: could not seed a.txt"
+    seed_ui_state "$fixture_root/finderhairlines-state" '{"view":"columns","places":{"sidebarWidth":192},"display":{"textSize":{"mode":14}}}'
+    [[ -z "${FINDER_TEST_THEME_WRAPPER:-}" ]] || flea_launch_wrap=("$FINDER_TEST_THEME_WRAPPER")
+    launch "$dir/inner"
+    xwdrag_place "$(flea_pid)" 80 80 1400 800
+    wait_path "$dir/inner"
+    settle
+    read -r ax ay aw _ah <<< "$(ipc columnActiveRect)"
+    [[ -n "$aw" ]] || fail "finderhairlines: the active column has no rect"
+    read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
+    # Equal tracks at rest: the pane's left edge is the active column's left less every ancestor track.
+    left=$((ax - ($(ipc columnCount) - 2) * aw))
+    default_edge=$((ax + aw))
+    line=$((wx + ax - 1))
+    y=$((wy + ay + 120))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the column hairline"
+    settle
+    shot finderhairlines-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the hairline press failed"
+    column_drag_absolute "$line" "$y" 60 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the hairline release failed"
+    settle
+    read -r bx _by _bw _bh <<< "$(ipc columnActiveRect)"
+    (( bx - ax >= 55 && bx - ax <= 65 )) \
+        || fail "finderhairlines: the active column moved from x $ax to $bx, not about 60 px right"
+    parent_shift=$((bx - ax))
+    shot finderhairlines-column
+    omarchy-drive click "$((wx + bx - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the column reset double click failed"
+    settle
+    read -r rx ry rw rh <<< "$(ipc columnActiveRect)"
+    (( rx - ax >= -2 && rx - ax <= 2 )) || fail "finderhairlines: column reset left x $rx, expected $ax"
+    shot finderhairlines-column-reset
+    line=$((wx + rx + rw - 1))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the preview hairline"
+    settle
+    shot finderhairlines-preview-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the preview press failed"
+    column_drag_absolute "$line" "$y" -40 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the preview release failed"
+    settle
+    read -r px py pw ph <<< "$(ipc columnActiveRect)"
+    preview_shift=$((px + pw - rx - rw))
+    (( preview_shift >= -50 && preview_shift <= -30 )) \
+        || fail "finderhairlines: preview edge moved $preview_shift, expected about -40 px"
+    shot finderhairlines-preview-drag
+    omarchy-drive click "$((wx + px + pw - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the preview reset double click failed"
+    settle
+    read -r px py pw ph <<< "$(ipc columnActiveRect)"
+    shot finderhairlines-preview-reset
+    (( px + pw - default_edge >= -2 && px + pw - default_edge <= 2 )) \
+        || fail "finderhairlines: preview reset left edge $((px + pw)), expected seeded default $default_edge"
+    # The sidebar hairline is the rail's last pixel column, just left of the pane.
+    line=$((wx + left - 1))
+    omarchy-drive move "$line" "$y" >/dev/null || fail "finderhairlines: the pointer could not reach the sidebar hairline"
+    settle
+    shot finderhairlines-sidebar-hover
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "finderhairlines: the sidebar press failed"
+    column_drag_absolute "$line" "$y" 40 4
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "finderhairlines: the sidebar release failed"
+    settle
+    for _attempt in $(seq 1 100); do
+        stored=$(jq -r '.places.sidebarWidth' "$XDG_STATE_HOME/flea/ui.json" 2>/dev/null)
+        [[ "$stored" == "224" ]] && break
+        sleep 0.05
+    done
+    [[ "$stored" == "224" ]] || fail "finderhairlines: the sidebar drag stored [$stored], not the 224 stop"
+    shot finderhairlines-sidebar
+    omarchy-drive click "$((wx + left + 224 - 192 - 1))" "$y" left --double >/dev/null \
+        || fail "finderhairlines: the sidebar reset double click failed"
+    for _attempt in $(seq 1 100); do
+        stored=$(jq -r '.places.sidebarWidth' "$XDG_STATE_HOME/flea/ui.json" 2>/dev/null)
+        [[ "$stored" == "192" ]] && break
+        sleep 0.05
+    done
+    [[ "$stored" == "192" ]] || fail "finderhairlines: sidebar reset stored [$stored], not 192"
+    shot finderhairlines-sidebar-reset
+    printf 'FINDERHAIRLINES text_size=14 column=%s preview=%s sidebar_drag=224 sidebar_reset=%s\n' "$parent_shift" "$preview_shift" "$stored"
+    switch_view list
+    kill_flea
+}
+
 # At / the climb stops, so every shown ancestor slot stays blank and keeps its width
 # instead of repeating / one and two levels down. Left at / is a silent no-op, and the
 # parent column lists / again once /usr is opened. JS pins the climb in tests/js/columns.js.
@@ -5700,7 +6035,7 @@ case_dd() {
     [[ "$(ipc selectedIndices)" == "1,2" ]] || fail "dd: the block is $(ipc selectedIndices), not rows 1,2"
     trash_trap_own "$dd_trash" "$dir" "dd" f2.txt f3.txt
     key d >/dev/null
-    wait_message "Press d again to move them to Trash, or Delete on its own."
+    wait_message "Press d again to move them to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f3.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f3.txt" ]] && fail "dd: the block was not trashed, the bar reads $(ipc lastMessage)"
@@ -5723,7 +6058,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f5.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f5.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f5.txt" ]] && fail "dd: the row was not trashed, the bar reads $(ipc lastMessage)"
@@ -5746,7 +6081,7 @@ case_dd() {
     at=$(ipc cursor)
     trash_trap_own "$dd_trash" "$dir" "dd" f6.txt
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     key d >/dev/null
     for _attempt in $(seq 1 40); do [[ -e "$dir/f6.txt" ]] || break; sleep 0.25; done
     [[ -e "$dir/f6.txt" ]] && fail "dd: the last row was not trashed, the bar reads $(ipc lastMessage)"
@@ -5808,7 +6143,7 @@ case_ddclick() {
         want="f$cur.txt"
         trash_trap_own "$ddclick_trash" "$dir" "ddclick ($view)" "$want"
         key d >/dev/null
-        wait_message "Press d again to move it to Trash, or Delete on its own."
+        wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
         key d >/dev/null
         for _attempt in $(seq 1 40); do [[ -e "$dir/$want" ]] || break; sleep 0.25; done
         [[ -e "$dir/$want" ]] && fail "ddclick ($view): $want survived, the bar reads $(ipc lastMessage)"
@@ -7396,7 +7731,7 @@ case_middleclick() {
 # One undo history for every Flea window: two live windows share one session journal, so the
 # newest entry from either is what Ctrl+Z undoes in whichever window it is pressed. The two
 # backends are separate processes sharing the suite scratch journal dir, and each window
-# is driven by its Hyprland address: --window flea refuses an ambiguous match, and qs ipc cannot
+# is driven by its Hyprland address: --window com.thisisgm.flea refuses an ambiguous match, and qs ipc cannot
 # address one instance out of two, so every assertion past the second launch reads the filesystem
 # rather than the seam. Each directory holds one file, so the cursor can only ever be row 0.
 case_xwundo() {
@@ -7414,7 +7749,7 @@ case_xwundo() {
     # Both windows run under the session runtime dir; only their backends share the suite journal dir.
     rm -f "$FLEA_UNDO_DIR/undo-journal" "$FLEA_UNDO_DIR/undo-journal.lock"
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -7424,7 +7759,7 @@ case_xwundo() {
     [[ -n "$addrA" ]] || fail "xwundo: window A never appeared"
 
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dirB" >"$blog" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dirB" >"$blog" 2>&1 </dev/null &
     local addrB="" attempt
     for attempt in $(seq 1 150); do
         if [[ "$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')" == "2" ]]; then
@@ -7563,10 +7898,10 @@ case_renderer() {
     printf '#!/bin/sh\nprintf "RAN %%s\\n" "$*" >> %q\n' "$relaunched" > "$dir/flea-stub"
     chmod +x "$dir/flea-stub"
     # The marker is set, so the renderer's own name is the only thing standing between this and a retry.
-    env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=1 \
+    QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=1 \
         __EGL_VENDOR_LIBRARY_FILENAMES="$dir/no-such-egl-vendor.json" \
         FLEA_PATH="$dir" FLEA_BIN="$dir/flea-stub" \
-        setsid nohup qs -p "$flea_ui/boot" > "$log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" > "$log" 2>&1 </dev/null &
     local waited
     for waited in $(seq 1 200); do
         grep -aq 'graphics backend opengl failed' "$log" && break
@@ -7641,8 +7976,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 
@@ -7796,7 +8131,7 @@ PYEOF
         || fail "preview: the pdf overlay reports $(ipc previewState), so it fell through to the refusal"
     [[ "$(ipc previewPdfPage)" == "0" ]] || fail "preview: manual.pdf opened on page $(ipc previewPdfPage), not page 0"
     key l >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea previewPdfPage 1 --timeout 10 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea previewPdfPage 1 --timeout 10 >/dev/null \
         || fail "preview: l left manual.pdf on page $(ipc previewPdfPage), not page 1"
     omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null \
         || fail "preview: l advanced manual.pdf state but left page 1 painted"
@@ -9104,7 +9439,7 @@ EOS
     local want_entries='Own slot|network|share|true' seen_entries="" entries_deadline
     entries_deadline=$(( $(date +%s%3N) + 12000 ))
     while (( $(date +%s%3N) < entries_deadline )); do
-        seen_entries=$(timeout 1 omarchy-drive ipc -p "$flea_ui/boot" flea networkEntries 2>/dev/null || true)
+        seen_entries=$(timeout 1 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea networkEntries 2>/dev/null || true)
         [[ "$seen_entries" == "$want_entries" ]] && break
         sleep 0.1
     done
@@ -9198,7 +9533,7 @@ EOS
     settle
     [[ "$(ipc networkTitle)" == "Add a network share" ]] || fail "networkauth: NFS moved the title"
     [[ "$(ipc networkFields)" == "Label|Host|Port|Export" ]] || fail "networkauth: NFS fields are $(ipc networkFields)"
-    [[ "$(ipc networkNote)" == "No password needed: the NFS server trusts this computer" ]] \
+    [[ "$(ipc networkNote)" == "No password needed. The NFS server trusts this computer." ]] \
         || fail "networkauth: NFS note is $(ipc networkNote)"
     [[ -z "$(ipc networkPasswordHint)" ]] || fail "networkauth: NFS shows the password hint $(ipc networkPasswordHint)"
 
@@ -9212,7 +9547,7 @@ EOS
     key "tester" >/dev/null
     key -k Tab >/dev/null
     [[ "$(ipc networkFocus)" == "Password" ]] || fail "networkauth: Password did not follow Username"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networkauth: typed password is not masked"
     shot networkauth-password-masked
@@ -9290,7 +9625,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: missing-helper setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     mv "$dir/bin/flea-gio-auth" "$dir/bin/flea-gio-auth.real"
     key -k Return >/dev/null
     wait_network_status "Could not connect: Flea could not ask for the password." 10
@@ -9354,7 +9689,7 @@ EOS
     for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networkauth: corrected-retry setup did not reach Password"
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     key -k Return >/dev/null
     wait_network_result mounted
     [[ "$(cat "$state/info-uri")" == "smb://tester@slot.test/data" ]] \
@@ -9379,7 +9714,7 @@ EOS
     key -k Tab >/dev/null
     key "tester" >/dev/null
     key -k Tab >/dev/null
-    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     : > "$state/fail"
     key -k Return >/dev/null
     wait_network_result failed
@@ -9525,7 +9860,7 @@ EOS
     settle
     [[ "$(ipc networkFocus)" == "Password" ]] \
         || fail "networktimeout: Password did not follow Username, focus is $(ipc networkFocus)"
-    printf '%s' "fixture-password" | omarchy-drive key --window flea - >/dev/null
+    printf '%s' "fixture-password" | omarchy-drive key --window com.thisisgm.flea - >/dev/null
     [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networktimeout: typed password is not masked"
     key -k Return >/dev/null
@@ -9606,7 +9941,7 @@ case_networklive() {
             || fail "networklive: password field did not receive focus"
         [[ "$(ipc networkPasswordState)" == "masked|empty" ]] \
             || fail "networklive: password was populated before stdin delivery"
-        omarchy-drive key --window flea - >/dev/null
+        omarchy-drive key --window com.thisisgm.flea - >/dev/null
         [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
             || fail "networklive: password stdin was empty"
         key -k Return >/dev/null
@@ -10661,6 +10996,9 @@ EOS
     sandbox_remove "$fixture_home"
 }
 
+# The GPUI frontend ends gio's options with "--" (gio mount -- URI, gio mount -u -- URI); a positional stub drops that one word first.
+gio_stub_args='if [ "${2:-}" = -- ]; then _a=$1; shift 2; set -- "$_a" "$@"; elif [ "${3:-}" = -- ]; then _a=$1 _b=$2; shift 3; set -- "$_a" "$_b" "$@"; fi'
+
 # Writes the gio stub case_phones and the README phone frames share: MTP, GPhoto2 and AFC volumes under <dir>.
 phones_gio_stub() {
     local dir="$1"
@@ -10686,6 +11024,7 @@ phones_gio_stub() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+$gio_stub_args
 mounted="$dir/mounted"
 afcmounted="$dir/afcmounted"
 case "\$1 \${2:-}" in
@@ -10864,7 +11203,7 @@ case_phones() {
     key j >/dev/null
     settle
     key d >/dev/null
-    wait_message "Press d again to move it to Trash, or Delete on its own."
+    wait_message "Press d again to move it to Trash, $dd_or Delete on its own."
     # The arm itself, not the hint: ui/Pane.qml escapePressed clears a selection before it clears the
     # bar, and coming up from the mount leaves the row we left selected (ui/js/Nav.js
     # applyPendingSelect), so the sentence stands for its four seconds while the arm is already gone.
@@ -12505,7 +12844,9 @@ settings_view() {
     settings_section view
     local inventory
     inventory=$(ipc settingsSections | jq -r 'map(.id) | join(",")')
-    [[ "$inventory" == "view,places,shelf,preview,keys,display,menus,about" ]] || fail "settings: wrong rail order $inventory"
+    # settings board: the rail's Shelf section reads Plugins in 0.4.0's GPUI shell.
+    [[ "$inventory" == "$(by_frontend view,places,shelf,preview,keys,display,menus,about view,places,plugins,preview,keys,display,menus,about)" ]] \
+        || fail "settings: wrong rail order $inventory"
     settings_focus_row view
     key l >/dev/null; settle
     [[ "$(ipc viewMode)" == "columns" ]] || fail "settings: View choice did not change the listing"
@@ -13462,7 +13803,7 @@ case_xwpeekdrag() {
 xwdrag_qsid() {
     local pid="$1" i pair
     for i in $(seq 1 60); do
-        pair=$(qs list --all --json 2>/dev/null | python3 -c '
+        pair=$(flea_ipc_list --all --json 2>/dev/null | python3 -c '
 import json, sys
 hits = [x for x in json.load(sys.stdin) if x["config_path"] == sys.argv[1] and x["pid"] == int(sys.argv[2])]
 print(("%s %s" % (hits[0]["id"], hits[0]["pid"])) if len(hits) == 1 else "")
@@ -13474,7 +13815,7 @@ print(("%s %s" % (hits[0]["id"], hits[0]["pid"])) if len(hits) == 1 else "")
 }
 
 xwdrag_qs() {
-    qs ipc -i "$1" call flea "${@:2}"
+    flea_ipc_call -i "$1" call flea "${@:2}"
 }
 
 # Dry guard: raw=$(xwdrag_qs "$id" total); case "$raw" in ''|*[!0-9]*) raw="SENTINEL";; esac
@@ -13492,8 +13833,9 @@ xwdrag_count() {
 xwdrag_launch_second() {
     local start_path="$1" before after pid
     before=$(flea_pids | tr '\n' ' ')
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$start_path" >"$run_root/flea-second.log" 2>&1 </dev/null &
+    # The second window shares the first one's runtime, as two windows of one session do, so the tab ack reaches it.
+    flea_test_launch "$start_path" "$run_root/flea-second.log" --ui "$flea_ui" --binary "$flea_bin" ${FLEA_TEST_WINDOW:+--share-runtime "$FLEA_TEST_WINDOW"} \
+        || fail "xwdrag: owned second window launch failed"
     for i in $(seq 1 60); do
         after=$(flea_pids | tr '\n' ' ')
         for pid in $after; do
@@ -13674,14 +14016,14 @@ xwdrag_assert_focus() {
     [[ -n "$got" ]] || fail "xwdrag: active window has no pid, wanted $want"
     [[ "$got" == "$want" ]] || fail "xwdrag: active window is $got, wanted $want"
 }
-# Targeted keystrokes carry a window address, since --window flea matches both windows at once.
+# Targeted keystrokes carry a window address, since --window com.thisisgm.flea matches both windows at once.
 xwdrag_key() {
     local addr="$1"
     shift
     omarchy-drive key --window "$addr" "$@"
 }
 
-# Sample input: {"pid":101,"address":"0xa","class":"flea","title":"Flea"} with the key pid answers 101, and a non-JSON reply answers nothing.
+# Sample input: {"pid":101,"address":"0xa","class":"com.thisisgm.flea","title":"Flea"} with the key pid answers 101, and a non-JSON reply answers nothing.
 xwdrag_active_field() {
     printf '%s' "$1" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(sys.argv[1],""))' "$2" 2>/dev/null || true
 }
@@ -13936,6 +14278,28 @@ xwtab_wait_catcher() {
 xwtab_own_attempts=30 # Match the catcher wait's held-phase bound.
 xwtab_own_poll=0.1 # Match the catcher wait's trace polling interval.
 xwtab_own_trace_tail=10 # Keep the last source receipts in a timeout diagnostic.
+# The fork offers only at window entry; its own-strip return is proven by painted centres and the held pointer.
+xwtab_gpui_own_hit() {
+    local id ax ay bx by cursor cx cy step left right tolerance=3
+    [[ ${test_frontend:-gpui} == gpui && ${xwtab_button_down:-false} == true ]] || return 1
+    flea_process_owned "$xwtab_source" && xwdrag_assert_focus "$xwtab_source" || return 1
+    id=$(xwdrag_qsid "$xwtab_source") || return 1
+    [[ $(xwdrag_qs "$id" tabBarVisible) == true && $(xwdrag_qs "$id" tabCount) == 2 ]] || return 1
+    read -r ax ay < <(xwtab_tab_point "$id" "$xwtab_source" 0) || return 1
+    read -r bx by < <(xwtab_tab_point "$id" "$xwtab_source" 1) || return 1
+    cursor=$(hyprctl cursorpos 2>/dev/null) || return 1
+    read -r cx cy <<< "${cursor//,/ }"
+    [[ $ax =~ ^-?[0-9]+$ && $ay =~ ^-?[0-9]+$ && $bx =~ ^-?[0-9]+$ && $by =~ ^-?[0-9]+$ \
+        && $cx =~ ^-?[0-9]+$ && $cy =~ ^-?[0-9]+$ ]] || return 1
+    step=$((bx - ax)); (( step >= 0 )) || step=$((-step))
+    (( step > 0 && ay == by )) || return 1
+    left=$(( (ax < bx ? ax : bx) - step / 2 ))
+    right=$(( (ax > bx ? ax : bx) + step / 2 ))
+    # The centre band tolerates the compositor's two-pixel drive offset while staying inside the HIG strip.
+    (( cx >= left && cx < right && cy >= ay - tolerance && cy <= ay + tolerance )) || return 1
+    printf 'XWTAB held own-strip pid=%s pointer=%s,%s centres=%s,%s/%s,%s\n' "$xwtab_source" "$cx" "$cy" "$ax" "$ay" "$bx" "$by"
+}
+
 # An own return may enter the catcher or re-enter the source strip while the button is held.
 xwtab_wait_own_enter() {
     local attempt lines source_lines
@@ -13952,6 +14316,7 @@ xwtab_wait_own_enter() {
         grep -aq 'TABDRAG drag-finished' <<< "$source_lines"$'\n'"$lines" && fail "xwtab: source $xwtab_source ended before catcher-enter or own enter-strip ok=true"
         if grep -aq 'TABDRAG catcher-enter' <<< "$lines" \
             || grep -aqE 'TABDRAG enter-strip .* ok=true( |$)' <<< "$lines"; then return 0; fi
+        if grep -aq 'TABDRAG drag-start' <<< "$source_lines" && xwtab_gpui_own_hit; then return 0; fi
         sleep "$xwtab_own_poll"
     done
     printf '%s\n' "${lines:-(no TABDRAG lines for source $xwtab_source since return)}" | tail -n "$xwtab_own_trace_tail" >&2
@@ -14640,11 +15005,15 @@ hover_row() {
 # ctrl-1 list, ctrl-2 columns, ctrl-3 grid, per keys.toml; the reader proves the switch landed.
 switch_view() {
     local want="$1" chord drew
+    if [[ "${test_frontend:-gpui}" == gpui && "$(ipc focusView)" == rail ]]; then
+        key -k Tab >/dev/null
+        settle
+    fi
     case "$want" in list) chord=1 ;; columns) chord=2 ;; grid) chord=3 ;; esac
     key -M ctrl -k "$chord" -m ctrl >/dev/null
     settle
     drew=$(ipc viewMode)
-    [[ "$drew" == "$want" ]] || fail "switch_view: ctrl-$chord left the view on '$drew', not $want"
+    [[ "$drew" == "$want" ]] || fail "switch_view: ctrl-$chord left the view on '$drew', not $want (focus $(ipc focusView))"
 }
 
 # rect_is "x y w h" ex ey ew eh tol: every edge of the box within tol pixels of the expected one.
@@ -15402,7 +15771,7 @@ case_clipboard() {
         state=$(clipboard_ipc "$aid" fileClipboard) || fail "clipboard: no source multi-file clipboard"
         jq -e --arg first "$adir/f1" --arg second "$adir/f2" --arg third "$adir/f3" \
             '.paths == [$first, $second, $third] and .moving == false and (.token | length) > 0' <<< "$state" >/dev/null && break
-        (( SECONDS < deadline )) || fail "clipboard: multi-file Copy never published"
+        (( SECONDS < deadline )) || fail "clipboard: multi-file Copy never published, A reads $state selected $(clipboard_ipc "$aid" selectedIndices) status $(clipboard_ipc "$aid" statusPrimary)"
         sleep "$clipboard_poll_interval_s"
     done
     xwdrag_kill_second "$bpid"
@@ -15497,7 +15866,7 @@ case_clipboard() {
 }
 
 clipboard_ipc() {
-    timeout -k "$ipc_call_kill_after" "$ipc_call_timeout" qs ipc -i "$1" call flea "${@:2}"
+    timeout -k "$ipc_call_kill_after" "$ipc_call_timeout" "$FLEA_IPC_HELPER" -i "$1" call flea "${@:2}"
 }
 clipboard_press() {
     local pid="$1" addr
@@ -15934,7 +16303,7 @@ case_readme() {
     printf 'README done\n'
 }
 
-# Native items ui:capsweep, ui:capsweeplow and ui:cap_columns14 run only by name, outside the default wanted list; so do ui:cap_markdown, ui:cap_markdown_kinds, ui:cap_markdown_tables, ui:cap_markdown_picline, ui:cap_markdown_fences and ui:cap_markdown_fences14, sourced above; so do cap_merge, cap_drops and cap_dropmods, sourced above, and cap_tags, sourced from ui-captures-tags.sh, and ui:cap_flasher and ui:cap_filter, sourced above; so do ui:cap_archives_format_live and ui:cap_archives_format_kanagawa, sourced above; so do ui:cap_heldcolumns, ui:cap_sysrefusal, ui:cap_gridreveal, ui:cap_columnsrename and ui:cap_gridhover, sourced above; ui:cap_railmotion runs only by name, sourced from ui-railpointer.sh; ui:cap_mountfail runs only by name, sourced from ui-captures-mountfail.sh; ui:readme runs only by name, defined in this file; ui:cap_html_failed and ui:cap_html_large run only by name, sourced from ui-captures-html.sh above.
+# Native items ui:capsweep, ui:capsweeplow and ui:cap_columns14 run only by name, outside the default wanted list; so do ui:cap_markdown, ui:cap_markdown_kinds, ui:cap_markdown_tables, ui:cap_markdown_picline, ui:cap_markdown_fences, ui:cap_markdown_fences14 and ui:cap_markdown_pele, sourced above; so do cap_merge, cap_drops and cap_dropmods, sourced above, and cap_tags, sourced from ui-captures-tags.sh, and ui:cap_flasher and ui:cap_filter, sourced above; so do ui:cap_archives_format_live and ui:cap_archives_format_kanagawa, sourced above; so do ui:cap_heldcolumns, ui:cap_sysrefusal, ui:cap_gridreveal, ui:cap_columnsrename and ui:cap_gridhover, sourced above; ui:cap_railmotion runs only by name, sourced from ui-railpointer.sh; ui:cap_mountfail runs only by name, sourced from ui-captures-mountfail.sh; ui:readme, ui:finderneighbour, ui:finderrightclick and ui:finderhairlines run only by name, defined in this file; ui:cap_html_failed and ui:cap_html_large run only by name, sourced from ui-captures-html.sh above.
 # ui:cap_raw_grid, ui:cap_raw_columns, ui:cap_raw_quicklook and ui:cap_raw_properties run only by name, sourced from ui-captures-raw.sh.
 . "$repo/tests/ui-captures-sweep.sh"
 # Native items ui:cap_cohesion, ui:cap_cohesion_live, ui:cap_cohesion_gruvbox, ui:cap_cohesion_latte, ui:cap_cohesion_kanagawa, ui:cap_listfocus, ui:cap_cohesion_kgprim and ui:cap_cohesion_pdfmarks run only by name, sourced from ui-captures-cohesion.sh.
@@ -15943,11 +16312,28 @@ case_readme() {
 . "$repo/tests/ui-captures-b72.sh"
 . "$repo/tests/ui-captures-collide.sh"
 # ui:cap_gm_rail and ui:cap_gm_nethold run only by name: native display, uinput holds and screenshots cannot run headless.
+# GPUI modules load after every original oracle source; QML never loads overrides.
+. "$repo/tests/ui-uish/manifest.sh"
+flea_uish_load || fail "invalid GPUI override inventory"
 declare -a wanted=("$@")
+default_run=0
+[[ ${#wanted[@]} -ne 0 ]] || default_run=1
 [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider)
+
+for name in "${wanted[@]}"; do
+    declare -F "case_$name" >/dev/null || fail "unknown UI case: $name"
+done
 
 : > "$run_log"
 : > "$flea_log"
+native_started_ms=$(date +%s%3N)
+if [[ "$test_frontend" == gpui && "$default_run" == 1 ]]; then
+    python3 -B "$repo/tests/lib/flea_native_wallpaper.py" > "$run_root/wallpaper-before.json" \
+        || fail "full native run requires a verified still wallpaper"
+fi
+if [[ "$test_frontend" == gpui ]]; then
+    printf 'NATIVE_RUN frontend=%s default=%s cases=%s started_ms=%s\n' "$test_frontend" "$default_run" "${#wanted[@]}" "$native_started_ms"
+fi
 failures=0
 # A refusal and an assertion failure mean different things: a failure says a test is wrong, a refusal
 # says the environment is unsafe and every case after it is running against that. Every case runs in
@@ -16014,6 +16400,7 @@ unreadable_state_warning="/flea/ui.json) failed: (Permission denied)"
 # Qt 6.12's Wayland text-input-v3 warns when focus leaves a text field while no surface holds text focus; typing still works.
 textinput_warning="virtual void QtWaylandClient::QWaylandTextInputv3::disableSurface(wl_surface*) Trying to disable "
 # A case registers a warning once for each time it causes it. Sample input, one uniq -c line: "      2 Process failed to start, ..."
+if [[ "$test_frontend" == qml ]]; then
 while read -r want warning; do
     count=$(grep -F -c -- "$warning" "$run_log" || true)
     if [[ "$count" != "$want" ]]; then
@@ -16021,18 +16408,30 @@ while read -r want warning; do
         failures=$((failures + 1))
     fi
 done < <(sort "$expected_warnings" | uniq -c)
+fi
 # Qt 6.11.2 prints one null connect warning per WorkerScript started with a source: they leave the grep below only when they equal the WORKER_STARTED lines.
 checked_log="$run_root/run-checked.log"
-if ! qslog_filter "native run" < "$run_log" 2>&1 > "$checked_log"; then
+if [[ "$test_frontend" == gpui ]]; then
+    cp "$run_log" "$checked_log" || fail "cannot retain native diagnostic log"
+elif ! qslog_filter "native run" < "$run_log" 2>&1 > "$checked_log"; then
     failures=$((failures + 1))
 fi
-if grep -F -v -e "$expected_warning" -e "$vaapi_warning" -e "$dmabuf_warning" -e "$unreadable_warning" -e "$unreadable_warning2" \
+if [[ "$test_frontend" == gpui ]]; then
+    if ! python3 -B "$repo/tests/lib/flea_native_log.py" "$expected_warnings" "$checked_log"; then
+        printf 'FAIL log\n'
+        failures=$((failures + 1))
+    fi
+elif grep -F -v -e "$expected_warning" -e "$vaapi_warning" -e "$dmabuf_warning" -e "$unreadable_warning" -e "$unreadable_warning2" \
     -e "$unreadable_warning3" -e "$unreadable_warning4" -e "$unreadable_state_warning" -e "$textinput_warning" "$checked_log" \
     | grep -F -v -f "$expected_warnings" | grep -E 'WARN|ERROR|TypeError|ReferenceError|Cannot open'; then
     printf 'FAIL log\n'
     failures=$((failures + 1))
 fi
 printf 'LOG_CHECK_END\n'
+if [[ "$test_frontend" == gpui && "$default_run" == 1 ]]; then
+    python3 -B "$repo/tests/lib/flea_native_wallpaper.py" > "$run_root/wallpaper-after.json" \
+        || fail "full native run ended without a verified still wallpaper"
+fi
 cache_restore
 # The redirect is what makes this structural rather than a promise, so the run asserts it held.
 if [[ "$(ls -A "$real_cache_large" 2>/dev/null | wc -l)" != "$real_cache_before" ]]; then
@@ -16040,6 +16439,10 @@ if [[ "$(ls -A "$real_cache_large" 2>/dev/null | wc -l)" != "$real_cache_before"
     failures=$((failures + 1))
 fi
 printf '%s of %s checks failed\n' "$failures" "$(( ${#wanted[@]} + 3 ))"
+if [[ "$test_frontend" == gpui ]]; then
+    printf 'NATIVE_RUN_END frontend=%s default=%s cases=%s failures=%s wall_ms=%s evidence=%s\n' \
+        "$test_frontend" "$default_run" "${#wanted[@]}" "$failures" "$(( $(date +%s%3N) - native_started_ms ))" "$run_root"
+fi
 # Loud and on its own line: a refused case means the guard stopped something, not that a test is wrong.
 if [[ "$refusals" -gt 0 ]]; then
     printf '%s cases were REFUSED by the sandbox guard, so the environment is unsafe\n' "$refusals"

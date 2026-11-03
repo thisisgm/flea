@@ -42,9 +42,36 @@ function bodyFont(md) {
     return null;
 }
 
-// Sample input: <text font-size="14" font-family="monospace" fill="#c0caf5">A</text>.
+var LABEL_PAINT = ["font-size", "font-family", "fill"];
+
+// Sample input: <svg font-size="14"><g fill="#c0caf5"><text>A</text></g></svg> reads one label whose size is 14 and fill #c0caf5, each from the nearest element that sets it.
+function labelPaints(svg) {
+    var tags = svg.match(/<\/?[a-zA-Z][^<>]*>/g) || [];
+    var stack = [];
+    var labels = [];
+    for (var i = 0; i < tags.length; i++) {
+        var tag = tags[i];
+        if (tag.charAt(1) === "/") {
+            stack.pop();
+            continue;
+        }
+        var parent = stack.length > 0 ? stack[stack.length - 1] : {};
+        var paint = {};
+        for (var p = 0; p < LABEL_PAINT.length; p++) {
+            var own = tag.match(new RegExp("\\s" + LABEL_PAINT[p] + "=\"([^\"]*)\""));
+            paint[LABEL_PAINT[p]] = own ? own[1] : parent[LABEL_PAINT[p]];
+        }
+        if (/^<(?:text|tspan)[\s>/]/.test(tag))
+            labels.push({ tag: tag, paint: paint });
+        if (!/\/>$/.test(tag))
+            stack.push(paint);
+    }
+    return labels;
+}
+
+// Sample input: <svg width="20" viewBox="0 0 20 20" font-size="14" font-family="monospace" fill="#c0caf5"><text>A</text></svg>.
 function labelError(svg, font, foreground) {
-    var labels = svg.match(/<(?:text|tspan)(?:\s[^<>]*?)?>/g) || [];
+    var labels = labelPaints(svg);
     if (labels.length === 0)
         return "no Mermaid labels";
     var escaped = font.family.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -53,13 +80,13 @@ function labelError(svg, font, foreground) {
     var viewWidth = Number(root.match(/\sviewBox="([^"]*)"/)[1].trim().split(/\s+/)[2]);
     for (var i = 0; i < labels.length; i++) {
         var label = labels[i];
-        var size = label.match(/\sfont-size="([^"]*)"/);
-        if (!size || Math.abs(Number(size[1]) * width / viewWidth - font.pixelSize) > FONT_SIZE_EPSILON)
-            return "label size differs from body " + font.pixelSize + "px: " + label;
-        if (label.indexOf('font-family="' + escaped + '"') < 0)
-            return "label family differs from body " + font.family + ": " + label;
-        if (label.indexOf('fill="' + foreground + '"') < 0)
-            return "label ink differs from foreground: " + label;
+        var size = label.paint["font-size"];
+        if (size === undefined || Math.abs(Number(size) * width / viewWidth - font.pixelSize) > FONT_SIZE_EPSILON)
+            return "label size differs from body " + font.pixelSize + "px: " + label.tag;
+        if (label.paint["font-family"] !== escaped)
+            return "label family differs from body " + font.family + ": " + label.tag;
+        if (label.paint.fill !== foreground)
+            return "label ink differs from foreground: " + label.tag;
     }
     return "";
 }

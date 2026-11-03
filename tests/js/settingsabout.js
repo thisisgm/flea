@@ -40,9 +40,9 @@ function run(check) {
     var checking = find(about(Update.checking(Update.idle())), "updateFlea")
     check("a running check is muted, inert, and still a stop so the cursor does not jump",
           checking.value + "|" + checking.role + "|" + checking.inert + "|" + Settings.focusable(checking), "Checking||true|true")
-    var rolling = find(about(answered("unchecked git - -")), "updateFlea")
-    check("a rolling build is a fact the cursor steps over", rolling.kind + "|" + rolling.value + "|" + Settings.focusable(rolling),
-          "fact|flea-git · rolling|false")
+    var local = find(about(answered("unchecked git - -")), "updateFlea")
+    check("an unchecked build is a local fact the cursor steps over", local.kind + "|" + local.value + "|" + Settings.focusable(local),
+          "fact|Built from source|false")
 
     var launched = Update.launchedFrom(answered("available opr 0.3.3-1 0.3.4-1"), true)
     check("after a launch the group ends on the restart note",
@@ -50,7 +50,7 @@ function run(check) {
     var note = about(launched).filter(function (row) { return row.kind === "hint" && row.label.indexOf("Restart") === 0 })[0] || {}
     check("which is in the accent and takes no cursor", note.role + "|" + Settings.focusable(note), "accent|false")
     check("offline explains itself in the foreground",
-          about(answered("failed aur 0.3.3-1 -")).filter(function (row) { return row.kind === "hint" })
+          about(answered("failed opr 0.3.3-1 -")).filter(function (row) { return row.kind === "hint" })
               .map(function (row) { return row.label + "|" + row.role }).join(""), "Offline: Omarchy update still opens|foreground")
 
     var auto = find(rows, "updates.autoCheck")
@@ -117,11 +117,11 @@ function after(args, code, stderr, restartOk) {
 
 function runDefault(check) {
     // The two sentences MakeDefault.js reads are the binary's own, taken from the source rather than copied here.
-    var defaults = Source.source("src/defaults.rs"), main = Source.source("src/main.rs")
+    var defaults = Source.source("src/defaults.rs"), claims = Source.source("src/claims.rs")
     // Sample input: pub const DESKTOP_ID: &str = "com.thisisgm.flea.desktop";
     var rustId = (defaults.match(/pub const DESKTOP_ID: &str = "([^"]*)"/) || [])[1]
     var refusal = spoken(defaults, "fn claim_from(entry: Option<PathBuf>) -> i32 {", rustId)
-    var skipped = spoken(main, "fn claim_both() -> i32 {", "")
+    var skipped = spoken(claims, "fn claim_both() -> i32 {", "")
     check("the box is ticked by the very id src/defaults.rs claims", MakeDefault.DESKTOP_ID, rustId)
     var exitUninstalled = (defaults.match(/pub const EXIT_UNINSTALLED: i32 = (\d+)/) || [])[1]
     check("the refusal is defaults::claim()'s own flea: line", refusal.indexOf("flea: " + rustId + " ") === 0, true)
@@ -255,31 +255,32 @@ function runDefault(check) {
           JSON.stringify(["sh", "-c", "for f; do [ -f \"$f\" ] && exit 0; done; exit 1", "sh", "/a b/x.desktop", "$(y)"]))
 }
 
-// pacman -Qi flea-bin under LC_ALL=C on minipc, 2026-09-24, trimmed to the fields About reads; pacman -Si flea-bin exits 1 there.
-var FLEA_BIN_QI = "Name            : flea-bin\nVersion         : 0.3.4-1\nPackager        : Unknown Packager\n"
+// The local package fields About reads from pacman -Qi under LC_ALL=C.
+var LOCAL_QI = "Name            : flea\nVersion         : 0.3.4-1\nPackager        : Unknown Packager\n"
     + "Build Date      : Wed Sep 23 12:40:50 2026\nInstall Script  : No\nValidated By    : None\n"
 
 // Installed from is the kind src/update.rs derives from the same two pacman answers, so it and the Update Flea row agree.
 function runInstalled(check) {
     var update = Source.source("src/update.rs")
-    // Sample input: const AUR_PACKAGE: &str = "flea-bin";
+    // Sample input: const OPR_PACKAGE: &str = "flea";
     function named(constant) { return (update.match(new RegExp("const " + constant + ": &str = \"([^\"]*)\";")) || [])[1] }
-    check("the three package names are src/update.rs's own", [SettingsAbout.PACKAGES.opr, SettingsAbout.PACKAGES.aur, SettingsAbout.PACKAGES.git].join("|"),
-          [named("OPR_PACKAGE"), named("AUR_PACKAGE"), named("GIT_PACKAGE")].join("|"))
-    // Sample input: Kind::Aur => "aur",
+    check("the OPR package name is src/update.rs's own", SettingsAbout.PACKAGES.opr, named("OPR_PACKAGE"))
+    // Sample input: Kind::Opr => "opr",
     var words = (update.match(/Kind::[A-Za-z]+ => "[a-z]+"/g) || []).map(function (arm) { return arm.split("\"")[1] })
     check("one sentence for each kind word flea --update check prints, and no other",
           Object.keys(SettingsAbout.SOURCES).sort().join("|"), words.sort().join("|"))
 
-    var bin = SettingsAbout.packageFacts(FLEA_BIN_QI)
-    check("flea-bin's own -Qi reads as its package, its build date and no signature",
-          [bin.package, bin.built, bin.signed].join("|"), "flea-bin 0.3.4-1|Wed Sep 23 12:40:50 2026|false")
-    check("so an AUR flea-bin says so, where 0.3.4 read Local package", SettingsAbout.installedFrom("flea-bin", bin.signed), "AUR, flea-bin")
+    var bin = SettingsAbout.packageFacts(LOCAL_QI)
+    check("a local package -Qi reads as its package, its build date and no signature",
+          [bin.package, bin.built, bin.signed].join("|"), "flea 0.3.4-1|Wed Sep 23 12:40:50 2026|false")
+    check("a former binary package reads as local", SettingsAbout.installedFrom("flea-bin", bin.signed), "Local package")
     check("the kind the Update Flea row reads from the check line is the same one",
-          answered("current aur 0.3.4-1 0.3.4-1").kind + "|" + SettingsAbout.installKind("flea-bin", bin.signed), "aur|aur")
+          answered("unchecked local 0.3.4-1 -").kind + "|" + SettingsAbout.installKind("flea-bin", bin.signed), "local|local")
     check("OPR's signed flea keeps the board's words", SettingsAbout.installedFrom("flea", true), "Omarchy Package Repository")
     check("the same name unsigned is a local makepkg build", SettingsAbout.installedFrom("flea", false), "Local package")
-    check("flea-git is the AUR's rolling build", SettingsAbout.installedFrom("flea-git", false), "AUR, flea-git")
+    check("a former git package reads as local", SettingsAbout.installedFrom("flea-git", false), "Local package")
+    check("a signed former binary package is local too", SettingsAbout.installedFrom("flea-bin", true), "Local package")
+    check("a signed former git package is local too", SettingsAbout.installedFrom("flea-git", true), "Local package")
     check("any other owner is somebody's own package, signed or not", SettingsAbout.installedFrom("flea-custom", true), "Local package")
     check("no owner is a cargo build", SettingsAbout.installedFrom("", false), "Not from a package")
     check("Validated By is read as src/update.rs reads it",
@@ -287,5 +288,5 @@ function runInstalled(check) {
            SettingsAbout.packageFacts("Validated By    : SHA-256 Sum\n").signed,
            SettingsAbout.packageFacts("Description     : Signature\nValidated By    : None\n").signed].join("|"), "true|false|false")
     check("a query that failed is an empty answer", JSON.stringify(SettingsAbout.packageFacts("")), '{"package":"","built":"","signed":false}')
-    check("and About asks pacman -Si nothing, which cannot see an AUR package", Source.source("ui/AboutFacts.qml").indexOf("\"-Si\""), -1)
+    check("and About asks pacman -Si nothing, because it describes the installed owner", Source.source("ui/AboutFacts.qml").indexOf("\"-Si\""), -1)
 }

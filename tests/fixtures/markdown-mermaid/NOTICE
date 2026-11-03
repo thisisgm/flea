@@ -1,0 +1,6 @@
+One Markdown document per Mermaid diagram type, each holding one mermaid fence. tests/mermaid-types.mjs renders every
+fence through the figure path, and case_cap_markdown_pele in tests/ui-captures-markdown.sh shoots every document.
+
+Each diagram except flowchart.md's is an example of its type from Pele 1.6.0's tests/corpus/<type>-docs.json, which holds
+the examples of the Mermaid documentation (Mermaid, https://github.com/mermaid-js/mermaid, MIT licence; Pele,
+https://github.com/obsidianmd/pele, MIT licence). A whole-document indent is removed. flowchart.md is Flea's own fixture.

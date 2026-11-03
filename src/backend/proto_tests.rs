@@ -1,6 +1,19 @@
 use super::*;
 
 #[test]
+fn trash_thumbnail_commands_are_recognized() {
+    for line in [
+        r#"{"c":"trashthumb","id":41,"cacheOnly":true}"#,
+        r#"{"c":"trashthumbcancel","ids":[41,42]}"#,
+    ] {
+        assert!(
+            !matches!(parse_request(line), Request::Unknown),
+            "unrecognized Trash thumbnail command: {line}"
+        );
+    }
+}
+
+#[test]
 fn locate_preserves_request_identity_and_reports_absence() {
     assert!(matches!(parse_request(r#"{"c":"locate","path":"/a/file"}"#), Request::Locate { path } if path == "/a/file"));
     assert_eq!(located_line("/a", "/a/file", Some(3)), r#"{"t":"located","directory":"/a","path":"/a/file","index":3}"#);
@@ -70,7 +83,7 @@ fn parses_each_request_shape() {
         _ => panic!("expected Search"),
     }
     match parse_request(r#"{"c":"mkdir","path":"/home/gm","name":"New Folder"}"#) {
-        Request::MkDir { path, name } => assert_eq!((path.as_str(), name.as_str()), ("/home/gm", "New Folder")),
+        Request::MkDir { path, name, .. } => assert_eq!((path.as_str(), name.as_str()), ("/home/gm", "New Folder")),
         _ => panic!("expected MkDir"),
     }
     assert!(matches!(parse_request(r#"{"c":"searchcancel"}"#), Request::SearchCancel));
@@ -218,14 +231,14 @@ fn a_listed_line_says_when_the_directory_cannot_be_written() {
 #[test]
 fn a_thumb_request_carries_its_rows_in_order() {
     match parse_request(r#"{"c":"thumb","rows":[2,17,140]}"#) {
-        Request::Thumb { rows, cache_only } => {
+        Request::Thumb { rows, cache_only, .. } => {
             assert_eq!(rows, vec![2, 17, 140]);
             assert!(!cache_only, "absent is today's full path");
         }
         _ => panic!("expected Thumb"),
     }
     match parse_request(r#"{"c":"thumb","rows":[2],"cacheOnly":true}"#) {
-        Request::Thumb { rows, cache_only } => {
+        Request::Thumb { rows, cache_only, .. } => {
             assert_eq!(rows, vec![2]);
             assert!(cache_only, "an off class names it");
         }

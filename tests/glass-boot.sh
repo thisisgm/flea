@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 # The real entry offscreen: a glass launch clears the window before it exists, and any other launch keeps the opaque literal.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -84,7 +86,7 @@ leg() {
     answer=""
     # qs ipc matches only instances on its own display, so the call goes without one, as the shell does.
     for ((attempt = 0; attempt < ready_polls; attempt++)); do
-        answer=$(env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR="$probe/runtime" QT_QPA_PLATFORM=offscreen timeout "$call_timeout_s" qs ipc -p "$PWD/ui/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
+        answer=$(env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR="$probe/runtime" QT_QPA_PLATFORM=offscreen timeout "$call_timeout_s" "$FLEA_IPC_HELPER" -p "$PWD/ui/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
         answer=""
         sleep "$poll_s"
     done

@@ -4,6 +4,7 @@ use crate::backend::fdpass;
 use crate::backend::sandbox;
 use crate::backend::thumbspec::Spec;
 use crate::backend::thumbworker::{FAILED, NOT_STARTED, NO_LANDLOCK, NO_LIBRARY, READY, REQUEST_BYTES, SONAME, SUCCEEDED};
+use crate::oflags::{O_NOFOLLOW, O_NONBLOCK};
 use std::os::fd::{AsRawFd, OwnedFd};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
@@ -16,8 +17,6 @@ const READY_LIMIT: Duration = Duration::from_secs(5);
 // The worker enforces the job's own deadline, so the backend only waits this much longer for its word.
 const REPLY_GRACE: Duration = Duration::from_secs(5);
 // open(2) flags: never block on a fifo swapped in after the listing, never follow a link at the temp's name.
-const O_NONBLOCK: i32 = 0o4000;
-const O_NOFOLLOW: i32 = 0o400000;
 const O_NOCTTY: i32 = 0o400;
 // poll(2) POLLIN, and EINTR, which is a retry.
 const POLLIN: i16 = 1;
@@ -264,6 +263,47 @@ mod tests {
 
     // A non-blocking open returns at once; this bounds a regression to a failure rather than a hung suite.
     const HUNG: Duration = Duration::from_secs(5);
+
+    #[test]
+    fn arm_oflags_output_symlinks_never_reach_the_worker() {
+        let dir = TestDir::new("arm-oflags-worker-output");
+        let input = dir.file("clip.mp4", "not a video");
+        let target = dir.file("target.png", "leave this file alone");
+        let (mine, theirs) = fdpass::pair().unwrap();
+        let child = Command::new("true").spawn().unwrap();
+        let link = WorkerLink {
+            state: Mutex::new(State::Running {
+                jailed: dummy_jailed(child),
+                requests: mine,
+            }),
+        };
+        for name in ["target.png", "absent.png"] {
+            let output = dir.join(&format!("{name}.link"));
+            std::os::unix::fs::symlink(name, &output).unwrap();
+            assert!(link
+                .generate(&input, &output, THUMB_SIZE, true, Duration::ZERO)
+                .is_none());
+            assert!(
+                matches!(read_byte(&theirs, Duration::ZERO), Heard::Silence),
+                "output symlink reached the worker"
+            );
+            assert!(output.symlink_metadata().unwrap().is_symlink());
+        }
+        assert_eq!(
+            std::fs::read_to_string(target).unwrap(),
+            "leave this file alone"
+        );
+        assert!(!dir.join("absent.png").exists());
+        assert!(matches!(*link.state.lock().unwrap(), State::Running { .. }));
+
+        let output = dir.file("regular.png", "");
+        let (link, answering) = answered_by(SUCCEEDED);
+        assert!(matches!(
+            link.generate(&input, &output, THUMB_SIZE, true, Duration::from_secs(1)),
+            Some(Ran::Succeeded)
+        ));
+        answering.join().unwrap();
+    }
 
     #[test]
     fn an_input_that_is_not_a_file_to_judge_never_reaches_the_worker() {

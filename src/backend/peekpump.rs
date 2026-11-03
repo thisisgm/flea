@@ -4,7 +4,7 @@ use crate::backend::inotifyburst::each_event;
 use crate::backend::watch::{classify_burst, BUF, COALESCE, IN_IGNORED, IN_UNMOUNT};
 use std::ffi::{c_int, c_void};
 use std::io;
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 
 // poll(2) struct pollfd, whose three fields are int, short, short in that order.
 #[repr(C)]
@@ -121,7 +121,7 @@ mod tests {
         }
         assert_eq!(unsafe { write(ends[1], bytes.as_ptr().cast(), bytes.len()) }, bytes.len() as isize);
         unsafe { close(ends[1]) };
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         pump(ends[0], tx, SKIPPED);
         unsafe { close(ends[0]) };
         rx.try_iter()

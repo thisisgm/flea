@@ -1,34 +1,28 @@
 #!/usr/bin/env bash
 # Proves Flea's test fixture crosses the real GIO, GVfs, FUSE, and unmount boundaries.
-set -u
-set -o pipefail
+set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
-
-fixture_dir="${FLEA_FIXTURE_ROOT:-/home/flea-sandbox}/flea-gvfs-suite-$$"
+. ./tools/flea-sandbox-guard
+sandbox_root_ok
+mkdir -p "$SANDBOX_ROOT"
+fixture_dir=$(mktemp -d "$SANDBOX_ROOT/flea-gvfs-suite.XXXXXXXX")
+: > "$fixture_dir/$SANDBOX_MARKER"
+chmod 700 "$fixture_dir"
 
 cleanup() {
-    DIR="$fixture_dir" ./tools/flea-gvfs-fixture clean >/dev/null 2>&1 || true
+    local status=$?
+    trap - EXIT
+    if (( status >= 128 )) || mountpoint -q "$fixture_dir/runtime/gvfs"; then
+        printf 'gvfs: FAIL retaining interrupted or mounted fixture: %s\n' "$fixture_dir" >&2
+        exit 1
+    fi
+    sandbox_remove "$fixture_dir" || status=1
+    exit "$status"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-fail() {
-    printf 'gvfs: FAIL %s\n' "$*" >&2
-    exit 1
-}
-
-uri=$(DIR="$fixture_dir" ./tools/flea-gvfs-fixture make) || fail "fixture creation"
-DIR="$fixture_dir" ./tools/flea-gvfs-fixture mount || fail "mount"
-
-gio mount -l | grep -Fq -- "-> $uri" || fail "mounted URI absent from gio mount -l"
-listing=$(gio list "$uri" | sort)
-[[ "$listing" == $'alpha.txt\nbeta.txt' ]] || fail "unexpected listing: $listing"
-[[ "$(gio cat "${uri}alpha.txt")" == "alpha" ]] || fail "alpha.txt content"
-
-local_path=$(gio info "$uri" | sed -n 's/^local path: //p')
-[[ "$local_path" == "/run/user/$(id -u)/gvfs/"* ]] || fail "unexpected FUSE path: $local_path"
-[[ -f "$local_path/alpha.txt" ]] || fail "FUSE path cannot read alpha.txt"
-
-DIR="$fixture_dir" ./tools/flea-gvfs-fixture unmount || fail "unmount"
-! gio mount -l | grep -Fq -- "-> $uri" || fail "URI survived unmount"
-
+python3 -B tests/lib/gvfs_fixture.py "$fixture_dir"
 printf 'gvfs: mount=ok list=ok read=ok fuse=ok unmount=ok\n'

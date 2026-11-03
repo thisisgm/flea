@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+"""Prepare isolated catalogs, validate completeness and bind exact-byte receipts.
+
+Schema 1 consumes the extractor's keys/reference maps, catalog_sha256 (canonical
+English), catalog_file_sha256 (exact bytes), reference_checkout_sha and roster
+{sha256 (canonical), file_sha256, plural_sha256, languages}. Index identities in
+receipts and deltas always hash exact emitted source-index file bytes.
+Exceptions: schema, language, entries keyed by exact Flea key or direct reference,
+each with reviewer, rationale, source_hash (raw English alias token, never resolved
+text) and exact raw translation. Alias exceptions additionally bind the resolved
+source_hash and resolved_translation_sha256, so reference edits reopen review.
+Delta indexes: schema, previous_source_index_sha256, source_index_sha256, entries
+[{key, previous_source_hash, source_hash, kind}], with kind remove for deletions.
+Receipts record automatic validation; semantic review attestations are separate.
+"""
+import argparse
+import base64
+import hashlib
+import importlib.util
+from importlib.machinery import SourceFileLoader
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+
+sys.dont_write_bytecode = True
+MANIFEST_TOOL = Path(__file__).resolve().with_name("flea-i18n-manifest")
+spec = importlib.util.spec_from_loader("quality_manifest", SourceFileLoader("quality_manifest", str(MANIFEST_TOOL)))
+manifest = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(manifest)
+MARKER = ".flea-test-sandbox"
+CHECK = ".quality-check.json"
+SHA = re.compile(r"[0-9a-f]{64}\Z")
+COMMIT = re.compile(r"[0-9a-f]{40}\Z")
+
+
+def fail(message):
+    raise ValueError(message)
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def git_bytes(root, *arguments):
+    result = subprocess.run(["git", "--no-optional-locks", "-C", str(root), *arguments],
+                            capture_output=True, timeout=30)
+    if result.returncode:
+        fail("Omarchy checkout: git could not verify pinned source bytes")
+    return result.stdout
+
+
+def omarchy_revision(root):
+    values = git_bytes(root, "rev-parse", "--show-toplevel", "HEAD").decode().splitlines()
+    if len(values) != 2 or Path(values[0]).resolve() != root.resolve():
+        fail("Omarchy checkout must be the pinned repository root")
+    return values[1]
+
+
+def write(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    manifest.atomic_write(path, json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+
+
+def guarded(root):
+    if root.is_symlink() or not root.is_dir() or not (root / MARKER).is_file():
+        fail(f"private catalog root must be marked with {MARKER}: {root}")
+    if any(path.is_symlink() for path in root.rglob("*")):
+        fail("private catalog root contains a symlink")
+
+
+class Inputs:
+    def __init__(self):
+        self.files = {}
+
+    def raw(self, path):
+        path = path.resolve()
+        data = path.read_bytes()
+        if str(path) in self.files and self.files[str(path)]["sha256"] != sha(data):
+            fail(f"strict check inputs changed while reading: {path}")
+        self.files[str(path)] = {"sha256": sha(data), "bytes": base64.b64encode(data).decode()}
+        return data
+
+    # Sample input: {"label":"Open"} is a JSON object; duplicate members are refused.
+    def read(self, path):
+        value = json.loads(self.raw(path).decode("utf-8"), object_pairs_hook=manifest.unique_object)
+        if not isinstance(value, dict):
+            fail(f"{path}: expected a JSON object")
+        return value
+
+
+def index_data(index, root, inputs):
+    frozen = inputs.read(index)
+    english = inputs.read(root / "en/flea.json")
+    if frozen.get("schema") != 1 or not COMMIT.fullmatch(str(frozen.get("source_sha", ""))):
+        fail("source index: invalid schema or source SHA")
+    if not frozen.get("source_ref") or not COMMIT.fullmatch(str(frozen.get("source_ref_sha", ""))):
+        fail("source index: missing source reference provenance")
+    if not english or frozen.get("catalog_sha256") != sha(canonical(english)):
+        fail("source index: English digest drift")
+    if frozen.get("catalog_file_sha256") != sha((root / "en/flea.json").read_bytes()):
+        fail("source index: exact English bytes drift")
+    entries = frozen.get("keys")
+    if not isinstance(entries, dict) or not all(isinstance(entry, dict) for entry in entries.values()):
+        fail("source index: keys must be a map of key records")
+    records = {}
+    for key, entry in entries.items():
+        if not isinstance(key, str) or not key or key in records or key not in english:
+            fail("source index: duplicate, extra or invalid key")
+        value = english[key]
+        required = {"resolved_english", "resolved_source_hash", "omarchy_reference", "plural_categories",
+                    "context", "call_sites", "coverage"}
+        if (not required <= entry.keys() or not isinstance(entry["context"], str) or not entry["context"].strip()
+                or not isinstance(entry["call_sites"], list) or not entry["coverage"]
+                or entry["resolved_source_hash"] != manifest.source_hash(entry["resolved_english"])):
+            fail(f"source index:{key}: missing source/reference provenance")
+        forms = manifest.forms(value, f"source index:{key}")
+        holes = set(manifest.HOLES.findall(forms[0]))
+        if any(set(manifest.HOLES.findall(text)) != holes for text in forms):
+            fail(f"source index:{key}: placeholder drift")
+        if (entry.get("english") != value or entry.get("source_hash") != manifest.source_hash(value)
+                or entry.get("kind") != ("plural" if isinstance(value, dict) else "text")
+                or entry.get("placeholders") != sorted(holes)):
+            fail(f"source index:{key}: value, shape, hash or placeholder drift")
+        records[key] = entry
+    if set(records) != set(english):
+        fail("source index: key parity drift")
+    pin = frozen.get("roster", {})
+    if not isinstance(pin, dict) or not COMMIT.fullmatch(str(frozen.get("reference_checkout_sha", ""))):
+        fail("source index: missing Omarchy identity")
+    if any(not SHA.fullmatch(str(pin.get(key, ""))) for key in ("sha256", "file_sha256", "plural_sha256")):
+        fail("source index: missing roster/plural identity")
+    refs = frozen.get("direct_references")
+    if not isinstance(refs, dict) or not isinstance(frozen.get("references"), dict):
+        fail("source index: direct_references and references must be maps")
+    aliases = {record["omarchy_reference"] for record in records.values() if record["omarchy_reference"] is not None}
+    if not (aliases | set(refs)) <= set(frozen["references"]):
+        fail("source index: incomplete reference provenance")
+    return frozen, english, records
+
+
+def receipt_data(path):
+    receipt = manifest.read(path)
+    if receipt.get("schema") != 1 or receipt.get("strict") is not True or receipt.get("status") != "PASS":
+        fail("translation receipt is not a successful strict check")
+    files = receipt.get("inputs")
+    if not isinstance(files, dict) or not files:
+        fail("translation receipt has no exact-byte inputs")
+    for item in files.values():
+        if not isinstance(item, dict) or sha(base64.b64decode(item["bytes"], validate=True)) != item["sha256"]:
+            fail("translation receipt input digest mismatch")
+    source_bytes = receipt_input(receipt, "source_index_path")
+    if sha(source_bytes) != receipt.get("source_index_sha256"):
+        fail("translation receipt source index identity does not match embedded bytes")
+    source = receipt_object(receipt, "source_index_path")
+    if (source.get("schema") != 1 or source.get("source_sha") != receipt.get("source_sha")
+            or source.get("reference_checkout_sha") != receipt.get("omarchy_sha")):
+        fail("translation receipt source provenance differs from embedded index")
+    language = receipt.get("language")
+    if not isinstance(language, str) or not manifest.CODE.fullmatch(language):
+        fail("translation receipt language is invalid")
+    records = source.get("keys")
+    if not isinstance(records, dict) or not records:
+        fail("translation receipt has no frozen key provenance")
+    expected = {f"flea:{key}": record["source_hash"] for key, record in records.items()}
+    hashes = receipt_object(receipt, "manifest_path")
+    catalog = receipt_object(receipt, "catalog_path")
+    translated = {unit: value for unit, value in expected.items() if unit.removeprefix("flea:") in catalog}
+    if (hashes.get(language) != translated or hashes.get("en") != expected
+            or not manifest.required_keys(records, language) <= set(catalog) <= set(records)):
+        fail("translation receipt catalog/hash provenance differs from embedded index")
+    return receipt
+
+
+def receipt_input(receipt, field):
+    item = receipt["inputs"].get(receipt.get(field))
+    if item is None:
+        fail(f"translation receipt missing {field}")
+    return base64.b64decode(item["bytes"], validate=True)
+
+
+# Sample input: an embedded {"schema":1,"keys":{}} document is decoded without accepting duplicate members.
+def receipt_object(receipt, field):
+    value = json.loads(receipt_input(receipt, field), object_pairs_hook=manifest.unique_object)
+    if not isinstance(value, dict):
+        fail(f"translation receipt {field} must contain a JSON object")
+    return value
+
+
+def prepare(args):
+    source, out = args.catalog_root.resolve(), args.out.absolute()
+    if out.is_symlink():
+        fail("prepare output is a symlink")
+    out = out.resolve()
+    if out == source or out in source.parents or source in out.parents or out in args.source_index.resolve().parents:
+        fail("prepare output overlaps shared inputs")
+    if out.exists() and any(p.name != MARKER for p in out.iterdir()):
+        fail("prepare output must be an empty private root")
+    if any(parent.is_symlink() for parent in args.out.absolute().parents):
+        fail("prepare output traverses a symlink")
+    inputs = Inputs()
+    frozen, english, records = index_data(args.source_index, source, inputs)
+    index_bytes = base64.b64decode(inputs.files[str(args.source_index.resolve())]["bytes"])
+    english_bytes = base64.b64decode(inputs.files[str((source / "en/flea.json").resolve())]["bytes"])
+    catalog_path = source / args.language / "flea.json"
+    catalog = inputs.read(catalog_path) if catalog_path.exists() else None
+    catalog_bytes = base64.b64decode(inputs.files[str(catalog_path.resolve())]["bytes"]) if catalog is not None else None
+    previous = manifest.recorded_manifest(source / "translation-manifest.json").get(args.language, {})
+    if args.translation_receipt:
+        prior = receipt_data(args.translation_receipt)
+        if prior.get("language") != args.language:
+            fail("translation receipt language mismatch")
+        prior_catalog = json.loads(receipt_input(prior, "catalog_path"), object_pairs_hook=manifest.unique_object)
+        prior_hashes = json.loads(receipt_input(prior, "manifest_path"), object_pairs_hook=manifest.unique_object)[args.language]
+        if catalog is None:
+            fail("translation receipt requires the author's catalog")
+        if previous and previous != prior_hashes:
+            fail("recorded hashes differ from translation receipt")
+        previous = dict(prior_hashes)
+        if args.delta_index:
+            delta = manifest.read(args.delta_index)
+            if (delta.get("schema") != 1 or delta.get("source_base") != frozen["source_sha"]
+                    or delta.get("previous_source_index_sha256") != prior.get("source_index_sha256")
+                    or delta.get("source_index_sha256") != sha(index_bytes)):
+                fail("delta index source identity mismatch")
+            producers = delta.get("producers")
+            if (not isinstance(producers, list) or not producers or any(
+                    not isinstance(item, dict) or not isinstance(item.get("producer"), str)
+                    or not item["producer"].strip() or not SHA.fullmatch(str(item.get("delta_sha256", "")))
+                    for item in producers)):
+                fail("delta index requires producer provenance")
+            changes = delta.get("entries")
+            if not isinstance(changes, list) or not all(isinstance(entry, dict) for entry in changes):
+                fail("delta index entries must be key records")
+            named = set()
+            for entry in changes:
+                key = entry.get("key")
+                unit = f"flea:{key}"
+                if not isinstance(key, str) or key in named or entry.get("previous_source_hash") != previous.get(unit):
+                    fail("delta index duplicate key or prior hash mismatch")
+                named.add(key)
+                if entry.get("kind") == "remove":
+                    if key in records or key in catalog:
+                        fail("delta removal still present")
+                    previous.pop(unit, None)
+                    continue
+                if key not in records or entry.get("source_hash") != records[key]["source_hash"]:
+                    fail("delta index current hash mismatch")
+                if key not in catalog:
+                    fail(f"delta:{key}: updated translation must be provided")
+                forms = manifest.forms(catalog[key], key)
+                repinned_alias = (entry["source_hash"] == previous.get(unit)
+                                  and prior["omarchy_sha"] != frozen["reference_checkout_sha"]
+                                  and any(text.startswith("omarchy:") for text in forms))
+                if catalog[key] == prior_catalog.get(key) and not repinned_alias:
+                    fail(f"delta:{key}: updated translation must be provided")
+                previous[unit] = entry["source_hash"]
+            for key in set(catalog) | set(prior_catalog):
+                if key not in named and catalog.get(key) != prior_catalog.get(key):
+                    fail(f"delta:{key}: translation changed outside named delta")
+        else:
+            if prior.get("source_index_sha256") != sha(index_bytes):
+                fail("new source index requires a delta index")
+            if catalog_bytes != receipt_input(prior, "catalog_path"):
+                fail("author's exact-byte catalog differs from translation receipt")
+    elif previous or catalog is not None or args.delta_index:
+        fail("prior round requires --translation-receipt provenance")
+    else:
+        previous = {f"flea:{key}": entry["source_hash"] for key, entry in records.items()}
+    if catalog is None:
+        catalog = {key: {form: "" for form in value} if isinstance(value, dict) else ""
+                   for key, value in english.items()}
+    out.mkdir(parents=True, exist_ok=True)
+    (out / MARKER).touch()
+    (out / "en").mkdir()
+    (out / "en/flea.json").write_bytes(english_bytes)
+    (out / args.language).mkdir()
+    if catalog_bytes is not None:
+        (out / args.language / "flea.json").write_bytes(catalog_bytes)
+    else:
+        write(out / args.language / "flea.json", catalog)
+    (out / "source-index.json").write_bytes(index_bytes)
+    write(out / "translation-manifest.json", {
+        "en": {f"flea:{key}": entry["source_hash"] for key, entry in records.items()}, args.language: previous})
+
+
+def required_categories(language, omarchy, frozen, inputs):
+    data = omarchy / "default/i18n"
+    if data.resolve() != data:
+        fail("Omarchy checkout i18n directory must not traverse symlinks")
+    roster = inputs.read(data / "locales.json")
+    rules = inputs.raw(data / "plural.jq")
+    if language not in roster:
+        fail(f"language absent from pinned roster: {language}")
+    if (sha(rules) != frozen["roster"]["plural_sha256"]
+            or sha(canonical(roster)) != frozen["roster"]["sha256"]
+            or sorted(roster) != frozen["roster"].get("languages")
+            or inputs.files[str((data / "locales.json").resolve())]["sha256"] != frozen["roster"]["file_sha256"]):
+        fail("pinned Omarchy roster/plural identity drift")
+    counts = list(range(10001)) + [n + offset for n in (1000000, 2000000, 10000000, 100000000)
+                                   for offset in (-1, 0, 1)]
+    program = rules.decode("utf-8") + '\n[.[] | plural_category($code; .)] | unique'
+    result = subprocess.run(["jq", "-c", "--arg", "code", language, program],
+                            input=json.dumps(counts), capture_output=True, text=True, timeout=30)
+    if result.returncode:
+        fail(f"pinned Omarchy plural rules failed: {result.stderr.strip()}")
+    categories = json.loads(result.stdout)
+    if not isinstance(categories, list) or not categories or not set(categories) <= manifest.CATEGORIES:
+        fail("pinned Omarchy returned invalid plural categories")
+    return set(categories) | {"other"}
+
+
+class References:
+    def __init__(self, omarchy, inputs):
+        self.omarchy, self.inputs = omarchy, inputs
+        self.resolved = {}
+        self.catalogs = {}
+
+    def resolve(self, value, language, stack=()):
+        if not isinstance(value, str) or not value.startswith("omarchy:"):
+            return value
+        if value in stack:
+            fail(f"cyclic Omarchy reference: {value}")
+        kind, dot, key = value.removeprefix("omarchy:").partition(".")
+        if not dot or kind not in manifest.KINDS or not key:
+            fail(f"invalid Omarchy reference: {value}")
+        pair = (language, kind)
+        if pair not in self.catalogs:
+            path = self.omarchy / "default/i18n" / language / f"{kind}.json"
+            if path.resolve() != path:
+                fail("Omarchy reference catalog must not traverse symlinks")
+            if not path.is_file():
+                fail(f"target-language reference catalog missing: {language}:{value}")
+            catalog = self.inputs.read(path)
+            if kind == "menu":
+                catalog = {f"{mid}.{field}": text for mid, fields in catalog.items()
+                           if isinstance(fields, dict) for field, text in fields.items()}
+            self.catalogs[pair] = catalog
+        catalog = self.catalogs[pair]
+        if key not in catalog:
+            fail(f"target-language reference missing: {language}:{value}")
+        target = self.resolve(catalog[key], language, stack + (value,))
+        manifest.forms(target, f"{language}:{value}")
+        self.resolved[f"{language}:{value}"] = {"value": target, "sha256": sha(canonical(target))}
+        return target
+
+
+def validate_value(key, source, target, categories, language, references, exceptions):
+    raw_source, raw_target = source, target
+    if isinstance(source, dict) != isinstance(target, dict):
+        fail(f"{key}: text/plural shape drift")
+    source = references.resolve(source, "en")
+    target = references.resolve(target, language)
+    if isinstance(source, dict):
+        source = {form: references.resolve(text, "en") for form, text in source.items()}
+    if isinstance(target, dict):
+        target = {form: references.resolve(text, language) for form, text in target.items()}
+    if isinstance(source, dict) != isinstance(target, dict):
+        fail(f"{key}: resolved reference shape drift")
+    source_forms = [references.resolve(text, "en") for text in manifest.forms(source, f"en:{key}")]
+    if not all(isinstance(text, str) for text in source_forms):
+        fail(f"{key}: plural form reference must resolve to text")
+    target_forms = manifest.forms(target, f"{language}:{key}")
+    if isinstance(target, dict) and not categories <= set(target):
+        fail(f"{key}: plural categories required={sorted(categories)}, actual={sorted(target)}")
+    expected = set(manifest.HOLES.findall(source_forms[0]))
+    if any(set(manifest.HOLES.findall(text)) != expected for text in source_forms):
+        fail(f"{key}: English plural placeholder mismatch")
+    source_texts = set(source_forms)
+    for text in target_forms:
+        resolved = references.resolve(text, language)
+        if not isinstance(resolved, str) or set(manifest.HOLES.findall(resolved)) != expected:
+            fail(f"{key}: placeholder mismatch in a translation form")
+        if resolved in source_texts:
+            exception = exceptions.get(key, {})
+            if (not isinstance(exception, dict) or any(
+                    not isinstance(exception.get(field), str) or not exception[field].strip()
+                    for field in ("reviewer", "rationale"))
+                    or exception.get("source_hash") != manifest.source_hash(raw_source)
+                    or exception.get("translation") != raw_target):
+                fail(f"{key}: English equality requires a reviewed per-key exception")
+            if raw_source != source or raw_target != target:
+                if (exception.get("resolved_english_sha256") != sha(canonical(source))
+                        or exception.get("resolved_translation_sha256") != sha(canonical(target))):
+                    fail(f"{key}: alias English equality requires resolved identities")
+
+
+def check(args):
+    if not args.strict:
+        fail("check requires --strict")
+    root = args.catalog_root
+    guarded(root)
+    inputs = Inputs()
+    inputs.raw(Path(__file__).resolve())
+    inputs.raw(MANIFEST_TOOL)
+    frozen, english, records = index_data(args.source_index, root, inputs)
+    args.omarchy_path = args.omarchy_path.resolve()
+    if omarchy_revision(args.omarchy_path) != frozen["reference_checkout_sha"]:
+        fail("Omarchy checkout revision differs from frozen reference_checkout_sha")
+    if inputs.raw(root / "source-index.json") != args.source_index.read_bytes():
+        fail("private source index differs from requested source index")
+    target = inputs.read(root / args.language / "flea.json")
+    if not manifest.required_keys(english, args.language) <= set(target) <= set(english):
+        fail(f"key parity: missing={sorted(set(english) - set(target))}, extra={sorted(set(target) - set(english))}")
+    hashes = inputs.read(root / "translation-manifest.json")
+    for language in ("en", args.language):
+        section = hashes.get(language, {})
+        if not isinstance(section, dict):
+            fail(f"invalid manifest section: {language}")
+        keys = set(english) if language == "en" else set(target)
+        for key in keys:
+            entry = records[key]
+            unit = f"flea:{key}"
+            if unit not in section:
+                fail(f"missing source hash: {language}:{key}")
+            if section[unit] != entry["source_hash"]:
+                fail(f"stale source hash: {language}:{key}")
+        if set(section) != {f"flea:{key}" for key in keys}:
+            fail(f"extra source hashes: {language}")
+    categories = required_categories(args.language, args.omarchy_path, frozen, inputs)
+    exceptions = inputs.read(args.exceptions)
+    if (exceptions.get("schema") != 1 or exceptions.get("language") != args.language
+            or not isinstance(exceptions.get("entries"), dict)):
+        fail("exceptions require schema, language and per-key entries")
+    if set(exceptions["entries"]) - (set(english) | set(frozen["direct_references"])):
+        fail("exceptions contain unknown keys or blanket exemptions")
+    references = References(args.omarchy_path, inputs)
+    for reference, record in frozen["references"].items():
+        resolved = references.resolve(reference, "en")
+        if not isinstance(record, dict) or resolved != record.get("english") or manifest.source_hash(resolved) != record.get("source_hash"):
+            fail(f"source index: resolved Omarchy source drift: {reference}")
+        references.resolve(reference, args.language)
+    for key in english:
+        record = records[key]
+        resolved = references.resolve(record["omarchy_reference"] or english[key], "en")
+        if resolved != record["resolved_english"]:
+            fail(f"source index:{key}: resolved English reference drift")
+        if key not in target:
+            continue
+        validate_value(key, english[key], target[key], categories, args.language, references, exceptions["entries"])
+    for reference in frozen["direct_references"]:
+        if not reference.startswith("omarchy:"):
+            fail("invalid direct Omarchy reference")
+        validate_value(reference, reference, reference, categories, args.language, references, exceptions["entries"])
+    inputs.raw(Path(__file__).resolve())
+    inputs.raw(MANIFEST_TOOL)
+    checked = {"schema": 1, "status": "PASS", "strict": True, "language": args.language,
+               "source_sha": frozen["source_sha"], "omarchy_sha": frozen["reference_checkout_sha"],
+               "omarchy_path": str(args.omarchy_path),
+               "source_index_sha256": sha(args.source_index.read_bytes()),
+               "catalog_path": str((root / args.language / "flea.json").resolve()),
+               "manifest_path": str((root / "translation-manifest.json").resolve()),
+               "source_index_path": str(args.source_index.resolve()),
+               "required_categories": sorted(categories), "references": references.resolved,
+               "inputs": inputs.files}
+    identical(checked)
+    write(root / CHECK, checked)
+
+
+def identical(checked):
+    for path, item in checked["inputs"].items():
+        if sha(Path(path).read_bytes()) != item["sha256"]:
+            fail(f"strict check inputs changed: {path}")
+    omarchy = Path(checked["omarchy_path"])
+    if omarchy_revision(omarchy) != checked["omarchy_sha"]:
+        fail("Omarchy checkout changed after strict check")
+    for path, item in checked["inputs"].items():
+        if Path(path).is_relative_to(omarchy):
+            relative = Path(path).relative_to(omarchy).as_posix()
+            if sha(git_bytes(omarchy, "show", f"{checked['omarchy_sha']}:{relative}")) != item["sha256"]:
+                fail(f"Omarchy checkout input differs from pinned committed bytes: {relative}")
+
+
+def receipt(args):
+    guarded(args.catalog_root)
+    checked = receipt_data(args.catalog_root / CHECK)
+    if (checked["language"] != args.language or checked.get("source_index_path") != str(args.source_index.resolve())
+            or checked.get("catalog_path") != str((args.catalog_root / args.language / "flea.json").resolve())):
+        fail("receipt request differs from strict check")
+    if str(args.out.resolve()) in checked["inputs"] or args.out.resolve() == (args.catalog_root / CHECK).resolve():
+        fail("receipt output overlaps validated inputs")
+    try:
+        identical(checked)
+    except (OSError, ValueError):
+        if args.out.is_file() and not args.out.is_symlink():
+            old = manifest.read(args.out)
+            if old.get("catalog_path") == checked["catalog_path"] and old.get("status") == "PASS":
+                args.out.unlink()
+        raise
+    write(args.out, checked)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("prepare", "check", "receipt"):
+        sub = commands.add_parser(name)
+        sub.add_argument("--language", required=True)
+        sub.add_argument("--source-index", required=True, type=Path)
+        sub.add_argument("--catalog-root", required=True, type=Path)
+        if name == "prepare":
+            sub.add_argument("--out", required=True, type=Path)
+            sub.add_argument("--translation-receipt", type=Path)
+            sub.add_argument("--delta-index", type=Path)
+        elif name == "check":
+            sub.add_argument("--omarchy-path", required=True, type=Path)
+            sub.add_argument("--exceptions", required=True, type=Path)
+            sub.add_argument("--strict", action="store_true")
+        else:
+            sub.add_argument("--out", required=True, type=Path)
+    args = parser.parse_args()
+    try:
+        if not manifest.CODE.fullmatch(args.language) or args.language == "en":
+            fail("quality gate requires a target language code other than en")
+        globals()[args.command](args)
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, RecursionError) as error:
+        print(f"flea-i18n-quality: {error}", file=sys.stderr)
+        return 1
+    print(f"i18n-quality {args.command}: {args.language} PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

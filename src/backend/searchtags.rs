@@ -8,7 +8,7 @@ use std::ffi::{OsStr, OsString};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::sync::{Arc, Mutex};
 
 // One bounded call reads the tags of this many entries, so a slow share costs its deadline per chunk and never per directory.
@@ -45,21 +45,39 @@ impl Bound {
     }
 
     // The tags of each scope-relative row, parallel to `rels`: a local row reads direct, a remote mount's rows read in bounded chunks, and a chunk the mount does not answer ends that mount's reads with its rest left unread (None) for a later retry.
-    pub(crate) fn read(&self, rels: &[Vec<u8>]) -> Vec<Option<Vec<String>>> {
+    pub(crate) fn read(&self, rels: &[Vec<u8>], stop: &Arc<AtomicBool>) -> Vec<Option<Vec<String>>> {
         let mut out: Vec<Option<Vec<String>>> = vec![None; rels.len()];
         let mut remote: BTreeMap<&Path, Vec<usize>> = BTreeMap::new();
         for (at, rel) in rels.iter().enumerate() {
+            if stop.load(Ordering::Relaxed) { return out; }
             let path = self.scope.join(OsStr::from_bytes(rel));
             match self.mount_of(&path) {
                 Some(mount) => remote.entry(mount).or_default().push(at),
-                None => out[at] = Some(super::tags::read(&path).unwrap_or_default()),
+                None => {
+                    let have = super::tags::read(&path).unwrap_or_default();
+                    if stop.load(Ordering::Relaxed) { return out; }
+                    out[at] = Some(have);
+                }
             }
         }
         for (mount, rows) in remote {
             for chunk in rows.chunks(TAG_CHUNK) {
+                if stop.load(Ordering::Relaxed) { return out; }
                 let paths: Vec<PathBuf> = chunk.iter().map(|&at| self.scope.join(OsStr::from_bytes(&rels[at]))).collect();
-                let read = move || paths.iter().map(|path| super::tags::read(path).unwrap_or_default()).collect::<Vec<_>>();
+                let worker_stop = Arc::clone(stop);
+                let read = move || {
+                    let mut have = Vec::new();
+                    for path in paths {
+                        if worker_stop.load(Ordering::Relaxed) { break; }
+                        let tags = super::tags::read(&path).unwrap_or_default();
+                        if worker_stop.load(Ordering::Relaxed) { break; }
+                        have.push(tags);
+                    }
+                    have
+                };
+                if stop.load(Ordering::Relaxed) { return out; }
                 let Ok(have) = super::iomount::call(mount, &self.body, "search", read) else { break };
+                if stop.load(Ordering::Relaxed) { return out; }
                 for (&at, tags) in chunk.iter().zip(have) {
                     out[at] = Some(tags);
                 }
@@ -93,7 +111,7 @@ struct Pass {
     announced: AtomicBool,
     // Raised when a re-read has swapped its names in, spent by the one re-run of the standing query that owes it.
     rewritten: AtomicBool,
-    stop: AtomicBool,
+    stop: Arc<AtomicBool>,
     // Bumped when a patch renumbers the rows, so a re-read that located its rows before it locates them again.
     epoch: AtomicUsize,
     // Raised when a bounded chunk fails and leaves rows unread, so the answer stays partial until a retry reads them; a patch that only adds rows never raises it.
@@ -114,7 +132,7 @@ impl Pass {
             done: AtomicBool::new(false),
             announced: AtomicBool::new(false),
             rewritten: AtomicBool::new(false),
-            stop: AtomicBool::new(false),
+            stop: Arc::new(AtomicBool::new(false)),
             epoch: AtomicUsize::new(0),
             unread_failed: AtomicBool::new(false),
             #[cfg(test)]
@@ -128,6 +146,7 @@ impl Pass {
 // A session's tag state; dropping it stops the worker, so close and a patch end the pass with no call.
 pub(crate) struct Tags {
     pass: Option<Arc<Pass>>,
+    stopped: bool,
     events: Sender<Event>,
     // False while the last answer ran on a pass still reading, so its matches cannot seed a narrowing.
     whole: bool,
@@ -148,7 +167,14 @@ impl Drop for Tags {
 
 impl Tags {
     pub(crate) fn new(events: Sender<Event>) -> Tags {
-        Tags { pass: None, events, whole: true, armed: true, #[cfg(test)] hold: false }
+        Tags { pass: None, stopped: false, events, whole: true, armed: true, #[cfg(test)] hold: false }
+    }
+
+    // Unmount keeps known tags but ends this scope's reads and retries until reopen.
+    pub(crate) fn stop(&mut self) {
+        self.stopped = true;
+        self.whole = false;
+        if let Some(pass) = &self.pass { pass.stop.store(true, Ordering::Relaxed); }
     }
 
     // A new query lets the unread retry fire once more.
@@ -158,27 +184,24 @@ impl Tags {
 
     // A patch moves row ids: a finished pass follows its rows and answers the added ones to queue; a pass still reading is dropped.
     pub(crate) fn carry(&mut self, index: &Index) -> Vec<Vec<u8>> {
+        if self.stopped { return Vec::new(); }
         let Some(pass) = &self.pass else { return Vec::new() };
         if !pass.done.load(Ordering::Relaxed) {
             *self = Tags::new(self.events.clone());
             return Vec::new();
         }
         self.armed = true;
-        let (kept, survivors) = index.last_patch();
+        let (moves, survivors) = index.last_patch();
         let mut names = pass.names.lock().unwrap();
-        let old = std::mem::take(&mut *names);
-        let mut next: Vec<Option<Vec<String>>> = match kept {
-            None => old,
-            Some(kept) => {
-                let mut keep = kept.iter().peekable();
-                old.into_iter().enumerate().filter(|(at, _)| keep.next_if(|&&row| row == *at).is_some()).map(|(_, have)| have).collect()
-            }
-        };
+        let mut next = std::mem::take(&mut *names);
+        for &(at, last) in moves {
+            if last < next.len() { next.swap_remove(at); }
+        }
         next.resize(index.len(), None);
         // A re-read that found its rows under the old ids sees this and finds them again.
         pass.epoch.fetch_add(1, Ordering::Relaxed);
         *names = next;
-        (survivors..index.len()).map(|row| index.raw(row).to_vec()).collect()
+        (survivors..index.len()).map(|row| index.raw(row)).collect()
     }
 
     // Queues the rows a patch added, so their names are read off the loop and the standing query is re-run once they are in.
@@ -206,6 +229,7 @@ impl Tags {
 
     // Starts the worker on the first tagged query once the walk has landed; true while rows are unread, when the answer is partial.
     pub(crate) fn prepare(&mut self, terms: &Terms, index: &Arc<Mutex<Index>>, scope: &Path, body: &str, walking: bool) -> bool {
+        if self.stopped { return false; }
         if terms.tags.is_empty() {
             self.whole = true;
             return false;
@@ -233,7 +257,7 @@ impl Tags {
             let unread: Vec<bool> = pass.names.lock().unwrap().iter().map(Option::is_none).collect();
             let missing: Vec<Vec<u8>> = {
                 let index = index.lock().unwrap();
-                (0..index.len()).filter(|&row| unread.get(row).is_some_and(|unread| *unread)).map(|row| index.raw(row).to_vec()).collect()
+                (0..index.len()).filter(|&row| unread.get(row).is_some_and(|unread| *unread)).map(|row| index.raw(row)).collect()
             };
             if missing.is_empty() {
                 pass.unread_failed.store(false, Ordering::Relaxed);
@@ -266,6 +290,7 @@ impl Tags {
 
     // An own tag write: the named files' rows get their names re-read off the loop and swapped in whole. With no pass open it reads nothing.
     fn refresh(&mut self, rels: Vec<Vec<u8>>, index: &Arc<Mutex<Index>>) {
+        if self.stopped { return; }
         let Some(pass) = &self.pass else { return };
         let mut rewrites = pass.rewrites.lock().unwrap();
         rewrites.queue.extend(rels);
@@ -285,6 +310,7 @@ impl Tags {
 
     // True once after the worker finished, so the loop re-runs the standing query exactly once.
     pub(crate) fn poll_read(&self) -> bool {
+        if self.stopped { return false; }
         self.pass.as_ref().is_some_and(|pass| pass.done.load(Ordering::Relaxed) && !pass.announced.swap(true, Ordering::Relaxed))
     }
 }
@@ -315,14 +341,15 @@ fn read_all(pass: &Pass, index: &Mutex<Index>, len: usize, events: &Sender<Event
         let rels: Vec<Vec<u8>> = {
             let index = index.lock().unwrap();
             // A patch may have shortened the index; its reset stops this pass, but the chunk in hand must not read past the end.
-            (row..end.min(index.len())).map(|at| index.raw(at).to_vec()).collect()
+            (row..end.min(index.len())).map(|at| index.raw(at)).collect()
         };
         if rels.is_empty() {
             return;
         }
-        let read = pass.bound.read(&rels);
+        let read = pass.bound.read(&rels, &pass.stop);
         #[cfg(test)]
         pass.reads.fetch_add(read.len(), Ordering::Relaxed);
+        if pass.stop.load(Ordering::Relaxed) { return; }
         if read.iter().any(Option::is_none) {
             pass.unread_failed.store(true, Ordering::Relaxed);
         }
@@ -372,22 +399,25 @@ fn land(pass: &Pass, index: &Mutex<Index>, events: &Sender<Event>, first: bool) 
 fn reread(pass: &Pass, index: &Mutex<Index>, rels: Vec<Vec<u8>>) {
     let want: HashSet<Vec<u8>> = rels.into_iter().collect();
     loop {
+        if pass.stop.load(Ordering::Relaxed) { return; }
         let epoch = pass.epoch.load(Ordering::Relaxed);
         let mut found: Vec<(usize, Vec<u8>)> = Vec::new();
         let mut row = 0;
         loop {
+            if pass.stop.load(Ordering::Relaxed) { return; }
             let index = index.lock().unwrap();
             let end = (row + CHUNK).min(index.len());
-            found.extend((row..end).filter(|&at| want.contains(index.raw(at))).map(|at| (at, index.raw(at).to_vec())));
+            found.extend((row..end).filter(|&at| want.contains(&index.raw(at))).map(|at| (at, index.raw(at))));
             if end >= index.len() || found.len() == want.len() {
                 break;
             }
             row = end;
         }
         let paths: Vec<Vec<u8>> = found.iter().map(|(_, rel)| rel.clone()).collect();
-        let have = pass.bound.read(&paths);
+        let have = pass.bound.read(&paths, &pass.stop);
         #[cfg(test)]
         pass.reads.fetch_add(have.len(), Ordering::Relaxed);
+        if pass.stop.load(Ordering::Relaxed) { return; }
         let mut names = pass.names.lock().unwrap();
         // A patch renumbered the rows while they were read, so the ids in hand are stale: locate and read again.
         if pass.epoch.load(Ordering::Relaxed) != epoch {
@@ -442,3 +472,7 @@ mod tests;
 #[cfg(test)]
 #[path = "searchtags_write_tests.rs"]
 mod write_tests;
+
+#[cfg(test)]
+#[path = "searchtagcancel_tests.rs"]
+mod cancel_tests;

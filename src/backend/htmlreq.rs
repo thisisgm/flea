@@ -117,6 +117,8 @@ fn render(ask: &Ask, ticket: &codereq::Ticket) -> Option<String> {
     let dest = cache.join(format!("{}.png", htmlcache::key(&path, &meta, ask.width, ask.height)));
     let folder = path.parent()?;
     if htmlcache::hit(&dest, ask.width, ask.height, folder) { return Some(reply(ask, "ready", &dest.to_string_lossy(), total, "")) }
+    // Checked before the renderer runs, so a document this cache cannot replace costs no child; publish checks again.
+    if !htmlcache::replaceable(&dest) { return None }
     std::fs::create_dir_all(&cache).ok()?;
     let work = Work::new(&cache, "html").ok()?;
     std::fs::set_permissions(&work.dir, std::fs::Permissions::from_mode(0o700)).ok()?;

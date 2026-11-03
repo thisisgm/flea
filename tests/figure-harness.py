@@ -1,5 +1,4 @@
 # Execute the figure suite's real shell fragments with controlled lower-layer failures.
-import hashlib
 import json
 import os
 import pathlib
@@ -266,6 +265,8 @@ print("x" * {DIAGNOSTIC_FIXTURE_CHARS} + "UNBOUNDED_STDERR_TAIL", file=sys.stder
         component = box / "component"
         component.mkdir()
         shutil.copyfile(tree / "ui/MarkdownFigure.qml", component / "MarkdownFigure.qml")
+        (component / "js").mkdir()
+        shutil.copyfile(tree / "ui/js/FigureDate.js", component / "js/FigureDate.js")
         (component / "qmldir").write_text("singleton Theme 1.0 Theme.qml\nsingleton FigureService 1.0 FigureService.qml\n")
         (component / "Theme.qml").write_text('''pragma Singleton
 import QtQuick
@@ -306,7 +307,8 @@ QtObject {
 
     if shutil.which("node"):
         worker_uri = (tree / "ui/js/FigureWorker.mjs").as_uri()
-        quoted_svg = '''<svg xmlns="http://www.w3.org/2000/svg"><style>text.label { font-family: "Inter", sans-serif; font-weight: "bold"; }</style><text class="label">hello</text><text font-family='"Inter", sans-serif'>single quotes</text></svg>'''
+        # Sample input: a user style's quoted font families on two labels, the way Pele writes a classDef into a style attribute.
+        quoted_svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="10" height="10" style="font-family:&quot;Inter&quot;, sans-serif"><text class="pele-label" style="font-family:&quot;Inter&quot;, sans-serif;font-weight:bold">hello</text><text style="font-family:'Inter', sans-serif">single quotes</text></svg>'''
         result = subprocess.run(["node", "--input-type=module", "-e",
                                  f'import {{ postMermaid }} from {json.dumps(worker_uri)};\n'
                                  + f'console.log(postMermaid({json.dumps(quoted_svg)}, {{bg:"#000000", fg:"#ffffff", font:"monospace"}}));'],
@@ -314,12 +316,13 @@ QtObject {
         try:
             svg = ET.fromstring(result.stdout)
             text_nodes = [node for node in svg.iter() if node.tag.endswith("text")]
-            valid = all(node.attrib.get("font-family") == "monospace" for node in text_nodes)
-            valid = valid and text_nodes[0].attrib.get("font-weight") == '"bold"'
+            valid = svg.attrib.get("font-family") == "monospace" and len(text_nodes) == 2
+            valid = valid and all("font-family" not in node.attrib and "style" not in node.attrib for node in text_nodes)
+            valid = valid and text_nodes[0].attrib.get("font-weight") == "bold"
         except (ET.ParseError, IndexError):
             valid = False
         check(result.returncode == 0 and valid,
-              "mx2b F30 quoted class declarations yield well-formed XML and one forced font")
+              "mx2b F30 quoted font families in a style yield well-formed XML and one font, the root's")
     else:
         print("figure-harness: SKIP node is absent, so the mx2b F30 quoted-family check did not run")
 
@@ -484,16 +487,12 @@ with tempfile.TemporaryDirectory(prefix="flea-vendor-targets-") as scratch:
         directory.mkdir(parents=True)
     shutil.copyfile(tree / "tools/vendor-js/build.sh", build_dir / "build.sh")
     (build_dir / "package.json").write_text("{}\n")
-    (build_dir / "patches").mkdir()
-    (build_dir / "patches/beautiful-mermaid+1.1.3.patch").write_text("\n")
     npm_receipt = layout / "npm.ran"
     (stubs / "npm").write_text(f'#!/bin/sh\n: > "{npm_receipt}"\n')
     # Sample input: npx esbuild math-entry.mjs --bundle --minify --outfile=math-bundle.mjs.
     (stubs / "npx").write_text('#!/bin/sh\nfor arg in "$@"; do\n    case "$arg" in\n'
                                '        --outfile=*) printf "same bytes\\n" > "${arg#--outfile=}" ;;\n    esac\ndone\n')
-    # The patch stub answers by the file PATCH_SAYS names, and exits PATCH_EXIT.
-    (stubs / "patch").write_text('#!/bin/sh\ncat "$PATCH_SAYS" 2>/dev/null\nexit "${PATCH_EXIT:-0}"\n')
-    for stub in ("npm", "npx", "patch"):
+    for stub in ("npm", "npx"):
         (stubs / stub).chmod(0o755)
 
     def rebuild(**extra):
@@ -504,15 +503,6 @@ with tempfile.TemporaryDirectory(prefix="flea-vendor-targets-") as scratch:
 
     for name in ("math", "mermaid"):
         (vendor / f"{name}.mjs").write_text("same bytes\n")
-    # Sample input: patch -p1 prints "Hunk #1 succeeded at 40 (offset 3 lines)." when its hunk moved.
-    moved = layout / "patch.moved"
-    moved.write_text("patching file dist/index.js\nHunk #1 succeeded at 40 (offset 3 lines).\n")
-    result = rebuild(PATCH_SAYS=str(moved))
-    check(result.returncode == 1 and "applied with an offset, fuzz or reject" in result.stdout,
-          "mermaid-r1 a patch hunk that moved fails the build")
-    result = rebuild(PATCH_EXIT="1")
-    check(result.returncode == 1 and "did not apply cleanly" in result.stdout,
-          "mermaid-r1 a patch that does not apply fails the build")
     result = rebuild()
     check(result.returncode == 0 and "both bundles reproduce byte for byte" in result.stdout,
           "mx2b F22 a rebuild identical to ui/vendor passes")
@@ -527,27 +517,7 @@ with tempfile.TemporaryDirectory(prefix="flea-vendor-targets-") as scratch:
         check(result.returncode == 1 and f"missing tracked target ../../ui/vendor/{name}.mjs" in result.stdout
               and not npm_receipt.exists(), f"mx2b F22 an absent {name} target refuses by name before npm runs")
         target.write_text("same bytes\n")
-agents = (tree / "AGENTS.md").read_text()
-# Sample input: `src/figurehelper.rs` at 210 in the mx2 file-budget paragraph.
-budget_paragraph = next(line for line in agents.splitlines() if line.startswith("mx2 renders Markdown maths"))
-for path in ("src/figurehelper.rs", "ui/FigureService.qml"):
-    recorded = re.search(re.escape(f"`{path}` at ") + r"(\d+)", budget_paragraph)
-    actual = len((tree / path).read_text().splitlines())
-    check(recorded is not None and int(recorded[1]) == actual,
-          f"F24 mx2 records the final {path} line count ({actual})")
-# Sample input: `src/backend/sandbox.rs` 365 to 385 or `ui/vendor/figure-helper.mjs` at 66 in the same paragraph.
-for path in ("ui/vendor/figure-helper.mjs", "src/backend/sandbox.rs", "ui/js/FigureWorker.mjs", "src/main.rs",
-             "tests/markdown-figures.qml", "tools/vendor-js/build.sh"):
-    recorded = re.search(re.escape(f"`{path}`") + r"(?: at |\s\d+ to )(\d+)", budget_paragraph)
-    actual = len((tree / path).read_text().splitlines())
-    matches = recorded is not None and int(recorded[1]) == actual
-    if path == "src/backend/sandbox.rs":
-        # Sample receipt: `src/backend/sandbox.rs` 365 to 401 (source sha256 4a732e3e123e01ee68dae16d2cb4cd623a87a13e4aeb067872bc12f64477319f).
-        receipt = re.search(re.escape(f"`{path}`")
-                            + r"\s\d+ to \d+ \(source sha256 ([0-9a-f]{64})\)", budget_paragraph)
-        matches = matches and receipt is not None and receipt[1] == hashlib.sha256((tree / path).read_bytes()).hexdigest()
-    check(matches,
-          f"mx2a F29 mx2 records the final {path} line count ({actual})")
+testing_doc = (tree / "docs/architecture/testing.md").read_text()
 sandbox = (tree / "src/backend/sandbox.rs").read_text()
 check("const READONLY_PREFIX_ARGS: usize = 4;" in sandbox
       and "const READONLY_BIND_ARGS: usize = 3;" in sandbox
@@ -592,7 +562,7 @@ fallback = figure_source.split("readonly property string fallbackBody:", 1)[1].s
 check("readonly property int fallbackChars: 2000" in figure_source
       and fallback.count("root.fallbackChars") == 3 and "2000" not in fallback,
       "F27 fallback comparison, slice and remaining count share a named limit")
-headless_contract = agents.split("The suites that drive the debug binary", 1)[1].split("Its own `headless=`", 1)[0]
+headless_contract = testing_doc.split("The suites that drive the debug binary", 1)[1].split("Its own `headless=`", 1)[0]
 check("needs nothing but a shell" not in headless_contract
       and all(word in headless_contract for word in ("no display, session or hardware", "python3", "Qt", "Quickshell", "quickjs-ng", "refuse loudly", "naming")),
       "mx2b F8 headless contract names its tools and missing-tool refusal")
@@ -601,18 +571,23 @@ constraint = re.search(r"((?:^#[^\n]*\n)+)npx esbuild", build, re.M)[1].strip().
 check(len(constraint) == 1 and len(constraint[0]) <= 140
       and all(word in constraint[0] for word in ("quickjs-ng", "ES modules", "neutral", "es2017", "minified", "exact command")),
       "mx2b F7 bundle constraint fits one comment line")
-check("const PERCENT_SCALE = 100;" in worker and "parseFloat(m[2]) / PERCENT_SCALE" in worker,
+# The bundle entry resolves every colour, a label halo's color-mix too, so the worker keeps no resolver of its own.
+entry = (tree / "tools/vendor-js/mermaid-entry.mjs").read_text()
+check("const PERCENT = 100;" in entry and "parseFloat(share) / PERCENT" in entry,
       "mx2b F12 color-mix percentage conversion uses its named scale")
-check(all(expression not in worker for expression in
-          ("i + 3", "i + 4", "m + 9", "m + 10", "parseInt(h, 16)", "(n >> 16) & 255", "(n >> 8) & 255"))
-      and all(name in worker for name in ("VAR_NAME_LENGTH", "VAR_OPEN_LENGTH", "MIX_NAME_LENGTH",
-                                          "MIX_OPEN_LENGTH", "HEX_RADIX", "RED_SHIFT", "GREEN_SHIFT", "BYTE_MASK")),
+check(all(expression not in worker + entry for expression in
+          ("i + 3", "i + 4", "m + 9", "m + 10", "parseInt(h, 16)", "(n >> 16) & 255", "(n >> 8) & 255", ", 16)"))
+      and "const HEX_RADIX = 16;" in entry and "function resolveValue" not in worker,
       "mx2b F34 CSS token lengths, hex radix, byte shifts and mask have names")
 check("shell.t0 < 5000" not in qml and "shell.maxGap < 2000" not in qml,
       "F12 idle-exit and tick-gap bounds have names")
-for marker in ("function parseMix", "function resolveValue", "function inlineClasses", "    svg.replace(/<style>",
-               "function hexRGB", "function closeParen", "function splitTop", "export function checkSafe", "    var href ="):
-    before = worker.split(marker, 1)[0].splitlines()[-1]
+for text, marker in ((worker, "function styleToAttributes"), (worker, "function iconGroups"), (worker, "function rootFont"),
+                     (worker, "function lineTexts"), (worker, "function accentMarks"), (worker, "function transformOf"),
+                     (worker, "function outlineOf"), (worker, "function arcExtremes"), (worker, "function strokeRoom"),
+                     (worker, "export function checkSafe"), (worker, "function decodeReferences"), (worker, "function attributeError"), (worker, "function styleError"),
+                     (worker, "function inAttributes"), (entry, "function inAttributes"), (entry, "function todayOf"), (entry, "function faceOf"),
+                     (entry, "function mix"), (entry, "function resolve"), (entry, "function mixed")):
+    before = text.split(marker, 1)[0].splitlines()[-1]
     check("Sample input:" in before, "F13 parser has sample input: " + marker.strip())
 print(f"figure-harness: {checks} check(s), {failures} failed")
 sys.exit(bool(failures))

@@ -49,20 +49,28 @@ names=${names# }
 last=${names##* }
 first=${names% *}
 
-# Only the two headless= lines change, so the rule lines below are the shipped bytes.
+# Each shipped headless= list becomes a stub list (first: all but the last stub, middle: none, last: the final stub); rule lines stay shipped bytes.
+shipped_lists=$(grep -c '^headless=' tests/run-all.sh)
 seen=0
 while IFS= read -r line; do
     if [[ "$line" == headless=* ]]; then
         seen=$((seen + 1))
-        if [ "$seen" -eq 1 ]; then line="headless=\"$first\""; else line="headless=\"\$headless $last\""; fi
+        if [ "$shipped_lists" -eq 1 ]; then line="headless=\"$first $last\""
+        elif [ "$seen" -eq 1 ]; then line="headless=\"$first\""
+        elif [ "$seen" -eq "$shipped_lists" ]; then line="headless=\"\$headless $last\""
+        else line="headless=\"\$headless\""
+        fi
     fi
     printf '%s\n' "$line"
 done < tests/run-all.sh > "$box/tests/run-all.sh"
 chmod +x "$box/tests/run-all.sh"
-[ "$(grep -c '^headless=' "$box/tests/run-all.sh")" -eq 2 ] && check ok "the copy has its two headless= lines" \
-    || check bad "the copy has its two headless= lines"
+# Every shipped list must be swapped: a shipped headless= line left in the copy would run real suites.
+[ "$shipped_lists" -ge 1 ] && [ "$(grep -c '^headless=' "$box/tests/run-all.sh")" -eq "$shipped_lists" ] \
+    && ! grep -qxF -f <(grep '^headless=' tests/run-all.sh) "$box/tests/run-all.sh" \
+    && check ok "the copy swaps all $shipped_lists shipped headless= lists for stubs" \
+    || check bad "the copy swaps all $shipped_lists shipped headless= lists for stubs"
 
-# The scratch copy swaps both lists for stubs, so the shipped lists are read here: a name with no tests/NAME.sh, such as two names run together, runs nothing.
+# The scratch copy swaps every list for stubs, so the shipped lists are read here: a name with no tests/NAME.sh, such as two names run together, runs nothing.
 headless=""
 while IFS= read -r line; do
     [[ "$line" == headless=* ]] && eval "$line"

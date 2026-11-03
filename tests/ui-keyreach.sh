@@ -3,7 +3,7 @@
 # shellcheck disable=SC2154 # ui.sh supplies the fixture root and the native driver helpers.
 # One omarchy-drive ipc round trip costs 190 to 565 ms on minipc, so a call that outlives ten seconds is a hang and says so.
 keyreach_ipc() {
-    timeout 10 omarchy-drive ipc -p "$flea_ui/boot" flea "$@" || fail "keyreach: ipc $1 gave no answer in ten seconds"
+    timeout 10 "$FLEA_IPC_HELPER" drive -p "$flea_ui/boot" flea "$@" || fail "keyreach: ipc $1 gave no answer in ten seconds"
 }
 # keyreach_until <seconds> <what> <command...>: polls on the wall clock and fails naming what it waited for.
 keyreach_until() {
@@ -105,7 +105,7 @@ case_keyreach() {
     settle
     key r >/dev/null
     settle
-    printf '%s' "renamed" | omarchy-drive key --window flea - >/dev/null || fail "keyreach: typing the new name failed"
+    printf '%s' "renamed" | omarchy-drive key --window com.thisisgm.flea - >/dev/null || fail "keyreach: typing the new name failed"
     key -k Return >/dev/null
     keyreach_until 10 "the rename to land as renamed.txt" keyreach_has_path "$dir/renamed.txt"
     [[ -e "$dir/renamed.txt" ]] || fail "keyreach: the rename never landed"

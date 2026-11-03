@@ -7,12 +7,21 @@
 # stdin; with no password the build and field-code passes still run and the round trip is skipped.
 set -u
 
+if [ "$#" -gt 1 ]; then
+  echo "flea-package-test: expected at most one built package archive" >&2
+  exit 2
+fi
+pkg=
+if [ "$#" -eq 1 ]; then
+  pkg=$(realpath -e -- "$1") || exit 1
+fi
+
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(dirname "$here")
 
 # Hard rule 9: the sandbox is a mktemp -d of its own, checked by the shared guard before anything
 # writes or deletes under it. FLEA_FIXTURE_ROOT is what the guard validates, so it is what we set.
-FLEA_FIXTURE_ROOT=$(mktemp -d /tmp/flea-package-test.XXXXXX) || exit 1
+FLEA_FIXTURE_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/flea-package-test.XXXXXX") || exit 1
 export FLEA_FIXTURE_ROOT
 . "$repo/tools/flea-sandbox-guard"
 sandbox_root_ok
@@ -58,16 +67,61 @@ for size in 16 32 48 128 256; do
 done
 
 echo "== the package"
-if ( cd "$repo" && BUILDDIR="$work/build" PKGDEST="$work/pkgdest" SRCDEST="$work/srcdest" \
-     makepkg -f >"$work/makepkg.log" 2>&1 ); then
-  pass "makepkg built the package"
-else
-  fail "makepkg failed, see $work/makepkg.log"
-  tail -5 "$work/makepkg.log"
-  exit 1
+if [ -z "$pkg" ]; then
+  # makepkg takes a source file beside the PKGBUILD over SRCDEST, so HEAD's tarball goes in a recipe directory of its own.
+  pkgver=$(. "$repo/PKGBUILD" && printf '%s\n' "$pkgver")
+  sandbox_make "$work/recipe"
+  cp "$repo/PKGBUILD" "$work/recipe/PKGBUILD"
+  git -C "$repo" archive --prefix="flea-$pkgver/" -o "$work/recipe/flea-v$pkgver.tar.gz" HEAD || exit 1
+  [ -z "$(git -C "$repo" status --porcelain)" ] || echo "note: uncommitted changes are not in the package, which is HEAD $(git -C "$repo" rev-parse --short HEAD)"
+  if ( cd "$work/recipe" && BUILDDIR="$work/build" PKGDEST="$work/pkgdest" SRCDEST="$work/srcdest" \
+       makepkg -f --skipchecksums >"$work/makepkg.log" 2>&1 ); then
+    pass "makepkg built the package"
+  else
+    fail "makepkg failed, see $work/makepkg.log"
+    tail -5 "$work/makepkg.log"
+    exit 1
+  fi
+  pkg=$(ls "$work"/pkgdest/flea-*.pkg.tar.* 2>/dev/null | head -1)
 fi
-pkg=$(ls "$work"/pkgdest/flea-*.pkg.tar.* 2>/dev/null | head -1)
 [ -n "$pkg" ] || { fail "no package was produced"; exit 1; }
+package_name=$(bsdtar -xOf "$pkg" .PKGINFO | sed -n 's/^pkgname = //p')
+case "$package_name" in
+  flea|flea-bin) ;;
+  *) fail "unexpected package name $package_name"; exit 1 ;;
+esac
+
+if bsdtar -xOf "$pkg" "usr/share/licenses/$package_name/THIRD-PARTY-LICENSES.txt" > "$work/third-party.txt" &&
+   cmp -s "$repo/THIRD-PARTY-LICENSES.txt" "$work/third-party.txt"; then
+  pass "archive carries the complete third-party license inventory"
+else
+  fail "archive has missing or stale third-party license notices"
+fi
+# Sample input: "Package licenses: Apache-2.0 MIT Zlib" in the notice file prints "Apache-2.0 MIT Zlib", one id per line after tr.
+sed -n 's/^Package licenses: //p' "$repo/THIRD-PARTY-LICENSES.txt" | tr ' ' '\n' | sort > "$work/expected-licenses"
+# Sample input: the .PKGINFO lines "license = MIT" and "license = Apache-2.0" print "MIT" and "Apache-2.0"; "pkgname = flea" prints nothing.
+bsdtar -xOf "$pkg" .PKGINFO | sed -n 's/^license = //p' | sort > "$work/package-licenses"
+if [ -s "$work/expected-licenses" ] && cmp -s "$work/expected-licenses" "$work/package-licenses"; then
+  pass "archive metadata declares exactly the derived license set"
+else
+  fail "archive metadata does not cover the third-party license inventory"
+fi
+
+# Inspect the actual archive even when no password was supplied for the pacman round trip.
+mkdir -p "$work/packaged"
+if bsdtar -xf "$pkg" -C "$work/packaged" usr/bin/flea usr/bin/flea-gui; then
+  for program in flea flea-gui; do
+    if [ -x "$work/packaged/usr/bin/$program" ]; then pass "archive ships executable $program"; else fail "archive lacks executable $program"; fi
+  done
+  if ldd "$work/packaged/usr/bin/flea-gui" > "$work/gui-ldd.log" 2>&1 && ! grep -q 'not found' "$work/gui-ldd.log"; then
+    pass "packaged flea-gui resolves its shared libraries"
+  else
+    fail "packaged flea-gui has unresolved shared libraries"
+  fi
+  cat "$work/gui-ldd.log"
+else
+  fail "archive does not supply both binaries"
+fi
 
 # No .INSTALL means nothing is created outside pacman's own file list, which is the whole of why
 # removing the package can be said to remove everything installing it created.
@@ -107,14 +161,14 @@ else
   else
     fail "the fake root holds $installed files and links, not the $declared the package declares"
   fi
-  for p in usr/bin/flea usr/share/flea/ui/boot/shell.qml usr/share/flea/ui/boot/picker.qml \
+  for p in usr/bin/flea usr/bin/flea-gui usr/share/flea/ui/boot/shell.qml usr/share/flea/ui/boot/picker.qml \
            usr/share/flea/ui/boot/fleatab.qml usr/share/flea/ui/boot/tabtearoff.qml \
            usr/share/flea/ui/WindowBody.qml usr/share/flea/ui/PickerWindow.qml \
            usr/share/flea/ui/Commons usr/share/flea/ui/Ui \
            usr/share/flea/ui/boot/Commons usr/share/flea/ui/boot/Ui \
            usr/share/applications/com.thisisgm.flea.desktop \
            usr/share/icons/hicolor/scalable/apps/com.thisisgm.flea.svg \
-           usr/share/licenses/flea/LICENSE; do
+           "usr/share/licenses/$package_name/LICENSE" "usr/share/licenses/$package_name/THIRD-PARTY-LICENSES.txt"; do
     if [ -e "$fakeroot/$p" ] || [ -L "$fakeroot/$p" ]; then pass "installed $p"; else fail "missing $p"; fi
   done
 
@@ -125,7 +179,7 @@ else
     fail "the packaged binary did not decode a file:// reveal target"
   fi
 
-  if pacman_sandboxed -Rns flea >"$work/remove.log" 2>&1; then
+  if pacman_sandboxed -Rns "$package_name" >"$work/remove.log" 2>&1; then
     pass "pacman removed the package"
   else
     fail "pacman could not remove the package"

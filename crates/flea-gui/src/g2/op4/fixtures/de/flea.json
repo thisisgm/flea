@@ -1,0 +1,5 @@
+{
+  "dialogs.output.title.convert": "%1 umwandeln",
+  "dialogs.output.error.operation": "Vorgang fehlgeschlagen. %1",
+  "feedback.os.permission_denied": "Zugriff verweigert."
+}

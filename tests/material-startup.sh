@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Count the Glassy alpha search on the real launcher path, using an instrumented disposable UI copy.
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
+# Count the frozen QML oracle's Glassy alpha search in an instrumented disposable UI copy.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 . "$PWD/tools/flea-sandbox-guard"
@@ -88,23 +90,22 @@ leg() {
         theme) printf '[flea]\nbackground-alpha = 0.34\n' > "$theme_dir/shell.toml" || return 1 ;;
     esac
     env HOME="$probe/home" XDG_STATE_HOME="$probe/state" "$bin" --ui-state '{"updates":{"autoCheck":false}}' >/dev/null || return 1
-    # DISPLAY only passes the launcher's display-presence check; Qt uses offscreen and never connects to it.
-    setsid env -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE -u FLEA_SELECT DISPLAY=:material-startup \
+    setsid env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE -u FLEA_SELECT \
         HOME="$probe/home" XDG_CONFIG_HOME="$probe/config" XDG_STATE_HOME="$probe/state" \
         XDG_DATA_HOME="$probe/data" XDG_CACHE_HOME="$probe/cache" XDG_RUNTIME_DIR="$probe/runtime" \
-        FLEA_BIN="$bin" FLEA_UI="$ui_copy" GVFS_DISABLE_FUSE=1 QSG_RHI_BACKEND=opengl \
+        FLEA_BIN="$bin" FLEA_UI="$ui_copy" FLEA_PATH="$probe/fixture" GVFS_DISABLE_FUSE=1 QSG_RHI_BACKEND=opengl \
         QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_FORCE_STDERR_LOGGING=1 \
-        dbus-run-session -- "$bin" --gui "$probe/fixture" > "$probe/qs.log" 2>&1 </dev/null &
+        dbus-run-session -- qs -p "$ui_copy/boot" > "$probe/qs.log" 2>&1 </dev/null &
     runner=$!
     for ((tick = 0; tick < ready_polls; tick++)); do
-        answer=$(env -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE DISPLAY=:material-startup \
+        answer=$(env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
             XDG_RUNTIME_DIR="$probe/runtime" QT_QPA_PLATFORM=offscreen \
-            timeout "$call_timeout_s" qs ipc -p "$ui_copy/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
+            timeout "$call_timeout_s" "$FLEA_IPC_HELPER" -p "$ui_copy/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
         answer=""
         sleep "$poll_s"
     done
     stop_shell || return 1
-    grep -a 'MATERIAL_ENV' "$probe/qs.log" || true
+    grep -aE 'MATERIAL_ENV|MATERIAL_FLOOR' "$probe/qs.log" || true
     if [[ -z "$answer" ]] || grep -aqE 'TypeError|ReferenceError|ERROR|Binding loop' "$probe/qs.log"; then
         printf 'FAIL material-startup %s did not reach a clean IPC seam\n' "$name"
         tail -15 "$probe/qs.log"
@@ -129,7 +130,7 @@ leg() {
     [[ "$actual" == "$expect" ]] || return 1
     if [[ "$name" == glassy ]]; then [[ "$calls" -gt 0 ]]; else [[ "$calls" -eq 0 ]]; fi
 }
-printf 'material-startup: %s\n' "$(QT_QPA_PLATFORM=offscreen qml6 --version)"
+printf 'material-startup: scope=frozen-qml-oracle entry=qs %s\n' "$(QT_QPA_PLATFORM=offscreen qml6 --version)"
 leg opaque opaque absent 255 || failed=$((failed + 1))
 leg transparent transparent absent focus || failed=$((failed + 1))
 leg user-override glassy user 87 || failed=$((failed + 1))

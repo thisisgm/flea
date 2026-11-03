@@ -40,7 +40,7 @@ command -v zip >/dev/null || fail "no zip on PATH"
 command -v gio >/dev/null || fail "no gio on PATH"
 
 uri_for() {
-    python3 - "$1" <<'PY'
+    LC_ALL=C.UTF-8 LANGUAGE= python3 - "$1" <<'PY'
 import sys, urllib.parse
 inner = "file://" + sys.argv[1]
 print("archive://" + urllib.parse.quote(urllib.parse.quote(inner, safe=""), safe="") + "/")
@@ -59,7 +59,7 @@ make_fixture() {
 }
 
 live_uri() {
-    gio mount -l 2>/dev/null | sed -n 's/^Mount([0-9]*): [^>]*-> //p' | grep -F "$zip_name" | head -1
+    LC_ALL=C.UTF-8 LANGUAGE= gio mount -l 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^Mount([0-9]*): [^>]*-> //p' | LC_ALL=C.UTF-8 LANGUAGE= grep -F "$zip_name" | head -1
 }
 
 case "${1:-make}" in

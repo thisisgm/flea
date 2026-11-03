@@ -47,33 +47,54 @@ impl Cache {
     }
 
     pub fn large_path(&self, uri: &str) -> PathBuf {
-        self.large_dir().join(format!("{}.png", md5::hex(uri.as_bytes())))
+        self.large_path_for(uri, None)
     }
 
     pub fn fail_path(&self, uri: &str) -> PathBuf {
+        self.fail_path_for(uri, None)
+    }
+
+    // Reviewed Trash objects keep separate immutable image paths; ordinary cache names stay standard.
+    pub fn large_path_for(&self, uri: &str, identity: Option<&str>) -> PathBuf {
+        self.large_dir().join(cache_name(uri, identity))
+    }
+
+    pub fn fail_path_for(&self, uri: &str, identity: Option<&str>) -> PathBuf {
         self.root
             .join(FAIL_DIR)
             .join(APP_NAME)
-            .join(format!("{}.png", md5::hex(uri.as_bytes())))
+            .join(cache_name(uri, identity))
     }
 
     // Order matters: a recorded failure wins over a stale thumbnail; a marker naming another table or no table is retried.
     pub fn lookup(&self, path: &Path, mtime: i64, table: &str) -> Hit {
+        self.lookup_for(path, mtime, table, None)
+    }
+
+    pub fn lookup_for(&self, path: &Path, mtime: i64, table: &str, identity: Option<&str>) -> Hit {
         let uri = uri_for(path);
-        let failed = self.fail_path(&uri);
+        let failed = self.fail_path_for(&uri, identity);
         if let Ok(bytes) = std::fs::read(&failed) {
             // A marker made under another table, or under none, is a miss, so the file is tried again.
             if stamped_mtime(&bytes) == Some(mtime) && png_text(&bytes, TABLE_KEY).as_deref() == Some(table) {
                 return Hit::Failed;
             }
         }
-        let large = self.large_path(&uri);
+        let large = self.large_path_for(&uri, identity);
         if let Ok(bytes) = std::fs::read(&large) {
             if stamped_mtime(&bytes) == Some(mtime) {
                 return Hit::Ready(large);
             }
         }
         Hit::Miss
+    }
+}
+
+fn cache_name(uri: &str, identity: Option<&str>) -> String {
+    let key = md5::hex(uri.as_bytes());
+    match identity {
+        Some(identity) => format!("trash-{}-{}.png", key, md5::hex(identity.as_bytes())),
+        None => format!("{}.png", key),
     }
 }
 

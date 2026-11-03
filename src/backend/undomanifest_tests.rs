@@ -145,9 +145,9 @@ fn a_file_added_mid_copy_survives_inside_a_kept_directory() {
             planted = true;
             std::thread::sleep(std::time::Duration::from_millis(20));
             std::fs::write(dst.join("nested/stray.txt"), "stray").unwrap();
-            // Both levels refuse later opens whatever order readdir returns.
+            // Revoke nested access before the parent makes its path inaccessible.
+            std::fs::set_permissions(src.join("nested"), std::fs::Permissions::from_mode(0o000)).unwrap();
             std::fs::set_permissions(src, std::fs::Permissions::from_mode(0o000)).unwrap();
-            let _ = std::fs::set_permissions(src.join("nested"), std::fs::Permissions::from_mode(0o000));
         }
     };
     let handle = partial_with_manifest(&src, &partial, &mut hook);
@@ -334,8 +334,8 @@ fn a_shared_failed_tree_copy_walks_for_its_recorder() {
             planted = true;
             // The new file itself is the detectable change, so no wait is needed.
             std::fs::write(partial.join("nested/stray.txt"), "stray").unwrap();
+            std::fs::set_permissions(src.join("nested"), std::fs::Permissions::from_mode(0o000)).unwrap();
             std::fs::set_permissions(src, std::fs::Permissions::from_mode(0o000)).unwrap();
-            let _ = std::fs::set_permissions(src.join("nested"), std::fs::Permissions::from_mode(0o000));
         }
     };
     let handle = partial_with_manifest(&src, &partial, &mut hook);

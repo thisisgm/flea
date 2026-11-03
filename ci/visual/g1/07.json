@@ -1,0 +1,1132 @@
+{
+  "version": 1,
+  "unit": "g1-07",
+  "scenes": [
+    {
+      "scene": "g1/columns",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/columns.png",
+      "board_html": ".superpowers/g1-07/references/boards/columns.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-cursorfull-1100x700.png",
+      "sha256": {
+        "board_png": "c5cc6e05499099b210d41ab1db9b4a9345c502aa067fc94a637c2c1076782abc",
+        "board_html": "d372903f538741a2ff81bea1730d7db64bf0ab76f6249f4d404673e965edb052",
+        "before_png": "ca43748c139cae0ffbf4835aa5494be1974d87045797a858b6fe43f3a5f3150b"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "cursor": "full",
+        "columns_count": 3
+      },
+      "assertions": [
+        "tracks 302/302/304 at x192/494/796",
+        "ancestor work, current A, child full with f1..f5",
+        "cursor name full"
+      ],
+      "parity_ids": [
+        "board:columns"
+      ],
+      "producer_owner": [
+        "G1.05"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-peekempty",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-peekempty.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-peekempty.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-peekempty-1100x700.png",
+      "sha256": {
+        "board_png": "9cd9d5207337e5995363b234b40fc12ff524818124490d811b96e1fb24827083",
+        "board_html": "07f5a7b854e1067a2f769f056a91345ec23410b6c6abf95eeb70accbe6d002ea",
+        "before_png": "5f0279854908d3c46e1edf9b6c3749def63429c3afab645cfac84e347ecf0735"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "cursor": "empty",
+        "columns_count": 3
+      },
+      "assertions": [
+        "empty hero only in the child track x796..1100",
+        "cursor name empty"
+      ],
+      "parity_ids": [
+        "board:cols-peekempty"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-insideempty",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-insideempty.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-insideempty.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-insideempty-1100x700.png",
+      "sha256": {
+        "board_png": "a6f5448450776ac6da72dfc17ea0c418477f954d4221d794297f2c6fd5f3eba8",
+        "board_html": "9904bb8b948cbd19027cce6ebeaa8167456295279e1d5d7499c2098947c03006",
+        "before_png": "b5cd095060b1c5abf5e957d149a8aa9b3dc3e09e324568dd9477f4fffe136857"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A/empty",
+        "columns_count": 3,
+        "input": [
+          "open A",
+          "open empty"
+        ]
+      },
+      "assertions": [
+        "A children in the first track",
+        "empty hero in track x494..796",
+        "status 0 items"
+      ],
+      "parity_ids": [
+        "board:cols-insideempty"
+      ],
+      "producer_owner": [
+        "G1.03",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-filter-rest",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-filter-rest.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-filter-rest.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-filter-rest-1100x700.png",
+      "sha256": {
+        "board_png": "e172542a6d077cb286469fbc24036619db6164331807ec0e97a1877864e521c2",
+        "board_html": "ca7ba2d4dc3615ce8d8fa9eaae41ba41bf62b20c421406111c48d49d6168db68",
+        "before_png": "58630f4eea68af1117c5278b285c92da27856ecb7a7646ab9a5a65c81a76ebf8"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work",
+        "cursor": "A",
+        "columns_count": 3,
+        "input": [
+          "filter open"
+        ]
+      },
+      "assertions": [
+        "empty slash strip with caret",
+        "current work in the middle track, child A right",
+        "cursor name A"
+      ],
+      "parity_ids": [
+        "board:cols-filter-rest"
+      ],
+      "producer_owner": [
+        "G1.13",
+        "G1.05"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-filter-nomatch",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-filter-nomatch.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-filter-nomatch.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-filter-nomatch-1100x700.png",
+      "sha256": {
+        "board_png": "3a5b02328463f0d2241d3e70cc47beb099b4ebda19578334c4657299022089dc",
+        "board_html": "3bbe87a2fbbb6bb8dc4fad29bd1662a37afd0c351691acdbad362c8406f735e0",
+        "before_png": "9f2c2fcc00073181b9d2c0e6cda4636aaf6e192a47eb9b586da3e0b604c3e597"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work",
+        "columns_count": 3,
+        "input": [
+          "filter zzz"
+        ]
+      },
+      "assertions": [
+        "0 of 9 shown",
+        "hero in the current middle track",
+        "query keeps its case after NOTHING MATCHES"
+      ],
+      "parity_ids": [
+        "board:cols-filter-nomatch"
+      ],
+      "producer_owner": [
+        "G1.13",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols2-hero-empty",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols2-hero-empty.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols2-hero-empty.html",
+      "before_png": ".superpowers/g1-07/references/before/cols2-hero-empty-1100x700.png",
+      "sha256": {
+        "board_png": "dc9d901fb7dffdd61043ea0f82f5e24721e1d4613cada00a7c76c07e6179d3b4",
+        "board_html": "f3025ff88070822034b9b634eca4027d81b56ee36c0b5dc55ef848f74458aed7",
+        "before_png": "fd2733038d292fdfdf436b6cb74c0fe4cd1469e285b97f83f426c2c9f138b0a3"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A/empty",
+        "columns_count": 2
+      },
+      "assertions": [
+        "empty hero spans the 908 px main area",
+        "status 0 items"
+      ],
+      "parity_ids": [
+        "board:cols2-hero-empty"
+      ],
+      "producer_owner": [
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols2-hero-search",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols2-hero-search.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols2-hero-search.html",
+      "before_png": ".superpowers/g1-07/references/before/cols2-hero-search-1100x700.png",
+      "sha256": {
+        "board_png": "b65e12f09a5939b76a49988e48fc71818847b343ab8bef1cbffcb5c63c5e3494",
+        "board_html": "e4f06f4324ab88ced485f816a0ba42ae9a0a39312ab4664ddc0e9cd93dc73ac5",
+        "before_png": "5e83cb659394a9ddcd1b2ec616cd72aa0baf4eb15c73913fb861f56e9313ac0a"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "columns_count": 2,
+        "input": [
+          "search zqq",
+          "escape"
+        ]
+      },
+      "assertions": [
+        "0 found while searching",
+        "escape returns to 0 items",
+        "hero spans the main area"
+      ],
+      "parity_ids": [
+        "board:cols2-hero-search"
+      ],
+      "producer_owner": [
+        "G2-search",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols4-hero-empty",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols4-hero-empty.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols4-hero-empty.html",
+      "before_png": ".superpowers/g1-07/references/before/cols4-hero-empty-2560x1400.png",
+      "sha256": {
+        "board_png": "e24007315e6ee753c09d5f59787c08a38a9b11efb77a9e3276f9abb8f8d0013a",
+        "board_html": "a22c882d55b44671e36c1023558a8aaf32a3d578ad86717394db2979c5fc0363",
+        "before_png": "9094ad26038634d72fd00172942b27209413fb89d8dcca0fe7648674bc67312c"
+      },
+      "size": [
+        2560,
+        1400
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A/empty",
+        "columns_count": 4
+      },
+      "assertions": [
+        "two 592 px ancestors",
+        "1184 px empty hero"
+      ],
+      "parity_ids": [
+        "board:cols4-hero-empty"
+      ],
+      "producer_owner": [
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols4-hero-search",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols4-hero-search.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols4-hero-search.html",
+      "before_png": ".superpowers/g1-07/references/before/cols4-hero-search-2560x1400.png",
+      "sha256": {
+        "board_png": "a14a50db2adee2b232ddbfd16b4ad8ca8a0a09d25c18009c68a9d2308266e2a5",
+        "board_html": "3892551b297504974369702a101949b0b54763793e9018ea4718cc630d379ad2",
+        "before_png": "ab7dde69ec160a0112bfd31b7d5c55aa075dad1379e76a791d815dc9f971f3d7"
+      },
+      "size": [
+        2560,
+        1400
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "columns_count": 4,
+        "input": [
+          "search zqq"
+        ]
+      },
+      "assertions": [
+        "strip 27 px",
+        "0 found",
+        "hero occupies the right 1184 px"
+      ],
+      "parity_ids": [
+        "board:cols4-hero-search"
+      ],
+      "producer_owner": [
+        "G2-search",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols4-hero-slash",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols4-hero-slash.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols4-hero-slash.html",
+      "before_png": ".superpowers/g1-07/references/before/cols4-hero-slash-2560x1400.png",
+      "sha256": {
+        "board_png": "4feec400e5c8a3b03e26fb930dfcd832370908f21128721dddc007bfd9090bb8",
+        "board_html": "998be322f4a61ddf72e278bdc50eced1ac2e10ef13f633ab6bd9ee820f82b05e",
+        "before_png": "d92c60c307756d6ca8e78ed49bb5bafddef985a7ed8c8a05644c2d03035b9637"
+      },
+      "size": [
+        2560,
+        1400
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "columns_count": 4,
+        "input": [
+          "filter zzz",
+          "escape"
+        ]
+      },
+      "assertions": [
+        "0 of 5 shown",
+        "NOTHING MATCHES zzz",
+        "escape clears the filter"
+      ],
+      "parity_ids": [
+        "board:cols4-hero-slash"
+      ],
+      "producer_owner": [
+        "G1.13",
+        "G0.5"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/filter",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/filter.png",
+      "board_html": ".superpowers/g1-07/references/boards/filter.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-filter-matches-1100x700.png",
+      "sha256": {
+        "board_png": "6e98e5f69a3859453b4e2a11797d64d60e2b2ea2c262d928d9898760ea066e9e",
+        "board_html": "3f5727093a125b48926f4083f9753ee6849e144f641c144a9a52d3fa91517bca",
+        "before_png": "2a34a92dbb7e7b1282d42f9bd26a47bbbddd2d58d93388bbf020a3cc7b7992b7"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work",
+        "cursor": "notes.txt",
+        "columns_count": 3,
+        "input": [
+          "filter no"
+        ]
+      },
+      "assertions": [
+        "1 of 9 shown",
+        "cursor name notes.txt",
+        "its preview in the third column"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G1.13",
+        "G2-search",
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/preview-column",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/preview-column.png",
+      "board_html": ".superpowers/g1-07/references/boards/preview-column.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-markdown-1100x700.png",
+      "sha256": {
+        "board_png": "3c4aa70892d6fee9893ca2b4b67e491ff5364f37e1b4f49d8c234e74a7e24728",
+        "board_html": "9e681229d0a3f614e12a777c6076e158fc265775d51bada27d87eb80b7c5e8ab",
+        "before_png": "e1d64c5f9df7c2959729a0b52856e7107330dcb86f2023b36974a2b92b52eed5"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "cursor": "guide.md",
+        "columns_count": 3
+      },
+      "assertions": [
+        "guide.md 298 B",
+        "rendered Markdown",
+        "6 items"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/multi-facts",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/multi-facts.png",
+      "board_html": ".superpowers/g1-07/references/boards/multi-facts.html",
+      "before_png": ".superpowers/g1-07/references/before/ql-multi-1100x700.png",
+      "sha256": {
+        "board_png": "3994653b86f434f033ba3d5924db4eabc5e4e33b375394263825bfa7912dce74",
+        "board_html": "b5414e5db547bab6253ce038fb21037283a29281d77ad7fc1740ccb43a51c1f2",
+        "before_png": "10e03873411b93a7b2fc803c7b5b652626a9b5005e3e2438b490fb7be1386330"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Media",
+        "cursor": "photo.png",
+        "marked": [
+          "main.rs",
+          "photo.png"
+        ],
+        "columns_count": 3
+      },
+      "assertions": [
+        "full facts",
+        "2 of 11 selected and 2.5 MB"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews",
+        "G1.05"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-facts-compact",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-facts-compact.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-facts-compact.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-facts-compact-1100x700.png",
+      "sha256": {
+        "board_png": "3f7b77f2482fa36fc59d9a42c517482115e522397ee0091a5f8f199f04c6207d",
+        "board_html": "3a58cbd1f31360a2bfbf40a2850b17126b65614b4ae6466486f0005657c3224f",
+        "before_png": "f2fb5d0108bb1635e4865eae4516db9ba38f36398b57a7d460afae35be67acda"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Code",
+        "cursor": "main.rs",
+        "facts": "compact"
+      },
+      "assertions": [
+        "main.rs 156 B",
+        "compact facts",
+        "7 lines"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-facts-full",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-facts-full.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-facts-full.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-facts-full-1100x700.png",
+      "sha256": {
+        "board_png": "ff6dcc207e24ef86ea6df963529ad0d1f1a16daebd0ef2ee2f0dda6c9a00890b",
+        "board_html": "e66dc6838f4a0acb6186850c29d156991ea670ab695f9eacd64447d4c8a1b22b",
+        "before_png": "3ad4c86c99c868c45e0dd548e94a4ef0230bdd7fe8c13758912cbd181ed2a8d1"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Code",
+        "cursor": "main.rs",
+        "facts": "full"
+      },
+      "assertions": [
+        "full facts",
+        "Mode rw-r--r--"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-html",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-html.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-html.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-html-1100x700.png",
+      "sha256": {
+        "board_png": "1e836b0d94a5dab3aa056e060fa4974a8367810747168ecdba99d406729b3237",
+        "board_html": "9a6989382d2754623f07d16afc7dd2e98e707a1509f95d7a71947c12ddf812dc",
+        "before_png": "b095c17a6a8e7cf68adb3e990278e30d94af876e917706d8c953cb8531d30819"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/cases/Html",
+        "cursor": "index.html"
+      },
+      "assertions": [
+        "index.html 1.6 kB",
+        "61 lines",
+        "rendered page"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-image",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-image.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-image.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-image-1100x700.png",
+      "sha256": {
+        "board_png": "5232b24b04a79c1cb39f9601d9f77888e4257e53e3f9e95141be4a4a7432e283",
+        "board_html": "c05a0b897b8f192c4311f9212dac8f37f3347df25444b1ddd330eb59e1df1c18",
+        "before_png": "60df2e503632e02235988d58cd0aac27697313a3e0856692f9f6075f38e7e620"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Media",
+        "cursor": "photo.png",
+        "facts": "full"
+      },
+      "assertions": [
+        "full facts 800x600"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-markdown-crlf",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-markdown-crlf.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-markdown-crlf.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-markdown-crlf-1100x700.png",
+      "sha256": {
+        "board_png": "d41524100734d0451b441d84daab87c8781b3d9f592c561f2cb6c3951adcd4c5",
+        "board_html": "2c8c491e233733f28f04069fa4718d735470cf16ef1b27b756da1f41f69c64cc",
+        "before_png": "30ba6273f9f24b87859226eff44df0ed1a4e55158032147438bfde6cfe741990"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "cursor": "crlf.md"
+      },
+      "assertions": [
+        "crlf.md 193 B",
+        "20 lines",
+        "6 items"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-markdown-facts",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-markdown-facts.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-markdown-facts.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-markdown-facts-1100x700.png",
+      "sha256": {
+        "board_png": "894d985b962a6e685d378fa01fda413119fd7fd3948fc008fbdb308600c0a9f8",
+        "board_html": "939f0706c07b33f016255be2b9bca84af3d842fa84237975ce1775b9f2f3fc88",
+        "before_png": "9ff8e4875559c6737272ee38858d829770ef37d5ff681760dc1659d14beb4e34"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/A",
+        "cursor": "facts.md"
+      },
+      "assertions": [
+        "facts.md 135 B",
+        "13 lines",
+        "7 items including bands.png"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-page-back",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-page-back.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-page-back.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-page-back-1100x700.png",
+      "sha256": {
+        "board_png": "686953d68781a1ab3be88b19a947ce46e466617b1157f9fe5d2d3e11bc7e4dda",
+        "board_html": "30121ba86700c7db31b2496675dffa72c01c1946c989ea31d67e533ac3ed34ef",
+        "before_png": "bdf3397b1c9269e083155d18bcc91006b683875064674694fe3639359f19e83f"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/cases/Code",
+        "cursor": "long.rs"
+      },
+      "assertions": [
+        "long.rs 5.2 kB",
+        "164 lines",
+        "top line 1"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-page-forward",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-page-forward.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-page-forward.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-page-forward-1100x700.png",
+      "sha256": {
+        "board_png": "9f9ab0d66e8f9f723c6d5322cbe5b5903baf657cc565056e56e203858147f1aa",
+        "board_html": "b67d7703a6cb5f333d9c350b2d3f2b01e245e8953ce446cdacec11eb755f1a78",
+        "before_png": "9424be19c032541e7ef6b0b3a4b3cb7c53f33a26df4451058c2318a46c72b8da"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/cases/Code",
+        "cursor": "long.rs",
+        "input": [
+          "preview page forward"
+        ]
+      },
+      "assertions": [
+        "top line 32",
+        "one-line overlap with the page before"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-pdf3",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-pdf3.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-pdf3.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-pdf3-1100x700.png",
+      "sha256": {
+        "board_png": "c25e7ea0d3ba476bc2da3752daf2aa8473459b176b3d32cf5bdad1972b18bcfa",
+        "board_html": "64d91d6028536c3b3f86b024f31cebb41f4689ad11452beb8acd0a1bd3fb1f35",
+        "before_png": "ad663d0fff7dd1029a8a1596010b599e20ae04712f87e53bf986dbeb18ded30c"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/p",
+        "cursor": "pages.pdf"
+      },
+      "assertions": [
+        "pages.pdf 12.6 kB",
+        "3 pages",
+        "producer reports page readiness"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-raw",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-raw.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-raw.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-raw-1100x700.png",
+      "sha256": {
+        "board_png": "f78445475501efd6cf87202bba5fdadf05f2ad882f9e284844739969db23b617",
+        "board_html": "434ad5ffdc34e2155e16752daed82fc4db9a4e886db092af6da390360c4144ec",
+        "before_png": "e2409f93e181e3feea9df2b92d28183d453f243bf6fd42ec06f395569bf128ca"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/raw",
+        "cursor": "L1000921.DNG"
+      },
+      "assertions": [
+        "L1000921.DNG 48.1 MB",
+        "full EXIF"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-video",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-video.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-video.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-video-1100x700.png",
+      "sha256": {
+        "board_png": "5f236a9fc8d5d25303804e5f67129f609a70b8951079b76ce8319e5056912a12",
+        "board_html": "d92579c6d717ee704fc7c78019232d7fb75d290827f2aa632f2de2db632df77e",
+        "before_png": "b608f3762a69cc255fc8c6c40b5f8aeb8e2220a3827834f8a2c4861ecf55abd8"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Media",
+        "cursor": "clip.mp4"
+      },
+      "assertions": [
+        "paused 0:00 of 0:02",
+        "full facts",
+        "no autoplay"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-3mf",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-3mf.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-3mf.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-image-1100x700.png",
+      "sha256": {
+        "board_png": "0801a66205400d1f64d33aecbddb864094414fa22102400200a0829debe5e182",
+        "board_html": "67dff92ab4ba714493e985b9b236ab537b487d02d07f323a41a40183e44746bd",
+        "before_png": "60df2e503632e02235988d58cd0aac27697313a3e0856692f9f6075f38e7e620"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work/Prints",
+        "cursor": "shelf-kit.3mf"
+      },
+      "assertions": [
+        "still media slot",
+        "full print facts"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/cols-preview-office",
+      "unit": "g1-07",
+      "board_png": ".superpowers/g1-07/references/boards/cols-preview-office.png",
+      "board_html": ".superpowers/g1-07/references/boards/cols-preview-office.html",
+      "before_png": ".superpowers/g1-07/references/before/cols-preview-pdf3-1100x700.png",
+      "sha256": {
+        "board_png": "1fd9225a5dd6de1365278c7a8badf0273f239ead0aec6f54715db22e66f91c14",
+        "board_html": "cdfcea144995781a3d45aba0b4eae7db77b82487e26ad5cca1ee6aafdc361f8a",
+        "before_png": "ad663d0fff7dd1029a8a1596010b599e20ae04712f87e53bf986dbeb18ded30c"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs8",
+      "setup": {
+        "view": "columns",
+        "preset": "default",
+        "rows": "compact",
+        "path": "/fx/v/work",
+        "cursor": "garden-report.docx"
+      },
+      "assertions": [
+        "garden-report.docx 8.0 kB",
+        "3 pages",
+        "full facts"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}

@@ -1,11 +1,12 @@
-// Turning an archive or convert REQUEST into wire lines and a background job: the response builders,
-// the two run_* bodies a thread executes, and the two start_* entry points the dispatcher calls.
-// What those jobs do is archiveops.rs.
+// Archive and conversion request dispatch, response builders, and focused protocol tests.
 use crate::backend::archive::Formats;
-use crate::backend::archivepass;
-use crate::backend::archiveops::{self, compress, convert_one, extract, split_paths};
+use crate::backend::archiveops;
+#[cfg(test)]
+use crate::backend::archiveops::{compress, convert_one, extract};
 use crate::backend::convert;
-use crate::backend::opsreq::{op_err, transferprogress_line, OpMsg};
+use crate::backend::opsreq::{op_err, transferprogress_line};
+#[cfg(test)]
+use crate::backend::opsreq::OpMsg;
 use crate::error::io_message;
 use crate::json::escape;
 use std::path::PathBuf;
@@ -13,12 +14,17 @@ use crate::backend::opsdispatch::Ops;
 use crate::backend::proto::error_line;
 use std::io::Write;
 use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;
 use super::menu_actions::{validate_sources, Selected};
 use super::opsdispatch::menu_sources;
 use super::opsdispatch::pending_busy_for;
+
+#[path = "archiveexec.rs"]
+mod execution;
+#[cfg(test)]
+pub(crate) use execution::run_archive;
+pub(crate) use execution::{archive_line, run_convert, ArchiveRequest};
 
 pub fn archivestarted_line(id: usize) -> String {
     format!(r#"{{"t":"archivestarted","id":{}}}"#, id)
@@ -70,53 +76,6 @@ fn extractstarted_line(id: usize) -> String {
     format!(r#"{{"t":"extractstarted","id":{}}}"#, id)
 }
 
-pub(crate) fn run_archive(id: usize, compressing: bool, paths: Vec<String>, format: String,
-                   archive: PathBuf, dest: PathBuf, formats: &Formats, tx: Sender<OpMsg>, selection: Option<Vec<Selected>>,
-                   cancel: Arc<AtomicBool>, password: String, encrypt_names: bool) {
-    let sources: Vec<PathBuf> = if compressing { paths.iter().map(PathBuf::from).collect() } else { vec![archive.clone()] };
-    let result = if let Err(error) = validate_sources(selection.as_deref(), &sources) {
-        Err(op_err("archive", "", &error))
-    } else if compressing {
-        // A compress writes the archive, so nothing verifies it and an empty password is no password.
-        let password = (!password.is_empty()).then(|| crate::backend::archiveops::Password {
-            secret: &password,
-            encrypt_names,
-        });
-        match split_paths(&paths) {
-            Some((parent, names)) => compress(formats, &parent, &names, &format, &dest, &cancel, password).map(|()| true),
-            None => Err(op_err("archive", "", "the items to compress must be in one folder")),
-        }
-    } else {
-        // An empty password is no password: the encrypted probe below decides whether to ask.
-        let password = (!password.is_empty()).then_some(password.as_str());
-        extract(formats, &archive, &dest, &cancel, password)
-    };
-    let line = match result {
-        Ok(verified) => archivedone_line(id, true, verified, ""),
-        Err(e) if !compressing && archivepass::asks_again(&e.msg) => archivepass::asks_again_line(id, &e.msg, &archive, &dest),
-        Err(e) => archivedone_line(id, false, true, &e.msg),
-    };
-    // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
-    let message = if compressing { OpMsg::DetachedDone { id, line } } else { OpMsg::SlotDone { line } };
-    let _ = tx.send(message);
-}
-
-pub(crate) fn run_convert(id: usize, request_id: usize, input: PathBuf, dest: PathBuf, strip: bool, tx: Sender<OpMsg>, selection: Option<Vec<Selected>>,
-                   cancel: Arc<AtomicBool>) {
-    let result = validate_sources(selection.as_deref(), std::slice::from_ref(&input))
-        .map_err(|error| op_err("convert", &input.to_string_lossy(), &error))
-        .and_then(|()| convert_one(&input, &dest, strip, &cancel));
-    let line = match result {
-        Ok(()) => convertdone_line(id, request_id, &input.to_string_lossy(), true, &dest.to_string_lossy(), "", false),
-        Err(e) => {
-            let collision = dest.symlink_metadata().is_ok();
-            let message = if collision { collision_message(&dest) } else { e.msg };
-            convertdone_line(id, request_id, &input.to_string_lossy(), false, &dest.to_string_lossy(), &message, collision)
-        }
-    };
-    let _ = tx.send(OpMsg::DetachedDone { id, line });
-}
-
 // The dispatch half, kept beside the work so run.rs's own match stays one line per request.
 pub fn start_archive(
     out: &mut impl Write,
@@ -137,7 +96,14 @@ pub fn start_archive(
         out.flush().ok();
         return;
     }
-    let selection = match menu_sources(ops, menu_id) {
+    let sources = if op == "extract" && menu_id != 0 {
+        ops.menuactions.as_ref()
+            .ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
+            .and_then(|menu| menu.extract_selection(menu_id)).map(Some)
+    } else {
+        menu_sources(ops, menu_id)
+    };
+    let selection = match sources {
         Ok(selection) => selection,
         Err(message) => { writeln!(out, "{}", error_line(&op_err("archive", "", &message))).ok(); out.flush().ok(); return; }
     };
@@ -146,12 +112,6 @@ pub fn start_archive(
     if !compressing && Formats::is_list_only(&archive) {
         let id = ops.claim_id();
         writeln!(out, "{}", archivedone_line(id, false, true, archiveops::DISK_IMAGE_REFUSAL)).ok();
-        out.flush().ok();
-        return;
-    }
-    // An extract takes the copy slot, so a copy, move or second extract is refused busy.
-    if !compressing && ops.live.running().is_some() {
-        writeln!(out, "{}", error_line(&op_err("archive", "", "an operation is already running"))).ok();
         out.flush().ok();
         return;
     }
@@ -167,24 +127,37 @@ pub fn start_archive(
     if pending_busy_for(out, ops, "archive", &sources, &[target]) {
         return;
     }
-    // A compress runs alongside by design, so its flag is tracked for a quit to set.
-    let (id, cancel) = if compressing { (ops.claim_id(), Arc::new(AtomicBool::new(false))) } else { ops.claim_transfer() };
-    if compressing {
-        ops.detached.insert(id, &cancel);
-    }
+    let id = ops.claim_id();
     writeln!(out, "{}", archivestarted_line(id)).ok();
     if !compressing {
         let name = archive.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         writeln!(out, "{}", extractstarted_line(id)).ok();
-        // The card's name row; no bytes, so no fabricated percentage, rate or time left.
         writeln!(out, "{}", transferprogress_line(id, 0, &name, 0, 0, 0)).ok();
     }
     out.flush().ok();
-    let tx = ops.tx.clone();
-    thread::spawn(move || {
-        run_archive(id, compressing, paths, format, archive, dest, &formats, tx, selection, cancel,
-                    password, encrypt_names)
-    });
+    let target = Some(dest.clone());
+    ops.jobs.submit(
+        out,
+        id,
+        super::jobwork::Spec {
+            kind: if compressing { "compress" } else { "extract" },
+            label: "Extracting",
+            target,
+        },
+        super::jobwork::Work::Archive {
+            compressing,
+            paths,
+            format,
+            archive,
+            dest,
+            formats,
+            selection,
+            password,
+            encrypt_names,
+        },
+        &ops.detached,
+        &ops.tx,
+    );
 }
 
 pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: PathBuf, strip: bool,

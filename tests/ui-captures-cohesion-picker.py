@@ -11,6 +11,11 @@ import tempfile
 import time
 import tomllib
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
 import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
@@ -156,7 +161,7 @@ def owned_window():
 def state():
     owned_window()
     # Sample input: {"view":"grid","marksBusy":false,"marks":[],"themeLoaded":true,"themeForeground":"#dfe8e0"}.
-    return json.loads(run(["qs", "ipc", "--pid", picker_pid, "call", "fleapicker", "snapshot"], picker_env, 5))
+    return json.loads(run([*IPC.command(), "--pid", picker_pid, "call", "fleapicker", "snapshot"], picker_env, 5))
 
 
 def capture_state(mode):
@@ -259,7 +264,7 @@ try:
     # Sample input: {"focus":{"kind":"DialogButton","name":"Open","x":900,"y":700,"via":"owner"},"controls":[{"kind":"DialogButton","name":"Open","x":900,"y":700,"w":80,"h":30,"hovered":true,"hoverable":true}]}
     def controls():
         owned_window()
-        return json.loads(run(["qs", "ipc", "--pid", picker_pid, "call", "fleapicker", "cohesionControls"], picker_env, 5))
+        return json.loads(run([*IPC.command(), "--pid", picker_pid, "call", "fleapicker", "cohesionControls"], picker_env, 5))
 
     def sig(entry):
         return f"{entry['kind']}|{entry['name']}|{entry['x']}|{entry['y']}" if entry else "none"

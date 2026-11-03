@@ -1,5 +1,6 @@
 #!/bin/bash
 # Proves an empty-desktop drop reaches a Bottom-layer receiver and prints exactly one LAYERDROP line on stdout, with diagnostics on stderr.
+. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 set -u
 out() { printf 'LAYERDROP %s\n' "$*"; }
 refuse() {
@@ -150,7 +151,7 @@ layerdrop_focus() {
     local i active
     hypr_window_focus "$addr" || refuse "could not focus probe window"
     for i in $(seq 1 "$layerdrop_settle_attempts"); do
-        # Sample input: {"address":"0xa","pid":101,"class":"flea"} from hyprctl activewindow -j.
+        # Sample input: {"address":"0xa","pid":101,"class":"com.thisisgm.flea"} from hyprctl activewindow -j.
         active=$(hyprctl activewindow -j 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("address", ""))' || true)
         [ "$active" = "$addr" ] && return 0
         sleep "$layerdrop_settle_poll"
@@ -184,7 +185,7 @@ done
 # The qs instance id for this pid, same lookup tests/ui.sh uses for its tabs.
 qid=""
 for _ in $(seq 1 "$layerdrop_lookup_attempts"); do
-    qid=$(qs list --all --json 2>/dev/null | python3 -c '
+    qid=$(flea_ipc_list --all --json 2>/dev/null | python3 -c '
 import json, sys
 # Sample input: [{"id":"abc123","pid":101,"config_path":"/ui/boot/shell.qml"}].
 hits = [x for x in json.load(sys.stdin) if x.get("config_path") == sys.argv[1] and x.get("pid") == int(sys.argv[2])]
@@ -197,8 +198,8 @@ done
 # The command-line fixture must have landed before t snapshots it into another tab.
 ready=""
 for _ in $(seq 1 "$layerdrop_settle_attempts"); do
-    lifted_path=$(qs ipc -i "$qid" call flea path 2>/dev/null || true)
-    if [ "$lifted_path" = "$srcdir" ] && [ "$(qs ipc -i "$qid" call flea listInFlight 2>/dev/null || true)" = false ]; then ready=1; break; fi
+    lifted_path=$(flea_ipc_call -i "$qid" call flea path 2>/dev/null || true)
+    if [ "$lifted_path" = "$srcdir" ] && [ "$(flea_ipc_call -i "$qid" call flea listInFlight 2>/dev/null || true)" = false ]; then ready=1; break; fi
     sleep "$layerdrop_settle_poll"
 done
 [ -n "$ready" ] || refuse "source window did not settle on fixture $srcdir"
@@ -207,16 +208,16 @@ omarchy-drive key --window "$addr" t >/dev/null 2>&1 || refuse "t did not reach 
 # A second tab must be current and settled on the fixture, never the operator's home.
 two=""
 for _ in $(seq 1 "$layerdrop_settle_attempts"); do
-    lifted_path=$(qs ipc -i "$qid" call flea path 2>/dev/null || true)
-    if [ "$(qs ipc -i "$qid" call flea tabCount 2>/dev/null || true)" = "2" ] \
-        && [ "$(qs ipc -i "$qid" call flea tabIndex 2>/dev/null || true)" = "1" ] \
+    lifted_path=$(flea_ipc_call -i "$qid" call flea path 2>/dev/null || true)
+    if [ "$(flea_ipc_call -i "$qid" call flea tabCount 2>/dev/null || true)" = "2" ] \
+        && [ "$(flea_ipc_call -i "$qid" call flea tabIndex 2>/dev/null || true)" = "1" ] \
         && [ "$lifted_path" = "$srcdir" ] \
-        && [ "$(qs ipc -i "$qid" call flea listInFlight 2>/dev/null || true)" = false ]; then two=1; break; fi
+        && [ "$(flea_ipc_call -i "$qid" call flea listInFlight 2>/dev/null || true)" = false ]; then two=1; break; fi
     sleep "$layerdrop_settle_poll"
 done
 [ -n "$two" ] || refuse "second tab did not settle on fixture $srcdir"
 # Read both the painted tab centre and the real client geometry after the park.
-centre=$(qs ipc -i "$qid" call flea tabCentre 1 2>/dev/null || true)
+centre=$(flea_ipc_call -i "$qid" call flea tabCentre 1 2>/dev/null || true)
 [ -n "$centre" ] || refuse "second tab has no centre"
 read -r cx cy <<< "$centre"
 source_rect=$(layerdrop_rect) || refuse "no post-move geometry for $addr"
@@ -337,7 +338,7 @@ done
 layerdrop_qsid() {
     local pid="$1" i tid
     for i in $(seq 1 "$layerdrop_torn_attempts"); do
-        tid=$(qs list --all --json 2>/dev/null | python3 -c '
+        tid=$(flea_ipc_list --all --json 2>/dev/null | python3 -c '
 import json, sys
 # Sample input: [{"id":"def456","pid":202,"config_path":"/ui/boot/shell.qml"}], read for the torn-off window.
 hits = [x for x in json.load(sys.stdin) if x.get("config_path") == sys.argv[1] and x.get("pid") == int(sys.argv[2])]

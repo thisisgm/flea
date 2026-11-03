@@ -3,11 +3,11 @@
 # Sample input: pkgrel=2 or pkgrel='1' # note
 field() {
   local body line value
-  body=$(git show "$1:$2" 2>/dev/null) || return 1
-  line=$(printf '%s\n' "$body" | grep -m1 "^$3=") || return 1
+  body=$(LC_ALL=C.UTF-8 LANGUAGE= git show "$1:$2" 2>/dev/null) || return 1
+  line=$(printf '%s\n' "$body" | LC_ALL=C.UTF-8 LANGUAGE= grep -m1 "^$3=") || return 1
   value=${line#*=}
   value=${value%%#*}
-  value=$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e "s/^['\"]//" -e "s/['\"]$//")
+  value=$(printf '%s' "$value" | LC_ALL=C.UTF-8 LANGUAGE= sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e "s/^['\"]//" -e "s/['\"]$//")
   [ -n "$value" ] || return 1
   printf '%s' "$value"
 }

@@ -1,17 +1,20 @@
-# The one key table. tools/flea-keymap-gen turns it into ui/js/Keymap.js, which is generated.
+# The one key table. tools/flea-keymap-gen emits frozen-compatible JavaScript and native Rust data.
 
 # Control-modified keys are checked first, so plain d can mean cut while ctrl-d pages.
 [[ctrl]]
 key = "D"
 action = "pageDown"
+label = "Page down"
 
 [[ctrl]]
 key = "U"
 action = "pageUp"
+label = "Page up"
 
 [[ctrl]]
 key = "A"
 action = "selectAll"
+label = "Select all"
 
 # Finder's table with Cmd read as Ctrl, which is also what Omarchy's universal clipboard injects
 # (SUPER+C/V/X arrive here as CTRL+C/V/X, see clipboard.lua) and what GTK binds. Every chord is
@@ -37,6 +40,11 @@ action = "undo"
 key = "F"
 action = "search"
 
+# Ctrl+G opens search on this folder already in contents mode; inside the strip it turns names and contents.
+[[ctrl]]
+key = "G"
+action = "searchContents"
+
 # Finder's Cmd+E. ui/js/Eject.js "release" ejects the rail's cursor row or the removable volume the
 # listing is inside, with the verdict from Mounts.railMenu, off the lsblk poll, never an exit code.
 [[ctrl]]
@@ -48,6 +56,7 @@ action = "eject"
 [[ctrl]]
 key = "B"
 action = "sidebar"
+label = "Sidebar"
 
 # Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
 # Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
@@ -91,8 +100,25 @@ action = "newFolder"
 
 # Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
 # alias onto the Display section's own control and its one stored stop, never a second engine. Plus
-# and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
-# 0 goes back to following Omarchy, so an override is never a state you are stuck in.
+# and Equal both, because + is Shift+= on a US layout and the hand presses the one key either way.
+# Ctrl++ without that Shift arrives as Equal, and Qt can report Plus with Control alone, so the
+# same three actions answer on Control by itself. 0 goes back to following Omarchy.
+[[ctrl]]
+key = "Plus"
+action = "textSizeUp"
+
+[[ctrl]]
+key = "Equal"
+action = "textSizeUp"
+
+[[ctrl]]
+key = "Minus"
+action = "textSizeDown"
+
+[[ctrl]]
+key = "0"
+action = "textSizeReset"
+
 [[ctrlshift]]
 key = "Plus"
 action = "textSizeUp"
@@ -126,16 +152,19 @@ action = "toggleHidden"
 [[ctrlshift]]
 key = "PageUp"
 action = "tabMoveLeft"
+label = "Move tab left"
 
 [[ctrlshift]]
 key = "PageDown"
 action = "tabMoveRight"
+label = "Move tab right"
 
 # MenuAdditions040: Ctrl+Shift+C copies the selection's paths, one per line,
 # through wl-copy, without opening a row; c opens Copy as at the cursor.
 [[ctrlshift]]
 key = "C"
 action = "copyPath"
+label = "Copy path"
 
 # Shift falls through instead of returning, because shift-modified letters already carry their
 # own capital text (see G below); this table only covers the arrow keys, which carry no text.
@@ -151,6 +180,17 @@ action = "copyPath"
 # section prints beside the label, and it is spelled the way SettingsKeys.html spells a chord. Each
 # block writes name, mods, key, keys, action, then label, in that order.
 
+# Carry is a GUI action; terminal presets keep X unbound.
+[[preset]]
+name = "all"
+mods = "text"
+key = "X"
+keys = "X"
+action = "carry"
+frontend = "gui"
+context = "listing"
+label = "Carry to another app"
+
 # The four views are bound in no shared table, so a preset claiming nothing left a fresh install
 # with no keyboard route to them at all, on a keyboard-first file manager. Default and Vim take the
 # spelling the Mac rows below already use, because only one preset is ever live and the two never
@@ -161,7 +201,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "default"
@@ -169,7 +209,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "default"
@@ -177,7 +217,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "default"
@@ -185,7 +225,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[preset]]
 name = "vim"
@@ -193,7 +233,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "vim"
@@ -201,7 +241,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "vim"
@@ -209,7 +249,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "vim"
@@ -217,7 +257,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 # Finder's own chords, read with Cmd as Ctrl the way Omarchy's universal clipboard already delivers
 # them; ui/js/Keymap.js's shared ctrl table keeps only the chords both platforms agree on.
@@ -227,7 +267,7 @@ mods = "ctrl"
 key = "1"
 keys = "ctrl-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "mac"
@@ -235,7 +275,7 @@ mods = "ctrl"
 key = "2"
 keys = "ctrl-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "mac"
@@ -243,7 +283,7 @@ mods = "ctrl"
 key = "3"
 keys = "ctrl-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "mac"
@@ -251,7 +291,7 @@ mods = "ctrl"
 key = "4"
 keys = "ctrl-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[preset]]# Historical Ctrl navigation aliases remain additive.
 
@@ -306,7 +346,7 @@ mods = "ctrlshift"
 key = "1"
 keys = "ctrl-shift-1"
 action = "viewList"
-label = "list"
+label = "List view"
 
 [[preset]]
 name = "windows"
@@ -314,7 +354,7 @@ mods = "ctrlshift"
 key = "2"
 keys = "ctrl-shift-2"
 action = "viewColumns"
-label = "columns"
+label = "Columns view"
 
 [[preset]]
 name = "windows"
@@ -322,7 +362,7 @@ mods = "ctrlshift"
 key = "3"
 keys = "ctrl-shift-3"
 action = "viewGrid"
-label = "grid"
+label = "Grid view"
 
 [[preset]]
 name = "windows"
@@ -330,15 +370,17 @@ mods = "ctrlshift"
 key = "4"
 keys = "ctrl-shift-4"
 action = "viewDual"
-label = "dual pane"
+label = "Dual pane"
 
 [[shift]]
 key = "Down"
 action = "extendDown"
+label = "Extend down"
 
 [[shift]]
 key = "Up"
 action = "extendUp"
+label = "Extend up"
 
 # Bindings on the key code, for the keys that carry no printable character.
 [[code]]
@@ -348,6 +390,7 @@ action = "cursorDown"
 [[code]]
 key = "Up"
 action = "cursorUp"
+label = "Cursor up"
 
 # Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
 # so ui/js/Focus.js takes them for free and tools/flea-acceptance derives each as its own driven
@@ -357,18 +400,22 @@ action = "cursorUp"
 [[code]]
 key = "Home"
 action = "cursorFirst"
+label = "First item"
 
 [[code]]
 key = "End"
 action = "cursorLast"
+label = "Last item"
 
 [[code]]
 key = "PageUp"
 action = "pageUp"
+label = "Page up"
 
 [[code]]
 key = "PageDown"
 action = "pageDown"
+label = "Page down"
 
 [[code]]
 key = "Return"
@@ -389,6 +436,7 @@ action = "trash"
 [[code]]
 key = "Escape"
 action = "escape"
+label = "Close or go back"
 
 # The only thing that moves focus between the list and the rail, see ui/js/Focus.js.
 [[code]]
@@ -435,14 +483,17 @@ action = "cursorDown"
 [[text]]
 char = "k"
 action = "cursorUp"
+label = "Cursor up"
 
 [[text]]
 char = "g"
 action = "cursorFirst"
+label = "First item"
 
 [[text]]
 char = "G"
 action = "cursorLast"
+label = "Last item"
 
 # Decided 2026-09-01: the keymap sheet's own letters. Selection moved off x, which now cuts,
 # onto v, which is also the TUI board's visual-mode key.
@@ -453,10 +504,12 @@ action = "toggleSelect"
 [[text]]
 char = "J"
 action = "extendDown"
+label = "Extend down"
 
 [[text]]
 char = "K"
 action = "extendUp"
+label = "Extend up"
 
 [[text]]
 char = "h"
@@ -487,6 +540,7 @@ action = "pathBar"
 [[text]]
 char = "t"
 action = "tabNew"
+label = "New tab"
 
 # The Tags flyout's own key, from the listing; the seven digits toggle while that list is open.
 [[text]]
@@ -501,6 +555,7 @@ action = "factsToggle"
 [[text]]
 char = "w"
 action = "tabClose"
+label = "Close tab"
 
 
 [[text]]
@@ -558,6 +613,12 @@ action = "toggleHidden"
 char = "a"
 action = "addNetwork"
 
+# Opens Omarchy's default agent in the folder being shown, the menu's Open in Agent with no menu.
+[[text]]
+char = "A"
+action = "openAgent"
+label = "Open agent here"
+
 # The keyboard's way into the menu a right click raises: the row's own menu in the listing, Eject
 # and Unmount in the rail. The tagline is "keyboard-first" and before this key neither had one, so
 # m is no longer a type-ahead letter; ui/js/Focus.js routes it by which view has focus.
@@ -570,14 +631,17 @@ action = "menu"
 [[text]]
 char = "c"
 action = "copyAs"
+label = "Copy as"
 
 [[text]]
 char = "P"
 action = "pasteAs"
+label = "Paste as"
 
 [[text]]
 char = "V"
 action = "invertSelection"
+label = "Invert selection"
 
 # The Settings board's own key: "," from anywhere in the window, no modifier chord, because
 # Omarchy's universal clipboard consumes SUPER+C/V/X and a settings panel is the last place to
@@ -597,14 +661,17 @@ action = "keymapSheet"
 [[text]]
 char = "-"
 action = "zoomOut"
+label = "Zoom out"
 
 [[text]]
 char = "+"
 action = "zoomIn"
+label = "Zoom in"
 
 [[text]]
 char = "e"
 action = "expand"
+label = "Expand"
 
 # The page pair: h goes back in a PDF or to the parent while browsing; l goes forward, enters a directory, or previews a file.
 [[text]]
@@ -617,10 +684,12 @@ action = "pageForward"
 [[text]]
 char = "{"
 action = "tabMoveLeft"
+label = "Move tab left"
 
 [[text]]
 char = "}"
 action = "tabMoveRight"
+label = "Move tab right"
 
 # Keys040: [ and ] step to the previous and next tab. Bare text like { and }
 # above; the only BracketLeft/BracketRight rows in any preset are mac's
@@ -629,6 +698,7 @@ action = "tabMoveRight"
 [[text]]
 char = "["
 action = "tabPrevious"
+label = "Previous tab"
 # CommandPalette draws the tab rows by their chords alone, so [ and ] stay bound but off the sheet.
 sheet = false
 
@@ -636,6 +706,26 @@ sheet = false
 char = "]"
 action = "tabNext"
 sheet = false
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Right"
+keys = "ctrl-right"
+action = "openInPlace"
+label = "Open in place"
+context = "listing"
+frontend = "gui"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Left"
+keys = "ctrl-left"
+action = "closeInPlace"
+label = "Close in place"
+context = "listing"
+frontend = "gui"
 
 # KeymapSheet.html rule 1: a binding gets a group and the sheet reads it. The group is named by
 # action rather than written on every binding, because one action is spelled four different ways
@@ -647,14 +737,15 @@ sheet = false
 [sheetgroups]
 move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open",
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
-        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape"]
+        "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape",
+        "carry"]
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
-        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
+        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
-find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
-          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
-          "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
+          "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
           "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
@@ -662,6 +753,351 @@ change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
 from = 1
 to = 9
 prefix = "tab"
+
+[sheetoptions]
+cap_budget = 16
+mirrors = [
+    ["cursorDown", "cursorUp"], ["cursorFirst", "cursorLast"], ["pageDown", "pageUp"],
+    ["historyBack", "historyForward"], ["tabNext", "tabPrevious"], ["tabMoveLeft", "tabMoveRight"],
+    ["zoomIn", "zoomOut"], ["textSizeUp", "textSizeDown"], ["extendDown", "extendUp"]
+]
+
+# Spellings that win a sheet cap tie, per preset name; "all" applies to every preset.
+[sheetties]
+all = ["left", "shift-f10", "ctrl-shift-plus", "ctrl-shift-minus", "ctrl-shift-0"]
+default = ["ctrl-c", "ctrl-v"]
+windows = ["ctrl-c", "ctrl-v"]
+
+# Native copy around a key spelling; key is the catalog key after "keys.".
+[[native_copy]]
+key = "hint.filter"
+text = "Press %1 to filter this folder by name"
+
+# The terminal keys sheet: its title and row labels, kept with their catalog keys.
+[[native_copy]]
+key = "title"
+text = "Keyboard Shortcuts"
+
+[[native_copy]]
+key = "cursorDown"
+text = "Cursor down"
+
+[[native_copy]]
+key = "cursorUp"
+text = "Cursor up"
+
+[[native_copy]]
+key = "cursorFirst"
+text = "First item"
+
+[[native_copy]]
+key = "cursorLast"
+text = "Last item"
+
+[[native_copy]]
+key = "pageDown"
+text = "Page down"
+
+[[native_copy]]
+key = "pageUp"
+text = "Page up"
+
+[[native_copy]]
+key = "open"
+text = "Open"
+
+[[native_copy]]
+key = "parent"
+text = "Parent folder"
+
+[[native_copy]]
+key = "historyBack"
+text = "Back"
+
+[[native_copy]]
+key = "historyForward"
+text = "Forward"
+
+[[native_copy]]
+key = "focusPreview"
+text = "Focus the preview"
+
+[[native_copy]]
+key = "tabNew"
+text = "New tab"
+
+[[native_copy]]
+key = "openTab"
+text = "Open in new tab"
+
+[[native_copy]]
+key = "tabClose"
+text = "Close tab"
+
+[[native_copy]]
+key = "tabNext"
+text = "Next tab"
+
+[[native_copy]]
+key = "tabPrevious"
+text = "Previous tab"
+
+[[native_copy]]
+key = "tabMoveLeft"
+text = "Move tab left"
+
+[[native_copy]]
+key = "tabMoveRight"
+text = "Move tab right"
+
+[[native_copy]]
+key = "escape"
+text = "Close or go back"
+
+[[native_copy]]
+key = "selectTab"
+text = "Select tab"
+
+[[native_copy]]
+key = "quit"
+text = "Quit"
+
+[[native_copy]]
+key = "keymapSheet"
+text = "Keyboard Shortcuts"
+
+[[native_copy]]
+key = "preview"
+text = "Quick Look"
+
+[[native_copy]]
+key = "toggleHidden"
+text = "Hidden files"
+
+[[native_copy]]
+key = "detailNext"
+text = "Detail column"
+
+[[native_copy]]
+key = "filter"
+text = "Filter"
+
+[[native_copy]]
+key = "search"
+text = "Find"
+
+[[native_copy]]
+key = "searchContents"
+text = "Search contents"
+
+[[native_copy]]
+key = "reveal"
+text = "Reveal"
+
+[[native_copy]]
+key = "sortNext"
+text = "Sort"
+
+[[native_copy]]
+key = "sortReverse"
+text = "Reverse sort"
+
+[[native_copy]]
+key = "pathBar"
+text = "Go to folder"
+
+[[native_copy]]
+key = "copy"
+text = "Copy"
+
+[[native_copy]]
+key = "cut"
+text = "Cut"
+
+[[native_copy]]
+key = "paste"
+text = "Paste"
+
+[[native_copy]]
+key = "rename"
+text = "Rename"
+
+[[native_copy]]
+key = "trash"
+text = "Move to Trash"
+
+[[native_copy]]
+key = "deletePermanently"
+text = "Delete permanently"
+
+[[native_copy]]
+key = "undo"
+text = "Undo"
+
+[[native_copy]]
+key = "redo"
+text = "Redo"
+
+[[native_copy]]
+key = "newFolder"
+text = "New folder"
+
+[[native_copy]]
+key = "toggleSelect"
+text = "Select"
+
+[[native_copy]]
+key = "menu"
+text = "Menu"
+
+[[native_copy]]
+key = "openTerminal"
+text = "Open terminal"
+
+[[native_copy]]
+key = "openAgent"
+text = "Open agent here"
+
+[[native_copy]]
+key = "print"
+text = "Print…"
+
+# Native presentation uses the approved action names; legacy generated JavaScript stays frozen.
+[native_labels]
+carry = "Carry to another app"
+cursorDown = "Cursor down"
+cursorUp = "Cursor up"
+cursorFirst = "First item"
+cursorLast = "Last item"
+pageDown = "Page down"
+pageUp = "Page up"
+open = "Open"
+parent = "Parent folder"
+pageForward = "Browse in"
+historyBack = "Back"
+historyForward = "Forward"
+focusNext = "Next area"
+focusPrevious = "Previous area"
+focusPreview = "Focus the preview"
+tabNew = "New tab"
+openTab = "Open in new tab"
+tabClose = "Close tab"
+tabNext = "Next tab"
+tabPrevious = "Previous tab"
+tabMoveLeft = "Move tab left"
+tabMoveRight = "Move tab right"
+windowNew = "New window"
+escape = "Close or go back"
+openInPlace = "Open in place"
+closeInPlace = "Close in place"
+viewList = "List view"
+viewColumns = "Columns view"
+viewGrid = "Grid view"
+viewDual = "Dual pane"
+togglePreview = "Preview column"
+factsToggle = "Facts"
+loadPreview = "Preview"
+preview = "Quick Look"
+previewPageForward = "Page preview forward"
+previewPageBack = "Page preview back"
+toggleHidden = "Show hidden files"
+sidebar = "Sidebar"
+zoomIn = "Zoom in"
+zoomOut = "Zoom out"
+expand = "Expand"
+mute = "Mute"
+textSizeUp = "Larger text"
+textSizeDown = "Smaller text"
+textSizeReset = "Reset text size"
+keymapSheet = "Keyboard Shortcuts"
+filter = "Filter"
+search = "Find"
+searchContents = "Search contents"
+reveal = "Reveal"
+sortNext = "Sort"
+sortReverse = "Reverse sort"
+pathBar = "Go to folder"
+reload = "Reload"
+copy = "Copy"
+cut = "Cut"
+paste = "Paste"
+rename = "Rename"
+trash = "Move to Trash"
+deletePermanently = "Delete permanently"
+undo = "Undo"
+redo = "Redo"
+newFolder = "New folder"
+copydirpath = "Copy folder path"
+copyPath = "Copy path"
+
+addNetwork = "Add network place"
+autofitColumns = "Autofit columns"
+copyAs = "Copy as"
+copyName = "Copy name"
+copyPatch = "Copy patch"
+copyQuoted = "Copy shell-quoted"
+copyStem = "Copy name without extension"
+copyUri = "Copy file URI"
+duplicate = "Duplicate"
+eject = "Eject"
+extendDown = "Extend down"
+extendUp = "Extend up"
+invertSelection = "Invert selection"
+markdownView = "Rendered/source"
+menu = "Menu"
+menuRight = "Menu right"
+movePaste = "Move here"
+openTerminal = "Terminal"
+openAgent = "Open agent here"
+pasteAbsoluteLink = "Paste absolute link"
+pasteAs = "Paste as"
+pasteHardLink = "Paste hard link"
+pasteLink = "Paste link"
+playPause = "Play pause"
+previousSheet = "Previous sheet"
+nextSheet = "Next sheet"
+properties = "Get info"
+seekBack = "Seek back"
+seekForward = "Seek forward"
+selectAll = "Select all"
+settings = "Settings"
+tag1 = "Tag 1"
+tag2 = "Tag 2"
+tag3 = "Tag 3"
+tag4 = "Tag 4"
+tag5 = "Tag 5"
+tag6 = "Tag 6"
+tag7 = "Tag 7"
+tags = "Tags"
+toggleSelect = "Select"
+toggleWrap = "Wrap"
+zoomFit = "Zoom fit"
+
+# Consecutive pairs share the focused file identity; trash keeps its separate confirmation policy.
+[[sequence]]
+arm = "copyArm"
+action = "copy"
+kind = "pair"
+
+[[sequence]]
+arm = "cutArm"
+action = "cut"
+kind = "pair"
+
+[[sequence]]
+arm = "pasteArm"
+action = "paste"
+kind = "pair"
+
+[[sequence]]
+arm = "cursorFirstArm"
+action = "cursorFirst"
+kind = "pair"
+
+[[sequence]]
+arm = "trashArm"
+action = "trash"
+kind = "confirm"
 
 # The keymap sheet ? opens, in the order the canvas's Keys panel draws it, two columns down.
 # A chord shares the row of the key it doubles, written ^c for ctrl and ^N (a capital, the table's
@@ -675,185 +1111,190 @@ prefix = "tab"
 [[sheet]]
 keys = "j k"
 action = "cursorDown"
-label = "move"
+label = "Cursor down"
 
 [[sheet]]
 keys = "enter"
 action = "open"
-label = "open"
+label = "Open"
 
 [[sheet]]
 keys = "^enter"
 action = "openTab"
-label = "open in new tab"
+label = "Open in new tab"
 
 [[sheet]]
 keys = "h"
 action = "parent"
-label = "parent"
+label = "Parent folder"
 
 [[sheet]]
 keys = "l"
 action = "pageForward"
-label = "browse in"
+label = "Browse in"
 
 [[sheet]]
 keys = "space"
 action = "preview"
-label = "quick look"
+label = "Quick Look"
 
 # The canvas's Operations board draws / between space and f, and so does this.
 [[sheet]]
 keys = "/"
 action = "filter"
-label = "filter"
+label = "Filter"
 
 [[sheet]]
 keys = "f"
 action = "search"
-label = "find"
+label = "Find"
+
+[[sheet]]
+keys = "^g"
+action = "searchContents"
+label = "Search contents"
 
 [[sheet]]
 keys = "o"
 action = "reveal"
-label = "reveal"
+label = "Reveal"
 
 [[sheet]]
 keys = "F5 ^r"
 action = "reload"
-label = "reload"
+label = "Reload"
 
 # Issue 30 asked for a way to search the folder the pane is in, and tab on the query line is it, so
 # the sheet draws the key here rather than leaving the only control the issue got undocumented.
 [[sheet]]
 keys = "tab"
 action = "focusNext"
-label = "scope / focus"
+label = "Next area"
 
 [[sheet]]
 keys = ": ^l"
 action = "pathBar"
-label = "path"
+label = "Go to folder"
 
 [[sheet]]
 keys = "y ^c"
 action = "copy"
-label = "copy"
+label = "Copy"
 
 [[sheet]]
 keys = "Y"
 action = "copydirpath"
-label = "folder path"
+label = "Copy folder path"
 
 [[sheet]]
 keys = "x ^x"
 action = "cut"
-label = "cut"
+label = "Cut"
 
 [[sheet]]
 keys = "p ^v"
 action = "paste"
-label = "paste"
+label = "Paste"
 
 [[sheet]]
 keys = "r"
 action = "rename"
-label = "rename"
+label = "Rename"
 
 [[sheet]]
 keys = "F4"
 action = "autofitColumns"
-label = "autofit columns"
+label = "Autofit columns"
 
 [[sheet]]
 keys = "dd"
 action = "trashArm"
-label = "trash"
+label = "Move to Trash"
 
 [[sheet]]
 keys = "z ^z"
 action = "undo"
-label = "undo"
+label = "Undo"
 
 [[sheet]]
 keys = "T"
 action = "tags"
-label = "tags"
+label = "Tags"
 
 [[sheet]]
 keys = "i"
 action = "factsToggle"
-label = "facts"
+label = "Facts"
 
 [[sheet]]
 keys = "^N"
 action = "newFolder"
-label = "new folder"
+label = "New folder"
 
 [[sheet]]
 keys = "v"
 action = "toggleSelect"
-label = "select"
+label = "Select"
 
 [[sheet]]
 keys = "s"
 action = "sortNext"
-label = "sort"
+label = "Sort"
 
 [[sheet]]
 keys = "S"
 action = "sortReverse"
-label = "reverse"
+label = "Reverse sort"
 
 [[sheet]]
 keys = ". ^>"
 action = "toggleHidden"
-label = "hidden files"
+label = "Show hidden files"
 
 [[sheet]]
 keys = "a"
 action = "addNetwork"
-label = "add network place"
+label = "Add network place"
 
 [[sheet]]
 keys = "m"
 action = "menu"
-label = "menu"
+label = "Menu"
 
 [[sheet]]
 keys = "^e"
 action = "eject"
-label = "eject"
+label = "Eject"
 
 [[sheet]]
 keys = "^t"
 action = "openTerminal"
-label = "terminal"
+label = "Terminal"
 
 [[sheet]]
 keys = "^+"
 action = "textSizeUp"
-label = "larger"
+label = "Larger text"
 
 [[sheet]]
 keys = "^-"
 action = "textSizeDown"
-label = "smaller"
+label = "Smaller text"
 
 [[sheet]]
 keys = "^)"
 action = "textSizeReset"
-label = "reset size"
+label = "Reset text size"
 
 [[sheet]]
 keys = ","
 action = "settings"
-label = "settings"
+label = "Settings"
 
 [[sheet]]
 keys = "?"
 action = "keymapSheet"
-label = "keys"
+label = "Keyboard Shortcuts"
 
 # The pointer contract, the mouse's half of this table. tools/flea-keymap-gen turns it into
 # Keymap.POINTER and tests/js/tap.js drives ui/js/Tap.js against every listing and neighbour row, so
@@ -960,6 +1401,8 @@ label = "commit the open rename, then select the row"
 # other gesture. A menu raised inside a multi-row selection acts on all of it, as Finder does, and one
 # raised outside collapses the selection to that row, because every entry the menu draws is built from
 # the cursor row while Move to Trash, Compress and Move to Dropbox all dispatch through the selection.
+# The GPUI columns view's middle column follows Finder instead (CTL2, 2026-10-31): its menu takes the
+# row, or the selection the row is in, and leaves the cursor and the selection exactly as they were.
 [[pointer]]
 where = "listing"
 press = "right"
@@ -998,7 +1441,7 @@ label = "go into that directory on one tap, as its neighbours do"
 
 # A neighbour column has no cursor, so one tap on a directory makes it the pane's own listing: that is
 # the column view's reveal, the gesture Finder's own column view answers a single click with, and not
-# an open. A file has nothing to reveal, so it waits for the second tap.
+# an open. A file waits for a double click, as v0.3.12 does (CTL2 ruling 137).
 [[pointer]]
 where = "neighbour"
 press = "left"
@@ -1011,7 +1454,7 @@ where = "neighbour"
 press = "left"
 row = "file"
 does = "nothing"
-label = "a file has no contents to reveal"
+label = "no action"
 
 [[pointer]]
 where = "neighbour"
@@ -1109,7 +1552,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1119,7 +1562,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1129,7 +1572,7 @@ mods = "ctrl"
 key = "N"
 keys = "ctrl-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1139,7 +1582,7 @@ mods = "ctrl"
 key = "T"
 keys = "ctrl-t"
 action = "tabNew"
-label = "new tab"
+label = "New tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1149,7 +1592,7 @@ mods = "ctrl"
 key = "T"
 keys = "ctrl-t"
 action = "tabNew"
-label = "new tab"
+label = "New tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1161,7 +1604,7 @@ mods = "shift"
 key = "Delete"
 keys = "shift-delete"
 action = "deletePermanently"
-label = "delete permanently"
+label = "Delete permanently"
 frontend = "all"
 context = "listing"
 
@@ -1171,7 +1614,7 @@ mods = "alt"
 key = "P"
 keys = "alt-p"
 action = "togglePreview"
-label = "preview column"
+label = "Preview column"
 frontend = "all"
 context = "listing"
 
@@ -1181,7 +1624,7 @@ mods = "ctrl"
 key = "Space"
 keys = "ctrl-space"
 action = "loadPreview"
-label = "preview"
+label = "Preview"
 frontend = "all"
 context = "listing"
 
@@ -1191,7 +1634,7 @@ mods = "ctrl"
 key = "W"
 keys = "ctrl-w"
 action = "tabClose"
-label = "close tab"
+label = "Close tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1201,7 +1644,7 @@ mods = "ctrl"
 key = "PageDown"
 keys = "ctrl-pagedown"
 action = "tabNext"
-label = "next tab"
+label = "Next tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1211,7 +1654,7 @@ mods = "ctrl"
 key = "PageUp"
 keys = "ctrl-pageup"
 action = "tabPrevious"
-label = "prev tab"
+label = "Previous tab"
 frontend = "all"
 context = "listing,rail"
 
@@ -1221,7 +1664,7 @@ mods = "ctrl"
 key = "Tab"
 keys = "ctrl-tab"
 action = "focusPreview"
-label = "focus preview"
+label = "Focus the preview"
 frontend = "all"
 context = "listing"
 
@@ -1254,7 +1697,7 @@ mods = "text"
 key = "H"
 keys = "H"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1264,7 +1707,7 @@ mods = "text"
 key = "H"
 keys = "H"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1274,7 +1717,7 @@ mods = "text"
 key = "L"
 keys = "L"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1284,7 +1727,7 @@ mods = "text"
 key = "L"
 keys = "L"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1324,7 +1767,7 @@ mods = "text"
 key = "g"
 keys = "gg"
 action = "cursorFirstArm"
-label = "first row"
+label = "First item"
 frontend = "all"
 context = "listing"
 
@@ -1434,7 +1877,7 @@ mods = "superalt"
 key = "V"
 keys = "superalt-v"
 action = "movePaste"
-label = "move here"
+label = "Move here"
 frontend = "all"
 context = "listing"
 
@@ -1444,7 +1887,7 @@ mods = "super"
 key = "D"
 keys = "super-d"
 action = "duplicate"
-label = "duplicate"
+label = "Duplicate"
 frontend = "all"
 context = "listing"
 
@@ -1465,7 +1908,7 @@ mods = "ctrlshift"
 key = "Z"
 keys = "ctrl-shift-z"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1475,7 +1918,7 @@ mods = "supershift"
 key = "Z"
 keys = "supershift-z"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1485,7 +1928,7 @@ mods = "super"
 key = "A"
 keys = "super-a"
 action = "selectAll"
-label = "select all"
+label = "Select all"
 frontend = "all"
 context = "listing"
 
@@ -1495,7 +1938,7 @@ mods = "super"
 key = "I"
 keys = "super-i"
 action = "properties"
-label = "get info"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1505,7 +1948,7 @@ mods = "super"
 key = "N"
 keys = "super-n"
 action = "windowNew"
-label = "new window"
+label = "New window"
 frontend = "gui"
 context = "listing,rail"
 
@@ -1515,7 +1958,7 @@ mods = "super"
 key = "BracketLeft"
 keys = "super-bracketleft"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1525,7 +1968,7 @@ mods = "super"
 key = "BracketRight"
 keys = "super-bracketright"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1565,7 +2008,7 @@ mods = "ctrl"
 key = "Y"
 keys = "ctrl-y"
 action = "redo"
-label = "redo"
+label = "Redo"
 frontend = "all"
 context = "listing"
 
@@ -1575,7 +2018,7 @@ mods = "alt"
 key = "Return"
 keys = "alt-return"
 action = "properties"
-label = "properties"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1585,7 +2028,7 @@ mods = "alt"
 key = "Enter"
 keys = "alt-enter"
 action = "properties"
-label = "properties"
+label = "Get info"
 frontend = "all"
 context = "listing"
 
@@ -1595,7 +2038,7 @@ mods = "alt"
 key = "Left"
 keys = "alt-left"
 action = "historyBack"
-label = "back"
+label = "Back"
 frontend = "all"
 context = "listing"
 
@@ -1605,7 +2048,7 @@ mods = "alt"
 key = "Right"
 keys = "alt-right"
 action = "historyForward"
-label = "forward"
+label = "Forward"
 frontend = "all"
 context = "listing"
 
@@ -1710,7 +2153,7 @@ mods = "text"
 key = "m"
 keys = "m"
 action = "mute"
-label = "mute"
+label = "Mute"
 frontend = "all"
 context = "media"
 
@@ -1770,7 +2213,7 @@ mods = "shift"
 key = "Tab"
 keys = "shift-tab"
 action = "focusPrevious"
-label = "focus back"
+label = "Previous area"
 frontend = "all"
 context = "listing,rail,menu,panel,preview,pdf,media"
 
@@ -1780,7 +2223,7 @@ mods = "shift"
 key = "Backtab"
 keys = "shift-backtab"
 action = "focusPrevious"
-label = "focus back"
+label = "Previous area"
 frontend = "all"
 context = "listing,rail,menu,panel,preview,pdf,media"
 
@@ -2060,6 +2503,27 @@ label = "wrap"
 frontend = "all"
 context = "preview"
 
+# [ and ] turn a workbook's sheets in Quick Look; the GUI shell keeps the tab step for any other card.
+[[preset]]
+name = "all"
+mods = "text"
+key = "["
+keys = "["
+action = "previousSheet"
+label = "previous sheet"
+frontend = "all"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "]"
+keys = "]"
+action = "nextSheet"
+label = "next sheet"
+frontend = "all"
+context = "preview,pdf"
+
 # Compare's overlay: y copies the whole patch, headers included, and the listing's y stays copy (preview context only).
 [[preset]]
 name = "all"
@@ -2130,9 +2594,9 @@ mods = "text"
 key = "F"
 keys = "F"
 action = "previewPageForward"
-label = "page preview forward"
+label = "Page preview forward"
 frontend = "gui"
-context = "listing"
+context = "listing,preview,pdf"
 
 [[preset]]
 name = "all"
@@ -2140,6 +2604,1195 @@ mods = "text"
 key = "B"
 keys = "B"
 action = "previewPageBack"
-label = "page preview back"
+label = "Page preview back"
 frontend = "gui"
+context = "listing,preview,pdf"
+
+# The focused document owns its paging keys; the listing keeps its shared bindings.
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "pageDown"
+label = "Page down"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "U"
+keys = "ctrl-u"
+action = "pageUp"
+label = "Page up"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageDown"
+keys = "pagedown"
+action = "pageDown"
+label = "Page down"
+frontend = "gui"
+context = "preview,pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageUp"
+keys = "pageup"
+action = "pageUp"
+label = "Page up"
+frontend = "gui"
+context = "preview,pdf"
+
+# Terminal-only bindings; the GUI generator reads the shared tables above.
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "O"
+action = "openTab"
+label = "Open in new tab"
 context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Y"
+action = "redo"
+label = "Redo"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrlshift"
+key = "Z"
+action = "redo"
+label = "Redo"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "N"
+action = "newFolder"
+label = "New folder"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrlshift"
+key = "N"
+action = "newFolder"
+label = "New folder"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "M"
+action = "movePaste"
+label = "Move here"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "U"
+action = "duplicate"
+label = "Duplicate"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "i"
+action = "properties"
+label = "Properties"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "E"
+action = "editFile"
+label = "Edit in terminal"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "I"
+action = "detailNext"
+label = "Detail column"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "P"
+action = "print"
+label = "Print…"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "q"
+action = "quit"
+label = "Quit"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "Q"
+action = "quitNoCwd"
+label = "Quit without directory handoff"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+action = "focusPreview"
+label = "Focus the preview"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "PageDown"
+action = "tabNext"
+label = "Next tab"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "PageUp"
+action = "tabPrevious"
+label = "Previous tab"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "mac"
+mods = "text"
+key = "H"
+action = "historyBack"
+label = "Back"
+context = "listing"
+
+[[tui]]
+name = "mac"
+mods = "text"
+key = "L"
+action = "historyForward"
+label = "Forward"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "j"
+action = "cursorDown"
+label = "Cursor down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "k"
+action = "cursorUp"
+label = "Cursor up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "C"
+action = "tabClose"
+label = "Close tab"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "BracketLeft"
+action = "escape"
+label = "Close or go back"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "U"
+action = "halfPageUp"
+label = "Half page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "D"
+action = "halfPageDown"
+label = "Half page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "B"
+action = "pageUp"
+label = "Page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "F"
+action = "pageDown"
+label = "Page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "PageUp"
+action = "halfPageUp"
+label = "Half page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "PageDown"
+action = "halfPageDown"
+label = "Half page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "l"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Right"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Space"
+action = "selectNext"
+label = "Select and move down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "R"
+action = "invertSelection"
+label = "Invert selection"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "v"
+action = "toggleSelect"
+label = "Select"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "V"
+action = "clearSelection"
+label = "Clear selection"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "o"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "y"
+action = "copy"
+label = "Copy"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "x"
+action = "cut"
+label = "Cut"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "p"
+action = "paste"
+label = "Paste"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "Y"
+action = "clearClipboard"
+label = "Clear clipboard"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "trash"
+label = "Move to Trash"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "D"
+action = "deletePermanently"
+label = "Delete permanently"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "a"
+action = "newFile"
+label = "New file"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "rename"
+label = "Rename"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "filter"
+label = "Filter"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "/"
+action = "filter"
+label = "Filter"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "search"
+label = "Find"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "~"
+action = "keymapSheet"
+label = "Keyboard Shortcuts"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "F1"
+action = "keymapSheet"
+label = "Keyboard Shortcuts"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "g"
+action = "prefix:g"
+label = "prefix:g"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "prefix:t"
+label = "prefix:t"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ","
+action = "prefix:,"
+label = "prefix:,"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "prefix:c"
+label = "prefix:c"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "prefix:m"
+label = "prefix:m"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "g"
+action = "cursorFirst"
+label = "First item"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "h"
+action = "goHome"
+label = "Home folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "goConfig"
+label = "Configuration folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "goDownloads"
+label = "Downloads folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Space"
+action = "pathBar"
+label = "Go to folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "tabNew"
+label = "New tab"
+context = "listing"
+prefix = "t"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "a"
+action = "sortName"
+label = "Sort by name"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "A"
+action = "sortNameReverse"
+label = "Sort by name descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "sortDate"
+label = "Sort by modified time"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "M"
+action = "sortDateReverse"
+label = "Sort by modified time descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "sortSize"
+label = "Sort by size"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "S"
+action = "sortSizeReverse"
+label = "Sort by size descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "p"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "o"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tuisheet]]
+action = "deletePermanently"
+label = "Delete permanently"
+
+[[tuisheet]]
+action = "redo"
+label = "Redo"
+
+[[tuisheet]]
+action = "newFile"
+label = "New file"
+
+[[tuisheet]]
+action = "movePaste"
+label = "Move here"
+
+[[tuisheet]]
+action = "duplicate"
+label = "Duplicate"
+
+[[tuisheet]]
+action = "tabMoveLeft"
+label = "Move tab left"
+
+[[tuisheet]]
+action = "tabMoveRight"
+label = "Move tab right"
+
+[[tuisheet]]
+action = "tabNew"
+label = "New tab"
+
+[[tuisheet]]
+action = "tabClose"
+label = "Close tab"
+
+[[tuisheet]]
+action = "tabNext"
+label = "Next tab"
+
+[[tuisheet]]
+action = "tabPrevious"
+label = "Previous tab"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "H"
+action = "historyBack"
+label = "Back"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "L"
+action = "historyForward"
+label = "Forward"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "P"
+action = "cursorUp"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "N"
+action = "cursorDown"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "C"
+action = "escape"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "BracketLeft"
+action = "escape"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "Z"
+action = "suspend"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "K"
+action = "unsupported:Focus the preview with Tab, then use Left to seek a supported player"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "J"
+action = "unsupported:Focus the preview with Tab, then use Right to seek a supported player"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "Return"
+action = "unsupported:Interactive application picking is unavailable in this terminal build; O opens a folder tab"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "P"
+action = "unsupported:Forced overwrite is unavailable; paste with p and answer the collision prompt"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "-"
+action = "pasteAbsoluteLink"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "_"
+action = "pasteLink"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "Underscore"
+action = "pasteLink"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "Minus"
+action = "pasteHardLink"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ";"
+action = "unsupported:Shell prompts are unavailable; Ctrl+T opens a terminal in this folder"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ":"
+action = "unsupported:Blocking shell prompts are unavailable; Ctrl+T opens a terminal in this folder"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "S"
+action = "unsupported:Content search is unavailable; s opens built-in filename search"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "S"
+action = "unsupported:Closing only search is unavailable; Escape leaves search or clears its active field"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "z"
+action = "unsupported:Fuzzy-finder plugins are unavailable; f filters the held rows"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "Z"
+action = "unsupported:Directory ranking plugins are unavailable; use g then Space to enter a path"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "b"
+action = "detailBirth"
+label = ""
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "detailOff"
+label = ""
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "copyPath"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "C"
+action = "copyUri"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "copydirpath"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "D"
+action = "copyDirUri"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "copyName"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "copyStem"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "?"
+action = "findPrevious"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "findNext"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "b"
+action = "sortBirth"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "B"
+action = "sortBirthReverse"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "e"
+action = "sortExtension"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "sortRandom"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "openTrash"
+label = "Trash"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "followLink"
+label = ""
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "unsupported:Custom tab names are unavailable; tabs show their folders"
+label = ""
+context = "listing"
+prefix = "t"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "w"
+action = "unsupported:A task list is unavailable; running operations report in the status row"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "G"
+action = "searchContents"
+label = "Search contents"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "A"
+action = "openAgent"
+label = "Open agent here"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "alt"
+key = "B"
+action = "wordBackward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "alt"
+key = "F"
+action = "wordForward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Left"
+action = "wordBackward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Right"
+action = "wordForward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "U"
+action = "killBol"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "K"
+action = "killEol"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "W"
+action = "killBackward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "alt"
+key = "D"
+action = "killForward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Backspace"
+action = "killBackward"
+label = ""
+context = "editor"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Delete"
+action = "killForward"
+label = ""
+context = "editor"
+
+# TUI17 sheet labels share the generated English keys region.
+
+[[native_copy]]
+key = "tui17.copyDirUri"
+text = "Copy directory URI"
+
+[[native_copy]]
+key = "tui17.copyName"
+text = "Copy filename"
+
+[[native_copy]]
+key = "tui17.copyPath"
+text = "Copy path"
+
+[[native_copy]]
+key = "tui17.copyStem"
+text = "Copy filename without extension"
+
+[[native_copy]]
+key = "tui17.copyUri"
+text = "Copy URI"
+
+[[native_copy]]
+key = "tui17.copydirpath"
+text = "Copy directory path"
+
+[[native_copy]]
+key = "tui17.detailBirth"
+text = "Show creation time"
+
+[[native_copy]]
+key = "tui17.detailOff"
+text = "Hide detail column"
+
+[[native_copy]]
+key = "tui17.findNext"
+text = "Find next"
+
+[[native_copy]]
+key = "tui17.findPrevious"
+text = "Find previous"
+
+[[native_copy]]
+key = "tui17.followLink"
+text = "Follow link"
+
+[[native_copy]]
+key = "tui17.killBackward"
+text = "Delete previous word (field)"
+
+[[native_copy]]
+key = "tui17.killBol"
+text = "Delete to start (field)"
+
+[[native_copy]]
+key = "tui17.killEol"
+text = "Delete to end (field)"
+
+[[native_copy]]
+key = "tui17.killForward"
+text = "Delete next word (field)"
+
+[[native_copy]]
+key = "tui17.pasteAbsoluteLink"
+text = "Paste absolute symbolic links"
+
+[[native_copy]]
+key = "tui17.pasteHardLink"
+text = "Paste hard links"
+
+[[native_copy]]
+key = "tui17.pasteLink"
+text = "Paste relative symbolic links"
+
+[[native_copy]]
+key = "tui17.sortBirth"
+text = "Sort by creation time"
+
+[[native_copy]]
+key = "tui17.sortBirthReverse"
+text = "Sort by creation time (reverse)"
+
+[[native_copy]]
+key = "tui17.sortExtension"
+text = "Sort by extension"
+
+[[native_copy]]
+key = "tui17.sortRandom"
+text = "Shuffle files"
+
+[[native_copy]]
+key = "tui17.suspend"
+text = "Suspend"
+
+[[native_copy]]
+key = "tui17.wordBackward"
+text = "Previous word (field)"
+
+[[native_copy]]
+key = "tui17.wordForward"
+text = "Next word (field)"

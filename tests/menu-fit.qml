@@ -91,7 +91,7 @@ ShellRoot {
             out.push({ stop: shell.stops[e], density: "compact", hints: true, all: true, kind: "file", flyout: "", edge: false, narrow: false, edges: "frame" })
             out.push({ stop: shell.stops[e], density: "compact", hints: true, all: true, kind: "file", flyout: "openWith", edge: false, narrow: false, edges: "flyout" })
         }
-        // Every errored row says its state word in the slot it already has, and a word may widen its menu, never past the work area.
+        // App errors use red alone; permissions keep their existing state words.
         for (var w = 0; w < shell.stops.length; w++)
             for (var k = 0; k < shell.erroredKinds.length; k++)
                 out.push({ stop: shell.stops[w], density: "compact", hints: true, all: false, kind: "file", flyout: "", edge: false, narrow: false,
@@ -108,9 +108,9 @@ ShellRoot {
     // The row a state word is read on, by the file kind the menu opens over; the words are ui/js/StateWords.js's table.
     readonly property var erroredKinds: ["link", "special", "folder"]
     readonly property var erroredWords: ({
-        link: { taildrop: "signed out", localsend: "no devices", dropbox: "signed out", permissions: "symlink" },
-        special: { taildrop: "offline", localsend: "no devices", dropbox: "not running", permissions: "special file" },
-        folder: { taildrop: "files only", localsend: "files only", dropbox: "not running" }
+        link: { taildrop: "", localsend: "", dropbox: "", permissions: "symlink" },
+        special: { taildrop: "", localsend: "", dropbox: "", permissions: "special file" },
+        folder: { taildrop: "", localsend: "", dropbox: "" }
     })
     readonly property var erroredModes: ({ link: 0o120777, special: 0o010644, folder: 0o040755 })
 
@@ -166,21 +166,26 @@ ShellRoot {
         menu.dropboxPath = ""
         menu.dropboxCode = s.errored === "special" || s.errored === "folder" ? "" : "signedOut"
     }
-    // Each errored row draws its word whole in the hint slot, and its wanted width counts the label, the gap and the word.
+    // App errors keep their red labels and no hint width; permissions still draw their word whole.
     function runErrored(s) {
-        var words = shell.erroredWords[s.errored], bad = [], missing = []
+        var words = shell.erroredWords[s.errored], bad = [], missing = [], wide = [], uncounted = []
         for (var action in words) {
             var index = shell.entryIndex(action)
             var row = index >= 0 ? menu.itemFor(index) : null
             if (!row) { missing.push(action); continue }
-            var drawn = shell.textDrawn(row, words[action])
-            if (!(row.errored && row.hint === words[action] && drawn && drawn.visible && !drawn.truncated)) bad.push(action + ":" + row.hint)
+            var drawn = words[action] ? shell.textDrawn(row, words[action]) : null
+            var hintOk = words[action] ? drawn && drawn.visible && !drawn.truncated : row.parts().hint === 0
+            if (!(row.errored && Qt.colorEqual(row.labelColor, Flea.Theme.color.error) && row.hint === words[action] && hintOk)) bad.push(action + ":" + row.hint)
             var lab = shell.textDrawn(row, row.entry.label)
-            if (lab && drawn && row.wantedWidth < lab.implicitWidth + Flea.Theme.spacing.gap + drawn.implicitWidth) bad.push(action + " wants only " + row.wantedWidth)
+            if (lab && drawn && row.wantedWidth < lab.implicitWidth + Flea.Theme.spacing.gap + drawn.implicitWidth) uncounted.push(action + " wants only " + row.wantedWidth)
+            if (!words[action] && row.wantedWidth > Flea.Theme.menuWidth) wide.push(action + ":" + row.wantedWidth)
             shell.log("MEASURE " + s.tag + " " + action + " wanted=" + row.wantedWidth + " menuWidth=" + Flea.Theme.menuWidth + " label=" + (lab ? lab.implicitWidth : -1) + " word=" + (drawn ? drawn.implicitWidth : -1) + " frame=" + menu.frameItem.width + " chevron=" + (row.isSubmenu ? 1 : 0))
         }
         shell.check(s.tag + ": the errored rows are all there", missing, [])
-        shell.check(s.tag + ": each errored row draws its state word whole and wants room for it", bad, [])
+        shell.check(s.tag + ": each errored row uses error ink and only permissions draw a state word", bad, [])
+        shell.check(s.tag + ": each drawn state word counts toward its row's wanted width", uncounted, [])
+        // An unavailable app row fits the menu token, so it never sets the menu's width.
+        shell.check(s.tag + ": each unavailable app row fits Theme.menuWidth", wide, [])
     }
     function entryIndex(action) {
         for (var i = 0; i < menu.entries.length; i++)
@@ -405,7 +410,7 @@ ShellRoot {
                 shell.check(tag + ": " + card.name + " elides no label", card.read.truncated, [])
                 shell.check(tag + ": " + card.name + " keeps every hint clear of its label", card.read.touching, [])
             }
-            // A state word is part of its errored row's wanted width, so an errored menu is as wide as that row, not Theme.menuWidth.
+            // Errored scenes hold each app row to the token in runErrored, since a permissions word may still widen them.
             if (!s.all && !s.errored)
                 shell.check(tag + ": " + card.name + " of rows that all fit keeps Theme.menuWidth", card.frame.width, Flea.Theme.menuWidth)
             // The widest row of a widened card is flush: its hint sits one gap from its label, no wider than needed.

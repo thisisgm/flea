@@ -8,25 +8,15 @@
 # shape; this exists so the correct form is the easy one to reach for.
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 pattern=${1:-}
 if [ -z "$pattern" ]; then
   echo "usage: flea-running <exact-command-line>" >&2
   exit 2
 fi
 
-# ps -eo args gives the command line with no pid column to match against, and the comparison is a
-# whole-string equality rather than a substring, so neither this script nor its caller can match.
-found=0
-while IFS= read -r line; do
-  [ "$line" = "$pattern" ] || continue
-  found=1
-done < <(ps -eo args=)
-
-if [ "$found" = 1 ]; then
-  # The pids, for a caller that wants to signal them by number rather than by pattern.
-  ps -eo pid=,args= | while read -r pid rest; do
-    [ "$rest" = "$pattern" ] && printf '%s\n' "$pid"
-  done
-  exit 0
-fi
-exit 1
+. "$(dirname "$0")/../tests/lib/flea-transport.sh"
+flea_test_running "$pattern"

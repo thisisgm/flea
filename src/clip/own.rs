@@ -123,7 +123,7 @@ fn split_payload(payload: &[u8]) -> Result<(String, String, Vec<String>), String
         return Err("the clipboard payload names no operation".to_string());
     };
     let op = std::str::from_utf8(op).map_err(|_| "the clipboard operation is not text".to_string())?;
-    if !format::is_op(op) {
+    if op != "text" && !format::is_op(op) {
         return Err("the clipboard operation is copy or cut".to_string());
     }
     let token = std::str::from_utf8(token).map_err(|_| "the clipboard token is not text".to_string())?;
@@ -156,7 +156,7 @@ pub(crate) fn spawn_owner_with(
 ) -> Result<String, String> {
     let token = format::make_token()?;
     let mut child = unsafe {
-        std::process::Command::new(exe)
+        crate::backend::locale::command(exe)
         .arg("--clip-own")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -240,7 +240,7 @@ const WNOWAIT: c_int = 0x01000000;
 const EINTR: i32 = 4;
 const SIGINFO_WORDS: usize = 16;
 
-fn owner_live(pid: u32) -> bool {
+pub(crate) fn owner_live(pid: u32) -> bool {
     loop {
         let mut info = [0u64; SIGINFO_WORDS];
         let result = unsafe { waitid(P_PID, pid, info.as_mut_ptr().cast(), WEXITED | WNOHANG | WNOWAIT) };

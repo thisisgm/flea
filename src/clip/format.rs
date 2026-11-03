@@ -1,4 +1,5 @@
 // The clipboard formats, one place: every offered type is built and parsed here.
+use flea::plugin_runtime::protocol::place_path;
 use std::collections::HashSet;
 
 pub const GNOME: &str = "x-special/gnome-copied-files";
@@ -15,6 +16,13 @@ pub const FLEA: &str = "application/x-flea-clip";
 
 // Every type an owner offers with its bytes, in the order they are served; KDE only on a cut.
 pub fn payloads(op: &str, paths: &[String], token: &str) -> Vec<(&'static str, Vec<u8>)> {
+    if op == "text" {
+        let body = paths.first().map_or(&b""[..], |s| s.as_bytes());
+        return [PLAIN_UTF8, PLAIN, UTF8_STRING]
+            .into_iter()
+            .map(|mime| (mime, body.to_vec()))
+            .collect();
+    }
     let mut out = vec![
         (FLEA, build_flea(op, token)),
         (GNOME, build_gnome(op, paths)),
@@ -40,6 +48,13 @@ pub fn is_token(token: &str) -> bool {
 
 // What clipSet and the CLI accept, in the order both sides check them.
 pub fn check_selection(op: &str, paths: &[String]) -> Result<(), String> {
+    if op == "text" {
+        return if paths.len() == 1 && !paths[0].contains('\0') {
+            Ok(())
+        } else {
+            Err("the text clipboard needs one NUL-free value".into())
+        };
+    }
     if !is_op(op) {
         return Err("the clipboard operation must be copy or cut".to_string());
     }
@@ -50,9 +65,12 @@ pub fn check_selection(op: &str, paths: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-// A path as a file:// URI: every byte outside the unreserved set and '/' is percent-encoded.
+// Keep a place's URI scheme; every path byte outside the unreserved set and '/' is percent-encoded.
 fn encode_uri(path: &str) -> String {
-    let mut out = String::from("file://");
+    let (mut out, path) = match place_path(path) {
+        Some((id, relative)) => (format!("plugin://{id}"), relative),
+        None => (String::from("file://"), path),
+    };
     for b in path.as_bytes() {
         if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~' | b'/') {
             out.push(*b as char);
@@ -63,12 +81,14 @@ fn encode_uri(path: &str) -> String {
     out
 }
 
-// Only file:// with an empty or localhost host becomes a path; anything else is refused.
+// Local files and validated plugin locations retain their distinct owners.
 fn decode_uri(uri: &[u8]) -> Option<String> {
-    let rest = uri.strip_prefix(b"file://")?;
+    let plugin = uri.starts_with(b"plugin://");
+    let scheme: &[u8] = if plugin { b"plugin://" } else { b"file://" };
+    let rest = uri.strip_prefix(scheme)?;
     let slash = rest.iter().position(|b| *b == b'/')?;
     let (host, path) = rest.split_at(slash);
-    if !host.is_empty() && host != b"localhost" {
+    if !plugin && !host.is_empty() && host != b"localhost" {
         return None;
     }
     let mut raw = Vec::with_capacity(path.len());
@@ -76,6 +96,10 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     while i < path.len() {
         if path[i] == b'%' {
             let hex = path.get(i + 1..i + 3)?;
+            // from_str_radix takes a leading '+', so only two hex digits are an escape.
+            if !hex.iter().all(u8::is_ascii_hexdigit) {
+                return None;
+            }
             let byte = u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?;
             raw.push(byte);
             i += 3;
@@ -95,7 +119,13 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     if s.split('/').any(|part| part == "." || part == "..") {
         return None;
     }
-    Some(s)
+    if plugin {
+        let uri = format!("plugin://{}{s}", std::str::from_utf8(host).ok()?);
+        place_path(&uri)?;
+        Some(uri)
+    } else {
+        Some(s)
+    }
 }
 
 pub fn build_gnome(op: &str, paths: &[String]) -> Vec<u8> {
@@ -168,7 +198,12 @@ pub fn parse_flea(bytes: &[u8]) -> Option<(String, String, Option<u32>)> {
     let s = trim_payload(s);
     let (op, rest) = s.split_once(' ')?;
     let (token, pid) = match rest.split_once(' ') {
-        Some((token, pid)) => (token, pid.parse::<u32>().ok().filter(|pid| *pid > 0 && *pid <= i32::MAX as u32)),
+        Some((token, pid)) => (
+            token,
+            pid.parse::<u32>()
+                .ok()
+                .filter(|pid| *pid > 0 && *pid <= i32::MAX as u32),
+        ),
         None => (rest, None),
     };
     if !is_op(op) || !is_token(token) {
@@ -206,19 +241,23 @@ pub const MAX_CLIP_PATHS: usize = 100_000;
 
 pub fn check_path_cap(paths: &[String]) -> Result<(), String> {
     if paths.len() > MAX_CLIP_PATHS {
-        return Err(format!("{} items are selected, and the clipboard takes at most {}", paths.len(), MAX_CLIP_PATHS));
+        return Err(format!(
+            "{} items are selected, and the clipboard takes at most {}",
+            paths.len(),
+            MAX_CLIP_PATHS
+        ));
     }
     Ok(())
 }
 
-// What clipSet and the CLI accept: absolute, no NUL, no dot or parent component.
+// clipSet accepts local absolute paths and plugin-owned locations, with no dot or parent component.
 pub fn validate_clip_paths(paths: &[String]) -> Result<(), String> {
     check_path_cap(paths)?;
     for p in paths {
         if p.contains('\0') {
             return Err(format!("{} holds a NUL byte", p));
         }
-        if !p.starts_with('/') {
+        if !p.starts_with('/') && place_path(p).is_none() {
             return Err(format!("{} is not an absolute path", p));
         }
         if p.split('/').any(|part| part == "..") {

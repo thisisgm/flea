@@ -151,7 +151,8 @@ fn a_hand_edited_file_that_is_not_the_shelfs_own_undoes_nothing() {
     std::fs::create_dir_all(dir.path().join("omarchy/flea-shelf")).unwrap();
     std::fs::write(dir.path().join("omarchy/flea-shelf/undo.json"), "{ not json").unwrap();
     assert_eq!(moves.at_ms(), 0);
-    assert!(moves.take().unwrap().is_empty(), "and the unreadable record is spent rather than read again");
+    assert!(moves.take().unwrap_err().contains("left unchanged"));
+    assert_eq!(std::fs::read_to_string(&moves.file).unwrap(), "{ not json");
 }
 
 // Rule 10 in reverse: the pin the move re-pointed comes home with the file, and the row the move
@@ -224,6 +225,6 @@ fn a_record_that_cannot_be_spent_says_why_in_words() {
     // A folder where the record belongs: removing it is refused, and the refusal is not a missing file.
     std::fs::create_dir_all(&moves.file).unwrap();
     let why = moves.take().unwrap_err();
-    assert!(why.starts_with(&format!("{} could not be spent: ", moves.file.display())), "{}", why);
+    assert_eq!(why, format!("{} is not a regular file, so the shelf document was left unchanged", moves.file.display()));
     assert!(!why.contains('('), "no Debug name of an error kind: {}", why);
 }

@@ -1,0 +1,35 @@
+#!/bin/bash
+# Supported synthetic tools: qmllint-gate | file-budget
+step() {
+  "$@"
+}
+cargo_build() {
+  cargo build --locked -p flea
+}
+lane_prep() {
+  cargo_build build-debug
+}
+lane_cargo_test() {
+  cargo test --locked -p flea
+}
+lane_suites() {
+  tests/run-all.sh
+}
+lane_tool() {
+  local name=$1
+  shift
+  step "$name" "$@"
+}
+main() {
+  local lane=${1:?usage: prep|cargo-test|qmllint-gate|file-budget|suites}
+  shift
+  start_session
+  case $lane in
+    prep) lane_prep ;;
+    cargo-test) lane_cargo_test "$@" ;;
+    qmllint-gate) lane_tool qmllint-gate tools/flea-qmllint-gate ;;
+    file-budget) lane_tool file-budget tools/flea-file-budget ;;
+    suites) lane_suites "$@" ;;
+  esac
+}
+main "$@"

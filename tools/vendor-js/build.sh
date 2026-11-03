@@ -1,6 +1,10 @@
 #!/bin/bash
 # Rebuild pinned vendor bundles byte for byte; the caller supplies npm and network.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 cd "$(dirname "$0")" || exit 1
 
 [ -f package.json ] || { echo "vendor-js: no package.json beside this script"; exit 1; }
@@ -14,18 +18,6 @@ for target in ../../ui/vendor/math.mjs ../../ui/vendor/mermaid.mjs; do
 done
 
 npm ci || exit 1
-
-# Flea's patch to the pinned library (see ui/vendor/LICENSES); a reject, a fuzz or an offset hunk fails the build.
-patched=$(patch -d node_modules/beautiful-mermaid -p1 --forward --batch --fuzz=0 --no-backup-if-mismatch < patches/beautiful-mermaid+1.1.3.patch 2>&1) || {
-    printf '%s\n' "$patched"
-    echo "vendor-js: the beautiful-mermaid patch did not apply cleanly"
-    exit 1
-}
-printf '%s\n' "$patched"
-if printf '%s\n' "$patched" | grep -qiE 'fuzz|offset|reject|failed'; then
-    echo "vendor-js: the beautiful-mermaid patch applied with an offset, fuzz or reject"
-    exit 1
-fi
 
 # Bundles use one exact command each: minified ES modules for quickjs-ng, neutral platform, es2017.
 npx esbuild math-entry.mjs --bundle --format=esm --platform=neutral --target=es2017 --minify --outfile=math-bundle.mjs || exit 1

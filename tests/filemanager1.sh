@@ -30,7 +30,7 @@ for tool in dbus-daemon python3; do
 done
 # The --default cases drive the real binary; without it every one of them would report a missing
 # binary as a product failure, which is the wrong green this suite exists to refuse.
-BIN="$root/target/debug/flea"
+BIN="${FLEA_BIN:-$root/target/debug/flea}"
 [[ -x "$BIN" ]] || { printf 'FAIL %s is missing, run cargo build\n' "$BIN"; exit 1; }
 
 stop_bus() {
@@ -277,7 +277,7 @@ case_refuses() {
     fi
 }
 
-# The registration only works installed, so the shipped file and the PKGBUILD lines are the case.
+# The registration only works installed, so the shipped file and the Makefile lines are the case.
 case_packaged() {
     local exec_line before
     before=$failed
@@ -286,10 +286,10 @@ case_packaged() {
         || fail "packaged: the service file execs $exec_line, not $install_path"
     grep -Fq 'Name=org.freedesktop.FileManager1' "$service_file" \
         || fail "packaged: the service file does not claim org.freedesktop.FileManager1"
-    grep -Fq "install -Dm755 tools/flea-filemanager1 \"\$pkgdir$install_path\"" "$root/PKGBUILD" \
-        || fail "packaged: PKGBUILD does not install the service to $install_path"
-    grep -Fq 'install -Dm644 packaging/com.thisisgm.flea.FileManager1.service -t "$pkgdir/usr/share/dbus-1/services"' "$root/PKGBUILD" \
-        || fail "packaged: PKGBUILD does not install the D-Bus registration"
+    grep -Fq "install -Dm755 tools/flea-filemanager1 \"\$(DESTDIR)$install_path\"" "$root/Makefile" \
+        || fail "packaged: make install does not install the service to $install_path"
+    grep -Fq 'install -Dm644 packaging/com.thisisgm.flea.FileManager1.service -t "$(DESTDIR)/usr/share/dbus-1/services"' "$root/Makefile" \
+        || fail "packaged: make install does not install the D-Bus registration"
     # Named for Flea and not for the interface: nautilus owns the plain path on this box, and
     # dolphin, thunar and nemo each ship their own vendor-named file declaring the same Name=.
     [[ ! -e "$root/packaging/org.freedesktop.FileManager1.service" ]] \

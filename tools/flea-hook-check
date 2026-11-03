@@ -7,8 +7,12 @@ import shutil
 import subprocess
 import sys
 
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
+PARSER_ENV.pop("LANGUAGE", None)
+
 # Sample input (a repo-relative name): "src/backend/run.rs"
-RELEVANT = ("src/*", "ui/*", "tests/*", "tools/*", "Cargo.*", "hk.pkl", "keys.toml", "AGENTS.md",
+RELEVANT = ("src/*", "crates/*", "ui/*", "tests/*", "tools/*", "Cargo.*", "deny.toml", "hk.pkl", "keys.toml", "AGENTS.md",
             "build.rs", "*/build.rs", "rust-toolchain*", "*/rust-toolchain*", ".cargo/*", "*/.cargo/*")
 
 
@@ -24,7 +28,7 @@ def relevant(name):
 # Sample input (an arg list): ["diff", "--cached", "--name-only", "-z"]
 def git(args):
     try:
-        out = subprocess.run(["git"] + args, capture_output=True, check=False)
+        out = subprocess.run(["git"] + args, capture_output=True, check=False, env=PARSER_ENV)
     except OSError as e:
         die(f"git did not start: {e}")
     if out.returncode != 0:

@@ -1,0 +1,659 @@
+{
+  "version": 1,
+  "unit": "g1-12",
+  "scenes": [
+    {
+      "scene": "g1/path-bar",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-bar.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-bar.html",
+      "before_png": ".superpowers/g1-12/references/before/path-bar-1100x700.png",
+      "sha256": {
+        "board_png": "6b47f76308b0f04e818c32bb7c2db8b75f0b8e2fa60203bd0b087edcbfae26fb",
+        "board_html": "275d79aee22860c14274f2a581d025c69c1adf69c6b47e77fead91ec9e282d61",
+        "before_png": "17257ffe0563d7b537eb15e92697826b63466bdd1fa6219ac58b68d9f3a12924"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          }
+        ]
+      },
+      "assertions": [
+        "cursor A uses inactive highlight",
+        "path field 23 px tall at [80,2,788,23]",
+        "whole /fx/v/work/ selected in the field",
+        "crumbs hidden while the field is open",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-bar",
+        "js:tests/js/pathbar.js"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/path-jump",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-jump.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-jump.html",
+      "before_png": ".superpowers/g1-12/references/before/path-jump-1100x700.png",
+      "sha256": {
+        "board_png": "c98b263a098869a25504658dddcc461841a71c0511985d9daf5d8c749605656b",
+        "board_html": "15d831f5be5af6a0bd07878fd9abb205423343b82a5836165c38f3bb72869640",
+        "before_png": "41f9aebed3ebdf325ad1b92be030c508865923aa7354f7d92e9c7d096bf59060"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "query": "Med",
+        "jump": "work",
+        "suggestions": 1,
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "Med"
+          }
+        ]
+      },
+      "assertions": [
+        "one suggestion /fx/v/work/Media selected",
+        "match run Med bold inside the cursor band with no wash",
+        "popup 3 px below the toolbar rule",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-jump",
+        "qml:ui/PathJump.qml"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/path-suggest-o",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-suggest-o.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-suggest-o.html",
+      "before_png": ".superpowers/g1-12/references/before/path-jump-o-1100x700.png",
+      "sha256": {
+        "board_png": "a147680334cad46e41d54c5a6443e44452821b85eb6d3f318bd1f2c16b86b2fc",
+        "board_html": "5c50f128dfe126892d48973cab40286c59a0c041f89213d229632973d8808255",
+        "before_png": "9f11f7b436ece7840758a52c0d1ed37abff04e6fcf1bf319c2669385046520d4"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "query": "o",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 7,
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "o"
+          }
+        ]
+      },
+      "assertions": [
+        "seven suggestions in the board order",
+        "Documents first and selected",
+        "Favorites shown in the rail",
+        "no nested wash inside the cursor match",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-suggest-o",
+        "qml:ui/PathJump.qml"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/path-suggest-s",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-suggest-s.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-suggest-s.html",
+      "before_png": ".superpowers/g1-12/references/before/path-jump-s-1100x700.png",
+      "sha256": {
+        "board_png": "390cd7e4d2ffa519d8c1177aa098521eb2b093b30b8a27b6b743e91108cd2dce",
+        "board_html": "3989f3edcd6a972d168803aaed7bf84f8678eb818e49bc610c4ed73b3dd65635",
+        "before_png": "9d8b10a936dd00d6e4a03642b0514d0f3ebda4db6842990206e9046370d0bbb2"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 9,
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "s"
+          }
+        ]
+      },
+      "assertions": [
+        "nine suggestions in the board order",
+        "Documents first and selected",
+        "no nested wash inside the cursor match",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-suggest-s",
+        "qml:ui/PathJump.qml"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/path-suggest-scroll",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-suggest-scroll.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-suggest-scroll.html",
+      "before_png": ".superpowers/g1-12/references/before/path-jump-scroll-1100x360.png",
+      "sha256": {
+        "board_png": "5aced76710cd55a25008522282f3fe1c1077d3df8733fd01630e000d6b256a89",
+        "board_html": "bf93bc6493147c55f94486709037e66480ee2a19437bb712dcdcd5b18f3015d4",
+        "before_png": "95b2c86cb970780a0a4115ac628f045c7d3f1bf45ef8686f3ec7c9565035e49c"
+      },
+      "size": [
+        1100,
+        360
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 8,
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "s"
+          }
+        ]
+      },
+      "assertions": [
+        "popup rectangle [80,30,788,284]",
+        "first suggestion selected",
+        "exactly half the bottom row clipped under the fade",
+        "popup bottom 314, status starts 333, gap 19",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-suggest-scroll",
+        "qml:ui/PathJump.qml"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/path-suggest-scrolled",
+      "unit": "g1-12",
+      "board_png": ".superpowers/g1-12/references/boards/path-suggest-scrolled.png",
+      "board_html": ".superpowers/g1-12/references/boards/path-suggest-scrolled.html",
+      "before_png": ".superpowers/g1-12/references/before/path-jump-scrolled-1100x360.png",
+      "sha256": {
+        "board_png": "eab4e3cb61ff072ffee81138bf007507a2fe248c29c2af761a589fb7c5066d0d",
+        "board_html": "551ea871449dcc1bd0192b407b65cb2358adc2736da12a56d1f55d1565b7c149",
+        "before_png": "a21cf72f990491689c4a5e379afb12af4a58ac4318285f633b1617f7c22f41ea"
+      },
+      "size": [
+        1100,
+        360
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "query": "s",
+        "jump": "board",
+        "places": {
+          "favourites": [
+            {
+              "label": "Projects",
+              "path": "/fx/j/Projects"
+            },
+            {
+              "label": "flea",
+              "path": "/fx/j/Documents/claude/flea"
+            },
+            {
+              "label": "omarchy",
+              "path": "/fx/j/Documents/claude/omarchy"
+            }
+          ]
+        },
+        "suggestions": 8,
+        "input": [
+          {
+            "type": "physical",
+            "key": "l",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "s"
+          },
+          {
+            "type": "physical",
+            "key": "end",
+            "modifiers": []
+          }
+        ]
+      },
+      "assertions": [
+        "End selects the last omarchy suggestion",
+        "exactly half the top row clipped under the fade",
+        "popup bottom 314, status starts 333",
+        "status disk facts tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:path-suggest-scrolled",
+        "qml:ui/PathJump.qml"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/crumb-collapsed",
+      "unit": "g1-12",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "reference": "qml-oracle capture at the same setup; no HIG board names this state",
+      "sha256": {},
+      "size": [
+        640,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Documents/projects/archive/2026/reports/drafts/notes",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB"
+      },
+      "assertions": [
+        "the chrome strip collapses whole crumbs behind one marker",
+        "the leaf keeps at least six characters before it elides",
+        "the marker and the leaf are inert to a single tap",
+        "a double tap on the marker opens the path field"
+      ],
+      "parity_ids": [
+        "qml:ui/PanePath.qml",
+        "js:tests/js/crumbs.js"
+      ],
+      "producer_owner": [
+        "G1.05"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/crumb-parent-immediate",
+      "unit": "g1-12",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "reference": "qml-oracle capture at the same setup; no HIG board names this state",
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "input": [
+          {
+            "type": "pointer",
+            "target": "crumbCentre 1",
+            "taps": 1
+          }
+        ]
+      },
+      "assertions": [
+        "a parent crumb opens on the press with no double-click wait",
+        "a rapid second tap while the backend is slow opens nothing more",
+        "the hovered parent lights, the leaf never does"
+      ],
+      "parity_ids": [
+        "qml:ui/Crumb.qml",
+        "js:tests/js/crumbs.js"
+      ],
+      "producer_owner": [
+        "G1.05"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/crumb-dual-left",
+      "unit": "g1-12",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "reference": "qml-oracle capture at the same setup; no HIG board names this state",
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "dual",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "paths": [
+          "/fx/v/work",
+          "/fx/j"
+        ],
+        "input": [
+          {
+            "type": "pointer",
+            "target": "paneCrumbCentre 0 0",
+            "taps": 1
+          }
+        ]
+      },
+      "assertions": [
+        "each pane draws its own 27 px strip and the chrome draws none",
+        "a press on the left strip focuses the left pane and opens its parent",
+        "the chrome path slot keeps the focused pane's line"
+      ],
+      "parity_ids": [
+        "qml:ui/PanePath.qml",
+        "ipc:paneCrumbCentre"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/crumb-dual-right",
+      "unit": "g1-12",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "reference": "qml-oracle capture at the same setup; no HIG board names this state",
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "dual",
+        "preset": "default",
+        "disk_free": "64.1 MB",
+        "paths": [
+          "/fx/v/work",
+          "/fx/j"
+        ],
+        "input": [
+          {
+            "type": "pointer",
+            "target": "paneCrumbCentre 1 0",
+            "taps": 1
+          }
+        ]
+      },
+      "assertions": [
+        "a press on the right strip focuses the right pane and opens its parent",
+        "the left pane keeps its path",
+        "panePathRect 1 starts one pixel right of the divider"
+      ],
+      "parity_ids": [
+        "qml:ui/PanePath.qml",
+        "ipc:panePathRect"
+      ],
+      "producer_owner": [
+        "G1.05",
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}

@@ -288,6 +288,7 @@ Item {
         event.accepted = false
     }
 
+    readonly property int drawnRows: drop.item === null ? 0 : Math.min(root.entries.length, Math.ceil((drop.item.scrollY + drop.item.height - 2 * Theme.spacing.rowPaddingY) / Theme.rowHeight)) - Math.floor(drop.item.scrollY / Theme.rowHeight)
     // The dropdown's frame, built only while rows show: the scroll body, its window listener,
     // both fades and the rows are nothing the first frame shows.
     Loader {

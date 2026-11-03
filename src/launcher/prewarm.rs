@@ -75,11 +75,11 @@ mod tests {
 
     // The numbering a backend's first list answers in: the State run() starts with, through the list arm's own adopt.
     fn backend_first_listing(path: &str, cache: PathBuf) -> Option<usize> {
-        let ((events, _events), (results, _results)) = (channel(), channel());
+        let ((events, _events), (results, _results)) = (crate::backend::events::channel(), channel());
         let (mut st, tb) = (State::new(Worker::new(events)), Tables::load());
         let pool = Pool::new(1, results, cache, Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
         let fd = -1;
-        let done = crate::backend::iomount::list_dir(path.to_string(), false, 2, r#"{"c":"list"}"#.to_string(), Arc::clone(&tb.mime), fd, channel::<crate::backend::events::Event>().0, &crate::backend::iomount::mount_body()).expect("list");
+        let done = crate::backend::iomount::list_dir(path.to_string(), false, 2, r#"{"c":"list"}"#.to_string(), Arc::clone(&tb.mime), fd, crate::backend::events::channel::<crate::backend::events::Event>().0, &crate::backend::iomount::mount_body()).expect("list");
         let mut out = Vec::new();
         crate::backend::run::adopt_listed(&mut out, &mut st, &pool, &tb, path, done, false);
         field_usize(String::from_utf8(out).unwrap().lines().nth(1)?, "listing")

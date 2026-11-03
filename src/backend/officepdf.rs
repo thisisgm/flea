@@ -1,6 +1,6 @@
 // An office document becomes one cached PDF: LibreOffice runs headless in the jail Convert uses, one job at a time, and the PDF viewer draws the result.
 use crate::backend::aliases::Aliases;
-use crate::backend::archivework::{run_boxed_cancellable_capped, Work};
+use crate::backend::archivework::{run_boxed_office, Work};
 use crate::backend::iomount;
 use crate::backend::md5;
 use crate::backend::mime::Db;
@@ -10,27 +10,32 @@ use crate::backend::sandbox;
 use crate::backend::thumbcache::uri_for;
 use crate::error::FleaError;
 use crate::figurestore::{evict_leaf, Names};
-use crate::json::escape;
 use std::io::{Read, Write};
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Duration, Instant, SystemTime};
 
-// DOCX, ODT, XLSX, ODS, PPTX and RTF, by canonical MIME name; nothing else converts.
-const OFFICE_TYPES: [&str; 6] = [
+// Documents, spreadsheets and presentations, by canonical MIME name.
+const OFFICE_TYPES: [&str; 10] = [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.oasis.opendocument.text",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.oasis.opendocument.spreadsheet",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/rtf",
+    "application/vnd.oasis.opendocument.presentation",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
 ];
 const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
+// Bump this version when the conversion argv or jail profile changes; cached PDFs stay reusable.
+const FAILURE_PROFILE: &str = "flea-office-profile-v3\n";
 const PROGRAM: &str = "soffice";
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
@@ -58,16 +63,31 @@ fn find_program(name: &str, path: &str) -> Option<String> {
 
 // Sample output: soffice --headless --norestore --nolockcheck -env:UserInstallation=file:///tmp/flea-office-profile --convert-to pdf --outdir /out /in.docx
 pub fn argv(program: &str, input: &Path, outdir: &Path) -> Vec<String> {
+    convert_argv(program, "pdf", input, outdir)
+}
+
+fn convert_argv(program: &str, target: &str, input: &Path, outdir: &Path) -> Vec<String> {
     let profile = format!("-env:UserInstallation={PROFILE_URL}");
-    let fixed = [program, "--headless", "--norestore", "--nolockcheck", &profile, "--convert-to", "pdf", "--outdir"];
+    let fixed = [program, "--headless", "--norestore", "--nolockcheck", &profile, "--convert-to", target, "--outdir"];
     let mut a: Vec<String> = fixed.iter().map(|s| s.to_string()).collect();
     a.push(outdir.to_string_lossy().into_owned());
     a.push(input.to_string_lossy().into_owned());
     a
 }
 
-pub enum Hit {
-    Ready(PathBuf),
+#[path = "officepublish.rs"]
+mod publication;
+#[path = "officepdf_run.rs"]
+mod running;
+use running::Fail;
+#[cfg(test)]
+use running::produced_pdf;
+#[path = "officesheets.rs"]
+mod sheets;
+pub use sheets::{is_sheet, sheets_argv, sheets_line, Sheets, SHEETS_SUFFIX};
+
+pub enum Hit<T = PathBuf> {
+    Ready(T),
     Failed(String),
     Miss,
 }
@@ -105,59 +125,35 @@ impl Store {
     pub fn lookup(&self, key: &str, mtime: SystemTime) -> Hit {
         let failed = self.fail_path(key);
         if Store::stamped(&failed, mtime) {
-            return Hit::Failed(std::fs::read_to_string(&failed).unwrap_or_default());
+            if let Ok(body) = std::fs::read_to_string(&failed) {
+                if let Some(message) = body.strip_prefix(FAILURE_PROFILE) {
+                    return Hit::Failed(message.to_string());
+                }
+            }
         }
         let pdf = self.pdf_path(key);
         if Store::stamped(&pdf, mtime) { Hit::Ready(pdf) } else { Hit::Miss }
     }
 
-    // AGENTS.md "Predictable path writes": unlink, exclusive create at 0600, then rename.
     fn publish(dest: &Path, mtime: SystemTime, body: &mut dyn Read) -> std::io::Result<()> {
-        if let Some(parent) = dest.parent() {
-            std::fs::DirBuilder::new().recursive(true).mode(0o700).create(parent)?;
-        }
-        let tmp = PathBuf::from(format!("{}.{}.tmp", dest.display(), std::process::id()));
-        let _ = std::fs::remove_file(&tmp);
-        let written = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&tmp).and_then(|mut f| {
-            std::io::copy(body, &mut f)?;
-            f.set_modified(mtime)
-        });
-        match written.and_then(|()| std::fs::rename(&tmp, dest)) {
-            Ok(()) => Ok(()),
-            Err(e) => {
-                let _ = std::fs::remove_file(&tmp);
-                Err(e)
-            }
-        }
+        publication::publish(dest, mtime, body)
     }
 
     fn record_failure(&self, key: &str, mtime: SystemTime, message: &str) {
         let dest = self.fail_path(key);
-        if Store::publish(&dest, mtime, &mut message.as_bytes()).is_ok() {
+        let body = format!("{FAILURE_PROFILE}{message}");
+        if Store::publish(&dest, mtime, &mut body.as_bytes()).is_ok() {
             self.prune(dest.parent().unwrap_or(&self.dir));
         }
     }
 
     // The figure store's bound over one leaf, oldest conversion first: ctime is the publish time, the mtime being the source's.
     fn prune(&self, dir: &Path) {
-        let cached = |n: &str| n.split_once('.').is_some_and(|(stem, ext)| stem.len() == KEY_HEX_CHARS && stem.bytes().all(|b| b.is_ascii_hexdigit()) && (ext == "pdf" || ext == "txt"));
+        let ours = |ext: &str| matches!(ext, "pdf" | "txt" | "sheets.txt") || ext.strip_prefix("sheets.").and_then(|e| e.strip_suffix(".csv")).is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+        let cached = |n: &str| n.split_once('.').is_some_and(|(stem, ext)| stem.len() == KEY_HEX_CHARS && stem.bytes().all(|b| b.is_ascii_hexdigit()) && ours(ext));
         let age = |m: &std::fs::Metadata| SystemTime::UNIX_EPOCH + Duration::new(m.ctime().max(0) as u64, m.ctime_nsec() as u32);
-        evict_leaf(dir, self.entries, self.bytes, &Names { entry: &cached, scratch: &|_| false, age: &age });
+        evict_leaf(dir, self.entries, self.bytes, &Names { entry: &|name| cached(name) && crate::cachewrite::allowed(&dir.join(name)), scratch: &|_| false, age: &age });
     }
-}
-
-pub fn ready_line(id: usize, path: &Path) -> String {
-    format!(r#"{{"t":"officepdf","id":{},"state":"ready","path":"{}"}}"#, id, escape(&path.to_string_lossy()))
-}
-
-pub fn converting_line(id: usize) -> String {
-    format!(r#"{{"t":"officepdf","id":{},"state":"converting"}}"#, id)
-}
-
-// unavailable marks a box or a file that will never convert, so the viewer keeps today's preview.
-pub fn failed_line(id: usize, err: &str, unavailable: bool) -> String {
-    let flag = if unavailable { r#","unavailable":true"# } else { "" };
-    format!(r#"{{"t":"officepdf","id":{},"state":"failed","err":"{}"{}}}"#, id, escape(err), flag)
 }
 
 struct Waiter {
@@ -174,6 +170,10 @@ struct Job {
     mtime: SystemTime,
     seq: u64,
     waiters: Vec<Waiter>,
+    required: bool,
+    // The workbook's sheets as CSVs instead of a PDF; its key carries SHEETS_SUFFIX.
+    sheets: bool,
+    cancel: Option<Arc<AtomicBool>>,
 }
 
 #[derive(Default)]
@@ -182,10 +182,12 @@ struct Queue {
     running: Option<Vec<Waiter>>,
     started: u64,
     queued: Option<Job>,
+    required: std::collections::VecDeque<Job>,
 }
 
 type Resolve = Box<dyn Fn() -> Option<String> + Send + Sync>;
 type Build = Box<dyn Fn(&str, &Path, &Path) -> Vec<String> + Send + Sync>;
+type SheetBuild = Box<dyn Fn(&str, &Path, &Path, i32) -> Vec<String> + Send + Sync>;
 // The jail the argv runs in, a seam so a test can stand in a converter without bwrap.
 type Runner = Box<dyn Fn(Vec<String>, &Path, &mut Work, &AtomicBool) -> Result<(), FleaError> + Send + Sync>;
 
@@ -193,6 +195,7 @@ pub struct Service {
     store: Store,
     resolve: Resolve,
     build: Build,
+    sheet_build: SheetBuild,
     runner: Runner,
     timeout: Duration,
     // Request order, stamped on the loop: a worker that finishes its probe late must not replace a newer request.
@@ -204,7 +207,7 @@ pub struct Service {
 
 impl Service {
     pub fn new(store: Store, resolve: Resolve, build: Build, runner: Runner, timeout: Duration) -> Service {
-        Service { store, resolve, build, runner, timeout, seq: AtomicU64::new(0), quit: Arc::new(AtomicBool::new(false)), queue: Mutex::new(Queue::default()) }
+        Service { store, resolve, build, sheet_build: Box::new(sheets_argv), runner, timeout, seq: AtomicU64::new(0), quit: Arc::new(AtomicBool::new(false)), queue: Mutex::new(Queue::default()) }
     }
 
     fn locked(&self) -> MutexGuard<'_, Queue> {
@@ -212,52 +215,60 @@ impl Service {
     }
 
     // Off the loop: the stat, the cache lookup and the conversion wait on a worker; reg is the quit registry id claimed on the loop.
-    pub fn start(self: &Arc<Self>, wire: usize, reg: usize, path: PathBuf, tx: Sender<OpMsg>) {
+    pub fn start(self: &Arc<Self>, wire: usize, reg: usize, path: PathBuf, sheets: bool, tx: Sender<OpMsg>) {
         let (me, seq) = (Arc::clone(self), self.seq.fetch_add(1, Ordering::Relaxed));
-        std::thread::spawn(move || me.request(wire, reg, seq, &path, &tx));
+        std::thread::spawn(move || me.request(wire, reg, seq, &path, sheets, &tx));
     }
 
     // Every terminal line leaves as DetachedDone, which frees reg; a miss first says converting and the end line follows.
-    fn request(self: &Arc<Self>, wire: usize, reg: usize, seq: u64, path: &Path, tx: &Sender<OpMsg>) {
+    fn request(self: &Arc<Self>, wire: usize, reg: usize, seq: u64, path: &Path, sheets: bool, tx: &Sender<OpMsg>) {
         let end = |line: String| drop(tx.send(OpMsg::DetachedDone { id: reg, line }));
         let Some(program) = (self.resolve)() else {
-            return end(failed_line(wire, "LibreOffice is not installed on this box.", true));
+            return end(failed_line_of(sheets, wire, "LibreOffice is not installed on this box.", true));
         };
         let (store, source) = (self.store.clone(), path.to_path_buf());
         let probed = iomount::call(path, &iomount::mount_body(), "office", move || {
             let io = |e: std::io::Error| crate::error::io_message(&e);
             let input = std::fs::canonicalize(&source).map_err(io)?;
             let mtime = std::fs::metadata(&input).and_then(|m| m.modified()).map_err(io)?;
-            let key = Store::key(&source);
-            let hit = store.lookup(&key, mtime);
+            let key = if sheets { format!("{}{SHEETS_SUFFIX}", Store::key(&source)) } else { Store::key(&source) };
+            let hit = store.find(&key, mtime, sheets);
             Ok::<_, String>((mtime, key, hit, input))
         });
         let (mtime, key, hit, input) = match probed {
             Ok(Ok(found)) => found,
-            Ok(Err(message)) => return end(failed_line(wire, &message, false)),
-            Err(e) => return end(failed_line(wire, &e.msg, false)),
+            Ok(Err(message)) => return end(failed_line_of(sheets, wire, &message, false)),
+            Err(e) => return end(failed_line_of(sheets, wire, &e.msg, false)),
         };
         match hit {
-            Hit::Ready(pdf) => return end(ready_line(wire, &pdf)),
-            Hit::Failed(message) => return end(failed_line(wire, &message, false)),
+            Hit::Ready(done) => return end(done_line(wire, &done)),
+            Hit::Failed(message) => return end(failed_line_of(sheets, wire, &message, false)),
             Hit::Miss => {}
         }
-        let _ = tx.send(OpMsg::Meta { line: converting_line(wire) });
-        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }] });
+        let _ = tx.send(OpMsg::Meta { line: converting_line_of(sheets, wire) });
+        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }], required: false, sheets, cancel: None });
     }
 
     // The running job is never replaced; a request older than the newest started is answered replaced, as is the lower sequence of two queued, and the same file shares one job.
     fn enqueue(self: &Arc<Self>, mut job: Job) {
         let mut q = self.locked();
+        if job.required {
+            if q.running.is_some() { q.required.push_back(job); return; }
+            q.running = Some(std::mem::take(&mut job.waiters));
+            drop(q);
+            let me = Arc::clone(self);
+            std::thread::spawn(move || me.work(job));
+            return;
+        }
         if job.seq < q.started {
-            return answer(job.waiters, Err("replaced by a newer request".to_string()));
+            return answer(job.waiters, job.sheets, Err("replaced by a newer request".to_string()));
         }
         if let Some(old) = q.queued.take() {
             let (mut keep, lose) = if job.seq > old.seq { (job, old) } else { (old, job) };
             if keep.key == lose.key {
                 keep.waiters.extend(lose.waiters);
             } else {
-                answer(lose.waiters, Err("replaced by a newer request".to_string()));
+                answer(lose.waiters, lose.sheets, Err("replaced by a newer request".to_string()));
             }
             job = keep;
         }
@@ -273,16 +284,16 @@ impl Service {
 
     fn work(self: Arc<Self>, mut job: Job) {
         loop {
-            let outcome = self.convert(&job);
+            let (outcome, sheets) = (self.convert(&job), job.sheets);
             let mut q = self.locked();
             let done = q.running.take().unwrap_or_default();
-            let mut next = q.queued.take();
+            let mut next = q.required.pop_front().or_else(|| q.queued.take());
             if let Some(n) = next.as_mut() {
                 q.running = Some(std::mem::take(&mut n.waiters));
-                q.started = n.seq;
+                if !n.required { q.started = n.seq; }
             }
             drop(q);
-            answer(done, outcome);
+            answer(done, sheets, outcome);
             match next {
                 Some(n) => job = n,
                 None => break,
@@ -291,17 +302,17 @@ impl Service {
     }
 
     // A hit or a recorded failure made by another window since the request is served, so one file and mtime convert once.
-    fn convert(&self, job: &Job) -> Result<PathBuf, String> {
-        if self.quit.load(Ordering::Relaxed) {
+    fn convert(&self, job: &Job) -> Result<Done, String> {
+        if self.quit.load(Ordering::Relaxed) || job.cancel.as_ref().is_some_and(|c| c.load(Ordering::Relaxed)) {
             return Err("cancelled".to_string());
         }
-        match self.store.lookup(&job.key, job.mtime) {
-            Hit::Ready(pdf) => return Ok(pdf),
+        match self.store.find(&job.key, job.mtime, job.sheets) {
+            Hit::Ready(done) => return Ok(done),
             Hit::Failed(message) => return Err(message),
             Hit::Miss => {}
         }
-        match self.run(job) {
-            Ok(pdf) => Ok(pdf),
+        match if job.sheets { self.run_sheets(job).map(Done::Sheets) } else { self.run(job).map(Done::Pdf) } {
+            Ok(done) => Ok(done),
             Err(Fail::Local(message)) => Err(message),
             Err(Fail::Converter(message)) => {
                 self.store.record_failure(&job.key, job.mtime, &message);
@@ -309,96 +320,76 @@ impl Service {
             }
         }
     }
+}
 
-    fn run(&self, job: &Job) -> Result<PathBuf, Fail> {
-        let local = |e: std::io::Error| Fail::Local(crate::error::io_message(&e));
-        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&self.store.dir).map_err(local)?;
-        let mut work = Work::new(&self.store.dir, "office").map_err(|e| Fail::Local(e.msg))?;
-        let argv = (self.build)(&job.program, &job.input, &work.dir);
-        let (stop, finished, timed_out) = (AtomicBool::new(false), AtomicBool::new(false), AtomicBool::new(false));
-        let ran = std::thread::scope(|s| {
-            s.spawn(|| {
-                let end = Instant::now() + self.timeout;
-                while !finished.load(Ordering::Relaxed) {
-                    let late = Instant::now() >= end;
-                    if late || self.quit.load(Ordering::Relaxed) {
-                        timed_out.store(late, Ordering::Relaxed);
-                        stop.store(true, Ordering::Relaxed);
-                        break;
-                    }
-                    std::thread::sleep(WATCH_STEP);
-                }
-            });
-            let ran = (self.runner)(argv, &job.input, &mut work, &stop);
-            finished.store(true, Ordering::Relaxed);
-            ran
-        });
-        if let Err(e) = ran {
-            return Err(if timed_out.load(Ordering::Relaxed) {
-                Fail::Local(format!("the conversion took longer than {} seconds", self.timeout.as_secs()))
-            } else if self.quit.load(Ordering::Relaxed) {
-                Fail::Local("cancelled".to_string())
-            } else {
-                Fail::Converter(e.msg)
-            });
-        }
-        let produced = produced_pdf(&work.dir).ok_or_else(|| Fail::Converter("the converter wrote no PDF".to_string()))?;
-        let dest = self.store.pdf_path(&job.key);
-        let mut body = std::fs::File::open(&produced).map_err(local)?;
-        Store::publish(&dest, job.mtime, &mut body).map_err(local)?;
-        self.store.prune(&self.store.dir);
-        Ok(dest)
+#[derive(Clone, Debug, PartialEq)]
+pub enum Done {
+    Pdf(PathBuf),
+    Sheets(Sheets),
+}
+
+fn done_line(id: usize, done: &Done) -> String {
+    match done {
+        Done::Pdf(pdf) => ready_line(id, pdf),
+        Done::Sheets(sheets) => sheets_line(id, sheets),
     }
 }
 
-// Only the converter's own failure is remembered for the file; a timeout, a local error or a cancel fails this request and leaves no marker.
-enum Fail {
-    Converter(String),
-    Local(String),
-}
-
-// The one regular, non-empty PDF the converter left in the work folder.
-fn produced_pdf(dir: &Path) -> Option<PathBuf> {
-    std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| {
-        p.extension().is_some_and(|x| x == "pdf") && std::fs::symlink_metadata(p).is_ok_and(|m| m.is_file() && m.len() > 0)
-    })
-}
-
 // Every waiter on the job gets the end line, which also removes its id from the quit registry.
-fn answer(waiters: Vec<Waiter>, outcome: Result<PathBuf, String>) {
+fn answer(waiters: Vec<Waiter>, sheets: bool, outcome: Result<Done, String>) {
     for w in waiters {
         let line = match &outcome {
-            Ok(pdf) => ready_line(w.wire, pdf),
-            Err(message) => failed_line(w.wire, message, false),
+            Ok(done) => done_line(w.wire, done),
+            Err(message) => failed_line_of(sheets, w.wire, message, false),
         };
         let _ = w.tx.send(OpMsg::DetachedDone { id: w.reg, line });
     }
 }
 
-fn production() -> &'static Arc<Service> {
-    static SERVICE: OnceLock<Arc<Service>> = OnceLock::new();
-    SERVICE.get_or_init(|| {
-        let resolve: Resolve = Box::new(|| {
-            if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
-        });
-        let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
-        Arc::new(Service::new(Store::new(&crate::userfile::cache_home()), resolve, Box::new(argv), jail, CONVERT_TIMEOUT))
-    })
+// The production runner: the convert jail with the office address-space cap.
+pub(crate) fn jail(argv: Vec<String>, input: &Path, work: &mut Work, stop: &AtomicBool) -> Result<(), FleaError> {
+    run_boxed_office(argv, input, work, stop)
 }
 
-// Sample input: {"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}.
-pub fn serve(out: &mut impl Write, ops: &mut Ops, mime: &Db, aliases: &Aliases, id: usize, path: &str) {
-    if !is_office(path, mime, aliases) {
-        writeln!(out, "{}", failed_line(id, "that file is not an office document", true)).ok();
+// The production service over one cache root; the shared instance below uses the user's cache.
+fn service(cache: &Path) -> Arc<Service> {
+    let resolve: Resolve = Box::new(|| {
+        if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
+    });
+    Arc::new(Service::new(Store::new(cache), resolve, Box::new(argv), Box::new(jail), CONVERT_TIMEOUT))
+}
+
+fn production() -> &'static Arc<Service> {
+    static SERVICE: OnceLock<Arc<Service>> = OnceLock::new();
+    SERVICE.get_or_init(|| service(&crate::userfile::cache_home()))
+}
+
+// Sample input: {"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}; officesheets asks a spreadsheet's sheets.
+pub fn serve(out: &mut impl Write, ops: &mut Ops, mime: &Db, aliases: &Aliases, id: usize, path: &str, sheets: bool) {
+    if !is_office(path, mime, aliases) || (sheets && !is_sheet(path, mime, aliases)) {
+        let refusal = if sheets { "that file is not a spreadsheet" } else { "that file is not an office document" };
+        writeln!(out, "{}", failed_line_of(sheets, id, refusal, true)).ok();
         out.flush().ok();
         return;
     }
     let service = production();
     let reg = ops.claim_id();
     ops.detached.insert(reg, &service.quit);
-    service.start(id, reg, PathBuf::from(path), ops.tx.clone());
+    service.start(id, reg, PathBuf::from(path), sheets, ops.tx.clone());
 }
 
 #[cfg(test)]
 #[path = "officepdf_tests.rs"]
 mod tests;
+
+#[path = "officepdf_fetch.rs"]
+mod fetch;
+pub use fetch::cached_pdf;
+#[cfg(test)]
+pub(crate) use fetch::cached_pdf_in;
+
+#[path = "officepdf_lines.rs"]
+mod lines;
+pub use lines::{converting_line_of, failed_line_of, ready_line};
+#[cfg(test)]
+pub use lines::{converting_line, failed_line};

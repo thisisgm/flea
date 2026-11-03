@@ -1,0 +1,52 @@
+#!/bin/bash
+# flea-startup-order record BINDIR DIR | check FLEA_GUI [MIN_BYTES]: rewrite crates/flea-gui/startup-order.txt from one traced launch, or check a build's layout.
+set -euo pipefail
+# This tool reads machine output; record opens one Flea window in the running session and closes it.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+repo=$(cd "$(dirname "$0")/.." && pwd)
+list="$repo/crates/flea-gui/startup-order.txt"
+
+usage() { echo "usage: $0 record BINDIR DIR | check FLEA_GUI [MIN_BYTES]" >&2; exit 2; }
+
+# BINDIR holds flea and an unstripped release flea-gui (cargo build --release --config profile.release.strip=false).
+record() (
+  local bindir=$1 dir=$2 tmp
+  [ -x "$bindir/flea" ] && [ -x "$bindir/flea-gui" ] || { echo "no flea and flea-gui in $bindir" >&2; exit 2; }
+  [ -n "$(nm "$bindir/flea-gui" 2> /dev/null | head -c 1)" ] || { echo "$bindir/flea-gui has no symbols; build it with profile.release.strip=false" >&2; exit 2; }
+  tmp=$(mktemp -d)
+  touch "$tmp/.flea-test-sandbox"
+  trap '[[ -n "$tmp" && $tmp == /?* && -f "$tmp/.flea-test-sandbox" ]] && rm -rf -- "$tmp"' EXIT
+  # User-space Intel PT on flea-gui's own code only; six seconds covers the launch, the first rows and the settle.
+  perf record -q -e intel_pt/cyc=0,mtc=0,noretcomp=0/u --filter "filter * @ $bindir/flea-gui" -o "$tmp/pt.data" -- \
+    timeout -k 2 -s TERM 6 "$bindir/flea" --gui "$dir" > /dev/null 2>&1 || true
+  [ -s "$tmp/pt.data" ] || { echo "perf wrote no trace; Intel PT needs a matching CPU and kernel.perf_event_paranoid <= 2" >&2; exit 1; }
+  {
+    echo "# Functions one launch of $(basename "$dir") ran, first call first, crate hashes as *; rewrite with tools/flea-startup-order record."
+    # Sample line: "55d0c1 _RNvCs1a2b3c_4flea4main (/x/flea-gui) => 55d0c2 _RNvB2_3new (/x/flea-gui)".
+    perf script -i "$tmp/pt.data" --itrace=c --no-demangle -F ip,sym,dso,addr 2> /dev/null |
+      awk -v dso="/flea-gui)" '{ n = split($0, side, "=>"); for (i = 1; i <= n; i++) { k = split(side[i], f, " "); if (k >= 3 && substr(f[k], length(f[k]) - length(dso) + 1) == dso && f[2] != "[unknown]") print f[2] } }' |
+      sed -E 's/Cs[0-9A-Za-z]*_/Cs*_/g; s/B[0-9A-Za-z]*_/B*_/g; s/\.llvm\.[0-9]+$/.llvm.*/' |
+      grep -Ev '^(_start|_init|_fini|register_tm_clones|deregister_tm_clones|frame_dummy|__do_global_dtors_aux)$' |
+      awk '!seen[$0]++'
+  } > "$tmp/list"
+  [ "$(grep -cv '^#' "$tmp/list")" -ge 1000 ] || { echo "the trace named fewer than 1000 functions; is $dir a real folder and the session up?" >&2; exit 1; }
+  mv -f "$tmp/list" "$list"
+  echo "wrote $(grep -cv '^#' "$list") functions to $list"
+)
+
+# Patterns that stopped matching leave a small section and lose the layout, so CI checks its size.
+check() {
+  local binary=$1 min=$2 hex
+  # Sample line: "  [15] .text.flea.startup PROGBITS 000000000075c940 75b940 6c498a 00  AX  0   0 16".
+  hex=$(readelf -SW "$binary" | sed -nE 's/^ *\[ *[0-9]+\] \.text\.flea\.startup +PROGBITS +[0-9a-f]+ [0-9a-f]+ ([0-9a-f]+) .*/\1/p')
+  [ -n "$hex" ] || { echo "FAIL $binary has no .text.flea.startup section" >&2; exit 1; }
+  [ $((16#$hex)) -ge "$min" ] || { echo "FAIL $binary .text.flea.startup is $((16#$hex)) bytes, under $min" >&2; exit 1; }
+  echo "OK $binary .text.flea.startup $((16#$hex)) bytes"
+}
+
+case ${1:-} in
+  record) [ $# -eq 3 ] || usage; record "$2" "$3" ;;
+  check) [ $# -ge 2 ] && [ $# -le 3 ] || usage; check "$2" "${3:-4194304}" ;;
+  *) usage ;;
+esac

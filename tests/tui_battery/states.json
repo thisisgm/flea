@@ -1,0 +1,1910 @@
+{
+  "schema": 1,
+  "states": [
+    {
+      "id": "tui-list-text",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "notes.txt",
+          "99 B",
+          "2025-06-15 10:00",
+          "Visual gate notes"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-no-icons",
+      "family": "office",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [],
+      "requires": [
+        "font-availability"
+      ],
+      "predicate": {
+        "contains": [
+          "notes.txt",
+          "Visual gate notes"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-folder",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "A",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "alpha.txt",
+          "gamma.txt"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-no-preview",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "factsToggle"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "notes.txt",
+          "9 items"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-tabs",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "A",
+      "steps": [
+        {
+          "action": "tabNew"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "1 work",
+          "2 work"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-sort-size",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "A",
+      "steps": [
+        {
+          "action": "sortNext"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Size",
+          "A"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-long",
+      "family": "work",
+      "cwd": "/fx/v/work/Many",
+      "cursor": null,
+      "steps": [
+        {
+          "action": "cursorLast"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "item-80.txt",
+          "item-54.txt"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        },
+        {
+          "id": "rest",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-marked",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "toggleSelect"
+        },
+        {
+          "action": "cursorDown"
+        },
+        {
+          "action": "toggleSelect"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "2 selected",
+          "147 B"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-small",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": null,
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "terminal needs"
+        ]
+      },
+      "variants": [
+        {
+          "id": "wide-short",
+          "columns": 130,
+          "rows": 4,
+          "origin": [
+            4,
+            9
+          ]
+        },
+        {
+          "id": "narrow",
+          "columns": 11,
+          "rows": 6,
+          "origin": [
+            4,
+            175
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-empty",
+      "family": "work",
+      "cwd": "/fx/v/work/Empty",
+      "cursor": null,
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "QUIET IN HERE",
+          "0 items"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-locked-peek",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "Locked",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Locked"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-locked",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "Locked",
+      "steps": [
+        {
+          "action": "open"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Locked"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-image",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "photo.png",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "photo.png",
+          "800",
+          "600"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-image-chafa",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "photo.png",
+      "steps": [],
+      "requires": [
+        "graphics-negative"
+      ],
+      "predicate": {
+        "contains": [
+          "photo.png",
+          "▀"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-symlink",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "link.png",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "link.png",
+          "photo.png"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-code",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "main.rs",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "main.rs",
+          "fn main()"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-archive",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "bundle.zip",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "bundle.zip",
+          "main.rs",
+          "156 B"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-blob",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "blob.dat",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "blob.dat"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-plain",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "letter.odt",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "letter.odt"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-pdf",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "report.pdf",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "report.pdf"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-video",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "clip.mp4",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "clip.mp4"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-list-audio",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "tone.ogg",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "tone.ogg"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-quicklook-text",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "preview"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "notes.txt",
+          "Visual gate notes"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-quicklook-image",
+      "family": "work",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "photo.png",
+      "steps": [
+        {
+          "action": "preview"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "photo.png"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-3d-column",
+      "family": "prints",
+      "cwd": "/fx/v/work/Prints",
+      "cursor": "bracket.stl",
+      "steps": [],
+      "requires": [
+        "model-source"
+      ],
+      "predicate": {
+        "contains": [
+          "bracket.stl",
+          "4,212"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-3d-chafa",
+      "family": "prints",
+      "cwd": "/fx/v/work/Prints",
+      "cursor": "bracket.stl",
+      "steps": [],
+      "requires": [
+        "graphics-negative",
+        "model-source"
+      ],
+      "predicate": {
+        "contains": [
+          "bracket.stl",
+          "▀"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-3d-quicklook",
+      "family": "prints",
+      "cwd": "/fx/v/work/Prints",
+      "cursor": "shelf-kit.3mf",
+      "steps": [
+        {
+          "action": "preview"
+        },
+        {
+          "key": "Right"
+        },
+        {
+          "key": "Right"
+        }
+      ],
+      "requires": [
+        "model-source"
+      ],
+      "predicate": {
+        "contains": [
+          "shelf-kit.3mf"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ],
+      "picture_steps": {
+        "orbit_degrees": 30,
+        "presses": 2,
+        "key": "Right",
+        "plate": 1
+      }
+    },
+    {
+      "id": "tui-menu",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "menu"
+        },
+        {
+          "key": "Down"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Open With"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-menu-send",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "menu"
+        },
+        {
+          "menu": "Send with Taildrop"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Taildrop",
+          "signed out"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-send-taildrop",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "menu"
+        },
+        {
+          "menu": "Send with Taildrop"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [
+        "provider-fixtures"
+      ],
+      "predicate": {
+        "contains": [
+          "east",
+          "macbookair"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-plugin-rows",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "menu"
+        }
+      ],
+      "requires": [
+        "plugin-fixture"
+      ],
+      "predicate": {
+        "contains": [
+          "Verify Checksum"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-keys",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "keymapSheet"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Quit"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-properties",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "properties"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Properties",
+          "99"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-delete",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "key": "Delete",
+          "mods": "shift"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Delete",
+          "Cancel"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-delete-focus",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "key": "Delete",
+          "mods": "shift"
+        },
+        {
+          "key": "Tab"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Delete",
+          "Cancel"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-filter-typing",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "filter"
+        },
+        {
+          "text": "o"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Filter o",
+          "5 of 9"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-filter",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "filter"
+        },
+        {
+          "text": "o"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Filter o",
+          "5 of 9"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-filter-nomatch",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "filter"
+        },
+        {
+          "text": "zzz"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "zzz",
+          "0"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-search-typing",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "search"
+        },
+        {
+          "text": "item"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Find",
+          "item",
+          "Home"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-search-here",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "search"
+        },
+        {
+          "text": "item"
+        },
+        {
+          "key": "Tab"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Find",
+          "item",
+          "/fx/v/work"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-search-results",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "search"
+        },
+        {
+          "text": "item"
+        },
+        {
+          "key": "Tab"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "80 found",
+          "Many"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-path",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "pathBar"
+        },
+        {
+          "text": "Me"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Me",
+          "dia/"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-new-folder",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "newFolder"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "New Folder"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-rename",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "rename"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Rename",
+          "notes.txt"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-rename-error",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "rename"
+        },
+        {
+          "text": "no/tes"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "no/tes"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-trash-arm",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "todo.md",
+      "steps": [
+        {
+          "action": "trashArm"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "todo.md"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-trashed",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "todo.md",
+      "steps": [
+        {
+          "action": "trashArm"
+        },
+        {
+          "action": "trashArm"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "8 items",
+          "Undo"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-undone",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "todo.md",
+      "steps": [
+        {
+          "action": "trashArm"
+        },
+        {
+          "action": "trashArm"
+        },
+        {
+          "action": "undo"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "9 items",
+          "todo.md",
+          "Undid Move to Trash"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-copied",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "copy"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Copied 1 item"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-progress",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "hook": "copy-barrier"
+        }
+      ],
+      "requires": [
+        "copy-barrier"
+      ],
+      "predicate": {
+        "contains": [
+          "2 of 5",
+          "40%"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-collision",
+      "family": "office",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "copy"
+        },
+        {
+          "action": "pathBar"
+        },
+        {
+          "text": "/fx/v/work/Docs"
+        },
+        {
+          "key": "Return"
+        },
+        {
+          "action": "paste"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "notes.txt already exists in Docs."
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-trash-view",
+      "family": "trash",
+      "cwd": "/fx/data/Trash/files",
+      "cursor": "old-draft.txt",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "old-draft.txt",
+          "2025-06-14 09:30",
+          "/fx/v/work"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-detail",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "detailNext"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "2025-06-15 10:00"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-office",
+      "family": "office",
+      "cwd": "/fx/v/work/Docs",
+      "cursor": "garden-report.docx",
+      "steps": [],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "garden-report.docx",
+          "Pages",
+          "3",
+          "Sam Ellis"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-print",
+      "family": "office",
+      "cwd": "/fx/v/work/Docs",
+      "cursor": "garden-report.pdf",
+      "steps": [
+        {
+          "action": "print"
+        }
+      ],
+      "requires": [
+        "cups-sink"
+      ],
+      "predicate": {
+        "contains": [
+          "Print garden-report.pdf",
+          "Brother"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-print-sent",
+      "family": "office",
+      "cwd": "/fx/v/work/Docs",
+      "cursor": "garden-report.pdf",
+      "steps": [
+        {
+          "action": "print"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "requires": [
+        "cups-sink"
+      ],
+      "predicate": {
+        "contains": [
+          "Sent"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-combine",
+      "family": "office",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "photo.png",
+      "steps": [
+        {
+          "action": "toggleSelect"
+        },
+        {
+          "select": "sunset.jpg"
+        },
+        {
+          "action": "toggleSelect"
+        },
+        {
+          "action": "combine"
+        }
+      ],
+      "requires": [],
+      "predicate": {
+        "contains": [
+          "Combine 2 Images",
+          "PNG",
+          "Small",
+          "Transparent"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-lang-ja",
+      "family": "ja",
+      "cwd": "/fx/v/work",
+      "cursor": "議事録.md",
+      "steps": [],
+      "requires": [
+        "catalog-ja"
+      ],
+      "predicate": {
+        "contains": [
+          "議事録.md",
+          "12"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-lang-ja-menu",
+      "family": "ja",
+      "cwd": "/fx/v/work",
+      "cursor": "議事録.md",
+      "steps": [
+        {
+          "action": "menu"
+        }
+      ],
+      "requires": [
+        "catalog-ja"
+      ],
+      "predicate": {
+        "contains": [
+          "議事録.md",
+          "未ログイン"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-lang-ar",
+      "family": "ar",
+      "cwd": "/fx/v/work",
+      "cursor": "تقرير 2025.pdf",
+      "steps": [],
+      "requires": [
+        "catalog-ar"
+      ],
+      "predicate": {
+        "contains": [
+          "2025.pdf",
+          "10"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-lang-ru-keys",
+      "family": "work",
+      "cwd": "/fx/v/work",
+      "cursor": "notes.txt",
+      "steps": [
+        {
+          "action": "keymapSheet"
+        }
+      ],
+      "requires": [
+        "catalog-ru"
+      ],
+      "predicate": {
+        "contains": [
+          "Сочетания клавиш"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "tui-send-with",
+      "reason": "Provider submenu not selected; providers are separate file-menu rows."
+    }
+  ],
+  "reserved": [],
+  "additional_states": [
+    {
+      "id": "tui-convert",
+      "family": "office",
+      "cwd": "/fx/v/work/Media",
+      "cursor": "photo.png",
+      "steps": [
+        {
+          "action": "convert"
+        }
+      ],
+      "requires": [
+        "convert-image"
+      ],
+      "predicate": {
+        "contains": [
+          "Convert photo.png",
+          "JPEG",
+          "PDF",
+          "Remove metadata",
+          "Output"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tui-convert-pdf",
+      "family": "office",
+      "cwd": "/fx/v/work/Docs",
+      "cursor": "garden-report.pdf",
+      "steps": [
+        {
+          "action": "convert"
+        }
+      ],
+      "requires": [
+        "convert-pdf"
+      ],
+      "predicate": {
+        "contains": [
+          "Convert garden-report.pdf",
+          "PAGES",
+          "All",
+          "page 3"
+        ]
+      },
+      "variants": [
+        {
+          "id": "primary",
+          "columns": 130,
+          "rows": 31,
+          "origin": [
+            4,
+            9
+          ]
+        }
+      ]
+    }
+  ]
+}

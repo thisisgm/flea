@@ -46,12 +46,12 @@ fn open_key() -> Key {
 
 // A single listing row for the open-tab branches below.
 fn folder_row() -> crate::tui::model::Row {
-    crate::tui::model::Row { name: "sub".into(), directory: true, size: 0, mode: 0o40755, link: String::new(), kind: String::new(), thumbnail: false, modified: 0, icon: String::new() }
+    crate::tui::model::Row { name: "sub".into(), directory: true, size: 0, mode: 0o40755, link: String::new(), kind: String::new(), thumbnail: false, modified: 0, birth: None, icon: String::new() }
 }
 
 // A file row refuses the same chord the folder row above accepts.
 fn file_row() -> crate::tui::model::Row {
-    crate::tui::model::Row { name: "note.txt".into(), directory: false, size: 3, mode: 0o100644, link: String::new(), kind: String::new(), thumbnail: false, modified: 0, icon: String::new() }
+    crate::tui::model::Row { name: "note.txt".into(), directory: false, size: 3, mode: 0o100644, link: String::new(), kind: String::new(), thumbnail: false, modified: 0, birth: None, icon: String::new() }
 }
 
 #[test]

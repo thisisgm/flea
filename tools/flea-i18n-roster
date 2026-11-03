@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+"""Check Flea's locale roster, fixture provenance and installed Omarchy references."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
+KINDS = {"shell", "menu", "cli", "keybindings"}
+CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
+RUST_TOKENS = re.compile(r'''//[^\n]*|/\*|(?:b|c)?r(?P<hashes>\#*)"(?P<raw>.*?)"(?P=hashes)|'(?:\\(?:u\{[0-9a-fA-F_]+\}|x[0-9a-fA-F]{2}|.)|[^'\\\n])'|(?P<string>"(?:[^"\\]|\\.)*")|(?P<other>r\#[A-Za-z_]\w*|[A-Za-z_]\w*|[^\s])''', re.S)
+RUST_ESCAPES = re.compile(r'\\(?:u\{(?P<unicode>[0-9a-fA-F_]+)\}|x(?P<byte>[0-9a-fA-F]{2})|(?P<continued>\r?\n[ \t\r\n]*)|(?P<short>.))', re.S)
+COMMENT_BOUNDARY = re.compile(r'/\*|\*/')
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+# Sample input: {"en":{"direction":"ltr"}} is a nonempty JSON document.
+def read(path):
+    value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(value, dict) or not value:
+        raise ValueError(f"{path}: expected a nonempty JSON object")
+    return value
+
+
+# Sample input: {"en":{"direction":"ltr"},"ar":{"direction":"rtl"}} is the locale registry.
+def roster_entries(value, path):
+    if not isinstance(value, dict) or not value:
+        raise ValueError(f"{path}: expected a nonempty JSON object")
+    for code, entry in value.items():
+        if not CODE.fullmatch(code) or not isinstance(entry, dict):
+            raise ValueError(f"{path}: invalid locale code or entry: {code}")
+        if entry.get("direction", "ltr") not in {"ltr", "rtl"}:
+            raise ValueError(f"{path}: invalid direction: {code}")
+    return value
+
+
+def roster(path):
+    return roster_entries(read(path), path)
+
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def provenance(path, require_final):
+    pin = read(path)
+    if pin.get("schema") != 1:
+        raise ValueError(f"{path}: unsupported pin schema")
+    source = pin.get("upstream", {})
+    if not isinstance(source, dict) or not re.fullmatch(r"[0-9a-f]{40}", source.get("commit", "")):
+        raise ValueError(f"{path}: missing full upstream commit")
+    tag = source.get("tag", "")
+    if not isinstance(tag, str) or not re.fullmatch(r"v4\.5\.0(?:-rc[0-9]+)?", tag):
+        raise ValueError(f"{path}: expected an Omarchy 4.5.0 release tag")
+    if require_final and tag != "v4.5.0":
+        raise ValueError(f"{path}: final Omarchy v4.5.0 pin required; recorded {tag} at {source['commit']}")
+    fixtures = pin.get("fixtures", {})
+    if not isinstance(fixtures, dict) or set(fixtures) != {"locales.json", "plural.jq"}:
+        raise ValueError(f"{path}: expected roster and plural fixture provenance")
+    for name, item in fixtures.items():
+        expected = {"source": f"default/i18n/{name}", "fixture": f"src/i18n/fixtures/{name}"}
+        if not isinstance(item, dict) or any(item.get(key) != value for key, value in expected.items()):
+            raise ValueError(f"{path}: invalid fixture provenance: {name}")
+        if sha256(ROOT / expected["fixture"]) != item.get("sha256"):
+            raise ValueError(f"{path}: fixture SHA-256 mismatch: {name}")
+    return pin, roster(ROOT / "src/i18n/fixtures/locales.json")
+
+
+def replace(path, data):
+    temporary = path.with_name(f".{path.name}.repin")
+    temporary.write_bytes(data)
+    os.replace(temporary, path)
+
+
+def repin(checkout, tag, path):
+    if not re.fullmatch(r"v4\.5\.0(?:-rc[0-9]+)?", tag):
+        raise ValueError(f"expected an Omarchy 4.5.0 release tag: {tag}")
+    git = ["git", "-C", str(checkout)]
+    commit = subprocess.run([*git, "rev-parse", "--verify", f"refs/tags/{tag}^{{commit}}"],
+                            capture_output=True, text=True, check=True).stdout.strip()
+    url = subprocess.run([*git, "remote", "get-url", "origin"], capture_output=True, text=True, check=True).stdout.strip()
+    pin = {"schema": 1, "upstream": {"repository": url, "tag": tag,
+                                     "commit": commit}, "fixtures": {}}
+    blobs = {}
+    for name in ("locales.json", "plural.jq"):
+        blobs[name] = subprocess.run([*git, "show", f"{commit}:default/i18n/{name}"],
+                                     capture_output=True, check=True).stdout
+        pin["fixtures"][name] = {"source": f"default/i18n/{name}", "fixture": f"src/i18n/fixtures/{name}",
+                                 "sha256": hashlib.sha256(blobs[name]).hexdigest()}
+    codes = roster_entries(json.loads(blobs["locales.json"], object_pairs_hook=unique_object),
+                           f"{tag}:default/i18n/locales.json")
+    for name, data in blobs.items():
+        replace(ROOT / pin["fixtures"][name]["fixture"], data)
+    replace(path, (json.dumps(pin, indent=2) + "\n").encode())
+    print(f"i18n repinned: {tag} {commit}; {len(codes)} codes; fixtures copied from git objects")
+    return 0
+
+
+def same_roster(actual, expected, path):
+    new, missing = set(actual) - set(expected), set(expected) - set(actual)
+    if new or missing:
+        raise ValueError(f"{path}: roster membership differs; new={sorted(new)}, missing={sorted(missing)}")
+    if actual != expected:
+        changed = sorted(code for code in actual if actual[code] != expected[code])
+        raise ValueError(f"{path}: locale metadata differs from pinned fixtures: {', '.join(changed)}")
+
+
+def catalog_references(root):
+    references = set()
+    for path in sorted(root.glob("*/flea.json")):
+        if not path.is_file():
+            continue
+        if not CODE.fullmatch(path.parent.name):
+            raise ValueError(f"{path}: invalid catalog language code")
+        for value in read(path).values():
+            texts = value.values() if isinstance(value, dict) else [value]
+            references.update(text for text in texts if isinstance(text, str) and text.startswith("omarchy:"))
+    return references
+
+
+def rust_escape(match):
+    if match.group("unicode") is not None:
+        return chr(int(match.group("unicode").replace("_", ""), 16))
+    if match.group("byte") is not None:
+        return chr(int(match.group("byte"), 16))
+    if match.group("continued") is not None:
+        return ""
+    return {"n": "\n", "r": "\r", "t": "\t", "0": "\0", "\\": "\\", '"': '"', "'": "'"}[match.group("short")]
+
+
+# Sample input: let quote = '"'; tr(r#"omarchy:shell.common.cancel"#); contains one string token.
+def rust_tokens(text):
+    position = 0
+    while match := RUST_TOKENS.search(text, position):
+        position = match.end()
+        if match.group() == "/*":
+            depth = 1
+            while depth:
+                boundary = COMMENT_BOUNDARY.search(text, position)
+                if boundary is None:
+                    raise ValueError("unterminated Rust block comment")
+                depth += 1 if boundary.group() == "/*" else -1
+                position = boundary.end()
+        elif match.group("raw") is not None:
+            yield True, match.group("raw")
+        elif match.group("string") is not None:
+            yield True, RUST_ESCAPES.sub(rust_escape, match.group("string")[1:-1])
+        elif match.group("other") is not None:
+            yield False, match.group("other")
+
+
+def direct_references(sources):
+    references = set()
+    for source in sources:
+        if not source.is_dir():
+            raise ValueError(f"missing caller source directory: {source}")
+        for path in sorted(source.rglob("*.rs")):
+            if any(part in {"tests", "fixtures"} for part in path.relative_to(source).parts):
+                continue
+            if path.stem.startswith(("test", "fixture")) or path.stem.endswith("_tests"):
+                continue
+            tokens = list(rust_tokens(path.read_text(encoding="utf-8")))
+            index, skipped = 0, False
+            delimiters, item_kind, typed = [], None, False
+            semicolon_items = {"const", "static", "type", "use", "let"}
+            body_items = {"fn", "mod", "struct", "enum", "union", "trait", "impl", "macro_rules"}
+            test_attribute = [(False, token) for token in ("#", "[", "cfg", "(", "test", ")", "]")]
+            while index < len(tokens):
+                if not skipped and tokens[index:index + len(test_attribute)] == test_attribute:
+                    skipped = True
+                    delimiters, item_kind, typed = [], None, False
+                    index += len(test_attribute)
+                    continue
+                literal, text = tokens[index]
+                if skipped and not literal:
+                    if not delimiters:
+                        if item_kind is None and text in semicolon_items | body_items:
+                            inline_const = text == "const" and tokens[index + 1:index + 2] == [(False, "{")]
+                            item_kind = "const_block" if inline_const else text
+                        elif item_kind == "const" and text == "fn" and not typed:
+                            item_kind = "fn"
+                        typed = typed or text == ":"
+                    if text in {"(", "[", "{"}:
+                        delimiters.append(text)
+                    elif text in {")", "]", "}"} and delimiters:
+                        delimiters.pop()
+                        if text == "}" and not delimiters:
+                            skipped = item_kind in semicolon_items
+                    elif text == ";" and not delimiters:
+                        skipped = False
+                elif not skipped and literal and text.startswith("omarchy:") and text != "omarchy:":
+                    references.add(text)
+                index += 1
+    return references
+
+
+def installed_references(omarchy, codes, references):
+    catalogs = {}
+    for reference in sorted(references):
+        kind, dot, key = reference.removeprefix("omarchy:").partition(".")
+        if not dot or kind not in KINDS or not key:
+            raise ValueError(f"invalid Omarchy reference: {reference}")
+        for code in sorted(codes):
+            identity = (code, kind)
+            if identity not in catalogs:
+                path = omarchy / "default/i18n" / code / f"{kind}.json"
+                value = read(path)
+                if kind == "menu":
+                    value = {f"{mid}.{field}": text for mid, fields in value.items()
+                             if isinstance(fields, dict) for field, text in fields.items()}
+                catalogs[identity] = value
+            value = catalogs[identity].get(key)
+            forms = value.values() if isinstance(value, dict) else [value]
+            if isinstance(value, dict) and ("other" not in value or not set(value) <= CATEGORIES):
+                raise ValueError(f"{code}: invalid installed plural reference: {reference}")
+            if not all(isinstance(text, str) and text.strip() for text in forms):
+                raise ValueError(f"{code}: missing installed Omarchy reference: {reference}")
+    return len(references)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("file", nargs="?", type=Path, help="Omarchy locales.json override")
+    parser.add_argument("--locales-json", type=Path, help="Omarchy locales.json override")
+    parser.add_argument("--i18n-dir", type=Path, default=ROOT / "i18n")
+    parser.add_argument("--omarchy-path", type=Path, default=Path(os.environ.get("OMARCHY_PATH") or "/usr/share/omarchy"))
+    parser.add_argument("--check-installed", action="store_true", help="check installed roster, rules and all shared references")
+    parser.add_argument("--require-final-pin", action="store_true", help="refuse provenance other than final Omarchy v4.5.0")
+    parser.add_argument("--pin-file", type=Path, default=ROOT / "ci/i18n-pin.json")
+    parser.add_argument("--source-dir", type=Path, action="append", help="caller source directory (repeatable)")
+    parser.add_argument("--repin", metavar="TAG", help="copy both fixtures from TAG in the --omarchy-path git checkout and rewrite the pin")
+    parser.add_argument("--warn-only", action="store_true", help="development only: report missing catalogs without failing")
+    args = parser.parse_args()
+    if args.file and args.locales_json:
+        parser.error("pass the roster either positionally or with --locales-json")
+    if args.warn_only and args.require_final_pin:
+        parser.error("--warn-only is development-only and cannot bypass the final-pin check")
+    if args.check_installed and (args.file or args.locales_json):
+        parser.error("--check-installed reads the roster from --omarchy-path; roster overrides are not allowed")
+    if args.repin:
+        if args.file or args.locales_json or args.check_installed or args.require_final_pin or args.warn_only:
+            parser.error("--repin takes only --omarchy-path and --pin-file")
+        try:
+            return repin(args.omarchy_path, args.repin, args.pin_file)
+        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+            detail = getattr(error, "stderr", None) or ""
+            print(f"flea-i18n-roster: repin failed: {error} {detail if isinstance(detail, str) else detail.decode(errors='replace')}".rstrip(), file=sys.stderr)
+            return 1
+    path = args.locales_json or args.file or args.omarchy_path / "default/i18n/locales.json"
+    try:
+        pin, expected = provenance(args.pin_file, args.require_final_pin)
+        actual = roster(path)
+        same_roster(actual, expected, path)
+        count = 0
+        if args.check_installed:
+            for name, item in pin["fixtures"].items():
+                if sha256(args.omarchy_path / item["source"]) != item["sha256"]:
+                    raise ValueError(f"installed {name} differs from pinned fixture SHA-256")
+            sources = args.source_dir or [ROOT / "src", *sorted((ROOT / "crates").glob("*/src"))]
+            references = catalog_references(args.i18n_dir) | direct_references(sources)
+            count = installed_references(args.omarchy_path, actual, references)
+            print(f"i18n installed checked: {len(actual)} codes; {count} references; fixture hashes match")
+        catalogs = {p.parent.name for p in args.i18n_dir.glob("*/flea.json") if p.is_file()}
+        extra = catalogs - set(actual)
+        if extra:
+            raise ValueError(f"unknown Flea catalog codes: {', '.join(sorted(extra))}")
+        missing = sorted(set(actual) - catalogs)
+        if missing:
+            level = "warning" if args.warn_only else "error"
+            print(f"flea-i18n-roster: {level}: {len(missing)} missing catalogs: {', '.join(missing)}", file=sys.stderr)
+            return 0 if args.warn_only else 1
+    except (OSError, ValueError, TypeError) as error:
+        print(f"flea-i18n-roster: {error}", file=sys.stderr)
+        return 1
+    print(f"i18n roster checked: {len(actual)} catalogs; {count} installed references; pin {pin['upstream']['tag']} {pin['upstream']['commit']}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

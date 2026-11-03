@@ -2,7 +2,7 @@ use crate::backend::extclass::refuses_folder_sizes;
 use crate::backend::listing::Listing;
 use crate::backend::meta::Stat;
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Instant;
 use std::time::Duration;
 
@@ -26,6 +26,8 @@ pub fn walked_bytes(walked: &[Option<DirSize>], row: usize) -> u64 {
 pub fn walk_all(base: &Path, l: &Listing, deadline: Instant) -> Vec<Option<DirSize>> {
     let n = l.len();
     let mut out = vec![None; n];
+    let mounts = super::iomount::mount_body();
+    let mounts = mounts.as_str();
     let workers = std::thread::available_parallelism().map(|w| w.get()).unwrap_or(1);
     // Ceiling division, so every row lands in exactly one chunk; max(1) keeps chunks_mut off zero.
     let per_worker = n.div_ceil(workers).max(1);
@@ -35,7 +37,7 @@ pub fn walk_all(base: &Path, l: &Listing, deadline: Instant) -> Vec<Option<DirSi
             s.spawn(move || {
                 for (j, slot) in slots.iter_mut().enumerate() {
                     if l.is_dir(first + j) {
-                        *slot = Some(walk_until(&base.join(l.name(first + j)), deadline));
+                        *slot = Some(walk_display(&base.join(l.name(first + j)), &|| Instant::now() >= deadline, mounts));
                     }
                 }
             });
@@ -58,12 +60,26 @@ pub fn walk(path: &Path) -> DirSize {
 }
 
 pub fn walk_until(path: &Path, deadline: Instant) -> DirSize {
-    walk_while(path, &|| Instant::now() >= deadline)
+    walk_display(path, &|| Instant::now() >= deadline, &super::iomount::mount_body())
 }
 
 pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() -> bool) -> DirSize {
     if cancelled() { return DirSize { bytes: 0, partial: true }; }
-    walk_while(path, &|| cancelled() || Instant::now() >= deadline)
+    walk_display(path, &|| cancelled() || Instant::now() >= deadline, &super::iomount::mount_body())
+}
+
+// A row can itself be a remote mount under a local pane; the walk's device boundary cannot protect its starting folder.
+fn walk_display(path: &Path, stop: &dyn Fn() -> bool, mounts: &str) -> DirSize {
+    let network = |kind: String| super::netfs::is_network_fstype(&kind);
+    let entry = path.symlink_metadata().ok();
+    let remote = super::extclass::gvfs_class(path).is_some_and(refuses_folder_sizes)
+        || super::mountinfo::mount_type_in(path, mounts).is_some_and(network)
+        // A pane reached through a symlink never spells the mount point, so the row's own device names its mount too.
+        || entry.as_ref().and_then(|meta| super::mountinfo::fstype_for_dev(meta.dev(), mounts)).is_some_and(network);
+    if remote {
+        return DirSize { bytes: entry.map(|meta| meta.size()).unwrap_or(0), partial: true };
+    }
+    walk_while(path, stop)
 }
 
 // Issue F1e: a copy's walk answers to the copy and not to a clock. The listing needs a floor inside
@@ -96,138 +112,24 @@ pub fn walk_counted<'a>(path: &Path, stop: &'a dyn Fn() -> bool, progress: Optio
 // One lookup override for tests; None takes the entry's own device, so production pays no indirection.
 pub(super) type DevLookup<'a> = Option<&'a dyn Fn(&Path) -> Option<u64>>;
 
-struct Walk<'a> {
-    tally: Tally,
-    stop: &'a dyn Fn() -> bool,
-    start_dev: Option<u64>,
-    dev_of: DevLookup<'a>,
-    progress: Option<Progress<'a>>,
-    reported: Instant,
-}
+#[path = "dirsizewalk.rs"]
+mod traversal;
+pub(super) use traversal::walk_core;
+#[cfg(test)]
+use traversal::same_device;
 
-impl Walk<'_> {
-    // Bytes and items move together, so Size and Contains always describe the same entries.
-    fn count(&mut self, size: u64) {
-        self.tally.bytes += size;
-        self.tally.items += 1;
-        if let Some(p) = self.progress.as_mut() {
-            if self.reported.elapsed() >= p.every {
-                (p.report)(&self.tally);
-                self.reported = Instant::now();
-            }
-        }
-    }
-}
-
-// Sample input: dev_of answering another device for "other" keeps its bytes out of the total.
 fn walk_while_with(path: &Path, stop: &dyn Fn() -> bool, dev_of: DevLookup<'_>) -> DirSize {
-    let t = walk_core(path, stop, dev_of, None);
-    DirSize { bytes: t.bytes, partial: t.partial }
+    let tally = walk_core(path, stop, dev_of, None);
+    DirSize { bytes: tally.bytes, partial: tally.partial }
 }
 
-pub(super) fn walk_core<'a>(path: &Path, stop: &'a dyn Fn() -> bool, dev_of: DevLookup<'a>, progress: Option<Progress<'a>>) -> Tally {
-    // The walk never crosses into a nested mount, matching du -x; the mountpoint entry itself counts.
-    // The target's own directory entry counts too, matching what `du -s` reports for the directory itself.
-    let start = path.symlink_metadata();
-    let start_dev = start.as_ref().map(|m| m.dev()).ok();
-    let mut tally = Tally { bytes: 0, items: 0, partial: false };
-    match start {
-        Ok(meta) => tally.bytes += meta.size(),
-        Err(_) => tally.partial = true,
-    }
-    let mut walk = Walk { tally, stop, start_dev, dev_of, progress, reported: Instant::now() };
-    walk_into(path, &mut walk);
-    walk.tally
-}
+#[cfg(test)]
+#[path = "dirsize_race_tests.rs"]
+mod race_tests;
 
-// Stays on the starting device, so Home Size never walks a nested mount; None disables the guard.
-fn same_device(start: Option<u64>, child: u64) -> bool {
-    match start {
-        None => true,
-        Some(d) => d == child,
-    }
-}
-
-// Recursion, not a stack, and each listing is closed before its folders are walked, so depth costs no descriptors.
-fn walk_into(path: &Path, walk: &mut Walk<'_>) {
-    let mut folders = Vec::new();
-    list_into(path, walk, &mut folders);
-    for folder in folders {
-        walk_into(&folder, walk);
-    }
-}
-
-// Counts one directory's entries and hands back the folders among them, still unwalked.
-fn list_into(path: &Path, walk: &mut Walk<'_>, folders: &mut Vec<PathBuf>) {
-    if let Some(entering) = walk.progress.as_ref().and_then(|p| p.entering) { entering(path); }
-    if (walk.stop)() {
-        walk.tally.partial = true;
-        return;
-    }
-    let entries = match std::fs::read_dir(path) {
-        Ok(rd) => rd,
-        // Permission denied or vanished mid-walk: what was already counted stays, marked partial.
-        Err(_) => {
-            walk.tally.partial = true;
-            return;
-        }
-    };
-    for entry in entries {
-        if (walk.stop)() {
-            walk.tally.partial = true;
-            return;
-        }
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => {
-                walk.tally.partial = true;
-                continue;
-            }
-        };
-        // d_type is free and answers is_symlink/is_dir with no stat, matching scan.rs's own phase 1.
-        let file_type = match entry.file_type() {
-            Ok(t) => t,
-            Err(_) => {
-                walk.tally.partial = true;
-                continue;
-            }
-        };
-        if file_type.is_symlink() {
-            // Not followed, matching du's default; DirEntry::metadata is lstat, so only the link's own small size counts.
-            if let Ok(meta) = entry.metadata() {
-                walk.count(meta.size());
-            } else {
-                walk.tally.partial = true;
-            }
-            continue;
-        }
-        // A known mount point on another device is entered first, so a hang in the stat that crosses into it is charged to that mount.
-        let known_dev = if file_type.is_dir() { walk.dev_of.and_then(|f| f(&entry.path())) } else { None };
-        let crossing = known_dev.is_some_and(|dev| !same_device(walk.start_dev, dev));
-        let entering = walk.progress.as_ref().and_then(|p| p.entering).filter(|_| crossing);
-        if let Some(entering) = entering {
-            entering(&entry.path());
-        }
-        let stat = entry.metadata();
-        // The crossing stat has returned, so the folder being listed owns the next entry again.
-        if let Some(entering) = entering {
-            entering(path);
-        }
-        let meta = match stat {
-            Ok(m) => m,
-            Err(_) => {
-                walk.tally.partial = true;
-                continue;
-            }
-        };
-        walk.count(meta.size());
-        // Sample mount: start_dev 2049 with child 62 never descends, so du -x holds across mounts.
-        let child_dev = known_dev.unwrap_or_else(|| meta.dev());
-        if file_type.is_dir() && same_device(walk.start_dev, child_dev) {
-            folders.push(entry.path());
-        }
-    }
-}
+#[cfg(test)]
+#[path = "dirsize_gh368_tests.rs"]
+mod gh368_tests;
 
 #[cfg(test)]
 mod tests {
@@ -243,9 +145,9 @@ mod tests {
         (sandbox, tree)
     }
 
-    // Counted from inside the walk, so it pins one listing at a time whatever RLIMIT_NOFILE this box has.
+    // Counted inside the walk, so it pins at most two tree descriptors regardless of depth or RLIMIT_NOFILE.
     #[test]
-    fn a_deep_walk_holds_at_most_one_listing_open_into_the_tree() {
+    fn a_deep_walk_holds_at_most_two_descriptors_open_into_the_tree() {
         let (_d, tree) = fixture("dirsize-descriptors");
         let mut deepest = tree.clone();
         for _ in 0..40 {
@@ -265,7 +167,7 @@ mod tests {
         };
         let size = walk_while(&tree, &stop);
         assert!(!size.partial, "the walk reached the bottom");
-        assert!(most.get() <= 1, "{} listings were open into the tree at once", most.get());
+        assert!(most.get() <= 2, "{} descriptors were open into the tree at once", most.get());
     }
 
     #[test]

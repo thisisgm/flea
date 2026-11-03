@@ -2,7 +2,6 @@
 use crate::error::FleaError;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 // gio trash --list prints one entry per line as "<uri>\t<original path>".
 const LIST_SEP: char = '\t';
@@ -49,7 +48,13 @@ pub(crate) fn gio(args: &[&str]) -> Option<std::process::Output> {
         return stand_in(args);
     }
     let argv = gio_argv(args);
-    Command::new(&argv[0]).args(&argv[1..]).output().ok()
+    // Writes forward gio's diagnostic to the user; only listing and metadata output are parsed.
+    let mut command = if args.first() == Some(&"info") || args == ["trash", "--list"] {
+        crate::backend::locale::command(&argv[0])
+    } else {
+        std::process::Command::new(&argv[0])
+    };
+    command.args(&argv[1..]).output().ok()
 }
 
 // The argv gio runs under, so the suite pins the bound without spawning a subprocess.
@@ -130,8 +135,8 @@ pub(crate) fn trash_checked(paths: &[PathBuf], selection: Option<&[super::menu_a
     trash_announcing(paths, selection, &mut |_, _, _| {})
 }
 
-// announce(ok, failed, reason) fires once gio has returned and the disk shows the outcome, before the settle list that only names the journal's URIs.
-pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::menu_actions::Selected]>, announce: &mut dyn FnMut(usize, usize, &str)) -> Result<(Vec<Entry>, usize, String), String> {
+// announce(moved, failed, reason) fires once gio has returned and the disk shows the outcome, before the settle list that only names the journal's URIs.
+pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::menu_actions::Selected]>, announce: &mut dyn FnMut(&[PathBuf], usize, &str)) -> Result<(Vec<Entry>, usize, String), String> {
     // A leading empty path is a drag that left this window. The receiver may already have moved
     // the file and still accepted a move; a path that is gone is then nothing left to delete.
     let (quiet_gone, paths) = match paths.first() {
@@ -195,9 +200,9 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         still_here = gone.iter().filter(|g| !**g).count();
         failed += still_here;
         let gio_failed = !matches!(&output, Some(o) if o.status.success());
-        let moved = entries.iter().flatten().count() + gone.len() - still_here;
-        let reason = trash_reason(failed, gio_failed, still_here, &output, moved > 0);
-        announce(moved, failed, &reason);
+        let moved: Vec<PathBuf> = entries.iter().enumerate().filter(|(_, entry)| entry.is_some()).map(|(i, _)| present[i].to_path_buf()).chain(rest.iter().zip(&gone).filter(|(_, gone)| **gone).map(|(&i, _)| present[i].to_path_buf())).collect();
+        let reason = trash_reason(failed, gio_failed, still_here, &output, !moved.is_empty());
+        announce(&moved, failed, &reason);
         let after = list();
         for (pos, i) in rest.into_iter().enumerate() {
             if !gone[pos] {

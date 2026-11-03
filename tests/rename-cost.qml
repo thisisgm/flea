@@ -3,6 +3,7 @@ import QtQuick
 import QtTest
 import Quickshell
 import "flea" as Flea
+import "rename-cost.js" as Cost
 
 // After a rename ends with Enter, Escape, the path field taking focus or a view switch, every cursor key reaches the pane's key handler as it did before, in every view, and costs no more work than it did before.
 ShellRoot {
@@ -42,8 +43,10 @@ ShellRoot {
     readonly property int frameSlack: 4
     readonly property int frameSlackDual: 8
     readonly property int readsPerBump: 5
-    // The far columns case read 209 to 211 row fields before its rename across logged runs, so that case alone gets this beside its selection bumps.
-    readonly property int readsSpread: 3
+    // A before phase can run only ahead of its rename, so it runs this many times there; row reads compare only phases that saw the same rests and planner passes.
+    readonly property int beforeRuns: 2
+    // An after phase matching no before phase in rests and planner passes runs again, at most this many more times, before the case fails.
+    readonly property int afterRetries: 3
     // The views the positive control scrolls through, one at a time.
     readonly property var controlViews: ["list", "grid", "columns", "dual"]
     property int controlView: 0
@@ -60,7 +63,11 @@ ShellRoot {
     property int waitTicks: 0
     property int checks: 0
     property var failures: []
-    property var before: null
+    property var befores: []
+    property var afters: []
+    property var jump: null
+    // The row a case's measured phases start on: its home before the rename, where the rename left the cursor after it.
+    property int home: -1
     property var stepLog: []
     // The delegates alive at the last key, each with the view position it draws.
     property var cells: ({ items: [], at: [] })
@@ -70,9 +77,14 @@ ShellRoot {
     property int rowsReplies: 0
     property int inputs: 0
     property int cursorRowEvals: 0
+    property var warm: null
+    property int rests: 0
+    property int plans: 0
     // Per case: the rows replies it saw, the fields they armed on arrival, and the fields still unarmed in the pane one turn after a reply (the handler arms the reply's rows, not the pane's).
     property var replyLog: []
     property int escapeChecked: 0
+    property bool warmStarted: false
+    property bool advancing: false
     // Field reads of held rows, in an object never reassigned: a getter that wrote a property would loop every binding that reads a row.
     readonly property var tally: ({ rowReads: 0 })
 
@@ -83,21 +95,9 @@ ShellRoot {
             console.log("RENAMECOST FAIL " + label)
         }
     }
-    function ready() { return !pane.listInFlight && pane.path === fixture && pane.listingState === "ready" }
+    function ready() { return !pane.listInFlight && pane.path === fixture && pane.listingState === "ready" && pane.storageKnown }
     function settled() {
         return root.ready() && pane.renamingIndex < 0 && !pane.renamePending && pane.wire.anchor === null
-    }
-    function indexOfName(name) {
-        for (var i = 0; i < pane.total; i++)
-            if (pane.rowFor(i) && String(pane.rowFor(i).n) === name) return i
-        return -1
-    }
-    // The row a far rename lands on: every row before the held window sorts below a far name, so the landing row is the held rows sorting below the new name, minus the renamed row itself.
-    function farHome(newName) {
-        var below = pane.held
-        for (var i = 0; i < pane.rows.length; i++)
-            if (String(pane.rows[i].n) < newName) below++
-        return below - 1
     }
     // Every object under the window: children and resources, so Timers and Connections count too.
     function census() {
@@ -109,6 +109,7 @@ ShellRoot {
             if (o.running === true && o.interval !== undefined && o.triggeredOnStart !== undefined) out.timers++
             if (o.running === true && o.loops !== undefined && o.alwaysRunToEnd !== undefined) out.animations++
             if (typeof o.queueDeparture === "function" && typeof o.ownsEdit === "function") out.editors++
+            if (o.unitWarmMs !== undefined) root.warm = o
             var kids = o.children !== undefined ? o.children : []
             for (var i = 0; i < kids.length; i++) stack.push(kids[i])
             var res = o.resources !== undefined ? o.resources : []
@@ -133,61 +134,12 @@ ShellRoot {
         root.inputs = 0
         root.cursorRowEvals = 0
         root.tally.rowReads = 0
+        root.rests = 0
+        root.plans = 0
     }
     function counters() {
         return { frames: root.frames, selection: root.selectionBumps, rows: root.rowsReplies, inputs: root.inputs,
-                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads }
-    }
-    // rowFor is a QML method and cannot be wrapped, so every field a held row gives out is counted instead; a rows reply arms its rows on arrival, snapshots arm the rest.
-    function armRows() {
-        var armed = 0
-        for (var i = 0; i < pane.rows.length; i++)
-            for (var field in pane.rows[i])
-                if (root.armField(pane.rows[i], field)) armed++
-        return armed
-    }
-    function armItems(items) {
-        var armed = 0
-        for (var i = 0; i < items.length; i++)
-            for (var field in items[i])
-                if (root.armField(items[i], field)) armed++
-        return armed
-    }
-    function armField(row, field) {
-        var desc = Object.getOwnPropertyDescriptor(row, field)
-        if (desc.get !== undefined) return false
-        var value = row[field]
-        Object.defineProperty(row, field, { get: function () { root.tally.rowReads++; return value }, enumerable: true, configurable: true })
-        return true
-    }
-    // Every row delegate under the window, pooled ones included: List's Row, the Grid's tile and Columns' ColumnRow carry listingIndex.
-    function cellSnap() {
-        var out = { items: [], at: [] }
-        var stack = [body.Window.window.contentItem]
-        while (stack.length > 0) {
-            var o = stack.pop()
-            if (o === null || o === undefined) continue
-            if (o.listingIndex !== undefined) {
-                out.items.push(o)
-                out.at.push(o.index)
-                continue
-            }
-            var kids = o.children !== undefined ? o.children : []
-            for (var i = 0; i < kids.length; i++) stack.push(kids[i])
-        }
-        return out
-    }
-    // Delegates built since the last snapshot, destroyed since, and kept ones that now draw another position (a reuse rebinds them).
-    function cellDelta(a, b) {
-        var out = { built: 0, destroyed: 0, rebound: 0 }
-        for (var i = 0; i < b.items.length; i++) {
-            var was = a.items.indexOf(b.items[i])
-            if (was < 0) out.built++
-            else if (a.at[was] !== b.at[i]) out.rebound++
-        }
-        for (var j = 0; j < a.items.length; j++)
-            if (b.items.indexOf(a.items[j]) < 0) out.destroyed++
-        return out
+                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads, rests: root.rests, plans: root.plans }
     }
     function line(tag, value) { console.log("RENAMECOST " + tag + " " + JSON.stringify(value)) }
     function press(step) {
@@ -209,18 +161,18 @@ ShellRoot {
         if (root.waitTicks === root.idleTicks + 1) {
             // Sampled at rest, so a timer a key starts for a few milliseconds is not counted as a leak.
             root.stepLog = [{ idle: root.counters(), listFocus: pane.listArea.activeFocus, focus: root.focusChain(), census: root.census() }]
-            root.armRows()
+            Cost.armRows(root)
             root.resetCounters()
-            root.cells = root.cellSnap()
+            root.cells = Cost.cellSnap(body.Window.window.contentItem)
             root.stepIndex = 0
             root.waitTicks++
         }
         if (root.stepIndex > 0) {
             var row = root.counters()
             row.cursor = pane.cursorIndex
-            root.armRows()
-            var now = root.cellSnap()
-            var delta = root.cellDelta(root.cells, now)
+            Cost.armRows(root)
+            var now = Cost.cellSnap(body.Window.window.contentItem)
+            var delta = Cost.cellDelta(root.cells, now)
             row.built = delta.built
             row.destroyed = delta.destroyed
             row.rebound = delta.rebound
@@ -235,7 +187,7 @@ ShellRoot {
         }
         var head = root.stepLog[0]
         var steps = root.stepLog.slice(1)
-        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0 }
+        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0, rests: 0, plans: 0 }
         var missed = 0
         for (var k = 0; k < steps.length; k++) {
             for (var name in sum) sum[name] += steps[k][name]
@@ -257,24 +209,37 @@ ShellRoot {
             if (Flea.ViewState.state.view !== c.view) { pane.chooseView(c.view); return false }
             if (!root.ready()) return false
             pane.listArea.forceActiveFocus()
+            // The first cursor key lazily builds Quick Look; both measured phases need those same readers.
+            if (!root.warmStarted) {
+                pane.setCursor(1)
+                root.press({ key: Qt.Key_Down })
+                root.warmStarted = true
+            }
+            if (body.quickLook === null) return false
             pane.clearSelection()
             // A row outside the held window reads as missing, so the cursor goes home until the window holds it.
             if (c.far && !pane.rowFor(pane.total - 1)) { pane.setCursor(pane.total - 1); return false }
-            var home = c.far ? root.farHome(c.typed + ".txt") : root.indexOfName(c.target)
+            var home = c.far ? Cost.farHome(pane, c.typed + ".txt") : Cost.indexOfName(pane, c.target)
             if (c.far ? !pane.rowFor(home) : home < 0) { pane.setCursor(c.far ? home : 0); return false }
             pane.setCursor(home)
+            root.home = home
+            root.befores = []
+            root.afters = []
             root.stage = c.legs ? 2 : 1
             return true
         }
         if (root.stage === 1) {
+            if (root.waitTicks === 0 && root.befores.length > 0 && !Cost.homed(root)) return false
             var measured = root.phase(tag + " before")
             if (measured === false) return false
-            root.before = measured
-            root.stage = 2
+            root.check(measured.listFocus && measured.missed === 0, tag + " before the rename " + measured.missed + " keys missed the key handler, list focus " + measured.listFocus)
+            root.check(root.befores.length === 0 || measured.path === root.befores[0].path, tag + " the cursor walked " + measured.path + " in one before phase and " + (root.befores.length ? root.befores[0].path : "") + " in another")
+            root.befores.push(measured)
+            if (root.befores.length === root.beforeRuns) root.stage = 2
             return true
         }
         if (root.stage === 2) {
-            var at = root.indexOfName(c.target)
+            var at = Cost.indexOfName(pane, c.target)
             if (at < 0) { pane.setCursor(0); return false }
             if (pane.cursorIndex !== at) { pane.setCursor(at); return false }
             driver.keyClickChar("r", Qt.NoModifier, -1)
@@ -295,7 +260,7 @@ ShellRoot {
         }
         if (root.stage === 4) {
             var landed = c.end === Qt.Key_Return ? c.typed + ".txt" : c.target
-            if (!root.settled() || root.indexOfName(landed) < 0) return false
+            if (!root.settled() || Cost.indexOfName(pane, landed) < 0) return false
             // Ten more ticks let a late window reply or a queued layout land before the idle second starts.
             if (++root.waitTicks < 10) return false
             root.waitTicks = 0
@@ -315,9 +280,19 @@ ShellRoot {
             return true
         }
         if (root.stage === 5) {
+            if (root.waitTicks === 0 && root.afters.length === 0) root.home = pane.cursorIndex
+            if (root.waitTicks === 0 && !Cost.homed(root)) return false
             var after = root.phase(tag + " after")
             if (after === false) return false
-            root.compare(c, tag, root.before, after)
+            var matched = Cost.matching(root.befores, after)
+            root.afters.push(after)
+            root.compare(c, tag, matched || root.befores[0], after, matched !== null)
+            if (matched === null && root.afters.length <= root.afterRetries) {
+                root.line(tag + " idle mismatch", { run: root.afters.length, before: Cost.idleWork(root.befores), after: Cost.idleWork([after]) })
+                return true
+            }
+            root.check(matched !== null, tag + " no before and after phase saw the same idle work in " + root.afters.length + " after phases: rests/plans "
+                + Cost.idleWork(root.befores) + " before, " + Cost.idleWork(root.afters) + " after")
             root.caseIndex++
             root.stage = 0
             return true
@@ -335,20 +310,23 @@ ShellRoot {
             pane.listArea.forceActiveFocus()
             pane.clearSelection()
             if (pane.cursorIndex !== 0 || !pane.rowFor(0) || !pane.rowFor(root.controlJump)) { pane.setCursor(0); return false }
-            root.armRows()
+            Cost.armRows(root)
             root.resetCounters()
-            root.cells = root.cellSnap()
+            root.cells = Cost.cellSnap(body.Window.window.contentItem)
             pane.setCursor(root.controlJump)
+            // No timer runs inside this turn, so these reads are the jump's own, before any rest or planner pass.
+            root.jump = root.counters()
             root.waitTicks = 0
             root.stage = 1
             return true
         }
         if (++root.waitTicks < root.controlTicks) return false
-        var delta = root.cellDelta(root.cells, root.cellSnap())
+        var delta = Cost.cellDelta(root.cells, Cost.cellSnap(body.Window.window.contentItem))
         var seen = root.counters()
-        root.line(tag, { delta: delta, seen: seen })
+        root.line(tag, { delta: delta, seen: seen, jump: root.jump })
         root.check(delta.rebound + delta.built > 0, tag + " a " + root.controlJump + " row jump rebound or built no delegate")
-        root.check(seen.rowReads > 0, tag + " a " + root.controlJump + " row jump read no held row")
+        root.check(root.jump.rowReads > 0 && root.jump.rests + root.jump.plans === 0, tag + " a " + root.controlJump + " row jump read no held row before any idle work")
+        root.check(seen.rests > 0 && seen.plans > 0, tag + " counted no rest or no planner pass")
         root.check(seen.cursorRow > 0, tag + " a " + root.controlJump + " row jump left the cursor row alone")
         root.waitTicks = 0
         root.stage = 0
@@ -377,8 +355,7 @@ ShellRoot {
     }
 
     // Per rename end and view, no count of the sixteen keys is higher after the rename than before it; a landed row's selection follows the cursor by design, one bump per key, so selection may rise to the key count.
-    function compare(c, tag, a, b) {
-        root.check(a.listFocus && a.missed === 0, tag + " before the rename " + a.missed + " keys missed the key handler, list focus " + a.listFocus)
+    function compare(c, tag, a, b, matched) {
         root.check(b.listFocus, tag + " the list area lost the keyboard to " + b.focus)
         root.check(b.missed === 0, tag + " " + b.missed + " of " + root.keys.length + " keys never reached the key handler: " + b.trace)
         // Both phases press the same keys from the same row, or their counts compare different work.
@@ -390,12 +367,11 @@ ShellRoot {
         for (var n = 0; n < costs.length; n++)
             root.check(b.keys[costs[n]] <= a.keys[costs[n]], tag + " " + costs[n] + " over " + root.keys.length + " keys " + a.keys[costs[n]] + " before, " + b.keys[costs[n]] + " after")
         root.check(b.keys.frames <= a.keys.frames + (c.view === "dual" ? root.frameSlackDual : root.frameSlack), tag + " frames over " + root.keys.length + " keys " + a.keys.frames + " before, " + b.keys.frames + " after")
-        // Each bump of the landed row's selection makes the status strip total that one row in five field reads; an Escape end bumps nothing, so its row reads get no selection allowance.
+        // Each bump of the landed row's selection makes the status strip total that one row in five field reads and an Escape end bumps nothing, so it gets no selection allowance; rests and planner passes read rows too, so row reads compare only two phases that saw the same of each.
         var escape = c.end === Qt.Key_Escape
-        var spread = c.view === "columns" && c.far === true ? root.readsSpread : 0
-        root.check(b.keys.rowReads <= a.keys.rowReads + (escape ? 0 : root.readsPerBump * b.keys.selection + spread), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps")
+        if (matched) root.check(b.keys.rowReads <= a.keys.rowReads + (escape ? 0 : root.readsPerBump * b.keys.selection), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps, rests/plans " + Cost.idleWork([b]))
         if (escape) {
-            root.escapeChecked++
+            if (matched) root.escapeChecked++
             root.check(a.keys.selection === 0, tag + " selection bumps " + a.keys.selection + " before an Escape rename over " + root.keys.length + " keys")
             root.check(b.keys.selection === 0, tag + " selection bumps " + b.keys.selection + " after an Escape rename over " + root.keys.length + " keys")
         } else {
@@ -440,17 +416,31 @@ ShellRoot {
         function onSelectionVersionChanged() { root.selectionBumps++ }
         function onCursorRowChanged() { root.cursorRowEvals++ }
         function onInputAtChanged() { root.inputs++ }
+        // Qt 6.12 hands each rows handler its own copy of the reply, so the pane's held rows are armed as they land.
+        function onRowsChanged() { Cost.armRows(root) }
+    }
+    Connections {
+        target: root.warm ? root.warm.prepare : null
+        function onRestedChanged() { if (root.warm.prepare.rested) root.rests++ }
+    }
+    Connections {
+        target: root.pane ? root.pane.listArea : null
+        function onThumbsApplied(work) {
+            root.check(Flea.ViewState.thumbnailMode === "off" && Object.keys(pane.thumbState.file).length === 0
+                && work.ask.length === 0 && work.drop.length === 0, "background planner left the empty thumbnails-off fixture")
+            root.plans++
+        }
     }
     Connections {
         target: root.pane ? root.pane.backend : null
-        // This handler runs before the pane's own takeRows, so it arms the reply's own row objects, which the pane then holds.
+        // This handler runs before the pane's own takeRows and arms the reply's row objects, the ones the pane holds before Qt 6.12.
         function onRows(start, items) {
             root.rowsReplies++
             var seen = root.replyLog[root.caseIndex]
             if (seen === undefined) { seen = { replies: 0, armed: 0, late: 0 }; root.replyLog[root.caseIndex] = seen }
             seen.replies++
-            seen.armed += root.armItems(items)
-            Qt.callLater(function () { seen.late += root.armRows() })
+            seen.armed += Cost.armItems(root, items)
+            Qt.callLater(function () { seen.late += Cost.armRows(root) })
         }
     }
 
@@ -460,23 +450,28 @@ ShellRoot {
         running: true
         repeat: true
         onTriggered: {
-            if (root.caseIndex >= root.cases.length) {
-                root.report()
-                return
-            }
-            var before = root.stage
-            if (root.advance() === true) {
-                root.stageTicks = 0
-                return
-            }
-            root.stageTicks++
-            if (root.stageTicks > root.stallTicks) {
-                root.failures.push("stage " + before + " of case " + root.caseIndex + " never completed")
-                console.log("RENAMECOST FAIL stalled at stage " + before + " case " + root.caseIndex + " index=" + pane.renamingIndex
-                    + " pending=" + pane.renamePending + " anchor=" + (pane.wire.anchor !== null) + " cursor=" + pane.cursorIndex
-                    + " view=" + Flea.ViewState.state.view + " ready=" + root.ready() + " row=" + (pane.rowFor(pane.cursorIndex) ? pane.rowFor(pane.cursorIndex).n : "none"))
-                root.report()
-            }
+            // TestEvent pumps events while injecting keys, so a late tick must not inject the same step twice.
+            if (root.advancing) return
+            root.advancing = true
+            try {
+                if (root.caseIndex >= root.cases.length) {
+                    root.report()
+                    return
+                }
+                var before = root.stage
+                if (root.advance() === true) {
+                    root.stageTicks = 0
+                    return
+                }
+                root.stageTicks++
+                if (root.stageTicks > root.stallTicks) {
+                    root.failures.push("stage " + before + " of case " + root.caseIndex + " never completed")
+                    console.log("RENAMECOST FAIL stalled at stage " + before + " case " + root.caseIndex + " index=" + pane.renamingIndex
+                        + " pending=" + pane.renamePending + " anchor=" + (pane.wire.anchor !== null) + " cursor=" + pane.cursorIndex
+                        + " view=" + Flea.ViewState.state.view + " ready=" + root.ready() + " row=" + (pane.rowFor(pane.cursorIndex) ? pane.rowFor(pane.cursorIndex).n : "none"))
+                    root.report()
+                }
+            } finally { root.advancing = false }
         }
     }
 }

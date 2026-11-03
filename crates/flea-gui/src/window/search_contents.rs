@@ -1,0 +1,126 @@
+//! Contents search in the pane: held rows joined with their match lines, drawn as blocks over the list's frame.
+use crate::{g2::sr1, state::Shell};
+use gpui::{div, prelude::*, App, Window};
+use std::{cell::RefCell, rc::Rc};
+
+impl Shell {
+    /// Query and columns shared by ordinary rows and their contents overlay.
+    pub(crate) fn configure_search_rows(
+        host: &crate::window::pane::PaneHost,
+        data: &flea::jsondoc::Json,
+        dual: bool,
+    ) {
+        use crate::list::columns::{Column, Switched};
+        let query = match host.filter.shown {
+            Some(_) if !host.pane.state.search => host.filter.owner.query(),
+            _ => &host.pane.state.query,
+        };
+        let mut list = host.list.borrow_mut();
+        list.view.set_query(query);
+        list.view.set_searching(host.pane.state.search);
+        list.view.set_lang_marks(crate::list::lang_marks(data));
+        let switched = Switched::from_settings(data).for_dual(dual);
+        list.view.switched = if host.pane.state.search {
+            switched
+                .with(Column::Mode, false)
+                .with(Column::Date, false)
+                .with(Column::Kind, false)
+                .with(Column::Size, true)
+        } else {
+            switched
+        };
+    }
+
+    /// Before the lists' frames are prepared: a contents snapshot takes the block height, any other the list's own.
+    pub(crate) fn sync_contents_rows(&mut self) {
+        for host in self.panes.iter_mut().flatten() {
+            let held = &host.pane.held;
+            let contents = host.search.owner.active()
+                && host
+                    .search
+                    .owner
+                    .matches
+                    .covers(held.listing, held.start, held.rows.len());
+            let mut list = host.list.borrow_mut();
+            // Only a change of snapshot kind moves the row height, so every other frame keeps the pane's own.
+            if list.view.contents != contents {
+                list.view.contents = contents;
+                host.pane.set_row_height(list.file_metrics().row);
+            }
+        }
+    }
+
+    /// The pane's contents blocks: its held rows joined with their match lines, or none while any row lacks its line.
+    pub(crate) fn contents_blocks(&self, side: usize) -> Option<sr1::contents::Held> {
+        let host = self.panes.get(side)?.as_ref()?;
+        let search = &host.search.owner;
+        if !search.active() {
+            return None;
+        }
+        let home = std::env::var("HOME").unwrap_or_default();
+        let scope = search.session.scope;
+        let folder = if search.session.from.is_empty() {
+            &host.path
+        } else {
+            &search.session.from
+        };
+        let root = flea::ui_logic_sr1::Session::scope_root(folder, &home, scope)?;
+        let held = &host.pane.held;
+        let place = sr1::matches::Place {
+            root: &root,
+            home: &home,
+            scope,
+        };
+        search
+            .matches
+            .blocks(held.listing, held.total, held.start, &held.rows, &place)
+    }
+
+    /// The contents blocks drawn over the list's own frame, which keeps its stamps; none for any other snapshot.
+    pub(crate) fn contents_element(
+        host: &mut crate::window::pane::PaneHost,
+        data: &flea::jsondoc::Json,
+        held: Option<Rc<sr1::contents::Held>>,
+        rows: crate::list::RowStates,
+        scroll: f32,
+        window: &Window,
+        cx: &App,
+    ) -> Option<gpui::AnyElement> {
+        let held = held?;
+        let list = host.list.borrow();
+        let words = Rc::clone(&list.view.words);
+        if host.search.contents.as_ref().is_none_or(|(made, state)| {
+            !Rc::ptr_eq(made, &words) || state.borrow().typeface != list.typeface
+        }) {
+            let state = sr1::contents::ContentsState::new(list.typeface.clone(), (*words).clone());
+            host.search.contents = Some((words, Rc::new(RefCell::new(state))));
+        }
+        drop(list);
+        let state = Rc::clone(&host.search.contents.as_ref()?.1);
+        {
+            let mut shaped = state.borrow_mut();
+            shaped.apply_settings(data);
+            shaped.query.clone_from(&host.search.owner.session.query);
+        }
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = sr1::contents::Palette::from_list(&crate::list::Palette::inherited(
+            &window.text_style(),
+            theme,
+        ));
+        let blocks =
+            sr1::contents::ContentsElement::new(held, scroll, host.pane.cursor, palette, state)
+                .with_states(rows);
+        Some(
+            div()
+                .absolute()
+                .left_0()
+                .top_0()
+                .size_full()
+                .child(blocks)
+                .into_any_element(),
+        )
+    }
+}

@@ -1,5 +1,6 @@
 // The flasher's raw I/O: aligned buffers, positioned reads and writes, the O_DIRECT flag and the final flush.
 use crate::backend::flash::DIRECT_ALIGN;
+pub(crate) use crate::oflags::O_DIRECT;
 use std::os::fd::AsRawFd;
 use std::os::raw::{c_int, c_void};
 
@@ -13,7 +14,6 @@ extern "C" {
 // fcntl commands and the status flag, declared here rather than taking a crate.
 const F_GETFL: c_int = 3;
 const F_SETFL: c_int = 4;
-pub(crate) const O_DIRECT: c_int = 0o40000;
 // The errno a write answers when the drive is full.
 const ENOSPC: i32 = 28;
 

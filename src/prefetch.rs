@@ -192,6 +192,8 @@ fn recorded_by(list: &Path) -> Option<String> {
 
 // After every listing's rows: only the first call is heard, and a backend with no list to record hears none.
 pub fn first_rows_sent() {
+    static STARTED: OnceLock<()> = OnceLock::new();
+    STARTED.get_or_init(record_after_first_rows);
     if let Some(fired) = FIRST_ROWS.get() {
         let _ = fired.send(());
     }
@@ -272,6 +274,9 @@ fn ranges_from(maps: &str, page: u64, mut present: impl FnMut(u64, u64) -> Vec<b
 
 // The write AGENTS.md "Predictable path writes" describes: our own temp file, created exclusively at 0600, then a rename.
 fn write_list(list: &Path, shell: &str, ranges: &[Range]) {
+    if !crate::persistdoc::replaceable(list, MAX_LIST_BYTES, format!("{HEADER}\n").as_bytes(), |bytes| {
+        std::str::from_utf8(bytes).is_ok_and(valid_list)
+    }) { return; }
     let Some(dir) = list.parent() else { return };
     if fs::create_dir_all(dir).is_err() {
         return;
@@ -293,6 +298,22 @@ fn write_list(list: &Path, shell: &str, ranges: &[Range]) {
     if written.is_err() {
         let _ = fs::remove_file(&tmp);
     }
+}
+
+fn valid_list(text: &str) -> bool {
+    let mut lines = text.lines();
+    if lines.next() != Some(HEADER) { return false; }
+    let Some(shell) = lines.next() else { return false };
+    let parts: Vec<_> = shell.split(' ').collect();
+    if parts.len() != 3 || parts[0] != "shell" || parts[1..].iter().any(|s| s.parse::<u64>().is_err()) {
+        return false;
+    }
+    lines.all(|line| {
+        let mut parts = line.splitn(3, ' ');
+        parts.next().is_some_and(|s| s.parse::<u64>().is_ok())
+            && parts.next().is_some_and(|s| s.parse::<u64>().is_ok_and(|n| n > 0 && n <= MAX_RANGE_BYTES))
+            && parts.next().is_some_and(|s| s.starts_with('/'))
+    })
 }
 
 #[cfg(test)]

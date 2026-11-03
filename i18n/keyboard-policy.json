@@ -1,0 +1,60 @@
+{
+  "schema": 2,
+  "letters": {
+    "latin": "printed-character",
+    "nonlatin": "physical-us-position",
+    "classification": "A group is Latin when all 26 ASCII lowercase letters occur on its unmodified letter keys; otherwise its letter shortcuts use US positions."
+  },
+  "digits": {
+    "rule": "physical-us-position",
+    "scope": "All digit bindings, including bare tab digits and modified view and text-size chords; Shift remains an explicit shortcut modifier on AZERTY."
+  },
+  "punctuation": {
+    "approval": "2026-10-24",
+    "order": [
+      "printed-character",
+      "physical-us-position"
+    ],
+    "rules": [
+      {
+        "id": "a",
+        "use": "printed-character",
+        "when": "A Latin group produces the character on its base or Shift level without AltGr, and that path conflicts with no binding in an overlapping frontend, preset or context scope."
+      },
+      {
+        "id": "b",
+        "use": "physical-us-position",
+        "when": "A Latin group needs AltGr for the character, lacks it, or its printed path conflicts; the key at the US position is used, as for non-Latin letters."
+      },
+      {
+        "id": "c",
+        "use": "physical-us-position",
+        "when": "A non-Latin group always uses the US position for punctuation."
+      },
+      {
+        "id": "d",
+        "use": "failing-row",
+        "when": "Both alternatives conflict, or the only alternative conflicts. The cell stays an explicit punctuation-conflict row and is never waived."
+      }
+    ],
+    "altgr": "text-input-only",
+    "altgr_scope": "An AltGr chord stays text input while editing and never dispatches a command; no command path holds AltGr."
+  },
+  "groups": "Resolve each active XKB group independently; UI language never selects a keyboard group.",
+  "modifiers": "Record effective and consumed modifiers with XKB and GTK consumption modes. Character production may consume Shift or AltGr; explicit shortcut modifiers remain required.",
+  "dead_keys": "A dead keysym is not a directly typed character. Composition is not a shortcut path.",
+  "terminal_protocols": {
+    "legacy": "No physical key identity or active group. Ctrl+I/Tab, Ctrl+M/Enter, Ctrl+[/Escape and Ctrl+Space/NUL are ambiguous; Ctrl+Shift letters collapse into Ctrl letters; Super and Ctrl+Enter are not portable.",
+    "modifyOtherKeys": "Character and modifier reporting depends on terminal negotiation; physical US identity and active group are not guaranteed.",
+    "kitty": "Alternate/base-layout key reporting requires negotiated flags and terminal support. Physical non-Latin shortcuts cannot be assumed from Unicode alone.",
+    "tmux": "Extended keys depend on terminal and tmux settings; the legacy lane must retain reachable existing alternatives."
+  },
+  "source_contract": {
+    "omarchy_commit": "5978d93ae7da0a325b7493501911e3f1266cadd3",
+    "installer": "install/provisioning/setup-form.sh",
+    "conversion": "default/input-methods/typing_setup.py and bin/omarchy-provision-owner, plus the recorded systemd kbd-model-map",
+    "reference_commit": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+    "fork_commit": "ac631dc8b9ef612b875edcc5dd9cfa5870dc77cc",
+    "installer_count": "Read from OMARCHY_KEYBOARD_LAYOUTS in the pinned setup-form.sh; never a literal."
+  }
+}

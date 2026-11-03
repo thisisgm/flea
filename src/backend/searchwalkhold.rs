@@ -54,3 +54,102 @@ pub(crate) struct WalkHold {
     parked: std::sync::mpsc::Sender<()>,
     release: std::sync::mpsc::Receiver<()>,
 }
+
+// Tests waiting for a walk or tag landing keep recursive notifications distinct from that completion.
+pub(crate) fn wait_landed(rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>, timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(crate::backend::events::Event::SearchWalked) => return,
+            Ok(crate::backend::events::Event::SearchDelta(_)) => {},
+            _ => panic!("the expected search walk or tag landing did not arrive"),
+        }
+    }
+}
+
+// Once the walk is done, wait for its final send and consume every queued progress wake through that landing.
+pub(crate) fn wait_walk_landed(
+    rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
+    session: &crate::backend::searchsession::Session,
+    timeout: std::time::Duration,
+    skip: fn(&crate::backend::events::Event) -> bool,
+) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        let event = rx
+            .recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+            .expect("the walk lands");
+        if !matches!(event, crate::backend::events::Event::SearchWalked) {
+            assert!(skip(&event), "the walk announces itself");
+        } else if session.walk_done.load(std::sync::atomic::Ordering::Acquire) {
+            while !session.probes.landing_sent.load(std::sync::atomic::Ordering::Acquire) {
+                assert!(std::time::Instant::now() < deadline, "the walk sends its landing");
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            for event in rx.try_iter() {
+                assert!(matches!(event, crate::backend::events::Event::SearchWalked) || skip(&event), "only expected events follow walk progress");
+            }
+            return;
+        }
+    }
+}
+
+// The `skip` for a landing wait that may meet the walk's own recursive notifications.
+pub(crate) fn is_delta(event: &crate::backend::events::Event) -> bool {
+    matches!(event, crate::backend::events::Event::SearchDelta(_))
+}
+
+// A joined walk has sent every event, so its landing and any progress queued before it are taken together.
+pub(crate) fn take_joined_walk(
+    rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>,
+    timeout: std::time::Duration,
+) {
+    wait_landed(rx, timeout);
+    while let Ok(event) = rx.try_recv() {
+        assert!(
+            matches!(
+                event,
+                crate::backend::events::Event::SearchWalked
+                    | crate::backend::events::Event::SearchDelta(_)
+            ),
+            "only walk events follow a joined walk"
+        );
+    }
+}
+
+pub(crate) fn assert_no_landing(rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>, timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(crate::backend::events::Event::SearchDelta(_)) => {},
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => return,
+            _ => panic!("an unexpected search walk or tag landing arrived"),
+        }
+    }
+}
+
+pub(crate) struct ReadHold {
+    dir: String,
+    after: usize,
+    parked: std::sync::mpsc::Sender<()>,
+    release: std::sync::mpsc::Receiver<()>,
+}
+
+impl WalkProbes {
+    pub(crate) fn test_hold_scan_in(&self, dir: &str, after: usize) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+        let (parked, wait) = std::sync::mpsc::channel();
+        let (release, resume) = std::sync::mpsc::channel();
+        *self.read_hold.lock().unwrap() = Some(ReadHold { dir: dir.to_string(), after, parked, release: resume });
+        (wait, release)
+    }
+}
+
+pub(crate) fn hold_read_if_due(slot: &std::sync::Mutex<Option<ReadHold>>, dir: &Path, count: usize) {
+    let due = slot.lock().unwrap().as_ref().is_some_and(|hold|
+        dir.file_name() == Some(std::ffi::OsStr::new(&hold.dir)) && count >= hold.after);
+    let hold = if due { slot.lock().unwrap().take() } else { None };
+    if let Some(hold) = hold {
+        let _ = hold.parked.send(());
+        let _ = hold.release.recv();
+    }
+}

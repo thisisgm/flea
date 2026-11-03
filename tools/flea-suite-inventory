@@ -1,0 +1,284 @@
+#!/usr/bin/env -S python3 -B
+"""Account for runner suites, CI evidence, layouts and the existing parity matrix.
+
+Dispositions retain mixed plan classes with '+'. Parity links are comma-separated
+g06 IDs, or 'none: <reason>'. Layouts may include a bare 'default' line; calibrate
+executes the runner's headless list dynamically. Dedicated non-suite lanes do not
+count as another run-all execution of a suite.
+"""
+
+import argparse
+import collections
+import csv
+import io
+import os
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parent.parent
+FIELDS = ('suite', 'state', 'class', 'replacement', 'owner', 'parity')
+STATES = {'active', 'retired', 'excluded', 'sourced'}
+OBSOLETE = {'signalarity': 'obsolete: QML signal/emit arity',
+            'connections-style': 'obsolete: QML Connections'}
+NAME = re.compile(r'[a-zA-Z0-9][a-zA-Z0-9_-]*\Z')
+csv.field_size_limit(16 * 1024 * 1024)
+
+
+def table(path):
+    with path.open(encoding='utf-8', newline='') as stream:
+        reader = csv.DictReader(stream, delimiter='\t')
+        if tuple(reader.fieldnames or ()) != FIELDS:
+            raise ValueError(f'{path}: expected columns {", ".join(FIELDS)}')
+        rows = list(reader)
+    if not rows or any(None in row or any(value is None for value in row.values()) for row in rows):
+        raise ValueError(f'{path}: empty or malformed dispositions')
+    return rows
+
+
+def runner(path):
+    text = path.read_text(encoding='utf-8')
+    headless = []
+    for value in re.findall(r'^headless="([^"\n]*)"\s*$', text, re.M):
+        words = value.split()
+        if words and words[0] in ('$headless', '${headless}'):
+            words = headless + words[1:]
+        elif any('$' in word for word in words):
+            raise ValueError(f'{path}: unsupported headless assignment')
+        headless = words
+    match = re.search(r'^not_run="([^\"]*)"', text, re.M)
+    if not headless or not match:
+        raise ValueError(f'{path}: missing literal headless or not_run list')
+    excluded = []
+    for line in match[1].splitlines():
+        if not line.strip():
+            continue
+        name, separator, reason = line.partition('|')
+        if not separator or not reason.strip():
+            raise ValueError(f'{path}: invalid not_run line {line!r}')
+        excluded.append(name)
+    if any(not NAME.fullmatch(name) for name in headless + excluded):
+        raise ValueError(f'{path}: invalid suite name in runner')
+    return headless, excluded
+
+
+def evidence(path):
+    rules = collections.defaultdict(list)
+    for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        name, separator, rest = line.partition('|')
+        pattern, last, floor = rest.rpartition('|')
+        if not separator or not last or not NAME.fullmatch(name) or not pattern or not re.fullmatch(r'-?\d+', floor):
+            raise ValueError(f'{path}:{number}: invalid suite|ERE|N rule')
+        rules[name].append((int(floor), number))
+    return rules
+
+
+def matrix(path, tree, selected):
+    if path:
+        output = path.read_text(encoding='utf-8')
+    else:
+        command = [sys.executable, '-B', str(ROOT / 'tools/flea-parity'), '--suite-cases',
+                   '--tree', str(tree), '--layout', str(selected)]
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        if result.returncode:
+            raise ValueError(f'parity generator exit={result.returncode}: {result.stderr.strip()}')
+        output = result.stdout
+    reader = csv.DictReader(io.StringIO(output), delimiter='\t')
+    if not reader.fieldnames or 'id' not in reader.fieldnames:
+        raise ValueError('parity output needs an id column')
+    ids = [row['id'] for row in reader]
+    if not ids or any(not identity for identity in ids) or len(set(ids)) != len(ids):
+        raise ValueError('parity output has empty or duplicate IDs')
+    return set(ids)
+
+
+def layout(path, directory, headless, visiting=()):
+    if path in visiting:
+        raise ValueError(f'{path.name}: cyclic default layout inclusion')
+    suites = []
+    for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+        words = shlex.split(line, comments=True)
+        if not words:
+            continue
+        if words == ['default']:
+            suites.extend(layout(directory / 'default.layout', directory, headless, visiting + (path,)))
+        elif len(words) >= 3 and words[2] == 'suites':
+            if len(words) == 3:
+                raise ValueError(f'{path.name}:{number}: empty suites lane')
+            suites.extend(words[3:])
+        elif len(words) >= 3 and words[2] == 'calibrate':
+            suites.extend(headless)
+        elif len(words) < 3:
+            raise ValueError(f'{path.name}:{number}: invalid layout line')
+    return suites
+
+
+def scripts(tree, headless, effective):
+    errors = []
+    scheduled = set(headless) | {name for _, counts in effective for name in counts}
+    for name in sorted(scheduled):
+        if not NAME.fullmatch(name):
+            errors.append(f'SUITE_INVENTORY invalid-script-name suite={name}: invalid scheduled name')
+            continue
+        path = tree / 'tests' / f'{name}.sh'
+        if not path.is_file():
+            errors.append(f'SUITE_INVENTORY missing-script suite={name}: tests/{name}.sh does not exist')
+        elif not os.access(path, os.X_OK):
+            errors.append(f'SUITE_INVENTORY non-executable-script suite={name}: tests/{name}.sh is not executable')
+    return errors
+
+
+def coverage(headless, effective):
+    errors = []
+    for path, occurrences in effective:
+        for name, count in sorted(occurrences.items()):
+            if count > 1:
+                errors.append(f'SUITE_INVENTORY layout-duplicate suite={name}: {path.name} lists it {count} times')
+            if name not in headless:
+                errors.append(f'SUITE_INVENTORY layout-unregistered suite={name}: {path.name} is not in this tree runner')
+        for name in sorted(set(headless) - occurrences.keys()):
+            errors.append(f'SUITE_INVENTORY layout-missing suite={name}: {path.name}')
+    return errors
+
+
+def evidence_errors(names, rules):
+    errors = []
+    for name in sorted(names):
+        if not rules[name]:
+            errors.append(f'SUITE_INVENTORY missing-evidence suite={name}: active suite has no evidence rule')
+        for floor, number in rules[name]:
+            if floor < 1:
+                errors.append(f'SUITE_INVENTORY evidence-floor suite={name}: line {number} floor={floor}, expected at least 1')
+    return errors
+
+
+def audit(rows, headless, excluded, rules, effective, ids):
+    errors = []
+
+    def problem(kind, name, detail):
+        errors.append(f'SUITE_INVENTORY {kind} suite={name}: {detail}')
+
+    by_name = {}
+    for row in rows:
+        name = row['suite']
+        if name in by_name:
+            problem('duplicate-row', name, 'more than one disposition')
+        by_name[name] = row
+        if not NAME.fullmatch(name) or row['state'] not in STATES:
+            problem('invalid-row', name, 'invalid suite name or state')
+        if not row['class'] or any(value not in 'UQCLPM' or len(value) != 1 for value in row['class'].split('+')):
+            problem('invalid-class', name, row['class'])
+        if row['owner'] not in ('G1', 'G0.10', 'kept') and not re.fullmatch(r'G2 \S.*', row['owner']):
+            problem('invalid-owner', name, row['owner'])
+        if not row['replacement'].strip():
+            problem('missing-replacement', name, 'replacement must be explicit')
+        links = row['parity']
+        if links.startswith('none:') and links[5:].strip():
+            continue
+        if not links or links == 'none' or links.startswith('none:'):
+            problem('invalid-parity', name, 'none requires a reason')
+        else:
+            for identity in links.split(','):
+                if identity not in ids:
+                    problem('unknown-parity', name, identity)
+
+    scheduled = headless + excluded
+    counts = collections.Counter(scheduled)
+    for name in sorted(counts):
+        if counts[name] > 1:
+            problem('duplicate-runner', name, 'listed more than once')
+        if name not in by_name:
+            problem('missing-row', name, 'runner suite has no disposition')
+    active = {name for name, row in by_name.items() if row['state'] == 'active'}
+    for name in sorted((set(headless) & by_name.keys()) - active):
+        problem('headless-inactive', name, f"runner schedules state={by_name[name]['state']}")
+    for name in sorted(rules.keys() - by_name.keys()):
+        problem('evidence-unaccounted', name, 'evidence suite has no disposition')
+    for name in sorted(identity[6:] for identity in ids if identity.startswith('suite:')):
+        if name not in by_name:
+            problem('parity-unaccounted', name, 'g06 suite has no disposition')
+    for name, row in sorted(by_name.items()):
+        if name not in headless and row['state'] not in ('retired', 'excluded', 'sourced'):
+            problem('unrun-row', name, 'active suite is absent from runner')
+        if row['state'] != 'retired' and any(
+                target not in {'core', 'element', 'native', 'same'} | by_name.keys()
+                for target in re.split(r'[+,]', row['replacement'])):
+            problem('invalid-replacement', name, row['replacement'])
+        if row['state'] == 'retired':
+            replacement = row['replacement']
+            if name in OBSOLETE and replacement == OBSOLETE[name]:
+                continue
+            targets = replacement.split(',')
+            if not targets or any(target not in active or not rules[target] or
+                                  any(floor < 1 for floor, _ in rules[target]) for target in targets):
+                problem('retired-replacement', name, 'requires named active replacement(s) with evidence')
+    for path, occurrences in effective:
+        for name in sorted(occurrences):
+            if name not in by_name:
+                problem('layout-unaccounted', name, path.name)
+            elif name not in active:
+                problem('layout-inactive', name, f"{path.name} schedules state={by_name[name]['state']}")
+    errors.extend(coverage(headless, effective))
+    errors.extend(evidence_errors(active, rules))
+    return errors, len(active)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--evidence', type=Path, required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument('--layouts', type=Path, help='layouts belonging to the same tree')
+    selection.add_argument('--layout', type=Path, help='the single layout selected by this CI run')
+    parser.add_argument('--tree', type=Path, default=ROOT, help='tree whose runner and script modes are checked')
+    parser.add_argument('--layout-only', action='store_true', help='check an archived runner/layout pair without dispositions or parity')
+    parser.add_argument('--parity', type=Path, help='existing g06 TSV output, otherwise invoke g06')
+    parser.add_argument('--dispositions', type=Path)
+    parser.add_argument('--runner', type=Path)
+    args = parser.parse_args()
+    if args.layout_only and not args.layout:
+        parser.error('--layout-only requires --layout')
+    try:
+        tree = args.tree.resolve()
+        headless, excluded = runner(args.runner or tree / 'tests/run-all.sh')
+        paths = [args.layout] if args.layout else sorted(args.layouts.glob('*.layout'))
+        if not paths:
+            raise ValueError(f'{args.layouts}: no layouts')
+        effective = [(path, collections.Counter(layout(path, path.parent, headless))) for path in paths]
+        script_errors = scripts(tree, headless, effective)
+        rules = evidence(args.evidence)
+        if args.layout_only:
+            errors = script_errors + coverage(headless, effective) + evidence_errors(headless, rules)
+            if errors:
+                print('\n'.join(errors), file=sys.stderr)
+                return 1
+            print(f'SUITE_LAYOUT PASS layout={args.layout.name} suites={len(headless)} tree={tree}')
+            return 0
+        rows = table(args.dispositions or tree / 'tests/suite-dispositions.tsv')
+        selected = args.layout or args.layouts / 'default.layout'
+        try:
+            ids = matrix(args.parity, tree, selected)
+        except (OSError, ValueError, KeyError, csv.Error):
+            if not script_errors:
+                raise
+            print('\n'.join(script_errors), file=sys.stderr)
+            return 1
+        errors, active = audit(rows, headless, excluded, rules, effective, ids)
+        errors.extend(script_errors)
+        if errors:
+            print('\n'.join(errors), file=sys.stderr)
+            return 1
+        retired = sum(row['state'] == 'retired' for row in rows)
+        print(f'SUITE_INVENTORY PASS suites={len(rows)} active={active} retired={retired}')
+        return 0
+    except (OSError, ValueError, KeyError, csv.Error) as error:
+        print(f'SUITE_INVENTORY input-error: {error}', file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,10 @@
+[package]
+name = "flea-searchbench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+[workspace]
+[[bin]]
+name = "flea-searchbench"
+path = "launch.rs"

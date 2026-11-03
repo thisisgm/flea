@@ -81,6 +81,7 @@ import "marks.js" as MarksSuite
 import "match.js" as MatchSuite
 import "motion.js" as MotionSuite
 import "menu.js" as MenuSuite
+import "menured.js" as MenuRedSuite
 import "xwnewfile.js" as XwNewFileSuite
 import "properties.js" as PropertiesSuite
 import "propertyfacts.js" as PropertyFactsSuite
@@ -189,7 +190,7 @@ Item {
         }
 
         var suites = [
-            ["clipboard", ClipboardSuite],
+            ["clipboard", ClipboardSuite], ["menured", MenuRedSuite],
             ["archive", ArchiveSuite], ["archives", ArchivesSuite], ["archivecards", ArchiveCardsSuite], ["background", BackgroundSuite], ["buttons", ButtonsSuite], ["cardink", CardInkSuite], ["bulkrename", BulkRenameSuite], ["bulksheet", BulkSheetSuite], ["collide", CollideSuite], ["collidemerge", CollideMergeSuite], ["clipmarks", ClipMarksSuite], ["columns", ColumnsSuite], ["columnskeep", ColumnsKeepSuite], ["columnsback", ColumnsBackSuite], ["watchgate", WatchGateSuite], ["contrast", ContrastSuite], ["glasstag", GlassTagSuite], ["codelines", CodeLinesSuite], ["csv", CsvSuite],
             ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dragout", DragOutSuite], ["dropkeys", DropKeysSuite], ["drops", DropsSuite], ["dropsflow", DropsFlowSuite], ["dst", DstSuite], ["ddtarget", DdtargetSuite],
             ["copyas", CopyAsSuite], ["invert", InvertSuite],

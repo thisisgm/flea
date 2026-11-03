@@ -79,22 +79,6 @@ fn a_raw_extracts_once_per_mtime_and_again_when_it_changes() {
 }
 
 #[test]
-fn a_symlink_planted_at_the_cache_path_is_replaced_and_never_written_through() {
-    let d = TestDir::new("rawprev-link");
-    let cache = d.join("cache");
-    let src = raw_with(&d, "b.cr2", &jpeg(640, 480), None);
-    set_mtime(&src, 1_700_000_000);
-    let victim = d.file("victim.jpg", "keep me");
-    set_mtime(&victim, 1_700_000_000);
-    std::fs::create_dir(&cache).unwrap();
-    std::os::unix::fs::symlink(&victim, copy_path(&cache, &src)).unwrap();
-    let got = ensure_in(&cache, &src).expect("a preview");
-    assert_eq!(std::fs::read(&victim).unwrap(), b"keep me", "the extraction wrote through the link");
-    assert!(!std::fs::symlink_metadata(&got.file).unwrap().file_type().is_symlink());
-    assert_eq!(std::fs::read(&got.file).unwrap(), jpeg(640, 480));
-}
-
-#[test]
 fn the_copy_is_private_and_a_leftover_temp_does_not_survive() {
     let d = TestDir::new("rawprev-mode");
     let cache = d.join("cache").join("flea").join("raw");
@@ -182,7 +166,7 @@ fn jpeg_only_thumbnailer(png: &[u8]) -> Thumbnailers {
 }
 
 fn job(path: &Path, mime: &str) -> Job {
-    Job { path: path.to_path_buf(), mtime: 1_700_000_000, mime: mime.to_string(), trace: None }
+    Job { replies: None, path: path.to_path_buf(), mtime: 1_700_000_000, trash_identity: None, mime: mime.to_string(), trace: None }
 }
 
 fn tables(d: &TestDir, png: &[u8]) -> Tables {
@@ -425,3 +409,6 @@ fn a_meta_read_of_a_raw_carries_the_copy_and_leaves_the_files_own_pixels_unknown
     let p = read_in(&plain, false, false, None, &cache);
     assert!(p.raw.is_none() && (p.width, p.height) == (10, 10));
 }
+
+#[path = "rawpreview_preserve_tests.rs"]
+mod preserve;

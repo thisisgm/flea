@@ -154,7 +154,11 @@ pub fn answer(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &st
 fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run: &mut Runner) -> Result<(Facts, Vec<PathBuf>), String> {
     let label = check(ask)?;
     let name = ask.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-    if !mime.lookup(&name).is_some_and(|m| FONT_TYPES.contains(&aliases.canonical(m))) {
+    let kind = mime.lookup(&name).map(|m| aliases.canonical(m));
+    // Equal-weight *.otf rules can resolve to an OpenDocument formula template; only readable font tables admit that case.
+    let ambiguous_otf = name.to_ascii_lowercase().ends_with(".otf")
+        && kind == Some("application/vnd.oasis.opendocument.formula-template");
+    if !ambiguous_otf && !kind.is_some_and(|m| FONT_TYPES.contains(&m)) {
         return Err("only TrueType and OpenType fonts are drawn".to_string());
     }
     // Absolute and canonical, so magick can never read the font as an option and the jail binds the file itself.
@@ -167,11 +171,17 @@ fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run
                 return Err("that is not a regular file".to_string());
             }
             let facts = fontinfo::read(&font);
+            if ambiguous_otf && facts == Facts::default() {
+                return Err("that file has no readable font tables".to_string());
+            }
             Ok((font, meta, facts))
         }
     })
     .map_err(|e| e.msg)??;
     let key = key(&font, &meta, ask);
+    for i in 0..SAMPLES {
+        crate::cachewrite::require(&entry(root, &key, i)).map_err(|e| e.to_string())?;
+    }
     if let Some(files) = cached(root, &key) {
         return Ok((facts, files));
     }

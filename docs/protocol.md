@@ -135,13 +135,19 @@ batch handoff. These checks do not make subsequent external-helper filesystem op
 atomic. Omitting `menuId` preserves the existing keyboard and protocol entry paths.
 
 `{"c":"menuaction","op":"snapshot","id":4,"rows":[0,2]}` captures the selected identities
-from the active listing and returns `count` and `kinds`, an array of each captured item's own file
+from the active listing. A Columns neighbour menu instead sends explicit absolute `paths` and
+`cursorPath`, without navigating or changing that listing. Both forms accept the active `listing`
+stamp and return `count`, `modes` (complete mode bits), and `kinds`, an array of each captured item's own file
 type bits in request order, including symlinks without following them. `prepareDelete` with that
 `id` reviews the captured trees and returns a
 fresh `token`, selected `count`, and total `bytes`. `checkDelete` with the `id` and `token` returns
 `valid` without mutating files. A changed set requires `refreshDelete`: it reviews only the same
 captured paths, drops missing paths, captures replacement identities, and issues a fresh token.
-Unrelated paths cannot widen that confirmation. The client shows this new confirmation with
+Unrelated paths cannot widen that confirmation.
+`menuaction` operations `tagstates` (with a client `tagId`) and `settags` (with `change` and `tag`)
+read and update the identities retained by `id`. They return the existing `tagstates` and `settagged`
+replies. A changed or replaced source refuses before writing; successful writes retain tag undo.
+ The client shows this new confirmation with
 Cancel initially focused; no prior destructive activation authorizes the replacement token.
 
 `{"c":"menuaction","op":"delete","id":4,"token":12}` consumes that exact token and reserves
@@ -153,6 +159,38 @@ completion rather than implying rollback. The caller can use the identity-checke
 `close` expires the token and cancels pending work. An already claimed deletion root completes
 or restores its survivors before cancellation stops the next root. The undo journal does not
 cover permanent deletion.
+
+`{"c":"menuaction","op":"properties","id":4}` describes the identities captured by `snapshot`.
+For one item the existing single-item reply is unchanged. For several items it returns `kinds`,
+combined `bytes`, and `newest` and `oldest`, the selected entries' own modification dates in local
+time as `YYYY-MM-DD HH:MM`. Kinds are counted in this order, omitting empty groups: folders,
+symbolic links, texts, images, videos, audio files, files and special files. Regular files use the MIME
+name database's text, image, video and audio groups, with all other regular files grouped as files.
+Counts use singular words for one and comma grouping for thousands, for example `2 images, 1 video`.
+No file contents are opened to classify them, and a symbolic link keeps its own kind, size and date.
+
+A selection containing folders first answers its known file bytes with `done:false`, then walks
+each selected folder on demand using the same walker as `contents`. A selection on a remote mount
+or containing a remote mountpoint has one 15-second bound covering initial metadata, every walk
+and final identity revalidation; cancellation frees the menu worker without waiting for a blocked
+remote syscall. A deadline ends with the retained floor, `done:true,partial:true`. A worker lost
+before a terminal reply returns `ok:false,error:"The selected items stopped answering."`.
+Before initial metadata completes, `kinds`, `newest` and `oldest` are empty and `bytes` includes
+only inspected non-folder entries. A silent syscall marks its current remote mount stuck; a
+subsequent request involving that mount returns a zero partial floor before any stat. Each total
+includes the selected folders' own entries, stays on each starting device and never follows links.
+Each queued child opens without following links through a held directory descriptor and must
+still match its captured identity. A replaced or unreadable descendant leaves a partial floor.
+Progress and the final reply have the same shape:
+`{"t":"menuaction","id":4,"op":"properties","ok":true,"kinds":"2 images, 1 video","bytes":52300000,"newest":"2026-09-23 10:14","oldest":"2026-08-21 12:02","partial":false,"done":true}`.
+`done:true` means the request ended, and only `done:true,partial:false` means the total is exact.
+Unreadable or vanished descendants and already-stuck mounts leave a floor with `partial:true`.
+The overall remote deadline also leaves a partial floor. `close` or a newer `snapshot` cancels the request, whose last reply carries
+`cancelled:true,partial:true,done:false`; a cancellation reply may omit the facts.
+After a close, the caller discards all replies for that snapshot. A moved, vanished or replaced
+selected identity returns `ok:false` with an `error`, including when it changes during the walk.
+Dates and Kinds describe selected entries, not their descendants. Selected roots are summed
+independently, so selecting both a folder and an entry inside it counts that entry in each root.
 
 `{"c":"menuaction","op":"contents","id":4}` counts what the one captured folder holds, for Properties on a folder.
 It walks with the folder size walker and never crosses into a nested mount or follows a symbolic link. A local folder
@@ -182,6 +220,82 @@ ARW, DNG) from its IFD0 and Exif IFD in the first MiB, and a CR3 from the CMT1, 
 `moov`. Text is cut to 120 characters with control characters turned to spaces. A cancelled request answers `ok:true` with
 `cancelled:true` and no facts. An `id` that is not the captured snapshot, a selection of several items, or an item that is not a
 regular file answers `ok:false` with an `error`; a fifo or a device is never opened.
+
+### gitstatus
+
+`{"c":"gitstatus","path":"/repo","enabled":true,"refresh":false,"id":1}`
+
+Reads one repository-wide snapshot for Git decoration without replacing the ordinary listing,
+its row numbering or its watch. `path` is the absolute directory being displayed. `enabled`
+defaults to false and `refresh` to false; `id` defaults to 0 and is echoed on every reply.
+The shared Boolean setting is `showGitStatus`, off by default. Its window control is
+`Show Git status` in Settings, View, immediately before `Highlight today's dates`.
+
+An enabled directory change discovers the worktree and runs one read-only Git status. The same
+directory reuses a successful cached snapshot until `refresh:true`; failed loads retry on the next
+enabled status request, with the existing mount quarantine still throttling remote discovery.
+Outside a repository no Git process starts. Disabling clears the cache and cancels active or queued
+older work without discovery or process launch. Navigation also cancels the old directory's work.
+Replies may interleave other backend replies, so clients match both `path` and their current `id`
+before displaying them.
+
+The existing `changed` event drives refresh through the client's 400 ms absorbing timer: the
+first notification starts it, later notifications do not restart it, and expiry sends this request
+with `refresh:true`. Keep one status request in flight and preserve later watch debt until its
+reply. The existing non-recursive watch covers the displayed directory, not all repository paths
+or `.git` metadata; another directory change or explicit refresh discovers those other changes.
+
+The argv is `/usr/bin/git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false
+-c status.renames=true status --porcelain=v2 -z --branch --untracked-files=all --ignore-submodules=none --`.
+The sandbox changes directory to the repository root; there are no path operands or shell.
+It binds the worktree and linked-worktree metadata read-only, isolates the network, clears the
+environment, and sets `GIT_OPTIONAL_LOCKS=0`, `GIT_CONFIG_NOSYSTEM=1`,
+`GIT_CONFIG_GLOBAL=/dev/null` and `GIT_TERMINAL_PROMPT=0`. Capture, parsing and sorting share one
+five-second deadline and navigation cancellation check. Stdout is bounded at 32 MiB, stderr at
+64 KiB, with the normal sandbox resource limits. A checked 64 MiB aggregate allocation budget
+covers both full capture buffers and cumulative snapshot capacity requests, including paths,
+rename sources, branch text, change records and the sorted folder index. Growth is charged before
+fallible allocation, including replacement storage and 64 bytes of overhead per allocation;
+released allocations remain charged conservatively. Folder marks use at most two path references
+per change, with no ancestor copies. Over-budget input refuses the whole snapshot with
+`Git status snapshot is too large.`; an allocator refusal reports
+`Git status could not allocate its snapshot.` One ordinary staged deletion (`1 D.` with zero
+index and worktree modes) plus one untracked entry (`?`) at the same path is legitimate: Git
+emits this after untracking a retained file or symlink, recreating a staged-deleted file, or
+untracking a retained gitlink (`? path/`). These records coalesce to one `?` change, counted once
+in the branch caption and Changes, with `deleted:false`; the untracked entry determines the
+folder flag and path spelling. A lone deletion remains `D` with `deleted:true`. A rename's
+source metadata can also name an untracked entry; the destination and source remain two distinct
+changes. Other repeated destinations, repeated records, or groups larger than two refuse the
+whole snapshot with `Git status returned a duplicate path.` Coalescing allocates no additional
+storage and retains all existing budget charges, deadline and cancellation checks. Process
+failures retain stderr. Remote discovery uses the existing mount bound.
+
+### gitrows
+
+`{"c":"gitrows","path":"/repo","paths":["/repo/Code","/repo/notes.txt"],"id":2}`
+
+Projects the last successful snapshot onto the visible rows only. `path` must match that
+snapshot's directory, and every `paths` entry must be an absolute immediate child. At most
+400 paths are accepted per request; a larger viewport can use several requests. Results follow
+request order, including clean rows, and perform no per-row stat, MIME lookup or subprocess.
+The window draws the marks in a 14 px column before Size; the TUI uses one cell before the size.
+Both use `M`, `A`, `D` and `?`; the TUI represents a changed folder by yellow `■`.
+
+### gitchanges
+
+`{"c":"gitchanges","path":"/repo","start":0,"count":1,"id":3}`
+
+Pages every canonical changed path relative to the worktree root, deleted and untracked paths
+included. `start` defaults to 0 and clamps to `total`; `count` defaults to 400 and caps at 400.
+The window opens this virtual listing by clicking the branch caption. The branch becomes the
+foreground current crumb, the original folder path becomes its muted ancestor, and Back or Esc
+returns to that folder. Folder prefixes within changed paths are muted before the leaf name;
+the cursor row uses foreground. Deleted rows have no Size or Modified value. There is no added
+`esc returns` hint. Changes view is window only in 0.4.0.
+
+This does not replace the ordinary listing or its watch. Changes-view indices never name
+ordinary backend file-operation rows; clients resolve an existing entry against the reply's `root`.
 
 ### listpaths
 
@@ -225,12 +339,67 @@ Stats rows `start..start+count` of the current listing (phase 2) and answers one
 out-of-range window never panics, it just returns fewer rows or none. Missing fields
 default to `0`.
 
+A count of `0` returns an empty `rows` array and `kinds` array with `ms` of `0.000`,
+the clamped `start`, and the current `listing` stamp. It does not read mountinfo,
+stat rows, load row tables, start workers, or rank the remainder of a session's
+matches. A later nonempty window uses the normal complete row format below.
+
+### filter
+
+TUI traversal sends `"traverse":true` on the same name-only request and receives
+`{"t":"found","id":7,"query":"^note","rows":[0,2],"error":"","listing":1}`.
+It uses smart-case regular expressions and retains the full listing and selection.
+An invalid pattern returns its diagnostic in `error`. The client accepts only its
+latest id, query and listing generation. Initial traversal includes a matching
+current row; subsequent next/previous steps exclude it and wrap. Its state is
+separate from the live filter.
+
+
+`{"c":"filter","query":"<string>","id":<uint>}`
+
+Example: `{"c":"filter","query":".PNG","id":7}`
+
+Matches a case-insensitive literal substring against every name in the current listing,
+including rows outside the client's held window. Missing `query` defaults to the empty
+string and missing `id` to `0`. Filtering reads names only, fetches no metadata and
+does not change the listing, its sort order or its numbering. Each request answers once:
+
+`{"t":"filtered","id":7,"query":".PNG","n":1300,"rows":[0,2,4],"ms":0.012,"listing":1}`
+
+`n` is the full listing count. `rows` contains matching indices in ascending order in
+the current sorted listing, with `[]` for no matches. An empty query answers `rows:null`,
+so clearing restores the integer-count model without sending an identity array.
+`ms` measures backend matching and serialization, not UI latency.
+
+The client accepts a reply only while its `id` and `query` name the latest request, and
+it drops its answer and sends a fresh request whenever a list, sort, search, search
+refresh or final search ranking renumbers the listing, so an accepted reply answers in
+the numbering of the rows on screen, the one its `listing` stamp names. View positions
+map through `rows`; paths and file operations use those original listing indices and
+the listing stamp. Filtering
+does not emit a `rows` metadata reply or refill a window, even on clear. The client
+requests only windows needed for the displayed matches and refills its viewport after clear.
+
 ### sort
 
 `{"c":"sort","by":"<string>","desc":<bool>,"foldersFirst":<bool>,"groupByKind":<bool>,"hiddenLast":<bool>}`
 
 Example: `{"c":"sort","by":"size","desc":true}`
-Re-sorts the current listing by `by` and answers a `listed` line. The four orders are:
+The TUI retains creation-time, extension and random orders for the running session
+and navigation, without writing them into the shared four-sort settings schema.
+Re-sorts the current listing by `by` and answers a `listed` line. The orders are:
+
+- `"btime"` requests optional Linux `statx(STATX_BTIME)` for each entry without
+  following symlinks. The returned mask must include `STATX_BTIME`. Unsupported,
+  inaccessible or missing timestamps stay unavailable, never substituted with ctime
+  or mtime. Like yazi's optional-time comparison, unavailable sorts before known
+  times ascending and after them descending; equal times use the name tie-break.
+- `"extension"` reads only existing filename extension bytes, without MIME lookups
+  or a metadata pass. Directories retain name order.
+- `"random"` materializes one random rank per entry before comparing and installs
+  the resulting permutation for that listing generation. Window reads do not
+  reshuffle it and require no per-entry metadata. Both name-only orders report
+  `read:0.0`. Existing anchors and listing-generation replacement still apply.
 
 - `"name"` works on phase-1 data alone: `read` is `0.0` and `sort` is the sort.
 - `"size"` and `"mtime"` pay the metadata pass first, one `lstat` per row of the whole
@@ -410,9 +579,18 @@ untouched: no `listed`, no `rows`, no row invalidation. Answers one line:
 `{"t":"searchopened","path":"<scope>"}`
 
 `hidden` follows `list`'s rule exactly. The scope walks once per session with
-one mountinfo read; a local scope walks with bounded worker threads, a remote
-one with the single bounded worker `search` uses. One session runs at a time;
-opening a second closes the first in silence. A `list`, `listpaths`, `sort`,
+one mountinfo read. Every directory is classified against that snapshot by its
+deepest enclosing mount, including local mounts below remote mounts. Local
+directories use the bounded local walk threads. Network and FUSE directories,
+including ones below a local scope, share one serial remote lane with the existing
+5 s call deadline and 30 s stuck-mount TTL. A mount refused during a walk is not
+retried by that walk's remaining directories. A remote-root scope walks serially.
+Only one name reader may remain active per remote mount across sessions and
+patches. A reader still blocked after cancel or timeout keeps that slot until
+its syscall returns; another request reports partial coverage instead of starting
+another reader, even if the stuck TTL has elapsed.
+One session runs at a time; opening a second closes the first in silence.
+A `list`, `listpaths`, `sort`,
 `search` or `searchclose` closes the session too, and drops
 its index. Closing mid-walk cancels it: no directory opens after close.
 
@@ -444,14 +622,41 @@ the listing swap already follows for `list`:
    each folder row among the first `sizes` rows whose complete size is known.
 3. One terminal line naming the generation:
 
-`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>}`
+`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>,"partial":<bool>,"partial_reason":<string>}`
 
 `scanned` is the index size the query scored over. `walking` is true while
 the walk is still running: the answer comes from the partial index, and the
-standing query is re-run once when the walk lands, with its own gen, only if
-no newer query has been answered since; the landing answer has `walking`
+standing query is refreshed from completed directory blocks at most once per
+100 ms after its initial hold, and once when the walk lands, with its own gen,
+only if no newer query has replaced it; the landing answer has `walking`
 false and `ms` the walk's time. A newer query's answer replaces the window
-whole: no blank listing stands between two queries.
+whole: no blank listing stands between two queries. Scoring runs on one retained
+session execution worker; the loop alone publishes answers and discards an
+in-flight answer superseded by a newer query or navigation. Ordinary requests
+retain their position relative to collapsed queries. Collapse reports its highest
+drained generation to the execution gate before a buffered readiness event can
+publish an older answer. The published pageable
+remainder survives a discarded answer only while its index row IDs remain valid;
+a pending patch or a recursive watch delta that renumbers the index discards
+that remainder as usual. The newest query rebuilds it. A watch delta that lands
+while an answer is out waits behind it, then is reconciled and re-answered on the
+same worker. Closing releases the execution worker.
+
+Requested local rich rows can reuse metadata, MIME and tag results across query
+generations, keyed by unchanged path identity rather than row index. The cache
+clears when a folder answer claims a new generation, when an own write under the
+scope patches the index, and when a change line for the open folder is said; a
+typed query clears it when its requested rows change the watched directories or
+are not covered by the inode watches, and keeps it otherwise. Reuse holds
+at most 350 currently requested rows, with bounded payload and independent
+directory and file-inode watches armed before reading misses. Inode changes,
+including writes through hard links in other directories, invalidate metadata
+and serialized rows together. Ancestor moves and path replacements also
+invalidate reuse. Each watch set holds at most 350 paths; changing the inode set
+briefly retains one old set until its replacement is armed and checked, so
+intersecting identities stay covered. Overflow or failed watch coverage forces
+fresh reads, as do remote paths, symlinks and names requiring lossy display
+conversion. Reuse changes no row fields or response-local kind indices.
 
 A query asked while the walk still runs waits for the walk to land, up to
 150 ms after the first query held, the search hold (`ui/js/Swap.js`
@@ -466,6 +671,10 @@ own listing, the folder the session was opened from, in its own sort, with
 `listed.path` that folder, in the same listed, rows, searched order with that
 gen. No walk of the scope runs; one readdir of the folder is all it costs. Its
 rows line carries `z` for the folder's own folder rows the same way.
+An unmount of the search scope also completes an empty standing query with one
+`searched` status at that query's generation, `walking:false`, `partial:true`
+and reason `watch_failed`. It preserves the folder's rows, count and listing
+number; it emits no replacement `listed` or `rows` lines.
 
 A size is known when the session learned it earlier, from a `dirsize` answer
 given while it is open or from its own walk for an earlier answer, keyed by
@@ -477,17 +686,89 @@ that session; both still carry the sizes the session knows. A walk the
 scheduler had not started by the deadline marks nothing. Every patch of the
 index, from a write or the open folder's watch, forgets the known sizes.
 
-The index is the session's snapshot: no per-directory watches and no
-per-query mtime sweep. The backend's own writes under the scope patch the
-index when they land, the open folder's existing watch patches that one
-directory's entries when it reports a change, and reopening the session or
-changing scope re-walks. An outside change deeper than the open folder shows
-after a reopen. The index holds at most 200,000 entries; past it the walk
-stops adding and the count stands.
+Local sessions own a recursive inotify instance, separate from the pane and column
+watches. Each local directory is armed before enumeration, including directories
+on local USB filesystems. Nested network and FUSE directories are never armed,
+including during own-write patches and subtree replacement. Those directories
+use bounded enumeration and own-write/manual reconciliation, as remote roots do.
+Queued changes are replayed before the completed walk is announced.
+External root and deep create, rename,
+delete, replacement and subtree moves reconcile affected directory blocks without
+another query. The standing nonempty query is then pushed again as `listed`, `rows`,
+`searched`, with the same query `gen` and a new listing generation. Clients replace
+the old rows even when the query generation is unchanged, and discard row indices
+from the old listing generation. Applying an index delta always precedes this push.
+The first idle event has no timer delay; subsequent events already queued share a
+reconciliation. There is no per-query mtime sweep or whole-index repack per event.
+Retained name storage is reclaimed only after retired bytes exceed both 1 MiB and
+one percent of logical storage. Dense row swaps and reclamation invalidate internal
+query caches and any pageable remainder before another answer.
 
-The scorer and ranking contract are `search`'s own. A query extending the
-previous one scores only the previous matches; any other change scores the
-index. The first window is selected and ordered without a full sort; the rest
+The backend's own writes and the open folder's existing watch retain their patch
+paths. A remote-root session uses bounded enumeration and own-write/manual
+reconciliation; it does not claim recursive notification. Closing or cancelling a
+running walk stops and joins the recursive pump and closes its descriptors. A new
+scope rejects queued events carrying the old session's token.
+An unmount event from any recursively watched directory stops the whole scope's
+walk, releases its recursive watches, and retains any usable snapshot with
+`walking:false`, `partial:true` and reason `watch_failed` unless an earlier failure
+already supplies a reason. The scope remains terminally unmounted until reopen:
+queued index patches are discarded, and later own-write or open-directory
+notifications cannot reconcile its retained identities. Explicit user cancellation
+keeps its existing patch behavior. Pending tag reads and retries stop too, with
+the stop flag checked before each new path or chunk and after an in-flight read
+returns, including remote workers and tag rereads. It does not
+scan the exposed mountpoint or automatically resume the scope. Reopen to establish a new
+mount snapshot. A remote read abandoned by timeout or cancellation stops before
+its next entry when a blocked syscall returns; the syscall itself is not killed.
+
+The index has no fixed entry-count cap. Raw basenames are interned and paths are
+reconstructed from parent references. Checked ID or arena bounds and allocation
+refusals stop adding entries and preserve identities already held.
+
+Every session `searched` line carries `partial` and `partial_reason`. Once
+`walking:false`, `partial:false` and an empty reason certify enumeration without a
+refused directory and no reported local recursive-watch failure. This certifies
+a snapshot, with no automatic remote freshness guarantee.
+While enumeration or tag loading continues, `walking:true` carries `partial:true`
+with reason `walking`, unless an earlier failure supplies a reason. Incomplete
+coverage carries `unreadable`, `capacity` or `allocation`; cancellation carries
+`cancelled:true`, `walking:false`, `partial:true` and reason `cancelled`. Watch
+registration, descriptor or unmount failure carries `watch_failed`. A queue
+overflow reconciles all registered directory blocks and carries `watch_overflow`.
+Both watch failures remain partial until reopen, even if reconciliation recovers
+usable results, so no failed scope claims complete live coverage. For a nonempty
+query, `scanned` counts retained identities even when no entry matches; an empty
+query retains its folder-row count. A patch read refusal also makes coverage partial.
+A partial result remains usable but never certifies a complete live scope inventory.
+
+The session has its own lexical scorer; one-shot `search` and folder `jump`
+keep their existing scorer. The query and candidate characters fold without
+Unicode normalization. Exact basenames rank before clean basename prefixes,
+word prefixes, aligned paths, ordinary subsequences and typo-only matches.
+Subsequences use the best run and boundary alignment across the whole relative
+path, including separators, with no first-occurrence limit. ASCII letter
+presence masks reject impossible names before scoring, and an interned basename
+is scored once per query. Unknown and non-ASCII classes bypass this rejection.
+
+Typo-only matching starts at a word boundary and permits letter replacement,
+insertion, deletion and adjacent swap, including the first letter. A dropped
+query letter counts only where the matched word ends, so `flea` never matches
+the prefix `fla` of `flac`. Typo-only matches are listed only when no basename
+holds the query exactly, as its prefix or at a word start; with a tag term,
+only the basenames that carry its tags count. The budget
+is zero below four alphanumeric query characters, one from four through seven,
+and two from eight onward. Digits and punctuation are never edited. A query
+beginning with punctuation, such as `.svg`, permits no edits. Explicit path
+queries may correct letters in parent components as well as the basename.
+Fresh lexical ties use shorter relative paths and natural raw identity order.
+The final history and folder-distance order belongs to the read-only ranking
+prior layer; it adds no control or result mark.
+
+Only extensions with zero edit budgets on both sides may reuse the previous
+matches, and only with identical tags, complete prior coverage and an unchanged
+index. Backspace, scope or index changes, unfinished tag reads and edit-eligible
+queries rescore candidates. The first window is selected and ordered without a full sort; the rest
 stays scored but unranked until a row past the window is asked for, when the
 next chunk is ordered with the same comparator and appended behind the head,
 the request's need or one window, whichever is larger, at least doubling the
@@ -676,14 +957,16 @@ indices are resolved against the listing at request time and the operation runs 
 so it still owns a snapshot that outlives whatever the listing does next. `paths` wins when both are
 present, and an index past the end of the listing is dropped in silence.
 
-**One of `transfer`, `trash`, `duplicate` or an archive `extract` runs at a time.** One of those
-arriving while another is still running answers an `error` line saying so and touches nothing. `link`
-and `permissionsBatch` are refused the same way while one runs, without taking the slot: `link`
-answers an `error` line and `permissionsBatch` answers its `permissions` line with `ok` false. The cap
-is one because the status bar carries one transient slot for the running operation, and an extract
-drives that same card, so a second concurrent operation would have nowhere to report. `rename` and
-`mkdir` never take that slot, and an archive `compress` and a `convert` are keyed by their own `id` and
-run alongside by design, so the cap was never one write of any kind.
+**Copies, moves, archive compressions and extractions queue by destination drive.** Each request
+gets its own id and start line, including a request that waits behind another write to the same drive.
+Waiting jobs run in arrival order and name their predecessor and its target in the jobs `reason`.
+Writes to different drives run together; another running job never causes a busy refusal for these
+requests. An extraction writes to the filesystem holding its destination, just as compression does.
+Ordinary `trash`, `duplicate`, `link` and menu deletion share one non-job operation slot.
+Reviewed Trash deletion also claims that slot and refuses while its previous Trash journal is settling;
+destination-queued transfers do not hold it. Ordinary non-job mutations, including `rename`, `mkdir`
+and `permissionsBatch`, refuse while the slot or an unfinished job is active. `rename` and `mkdir`
+do not claim the slot themselves, and `convert` remains independent.
 
 The answer is a `transferstarted` line for a file transfer, then per top-level item a bounded stream of
 `transferprogress` lines and exactly one `transferitem`, then one `transferdone`. An archive `extract`
@@ -868,6 +1151,18 @@ refuses it, because a clipboard has no recorded source to replay.
 
 ### link
 
+TUI copy requests `paths` with `"hold":true` and a request `id`. Replies echo the id and listing generation,
+including failed identity captures, so a delayed failure cannot clear a newer copy request.
+Successful replies include `held`, one source identity per path. The identity stores absolute
+`path`, decimal-string `dev`, `ino`, `kind`, and `born` (null or a two-string
+seconds/nanoseconds array), preserving integer precision. Capture runs off the
+backend loop with the existing mount deadline. The client retains it through
+navigation and collision confirmation. The link request carries that same `held`
+array. The link worker checks each source against it before any destination action;
+a missing or changed source fails without creating its link. Existing clients may
+omit `held`. Every successful link still records the existing journal step.
+
+
 `{"c":"link","op":"<string>","paths":["<string>",...],"dest":"<string>"}`
 
 Example: `{"c":"link","op":"relative","paths":["/home/gm/a.png"],"dest":"/home/gm/Pictures"}`
@@ -882,7 +1177,7 @@ when both are present. A `link` whose `listing` is not the numbering in force
 is refused with `where` of `stale` before a single index is resolved, the
 same rule `transfer` follows.
 
-Like `transfer`, this runs beside the loop and takes the one-operation slot:
+This runs beside the loop and takes the non-job operation slot:
 the busy check and the collide answer are decided on the loop, then one
 thread links each source, replacing through the trash when the card chose
 it, and the answer is written from its message. A source or the destination
@@ -909,6 +1204,11 @@ sentence, and a hard link to a folder is refused outright. A `dest` that is miss
 or cannot be written answers a single `error` line with `where` of `link` and nothing is started.
 
 ### linktarget
+
+The optional `target` string is the selected link's held readlink value. If the
+worker reads a different value, it refuses rather than following the replacement.
+TUI replies must also match the held request id, source path and listing generation.
+
 
 `{"c":"linktarget","path":"<string>","id":<uint>}`
 
@@ -948,12 +1248,12 @@ target mode rather than one mode for all.
 
 Example: `{"c":"transfercancel","id":12}`
 
-Cancels the running transfer or archive `extract` if `id` names it, and does nothing otherwise, so a
-cancel aimed at an operation that already finished can never reach the one after it. A compress
-or a convert has no operator cancel, so a `transfercancel` naming either `id` does nothing and the
-job runs to its end. There is no
-response line of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and
-an extract answers its own `archivedone` with `ok` false and an `err` of `cancelled`.
+Cancels the waiting or running job named by `id`, including a transfer, archive `extract`, or
+compression, and does nothing for a stale id. Other jobs keep running or waiting independently.
+A convert is not a jobs operation and cannot be cancelled by this request. There is no response line
+of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and an extract
+answers its own `archivedone` with `ok` false and an `err` of `cancelled`, including when cancelled
+before it runs.
 
 **The item in flight is stopped rather than allowed to finish, and what it had already written is
 removed: a partial file by `copy_file`, a partly-copied directory by `copy_dir`.** A cancel that waited out a multi-gigabyte copy would not be a cancel, and a half-written file
@@ -1084,10 +1384,12 @@ not a bare kernel name, or a drive the flasher would not list (a system disk), a
 
 ### trash
 
-`{"c":"trash","paths":["<string>",...],"rows":[<uint>,...]}`
+`{"c":"trash","id":<uint>,"paths":["<string>",...],"rows":[<uint>,...]}`
 
-Example: `{"c":"trash","paths":["/home/gm/old.txt"]}`
-Example: `{"c":"trash","rows":[4,9]}`
+`id` is the client's request id; the `trashed` line that answers it echoes it. Omitted, it is 0.
+
+Example: `{"c":"trash","id":3,"paths":["/home/gm/old.txt"]}`
+Example: `{"c":"trash","id":4,"rows":[4,9]}`
 
 `rows` is the same alternative to `paths` that `transfer` documents above, resolved the same way.
 
@@ -1107,6 +1409,68 @@ the URI later is ambiguous. The backend therefore reads `gio trash --list` immed
 the call and keeps the entries that are new, which is what makes the operation reversible.
 
 There is no confirmation step anywhere in this request, because the undo journal is the safety.
+
+An accepted request first flushes `{"t":"trashstarted","id":<uint>,"n":<uint>,"cancellable":false}`,
+before the worker touches the Trash or the client re-lists. `n` counts the resolved top-level paths.
+This acknowledgement lets the client draw its pending operation immediately. It is followed by the
+existing `trashed` outcome; journal settlement and its ordering are unchanged. Ordinary trashing does
+not poll a cancel flag, so this acknowledgement must not expose a Cancel action.
+
+### trashbrowse
+
+`{"c":"trashbrowse","op":"prepare","id":<uint>,"all":true,"emptyTrash":true}` reviews the
+current Trash and answers `{"t":"trashbrowse","op":"prepare","id":<uint>,"ok":true,
+"token":<uint>,"all":true,"count":<uint>,"bytes":<uint>,"partial":false}`. The confirmation body
+uses this reviewed count and byte total, including zero bytes for empty files. A partial, pending,
+or failed review supplies no actionable confirmation. Preparation and validation query item details
+in bounded groups of 128, with the same complete snapshot and identity checks as individual queries.
+
+`{"c":"trashbrowse","op":"delete","id":<uint>,"token":<uint>}` deletes that reviewed snapshot.
+An accepted delete claims the non-job operation slot and immediately flushes
+`{"t":"trashdeletestarted","id":<uint>,"requestId":<uint>}` followed by a `transferprogress` line,
+before any queued Trash request, validation, or filesystem work. `id` is the operation id accepted by
+`transfercancel`; `requestId` is the browser request's id. A busy refusal answers only the ordinary
+`trashbrowse` error and starts no job. A pending unsettled trash journal also refuses deletion.
+
+The job uses the operations card's existing progress and terminal types:
+
+`{"t":"transferprogress","id":<uint>,"index":0,"name":"<string>","itemSize":<uint>,"bytes":<uint>,"total":<uint>,"unit":"items","phase":"checking|deleting","checked":<uint>}`
+
+`unit:items` changes the meaning of `bytes` and `total` for this operation only: they count deleted
+and reviewed filesystem entries, including descendants, directories, and zero-byte files. The totals
+come from the complete saved snapshot, so one trashed folder can report thousands of files. The
+`trashbrowse` prepare reply's `count` and the terminal item counts remain top-level Trash entries.
+The immediate sample has total 0 until the worker reads the confirmation; later samples carry the
+recursive total. During
+`checking`, `bytes` stays 0 and `checked` counts validated top-level items; during `deleting`, `bytes`
+counts successfully removed entries, including children of a folder interrupted later. Refused entries
+do not advance this bar. `name` is the original name of the top-level item in flight and `itemSize`
+is its reviewed recursive byte size; an empty name means no current item. Samples are throttled to
+150 ms, with immediate phase, first-item and final samples. Tree nodes poll cancel and sample progress.
+
+The native card's head is `Emptying Trash`. Show validation during checking, then the determinate
+file-count bar and deleted-file count, with the current name and size on its file line. Byte rates
+cannot be derived from these counts; a remaining-time estimate must use observed file deletions per
+second and is unavailable during checking. Keep the Trash strip's prior count until completion,
+then refresh it. The Empty Trash control stays in place and is disabled while the job runs.
+
+Exactly one `transferdone` releases this job's slot, followed by its original `trashbrowse` delete
+reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
+`cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
+reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
+retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
+and creates no undo entry. Cancellation during validation preserves the confirmation for another
+attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+
+Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
+deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back
+together; a failed rollback retains the existing recovery record and names its quarantine in the
+failure. A cancel for another operation id has no effect. The terminal replies precede any client
+re-list, so displaying progress and completion never waits for that re-list.
+
+Accepting delete supersedes earlier browser reads and confirmation checks through the browser's
+request generation. Its independent operation flag accepts cancel while the job is still queued;
+later browser reads cannot cancel the delete. A superseded check answers its ordinary cancelled error.
 
 ### rename
 
@@ -1170,6 +1534,16 @@ Copies one path to a free sibling name and answers one `duplicated` line. The na
 `"<stem> copy<ext>"`, `"<stem> copy 2<ext>"` and so on until one is free; `Path`'s own stem and
 extension split the last dot only, so `backup.tar.zst` becomes `backup.tar copy.zst` and a dotfile keeps
 its whole name as the stem. A directory row duplicates its whole tree.
+
+`duplicate` and `mkdir` also accept an optional positive integer `request`. Without it, or with
+zero, their existing operation and error lines are unchanged. An opted-in request keeps that
+payload and adds `request` to its successful `duplicated` or `made` line, followed by one
+`{"t":"menuaction","op":"creation","id":<request>,"kind":"duplicated|made","ok":true,"path":"<created path>"}`.
+A refusal instead keeps its original `error` line and adds the same receipt with `ok:false` and
+`error` in place of `path`. Busy refusals and slow completions carry the exact original request,
+so concurrent results need not arrive in request order. Correlation changes no operation slot,
+pending mount claim, journal entry or creation-name rule; independent request fields retain their
+meaning. Both completion lines are published together before quit can observe a finished slot.
 
 ### mkdir
 
@@ -1354,6 +1728,26 @@ The path is resolved and its cache entry looked up beside the loop under the mou
 hung mount costs one `failed` line and never the window. One conversion runs at a time and the
 newest request replaces the one queued behind it, whichever request finished its lookup first; a request older than the newest one started, running or already finished, is answered replaced at once and never converts.
 
+### officesheets
+
+`{"c":"officesheets","id":<uint>,"path":"<string>"}`
+
+Example: `{"c":"officesheets","id":5,"path":"/home/gm/Documents/budget.xlsx"}`
+
+Converts one XLSX, ODS or XLS workbook to one cached CSV per sheet with LibreOffice's CSV filter
+(UTF-8, comma separated, values as the spreadsheet shows them) and answers `officesheets` lines
+carrying the request `id`:
+`{"t":"officesheets","id":5,"state":"ready","names":["Monthly","Savings"],"paths":["<cached csv>","<cached csv>"]}`
+lists the sheets in the workbook's own order, each name beside its CSV at the same index.
+`converting` and `failed` lines, `unavailable`, the remembered converter error, the mount deadline
+and the one-at-a-time queue are those of `officepdf` above, with `"t":"officesheets"`; the two
+requests share that queue, and a workbook's PDF and its sheets are separate cache entries.
+A file that is not a spreadsheet answers
+`{"t":"officesheets","id":5,"state":"failed","err":"that file is not a spreadsheet","unavailable":true}`.
+The converter runs once over the whole workbook, then once per sheet to fix the order, skipping
+the last sheet, which is the one left; a workbook with more than 24 sheets lists its first 24, one
+order run each.
+
 ### settags
 
 `{"c":"settags","rows":[<uint>,...],"op":"<string>","tag":"<string>","listing":<uint>}`
@@ -1486,6 +1880,14 @@ Rail hover requests include a positive `id`, echoed in the answer, so leaving or
 
 ### clipSet
 
+`"op":"text"` uses the same queued detached owner with `paths` containing exactly
+one NUL-free text value. It offers only `text/plain;charset=utf-8`, `text/plain` and
+`UTF8_STRING`, with no file URI list, copy/cut marker or file token. It never changes
+the TUI's copied-file selection. TUI copy-as-text joins held selected paths, URIs,
+parent paths/URIs, filenames or stems with newlines. URI encoding preserves UTF-8
+bytes and escapes every byte outside the unreserved set and slash.
+
+
 `{"c":"clipSet","op":"copy"|"cut","paths":[<string>,...]}`
 
 Owns the system clipboard for those files, so another Flea window (or Nautilus, or
@@ -1503,7 +1905,9 @@ Answers one `clip` line with `op` of `set`; see `clip` below.
 Reads the current system selection as files. Runs off the request thread, the way other
 slow reads do, because a foreign source can take up to 2 s to close its pipe. The
 owner's own token type is read first, then GNOME's copied-files shape, then the
-uri-list with KDE's cut marker; an empty or text-only selection answers `none`. Answers
+uri-list with KDE's cut marker. With no file paths, an `image/png` offer answers
+`image` without reading its bytes, including when HTML or browser types are offered
+beside it. An empty or text-only selection answers `none`. Answers
 one `clip` line with `op` of `get`; see `clip` below.
 
 ### clipClear
@@ -1536,7 +1940,8 @@ Starts the clipboard watcher: one thread holding one data-control connection, re
 every clipboard selection (never the primary one, so a text highlight changes nothing)
 as files the same way `clipGet` reads them. Idempotent; the UI sends it
 once at start and later ones answer nothing. No reply of its own: file selections arrive
-as `clip` lines with `op` of `changed`, an empty or text-only selection as `none`, and
+as `clip` lines with `op` of `changed`, a PNG offer without files as `image`, an
+empty or text-only selection as `none`, and
 two identical selections in a row emit once. No compositor or manager ends the thread
 after one `changed` `none` line carrying the error; a dropped connection reconnects at
 most once a second, at most 5 times.
@@ -1575,6 +1980,129 @@ pidfd trigger covers Flea owners; a selection owned by another program and empti
 on Hyprland reports nothing until the next selection. Paste always reads fresh,
 so no file operation can act on that stale watcher state. See `clip` below.
 
+### plugins
+
+`{"c":"plugins","op":"list","id":1}`, and `enable`, `disable`, `update` and `remove` with `"plugin":"<id>"`,
+`set` with `"plugin"`, `"key"` and `"value"`, and `add` with `"source"` (a Git URL, or an absolute folder or `~/`
+folder). For `validate`, supply `"source"` as an absolute folder path; it neither clones Git nor expands a literal
+`~/` prefix. `runtime` takes `"plugin"` and a nested `"request"` object, as described under **plugins runtime**.
+
+Settings > Plugins and `flea plugin <verb>` use the management operations. Requests are answered on their own
+threads, so a clone, a pull or a start check does not hold the loop. `list` answers one `plugins` line. The management
+operations `enable`, `disable`, `set`, `add`, `update`, `remove` and `validate` answer one `pluginop` line and then
+the `plugins` listing they left, both carrying the request's `id`. Management changes run one at a time. A `runtime`
+request instead answers one terminal `pluginruntime` line, optionally preceded by `pluginprogress` lines; it does
+not append a `pluginop` line or a `plugins` listing.
+
+The listing names the four built-ins first (Shelf, LocalSend, Tailscale, Dropbox), then every folder under
+`$XDG_CONFIG_HOME/flea/plugins/` whose name does not start with a dot, in name order. Each plugin carries its
+manifest's facts, `enabled`, `source` (`builtin`, `git` with the origin in the plugin's own `.git` folder, `folder`
+with the folder it was added from, or empty), its `schema` in the manifest's own shape and its `settings` clamped to that schema. The Shelf also carries
+`shelf`, the ui.json shelf group and its pins. `failure` names why an enabled plugin cannot run, or why a folder is
+not a plugin, as a code with one `detail`; it is empty otherwise.
+
+The Shelf's switch is `shelf.enabled`, and a change of it installs or removes the bar plugin as `--ui-state` does. Every
+other switch and setting lives in ui.json's `plugins` map, and `set` stores the value clamped. `add` copies or clones
+into a dot folder first and renames it into place only when its manifest is valid and its id is free, so a failed add
+leaves nothing; an added plugin arrives disabled. A folder add copies regular files and folders only, skips every dot
+entry (`.git` included), and refuses a tree past 4096 entries or 64 MB with `write` before anything is written; each
+file opens without following a link and without blocking, and anything but a regular file refuses the add. A Git add
+checks its clone against the same 4096 entries and 64 MB, counting every tracked entry, dot entries included, and
+setting aside only the clone's own top-level `.git`; past either it refuses with `write` before the clone moves into
+place. The listing reads a Git plugin's `.git/config` only as a regular file of at most 64 KiB, and `update` lists it
+through Git under a ten second deadline. A folder add records its folder in `.sources/<id>` under the plugins folder, never inside the
+plugin; the listing reads that record only as a regular file of at most 4 KiB, and `remove` deletes it.
+`enable` saves the switch and then sends the plugin's executable `hello`; the five second deadline starts before
+`hello` is written, and no `ready` within it records `start` until the plugin is switched off, updated or starts.
+`update` is `git pull --ff-only` and reaches only a plugin added from Git. Every Git call runs without system or user
+config, hooks or fsmonitor, and `update` refuses with `git` a plugin whose `.git` is not a plain folder or whose config
+holds anything a clone does not write (`core.worktree`, `core.hooksPath` and `core.fsmonitor` among them).
+`remove` deletes the plugin's folder and its settings; a built-in refuses `remove` and `update` with `builtin`.
+
+### plugins runtime
+
+```json
+{"c":"plugins","op":"runtime","id":41,"plugin":"example.send-target","request":{"op":"targets"}}
+```
+
+`plugin` identifies the installed plugin. `id` correlates the outer request with its progress and terminal replies.
+`request` is the plugin operation object. The outer `op` is always `runtime`; the nested `op` selects the operation.
+This envelope is accepted by `flea --backend` and the application-wide `flea --plugin-host` process. The latter
+accepts only `c:"plugins"` requests.
+
+Except for `cancel`, the plugin must be enabled and have no recorded failure. Ordinary operations must match a kind
+declared by the manifest. `run` must also name a declared action. A `folder` field requires declared `folder` access
+and an absolute path without NUL. If supplied, `paths` is an array of at most 512 absolute paths without NUL;
+`targets` and `section` refuse a `paths` field. An action that declares text input requires the matching one-key
+`input` object with a nonblank string within its declared character limit and no control characters.
+
+| Nested `op` | Declared kind | Terminal plugin `op` |
+| --- | --- | --- |
+| `targets` | `send-target` | `targets`, with a `targets` array. |
+| `send` | `send-target` | `done`. |
+| `run` | `menu-action` | `done`. |
+| `section` | `rail-section` | `section`, with a `rows` array. |
+| `list` | `place` | `list`, with an `entries` array. |
+| `copy`, `move`, `rename`, `delete` | `place` | `done`. |
+| `preview` | `previewer` | `preview`. |
+| `shelf` | `shelf` | `done`. |
+| `settings` | A plugin eligible for a lasting session | `done`. |
+
+Every ordinary operation may finish with `{"op":"error","message":"..."}` instead. An operation whose normal
+terminal response is `done` may emit progress before that response. See [PLUGINS.md](../PLUGINS.md) for the
+operation-specific request and response fields and the shelf routing rules.
+
+For a preview, the backend envelope names the actual selected local file:
+
+```json
+{"c":"plugins","op":"runtime","id":47,"plugin":"example.torrent-preview","request":{"op":"preview","paths":["/home/me/sample.torrent"],"width":900,"height":600}}
+```
+
+The file must be a regular file matching the previewer's declared MIME patterns. The backend binds that file
+read-only inside the sandbox and sends the executable `{"op":"preview","path":"/in/file","outDir":"/out","width":900,"height":600}`.
+The `/in/file` path in the guide's executable exchange is a sandbox path, not the host file to send in the outer
+request. `width` and `height` accept numbers from 1 through 8,192 and are rounded; each defaults to 900 when absent
+or invalid.
+
+Two nested operations are handled by the host rather than forwarded as ordinary plugin requests:
+
+```json
+{"c":"plugins","op":"runtime","id":42,"plugin":"example.send-target","request":{"op":"ready"}}
+{"c":"plugins","op":"runtime","id":43,"plugin":"example.send-target","request":{"op":"cancel"}}
+```
+
+For an installed executable plugin, `ready` checks startup and returns `message:{"op":"ready"}` on success.
+Built-ins use in-process adapters rather than the executable handshake. `cancel` stops that installed plugin's
+lasting session and returns `message:{"op":"done"}`. Cancellation identifies the plugin, not a particular request
+id. When a lasting subprocess is stopped, Flea attempts to write `{"op":"cancel"}` and immediately kills its
+process group; the subprocess has no guaranteed cleanup interval.
+
+The subprocess protocol uses UTF-8 JSON objects separated by newlines. Protocol version 1 is negotiated on that
+separate stream, rather than on the outer backend envelope. The initial exchange is:
+
+```json
+{"op":"hello","protocolVersion":1,"flea":"0.4.0","language":"en","decimal":".","settings":{},"kinds":["send-target"]}
+{"op":"ready","protocolVersion":1}
+```
+
+`flea` is the package version; `language` and `decimal` describe Flea's locale. `settings` contains values clamped to
+the manifest's schema, and `kinds` contains its declared kinds. The startup deadline is five seconds. A `ready`
+response may omit `protocolVersion`; if present, it must be the number `1`.
+
+A lasting session handles one call at a time. A concurrent ordinary request is refused with `busy` rather than
+queued. If the host's `ready` check collides with an active call, its refusal instead uses `start`.
+Previewer-only plugins do not accept runtime `settings` calls; their fresh startup hello supplies settings.
+Ordinary lasting-session requests have a 30-second deadline. The subprocess is stopped after 30 seconds idle; a
+later request starts a new subprocess. Previewers instead run once per request in the thumbnail sandbox, with a
+10-second response deadline after readiness.
+
+Subprocess messages are limited to 65,536 bytes, result arrays to 256 rows, and progress to 128 messages and
+1,048,576 aggregate bytes per request. These are subprocess message limits, not the size of a terminal backend
+envelope that also contains retained progress. Required row strings and `op`, error `message`, progress `message`
+and preview `png` strings are at most 4,096 bytes and contain no NUL. Row identities (`id`, or `name` for entries)
+must be nonempty and unique within an answer. Entry names additionally cannot be `.`, `..` or contain `/`.
+Preview `text` is bounded by the message size rather than the 4,096-byte string limit.
+
 ### quit
 
 `{"c":"quit"}`
@@ -1590,6 +2118,60 @@ the client that asked for it is going away too. A `collisions` question still be
 same way, which is why a scripted client waits for its line before sending `quit`.
 
 ## Responses
+
+### gitstatus
+
+`{"t":"gitstatus","id":1,"path":"/repo","ok":true,"enabled":true,"root":"/repo","branch":"main","label":"main · 8 changed","changed":8}`
+
+`t` names the request, `id` and `path` echo its correlation, and `ok` reports success. `root`
+is the canonical worktree root, `branch` its branch name (`detached` for detached HEAD),
+`changed` the unique changed-path count after coalescing, and `label` the exact branch-caption text derived
+from that count. An unborn branch keeps its real name; a clean repository says `main · 0 changed`.
+The normal window's branch caption is muted; in Changes it is foreground. The illustrated
+`main · 8 changed` count is data, independent of the ordinary listing's item count.
+
+Disabled replies have `enabled:false`, empty `root`, `branch` and `label`, and `changed:0`.
+An enabled directory outside a repository has the same empty values with `enabled:true`.
+Clients hide Git decoration in both cases. A failed status clears stale decoration while
+ordinary file browsing remains usable. A failed load retries on the next enabled status request;
+the existing mount quarantine refuses filesystem work until its stuck TTL expires.
+
+### gitrows
+
+`{"t":"gitrows","id":2,"path":"/repo","ok":true,"marks":[{"path":"/repo/Code","status":"","folder":true},{"path":"/repo/notes.txt","status":"M","folder":false}]}`
+
+`marks` contains each asked absolute `path`, its `status`, and whether it is a `folder` with
+changes inside. A clean row has `status:"",folder:false`. Non-empty statuses are exactly
+`M` modified, `A` added, `D` deleted and `?` untracked. A deleted flag in an ordinary or
+rename/copy record takes precedence, so an `RD` destination uses `D`; other rename/copy
+destinations use `A`, and other tracked changes use `M`.
+An unmerged record uses its worktree mode: a present conflicted path uses `M`, including `UD` and
+`DU` modify/delete conflicts, while a zero worktree mode uses `D`. No per-file stat is needed.
+A coalesced index-deletion/untracked pair instead emits one `?`, as described under `gitstatus`.
+A folder square takes precedence over a simultaneous
+letter for a submodule or embedded repository. The window square is 6 px, yellow and centred
+in the 14 px mark column. Resting letters use yellow, green, error and muted roles respectively,
+each at least 4.5:1; cursor-row text uses foreground. `folder` supplies the same yellow `■`
+to the TUI's one-cell column. No marks outside the viewport are requested or painted.
+
+### gitchanges
+
+`{"t":"gitchanges","id":3,"path":"/repo","ok":true,"root":"/repo","label":"main · 8 changed","total":8,"start":0,"entries":[{"path":"Code/lib.rs","status":"D","original":"","deleted":true}]}`
+
+`root` and `label` identify the same cached snapshot as `gitstatus`; `total` is its complete
+unique changed-path count after coalescing, `start` the clamped page offset, and `entries` the requested page in
+repository-relative path order. Each entry supplies `path`, `status`, `original` and `deleted`.
+`status` has the same four-letter alphabet as `gitrows`. `original` is the source path for
+a rename or copy and otherwise empty; it is metadata, not another counted entry. `deleted`
+is true for a `D` row even when that path no longer exists. These replies contain no size or
+date; clients resolve metadata off-thread for existing visible paths and skip it for deleted rows.
+The Changes footer counts `total`, for example `8 items`, separately from ordinary listing rows.
+
+All three Git requests fail with their own `t`, echoed `id` and `path`, `ok:false` and an
+`error` sentence, for example `{"t":"gitstatus","id":1,"path":"/repo","ok":false,"error":"Git status timed out."}`.
+Errors include unavailable snapshots or sandbox, invalid paths or visible-row requests,
+cancellation, timeout, over-limit output, malformed porcelain and underlying I/O or Git diagnostics.
+These are requested replies; `changed` remains the only unsolicited notification.
 
 ### listed
 
@@ -1622,6 +2204,16 @@ added plus removed rows between the two scans, so a rename counts 2 against a ne
 A first listing and a navigation carry no `changed`, and a client reads a missing one as unknown rather than 0.
 
 ### rows
+
+Each viewport row also carries `b`, an optional creation timestamp as Unix seconds
+or null. The source is Linux `statx(STATX_BTIME)`, with no-follow and no-automount
+flags and the returned mask checked. Missing support stays null. It is read only
+in the existing bounded viewport metadata worker, except an explicit creation-time
+sort. Serialization performs no extra filesystem read. Cached GIO rows without
+a creation-time fact report null. TUI Creation
+detail displays a localized date or the localized unavailable value. Properties'
+single-item `menuaction` payload carries the same optional value as `birth`.
+
 
 `{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>][,"tg":[<string>,...]][,"a":true][,"x":false]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
 
@@ -1694,18 +2286,27 @@ at all (`application/x-ms-dos-executable` is the one shipped example) and for a 
 glob matched. **An icon name is an internal string and this column is a human
 description, so one never leaks into the other**, and a name nothing identified must not
 claim to be text however far the icon ladder itself falls. Like the icon and
-MIME tables, the comment cache is read once per distinct type for the life of the
-backend process, never per row: the client is given a human description and never the
+MIME tables, the comment file is read once per distinct type for the life of the
+backend process, never per row. The selected description is cached per type and
+refreshed when Omarchy's language changes: the client is given a human description and never the
 MIME type, because a display should not classify.
 
-**The parser rule is the first `<comment>` carrying no `xml:lang` attribute, not the first
-`<comment>` of any kind, and this was measured rather than assumed.** 8 of the first 200
+**English uses the first `<comment>` carrying no `xml:lang` attribute, preserving its
+bytes. Other languages select an exact language and region, then the base language,
+then that untranslated comment.** Underscores and hyphens name the same locale;
+the roster's Chinese regions and Cyrillic Serbian also match their explicit XML
+script tags. Translated XML entities are decoded before display. 8 of the first 200
 `/usr/share/mime/*.xml` files on this box open with a translated comment before their
 untranslated one; `application/msword.xml` is one of them, opening `xml:lang="zh-Hant-TW"`
 with its untranslated comment further down the file, after every alias and glob line. A type
-whose file carries no untranslated comment at all, or no comment element of any language,
+whose file carries no matching translated or untranslated comment,
 answers `None`, which is why `Kinds::comment` returns `Option<String>` rather than an empty
 string.
+
+An explicit `mime.markdown` catalog value overrides the localized Markdown comment
+outside English. Only Japanese supplies one: `Markdown 文書`, as HIG
+`CHANGES.md:2800` requires, correcting the installed incomplete `Markdown ` comment.
+Every other locale continues through the MIME selection and fallback above.
 
 **No wording in that file is a property of the format, and nothing may assert one.** Every
 `/usr/share/mime/<type>.xml` is generated by `update-mime-database` from the files in
@@ -1949,6 +2550,22 @@ its row does), resolved from `/etc/passwd` alone and never through `getpwuid`: t
 NSS and can wait on a network directory, and the meta thread must never hang the column on one. A uid
 no local account carries answers the empty string, never the number dressed as a name.
 
+### owner
+
+`{"t":"owner","row":<uint>,"token":<uint>,"owner":"<string>","retry":<bool>}`
+
+Example: `{"t":"owner","row":7,"token":91,"owner":"gm","retry":false}`
+
+The answer to one `{"c":"owner","row":<uint>,"token":<uint>}` request, which the TUI's Owner detail
+column sends for one drawn row at a time, echoing its `row` and `token`. `owner` reads as `meta.owner`
+does, the login name from `/etc/passwd`, and is empty for a uid no local account carries, a path that
+cannot be stat'ed or a row past the listing. `retry` is true only when the stat could not run, because
+its remote mount already holds an owner stat, eight remote owner stats are held across all mounts, the
+mount is marked stuck, or the stat missed its five-second deadline. `owner` is empty then too, so a
+reader that ignores `retry` reads the line it always did, and an absent `retry` reads as false. The
+TUI keeps every `retry:false` answer, empty ones included, until its rows change, and asks a
+`retry:true` row again only while the Owner column still draws it, at most once a second.
+
 ### shebang
 
 `{"t":"shebang","path":"<string>","hasShebang":<bool>,"id":<uint>}`
@@ -2055,13 +2672,16 @@ with `inner` `refuse`.
 ### clip
 
 `{"t":"clip","op":"set","ok":<bool>,"token":<string>}`
-`{"t":"clip","op":"get","ok":<bool>,"clip":"copy"|"cut"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
+`{"t":"clip","op":"get","ok":<bool>,"clip":"copy"|"cut"|"image"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
 `{"t":"clip","op":"clear","ok":<bool>,"cleared":<bool>}`
-`{"t":"clip","op":"changed","clip":"copy"|"cut"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
+`{"t":"clip","op":"changed","clip":"copy"|"cut"|"image"|"none","paths":[<string>,...],"token":<string>,"skipped":<uint>}`
 
 One shape for all three clipboard requests, read by `clipResult`. A refusal carries
 `ok:false` and an `error` sentence instead of the success fields. A `get` with no
-files on the clipboard answers `clip:none` with empty `paths` and `token`; `skipped`
+files on the clipboard answers `clip:image` if PNG is offered, otherwise `clip:none`,
+with empty `paths` and `token` in either case. Only file selections enable Paste As;
+`image` enables ordinary Paste, which requests the PNG bytes through `pasteimage`.
+`skipped`
 counts the offered URIs that were refused (bad escapes, NUL, relative paths, `.` or
 `..` parts, non-UTF-8, duplicates, other schemes) rather than failing the read. The
 `token` on a `get` names Flea's own copy when the selection carries it, which is what
@@ -2191,15 +2811,15 @@ The helper's eject verdict: `busy` keeps the rail's shipped "still mounted" sent
 
 ### trashed
 
-`{"t":"trashed","ok":<uint>,"failed":<uint>}`
+`{"t":"trashed","id":<uint>,"ok":<uint>,"failed":<uint>,"moved":[<string>,...]}`
 
-Example: `{"t":"trashed","ok":1,"failed":0}`
+Example: `{"t":"trashed","id":3,"ok":1,"failed":0,"moved":["/home/gm/old.txt"]}`
 
-Counts, plus the batch's own reason when anything failed: `{"t":"trashed","ok":0,"failed":1,"err":"<string>"}`.
+`id` echoes the request. `moved` names the original paths that went, so a client records an undo step for only those. Counts, plus the batch's own reason when anything failed: `{"t":"trashed","id":3,"ok":0,"failed":1,"err":"<string>","moved":[]}`.
 Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
 the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
-afterwards is counted in `failed`. `err` rides only on a failure, so a successful line is byte-identical
-to before. `gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
+afterwards is counted in `failed`. `err` rides only on a failure, so a successful line has no `err` key.
+`gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
 instead of holding the single operation slot.
 A batch that ran `gio` sends the line once `gio` has returned and each path has been checked on disk (`lstat`), whether
 or not every path went, so a failure goes out the same way with its `failed` count and `err`. It is sent before the second
@@ -2354,6 +2974,73 @@ network mount is the other case: inotify sees the local kernel's own view of a d
 change another machine makes to an NFS or SMB share is not delivered, and Flea is stale there in
 exactly the way it was before this line existed.
 
+### plugins
+
+`{"t":"plugins","id":1,"plugins":[{"id":"flea.shelf","name":"Shelf","version":"0.4.0","author":"Flea","license":"MIT","description":"...","kinds":["shelf"],"glyph":"flea","mark":"","access":["shelf:pile"],"source":"builtin","origin":"","enabled":false,"failure":"","detail":"","schema":[],"settings":{},"shelf":{"enabled":false,"bar":true,"rail":"off","screenshots":true,"recordings":true,"recent":3,"pins":[]}}]}`
+
+The whole installed list after the request named by `id`; see `plugins` above. `mark` is an absolute path to the
+plugin's own SVG when it has one. `shelf` is `null` on every plugin but the Shelf.
+
+### pluginop
+
+`{"t":"pluginop","id":2,"op":"add","plugin":"mtorvik.checksums","ok":true,"code":"","detail":"","version":"0.2.0"}`
+
+One change's outcome. A refusal has `ok` false and a `code` with one `detail` argument; the codes are the ones
+`src/ui_logic_st2.rs` and `src/ui_logic_st2/wire.rs` list, each selecting a `plugins.error.*` or
+`plugins.invalid.*` catalog sentence. `version` is the plugin's version after an `add` or `update`.
+
+### pluginprogress
+
+```json
+{"t":"pluginprogress","id":44,"plugin":"example.send-target","message":{"op":"progress","done":1,"total":1,"message":"Receiving selection."}}
+```
+
+A progress event for the outer runtime request identified by `id` and `plugin`. The outer `message` holds the
+plugin's progress object. Its `done` and `total` are whole numbers from 0 through 9,000,000,000,000,000, with
+`done` no greater than `total`. The inner `message` is an optional string. Progress is streamed while the request
+runs, before its terminal `pluginruntime` reply. Clients should correlate events by `id` rather than count lines.
+
+### pluginruntime
+
+```json
+{"t":"pluginruntime","id":41,"plugin":"example.send-target","ok":true,"message":{"op":"targets","targets":[{"id":"receiver","label":"Local Receiver","state":"ready"},{"id":"offline","label":"Offline Receiver","state":"offline"}]},"progress":[],"code":"","error":""}
+```
+
+The terminal outcome of one runtime request. The envelope always includes `t`, `id`, `plugin`, `ok`, `message`,
+`progress`, `code` and `error`. `id` and `plugin` identify the outer request. On success, `ok` is true, `message`
+contains the result object, and `code` and `error` are empty strings. `progress` holds the accepted progress objects
+in order, including objects already sent through `pluginprogress`. Do not apply them twice.
+
+For example, this send emits the progress line above and then the terminal line below:
+
+```json
+{"c":"plugins","op":"runtime","id":44,"plugin":"example.send-target","request":{"op":"send","target":"receiver","paths":["/home/me/notes.txt"]}}
+{"t":"pluginruntime","id":44,"plugin":"example.send-target","ok":true,"message":{"op":"done","message":"Selection received."},"progress":[{"op":"progress","done":1,"total":1,"message":"Receiving selection."}],"code":"","error":""}
+```
+
+A plugin's `error` result is an operation failure: `ok` is false, `code` is `operation`, `error` is the plugin's
+message string, and the original error object remains in `message`. Accepted progress is retained. This result
+does not itself mark the plugin failed.
+
+```json
+{"t":"pluginruntime","id":45,"plugin":"example.send-target","ok":false,"message":{"op":"error","message":"Choose the ready receiver and at least one file."},"progress":[],"code":"operation","error":"Choose the ready receiver and at least one file."}
+```
+
+A host refusal or runtime failure instead has `ok:false`, `message:null`, `progress:[]`, and a `code` and `error`
+describing the failure. Previously streamed progress can therefore exist even when the terminal array is empty.
+Codes include `unknown` for an unrecognized installed id, `request` for an invalid operation or its validated
+fields, `busy` for a concurrent ordinary lasting-session request or a full plugin-host worker pool, `start` for startup or
+runtime failures and for a disabled or failed plugin, and `write` when the host cannot initialize plugin storage.
+These fields are `code` and `error`, rather than the management reply's `code` and `detail`.
+
+```json
+{"t":"pluginruntime","id":46,"plugin":"example.send-target","ok":false,"message":null,"progress":[],"code":"busy","error":"plugin busy"}
+```
+
+Preview results are normalized before they reach this envelope. Text is reduced to at most 1,000 plain lines with
+control characters other than tab removed from each line. A PNG result's `png` names the retained host file, with
+`width` and `height`; it is not the subprocess's `/out/preview.png` path.
+
 ### error
 
 `{"t":"error","where":"<string>","path":"<string>","msg":"<string>"[,"mode":<uint>][,"code":"<string>"]}`
@@ -2414,9 +3101,11 @@ object carries one bit per extension class: `{"archive":<bool>,"sevenZip":<bool>
 `.zip`/`.rar` class served by whichever of those two is installed. The client offers Extract on a package only
 when `sevenZip` is set; the backend's own listing of a package still falls back to `bsdtar` where `7z` is missing,
 as v0.3.8 did, except an `.AppImage`, whose squashfs image only `7z` reads. An `archive` request with an `op` of
-`extract` takes the one-at-a-time slot `transfer` describes, drives that same transfer card and answers
-`archivedone`, never `transferdone`; a `transfercancel` naming its `id` cancels it, and it is not
-journaled, so no `undo` reverses it.
+`extract` joins the destination-drive queue `transfer` describes. It answers `archivestarted` with its
+own id even while waiting, drives that same transfer card through `extractstarted` and
+`transferprogress`, and answers `archivedone`, never `transferdone`. A `transfercancel` naming its
+id cancels only that extraction, whether waiting or running. It is not journaled, so no `undo`
+reverses it.
 
 An `archive` request is `{"c":"archive","op":"compress"|"extract","paths":[<string>,...],"path":"<string>","dest":"<string>","format":"<string>","password":"<string>","encryptNames":<bool>}`.
 A `compress` names absolute `paths` sharing one parent and the `format` to write; an `extract` names the
@@ -2450,6 +3139,14 @@ refused the same way: `{"t":"archivedone","id":<uint>,"ok":false,"verified":true
 <leaf> needs <needed>, and <target> has <free> free."}`, where `<target>` is the name of the folder the
 extract lands in, or `/` for the root. An index that cannot be read refuses nothing, because unknown is not evidence
 the extract cannot fit.
+
+A `peek` request with `"details":true` is used by TUI folder previews. Only returned
+rows, already limited by `first` and `PEEK_CAP`, pay one no-follow metadata read
+inside the existing bounded mount worker. Their `s` (entry bytes) and `p` (mode)
+fields let the TUI draw child sizes. A vanished or unreadable entry carries zero
+mode and size, which the TUI leaves unavailable. The default is false: ancestor,
+network and other existing peeks keep their name-only path and perform no
+per-entry metadata reads.
 
 One `peek` field is worth naming ahead of that section, because it is new. A `peeked` line whose scan
 failed carries `"failed":true`, with `"mode":<uint>` beside it under the same rule the `error` line
@@ -2503,3 +3200,155 @@ listing takes; a failed peek carries neither.
   Qt's PNG decoder runs unconfined in the shell process on bytes it did not write. That is a
   known residual risk, parked for a later plan rather than closed here. See AGENTS.md
   "Deliberate corners".
+
+## Jobs and Actions (0.4.0)
+
+Jobs are additive to the existing transfer, archive, and LocalSend requests and replies. The backend still emits the existing single-operation events with their existing fields. Clients that do not consume jobs can ignore the new event types. Each copy, move, compression, extraction, background action, and LocalSend send has a backend job id, independent of a caller's request id. Empty Trash adopts its existing operation id and cancellation flag through the same model, with the head `Emptying Trash`.
+
+Requests:
+
+```json
+{"c":"jobs","op":"list"}
+{"c":"jobs","op":"cancel","id":12}
+{"c":"jobs","op":"retry","id":12}
+{"c":"jobs","op":"dismiss","id":12}
+{"c":"jobs","op":"undo","id":12}
+```
+
+`list` returns a `jobs` snapshot. A snapshot also accompanies membership and scheduling changes. `jobs` contains the ordered list, newest first, `unfinished` counts only running and waiting jobs, and `newest` identifies the newest unfinished job or is null. `head` is that job's head, or an empty string. This supplies the TUI status row's newest operation and its `· 3 jobs` suffix. A `job` update replaces the matching id without moving its row. Progress updates are limited to one per job per 150 ms; scheduling, completion, cancellation, and Undo availability changes are immediate.
+
+```json
+{"t":"jobs","jobs":[],"unfinished":0,"newest":null,"head":""}
+{"t":"job","job":{"id":12,"kind":"copy","head":"Copying 10 of 18 to NAS","file":"DSC_4944.jpg","done":9,"total":18,"bytes":5300000,"totalBytes":9700000,"itemBytes":458300,"rate":1100000,"left":4,"state":"running","reason":"","output":[],"undo":false,"cancelled":false},"unfinished":3}
+{"t":"joberror","id":12,"error":"Only a failed job can be retried."}
+```
+
+Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields and counts successfully deleted filesystem nodes, including descendants, against the reviewed recursive total. Its initial total is zero until the worker reads the confirmation. It retains the current top-level item's reviewed size in `itemBytes`; `left` uses deleted nodes and elapsed time. Its terminal legacy replies still count top-level Trash entries, cancellation keeps completed deletions, and retry requires a fresh Trash confirmation.
+
+Copies, moves, compressions, and extractions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
+
+A failure retains its position, with a failure head and its reason. `retry` preserves the row and id, requeues behind jobs already accepted, and narrows the attempt to failed items. The queued work retains each failed source's identity, including its birth time when available. Transfers check that identity before each item, actions before each invocation, and indivisible archive or send operations before their invocation. A replacement is refused and never becomes the identity of a subsequent retry. A compression or extraction is one indivisible failed operation. `dismiss` accepts only failed or done rows.
+
+A successful journalled transfer has `undo:true` only after its journal entry is published. The offer belongs to that backend's job and expires when another operation, Undo, or Redo changes the history, including in another window. The shared journal claim compares the saved history revision and exact entry under its lock; an expired offer is refused with `That job can no longer be undone.` and revoked without consuming any entry. Reversal replies use the existing `undone` or `error` events and update search indexes and tag state through the same path as ordinary Undo, including paths changed before a partial failure. `undo` refuses while another job is unfinished. Compressions, extractions, sends, and arbitrary actions do not invent undo records. A done row is a completion notification and is omitted from the visible card; the backend retains it until the next job starts so its Undo remains addressable. Failed and done jobs do not contribute to `unfinished`.
+
+Archive workers capture source identities before their first invocation and carry them with the completion, including menu selections. Completion handling never inspects those paths to construct a failed set. Later retries retain the captured identities even when a changed source is refused. Job-offer expiry uses its own shared history revision; the generation that guards Redo publication changes only on a new operation push, so overlapping successful Undos both remain redoable when no new operation was pushed.
+
+Actions requests use absolute selection paths, resolved by the caller from one listing before sending. A preview request carries only the cursor file, never the marked selection.
+
+```json
+{"c":"actions","op":"list","id":4,"paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actions","id":4,"actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false}],"errors":[],"error":""}
+{"c":"actions","op":"run","id":5,"action":"action:resize.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionstarted","requestId":5,"id":13,"ok":true,"error":""}
+{"c":"actions","op":"preview","id":6,"action":"action:describe.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionpreview","id":6,"ok":true,"text":"Description from the previewer\n","error":""}
+```
+
+A terminal handoff or refused run answers `actionstarted` with `requestId`, `ok`, and `error`, without a job id. A terminal action opens each expanded argv through `xdg-terminal-exec --dir=... -- ...`, the Open in Terminal launcher. A preview-only action refuses `run`. A preview answers text suitable for the existing `code` request's `text` input and the code renderer. Its process runs in the existing read-only preview jail with only the cursor file and executable added, a five-second wall deadline, the existing CPU and address-space limits, and a 1,048,576-byte output cap. A newer preview request cancels and suppresses the older reply.
+
+The manifest directory is `$XDG_CONFIG_HOME/flea/actions` or `$HOME/.config/flea/actions`. The parser accepts the specimen's TOML subset: five unique required keys, double-quoted basic strings with JSON-compatible escapes, and possibly multiline string arrays with comments and trailing commas. Raw C0 control bytes other than tab, and raw DEL, are prohibited in strings; supported escaped values remain valid. Other keys, tables, duplicate keys, missing fields, wrong types, empty arrays, invalid modes or selection rules, invalid escapes or placeholders, and files over 16,384 bytes are refused whole. Directory discovery examines at most 257 entries to detect overflow, counting unrelated entries too, and reports when that entry limit truncates discovery; it reads at most 256 manifests; arrays hold at most 128 elements. Nonregular files are refused without blocking. Each refusal appears in the `actions.errors` array as `{"file":"bad.toml","error":"..."}`; valid siblings remain available.
+
+```toml
+name = "Resize to 1600 px"
+mime = ["image/*"]
+selection = "many"
+run = ["magick", "{path}", "-resize",
+       "1600x1600>", "{dir}/{stem}-1600.{ext}"]
+mode = "background"
+```
+
+MIME patterns match the entire MIME string and accept literal characters, `*`, and `?`. Every selected item must match a pattern; `one` requires exactly one item, while `many` accepts one or more. MIME comes from the existing name database, with directories reported as `inode/directory` and unknown files as `application/octet-stream`. Listing and running recheck the actual selected paths. No directory listing is MIME-scanned to populate Actions.
+
+`{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. The invocation owns its entire process group: cancellation and leader exit, successful or unsuccessful, kill remaining descendants with SIGKILL before reaping the leader, including children that ignore SIGTERM.
+
+Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.
+
+## Checked rclone sends (0.4.0)
+
+The menu's executable capabilities include `providers.rclone` with the existing `installed`, `command`, and `reason` fields. Request configured remotes only when opening the send menu:
+
+```json
+{"c":"rclone","op":"remotes","id":71}
+{"t":"rcloneremotes","id":71,"visible":true,"remotes":["gdrive","b2-photos","nas-crypt"]}
+{"c":"rclone","op":"send","id":72,"remote":"gdrive","folder":"Uploads","paths":["/absolute/photo.jpg"]}
+{"t":"rclonestarted","requestId":72,"id":12,"ok":true,"error":""}
+```
+
+`listremotes` runs off the loop, inherits `RCLONE_CONFIG`, contacts no remote and has a two-second deadline. A missing or unusable rclone, no remotes, or failed discovery answers `visible:false` and `remotes:[]`: hide the menu row. Names omit the trailing colon. Send rechecks that the remote is configured. `folder` is a path within it; empty means its configured root. A `folder` with any `..` component is refused before a job starts. Source paths must be absolute and are resolved once by the caller. A refused request answers `rclonestarted` with `requestId`, `ok:false`, `error`, and no job id.
+
+A send uses the ordinary jobs list, `kind:"send"`, with independent per-item `copyto` or directory `copy` invocations followed by a separate verification pass using `check --one-way`. Source and target argv follow `--`; no shell is involved. Directory copies preserve the selected directory and empty descendants. A remote that cannot store empty directories refuses any selected tree containing one instead of issuing a checked receipt. Selected symlinks, unsupported item kinds and duplicate destination basenames are refused. Directory descendants are inspected without following links; symlinks, pipes, sockets and other unsupported descendants fail the item with their path. A skip reported during copy or check also fails the item, even when rclone exits successfully. A nonempty remote folder ending in a colon still separates its selected basename with a slash. Source identities are retained through retries and revalidated before every invocation. Originals are never removed.
+
+Job updates add `phase`, `check`, `receipt`, and `note` strings, empty for existing producers. Rclone phases are `sending`, `checking`, `checked`, and `finished`; checks are `none`, `checksum`, and `size`. Sending uses the existing counts and byte fields, with monotonic absolute JSON-stat bytes and rclone's speed and ETA. Checking remains `state:"running"`, with a heading such as `Checking 3 items on gdrive`, `file:"comparing checksums"` or `file:"comparing sizes"`, an indeterminate bar and no rendered byte line. Numeric byte fields retain their prior values. State and phase changes are immediate; ordinary progress remains limited to one update per 150 ms.
+
+Inherited global copy, filter and reporting options, including quiet/verbose and local traversal aliases, are removed from rclone children, while configuration, authentication and unrelated backend options remain inherited. Copy and check explicitly disable link following, link translation, filesystem-boundary filtering and silent skip settings, overriding backend and per-remote traversal settings. A checked receipt covers the explicitly selected content. Remote features are queried before copying and determine available hashes and empty-directory support; a remote with no locally supported hash uses size-only verification. If an individual object cannot supply a hash, the receipt is downgraded to size. Only a successful copy and completed check produce a verified receipt. The terminal notification follows the terminal job update:
+
+```json
+{"t":"rclonesent","id":12,"requestId":72,"ok":true,"cancelled":false,"check":"checksum","receipt":"Sent 3 items to Uploads on gdrive","note":"","error":""}
+```
+
+The receipt has no full stop; clients append muted ` · checked by checksum` or ` · checked by size`. A mismatch fails the job with `Send failed` and a reason naming the failed file and remote. The existing jobs Cancel kills the current process group, including descendants that ignore SIGTERM. Files already copied remain remote; a cancelled check has `check:"none"`, `note:"not checked"`, and `ok:false`. Retry keeps the id and row and resends only failed top-level items with their captured identities. It forces retransmission so a checksum failure can be repaired even when the destination retains the source size and timestamp. Retry counts describe that attempt. Dismiss uses the ordinary job contract. Sends never offer Undo.
+
+## Contents search
+
+`searchcontents` takes `path` (an absolute folder), `query` (one nonempty literal,
+case-sensitive line), `hidden`, positive `gen` and optional `count`. The default
+count is the existing search first-window size; counts above 4096 are refused.
+The producer runs ripgrep once in the read-only sandbox, honors ignore files,
+does not follow discovered symlinks, skips binary matches, and keeps the first
+matching line per file. No shell interprets the query or path.
+
+The previous complete listing remains current until ripgrep finishes successfully.
+The new snapshot emits `contentsmatches` for the first window, then ordinary
+`listed`, `rows`, and terminal `searched`. All carry the query generation;
+`contentsmatches`, `listed` and `rows` also carry the operation `listing` identity.
+`window` emits its matching metadata before its rows, retaining both identities.
+The complete result set remains pageable. Match metadata may use several bounded
+envelopes for a window; each envelope's `start` and contiguous `row` values name
+its portion. Consumers assemble metadata and rows before presenting the snapshot.
+
+```json
+{"c":"searchcontents","path":"/work","query":"needle","hidden":false,"gen":7,"count":40}
+{"t":"contentsmatches","gen":7,"listing":2,"start":0,"matches":[{"row":0,"path":"notes.txt","pathBytes":"6e6f7465732e747874","lineNo":3,"line":"needle first","operable":true}]}
+```
+
+`pathBytes` is hexadecimal encoding of the exact relative filename bytes.
+`path` is display text only. Line numbers are one-based. Non-UTF-8 paths retain
+their lossy display, matching the previous listing behavior, but carry
+`operable:false`. A real UTF-8 filename sharing that display also carries false
+while this snapshot is held. Backend row and explicit-path requests for either
+ambiguous identity are refused with `where:"contentsidentity"` before resolution.
+An adapter must refuse external open, reveal, clipboard, drag and operation
+dispatch for these rows; it must never construct an operation path from display
+text. The shared `ui_logic_sr1` parser validates metadata for both front ends.
+This producer does not enable either adapter's contents capability.
+
+`searchcancel` and `searchclose` stop and reap the running jail, including startup.
+Their cancellation or close receipt follows cleanup and names the newest requested
+generation, including a request waiting for an older worker to stop. Older or
+duplicate generations and stale completion tickets publish nothing. Replacement
+queries serialize after cleanup. Navigation discards the old worker's result.
+A file or folder that ripgrep cannot open or read, the root included, is skipped
+as the names walk skips it: when ripgrep exits 2 after writing its summary and
+every line it wrote to stderr names a path with its OS error (`(os error 13)`),
+the snapshot publishes what it read and the terminal `searched` carries
+`partial:true` with `partial_reason:"unreadable"`. Any other stderr line makes the
+exit a failure.
+On missing ripgrep, a sandbox that refuses to start, any other exit failure,
+malformed output, output limits or the 30-second wall deadline, the backend emits
+a generation-keyed `error` and preserves the previous listing, with no success
+receipt. The GUI ends that generation's walk with nothing found and says the
+error's sentence in the footer.
+Retained match data and a single pending rg JSON record each have an independent
+64 MiB bound. Both stores may coexist, in addition to transient parser and wire
+allocations. Exceeding either bound fails the request rather than returning an
+apparently complete cap. Full matching lines within these bounds are retained.
+The worker reads at most 8 KiB per pipe iteration. A finished search ignores
+`searchcancel`; `searchclose` acknowledges its scope once. Closing retains the
+displayed snapshot and its identity guard until navigation or replacement, so
+closing cannot make an ambiguous filename operable. Failed or cancelled queries
+also preserve the previous folder's watch and any previous name-search session.
+An explicit `searchclose` closes that previous names session and walk too, before
+the contents close receipt; late names completion events then publish nothing.
+Sorting a snapshot reorders match metadata with its listing and advances the
+listing identity. Name and kind sorts work for every snapshot; size and date
+sorts refuse snapshots containing non-operable paths to avoid statting aliases.

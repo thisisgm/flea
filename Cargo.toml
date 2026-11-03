@@ -1,11 +1,36 @@
 [package]
 name = "flea"
-version = "0.3.12"
+version = "0.4.0"
 edition = "2021"
+license = "MIT"
 # src/vulkan.rs uses c"..." literals, stabilised in 1.77; without this the error names rustc, not flea.
 rust-version = "1.77"
 
+[workspace]
+members = ["crates/flea-gui"]
+default-members = ["."]
+resolver = "2"
+
+[workspace.dependencies]
+# Keep both fork revisions together here; members inherit these declarations.
+gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "04965e86d309e82eb0562e31a541032170379ba8" }
+gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "04965e86d309e82eb0562e31a541032170379ba8", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
+# Seeded per process and per table; already in the lock through hashbrown, so no new crate version.
+foldhash = "0.2.0"
+regex = "1.13.1"
+regex-syntax = "0.8.11"
+unicode-normalization = "0.1.25"
+unicode-bidi = "=0.3.18"
+icu_properties = { version = "=2.3.0", default-features = false, features = ["compiled_data"] }
+
+[dev-dependencies]
+# An independent target ABI oracle for the hand-declared Linux flags.
+libc = "=0.2.191"
 
 [features]
 # Bench-only: the flasher's loop-device seam for a marked root, never enabled by packaging or any default build.

@@ -44,7 +44,7 @@ fn tag_hits(s: &mut Session, gen: usize, query: &str) -> Vec<String> {
 
 // Every row's path on disk, the way a consumer joins it to the scope.
 fn on_disk(scope: &Path, index: &Index) -> Vec<(String, bool)> {
-    (0..index.len()).map(|row| (index.path(row).to_string(), scope.join(OsStr::from_bytes(index.raw(row))).exists())).collect()
+    (0..index.len()).map(|row| (index.path(row).to_string(), scope.join(OsStr::from_bytes(&index.raw(row))).exists())).collect()
 }
 
 #[test]
@@ -134,6 +134,6 @@ fn a_utf8_tree_costs_the_bytes_it_always_did() {
     for i in 0..40_000 {
         index.push(format!("some_directory_name_{:03}/nested_subdir/report_final_draft_v{:05}.txt", i % 200, i), false);
     }
-    assert!(index.raw.is_empty(), "a UTF-8 name keeps no second copy");
+    assert_eq!(index.names.len(), 40_201, "each distinct raw basename is interned once");
     eprintln!("INDEX_BYTES {} over {} rows", index_bytes(&index), index.len());
 }

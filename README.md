@@ -206,18 +206,20 @@ See [the full key table](keys.toml) for preset bindings and pointer actions.
 
 ## Build
 
-Requires Omarchy, Quickshell 0.3.1 or newer, and Rust. See
+Requires Omarchy and Rust. See
 [installation details](docs/install.md) for runtime and optional dependencies.
 
 ```bash
-cargo build --release
-FLEA_UI="$PWD/ui" ./target/release/flea --gui
+cargo build --locked --release --workspace
+./target/release/flea --gui
 ```
 
 Pass a directory to open it, or `--select <path>` to reveal a file.
 
 `./tests/run-all.sh` runs the headless suites, and [the protocol guide](docs/protocol.md) documents
 the backend.
+
+See [PLUGINS.md](PLUGINS.md) to write, validate, install and debug a Flea plugin, with a working example for each kind.
 
 ## Support
 

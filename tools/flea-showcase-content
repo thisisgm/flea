@@ -10,6 +10,10 @@
 # Hard rule 9: every write and delete is inside a sandbox tools/flea-sandbox-guard made and marked.
 set -u
 set -o pipefail
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 # The sandbox carries the guard's marker; the stage is one level inside it, so the marker never
@@ -843,7 +847,7 @@ show_tree() {
     # The camera roll is thousands of rows, so it is summarised rather than printed. The denied
     # directory refuses find as designed, so its error is dropped and it is reported by name below.
     ( cd "$stage" && find . -maxdepth 2 -not -path './Photos/Camera roll/*' 2>/dev/null \
-        | LC_ALL=C sort | sed 's|^\./||' )
+        | sort | sed 's|^\./||' )
     printf '\nPhotos/Camera roll: %s entries\n' "$(ls -A "$stage/Photos/Camera roll" | wc -l)"
     printf 'Client vault:       %s (unreadable on purpose)\n' "$(stat -c '%A' "$denied")"
     printf 'Archive drive:      %s\n' "$(readlink "$stage/Archive drive") (a target that is not there)"

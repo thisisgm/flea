@@ -1157,7 +1157,7 @@ cap_sheet_type() {
     for ((i = 0; i < ${#word}; i++)); do
         key "${word:i:1}" >/dev/null
     done
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea keymapQuery "$word" --timeout "$cap_sheet_wait_s" >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea keymapQuery "$word" --timeout "$cap_sheet_wait_s" >/dev/null \
         || fail "cap_sheet: the query never reached $word, it is '$(ipc keymapQuery)'"
     [[ "$(ipc keymapQuery)" == "$word" ]] || fail "cap_sheet: the query is '$(ipc keymapQuery)', not $word"
 }
@@ -1219,7 +1219,7 @@ EOS
     if [[ -n "$real_data" ]]; then export XDG_DATA_HOME="$real_data"; else unset XDG_DATA_HOME; fi
     wait_listing 2
     key '?' >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea keymapSheetOpen true --timeout "$cap_sheet_wait_s" >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea keymapSheetOpen true --timeout "$cap_sheet_wait_s" >/dev/null \
         || fail "cap_sheet: ? opened no keymap sheet"
     [[ "$(ipc keymapSheetOpen)" == "true" ]] || fail "cap_sheet: ? opened no keymap sheet"
     [[ "$(ipc keymapQuery)" == "" ]] || fail "cap_sheet: the resting sheet carries query '$(ipc keymapQuery)'"

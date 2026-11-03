@@ -17,8 +17,9 @@ impl Session {
         dirs.into_iter().fold(false, |taken, dir| self.patch(dir) | taken)
     }
 
-    // One bounded directory patch; a patch repacks the index and moves every row id the held state names.
+    // One bounded directory patch invalidates held row ids while preserving unrelated blocks.
     pub(crate) fn patch(&mut self, rel: &Path) -> bool {
+        if self.unmounted { return false; }
         // A change under the scope can move every folder size above it, whether or not the index takes the patch.
         self.sizes.forget();
         if self.walking() {
@@ -30,14 +31,18 @@ impl Session {
 
     // A patch taken after a cancel locks the index, and a walker takes that lock to push, so the walker sees the cancel first and pushes nothing.
     fn patch_now(&mut self, rel: &Path) -> bool {
+        if self.unmounted { return false; }
         let mut index = self.index.lock().unwrap();
-        if !index.patch_dir(&self.scope, rel, self.hidden, &self.body) {
+        let watch = self.watch.as_ref().map(|watch| watch.core.as_ref());
+        if !index.patch_watched(&self.scope, rel, self.hidden, &self.body, watch) {
             return false;
         }
         // A finished tag pass follows its rows to their new ids and queues the added ones; an unfinished one starts over.
         let added = self.tags.carry(&index);
+        index.release_patch();
         drop(index);
         self.last_query.clear();
+        self.last_matches.clear();
         self.pending_rest = None;
         self.tags.read_added(added, &self.index);
         true

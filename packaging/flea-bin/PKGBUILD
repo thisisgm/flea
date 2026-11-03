@@ -1,41 +1,43 @@
 # Maintainer: taxin-404 <taxin404@duck.com>
 # Contributor: GM <gianmarcomorales@icloud.com>
 
-# The release workflow's binaries with flea's own closure, whose reasons live beside it in the root PKGBUILD.
+# The release workflow's prebuilt binaries, for installers that build from a release; the root PKGBUILD is the published recipe.
 pkgname=flea-bin
 _pkgname=flea
-pkgver=0.3.12
+pkgver=0.4.0
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy (prebuilt binary)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
-license=('MIT' 'Apache-2.0' 'EPL-2.0' 'BSD-2-Clause')
-depends=('bat' 'bubblewrap' 'expect' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libheif' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
-optdepends=('libarchive: archive listing and extraction'
-            '7zip: 7z archive support'
+license=('Apache-2.0' 'BSD-2-Clause' 'BSD-3-Clause' 'CC0-1.0' 'ISC' 'MIT' 'MPL-2.0' 'Unicode-3.0' 'Zlib')
+# The root PKGBUILD's depends and optdepends in its order, which says what uses each; verify refuses a tag where they differ.
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'gcc-libs' 'gdk-pixbuf2' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'libglvnd' 'libheif' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'mpv' 'omarchy' 'poppler-glib' 'python' 'python-gobject' 'quickjs-ng' 'qt6-declarative' 'qt6-webengine' 'ripgrep' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+optdepends=('7zip: 7z archive support'
+            'dropbox-cli: Dropbox browsing and share links'
+            'ffmpeg: media metadata previews'
+            'ffmpegthumbnailer: video thumbnails'
             'imagemagick: image conversion'
+            'libarchive: archive listing and extraction'
+            'libreoffice: office document previews'
             'tailscale: Taildrop sharing'
-             'ffmpeg: media metadata in the preview column'
-             'ffmpegthumbnailer: video thumbnails, made by one pre-linked worker through libffmpegthumbnailer.so.4, or by the ffmpegthumbnailer program per video when that library will not load'
-             'dropbox-cli: Dropbox share links'
-             'libreoffice: office document previews'
-             'zoxide: frecent folders in the folder jump of the path bar')
+            'zoxide: frecent folders in the folder jump of the path bar')
 provides=("$_pkgname=$pkgver")
 # All three own /usr/bin/flea, so pacman refuses the pair rather than leaving one half-installed.
 conflicts=("$_pkgname" "$_pkgname-git")
 # The release profile already stripped the binary, so there is nothing to strip and no debug package.
 options=('!strip' '!debug')
-# SKIP here keeps a version bump to one line; the release workflow pins both before the AUR ever sees them.
+# SKIP here keeps a version bump to one line; a build pins its architecture's sum from the release first.
 # The local names carry pkgrel, so a rebuilt release is downloaded again, never read from a stale yay cache.
 source_x86_64=("$_pkgname-v$pkgver-$pkgrel-linux-x86_64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-v$pkgver-linux-x86_64.tar.gz")
 source_aarch64=("$_pkgname-v$pkgver-$pkgrel-linux-aarch64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-v$pkgver-linux-aarch64.tar.gz")
 sha256sums_x86_64=('SKIP')
 sha256sums_aarch64=('SKIP')
 
-# The source PKGBUILD's package() with the binary read from the tarball's root; the release workflow diffs the two.
+# The Makefile's install target as install lines, with the binaries and data read from the tarball's root.
 package() {
   cd "$_pkgname-$pkgver-linux-$CARCH"
   install -Dm755 flea "$pkgdir/usr/bin/flea"
+  install -Dm755 flea-gui "$pkgdir/usr/bin/flea-gui"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   install -Dm755 tools/flea-udisks "$pkgdir/usr/lib/flea/flea-udisks"
   # The portal backend, its registration and its D-Bus activation; xdg-desktop-portal 1.22 reads every data dir's portals/.
@@ -48,7 +50,7 @@ package() {
   install -Dm755 tools/flea-mpris "$pkgdir/usr/lib/flea/flea-mpris"
   install -Dm644 packaging/com.thisisgm.flea.desktop -t "$pkgdir/usr/share/applications"
   install -Dm644 packaging/com.thisisgm.flea.svg -t "$pkgdir/usr/share/icons/hicolor/scalable/apps"
-  install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+  install -Dm644 LICENSE THIRD-PARTY-LICENSES.txt -t "$pkgdir/usr/share/licenses/$pkgname"
   # The removal note, a tracked alpm hook rather than a scriptlet, so the package stays its file list.
   install -Dm644 packaging/flea.hook -t "$pkgdir/usr/share/libalpm/hooks"
 
@@ -61,6 +63,8 @@ package() {
   install -Dm644 ui/boot/shell.qml ui/boot/picker.qml ui/boot/fleatab.qml ui/boot/tabtearoff.qml -t "$pkgdir/usr/share/flea/ui/boot"
   # The bar plugin ships as data, flat, for the Enable shelf switch to copy into the user's plugin directory.
   install -Dm644 shelf/manifest.json shelf/README.md shelf/*.qml shelf/*.js -t "$pkgdir/usr/share/flea/shelf"
+  # Only the catalogs, which src/i18n/mod.rs reads from /usr/share/flea/i18n; the rest of i18n/ is build and test data.
+  for catalog in i18n/*/flea.json; do install -Dm644 "$catalog" "$pkgdir/usr/share/flea/$catalog"; done
   # The package's own version on the copy, which is what the switch compares with the user's.
   sed -i "s/^  \"version\": \"[^\"]*\",\$/  \"version\": \"$pkgver-$pkgrel\",/" "$pkgdir/usr/share/flea/shelf/manifest.json"
   grep -qF "  \"version\": \"$pkgver-$pkgrel\"," "$pkgdir/usr/share/flea/shelf/manifest.json" || { echo "$pkgname: /usr/share/flea/shelf/manifest.json does not carry the version $pkgver-$pkgrel" >&2; return 1; }

@@ -12,6 +12,8 @@
 The method in one line: framecap stamps the presented frames, keys are stamped before the write, and the detector reads the first change after a key and the last change before a quiet gap; tests/search-calib.qml proves it.
 Sample input, one recorder line: "F 660389861257350 660389874933379 32 95 126 0 1919 40" (presentation ns, received ns, changed rows, first row, last row, first column, last column, ink rows).
 """
+import atexit
+import hashlib
 import json
 import os
 import re
@@ -24,6 +26,8 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
+import platform
 
 NS = 1_000_000_000
 LAUNCH_QUIET_NS = int(1.5 * NS)  # still time that counts a fresh window as loaded
@@ -46,6 +50,8 @@ QUERY_COUNT_MAX = 2000  # most substring matches before the query reads as noise
 GAP_P95 = 0.95  # the attach-gap percentile reported beside the max
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import flea_bench_product as Product
 
 # Detector: pure functions over (presentation_ns, changed_rows) pairs, so a recorded log can be re-read.
 
@@ -188,8 +194,16 @@ def session_env():
 ENV = None
 
 
+def parsed_env(env=None):
+    """Keep parser children deterministic while application launches retain the session locale."""
+    child = dict(os.environ if env is None else env)
+    child["LC_ALL"] = "C.UTF-8"
+    child.pop("LANGUAGE", None)
+    return child
+
+
 def hypr(*args):
-    return subprocess.run(["hyprctl", *args], env=ENV, capture_output=True, text=True, timeout=10).stdout
+    return subprocess.run(["hyprctl", *args], env=parsed_env(ENV), capture_output=True, text=True, timeout=10).stdout
 
 
 def clients():
@@ -280,7 +294,7 @@ class Recorder:
         self.malformed = 0
         self.unstamped = 0
         self.lock = threading.Lock()
-        self.proc = subprocess.Popen(cmd, env=ENV, stdout=subprocess.PIPE, text=True, bufsize=1)
+        self.proc = subprocess.Popen(cmd, env=parsed_env(ENV), stdout=subprocess.PIPE, text=True, bufsize=1)
         self.thread = threading.Thread(target=self._read, daemon=True)
         self.thread.start()
         t0 = time.monotonic()
@@ -372,7 +386,7 @@ class Recorder:
 
 
 def build_recorder(workdir):
-    out = subprocess.run([os.path.join(HERE, "flea-framecap-build"), workdir], capture_output=True, text=True)
+    out = subprocess.run([os.path.join(HERE, "flea-framecap-build"), workdir], capture_output=True, text=True, env=parsed_env())
     if out.returncode != 0:
         raise RuntimeError(out.stderr.strip())
     return out.stdout.strip()
@@ -484,36 +498,66 @@ ENTRANTS = {
 def flea_state(ctx, arm):
     """A state directory holding Flea's shipped defaults and the arm's view, made once per (tree, view)."""
     view = arm.get("view", "list")
-    key = (arm["flea_dir"], view)
+    key = (Product.flea_binary(arm), Product.frontend(arm), view)
     if key not in ctx["states"]:
-        d = tempfile.mkdtemp(prefix="flea-search-state-")
+        d = tempfile.mkdtemp(prefix="flea-search-state-", dir=ctx["out_dir"])
         os.makedirs(d + "/no-config", exist_ok=True)
         patch = json.dumps({"sort": {"key": "name", "reverse": False}, "view": view})
-        subprocess.run([arm["flea_dir"] + "/target/release/flea", "--ui-state", patch],
+        subprocess.run([Product.flea_binary(arm), "--ui-state", patch],
                        env=dict(ENV, XDG_STATE_HOME=d, XDG_CONFIG_HOME=d + "/no-config"), capture_output=True, check=True)
         ctx["states"][key] = d
     return ctx["states"][key]
 
 
-STRATA_V021 = "/home/flea-sandbox/strata-0210/target/release/strata"  # v0.21.0, the newest stable release
+# The harness's own state: the run ledger and a QML cache per binary, which persists across runs as the tree's did.
+STATE_ROOT = os.environ.get("FLEA_FIELD_STATE") or os.path.expanduser("~/.local/state/flea-field")
+_BINARY_SHA = {}
 
 
-def strata_bin():
-    """Strata's binary: STRATA_BIN or the v0.21.0 build. The v0.19.0 checkout under Work/ is refused, never used."""
-    path = os.environ.get("STRATA_BIN", STRATA_V021)
-    if "/Work/strata" in os.path.realpath(path):
-        raise SystemExit("STRATA_BIN names the v0.19.0 checkout (%s); use %s" % (path, STRATA_V021))
+def qml_cache(binary):
+    """A persistent QML disk cache keyed by the binary's sha256, so round 0 is not a cold-cache outlier."""
+    path = os.path.realpath(binary)
+    if path not in _BINARY_SHA:
+        with open(path, "rb") as stream:
+            _BINARY_SHA[path] = hashlib.file_digest(stream, "sha256").hexdigest()
+    return os.path.join(STATE_ROOT, "qmlcache", _BINARY_SHA[path])
+
+
+def strata_bin(arm=None):
+    """Each release channel names its installed binary explicitly."""
+    path = (arm or {}).get("strata_bin") or os.environ.get("STRATA_BIN")
+    if not path or not os.access(path, os.X_OK):
+        raise SystemExit("set strata_bin on each Strata arm (or STRATA_BIN) to an executable")
     return path
+
+
+def entrant_spec(arm):
+    spec = dict(ENTRANTS[arm["entrant"]])
+    if arm["entrant"] == "flea":
+        spec["cls"] = Product.window_class(arm)
+    return spec
+
+
+def arm_identity(arm):
+    entrant = arm["entrant"]
+    if entrant == "flea":
+        binary = Product.flea_binary(arm)
+    elif entrant == "strata":
+        binary = strata_bin(arm)
+    else:
+        binary = "yazi" if entrant == "yazi-z" else entrant
+    return Product.identity(arm, [binary])
 
 
 def entrant_argv(arm, fixture, ctx):
     """(argv, extra environment) for one arm. ctx carries the flea trees, the TUI config and the state directory."""
     e = arm["entrant"]
     if e == "flea":
-        tree = arm["flea_dir"]
-        # Each arm compiles into its own tree, as tools/flea-field-bench does, so the shared QML cache directory never grows.
-        env = {"FLEA_BIN": tree + "/target/release/flea", "FLEA_UI": tree + "/ui", "XDG_STATE_HOME": flea_state(ctx, arm),
-               "QML_DISK_CACHE_PATH": tree + "/target/qmlcache"}
+        state = flea_state(ctx, arm)
+        env = {"FLEA_BIN": Product.flea_binary(arm), "FLEA_FRONTEND": Product.frontend(arm),
+               "XDG_STATE_HOME": state, "QML_DISK_CACHE_PATH": qml_cache(Product.flea_binary(arm))}
+        if arm.get("flea_dir"):
+            env["FLEA_UI"] = arm["flea_dir"] + "/ui"
         os.makedirs(env["QML_DISK_CACHE_PATH"], exist_ok=True)
         return [env["FLEA_BIN"], "--gui", fixture], env
     if e == "nautilus":
@@ -527,7 +571,7 @@ def entrant_argv(arm, fixture, ctx):
     if e in ("thunar", "nemo", "pcmanfm"):
         return [e, fixture], {}
     if e == "strata":
-        return [strata_bin(), fixture], {}
+        return [strata_bin(arm), fixture], {}
     tui = ["kitty", "--class", TUI_CLASS, "-o", "cursor_blink_interval=0"]
     env = {"XDG_CONFIG_HOME": ctx["tui_conf"]}
     if e == "yazi-z":
@@ -537,8 +581,8 @@ def entrant_argv(arm, fixture, ctx):
     raise SystemExit("no launch line for entrant " + e)
 
 
-# comm, cmdline token, the same table as tools/flea-field-bench's KILL_TARGETS; a bare qs is never matched.
-KILL_TARGETS = [("qs", "/ui"), ("flea", "--backend"), ("kitty", "--class " + TUI_CLASS), ("nautilus", ""),
+# comm, cmdline token, the same table as tools/flea-field-bench's KILL_TARGETS; a bare qs or flea-gui is never matched.
+KILL_TARGETS = [("flea-gui", ""), ("qs", "/ui"), ("flea", "--backend"), ("kitty", "--class " + TUI_CLASS), ("nautilus", ""),
                 ("org.gnome.Nauti", ""), ("thunar", ""), ("tumblerd", ""), ("pcmanfm", ""), ("nemo", ""),
                 ("dolphin", ""), ("strata", ""), ("yazi", ""), ("broot", ""), ("fzf", ""), ("localsearch-3", ""),
                 ("localsearch-ext", ""), ("hyprland-dialog", "")]
@@ -546,7 +590,7 @@ KILL_TARGETS = [("qs", "/ui"), ("flea", "--backend"), ("kitty", "--class " + TUI
 
 def pids_for(comm, token=""):
     out = []
-    for p in subprocess.run(["pgrep", "-x", comm], capture_output=True, text=True).stdout.split():
+    for p in subprocess.run(["pgrep", "-x", comm], capture_output=True, text=True, env=parsed_env()).stdout.split():
         try:
             with open("/proc/%s/cmdline" % p) as f:
                 cmd = f.read().replace("\0", " ")
@@ -559,6 +603,26 @@ def pids_for(comm, token=""):
 
 # The ui directories of the Flea trees this run launches; qs is matched by them and never bare.
 UI_TOKENS = []
+# The flea-gui beside each Flea binary this run launches; a flea-gui is matched by its executable and never bare.
+GUI_BINARIES = []
+
+
+def flea_gui_binaries(arms):
+    return [os.path.realpath(os.path.join(os.path.dirname(Product.flea_binary(a)), "flea-gui"))
+            for a in arms if a.get("entrant") == "flea"]
+
+
+def pids_for_exe(comm, binaries):
+    out = []
+    for p in pids_for(comm):
+        try:
+            # A running copy whose file was replaced reads "<path> (deleted)".
+            exe = os.path.realpath(os.readlink("/proc/%d/exe" % p).removesuffix(" (deleted)"))
+        except OSError:
+            continue
+        if exe in binaries:
+            out.append(p)
+    return out
 
 
 def alive_targets():
@@ -566,6 +630,8 @@ def alive_targets():
     for c, t in KILL_TARGETS:
         if c == "qs":
             out += [(c, p) for tok in UI_TOKENS for p in pids_for(c, tok)]
+        elif c == "flea-gui":
+            out += [(c, p) for p in pids_for_exe(c, GUI_BINARIES)]
         else:
             out += [(c, p) for p in pids_for(c, t)]
     return out
@@ -594,7 +660,7 @@ def ensure_scope():
         return True
     os.environ["FLEA_SEARCH_REENTERED"] = "1"
     try:
-        os.execvp("systemd-run", ["systemd-run", "--user", "--scope", "--quiet", "-p", "Delegate=yes",
+        os.execvp("systemd-run", ["systemd-run", "--user", "--scope", "--quiet", "--working-directory=" + os.getcwd(), "-p", "Delegate=yes",
                                   "--unit=%s-%d" % (SCOPE_UNIT, os.getpid()), "--",
                                   sys.executable, os.path.abspath(__file__), *sys.argv[1:]])
     except OSError as e:
@@ -745,10 +811,136 @@ def clean_all(leaf=None):
     time.sleep(0.2)
 
 
+# Every run that passes require_idle ledgers its window here, so a later refusal can say whether it started a leftover.
+LEDGER = os.environ.get("FLEA_FIELD_LEDGER") or os.path.join(STATE_ROOT, "runs.jsonl")
+_RUN = {}
+# A run touches its alive mark this often, so a run killed outright ends at its last touch plus one period.
+ALIVE_S = 5
+
+
+def alive_mark(run_id):
+    return os.path.join(os.path.dirname(LEDGER), "alive", run_id)
+
+
+# Sample input, /proc/<pid>/stat: "1234 (name) S 1 1234 ... 8812345 ..." (field 22, starttime, in clock ticks); /proc/stat: "btime 1729700000".
+STARTTIME_AFTER_COMM = 19  # field 22 is the 20th field after the ")" that ends the comm
+
+
+def process_start(pid):
+    """Epoch seconds a pid started, from /proc starttime and the boot time, or None."""
+    try:
+        with open("/proc/%d/stat" % pid) as f:
+            ticks = int(f.read().rsplit(")", 1)[1].split()[STARTTIME_AFTER_COMM])
+        with open("/proc/stat") as f:
+            boot = next(int(line.split()[1]) for line in f if line.startswith("btime "))
+    except (OSError, ValueError, IndexError, StopIteration):
+        return None
+    return boot + ticks / os.sysconf("SC_CLK_TCK")
+
+
+# Sample input, runs.jsonl: {"id":"run-1","pid":1234,"start":1729700000.0} then {"id":"run-1","end":1729700060.0}.
+def ledger_windows():
+    """Recorded runs as {id: {pid, start, end}}; a run with no end never reached its exit hook."""
+    runs = {}
+    try:
+        with open(LEDGER) as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    runs.setdefault(entry["id"], {}).update(entry)
+                except (ValueError, KeyError, TypeError):
+                    continue
+    except OSError:
+        pass
+    return runs
+
+
+def ledger_write(entry):
+    try:
+        os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
+        with open(LEDGER, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError as error:
+        raise SystemExit("flea-field-search: cannot record harness run in %s: %s" % (LEDGER, error)) from error
+
+
+def open_run_until(run, next_start):
+    """Where a run with no recorded end stops: never while its process lives, else at the last evidence it was alive."""
+    began = process_start(run["pid"]) if isinstance(run.get("pid"), int) else None
+    if began is not None and began <= run["start"] + 1:
+        return next_start
+    try:
+        seen = os.path.getmtime(alive_mark(run["id"]))
+    except (OSError, KeyError):
+        seen = run["start"]
+    return min(t for t in (seen + ALIVE_S, next_start) if t is not None)
+
+
+def describe_leftover(comm, pid):
+    """One refusal clause: the process, when it started, and whether a recorded harness run covers that start."""
+    began = process_start(pid)
+    if began is None:
+        return "%s pid %d (start time unreadable, so not attributable to this harness)" % (comm, pid)
+    when = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(began))
+    # Runs only claim the machine once it is idle, so a run killed outright ends where the next run begins.
+    runs = sorted((r for r in ledger_windows().values() if "start" in r), key=lambda r: r["start"])
+    for i in reversed(range(len(runs))):
+        run = runs[i]
+        until = run["end"] if "end" in run else open_run_until(run, runs[i + 1]["start"] if i + 1 < len(runs) else None)
+        if run["start"] <= began + 1 and (until is None or began <= until + 1):
+            begun = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["start"]))
+            end = "never ended" if run.get("end") is None else "ended " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(run["end"]))
+            return "%s pid %d started %s, inside this harness's run pid %s begun %s (%s): this harness started it" % (
+                comm, pid, when, run.get("pid"), begun, end)
+    return "%s pid %d started %s, outside every recorded harness run: this harness did not start it" % (comm, pid, when)
+
+
+def end_run():
+    """Exit hook of a run that passed require_idle: end every target, including an indexer an entrant activated."""
+    if _RUN.get("ended"):
+        return
+    _RUN["ended"] = True
+    try:
+        clean_all()
+    finally:
+        ledger_write({"id": _RUN["id"], "end": time.time()})
+        try:
+            os.unlink(alive_mark(_RUN["id"]))
+        except OSError:
+            pass
+
+
+def touch_alive(run_id):
+    while not _RUN.get("ended"):
+        try:
+            os.makedirs(os.path.dirname(alive_mark(run_id)), exist_ok=True)
+            with open(alive_mark(run_id), "a"):
+                os.utime(alive_mark(run_id))
+        except OSError:
+            pass
+        time.sleep(ALIVE_S)
+
+
+def claim_run():
+    """Called once the machine is idle: ledger the window and make every exit path, signals included, end the targets."""
+    if _RUN:
+        return
+    run_id = uuid.uuid4().hex
+    ledger_write({"id": run_id, "pid": os.getpid(), "start": time.time()})
+    _RUN.update(id=run_id, ended=False)
+    threading.Thread(target=touch_alive, args=(_RUN["id"],), daemon=True).start()
+    atexit.register(end_run)
+    if threading.current_thread() is threading.main_thread():
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, lambda number, frame: sys.exit(128 + number))
+
+
 def require_idle():
     left = alive_targets()
     if left:
-        raise SystemExit("flea-field-search: %s already running, and this run would end them; refusing to start" % left)
+        raise SystemExit("flea-field-search: %s already running, and this run would end them; refusing to start" % "; ".join(
+            describe_leftover(c, p) for c, p in left))
+    claim_run()
 
 
 def type_keys(keys, text, pace_s):
@@ -775,7 +967,7 @@ def run_chords(keys, chords):
 
 def run_arm(arm, fixture, query, ctx, opts):
     """Everything one launch of one arm measures. Returns one dict per query length (and per mode)."""
-    spec = ENTRANTS[arm["entrant"]]
+    spec = entrant_spec(arm)
     keys = ctx["keys"]
     mode = opts.get("mode", "search")
     open_chords = spec["open"] if mode == "search" else spec["filter_open"]
@@ -907,6 +1099,10 @@ def measure(plan_path):
     """measure PLAN.json: out (.jsonl), runs, query, queries {fixture: query}, mode, lengths, fixtures {name: dir}, arms [{id, entrant, flea_dir, view, typing, enter_baseline, wl_debug, fixtures}]; rounds interleave the arms over every fixture."""
     with open(plan_path) as f:
         plan = json.load(f)
+    # A qml arm's qs is matched only by its tree's ui directory, so an arm with no tree could never be ended.
+    for a in plan["arms"]:
+        if a.get("entrant") == "flea" and Product.frontend(a) == "qml" and not a.get("flea_dir"):
+            raise SystemExit("measure refuses arm %s: a qml flea arm needs flea_dir, not flea_bin alone" % a.get("id"))
     out_path = plan["out"]
     if os.path.exists(out_path):
         raise SystemExit("measure refuses an existing out (%s); move it away first" % out_path)
@@ -915,6 +1111,7 @@ def measure(plan_path):
     ctx = make_ctx(out_dir)
     arms = plan["arms"]
     UI_TOKENS[:] = [a["flea_dir"] + "/ui" for a in arms if a.get("flea_dir")]
+    GUI_BINARIES[:] = flea_gui_binaries(arms)
     require_idle()
     for a in arms:
         if a["entrant"] not in ENTRANTS:
@@ -922,9 +1119,9 @@ def measure(plan_path):
     facts = {name: fixture_facts(path) for name, path in plan["fixtures"].items()}
     monitor_info = monitor()
     head = {"manifest": {
-        "date": time.strftime("%Y-%m-%d %H:%M:%S"), "host": socket.gethostname(), "plan": plan, "fixtures": facts,
+        "date": time.strftime("%Y-%m-%d %H:%M:%S"), "host": socket.gethostname(), "kernel": platform.release(), "plan": plan, "fixtures": facts,
         "monitor": {k: monitor_info.get(k) for k in ("name", "width", "height", "refreshRate", "scale")},
-        "entrants": {a["id"]: {"entrant": a["entrant"], "kind": ENTRANTS[a["entrant"]]["kind"], "filter_kind": ENTRANTS[a["entrant"]]["filter_kind"], "typing": a.get("typing", "")}
+        "entrants": {a["id"]: {"entrant": a["entrant"], "kind": ENTRANTS[a["entrant"]]["kind"], "filter_kind": ENTRANTS[a["entrant"]]["filter_kind"], "typing": a.get("typing", ""), **arm_identity(a)}
                      for a in arms},
         "recorder": ctx["rec_bin"], "pace_ms": plan.get("pace_ms", 180)}}
     n = len(arms)
@@ -1789,7 +1986,7 @@ def make_ctx(out_dir):
     os.makedirs(out_dir, exist_ok=True)
     ctx = {"out_dir": out_dir, "keys": Keys()}
     ctx["rec_bin"] = build_recorder(os.path.join(out_dir, "rec"))
-    ctx["tui_conf"] = tempfile.mkdtemp(prefix="flea-tuiconf-")
+    ctx["tui_conf"] = tempfile.mkdtemp(prefix="flea-tuiconf-", dir=out_dir)
     subprocess.run(["cp", "-r", os.path.join(HERE, "flea-bench-tui") + "/.", ctx["tui_conf"]], check=True)
     # broot's first-run shell-function prompt swallows keys, so the harness ships its answered marker.
     os.makedirs(ctx["tui_conf"] + "/broot/launcher", exist_ok=True)
@@ -1809,6 +2006,7 @@ def explore(argv):
     arm = {"id": ent + ("-" + os.path.basename(flea) if flea else ""), "entrant": ent, "flea_dir": flea}
     if flea:
         UI_TOKENS.append(flea + "/ui")
+        GUI_BINARIES[:] = flea_gui_binaries([arm])
     require_idle()
     opts = {"evidence": True, "fixture_name": "explore", "mode": "filter" if "--filter" in argv else "search",
             "enter_baseline": "--enter" in argv, "tag": "x"}
@@ -1843,20 +2041,12 @@ def preflight():
         have = os.access(base + x + ".xml", os.R_OK)
         print("%-8s %-18s %s" % ("ok" if have else "MISSING", "protocol xml", base + x + ".xml"))
         missing += 0 if have else 1
-    # Strata is the v0.21.0 build, found by path (never by PATH) and by its crate's version.
-    sbin = strata_bin()
-    manifest = os.path.join(os.path.dirname(sbin), "..", "..", "Cargo.toml")
-    version = ""
-    if os.path.exists(manifest):
-        with open(manifest) as f:
-            # Sample input, one Cargo.toml line: 'version = "0.21.3"' (key, quoted value).
-            for line in f:
-                if line.startswith("version"):
-                    version = line.split("=")[1].strip().strip('"')
-                    break
-    good = os.access(sbin, os.X_OK) and version.startswith("0.21.")
-    print("%-8s %-18s %s (crate version %s)" % ("ok" if good else "MISSING", "strata v0.21", sbin, version or "unknown"))
-    missing += 0 if good else 1
+    try:
+        sbin = strata_bin()
+        print("ok       %-18s %s (%s)" % ("strata", sbin, Product.output([sbin, "--version"])))
+    except (SystemExit, RuntimeError, OSError) as error:
+        print("MISSING  strata %s" % error)
+        missing += 1
     sock = ydotool_socket()
     print("%-8s %-18s %s" % ("ok" if os.path.exists(sock) else "MISSING", "ydotool socket", sock))
     missing += 0 if os.path.exists(sock) else 1

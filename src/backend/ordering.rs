@@ -15,6 +15,7 @@ pub fn request(
     mime: &Db,
     line: &str,
 ) -> Result<(f64, f64, Vec<Option<DirSize>>), &'static str> {
+    if !l.outline_open.is_empty() { return super::outline::ordered(l, base, mime, line); }
     let value = crate::jsondoc::parse(line).map_err(|_| "invalid ordering request")?;
     let default_by = if value.get("c").and_then(|v| v.as_str()) == Some("sort") { "" } else { "name" };
     let by = value.get("by").and_then(|v| v.as_str()).unwrap_or(default_by);
@@ -32,6 +33,9 @@ pub fn request(
         .get("hiddenLast")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    if by == "size" && value.get("foldersByName").and_then(|v| v.as_bool()) == Some(true) {
+        return Ok(super::tuifolders::sort(l, base, desc, hidden_last));
+    }
     ordered(l, base, mime, by, desc, folders, groups, hidden_last)
 }
 
@@ -47,6 +51,10 @@ pub fn ordered(
     hidden_last: bool,
 ) -> Result<(f64, f64, Vec<Option<DirSize>>), &'static str> {
     let by = if by == "date" { "mtime" } else { by };
+    if matches!(by, "btime" | "extension" | "random") {
+        let (pass, sort) = super::paritysort::sort(l, base, by, desc, folders, hidden_last);
+        return Ok((pass, sort, Vec::new()));
+    }
     if !["name", "size", "mtime", "kind"].contains(&by) {
         return Err("no such sort key; send name, size, mtime or kind");
     }

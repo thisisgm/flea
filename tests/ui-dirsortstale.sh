@@ -248,7 +248,7 @@ hiddenlast_rows() {
 # The chooser's six rows, read through its own IPC target.
 hiddenlast_picker_rows() {
     local row names=""
-    for row in 0 1 2 3 4 5; do names+="${names:+|}$(qs ipc --pid "$1" call fleapicker rowAt "$row" 2>/dev/null || true)"; done
+    for row in 0 1 2 3 4 5; do names+="${names:+|}$(flea_ipc_call --pid "$1" call fleapicker rowAt "$row" 2>/dev/null || true)"; done
     printf '%s' "$names"
 }
 
@@ -256,7 +256,7 @@ hiddenlast_picker_rows() {
 hiddenlast_picker_reversed() {
     local pid="$1" before="$2" seen="" deadline=$((SECONDS + 15))
     while (( SECONDS < deadline )); do
-        seen=$(qs ipc --pid "$pid" call fleapicker snapshot 2>/dev/null | jq -r 'select(.sortDesc == true and .state == "ready") | [.rows[:6][].n] | join("|")' 2>/dev/null || true)
+        seen=$(flea_ipc_call --pid "$pid" call fleapicker snapshot 2>/dev/null | jq -r 'select(.sortDesc == true and .state == "ready") | [.rows[:6][].n] | join("|")' 2>/dev/null || true)
         [[ -n "$seen" && "$seen" != "$before" ]] && return 0
         sleep 0.05
     done
@@ -382,7 +382,7 @@ case_hiddenlast() {
     # The chooser: its list, then its header sort, which used to forget the setting.
     kill_flea
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" FLEA_PICKER="$(jq -cn --arg f "$l2" --arg t "$title" '{mode:"open",folder:$f,title:$t}')" FLEA_PICKER_REPLY="$reply" \
-        setsid nohup qs -p "$flea_ui/boot/picker.qml" >"$fixture_root/hiddenlast-picker.log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot/picker.qml" >"$fixture_root/hiddenlast-picker.log" 2>&1 </dev/null &
     for _attempt in $(seq 1 300); do
         omarchy-drive windows --json | jq -e --arg title "$title" '[.windows[] | select(.title == $title)] | length == 1' >/dev/null && break
         sleep 0.05

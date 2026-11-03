@@ -1,4 +1,6 @@
 use crate::backend::proto::thumbed_line;
+#[path = "thumbidentity.rs"]
+pub mod identity;
 use crate::backend::timing::since;
 use crate::backend::state::{State, Tables};
 use crate::backend::thumbcache::{Cache, Hit};
@@ -13,6 +15,7 @@ pub(crate) fn forget_one(st: &mut State, path: &Path) {
     st.outstanding = st.outstanding.saturating_sub(1);
     if let Some(at) = st.asked.iter().position(|(p, _)| p == path) {
         st.asked.remove(at);
+        st.thumb_mtimes.remove(path);
     }
 }
 
@@ -28,8 +31,10 @@ pub(crate) fn thumb_rows(
     tb: &Tables,
     pool: &Pool,
     cache: &Cache,
-    cache_only: bool,
+    options: impl Into<identity::Options>,
 ) {
+    let options = options.into();
+    let cache_only = options.cache_only;
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     for &row in rows {
         if row >= st.listing.len() {
@@ -38,34 +43,39 @@ pub(crate) fn thumb_rows(
         let t = Instant::now();
         let name = st.listing.name(row);
         let path = st.base.join(name);
+        let reply = options.identity.as_ref().and_then(|tag| identity::Reply::capture(tag, row, &path, st.generation));
+        if options.identity.is_some() && reply.is_none() { continue; }
+        let answer = |file: &str, ms| reply.as_ref().map_or_else(|| thumbed_line(row, file, ms), |reply| reply.line(file, ms));
         // The window's lstat mode and mtime stand in for a stat, except a symlink whose target the path below gates.
         if let Some((mode, mtime, target_dir)) = st.window_meta.get(&row).copied() {
             if mode & S_IFMT != S_IFLNK {
                 if target_dir {
-                    writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                    writeln!(out, "{}", answer("", since(t))).ok();
                     continue;
                 }
                 let declared = crate::backend::meta::thumbnailable(mode).then(|| {
                     tb.mime.lookup(name).filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some()).map(str::to_string)
+                        .or_else(|| super::model3d::embedded_thumbnail_supported(name).then(|| "model/x-flea-3d".to_string()))
                 }).flatten();
                 let mime = match declared {
                     None => {
-                        writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                        writeln!(out, "{}", answer("", since(t))).ok();
                         continue;
                     }
                     Some(m) => m,
                 };
-                match cache.lookup(&path, mtime, tb.thumbs.fingerprint()) {
+                let table = if super::model3d::embedded_thumbnail_supported(name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+                match cache.lookup(&path, mtime, table) {
                     Hit::Ready(p) => {
-                        writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
+                        writeln!(out, "{}", answer(&p.to_string_lossy(), since(t))).ok();
                     }
                     Hit::Failed => {
-                        writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                        writeln!(out, "{}", answer("", since(t))).ok();
                     }
                     Hit::Miss if cache_only => {
-                        writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                        writeln!(out, "{}", answer("", since(t))).ok();
                     }
-                    Hit::Miss => queue_row(out, st, pool, row, path, mtime, mime),
+                    Hit::Miss => queue_row(out, st, pool, row, path, mtime, (mime, reply)),
                 }
                 continue;
             }
@@ -73,7 +83,7 @@ pub(crate) fn thumb_rows(
         }
         // No window covered this row, so a cache-only ask answers none rather than statting on the loop.
         if cache_only && !st.window_meta.contains_key(&row) {
-            writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+            writeln!(out, "{}", answer("", since(t))).ok();
             continue;
         }
         let name = st.listing.name(row).to_string();
@@ -83,7 +93,7 @@ pub(crate) fn thumb_rows(
         let meta = match super::iomount::call(&path, &body, "thumb", move || std::fs::metadata(&owned).ok()) {
             Ok(found) => found.filter(|m| m.is_file()),
             Err(_) => {
-                writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                writeln!(out, "{}", answer("", since(t))).ok();
                 continue;
             }
         };
@@ -92,28 +102,30 @@ pub(crate) fn thumb_rows(
                 .lookup(&name)
                 .filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some())
                 .map(str::to_string)
+                .or_else(|| super::model3d::embedded_thumbnail_supported(&name).then(|| "model/x-flea-3d".to_string()))
         });
         let mime = match declared {
             // corner: a row no thumbnailer declares is answered at once and never queued, see AGENTS.md.
             None => {
-                writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                writeln!(out, "{}", answer("", since(t))).ok();
                 continue;
             }
             Some(m) => m,
         };
         let mtime = meta.map(|m| m.mtime()).unwrap_or(0);
-        match cache.lookup(&path, mtime, tb.thumbs.fingerprint()) {
+        let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+        match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
-                writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
+                writeln!(out, "{}", answer(&p.to_string_lossy(), since(t))).ok();
             }
             Hit::Failed => {
-                writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                writeln!(out, "{}", answer("", since(t))).ok();
             }
             // A class whose switch is off is cache-only: a miss answers none without a decoder, so a NAS folder costs one stat per row and no read.
             Hit::Miss if cache_only => {
-                writeln!(out, "{}", thumbed_line(row, "", since(t))).ok();
+                writeln!(out, "{}", answer("", since(t))).ok();
             }
-            Hit::Miss => queue_row(out, st, pool, row, path, mtime, mime),
+            Hit::Miss => queue_row(out, st, pool, row, path, mtime, (mime, reply)),
         }
     }
 }
@@ -126,47 +138,59 @@ fn queue_row(
     row: usize,
     path: PathBuf,
     mtime: i64,
-    mime: String,
+    request: (String, Option<identity::Reply>),
 ) {
+    let (mime, reply) = request;
     // A mapped path already has a job for this listing, so a repeated row costs a worker nothing; see AGENTS.md "Thumbnail requests".
     if st.asked.iter().any(|(p, _)| *p == path) {
+        if let Some(reply) = reply {
+            if !identity::attach(st, &path, mtime, &reply) {
+                // No work for this source version can serve the tagged subscriber, so it receives an identity-bound refusal.
+                writeln!(out, "{}", reply.line("", 0.0)).ok();
+            }
+        }
         return;
     }
     // Workers may have freed room since the last report, so pump before refusing a row at the deferred cap.
     super::thumbdefer::pump(out, st, pool);
     // corner: past MAX_DEFERRED nothing waits any longer, so the row is answered empty at once; see AGENTS.md "Thumbnail requests".
     if st.deferred.full() {
-        writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
+        writeln!(out, "{}", reply.as_ref().map_or_else(|| thumbed_line(row, "", 0.0), |reply| reply.line("", 0.0))).ok();
         return;
     }
     st.asked.push((path.clone(), row));
+    st.thumb_mtimes.insert(path.clone(), mtime);
     st.outstanding += 1;
-    st.deferred.enqueue(Job { path, mtime, mime, trace: trace(row) });
+    let replies = Some(identity::start(st, path.clone(), mtime, reply));
+    st.deferred.enqueue(Job { replies, path, mtime, trash_identity: None, mime, trace: trace(row) });
     super::thumbdefer::pump(out, st, pool);
 }
 
 // A job already inside a worker keeps its mapping; every queued or waiting job leaves with its cancellation.
 pub(crate) fn cancel_all(st: &mut State, pool: &Pool) {
-    for job in pool.cancel_all().into_iter().chain(st.deferred.take_all()) {
+    identity::retire_all(st);
+    for job in pool.cancel_listing().into_iter().chain(st.deferred.take_listing()) {
         forget_one(st, &job.path);
     }
 }
 
 // A job already inside a worker cannot be cancelled, so its row stays mapped until it reports.
 pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row: usize) {
+    identity::retire_row(st, row);
     let at = match st.asked.iter().position(|(_, r)| *r == row) {
         Some(i) => i,
         None => return,
     };
     // A row still waiting for room is taken back from the deferred queue, and a queued one from the pool.
-    let mut dropped = st.deferred.take(&st.asked[at].0);
+    let mut dropped = st.deferred.take(&st.asked[at].0, None);
     if dropped.is_empty() {
-        dropped = pool.cancel(&st.asked[at].0);
+        dropped = pool.cancel(&st.asked[at].0, None);
     }
     if dropped.is_empty() {
         return;
     }
     st.outstanding = st.outstanding.saturating_sub(dropped.len());
+    st.thumb_mtimes.remove(&st.asked[at].0);
     st.asked.remove(at);
     // The room a cancel frees goes to the next waiting row now, not at the next report.
     super::thumbdefer::pump(out, st, pool);
@@ -177,15 +201,17 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
     st.outstanding = st.outstanding.saturating_sub(1);
     // Workers have taken jobs off the pool since the last pump, so the oldest waiting rows go in now.
     super::thumbdefer::pump(out, st, pool);
-    let row = match st.asked.iter().position(|(p, _)| *p == done.path) {
-        Some(i) => st.asked.remove(i).1,
-        None => return,
-    };
     let file = match done.result {
         Outcome::Ready(p) => p.to_string_lossy().into_owned(),
         Outcome::Failed => String::new(),
     };
-    writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
+    super::trashthumb::answer(out, st, &done.path, done.mtime, done.trash_identity.as_deref(), &file);
+    if let Some(at) = st.asked.iter().position(|(p, _)| done.trash_identity.is_none() && *p == done.path && st.thumb_mtimes.get(p) == Some(&done.mtime)) {
+        st.thumb_mtimes.remove(&done.path);
+        let row = st.asked.remove(at).1;
+        writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
+    }
+    identity::complete(out, st, &done.replies, &file, done.ms);
     out.flush().ok();
     if let Some(t) = &done.trace {
         trace_line(t);
@@ -207,258 +233,9 @@ fn trace_line(t: &Trace) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::backend::aliases::Aliases;
-    use crate::backend::archive::Formats;
-    use crate::backend::icons::Names;
-    use crate::backend::kind::Kinds;
-    use crate::backend::listing::Listing;
-    use crate::backend::mime::Db;
-    use crate::backend::testdir::TestDir;
-    use crate::backend::thumbcache;
-    use crate::backend::thumbspec::Thumbnailers;
-    use crate::backend::thumbwrite;
-    use std::cell::RefCell;
-    use std::os::unix::fs::PermissionsExt;
-    use std::sync::mpsc::channel;
-    use std::sync::Arc;
+#[path = "thumbcancel_tests.rs"]
+mod cancel_tests;
 
-    // One jpeg declaration, so for_mime answers; the harness's pool has no worker, so the program it names never runs.
-    fn tables() -> Tables {
-        let aliases = Arc::new(Aliases::load());
-        let thumbs = Arc::new(Thumbnailers::from_entries(
-            &[("t.thumbnailer".to_string(),
-               "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o %s\nMimeType=image/jpeg;\n".to_string())],
-            &aliases,
-        ));
-        assert!(thumbs.for_mime("image/jpeg", &aliases).is_some(), "the fixture declares jpeg");
-        Tables {
-            mime: Arc::new(Db::load()),
-            icons: Arc::new(Names::load()),
-            aliases,
-            thumbs,
-            kinds: RefCell::new(Kinds::new()),
-            formats: Arc::new(Formats::probe()),
-        }
-    }
-
-    // Sample input: rows [0] over a listing holding photo.jpg; out collects the wire.
-    fn listed(dir: &TestDir, st: &mut State) {
-        st.base = dir.path().to_path_buf();
-        let mut l = Listing::new();
-        l.push("photo.jpg", false);
-        st.listing = l;
-        // The window statted this row, so a thumb request reuses its figures with no stat.
-        if let Ok(m) = std::fs::symlink_metadata(dir.join("photo.jpg")) {
-            st.window_meta.insert(0, (m.mode(), m.mtime(), false));
-        }
-    }
-
-    fn harness(dir: &TestDir) -> (State, Pool, Cache) {
-        let (events, _) = channel();
-        let st = State::new(crate::backend::dirsizeworker::Worker::new(events));
-        let pool = Pool::idle();
-        let cache = Cache::at(dir.join("cache"));
-        (st, pool, cache)
-    }
-
-    #[test]
-    fn a_cache_only_miss_answers_none_and_queues_no_decode() {
-        let d = TestDir::new("thumbcacheonly");
-        d.file("photo.jpg", "not a picture, so no decoder could read it either");
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        listed(&d, &mut st);
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, true);
-        let line = String::from_utf8(out).unwrap();
-        assert!(line.contains(r#""file":"""#), "a miss with no cache entry answers none: {}", line);
-        assert_eq!(st.outstanding, 0, "no job may be in flight for a row that was answered");
-        assert!(st.asked.is_empty(), "and no mapping may hold it for a later report");
-        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a cache-only miss");
-    }
-
-    #[test]
-    fn a_cache_only_hit_serves_a_source_that_can_no_longer_be_opened() {
-        let d = TestDir::new("thumbcacheonlyhit");
-        let path = d.file("photo.jpg", "bytes the open is then refused for");
-        let mtime = std::fs::metadata(&path).unwrap().mtime();
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        let uri = thumbcache::uri_for(&path);
-        let large = cache.large_path(&uri);
-        std::fs::create_dir_all(large.parent().unwrap()).unwrap();
-        thumbwrite::write_marker(&large, &uri, mtime, None).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
-        listed(&d, &mut st);
-        // The window already holds this row's figures, so the request reuses them with no stat.
-        std::fs::remove_file(&path).unwrap();
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, true);
-        let line = String::from_utf8(out).unwrap();
-        assert!(line.contains(&large.to_string_lossy().into_owned()),
-            "the cached entry is served although the source no longer opens: {}", line);
-        assert_eq!(st.outstanding, 0, "a served row queues nothing either");
-        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a served row");
-    }
-
-    #[test]
-    fn a_windowed_row_queues_from_its_cached_figures_with_no_stat() {
-        let d = TestDir::new("thumbcachedqueue");
-        d.file("photo.jpg", "not a picture, and nothing here decodes it");
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        listed(&d, &mut st);
-        std::fs::remove_file(d.join("photo.jpg")).unwrap();
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
-        assert!(out.is_empty(), "a genuine miss is queued from cached figures, not answered: {}",
-            String::from_utf8_lossy(&out));
-        assert_eq!(st.outstanding, 1, "the job is in flight from the window's figures alone");
-        assert_eq!(pool.cancel_all().iter().map(|j| j.path.clone()).collect::<Vec<_>>(), vec![d.join("photo.jpg")], "the queued job is the windowed row's own file");
-    }
-
-    #[test]
-    fn a_symlink_to_a_fifo_is_refused_rather_than_queued() {
-        // Sample input: link.jpg -> fifo lstats as S_IFLNK while the target is a fifo, so no job queues.
-        extern "C" { fn mkfifo(path: *const std::ffi::c_char, mode: u32) -> std::ffi::c_int; }
-        let d = TestDir::new("thumblinkfifo");
-        let fifo = d.join("fifo.mp4");
-        let c = std::ffi::CString::new(fifo.to_str().unwrap()).unwrap();
-        assert_eq!(unsafe { mkfifo(c.as_ptr(), 0o644) }, 0, "fixture fifo must exist");
-        std::os::unix::fs::symlink(&fifo, d.join("link.jpg")).unwrap();
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        st.base = d.path().to_path_buf();
-        let mut l = Listing::new();
-        l.push("link.jpg", false);
-        st.listing = l;
-        if let Ok(m) = std::fs::symlink_metadata(d.join("link.jpg")) {
-            assert_eq!(m.mode() & S_IFMT, S_IFLNK, "the window holds the link's lstat mode");
-            st.window_meta.insert(0, (m.mode(), m.mtime(), false));
-        }
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
-        let line = String::from_utf8(out).unwrap();
-        assert!(line.contains(r#""file":"""#), "a symlink to a fifo answers none: {}", line);
-        assert_eq!(st.outstanding, 0, "no job may queue for a fifo target");
-        assert!(st.asked.is_empty(), "and no mapping may hold it");
-        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a fifo target");
-    }
-
-    #[test]
-    fn a_symlink_row_keys_the_cache_on_its_target_mtime() {
-        // Sample input: link.jpg -> photo.jpg with differing link and target mtimes queues the target's.
-        let d = TestDir::new("thumblinkmtime");
-        let target = d.file("photo.jpg", "not a picture, and nothing here decodes it");
-        std::os::unix::fs::symlink(&target, d.join("link.jpg")).unwrap();
-        // Backdate the target, so its mtime differs from the link's own fresh mtime.
-        assert!(std::process::Command::new("touch").arg("-d").arg("2000-01-01 00:00:00").arg(&target).status().map(|s| s.success()).unwrap_or(false), "touch must backdate the target");
-        let target_mtime = std::fs::metadata(&target).unwrap().mtime();
-        let link_mtime = std::fs::symlink_metadata(d.join("link.jpg")).unwrap().mtime();
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        st.base = d.path().to_path_buf();
-        let mut l = Listing::new();
-        l.push("link.jpg", false);
-        st.listing = l;
-        if let Ok(m) = std::fs::symlink_metadata(d.join("link.jpg")) {
-            st.window_meta.insert(0, (m.mode(), m.mtime(), false));
-        }
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
-        assert!(out.is_empty(), "a symlinked image is queued, not answered: {}", String::from_utf8_lossy(&out));
-        assert_eq!(st.outstanding, 1, "the target gates as a file and queues");
-        let queued = pool.cancel_all();
-        assert_eq!(queued.len(), 1, "one job queued");
-        assert_eq!(queued[0].mtime, target_mtime, "the job keys the target mtime, not the link's {}", link_mtime);
-        assert_ne!(queued[0].mtime, link_mtime, "link and target mtimes must differ for this pin");
-        for job in queued {
-            forget_one(&mut st, &job.path);
-        }
-    }
-
-    #[test]
-    fn a_cached_symlink_is_served_under_cache_only() {
-        // Sample input: link.jpg -> photo.jpg with a Ready entry keyed on the link path and target mtime.
-        let d = TestDir::new("thumbcachesymlink");
-        let target = d.file("photo.jpg", "bytes the link target holds");
-        // Backdate the target below the link's fresh mtime so the two lookup keys cannot agree.
-        const BACKDATED_SECS: u64 = 946684800;
-        let past = std::time::UNIX_EPOCH + std::time::Duration::from_secs(BACKDATED_SECS);
-        std::fs::File::options().write(true).open(&target).unwrap().set_modified(past).unwrap();
-        let link = d.join("link.jpg");
-        std::os::unix::fs::symlink(&target, &link).unwrap();
-        let target_mtime = std::fs::metadata(&target).unwrap().mtime();
-        let link_mtime = std::fs::symlink_metadata(&link).unwrap().mtime();
-        assert_ne!(target_mtime, link_mtime, "the mtimes must differ to tell the two keys apart");
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        let uri = thumbcache::uri_for(&link);
-        let large = cache.large_path(&uri);
-        std::fs::create_dir_all(large.parent().unwrap()).unwrap();
-        thumbwrite::write_marker(&large, &uri, target_mtime, None).unwrap();
-        st.base = d.path().to_path_buf();
-        let mut l = Listing::new();
-        l.push("link.jpg", false);
-        st.listing = l;
-        if let Ok(m) = std::fs::symlink_metadata(&link) {
-            st.window_meta.insert(0, (m.mode(), m.mtime(), false));
-        }
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, true);
-        let line = String::from_utf8(out).unwrap();
-        assert!(line.contains(&large.to_string_lossy().into_owned()),
-            "a cached symlink answers its entry under cacheOnly: {}", line);
-        assert_eq!(st.outstanding, 0, "a served row queues nothing");
-        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a served symlink");
-    }
-
-    #[test]
-    fn a_local_row_without_the_flag_takes_exactly_todays_path() {
-        let d = TestDir::new("thumbfull");
-        d.file("photo.jpg", "not a picture, and nothing here decodes it");
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        listed(&d, &mut st);
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
-        assert!(out.is_empty(), "a genuine miss is queued, not answered: {}",
-            String::from_utf8_lossy(&out));
-        assert_eq!(st.outstanding, 1, "the job is in flight as it always was");
-        assert_eq!(st.asked.len(), 1, "and the mapping holds it for the report");
-        assert_eq!(pool.cancel_all().iter().map(|j| j.path.clone()).collect::<Vec<_>>(), vec![d.join("photo.jpg")], "the queued job is the row's own file");
-    }
-
-    // Sample input: a photo.jpg whose fail marker was written under marker_table, or under the loaded table when None; answers the wire, the jobs in flight and the jobs queued.
-    fn answer_with_marker(tag: &str, marker_table: Option<&str>) -> (String, usize, usize) {
-        let d = TestDir::new(tag);
-        let path = d.file("photo.jpg", "not a picture, and nothing here decodes it");
-        let mtime = std::fs::metadata(&path).unwrap().mtime();
-        let tb = tables();
-        let (mut st, pool, cache) = harness(&d);
-        let uri = thumbcache::uri_for(&path);
-        let marker = cache.fail_path(&uri);
-        std::fs::create_dir_all(marker.parent().unwrap()).unwrap();
-        thumbwrite::write_marker(&marker, &uri, mtime, Some(marker_table.unwrap_or(tb.thumbs.fingerprint()))).unwrap();
-        listed(&d, &mut st);
-        let mut out = Vec::new();
-        thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
-        (String::from_utf8(out).unwrap(), st.outstanding, pool.cancel_all().len())
-    }
-
-    #[test]
-    fn a_failure_recorded_under_the_loaded_table_answers_none_and_queues_nothing() {
-        let (line, outstanding, queued) = answer_with_marker("thumbfailsame", None);
-        assert!(line.contains(r#""file":"""#), "a recorded failure answers none: {}", line);
-        assert_eq!((outstanding, queued), (0, 0), "and no decode is queued for it");
-    }
-
-    #[test]
-    fn a_failure_recorded_under_another_table_is_tried_again() {
-        let (line, outstanding, queued) = answer_with_marker("thumbfailother", Some("an older table"));
-        assert!(line.is_empty(), "a marker from another table is a miss, queued and not answered: {}", line);
-        assert_eq!((outstanding, queued), (1, 1), "the file is tried once more");
-    }
-}
+#[cfg(test)]
+#[path = "thumbreq_tests.rs"]
+mod tests;

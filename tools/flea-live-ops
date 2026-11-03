@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Hard rule 6's live battery for the write operations: every one through the real key or menu path,
 # asserted on the filesystem and on the app's own IPC, never on an eyeball.
 set -u
@@ -6,14 +7,15 @@ set -u
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
 SB="$FIXTURE_ROOT/flea-live-ops"
 TREE=${FLEA_TREE:-$HOME/Work/claude/flea}
+flea_ipc_init "${FLEA_BIN:-$TREE/target/release/flea}"
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)" 2>/dev/null
+eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)" 2>/dev/null
 fail=0
 
 # A path is not an instance selector, so this resolves the pid once and addresses it by number.
 . "$TREE/tools/flea-ipc-pid"
 FLEA_PID=""
-q() { qs ipc --pid "$FLEA_PID" call flea "$@" 2>/dev/null; }
+q() { LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_call --pid "$FLEA_PID" call flea "$@" 2>/dev/null; }
 
 # Pressing Return on a row hands the file to the default handler, and that handler outlives this
 # script: three xdg-open and nvim pairs were still resident seventeen hours later, holding the load
@@ -26,7 +28,7 @@ reap_handlers() {
   local pid rest p ancestors=" $$ "
   p=$$
   while [ "${p:-1}" -gt 1 ]; do
-    p=$(grep '^PPid:' "/proc/$p/status" 2>/dev/null | tr -d ' \t' | cut -d: -f2)
+    p=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^PPid:' "/proc/$p/status" 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= tr -d ' \t' | cut -d: -f2)
     [ -n "$p" ] || break
     ancestors="$ancestors$p "
   done
@@ -35,7 +37,7 @@ reap_handlers() {
     case "$rest" in
       *" $SB/"*) kill "$pid" 2>/dev/null ;;
     esac
-  done < <(ps -eo pid=,args=)
+  done < <(LC_ALL=C.UTF-8 LANGUAGE= ps -eo pid=,args=)
 }
 
 check() {
@@ -50,22 +52,22 @@ check() {
   fi
 }
 
-press() { omarchy-drive key --window flea -k "$1" >/dev/null 2>&1; sleep 0.5; }
+press() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window com.thisisgm.flea -k "$1" >/dev/null 2>&1; sleep 0.5; }
 
 # rowCentre answers in window coordinates, and a Wayland client is never told where its surface is,
 # so the window origin is added here exactly as tests/ui.sh's own click_row does.
 window_box() {
-  omarchy-drive windows --json | jq -r '.windows[] | select(.title == "Flea") | "\(.at[0]) \(.at[1])"'
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive windows --json | jq -r '.windows[] | select(.title == "Flea") | "\(.at[0]) \(.at[1])"'
 }
 
 click_row() {
   local index="$1" button="$2" cx cy wx wy
   read -r cx cy <<< "$(q rowCentre "$index")"
   read -r wx wy <<< "$(window_box)"
-  omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$button" >/dev/null 2>&1
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$button" >/dev/null 2>&1
 }
-typek() { omarchy-drive key --window flea "$1" >/dev/null 2>&1; sleep 0.4; }
-listing() { ls "$SB" | tr '\n' ' '; }
+typek() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window com.thisisgm.flea "$1" >/dev/null 2>&1; sleep 0.4; }
+listing() { LC_ALL=C.UTF-8 LANGUAGE= ls "$SB" | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' '; }
 
 # The cursor goes to the top first and then walks down, because a row the sort puts above the cursor
 # is otherwise unreachable and the check that follows would pass vacuously against an untouched file.
@@ -91,15 +93,15 @@ setup() {
 
 # The launcher runs target/release/flea, so a debug-only build would drive a stale binary and
 # every rows-form request would silently resolve to nothing. Build it here rather than trust it.
-( cd "$TREE" && cargo build --release 2>&1 | grep -E "^(error|warning)" ) && { echo "release build is not clean"; exit 1; }
-echo "release binary: $(cd "$TREE" && git rev-parse --short HEAD) tree, built $(date -r "$TREE/target/release/flea" +%H:%M:%S)"
+( cd "$TREE" && cargo build --release 2>&1 | LC_ALL=C.UTF-8 LANGUAGE= grep -E "^(error|warning)" ) && { echo "release build is not clean"; exit 1; }
+echo "release binary: $(cd "$TREE" && LC_ALL=C.UTF-8 LANGUAGE= git rev-parse --short HEAD) tree, built $(LC_ALL=C.UTF-8 LANGUAGE= date -r "$TREE/target/release/flea" +%H:%M:%S)"
 
 setup
 # Only this tree's own instances. pkill -x qs matched every Quickshell on the box: other lanes'
 # windows, the operator's Flea, and Omarchy's own shell.
-for _pid in $(pgrep -x qs 2>/dev/null); do
+for _pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs 2>/dev/null); do
     [ -r "/proc/$_pid/cmdline" ] || continue
-    if tr '\0' ' ' < "/proc/$_pid/cmdline" | grep -Fq "$TREE/ui"; then
+    if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' < "/proc/$_pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$TREE/ui"; then
         kill "$_pid" 2>/dev/null
     fi
 done
@@ -110,7 +112,7 @@ for i in $(seq 1 20); do
   [ -n "$FLEA_PID" ] && [ "$(q ready)" = "true" ] && break
   sleep 0.5
 done
-omarchy-drive focus flea >/dev/null 2>&1; sleep 0.5
+LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus flea >/dev/null 2>&1; sleep 0.5
 check "the app came up on the fixture" "$SB" "$(q path)"
 
 echo "--- rename through r, and z puts it back ---"
@@ -192,7 +194,7 @@ seek_row "beta.txt" || fail=1
 check "the cursor is on the row the menu will open on" "beta.txt" "$(q rowAt "$(q cursor)" | cut -d'|' -f1)"
 # Right click the row, then pick the entry: this is the only path in the battery that goes through
 # the menu rather than a key, because Duplicate is deliberately not bound to one.
-omarchy-drive focus flea >/dev/null 2>&1
+LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus flea >/dev/null 2>&1
 sleep 0.5
 # The app's own rowCentre is used rather than OCR: click-text reads the screen and could not find a
 # row this test had already put the cursor on, which is a harness limit and not an app fact.
@@ -238,9 +240,9 @@ echo "--- the directory is back to where it started ---"
 check "every fixture file is present and nothing extra" "alpha.txt beta.txt dest gamma.txt subdir " "$(listing)"
 
 # Teardown kills only what this run launched, for the same reason as the setup above.
-for _pid in $(pgrep -x qs 2>/dev/null); do
+for _pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs 2>/dev/null); do
     [ -r "/proc/$_pid/cmdline" ] || continue
-    if tr "\0" " " < "/proc/$_pid/cmdline" | grep -Fq "$TREE/ui"; then
+    if LC_ALL=C.UTF-8 LANGUAGE= tr "\0" " " < "/proc/$_pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$TREE/ui"; then
         kill "$_pid" 2>/dev/null
     fi
 done

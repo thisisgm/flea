@@ -128,13 +128,10 @@ fn a_delayed_offer_cannot_restore_an_ended_token() {
 #[test]
 fn a_failed_start_does_not_suppress_the_previous_owners_end() {
     if isolated("races::a_failed_start_does_not_suppress_the_previous_owners_end") { return; }
-    use std::os::unix::fs::PermissionsExt;
     let mut owner = child();
     let mut watching = Watching::new();
     watching.report(INITIAL_OFFER, TOKEN, Some(owner.0.as_ref().unwrap().id()));
-    let script = watching.dir.join("failed-owner");
-    std::fs::write(&script, "#!/bin/sh\ncat >/dev/null\n").unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(OWNER_SCRIPT_MODE)).unwrap();
+    let script = watching.dir.executable("failed-owner", b"#!/bin/sh\ncat >/dev/null\n", OWNER_SCRIPT_MODE);
     let result = crate::clip::own::spawn_owner_with(&script, "copy", &["/tmp/new".into()],
         |_| Err(std::sync::mpsc::RecvTimeoutError::Timeout));
     assert_eq!(result.unwrap_err(), "the clipboard owner did not answer");

@@ -21,6 +21,7 @@ pub const DEFAULTS: &str = r#"{
   "hidden": false,
   "langMarks": true,
   "hiddenLast": false,
+  "showGitStatus": false,
   "highlightToday": false,
   "wrapAtEnds": false,
   "escapeUp": false,
@@ -49,16 +50,17 @@ pub const DEFAULTS: &str = r#"{
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
-    "ctrlZoom": true, "volume": 100, "width": 0, "wrap": false
+    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false
   },
   "previewFacts": "compact",
   "keys": "default",
   "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
   "menu": { "hidden": ["delete", "openTerminal", "placeMenu", "runScript",
             "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs",
-            "invertSelection", "extThumbs", "run", "openAsText"] },
+            "invertSelection", "extThumbs", "run", "openAsText", "openAgent"] },
   "updates": { "autoCheck": true },
-  "stateVersion": 3
+  "plugins": {},
+  "stateVersion": 4
 }"#;
 
 // The list row's optional columns in the order ui/js/Columns.js lays them out; name is never optional.
@@ -89,12 +91,16 @@ pub enum Rule {
     TextSize,
     // ListColumns040: a dragged edge per column, clamped to the rails ui/js/Columns.js draws.
     ColumnWidths,
+    // Columns hairlines: each column's share left of the preview in ten-thousandths, as dual.split, at most four.
+    Tracks,
     // Any whole number, so a newer Flea's higher stamp survives this one's write; no patch may set it.
     Version,
     // A folder path to its own sort order, at most MAX_FOLDER_SORTS entries; see folderSorts above.
     FolderSorts,
     // A folder path to one browser view, at most MAX_FOLDER_VIEWS entries; see folderViews above.
     FolderViews,
+    // A plugin id to its switch and raw settings; src/uiplugins.rs keeps the map's shape.
+    Plugins,
     Group(&'static [(&'static str, Rule)]),
 }
 
@@ -159,6 +165,8 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("ctrlZoom", Rule::Bool),
     ("volume", Rule::Count(0.0, 100.0)),
     ("width", Rule::Count(0.0, 100.0)),
+    // Columns: each column's share of the room left of the preview, left to right, [] for equal columns.
+    ("tracks", Rule::Tracks),
     // Quick Look's w: wraps long lines in a code or text file; off until pressed.
     ("wrap", Rule::Bool),
 ];
@@ -199,6 +207,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("hidden", Rule::Bool),
     ("langMarks", Rule::Bool),
     ("hiddenLast", Rule::Bool),
+    ("showGitStatus", Rule::Bool),
     ("highlightToday", Rule::Bool),
     ("wrapAtEnds", Rule::Bool),
     // ClickAndRefresh: Escape climbs when on, the pointer's open mode, and the
@@ -234,6 +243,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("display", Rule::Group(DISPLAY)),
     ("menu", Rule::Group(MENU)),
     ("updates", Rule::Group(UPDATES)),
+    ("plugins", Rule::Plugins),
     // Not a setting: the stamp that makes each migration once, for the window, the TUI and the CLI alike.
     (STATE_VERSION, Rule::Version),
 ];
@@ -287,13 +297,28 @@ mod tests {
             keys,
             [
                 "view", "pickerView", "density", "columns", "columnsLimit", "columnWidths", "addressBar", "sort", "rememberSort", "folderSorts", "rememberViewPerFolder", "folderViews",
-                "dual", "foldersFirst", "groupByKind", "hidden", "langMarks", "hiddenLast", "highlightToday", "wrapAtEnds", "escapeUp", "openMode", "clickRename", "openFoldersWhileDragging", "keyHints", "startIn", "startFolder",
+                "dual",
+                "foldersFirst",
+                "groupByKind",
+                "hidden",
+                "langMarks",
+                "hiddenLast",
+                "showGitStatus",
+                "highlightToday",
+                "wrapAtEnds",
+                "escapeUp",
+                "openMode",
+                "clickRename",
+                "openFoldersWhileDragging",
+                "keyHints",
+                "startIn",
+                "startFolder",
                 "lastPath", "lastTabs", "newTab", "trashAutoEmpty", "trashSweptOn", "places", "shelf",
                 "preview", "previewFacts", "keys",
-                "display", "menu", "updates", "stateVersion"
+                "display", "menu", "updates", "plugins", "stateVersion"
             ]
         );
-        assert_eq!(d.get(STATE_VERSION).and_then(Json::as_f64), Some(3.0), "a fresh document is already stamped");
+        assert_eq!(d.get(STATE_VERSION).and_then(Json::as_f64), Some(4.0), "a fresh document is already stamped");
         assert_eq!(d.get("view").and_then(Json::as_str), Some("list"));
         assert_eq!(d.get("pickerView").and_then(Json::as_str), Some("list"));
         assert_eq!(d.get("density").and_then(Json::as_str), Some("compact"));
@@ -304,6 +329,7 @@ mod tests {
         assert_eq!(d.get("hidden").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("hiddenLast").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("langMarks").and_then(Json::as_bool), Some(true));
+        assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("highlightToday").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("wrapAtEnds").and_then(Json::as_bool), Some(false));
         // Escape stays put and a double click opens as in 0.3.4; slow click renames, on by the defaults ledger.
@@ -389,9 +415,8 @@ mod tests {
             .collect();
         assert_eq!(
             hidden,
-            // Directive 38: every feature this release adds ships with its own id hidden, so a fresh
-            // ui.json behaves as 0.2.1 did. placeMenu is the Places rows' own menu.
-            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText"]
+            // HIG CHANGES keeps Actions on while Run Script and Open in Agent remain off.
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"]
         );
     }
 

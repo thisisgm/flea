@@ -25,16 +25,6 @@ extern "C" {
     fn fcntl(fd: i32, cmd: i32, ...) -> i32;
 }
 
-// Called from gui::exec_qs and gui::pick before qs_command, so no Command builder touches the runtime dir.
-pub fn prune_dead(shell_ids: &[&str]) {
-    // Sample input: XDG_RUNTIME_DIR=/run/user/1000, falling back to /run/user/<uid> as Quickshell does.
-    let base = match std::env::var_os("XDG_RUNTIME_DIR").filter(|value| !value.is_empty()) {
-        Some(dir) => PathBuf::from(dir).join("quickshell"),
-        None => PathBuf::from(format!("/run/user/{}/quickshell", crate::backend::manifestdir::current_uid())),
-    };
-    prune_dead_in(&base, shell_ids);
-}
-
 // The base is a parameter so tests prune a sandbox, never the real runtime dir.
 pub fn prune_dead_in(base: &Path, shell_ids: &[&str]) {
     if !base.is_dir() {

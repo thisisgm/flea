@@ -1,0 +1,500 @@
+#!/usr/bin/env python3
+"""Freeze English keys and source coverage; check drift or validate producer deltas."""
+import argparse
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import runpy
+import subprocess
+import sys
+
+MANIFEST = runpy.run_path(str(Path(__file__).with_name("flea-i18n-manifest")))
+read = MANIFEST["read"]
+forms = MANIFEST["forms"]
+source_hash = MANIFEST["source_hash"]
+atomic_write = MANIFEST["atomic_write"]
+HOLES = MANIFEST["HOLES"]
+SOURCE_ROOTS = ("src", "crates", "ui", "tools")
+EXTENSIONS = {".rs", ".qml", ".js", ".toml", ".py", ".sh", ".json"}
+# Sample input: i.tr("file.open"), r#"raw text"# and // comments are source tokens.
+TOKEN = re.compile(r'(?P<comment>//[^\n]*|/\*.*?\*/)|(?P<raw>r(?P<marks>\#*)".*?"(?P=marks))|(?P<text>"(?:\\.|[^"\\])*")', re.S)
+SINGLE = re.compile(r"'(?:\\.|[^'\\\r\n])*'")
+RUST_CHAR = re.compile(r"(?:b)?'(?:\\(?:x[0-9a-fA-F]{2}|u\{[0-9a-fA-F_]+\}|.)|[^'\\\n])'")
+# Sample input: let quote = '"'; i.tr("file.open") keeps character and string tokens separate.
+RUST_TOKEN = re.compile("(?P<char>" + RUST_CHAR.pattern + ")|" + TOKEN.pattern, re.S)
+# Sample input: const marker = '//'; i.tr('file.open') protects quoted comment markers.
+JS_TOKEN = re.compile("(?P<single>" + SINGLE.pattern + r''')|(?P<comment>//[^\n]*|/\*.*?\*/)|(?P<text>"(?:\\.|[^"\\\r\n])*")''', re.S)
+# Sample input: file.{name}, file.{} and file.{0:>2} are dynamic key templates.
+FORMAT_HOLE = re.compile(r"\{(?:[A-Za-z0-9_]+)?(?::[^{}]*)?\}")
+CALL = re.compile(r'\b(tr|tr_args|trn|trn_args)\s*\(')
+# Sample input: file.open is a flat dotted Flea key.
+KEY = re.compile(r'[a-z][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_-]+)+\Z')
+
+
+def canonical(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+
+
+def digest(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def emit(path, value):
+    atomic_write(path, json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+
+def revision(root, ref):
+    return subprocess.check_output(["git", "-C", str(root), "rev-parse", "--verify", f"{ref}^{{commit}}"],
+                                   text=True, stderr=subprocess.DEVNULL).strip()
+
+
+def source_paths(root):
+    paths = set()
+    for name in SOURCE_ROOTS:
+        directory = root / name
+        if directory.exists():
+            for path in directory.rglob("*"):
+                relative = path.relative_to(root)
+                if any(part in {"target", "node_modules", ".git", "fixtures", "tests", "__pycache__"}
+                       for part in relative.parts) or "test" in path.stem.split("_") or path.stem.endswith("tests"):
+                    continue
+                if path.is_file() and (path.suffix in EXTENSIONS or name == "tools" and not path.suffix):
+                    if path.is_symlink():
+                        raise ValueError(f"source symlink is not a frozen file: {relative}")
+                    paths.add(relative.as_posix())
+    for name in ("keys.toml", "Cargo.toml"):
+        if (root / name).is_file():
+            paths.add(name)
+    return sorted(paths)
+
+
+def surface(path):
+    if path.startswith("src/tui/"):
+        return "tui"
+    if path.startswith("crates/flea-gui/"):
+        return "gui"
+    if path.startswith("ui/"):
+        return "qml-reference"
+    if path.startswith("tools/") or "generated" in path or path == "keys.toml":
+        return "generated/tooling"
+    return "core/backend"
+
+
+def owner(path):
+    return "t11" if surface(path) == "tui" else "I50-07" if surface(path) == "gui" else "controller"
+
+
+# Sample input: const ratio = a / b; const pattern = /["']/g; i.tr("file.open").
+def javascript_source(text):
+    masked, unresolved = list(text), []
+    offset, previous = 0, "expect"
+    expression_words = {"return", "throw", "case", "delete", "void", "typeof", "instanceof",
+                        "in", "new", "else", "do", "break", "continue", "debugger"}
+    word_token = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+(?:\.[0-9]+)?")
+    while offset < len(text):
+        char, start = text[offset], offset
+        if char.isspace():
+            offset += 1
+            continue
+        token = JS_TOKEN.match(text, offset)
+        if token and (token.group("comment") or char in "\"'"):
+            offset = token.end()
+            if token.group("comment"):
+                masked[start:offset] = " " * (offset - start)
+            else:
+                previous = "operand"
+            continue
+        if char == "`" or char in "\"'":
+            unresolved.append((start, "javascript-template-needs-owner-verification" if char == "`" else "javascript-unclosed-string"))
+            line_end = text.find("\n", start)
+            offset = len(text) if line_end < 0 else line_end
+            if char == "`":
+                end = start + 1
+                while end < offset:
+                    if text[end] == "\\":
+                        end += 2
+                        continue
+                    if text[end] == "`":
+                        offset = end + 1
+                        break
+                    end += 1
+            masked[start:offset] = " " * (offset - start)
+            previous = "expect"
+            continue
+        word = word_token.match(text, offset)
+        if word:
+            previous = ("operand" if previous == "property" else "uncertain" if word[0] in {"of", "yield", "await"}
+                        else "expect" if word[0] in expression_words else "operand")
+            offset += len(word[0])
+            continue
+        if char == "/":
+            if previous == "operand":
+                offset += 2 if text.startswith("/=", offset) else 1
+                previous = "expect"
+                continue
+            if previous == "uncertain":
+                unresolved.append((start, "javascript-unresolved-slash"))
+            offset += 1
+            in_class, closed = False, False
+            while offset < len(text) and text[offset] not in "\r\n":
+                value = text[offset]
+                if value == "\\":
+                    offset += 2
+                    continue
+                if value == "[":
+                    in_class = True
+                elif value == "]":
+                    in_class = False
+                elif value == "/" and not in_class:
+                    offset += 1
+                    while offset < len(text) and text[offset].isalpha():
+                        offset += 1
+                    closed = True
+                    break
+                offset += 1
+            if not closed:
+                unresolved.append((start, "javascript-unclosed-regex"))
+            masked[start:offset] = " " * (offset - start)
+            previous = "operand" if closed else "expect"
+            continue
+        if text.startswith(("++", "--"), offset):
+            previous, offset = "uncertain", offset + 2
+        else:
+            previous = "property" if char == "." else "operand" if char == "]" else "uncertain" if char in ")}" else "expect"
+            offset += 1
+    return "".join(masked), unresolved
+
+
+# Sample input: i.tr("file.open") yields the string's byte-range and decoded value.
+def literals(text, suffix):
+    if suffix in {".py", ".toml", ".sh"} or not suffix:
+        text = re.sub(r"(?m)^\s*#[^\n]*", lambda match: " " * len(match[0]), text)
+    lexer = RUST_TOKEN if suffix == ".rs" else JS_TOKEN if suffix in {".js", ".qml"} else TOKEN
+    tokens = list(lexer.finditer(text))
+    for match in sorted(tokens, key=lambda token: token.start()):
+        raw = match[0]
+        if raw.startswith(("//", "/*")) or match.re == RUST_TOKEN and match.group("char"):
+            continue
+        if raw.startswith("r"):
+            value = raw[raw.index('"') + 1:raw.rindex('"')]
+        else:
+            try:
+                value = json.loads(raw) if raw.startswith('"') else ast.literal_eval(raw)
+            except ValueError:
+                value = raw[1:-1]
+            except SyntaxError:
+                value = None
+        yield match.start(), match.end(), value
+
+
+# Sample input: i.tr_args(if flag { "a.key" } else { "b.key" }, args) has one key-expression range.
+def argument_ranges(text, tokens, suffix):
+    masked = list(text)
+    for start, end, _ in tokens:
+        masked[start:end] = " " * (end - start)
+    lexer = RUST_TOKEN if suffix == ".rs" else JS_TOKEN if suffix in {".js", ".qml"} else TOKEN
+    masked = lexer.sub(lambda match: " " * len(match[0]) if match.group("comment") or lexer == RUST_TOKEN and match.group("char") else match[0], "".join(masked))
+    ranges = []
+    for match in CALL.finditer(masked):
+        stack = ["("]
+        end = match.end()
+        while end < len(masked):
+            char = masked[end]
+            if char in "([{":
+                stack.append(char)
+            elif char in ")]}":
+                stack.pop()
+                if not stack:
+                    break
+            elif char == "," and len(stack) == 1:
+                break
+            end += 1
+        ranges.append((match.end(), end))
+    return ranges
+
+
+# Sample input: src/example.rs contains i.tr("file.open"), indexed by key and source location.
+def scan(root, english):
+    callers = {key: [] for key in english}
+    direct, missing, dynamic, files = {}, [], [], {}
+    english_values = {text for value in english.values() for text in forms(value, "English")}
+    for path in source_paths(root):
+        data = (root / path).read_bytes()
+        text = data.decode("utf-8")
+        files[path] = digest(data)
+        lexical, unresolved = javascript_source(text) if Path(path).suffix in {".js", ".qml"} else (text, [])
+        for start, coverage in unresolved:
+            dynamic.append({"path": path, "line": text.count("\n", 0, start) + 1,
+                            "surface": surface(path), "pattern": None, "coverage": coverage, "blocks_removals": True})
+        tokens = list(literals(lexical, Path(path).suffix))
+        translated_ranges = argument_ranges(lexical, tokens, Path(path).suffix)
+        for start, end, value in tokens:
+            line = text.count("\n", 0, start) + 1
+            line_start = text.rfind("\n", 0, start) + 1
+            line_end = text.find("\n", end)
+            snippet = text[line_start:line_end if line_end >= 0 else len(text)].strip()
+            site = {"path": path, "line": line, "surface": surface(path), "excerpt": snippet}
+            if value is None:
+                dynamic.append({**site, "pattern": None, "coverage": "unresolved-source-token", "blocks_removals": True})
+                continue
+            translated = any(left <= start < right for left, right in translated_ranges)
+            if value in english:
+                site["usage"] = "unverified-source-occurrence" if unresolved else "translated-call" if translated else "key-declaration"
+                callers[value].append(site)
+            elif re.fullmatch(r"omarchy:(?:shell|menu|cli|keybindings)\..+", value):
+                direct.setdefault(value, []).append(site)
+            elif FORMAT_HOLE.search(value) and re.match(r"[a-z][A-Za-z0-9_]*\.", value):
+                dynamic.append({**site, "pattern": value, "coverage": "dynamic-needs-owner-verification"})
+            elif KEY.fullmatch(value) and translated:
+                missing.append({**site, "key": value, "owner": owner(path), "reason": "key-not-in-English"})
+            elif value in english_values or re.search(r'[A-Za-z]{2,} [A-Za-z]{2,}', value) or re.fullmatch(r'[A-Z][a-z]{2,}', value):
+                missing.append({**site, "literal": value, "owner": owner(path),
+                                "reason": "untranslated-literal-candidate-needs-owner-verification"})
+        for left, right in translated_ranges:
+            arguments = [(start, end, value) for start, end, value in tokens if left <= start < right and value is not None]
+            direct_key = len(arguments) == 1 and (arguments[0][2] in english or arguments[0][2].startswith("omarchy:")) and text[left:right].strip().lstrip("&") == text[arguments[0][0]:arguments[0][1]]
+            if not direct_key:
+                dynamic.append({"path": path, "line": text.count("\n", 0, left) + 1,
+                                "surface": surface(path), "pattern": None, "expression": text[left:right].strip(),
+                                "coverage": "unresolved-key-expression", "blocks_removals": True})
+    for pattern in dynamic:
+        if pattern["pattern"] is None:
+            pattern["possible_keys"] = []
+            continue
+        parts = FORMAT_HOLE.split(pattern["pattern"])
+        expression = ".*".join(re.escape(part) for part in parts)
+        matches = [key for key in english if re.fullmatch(expression, key)]
+        pattern["possible_keys"] = matches
+        for key in matches:
+            callers[key].append({**pattern, "usage": "dynamic-candidate", "coverage": "needs-owner-verification"})
+    return callers, direct, missing, dynamic, files
+
+
+# Sample input: omarchy:shell.common.cancel resolves one English reference.
+def omarchy_value(reference, omarchy):
+    MANIFEST["check_reference"](reference, omarchy)
+    kind, key = reference[len("omarchy:"):].split(".", 1)
+    catalog = read(omarchy / "default/i18n/en" / f"{kind}.json")
+    if kind == "menu":
+        catalog = {f"{name}.{field}": value for name, fields in catalog.items()
+                   if isinstance(fields, dict) for field, value in fields.items()}
+    return catalog[key]
+
+
+# Sample input: {"one":"%1 file","other":"%1 files"} has one shared placeholder.
+def placeholders(value):
+    variants = forms(value, "source")
+    holes = sorted(set(HOLES.findall(variants[0])))
+    if any(sorted(set(HOLES.findall(text))) != holes for text in variants):
+        raise ValueError("placeholders differ between plural forms")
+    return holes
+
+
+def action_alias(key, value, omarchy):
+    # Mute has identical semantics in the media controls and the desktop action glossary.
+    if key.startswith("keys.") and value == "Mute":
+        reference = "omarchy:keybindings.Mute"
+        if omarchy_value(reference, omarchy) == value:
+            return reference
+    return value if isinstance(value, str) and value.startswith("omarchy:") else None
+
+
+def build_index(root, english, source_ref, omarchy, prior=None, contexts=None):
+    callers, direct, missing, dynamic, files = scan(root, english)
+    roster_path = omarchy / "default/i18n/locales.json"
+    roster = read(roster_path)
+    plural_path = omarchy / "default/i18n/plural.jq"
+    records, references = {}, {}
+    for key, value in sorted(english.items()):
+        if not KEY.fullmatch(key):
+            raise ValueError(f"invalid English key: {key}")
+        alias = action_alias(key, value, omarchy)
+        resolved = omarchy_value(alias, omarchy) if alias else value
+        sites = callers[key]
+        context = (contexts or {}).get(key) or (prior or {}).get("keys", {}).get(key, {}).get("context")
+        context = context or f"{key}: " + (f"{sites[0]['path']}:{sites[0]['line']}" if sites else "caller missing; source owner must identify the surface")
+        records[key] = {"english": value, "source_hash": source_hash(value), "kind": "plural" if isinstance(value, dict) else "text",
+                        "placeholders": placeholders(value), "plural_categories": sorted(value) if isinstance(value, dict) else [],
+                        "context": context, "call_sites": sites,
+                        "coverage": ("existing-translated-call" if any(site.get("usage") == "translated-call" for site in sites)
+                                     else "occurrence-needs-owner-verification" if sites else "missing-callsite"),
+                        "omarchy_reference": alias, "resolved_english": resolved,
+                        "resolved_source_hash": source_hash(resolved), "resolved_sha256": digest(canonical(resolved))}
+        if alias:
+            references.setdefault(alias, {"english": resolved, "source_hash": source_hash(resolved), "sha256": digest(canonical(resolved)), "aliases": []})["aliases"].append(key)
+    for reference, sites in sorted(direct.items()):
+        value = omarchy_value(reference, omarchy)
+        references.setdefault(reference, {"english": value, "source_hash": source_hash(value), "sha256": digest(canonical(value)), "aliases": []})["call_sites"] = sites
+    coverage = {}
+    for name in sorted(set(map(surface, files))):
+        coverage[name] = {"source_files": sum(surface(path) == name for path in files),
+                          "keys_with_occurrences": sum(any(site["surface"] == name for site in sites) for sites in callers.values()),
+                          "missing_literal_candidates": sum(item["surface"] == name for item in missing)}
+    result = {"schema": 1, "source_sha": prior["source_sha"] if prior else revision(root, "HEAD"), "source_ref": source_ref,
+              "source_ref_sha": prior["source_ref_sha"] if prior else revision(root, source_ref), "catalog_sha256": digest(canonical(english)),
+              "catalog_file_sha256": digest((root / "i18n/en/flea.json").read_bytes()),
+              "reference_checkout_sha": revision(omarchy, "HEAD"),
+              "roster": {"sha256": digest(canonical(roster)), "file_sha256": digest(roster_path.read_bytes()), "languages": sorted(roster),
+                         "plural_sha256": digest(plural_path.read_bytes())},
+              "keys": records, "references": references,
+              "direct_references": {key: references[key] for key in sorted(direct)},
+              "source_files": files, "surface_coverage": coverage,
+              "missing_callsite_handoffs": missing, "dynamic_callsite_handoffs": dynamic,
+              "unlocated_keys": [key for key in records if not callers[key]],
+              "counts": {"keys": len(english), "plurals": sum(isinstance(value, dict) for value in english.values()),
+                         "direct_references": len(direct)}}
+    return result
+
+
+# Sample input: {"schema":1,"source_base":"<40-hex commit>","producer":"I50-12","entries":[]} is a producer handoff.
+def validate_delta(root, index, paths, english, omarchy):
+    if digest(canonical(english)) != index["catalog_sha256"]:
+        raise ValueError("English differs from the frozen base before delta application")
+    entries = {}
+    for path in paths:
+        delta = read(path)
+        if delta.get("schema") != 1 or delta.get("source_base") != index["source_sha"]:
+            raise ValueError(f"{path}: stale source_base or invalid schema")
+        if not isinstance(delta.get("producer"), str) or not delta["producer"].strip() or not isinstance(delta.get("entries"), list):
+            raise ValueError(f"{path}: producer and entries are required")
+        for entry in delta["entries"]:
+            if not isinstance(entry, dict) or not isinstance(entry.get("key"), str) or not KEY.fullmatch(entry["key"]):
+                raise ValueError(f"{path}: invalid delta entry")
+            key = entry["key"]
+            if key in entries and entries[key] != entry:
+                raise ValueError(f"conflicting definitions for {key}")
+            entries[key] = entry
+    scanned = scan(root, {**english, **{key: entry.get("english") or "removed" for key, entry in entries.items() if key not in english}})
+    current_callers = scanned[0]
+    updated, contexts, changed = dict(english), {}, {"added": {}, "changed": {}, "removed": {}}
+    for key, entry in sorted(entries.items()):
+        required = {"english", "kind", "placeholders", "context", "call_sites", "omarchy_reference", "replaces"}
+        if not required <= entry.keys() or not isinstance(entry["context"], str) or not entry["context"].strip():
+            raise ValueError(f"{key}: incomplete delta context")
+        old = index["keys"].get(key)
+        if old:
+            if entry.get("previous_source_hash") != old["source_hash"] or source_hash(english.get(key)) != old["source_hash"]:
+                raise ValueError(f"{key}: stale previous_source_hash")
+        elif "previous_source_hash" in entry or key in english:
+            raise ValueError(f"{key}: new key has stale history")
+        sites = entry["call_sites"]
+        if not isinstance(sites, list) or (not sites and entry["kind"] != "remove") or not all(isinstance(site, str) for site in sites):
+            raise ValueError(f"{key}: call_sites must identify every caller")
+        if entry["kind"] == "remove":
+            if not old:
+                raise ValueError(f"{key}: cannot remove an unknown key")
+            if current_callers.get(key):
+                site = current_callers[key][0]
+                raise ValueError(f"{key}: cannot remove a key with a live caller: {site['path']}:{site['line']}")
+            blocker = next((item for item in scanned[3] if item.get("blocks_removals")), None)
+            if blocker:
+                raise ValueError(f"{key}: cannot prove removal: {blocker['coverage']} at {blocker['path']}:{blocker['line']}")
+            previous_sites = {f"{site['path']}:{site['line']}" for site in old["call_sites"]}
+            if set(sites) != previous_sites:
+                raise ValueError(f"{key}: removal must identify all removed callers")
+            updated.pop(key)
+            changed["removed"][key] = old["source_hash"]
+            continue
+        value = entry["english"]
+        expected_kind = "plural" if isinstance(value, dict) else "text"
+        if entry["kind"] != expected_kind or entry["placeholders"] != placeholders(value):
+            raise ValueError(f"{key}: kind or placeholder mismatch")
+        if old and (entry["kind"] != old["kind"] or entry["placeholders"] != old["placeholders"]):
+            raise ValueError(f"{key}: argument contract changed; use a new key")
+        if old and entry["context"] != old["context"]:
+            raise ValueError(f"{key}: semantic context changed; use a new key")
+        alias = entry["omarchy_reference"]
+        if isinstance(value, str) and value.startswith("omarchy:") and alias != value:
+            raise ValueError(f"{key}: a reference value requires its complete omarchy_reference")
+        if alias is not None:
+            if not isinstance(alias, str) or omarchy_value(alias, omarchy) != (omarchy_value(value, omarchy) if isinstance(value, str) and value.startswith("omarchy:") else value):
+                raise ValueError(f"{key}: mismatched Omarchy reference")
+            if value != alias:
+                raise ValueError(f"{key}: English must contain its checked complete Omarchy reference")
+        if entry["replaces"] is not None and (not isinstance(entry["replaces"], str) or entry["replaces"] not in entries or entries[entry["replaces"]]["kind"] != "remove"):
+            raise ValueError(f"{key}: replaces requires an explicit removal")
+        live = current_callers[key]
+        live_sites = {f"{site['path']}:{site['line']}" for site in live}
+        if set(sites) != live_sites:
+            raise ValueError(f"{key}: handoff must identify every live call site")
+        updated[key], contexts[key] = value, entry["context"]
+        changed["changed" if old else "added"][key] = source_hash(value)
+    return updated, contexts, changed
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("operation", choices=("freeze", "check", "delta"))
+    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--source-index", type=Path, default=Path("i18n/source-index.json"))
+    parser.add_argument("--source-ref", default="HEAD")
+    parser.add_argument("--omarchy-path", type=Path, default=os.environ.get("OMARCHY_PATH"))
+    parser.add_argument("--delta", type=Path, action="append", default=[])
+    parser.add_argument("--apply", action="store_true", help="apply validated deltas to English and the source index")
+    parser.add_argument("--output", type=Path, help="write the added/changed/removed delta index")
+    args = parser.parse_args()
+    try:
+        root = args.repo.resolve()
+        path = args.source_index if args.source_index.is_absolute() else root / args.source_index
+        english_path = root / "i18n/en/flea.json"
+        english = read(english_path)
+        prior = read(path) if path.exists() else None
+        previous_index_digest = digest(path.read_bytes()) if path.exists() else None
+        omarchy = args.omarchy_path or (Path(prior["reference_checkout_path"]) if prior else None)
+        if omarchy is None:
+            raise ValueError("--omarchy-path is required for the initial freeze")
+        omarchy = omarchy.resolve()
+        source_ref, contexts, changes = args.source_ref, None, None
+        if args.apply and args.operation != "delta":
+            raise ValueError("--apply is only valid with delta")
+        if args.operation != "freeze":
+            if prior is None or prior.get("schema") != 1:
+                raise ValueError("a schema 1 source index is required")
+            source_ref = prior["source_ref"]
+        if args.operation == "delta":
+            if not args.delta:
+                raise ValueError("delta requires at least one --delta file")
+            english, contexts, changes = validate_delta(root, prior, args.delta, english, omarchy)
+        index = build_index(root, english, source_ref, omarchy, prior, contexts)
+        index["reference_checkout_path"] = str(omarchy)
+        if args.operation == "freeze":
+            index["source_sha"] = revision(root, "HEAD")
+            index["source_ref_sha"] = revision(root, source_ref)
+        if args.operation == "delta":
+            index["catalog_file_sha256"] = digest((json.dumps(english, ensure_ascii=False, indent=2) + "\n").encode())
+        if args.operation == "check":
+            if canonical(index) != canonical(prior):
+                raise ValueError("source index drift: English, source files, callers or Omarchy identities changed; freeze again")
+        elif args.operation == "freeze" or args.apply:
+            if args.operation == "delta":
+                text = json.dumps(english, ensure_ascii=False, indent=2) + "\n"
+                index["catalog_file_sha256"] = digest(text.encode())
+                atomic_write(english_path, text)
+            else:
+                index["catalog_file_sha256"] = digest(english_path.read_bytes())
+            emit(path, index)
+        if changes is not None:
+            changes = {"entries": [
+                {"key": key, "kind": "remove" if category == "removed" else index["keys"][key]["kind"],
+                 "previous_source_hash": prior["keys"].get(key, {}).get("source_hash"),
+                 "source_hash": None if category == "removed" else value}
+                for category, values in changes.items() for key, value in sorted(values.items())]}
+            changes.update(schema=1, source_base=prior["source_sha"], source_index_sha256=digest((json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()),
+                           previous_source_index_sha256=previous_index_digest,
+                           producers=[{"producer": read(item)["producer"], "delta_sha256": digest(item.read_bytes())} for item in args.delta])
+            if args.output:
+                emit(args.output, changes)
+            else:
+                print(json.dumps(changes, sort_keys=True))
+        print(f"i18n extraction {args.operation}: {len(english)} keys, {index['counts']['plurals']} plurals, source-index {digest(path.read_bytes()) if path.exists() else 'not-written'}")
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError) as error:
+        print(f"flea-i18n-extract: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

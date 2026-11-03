@@ -108,9 +108,6 @@ const DIRECT_MARKER: &str = ".flea-test-sandbox";
 const DIRECT_PREFIX: &str = "flea-test-direct-";
 // The flag the code under test checks, so the fixture opens targets the same way.
 pub(crate) use crate::backend::flashio::O_DIRECT;
-// A bad address and a bad length for an O_DIRECT probe: one byte past an aligned buffer, half a block.
-const PROBE_SKEW: usize = 1;
-const PROBE_LEN: usize = 512;
 
 static NEXT_DIRECT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
@@ -120,7 +117,7 @@ pub(crate) struct DirectDir {
 }
 
 impl DirectDir {
-    // None, with a note on stderr, where the filesystem takes a misaligned O_DIRECT write and so proves nothing.
+    // None, with a note on stderr, where the filesystem cannot report usable direct-I/O alignment.
     pub(crate) fn new(tag: &str) -> Option<DirectDir> {
         let base = Path::new(env!("CARGO_MANIFEST_DIR")).join(".superpowers/tmp");
         std::fs::create_dir_all(&base).expect("the direct root's parent in the worktree");
@@ -130,19 +127,29 @@ impl DirectDir {
         std::fs::write(path.join(DIRECT_MARKER), "flea test sandbox\n").expect("the direct root's marker");
         let dir = DirectDir { path };
         if !dir.enforces_alignment() {
-            eprintln!("flea test: {} does not enforce O_DIRECT alignment, so this test proves nothing here", base.display());
+            eprintln!("flea test: {} does not report usable O_DIRECT alignment, so this test proves nothing here", base.display());
             return None;
         }
         Some(dir)
     }
 
-    // An unaligned O_DIRECT write must fail EINVAL; a filesystem that takes it cannot show the bug.
+    // Azure ARM can hang on a deliberately misaligned write, so query the kernel's capability instead.
     fn enforces_alignment(&self) -> bool {
         use std::os::unix::fs::OpenOptionsExt;
         let Ok(file) = std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).custom_flags(O_DIRECT).open(self.path.join("probe")) else { return false };
-        let backing = vec![0u8; crate::backend::flash::DIRECT_ALIGN * 2];
-        let skew = (crate::backend::flash::DIRECT_ALIGN - backing.as_ptr() as usize % crate::backend::flash::DIRECT_ALIGN) % crate::backend::flash::DIRECT_ALIGN + PROBE_SKEW;
-        crate::backend::flashio::full_pwrite(std::os::fd::AsRawFd::as_raw_fd(&file), &backing[skew..skew + PROBE_LEN], 0).is_err()
+        // SAFETY: libc::statx is an integer-only C struct, so zero is a valid initial value.
+        let mut info = unsafe { std::mem::zeroed::<libc::statx>() };
+        // SAFETY: the descriptor is live, the path is NUL-terminated and the output has the native layout.
+        let result = unsafe {
+            libc::statx(
+                std::os::fd::AsRawFd::as_raw_fd(&file),
+                c"".as_ptr(),
+                libc::AT_EMPTY_PATH,
+                libc::STATX_DIOALIGN,
+                &mut info,
+            )
+        };
+        reported_alignment(result, &info)
     }
 
     pub(crate) fn join(&self, name: &str) -> PathBuf {
@@ -155,6 +162,44 @@ impl DirectDir {
         let file = std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).custom_flags(O_DIRECT).open(self.join(name)).expect("an O_DIRECT target");
         file.set_len(bytes).expect("a sized target");
         file
+    }
+}
+
+fn reported_alignment(result: libc::c_int, info: &libc::statx) -> bool {
+    result == 0 && info.stx_mask & libc::STATX_DIOALIGN != 0 && info.stx_dio_mem_align > 1
+}
+
+#[test]
+fn statx_layout_matches_linux_direct_io_contract() {
+    assert_eq!(std::mem::size_of::<libc::statx>(), 256);
+    assert_eq!(std::mem::offset_of!(libc::statx, stx_mask), 0);
+    assert_eq!(std::mem::offset_of!(libc::statx, stx_dio_mem_align), 152);
+    assert_eq!(std::mem::offset_of!(libc::statx, stx_dio_offset_align), 156);
+    assert_eq!(libc::STATX_DIOALIGN, 0x2000);
+    assert_eq!(libc::AT_EMPTY_PATH, 0x1000);
+}
+
+#[test]
+fn statx_alignment_fails_closed_without_a_successful_usable_capability() {
+    for (result, mask, alignment, expected) in [
+        (0, libc::STATX_DIOALIGN, 64, true),
+        (0, libc::STATX_DIOALIGN, 4096, true),
+        (0, libc::STATX_DIOALIGN, 2, true),
+        (0, libc::STATX_DIOALIGN | libc::STATX_TYPE, 64, true),
+        (0, 0, 4096, false),
+        (0, libc::STATX_DIOALIGN, 0, false),
+        (0, libc::STATX_DIOALIGN, 1, false),
+        (-1, libc::STATX_DIOALIGN, 4096, false),
+    ] {
+        // SAFETY: the test writes only integer fields of the zero-initialized native C struct.
+        let mut info = unsafe { std::mem::zeroed::<libc::statx>() };
+        info.stx_mask = mask;
+        info.stx_dio_mem_align = alignment;
+        assert_eq!(
+            reported_alignment(result, &info),
+            expected,
+            "result={result}, mask={mask:#x}, alignment={alignment}"
+        );
     }
 }
 

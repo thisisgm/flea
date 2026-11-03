@@ -100,35 +100,35 @@ ui/ColumnPane.qml	320	root	Declared QML id; component context access is valid at
 ui/ColumnPane.qml	320	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	322	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	322	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	329	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	331	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	334	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	333	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	336	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	341	index	Delegate context supplies this model role at runtime.
-ui/ColumnPane.qml	341	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	342	index	Delegate context supplies this model role at runtime.
-ui/ColumnPane.qml	342	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	342	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	345	index	Delegate context supplies this model role at runtime.
-ui/ColumnPane.qml	345	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	340	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	343	index	Delegate context supplies this model role at runtime.
+ui/ColumnPane.qml	343	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	344	index	Delegate context supplies this model role at runtime.
+ui/ColumnPane.qml	344	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	344	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	347	index	Delegate context supplies this model role at runtime.
-ui/ColumnPane.qml	347	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	347	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	349	index	Delegate context supplies this model role at runtime.
 ui/ColumnPane.qml	349	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	349	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	354	dragSession	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	422	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	423	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	423	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	424	root	Declared QML id; component context access is valid at runtime.
-ui/ColumnPane.qml	424	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	351	index	Delegate context supplies this model role at runtime.
+ui/ColumnPane.qml	351	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	351	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	356	dragSession	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	424	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	425	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	425	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	426	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	426	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	426	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnPane.qml	427	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	427	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	428	root	Declared QML id; component context access is valid at runtime.
+ui/ColumnPane.qml	429	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnRow.qml	214	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnRow.qml	214	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnRow.qml	215	root	Declared QML id; component context access is valid at runtime.
@@ -398,37 +398,37 @@ ui/Glass.qml	34	root	Declared QML id; component context access is valid at runti
 ui/Glass.qml	37	root	Declared QML id; component context access is valid at runtime.
 ui/Glass.qml	39	root	Declared QML id; component context access is valid at runtime.
 ui/Glass.qml	40	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	225	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	223	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	229	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	231	cursorMark	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	231	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	233	cursorMark	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	232	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	233	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	234	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	233	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	234	cursorMark	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	235	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	235	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	236	cursorMark	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	236	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	237	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	238	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	239	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	240	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	241	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	242	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	243	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	242	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	242	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	243	dragSession	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	244	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	244	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	245	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	246	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	245	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	251	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	252	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	252	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	253	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	254	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	254	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	255	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	256	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	267	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	271	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	271	root	Declared QML id; component context access is valid at runtime.
@@ -1196,36 +1196,40 @@ ui/List.qml	157	dragSession	Declared QML id; component context access is valid a
 ui/List.qml	159	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	160	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	165	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	174	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	176	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	179	listingIndex	Declared QML property; enclosing component context supplies it.
+ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	181	listingIndex	Declared QML property; enclosing component context supplies it.
 ui/List.qml	181	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	182	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	182	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	181	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	183	listingIndex	Declared QML property; enclosing component context supplies it.
 ui/List.qml	183	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	184	dragSession	Declared QML id; component context access is valid at runtime.
 ui/List.qml	184	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	190	dragSession	Declared QML id; component context access is valid at runtime.
-ui/List.qml	200	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	184	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	185	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	186	dragSession	Declared QML id; component context access is valid at runtime.
+ui/List.qml	186	listingIndex	Declared QML property; enclosing component context supplies it.
+ui/List.qml	192	dragSession	Declared QML id; component context access is valid at runtime.
+ui/List.qml	202	root	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	54	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	55	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	56	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	58	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	59	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	62	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	66	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	66	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	62	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	72	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	73	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	74	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	75	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	76	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	77	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	78	view	Declared QML id; component context access is valid at runtime.
@@ -1236,87 +1240,83 @@ ui/MarkdownBlockView.qml	82	view	Declared QML id; component context access is va
 ui/MarkdownBlockView.qml	83	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	84	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	85	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	86	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	87	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	88	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	89	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	96	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	97	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	98	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	92	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	93	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	94	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	104	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	105	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	106	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	107	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	108	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	109	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	110	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	111	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	112	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	113	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	124	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	127	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	134	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	143	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	176	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	181	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	187	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	188	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	109	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	120	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	123	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	130	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	139	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	172	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	177	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	183	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	184	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	190	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	191	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	192	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	193	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	194	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	195	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	196	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	197	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	198	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	203	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	214	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	199	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	210	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	219	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	220	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	222	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	223	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	224	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	226	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	227	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	224	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	225	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	226	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	227	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	228	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	229	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	230	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	231	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	232	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	233	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	234	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	235	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	237	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	247	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	243	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	243	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	244	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	245	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	245	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	247	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	248	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	249	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	249	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	250	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	251	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	252	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	253	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	253	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	254	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	255	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	264	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	264	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	260	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	260	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	261	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	262	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	263	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	265	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	266	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	267	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	269	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	270	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	271	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	278	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	279	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	287	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	288	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	288	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	289	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	289	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	290	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	305	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	267	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	274	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	275	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	283	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	284	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	284	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	285	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	285	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	286	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	301	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	304	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	304	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	308	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	308	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	312	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlocks.qml	28	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlocks.qml	29	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlocks.qml	30	root	Declared QML id; component context access is valid at runtime.
@@ -1421,16 +1421,16 @@ ui/MarkdownTable.qml	97	root	Declared QML id; component context access is valid 
 ui/MarkdownTable.qml	100	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownTable.qml	112	modelData	Declared QML property; enclosing component context supplies it.
 ui/MarkdownTable.qml	115	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	69	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	70	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	72	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	83	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	84	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	86	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	74	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	75	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	77	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	89	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	90	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	92	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	30	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	33	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	34	helper	Declared QML id; enclosing Process supplies this member.
@@ -1684,26 +1684,26 @@ ui/PaneWire.qml	581	pane	Declared QML property; enclosing component context supp
 ui/PaneWire.qml	583	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	586	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	595	pane	Declared QML property; enclosing component context supplies it.
-ui/PathJump.qml	303	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	304	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	316	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	326	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	305	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	317	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	327	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	329	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	362	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	328	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	330	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	363	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	366	rows	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	368	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	364	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	367	rows	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	369	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	370	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	373	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	444	body	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	445	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	446	root	Declared QML id; component context access is valid at runtime.
@@ -1851,18 +1851,18 @@ ui/PreviewColumn.qml	415	playerLoader	Declared QML id; component context access 
 ui/PreviewColumn.qml	415	playerLoader	Declared QML id; component context access is valid at runtime.
 ui/PreviewColumn.qml	477	playerLoader	Declared QML id; component context access is valid at runtime.
 ui/PreviewColumn.qml	477	playerLoader	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	117	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	118	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	119	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	120	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	121	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	123	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	401	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	643	modelData	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	644	index	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	645	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	646	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	647	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	122	root	Declared QML id; component context access is valid at runtime.
+ui/PreviewMarkdown.qml	124	root	Declared QML id; component context access is valid at runtime.
+ui/PreviewMarkdown.qml	409	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	651	modelData	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	652	index	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	653	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	654	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	655	root	Declared QML id; Source and fence components read their creation context.
 ui/PreviewScroll.qml	192	bars	Declared QML id; Loader context access is valid at runtime.
 ui/PreviewSwap.qml	266	content	Declared QML id; component context access is valid at runtime.
 ui/PreviewSwap.qml	266	root	Declared QML id; component context access is valid at runtime.
@@ -2423,8 +2423,8 @@ ui/RunCard.qml	258	root	Declared QML id; component context access is valid at ru
 ui/RunCard.qml	259	root	Declared QML id; component context access is valid at runtime.
 ui/RunCard.qml	260	root	Declared QML id; component context access is valid at runtime.
 # profile quickshell-present
-ui/ColumnPane.qml	438	root	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
-ui/ColumnPane.qml	439	root	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
+ui/ColumnPane.qml	440	root	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
+ui/ColumnPane.qml	441	root	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
 ui/ColumnsArea.qml	422	neighbourLanding	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
 ui/ColumnsArea.qml	422	root	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
 ui/ColumnsArea.qml	451	neighbourLanding	Declared QML id; the loading signal crosses its component context and is exercised by columnsmoves.
@@ -2624,35 +2624,35 @@ ui/ColumnPane.qml	320	root	Declared QML id or delegate property; component conte
 ui/ColumnPane.qml	320	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	322	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	322	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	329	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	331	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	334	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	333	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	336	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	338	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	341	index	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	341	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	342	index	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	342	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	342	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	345	index	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	345	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	340	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	343	index	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	343	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	344	index	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	344	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	344	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	347	index	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	347	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	347	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	349	index	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	349	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	349	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	354	dragSession	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	422	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	423	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	423	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	424	root	Declared QML id or delegate property; component context access is valid at runtime.
-ui/ColumnPane.qml	424	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	351	index	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	351	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	351	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	356	dragSession	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	424	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	425	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	425	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	426	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	426	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	426	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnPane.qml	427	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	427	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	428	root	Declared QML id or delegate property; component context access is valid at runtime.
+ui/ColumnPane.qml	429	root	Declared QML id or delegate property; component context access is valid at runtime.
 ui/ColumnRow.qml	214	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnRow.qml	214	root	Declared QML id; component context access is valid at runtime.
 ui/ColumnRow.qml	215	root	Declared QML id; component context access is valid at runtime.
@@ -2812,31 +2812,31 @@ ui/FlashDriveRows.qml	99	idx	Declared QML property; enclosing component context 
 ui/FlashDriveRows.qml	99	root	Declared QML id; component context access is valid at runtime.
 ui/FlashDriveRows.qml	104	row	Declared QML property; enclosing component context supplies it.
 ui/FlashDriveRows.qml	110	row	Declared QML property; enclosing component context supplies it.
-ui/GridArea.qml	225	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	223	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	229	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	231	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	231	cursorMark	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	233	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	233	cursorMark	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	233	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	235	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	235	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	237	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	236	cursorMark	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	234	cursorMark	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	245	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	247	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	242	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	242	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	243	dragSession	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	244	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	244	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	245	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	246	dragSession	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	248	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	249	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	250	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	251	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	252	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	252	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	253	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	254	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	254	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	255	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	256	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	267	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	271	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	271	root	Declared QML id; component context access is valid at runtime.
@@ -2845,15 +2845,15 @@ ui/GridArea.qml	273	root	Declared QML id; component context access is valid at r
 ui/GridArea.qml	273	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	275	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	276	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	234	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	232	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	278	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	279	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	238	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	236	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	237	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	239	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	241	root	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	242	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	240	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	279	dragSession	Declared QML id; component context access is valid at runtime.
-ui/GridArea.qml	243	root	Declared QML id; component context access is valid at runtime.
+ui/GridArea.qml	241	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	289	dragSession	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	280	root	Declared QML id; component context access is valid at runtime.
 ui/GridArea.qml	389	root	Declared QML id; component context access is valid at runtime.
@@ -2983,36 +2983,40 @@ ui/List.qml	157	dragSession	Declared QML id; component context access is valid a
 ui/List.qml	159	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	160	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	165	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	174	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	177	listingIndex	Declared QML property; enclosing component context supplies it.
+ui/List.qml	176	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	179	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	179	root	Declared QML id; component context access is valid at runtime.
-ui/List.qml	181	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	181	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	182	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	182	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	181	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	181	root	Declared QML id; component context access is valid at runtime.
 ui/List.qml	183	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	183	listingIndex	Declared QML property; enclosing component context supplies it.
 ui/List.qml	184	listingIndex	Declared QML property; enclosing component context supplies it.
-ui/List.qml	184	dragSession	Declared QML id; component context access is valid at runtime.
-ui/List.qml	190	dragSession	Declared QML id; component context access is valid at runtime.
-ui/List.qml	200	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	184	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	185	root	Declared QML id; component context access is valid at runtime.
+ui/List.qml	186	listingIndex	Declared QML property; enclosing component context supplies it.
+ui/List.qml	186	dragSession	Declared QML id; component context access is valid at runtime.
+ui/List.qml	192	dragSession	Declared QML id; component context access is valid at runtime.
+ui/List.qml	202	root	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	54	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	55	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	56	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	58	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	59	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	61	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	60	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	62	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	64	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	66	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	66	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	62	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	72	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	73	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	74	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	75	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	76	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	77	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	78	view	Declared QML id; component context access is valid at runtime.
@@ -3023,87 +3027,83 @@ ui/MarkdownBlockView.qml	82	view	Declared QML id; component context access is va
 ui/MarkdownBlockView.qml	83	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	84	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	85	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	86	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	87	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	88	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	89	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	96	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	97	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	98	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	109	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	110	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	111	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	187	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	188	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	92	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	93	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	94	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	105	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	106	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	107	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	183	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	184	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	219	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	220	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	222	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	223	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	224	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	226	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	227	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	247	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	271	view	Declared QML id; component context access is valid at runtime.
-ui/MarkdownBlockView.qml	112	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	113	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	124	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	127	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	134	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	143	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	195	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	229	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	270	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	279	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	303	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	243	view	Declared QML id; component context access is valid at runtime.
+ui/MarkdownBlockView.qml	267	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	108	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	176	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	181	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	109	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	120	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	123	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	130	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	139	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	191	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	225	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	266	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	275	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	299	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	104	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	172	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	177	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	190	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	192	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	193	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	194	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	196	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	197	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	198	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	203	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	214	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	199	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	210	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	224	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	226	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	227	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	228	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	229	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	230	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	231	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	232	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	233	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	234	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	235	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	237	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	243	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	244	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	245	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	245	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	247	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	248	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	249	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	249	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	250	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	251	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	252	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	253	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	253	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	254	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	255	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	264	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	264	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	260	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	260	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	261	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	262	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	263	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	265	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	266	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	267	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	269	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	278	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	287	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	288	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	288	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	289	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	289	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	290	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	300	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	305	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	274	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	283	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	284	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	284	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	285	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	285	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	286	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	296	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	301	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	304	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	304	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
+ui/MarkdownBlockView.qml	307	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlockView.qml	308	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	308	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	311	view	Declared QML id; Source and fence components read their creation context.
-ui/MarkdownBlockView.qml	312	view	Declared QML id; Source and fence components read their creation context.
 ui/MarkdownBlocks.qml	28	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlocks.qml	29	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlocks.qml	30	root	Declared QML id; component context access is valid at runtime.
@@ -3208,16 +3208,16 @@ ui/MarkdownTable.qml	97	root	Declared QML id; component context access is valid 
 ui/MarkdownTable.qml	100	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownTable.qml	112	modelData	Declared QML property; enclosing component context supplies it.
 ui/MarkdownTable.qml	115	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	69	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	70	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	72	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	83	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	84	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	86	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	74	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	75	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	77	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	89	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	90	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	92	root	Declared QML id; component context access is valid at runtime.
 ui/MenuActionDialog.qml	329	root	Declared QML id; component context access is valid at runtime.
 ui/NetworkForm.qml	208	root	Declared QML id; component context access is valid at runtime.
 ui/NetworkForm.qml	206	root	Declared QML id; component context access is valid at runtime.
@@ -3430,26 +3430,26 @@ ui/PaneWire.qml	580	pane	Declared QML property; enclosing component context supp
 ui/PaneWire.qml	583	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	586	pane	Declared QML property; enclosing component context supplies it.
 ui/PaneWire.qml	595	pane	Declared QML property; enclosing component context supplies it.
-ui/PathJump.qml	303	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	304	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	316	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	326	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	305	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	317	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	327	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	329	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	338	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	353	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	362	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	328	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	330	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	339	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	354	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	363	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	366	rows	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	368	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	364	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	367	rows	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	369	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	370	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
-ui/PathJump.qml	371	root	Declared QML id; component context access is valid at runtime.
 ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	372	root	Declared QML id; component context access is valid at runtime.
+ui/PathJump.qml	373	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	444	body	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	445	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsDialog.qml	446	root	Declared QML id; component context access is valid at runtime.
@@ -3575,18 +3575,18 @@ ui/PreviewColumn.qml	412	playerLoader	Declared QML id; component context access 
 ui/PreviewColumn.qml	413	playerLoader	Declared QML id; component context access is valid at runtime.
 ui/PreviewColumn.qml	415	playerLoader	Declared QML id; component context access is valid at runtime.
 ui/PreviewColumn.qml	415	playerLoader	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	117	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	118	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	119	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	120	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	121	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	123	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	401	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	643	modelData	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	644	index	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	645	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	646	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	647	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	122	root	Declared QML id; component context access is valid at runtime.
+ui/PreviewMarkdown.qml	124	root	Declared QML id; component context access is valid at runtime.
+ui/PreviewMarkdown.qml	409	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	651	modelData	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	652	index	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	653	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	654	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	655	root	Declared QML id; Source and fence components read their creation context.
 ui/PreviewScroll.qml	192	bars	Declared QML id; Loader context access is valid at runtime.
 ui/PreviewSwap.qml	266	content	Declared QML id; component context access is valid at runtime.
 ui/PreviewSwap.qml	266	root	Declared QML id; component context access is valid at runtime.

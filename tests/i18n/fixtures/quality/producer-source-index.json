@@ -1,0 +1,195 @@
+{
+  "catalog_file_sha256": "9ceeb9988ce84a101171a0a0a3f7ab0ebc8c5dd5cb36db1a1121f0db6c9334d3",
+  "catalog_sha256": "3238805be06005e42f47b420ef784b64b878b41483dc8694fe2c7c8cc612e150",
+  "counts": {
+    "direct_references": 1,
+    "keys": 3,
+    "plurals": 1
+  },
+  "direct_references": {
+    "omarchy:shell.common.cancel": {
+      "aliases": [
+        "fixture.cancel"
+      ],
+      "call_sites": [
+        {
+          "excerpt": "fn draw(i: &I18n) { i.tr(\"fixture.open\"); i.trn(\"fixture.files\", 2); i.tr(\"fixture.cancel\"); i.tr(\"omarchy:shell.common.cancel\"); }",
+          "line": 1,
+          "path": "src/compat.rs",
+          "surface": "core/backend"
+        }
+      ],
+      "english": "Cancel",
+      "source_hash": "19766ed6ccb2"
+    }
+  },
+  "dynamic_callsite_handoffs": [],
+  "keys": {
+    "fixture.cancel": {
+      "call_sites": [
+        {
+          "excerpt": "fn draw(i: &I18n) { i.tr(\"fixture.open\"); i.trn(\"fixture.files\", 2); i.tr(\"fixture.cancel\"); i.tr(\"omarchy:shell.common.cancel\"); }",
+          "line": 1,
+          "path": "src/compat.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "fixture.cancel: src/compat.rs:1",
+      "coverage": "source-key-occurrences",
+      "english": "omarchy:shell.common.cancel",
+      "kind": "text",
+      "omarchy_reference": "omarchy:shell.common.cancel",
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Cancel",
+      "resolved_source_hash": "19766ed6ccb2",
+      "source_hash": "bafbedd61640"
+    },
+    "fixture.files": {
+      "call_sites": [
+        {
+          "excerpt": "fn draw(i: &I18n) { i.tr(\"fixture.open\"); i.trn(\"fixture.files\", 2); i.tr(\"fixture.cancel\"); i.tr(\"omarchy:shell.common.cancel\"); }",
+          "line": 1,
+          "path": "src/compat.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "fixture.files: src/compat.rs:1",
+      "coverage": "source-key-occurrences",
+      "english": {
+        "one": "%1 file",
+        "other": "%1 files"
+      },
+      "kind": "plural",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [
+        "one",
+        "other"
+      ],
+      "resolved_english": {
+        "one": "%1 file",
+        "other": "%1 files"
+      },
+      "resolved_source_hash": "93998627322a",
+      "source_hash": "93998627322a"
+    },
+    "fixture.open": {
+      "call_sites": [
+        {
+          "excerpt": "fn draw(i: &I18n) { i.tr(\"fixture.open\"); i.trn(\"fixture.files\", 2); i.tr(\"fixture.cancel\"); i.tr(\"omarchy:shell.common.cancel\"); }",
+          "line": 1,
+          "path": "src/compat.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "fixture.open: src/compat.rs:1",
+      "coverage": "source-key-occurrences",
+      "english": "Open a file",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Open a file",
+      "resolved_source_hash": "3b31f677a9bf",
+      "source_hash": "3b31f677a9bf"
+    }
+  },
+  "missing_callsite_handoffs": [],
+  "reference_checkout_path": "/home/gm/flea-work/omarchy-450rc2",
+  "reference_checkout_sha": "5978d93ae7da0a325b7493501911e3f1266cadd3",
+  "references": {
+    "omarchy:shell.common.cancel": {
+      "aliases": [
+        "fixture.cancel"
+      ],
+      "call_sites": [
+        {
+          "excerpt": "fn draw(i: &I18n) { i.tr(\"fixture.open\"); i.trn(\"fixture.files\", 2); i.tr(\"fixture.cancel\"); i.tr(\"omarchy:shell.common.cancel\"); }",
+          "line": 1,
+          "path": "src/compat.rs",
+          "surface": "core/backend"
+        }
+      ],
+      "english": "Cancel",
+      "source_hash": "19766ed6ccb2"
+    }
+  },
+  "roster": {
+    "file_sha256": "dbe622637c2ee6acb320c0ba6f02cc2eb6338642ae71aa2a8e10e93a5f3beace",
+    "languages": [
+      "ar",
+      "bg",
+      "bn",
+      "ca",
+      "cs",
+      "da",
+      "de",
+      "el",
+      "en",
+      "es-MX",
+      "et",
+      "fa",
+      "fi",
+      "fil",
+      "fr",
+      "ga",
+      "he",
+      "hi",
+      "hr",
+      "hu",
+      "id",
+      "is",
+      "it",
+      "ja",
+      "ko",
+      "lt",
+      "lv",
+      "ms",
+      "nl",
+      "no",
+      "pl",
+      "pt",
+      "pt-BR",
+      "ro",
+      "ru",
+      "si",
+      "sk",
+      "sl",
+      "sr",
+      "sv",
+      "sw",
+      "ta",
+      "th",
+      "tr",
+      "uk",
+      "ur",
+      "uz",
+      "vi",
+      "zh-CN",
+      "zh-TW"
+    ],
+    "plural_sha256": "5d1c0c18b04d4d067835a902c617d409eea41527dec3b70359521ff18d42a3c3",
+    "sha256": "005ed7f1309c15f43a91bc253c9f520a4c866320bb4e5adc4621a939f6fff86f"
+  },
+  "schema": 1,
+  "source_files": {
+    "src/compat.rs": "9c79f51ef158c4c0ebc24c3436ae6eb4fe01caa510b565c12594bf6b88a2d5f9"
+  },
+  "source_ref": "0ebbcffae",
+  "source_ref_sha": "0ebbcffae14609a3663c90db6d5f73c5e86c97a4",
+  "source_sha": "0ebbcffae14609a3663c90db6d5f73c5e86c97a4",
+  "surface_coverage": {
+    "core/backend": {
+      "keys_with_occurrences": 3,
+      "missing_literal_candidates": 0,
+      "source_files": 1
+    }
+  },
+  "unlocated_keys": []
+}

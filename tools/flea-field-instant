@@ -3,7 +3,7 @@
 
   flea-field-instant budget                                      the journey table as JSON, the data a gate reads
   flea-field-instant fixtures ROOT [--usb DIR] [--nas DIR]       build every fixture in marked sandbox roots
-  flea-field-instant run PART --root ROOT --flea TREE --out DIR [--samples N] [--dry] [--only REGEX]   one census part
+  flea-field-instant run PART --root ROOT --flea TREE --out DIR [--samples N] [--dry] [--only REGEX] [--frontend gpui|qml] [--bin FILE]   one census part
   flea-field-instant measure PLAN.json                           the same from a plan file: {"part", "root", "flea", "out", "samples", "only"}
   flea-field-instant report JSONL... [--out FILE] [--calibrate FILE]   the census table in Markdown
   flea-field-instant gate JSONL... [--out FILE] [--part PART]... [--only REGEX]   pass or fail against the budget ceilings
@@ -99,6 +99,8 @@ import sys
 import tempfile
 import time
 from importlib.machinery import SourceFileLoader
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flea_ipc import Client
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -625,7 +627,8 @@ class Session:
         self.patch, self.taken = dict(ui_patch(view, fixture, right), **(ui or {})), []
         state = flea_state(ctx, self.patch)
         tree = ctx["tree"]
-        env = dict(S.ENV, FLEA_BIN=tree + "/target/release/flea", FLEA_UI=tree + "/ui", XDG_STATE_HOME=state,
+        env = dict(S.ENV, FLEA_BIN=ctx.get("binary") or tree + "/target/release/flea",
+                   FLEA_FRONTEND=ctx.get("frontend", S.Product.frontend({})), FLEA_UI=tree + "/ui", XDG_STATE_HOME=state,
                    QML_DISK_CACHE_PATH=tree + "/target/qmlcache", HOME=ctx["sbx"] + "/home",
                    XDG_DATA_HOME=ctx["sbx"] + "/data", XDG_CACHE_HOME=ctx["sbx"] + "/cache",
                    XDG_CONFIG_HOME=ctx["config_home"])
@@ -639,7 +642,7 @@ class Session:
             win = None
             while win is None and time.monotonic() - t0 < 60:
                 owned = S.descendants(self.proc.pid)
-                win = next((c for c in S.clients() if c.get("class") == S.FLEA_CLASS and c.get("pid") in owned), None)
+                win = next((c for c in S.clients() if c.get("class") == S.Product.window_class({"frontend": env["FLEA_FRONTEND"]}) and c.get("pid") in owned), None)
                 time.sleep(0.05)
             if win is None:
                 raise RuntimeError("no Flea window mapped in 60 s")
@@ -651,7 +654,8 @@ class Session:
             (wx, wy), (ww, wh) = win["at"], win["size"]
             self.win = (wx, wy, ww, wh)
             self.known = set(self.outsiders())
-            self.qs_pid = qs_pid(ctx, self.proc)
+            self.ipc_client = Client(env["FLEA_BIN"], frontend=env["FLEA_FRONTEND"])
+            self.qs_pid = qs_pid(ctx, self.proc, self.ipc_client)
             self.set_region(region)
         except BaseException:
             self.close()
@@ -670,8 +674,8 @@ class Session:
         self.rec.wait_quiet(int(1.5 * NS), time.monotonic_ns(), 30 * NS)
 
     def ipc(self, fn, *args):
-        out = subprocess.run(["qs", "ipc", "--pid", str(self.qs_pid), "call", "flea", fn] + [str(a) for a in args],
-                             env=S.ENV, capture_output=True, text=True, timeout=10)
+        out = subprocess.run(self.ipc_client.command("--pid", self.qs_pid, "call", "flea", fn) + [str(a) for a in args],
+                             env=self.ipc_client.environment(S.parsed_env(S.ENV)), capture_output=True, text=True, timeout=10)
         return out.stdout.strip()
 
     def ipc_int(self, fn, *args):
@@ -805,7 +809,7 @@ class Session:
 
 # The shipped menu.hidden (src/uischema.rs DEFAULTS) hides Properties; op.size.recursive's session shows it and hides the rest.
 MENU_HIDDEN = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions",
-               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText"]
+               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"]
 SIZE_UI = {"menu": {"hidden": [a for a in MENU_HIDDEN if a != "properties"]}}
 
 
@@ -823,19 +827,19 @@ def flea_state(ctx, patch):
     if key not in ctx["states"]:
         d = tempfile.mkdtemp(prefix="state-", dir=os.path.join(ctx["sbx"], "states"))
         os.makedirs(d + "/no-config", exist_ok=True)
-        subprocess.run([ctx["tree"] + "/target/release/flea", "--ui-state", json.dumps(patch)],
+        subprocess.run([ctx.get("binary") or ctx["tree"] + "/target/release/flea", "--ui-state", json.dumps(patch)],
                        env=dict(S.ENV, XDG_STATE_HOME=d, XDG_CONFIG_HOME=d + "/no-config"),
                        capture_output=True, check=True)
         ctx["states"][key] = d
     return ctx["states"][key]
 
 
-def qs_pid(ctx, proc):
+def qs_pid(ctx, proc, ipc_client):
     """The pid of the one qs running this tree's ui under the launched process, the only exact IPC selector."""
     want = ctx["tree"] + "/ui/boot/shell.qml"
     t0 = time.monotonic()
     while time.monotonic() - t0 < 10:
-        out = subprocess.run(["qs", "list", "--all"], env=S.ENV, capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(ipc_client.command("list", "--all"), env=ipc_client.environment(S.parsed_env(S.ENV)), capture_output=True, text=True, timeout=10).stdout
         pid, found = None, []
         # Sample input: "  Process ID: 1318508" (qs list --all indents two spaces).
         for line in out.splitlines():
@@ -1311,7 +1315,12 @@ def enter_row(sess, name):
 def reach(sess, want, base, via, kids):
     """Walk the pane to want: from a folder in kids Backspace climbs to base (Nav.js parent cuts the pane path), Enter on via goes down."""
     base_real = os.path.realpath(base)
-    for _ in range(NAV_STEPS):
+    initial = sess.ipc("path")
+    extra_parents = max(
+        0, os.path.normpath(initial).count(os.sep) - os.path.normpath(base).count(os.sep) - 1,
+        os.path.realpath(initial).count(os.sep) - base_real.count(os.sep) - 1)
+    max_steps = NAV_STEPS + extra_parents
+    for _ in range(max_steps):
         here = sess.ipc("path")
         if same_dir(here, want):
             return
@@ -1321,7 +1330,10 @@ def reach(sess, want, base, via, kids):
             nav_key(sess, "backspace")
         else:
             raise HarnessFault("the pane is at %r, outside %s" % (here, base))
-    raise HarnessFault("the pane did not reach %s in %d keys, it is at %r" % (want, NAV_STEPS, sess.ipc("path")))
+    here = sess.ipc("path")
+    if same_dir(here, want):
+        return
+    raise HarnessFault("the pane did not reach %s in %d keys, it is at %r" % (want, max_steps, here))
 
 
 def listed_total(sess, count, cap_s=None):
@@ -2206,7 +2218,7 @@ def dry_targets(sessions):
     return out, bad
 
 
-def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, only=None):
+def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, only=None, frontend=None, binary=None):
     with open(os.path.join(os.path.realpath(root), "fixtures.json")) as f:
         fx = json.load(f)
     sessions = parts(fx, samples)[part]
@@ -2226,10 +2238,11 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     S.ENV = S.session_env()
     os.environ.update(S.ENV)
     S.UI_TOKENS[:] = [tree + "/ui"]
+    S.GUI_BINARIES[:] = S.flea_gui_binaries([{"entrant": "flea", "flea_dir": tree, "flea_bin": binary}])
     S.require_idle()
     keys = N.NavKeys()
     ctx = {"tree": tree, "root": fx["root"], "fx": fx, "sbx": fx["root"], "out_dir": out_dir, "keys": keys,
-           "states": {}, "evidence": evidence, "config_home": os.environ.get("XDG_CONFIG_HOME") or
+           "states": {}, "evidence": evidence, "frontend": frontend or S.Product.frontend({}), "binary": binary, "config_home": os.environ.get("XDG_CONFIG_HOME") or
            os.path.expanduser("~/.config"),
            "roots": [fx["root"]] + [fx[x] for x in ("usb", "nas") if fx.get(x)]}
     ctx["rec_bin"] = S.build_recorder(os.path.join(out_dir, "rec"))
@@ -2240,7 +2253,7 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     if part in ("p2-held", "smoke"):
         ctx["repeat"].update(repeat_probe(keys, ctx["repeat"]))
     mon = S.monitor()
-    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True)
+    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True, env=S.parsed_env())
     head = rev.stdout.strip()
     if rev.returncode != 0 or not head:
         raise SystemExit("flea tree %s is not a git tree, git rev-parse HEAD says: %s" % (tree, rev.stderr.strip() or "nothing"))
@@ -2248,6 +2261,8 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     with open(out_path, "x") as out:
         emit(out, {"manifest": {"date": time.strftime("%Y-%m-%d %H:%M:%S"), "host": socket.gethostname(),
                                 "plan": plan, "flea_head": head, "repeat": ctx["repeat"],
+                                "product": S.arm_identity({"entrant": "flea", "flea_dir": tree,
+                                                           "flea_bin": binary, "frontend": ctx["frontend"]}),
                                 "monitor": {x: mon.get(x) for x in ("name", "width", "height", "refreshRate", "scale")},
                                 "quiet_s": QUIET, "cap_s": CAP, "pace_ms": PACE_MS, "budget": BUDGET}})
         for i, spec in enumerate(sessions):
@@ -3268,7 +3283,7 @@ def selftest():
     check("series_keeps_samples_before_oserror", (len(rows), sum("error" not in r for r in rows), rows[-1].get("error")),
           (4, 3, "OSError: uinput gone"))
     # A qs ipc call that outlives its timeout is an error row after the samples before it, in a series and in a session start.
-    ipc_timeout = subprocess.TimeoutExpired(["qs", "ipc"], 10)
+    ipc_timeout = subprocess.TimeoutExpired(["flea-ipc"], 10)
     seen.clear()
 
     def column_or_time_out(*a):
@@ -3624,6 +3639,7 @@ def selftest():
     class HungIpc(Session):
         def __init__(self):
             self.qs_pid, self.view, self.closed, self.load, self.taken = 1, "list", False, None, []
+            self.ipc_client = Client("qs")
 
         def close(self):
             self.closed = True
@@ -4103,12 +4119,13 @@ def main(argv):
         return calibrate(int(opt("--runs", 10)))
     if cmd == "run":
         return run_part(rest[0], opt("--root"), opt("--flea"), opt("--out"), int(opt("--samples", 20)),
-                        "--dry" in rest, "--no-evidence" not in rest, opt("--only"))
+                        "--dry" in rest, "--no-evidence" not in rest, opt("--only"), opt("--frontend"), opt("--bin"))
     if cmd == "measure":
         with open(rest[0]) as f:
             plan = json.load(f)
         return run_part(plan["part"], plan["root"], plan["flea"], plan["out"], plan.get("samples", 20),
-                        plan.get("dry", False), plan.get("evidence", True), plan.get("only"))
+                        plan.get("dry", False), plan.get("evidence", True), plan.get("only"),
+                        plan.get("frontend"), plan.get("flea_bin"))
     print("unknown command " + cmd, file=sys.stderr)
     return 2
 

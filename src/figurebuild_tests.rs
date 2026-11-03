@@ -71,6 +71,8 @@ fn a_build_installs_a_verified_directory_and_sweeps_what_is_no_longer_current() 
     let rig = rig("figure-build-ok");
     let old = rig.root.join(figurecache::digest(b"an older key"));
     fs::create_dir(&old).expect("old key dir");
+    let old_key = old.file_name().unwrap().to_str().unwrap();
+    fs::write(old.join(figurecache::MANIFEST), figurecache::manifest_text(old_key, &figurecache::BLOBS.map(|n| (n.to_string(), 1, "digest".to_string())))).unwrap();
     fs::write(rig.root.join("notes.txt"), "not ours").expect("unrelated file");
     fs::create_dir(rig.root.join("keepme")).expect("unrelated dir");
     let calls = RefCell::new(Vec::new());
@@ -90,7 +92,7 @@ fn a_build_installs_a_verified_directory_and_sweeps_what_is_no_longer_current() 
 }
 
 #[test]
-fn a_corrupt_or_foreign_directory_in_the_way_is_replaced_and_never_followed() {
+fn a_foreign_directory_is_preserved_and_a_known_generation_can_be_repaired() {
     let rig = rig("figure-build-replace");
     let key = figurecache::key(&rig.qjs, &rig.ui).expect("key");
     let outside = rig.dir.join("outside");
@@ -98,9 +100,13 @@ fn a_corrupt_or_foreign_directory_in_the_way_is_replaced_and_never_followed() {
     fs::write(outside.join("precious"), "keep").expect("outside file");
     std::os::unix::fs::symlink(&outside, rig.root.join(&key)).expect("link at the key's path");
     let calls = RefCell::new(Vec::new());
-    build(&rig.root, &rig.qjs, &rig.ui, &fake(&calls, &figurecache::BLOBS, &healthy)).expect("a build over a link");
-    assert_eq!(figurecache::verified(&rig.root.join(&key), &key), Some(rig.root.join(&key)), "the link is replaced by a real directory");
+    assert!(build(&rig.root, &rig.qjs, &rig.ui, &fake(&calls, &figurecache::BLOBS, &healthy)).unwrap_err().contains("left unchanged"));
+    assert!(rig.root.join(&key).symlink_metadata().unwrap().file_type().is_symlink());
     assert_eq!(fs::read_to_string(outside.join("precious")).expect("outside file"), "keep", "the link's target is untouched");
+    rig.dir.assert_contains(&rig.root.join(&key));
+    fs::remove_file(rig.root.join(&key)).unwrap();
+    fs::remove_file(failed_path(&rig.root, &key)).unwrap();
+    build(&rig.root, &rig.qjs, &rig.ui, &fake(&calls, &figurecache::BLOBS, &healthy)).unwrap();
     fs::write(rig.root.join(&key).join("math.bc"), "corrupt").expect("corrupt blob");
     let again = RefCell::new(Vec::new());
     build(&rig.root, &rig.qjs, &rig.ui, &fake(&again, &figurecache::BLOBS, &healthy)).expect("a build over a corrupt directory");
@@ -313,4 +319,24 @@ fn a_cache_root_that_is_gone_is_not_recreated_by_a_late_build() {
     assert!(!rig.root.exists(), "and the root stays gone");
     let made = rig.dir.join("deep/er/cache");
     assert!(make_root(&made).is_some() && made.is_dir(), "the launcher makes the root, parents included");
+}
+
+#[test]
+fn foreign_and_newer_manifests_survive_read_build_and_sweep() {
+    for original in ["{\"foreign\":true}\n", "flea-figures 999\nkey future\n", "unparsable"] {
+        let rig = rig("figure-preserve");
+        let key = figurecache::key(&rig.qjs, &rig.ui).unwrap();
+        let dir = rig.root.join(&key);
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join(figurecache::MANIFEST), original).unwrap();
+        fs::write(dir.join("precious"), "untouched").unwrap();
+        assert!(figurecache::verified(&dir, &key).is_none());
+        assert_eq!(fs::read_to_string(dir.join(figurecache::MANIFEST)).unwrap(), original);
+        let calls = RefCell::new(Vec::new());
+        assert!(build(&rig.root, &rig.qjs, &rig.ui, &fake(&calls, &figurecache::BLOBS, &healthy)).unwrap_err().contains("left unchanged"));
+        sweep(&rig.root, "another-key");
+        assert_eq!(fs::read_to_string(dir.join(figurecache::MANIFEST)).unwrap(), original);
+        assert_eq!(fs::read_to_string(dir.join("precious")).unwrap(), "untouched");
+        assert!(calls.borrow().is_empty());
+    }
 }

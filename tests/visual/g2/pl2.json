@@ -1,0 +1,901 @@
+{
+  "version": 1,
+  "unit": "pl2",
+  "status": "capture specification, not an executable driver or acceptance receipt",
+  "scenes": [
+    {
+      "scene_id": "g2.pl2.rail-menu-network.primary",
+      "unit": "pl2",
+      "board": "rail-menu-network",
+      "state": "Network place menu in the rail",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/rail-menu-network.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/rail-menu-network-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "604",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open the saved unmounted NAS rail row menu; first row Rename selected; underlying A cursor inactive."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.network.primary",
+      "unit": "pl2",
+      "board": "network",
+      "state": "Add a network share",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/network.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "732",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open Add Network Share through the generated addNetwork action; Host owns focus."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.network-label.primary",
+      "unit": "pl2",
+      "board": "network-label",
+      "state": "Add a network share, Label focused",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/network-label.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-label-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "879",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open Add Network Share; type nas in Host; focus Label without changing the endpoint."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.network-protofocus.primary",
+      "unit": "pl2",
+      "board": "network-protofocus",
+      "state": "Add a network share, protocol focused",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/network-protofocus.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-protofocus-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "887",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open Add Network Share; Tab backwards from Host through Label to the NFS chip; do not activate it."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.network-nfs.primary",
+      "unit": "pl2",
+      "board": "network-nfs",
+      "state": "Add a network share, NFS chosen",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/network-nfs.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-protopicked-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "896",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open Add Network Share; activate NFS; retain the normal card height."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.network-typed.primary",
+      "unit": "pl2",
+      "board": "network-typed",
+      "state": "Add a network share, filled in",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/network-typed.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-typed-1100x700.png",
+      "oracle_equivalent": true,
+      "changes_line": "906",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open Add Network Share; leave Label empty; set Host nas, Share media and Username gm; retain Username focus."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.nearby.primary",
+      "unit": "pl2",
+      "board": "nearby",
+      "state": "Add a network share, nearby hosts under Host",
+      "width": "1100",
+      "height": "700",
+      "reference_png": "${FLEA_VISUAL_DESIGN}/boards/nearby.png",
+      "oracle_png": "${FLEA_VISUAL_DESIGN}/before/dialog-network-1100x700.png",
+      "oracle_equivalent": false,
+      "changes_line": "1106",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "fixture": "Docs3 visual lane world; Dropbox installed (which dropbox-cli exits 0); nearby board fixture where specified",
+      "actions": [
+        "Open the real card against controlled discovery helpers; deliver backup SMB, pi SFTP, storage NFS, east and macbookair Tailscale; leave Host empty and focused."
+      ],
+      "wait": [
+        "matching subject generation",
+        "drawn and presented current content",
+        "matching provider check completed; Dropbox installed; optional footer absent"
+      ],
+      "assertions": [
+        "Exact approved strings and geometry; no credentials in captures or IPC",
+        "Underlying cursor grey while modal focus is held"
+      ],
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.smb",
+      "unit": "pl2",
+      "board": null,
+      "state": "smb",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the smb sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.sftp",
+      "unit": "pl2",
+      "board": null,
+      "state": "sftp",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the sftp sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.ftps",
+      "unit": "pl2",
+      "board": null,
+      "state": "ftps",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the ftps sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.webdav",
+      "unit": "pl2",
+      "board": null,
+      "state": "webdav",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the webdav sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nfs",
+      "unit": "pl2",
+      "board": null,
+      "state": "nfs",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nfs sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.address-valid",
+      "unit": "pl2",
+      "board": null,
+      "state": "address-valid",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the address-valid sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.address-invalid",
+      "unit": "pl2",
+      "board": null,
+      "state": "address-invalid",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the address-invalid sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-looking",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-looking",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-looking sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-empty",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-empty",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-empty sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-error",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-error",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-error sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-timeout",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-timeout",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-timeout sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-filter",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-filter",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-filter sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.nearby-select",
+      "unit": "pl2",
+      "board": null,
+      "state": "nearby-select",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the nearby-select sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.credentials",
+      "unit": "pl2",
+      "board": null,
+      "state": "credentials",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the credentials sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.key-first",
+      "unit": "pl2",
+      "board": null,
+      "state": "key-first",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the key-first sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.share-browser",
+      "unit": "pl2",
+      "board": null,
+      "state": "share-browser",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the share-browser sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.reopen-stale",
+      "unit": "pl2",
+      "board": null,
+      "state": "reopen-stale",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the reopen-stale sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": false,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.locale-live",
+      "unit": "pl2",
+      "board": null,
+      "state": "locale-live",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the locale-live sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.short-window",
+      "unit": "pl2",
+      "board": null,
+      "state": "short-window",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the short-window sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.rounding-zero",
+      "unit": "pl2",
+      "board": null,
+      "state": "rounding-zero",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the rounding-zero sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.scale-two",
+      "unit": "pl2",
+      "board": null,
+      "state": "scale-two",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the scale-two sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.text-twenty",
+      "unit": "pl2",
+      "board": null,
+      "state": "text-twenty",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the text-twenty sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_5_G1_FONT_METRICS_MN1"
+    },
+    {
+      "scene_id": "g2.pl2.extra.shutdown",
+      "unit": "pl2",
+      "board": null,
+      "state": "shutdown",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the shutdown sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.dropbox-installed",
+      "unit": "pl2",
+      "board": null,
+      "state": "dropbox-installed",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the dropbox-installed sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    },
+    {
+      "scene_id": "g2.pl2.extra.dropbox-absent",
+      "unit": "pl2",
+      "board": null,
+      "state": "dropbox-absent",
+      "dimensions": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "fixture": "Dedicated marked pl2 fixture",
+      "actions": [
+        "Run the dropbox-absent sequence in NATIVE-RUN.md through real window input"
+      ],
+      "wait": [
+        "matching subject generation",
+        "presented current content"
+      ],
+      "assertions": [
+        "See NATIVE-RUN.md"
+      ],
+      "oracle_equivalent": true,
+      "frame_phase": "presented",
+      "evidence": null,
+      "status": "BLOCKED_G0_10_GCOMP_NATIVE"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use crate::backend::thumbspec::Thumbnailers;
 use std::cell::RefCell;
 use std::os::unix::fs::MetadataExt;
-use std::sync::mpsc::channel;
+use crate::backend::events::channel;
 use std::sync::Arc;
 
 // One jpeg declaration, so for_mime answers; the pool here has no worker, so the program it names never runs.
@@ -28,12 +28,12 @@ fn tables() -> Tables {
         &aliases,
     ));
     Tables {
-        mime: Arc::new(Db::load()),
-        icons: Arc::new(Names::load()),
-        aliases,
-        thumbs,
+        mime: Arc::new(Db::load()).into(),
+        icons: Arc::new(Names::load()).into(),
+        aliases: aliases.into(),
+        thumbs: thumbs.into(),
         kinds: RefCell::new(Kinds::new()),
-        formats: Arc::new(Formats::probe()),
+        formats: Arc::new(Formats::probe()).into(),
     }
 }
 
@@ -91,7 +91,7 @@ fn every_row_of_a_wide_request_answers_once_its_job_has_run() {
             break;
         }
         for job in batch {
-            report_done(&mut out, &mut st, &pool, Done { path: job.path, result: Outcome::Failed, ms: 0.0, trace: None });
+            report_done(&mut out, &mut st, &pool, Done { replies: None, mtime: job.mtime, path: job.path, trash_identity: job.trash_identity, result: Outcome::Failed, ms: 0.0, trace: None });
         }
     }
     let text = String::from_utf8(out).unwrap();
@@ -160,7 +160,7 @@ fn a_pool_row_cancel_admits_the_oldest_deferred_job_without_a_report() {
     assert_eq!(st.outstanding, count - 1, "only the cancelled job leaves the outstanding count");
     assert!(st.asked.iter().all(|(_, row)| *row != 0), "the cancelled row loses its mapping");
     assert!(st.asked.iter().any(|(path, row)| *path == oldest && *row == MAX_QUEUE), "the admitted row keeps its mapping");
-    let admitted = pool.cancel(&oldest);
+    let admitted = pool.cancel(&oldest, None);
     assert_eq!(admitted.len(), 1, "the oldest waiting job is now in the pool");
     assert_eq!(admitted[0].path, oldest);
     let waiting = st.deferred.take_all();
@@ -187,8 +187,10 @@ fn cancel_all_forgets_deferred_rows_before_any_later_report() {
     assert_eq!(st.outstanding, 0, "queued and deferred jobs release their accounting");
     assert!(out.is_empty(), "cancel-all writes no answer");
     // Leave the deferred queue untouched before this report, so a leftover job would be submitted by the real pump.
-    report_done(&mut out, &mut st, &pool, Done {
+    report_done(&mut out, &mut st, &pool, Done { replies: None,
+        trash_identity: None,
         path: cancelled,
+        mtime: 0,
         result: Outcome::Ready(d.join("cache/cancelled.png")),
         ms: 0.0,
         trace: None,
@@ -266,7 +268,7 @@ fn a_path_asked_again_after_a_listing_change_answers_its_new_row() {
     st.listing = resorted;
     thumb_rows(&mut out, &[1], &mut st, &tb, &pool, &cache, false);
     assert_eq!(pool.pending(), 1, "the path is queued again, not blocked by the job still running");
-    report_done(&mut out, &mut st, &pool, Done { path: running[0].path.clone(), result: Outcome::Ready(PathBuf::from("/cache/a.png")), ms: 0.0, trace: None });
+    report_done(&mut out, &mut st, &pool, Done { replies: None, mtime: running[0].mtime, path: running[0].path.clone(), trash_identity: None, result: Outcome::Ready(PathBuf::from("/cache/a.png")), ms: 0.0, trace: None });
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains("\"row\":1,\"file\":\"/cache/a.png\""), "the new row takes the answer: {}", text);
     assert!(!text.contains("\"row\":0,"), "the old row number is never answered: {}", text);

@@ -1,5 +1,6 @@
 use super::*;
 use crate::backend::scanhold::{self, Stage};
+use crate::backend::searchwalkhold::wait_walk_landed;
 use crate::backend::testdir::TestDir;
 use crate::json::field_str;
 
@@ -21,7 +22,7 @@ struct Loop {
     fsinfo: FsInfo,
     poller: super::super::watchpoll::Poller,
     gate: Gate,
-    tx: Sender<Event>,
+    tx: crate::backend::events::Sender<Event>,
     rx: Receiver<Event>,
     _thumbs: Receiver<Done>,
     _ops: Receiver<OpMsg>,
@@ -32,7 +33,7 @@ impl Loop {
     fn new(tag: &str) -> Loop {
         let dir = TestDir::new(tag);
         let tb = Tables::load();
-        let (tx, rx) = channel::<Event>();
+        let (tx, rx) = crate::backend::events::channel::<Event>();
         let st = State::new(super::super::dirsizeworker::Worker::new(tx.clone()));
         let (thumbs_tx, _thumbs) = channel();
         let pool = Pool::new(1, thumbs_tx, dir.join("thumbs"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -64,6 +65,13 @@ impl Loop {
                 return event;
             }
         }
+    }
+
+    // The walk's landing, past the walk progress that shares its event and the events wait() passes over.
+    fn landing(&self) -> Event {
+        let session = self.st.search_session.as_ref().expect("a session stands");
+        wait_walk_landed(&self.rx, session, EVENT_DEADLINE, |_| true);
+        Event::SearchWalked
     }
 
     fn said(&mut self) -> String {
@@ -199,10 +207,6 @@ fn a_burst_in_the_folder_being_scanned_is_answered_once_it_lands() {
     assert_eq!(lines[2], changed_line(&new), "the burst names the folder that became current");
 }
 
-fn is_walked(event: &Event) -> bool {
-    matches!(event, Event::SearchWalked)
-}
-
 // An empty query on a remote session folder scans on the worker, so the loop is free and the folder answer lands in order.
 #[test]
 fn an_empty_query_on_a_remote_folder_scans_off_the_loop_and_answers_once_it_lands() {
@@ -212,7 +216,7 @@ fn an_empty_query_on_a_remote_folder_scans_off_the_loop_and_answers_once_it_land
     let _body = crate::backend::iomount::test_hold_body(remote_body(l.dir.path()));
     let named = crate::json::escape(&text(&folder));
     assert!(l.request(&format!(r#"{{"c":"searchopen","path":"{named}","folder":"{named}"}}"#)) == Control::Continue);
-    let walked = l.wait(is_walked);
+    let walked = l.landing();
     assert!(l.feed(walked) == Control::Continue);
     let opened = l.said();
     assert_eq!(opened.lines().count(), 1, "searchopened alone: {opened}");
@@ -257,7 +261,7 @@ fn a_walk_landing_during_the_folder_scan_is_announced_after_the_folder_answer() 
     assert!(l.request(r#"{"c":"searchquery","query":"","gen":1,"count":10}"#) == Control::Continue);
     hold.entered.recv_timeout(EVENT_DEADLINE).expect("the folder scan reached its read");
     let _ = walk.send(());
-    let walked = l.wait(is_walked);
+    let walked = l.landing();
     assert!(l.feed(walked) == Control::Continue);
     let early = l.said();
     assert!(early.is_empty(), "the walk's landing waits for the folder answer: {early}");
@@ -280,7 +284,7 @@ fn take(l: &mut Loop, buffered: &mut VecDeque<Event>, wait: bool) -> Option<Even
             None if wait => l.rx.recv_timeout(EVENT_DEADLINE).expect("the awaited event reaches the loop's channel"),
             None => l.rx.try_recv().ok()?,
         };
-        if let Some(event) = collapse_burst(&l.rx, event, buffered, l.st.search_session.is_some(), l.gate.holds()) {
+        if let Some(event) = collapse_burst(&l.rx, event, buffered, l.st.search_session.is_some(), l.gate.holds(), &mut super::super::searchjobs::Gate::default()) {
             return Some(event);
         }
     }
@@ -350,3 +354,41 @@ mod newest;
 mod alias;
 #[path = "run_gate_poll_tests.rs"]
 mod poll;
+#[path = "run_gate_delta_tests.rs"]
+mod delta;
+#[path = "run_eof_tests.rs"]
+mod eof;
+
+#[test]
+fn search_listing_gate_replays_enter_the_worker_and_keep_ordinary_request_order() {
+    let mut l = Loop::new("search-replay-worker");
+    l.dir.file("alpha.txt", "a");
+    let scope = l.dir.path().to_str().unwrap();
+    l.st.search_session = Some(Session::open_sync(scope, scope, false));
+    l.gate.defer(r#"{"c":"searchquery","query":"alpha","gen":1,"count":1}"#.into());
+    l.gate.defer(r#"{"c":"window","start":0,"count":1}"#.into());
+    l.gate.defer(r#"{"c":"searchquery","query":"alpha","gen":2,"count":1}"#.into());
+    let mut jobs = super::super::searchjobs::Gate::default();
+    let done = super::super::listwork::Done { result: Err(super::super::iomount::ListErr {
+        error: super::super::iomount::internal_failure("list", l.dir.path()), mode: 0, watch_wd: -1,
+    }) };
+    assert!(dispatch_inner(Event::List(done), &mut l.out, &mut l.st, &l.tb, &l.pool, &l.cache, &mut l.ops,
+        &mut l.flash, &mut l.watch, &mut l.peeks, &mut l.fsinfo, &l.poller, &l.tx, &mut l.gate, Some(&mut jobs)) == Control::Continue);
+    assert!(jobs.busy());
+    assert!(l.out.is_empty(), "listing replay must not score or publish on dispatch");
+    let ready = l.wait(|event| matches!(event, Event::SearchReady));
+    let mut buffered = VecDeque::new();
+    jobs.route(ready, &mut l.st, &mut l.out, &l.tb, &l.pool, &l.tx, &mut buffered, false);
+    assert!(l.out.is_empty(), "the newer replayed generation supersedes the old answer");
+    let Some(Event::Request(window)) = buffered.pop_front() else { panic!("window first") };
+    assert_eq!(field_str(&window, "c").as_deref(), Some("window"));
+    let Some(Event::Request(query)) = buffered.pop_front() else { panic!("query second") };
+    assert_eq!(crate::json::field_usize(&query, "gen"), Some(2));
+    l.st.search_session.take().unwrap().close();
+}
+
+#[path = "run_newfolder_tests.rs"]
+mod newfolder_tests;
+
+#[path = "run_thumb_identity_tests.rs"]
+mod thumb_identity_tests;

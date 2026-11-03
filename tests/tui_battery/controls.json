@@ -1,0 +1,321 @@
+{
+  "schema": 1,
+  "controls": [
+    {
+      "id": "query-native",
+      "assertion": "Native graphics and keyboard replies, including real negative responses.",
+      "checks": [
+        "native-positive",
+        "native-negative",
+        "no-TERM-inference",
+        "graphics-visible"
+      ]
+    },
+    {
+      "id": "query-timeout",
+      "assertion": "Missing capability reply leaves the feature disabled.",
+      "checks": [
+        "timeout-disables-feature",
+        "bounded-deadline"
+      ]
+    },
+    {
+      "id": "query-fragmented",
+      "assertion": "Fragmented and interleaved replies retain key input.",
+      "checks": [
+        "fragmented",
+        "interleaved",
+        "ordinary-input-retained"
+      ]
+    },
+    {
+      "id": "query-stale-id",
+      "assertion": "Stale Kitty query IDs never enable graphics.",
+      "checks": [
+        "stale-before-query",
+        "wrong-id",
+        "matching-current-id"
+      ]
+    },
+    {
+      "id": "tmux-passthrough",
+      "assertion": "Passthrough off/on with foot and kitty outer terminals.",
+      "checks": [
+        "foot-off",
+        "foot-on",
+        "kitty-off",
+        "kitty-on",
+        "RGB",
+        "256-colors",
+        "extended-keys-on",
+        "extended-keys-off"
+      ]
+    },
+    {
+      "id": "keys-presets",
+      "assertion": "Default, vim, mac and windows presets; enhanced/plain pairs and Super alternatives.",
+      "checks": [
+        "default",
+        "vim",
+        "mac",
+        "windows",
+        "enhanced-plain-alternatives",
+        "Super-alternatives",
+        "ctrl-enter/O",
+        "ctrl-shift-z/ctrl-y",
+        "ctrl-shift-n/N",
+        "ctrl-tab-keeps-ctrl-pagedown"
+      ]
+    },
+    {
+      "id": "keys-emission",
+      "assertion": "Compositor input, CSI-u decoder replay, legacy tmux and Cyrillic base-layout reporting.",
+      "checks": [
+        "compositor-emission",
+        "synthetic-decoder-separate",
+        "legacy-tmux",
+        "CSI-u",
+        "Cyrillic-base-layout",
+        "arrow-menu-navigation"
+      ]
+    },
+    {
+      "id": "cwd-editor",
+      "assertion": "Cwd-file wrapper, failed navigation, output refusal and same-terminal E editor.",
+      "checks": [
+        "cwd-file-shell-wrapper",
+        "failed-navigation",
+        "output-refusal",
+        "E-editor",
+        "same-terminal-restored"
+      ]
+    },
+    {
+      "id": "detail-modes",
+      "assertion": "Size, Modified, Mode, Owner and viewport work bounds.",
+      "checks": [
+        "Size",
+        "Modified",
+        "Mode",
+        "Owner",
+        "viewport-only"
+      ]
+    },
+    {
+      "id": "calendar-boundaries",
+      "assertion": "Local time, timezone and DST boundaries with directory and Trash dates.",
+      "checks": [
+        "timezone",
+        "DST",
+        "same-day",
+        "year-boundary",
+        "directory",
+        "Trash"
+      ]
+    },
+    {
+      "id": "geometry-resize",
+      "assertion": "130x31 to 130x4 and 11x6, back, including open overlays and hit-testing.",
+      "checks": [
+        "130x31",
+        "130x4",
+        "11x6",
+        "return-130x31",
+        "open-overlay",
+        "edge-menu",
+        "hit-testing"
+      ]
+    },
+    {
+      "id": "geometry-corners",
+      "assertion": "Per-window rounding 0 and 8 with default/focus combinations.",
+      "checks": [
+        "rounding-0",
+        "rounding-8",
+        "focus-default-combinations"
+      ]
+    },
+    {
+      "id": "media-stale",
+      "assertion": "Rapid navigation, stale decode replies, error, cancellation and missing decoders.",
+      "checks": [
+        "rapid-navigation",
+        "late-stale",
+        "missing-decoder",
+        "decoder-error",
+        "cancel"
+      ]
+    },
+    {
+      "id": "media-cleanup",
+      "assertion": "Graphics cleanup under cards, after quit, playback and decoder child reap.",
+      "checks": [
+        "under-card",
+        "after-card",
+        "after-quit",
+        "playback-reaped",
+        "decoder-reaped"
+      ]
+    },
+    {
+      "id": "media-controls",
+      "assertion": "PDF controls; 3D plate, orbit and zoom bounds; no turntable at rest.",
+      "checks": [
+        "PDF",
+        "3D-plate",
+        "3D-orbit",
+        "3D-zoom-bounds",
+        "no-rest-turntable",
+        "no-redundant-send"
+      ]
+    },
+    {
+      "id": "operations-files",
+      "assertion": "Rename, copy, each collision choice, trash, undo and real resulting bytes.",
+      "checks": [
+        "rename-bytes",
+        "copy-bytes",
+        "collision-keep-both",
+        "collision-replace",
+        "collision-skip",
+        "collision-cancel",
+        "trash",
+        "undo"
+      ]
+    },
+    {
+      "id": "operations-refusals",
+      "assertion": "Default, refusal and cancellation paths; no printer and CUPS rejection.",
+      "checks": [
+        "default",
+        "refusal",
+        "cancel",
+        "no-printer",
+        "CUPS-rejected",
+        "no-remote-send",
+        "private-clipboard",
+        "no-physical-print"
+      ]
+    },
+    {
+      "id": "operations-formats",
+      "assertion": "Convert and Combine format, order, output and collision validation.",
+      "checks": [
+        "Convert-formats",
+        "Combine-format",
+        "order",
+        "collision",
+        "output-validation"
+      ]
+    },
+    {
+      "id": "color-modes",
+      "assertion": "Truecolor, tmux RGB/256 and 16-color reverse cursor with contrast calculations.",
+      "checks": [
+        "truecolor",
+        "tmux-RGB",
+        "tmux-256",
+        "16-color-reverse",
+        "all-palette-contrast"
+      ]
+    },
+    {
+      "id": "font-native",
+      "assertion": "Native Nerd marks, private fontconfig fallback and builtins in kitty/ghostty.",
+      "checks": [
+        "normal-Nerd",
+        "foot-private-fontconfig",
+        "alacritty-private-fontconfig",
+        "kitty-builtins",
+        "ghostty-builtins",
+        "forced-state-labelled"
+      ]
+    },
+    {
+      "id": "font-no-chafa",
+      "assertion": "Missing private chafa resolver leaves only facts without extra diagnostics.",
+      "checks": [
+        "private-tool-resolver",
+        "facts-only",
+        "no-extra-diagnostic"
+      ]
+    },
+    {
+      "id": "language",
+      "assertion": "Japanese widths, Arabic direction, Russian decimals and saved-language fallback.",
+      "checks": [
+        "Japanese-width",
+        "Arabic-direction",
+        "Russian-decimals",
+        "saved-language-fallback"
+      ]
+    },
+    {
+      "id": "shutdown-normal",
+      "assertion": "Normal quit restores termios, cursor, alternate screen and input modes.",
+      "checks": [
+        "termios",
+        "cursor",
+        "alternate-screen",
+        "keyboard-reporting",
+        "mouse-reporting",
+        "graphics",
+        "children-reaped"
+      ]
+    },
+    {
+      "id": "shutdown-signal",
+      "assertion": "Signal quit restores state and reaps all children.",
+      "checks": [
+        "termios",
+        "cursor",
+        "alternate-screen",
+        "keyboard-reporting",
+        "mouse-reporting",
+        "graphics",
+        "children-reaped"
+      ]
+    },
+    {
+      "id": "shutdown-startup",
+      "assertion": "Failed startup restores state and reaps all children.",
+      "checks": [
+        "termios",
+        "cursor",
+        "alternate-screen",
+        "keyboard-reporting",
+        "mouse-reporting",
+        "graphics",
+        "children-reaped"
+      ]
+    },
+    {
+      "id": "shift-delete-legacy",
+      "assertion": "Compositor Shift+Delete arrives as legacy CSI 3;2~ in every terminal; X stays free.",
+      "checks": [
+        "compositor-shift-delete",
+        "legacy-CSI-3;2~",
+        "no-X-delete",
+        "synthetic-separated"
+      ]
+    },
+    {
+      "id": "convert-variants",
+      "assertion": "Convert formats, metadata, PDF pages, multiple images and office output use the approved card recipes.",
+      "checks": [
+        "image-JPEG-PNG-WebP-AVIF-HEIC-TIFF-BMP-PDF",
+        "pane-rung-j-k",
+        "metadata-toggle-and-PDF-dimming",
+        "output-and-cancel-convert",
+        "PDF-PNG-JPEG-WebP-TIFF",
+        "PDF-all-pages-and-range",
+        "two-line-page-output",
+        "multiple-images-combined-PDF-in-list-order",
+        "multiple-images-separate-PDF",
+        "office-to-PDF-without-format-list",
+        "collision-keeps-source",
+        "real-converted-output"
+      ]
+    }
+  ]
+}

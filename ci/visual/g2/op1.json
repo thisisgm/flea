@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "unit": "g2-op1",
+  "scenes": [
+    {
+      "scene": "g2.op1.copyto.r8",
+      "unit": "g2-op1",
+      "board_png": ".superpowers/g2-op1/references/boards/copyto.png",
+      "board_html": ".superpowers/g2-op1/references/boards/copyto.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "0c1497e1922262b815ea07c97d4f88db8b6485e35ef2c774cbbe5b0b18fa8c7f",
+        "board_html": "9e006f3a4557b32388e5264e8526b2c4b5cb45e9f852778b9afc52f2aaeb5be6"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "view": "list",
+        "card": "copy-to",
+        "field": "selected"
+      },
+      "assertions": [
+        "Copy To opens on the overlay slot with no backend reply",
+        "the scrim covers the window under the card",
+        "552px card centred, field focused with the path selected",
+        "closing returns the window's own frame"
+      ],
+      "parity_ids": [
+        "board:copyto"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-op1"
+      ]
+    },
+    {
+      "scene": "g2.op1.copyto.r0",
+      "unit": "g2-op1",
+      "board_png": ".superpowers/g2-op1/references/boards/copyto.png",
+      "board_html": ".superpowers/g2-op1/references/boards/copyto.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "0c1497e1922262b815ea07c97d4f88db8b6485e35ef2c774cbbe5b0b18fa8c7f",
+        "board_html": "9e006f3a4557b32388e5264e8526b2c4b5cb45e9f852778b9afc52f2aaeb5be6"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 0,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "view": "list",
+        "card": "copy-to",
+        "field": "selected"
+      },
+      "assertions": [
+        "Copy To opens on the overlay slot with no backend reply",
+        "the card draws square corners at compositor rounding 0"
+      ],
+      "parity_ids": [
+        "board:copyto"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-op1"
+      ]
+    },
+    {
+      "scene": "g2.op1.copyto-empty.r8",
+      "unit": "g2-op1",
+      "board_png": ".superpowers/g2-op1/references/boards/copyto-empty.png",
+      "board_html": ".superpowers/g2-op1/references/boards/copyto-empty.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "234b26627c084fa67a1f3df6e755d0299be73eb388bb51ab6eb2d6d9b0a247fb",
+        "board_html": "51fe75cd043ecaf30411de64d1b4a13c4feb1439a1558277cc69501a4b73f352"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "view": "list",
+        "card": "copy-to",
+        "field": "emptied"
+      },
+      "assertions": [
+        "the emptied field shows a caret only and Copy is unavailable",
+        "the scrim covers the window under the card",
+        "closing returns the window's own frame"
+      ],
+      "parity_ids": [
+        "board:copyto-empty"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-op1"
+      ]
+    },
+    {
+      "scene": "g2.op1.copyto-empty.r0",
+      "unit": "g2-op1",
+      "board_png": ".superpowers/g2-op1/references/boards/copyto-empty.png",
+      "board_html": ".superpowers/g2-op1/references/boards/copyto-empty.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "234b26627c084fa67a1f3df6e755d0299be73eb388bb51ab6eb2d6d9b0a247fb",
+        "board_html": "51fe75cd043ecaf30411de64d1b4a13c4feb1439a1558277cc69501a4b73f352"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 0,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "view": "list",
+        "card": "copy-to",
+        "field": "emptied"
+      },
+      "assertions": [
+        "the emptied field shows a caret only and Copy is unavailable",
+        "the card draws square corners at compositor rounding 0"
+      ],
+      "parity_ids": [
+        "board:copyto-empty"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-op1"
+      ]
+    }
+  ]
+}

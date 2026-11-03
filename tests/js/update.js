@@ -11,8 +11,8 @@ function after(line) {
 var LINES = {
     available: "available opr 0.3.3-1 0.3.4-1\n",
     current: "current opr 0.3.3-1 -",
-    offline: "failed aur 0.3.3-1 -",
-    rolling: "unchecked git - -",
+    offline: "failed opr 0.3.3-1 -",
+    other: "unchecked git - -",
     source: "unchecked local 0.3.3-1 -"
 }
 
@@ -32,15 +32,15 @@ function runReading(check) {
     check("available takes the accent", drawn(after(LINES.available)), "0.3.4 available|accent|true")
     check("launched has no chevron", drawn(Update.launchedFrom(after(LINES.available), true)), "Updating in terminal|live|false")
     check("offline still acts", drawn(after(LINES.offline)), "Could not check|live|true")
-    check("flea-git is rolling", drawn(after(LINES.rolling)), "flea-git · rolling|live|false")
+    check("any unchecked kind reads as built from source", drawn(after(LINES.other)), "Built from source|live|false")
     check("a local build is built from source", drawn(after(LINES.source)), "Built from source|live|false")
     check("and so is a binary no package owns", Update.value(after("unchecked unowned - -")), "Built from source")
     check("only the unchecked kinds are facts, a binary no package owns among them",
-          [Update.idle(), after(LINES.current), after(LINES.rolling), after(LINES.source), after("unchecked unowned - -")]
+          [Update.idle(), after(LINES.current), after(LINES.other), after(LINES.source), after("unchecked unowned - -")]
               .map(function (status) { return Update.isFact(status) + "/" + Update.acts(status) }).join(","),
           "false/true,false/true,true/false,true/false,true/false")
     check("a rebuild of the installed release names the package release, or it would read as the same version",
-          Update.value(after("available aur 0.3.3-1 0.3.3-2")), "0.3.3-2 available")
+          Update.value(after("available opr 0.3.3-1 0.3.3-2")), "0.3.3-2 available")
     check("a line this build does not know is a failed check", Update.value(after("flea: unknown flag --update")), "Could not check")
     check("so is no line at all, which a binary that died prints", Update.value(after("")), "Could not check")
     check("a dash is an empty field, never a version", after(LINES.current).latest, "")
@@ -54,7 +54,7 @@ function runActing(check) {
     check("available and offline open Omarchy's updater",
           next(after(LINES.available)) + "|" + next(after(LINES.offline)), "launch|launch")
     check("Enter does nothing while a check or an update runs, or on a fact",
-          [Update.checking(Update.idle()), Update.launchedFrom(after(LINES.available), true), after(LINES.rolling), after(LINES.source)]
+          [Update.checking(Update.idle()), Update.launchedFrom(after(LINES.available), true), after(LINES.other), after(LINES.source)]
               .map(next).join(","), "nothing,nothing,nothing,nothing")
     check("a launch that failed leaves the row as it was",
           Update.value(Update.launchedFrom(after(LINES.available), false)), "0.3.4 available")
@@ -68,9 +68,9 @@ function runActing(check) {
     function noted(status) { var n = Update.note(status); return n === null ? "none" : n.join("|") }
     check("the note asks for a restart in the accent after a launch",
           noted(Update.launchedFrom(after(LINES.available), true)), "Restart Flea when the update finishes|accent")
-    check("and explains offline, rolling and source in the foreground",
-          [LINES.offline, LINES.rolling, LINES.source].map(function (line) { return noted(after(line)) }).join(", "),
-          "Offline: Omarchy update still opens|foreground, Rolling build: yay -Sua --devel follows main|foreground, "
+    check("and explains offline and all unchecked builds in the foreground",
+          [LINES.offline, LINES.other, LINES.source].map(function (line) { return noted(after(line)) }).join(", "),
+          "Offline: Omarchy update still opens|foreground, Built locally: rebuild from the checkout|foreground, "
           + "Built locally: rebuild from the checkout|foreground")
     check("and is absent everywhere else",
           [Update.idle(), Update.checking(Update.idle()), after(LINES.current), after(LINES.available)].map(noted).join(","),
@@ -88,19 +88,19 @@ function runAutomatic(check) {
     check("an answer inside the period stands", Update.due(answer, 1000 + 6 * HOUR - 1, true), false)
     check("and one a whole period old does not", Update.due(answer, 1000 + 6 * HOUR, true), true)
     check("an available or unchecked answer inside the period stands too, so About does not ask pacman again",
-          [after(LINES.available), after(LINES.rolling)].map(function (status) { return Update.due(status, 1000 + 6 * HOUR - 1, true) }).join(","),
+          [after(LINES.available), after(LINES.other)].map(function (status) { return Update.due(status, 1000 + 6 * HOUR - 1, true) }).join(","),
           "false,false")
     check("and either is asked again once a whole period old",
-          [after(LINES.available), after(LINES.rolling)].map(function (status) { return Update.due(status, 1000 + 6 * HOUR, true) }).join(","),
+          [after(LINES.available), after(LINES.other)].map(function (status) { return Update.due(status, 1000 + 6 * HOUR, true) }).join(","),
           "true,true")
     check("a failed check never stands, so About asks again", Update.due(after(LINES.offline), 2000, true), true)
 }
 
 function runMenu(check) {
     check("the menu row exists only while a newer build is known",
-          [Update.idle(), Update.checking(Update.idle()), after(LINES.current), after(LINES.offline), after(LINES.rolling),
+          [Update.idle(), Update.checking(Update.idle()), after(LINES.current), after(LINES.offline), after(LINES.other),
            after(LINES.source), Update.launchedFrom(after(LINES.available), true)]
               .map(function (status) { return JSON.stringify(Update.menuVersion(status)) }).join(","), '"","","","","","",""')
     check("and its hint is that version", Update.menuVersion(after(LINES.available)), "0.3.4")
-    check("or the package release, when only that moved", Update.menuVersion(after("available aur 0.3.3-1 0.3.3-2")), "0.3.3-2")
+    check("or the package release, when only that moved", Update.menuVersion(after("available opr 0.3.3-1 0.3.3-2")), "0.3.3-2")
 }

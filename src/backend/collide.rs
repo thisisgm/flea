@@ -122,7 +122,7 @@ fn capture(ops: &Ops, id: usize, dest: &str) -> Option<MenuCapture> {
 }
 
 // No choice at all is today's transfer exactly; any choice also turns on the same-folder rule.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Policy {
     choice: Option<Collide>,
     inner: Option<Collide>,

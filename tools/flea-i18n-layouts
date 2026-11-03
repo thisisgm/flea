@@ -1,0 +1,1043 @@
+#!/usr/bin/env python3
+"""Measure keyboard reachability with libxkbcommon, without executing installer shell.
+
+generate writes a self-contained matrix and per-layout lint inputs/results beside it.
+check fails on incomplete coverage, punctuation conflicts, collisions or unreachable rows.
+lint runs the existing design linter on canonical identities in effective resolver scopes.
+This is a source-analysis tool, not a replacement for native input/protocol evidence.
+"""
+
+import argparse
+from collections import Counter, defaultdict
+import ctypes as C
+import ctypes.util
+import hashlib
+import itertools
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tomllib
+
+ROOT = Path(__file__).resolve().parent.parent
+POLICY = ROOT / "i18n/keyboard-policy.json"
+FIXTURES = ROOT / "tests/i18n/fixtures/xkb"
+LINTER = ROOT / "tools/flea-keymap-lint"
+CONTEXTS = ["listing", "rail", "menu", "panel", "preview", "pdf", "media", "editor"]
+MODS = {"shift": 1, "ctrl": 2, "alt": 4, "super": 8, "altgr": 16}
+MOD_NAMES = {"shift": "Shift", "ctrl": "Control", "alt": "Mod1", "super": "Mod4", "altgr": "Mod5"}
+ALIASES = {"Comma": ",", "Period": ".", "Equal": "=", "Plus": "+", "Minus": "-",
+           "Underscore": "_", "Greater": ">", "BracketLeft": "[", "BracketRight": "]",
+           "Enter": "Return", "Backtab": "ISO_Left_Tab", "PageUp": "Prior", "PageDown": "Next", "Space": "space"}
+SPECIAL = {"return": "return", "iso_left_tab": "tab", "prior": "pageup", "next": "pagedown"}
+NAMED = {"BackSpace", "Tab", "ISO_Left_Tab", "Return", "Escape", "Delete", "Insert", "Home", "End",
+         "Prior", "Next", "Left", "Right", "Up", "Down", "Menu", "ISO_Next_Group", "ISO_Prev_Group",
+         "ISO_First_Group", "ISO_Last_Group", "Mode_switch", "ISO_Level3_Shift", "ISO_Level5_Shift"}
+OVERRIDES = {"colemak": ("us", "colemak"), "bg-cp1251": ("bg,us", "phonetic,"),
+             "cz": ("cz,us", "qwerty,"), "de_CH-latin1": ("ch", ""),
+             "kyrgyz": ("kg,us", ""), "no-latin1": ("no", ""), "pl": ("pl", ""), "ua": ("ua,us", "")}
+REFUSAL = "unsupported:"
+RESOLVERS = ["src/keys.rs", "src/tui/keymap.rs", "src/tui/actions.rs", "src/tui/keymap_additive_tests.rs"]
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def identity(path):
+    path = Path(path)
+    return {"path": str(path), "sha256": digest(path.read_bytes())}
+
+
+def write_json(path, value):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+
+
+def command(args):
+    result = subprocess.run(args, capture_output=True, text=True)
+    if result.returncode:
+        raise ValueError(f"{args!r}: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def installer_entries(path, model_map):
+    source = (Path(path) / "install/provisioning/setup-form.sh").read_text()
+    match = re.search(r"^OMARCHY_KEYBOARD_LAYOUTS=\$'([^']*)'", source, re.M)
+    if not match:
+        raise ValueError("Cannot read literal OMARCHY_KEYBOARD_LAYOUTS")
+    mappings = {}
+    for line in Path(model_map).read_text().splitlines():
+        fields = line.split()
+        if fields and not fields[0].startswith("#"):
+            if len(fields) != 5:
+                raise ValueError(f"Invalid kbd-model-map row: {line}")
+            mappings.setdefault(fields[0], (fields[1], "" if fields[3] == "-" else fields[3], fields[2], fields[4]))
+    entries = []
+    for number, line in enumerate(match[1].splitlines(), 1):
+        fields = line.split("|")
+        if not 2 <= len(fields) <= 4 or not all(fields[:2]):
+            raise ValueError(f"Invalid installer row {number}: {line}")
+        label, console, *extra = fields
+        layout, variant, model, options = mappings.get(console, (console, "", "pc105", ""))
+        conversion = "systemd" if console in mappings else "literal"
+        if console in OVERRIDES:
+            layout, variant = OVERRIDES[console]
+            model = "pc105"
+            options = "terminate:ctrl_alt_bksp" + (",grp:shifts_toggle,grp_led:scroll" if "," in layout else "")
+            conversion = "omarchy-provision-owner"
+        if len(extra) > 1 and extra[1]:
+            layout, _, variant = extra[1].partition(":")
+            model, options, conversion = "pc105", "", "installer-override"
+        entries.append(dict(id=f"{number:02d}-{console}", installer_row=line, label=label,
+                            console=console, input_method=extra[0] if extra and extra[0] else "none",
+                            layout=layout, variant=variant, model=model, options=options, conversion=conversion))
+    return entries
+
+
+class Names(C.Structure):
+    _fields_ = [(name, C.c_char_p) for name in ("rules", "model", "layout", "variant", "options")]
+
+
+class Events(list):
+    def __init__(self, values=()):
+        super().__init__(values)
+        self.indices = {field: defaultdict(list) for field in ("text", "symbol_text", "keysym", "physical")}
+        self.ids = {e["id"] for e in self}
+        for event in self:
+            for field, index in self.indices.items():
+                index[event[field].lower() if field in ("symbol_text", "keysym") else event[field]].append(event)
+
+
+class Xkb:
+    """Small C ABI reader. Empty options and explicit rules prevent environment defaults."""
+
+    def __init__(self, entry, xkb_root="/usr/share/X11/xkb"):
+        library = ctypes.util.find_library("xkbcommon")
+        if not library:
+            raise ValueError("libxkbcommon is required; no synthetic US fallback")
+        self.lib = C.CDLL(library)
+        signatures = {
+            "context_new": (C.c_void_p, [C.c_int]), "context_unref": (None, [C.c_void_p]),
+            "context_include_path_clear": (None, [C.c_void_p]),
+            "context_include_path_append": (C.c_int, [C.c_void_p, C.c_char_p]),
+            "keymap_new_from_names": (C.c_void_p, [C.c_void_p, C.POINTER(Names), C.c_int]),
+            "keymap_unref": (None, [C.c_void_p]), "state_new": (C.c_void_p, [C.c_void_p]),
+            "state_unref": (None, [C.c_void_p]),
+            "keymap_min_keycode": (C.c_uint, [C.c_void_p]), "keymap_max_keycode": (C.c_uint, [C.c_void_p]),
+            "keymap_key_get_name": (C.c_char_p, [C.c_void_p, C.c_uint]),
+            "keymap_num_layouts": (C.c_uint, [C.c_void_p]),
+            "keymap_layout_get_name": (C.c_char_p, [C.c_void_p, C.c_uint]),
+            "keymap_mod_get_index": (C.c_uint, [C.c_void_p, C.c_char_p]),
+            "state_update_mask": (C.c_uint, [C.c_void_p] + [C.c_uint] * 6),
+            "state_key_get_one_sym": (C.c_uint, [C.c_void_p, C.c_uint]),
+            "state_key_get_utf8": (C.c_int, [C.c_void_p, C.c_uint, C.c_char_p, C.c_size_t]),
+            "keysym_get_name": (C.c_int, [C.c_uint, C.c_char_p, C.c_size_t]),
+            "keysym_to_utf32": (C.c_uint, [C.c_uint]),
+            "state_key_get_consumed_mods2": (C.c_uint, [C.c_void_p, C.c_uint, C.c_int]),
+            "state_serialize_mods": (C.c_uint, [C.c_void_p, C.c_uint]),
+            "keymap_get_as_string": (C.c_void_p, [C.c_void_p, C.c_int]),
+        }
+        for name, (restype, argtypes) in signatures.items():
+            function = getattr(self.lib, "xkb_" + name)
+            function.restype, function.argtypes = restype, argtypes
+            setattr(self, name, function)
+        self.context = self.context_new(3)
+        self.context_include_path_clear(self.context)
+        if not self.context_include_path_append(self.context, str(xkb_root).encode()):
+            self.context_unref(self.context)
+            raise ValueError(f"Cannot read XKB root: {xkb_root}")
+        values = ["evdev", entry.get("model", "pc105"), entry["layout"], entry.get("variant", ""), entry.get("options", "")]
+        names = Names(*(value.encode() for value in values))
+        self.keymap = self.keymap_new_from_names(self.context, C.byref(names), 0)
+        if not self.keymap:
+            self.context_unref(self.context)
+            raise ValueError(f"Unknown or invalid XKB keymap: {values}")
+        self.state = self.state_new(self.keymap)
+        self.indices = {key: self.keymap_mod_get_index(self.keymap, name.encode()) for key, name in MOD_NAMES.items()}
+        string = self.keymap_get_as_string(self.keymap, 1)
+        self.sha256 = digest(C.string_at(string))
+        libc = C.CDLL(None)
+        libc.free.argtypes = [C.c_void_p]
+        libc.free(string)
+
+    def close(self):
+        self.state_unref(self.state)
+        self.keymap_unref(self.keymap)
+        self.context_unref(self.context)
+
+    def events(self, group):
+        buffer = C.create_string_buffer(128)
+        events = []
+        for mask in range(32):
+            depressed = sum(1 << index for key, index in self.indices.items() if index < 32 and mask & MODS[key])
+            self.state_update_mask(self.state, depressed, 0, 0, 0, 0, group)
+            effective = self.state_serialize_mods(self.state, 1 << 3)
+            for code in range(self.keymap_min_keycode(self.keymap), self.keymap_max_keycode(self.keymap) + 1):
+                name = self.keymap_key_get_name(self.keymap, code)
+                if not name:
+                    continue
+                sym = self.state_key_get_one_sym(self.state, code)
+                if not sym:
+                    continue
+                self.keysym_get_name(sym, buffer, len(buffer))
+                symbol = buffer.value.decode()
+                scalar = self.keysym_to_utf32(sym)
+                symbol_text = chr(scalar) if scalar else ""
+                if not symbol_text and symbol not in NAMED and not re.fullmatch(r"F\d+|KP_.*|dead_.*", symbol):
+                    continue
+                self.state_key_get_utf8(self.state, code, buffer, len(buffer))
+                text = buffer.value.decode()
+                consumed = self.state_key_get_consumed_mods2(self.state, code, 0)
+                gtk = self.state_key_get_consumed_mods2(self.state, code, 1)
+                events.append(dict(code=code, physical=name.decode(), held=mask, effective=effective,
+                                   consumed_xkb=consumed, consumed_gtk=gtk, keysym=symbol, text=text, symbol_text=symbol_text,
+                                   dead=symbol.startswith("dead_"), group=group,
+                                   id=f"{name.decode()}:{mask}"))
+        return Events(events)
+
+
+def modmask(mods):
+    if mods in ("text", "none"):
+        return 0
+    rest, result = mods, 0
+    for word in ("super", "ctrl", "altgr", "alt", "shift"):
+        if word in rest:
+            result |= MODS[word]
+            rest = rest.replace(word, "")
+    if rest:
+        raise ValueError(f"Unknown modifiers: {mods}")
+    return result
+
+
+def bindings(path):
+    data = tomllib.loads(Path(path).read_text())
+    arms = {row["arm"]: row for row in data.get("sequence", [])}
+    rows = []
+    for table, field, mods in [("ctrlshift", "key", "ctrlshift"), ("ctrl", "key", "ctrl"),
+                               ("shift", "key", "shift"), ("code", "key", "none"), ("text", "char", "text"),
+                               ("preset", "key", None), ("tui", "key", None)]:
+        for index, item in enumerate(data.get(table, [])):
+            row = dict(id=f"{table}:{index}", table=table, layer=item.get("name", "shared"),
+                       key=item[field], mods=mods or item["mods"], action=item["action"],
+                       contexts=item.get("context", "listing,rail" if mods else "listing").split(","),
+                       frontend="tui" if table == "tui" else item.get("frontend", "all"), prefix=item.get("prefix", ""))
+            if "all" in row["contexts"]:
+                row["contexts"] = CONTEXTS.copy()
+            if row["mods"] == "text" and len(row["key"]) != 1:
+                raise ValueError(f"Invalid text key: {row}")
+            modmask(row["mods"])
+            strokes = [{"key": row["key"], "mods": row["mods"]}]
+            if row["prefix"]:
+                strokes.insert(0, {"key": row["prefix"], "mods": "text"})
+            sequence = arms.get(row["action"])
+            if sequence is None and item.get("keys") == row["key"] * 2 and row["action"].endswith("Arm"):
+                sequence = dict(action=row["action"][:-3], kind="confirm" if row["action"] == "trashArm" else "pair")
+            if sequence and (sequence["kind"] == "pair" or item.get("keys") == row["key"] * 2):
+                strokes *= 2
+            row.update(strokes=strokes, completes=sequence["action"] if sequence else row["action"],
+                       sequence_kind=sequence["kind"] if sequence else ("prefix" if row["prefix"] else "single"))
+            rows.append(row)
+    digits = data.get("digits", {})
+    if digits:
+        for digit in range(digits["from"], digits["to"] + 1):
+            rows.append(dict(id=f"digits:{digit}", table="digits", layer="digits", key=str(digit), mods="text",
+                             action=digits["prefix"] + str(digit), completes=digits["prefix"] + str(digit),
+                             contexts=["listing", "rail"], frontend="all", prefix="", sequence_kind="single",
+                             strokes=[{"key": str(digit), "mods": "text"}]))
+    if not rows:
+        raise ValueError("No canonical bindings")
+    return rows
+
+
+def character(key):
+    return ALIASES.get(key, key)
+
+
+def letter_group(events):
+    chars = {e["text"] for e in events if e["held"] == 0 and re.fullmatch(r"A[BCD]\d\d", e["physical"])}
+    return "latin" if set("abcdefghijklmnopqrstuvwxyz") <= chars else "nonlatin"
+
+
+def is_punctuation(stroke):
+    target = character(stroke["key"])
+    return len(target) == 1 and target.isascii() and not target.isalnum() and target != " "
+
+
+def paths(stroke, events, us_events, script, punctuation="printed-character"):
+    target, mods = character(stroke["key"]), modmask(stroke["mods"])
+    physical = target.isascii() and len(target) == 1 and (target.isdigit() or (target.isalpha() and script == "nonlatin"))
+    is_punct = is_punctuation(stroke)
+    if is_punct and script == "nonlatin":
+        punctuation = "physical-us-position"
+    physical |= is_punct and punctuation == "physical-us-position"
+    reference = us_events if physical else events
+    hits = []
+    digit_codes = {str(n): f"AE{n:02d}" for n in range(1, 10)} | {"0": "AE10"}
+    if not isinstance(reference, Events):
+        reference = Events(reference)
+    field = "physical" if physical and target.isdigit() else ("text" if stroke["mods"] == "text" else
+                                                            ("symbol_text" if len(target) == 1 else "keysym"))
+    lookup = digit_codes[target] if field == "physical" else (target.lower() if field in ("symbol_text", "keysym") else target)
+    candidates = reference.indices[field].get(lookup, [])
+    if target == "Tab" and mods & MODS["shift"]:
+        candidates = candidates + reference.indices["keysym"].get("iso_left_tab", [])
+    for e in candidates:
+        if e["dead"] or e["held"] & MODS["altgr"]:
+            continue
+        if stroke["mods"] == "text":
+            match = e["text"] == target and not e["held"] & (MODS["ctrl"] | MODS["alt"] | MODS["super"])
+        elif len(target) == 1:
+            match = e["symbol_text"].lower() == target.lower()
+            if target.isalpha():
+                match &= e["held"] == mods
+            else:
+                match &= e["held"] & mods == mods and not (e["held"] & ~(mods | MODS["shift"]))
+        else:
+            match = (e["keysym"].lower() == target.lower() or
+                     (target == "Tab" and e["keysym"] == "ISO_Left_Tab")) and e["held"] == mods
+            if stroke["key"] == "Backtab":
+                match = e["keysym"] == "ISO_Left_Tab" and e["held"] == (mods | MODS["shift"])
+        if physical and target.isdigit():
+            match = e["physical"] == digit_codes[target] and e["held"] == mods
+        if match:
+            hits.append(e["id"])
+    available = events.ids if isinstance(events, Events) else {e["id"] for e in events}
+    return sorted(set(hits) & available), "physical-us-position" if physical else "printed-character"
+
+
+def guess_ascii(code, shift):
+    letters = dict(zip(list(range(24, 34)) + list(range(38, 47)) + list(range(52, 59)), "qwertyuiopasdfghjklzxcvbnm"))
+    punctuation = {34: "[{", 35: "]}", 47: ";:", 48: "'\"", 49: "`~", 51: "\\|", 59: ",>", 60: ".<", 61: "/?"}
+    return letters.get(code, punctuation.get(code, "")[int(shift):int(shift) + 1])
+
+
+def current_gui(event):
+    text, sym, held = event["text"], event["keysym"], event["held"]
+    key = SPECIAL.get(sym.lower(), sym.lower())
+    symbol_text = event["symbol_text"]
+    if sym in NAMED or sym == "space":
+        pass
+    elif symbol_text and symbol_text.isascii() and symbol_text.isprintable() and not symbol_text.isalnum():
+        key = symbol_text
+    elif len(text) == 1 and text.isascii():
+        if text.isprintable() and text != " ":
+            key = text.lower()
+        elif ord(text) <= 31 and not sym[:1].isdigit():
+            key = chr(ord(text) + 64).lower()
+    elif not sym.startswith("KP_"):
+        key = guess_ascii(event["code"], bool(held & MODS["shift"])) or key
+    if sym.startswith("KP_"):
+        key = sym[3:].lower()
+    return {"key": key, "text": text if text and ord(text[0]) >= 32 and ord(text[0]) != 127 else "",
+            "mods": held & 15}
+
+
+# Language layouts map only X core keycodes; above 255 only model files such as symbols/inet map keys (KEY_NUMERIC_1 at <I521>).
+LAST_CORE_KEYCODE = 255
+
+
+# X keycodes of the US digit row AE01 to AE12, and of the letter rows AD01 to AD10, AC01 to AC09 and AB01 to AB07.
+US_DIGIT_ROW = range(10, 22)
+US_LETTER_KEYS = [*range(24, 34), *range(38, 47), *range(52, 59)]
+US_ROWS = {**{code: pair for code, pair in zip(US_DIGIT_ROW, zip("1234567890-=", "!@#$%^&*()_+"))},
+           **{code: (letter, letter.upper()) for code, letter in zip(US_LETTER_KEYS, "qwertyuiopasdfghjklzxcvbnm")},
+           **{code: tuple(pair) for code, pair in
+              {34: "[{", 35: "]}", 47: ";:", 48: "'\"", 49: "`~", 51: "\\|", 59: ",<", 60: ".>", 61: "/?"}.items()}}
+
+
+def us_key(code, shift):
+    """The fork's Keystroke::us_key: the US character at a main-block position, Shift applied except to letters."""
+    lower, upper = US_ROWS.get(code, ("", ""))
+    return upper if shift and not lower.isalpha() else lower
+
+
+def group_prints(events):
+    """Characters the group types on a base or Shift level, the levels reached without AltGr."""
+    return {e["symbol_text"] for e in events if e["held"] in (0, MODS["shift"]) and e["symbol_text"]
+            and not e["keysym"].startswith("KP_")}
+
+
+# Ctrl+a types 0x01, 0x60 below a, and text below 0x20 or DEL types nothing, as the fork names them.
+CONTROL_LETTERS, CONTROL_TO_LOWERCASE = range(0x01, 0x1b), 0x60
+FIRST_PRINTABLE, DELETE = 0x20, 0x7f
+
+
+def fork_gui(event, latin, prints):
+    """Flea's GUI forms for one event on fork 0298abf6: the printed form, then the US-position form and whether it goes first."""
+    text, sym, held, code = event["text"], event["keysym"], event["held"], event["code"]
+    symbol_text, shift = event["symbol_text"], bool(held & MODS["shift"])
+    if sym in NAMED or sym == "space":
+        key = SPECIAL.get(sym.lower(), sym.lower())
+    elif sym.startswith("KP_"):
+        key = sym[3:].lower()
+    elif len(symbol_text) == 1 and symbol_text.isascii() and symbol_text.isprintable() and symbol_text != " ":
+        key = symbol_text.lower()
+    else:
+        fallback = (text.lower() if len(text) == 1 and text.isascii() and text.isprintable() and text != " " else
+                    chr(ord(text) + CONTROL_TO_LOWERCASE) if len(text) == 1 and ord(text) in CONTROL_LETTERS else
+                    us_key(code, shift))
+        key = fallback if fallback and not (latin and fallback in prints) else sym.lower()
+    us = us_key(code, shift)
+    if us and not latin:
+        key = us
+    typed = text if text and ord(text[0]) >= FIRST_PRINTABLE and ord(text[0]) != DELETE else ""
+    printed = {"key": key, "text": typed, "mods": held & 15}
+    if not us or held & MODS["altgr"]:
+        return printed, None
+    lower, upper = US_ROWS[code]
+    nonlatin = key == us and bool(typed) and typed.lower() != key
+    letter, digit = lower.isalpha(), lower.isdigit()
+    # ASCII only: rule b sends Ctrl+= to Italian ì and Ctrl+- to Icelandic ö, and a dead key's name is no letter.
+    ascii_letter = len(typed or key) == 1 and (typed or key).isascii() and (typed or key).isalpha()
+    if not nonlatin and (letter or ascii_letter):
+        return printed, None
+    shifted = shift if letter else us == upper
+    position = {"key": lower if digit or letter or not shifted else upper, "text": upper if shifted else lower,
+                "mods": held & 15}
+    return printed, (position, digit or nonlatin)
+
+
+def fork_forms(rows, events):
+    """The forms Flea's lookup_either tries for each event: the first form, and the second only when the first is unbound."""
+    script = letter_group(events)
+    prints = group_prints(events)
+    strokes = [s for row in rows for s in row["strokes"]]
+    texts = {character(s["key"]) for s in strokes if s["mods"] == "text"}
+    keys = {(modmask(s["mods"]), SPECIAL.get(character(s["key"]).lower(), character(s["key"]).lower()))
+            for s in strokes if s["mods"] != "text"}
+    bound = lambda form: (not form["mods"] & ~MODS["shift"] and form["text"] in texts) or (form["mods"], form["key"]) in keys
+    for event in events:
+        printed, position = fork_gui(event, script == "latin", prints)
+        order = [printed] if position is None else ([position[0], printed] if position[1] else [printed, position[0]])
+        yield event, order[:1] if bound(order[0]) else order
+
+
+def current_matches(stroke, event):
+    actual = current_gui(event)
+    target = character(stroke["key"])
+    if stroke["mods"] == "text":
+        return not actual["mods"] & ~MODS["shift"] and actual["text"] == target
+    expected = SPECIAL.get(target.lower(), target.lower())
+    return actual["mods"] == modmask(stroke["mods"]) and actual["key"] == expected
+
+
+def frontend_contexts(row, frontend):
+    if row["frontend"] not in ("all", frontend):
+        return set()
+    contexts = set(row["contexts"])
+    if frontend == "tui" and row["table"] in ("ctrl", "ctrlshift", "shift", "code", "text", "digits"):
+        contexts &= {"listing"}
+    return contexts
+
+
+def resolver_priority(row, preset, frontend):
+    if row["layer"] not in (preset, "all", "shared", "digits"):
+        return None
+    layer = {preset: 0, "all": 1, "shared": 2, "digits": 3}[row["layer"]]
+    return layer, 0 if frontend == "tui" and row["table"] == "tui" else 1
+
+
+def effective_scopes(rows, us_events):
+    """Apply canonical resolver precedence before a layout can change a chord's spelling."""
+    canonical = [set(paths(r["strokes"][0], us_events, us_events, "latin")[0]) for r in rows]
+    presets = sorted({"default", "vim", "mac", "windows", "yazi"} |
+                     {r["layer"] for r in rows} - {"shared", "all", "digits"})
+    scopes = []
+    for frontend, preset, context in itertools.product(("gui", "tui"), presets, CONTEXTS):
+        if frontend == "gui" and preset == "yazi":
+            continue
+        candidates = [i for i, r in enumerate(rows) if context in frontend_contexts(r, frontend)
+                      and resolver_priority(r, preset, frontend) is not None]
+        root = [i for i in candidates if not rows[i]["prefix"]]
+        ranks = {}
+        for i in root:
+            for event in canonical[i]:
+                rank = resolver_priority(rows[i], preset, frontend)
+                ranks[event] = min(ranks.get(event, rank), rank)
+        live = [i for i in root if not canonical[i] or any(
+            ranks[e] == resolver_priority(rows[i], preset, frontend) for e in canonical[i])]
+        shadowed = []
+        for i in root:
+            winners = [j for j in root if resolver_priority(rows[j], preset, frontend) < resolver_priority(rows[i], preset, frontend)
+                       and canonical[i] & canonical[j]]
+            if winners:
+                shadowed.append(dict(binding=rows[i]["id"], by=[rows[j]["id"] for j in winners],
+                                     witnesses=sorted(set().union(*(canonical[i] & canonical[j] for j in winners)))))
+        scopes.append(dict(frontend=frontend, preset=preset, context=context, state="", indices=live, shadowed=shadowed))
+        for arm in sorted({rows[i]["action"] for i in live if rows[i]["action"].startswith("prefix:")}):
+            suffixes = [i for i in candidates if rows[i]["table"] == "tui" and rows[i]["layer"] == preset
+                        and rows[i]["prefix"] == arm.removeprefix("prefix:")]
+            scopes.append(dict(frontend=frontend, preset=preset, context=context, state=arm, indices=suffixes, shadowed=[]))
+    return scopes
+
+
+def collisions(rows, cells, precedence=None):
+    """Compare effective claims within one frontend, preset, context and prefix state."""
+    ranks, shadows = precedence or (None, set())
+    results = []
+    for i, a in enumerate(rows):
+        for j in range(i + 1, len(rows)):
+            b = rows[j]
+            if a["completes"] == b["completes"]:
+                continue
+            left, right = cells[i]["paths"], cells[j]["paths"]
+            shared = [sorted(set(x) & set(y)) for x, y in zip(left, right)]
+            if not shared or not all(shared):
+                continue
+            if ranks and ranks[i] != ranks[j] and {(a["id"], b["id"]), (b["id"], a["id"])} & shadows:
+                low, high = (left, right) if ranks[i] > ranks[j] else (right, left)
+                # The resolver picks the higher row on a canonical shadow; only a lower row left with no path collides.
+                if all(set(x) - set(y) for x, y in zip(low, high)):
+                    continue
+            results.append(dict(a=a["id"], b=b["id"], kind="sequence-prefix" if len(left) != len(right) else "chord",
+                                witnesses=[p[0] for p in shared], layers=[a["layer"], b["layer"]],
+                                actions=[a["action"], b["action"]]))
+    return results
+
+
+def terminal_limits(row):
+    limits = []
+    for s in row["strokes"]:
+        mods, key = s["mods"], s["key"]
+        if "super" in mods:
+            limits.append("legacy-super-unavailable")
+        if "ctrl" in mods and ("shift" in mods or key in ("Enter", "Return", "Tab", "Space")):
+            limits.append("legacy-modifier-collapse")
+        if mods == "ctrl" and key in ("I", "M", "BracketLeft", "H"):
+            limits.append("legacy-control-alias")
+    return sorted(set(limits))
+
+
+def collision_identity(collision, rows):
+    by_id = {r["id"]: r for r in rows}
+    def stamp(binding):
+        row = by_id[binding]
+        return json.dumps({k: v for k, v in row.items() if k != "id"}, sort_keys=True)
+    return (tuple(sorted([stamp(collision["a"]), stamp(collision["b"])])), collision["kind"],
+            tuple(collision["witnesses"]), json.dumps(collision.get("scope"), sort_keys=True))
+
+
+def classify_collisions(candidate, baseline, rows, baseline_rows):
+    candidate["preservation_findings"] = preservation_findings(rows, baseline_rows, candidate, baseline)
+    candidate["shadowing_findings"] = shadowing_findings(rows, baseline_rows, candidate)
+    known = {collision_identity(c, baseline_rows) for c in baseline["collisions"]}
+    for collision in candidate["collisions"]:
+        collision["baseline"] = "present" if collision_identity(collision, rows) in known else "absent"
+
+
+def measure_scope(rows, events, us_events, policy, fixed_prefix=None, precedence=None):
+    events = events if isinstance(events, Events) else Events(events)
+    us_events = us_events if isinstance(us_events, Events) else Events(us_events)
+    script = letter_group(events)
+    has_altgr = any(event["keysym"] in ("ISO_Level3_Shift", "Mode_switch") for event in events)
+    core = {event["id"] for event in events if event["code"] <= LAST_CORE_KEYCODE}
+    current_key, current_text = defaultdict(list), defaultdict(list)
+    for event, tried in fork_forms(rows, events):
+        for actual in tried:
+            current_key[(actual["mods"], actual["key"])].append(event["id"])
+            if not actual["mods"] & ~MODS["shift"]:
+                current_text[actual["text"]].append(event["id"])
+    printed, position = policy["punctuation"]["order"]
+    measured = [{choice: [paths(s, events, us_events, script, choice) for s in row["strokes"]] for choice in (printed, position)}
+                for row in rows]
+    if fixed_prefix is not None:
+        for row, alternatives in zip(rows, measured):
+            for candidate in alternatives.values():
+                candidate[0] = (fixed_prefix, "scoped-prefix")
+    punct = [any(is_punctuation(s) for s in (row["strokes"][-1:] if row["prefix"] else row["strokes"])) for row in rows]
+    choice = [printed if not p or (script == "latin" and all(path for path, _ in m[printed])) else position
+              for p, m in zip(punct, measured)]
+    rejected = [set() for _ in rows]
+    while True:
+        found = collisions(rows, [dict(paths=[path for path, _ in m[c]]) for m, c in zip(measured, choice)], precedence)
+        involved = {binding for c in found for binding in (c["a"], c["b"])}
+        switch = [i for i, row in enumerate(rows) if punct[i] and choice[i] == printed and row["id"] in involved]
+        if not switch:
+            break
+        for i in switch:
+            choice[i] = position
+            rejected[i].add("printed-character-conflict")
+    cells = []
+    for i, row in enumerate(rows):
+        chosen = measured[i][choice[i]]
+        reachable = all(p for p, _ in chosen)
+        failing = punct[i] and (row["id"] in involved or (bool(rejected[i]) and not reachable))
+        detail = {}
+        if punct[i]:
+            rule = ("d" if failing else "c" if script == "nonlatin" else
+                    "a" if choice[i] == printed else "b")
+            if rule == "b" and not rejected[i]:
+                rejected[i].add("printed-character-needs-altgr-or-absent")
+            detail = dict(rule=rule, choice=choice[i], rejected=sorted(rejected[i]),
+                          alternatives={c: [path for path, _ in measured[i][c]] for c in (printed, position)})
+        current = [current_text.get(character(s["key"]), []) if s["mods"] == "text" else
+                   current_key.get((modmask(s["mods"]), SPECIAL.get(character(s["key"]).lower(), character(s["key"]).lower())), [])
+                   for s in row["strokes"]]
+        missing = [sorted(set(path) - set(actual)) for (path, _), actual in zip(chosen, current)]
+        forbidden = [[path for path in actual if int(path.rpartition(":")[2]) & MODS["altgr"] and path in core]
+                     if has_altgr else [] for actual in current]
+        cells.append(dict(binding=row["id"], paths=[p for p, _ in chosen], rules=[r for _, r in chosen],
+                          status="punctuation-conflict" if failing else ("reachable" if reachable else "unreachable"),
+                          punctuation=detail,
+                          current_gui_paths=current, current_gui_missing_policy_paths=missing,
+                          current_gui_forbidden_altgr_paths=forbidden,
+                          current_gui_status="reachable" if reachable and not any(missing) and not any(forbidden) else "unreachable",
+                          terminal_limits=terminal_limits(row) + (["legacy-no-physical-key-identity"] if
+                              row["frontend"] != "gui" and any(r == "physical-us-position" for _, r in chosen) else [])))
+    return {"script": script, "cells": cells, "collisions": found}
+
+
+def scope_cells(group, frontend, preset, context, state=""):
+    """Return observations for exactly one effective resolver state."""
+    scope = next((s for s in group["scopes"] if (s["frontend"], s["preset"], s["context"], s["state"]) ==
+                  (frontend, preset, context, state)), None)
+    return [group["variants"][i] for i in scope["cells"]] if scope else []
+
+
+def measure(rows, events, us_events, policy):
+    events, us_events = Events(events), Events(us_events)
+    script = letter_group(events)
+    result = dict(script=script, cells=[], scopes=[], variants=[], collisions=[])
+    interned, cache = {}, {}
+    for scope in effective_scopes(rows, us_events):
+        indices = scope.pop("indices")
+        selected = [rows[i] for i in indices]
+        fixed = None
+        if scope["state"]:
+            arms = scope_cells(result, scope["frontend"], scope["preset"], scope["context"])
+            arm_ids = {r["id"] for r in rows if r["action"] == scope["state"]}
+            fixed = sorted({p for c in arms if c["binding"] in arm_ids for p in c["paths"][0]})
+        ranks = tuple(resolver_priority(rows[i], scope["preset"], scope["frontend"]) for i in indices)
+        shadows = {(s["binding"], by) for s in scope["shadowed"] for by in s["by"]}
+        signature = tuple(indices), tuple(fixed or []), ranks
+        if signature not in cache:
+            cache[signature] = measure_scope(selected, events, us_events, policy, fixed, (ranks, shadows))
+        measured = cache[signature]
+        scope["cells"] = []
+        for cell in measured["cells"]:
+            stamp = json.dumps(cell, sort_keys=True)
+            if stamp not in interned:
+                interned[stamp] = len(result["variants"])
+                result["variants"].append(cell)
+            scope["cells"].append(interned[stamp])
+        result["scopes"].append(scope)
+        for collision in measured["collisions"]:
+            result["collisions"].append(dict(collision, scope=scope_identity(scope)))
+    for row in rows:
+        variants = [c for c in result["variants"] if c["binding"] == row["id"]]
+        if len(variants) == 1:
+            result["cells"].append(variants[0])
+        else:
+            result["cells"].append(dict(binding=row["id"], paths=[], rules=[], punctuation={},
+                                        status="scope-dependent" if variants else "shadowed",
+                                        current_gui_status="scoped", terminal_limits=terminal_limits(row)))
+    return result
+
+
+def canonical_spelling(stroke):
+    key, mods = character(stroke["key"]), stroke["mods"]
+    if mods == "text":
+        return key, mods
+    if mods == "shift" and len(key) == 1 and key.isascii() and key.isalpha():
+        return key.upper(), "text"
+    key = {"ISO_Left_Tab": "Tab", "Prior": "PageUp", "Next": "PageDown", "space": "Space"}.get(key, key)
+    if stroke["key"] == "Backtab" and "shift" not in mods:
+        mods = ("" if mods == "none" else mods) + "shift"
+    return key, mods
+
+
+def scope_identity(scope):
+    return {key: scope[key] for key in ("frontend", "preset", "context", "state")}
+
+
+def yazi_replacement(scope):
+    return (scope["frontend"], scope["preset"], scope["context"]) == ("tui", "yazi", "listing")
+
+
+def refusals(rows, groups):
+    """Refusal rows hold a key only to explain an unavailable action; they are listed, never linted as commands."""
+    by_id = {r["id"]: r for r in rows}
+    return [dict(binding=cell["binding"], action=by_id[cell["binding"]]["action"], group=group["index"],
+                 scope=scope_identity(scope), paths=cell["paths"])
+            for group in groups for scope in group["scopes"] for cell in (group["variants"][i] for i in scope["cells"])
+            if by_id.get(cell["binding"], {}).get("action", "").startswith(REFUSAL)]
+
+
+def normalized_toml(rows, groups):
+    """Lint canonical identity per effective scope; a refusal binds no command, so refusals() reports it instead."""
+    lines, merged = [], {}
+    by_id = {r["id"]: r for r in rows}
+    for group in groups:
+        for scope in group["scopes"]:
+            for index in scope["cells"]:
+                cell = group["variants"][index]
+                if cell["binding"] not in by_id:
+                    continue
+                row = by_id[cell["binding"]]
+                depth = len(row["strokes"]) - 1 if scope["state"] else 0
+                key, mods = canonical_spelling(row["strokes"][depth])
+                state = scope["state"]
+                context = f"g{group['index']}:{scope['preset']}:{scope['context']}:{state.encode().hex()}"
+                action = row["completes"] if depth else row["action"]
+                if action.startswith(REFUSAL):
+                    continue
+                values = dict(name=scope["preset"], mods=mods, key=key, keys=key,
+                              action=action, context=context, frontend=scope["frontend"])
+                stamp = tuple(values.items())
+                merged[stamp] = values
+                if not state and len(row["strokes"]) > 1 and not row["completes"].startswith(REFUSAL):
+                    key, mods = canonical_spelling(row["strokes"][-1])
+                    values = dict(values, key=key, mods=mods, keys=key, action=row["completes"],
+                                  context=context + ":pair:" + row["action"])
+                    merged[tuple(values.items())] = values
+    for values in merged.values():
+        lines += ["[[preset]]"] + [f"{k} = {json.dumps(v)}" for k, v in values.items()] + [""]
+    return "\n".join(lines)
+
+
+def preservation_findings(rows, baseline_rows, group, baseline):
+    """The opt-in Yazi listing replacement never excuses old-mode or overlay action loss."""
+    by_id, before = {r["id"]: r for r in rows}, {r["id"]: r for r in baseline_rows}
+    findings = []
+    for scope in baseline["scopes"]:
+        if yazi_replacement(scope):
+            continue
+        current = scope_cells(group, scope["frontend"], scope["preset"], scope["context"], scope["state"])
+        depth = -1 if scope["state"] else 0
+        live = {(canonical_spelling(by_id[c["binding"]]["strokes"][depth]),
+                 by_id[c["binding"]]["action"], by_id[c["binding"]]["completes"]) for c in current}
+        for index in scope["cells"]:
+            cell = baseline["variants"][index]
+            row = before[cell["binding"]]
+            stamp = canonical_spelling(row["strokes"][depth]), row["action"], row["completes"]
+            if stamp not in live:
+                findings.append(dict(rule="baseline-action-shadowed", severity="blocking", binding=row["id"],
+                                     action=row["action"], scope=scope_identity(scope)))
+    return findings
+
+
+def shadowing_findings(rows, baseline_rows, group):
+    """New declarations must not accidentally override, or hide behind, another action."""
+    def stamp(row):
+        return json.dumps({k: v for k, v in row.items() if k != "id"}, sort_keys=True)
+    shipped = {stamp(row) for row in baseline_rows}
+    by_id = {r["id"]: r for r in rows}
+    findings = []
+    for scope in group["scopes"]:
+        if yazi_replacement(scope):
+            continue
+        for shadow in scope["shadowed"]:
+            a = by_id[shadow["binding"]]
+            for binding in shadow["by"]:
+                b = by_id[binding]
+                if a["action"] != b["action"] and (stamp(a) not in shipped or stamp(b) not in shipped):
+                    findings.append(dict(rule="added-bound", severity="blocking", binding=a["id"], by=b["id"],
+                                         actions=[a["action"], b["action"]], witnesses=shadow["witnesses"],
+                                         scope=scope_identity(scope)))
+    return findings
+
+
+def lint_layout(matrix, layout, output, linter):
+    reports = {}
+    folder = Path(output) / layout["id"]
+    folder.mkdir(parents=True, exist_ok=True)
+    for choice in ["policy"]:
+        candidate, baseline = folder / f"{choice}.candidate.toml", folder / f"{choice}.baseline.toml"
+        candidate.write_text(normalized_toml(matrix["bindings"], layout["groups"]))
+        baseline.write_text(normalized_toml(matrix["baseline_bindings"], layout["baseline_groups"]))
+        args = [sys.executable, "-B", str(linter), str(candidate), "--baseline", str(baseline)]
+        result = subprocess.run(args, capture_output=True, text=True)
+        try:
+            report = json.loads(result.stdout)
+        except ValueError:
+            report = {"error": result.stderr or result.stdout}
+        preservation = [dict(f, group=g["index"]) for g, old in zip(layout["groups"], layout["baseline_groups"])
+                        for f in preservation_findings(matrix["bindings"], matrix["baseline_bindings"], g, old)]
+        preservation += [dict(f, group=g["index"]) for g in layout["groups"]
+                         for f in shadowing_findings(matrix["bindings"], matrix["baseline_bindings"], g)]
+        physical = [dict(c, rule="layout-collision", severity="blocking", group=g["index"])
+                    for g in layout["groups"] for c in g["collisions"]]
+        physical += [dict(rule=c["status"], severity="blocking", group=g["index"], binding=c["binding"],
+                          scope=scope_identity(s))
+                     for g in layout["groups"] for s in g["scopes"] for i in s["cells"]
+                     if (c := g["variants"][i])["status"] != "reachable"]
+        report["refusals"] = refusals(matrix["bindings"], layout["groups"])
+        report["linter_exit_code"] = result.returncode
+        report["linter_total"] = report.get("total")
+        report["normalization"] = "canonical-identity-in-effective-scope; physical-findings-from-matrix"
+        report.setdefault("findings", []).extend(preservation + physical)
+        report["counts"] = dict(Counter(f["rule"] for f in report["findings"]))
+        report["total"] = len(report["findings"])
+        report.update(exit_code=result.returncode or int(bool(preservation or physical)), command=args,
+                      candidate=identity(candidate), baseline=identity(baseline))
+        write_json(folder / f"{choice}.result.json", report)
+        reports[choice] = {"exit_code": report["exit_code"], "result": str(folder / f"{choice}.result.json"),
+                           "sha256": digest((folder / f"{choice}.result.json").read_bytes()), "total": report.get("total")}
+    return reports
+
+
+def generate(args):
+    policy = json.loads(Path(args.policy).read_text())
+    validate_policy(policy)
+    omarchy = Path(args.omarchy_path)
+    sha = command(["git", "-C", str(omarchy), "rev-parse", "HEAD"])
+    if sha != policy["source_contract"]["omarchy_commit"]:
+        raise ValueError(f"Unapproved Omarchy identity: {sha}")
+    sources = ["install/provisioning/setup-form.sh", "default/input-methods/typing_setup.py", "bin/omarchy-provision-owner"]
+    for source in sources:
+        if command(["git", "-C", str(omarchy), "status", "--porcelain", "--", source]):
+            raise ValueError(f"Dirty pinned Omarchy source: {source}")
+    entries = installer_entries(omarchy, args.model_map)
+    if args.require_layouts is not None and args.require_layouts != len(entries):
+        raise ValueError(f"Pinned installer has {len(entries)} entries, not {args.require_layouts}")
+    rows, baseline = bindings(args.keys), bindings(args.baseline)
+    reference = policy["source_contract"]["reference_commit"]
+    reference_bytes = subprocess.run(["git", "-C", str(ROOT), "show", reference + ":keys.toml"],
+                                     capture_output=True, check=True).stdout
+    if reference_bytes != Path(args.baseline).read_bytes():
+        raise ValueError("Reference keys.toml differs from the pinned tag")
+    us = Xkb({"layout": "us"}, args.xkb_root)
+    try:
+        us_events = us.events(0)
+    finally:
+        us.close()
+    matrix = dict(schema=1, policy=policy, provenance={"omarchy_commit": sha,
+                  "omarchy_sources": [identity(omarchy / s) for s in sources], "keys": identity(args.keys),
+                  "baseline": identity(args.baseline), "reference_commit": reference,
+                  "policy": identity(args.policy), "model_map": identity(args.model_map), "linter": identity(args.linter),
+                  "xkbcommon_version": command(["pkg-config", "--modversion", "xkbcommon"]),
+                  "xkeyboard_config_version": command(["pkg-config", "--modversion", "xkeyboard-config"]),
+                  "rules": identity(Path(args.xkb_root) / "rules/evdev"), "tool": identity(__file__)},
+                  installer=dict(source=identity(omarchy / sources[0]), model_map=identity(args.model_map),
+                                 entries=[[e["id"], e["installer_row"]] for e in entries]),
+                  bindings=rows, baseline_bindings=baseline, us_events=us_events, layouts=[], errors=[])
+    matrix["provenance"]["resolvers"] = [identity(ROOT / path) for path in RESOLVERS]
+    matrix["analysis"] = {"policy_selection": "effective-frontend-preset-context-prefix",
+                          "current_gui": "fork-0298abf6-python-model: US position first for digits and non-Latin groups, else printed first; not native acceptance"}
+    library_path = next(Path(line.split()[-1]) for line in Path("/proc/self/maps").read_text().splitlines()
+                        if "/libxkbcommon.so" in line and Path(line.split()[-1]).is_file())
+    matrix["provenance"]["libxkbcommon"] = identity(library_path)
+    for entry in entries:
+        layout = dict(entry, groups=[], baseline_groups=[])
+        try:
+            keymap = Xkb(entry, args.xkb_root)
+            try:
+                layout["keymap_sha256"] = keymap.sha256
+                for group in range(keymap.keymap_num_layouts(keymap.keymap)):
+                    events = keymap.events(group)
+                    measured = measure(rows, events, us_events, policy)
+                    measured.update(index=group, name=keymap.keymap_layout_get_name(keymap.keymap, group).decode(), events=events)
+                    old = dict(measure(baseline, events, us_events, policy), index=group)
+                    classify_collisions(measured, old, rows, baseline)
+                    layout["groups"].append(measured)
+                    layout["baseline_groups"].append(old)
+            finally:
+                keymap.close()
+        except ValueError as error:
+            layout["error"] = str(error)
+            matrix["errors"].append(dict(layout=entry["id"], error=str(error)))
+        matrix["layouts"].append(layout)
+        print(f"measured {entry['id']}: {len(layout['groups'])} groups", file=sys.stderr, flush=True)
+    for layout in matrix["layouts"]:
+        if layout["groups"]:
+            layout["lint"] = lint_layout(matrix, layout, Path(args.out).with_suffix(".lint"), args.linter)
+    matrix["summary"] = summarize(matrix)
+    write_json(args.out, matrix)
+    print(json.dumps(matrix["summary"]))
+    return int(bool(matrix["errors"]))
+
+
+def summarize(matrix):
+    groups = [g for layout in matrix["layouts"] for g in layout["groups"]]
+    scoped = [g["variants"][i] for g in groups for s in g.get("scopes", []) for i in s["cells"]]
+    gui = [g["variants"][i] for g in groups for s in g.get("scopes", []) if s["frontend"] == "gui" for i in s["cells"]]
+    return dict(layouts=len(matrix["layouts"]), groups=len(groups), bindings=len(matrix["bindings"]),
+                cells=sum(len(g["cells"]) for g in groups), statuses=dict(Counter(c["status"] for g in groups for c in g["cells"])),
+                scoped_cells=len(scoped), scoped_statuses=dict(Counter(c["status"] for c in scoped)),
+                punctuation_rules=dict(Counter(c["punctuation"]["rule"] for g in groups for c in g["cells"] if c["punctuation"])),
+                current_gui_statuses=dict(Counter(c["current_gui_status"] for g in groups for c in g["cells"])),
+                legacy_gui_model_statuses=dict(Counter(c["current_gui_status"] for c in gui)),
+                collisions=sum(len(g["collisions"]) for g in groups),
+                collision_baseline=dict(Counter(c["baseline"] for g in groups for c in g["collisions"])),
+                refusal_bindings=sorted({r["binding"] for g in groups if "scopes" in g for r in refusals(matrix["bindings"], [g])}),
+                refusal_cells=sum(len(refusals(matrix["bindings"], [g])) for g in groups if "scopes" in g),
+                baseline_actions_shadowed=sum(len(g.get("preservation_findings", [])) for g in groups),
+                unapproved_overrides=sum(len(g.get("shadowing_findings", [])) for g in groups),
+                lint_errors=sum(r["exit_code"] != 0 for l in matrix["layouts"] for r in l.get("lint", {}).values()),
+                unknown_keymaps=len(matrix["errors"]))
+
+
+def validate_policy(policy):
+    if (policy.get("schema") != 2 or policy["letters"]["latin"] != "printed-character" or
+            policy["letters"]["nonlatin"] != "physical-us-position" or policy["digits"]["rule"] != "physical-us-position"):
+        raise ValueError("Unsupported settled letter or digit policy")
+    punctuation = policy["punctuation"]
+    if (punctuation.get("order") != ["printed-character", "physical-us-position"] or
+            [r["id"] for r in punctuation.get("rules", [])] != ["a", "b", "c", "d"] or
+            punctuation.get("altgr") != "text-input-only" or not str(punctuation.get("approval", "")).strip()):
+        raise ValueError("Punctuation needs the approved a to d order with AltGr kept as text input")
+
+
+def check_matrix(matrix, required=None):
+    errors = []
+    if matrix.get("schema") != 1:
+        return ["Unknown matrix schema"]
+    validate_policy(matrix["policy"])
+    installer = matrix.get("installer")
+    expected_entries = {}
+    source = Path(installer["source"]["path"]) if installer else None
+    if not installer or not source.is_file() or digest(source.read_bytes()) != installer["source"]["sha256"]:
+        errors.append("Missing or stale pinned installer source")
+    else:
+        entries = installer_entries(source.parents[2], installer["model_map"]["path"])
+        expected_entries = {e["id"]: e for e in entries}
+        extracted = [[e["id"], e["installer_row"]] for e in entries]
+        if extracted != installer["entries"] or extracted != [[l["id"], l["installer_row"]] for l in matrix["layouts"]]:
+            errors.append("Matrix layouts differ from the pinned installer list")
+        if required is not None and required != len(extracted):
+            errors.append(f"Pinned installer has {len(extracted)} entries, not {required}")
+    if len({layout["id"] for layout in matrix["layouts"]}) != len(matrix["layouts"]):
+        errors.append("Duplicate installer entries")
+    required_ids = {r["id"] for r in matrix["bindings"]}
+    if len(required_ids) != len(matrix["bindings"]) or not required_ids:
+        errors.append("Missing or duplicate binding inventory")
+    for name in ("keys", "baseline", "policy", "tool", "linter"):
+        recorded = matrix.get("provenance", {}).get(name)
+        if not recorded:
+            errors.append(f"Missing {name} identity")
+        elif not Path(recorded["path"]).is_file() or digest(Path(recorded["path"]).read_bytes()) != recorded["sha256"]:
+            errors.append(f"Stale {name} identity: {recorded['path']}")
+        elif name in ("keys", "baseline"):
+            inventory = "bindings" if name == "keys" else "baseline_bindings"
+            if matrix[inventory] != bindings(recorded["path"]):
+                errors.append(f"{name}: canonical inventory differs from identity-checked source")
+    for recorded in matrix.get("provenance", {}).get("resolvers", []):
+        if not Path(recorded["path"]).is_file() or digest(Path(recorded["path"]).read_bytes()) != recorded["sha256"]:
+            errors.append(f"Stale resolver identity: {recorded['path']}")
+    for layout in matrix["layouts"]:
+        if any("scopes" not in g or "variants" not in g for g in layout["groups"] + layout.get("baseline_groups", [])):
+            errors.append(f"{layout['id']}: groups carry no effective scopes; regenerate the matrix with this tool")
+            continue
+        entry = expected_entries.get(layout["id"])
+        if entry:
+            if any(layout.get(field) != value for field, value in entry.items()):
+                errors.append(f"{layout['id']}: XKB conversion differs from pinned installer")
+            rules = matrix.get("provenance", {}).get("rules")
+            root = Path(rules["path"]).parent.parent if rules else Path("/usr/share/X11/xkb")
+            try:
+                keymap = Xkb(entry, root)
+                try:
+                    expected = list(range(keymap.keymap_num_layouts(keymap.keymap)))
+                    if [group["index"] for group in layout["groups"]] != expected:
+                        errors.append(f"{layout['id']}: active group inventory differs from compiled keymap")
+                    if layout.get("keymap_sha256") != keymap.sha256:
+                        errors.append(f"{layout['id']}: compiled keymap identity differs")
+                    for group in layout["groups"]:
+                        if group["index"] in expected and group.get("name") != keymap.keymap_layout_get_name(keymap.keymap, group["index"]).decode():
+                            errors.append(f"{layout['id']}: active group name differs from compiled keymap")
+                finally:
+                    keymap.close()
+            except ValueError as error:
+                errors.append(f"{layout['id']}: {error}")
+        if layout.get("error") or not layout["groups"]:
+            errors.append(f"{layout['id']}: unknown or missing keymap")
+        if set(layout.get("lint", {})) != {"policy"}:
+            errors.append(f"{layout['id']}: missing lint receipts")
+        for report in layout.get("lint", {}).values():
+            if report["exit_code"]:
+                errors.append(f"{layout['id']}: lint exit {report['exit_code']} ({report['result']})")
+            result_path = Path(report["result"])
+            if not result_path.is_file() or digest(result_path.read_bytes()) != report.get("sha256"):
+                errors.append(f"{layout['id']}: missing or stale lint receipt {result_path}")
+            else:
+                receipt = json.loads(result_path.read_text())
+                if receipt.get("exit_code") != report["exit_code"] or receipt.get("total") != report.get("total"):
+                    errors.append(f"{layout['id']}: lint summary differs from receipt")
+                for kind in ("candidate", "baseline"):
+                    source = receipt[kind]
+                    if not Path(source["path"]).is_file() or digest(Path(source["path"]).read_bytes()) != source["sha256"]:
+                        errors.append(f"{layout['id']}: stale normalized {kind}")
+                    else:
+                        rows = matrix["bindings"] if kind == "candidate" else matrix["baseline_bindings"]
+                        groups = layout["groups"] if kind == "candidate" else layout["baseline_groups"]
+                        if Path(source["path"]).read_text() != normalized_toml(rows, groups):
+                            errors.append(f"{layout['id']}: normalized {kind} differs from effective scopes")
+        for group in layout["groups"]:
+            cells = group["cells"]
+            if {c["binding"] for c in cells} != required_ids or len(cells) != len(required_ids):
+                errors.append(f"{layout['id']}/{group['index']}: missing or duplicate canonical cells")
+            if "events" in group and "us_events" in matrix:
+                measured = measure(matrix["bindings"], group["events"], matrix["us_events"], matrix["policy"])
+                old = measure(matrix["baseline_bindings"], group["events"], matrix["us_events"], matrix["policy"])
+                classify_collisions(measured, old, matrix["bindings"], matrix["baseline_bindings"])
+                if any(group.get(name) != measured[name] for name in ("cells", "script", "collisions", "scopes", "variants", "preservation_findings", "shadowing_findings")):
+                    errors.append(f"{layout['id']}/{group['index']}: stored findings differ from measured events")
+                baseline = next((g for g in layout["baseline_groups"] if g["index"] == group["index"]), {})
+                if any(baseline.get(name) != old[name] for name in ("cells", "script", "collisions", "scopes", "variants")):
+                    errors.append(f"{layout['id']}/{group['index']}: stored baseline differs from measured events")
+            else:
+                errors.append(f"{layout['id']}/{group['index']}: missing measured events")
+            cells = group.get("variants", cells)
+            counts = Counter(c["status"] for c in cells)
+            if any(int(path.rpartition(":")[2]) & MODS["altgr"] for c in cells for stroke in c["paths"] for path in stroke):
+                errors.append(f"{layout['id']}/{group['index']}: an AltGr chord dispatches a command")
+            if counts["unreachable"] or counts["punctuation-conflict"]:
+                errors.append(f"{layout['id']}/{group['index']}: {dict(counts)}")
+            if group.get("preservation_findings"):
+                errors.append(f"{layout['id']}/{group['index']}: {len(group['preservation_findings'])} baseline actions shadowed")
+            if group.get("shadowing_findings"):
+                errors.append(f"{layout['id']}/{group['index']}: {len(group['shadowing_findings'])} unapproved overrides")
+            if group["collisions"]:
+                errors.append(f"{layout['id']}/{group['index']}: {len(group['collisions'])} collisions")
+            if any(group["variants"][i]["current_gui_status"] != "reachable" for s in group["scopes"]
+                   if s["frontend"] == "gui" for i in s["cells"]):
+                errors.append(f"{layout['id']}/{group['index']}: legacy Python GUI model has unreachable rows (runtime acceptance owed)")
+    if matrix.get("summary") != summarize(matrix):
+        errors.append("Summary does not match matrix cells")
+    return errors
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+    gen = sub.add_parser("generate")
+    gen.add_argument("--omarchy-path", required=True)
+    gen.add_argument("--keys", required=True)
+    gen.add_argument("--out", required=True)
+    gen.add_argument("--baseline", required=True)
+    gen.add_argument("--policy", default=str(POLICY))
+    gen.add_argument("--model-map", default="/usr/share/systemd/kbd-model-map")
+    gen.add_argument("--xkb-root", default="/usr/share/X11/xkb")
+    gen.add_argument("--linter", default=str(LINTER))
+    gen.add_argument("--require-layouts", type=int)
+    check = sub.add_parser("check")
+    check.add_argument("--matrix", required=True)
+    check.add_argument("--require-layouts", type=int)
+    lint = sub.add_parser("lint")
+    lint.add_argument("--matrix", required=True)
+    lint.add_argument("--out")
+    lint.add_argument("--linter", default=str(LINTER))
+    args = parser.parse_args()
+    try:
+        if args.command == "generate":
+            return generate(args)
+        matrix = json.loads(Path(args.matrix).read_text())
+        if args.command == "lint":
+            if not matrix["layouts"] or any(not l["groups"] for l in matrix["layouts"]):
+                raise ValueError("Cannot lint an empty or unknown keymap")
+            results = {l["id"]: lint_layout(matrix, l, args.out or Path(args.matrix).with_suffix(".lint"), args.linter)
+                       for l in matrix["layouts"]}
+            print(json.dumps(results))
+            return int(any(r["exit_code"] for reports in results.values() for r in reports.values()))
+        errors = check_matrix(matrix, args.require_layouts)
+        print(json.dumps({"summary": summarize(matrix), "errors": errors}, indent=2))
+        return int(bool(errors))
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(json.dumps({"error": str(error)}), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,813 @@
+#!/usr/bin/env -S python3 -B
+"""Derive a source-addressable migration inventory without executing input files."""
+
+import argparse
+import collections
+import csv
+import glob
+import hashlib
+import io
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import tomllib
+from fnmatch import fnmatchcase
+from pathlib import Path
+
+
+FIELDS = ('kind', 'id', 'source', 'column', 'sink', 'family', 'owner', 'status', 'qml-bound',
+          'lines', 'action', 'key', 'context', 'preset', 'evidence', 'details')
+ASSERTIONS = frozenset(('check', 'expect', 'verify', 'compare', 'fuzzyCompare', 'tryCompare', 'tryVerify', 'fail'))
+SCOPE = ('0.4.0 Find', 'Exact remainders from the 0.3.11 cut', '0.4.0 Explore',
+         '0.4.0', '0.4.0 Fixes', 'Known issues to fix', 'Waiting on GM')
+TOKEN = re.compile(r'//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'
+                   r"'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[\w$]+|[^\s]")
+REGEX = re.compile(r'/(?![/*])(?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n])+/[a-z]*')
+IDENTITY_HEX_LENGTH = 32
+
+
+# Sample input: function run() { check("selection", actual, expected); }
+def tokens(text):
+    items, offset = [], 0
+    while match := TOKEN.search(text, offset):
+        if match[0] == '/' and (not items or items[-1][0] in
+                               ('(', '=', ',', ':', '[', '{', ';', '!', '?', 'return',
+                                '&', '|', '+', '-', '*', '%', '^', '~', '<', '>', 'throw', 'case')):
+            match = REGEX.match(text, match.start()) or match
+        offset = match.end()
+        if not match[0].startswith(('//', '/*')):
+            items.append(match)
+    return items
+
+
+def line_at(text, offset):
+    return text.count('\n', 0, offset) + 1
+
+
+# Sample input: tokens('Item { check(true) }'), with opening='{' and closing='}'.
+def pairs(items, opening='{', closing='}'):
+    stack, found = [], {}
+    for index, item in enumerate(items):
+        if item[0] == opening:
+            stack.append(index)
+        elif item[0] == closing and stack:
+            found[stack.pop()] = index
+    return found
+
+
+def read(path):
+    return path.read_text(encoding='utf-8')
+
+
+# Sample input: if (!ready) { fail("not ready"); } else check(true);
+def statement_end(items, start, blocks, parens, text):
+    if items[start][0] == '{':
+        return blocks[start]
+    if items[start][0] == 'if' and items[start + 1][0] == '(':
+        end = statement_end(items, parens[start + 1] + 1, blocks, parens, text)
+        if end + 1 < len(items) and items[end + 1][0] == 'else':
+            end = statement_end(items, end + 2, blocks, parens, text)
+        return end
+    index = start
+    while index + 1 < len(items):
+        if index in parens:
+            index = parens[index]
+        elif index in blocks:
+            index = blocks[index]
+        if items[index][0] == ';' or index + 1 == len(items) or items[index + 1][0] in ('}', 'else'):
+            return index
+        if '\n' in text[items[index].end():items[index + 1].start()]:
+            return index
+        index += 1
+    return index
+
+
+# Sample input: function check(label, actual, expected) { if (actual !== expected) fail(label); }
+def primitive_spans(items, declaration, body, blocks, parens, text, assertions):
+    end = blocks[body]
+    args_start, args_end = declaration + 3, parens[declaration + 2]
+    parameters = {items[i][0] for i in range(args_start, args_end)
+                  if i == args_start or items[i - 1][0] == ','}
+    if not parameters or any(items[i][0] == '=' for i in range(args_start, args_end)):
+        return []
+    if any(items[i][0] in assertions - {'fail'} and items[i + 1][0] == '(' and
+           items[i - 1][0] != 'function' for i in range(body + 1, end - 1)):
+        return []
+    if items[declaration + 1][0] == 'fail':
+        return [(body, end)]
+    allowed = parameters | {'true', 'false', 'null', 'undefined', 'typeof', 'JSON',
+                            'stringify', 'Math', 'abs', 'Number', 'String', 'isNaN', 'isFinite'}
+    inputs = set(parameters)
+    for i in range(body + 1, end - 3):
+        if items[i][0] not in ('var', 'let', 'const') or items[i + 2][0] != '=':
+            continue
+        expression_end = statement_end(items, i, blocks, parens, text)
+        words = [item[0] for item in items[i + 3:expression_end + 1]]
+        if inputs.intersection(words) and all(not re.fullmatch(r'[\w$]+', word) or
+                                              word in allowed or word.isdigit() for word in words):
+            inputs.add(items[i + 1][0])
+            allowed.add(items[i + 1][0])
+    conditions = []
+    for i in range(body + 1, end - 1):
+        if items[i][0] != 'if' or items[i + 1][0] != '(':
+            continue
+        predicate = [item[0] for item in items[i + 2:parens[i + 1]]]
+        if not inputs.intersection(predicate):
+            return []
+        comparison = any(pair <= parameters.intersection(predicate)
+                         for pair in ({'actual', 'expected'}, {'got', 'want'}))
+        callees = set()
+        if comparison:
+            for index, word in enumerate(predicate):
+                if word == '(':
+                    previous = index - 1
+                    while previous >= 0 and re.fullmatch(r'[\w$]+', predicate[previous]):
+                        callees.add(predicate[previous])
+                        previous = previous - 2 if previous and predicate[previous - 1] == '.' else -1
+        guarded = any(term.strip('()') in inputs or term.strip('()').removeprefix('!') in inputs
+                      for term in ''.join(predicate).split('&&'))
+        if any(re.fullmatch(r'[\w$]+', word) and word not in allowed or
+               word.startswith(('"', "'", '`')) and word not in ('""', "''") for word in predicate):
+            if not guarded and not (comparison and all(not re.fullmatch(r'[\w$]+', word) or
+                                                       word in allowed | callees or word.isdigit() for word in predicate)):
+                return []
+        conditions.append(i)
+    # Only argument-controlled branches implement the primitive; other failure sites remain visible.
+    spans = [(i - 1, statement_end(items, i, blocks, parens, text) + 1) for i in conditions]
+    ternary = any(items[i][0] == '?' and items[i - 1][0] in inputs and items[i - 2][0] != '.'
+                  for i in range(body + 2, end))
+    if conditions or ternary:
+        for i in range(body + 1, end - 1):
+            if items[i][0] not in ('fail', 'push', 'log', 'finish', 'quit', 'report', 'stop') or items[i + 1][0] != '(':
+                continue
+            call_end = parens[i + 1]
+            if parameters.intersection(item[0] for item in items[i + 2:call_end]):
+                spans.append((i - 1, call_end + 1))
+    return spans
+
+
+# Sample input: if (!ready) throw new Error("not ready"); Qt.exit(1);
+def failure_sinks(items, parens):
+    """Collect potential failure receipts without suppressing helper implementations."""
+    found = {}
+    for index, item in enumerate(items):
+        word, forms = item[0], set()
+        previous = items[index - 1][0] if index else ''
+        following = items[index + 1][0] if index + 1 < len(items) else ''
+        if word == 'throw' and previous not in ('.', 'function') and following != ':':
+            end = parens.get(index + 1)
+            if end is None or end + 1 == len(items) or items[end + 1][0] != '{':
+                found[index] = {'throw'}
+            continue
+        end = parens.get(index + 1)
+        if (following != '(' or end is None or previous == 'function' or
+                word in ('if', 'for', 'while', 'switch', 'catch', 'with', 'function') or
+                end + 1 < len(items) and items[end + 1][0] == '{'):
+            continue
+        arguments = items[index + 2:end]
+        if word == 'fail':
+            forms.add('fail')
+        elif word in ASSERTIONS | {'assert'}:
+            forms.add('assertion')
+        first = []
+        depth = 0
+        for token in arguments:
+            if token[0] == ',' and depth == 0:
+                break
+            first.append(token[0])
+            depth += (token[0] in ('(', '[', '{')) - (token[0] in (')', ']', '}'))
+        literal = ''.join(first).strip('()')
+        if word == 'finish' and literal == 'false':
+            forms.add('finish-false')
+        if any(token[0].startswith(('"', "'", '`')) and re.search(r'\bFAIL\b', token[0]) for token in arguments):
+            forms.add('FAIL-output')
+        if word == 'error' and index > 1 and items[index - 2][0] == 'console':
+            forms.add('FAIL-output')
+        if word in ('exit', 'quit') and index > 1 and items[index - 2][0] == 'Qt':
+            zero = not literal or literal in ('false', 'null')
+            try:
+                zero = zero or float(literal) == 0
+            except ValueError:
+                try:
+                    zero = zero or int(literal, 0) == 0
+                except ValueError:
+                    pass
+            if not zero:
+                forms.add('nonzero-exit')
+        if word == 'push' and index > 1 and items[index - 2][0] in ('failures', 'fails', 'errors', 'bad'):
+            forms.add('failure-collection')
+        if forms:
+            found[index] = forms
+    return found
+
+
+# Sample input: function see(label) { check(label, ready, true); } see("ready");
+def assertion_wrappers(items, blocks, parens, text, sinks=None):
+    """Follow local function calls, including deferred callbacks, to assertion sinks."""
+    definitions, declarations = [], set()
+    reverse_parens = {end: start for start, end in parens.items()}
+    brackets = pairs(items, '[', ']')
+    groups = {**blocks, **parens, **brackets}
+    continuation = frozenset(('.', '?', ':', '+', '-', '*', '/', '%', '&', '|', '^', '=', '!', '<', '>'))
+    for index, item in enumerate(items[:-2]):
+        names, body = [], None
+        if item[0] == 'function':
+            args = index + 1
+            if items[args][0] != '(':
+                names.append(items[args][0])
+                declarations.add(args)
+                args += 1
+            if index > 1 and items[index - 1][0] in ('=', ':'):
+                names.append(items[index - 2][0])
+            body = parens.get(args, -2) + 1
+        elif item[0] == '=' and items[index + 1][0] == '>':
+            args = reverse_parens.get(index - 1, index - 1)
+            if args > 1 and items[args - 1][0] in ('=', ':'):
+                names.append(items[args - 2][0])
+                body = index + 2
+        elif (re.fullmatch(r'[\w$]+', item[0]) and item[0] not in ('if', 'for', 'while', 'switch', 'catch', 'with') and
+              index and items[index - 1][0] in ('{', ',', ';', '}') and items[index + 1][0] == '('):
+            body = parens.get(index + 1, -2) + 1
+            if body in blocks:
+                names.append(item[0])
+                declarations.add(index)
+        if not names or body is None or body >= len(items):
+            continue
+        if body in blocks:
+            start, end = body, blocks[body]
+        elif item[0] == '=':
+            start, end = body - 1, body
+            while end < len(items) and items[end][0] not in (',', ';', ')', ']', '}'):
+                end = groups.get(end, end) + 1
+                if (end < len(items) and '\n' in text[items[end - 1].end():items[end].start()] and
+                        items[end - 1][0] not in continuation and items[end][0] not in continuation):
+                    break
+        else:
+            continue
+        definitions.extend((name, start, end) for name in names if re.fullmatch(r'[\w$]+', name))
+    sinks = failure_sinks(items, parens) if sinks is None else sinks
+    graph, reaches = collections.defaultdict(set), set()
+    for index, item in enumerate(items[:-1]):
+        call = items[index + 1][0] == '(' and index not in declarations
+        if not call and (sinks is False or index not in sinks):
+            continue
+        owners = [(name, start, end) for name, start, end in definitions if start < index < end]
+        if not owners:
+            continue
+        inner = min(end - start for _, start, end in owners)
+        owners = [name for name, start, end in owners if end - start == inner]
+        end = parens.get(index + 1, index + 1)
+        collected = item[0] == 'push' and index > 1 and items[index - 2][0] in ('failures', 'fails', 'errors', 'bad')
+        completion = item[0] in ('quit', 'exit') and index > 1 and items[index - 2][0] == 'Qt'
+        logged = item[0] in ('log', 'finish', 'quit', 'report', 'stop') and any(
+            token[0].startswith(('"', "'", '`')) and re.search(r'\bFAIL\b', token[0])
+            for token in items[index + 2:end])
+        for owner in owners:
+            if call:
+                graph[owner].add(item[0])
+            if ((item[0] in ASSERTIONS or collected or completion or logged) if sinks is False else index in sinks):
+                reaches.add(owner)
+    while added := {name for name, calls in graph.items() if name not in reaches and calls & reaches}:
+        reaches.update(added)
+    return reaches
+
+
+# Sample input: function run() { check("same label", value === 1); check("same label", value === 2); }
+def case_identities(items, sites, blocks, parens):
+    declarations = []
+    for index, item in enumerate(items[:-3]):
+        if item[0] != 'function':
+            continue
+        args = index + 1 if items[index + 1][0] == '(' else index + 2
+        end = parens.get(args)
+        if end is not None and end + 1 in blocks:
+            start = index - 2 if index > 1 and items[index - 1][0] in ('=', ':') else index
+            declarations.append((end + 1, blocks[end + 1], [word[0] for word in items[start:end + 1]]))
+    groups, spans = collections.defaultdict(list), {}
+    for index, end in sites:
+        start = index
+        while start > 1 and items[start - 1][0] == '.':
+            start -= 2
+        context = [header for opening, closing, header in declarations if opening < index < closing]
+        expression = [word[0] for word in items[start:end + 1]]
+        signature = json.dumps([context, expression], ensure_ascii=False, separators=(',', ':'))
+        groups[signature].append(index)
+        stop = end + 1 if end + 1 < len(items) and items[end + 1][0] == ';' else end
+        spans[index] = (start, end, stop)
+    hidden = set()
+    for start, end, stop in spans.values():
+        hidden.update(range(start, stop + 1))
+    identities = {}
+    for signature, indices in groups.items():
+        peers = set()
+        if len(indices) > 1:
+            for index in indices:
+                start, end, stop = spans[index]
+                peers.update(range(start, stop + 1))
+        for index in indices:
+            content = signature
+            if peers:
+                # Repeated expressions bind to peer content, so adding an identical peer invalidates prior proof.
+                start, end, stop = spans[index]
+                before = [word[0] for position, word in enumerate(items[:start])
+                          if position not in hidden or position in peers]
+                after = [word[0] for position, word in enumerate(items[stop + 1:], stop + 1)
+                         if position not in hidden or position in peers]
+                content = json.dumps([signature, before, after], ensure_ascii=False, separators=(',', ':'))
+            identities[index] = hashlib.sha256(content.encode()).hexdigest()[:IDENTITY_HEX_LENGTH]
+    return identities
+
+
+class Inventory:
+    def __init__(self, tree, rules):
+        self.tree, self.rows = tree, []
+        self.rules = []
+        # Sample input: kind\tpath-glob\tname-pattern\tfamily\towner
+        for rule in csv.DictReader((s for s in read(rules).splitlines()
+                                    if s.strip() and not s.startswith('#')), delimiter='\t'):
+            self.rules.append((rule, re.compile(rule['name-pattern'], re.I)))
+
+    def source(self, path):
+        return os.path.relpath(path, self.tree)
+
+    def add(self, kind, identity, path, line=1, name='', **extra):
+        row = dict.fromkeys(FIELDS, '')
+        row.update(kind=kind, id=identity, source=f'{self.source(path)}:{line}',
+                   family='unassigned', owner='unassigned', status='open')
+        row.update(extra)
+        logical_path = f'boards/{path.name}' if kind == 'board' else self.source(path)
+        for rule, pattern in self.rules:
+            if (fnmatchcase(kind, rule['kind']) and
+                    fnmatchcase(logical_path, rule['path-glob']) and pattern.search(name)):
+                row.update(family=rule['family'], owner=rule['owner'])
+                break
+        self.rows.append(row)
+
+    def code(self):
+        for path in sorted((self.tree / 'ui').rglob('*')):
+            if path.suffix not in ('.qml', '.js', '.mjs', '.cjs') or not path.is_file():
+                continue
+            text = read(path)
+            kind = 'qml' if path.suffix == '.qml' else 'js'
+            self.add(kind, f'{kind}:{self.source(path)}', path, name=path.stem,
+                     lines=len(text.splitlines()))
+            if kind == 'qml' and 'IpcHandler' in text:
+                self.ipc(path, text)
+
+    # Sample input: IpcHandler { target: "flea"; function ready(): string { return "yes" } }
+    def ipc(self, path, text):
+        items = tokens(text)
+        blocks = pairs(items)
+        for start in range(len(items) - 1):
+            if items[start][0] != 'IpcHandler' or items[start + 1][0] != '{':
+                continue
+            end = blocks.get(start + 1)
+            if end is None:
+                raise ValueError(f'unclosed IpcHandler in {path}')
+            index, target, functions = start + 2, '', []
+            while index < end:
+                if items[index][0] == 'target' and items[index + 1][0] == ':':
+                    target = items[index + 2][0].strip('"\'')
+                if items[index][0] == 'function':
+                    functions.append((items[index + 1][0], items[index].start()))
+                if index in blocks:
+                    index = blocks[index]
+                index += 1
+            if target in ('flea', 'fleapicker'):
+                for name, offset in functions:
+                    self.add('ipc', f'ipc:{target}.{name}', path, line_at(text, offset),
+                             name=f'{target}.{name}', details=f'target={target}; function={name}')
+
+    # Sample input: '[[preset]]\nname = "vim"\nkey = "j"\naction = "cursorDown"\n'.
+    def keys(self):
+        path = self.tree / 'keys.toml'
+        text = read(path)
+        document = tomllib.loads(text)
+        positions = collections.defaultdict(list)
+        for match in re.finditer(r'^\[\[([\w.-]+)\]\]', text, re.M):
+            positions[match[1]].append(line_at(text, match.start()))
+        for section, entries in document.items():
+            if not isinstance(entries, list):
+                continue
+            for index, entry in enumerate(entries):
+                action = entry.get('action', entry.get('does', ''))
+                key = entry.get('key', entry.get('char', entry.get('press', entry.get('keys', ''))))
+                if not key or ('action' not in entry and 'does' not in entry):
+                    continue
+                preset = entry.get('name', 'shared')
+                context = entry.get('context', entry.get('where', 'listing'))
+                mods = entry.get('mods', section if section in ('ctrl', 'ctrlshift', 'shift') else '')
+                chord = f'{mods}+{key}' if mods else key
+                # A prefixed row (yazi's "m b") is its own binding, so its prefix leads the chord.
+                if entry.get('prefix'):
+                    chord = f'{entry["prefix"]} {chord}'
+                signature = '|'.join((section, preset, context, chord, action, entry.get('row', '')))
+                self.add('binding', f'binding:{signature}', path, positions[section][index],
+                         name=action, action=action, key=chord, context=context, preset=preset,
+                         details=f'table={section}; row={entry.get("row", "")}')
+        if 'digits' in document:
+            digits = document['digits']
+            match = re.search(r'^\[digits\]', text, re.M)
+            for number in range(digits['from'], digits['to'] + 1):
+                action = f'{digits["prefix"]}{number}'
+                self.add('binding', f'binding:digits|{number}|{action}', path,
+                         line_at(text, match.start()), name=action, action=action,
+                         key=str(number), context='listing', preset='shared', details='table=digits')
+
+    # Sample input: pub const DEFAULTS: &str = r#"{"preview":{"column":true},"columns":["name"]}"#;
+    def schema(self):
+        path = self.tree / 'src/uischema.rs'
+        text = read(path)
+        match = re.search(r'\bDEFAULTS\s*:\s*&str\s*=\s*r(#*)"([\s\S]*?)"\1\s*;', text)
+        if not match:
+            raise ValueError(f'no DEFAULTS JSON string in {path}')
+        document = json.loads(match[2])
+
+        def reject_object_arrays(value, key=''):
+            if isinstance(value, dict):
+                for name, child in value.items():
+                    reject_object_arrays(child, f'{key}.{name}' if key else name)
+            elif isinstance(value, list):
+                for child in value:
+                    if isinstance(child, dict):
+                        raise ValueError(f'DEFAULTS array of objects is unsupported at key {key or "<root>"} in {path}')
+                    reject_object_arrays(child, key)
+
+        reject_object_arrays(document)
+        items, stack, pending = tokens(match[2]), [], None
+        for index, item in enumerate(items):
+            word = item[0]
+            if word.startswith('"') and index + 1 < len(items) and items[index + 1][0] == ':':
+                pending = json.loads(word)
+                name = '.'.join([key for key in stack if key] + [pending])
+                self.add('schema', f'schema:{name}', path,
+                         line_at(text, match.start(2) + item.start()), name=name, details=name)
+            elif word == '{':
+                stack.append(pending)
+                pending = None
+            elif word == '}':
+                stack.pop()
+
+    def cases(self):
+        paths = sorted((self.tree / 'tests').glob('*.qml'))
+        paths += sorted((self.tree / 'tests').glob('*.js'))
+        paths += sorted((self.tree / 'tests/js').glob('*.js'))
+        self.case_wrappers = {}
+        for path in paths:
+            text = read(path)
+            items = tokens(text)
+            braces, parens = pairs(items), pairs(items, '(', ')')
+            sinks = failure_sinks(items, parens)
+            wrappers = assertion_wrappers(items, braces, parens, text, sinks)
+            old_wrappers = assertion_wrappers(items, braces, parens, text, False)
+            self.case_wrappers[self.source(path)] = sorted(wrappers)
+            excluded_spans, first_row = [], len(self.rows)
+            kind = 'qml-test' if path.suffix == '.qml' else 'js-test'
+            assertions = ASSERTIONS if kind == 'qml-test' else frozenset(('check',))
+            # Previous exclusions reserve existing IDs; they never filter the sink catalog below.
+            for index, item in enumerate(items[:-2]):
+                if item[0] == 'function':
+                    name = items[index + 1][0]
+                    named = name.startswith('test_') and not name.endswith('_data')
+                    if not named and name not in assertions:
+                        continue
+                    body = parens.get(index + 2, index + 2) + 1
+                    if body in braces:
+                        if named:
+                            excluded_spans.append((body, braces[body]))
+                        else:
+                            excluded_spans.extend(primitive_spans(items, index, body, braces, parens, text, assertions))
+                    if named:
+                        self.add(kind, f'{kind}:{self.source(path)}:{name}', path,
+                                 line_at(text, item.start()), name=path.stem, details=name)
+            legacy, discovered = [], []
+            for index, item in enumerate(items[:-1]):
+                if items[index + 1][0] != '(':
+                    continue
+                if index and items[index - 1][0] == 'function':
+                    continue
+                if any(start < index < end for start, end in excluded_spans):
+                    continue
+                collected = (kind == 'qml-test' and item[0] == 'push' and index > 1 and
+                             items[index - 2][0] in ('failures', 'fails', 'errors', 'bad'))
+                failure_output = path.suffix == '.qml' and item[0] in ('log', 'finish', 'quit', 'report', 'stop')
+                if item[0] not in assertions and not collected and not failure_output and item[0] not in old_wrappers:
+                    continue
+                end = parens.get(index + 1)
+                if end is None:
+                    raise ValueError(f'unclosed {item[0]}() in {path}:{line_at(text, item.start())}')
+                arguments = items[index + 2:end]
+                original = (item[0] in assertions or collected or failure_output and
+                            any(m[0].startswith(('"', "'", '`')) and re.search(r'\bFAIL\b', m[0]) for m in arguments))
+                if original:
+                    legacy.append((index, end))
+                elif item[0] in old_wrappers and (end + 1 == len(items) or items[end + 1][0] != '{'):
+                    discovered.append((index, end))
+            reserved = {index for index, _ in legacy + discovered}
+            additional = []
+            for index, item in enumerate(items):
+                end = parens.get(index + 1)
+                wrapped = (item[0] in wrappers and end is not None and
+                           (not index or items[index - 1][0] != 'function') and
+                           (end + 1 == len(items) or items[end + 1][0] != '{'))
+                if wrapped:
+                    sinks.setdefault(index, set()).add('wrapper')
+                if index not in sinks or index in reserved:
+                    continue
+                if 'throw' in sinks[index]:
+                    end = statement_end(items, index, braces, parens, text)
+                additional.append((index, end))
+            sites = legacy + discovered + additional
+            identities = case_identities(items, sites, braces, parens)
+            if len(set(identities.values())) != len(identities):
+                raise ValueError(f'indistinguishable case identities in {self.source(path)}')
+            for index, end in sites:
+                item, arguments = items[index], items[index + 2:end]
+                if 'throw' in sinks.get(index, ()):
+                    arguments = items[index + 1:end + 1]
+                depth, labels = 0, []
+                for argument, token in enumerate(arguments):
+                    if depth == 0 and (argument == 0 or arguments[argument - 1][0] == ','):
+                        if token[0].startswith(('"', "'", '`')):
+                            labels.append(token[0][1:-1])
+                    if token[0] in ('(', '{', '['):
+                        depth += 1
+                    elif token[0] in (')', '}', ']'):
+                        depth -= 1
+                label = labels[0] if labels else ''
+                expression = text[item.end():items[end].end()] if item[0] == 'throw' else text[items[index + 1].end():items[end].start()]
+                label = ' '.join((label or expression).split())
+                identity = f'{kind}:{self.source(path)}:case-{identities[index]}'
+                column = item.start() - text.rfind('\n', 0, item.start())
+                self.add(kind, identity, path, line_at(text, item.start()), name=path.stem, details=label,
+                         column=column, sink=','.join(sorted(sinks.get(index, ()))))
+            if kind == 'qml-test' and len(self.rows) == first_row and any(
+                    item[0] == 'TestCase' or re.search(r'''^["'`]FAIL\b''', item[0]) for item in items):
+                raise ValueError(f'unrecognized test harness has no cases: {self.source(path)}')
+
+    # Sample inputs: 'headless="backend preview"' (runner); 'east s1 suites backend preview' (layout).
+    def suites(self, layout):
+        runner = self.tree / 'tests/run-all.sh'
+        names, lanes = set(), collections.defaultdict(list)
+        for line in read(runner).splitlines():
+            match = re.match(r'^headless="([^"]*)"', line)
+            if match:
+                names.update(word for word in match[1].split() if not word.startswith('$'))
+        for number, line in enumerate(read(layout).splitlines(), 1):
+            parts = shlex.split(line, comments=True)
+            if len(parts) > 3 and parts[2] == 'suites':
+                for name in parts[3:]:
+                    names.add(name)
+                    lanes[name].append(f'{self.source(layout)}:{number} ({parts[0]}/{parts[1]})')
+        # Include scripts outside the headless battery, so migration cannot silently lose them.
+        names.update(path.stem for path in (self.tree / 'tests').glob('*.sh') if path != runner)
+        for name in sorted(names):
+            path = self.tree / 'tests' / f'{name}.sh'
+            if not path.is_file():
+                raise ValueError(f'suite {name} has no script at {path}; check --layout')
+            evidence = self.qml_evidence(path, set())
+            details = '; '.join(lanes[name]) or 'not in layout'
+            if evidence:
+                details += f'; qml={evidence}'
+            self.add('suite', f'suite:{name}', path, name=name, **{'qml-bound': 'yes' if evidence else 'no'},
+                     details=details)
+
+    # Sample input: exec bash "$(dirname "$0")/live.sh", whose body runs qmltestrunner -input tests/preview.qml.
+    def qml_evidence(self, path, visiting):
+        if path in visiting:
+            return ''
+        visiting.add(path)
+        text = read(path)
+        lines, dependencies = [], []
+        variables = {'PWD': str(self.tree)}
+
+        def expand(value):
+            return re.sub(r'\$(?:\{(\w+)\}|(\w+))',
+                          lambda match: variables.get(match[1] or match[2], '*'), value)
+
+        for number, line in enumerate(text.splitlines(), 1):
+            if not line.lstrip().startswith('#'):
+                # Quoted shell commands and Python subprocess arguments also name runtimes.
+                line = re.sub(r'\s+#.*$', '', line)
+                try:
+                    lexer = shlex.shlex(line, posix=True, punctuation_chars='();|&<>')
+                    lexer.whitespace_split = True
+                    words = list(lexer)
+                except ValueError:
+                    words = []
+                for i, word in enumerate(words):
+                    assignment = re.fullmatch(r'([A-Za-z_]\w*)=(.*)', word)
+                    if assignment:
+                        variables[assignment[1]] = expand(assignment[2])
+                    source = (word in ('.', 'source') and i + 1 < len(words) and
+                              (i == 0 or words[i - 1] in ('(', ';', '&&', '||', 'if', 'then', 'do', 'builtin')))
+                    if source or word.endswith('.sh'):
+                        operand = expand(words[i + 1] if source else word)
+                        if '$(' not in operand and '`' not in operand and Path(operand).name != '*':
+                            bases = (Path('/'),) if Path(operand).is_absolute() else (self.tree, path.parent)
+                            for base in bases:
+                                dependencies.extend(Path(name) for name in glob.iglob(str(base / operand)))
+                commands = [words]
+                for i, word in enumerate(words[:-1]):
+                    if word == '-c' and any(Path(w).name in ('bash', 'sh', 'zsh') for w in words[:i]):
+                        try:
+                            commands.append(shlex.split(words[i + 1]))
+                        except ValueError:
+                            pass
+                runtime = any(Path(word).name in ('qml6', 'qmltestrunner', 'qs') for command in commands for word in command)
+                if path.suffix == '.py':
+                    runtime |= bool(re.search(r'''['"](?:qml6|qmltestrunner|qs)['"]''', line))
+                if runtime:
+                    if not re.match(r'^\s*(?:echo|printf|print\()', line):
+                        return f'{self.source(path)}:{number}'
+                if re.search(r'\bui/[\w./-]+\.js\b|[\w${}*?./-]*\.qml\b', line):
+                    if not re.match(r'^\s*(?:echo|printf|print\()', line):
+                        return f'{self.source(path)}:{number}'
+                lines.append(line)
+        code = '\n'.join(lines)
+        for match in re.finditer(r'''\$\(\s*dirname\s+["']?(?:\$0|\$\{BASH_SOURCE\[0\]\})["']?\s*\)/([\w./-]+)''', code):
+            dependencies.append(path.parent / match[1])
+        dependencies.extend(self.tree / match[0] for match in re.finditer(r'\b(?:tests|tools)/[\w./-]+', code))
+        for child in dependencies:
+            child = child.resolve()
+            if (child.is_relative_to(self.tree) and child.is_file() and
+                    child.suffix in ('', '.sh', '.py', '.js', '.mjs', '.cjs')):
+                evidence = self.qml_evidence(child, visiting)
+                if evidence:
+                    return evidence
+        return ''
+
+    # Sample input: '## Previews\n### ql-text: Text preview\n- The footer follows shared spacing.\n'.
+    def boards(self, design):
+        changes = design / 'CHANGES.md'
+        sections, name, family = {}, '', ''
+        for number, line in enumerate(read(changes).splitlines(), 1):
+            if line.startswith('## '):
+                family = line[3:]
+            elif line.startswith('### '):
+                name = line[4:].split(':', 1)[0]
+                sections[name] = [(number, f'family={family}')]
+            elif name and line.startswith('- '):
+                sections[name].append((number, line[2:]))
+        for path in sorted((design / 'boards').glob('*.png')):
+            if path.stem not in sections:
+                raise ValueError(f'board {path.name} has no CHANGES.md section')
+            details = '; '.join(f'{self.source(changes)}:{n}: {s}' for n, s in sections[path.stem])
+            self.add('board', f'board:{path.stem}', path, name=path.stem, details=details)
+
+    # Sample input: '## 0.4.0\n| TUI parity | source | open |\n- Another scope item\n'.
+    def scope(self, pending):
+        active, section = False, ''
+        for number, line in enumerate(read(pending).splitlines(), 1):
+            heading = re.match(r'^(#{2,3}) (.+)$', line)
+            if heading:
+                section = heading[2]
+                active = any(section == title or section.startswith(title + ' (') for title in SCOPE)
+            if not active:
+                continue
+            match = re.match(r'^\|\s*(.*?)\s*\|', line)
+            bullet = re.match(r'^[-*] (.+)$', line)
+            if not match and not bullet:
+                continue
+            title = (match or bullet)[1]
+            if title.lower() in ('item', 'task', 'row') or re.fullmatch(r'[: -]+', title):
+                continue
+            digest = hashlib.sha256(f'{section}|{line.strip()}'.encode()).hexdigest()[:IDENTITY_HEX_LENGTH]
+            self.add('scope', f'scope:{digest}', pending, number, name=title,
+                     details=f'{section}: {line}')
+
+
+# Sample inputs: id\tsource for the prior matrix; id\treason for explicitly removed rows (TSV headers).
+def preserve(rows, before, removed):
+    reader = csv.DictReader(read(before).splitlines(), delimiter='\t')
+    if not reader.fieldnames or 'id' not in reader.fieldnames:
+        raise ValueError('previous inventory needs an id column')
+    previous = list(reader)
+    old_ids = [row['id'] for row in previous]
+    if any(not identity for identity in old_ids) or len(old_ids) != len(set(old_ids)):
+        raise ValueError('previous inventory contains empty or duplicate IDs')
+    missing = set(old_ids) - {row['id'] for row in rows}
+    reasons = {}
+    if removed:
+        reader = csv.DictReader(read(removed).splitlines(), delimiter='\t')
+        if not reader.fieldnames or not {'id', 'reason'} <= set(reader.fieldnames):
+            raise ValueError('removal reasons need id and reason columns')
+        for row in reader:
+            if not row['id'] or not (row['reason'] or '').strip() or row['id'] in reasons:
+                raise ValueError('removed inventory rows need unique IDs and non-empty reasons')
+            reasons[row['id']] = row['reason']
+    if missing - reasons.keys():
+        raise ValueError(f'{len(missing - reasons.keys())} previous rows disappeared without reasons: '
+                         f'{sorted(missing - reasons.keys())[:5]}')
+    if reasons.keys() - missing:
+        raise ValueError(f'removal reasons name rows that did not disappear: {sorted(reasons.keys() - missing)[:5]}')
+
+
+def render(rows, markdown):
+    output = io.StringIO()
+    if markdown:
+        output.write('| ' + ' | '.join(FIELDS) + ' |\n')
+        output.write('| ' + ' | '.join('---' for _ in FIELDS) + ' |\n')
+        for row in rows:
+            cells = [str(row[key]).replace('\\', '\\\\').replace('|', '\\|').replace('\n', '<br>') for key in FIELDS]
+            output.write('| ' + ' | '.join(cells) + ' |\n')
+    else:
+        writer = csv.DictWriter(output, FIELDS, delimiter='\t', lineterminator='\n')
+        writer.writeheader()
+        writer.writerows(rows)
+    return output.getvalue()
+
+
+def summarize(rows):
+    output = ['dimension\tvalue\tcount']
+    for field in ('kind', 'family', 'status'):
+        output.extend(f'{field}\t{value}\t{count}' for value, count in
+                      sorted(collections.Counter(row[field] for row in rows).items()))
+    green = sum(row['status'] == 'green' for row in rows)
+    unassigned = sum(row['family'] == 'unassigned' for row in rows)
+    output.extend((f'total\trows\t{len(rows)}', f'green\tpercent\t{100 * green / len(rows) if rows else 0:.2f}',
+                   f'unassigned\trows\t{unassigned}',
+                   f'unassigned\tpercent\t{100 * unassigned / len(rows) if rows else 0:.2f}'))
+    return '\n'.join(output) + '\n'
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--tree', type=Path, help='input tree (default: git toplevel)')
+    parser.add_argument('--pending', type=Path, help='external scope ledger; omitted means no scope rows')
+    parser.add_argument('--design', type=Path, default=os.environ.get('FLEA_PARITY_DESIGN') or None,
+                        help='board root, containing CHANGES.md and boards/ (default: $FLEA_PARITY_DESIGN)')
+    parser.add_argument('--layout', type=Path, default=os.environ.get('FLEA_PARITY_LAYOUT') or None,
+                        help='flea-ci layout, used read-only (default: $FLEA_PARITY_LAYOUT)')
+    parser.add_argument('--map', type=Path, default=Path(__file__).with_suffix('.map'))
+    parser.add_argument('--status', type=Path,
+                        help='id/status/evidence TSV; green requires an existing file, relative to --tree')
+    parser.add_argument('--before', type=Path, help='previous matrix; reject disappearing IDs without reasons')
+    parser.add_argument('--removed', type=Path, help='id/reason TSV for removals from --before')
+    parser.add_argument('--out', type=Path, help='matrix destination; summary stays on stdout')
+    parser.add_argument('--md', action='store_true', help='render the matrix as Markdown')
+    parser.add_argument('--summary', action='store_true', help='print counts and green percentage')
+    parser.add_argument('--suite-cases', action='store_true',
+                        help='project only test cases and suites, without external design or scope inputs')
+    args = parser.parse_args()
+    try:
+        if not args.suite_cases and args.design is None:
+            raise ValueError('--design is required (or FLEA_PARITY_DESIGN)')
+        if args.layout is None:
+            raise ValueError('--layout is required (or FLEA_PARITY_LAYOUT)')
+        tree = args.tree or Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
+        inventory = Inventory(tree.resolve(), args.map)
+        if not args.suite_cases:
+            inventory.code()
+            inventory.keys()
+            inventory.schema()
+        inventory.cases()
+        inventory.suites(args.layout.resolve())
+        if not args.suite_cases:
+            inventory.boards(args.design.resolve())
+        if args.pending and not args.suite_cases:
+            inventory.scope(args.pending.resolve())
+        rows = sorted(inventory.rows, key=lambda row: (row['kind'], row['id']))
+        by_id = {row['id']: row for row in rows}
+        if len(by_id) != len(rows):
+            duplicates = [key for key, count in collections.Counter(row['id'] for row in rows).items() if count > 1]
+            raise ValueError(f'duplicate row IDs: {duplicates[:5]}')
+        if args.removed and not args.before:
+            raise ValueError('--removed requires --before')
+        if args.before:
+            preserve(rows, args.before, args.removed)
+        if args.status:
+            seen = set()
+            # Sample input: 'id\tstatus\tevidence\nipc:flea.ready\tgreen\tproof.log\n' (TSV).
+            for fields in csv.reader(read(args.status).splitlines(), delimiter='\t'):
+                if not fields or fields in (['id', 'status'], ['id', 'status', 'evidence']) or fields[0].startswith('#'):
+                    continue
+                if len(fields) not in (2, 3) or not fields[1].strip() or fields[0] in seen or fields[0] not in by_id:
+                    raise ValueError(f'invalid, duplicate or unknown status row: {fields}')
+                if fields[1] not in ('open', 'green', 'ruled out'):
+                    raise ValueError(f'unknown status for {fields[0]}: {fields[1]!r}')
+                evidence = fields[2].strip() if len(fields) == 3 else ''
+                evidence_path = (inventory.tree / evidence).resolve() if evidence else None
+                if evidence_path and not evidence_path.is_relative_to(inventory.tree):
+                    raise ValueError(f'evidence path escapes --tree for {fields[0]}: {evidence}')
+                if fields[1] == 'green' and (not evidence_path or not evidence_path.is_file()):
+                    raise ValueError(f'green row requires an existing evidence file: {fields[0]}')
+                seen.add(fields[0])
+                by_id[fields[0]]['status'] = fields[1]
+                if evidence_path:
+                    by_id[fields[0]]['evidence'] = inventory.source(evidence_path)
+        if args.out:
+            args.out.write_text(render(rows, args.md), encoding='utf-8')
+        if args.summary:
+            sys.stdout.write(summarize(rows))
+        elif not args.out:
+            sys.stdout.write(render(rows, args.md))
+    except (OSError, ValueError, KeyError, csv.Error, re.error, subprocess.CalledProcessError) as error:
+        parser.exit(2, f'flea-parity: {error}\n')
+
+
+if __name__ == '__main__':
+    main()

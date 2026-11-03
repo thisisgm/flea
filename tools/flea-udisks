@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# The privileged half of the image flasher: one process per flash, one descriptor over its socket; FLEA_UDISKS overrides its path as the test seam.
+# UDisks volume actions and the image flasher's descriptor handoff; FLEA_UDISKS overrides its path as the test seam.
 
 import importlib.machinery
 import importlib.util
@@ -20,6 +20,8 @@ BLOCK_IFACE = "org.freedesktop.UDisks2.Block"
 DRIVE_IFACE = "org.freedesktop.UDisks2.Drive"
 FILESYSTEM_IFACE = "org.freedesktop.UDisks2.Filesystem"
 ENCRYPTED_IFACE = "org.freedesktop.UDisks2.Encrypted"
+PARTITION_IFACE = "org.freedesktop.UDisks2.Partition"
+TABLE_IFACE = "org.freedesktop.UDisks2.PartitionTable"
 
 # The one-byte answers Flea reads off the socket: ok carries a descriptor, the rest carry none.
 STATUS_OK = b"O"
@@ -103,10 +105,21 @@ def block_info(obj):
         return None
     crypt = obj.get_interface(ENCRYPTED_IFACE)
     fs = obj.get_interface(FILESYSTEM_IFACE)
+    partition = obj.get_interface(PARTITION_IFACE)
     return {"Device": bytestring(cached(proxy, "Device")),
             "Size": cached(proxy, "Size") or 0,
             "Drive": cached(proxy, "Drive") or "/",
             "HintSystem": cached(proxy, "HintSystem"),
+            "HintIgnore": cached(proxy, "HintIgnore"),
+            "IdUsage": cached(proxy, "IdUsage") or "",
+            "IdType": cached(proxy, "IdType") or "",
+            "IdLabel": cached(proxy, "IdLabel") or "",
+            "HintName": cached(proxy, "HintName") or "",
+            "ReadOnly": cached(proxy, "ReadOnly") is True,
+            "Filesystem": fs is not None,
+            "PartitionType": cached(partition, "Type") or "",
+            "PartitionNumber": cached(partition, "Number") or 0,
+            "PartitionTable": obj.get_interface(TABLE_IFACE) is not None,
             "Encrypted": crypt is not None,
             "Backing": cached(proxy, "CryptoBackingDevice") or "/",
             "Cleartext": (cached(crypt, "CleartextDevice") or "/") if crypt is not None else "/",
@@ -120,6 +133,9 @@ def drive_info(proxy):
             "Removable": cached(proxy, "Removable"),
             "MediaRemovable": cached(proxy, "MediaRemovable"),
             "ConnectionBus": cached(proxy, "ConnectionBus"),
+            "Model": cached(proxy, "Model"),
+            "CanPowerOff": cached(proxy, "CanPowerOff"),
+            "Ejectable": cached(proxy, "Ejectable"),
             "Serial": cached(proxy, "Serial")}
 
 
@@ -130,6 +146,13 @@ def blocks():
         info = block_info(obj)
         if info is not None:
             out.append((obj.get_object_path(), info))
+    by_path = dict(out)
+    for _, block in out:
+        current, seen = block, set()
+        while current["Drive"] == "/" and current["Backing"] in by_path and current["Backing"] not in seen:
+            seen.add(current["Backing"])
+            current = by_path[current["Backing"]]
+        block["VolumeDrive"] = current["Drive"]
     return out
 
 
@@ -339,11 +362,11 @@ def cmd_open(dev, serial, size, root):
     except GLib.Error:
         fail_sock(sock, STATUS_ERROR, "udisks answered nothing")
         return 1
-    # call_with_unix_fd_list_sync answers (result, out_fd_list); the (h) handle indexes the list.
+    # The proxy call takes no reply type (that is Gio.DBusConnection's) and answers (result, out_fd_list); the (h) handle indexes the list.
     try:
         result, out_list = proxy.call_with_unix_fd_list_sync(
             "OpenDevice", GLib.Variant("(sa{sv})", ("rw", {"flags": GLib.Variant("i", OPEN_FLAGS)})),  # udisks reads flags as "i"; any other type leaves flags 0
-            GLib.VariantType("(h)"), Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None, None)
+            Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None, None)
         fd = out_list.get(result.unpack()[0])
     except GLib.Error as error:
         name = error_name(error)
@@ -399,10 +422,200 @@ def cmd_eject(dev, root):
     return 0
 
 
+HIDDEN_GPT = {"c12a7328-f81f-11d2-ba4b-00a0c93ec93b", "21686148-6449-6e6f-744e-656564454649",
+              "e3c9e316-0b5c-4db8-817d-f92df00215ae", "de94bba4-06d1-4d40-a16a-bfd50179d6ac",
+              "bc13c2ff-59e6-4262-a352-b275fd6f7172", "426f6f74-0000-11aa-aa11-00306543ecac",
+              "a19d880f-05fc-4d3b-a006-743f0f84911e", "e6d6d379-f507-44c2-a23c-238f2a3df928"}
+HIDDEN_MBR = {0x0, 0x5, 0xf, 0x85, 0x11, 0x12, 0x14, 0x16, 0x17, 0x1b, 0x1c, 0x1e, 0x27, 0x3d,
+              0x84, 0x8d, 0x8e, 0x90, 0x91, 0x92, 0x93, 0x97, 0x98, 0x9a, 0x9b, 0xab, 0xbb, 0xc2, 0xc3, 0xdd, 0xef, 0xfd}
+# UDisks 80-udisks2.rules unhides the first two partitions of an iso9660 or udf isohybrid image, typed 0x0 or 0x17.
+ISOHYBRID_TYPES = {0x0, 0x17}
+ISOHYBRID_NUMBERS = {1, 2}
+ISOHYBRID_IDTYPES = {"iso9660", "udf"}
+RECOVERY_LABELS = {"Recovery", "RECOVERY", "Lenovo_Recovery", "HP_RECOVERY", "Recovery_Partition", "DellUtility",
+                   "DellRestore", "IBM_SERVICE", "SERVICEV001", "SERVICEV002", "SYSTEM_RESERVED", "System_Reserved",
+                   "WINRE_DRV", "DIAGS", "IntelRST"}
+SYSTEM_MOUNTS = {"/", "/bin", "/boot", "/etc", "/home", "/lib", "/lib64", "/libexec", "/media", "/mnt",
+                 "/opt", "/root", "/run", "/sbin", "/srv", "/tmp", "/usr", "/usr/local", "/var", "/var/log", "/var/tmp",
+                 "/compat/linux/proc", "/compat/linux/sys", "/live/cow", "/live/image", "/net", "/rescue", "/usr/X11R6",
+                 "/usr/obj", "/usr/ports", "/usr/src", "/usr/xobj", "/var/crash", "/var/local", "/var/log/audit", "/var/mail", "/var/run"}
+
+
+def system_mount(path):
+    path = os.path.normpath(path)
+    return path in SYSTEM_MOUNTS or any(path == root or path.startswith(root + "/") for root in ("/dev", "/proc", "/sys"))
+
+
+def visible_mounts(block):
+    return [point for point in block["MountPoints"] if point.startswith("/") and "/." not in os.path.normpath(point) and not system_mount(point)]
+
+
+def volume_visible(block):
+    if block["HintIgnore"] is True or block["HintSystem"] is True or block["PartitionTable"]:
+        return False
+    if not block["Filesystem"] or block["IdUsage"] != "filesystem" or not block["IdType"]:
+        return False
+    # Sample input: "0xef" or "EF" (MBR hex) and "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" (GPT UUID).
+    parttype = block["PartitionType"].lower()
+    if parttype in HIDDEN_GPT:
+        return False
+    try:
+        number = int(parttype, 16) if parttype else -1
+        installer = number in ISOHYBRID_TYPES and block["PartitionNumber"] in ISOHYBRID_NUMBERS and block["IdType"].lower() in ISOHYBRID_IDTYPES
+        if number in HIDDEN_MBR and not installer:
+            return False
+    except ValueError:
+        pass
+    if block["IdType"].lower() in ("ntfs", "ntfs3", "vfat") and block["IdLabel"].replace(" ", "_") in RECOVERY_LABELS:
+        return False
+    points = block["MountPoints"]
+    return not any(system_mount(point) for point in points) and (not points or bool(visible_mounts(block)))
+
+
+def volume_removable(drive):
+    return bool(drive and (drive.get("Removable") or drive.get("MediaRemovable") or drive.get("ConnectionBus") in REMOVABLE_BUSES))
+
+
+def volume_rows(listed, unmounted=False):
+    rows, drives = [], {}
+    for _, block in listed:
+        if not volume_visible(block):
+            continue
+        drive_path = block["VolumeDrive"]
+        if drive_path not in drives:
+            drives[drive_path] = drive_for(drive_path) if drive_path != "/" else None
+        drive = drives[drive_path] or {}
+        removable = volume_removable(drive)
+        mounted = bool(block["MountPoints"])
+        if not mounted and not (unmounted or removable):
+            continue
+        rows.append({"kind": "volume", "device": block["Device"], "path": visible_mounts(block)[0] if mounted else "",
+                     "glyph": "drive",
+                     "label": block["HintName"] or block["IdLabel"] or drive.get("Model") or os.path.basename(block["Device"]),
+                     "mounted": mounted, "removable": removable, "mediaRemovable": bool(drive.get("MediaRemovable")),
+                     "readOnly": block["ReadOnly"], "size": block["Size"], "fstype": block["IdType"],
+                     "release": ("eject" if removable else "unmount") if mounted else "", "releaseGlyph": "eject" if mounted else ""})
+    return rows
+
+
+def volume_call(path, iface, method):
+    proxy = iface_at(path, iface)
+    if proxy is None:
+        return None, "error"
+    try:
+        return proxy.call_sync(method, GLib.Variant("(a{sv})", ({},)),
+                               Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None), ""
+    except GLib.Error as error:
+        name = error_name(error)
+        if method == "Unmount" and name.endswith(".NotMounted"):
+            return None, ""
+        if method == "Mount" and name.endswith(".AlreadyMounted"):
+            return None, "alreadyMounted"
+        return None, "busy" if busy_name(name) else "denied" if denied_name(name) else "error"
+
+
+MAX_VOLUME_UNMOUNTS = 32
+
+
+def unmount_volume(path, device):
+    current = dict(blocks()).get(path)
+    for _ in range(MAX_VOLUME_UNMOUNTS):
+        if current is None:
+            return ""
+        if current["Device"] != device:
+            return "error"
+        before = current["MountPoints"]
+        if not before:
+            return ""
+        if any(system_mount(point) for point in before):
+            return "busy"
+        _, error = volume_call(path, FILESYSTEM_IFACE, "Unmount")
+        if error:
+            return error
+        current = dict(blocks()).get(path)
+        if current is None:
+            return ""
+        if current["Device"] != device:
+            return "error"
+        if len(current["MountPoints"]) >= len(before):
+            return "busy"
+        if not current["MountPoints"]:
+            return ""
+    return "busy"
+
+
+def cmd_mount_volume(listed, device):
+    chosen = next(((path, block) for path, block in listed if block["Device"] == device and volume_visible(block)), None)
+    if chosen is None:
+        return {"ok": False, "err": "notListed"}
+    path, block = chosen
+    if block["MountPoints"]:
+        return {"ok": True, "path": visible_mounts(block)[0]}
+    result, error = volume_call(path, FILESYSTEM_IFACE, "Mount")
+    if error == "alreadyMounted":
+        current = next((other for _, other in blocks() if other["Device"] == device and volume_visible(other) and other["MountPoints"]), None)
+        return {"ok": True, "path": visible_mounts(current)[0]} if current else {"ok": False, "err": "error"}
+    return {"ok": False, "err": error} if error else {"ok": True, "path": result.unpack()[0]}
+
+
+def cmd_release_volume(listed, target):
+    if not target.startswith("/"):
+        return {"ok": False, "err": "notListed"}
+    target = os.path.normpath(target)
+    matches = [(len(point), path, block) for path, block in listed for point in block["MountPoints"]
+               if target == point or target.startswith(point.rstrip("/") + "/")]
+    chosen = max(matches, key=lambda match: match[0]) if matches else None
+    if chosen is None or not volume_visible(chosen[2]):
+        return {"ok": False, "err": "notListed"}
+    _, path, block = chosen
+    drive_path = block["VolumeDrive"]
+    drive = drive_for(drive_path) if drive_path != "/" else None
+    if volume_removable(drive):
+        siblings = [(other_path, other) for other_path, other in listed if other["VolumeDrive"] == drive_path]
+        if any(system_mount(point) for _, other in siblings for point in other["MountPoints"]):
+            return {"ok": False, "err": "busy"}
+        siblings.sort(key=lambda item: max((len(point) for point in item[1]["MountPoints"]), default=0), reverse=True)
+        for other_path, other in siblings:
+            if other["MountPoints"]:
+                error = unmount_volume(other_path, other["Device"])
+                if error:
+                    return {"ok": False, "err": error}
+        siblings = [(other_path, other) for other_path, other in blocks() if other["VolumeDrive"] == drive_path]
+        if any(other["MountPoints"] for _, other in siblings):
+            return {"ok": False, "err": "busy"}
+        for other_path, other in siblings:
+            if needs_lock(other):
+                _, error = volume_call(other_path, ENCRYPTED_IFACE, "Lock")
+                if error:
+                    return {"ok": False, "err": error}
+        method = "PowerOff" if drive.get("CanPowerOff") else "Eject" if drive.get("Ejectable") else ""
+        error = volume_call(drive_path, DRIVE_IFACE, method)[1] if method else ""
+    else:
+        error = unmount_volume(path, block["Device"])
+    return {"ok": False, "err": error} if error else {"ok": True}
+
+
+def cmd_volumes(command, args):
+    valid = (command == "volumes" and args in ([], ["--unmounted"])) or (command in ("mount", "release") and len(args) == 1)
+    if not valid:
+        say("volumes takes optional --unmounted; mount takes a device; release takes a mounted path")
+        return 2
+    try:
+        listed = blocks()
+        answer = {"volumes": volume_rows(listed, args == ["--unmounted"])} if command == "volumes" else (
+            cmd_mount_volume(listed, args[0]) if command == "mount" else cmd_release_volume(listed, args[0]))
+    except GLib.Error:
+        answer = {"ok": False, "err": "error"}
+    print(encode(answer))
+    return 0
+
+
 def main(argv):
     if len(argv) < 2:
-        say("takes drives, open or eject")
+        say("takes drives, open, eject, volumes, mount or release")
         return 2
+    if argv[1] in ("volumes", "mount", "release"):
+        return cmd_volumes(argv[1], argv[2:])
     root, args = split_options(argv[2:])
     if root and SEAM is None:
         say("--loop-root needs the bench seam, which this helper does not carry")
@@ -424,7 +637,7 @@ def main(argv):
             say("eject takes a device")
             return 2
         return cmd_eject(args[0], root)
-    say("takes drives, open or eject")
+    say("takes drives, open, eject, volumes, mount or release")
     return 2
 
 

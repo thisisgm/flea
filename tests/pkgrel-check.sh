@@ -21,11 +21,11 @@ tool=$PWD/tools/flea-pkgrel-check
 fail=0
 n=0
 
-# A repo with both PKGBUILDs at one version, committed and tagged.
+# A repo with both PKGBUILDs, the root one and flea-bin's, at one version, committed and tagged.
 new_repo() {
   local dir="$1" ver="$2" rel="$3"
-  mkdir -p "$dir/packaging/flea" "$dir/packaging/flea-bin" || return 1
-  printf 'pkgname=flea\npkgver=%s\npkgrel=%s\n' "$ver" "$rel" > "$dir/packaging/flea/PKGBUILD"
+  mkdir -p "$dir/packaging/flea-bin" || return 1
+  printf 'pkgname=flea\npkgver=%s\npkgrel=%s\n' "$ver" "$rel" > "$dir/PKGBUILD"
   printf 'pkgname=flea-bin\npkgver=%s\npkgrel=%s\n' "$ver" "$rel" > "$dir/packaging/flea-bin/PKGBUILD"
   (cd "$dir" && git init -q -b main . && git config user.name GM \
     && git config user.email gianmarcomorales@icloud.com && git add . && git commit -qm seed) || return 1
@@ -36,7 +36,7 @@ bump_repo() {
   local dir="$1" oldver="$2" oldrel="$3" newver="$4" newrel="$5"
   new_repo "$dir" "$oldver" "$oldrel" || return 1
   (cd "$dir" && git tag "v$oldver" \
-    && sed -i "s/^pkgver=.*/pkgver=$newver/; s/^pkgrel=.*/pkgrel=$newrel/" packaging/flea/PKGBUILD packaging/flea-bin/PKGBUILD \
+    && sed -i "s/^pkgver=.*/pkgver=$newver/; s/^pkgrel=.*/pkgrel=$newrel/" PKGBUILD packaging/flea-bin/PKGBUILD \
     && git add . && git commit -qm bump) || return 1
 }
 
@@ -45,8 +45,8 @@ bump_repo_split() {
   local dir="$1" oldver="$2" newver="$3" flearel="$4" binrel="$5"
   new_repo "$dir" "$oldver" 1 || return 1
   (cd "$dir" && git tag "v$oldver" \
-    && sed -i "s/^pkgver=.*/pkgver=$newver/" packaging/flea/PKGBUILD packaging/flea-bin/PKGBUILD \
-    && sed -i "s/^pkgrel=.*/pkgrel=$flearel/" packaging/flea/PKGBUILD \
+    && sed -i "s/^pkgver=.*/pkgver=$newver/" PKGBUILD packaging/flea-bin/PKGBUILD \
+    && sed -i "s/^pkgrel=.*/pkgrel=$flearel/" PKGBUILD \
     && sed -i "s/^pkgrel=.*/pkgrel=$binrel/" packaging/flea-bin/PKGBUILD \
     && git add . && git commit -qm bump) || return 1
 }
@@ -87,7 +87,7 @@ bump_repo "$test_root/bump2" 0.3.7 1 0.3.8 2
 run_tool "$test_root/bump2"; rc=$?
 check_rc "a pkgver bump with pkgrel 2 fails" 1 "$rc"
 check_names "the failure names the file, its pkgrel and both versions" \
-  "packaging/flea/PKGBUILD has pkgrel 2" "0.3.7 to 0.3.8"
+  "FAIL PKGBUILD has pkgrel 2" "0.3.7 to 0.3.8"
 
 # 2. The same bump reset to pkgrel 1 passes.
 bump_repo "$test_root/bump1" 0.3.7 1 0.3.8 1
@@ -116,7 +116,7 @@ new_repo "$test_root/split" 0.3.7 1
 run_tool "$test_root/split"; rc=$?
 check_rc "PKGBUILDs that disagree on pkgver fail" 1 "$rc"
 check_names "the disagreement names both files and both versions" \
-  packaging/flea/PKGBUILD packaging/flea-bin/PKGBUILD 0.3.7 0.3.8
+  "FAIL PKGBUILD says pkgver 0.3.7" "packaging/flea-bin/PKGBUILD says pkgver 0.3.8"
 
 # 6. A pkgver bump with flea-bin at pkgrel 2 fails on flea-bin.
 bump_repo_split "$test_root/bumpbin" 0.3.7 0.3.8 1 2
@@ -139,11 +139,11 @@ check_names "the bad commit names itself" "flea-pkgrel-check: ERROR" "nosuchref"
 # 9. A PKGBUILD without pkgrel errors.
 new_repo "$test_root/norel" 0.3.8 1
 (cd "$test_root/norel" && git tag v0.3.8 \
-  && sed -i '/^pkgrel=/d' packaging/flea/PKGBUILD \
+  && sed -i '/^pkgrel=/d' PKGBUILD \
   && git add . && git commit -qm drop)
 run_tool "$test_root/norel"; rc=$?
 check_rc "a PKGBUILD without pkgrel errors" 2 "$rc"
-check_names "the unreadable field names the file" "flea-pkgrel-check: ERROR" "packaging/flea/PKGBUILD"
+check_names "the unreadable field names the file" "flea-pkgrel-check: ERROR cannot read pkgrel from PKGBUILD at"
 
 if [ "$fail" -eq 0 ]; then
   echo "pkgrel-check: all $n checks passed"

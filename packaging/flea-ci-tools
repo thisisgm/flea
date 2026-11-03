@@ -1,0 +1,112 @@
+#!/bin/bash
+# Native tools for the ephemeral Candidate/Release test runner, never the shipped package.
+set -euo pipefail
+export LC_ALL=C
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(dirname "$here")
+mode=${1:?expected fonts or imagemagick}
+prefix=$(realpath -m -- "${2:?installation prefix}")
+
+case "$mode" in
+  fonts)
+    fonts="$repo/crates/flea-gui/tests/fonts"
+    install -d "$prefix"
+    for style in Regular Bold; do
+      install -m644 "$fonts/JetBrainsMono-$style.ttf" "$prefix/"
+    done
+    fc-cache -f "$prefix"
+    for style in Regular Bold; do
+      request="JetBrains Mono:style=$style"
+      family=$(fc-match -f '%{family}' "$request")
+      resolved=$(fc-match -f '%{file}' "$request")
+      [ "$family" = 'JetBrains Mono' ] && cmp -s "$fonts/JetBrainsMono-$style.ttf" "$resolved" || {
+        echo "flea-ci-tools: $request resolved to $family at $resolved, not the tracked font" >&2; exit 1; }
+      printf 'CI_FONT %s %s\n' "$request" "$resolved"
+      sha256sum "$resolved"
+    done
+    ;;
+  imagemagick)
+    version=7.1.1-43
+    commit=a2d96f40e707ba54b57e7d98c3277d3ea6611ace
+    archive_sha256=b0e4188a2245a0996a07f0d7cd8e3fdd64251afa4eb60eef7fd44e42248f59fc
+    build_jobs=2
+    tile_size=2x1
+    combined_size='4 1'
+    mkdir -p "$repo/.superpowers"
+    build=$(mktemp -d "$repo/.superpowers/ci-imagemagick.XXXXXXXX")
+    printf 'flea CI ImageMagick source and raw proof\n' > "$build/.flea-ci-owned"
+    archive="$build/source.tar.gz"
+    curl --fail --location --retry 3 --connect-timeout 10 --max-time 120 \
+      "https://codeload.github.com/ImageMagick/ImageMagick/tar.gz/$commit" -o "$archive"
+    printf '%s  %s\n' "$archive_sha256" "$archive" | sha256sum -c -
+    mkdir "$build/source"
+    tar -xzf "$archive" --strip-components=1 -C "$build/source"
+    (
+      cd "$build/source"
+      # Keep the unused RAW delegate off, matching the Noble CI dependency set.
+      ./configure --prefix="$prefix" --disable-shared --disable-openmp --disable-docs \
+        --without-perl --without-x --without-magick-plus-plus --without-raw --with-png=yes --with-jpeg=yes --with-tiff=yes --with-webp=yes --enable-legacy-support
+      make -j"$build_jobs"
+      make install
+    )
+    case $(uname -m) in
+      x86_64) machine='Advanced Micro Devices X86-64' ;;
+      aarch64) machine=AArch64 ;;
+      *) echo 'flea-ci-tools: unsupported native architecture' >&2; exit 1 ;;
+    esac
+    # Sample:   Machine:                           AArch64
+    readelf -h "$prefix/bin/magick" | tee "$build/elf.txt" | grep -Fq "$machine"
+    for command in magick montage; do
+      # Sample: Version: ImageMagick 7.1.1-43 Q16 x86_64 22550 https://imagemagick.org
+      "$prefix/bin/$command" -version | tee "$build/$command-version.txt" \
+        | grep -F "Version: ImageMagick $version "
+    done
+    # Sample: Delegates (built-in): fontconfig freetype jpeg png tiff webp zlib
+    native_delegates=$(sed -n 's/^Delegates (built-in): */ /p' "$build/magick-version.txt")
+    for codec in jpeg tiff webp; do
+      case " $native_delegates " in *" $codec "*) ;; *)
+        echo "flea-ci-tools: required native ImageMagick codec $codec missing: $native_delegates" >&2; exit 1 ;;
+      esac
+    done
+    # Unqualified montage needs a scalable default even when the ambient fallback is a bitmap font.
+    font_config="$prefix/etc/ImageMagick-7"
+    install -m644 "$repo/crates/flea-gui/tests/fonts/JetBrainsMono-Regular.ttf" "$font_config/"
+    font_xml="$font_config/JetBrainsMono-Regular.ttf"
+    font_xml=${font_xml//&/\&amp;}
+    font_xml=${font_xml//</\&lt;}
+    font_xml=${font_xml//\"/\&quot;}
+    mv "$font_config/policy.xml" "$font_config/policy-upstream.xml"
+    cat > "$font_config/policy.xml" <<EOF
+<policymap>
+  <include file="policy-upstream.xml" />
+  <policy domain="system" name="font" value="$font_xml" />
+</policymap>
+EOF
+    printf 'CI_IMAGEMAGICK_DEFAULT_FONT %s\n' "$font_config/JetBrainsMono-Regular.ttf"
+    sha256sum "$font_config/JetBrainsMono-Regular.ttf"
+    "$prefix/bin/magick" -size "$tile_size" xc:red "$build/red.png"
+    "$prefix/bin/magick" -size "$tile_size" xc:blue "$build/blue.png"
+    "$prefix/bin/montage" "$build/red.png" "$build/blue.png" -tile 2x1 -geometry +0+0 "$build/joined.png"
+    actual=$("$prefix/bin/magick" "$build/joined.png" -format '%w %h' info:)
+    [ "$actual" = "$combined_size" ] || {
+      echo "flea-ci-tools: PNG montage dimensions $actual, expected $combined_size" >&2; exit 1; }
+    "$prefix/bin/magick" "$build/joined.png" -depth 8 "rgb:$build/actual.rgb"
+    printf '\377\000\000\377\000\000\000\000\377\000\000\377' > "$build/expected.rgb"
+    cmp "$build/expected.rgb" "$build/actual.rgb"
+    for codec in JPEG TIFF WEBP; do
+      encoded="$build/native-$codec"
+      "$prefix/bin/magick" "$build/joined.png" -define webp:lossless=true "$codec:$encoded"
+      actual=$("$prefix/bin/magick" "$encoded" -format '%m %w %h' info:)
+      [ "$actual" = "$codec $combined_size" ] || {
+        echo "flea-ci-tools: $codec roundtrip was $actual, expected $codec $combined_size" >&2; exit 1; }
+      if [ "$codec" != JPEG ]; then
+        "$prefix/bin/magick" "$encoded" -depth 8 "rgb:$build/$codec.rgb"
+        cmp "$build/expected.rgb" "$build/$codec.rgb"
+      fi
+    done
+    printf 'CI_IMAGEMAGICK_NATIVE_CODECS_PASS jpeg tiff webp\n'
+    printf '%s\n%s\n%s\n' "$version" "$commit" "$archive_sha256" > "$prefix/.flea-ci-source"
+    printf 'CI_IMAGEMAGICK_NATIVE_PNG_PASS %s %s %s\n' "$machine" "$prefix" "$build"
+    ;;
+  *) echo 'flea-ci-tools: expected fonts or imagemagick' >&2; exit 2 ;;
+esac

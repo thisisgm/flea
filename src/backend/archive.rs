@@ -52,6 +52,8 @@ pub struct Formats {
 #[cfg(test)]
 struct Stub {
     technical: Vec<String>,
+    first_technical: std::sync::Mutex<Option<Vec<String>>>,
+    technical_calls: std::sync::atomic::AtomicUsize,
     extract: Vec<String>,
     indexed: std::sync::atomic::AtomicUsize,
 }
@@ -104,8 +106,35 @@ impl Formats {
     // A 7z-only Formats whose probe listing and extract are the given argvs, so a cancel can land on a live probe.
     #[cfg(test)]
     pub fn test_stub(technical: Vec<String>, extract: Vec<String>) -> Formats {
-        let stub = Stub { technical, extract, indexed: std::sync::atomic::AtomicUsize::new(0) };
-        Formats { names: vec![SEVENZIP_FORMAT.to_string()], have_bsdtar: false, have_7z: true, probe: false, block: false, stub: Some(stub) }
+        let stub = Stub {
+            technical,
+            extract,
+            indexed: std::sync::atomic::AtomicUsize::new(0),
+            first_technical: std::sync::Mutex::new(None),
+            technical_calls: std::sync::atomic::AtomicUsize::new(0),
+        };
+        Formats {
+            names: vec![SEVENZIP_FORMAT.to_string()],
+            have_bsdtar: false,
+            have_7z: true,
+            probe: false,
+            block: false,
+            stub: Some(stub),
+        }
+    }
+
+    // A fast initial index leaves the later encryption probe available for a targeted cancellation.
+    #[cfg(test)]
+    pub fn test_initial_index(self, argv: Vec<String>) -> Self {
+        *self.stub.as_ref().unwrap().first_technical.lock().unwrap() = Some(argv);
+        self
+    }
+
+    #[cfg(test)]
+    pub fn technical_indexed(&self) -> usize {
+        self.stub.as_ref().map_or(0, |s| {
+            s.technical_calls.load(std::sync::atomic::Ordering::Relaxed)
+        })
     }
 
     // How many index listings the stubbed Formats was asked for.
@@ -260,7 +289,15 @@ impl Formats {
     pub fn technical_list_argv(&self, archive: &Path) -> Option<Vec<String>> {
         #[cfg(test)]
         if let Some(stub) = &self.stub {
-            return Some(stub.technical.clone());
+            stub.technical_calls
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            return Some(
+                stub.first_technical
+                    .lock()
+                    .unwrap()
+                    .take()
+                    .unwrap_or_else(|| stub.technical.clone()),
+            );
         }
         self.seven_reads(archive)
             .then(|| vec![SEVENZIP.to_string(), "l".to_string(), "-slt".to_string(), archive.to_string_lossy().to_string()])

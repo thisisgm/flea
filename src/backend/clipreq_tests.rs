@@ -124,12 +124,17 @@ fn a_watch_starts_once_and_the_second_is_silent() {
     let dir = TestDir::new("clip-watch-no-compositor");
     let missing = dir.join("no-compositor");
     let (tx, rx) = channel();
-    let (events, _events) = channel();
+    let (events, _events) = crate::backend::events::channel();
     // Exhaustive construction pins that the backend retains no clipboard report state.
     let mut state = State {
+        outline: Default::default(),
+        contents: Default::default(),
+        git: None,
         listing: Listing::new(),
         base: Default::default(),
         asked: Vec::new(),
+        thumb_mtimes: Default::default(), thumb_replies: Default::default(),
+        trash_asked: Vec::new(),
         outstanding: 0,
         deferred: Default::default(),
         window_meta: Default::default(),
@@ -142,6 +147,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
         generation: 0,
         held: Held::List,
         clip_watching: false,
+        nearby: Default::default(),
     };
     request_watch(tx.clone(), &mut state.clip_watching, Some(missing.clone()));
     assert!(state.clip_watching);
