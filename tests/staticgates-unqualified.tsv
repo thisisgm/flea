@@ -1857,12 +1857,12 @@ ui/PreviewMarkdown.qml	119	root	Declared QML id; component context access is val
 ui/PreviewMarkdown.qml	120	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	121	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	123	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	401	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	643	modelData	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	644	index	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	645	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	646	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	647	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	411	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	653	modelData	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	654	index	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	655	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	656	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	657	root	Declared QML id; Source and fence components read their creation context.
 ui/PreviewScroll.qml	192	bars	Declared QML id; Loader context access is valid at runtime.
 ui/PreviewSwap.qml	266	content	Declared QML id; component context access is valid at runtime.
 ui/PreviewSwap.qml	266	root	Declared QML id; component context access is valid at runtime.
@@ -3581,12 +3581,12 @@ ui/PreviewMarkdown.qml	119	root	Declared QML id; component context access is val
 ui/PreviewMarkdown.qml	120	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	121	root	Declared QML id; component context access is valid at runtime.
 ui/PreviewMarkdown.qml	123	root	Declared QML id; component context access is valid at runtime.
-ui/PreviewMarkdown.qml	401	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	643	modelData	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	644	index	Delegate context supplies this model role at runtime.
-ui/PreviewMarkdown.qml	645	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	646	root	Declared QML id; Source and fence components read their creation context.
-ui/PreviewMarkdown.qml	647	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	411	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	653	modelData	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	654	index	Delegate context supplies this model role at runtime.
+ui/PreviewMarkdown.qml	655	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	656	root	Declared QML id; Source and fence components read their creation context.
+ui/PreviewMarkdown.qml	657	root	Declared QML id; Source and fence components read their creation context.
 ui/PreviewScroll.qml	192	bars	Declared QML id; Loader context access is valid at runtime.
 ui/PreviewSwap.qml	266	content	Declared QML id; component context access is valid at runtime.
 ui/PreviewSwap.qml	266	root	Declared QML id; component context access is valid at runtime.
