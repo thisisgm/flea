@@ -1,0 +1,69 @@
+name: ARM statx aligned I/O diagnostic
+
+on:
+  push:
+    branches: ['diagnostics/arm-direct-statx-ctl2']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arm-direct-statx-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  aligned:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Initialize durable receipts
+        run: |
+          mkdir arm-statx-receipts
+          printf 'control_commit=%s\nref=%s\n' "$GITHUB_SHA" "$GITHUB_REF" > arm-statx-receipts/dispatch.txt
+
+      - name: Diagnostic commit with its immutable source parent
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: control
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Bind production source to the diagnostic commit's first parent
+        id: source
+        run: |
+          source_sha=$(git -C control rev-parse HEAD^)
+          printf 'sha=%s\n' "$source_sha" >> "$GITHUB_OUTPUT"
+          printf 'source_commit=%s\n' "$source_sha" >> arm-statx-receipts/dispatch.txt
+
+      - name: Immutable source containing the reviewed test-only statx fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          path: source
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-12
+        with:
+          toolchain: stable
+
+      - name: Install backend diagnostic prerequisites
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          sudo apt-get update -o Acquire::Retries=3 2>&1 | tee arm-statx-receipts/apt-update.log
+          sudo apt-get install -y -o Acquire::Retries=3 build-essential pkg-config strace 2>&1 | tee arm-statx-receipts/apt-install.log
+
+      - name: Bounded safe native ARM control
+        timeout-minutes: 22
+        env:
+          ARM_DIRECT_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: python3 control/tools/diagnostics/arm-direct-statx.py source arm-statx-receipts
+
+      - name: Durable raw receipts on success, failure or timeout
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: arm-statx-${{ github.run_id }}-${{ github.run_attempt }}
+          path: arm-statx-receipts/
+          if-no-files-found: error
+          retention-days: 14

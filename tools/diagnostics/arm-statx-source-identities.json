@@ -1,0 +1,17 @@
+{
+  "source_binding": "immutable first parent of the diagnostic commit, supplied as ARM_DIRECT_SOURCE_SHA",
+  "reviewed_root_context": "1d0d0c1851a079dbf692099e8dcb1cff790694a1",
+  "supersedes_red_run": 41546760234,
+  "supersedes_unsafe_packet_sha256": "3ef04035e45373c782e99d5156224e24b8c9dfa7af8ed1c4e77e5927de289bc0",
+  "history": "Beforefcb6d89b old ARM O_DIRECTORY opens skipped; those tags supply no aligned-I/O credit.",
+  "source_sha256": {
+    "src/backend/flashfake.rs": "89a434141575520dbf71d7c6fc8e437289f4fe38b7a62ad2e02cd2413279fb58",
+    "src/backend/flashdirect_tests.rs": "3eb624aec2971a61a8000be6409e75d1f09e5efb598b079601e53ee9536c902a",
+    "src/backend/flashio.rs": "86f2db5c67329130b25f6efd88b3c09b30a06fb2aba996b089e66dcb1a57aff0",
+    "src/backend/flashwrite.rs": "33059478e8dbb057bc53b95867c742dec08d6d4ae6be9552dc84b994ebdd65a0",
+    "src/backend/flashverify.rs": "edec4cbe14cebe0ae644d0ec52dcee56b7d1afab32fa9f3e03b5fd7aafc842c5",
+    "src/backend/flashpump.rs": "317dbd571a695ab3301b7c98487b1377fd162a75044688c8a31a871f6a9601c3",
+    "src/backend/flashpipe.rs": "c65ffd268dd7faa0a970a1bab9267164e547d95fa83924e811fbbb603964361a",
+    "src/oflags.rs": "f1ab53c13e4e3d754d5392ee37ea8b734bb7750de6a7c443caa6f121010b873b"
+  }
+}
