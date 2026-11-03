@@ -182,7 +182,7 @@ fn apply_renderer(cmd: &mut Command, renderer: LaunchRenderer) {
 // The qs invocation both entry points share, including the renderer chosen at the last hand-off point.
 pub(crate) fn qs_command(target: PathBuf) -> Command {
     let mut cmd = Command::new("qs");
-    cmd.arg("-p").arg(target);
+    cmd.arg("-p").arg(&target);
     // Only the main window records a prefetch list; a chooser started from a Flea terminal must not overwrite it.
     cmd.env_remove(prefetch::LIST_ENV);
     cmd.env_remove(prefetch::SHELL_ENV);
@@ -211,6 +211,23 @@ pub(crate) fn qs_command(target: PathBuf) -> Command {
         }
     } else {
         apply_renderer(&mut cmd, automatic_renderer(crate::vkprobecache::usable()));
+    }
+    // FleaNative is a built plugin a fresh clone or package may lack: only this ui root (the entry's folder, or the one
+    // above boot/, never a further ancestor) with the plugin goes on the import path, and FLEA_NATIVE tells the panes.
+    let ui = target.parent().and_then(|dir| if dir.file_name().is_some_and(|name| name == "boot") { dir.parent() } else { Some(dir) });
+    if let Some(modules) = ui.map(|ui| ui.join("modules"))
+        .filter(|modules| modules.join("FleaNative").join("libfleanativeplugin.so").is_file())
+    {
+        let current = std::env::var("QML_IMPORT_PATH").unwrap_or_default();
+        let new_val = if current.is_empty() {
+            modules.to_string_lossy().into_owned()
+        } else {
+            format!("{}:{}", modules.to_string_lossy(), current)
+        };
+        cmd.env("QML_IMPORT_PATH", new_val);
+        cmd.env("FLEA_NATIVE", "1");
+    } else {
+        cmd.env_remove("FLEA_NATIVE");
     }
     cmd
 }

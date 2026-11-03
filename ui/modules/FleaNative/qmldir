@@ -1,0 +1,7 @@
+module FleaNative
+linktarget fleanativeplugin
+optional plugin fleanativeplugin
+classname FleaNativePlugin
+typeinfo fleanative.qmltypes
+prefer :/FleaNative/
+

@@ -37,15 +37,17 @@ pub fn ui_dir() -> Option<PathBuf> {
             return Some(p);
         }
     }
+    // The dev tree keeps ui/ beside target/, so walk up from the binary.
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dev) = exe.parent().and_then(|p| p.parent()).and_then(|p| p.parent()).map(|p| p.join("ui")) {
+            if dev.join(ENTRY).is_file() {
+                return Some(dev);
+            }
+        }
+    }
     let packaged = PathBuf::from("/usr/share/flea/ui");
     if packaged.join(ENTRY).is_file() {
         return Some(packaged);
-    }
-    // The dev tree keeps ui/ beside target/, so walk up from the binary.
-    let exe = std::env::current_exe().ok()?;
-    let dev = exe.parent()?.parent()?.parent()?.join("ui");
-    if dev.join(ENTRY).is_file() {
-        return Some(dev);
     }
     None
 }

@@ -165,7 +165,7 @@ Item {
         anchors.rightMargin: (root.row && root.row.shown ? Theme.tagSlotWidth + Theme.spacing.gap : 0) + (root.showSize ? Theme.spacing.gap : 0) + (root.clipMark.length > 0 ? Theme.spacing.gap + root.clipPx : 0)
         anchors.verticalCenter: line.verticalCenter
         visible: !root.renaming && !root.marking
-        text: root.row && root.nameBudget >= 0 ? Format.middleElide(root.row.n, Math.max(0, root.nameBudget - (root.clipMark.length > 0 ? Math.ceil((Theme.spacing.gap + root.clipPx) / Theme.bodyAdvance) : 0))) : (root.row ? root.row.n : "")
+        text: root.row && root.nameBudget >= 0 ? Format.middleElide(root.row.n.replace(/\n/g, "\u21b5").replace(/\t/g, "\u21e5"), Math.max(0, root.nameBudget - (root.clipMark.length > 0 ? Math.ceil((Theme.spacing.gap + root.clipPx) / Theme.bodyAdvance) : 0))) : (root.row ? root.row.n.replace(/\n/g, "\u21b5").replace(/\t/g, "\u21e5") : "")
         color: root.ink
         font.family: Theme.font.family
         font.pixelSize: Theme.font.body

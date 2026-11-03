@@ -1,4 +1,8 @@
 /target
+**/target/
+**/build/
+ui/modules/FleaNative/*.so
+ui/modules/FleaNative/*.qrc
 **/*.rs.bk
 
 # Editor and IDE droppings
