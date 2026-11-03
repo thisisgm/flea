@@ -28,6 +28,7 @@ var WORDS = {
     notSaved: "%1 is not saved, and stays in the sidebar until it is unmounted",
     forgottenStays: "%1 is forgotten, and stays in the sidebar until it is unmounted",
     forgotten: "%1 is forgotten",
+    placeSaved: "%1 is saved to places, and stays past its unmount",
     unmountedLine: "Unmounted %1",
     bridgeMissing: "Could not open %1 because part of Flea did not load. Reinstall Flea.",
     transferUsing: "%1 could not be unmounted. A transfer may still be using it."

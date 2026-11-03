@@ -625,9 +625,11 @@ Rectangle {
         property var owner: null
         property Item origin: null
         readonly property bool opened: item !== null && item.opened
-        function open() {
+        function open(holder) {
             if (opened) return
-            origin = view.currentPane
+            // The pane that asked for the form is the one its answer returns to; the hosts page's
+            // manual row passes its own owner, which in dual view is not always the focused pane.
+            origin = holder || view.currentPane
             active = true
             item.open()
         }
@@ -655,6 +657,11 @@ Rectangle {
             networkDialog.owner.saveLocation(uri, label, password, requestId, networkDialog.origin)
         }
         function onCancelRequested(requestId) { if (networkDialog.owner) networkDialog.owner.cancelLocation(requestId) }
+        // The dialog's Browse trades the form for discovery; the hosts answer reopens this dialog's
+        // origin as the share browser's host rows, exactly as a listed server's shares would.
+        function onBrowseRequested() {
+            view.browseHosts(networkDialog.origin || view.currentPane)
+        }
     }
 
     // The dialog's answer lands here rather than on the rail, so it lands whether the rail is
@@ -668,12 +675,34 @@ Rectangle {
             if (networkDialog.item) networkDialog.item.mountFinished(requestId, uri, success, reason, connectFailed)
         }
         function onSharesListed(baseUri, baseLabel, names, origin) { if (origin) shareBrowser.open(baseUri, baseLabel, names, origin) }
+        // Hosts rows ride the bare workgroup root: activating one is the bare-root open whose
+        // answer is its shares, so the browser walks down one level without new routing here.
+        // An empty LAN is a real answer with nothing to show: the form opens with the reason in
+        // its own banner, so the "+" still leads somewhere that can connect.
+        function onHostsListed(names, origin) {
+            if (!origin) return
+            // A late answer from a browse the pane already left steers nothing: only a crawl still
+            // waiting on hosts may become rows, or hand the pane to the form.
+            if (!shareBrowser.active || !shareBrowser.scanning) return
+            if (!names || names.length === 0) {
+                // The crawl that opened with the ＋ ends here: the form takes the pane, so the
+                // looking page does not sit behind it waiting for an answer that already came.
+                shareBrowser.close()
+                networkDialog.openLocation("", "", "", "No network hosts answered. Type an address instead.", false, origin)
+                return
+            }
+            shareBrowser.openHosts(names, origin)
+        }
         function onRetryRequested(uri, label, password, reason, failedConnect, origin) {
+            shareBrowser.revertToHosts()
             networkDialog.openLocation(uri, label, password, reason, failedConnect, origin)
         }
         function onOpened(path, origin) { if (origin) RailKeys.openFrom(origin, path, origin.sidebar) }
         function onOpenFileRequested(path, origin) { if (origin) origin.openFile(path) }
         function onMessage(text, isError) {
+            // A failure toast while a crawl is up is the crawl's own ending: the page it was
+            // reading for is not coming, so the hosts page returns rather than spinning on.
+            shareBrowser.revertToHosts()
             var pane = view.currentPane
             if (pane.sidebar) RailKeys.messaged(pane.sidebar, isError)
             pane.message(text, isError)
@@ -683,9 +712,22 @@ Rectangle {
         function onRenamed() { if (view.currentPane.sidebar) view.currentPane.sidebar.reloadBookmarks() }
     }
 
+    // One entry point for both paths into discovery: the rail's "+" (below) and the dialog's
+    // Browse button, so neither can drift from the other.
+    function browseHosts(pane) {
+        // The crawl opens before the ask: the LAN's answer takes seconds, and the pane the ＋
+        // was pressed on should say "looking" for every one of them.
+        shareBrowser.openScanning(pane)
+        var service = view.ensureNetworkService()
+        if (service)
+            service.listHosts(pane)
+        else
+            shareBrowser.close()
+    }
+
     Connections {
         target: view.currentPane.sidebar
-        function onAddRequested() { networkDialog.open() }
+        function onAddRequested() { view.browseHosts(view.currentPane) }
         function onEditRequested(uri, label, password, reason, failedConnect, origin) {
             networkDialog.openLocation(uri, label, password, reason, failedConnect, origin)
         }
@@ -712,7 +754,24 @@ Rectangle {
         width: owner ? owner.listSlot.width : 0
         height: owner ? owner.listSlot.height : 0
         readonly property bool active: shareLoader.item !== null && shareLoader.item.active
+        // The crawl's own mark, forwarded the way active is: a handler that asks whether the
+        // browser is still waiting (a late answer must steer nothing) reads the wrapper, not
+        // the loader's item, and the wrapper without this read undefined as false.
+        readonly property bool scanning: shareLoader.item !== null && shareLoader.item.scanning
         function open(uri, label, names, origin) { owner = origin; shareLoader.active = true; shareLoader.item.open(uri, label, names) }
+        function openHosts(names, origin) { owner = origin; shareLoader.active = true; shareLoader.item.openHosts(names) }
+        // The instant page: avahi can take seconds to answer, so the ＋ opens the crawl first
+        // and the answer replaces it — a blank pane in between reads as broken.
+        function openScanning(origin) { owner = origin; shareLoader.active = true; shareLoader.item.openScanning() }
+        // A host row's open holds the same pane: its crawl ("reading") stands until the shares
+        // or the sign-in form replaces it.
+        function openReading(label, origin) { owner = origin; shareLoader.active = true; shareLoader.item.openReading(label) }
+        // A crawl that ends in a refusal or an invitation falls back to the page it came from,
+        // so no looking or reading page outlives its own ask.
+        function revertToHosts() {
+            if (shareLoader.item && shareLoader.item.scanning && shareLoader.item.hostsPage !== null)
+                shareLoader.item.open("smb://", "Network", shareLoader.item.hostsPage)
+        }
         function close() { if (shareLoader.item) shareLoader.item.close() }
         // ui/js/Focus.js shareBrowserAct's two other verbs, reached only while the overlay is up.
         function moveCursor(delta) { if (shareLoader.item) shareLoader.item.moveCursor(delta) }
@@ -722,6 +781,15 @@ Rectangle {
     Connections {
         target: shareLoader.item
         function onClosed() { view.currentPane.forceActiveFocus() }
+        // The hosts page's last row: the form opens over the page that led to it, the mirror of
+        // the dialog's Browse button closing the form for the page.
+        function onManualRequested() {
+            // Captured before the close: the browser's owner is the pane the form's mount answer
+            // must return to, and view.currentPane can differ from it in dual view.
+            var holder = shareBrowser.owner
+            shareBrowser.close()
+            networkDialog.open(holder)
+        }
         function onActivated(uri, label) {
             view.focusPane(shareBrowser.owner === primaryPane ? 0 : 1)
             // The host outlives the rail, so a hidden rail never blocks a share the browser lists.
@@ -730,6 +798,10 @@ Rectangle {
                 shareBrowser.owner.message("That network share cannot be opened here.", true)
                 return
             }
+            // A host row's own open is a wait the pane should own from the first instant: the
+            // crawl (its word "reading") holds it until the shares or the form replace it.
+            if (service.isBareRoot(uri))
+                shareBrowser.openReading(label, shareBrowser.owner)
             service.openChildShare(uri, label, shareBrowser.owner)
         }
     }

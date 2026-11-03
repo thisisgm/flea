@@ -64,7 +64,7 @@ function run(check) {
     var idle = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: false, removable: true }
     var internal = { label: "nvme0n1", group: "device", kind: "disk", device: "/dev/nvme0n1", mounted: true, removable: false }
     var fixed = { label: "Vault", group: "device", kind: "volume", device: "/dev/sdb1", mounted: true, removable: false }
-    var share = { label: "isos", group: "network", kind: "share", uri: "smb://example.com/isos/", mounted: true }
+    var share = { label: "isos", group: "network", kind: "share", uri: "smb://example.com/isos/", mounted: true, saved: true }
     var bookmark = { label: "NAS", group: "network", kind: "share", uri: "smb://example.com/", mounted: false }
     var dropbox = { label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true }
     var favourite = { label: "Home", group: "favourite", kind: "favourite", path: "/home/user" }

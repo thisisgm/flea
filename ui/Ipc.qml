@@ -700,6 +700,56 @@ QtObject {
         function previewSliderCentre(): string { return root.previewReaders.previewSliderCentre() }
         // The same lookup as rowCentre, but for a rail row: the rail has no ListView, so Sidebar.railItemFor(i) walks its own Repeaters instead.
         function railRowCentre(i: int): string { return root.fleaWindow.centreOf(root.pane.sidebar.railItemFor(i)) }
+        // The FAVORITES heading's pin drop: the heading is not a rail row, so the drag suite asks for its target directly.
+        function railPinCentre(): string { return root.fleaWindow.centreOf(root.pane.sidebar.pinDropTarget) }
+        function railPinState(): string {
+            var pin = root.pane.sidebar.pinDropTarget
+            return JSON.stringify({ armed: pin.armed, pending: pin.pending, kind: pin.pendingKind })
+        }
+        // The menu's own removal path, so the drag suite can unpin without synthesising pointer menus.
+        function favouriteRemove(i: int): bool { return Favourites.remove(i) }
+        // The network browser's hosts leg, fired the way the dialog's Browse button fires it; the
+        // answer is read back with the share browser probes below.
+        function networkBrowse(): void {
+            var service = root.pane.ensureNetworkService()
+            if (service)
+                service.listHosts(root.pane)
+        }
+        // The rail's own "+" press, which is what the lane would click: the mark's handler only
+        // raises this signal, so raising it exercises the same path the pointer takes.
+        function networkAddRequested(): string {
+            root.pane.sidebar.addRequested()
+            return "raised"
+        }
+        // One row of the share browser, activated the way Enter activates the row under the
+        // cursor; the manual row is the last one, so the lane can name it by index.
+        function shareBrowserActivate(i: int): bool {
+            var browser = root.shareBrowser
+            if (!browser) return false
+            browser.cursorIndex = i
+            browser.activateCursor()
+            return true
+        }
+        function shareBrowserLastIndex(): int {
+            var browser = root.shareBrowser
+            if (!browser) return -1
+            return browser.shares.length - 1
+        }
+        // The dialog's Browse button itself, so the mouse lane can press it where it sits.
+        function networkBrowseButton(): string {
+            return root.networkDialog ? root.fleaWindow.centreOf(root.networkDialog.browseButtonCentre) : ""
+        }
+        // The rail pin's own write, so the lane can save a mounted share without a synthesised
+        // right click; the menu row that calls this is specified in tests/js/menu.js.
+        function networkSavePlace(i: int): bool {
+            var sidebar = root.pane.sidebar
+            var entry = sidebar.networkEntries[i]
+            var service = root.pane.ensureNetworkService()
+            if (!entry || !service)
+                return false
+            service.savePlace(entry.uri, entry.label)
+            return true
+        }
         function railLabel(i: int): string { var item = root.pane.sidebar.railItemFor(i); return item ? item.modelData.label : "" }
         function railLabels(): string { var out = []; for (var i = 0; i < root.pane.railCount; i++) { var item = root.pane.sidebar.railItemFor(i); out.push(item ? item.modelData.label : "") } return out.join("|") }
         // The sidebar pushes the row and the header right by its own width, so a pixel-crop test needs this rather than assuming x=0.
@@ -914,6 +964,7 @@ QtObject {
         // A protocol chip carries a label and no tree, so a test clicks its centre the way it does a row.
         function networkChipCentre(name: string): string { return root.networkDialog ? root.fleaWindow.centreOf(root.networkDialog.formChip(name)) : "" }
         function shareBrowserOpen(): bool { return root.shareBrowser ? root.shareBrowser.active : false }
+        function shareBrowserScanning(): bool { return root.shareBrowser ? root.shareBrowser.scanning : false }
         // One share name per line, in cursor order; empty when the overlay is shut.
         function shareBrowserEntries(): string { return root.shareBrowser ? root.shareBrowser.shares.join("\n") : "" }
         function shareBrowserCursor(): int { return root.shareBrowser ? root.shareBrowser.cursorIndex : -1 }

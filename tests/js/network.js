@@ -157,7 +157,7 @@ function run(check) {
 
     // The rail menu the right click opens, which is not the release verdict ui/js/Eject.js reads:
     // Ctrl+E must still refuse a row with nothing mounted rather than starting an editor on it.
-    var mounted = { path: "", label: "isos", group: "network", kind: "share", uri: "smb://nas/isos/", mounted: true }
+    var mounted = { path: "", label: "isos", group: "network", kind: "share", uri: "smb://nas/isos/", mounted: true, saved: true }
     var saved = { path: "", label: "NAS", group: "network", kind: "share", uri: "smb://nas/", mounted: false }
     var volume = { path: "/run/media/gm/128GB", label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true, removable: true }
     var favourite = { path: "/home/gm", label: "Home", group: "favourite", kind: "favourite", mounted: false }

@@ -71,6 +71,23 @@ Item {
         root.write(Places.replace(bookmarksWrite.text(), oldUri, newUri, name))
     }
 
+    // Pins a share the browser opened: appends the saved line, the mirror of forget()'s removal,
+    // so a share found by browsing stays on the rail past its unmount. The file, not the cached
+    // text, for rename()'s own reason above, and an empty old address appends rather than rewrites.
+    // Returns whether the write landed: a caller that toasts success on the return is lying only
+    // when the file itself refused, and this arm has already said why on its own message.
+    function add(uri, name) {
+        bookmarksWrite.readError = FileViewError.Success
+        bookmarksWrite.reload()
+        bookmarksWrite.waitForJob()
+        if (bookmarksWrite.readError !== FileViewError.Success
+                && bookmarksWrite.readError !== FileViewError.FileNotFound) {
+            root.message("Saved places could not be read, so the share was not saved.", true)
+            return false
+        }
+        return root.write(Places.replace(bookmarksWrite.text(), "", uri, name))
+    }
+
     // Forgets a saved place. A share that is mounted right now stays on the rail as the live mount
     // it is until something unmounts it, so the bar names the state the press landed in.
     function forget(uri) {

@@ -64,6 +64,9 @@ var INVENTORY = [
     ["duplicate", "Duplicate", "file-plus", "F", "basic"],
     ["rename", "Rename", "rename", "FR", "basic"],
     // A saved place's own rows beside Rename; Edit address and Remove from Network are rail-only.
+    // Save place is the rail's pin: the browser's rows never write a bookmark themselves, so this
+    // is the one gesture that keeps a share the browser opened past its unmount.
+    ["savePlace", "Save place", "pin", "R", "basic"],
     ["editPlace", "Edit address", "sliders", "R", "basic"],
     ["remove", "Remove from Network", "minus", "R", "rremove"],
     ["selectAll", "Select all", "check", "B", "basic"],
@@ -293,6 +296,10 @@ function availableRail(e, entry) {
     // Flash image shows on a writable removable drive, mounted or not, never on an open crypt, whose mapper names no drive.
     case "flashImage": return volume && entry.removable === true && entry.readOnly !== true && !/^\/dev\/(mapper\/|dm-)/.test(entry.device || "")
     case "rename": return share && entry.editable !== false
+    // Only a share the browser opened without saving: the pin's own row disappears once it has
+    // done its work, a saved row offers Rename and Remove instead, and a kernel mount's life is
+    // fstab's to keep, not this file's.
+    case "savePlace": return share && mounted && entry.saved !== true && entry.editable !== false
     case "editPlace": return share && entry.editable !== false
     case "remove": return share && entry.editable !== false
     case "removeFavourite": return entry.kind === "favourite"
