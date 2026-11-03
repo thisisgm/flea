@@ -172,7 +172,7 @@ fn pvcode_quick_look_end_keeps_the_pad_under_the_last_line(cx: &mut TestAppConte
     );
 }
 
-// EY-170: CodeLines takes its pitch from the actual body font, so wrapping cannot spend fewer lines per wheel notch.
+// EY-170: fitting the body font keeps the board minimum and the same pitch in both wrapping modes.
 #[gpui::test]
 fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &mut TestAppContext) {
     use super::preview_tests::{code_reply, opened, sent, token};
@@ -217,8 +217,9 @@ fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &m
             );
             let pitch = f32::from(run.line().ascent + run.line().descent).ceil();
             assert_eq!(
-                code.metrics.row, pitch,
-                "the body font determines the pitch, wrap={wrap}"
+                code.metrics.row,
+                pitch.max(crate::g2::pv1::look::TEXT_LINE),
+                "the body font fits inside the board pitch, wrap={wrap}"
             );
         });
     }

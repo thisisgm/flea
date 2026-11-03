@@ -58,10 +58,11 @@ impl CodeView {
         let text = window.text_system();
         let id = text.resolve_font(&self.typeface.font);
         if self.slot == "look" {
-            // CodeLines measures its body font for row pitch, including while wrapped (EY-170).
+            // The board pitch is a minimum; taller body glyphs still determine their row (EY-170).
             let run = shape::glyphs(window, "0", &self.typeface.font, self.typeface.body);
             self.metrics.row = f32::from(run.line().ascent + run.line().descent)
                 .ceil()
+                .max(self.metrics.row)
                 .max(1.);
         }
         let advance = text
