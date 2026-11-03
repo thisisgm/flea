@@ -4,6 +4,8 @@ use flea_gui::g2::pv3::{
     engine::{Backend, Incoming, Request},
     sandbox::Sandbox,
 };
+#[path = "pv3_helper/probe.rs"]
+mod probe;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -94,6 +96,9 @@ fn run_for(
 // Control: a seek once the first frame is out lands, and the clip plays on.
 #[test]
 fn pv3_a_seek_after_the_first_frame_plays_on() {
+    if probe::skipped() {
+        return;
+    }
     let seen = run(fixture("long.mp4"), None, vec![("frame", Command::Seek(0))]);
     assert!(seen.iter().any(|s| s == "seeked 0"), "{seen:?}");
     assert!(!seen.iter().any(|s| s.starts_with("failed")), "{seen:?}");
@@ -102,6 +107,9 @@ fn pv3_a_seek_after_the_first_frame_plays_on() {
 // mpv refuses a seek until the clip loads. A seek sent while loading must not end the helper, so the clip still plays.
 #[test]
 fn pv3_a_seek_while_loading_keeps_the_clip_playable() {
+    if probe::skipped() {
+        return;
+    }
     for _ in 0..3 {
         let seen = run(fixture("long.mp4"), Some(Command::Seek(0)), vec![]);
         assert!(seen.iter().any(|s| s == "seeked 0"), "{seen:?}");
@@ -112,6 +120,9 @@ fn pv3_a_seek_while_loading_keeps_the_clip_playable() {
 // The seek sent while loading waits for the load, then lands at its own target.
 #[test]
 fn pv3_a_seek_sent_while_loading_lands_once_the_clip_loads() {
+    if probe::skipped() {
+        return;
+    }
     let seen = run(fixture("long.mp4"), Some(Command::Seek(5000)), vec![]);
     assert!(seen.iter().any(|s| s == "seeked 5000"), "{seen:?}");
     assert!(!seen.iter().any(|s| s.starts_with("failed")), "{seen:?}");
@@ -120,6 +131,9 @@ fn pv3_a_seek_sent_while_loading_lands_once_the_clip_loads() {
 // keep-open pauses the clip at its end. The helper reports the end first, so the GUI never sees a Paused on the way.
 #[test]
 fn pv3_a_clip_that_ends_never_reports_paused() {
+    if probe::skipped() {
+        return;
+    }
     let seen = run(fixture("clip.mp4"), None, vec![]);
     assert!(seen.iter().any(|s| s == "ended"), "{seen:?}");
     assert!(
@@ -131,6 +145,9 @@ fn pv3_a_clip_that_ends_never_reports_paused() {
 // The end pauses on the last frame; a Stop then rewinds and draws the first frame again, which the ended preview shows as its poster.
 #[test]
 fn pv3_a_stop_after_the_end_draws_the_first_frame_again() {
+    if probe::skipped() {
+        return;
+    }
     let (seen, pictures) = run_for(
         fixture("clip.mp4"),
         None,

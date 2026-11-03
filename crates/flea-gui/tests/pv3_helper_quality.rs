@@ -3,12 +3,17 @@ use flea_gui::g2::pv3::{
     engine::{Backend, Incoming, Request},
     sandbox::Sandbox,
 };
+#[path = "pv3_helper/probe.rs"]
+mod probe;
 use std::{
     path::PathBuf,
     time::{Duration, Instant},
 };
 #[test]
 fn preview_quality_paused_video_resizes_without_reopening() {
+    if probe::skipped() {
+        return;
+    }
     let sandbox = Sandbox {
         executable: env!("CARGO_BIN_EXE_flea-gui").into(),
         bwrap: "bwrap".into(),

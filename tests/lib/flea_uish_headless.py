@@ -24,6 +24,8 @@ MAX_COMMAND_BYTES = 65536
 TEARDOWN_GRACE_S = 3
 LOG_TAIL_CHARS = 12000
 POLL_S = 0.005
+# A listing that settles just after ready moves its generation once or twice; five reads outlast it.
+OBSERVE_ATTEMPTS = 5
 
 def deadline_seconds(value):
     value = float(value)
@@ -254,11 +256,15 @@ class Window:
         return reply.stdout.decode().removesuffix("\n")
 
     def observe(self, function, *arguments):
-        started = time.monotonic_ns()
-        before = (int(self.value("listRequests")), json.loads(self.value("searchStamps"))["gen"])
-        reply = self.call(function, *arguments)
-        after = (int(self.value("listRequests")), json.loads(self.value("searchStamps"))["gen"])
-        if before != after:
+        # A read that straddles a generation change is discarded and retried; one that never settles is refused.
+        for _attempt in range(OBSERVE_ATTEMPTS):
+            started = time.monotonic_ns()
+            before = (int(self.value("listRequests")), json.loads(self.value("searchStamps"))["gen"])
+            reply = self.call(function, *arguments)
+            after = (int(self.value("listRequests")), json.loads(self.value("searchStamps"))["gen"])
+            if before == after:
+                break
+        else:
             raise TransportError("stale observation: production row generation changed during read")
         return dict(window=self.id, source=self.host.source, started_ns=started,
                     received_ns=time.monotonic_ns(), clock="python-monotonic",
