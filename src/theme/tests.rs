@@ -232,3 +232,12 @@ fn theme_watcher_follows_symlinks_and_missing_targets() {
         .load(None, "monospace")
         .is_err());
 }
+
+#[test]
+fn light_theme_with_distant_surface_uses_subtle_canvas_mix() {
+    let theme = Theme::resolve(
+        "background='#ece3d6'\nforeground='#2b1d07'\ndark_background='#b1aaa1'",
+        "", "", None, "monospace",
+    );
+    assert_eq!(theme.colors.surface.argb(), "#ffddd3c5");
+}

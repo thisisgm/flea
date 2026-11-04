@@ -122,10 +122,21 @@ impl Theme {
                 urgent = *c;
             }
         }
-        let surface = pick(
+        let themed_surface = pick(
             &["dark_background", "background", "selection"],
             hex("#181825"),
         );
+        // Some light themes supply a dark_background intended for other uses.
+        // Keep chrome close to the canvas in that case, like other Omarchy apps.
+        let delta = (bg.r - themed_surface.r)
+            .abs()
+            .max((bg.g - themed_surface.g).abs())
+            .max((bg.b - themed_surface.b).abs());
+        let surface = if bg.luminance() > 0.5 && delta > 0.20 {
+            bg.mix(fg, 0.08).quantized()
+        } else {
+            themed_surface
+        };
         let contrast_bg = pick(&["background"], hex("#101315"));
         let muted_frame = ensure_ratio(pick(&["muted"], fg.darker()), contrast_bg, 3.0);
         let muted = ensure_ratio(ensure_ratio(muted_frame, contrast_bg, 4.5), surface, 4.5);
