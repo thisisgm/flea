@@ -14,8 +14,11 @@ pub(super) fn reserve(mut layout: Layout, on: bool, gap: f32) -> Layout {
     if on {
         let width = (14. + gap).min(layout.name.width);
         layout.name.width -= width;
-        if let Some(mode) = &mut layout.cells[Column::Mode.slot()] {
-            mode.x -= width;
+        // Beside the name Mode moves left with it; anywhere else the shrunken name alone makes the room.
+        if layout.mode_leads() {
+            if let Some(mode) = &mut layout.cells[Column::Mode.slot()] {
+                mode.x -= width;
+            }
         }
     }
     layout

@@ -12,15 +12,20 @@ pub(super) fn reserve(mut layout: Layout, shown: bool, gap: f32) -> Layout {
     if shown {
         let width = (ROW_SLOT + gap).min(layout.name.width);
         layout.name.width -= width;
-        if let Some(mode) = &mut layout.cells[Column::Mode.slot()] {
-            mode.x -= width;
+        // Beside the name Mode moves left with it; anywhere else the shrunken name alone makes the room.
+        if layout.mode_leads() {
+            if let Some(mode) = &mut layout.cells[Column::Mode.slot()] {
+                mode.x -= width;
+            }
         }
     }
     layout
 }
 
 fn slot(layout: &Layout, metrics: &Metrics, row_width: f32) -> Cell {
-    let left = layout.cell(Column::Mode).unwrap_or(layout.name).right() + metrics.gap;
+    // Mode sits beside the name only when it is the leftmost drawn column; otherwise the slot follows the name.
+    let mode = layout.cell(Column::Mode).filter(|_| layout.mode_leads());
+    let left = mode.unwrap_or(layout.name).right() + metrics.gap;
     let right = Column::ALL
         .into_iter()
         .filter(|column| *column != Column::Mode)

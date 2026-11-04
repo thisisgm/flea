@@ -391,6 +391,25 @@ impl Panel {
             self.side == Side::Pane && row.as_ref().is_some_and(|row| row.kind == Kind::Favourite);
         // Shift+J and Shift+K by key, since a layout or a synthetic press can hand over the unshifted "j" as the text.
         let letter = if matches!(text, "J" | "K") { text } else { key };
+        let column = self.side == Side::Pane
+            && row
+                .as_ref()
+                .is_some_and(|row| row.id.starts_with("column:"));
+        if column && shift && matches!(letter, "j" | "k" | "J" | "K") {
+            let down = letter.eq_ignore_ascii_case("j");
+            let id = row.as_ref().map(|row| row.id.clone()).unwrap_or_default();
+            let change = edit::move_column(
+                &self.rows[self.cursor],
+                self.store.document(),
+                if down { 1 } else { -1 },
+            );
+            self.apply(change);
+            // The rows were rebuilt in the new order: the cursor follows the column it moved.
+            if let Some(at) = self.rows.iter().position(|row| row.id == id) {
+                self.cursor = at;
+            }
+            return;
+        }
         if favourite && shift && matches!(letter, "j" | "k" | "J" | "K") {
             let down = letter.eq_ignore_ascii_case("j");
             return self.press(self.cursor, Press::Drag(if down { 1 } else { -1 }));

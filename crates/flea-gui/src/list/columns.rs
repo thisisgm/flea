@@ -36,12 +36,19 @@ impl Column {
 }
 
 /// The columns the user switched on, ui.json "columns"; a fresh install shows the name, size and date.
+/// The array's own order is the order they draw in, left to right; a column it does not name keeps ALL's place after them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Switched([bool; 4]);
+pub struct Switched {
+    shown: [bool; 4],
+    order: [Column; 4],
+}
 
 impl Default for Switched {
     fn default() -> Self {
-        Self([false, true, true, false])
+        Self {
+            shown: [false, true, true, false],
+            order: Column::ALL,
+        }
     }
 }
 
@@ -51,24 +58,41 @@ impl Switched {
         let Some(names) = data.get("columns").and_then(Json::as_array) else {
             return Self::default();
         };
-        let mut on = [false; 4];
+        let mut shown = [false; 4];
+        let mut order = Vec::with_capacity(4);
         for column in names
             .iter()
             .filter_map(Json::as_str)
             .filter_map(Column::from_key)
         {
-            on[column.slot()] = true;
+            shown[column.slot()] = true;
+            if !order.contains(&column) {
+                order.push(column);
+            }
         }
-        Self(on)
+        order.extend(
+            Column::ALL
+                .into_iter()
+                .filter(|column| !shown[column.slot()]),
+        );
+        Self {
+            shown,
+            order: [order[0], order[1], order[2], order[3]],
+        }
     }
 
     pub fn with(mut self, column: Column, on: bool) -> Self {
-        self.0[column.slot()] = on;
+        self.shown[column.slot()] = on;
         self
     }
 
     pub fn on(self, column: Column) -> bool {
-        self.0[column.slot()]
+        self.shown[column.slot()]
+    }
+
+    /// Left to right, the order the columns draw in.
+    pub fn order(self) -> [Column; 4] {
+        self.order
     }
 
     /// Columns.dualSet: a Dual pane never draws Mode or Kind, whatever the List shows.
@@ -220,6 +244,8 @@ impl Cell {
 pub struct Layout {
     pub name: Cell,
     pub cells: [Option<Cell>; 4],
+    /// Left to right, the order the cells were laid in; None reads as ALL.
+    pub order: Option<[Column; 4]>,
     /// Recent uses the Mode geometry for the fixed Location column.
     pub recent_location: bool,
 }
@@ -233,10 +259,25 @@ impl Layout {
         self.cell(column).is_some()
     }
 
+    /// Whether Mode is drawn and is the leftmost drawn column, the place beside the name it holds by default.
+    pub fn mode_leads(&self) -> bool {
+        self.cell(Column::Mode).is_some_and(|mode| {
+            Column::ALL
+                .into_iter()
+                .filter_map(|column| self.cell(column))
+                .all(|cell| cell.x >= mode.x)
+        })
+    }
+
     /// Columns.names(): the drawn set left to right, "name,size,date" on a fresh install.
     pub fn names(&self) -> String {
         let mut out = String::from("name");
-        for column in Column::ALL.into_iter().filter(|column| self.shown(*column)) {
+        for column in self
+            .order
+            .unwrap_or(Column::ALL)
+            .into_iter()
+            .filter(|column| self.shown(*column))
+        {
             out.push(',');
             out.push_str(if self.recent_location && column == Column::Mode {
                 "location"
@@ -259,7 +300,7 @@ impl Layout {
         let on = Column::ALL.map(|each| self.shown(each));
         Self {
             recent_location: self.recent_location,
-            ..chain(row, tokens, on, widths)
+            ..chain(row, tokens, on, widths, self.order.unwrap_or(Column::ALL))
         }
     }
 }
@@ -316,23 +357,35 @@ pub fn resolve(row: f32, tokens: &Tokens, switched: Switched, stored: StoredWidt
             left -= cut;
         }
     }
-    chain(row, tokens, on, widths)
+    chain(row, tokens, on, widths, switched.order())
 }
 
 // Lays the chain from the right edge: each drawn column takes its width and the gap before it, and the name keeps the rest.
-pub(super) fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) -> Layout {
+pub(super) fn chain(
+    row: f32,
+    tokens: &Tokens,
+    on: [bool; 4],
+    widths: [f32; 4],
+    order: [Column; 4],
+) -> Layout {
     let mut cells = [None; 4];
     let mut right = row - tokens.pad;
-    for column in Column::DROP_ORDER {
-        if on[column.slot()] {
-            let width = widths[column.slot()];
-            cells[column.slot()] = Some(Cell {
-                x: right - width,
-                width,
-            });
-            let flush = tokens.flush_size && column == Column::Date && on[Column::Size.slot()];
-            right -= width + if flush { 0. } else { tokens.gap };
-        }
+    // Right to left, so the last column in the order takes the right edge.
+    let drawn: Vec<Column> = order
+        .into_iter()
+        .rev()
+        .filter(|column| on[column.slot()])
+        .collect();
+    for (at, &column) in drawn.iter().enumerate() {
+        let width = widths[column.slot()];
+        cells[column.slot()] = Some(Cell {
+            x: right - width,
+            width,
+        });
+        // Size abuts Date only where it is the next column to Date's left.
+        let flush =
+            tokens.flush_size && column == Column::Date && drawn.get(at + 1) == Some(&Column::Size);
+        right -= width + if flush { 0. } else { tokens.gap };
     }
     let x = tokens.pad + tokens.icon + tokens.gap;
     Layout {
@@ -341,6 +394,7 @@ pub(super) fn chain(row: f32, tokens: &Tokens, on: [bool; 4], widths: [f32; 4]) 
             width: (right - x).max(0.),
         },
         cells,
+        order: Some(order),
         recent_location: false,
     }
 }
