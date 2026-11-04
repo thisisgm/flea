@@ -28,7 +28,9 @@ depends=(
   'jq'                 # formats JSON previews
   'libglvnd'           # libEGL, which flea-gui loads for its OpenGL renderer fallback
   'libheif'            # GPUI HEIC and AVIF photo decoding
+  'libx11'             # linked by the X11 clipboard backend
   'libxcb'             # linked by flea-gui for X11 windows
+  'libxfixes'          # selection-owner change notifications for the X11 clipboard watcher
   'libxkbcommon'       # keyboard maps, linked by flea-gui
   'libxkbcommon-x11'   # X11 keyboard maps, linked by flea-gui
   'mpv'                # libmpv.so.2 for the jailed GPUI audio/video decoder
@@ -48,6 +50,7 @@ depends=(
   'vulkan-icd-loader'  # libvulkan, which the renderer loads at runtime
   'wayland'            # libwayland-client and libwayland-egl, which flea-gui loads at runtime
   'wl-clipboard'       # wl-copy, for Copy Path
+  'xclip'              # owns the X11 CLIPBOARD selection for file copies
   'xdg-terminal-exec'  # what flea --terminal runs
   'xdg-utils'          # xdg-mime, which flea --default sets the folder handler with
 )

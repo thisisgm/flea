@@ -11,7 +11,7 @@ arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
 license=('Apache-2.0' 'BSD-2-Clause' 'BSD-3-Clause' 'CC0-1.0' 'ISC' 'MIT' 'MPL-2.0' 'Unicode-3.0' 'Zlib')
 # The root PKGBUILD's depends and optdepends in its order, which says what uses each; verify refuses a tag where they differ.
-depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'gcc-libs' 'gdk-pixbuf2' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'libglvnd' 'libheif' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'mpv' 'omarchy' 'poppler-glib' 'python' 'python-gobject' 'quickjs-ng' 'qt6-declarative' 'qt6-webengine' 'ripgrep' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'gcc-libs' 'gdk-pixbuf2' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'libglvnd' 'libheif' 'libx11' 'libxcb' 'libxfixes' 'libxkbcommon' 'libxkbcommon-x11' 'mpv' 'omarchy' 'poppler-glib' 'python' 'python-gobject' 'quickjs-ng' 'qt6-declarative' 'qt6-webengine' 'ripgrep' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xclip' 'xdg-terminal-exec' 'xdg-utils')
 optdepends=('7zip: 7z archive support'
             'dropbox-cli: Dropbox browsing and share links'
             'ffmpeg: media metadata previews'
