@@ -46,6 +46,9 @@ fn main() {
     if backend_log_tests::emit_if_requested() {
         return;
     }
+    // Creating the Vulkan instance is the first, and a slow, step of opening a window; start it
+    // now so it overlaps the locale and settings work below instead of following it.
+    gpui_platform::prewarm_gpu();
     let (service, locale) = Service::launch(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
