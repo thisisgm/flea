@@ -19,6 +19,21 @@ impl Shell {
         list.view.set_query(query);
         list.view.set_searching(host.pane.state.search);
         list.view.set_lang_marks(crate::list::lang_marks(data));
+        // Highlight today's dates: today's local midnight while the setting is on, worked out again only once the
+        // stored one is nearly a day old, so a list left open past midnight moves to the new day on its next frame.
+        let highlight = data
+            .get("highlightToday")
+            .and_then(flea::jsondoc::Json::as_bool)
+            == Some(true);
+        list.view.today = highlight.then(|| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |since| since.as_secs() as i64);
+            match list.view.today {
+                Some(start) if now - start < 23 * 3600 => start,
+                _ => crate::row::format::day_start(now),
+            }
+        });
         let switched = Switched::from_settings(data).for_dual(dual);
         list.view.switched = if host.pane.state.search {
             switched
