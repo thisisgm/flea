@@ -44,6 +44,7 @@ impl Shell {
             list.view.switched =
                 Switched::from_settings(&self.launch.settings.data).for_dual(list.view.dual);
             list.view.stored = StoredWidths::from_settings(&self.launch.settings.data);
+            list.view.outline_off = crate::list::outline::off(&self.launch.settings.data);
             list.view.order = host.nav.drawn_order();
             list.view.set_searching(host.pane.state.search);
             // A listing out keeps the handles, as Header.qml gates only on view, Dual and search.

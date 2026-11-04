@@ -156,6 +156,8 @@ pub struct ListView {
     pub switched: Switched,
     pub stored: StoredWidths,
     pub lang_marks: bool,
+    /// ui.json "outline": false, so a folder opens in place neither from its chevron nor from Ctrl+Right.
+    pub outline_off: bool,
     pub tags_shown: bool,
     /// A filter or search's needle, whose run each name marks.
     pub query: String,
@@ -189,6 +191,7 @@ impl Default for ListView {
             switched: Switched::default(),
             stored: StoredWidths::default(),
             lang_marks: true,
+            outline_off: false,
             tags_shown: false,
             query: String::new(),
             searching: false,

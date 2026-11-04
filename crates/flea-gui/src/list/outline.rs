@@ -3,6 +3,11 @@ use super::{ListView, Metrics};
 use flea::protocol::RowFacts;
 use gpui::SharedString;
 
+/// Settings > View "Open folders in place" switched off, read from one window's own settings.
+pub(crate) fn off(data: &flea::jsondoc::Json) -> bool {
+    data.get("outline").and_then(flea::jsondoc::Json::as_bool) == Some(false)
+}
+
 pub fn indent(row: &RowFacts, metrics: &Metrics) -> f32 {
     row.depth as f32 * (metrics.slot + metrics.gap)
 }
@@ -14,15 +19,14 @@ pub fn chevron(
     hovered: bool,
     mirrored: bool,
 ) -> Option<(&'static str, SharedString, &'static [u8])> {
-    view.picker
-        .is_none()
+    (view.picker.is_none() && (!view.outline_off || row.open))
         .then(|| glyph(row, hovered, mirrored))
         .flatten()
 }
 
 /// The left edge of the mark slot a row's chevron is drawn in, as paint_icon places it.
 pub fn chevron_left(view: &ListView, row: &RowFacts, metrics: &Metrics) -> Option<f32> {
-    (view.picker.is_none() && row.dir && (row.open || row.link.is_none()))
+    (view.picker.is_none() && row.dir && (row.open || (!view.outline_off && row.link.is_none())))
         .then(|| metrics.pad + indent(row, metrics))
 }
 

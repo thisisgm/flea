@@ -28,6 +28,7 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         check("showGitStatus", "settings.row.show_git_status", "folder-git-2", is_true(data, &["showGitStatus"])),
         check("highlightToday", "settings.row.highlight_today", "history", is_true(data, &["highlightToday"])),
         check("openFoldersWhileDragging", "settings.row.open_while_dragging", "", is_true(data, &["openFoldersWhileDragging"])),
+        check("outline", "settings.row.outline", "", not_false(data, &["outline"])),
         Row::group("settings.group.sorting"),
         choice("sort.key", "settings.row.sort_by", "sort", &["name", "size", "date", "kind"],
             &["settings.column.name", "settings.column.size", "settings.column.date", "settings.column.kind"],
