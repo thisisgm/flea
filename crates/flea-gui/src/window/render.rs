@@ -76,6 +76,10 @@ impl Render for Shell {
         }
         self.sync_footer_height(window, cx);
         self.sync_tabs(window, cx);
+        // A list preview edge released where the body never saw the release still settles.
+        if self.list_side_live.get().is_some() && !cx.has_active_drag() {
+            self.list_side_release(window, cx);
+        }
         let geometry = self.geometry(window);
         self.size_trash(&geometry, cx);
         self.trash_frame(window, cx);
@@ -377,6 +381,15 @@ impl Render for Shell {
             )
             .children(self.dual_divider(&geometry, palette, cx))
             .children(self.sidebar_edge(&geometry, cx))
+            .children(self.list_side(&geometry, window, cx))
+            .on_drag_move::<super::list_side::SideEdge>(cx.listener(
+                |shell, event: &gpui::DragMoveEvent<super::list_side::SideEdge>, window, cx| {
+                    shell.list_side_drag(f32::from(event.event.position.x), window, cx);
+                },
+            ))
+            .capture_any_mouse_up(cx.listener(|shell, _, window, cx| {
+                shell.list_side_release(window, cx);
+            }))
             .body_ground(background, window, cx)
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))

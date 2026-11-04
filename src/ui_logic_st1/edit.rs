@@ -146,7 +146,7 @@ pub fn step(row: &Row, data: &Json, base: u32, direction: i32) -> Edit {
     let next = walk(&row.values, &row.selected);
     // The two numeric choices store numbers, as their schema rules require.
     let value = match row.id.as_str() {
-        "columnsLimit" | "places.sidebarWidth" => Json::Num(next),
+        "columnsLimit" | "places.sidebarWidth" | "preview.listWidth" => Json::Num(next),
         _ => Json::Str(next),
     };
     Edit::Patch(setting(&row.id, value))
@@ -166,7 +166,7 @@ pub fn pick(row: &Row, data: &Json, base: u32, stop: usize) -> Edit {
     }
     if let Some(value) = row.values.get(stop) {
         let value = match row.id.as_str() {
-            "columnsLimit" | "places.sidebarWidth" => Json::Num(value.clone()),
+            "columnsLimit" | "places.sidebarWidth" | "preview.listWidth" => Json::Num(value.clone()),
             _ => Json::Str(value.clone()),
         };
         return Edit::Patch(setting(&row.id, value));

@@ -23,6 +23,7 @@ pub(crate) mod key_delivery;
 pub mod lifecycle;
 #[path = "../list/join.rs"]
 mod list_join;
+pub(crate) mod list_side;
 pub mod locale;
 #[cfg(test)]
 mod locale_tests;

@@ -54,7 +54,8 @@ impl Shell {
             };
             let visible = setting.column
                 && side == 0
-                && self.view == View::Columns
+                && (self.view == View::Columns
+                    || (self.view == View::List && geometry.side.is_some()))
                 && self.slots.covers[side].is_none()
                 && !host.stopped
                 && host.backend.is_some();
@@ -92,6 +93,11 @@ impl Shell {
             };
             let strip = self.slots.strip_height_for(side) + search;
             let height = geometry.content_height_for(side, self.view, strip);
+            // beside the List view the preview takes the rect the geometry cut for it.
+            let (width, height) = match geometry.side.filter(|_| self.view == View::List) {
+                Some(rect) => (rect.width, rect.height),
+                None => (width, height),
+            };
             let folder_wait = self.view == View::Columns
                 && entity.read(cx).drawn.is_some()
                 && host.columns.as_ref().is_some_and(|columns| {
