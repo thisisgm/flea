@@ -46,7 +46,25 @@ pub fn open_terminal(path: &str) -> i32 {
         }
     };
     detach(&mut terminal);
-    match terminal.spawn() {
+    let started = terminal.spawn().or_else(|error| {
+        if error.kind() != std::io::ErrorKind::NotFound { return Err(error); }
+        // Desktop setups without xdg-terminal-exec can still use a local emulator.
+        let mut alacritty = Command::new("alacritty");
+        alacritty.arg("--working-directory").arg(&target);
+        let mut kitty = Command::new("kitty");
+        kitty.arg("--directory").arg(&target);
+        let mut xterm = Command::new("xterm");
+        xterm.current_dir(&target);
+        for candidate in [&mut alacritty, &mut kitty, &mut xterm] {
+            detach(candidate);
+            match candidate.spawn() {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                result => return result,
+            }
+        }
+        Err(error)
+    });
+    match started {
         Ok(_) => 0,
         Err(_) => {
             eprintln!("flea: nothing on this system could be asked to open a terminal there");

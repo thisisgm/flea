@@ -56,6 +56,7 @@ makedepends=('cargo' 'git' 'pkgconf')
 # qml6 runs tests/js.sh; the same package also serves the runtime HTML helper.
 checkdepends=('qt6-declarative' 'ripgrep' '7zip' 'imagemagick')
 optdepends=(
+  'xclip: X11 clipboard support'
   '7zip: 7z archive support'
   'dropbox-cli: Dropbox browsing and share links'
   'ffmpeg: media metadata previews'
