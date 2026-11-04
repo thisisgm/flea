@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds flea-vX.Y.Z.tar.gz, the release's source tarball that OPR and the AUR flea package build from.
+# Builds flea-vX.Y.Z.tar.gz, the release's source tarball that the OPR flea package builds from.
 # Usage: packaging/flea-source-tarball <tag> <outdir>
 set -euo pipefail
 
@@ -25,7 +25,11 @@ version=${tag#v}
 root="flea-$version"
 asset="flea-$tag.tar.gz"
 stage=$(mktemp -d "${TMPDIR:-/tmp}/flea-source-tarball.XXXXXX")
-cleanup() { rm -rf -- "$stage"; }
+: > "$stage/.flea-release-owned"
+cleanup() {
+  [ -n "$stage" ] && [[ "$stage" = /*/flea-source-tarball.* ]] && [ -f "$stage/.flea-release-owned" ] || return 1
+  rm -rf -- "$stage"
+}
 trap cleanup EXIT
 
 # git archive stamps every entry with the tag commit's time and gzip -n drops its own, so one tag and one gzip give one set of bytes.
@@ -40,6 +44,13 @@ roots=$(tar -tzf "$stage/first.tar.gz" | cut -d/ -f1 | sort -u)
 [ "$roots" = "$root" ] || {
   echo "flea-source-tarball: the tarball's roots are '$roots', not '$root'" >&2; exit 1; }
 
+tar -xOzf "$stage/first.tar.gz" "$root/THIRD-PARTY-LICENSES.txt" > "$stage/notices.txt" || {
+  echo "flea-source-tarball: $tag has no third-party license inventory" >&2; exit 1; }
+[ -s "$stage/notices.txt" ] || {
+  echo "flea-source-tarball: $tag has an empty third-party license inventory" >&2; exit 1; }
+
 mkdir -p "$outdir"
 mv "$stage/first.tar.gz" "$outdir/$asset"
+(cd "$outdir" && sha256sum "$asset" > "$asset.sha256")
 echo "$outdir/$asset"
+echo "$outdir/$asset.sha256"

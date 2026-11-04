@@ -43,6 +43,8 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let error = if forced {
         io::Error::from_raw_os_error(EINVAL)
     } else {
+        #[cfg(test)]
+        super::renametiming::mark("syscall_begin");
         let rc = unsafe {
             renameat2(
                 AT_FDCWD,
@@ -53,9 +55,14 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
             )
         };
         if rc == 0 {
+            #[cfg(test)]
+            super::renametiming::mark("syscall_end");
             return Ok(());
         }
-        io::Error::last_os_error()
+        let error = io::Error::last_os_error();
+        #[cfg(test)]
+        super::renametiming::mark("syscall_end");
+        error
     };
     match error.raw_os_error() {
         Some(EINVAL) | Some(EOPNOTSUPP) => {
@@ -145,9 +152,14 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
 
 // One rename without the case-twin check, so the twin's own temp steps never recurse.
 fn rename_inner(from: &Path, to: &Path) -> Result<(), FleaError> {
+    rename_cancellable(from, to, &AtomicBool::new(false))
+}
+
+// A job's staged result lands here, so its copy fallback stops on the job's own cancel and removes what it copied.
+pub(crate) fn rename_cancellable(from: &Path, to: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
     match rename_noreplace(from, to) {
         Ok(()) => Ok(()),
-        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove(from, to),
+        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove_with(from, to, cancel),
         Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
     }
 }
@@ -265,13 +277,18 @@ pub(crate) fn needs_fuse_fallback_in(from: &Path, error: &io::Error, mountinfo: 
     }
 }
 
-// The target is built through the exclusive copy primitives, so an existing destination is refused rather than replaced.
+// The tests drive the copy fallback uncancelled through this name.
+#[cfg(test)]
 pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
-    let cancel = AtomicBool::new(false);
+    copy_then_remove_with(from, to, &AtomicBool::new(false))
+}
+
+// The target is built through the exclusive copy primitives, so an existing destination is refused, and a cancel makes copy_any remove what it created.
+fn copy_then_remove_with(from: &Path, to: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
     let mut sink = |_: u64, _: u64| {};
     // EXDEV and a GVFS WebDAV rename land here too, and a dav share is a durable destination.
     let mut durability = crate::backend::durable::Durability::begin(to.parent().unwrap_or(from));
-    let mut progress = Progress { cancel: &cancel, on_bytes: &mut sink, partial: None, tree: None, manifest: None, durability: Some(&mut durability), for_move: true };
+    let mut progress = Progress { cancel, on_bytes: &mut sink, partial: None, tree: None, manifest: None, durability: Some(&mut durability), for_move: true };
     if let Err(error) = copy_any(from, to, &mut progress) {
         if progress.partial.as_deref() == Some(to) {
             if let Err(cleanup) = take_back(to) {

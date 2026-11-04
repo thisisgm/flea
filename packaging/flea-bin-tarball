@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stages the tarball flea-bin installs from, laid out as docs/release.md "By hand" describes it.
-# Usage: packaging/flea-bin-tarball <binary> <version> <arch> <outdir>
+# Usage: packaging/flea-bin-tarball <binary> <version> <arch> <outdir>, with flea-gui beside binary.
 set -euo pipefail
 
 if [ "$#" -ne 4 ]; then
@@ -8,6 +8,7 @@ if [ "$#" -ne 4 ]; then
   exit 2
 fi
 binary=$(realpath -e -- "$1") || { echo "flea-bin-tarball: no file at '$1'" >&2; exit 1; }
+gui=$(realpath -e -- "$(dirname "$binary")/flea-gui") || { echo "flea-bin-tarball: no flea-gui beside $binary" >&2; exit 1; }
 version=$2
 arch=$3
 outdir=$4
@@ -27,14 +28,16 @@ case "$arch" in
   aarch64) want_machine="b7 00" ;;
   *) echo "flea-bin-tarball: arch '$arch' is not x86_64 or aarch64" >&2; exit 2 ;;
 esac
-[ -x "$binary" ] || { echo "flea-bin-tarball: '$binary' is not an executable file" >&2; exit 1; }
-[ "$(head -c 4 "$binary" | tr -d '\0')" = $'\x7fELF' ] || {
-  echo "flea-bin-tarball: '$binary' is not an ELF binary" >&2; exit 1; }
-# Sample input: od -An -tx1 -j18 -N2 prints " 3e 00" for an x86_64 ELF.
-read -r lo hi < <(od -An -tx1 -j18 -N2 "$binary")
-machine="$lo $hi"
-[ "$machine" = "$want_machine" ] || {
-  echo "flea-bin-tarball: '$binary' has e_machine '$machine', which is not $arch" >&2; exit 1; }
+for program in "$binary" "$gui"; do
+  [ -x "$program" ] || { echo "flea-bin-tarball: $program is not executable" >&2; exit 1; }
+  [ "$(head -c 4 "$program" | tr -d '\0')" = $'\x7fELF' ] || {
+    echo "flea-bin-tarball: $program is not an ELF binary" >&2; exit 1; }
+  # Sample input: od -An -tx1 -j18 -N2 prints " 3e 00" for an x86_64 ELF.
+  read -r lo hi < <(od -An -tx1 -j18 -N2 "$program")
+  machine="$lo $hi"
+  [ "$machine" = "$want_machine" ] || {
+    echo "flea-bin-tarball: $program has e_machine $machine, which is not $arch" >&2; exit 1; }
+done
 
 # The binary runs here to print its version, so stage a cross-built one inside a container of its own architecture.
 printed=$("$binary" --version) || { echo "flea-bin-tarball: '$binary --version' failed" >&2; exit 1; }
@@ -44,14 +47,19 @@ printed=$("$binary" --version) || { echo "flea-bin-tarball: '$binary --version' 
 name="flea-$version-linux-$arch"
 tarball="flea-v$version-linux-$arch.tar.gz"
 stage=$(mktemp -d "${TMPDIR:-/tmp}/flea-bin-tarball.XXXXXX")
-cleanup() { rm -rf -- "$stage"; }
+: > "$stage/.flea-release-owned"
+cleanup() {
+  [ -n "$stage" ] && [[ "$stage" = /*/flea-bin-tarball.* ]] && [ -f "$stage/.flea-release-owned" ] || return 1
+  rm -rf -- "$stage"
+}
 trap cleanup EXIT
 root="$stage/$name"
 
-# The source PKGBUILD's package() file set, path for path: a path missing here fails the workflow's makepkg proof.
+# flea-bin's package() file set, path for path: a path missing here fails flea-release-build check.
 umask 022
 install -Dm755 "$binary" "$root/flea"
-install -Dm644 "$repo/LICENSE" -t "$root"
+install -Dm755 "$gui" "$root/flea-gui"
+install -Dm644 "$repo/LICENSE" "$repo/THIRD-PARTY-LICENSES.txt" -t "$root"
 install -Dm755 "$repo/tools/flea-gio-auth" "$repo/tools/flea-udisks" "$repo/tools/flea-portal" "$repo/tools/flea-filemanager1" "$repo/tools/flea-mpris" -t "$root/tools"
 install -Dm644 "$repo/packaging/flea.portal" \
   "$repo/packaging/org.freedesktop.impl.portal.desktop.flea.service" \
@@ -65,6 +73,7 @@ install -Dm644 "$repo"/ui/vendor/*.mjs -t "$root/ui/vendor"
 install -Dm644 "$repo"/ui/vendor/LICENSES/* -t "$root/ui/vendor/LICENSES"
 install -Dm644 "$repo/ui/boot/shell.qml" "$repo/ui/boot/picker.qml" "$repo/ui/boot/fleatab.qml" "$repo/ui/boot/tabtearoff.qml" -t "$root/ui/boot"
 install -Dm644 "$repo/shelf/manifest.json" "$repo/shelf/README.md" "$repo"/shelf/*.qml "$repo"/shelf/*.js -t "$root/shelf"
+for catalog in "$repo"/i18n/*/flea.json; do install -Dm644 "$catalog" "$root/${catalog#"$repo/"}"; done
 
 # Owner, order, modes, mtime and gzip's own header are fixed, so the same tree and binary give the same bytes.
 mtime=${SOURCE_DATE_EPOCH:-}

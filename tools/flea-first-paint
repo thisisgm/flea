@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Compares live launch with experimental prewarm generation; the UI does not adopt it.
 set -u
 # Hard rule 9's guard, which owns FIXTURE_ROOT. This was the last script in the tree writing without
@@ -7,10 +8,11 @@ set -u
 
 
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)"
+eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
 
 root=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 bin=${BIN:-$root/target/release/flea}
+flea_ipc_init "$bin"
 ui=${UI:-$root/ui}
 dir=${DIR:-$FIXTURE_ROOT/flea-bench-btrfs}
 prewarm_path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/flea-first-paint-$$.json
@@ -37,7 +39,7 @@ fail() {
 is_flea_process() {
     local pid=$1
     [ -r "/proc/$pid/cmdline" ] || return 1
-    tr '\0' ' ' < "/proc/$pid/cmdline" | grep -Fq -- "$ui"
+    LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq -- "$ui"
 }
 
 wait_for_flea_process() {
@@ -53,7 +55,7 @@ wait_for_flea_process() {
 
 assert_no_flea() {
     local pid
-    for pid in $(pgrep -x qs 2>/dev/null); do
+    for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs 2>/dev/null); do
         if is_flea_process "$pid"; then
             fail "Flea is already running as pid $pid"
         fi
@@ -85,7 +87,7 @@ wait_for_row() {
     local deadline=$((SECONDS + timeout_seconds))
     local actual
     while ((SECONDS <= deadline)); do
-        actual=$(omarchy-drive ipc -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
+        actual=$(LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_drive -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
         if [ "$actual" = "$expected_row" ]; then
             return 0
         fi
@@ -103,7 +105,7 @@ run_once() {
     local elapsed
 
     rm -f "$prewarm_path"
-    start=$(date +%s%3N)
+    start=$(LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N)
     if [ "$generate_prewarm" = yes ]; then
         "$bin" --prewarm "$dir" "$first" "$prewarm_path" || fail "prewarm failed"
     fi
@@ -119,15 +121,15 @@ run_once() {
     shell_pid=$!
     pid=$shell_pid
     wait_for_flea_process "$pid" || fail "launched pid $pid is not Flea"
-    if ! omarchy-drive wait window flea --timeout "$timeout_seconds" >/dev/null; then
+    if ! LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout "$timeout_seconds" >/dev/null; then
         stop_shell "$pid"
         fail "the shell exited before a window appeared"
     fi
-    if ! omarchy-drive windows --json | grep -q '"class":"com.thisisgm.flea"'; then
+    if ! LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive windows --json | LC_ALL=C.UTF-8 LANGUAGE= grep -q '"class":"com.thisisgm.flea"'; then
         stop_shell "$pid"
         fail "the mapped window is not Flea"
     fi
-    if ! omarchy-drive wait ipc -p "$ui/boot" flea total "$expected_total" --timeout "$timeout_seconds" >/dev/null; then
+    if ! LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_wait -p "$ui/boot" flea total "$expected_total" --timeout "$timeout_seconds" >/dev/null; then
         stop_shell "$pid"
         fail "the expected total never reached the window"
     fi
@@ -135,14 +137,14 @@ run_once() {
         stop_shell "$pid"
         fail "the expected first row never reached the window"
     fi
-    elapsed=$(( $(date +%s%3N) - start ))
+    elapsed=$(( $(LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N) - start ))
     printf '  %-22s %4d ms\n' "$label" "$elapsed"
     stop_shell "$pid"
 }
 
 [ -x "$bin" ] || fail "$bin is missing, run cargo build --release"
 [ -d "$dir" ] || fail "$dir is missing"
-[ "$(findmnt -T "$dir" -no FSTYPE)" != tmpfs ] || fail "$dir is on tmpfs"
+[ "$(LC_ALL=C.UTF-8 LANGUAGE= findmnt -T "$dir" -no FSTYPE)" != tmpfs ] || fail "$dir is on tmpfs"
 case "$iterations" in
     ''|*[!0-9]*|0) fail "ITERATIONS must be a positive integer" ;;
 esac

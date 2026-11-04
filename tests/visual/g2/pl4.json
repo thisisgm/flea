@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "unit": "g2-pl4",
+  "scenes": [
+    {
+      "scene": "g2.pl4.plugin-rail-section.primary",
+      "unit": "g2-pl4",
+      "title": "A plugin's rail section: SYNCTHING after DEVICES",
+      "board_png": "design-hig/boards/plugin-rail-section.png",
+      "board_html": "design-hig/boards/plugin-rail-section.html",
+      "before_png": "design-hig/before/list-populated-1100x700.png",
+      "sha256": {
+        "board_png": "ad88b89f3d82ebfd9d479da0963f3b0e7bac1e83d5784b73731827c8b70ba02c",
+        "board_html": "3827c4374a75d31b962a743992bc0eb6dc85fca6765e3b72d4513ec3b8d23ea8",
+        "before_png": "9afc0f8bd5907ffc91079e2a429656fda8482d3807cbead4743778b499fab65d"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "plugin": "syncthing fixture section: Photos on, Notes on, Music off"
+      },
+      "assertions": [
+        "PLACES Home Trash",
+        "NETWORK NAS off square",
+        "DEVICES QEMU HARDDISK… green square",
+        "SYNCTHING after DEVICES in the built-in heading style",
+        "Photos and Notes green squares, Music off square"
+      ],
+      "parity_ids": [
+        "board:plugin-rail-section"
+      ],
+      "producer_owner": [
+        "g2-pl4",
+        "G1.11",
+        "st2",
+        "pl1",
+        "pl2"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pl4.rail-favorites.primary",
+      "unit": "g2-pl4",
+      "title": "A favorite's rail menu",
+      "board_png": "design-hig/boards/rail-favorites.png",
+      "board_html": "design-hig/boards/rail-favorites.html",
+      "before_png": "design-hig/before/rail-favorites-1100x700.png",
+      "sha256": {
+        "board_png": "35d98eeb17a0903f10e1b390628713d52e8f5acd9c64c872d0e34f76bf160f64",
+        "board_html": "6b2a5683026ffad73a4879b1e86f6c8e4cfad2d5e00b438ee0d56cc37b561a22",
+        "before_png": "0907989c3cb488d4584430d18fb69495ade81f340cb4a9a1bc768361e174a25a"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "favorites": [
+          "/fx/v/work/Docs"
+        ],
+        "menu": "rail row Docs"
+      },
+      "assertions": [
+        "FAVORITES heading between PLACES and NETWORK",
+        "Docs row",
+        "menu Remove from Favorites with the minus mark under the 8% wash, no edge",
+        "list cursor on A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-favorites"
+      ],
+      "producer_owner": [
+        "g2-pl4",
+        "G1.11",
+        "mn1",
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pl4.tag-marks.primary",
+      "unit": "g2-pl4",
+      "title": "Tag marks on rows",
+      "board_png": "design-hig/boards/tag-marks.png",
+      "board_html": "design-hig/boards/tag-marks.html",
+      "before_png": "design-hig/before/tags-listing-1100x700.png",
+      "sha256": {
+        "board_png": "582a68fe3e7addce7dc26263307878cef73f65d571b52c1dd1dd4c03f320623e",
+        "board_html": "e160139b73cf1f905ee4d0c51ac553c7451d43fc5e023d1472e76766461a7520",
+        "before_png": "65f8334d521d54ce9f5c8d369d6d15a67900d28087b8e10a890779f0913871f4"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Docs",
+        "tags": {
+          "notes.txt": [
+            "Yellow",
+            "Green",
+            "Purple"
+          ],
+          "readme.md": [
+            "Red",
+            "Blue"
+          ]
+        }
+      },
+      "assertions": [
+        "14px swatches gap 3px in the 97px slot",
+        "notes.txt yellow green purple",
+        "readme.md red blue",
+        "report.pdf no marks",
+        "no framed digit on the bench palette"
+      ],
+      "parity_ids": [
+        "board:tag-marks"
+      ],
+      "producer_owner": [
+        "g2-pl4",
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pl4.tags-menu.primary",
+      "unit": "g2-pl4",
+      "title": "Tags flyout",
+      "board_png": "design-hig/boards/tags-menu.png",
+      "board_html": "design-hig/boards/tags-menu.html",
+      "before_png": "design-hig/before/tags-flyout-1100x700.png",
+      "sha256": {
+        "board_png": "0d82a96b67357d5357bb0ebb1c570fa94c612669f0864d5cebfef647ffaddb32",
+        "board_html": "17b2ee03d1c330aa6edfb52fdc810aeb170fcce3c57223fb3656faf80a4d1247",
+        "before_png": "5a811352abf67a5575c4920f99c0c781c7a608e9d71181c54a7f4432285f99cd"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Docs",
+        "menu": "file menu on notes.txt, Tags flyout open"
+      },
+      "assertions": [
+        "seven tag rows, swatch leads, digit hint 1 to 7",
+        "no Remove All Tags while notes.txt has no tag",
+        "Red under the 8% wash",
+        "Tags parent lit grey",
+        "flyout 312px wide"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "g2-pl4",
+        "mn1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}

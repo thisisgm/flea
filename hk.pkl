@@ -15,7 +15,7 @@ hooks {
       ["partial-index-guard"] {
         check = "tools/flea-hook-check guard"
       }
-      // Both read guarded inputs, so neither runs before the guard has passed.
+      // Every check reads guarded inputs and waits for the guard to pass.
       ["clippy"] {
         depends = "partial-index-guard"
         check = "tools/flea-clippy tools/clippy-baseline.txt .flea-local/sandbox/tmp/hk-clippy"
@@ -23,6 +23,14 @@ hooks {
       ["file-budget"] {
         depends = "partial-index-guard"
         check = "tools/flea-file-budget"
+      }
+      ["fmt-crates"] {
+        depends = "partial-index-guard"
+        check = "cargo fmt --package flea-gui -- --check"
+      }
+      ["gpui-lint"] {
+        depends = "partial-index-guard"
+        check = "tools/flea-gpui-lint"
       }
     }
   }
@@ -43,6 +51,12 @@ hooks {
       }
       ["file-budget"] {
         check = "tools/flea-file-budget"
+      }
+      ["fmt-crates"] {
+        check = "cargo fmt --package flea-gui -- --check"
+      }
+      ["gpui-lint"] {
+        check = "tools/flea-gpui-lint"
       }
     }
   }

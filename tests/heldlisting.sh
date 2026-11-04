@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 . "$(dirname "$0")/headless-commons.sh"
 # A held first listing reads loading in List and Columns while the IPC seam stays unbuilt, and ui-captures-states.sh proves the reading shot by a live shell's "Target not found." for that absent seam.
 set -u
@@ -117,7 +119,7 @@ leg_dirs() {
 # One qs ipc call against the control shell's runtime dir, the same two answers the harness reads: "Target not found." for a missing target, a refusal for a missing shell.
 ctl_qs() {
     env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR="$ctl/runtime" QT_QPA_PLATFORM=offscreen \
-        timeout 5 qs ipc -p "$ctl/config" call "$@"
+        timeout 5 "$FLEA_IPC_HELPER" -p "$ctl/config" call "$@"
 }
 
 # The real qs against a shell that serves one target, other, and never flea: "Target not found." while it lives, "No running instances" once it is gone.
@@ -190,7 +192,7 @@ pane_leg() {
 boot_ipc() {
     local runtime=$1
     shift
-    env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR="$runtime" QT_QPA_PLATFORM=offscreen timeout 5 qs ipc -p "$PWD/ui/boot" call flea "$@" 2> /dev/null
+    env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR="$runtime" QT_QPA_PLATFORM=offscreen timeout 5 "$FLEA_IPC_HELPER" -p "$PWD/ui/boot" call flea "$@" 2> /dev/null
 }
 
 # The real entry offscreen: no seam answers while the list is held, and the seam answers once the rows have landed in the view the leg is named for.

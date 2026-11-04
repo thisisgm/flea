@@ -1,0 +1,3087 @@
+{
+  "schema": 1,
+  "reference_ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+  "sources": {
+    "scope": {
+      "kind": "file",
+      "path": "/home/gm/flea-work/ctl-gates/benchmark-original-scope-audit-2033-1023/key-recovery-2042/MARKDOWN-FINDER-SCOPE.json",
+      "sha256": "27fec4b629fe4f0fbc635652fd208b8ab357c305f58c1b442a08a122ded4b0a7"
+    },
+    "scenes": {
+      "kind": "file",
+      "path": "/home/gm/flea-work/ctl-gates/benchmark-original-scope-audit-2033-1023/key-recovery-2042/EXISTING-MARKDOWN-WINDOW-SCENE-IDS.json",
+      "sha256": "700931269f6552284192fb2584853c21197d9f07ee883c45340513615cf30361"
+    },
+    "rivals": {
+      "kind": "file",
+      "path": "/home/gm/flea-work/ctl-gates/benchmark-original-scope-audit-2033-1023/RIVALS.json",
+      "sha256": "75b1e5b3fcfef68d24d2fbe4b1706a6a63bc30ee88cb8dbcf24e2e22fd94622f"
+    },
+    "native-contract": {
+      "kind": "file",
+      "path": "${FLEA_RELEASE_ROOT}/plans/g2plan/NATIVE.md",
+      "sha256": "8ce25db932f36f94e40a65317250a5ce6ecbf2e24d5a5824a0fe655d5ca602d9"
+    },
+    "capture-register": {
+      "kind": "file",
+      "path": "${FLEA_RELEASE_ROOT}/plans/g2plan/CAPTURES.tsv",
+      "sha256": "cde62c329fc48bdcd39759d2eb6f049fac133477a9c2c033aa79e906f1f423eb"
+    },
+    "changes": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/CHANGES.md",
+      "sha256": "ed33f44c03e360808f9c7e231c7600b7ce2b1c5674ad225ccef259501e83958e"
+    },
+    "design": {
+      "kind": "file",
+      "path": "/home/gm/Documents/claude/flea-release/.superpowers/flea/design/canvas-040/DESIGN-040.md",
+      "sha256": "3ba284f31e361ef62f0c025c68b86152bf3541776e206b98af3ff82e592c970c"
+    },
+    "standing": {
+      "kind": "file",
+      "path": "/home/gm/flea-work/ctl-gates/bench-harness-reconcile-1205-1023/review/STANDING-INVENTORY.source.md",
+      "sha256": "273f58ad40e0e8a7e665d87b078b0f76fb5431244b65bbc9394dfb68d5d777b7"
+    },
+    "pv2-md-review": {
+      "kind": "file",
+      "path": "${FLEA_RELEASE_ROOT}/reviews/rev-g2-pv2-md-r3.md",
+      "sha256": "e9573960cc487a9295810f83b8de797d6fb37df32391cef440dbcbedbf9bd8cd"
+    },
+    "b6-review": {
+      "kind": "file",
+      "path": "${FLEA_RELEASE_ROOT}/reviews/rev-bench-b6-r2.md",
+      "sha256": "3e2390171e104d189e0dfc17bcdc19994888187d44b41927108471914cb0a3a6"
+    },
+    "pele-receipt": {
+      "kind": "file",
+      "path": "${FLEA_RELEASE_ROOT}/native/pele/pelew5/ui-cap_markdown_pele.log",
+      "sha256": "7bee2570100f2541888468abb22705476bd4dc87e8d4c46210898b830c3d0986"
+    },
+    "capture-recipes": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/ui-captures-markdown.sh",
+      "sha256": "2949222a0f85e5bab0ab9e4f304244aa6179c972b30a1b7bc7c8b42a1f7db8ef"
+    },
+    "table-assets": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/markdown-tables-assets.sh",
+      "sha256": "5ffde78d069c59a5e67b3bc6bae9b28eb07c81ea962d59be14e8d2b4a29e13eb"
+    },
+    "helper-cases": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tools/flea-figure-bench",
+      "sha256": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7"
+    },
+    "nav-contract": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tools/flea-field-nav",
+      "sha256": "f5810b53a4d231c3eebb463d9f50eaa46b0c331f9a4db7fd53971ac148f7ef56"
+    },
+    "fixture-readme": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "README.md",
+      "sha256": "9e04183717b83c56fe7459411e08ad5ecff68504c3a3db505f097e55345858e9"
+    },
+    "nav-fixture": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tools/flea-nav-fixture",
+      "sha256": "34c20d7e78d2485f7a61dc085e0fbd14f5a3d29c33935fca040203710ab1cc0e",
+      "blob": "12ddaf8bd73a9245d8035862ada66efe30cae684"
+    },
+    "preview-column-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/preview-column.png",
+      "sha256": "3c4aa70892d6fee9893ca2b4b67e491ff5364f37e1b4f49d8c234e74a7e24728"
+    },
+    "preview-column-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/preview-column.html",
+      "sha256": "9e681229d0a3f614e12a777c6076e158fc265775d51bada27d87eb80b7c5e8ab"
+    },
+    "preview-column-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-1100x700.png",
+      "sha256": "e1d64c5f9df7c2959729a0b52856e7107330dcb86f2023b36974a2b92b52eed5"
+    },
+    "cols-preview-markdown-crlf-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-crlf.png",
+      "sha256": "d41524100734d0451b441d84daab87c8781b3d9f592c561f2cb6c3951adcd4c5"
+    },
+    "cols-preview-markdown-crlf-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-crlf.html",
+      "sha256": "2c8c491e233733f28f04069fa4718d735470cf16ef1b27b756da1f41f69c64cc"
+    },
+    "cols-preview-markdown-crlf-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-crlf-1100x700.png",
+      "sha256": "30ba6273f9f24b87859226eff44df0ed1a4e55158032147438bfde6cfe741990"
+    },
+    "cols-preview-markdown-facts-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-facts.png",
+      "sha256": "894d985b962a6e685d378fa01fda413119fd7fd3948fc008fbdb308600c0a9f8"
+    },
+    "cols-preview-markdown-facts-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/cols-preview-markdown-facts.html",
+      "sha256": "939f0706c07b33f016255be2b9bca84af3d842fa84237975ce1775b9f2f3fc88"
+    },
+    "cols-preview-markdown-facts-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/cols-preview-markdown-facts-1100x700.png",
+      "sha256": "9ff8e4875559c6737272ee38858d829770ef37d5ff681760dc1659d14beb4e34"
+    },
+    "ql-markdown-badges-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-badges.png",
+      "sha256": "89ab15ca27792534c4f7427abb86fc0816b30da76cebab24a7d4556c2a93b914"
+    },
+    "ql-markdown-badges-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-badges.html",
+      "sha256": "81f9403ebdeed94aa68e4c60a9936d531ab0815900ff0da3895b78e6512c4232"
+    },
+    "ql-markdown-badges-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-badges-1100x700.png",
+      "sha256": "20c3ffa59502eb0a4f76cc5d6b7012d9ce0086ee2123c5e71022f08a5b7e3f33"
+    },
+    "ql-markdown-bar-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-bar.png",
+      "sha256": "6e6a4c53ee5ea439cc3be17deaaaa00ddd9e483eceba43c310a870bd0246d3b4"
+    },
+    "ql-markdown-bar-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-bar.html",
+      "sha256": "b8fafb747cf20d63179209c973fef169b0d6b1abad6f5099dcb3eec81fe5c6e5"
+    },
+    "ql-markdown-bar-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-bar-1100x700.png",
+      "sha256": "475ec24de398e04060472210a21c0782addc80401d21206493989a206d69ab1b"
+    },
+    "ql-markdown-closefocus-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-closefocus.png",
+      "sha256": "733c036e4d2e0b546b32f565555d744e84bca99030cbf0e72fdd0d8a691e959a"
+    },
+    "ql-markdown-closefocus-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-closefocus.html",
+      "sha256": "c6cd0bc0fa56923c4de08c12488703ef75c61f0afb0f6c5b8070c02580a0541c"
+    },
+    "ql-markdown-closefocus-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-closefocus-1100x700.png",
+      "sha256": "023f069598f9c35dfd321acf523aee514c92134b8a1ece336d54e2d826368eb1"
+    },
+    "ql-markdown-crlf-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-crlf.png",
+      "sha256": "0142dd7734c60780bcde6f171b89e1f2d2a1e3f50174c40d3bb9e1832b41b511"
+    },
+    "ql-markdown-crlf-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-crlf.html",
+      "sha256": "2ad51dfabe924e17e8a75b96527d398dbd0d552ed470be6664fd7008909760ae"
+    },
+    "ql-markdown-crlf-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-crlf-1100x700.png",
+      "sha256": "ebc96c2be6877d85d0a0563952b6b698b65c88b2113d038bd8c41013dff50a37"
+    },
+    "ql-markdown-figures-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-figures.png",
+      "sha256": "261fb08d9c4eab04d2de0f318f46da937a5fa36683576829fcdaccb63abc73ee"
+    },
+    "ql-markdown-figures-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-figures.html",
+      "sha256": "3ac546c84928725a54647a79f30666d6c7167e4b3ab4c29ffb0fac79ab20282b"
+    },
+    "ql-markdown-figures-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-figures-1100x700.png",
+      "sha256": "a0a5b711acabefba35cb1ac366be6d5244820a47a73342b4814cad6dc5181ef0"
+    },
+    "ql-markdown-html-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-html.png",
+      "sha256": "55d69300b6a151ed6e409fda1404c17195a8d90a0ba5bff54f9365329857b9ee"
+    },
+    "ql-markdown-html-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-html.html",
+      "sha256": "c11ff03ce3bdd271ab7bca19a8645eee44c187613589ec97140f2d3d1346f5ad"
+    },
+    "ql-markdown-html-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-html-1100x700.png",
+      "sha256": "f1e3742c28abe9f831fe36a3939b719d392c7db6ee5ee504d7e1f9af0abe5fec"
+    },
+    "ql-markdown-nesting-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-nesting.png",
+      "sha256": "cf97cd6bd46b8f730f3770bc7b211ccd56810e44fd50c845517bda448a8e77a7"
+    },
+    "ql-markdown-nesting-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-nesting.html",
+      "sha256": "bd6b3fee20c5421fd70707d8cb68b2b63acd56fb39a91491c39d2c287f0e65ec"
+    },
+    "ql-markdown-nesting-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-nesting-1100x700.png",
+      "sha256": "33cd2fb646c407d62b80c7cc6dd7a58c5cb2306a07ebb4d646a4a9234ad17a48"
+    },
+    "ql-markdown-source-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-source.png",
+      "sha256": "7561c39bc1a9b7853825fcb426d11f5f7b8316aff77c18ce9b6d51cc37729867"
+    },
+    "ql-markdown-source-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-source.html",
+      "sha256": "165e209938ca294687f754f36071f6b7f1d7a42b0cef4f36496f4c034627cd76"
+    },
+    "ql-markdown-source-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-source-1100x700.png",
+      "sha256": "abdecbff2b08770adb4f35020acbdfd7c302de17d07b0382d9fba08bb6e39a59"
+    },
+    "ql-markdown-tables-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-tables.png",
+      "sha256": "b037925e54ce8a9f11452dda7695123f1615fda9bcff2e329bdf315207ef9faf"
+    },
+    "ql-markdown-tables-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown-tables.html",
+      "sha256": "adb028443dd622bd6925d92e6d2f1f6be846a9acb7905d1c1863c83273bededa"
+    },
+    "ql-markdown-tables-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-tables-1100x700.png",
+      "sha256": "2d9fd729e0b4738d60da5cce0d910f5a28d232b28cc69d309e0e949e45b0e7e7"
+    },
+    "ql-markdown-png": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown.png",
+      "sha256": "2c99f9e9e28db59c6eff1e90da9fc930444b1a0d4820011799cb8284f1f78c8c"
+    },
+    "ql-markdown-html": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/boards/ql-markdown.html",
+      "sha256": "c97a52583691f4d7dfdb1c57ac2ead192c9ae1e2521e8f94f2b5a464390bc44a"
+    },
+    "ql-markdown-before": {
+      "kind": "file",
+      "path": "${FLEA_VISUAL_DESIGN}/before/ql-markdown-1100x700.png",
+      "sha256": "3bd05e4def5a493da3642f7ca0544962b49f63a77b7c8e9e9fcac0de9c5c271b"
+    },
+    "markdown-tables/adjacent": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/adjacent.md",
+      "sha256": "9ad51544b2ff79cec9577106f14ab74182a953e357d368a8de834c9f9d33287b"
+    },
+    "markdown-tables/align": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/align.md",
+      "sha256": "7022b6a4a53418abbcb48f4dcb8f03741d123f8924bd63d324435e2c0bb578a2"
+    },
+    "markdown-tables/br": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/br.md",
+      "sha256": "45dc3a91d095094696eb15c3de90a11a61eb01fee9467e5597f8f3ce38a04112"
+    },
+    "markdown-tables/cjk": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/cjk.md",
+      "sha256": "6dc96c8167622997e1af6fd39fd280f6fe5e19d37497c7da2ebe296be435d5ab"
+    },
+    "markdown-tables/extreme": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/extreme.md",
+      "sha256": "e82fd4ab546e6f238cb9ccb4041af3d9d21dfed67ca47ea3abc7de1d8293218c"
+    },
+    "markdown-tables/headonly": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/headonly.md",
+      "sha256": "9ae378403d85e79568e1c2d721237b178e7be18fd8a40e2e85da6128b828b88b"
+    },
+    "markdown-tables/inline": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/inline.md",
+      "sha256": "448f6cc6c1274088b0f6169622c3a1b4bf5f247c8cf8924594cdb70fbc768766"
+    },
+    "markdown-tables/mid": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/mid.md",
+      "sha256": "97f2cdcfcff981124c20e0dcdc4bf49c15c2db86cf1bdc4254332f10dd8d3e1b"
+    },
+    "markdown-tables/nested": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/nested.md",
+      "sha256": "70af52384638de621f5bcdd240db9f8f566cbe97a1abc2d4f8e1511bca8b9aa6"
+    },
+    "markdown-tables/nestedwide": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/nestedwide.md",
+      "sha256": "176ef36896ff8522ec09e76bdfacd2c24e69619dcd7464998118cb659a8be6db"
+    },
+    "markdown-tables/overflow": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/overflow.md",
+      "sha256": "895f7f0eaae29bf8e5637fb6f10ca43c511b10e62dd54eb2c68be58a53e762a0"
+    },
+    "markdown-tables/path": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/path.md",
+      "sha256": "6d55a693be9d59c2cf03f99db4f2063cd64f081def3fc97db9aa86ba49c7d0d5"
+    },
+    "markdown-tables/picturewide": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/picturewide.md",
+      "sha256": "12a530cc7046a5d1dd4fda8577ea36aaffe62055fc363f497c3b18f61dc78198"
+    },
+    "markdown-tables/ragged": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/ragged.md",
+      "sha256": "62d3a6c71b901243b83dc059451a3e32d8fee08dc650b469bcc4cec1b839af51"
+    },
+    "markdown-tables/sentence": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/sentence.md",
+      "sha256": "ef8c1f366f268cf066413eb0d6f0eface62c2b0862c3d472c49d7797a31ca084"
+    },
+    "markdown-tables/wide": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-tables/wide.md",
+      "sha256": "384c941352cb38f20b90c2dd38aa1f523a35f7c10a81d87b983d7fc7421c7866"
+    },
+    "markdown-picline/picfirst": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picfirst.md",
+      "sha256": "61519b59f073984c26912e21df2d62cf363ae27ea8236353ac851b8c6c693296"
+    },
+    "markdown-picline/piclist": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/piclist.md",
+      "sha256": "a6bb64cb24e3c8588d8a09332e2996dbeae2f677a0d7f1966cba6aa295358758"
+    },
+    "markdown-picline/picordered": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picordered.md",
+      "sha256": "2a572141bd8e477456f1c8552c7f1a865292bad8a4bd06613660128d05cc7b69"
+    },
+    "markdown-picline/picparts": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picparts.md",
+      "sha256": "eff3affd57f59d423fc3af1667f02f9d91dfd578066d52d17583388721a37750"
+    },
+    "markdown-picline/picquote": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picquote.md",
+      "sha256": "336c309051e26cfb3c99706b598d557386bb4e9c33e7df4203120ee5be310da1"
+    },
+    "markdown-picline/picsecond": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picsecond.md",
+      "sha256": "b23a8f26b9f3fed727d22ad600bb72c1446f4c8e19bf9f065a08d28b41d70466"
+    },
+    "markdown-picline/picwide": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picwide.md",
+      "sha256": "a02f43dcc3baa89ddde15970a3ca2c6b272f60273782795401d7f96f0b4abc84"
+    },
+    "markdown-picline/picwidelist": {
+      "kind": "git",
+      "ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+      "path": "tests/fixtures/markdown-picline/picwidelist.md",
+      "sha256": "e5082136f17106b10bdc2cfb0ca2d4ed127880540b4838879b530f01e61ff16a"
+    },
+    "markdown-mermaid/agentflow": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/agentflow.md",
+      "sha256": "3a22cff7ecc72db2abc7fc8c82b1918781f39f892f90685dc193319a656ea27a"
+    },
+    "markdown-mermaid/architecture": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/architecture.md",
+      "sha256": "0fab58c2009015e5c826ac29db654d05d330668cfcaad58221fc5c94d7b5c8c3"
+    },
+    "markdown-mermaid/block": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/block.md",
+      "sha256": "ab3bc384e4fc6f3b7806dabab577d7d51438ea4d1dc119e39ce41183fc2b2fae"
+    },
+    "markdown-mermaid/c4": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/c4.md",
+      "sha256": "ea39f4170bb0c5fac822c748fc9a24710d5e71a607b402deab41e46eb1d276ce"
+    },
+    "markdown-mermaid/class": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/class.md",
+      "sha256": "91a9a57f5913907ba06d9acb4b377f210ce0157469afea6eef7c4aaf75dcc3b7"
+    },
+    "markdown-mermaid/cynefin": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/cynefin.md",
+      "sha256": "c3e7be6d64c9b9f756d1da9e8998c1f32b6828e4f324bd4b9fc5de532dace6b3"
+    },
+    "markdown-mermaid/er": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/er.md",
+      "sha256": "e3779a756e111f33c9546a72656e48d7c439e3ea81df5cbead743131f47d2de6"
+    },
+    "markdown-mermaid/eventmodeling": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/eventmodeling.md",
+      "sha256": "78b2186a0c6ca763cd608766712eeca5daa56e62e022cca2c121ec0f8f70548e"
+    },
+    "markdown-mermaid/flowchart": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/flowchart.md",
+      "sha256": "2371a129f123f9f0549ce98aa0232a0f852a759cbfba76d97660fe235566306c"
+    },
+    "markdown-mermaid/gantt": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/gantt.md",
+      "sha256": "cfa0dbe96dd0f3843ecfcafef33d676ce5b4d2a925d081194fed452184719010"
+    },
+    "markdown-mermaid/git": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/git.md",
+      "sha256": "d91f2640e8cb28f81d1915c23f51f90a60e23977832a1b33c38ad722636b634d"
+    },
+    "markdown-mermaid/info": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/info.md",
+      "sha256": "830bf6320a360a6d4b2cde5bd0cec5a915de9dd57e0564d59a2e63e33e131424"
+    },
+    "markdown-mermaid/ishikawa": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/ishikawa.md",
+      "sha256": "02fd4bdbb2470cbdb5f642b9a0eb92c889175e48822dafc92082c63faf77d671"
+    },
+    "markdown-mermaid/journey": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/journey.md",
+      "sha256": "ec45481999a19b32b122cebe72e562baf50181866aa03d3353dc84065c68ff0c"
+    },
+    "markdown-mermaid/kanban": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/kanban.md",
+      "sha256": "66f01ab0f5ff4ce88ad3721bf0e4d330509a70d51473b9a90f722599a6efa3d8"
+    },
+    "markdown-mermaid/mindmap": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/mindmap.md",
+      "sha256": "185accea0334c24b80f5a94d8d94db9efd8f52404f5704e0d0f8b3abe75ff01f"
+    },
+    "markdown-mermaid/packet": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/packet.md",
+      "sha256": "51799d7e2e43871e704757130ebd565fc18ce6dfb8559d7af2f4cbec5f49ee7e"
+    },
+    "markdown-mermaid/pie": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/pie.md",
+      "sha256": "23f43432a91f6e22fc44daedf3656be7a5511ecc8d4cd8e0e79320a85aa127c1"
+    },
+    "markdown-mermaid/quadrant": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/quadrant.md",
+      "sha256": "ee9cff777fa402d16625e79783d1724fc13a92977cda064232f31c3381001aa9"
+    },
+    "markdown-mermaid/radar": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/radar.md",
+      "sha256": "8249ff1d61de09af5ebb68e18ab4ce6189743a2f0452fe50d83abacc9d797463"
+    },
+    "markdown-mermaid/railroad": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/railroad.md",
+      "sha256": "c75119bc41ff8d43635c8245af0c439ff38fd03708f6f55e5db846d5e18e80e7"
+    },
+    "markdown-mermaid/requirement": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/requirement.md",
+      "sha256": "004e8f2f4ecb3d678d145c3b6ed3661dc976e109587cd25556453d943ea4aa1d"
+    },
+    "markdown-mermaid/sankey": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/sankey.md",
+      "sha256": "9e3e2630d6e928938ef6f80988987228dd5aa1b22a8f62cfa0add049bccf94f0"
+    },
+    "markdown-mermaid/sequence": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/sequence.md",
+      "sha256": "3276570b9e3180fae9d0f62c777a1283d0ce7b4bedcfab4cfe109bb872755d11"
+    },
+    "markdown-mermaid/state": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/state.md",
+      "sha256": "257709f83a655729d36a133cb04956cde2a8993ffd4204a45718c97335b603e6"
+    },
+    "markdown-mermaid/swimlane": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/swimlane.md",
+      "sha256": "e86735129cc034fe8d16c152cb98d90267e7f5260e534b89ff5d2fecac7e9060"
+    },
+    "markdown-mermaid/timeline": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/timeline.md",
+      "sha256": "1b4e9d8a44c97d6b7ae6829f1412e7171b11bb310bd96b83e9cd8e03f2b739d0"
+    },
+    "markdown-mermaid/treemap": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/treemap.md",
+      "sha256": "d47d3b67bde81a0a5d12829cf2bb698c4ce6b569b764af996f734f0287cbf56d"
+    },
+    "markdown-mermaid/treeview": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/treeview.md",
+      "sha256": "12c3d5f236dcf309138b697e6f94bd8124aa226c64c7f2171330b5eeb3254373"
+    },
+    "markdown-mermaid/usecase": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/usecase.md",
+      "sha256": "e5a4f2a9ea333eee21883e1fa1af7e952d8773d65c3998d9e0772d3ed3eb7d0c"
+    },
+    "markdown-mermaid/venn": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/venn.md",
+      "sha256": "6229b73f72bd756bef81de642180ffbef199a514d44573025234dbb7746db1fa"
+    },
+    "markdown-mermaid/wardley": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/wardley.md",
+      "sha256": "eaab7a81fa86e04843474500fb431ff3db1dc9c9de33d0f0f87953ced27dea25"
+    },
+    "markdown-mermaid/xychart": {
+      "kind": "git",
+      "ref": "2faf8d099e12303cfb5a28af4a0c16c851a2cb07",
+      "path": "tests/fixtures/markdown-mermaid/xychart.md",
+      "sha256": "872edda917cab4bf1f7119a89f976d83dab4d5b627db288e12bdc6eec111e4e6"
+    }
+  },
+  "scenes": {
+    "g2.pv1.preview-column.primary": {
+      "board": "preview-column",
+      "width": 1100,
+      "height": 700,
+      "png": "preview-column-png",
+      "html": "preview-column-html",
+      "oracle": "preview-column-before"
+    },
+    "g2.pv2.cols-preview-markdown-crlf.primary": {
+      "board": "cols-preview-markdown-crlf",
+      "width": 1100,
+      "height": 700,
+      "png": "cols-preview-markdown-crlf-png",
+      "html": "cols-preview-markdown-crlf-html",
+      "oracle": "cols-preview-markdown-crlf-before"
+    },
+    "g2.pv2.cols-preview-markdown-facts.primary": {
+      "board": "cols-preview-markdown-facts",
+      "width": 1100,
+      "height": 700,
+      "png": "cols-preview-markdown-facts-png",
+      "html": "cols-preview-markdown-facts-html",
+      "oracle": "cols-preview-markdown-facts-before"
+    },
+    "g2.pv2.ql-markdown-badges.primary": {
+      "board": "ql-markdown-badges",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-badges-png",
+      "html": "ql-markdown-badges-html",
+      "oracle": "ql-markdown-badges-before"
+    },
+    "g2.pv2.ql-markdown-bar.primary": {
+      "board": "ql-markdown-bar",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-bar-png",
+      "html": "ql-markdown-bar-html",
+      "oracle": "ql-markdown-bar-before"
+    },
+    "g2.pv2.ql-markdown-closefocus.primary": {
+      "board": "ql-markdown-closefocus",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-closefocus-png",
+      "html": "ql-markdown-closefocus-html",
+      "oracle": "ql-markdown-closefocus-before"
+    },
+    "g2.pv2.ql-markdown-crlf.primary": {
+      "board": "ql-markdown-crlf",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-crlf-png",
+      "html": "ql-markdown-crlf-html",
+      "oracle": "ql-markdown-crlf-before"
+    },
+    "g2.pv2.ql-markdown-figures.primary": {
+      "board": "ql-markdown-figures",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-figures-png",
+      "html": "ql-markdown-figures-html",
+      "oracle": "ql-markdown-figures-before"
+    },
+    "g2.pv2.ql-markdown-html.primary": {
+      "board": "ql-markdown-html",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-html-png",
+      "html": "ql-markdown-html-html",
+      "oracle": "ql-markdown-html-before"
+    },
+    "g2.pv2.ql-markdown-nesting.primary": {
+      "board": "ql-markdown-nesting",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-nesting-png",
+      "html": "ql-markdown-nesting-html",
+      "oracle": "ql-markdown-nesting-before"
+    },
+    "g2.pv2.ql-markdown-source.primary": {
+      "board": "ql-markdown-source",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-source-png",
+      "html": "ql-markdown-source-html",
+      "oracle": "ql-markdown-source-before"
+    },
+    "g2.pv2.ql-markdown-tables.primary": {
+      "board": "ql-markdown-tables",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-tables-png",
+      "html": "ql-markdown-tables-html",
+      "oracle": "ql-markdown-tables-before"
+    },
+    "g2.pv2.ql-markdown.primary": {
+      "board": "ql-markdown",
+      "width": 1100,
+      "height": 700,
+      "png": "ql-markdown-png",
+      "html": "ql-markdown-html",
+      "oracle": "ql-markdown-before"
+    }
+  },
+  "fixtures": {
+    "notes": {
+      "source": "capture-recipes",
+      "selector": "case_cap_markdown",
+      "files": [
+        "notes.md",
+        "bench.png"
+      ],
+      "outputs": {
+        "notes.md": "c28522f780d0940fbd86bf66b54cf74d5e5c9522c5a6fb7442713a049f71645b",
+        "bench.png": "ee8a31a14c616779566a01c34bb9b9f4ab021ff07cf4216a189bc47edb3d93a4"
+      }
+    },
+    "kinds": {
+      "source": "capture-recipes",
+      "selector": "capmarkdownkinds_fixture",
+      "files": [
+        "tables.md",
+        "readme.md",
+        "badges.md",
+        "nesting.md",
+        "figures.md",
+        "logo.png",
+        "bands.png"
+      ],
+      "outputs": {
+        "tables.md": "dbc83f506911c33d3412dfc5e6b6e303705c85a9a213d671f35fc5b9d54ebc9f",
+        "readme.md": "ec115a18c1389c8192b341e4313c3468135fbc4a24191487f61c1ecf1643c0c1",
+        "badges.md": "4139fa5809b94adfac2c4af1d3e3bc3aaed7eb1aafb575a124bc5d777218ccab",
+        "nesting.md": "a0b098644613cc7eed6f8e4cce203ee11fb6f7c66bef49b33c76cf49a2d7b2f3",
+        "figures.md": "4d106ec5b8aadcadc823277776fae9ffaa86be37e214a98605dfba1e8a3da9c8",
+        "logo.png": "2e6d3c3d8deb64cb6b3fed8e809423b77dd2fbb9118bd473691ac8945f35f746",
+        "bands.png": "2e6d3c3d8deb64cb6b3fed8e809423b77dd2fbb9118bd473691ac8945f35f746"
+      }
+    },
+    "fences": {
+      "source": "capture-recipes",
+      "selector": "capmarkdownfences_fixture",
+      "files": [
+        "fence-lf.md",
+        "fence-crlf.md",
+        "fence-four.md",
+        "fence-item.md",
+        "fence-readme.md",
+        "fence-big.md",
+        "fence-bigcrlf.md"
+      ],
+      "source_dependencies": [
+        "fixture-readme"
+      ],
+      "outputs": {
+        "fence-lf.md": "2b252fefc82d29046f0a872815a59bd47998da35755dcadef1805537ac0eaa4a",
+        "fence-crlf.md": "796fcbcc752a5a6b0215c14c53dbc6504df542fa12eaf45fb474306c14be4457",
+        "fence-four.md": "03b07e1d0536eae50bc5765ee18d1aa5b66f39b5690cb0150a1bce0ce4b3020c",
+        "fence-item.md": "9ef6536db113693a0b35b729c24ab70b758620fa7d462da51aba1a9a896926bc",
+        "fence-readme.md": "620489093fb7a171ecd6277c1700dfb4b4dcae845d7e3b56e1a3099148369c43",
+        "fence-big.md": "bd0ab190083ae9c2d9c47cacf1afd13d34cd32016d47e1a5ccb6a91c517eddcf",
+        "fence-bigcrlf.md": "23e858b3c662595b60ff8efcf3783203947f06e14b66cd9b501666fa4bc9de4f"
+      }
+    },
+    "fences14": {
+      "source": "capture-recipes",
+      "selector": "capmarkdownfences14_fixture",
+      "files": [
+        "fence14-wide.md",
+        "fence14-tags.md",
+        "fence14-tabs.md",
+        "fence14-open.md",
+        "fence14-tight.md",
+        "fence14-indent.md",
+        "fence14-long.md"
+      ],
+      "outputs": {
+        "fence14-wide.md": "81f769dc889b9098ea894966e875eeb35365c0166af20b09107e540d1d7f8051",
+        "fence14-tags.md": "d6bc042a497ce9b319739fad840954b87054377ebb7ea2275d559c3c868e32bf",
+        "fence14-tabs.md": "3c9c72af83e7457dbf06b31de7429b75aefd8a1e15b32aba58226c2e30f53d15",
+        "fence14-open.md": "110c5a9aa6ff1786713eb5751069b575820480774a6f420cdad8951d3af1bc3e",
+        "fence14-tight.md": "30571eadb6da2f801c0d3d8f31bda50a6ede24d3d70801d79fc285749a053baa",
+        "fence14-indent.md": "0bd7be504735de73a57d2149a67ec1821e23fd931f6452ddc878445df83dd06b",
+        "fence14-long.md": "4f6bc302afdbfbc6eca13deb5f5c61ad24829fc3a7f017d5b45d343496181b2a"
+      }
+    },
+    "table-assets": {
+      "source": "table-assets",
+      "selector": "markdown_tables_assets_write",
+      "files": [
+        "dot.png",
+        "wide.png",
+        "huge.png",
+        "rows500.md",
+        "chunkwide.md",
+        "pair.md"
+      ],
+      "outputs": {
+        "dot.png": "680660ec45d1a46a04bc420495333c392b14d118aabf42211e6914bc1fff8cb9",
+        "wide.png": "a7975003181d14b3373360974d53076202f93a74b2916228ff0f50fadf313b64",
+        "huge.png": "288d8d033f80e5e48f97139c79ec15ddbdede57c59a1c4eb037336740409fbcc",
+        "rows500.md": "378ccfb2cf1feb4d20c8d0ee1fff562e7d6d88c28b724dcc4b50a37426247c00",
+        "chunkwide.md": "b418983c49139f53731e4a65bd7c9b097baeb6eac209eaef3102efdd46566fd4",
+        "pair.md": "0aaa81570a8d2bf6b5c1b401fcd2d97efc897c9ffdd0ac3bb024864b2c410a8d"
+      }
+    },
+    "table-control": {
+      "source": "nav-fixture",
+      "selector": "ql_texts",
+      "files": [
+        "ql_md_table_first",
+        "ql_md_plain",
+        "ql_md_plain_b"
+      ],
+      "layout": "qltable/{name}/{name}.md"
+    },
+    "helper": {
+      "source": "helper-cases",
+      "selector": "CASES",
+      "files": [
+        "math",
+        "flowchart",
+        "sequence"
+      ],
+      "outputs": {
+        "math": "596da5fff611ba59c5ebf41f9735f265565876d055dfe392bb9390e85ec13215",
+        "flowchart": "f8b3b53d2c48fa87686b2bd1d9986567f164627b388f60b42bb34ded8bfb3306",
+        "sequence": "970695ee0505e3375c8ff06361b6230852cf318fdd948c64dc13a7dc3dfcb65d"
+      }
+    },
+    "specimen/preview-column": {
+      "source": "preview-column-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "guide.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/cols-preview-markdown-crlf": {
+      "source": "cols-preview-markdown-crlf-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "crlf.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/cols-preview-markdown-facts": {
+      "source": "cols-preview-markdown-facts-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "facts.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-badges": {
+      "source": "ql-markdown-badges-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "badges.md",
+        "beta.md",
+        "guide.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-bar": {
+      "source": "ql-markdown-bar-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "11-previews-stage-quick-look-bar-and-fact-toggle-review.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-closefocus": {
+      "source": "ql-markdown-closefocus-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "guide.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-crlf": {
+      "source": "ql-markdown-crlf-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "crlf.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-figures": {
+      "source": "ql-markdown-figures-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "figures.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-html": {
+      "source": "ql-markdown-html-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "readme.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-nesting": {
+      "source": "ql-markdown-nesting-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "nesting.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-source": {
+      "source": "ql-markdown-source-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "guide.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown-tables": {
+      "source": "ql-markdown-tables-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "beta.md",
+        "tables.md"
+      ],
+      "question": "board-specimens"
+    },
+    "specimen/ql-markdown": {
+      "source": "ql-markdown-html",
+      "selector": "original-board-fixture",
+      "files": [
+        "guide.md"
+      ],
+      "question": "board-specimens"
+    },
+    "markdown-tables/adjacent": {
+      "source": "markdown-tables/adjacent",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/adjacent.md"
+      ]
+    },
+    "markdown-tables/align": {
+      "source": "markdown-tables/align",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/align.md"
+      ]
+    },
+    "markdown-tables/br": {
+      "source": "markdown-tables/br",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/br.md"
+      ]
+    },
+    "markdown-tables/cjk": {
+      "source": "markdown-tables/cjk",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/cjk.md"
+      ]
+    },
+    "markdown-tables/extreme": {
+      "source": "markdown-tables/extreme",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/extreme.md"
+      ]
+    },
+    "markdown-tables/headonly": {
+      "source": "markdown-tables/headonly",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/headonly.md"
+      ]
+    },
+    "markdown-tables/inline": {
+      "source": "markdown-tables/inline",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/inline.md"
+      ]
+    },
+    "markdown-tables/mid": {
+      "source": "markdown-tables/mid",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/mid.md"
+      ]
+    },
+    "markdown-tables/nested": {
+      "source": "markdown-tables/nested",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/nested.md"
+      ]
+    },
+    "markdown-tables/nestedwide": {
+      "source": "markdown-tables/nestedwide",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/nestedwide.md"
+      ]
+    },
+    "markdown-tables/overflow": {
+      "source": "markdown-tables/overflow",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/overflow.md"
+      ]
+    },
+    "markdown-tables/path": {
+      "source": "markdown-tables/path",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/path.md"
+      ]
+    },
+    "markdown-tables/picturewide": {
+      "source": "markdown-tables/picturewide",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/picturewide.md"
+      ]
+    },
+    "markdown-tables/ragged": {
+      "source": "markdown-tables/ragged",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/ragged.md"
+      ]
+    },
+    "markdown-tables/sentence": {
+      "source": "markdown-tables/sentence",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/sentence.md"
+      ]
+    },
+    "markdown-tables/wide": {
+      "source": "markdown-tables/wide",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-tables/wide.md"
+      ]
+    },
+    "markdown-picline/picfirst": {
+      "source": "markdown-picline/picfirst",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picfirst.md"
+      ]
+    },
+    "markdown-picline/piclist": {
+      "source": "markdown-picline/piclist",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/piclist.md"
+      ]
+    },
+    "markdown-picline/picordered": {
+      "source": "markdown-picline/picordered",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picordered.md"
+      ]
+    },
+    "markdown-picline/picparts": {
+      "source": "markdown-picline/picparts",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picparts.md"
+      ]
+    },
+    "markdown-picline/picquote": {
+      "source": "markdown-picline/picquote",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picquote.md"
+      ]
+    },
+    "markdown-picline/picsecond": {
+      "source": "markdown-picline/picsecond",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picsecond.md"
+      ]
+    },
+    "markdown-picline/picwide": {
+      "source": "markdown-picline/picwide",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picwide.md"
+      ]
+    },
+    "markdown-picline/picwidelist": {
+      "source": "markdown-picline/picwidelist",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-picline/picwidelist.md"
+      ]
+    },
+    "markdown-mermaid/agentflow": {
+      "source": "markdown-mermaid/agentflow",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/agentflow.md"
+      ]
+    },
+    "markdown-mermaid/architecture": {
+      "source": "markdown-mermaid/architecture",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/architecture.md"
+      ]
+    },
+    "markdown-mermaid/block": {
+      "source": "markdown-mermaid/block",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/block.md"
+      ]
+    },
+    "markdown-mermaid/c4": {
+      "source": "markdown-mermaid/c4",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/c4.md"
+      ]
+    },
+    "markdown-mermaid/class": {
+      "source": "markdown-mermaid/class",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/class.md"
+      ]
+    },
+    "markdown-mermaid/cynefin": {
+      "source": "markdown-mermaid/cynefin",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/cynefin.md"
+      ]
+    },
+    "markdown-mermaid/er": {
+      "source": "markdown-mermaid/er",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/er.md"
+      ]
+    },
+    "markdown-mermaid/eventmodeling": {
+      "source": "markdown-mermaid/eventmodeling",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/eventmodeling.md"
+      ]
+    },
+    "markdown-mermaid/flowchart": {
+      "source": "markdown-mermaid/flowchart",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/flowchart.md"
+      ]
+    },
+    "markdown-mermaid/gantt": {
+      "source": "markdown-mermaid/gantt",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/gantt.md"
+      ]
+    },
+    "markdown-mermaid/git": {
+      "source": "markdown-mermaid/git",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/git.md"
+      ]
+    },
+    "markdown-mermaid/info": {
+      "source": "markdown-mermaid/info",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/info.md"
+      ]
+    },
+    "markdown-mermaid/ishikawa": {
+      "source": "markdown-mermaid/ishikawa",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/ishikawa.md"
+      ]
+    },
+    "markdown-mermaid/journey": {
+      "source": "markdown-mermaid/journey",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/journey.md"
+      ]
+    },
+    "markdown-mermaid/kanban": {
+      "source": "markdown-mermaid/kanban",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/kanban.md"
+      ]
+    },
+    "markdown-mermaid/mindmap": {
+      "source": "markdown-mermaid/mindmap",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/mindmap.md"
+      ]
+    },
+    "markdown-mermaid/packet": {
+      "source": "markdown-mermaid/packet",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/packet.md"
+      ]
+    },
+    "markdown-mermaid/pie": {
+      "source": "markdown-mermaid/pie",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/pie.md"
+      ]
+    },
+    "markdown-mermaid/quadrant": {
+      "source": "markdown-mermaid/quadrant",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/quadrant.md"
+      ]
+    },
+    "markdown-mermaid/radar": {
+      "source": "markdown-mermaid/radar",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/radar.md"
+      ]
+    },
+    "markdown-mermaid/railroad": {
+      "source": "markdown-mermaid/railroad",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/railroad.md"
+      ]
+    },
+    "markdown-mermaid/requirement": {
+      "source": "markdown-mermaid/requirement",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/requirement.md"
+      ]
+    },
+    "markdown-mermaid/sankey": {
+      "source": "markdown-mermaid/sankey",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/sankey.md"
+      ]
+    },
+    "markdown-mermaid/sequence": {
+      "source": "markdown-mermaid/sequence",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/sequence.md"
+      ]
+    },
+    "markdown-mermaid/state": {
+      "source": "markdown-mermaid/state",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/state.md"
+      ]
+    },
+    "markdown-mermaid/swimlane": {
+      "source": "markdown-mermaid/swimlane",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/swimlane.md"
+      ]
+    },
+    "markdown-mermaid/timeline": {
+      "source": "markdown-mermaid/timeline",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/timeline.md"
+      ]
+    },
+    "markdown-mermaid/treemap": {
+      "source": "markdown-mermaid/treemap",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/treemap.md"
+      ]
+    },
+    "markdown-mermaid/treeview": {
+      "source": "markdown-mermaid/treeview",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/treeview.md"
+      ]
+    },
+    "markdown-mermaid/usecase": {
+      "source": "markdown-mermaid/usecase",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/usecase.md"
+      ]
+    },
+    "markdown-mermaid/venn": {
+      "source": "markdown-mermaid/venn",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/venn.md"
+      ]
+    },
+    "markdown-mermaid/wardley": {
+      "source": "markdown-mermaid/wardley",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/wardley.md"
+      ]
+    },
+    "markdown-mermaid/xychart": {
+      "source": "markdown-mermaid/xychart",
+      "selector": "whole-file",
+      "files": [
+        "tests/fixtures/markdown-mermaid/xychart.md"
+      ]
+    }
+  },
+  "entrants": [
+    {
+      "id": "strata-stable",
+      "product": "Strata",
+      "channel": "stable",
+      "version": "1.1.0",
+      "bracket": "gui"
+    },
+    {
+      "id": "strata-nightly",
+      "product": "Strata",
+      "channel": "nightly",
+      "version": "1.0.1-nightly.20261018",
+      "bracket": "gui"
+    },
+    {
+      "id": "flea",
+      "product": "Flea",
+      "channel": "candidate",
+      "version": "0.4.0",
+      "bracket": "gui"
+    },
+    {
+      "id": "flea-anchor",
+      "product": "Flea",
+      "channel": "installed-reference",
+      "version": "0.3.12",
+      "bracket": "gui",
+      "source_ref": "f21789e56cc4b0877caa3156fff7bce52a8dd9c2"
+    },
+    {
+      "id": "dolphin",
+      "product": "dolphin",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "nautilus",
+      "product": "nautilus",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "nemo",
+      "product": "nemo",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "thunar",
+      "product": "thunar",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "pcmanfm",
+      "product": "pcmanfm",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "krusader",
+      "product": "krusader",
+      "version": null,
+      "bracket": "gui"
+    },
+    {
+      "id": "yazi",
+      "product": "yazi",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "mc",
+      "product": "mc",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "broot",
+      "product": "broot",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "nnn",
+      "product": "nnn",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "lf",
+      "product": "lf",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "ranger",
+      "product": "ranger",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "xplr",
+      "product": "xplr",
+      "version": null,
+      "bracket": "tui"
+    },
+    {
+      "id": "superfile",
+      "product": "superfile",
+      "version": null,
+      "bracket": "tui"
+    }
+  ],
+  "features": [
+    {
+      "id": "rendered-default",
+      "title": "Rendered is the initial mode",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "rendered-default"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "source-toggle",
+      "title": "Rendered and Source switch with r and retain complete source",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown-source"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-source.primary"
+      },
+      "checks": [
+        "rest",
+        "source",
+        "toggle-r",
+        "line-count"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "kind-preference",
+      "title": "Mode persists per kind and carries from Quick Look into column",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-source",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-source.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "source",
+        "reopen",
+        "other-kind",
+        "column-after-source"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "headings",
+      "title": "Themed heading hierarchy",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "lists",
+      "title": "Ordered, unordered and task lists",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-nesting",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-nesting.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "links",
+      "title": "Link ink, activation and scheme policy",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "link-activation",
+        "blocked-scheme"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "inline-code",
+      "title": "Inline code remains distinct",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "fenced-code",
+      "title": "Language, indentation, wide, unclosed and nested fences",
+      "fixtures": [
+        "fences",
+        "fences14",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "blockquote",
+      "title": "Nested blockquote text and bars",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-nesting",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-nesting.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "tables",
+      "title": "Alignment, cells, inline content and all table fixtures",
+      "fixtures": [
+        "markdown-tables/adjacent",
+        "markdown-tables/align",
+        "markdown-tables/br",
+        "markdown-tables/cjk",
+        "markdown-tables/extreme",
+        "markdown-tables/headonly",
+        "markdown-tables/inline",
+        "markdown-tables/mid",
+        "markdown-tables/nested",
+        "markdown-tables/nestedwide",
+        "markdown-tables/overflow",
+        "markdown-tables/path",
+        "markdown-tables/picturewide",
+        "markdown-tables/ragged",
+        "markdown-tables/sentence",
+        "markdown-tables/wide",
+        "specimen/ql-markdown-tables",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-tables.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "ql_md_table_first",
+      "title": "First useful table in frame one",
+      "fixtures": [
+        "table-control",
+        "specimen/ql-markdown-tables"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-tables.primary"
+      },
+      "checks": [
+        "rest",
+        "frame1"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "ql_md_plain",
+      "title": "Equal-byte plain first-use control",
+      "fixtures": [
+        "table-control",
+        "specimen/ql-markdown-tables"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-tables.primary"
+      },
+      "checks": [
+        "rest",
+        "frame1"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "ql_md_plain_b",
+      "title": "Byte-identical plain twin control",
+      "fixtures": [
+        "table-control",
+        "specimen/ql-markdown-tables"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-tables.primary"
+      },
+      "checks": [
+        "rest",
+        "frame1"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "crlf",
+      "title": "CRLF text and fences match LF",
+      "fixtures": [
+        "fences",
+        "specimen/ql-markdown-crlf",
+        "specimen/cols-preview-markdown-crlf"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-crlf.primary",
+        "column": "g2.pv2.cols-preview-markdown-crlf.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "nesting",
+      "title": "Nested lists, quotes, tasks, tables and pictures",
+      "fixtures": [
+        "kinds",
+        "markdown-tables/nested",
+        "markdown-tables/nestedwide",
+        "specimen/ql-markdown-nesting",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-nesting.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "badges",
+      "title": "Local badges, wrapping and linked image chips",
+      "fixtures": [
+        "kinds",
+        "specimen/ql-markdown-badges",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-badges.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "embedded-html",
+      "title": "Authored HTML inside Markdown and inert script",
+      "fixtures": [
+        "kinds",
+        "specimen/ql-markdown-html",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-html.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "local-images",
+      "title": "Relative images beside file including nested and wide pictures",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "markdown-picline/picfirst",
+        "markdown-picline/piclist",
+        "markdown-picline/picordered",
+        "markdown-picline/picparts",
+        "markdown-picline/picquote",
+        "markdown-picline/picsecond",
+        "markdown-picline/picwide",
+        "markdown-picline/picwidelist",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "remote-images",
+      "title": "Remote images remain blocked with placeholder",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "remote-placeholder",
+        "zero-remote-requests"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "math-inline",
+      "title": "Inline math alongside literal prices",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "math-display",
+      "title": "Display equation",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "math-fence",
+      "title": "Fenced math equation",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "figure-fallback",
+      "title": "Malformed figure retains source fallback",
+      "fixtures": [
+        "notes",
+        "kinds",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "large-document",
+      "title": "Long document across source head boundary and many screens",
+      "fixtures": [
+        "fences",
+        "fences14",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "wide-content",
+      "title": "Independent horizontal table scrolling and wide code/images",
+      "fixtures": [
+        "table-assets",
+        "markdown-tables/overflow",
+        "markdown-tables/wide",
+        "fences14",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "scroll-end",
+      "title": "Rest, mid-scroll, final block and footer clearance",
+      "fixtures": [
+        "notes",
+        "table-assets",
+        "specimen/ql-markdown",
+        "specimen/preview-column"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown.primary",
+        "column": "g2.pv1.preview-column.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "long-name-bar",
+      "title": "Long Markdown name with mode words",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown-bar"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-bar.primary"
+      },
+      "checks": [
+        "rest"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "close-focus",
+      "title": "Close hover, focus, press and release-off behavior",
+      "fixtures": [
+        "notes",
+        "specimen/ql-markdown-closefocus"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-closefocus.primary"
+      },
+      "checks": [
+        "rest",
+        "hover",
+        "focus",
+        "press",
+        "release-off",
+        "close"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "helper-gui-math",
+      "title": "GUI preview of the exact helper math CASES source",
+      "fixtures": [
+        "helper",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "helper-gui-flowchart",
+      "title": "GUI preview of the exact helper flowchart CASES source",
+      "fixtures": [
+        "helper",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "helper-gui-sequence",
+      "title": "GUI preview of the exact helper sequence CASES source",
+      "fixtures": [
+        "helper",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": true
+    },
+    {
+      "id": "mermaid-agentflow",
+      "title": "Mermaid agentflow figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/agentflow",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-architecture",
+      "title": "Mermaid architecture figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/architecture",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-block",
+      "title": "Mermaid block figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/block",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-c4",
+      "title": "Mermaid c4 figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/c4",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-class",
+      "title": "Mermaid class figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/class",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-cynefin",
+      "title": "Mermaid cynefin figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/cynefin",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-er",
+      "title": "Mermaid er figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/er",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-eventmodeling",
+      "title": "Mermaid eventmodeling figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/eventmodeling",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-flowchart",
+      "title": "Mermaid flowchart figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/flowchart",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-gantt",
+      "title": "Mermaid gantt figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/gantt",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-git",
+      "title": "Mermaid git figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/git",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-info",
+      "title": "Mermaid info figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/info",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-ishikawa",
+      "title": "Mermaid ishikawa figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/ishikawa",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-journey",
+      "title": "Mermaid journey figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/journey",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-kanban",
+      "title": "Mermaid kanban figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/kanban",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-mindmap",
+      "title": "Mermaid mindmap figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/mindmap",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-packet",
+      "title": "Mermaid packet figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/packet",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-pie",
+      "title": "Mermaid pie figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/pie",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-quadrant",
+      "title": "Mermaid quadrant figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/quadrant",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-radar",
+      "title": "Mermaid radar figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/radar",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-railroad",
+      "title": "Mermaid railroad figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/railroad",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-requirement",
+      "title": "Mermaid requirement figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/requirement",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-sankey",
+      "title": "Mermaid sankey figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/sankey",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-sequence",
+      "title": "Mermaid sequence figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/sequence",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-state",
+      "title": "Mermaid state figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/state",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-swimlane",
+      "title": "Mermaid swimlane figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/swimlane",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-timeline",
+      "title": "Mermaid timeline figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/timeline",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-treemap",
+      "title": "Mermaid treemap figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/treemap",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-treeview",
+      "title": "Mermaid treeview figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/treeview",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-usecase",
+      "title": "Mermaid usecase figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/usecase",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-venn",
+      "title": "Mermaid venn figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/venn",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-wardley",
+      "title": "Mermaid wardley figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/wardley",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    },
+    {
+      "id": "mermaid-xychart",
+      "title": "Mermaid xychart figure or documented source fallback",
+      "fixtures": [
+        "markdown-mermaid/xychart",
+        "specimen/ql-markdown-figures",
+        "specimen/cols-preview-markdown-facts"
+      ],
+      "source_refs": [
+        "scope",
+        "native-contract",
+        "design"
+      ],
+      "scenes": {
+        "quicklook": "g2.pv2.ql-markdown-figures.primary",
+        "column": "g2.pv2.cols-preview-markdown-facts.primary"
+      },
+      "checks": [
+        "rest",
+        "scroll",
+        "end"
+      ],
+      "candidate_required": false
+    }
+  ],
+  "modes": [
+    "cold",
+    "warm"
+  ],
+  "pairs_per_mode": 10,
+  "component_cases": [
+    "math",
+    "flowchart",
+    "sequence"
+  ],
+  "questions": {
+    "historical-matrix": "The recovered sources did not locate an exhaustive historical feature-by-rival table. Reconcile any additional source without removing these rows.",
+    "board-specimens": "Recover exact guide.md, crlf.md, facts.md, long-name and other named board fixture bytes from the original visual fixture packet. A corpus notes.md is not the long-name or CRLF specimen. HTML/PNG source pins describe the specimen but do not substitute for its original file.",
+    "native-observer": "Supply a calibrated product observer for useful presented content, per-feature pixel inspection and real product capability; helper readiness and unavailable automation are not product evidence."
+  },
+  "reuse": [
+    {
+      "source": "pv2-md-review",
+      "scope": "Reviewed parser/layout delta only; not current mounted preview acceptance"
+    },
+    {
+      "source": "pele-receipt",
+      "scope": "Historical 33-family Quick Look/column shots only; not current candidate or rival timing"
+    },
+    {
+      "source": "b6-review",
+      "scope": "Version/manifest/report delta only; not this matrix or native results"
+    }
+  ]
+}

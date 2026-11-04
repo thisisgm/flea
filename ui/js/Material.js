@@ -91,14 +91,6 @@ function inks(c, a, need) {
     return {foreground: primary, muted: muted, metadata: metadata}
 }
 
-// Transparent has an undimmed backdrop; raise its nominal alpha only when even the ink's endpoint cannot hold AA.
-function transparentFloor(c, need, a) {
-    var unblurred = Object.assign({}, c, {blurBrightness: 1})
-    var endpoint = Contrast.hexOf(direction(c))
-    while (a < STEPS && worst(endpoint, unblurred, a) < need) a++
-    return a
-}
-
 // One alpha for every main plane in A, raised only if its ink cannot hold the two text rungs.
 function floor(c, need) {
     for (var a = MIN_ALPHA; a < STEPS; a++) {

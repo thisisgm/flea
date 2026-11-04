@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Facts.js" as Facts
 import "js/Icons.js" as Icons
 import "js/Kinds.js" as Kinds
 import "js/Search.js" as Search
@@ -367,7 +366,7 @@ Item {
         var key = newPath + "\n" + newIcon + "\n" + newSize + "\n" + newKind
         // Pending covers a repeat; a settled revisit of the shown target stays put, anything else reloads.
         var now = Date.now()
-        var decision = PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running)
+        var decision = PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running, root.unrested(key))
         if (decision === "same") return
         if (key === root.lastMoveKey && root.isShown(newPath, newIcon, newSize, newKind)) return
         root.lastMoveKey = key
@@ -387,6 +386,8 @@ Item {
         if (decision === "now") {
             followSettle.stop()
             root.load(newPath, newIcon, newSize, newKind, newThumb, root.pendingImageRow)
+            // Armed once the load's own work returns, work a starved loop can stretch past the settle.
+            rested.restart()
         } else {
             followSettle.restart()
         }
@@ -680,13 +681,18 @@ Item {
         function onThumbStateChanged() { root.settleThumb() }
     }
 
+    // The cursor has not rested since its last move: an earlier row's move still trailing, or a load made at once whose rest has not run out.
+    function unrested(key) { return (followSettle.running && root.lastMoveKey !== key) || rested.running }
     Timer {
         id: followSettle
+        objectName: "followSettle"
         interval: root.followSettleMs
         repeat: false
         onTriggered: root.load(root.pendingPath, root.pendingIcon, root.pendingSize, root.pendingKind, root.pendingThumb, root.pendingImageRow)
         onRunningChanged: if (!followSettle.running) Qt.callLater(root.revealIfReady)
     }
+    // A single-shot Timer runs until its posted trigger is handled, so a repeat a starved loop serves first has not rested and trails.
+    Timer { id: rested; interval: root.followSettleMs }
 
     Timer {
         id: stripHideTimer
@@ -889,39 +895,14 @@ Item {
                 function onPageAspectChanged() { root.sizeArrived(pdfLoader.item.pageAspect, 1, 1, pdfLoader.item.pageAspect > 0) }
             }
 
-            // The canvas's Archive tile at Quick Look size: the name, the count the index gave, then the entries.
-            Column {
+            // The canvas's Archive tile at Quick Look size, its own component so this file stays inside its ceiling.
+            Flea.QuickLookArchive {
                 id: archivePane
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.rowPaddingX
-                spacing: Theme.spacing.gap
                 visible: root.isArchive && root.archiveMeta !== null && !root.archiveFailed
-
-                // corner: a filename is arbitrary text, so PlainText, the same rule every name on this surface follows.
-                Text {
-                    width: parent.width
-                    text: root.path.substring(root.path.lastIndexOf("/") + 1)
-                    color: Theme.color.foreground
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.body
-                    textFormat: Text.PlainText
-                    elide: Text.ElideMiddle
-                }
-
-                Text {
-                    width: parent.width
-                    text: Facts.archiveLine(root.archiveMeta)
-                    color: Theme.color.muted
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
-                    textFormat: Text.PlainText
-                }
-
-                Flea.PreviewArchive {
-                    width: parent.width
-                    height: parent.height - y
-                    meta: root.archiveMeta
-                }
+                path: root.path
+                meta: root.archiveMeta
             }
 
             // Declined, or an archive whose index could not be read: a mark over the sentence, never a bare surface.

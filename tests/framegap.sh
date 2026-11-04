@@ -45,8 +45,8 @@ output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
 
 verdict=0
 fail() { printf 'FAIL %s\n' "$1"; verdict=1; }
-# Sample input: "  INFO qml: FRAMEGAP DONE checks=4660 failed=0 controls=96 controlMiss=0 focusMiss=0" once, after "FRAMEGAP HOSTS 25 ArchiveCompressDialog,...". Every row is one frame side at one stop and state.
-expected_preclip_sides=4684 # 1171 frames; a fold stands for its four sides, independent of the Settings scroll position.
+# Sample input: "  INFO qml: FRAMEGAP DONE checks=4672 failed=0 controls=96 controlMiss=0 focusMiss=0" once, after "FRAMEGAP HOSTS 25 ArchiveCompressDialog,...". Every row is one frame side at one stop and state.
+expected_preclip_sides=4708 # 1177 frames; a fold stands for its four sides, independent of the Settings scroll position.
 expected_hosts=25
 # Every GapDialog, GapCheck, GapChrome and GapCrossing side is a control row and must be flagged; GapChrome only draws its frame focused.
 expected_controls=96 # 72 plus GapCrossing, 4 sides over 3 stops and 2 states

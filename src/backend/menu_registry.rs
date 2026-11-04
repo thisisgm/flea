@@ -38,9 +38,9 @@ impl Registry {
         Ok(())
     }
 
-    fn query(&self, args: &[&OsStr], cancel: &Cancellation) -> Result<String, String> {
-        let mut command = Command::new("gio");
-        command.args(args).env("LC_ALL", "C");
+    pub(super) fn query(&self, args: &[&OsStr], cancel: &Cancellation) -> Result<String, String> {
+        let mut command = crate::backend::locale::command("gio");
+        command.args(args);
         self.capture(&mut command, cancel)
     }
 
@@ -88,16 +88,16 @@ impl Registry {
         Ok(index)
     }
 
-    pub fn launch(&self, desktop: &Path, path: &Path, cancel: &Cancellation) -> Result<(), String> {
+    pub fn launch(&self, desktop: &Path, paths: &[&Path], cancel: &Cancellation) -> Result<(), String> {
         use std::os::raw::c_ulong;
         const PR_SET_THP_DISABLE: i32 = 41;
         extern "C" { fn prctl(option: i32, ...) -> i32; }
         let mut command = Command::new("gio");
-        command.arg("launch").arg(desktop).arg(path);
+        command.args(super::menu_many::launch_args(desktop, paths));
         // Foreign applications retain the released THP policy; this child hook cannot allocate.
         unsafe { command.pre_exec(|| if prctl(PR_SET_THP_DISABLE, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong) == 0 { Ok(()) } else { Err(std::io::Error::last_os_error()) }); }
         self.launch_command(&mut command, cancel)
-            .map_err(|error| format!("Could not open {} with {}: {}.", path.display(), desktop.display(), error.trim_end_matches('.')))
+            .map_err(|error| format!("Could not open {} with {}: {}.", super::menu_many::named(paths), desktop.display(), error.trim_end_matches('.')))
     }
 
     fn launch_command(&self, command: &mut Command, cancel: &Cancellation) -> Result<(), String> {
@@ -196,8 +196,16 @@ fn wait_exit(fd: i32) -> Result<(), std::io::Error> {
     }
 }
 
-pub(crate) struct Application { pub id: String, pub label: String, pub path: PathBuf,
-                               pub icon: String, pub default: bool }
+pub(crate) struct Application {
+    pub id: String,
+    pub label: String,
+    pub path: PathBuf,
+    pub icon: String,
+    pub default: bool,
+    // Tests retain the checked Exec value to verify this caller's reader.
+    #[cfg(test)]
+    pub(super) exec: String,
+}
 
 // The flyout's registry, plus the whole installed set and the kind's own name that the dialog groups by.
 pub(crate) struct Catalogue { pub mime: String, pub kind: String,
@@ -369,13 +377,28 @@ fn installed(registry: &Registry, cancel: &Cancellation) -> Result<Vec<Applicati
 
 // A desktop entry the user can open something with: an application, shown, and with a command to run.
 fn launchable(id: &str, path: &Path) -> Result<Option<Application>, String> {
-    if desktop_key(path, "Type=")?.as_deref() != Some("Application") { return Ok(None); }
-    if desktop_key(path, "NoDisplay=")?.as_deref() == Some("true") { return Ok(None); }
-    if desktop_key(path, "Hidden=")?.as_deref() == Some("true") { return Ok(None); }
-    if desktop_key(path, "Exec=")?.is_none() { return Ok(None); }
+    if desktop_key(path, "Type=")?.as_deref() != Some("Application") {
+        return Ok(None);
+    }
+    if desktop_key(path, "NoDisplay=")?.as_deref() == Some("true") {
+        return Ok(None);
+    }
+    if desktop_key(path, "Hidden=")?.as_deref() == Some("true") {
+        return Ok(None);
+    }
+    let Some(_exec) = desktop_key(path, "Exec=")? else {
+        return Ok(None);
+    };
     let label = desktop_label(path)?.unwrap_or_else(|| id.trim_end_matches(".desktop").into());
-    Ok(Some(Application { id: id.into(), label, path: path.to_path_buf(),
-                          icon: desktop_key(path, "Icon=")?.unwrap_or_default(), default: false }))
+    Ok(Some(Application {
+        id: id.into(),
+        label,
+        path: path.to_path_buf(),
+        icon: desktop_key(path, "Icon=")?.unwrap_or_default(),
+        default: false,
+        #[cfg(test)]
+        exec: _exec,
+    }))
 }
 
 // The kind's own name, from the shared mime database the desktop describes a type with.
@@ -420,9 +443,20 @@ fn desktop_file(id: &str, cancel: &Cancellation) -> Result<Option<PathBuf>, Stri
 
 pub(crate) fn desktop_label(path: &Path) -> Result<Option<String>, String> { desktop_key(path, "Name=") }
 
+// Sample Exec=viewer\s%F keeps the legacy menu reader's value "viewer %F".
+pub(crate) fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
+    desktop_key_raw(path, key)
+        .map(|value| value.map(|value| value.replace("\\s", " ").replace("\\n", " ")))
+}
+
+// Sample Exec=viewer\s%F stays encoded for imageopen's string and Exec escape layers.
+pub(crate) fn desktop_exec_raw(path: &Path) -> Result<Option<String>, String> {
+    desktop_key_raw(path, "Exec=")
+}
+
 // Sample Desktop Entry: "[Desktop Entry]\nName=Text Editor\nIcon=accessories-text-editor\nExec=editor %U";
 // GIO alone interprets Exec. Only the [Desktop Entry] group is read, so an action group cannot answer.
-fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
+fn desktop_key_raw(path: &Path, key: &str) -> Result<Option<String>, String> {
     let file = super::regfile::open_if_regular(path, 0).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
     let mut bytes = Vec::new();
     file.take(MAX_REGISTRY_BYTES + 1).read_to_end(&mut bytes).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
@@ -435,7 +469,9 @@ fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
         let line = line.trim_end();
         if line.starts_with('[') { entry = line == "[Desktop Entry]"; }
         if entry {
-            if let Some(name) = line.strip_prefix(key) { return Ok(Some(name.trim().replace("\\s", " ").replace("\\n", " "))); }
+            if let Some(name) = line.strip_prefix(key) {
+                return Ok(Some(name.trim().to_string()));
+            }
         }
     }
     Ok(None)
@@ -446,6 +482,22 @@ mod tests {
     use super::*;
     use std::sync::mpsc::channel;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn existing_launchable_caller_keeps_unescaped_exec_values() {
+        let dir = crate::backend::testdir::TestDir::new("viewer-legacy-exec");
+        let app = dir.file(
+            "viewer.desktop",
+            "[Desktop Entry]\nType=Application\nName=Viewer\nExec=viewer\\s%F\n",
+        );
+        assert_eq!(
+            desktop_key(&app, "Exec=").unwrap().as_deref(),
+            Some("viewer %F")
+        );
+        let registered = launchable("viewer.desktop", &app).unwrap().unwrap();
+        assert_eq!(registered.exec, "viewer %F");
+        assert_eq!(registered.label, "Viewer");
+    }
 
     fn started(registry: &Registry) -> i32 {
         let deadline = Instant::now() + Duration::from_secs(5);

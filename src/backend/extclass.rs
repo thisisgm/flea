@@ -150,18 +150,24 @@ pub fn classify(path: &Path) -> &'static str {
 
 // Sample input: a symlink to "/media/nas" answers "network" under a body mounting it cifs.
 pub fn classify_in(path: &Path, body: &str) -> &'static str {
+    early_class(path, body).unwrap_or_else(|| resolved_class(&resolved_in(path, body), body))
+}
+
+// The class a path answers before its link walk: a gvfs path, or a raw path on a kernel network mount.
+pub fn early_class(path: &Path, body: &str) -> Option<&'static str> {
     if let Some(class) = gvfs_class(path) {
-        return class;
+        return Some(class);
     }
     // The raw path's own mount first, so a kernel share whose server died costs no canonicalize.
-    if super::mountinfo::mount_entry_in(path, body).is_some_and(|e| super::netfs::is_network_fstype(&e.fstype)) {
-        return "network";
-    }
-    let owned = resolved_in(path, body);
-    if let Some(class) = gvfs_class(&owned) {
+    super::mountinfo::mount_entry_in(path, body).is_some_and(|e| super::netfs::is_network_fstype(&e.fstype)).then_some("network")
+}
+
+// The class of a path its link walk already resolved.
+pub fn resolved_class(owned: &Path, body: &str) -> &'static str {
+    if let Some(class) = gvfs_class(owned) {
         return class;
     }
-    classify_entry(&owned, super::mountinfo::mount_entry_in(&owned, body).as_ref())
+    classify_entry(owned, super::mountinfo::mount_entry_in(owned, body).as_ref())
 }
 
 // The class from a mount entry the caller already read; a path or fstype that decides pays no statfs.

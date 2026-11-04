@@ -292,6 +292,28 @@ def side_reachable(by_sha):
     return seen
 
 
+# Sample input (a known line): "8a3802bf46d7...<TAB>body holds 1 line(s), want 2 to 4"
+# The recorded allowlist beside the checker waives one exact failure of one old commit.
+def read_known(path):
+    known = {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except FileNotFoundError:
+        print(f"NOTE no recorded allowlist at {path}; every failure is judged")
+        return known
+    except (OSError, UnicodeDecodeError) as e:
+        die(f"cannot read {path}: {e}")
+    for number, line in enumerate(text.splitlines(), 1):
+        if not line or line.startswith("#"):
+            continue
+        sha, sep, rule = line.partition("\t")
+        if not sep or not re.fullmatch(r"[0-9a-f]{40}", sha) or not rule.strip() or rule in known.get(sha, ()):
+            die(f"{path}:{number}: want one unique 40-hex sha, a tab and the failure it records")
+        known.setdefault(sha, set()).add(rule)
+    return known
+
+
 def main():
     if len(sys.argv) != 3:
         die("usage: flea-commit-rules COMMITS_Z OUTDIR")
@@ -315,6 +337,7 @@ def main():
         die(f"{zpath} is not valid UTF-8: {e}")
     if not recs:
         die(f"{zpath} holds no commit records to judge")
+    known = read_known(os.path.realpath(__file__) + ".known")
     fails = 0
     by_sha = {}
     for sha, an, ae, cn, ce, parents, full in recs:
@@ -344,10 +367,19 @@ def main():
                     print(f"ACCEPTED {sha[:12]} contributor history")
                     out.write(f"{sha}\taccepted contributor history: waived identity, subject, body-shape, em dash and emoji ({len(all_fails)} check(s) waived)\n")
                 continue
-            for one in check_one(sha, an, ae, cn, ce, parents, full):
+            found = check_one(sha, an, ae, cn, ce, parents, full)
+            for one in found:
+                if one in known.get(sha, ()):
+                    print(f"KNOWN {sha[:12]} {one}")
+                    out.write(f"{sha}\tknown: {one}\n")
+                    continue
                 fails += 1
                 print(f"FAIL {sha[:12]} {one}")
                 out.write(f"{sha}\t{one}\n")
+            for rule in sorted(known.get(sha, set()) - set(found)):
+                fails += 1
+                print(f"FAIL {sha[:12]} known line no longer fails: {rule}")
+                out.write(f"{sha}\tstale known: {rule}\n")
     status = "FAIL" if fails else "PASS"
     print(f"commit-rules: {status} fails={fails} commits={len(recs)}")
     sys.exit(1 if fails else 0)

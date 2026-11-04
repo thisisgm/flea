@@ -66,6 +66,7 @@ fn check(pairs: &[(String, Json)], schema: &[(&str, Rule)], prefix: &str) -> Res
             Rule::FolderSorts if is_folder_sorts_patch(value) => {}
             // A null folderViews entry forgets that path, and only a patch may send one.
             Rule::FolderViews if is_folder_views_patch(value) => {}
+            Rule::Plugins if crate::uiplugins::is_patch(value) => {}
             _ if fits(rule, value) => {}
             _ => return Err(format!("{}{} does not take {}", prefix, key, one_line(value))),
         }
@@ -88,6 +89,7 @@ fn apply(current: &Json, patch: &Json, schema: &[(&str, Rule)]) -> Json {
             (None, held, Some(Rule::FolderSorts)) => merge_folder_sorts(held, value),
             (None, held, Some(Rule::FolderViews)) => merge_folder_views(held, value),
             (None, held, Some(Rule::ColumnWidths)) => merge_column_widths(held, value),
+            (None, held, Some(Rule::Plugins)) => crate::uiplugins::merged(held, value),
             _ => normalized(rule, value),
         };
         match out.iter_mut().find(|(k, _)| k == key) {
@@ -114,6 +116,7 @@ fn merge(default: &Json, found: &Json, schema: &[(&str, Rule)]) -> Json {
                 // A hand-edited map heals one bad entry rather than losing the key.
                 Rule::FolderSorts => normalized(Some(rule), &clean_folder_sorts(value)),
                 Rule::FolderViews => normalized(Some(rule), &clean_folder_views(value)),
+                Rule::Plugins => crate::uiplugins::clean(value),
                 _ if fits(rule, value) => normalized(Some(rule), value),
                 _ => fallback,
             },
@@ -214,6 +217,10 @@ fn fits(rule: &Rule, value: &Json) -> bool {
         Rule::FolderSorts => is_folder_sorts(value),
         Rule::FolderViews => is_folder_views(value),
         Rule::ColumnWidths => is_column_widths(value),
+        Rule::Tracks => value.as_array().is_some_and(|items| {
+            items.len() <= 4 && items.iter().all(|item| fits(&Rule::Count(1.0, 10000.0), item))
+        }),
+        Rule::Plugins => crate::uiplugins::fits(value),
         Rule::Count(low, high) => match value.as_f64() {
             Some(n) => n.fract() == 0.0 && n >= *low && n <= *high,
             None => false,
@@ -294,7 +301,7 @@ fn is_column_widths(value: &Json) -> bool {
     match value.as_object() {
         Some(pairs) => pairs.iter().all(|(key, width)| {
             COLUMN_WIDTH_KEYS.contains(&key.as_str())
-                && width.as_f64().is_some_and(|n| n.is_finite() && n.fract() == 0.0 && n >= COLUMN_WIDTH_MIN && n <= COLUMN_WIDTH_MAX)
+                && width.as_f64().is_some_and(|n| n.is_finite() && n.fract() == 0.0 && (COLUMN_WIDTH_MIN..=COLUMN_WIDTH_MAX).contains(&n))
         }),
         None => false,
     }
@@ -586,8 +593,8 @@ mod tests {
         let hidden: Vec<&str> = merged
             .get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("menu.hidden")
             .iter().filter_map(Json::as_str).collect();
-        assert_eq!(hidden, ["delete", "newFolder", "copy-path", "copy_path", "pasteAs", "invertSelection", "run", "openAsText"],
-            "the ids survive the read, and the 3.0 migration appends what the file never named");
+        assert_eq!(hidden, ["delete", "newFolder", "copy-path", "copy_path", "pasteAs", "invertSelection", "run", "openAsText", "openAgent"],
+            "the ids survive the read, and the migration appends what the file never named");
         // Still bounded: anything that is not an id costs the key its own default, as it always did.
         let shipped = crate::uischema::defaults();
         let shipped = shipped

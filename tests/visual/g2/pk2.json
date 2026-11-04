@@ -1,0 +1,397 @@
+{
+ "version": 1,
+ "unit": "g2-pk2",
+ "note": "Scene ids g2.pk2.<board>.primary and g2.pk2.extra.<state>; registered for tools/flea-ci-visual (absent at BASE).",
+ "scenes": [
+  {
+   "scene": "g2.pk2.picker-open.primary",
+   "unit": "g2-pk2",
+   "title": "Open picker: folder list, path bar, rail, answers",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-open.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-open.html",
+   "sha256": {
+    "board_png": "0097a77a76bd9282fe2f7108a8de06516f371009f5d58b923da94c502d3f3931",
+    "board_html": "01bf45cbf26965b05ad678bb2fd642c1d9c209c57f34318fd89210b9bb6b9a06"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work"
+   },
+   "assertions": [
+    "folder list draws A Code Docs Empty Locked Many Media notes.txt todo.md",
+    "path bar shows /fx/v/ plus work",
+    "status line 0 selected",
+    "hint enter open esc cancel"
+   ],
+   "parity_ids": [
+    "board:picker-open"
+   ],
+   "before_png": "${FLEA_VISUAL_DESIGN}/before/picker-open-1100x700.png"
+  },
+  {
+   "scene": "g2.pk2.picker-save.primary",
+   "unit": "g2-pk2",
+   "title": "Save picker: Save As field, new folder, collision wrap",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-save.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-save.html",
+   "sha256": {
+    "board_png": "e7653255b5b5ca53fed6ebbac743bd23181078b9045381e647404146c37593d0",
+    "board_html": "ad1e1d0f5ad83154632f9253924449ad88872153e3df0310943954cc34e5ad76"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "mode": "save",
+    "name": "sample-download.zip"
+   },
+   "assertions": [
+    "Save As field holds sample-download with zip tail",
+    "New Folder row drawn",
+    "hint enter save esc cancel"
+   ],
+   "parity_ids": [
+    "board:picker-save"
+   ]
+  },
+  {
+   "scene": "g2.pk2.picker-path.primary",
+   "unit": "g2-pk2",
+   "title": "Picker path bar: typed run, suggestions, field geometry",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-path.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-path.html",
+   "sha256": {
+    "board_png": "bb1af19c785f91ec679ce7a223c0afe7a12892962a838ff307d57abc28d9055c",
+    "board_html": "bb330be2b7ee4be935c92e3b72aa905380e43c7d653a43f419d22e889b0c81cf"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "path_entry": "Doc",
+    "request": {
+     "mode": "open",
+     "multiple": true,
+     "folder": "/fx/v/work"
+    }
+   },
+   "assertions": [
+    "path field holds Doc under /fx/v/work/",
+    "suggestion row /fx/v/work/Docs drawn",
+    "typed run bold in cursor row",
+    "0 selected",
+    "cursor on A",
+    "hint space select enter open/send"
+   ],
+   "parity_ids": [
+    "board:picker-path"
+   ],
+   "before_png": "${FLEA_VISUAL_DESIGN}/before/picker-path-1100x700.png"
+  },
+  {
+   "scene": "g2.pk2.picker-recent-grid.primary",
+   "unit": "g2-pk2",
+   "title": "Recent picker in grid view",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-recent-grid.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-recent-grid.html",
+   "sha256": {
+    "board_png": "51c72297459bbb73067817934b31fcff57c34d2f53759edd29c12a655ce48795",
+    "board_html": "29cfefb9416538cb0d98bd5af1ef6da7f1ace5a1fac5aed50c3f126fdbd75b34"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "location": "flea:recent",
+    "request": {
+     "mode": "open",
+     "multiple": true,
+     "folder": "flea:recent"
+    },
+    "toggle": "notes.txt"
+   },
+   "assertions": [
+    "tiles report.pdf notes.txt photo.png readme.md main.rs tone.ogg sunset.jpg todo.md",
+    "Recent rail row grey selected fill",
+    "status 1 selected 99 B",
+    "hint space select enter open/send",
+    "notes.txt checked with space"
+   ],
+   "parity_ids": [
+    "board:picker-recent-grid"
+   ],
+   "before_png": "${FLEA_VISUAL_DESIGN}/before/picker-recent-grid-1100x700.png"
+  },
+  {
+   "scene": "g2.pk2.picker-recent-list.primary",
+   "unit": "g2-pk2",
+   "title": "Recent picker in list view with checked row",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-recent-list.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-recent-list.html",
+   "sha256": {
+    "board_png": "5091893522780399da669dba432710135bcf92dc8c186396dc23cb7fc35a5b25",
+    "board_html": "9f828de777127d1ad58abe21552a2005bb41ea3e699fafc4a8f3923bef908dab"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "location": "flea:recent",
+    "request": {
+     "mode": "open",
+     "multiple": true,
+     "folder": "flea:recent"
+    },
+    "toggle": "notes.txt"
+   },
+   "assertions": [
+    "8 recent rows report.pdf notes.txt photo.png readme.md main.rs tone.ogg sunset.jpg todo.md",
+    "cursor rung on notes.txt with checked box",
+    "recent order newest first",
+    "hint space select enter open/send",
+    "notes.txt checked with space"
+   ],
+   "parity_ids": [
+    "board:picker-recent-list"
+   ],
+   "before_png": "${FLEA_VISUAL_DESIGN}/before/picker-recent-list-1100x700.png"
+  },
+  {
+   "scene": "g2.pk2.picker-filter.primary",
+   "unit": "g2-pk2",
+   "title": "Picker filter strip with first-match cursor",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-filter.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-filter.html",
+   "sha256": {
+    "board_png": "844ec3b57826016d88c0dcd8846da0905fac22e14a138c71a336e46d4153fbf7",
+    "board_html": "37092679934a1d09603888815bbf782dfec2ecf8f6e86df8361c1c0893d422dc"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "native display lease; G0.10 scene CLI tools/flea-ci-visual absent at BASE; drawn halves per BOARD-CHECK.tsv",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "filter_query": "no"
+   },
+   "assertions": [
+    "strip under column titles shows no",
+    "1 of 9 shown",
+    "esc clears filter",
+    "hint enter open · esc clears",
+    "cursor on first match notes.txt with no bold"
+   ],
+   "parity_ids": [
+    "board:picker-filter"
+   ]
+  },
+  {
+   "scene": "g2.pk2.extra.save-wrap",
+   "unit": "g2-pk2",
+   "title": "Save: exact already-exists wrap at large text, no window overflow",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-save.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-save.html",
+   "sha256": {
+    "board_png": "e7653255b5b5ca53fed6ebbac743bd23181078b9045381e647404146c37593d0",
+    "board_html": "ad1e1d0f5ad83154632f9253924449ad88872153e3df0310943954cc34e5ad76"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "extra state: no board capture; new-state exception in NATIVE.md, native run is a controller step",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "mode": "save",
+    "name": "very-long_release.candidate_v2-final.zip",
+    "collision": true
+   },
+   "assertions": [
+    "already-exists line wraps at joints with zero width",
+    "no window overflow at large text"
+   ],
+   "parity_ids": [
+    "board:picker-save"
+   ]
+  },
+  {
+   "scene": "g2.pk2.extra.listing-failed",
+   "unit": "g2-pk2",
+   "title": "Listing failure: \"This folder could not be listed.\" line under the held rows",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-open.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-open.html",
+   "sha256": {
+    "board_png": "0097a77a76bd9282fe2f7108a8de06516f371009f5d58b923da94c502d3f3931",
+    "board_html": "01bf45cbf26965b05ad678bb2fd642c1d9c209c57f34318fd89210b9bb6b9a06"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "extra state: no board capture; new-state exception in NATIVE.md, native run is a controller step",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "worker": "scan-error"
+   },
+   "assertions": [
+    "footer This folder could not be listed.",
+    "held rows stay under the line"
+   ],
+   "parity_ids": [
+    "board:picker-open"
+   ]
+  },
+  {
+   "scene": "g2.pk2.extra.backend-death",
+   "unit": "g2-pk2",
+   "title": "Backend death: field line \"Flea stopped responding.\" and footer sentence",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-save.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-save.html",
+   "sha256": {
+    "board_png": "e7653255b5b5ca53fed6ebbac743bd23181078b9045381e647404146c37593d0",
+    "board_html": "ad1e1d0f5ad83154632f9253924449ad88872153e3df0310943954cc34e5ad76"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "extra state: no board capture; new-state exception in NATIVE.md, native run is a controller step",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "mode": "save",
+    "worker": "dead"
+   },
+   "assertions": [
+    "field line Flea stopped responding.",
+    "footer Cancel and reopen this request"
+   ],
+   "parity_ids": [
+    "board:picker-save"
+   ]
+  },
+  {
+   "scene": "g2.pk2.extra.skipped",
+   "unit": "g2-pk2",
+   "title": "Skipped selection note, singular and plural forms",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-open.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-open.html",
+   "sha256": {
+    "board_png": "0097a77a76bd9282fe2f7108a8de06516f371009f5d58b923da94c502d3f3931",
+    "board_html": "01bf45cbf26965b05ad678bb2fd642c1d9c209c57f34318fd89210b9bb6b9a06"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "extra state: no board capture; new-state exception in NATIVE.md, native run is a controller step",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "skipped": 2
+   },
+   "assertions": [
+    "singular 1 was left out",
+    "plural 2 were left out and 1 more"
+   ],
+   "parity_ids": [
+    "board:picker-open"
+   ]
+  },
+  {
+   "scene": "g2.pk2.extra.chip-menu",
+   "unit": "g2-pk2",
+   "title": "Filter chip menu: caller filters then All files",
+   "board_png": "${FLEA_VISUAL_DESIGN}/boards/picker-filter.png",
+   "board_html": "${FLEA_VISUAL_DESIGN}/boards/picker-filter.html",
+   "sha256": {
+    "board_png": "844ec3b57826016d88c0dcd8846da0905fac22e14a138c71a336e46d4153fbf7",
+    "board_html": "37092679934a1d09603888815bbf782dfec2ecf8f6e86df8361c1c0893d422dc"
+   },
+   "size": [
+    1100,
+    700
+   ],
+   "scale": 1,
+   "text_size": 14,
+   "status": "BLOCKED",
+   "blocked_by": "extra state: no board capture; new-state exception in NATIVE.md, native run is a controller step",
+   "language": "en",
+   "fixture_variant": "Work9",
+   "setup": {
+    "path": "/fx/v/work",
+    "chip_menu": true
+   },
+   "assertions": [
+    "card lists caller filters then All files",
+    "card inside 800x600 window"
+   ],
+   "parity_ids": [
+    "board:picker-filter"
+   ]
+  }
+ ]
+}

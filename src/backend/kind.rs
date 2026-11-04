@@ -1,34 +1,63 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+#[path = "kind_comments.rs"]
+mod comments;
+use comments::Comments;
+
 const MIME_ROOT: &str = "/usr/share/mime";
 
 // A per-process, per-type cache, so every type is read from disk at most once, see docs/protocol.md "rows".
 pub struct Kinds {
     cache: HashMap<String, Option<String>>,
+    comments: HashMap<String, Comments>,
+    catalog: Option<super::lazy::Local<crate::i18n::I18n>>,
+    language: String,
+    revision: u64,
     reads: u32,
 }
 
 impl Kinds {
     pub fn new() -> Kinds {
-        Kinds { cache: HashMap::new(), reads: 0 }
+        Kinds { cache: HashMap::new(), comments: HashMap::new(), catalog: Some(super::lazy::Local::new(crate::i18n::I18n::default)), language: "en".into(), revision: 0, reads: 0 }
     }
 
     // Test-only: pre-seeds the cache so a test never depends on the box's own /usr/share/mime, the same reason rows.rs's dbs() uses literal strings.
     #[cfg(test)]
     pub fn from_pairs(pairs: &[(&str, Option<&str>)]) -> Kinds {
         let cache = pairs.iter().map(|(k, v)| (k.to_string(), v.map(str::to_string))).collect();
-        Kinds { cache, reads: 0 }
+        Kinds { cache, comments: HashMap::new(), catalog: None, language: "en".into(), revision: 0, reads: 0 }
     }
 
-    // A human description of a MIME type, read lazily and cached for the life of the process.
-    pub fn comment(&mut self, mime: &str) -> Option<String> {
-        if let Some(hit) = self.cache.get(mime) {
-            return hit.clone();
+    // Called once per row response, so locale watching never adds per-file stat calls.
+    pub fn refresh(&mut self) -> u64 {
+        let Some(catalog) = self.catalog.as_mut() else { return self.revision };
+        let changed = catalog.poll_changed();
+        if changed || self.language != catalog.language() {
+            self.language = catalog.language().into();
+            self.cache.clear();
+            self.revision = self.revision.wrapping_add(1);
         }
-        self.reads += 1;
-        let value = read_comment(mime);
-        self.cache.insert(mime.to_string(), value.clone());
+        self.revision
+    }
+
+    // Each MIME file is read once; a language change selects another cached comment.
+    pub fn comment(&mut self, mime: &str) -> Option<String> {
+        if let Some(hit) = self.cache.get(mime) { return hit.clone(); }
+        let comments = self.comments.entry(mime.to_string()).or_insert_with(|| {
+            self.reads += 1;
+            let path = PathBuf::from(MIME_ROOT).join(format!("{mime}.xml"));
+            Comments::parse(&std::fs::read_to_string(path).unwrap_or_default())
+        });
+        let override_word = self.catalog.as_ref().filter(|_| self.language != "en")
+            .and_then(|catalog| catalog.mime_comment(mime)).map(str::to_string);
+        let translated = (self.language != "en").then(|| comments.translation(&self.language)).flatten();
+        let value = if mime == "text/markdown" {
+            override_word.or(translated)
+        } else {
+            translated.or(override_word)
+        }.or_else(|| comments.select(&self.language));
+        self.cache.insert(mime.into(), value.clone());
         value
     }
 
@@ -39,29 +68,19 @@ impl Kinds {
     }
 }
 
-// Sample input, /usr/share/mime/image/jpeg.xml: "<comment>JPEG image</comment>".
-fn read_comment(mime: &str) -> Option<String> {
-    let path = PathBuf::from(MIME_ROOT).join(format!("{}.xml", mime));
-    let text = std::fs::read_to_string(path).ok()?;
-    first_untranslated_comment(&text)
+// English keeps the original untagged bytes, including its existing entity spelling.
+#[cfg(test)]
+fn first_untranslated_comment(text: &str) -> Option<String> {
+    Comments::parse(text).select("en")
 }
 
-// The first <comment> carrying no xml:lang attribute, not the first <comment> of any kind, see docs/protocol.md "rows".
-fn first_untranslated_comment(text: &str) -> Option<String> {
-    let mut rest = text;
-    loop {
-        let start = rest.find("<comment")?;
-        rest = &rest[start..];
-        let tag_end = rest.find('>')?;
-        let tag = &rest[..tag_end];
-        rest = &rest[tag_end + 1..];
-        if tag.contains("xml:lang") {
-            continue;
-        }
-        let close = rest.find("</comment>")?;
-        return Some(rest[..close].to_string());
-    }
-}
+#[cfg(test)]
+#[path = "kind_locale_tests.rs"]
+mod locale_tests;
+
+#[cfg(test)]
+#[path = "kind_polish_tests.rs"]
+mod polish_tests;
 
 #[cfg(test)]
 mod tests {

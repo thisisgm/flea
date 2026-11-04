@@ -1,9 +1,8 @@
 // One live search session: the scope's snapshot index plus the standing query and its generation.
-use crate::backend::fuzzy::Fuzzy;
-use crate::backend::searchindex::{self, rank_cmp, select_head, Index};
+use crate::backend::searchmatch::Matcher;
+use crate::backend::searchindex::{self, select_head, Index};
 use crate::backend::searchreq::Answer;
 use crate::backend::searchwalk::WalkProbes;
-use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,6 +20,7 @@ pub(crate) struct Counters {
     pub walks_started: usize,
     pub rows_scored: usize,
     pub rank_compares: usize,
+    pub phases: timing::Phases,
 }
 
 // The wire lines live in searchreq.rs and the walk thread that fills the index in searchwalk.rs.
@@ -40,10 +40,17 @@ pub(crate) struct Session {
     pub(crate) walk_ms: f64,
     pub(crate) probes: Arc<WalkProbes>,
     pub(crate) handle: Option<std::thread::JoinHandle<usize>>,
+    pub(crate) watch: Option<crate::backend::searchwatch::Watch>,
+    // Unmount freezes this scope until reopen; explicit user cancellation still permits patches.
+    pub(crate) unmounted: bool,
     pub(crate) last_query: String,
+    pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
-    // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
-    pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
+    // False when last_matches left out typo rows no answer could show, so a narrowed answer that needs typos rescores the index.
+    pub(crate) last_typos: bool,
+    pub(crate) score_scratch: searchindex::QueryScratch,
+    // Matches past the head, ranked on scroll; a patch drops them because it moves row ids.
+    pub(crate) pending_rest: Option<Rest>,
     // Directories patched while the walk ran, applied at its landing; see src/backend/searchpatch.rs.
     pub(crate) pending_patches: std::collections::BTreeSet<PathBuf>,
     pub(crate) folder_n: usize,
@@ -58,8 +65,11 @@ pub(crate) struct Session {
     pub(crate) last_batch: Instant,
     // Folder sizes this session's answers carry inline; see src/backend/answersizes.rs.
     pub(crate) sizes: crate::backend::answersizes::AnswerSizes,
+    pub(crate) row_cache: crate::backend::searchrowcache::Cache,
     // The tag terms' names, read once per row off the loop thread; see src/backend/searchtags.rs.
     pub(crate) tags: crate::backend::searchtags::Tags,
+    // The desktop priors loaded when the session opened, fixed so every answer of the open ranks alike.
+    pub(crate) priors: Option<&'static crate::backend::searchprior::Priors>,
     #[cfg(test)]
     pub counters: Counters,
 }
@@ -70,7 +80,7 @@ impl Session {
         scope: &str,
         folder: &str,
         hidden: bool,
-        walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
+        walked: crate::backend::events::Sender<crate::backend::events::Event>,
     ) -> Session {
         Self::open_async_inner(scope, folder, hidden, walked, Arc::new(WalkProbes::new()))
     }
@@ -81,7 +91,7 @@ impl Session {
         scope: &str,
         folder: &str,
         hidden: bool,
-        walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
+        walked: crate::backend::events::Sender<crate::backend::events::Event>,
         probes: Arc<WalkProbes>,
     ) -> Session {
         Self::open_async_inner(scope, folder, hidden, walked, probes)
@@ -90,7 +100,7 @@ impl Session {
     // Tests open the one constructor and join its walk, so no second setup drifts.
     #[cfg(test)]
     pub(crate) fn open_sync(scope: &str, folder: &str, hidden: bool) -> Session {
-        let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+        let (walked_tx, _walked_rx) = crate::backend::events::channel();
         let mut session = Session::open_async(scope, folder, hidden, walked_tx);
         session.join_walk();
         session
@@ -117,9 +127,8 @@ impl Session {
         self.index.lock().unwrap().len()
     }
 
-    #[cfg(test)]
-    pub(crate) fn capped(&self) -> bool {
-        self.index.lock().unwrap().capped
+    pub(crate) fn partial_reason(&self) -> Option<&'static str> {
+        self.index.lock().unwrap().partial
     }
 
     // Bytes the arena holds now; zero once close frees it, counted not sampled.
@@ -143,7 +152,12 @@ impl Session {
         let mut answer = self.answer(query, count);
         answer.gen = gen;
         self.last_query = query.to_string();
-        self.last_matches = answer.all.clone();
+        #[cfg(test)]
+        let store_started = Instant::now();
+        self.last_matches = std::mem::take(&mut answer.all);
+        self.last_typos = answer.typos;
+        #[cfg(test)]
+        { self.counters.phases.last_matches = store_started.elapsed(); }
         self.last_answered_gen = gen;
         self.standing = Some((gen, query.to_string(), count));
         self.standing_while_walking = answer.walking;
@@ -180,11 +194,12 @@ impl Session {
         self.last_matches.clear();
         let mut answer = self.answer(&query, count);
         answer.gen = gen;
-        answer.ms = self.walk_ms;
+        if !answer.walking { answer.ms = self.walk_ms; }
         // A tagged query whose names are still being read stands for one more re-run.
         self.standing_while_walking = answer.walking;
         self.last_query = query;
-        self.last_matches = answer.all.clone();
+        self.last_matches = std::mem::take(&mut answer.all);
+        self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)
     }
@@ -198,7 +213,8 @@ impl Session {
         let mut answer = self.answer(&query, count);
         answer.gen = gen;
         self.last_query = query;
-        self.last_matches = answer.all.clone();
+        self.last_matches = std::mem::take(&mut answer.all);
+        self.last_typos = answer.typos;
         self.last_batch = Instant::now();
         Some(answer)
     }
@@ -208,6 +224,7 @@ impl Session {
         if gen <= self.last_answered_gen {
             return false;
         }
+        self.row_cache.clear();
         self.last_answered_gen = gen;
         self.standing = Some((gen, query.to_string(), count));
         self.standing_while_walking = self.walking();
@@ -219,70 +236,10 @@ impl Session {
         true
     }
 
-    // Scores the index and ranks only the first window; the callers own the generations.
-    pub(crate) fn answer(&mut self, query: &str, count: usize) -> Answer {
-        let started = Instant::now();
-        let terms = crate::backend::searchtags::Tags::terms(query);
-        let narrow = self.tags.narrows(&self.last_query, query);
-        let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
-        let fuzzy = Fuzzy::new(&terms.text);
-        let index = self.index.lock().unwrap();
-        // Incremental narrowing: an extension scores only the previous matches, any other change scores the index.
-        let candidates: Vec<usize> = if narrow {
-            self.last_matches.clone()
-        } else {
-            (0..index.len()).collect()
-        };
-        #[cfg(test)]
-        let scored = candidates.len();
-        let mut hits = searchindex::score_all(&fuzzy, &candidates, &index);
-        self.tags.keep(&mut hits, &terms);
-        #[cfg(test)]
-        {
-            self.counters.rows_scored = scored;
-        }
-        // Every match stays addressable for narrowing, whatever the window holds.
-        let all: Vec<usize> = hits.iter().map(|(_, row)| *row).collect();
-        // Top-K first: the window is selected and ordered, and the rest waits unranked in the session.
-        let window = count.min(hits.len());
-        #[cfg(test)]
-        let compares = std::cell::Cell::new(0usize);
-        let cmp = |a: &(i32, usize), b: &(i32, usize)| {
-            #[cfg(test)]
-            compares.set(compares.get() + 1);
-            rank_cmp(&index, a, b)
-        };
-        // Score then path length, the rank order's first two fields, compared as one integer key.
-        let rest = select_head(&mut hits, window, |hit| (Reverse(hit.0), index.path_len(hit.1)), cmp);
-        self.pending_rest = if rest.is_empty() { None } else { Some(rest) };
-        #[cfg(test)]
-        {
-            self.counters.rank_compares = compares.get();
-        }
-        let rows: Vec<(String, bool)> =
-            hits[..window].iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
-        let total = all.len();
-        let indexed = index.len();
-        drop(index);
-        Answer {
-            gen: 0,
-            all,
-            rows,
-            total,
-            indexed,
-            walking: self.walking() || unread,
-            ms: started.elapsed().as_secs_f64() * 1000.0,
-            count,
-            scope: self.scope.clone(),
-            dev: self.dev,
-            writable: self.writable,
-        }
-    }
-
     // How many unranked matches wait past the head; production spends them through take_rest_chunk.
     #[cfg(test)]
     pub(crate) fn pending_rest_len(&self) -> usize {
-        self.pending_rest.as_ref().map(Vec::len).unwrap_or(0)
+        self.pending_rest.as_ref().map_or(0, Rest::len)
     }
 
     // Ranks and materializes the next chunk past the adopted prefix; None when nothing is held.
@@ -306,16 +263,9 @@ impl Session {
         let (rows, spent) = {
             let rest = self.pending_rest.as_mut()?;
             let index = self.index.lock().unwrap();
-            if take < rest.len() {
-                rest.select_nth_unstable_by(take - 1, |a, b| rank_cmp(&index, a, b));
-                rest[..take].sort_by(|a, b| rank_cmp(&index, a, b));
-            } else {
-                rest.sort_by(|a, b| rank_cmp(&index, a, b));
-            }
-            let taken: Vec<(i32, usize)> = rest.drain(..take).collect();
-            let rows: Vec<(String, bool)> =
-                taken.iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
-            (rows, rest.is_empty())
+            rest.promote(take, &index, &mut self.score_scratch);
+            let rows = rest.take_ranked(take, &index);
+            (rows, rest.len() == 0)
         };
         if spent {
             self.pending_rest = None;
@@ -325,6 +275,7 @@ impl Session {
 
     // Patches one directory's entries when the open folder's watch reports it; false when its mount does not answer.
     pub(crate) fn patch_open_dir(&mut self, path: &Path) -> bool {
+        if self.unmounted { return false; }
         let Ok(rel) = path.strip_prefix(&self.scope) else { return false };
         let probe = path.to_path_buf();
         let Ok(is_dir) = crate::backend::iomount::call(path, &self.body, "search", move || probe.is_dir()) else {
@@ -348,3 +299,22 @@ impl Session {
 #[cfg(test)]
 #[path = "searchsession_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "searchconservative_tests.rs"]
+mod conservative_tests;
+
+#[cfg(test)]
+#[path = "searchcache_tests.rs"]
+mod cache_tests;
+
+#[path = "searchanswer.rs"]
+mod answer;
+
+#[path = "searchrest.rs"]
+mod rest;
+pub(crate) use rest::Rest;
+
+#[cfg(test)]
+#[path = "searchtiming.rs"]
+pub(crate) mod timing;

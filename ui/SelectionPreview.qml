@@ -22,6 +22,8 @@ Flea.PreviewColumn {
     // ui/ColumnsArea.qml's third-column swap, which then drives the cursor moves; null leaves every change immediate.
     property var swap: null
     property string settleKey: ""
+    // The running settle stands for a move the clock stamped and trailed; ColumnsArea's own arm stands for none.
+    property bool settleTrails: false
     // A load queued under the swap's picture, so a duplicate replace queues no clear behind it.
     property string loadQueuedKey: ""
     // The multi-selection the loaded frame was built for; "" for a lone selection, which never keys on the version.
@@ -103,6 +105,7 @@ Flea.PreviewColumn {
         if (settle.running && root.settleKey === key)
             return
         root.settleKey = key
+        root.settleTrails = false
         settle.restart()
     }
 
@@ -153,7 +156,7 @@ Flea.PreviewColumn {
         if (!ViewState.previewAutomatic || !root.pane) return
         var now = Date.now()
         var decision = PreviewSettle.plan(now, root.lastMoveAt, settle.interval, key, root.lastMoveKey,
-            settle.running && root.settleKey === key)
+            settle.running && root.settleKey === key, root.unrested(key))
         if (decision === "same") return
         root.lastMoveKey = key
         root.lastMoveAt = now
@@ -161,8 +164,11 @@ Flea.PreviewColumn {
             settle.stop()
             root.settleKey = key
             root.fireSettle()
+            // Armed once the load's own work returns, work a starved loop can stretch past the settle.
+            rested.restart()
         } else {
             root.settleKey = key
+            root.settleTrails = true
             settle.restart()
         }
     }
@@ -282,7 +288,7 @@ Flea.PreviewColumn {
         var key = root.swapKey()
         var work = PreviewAsk.earlyWorkFor({ now: Date.now(), lastMoveAt: root.lastMoveAt,
             interval: settle.interval, key: key, lastMoveKey: root.lastMoveKey,
-            armed: settle.running && root.settleKey === key, canRead: root.canRead,
+            armed: settle.running && root.settleKey === key, pending: root.unrested(key), canRead: root.canRead,
             storageKnown: pane.storageKnown, selectionCount: pane.selectionCount(),
             index: pane.cursorIndex, rowT: !!current.t,
             asked: pane.thumbState.file[pane.cursorIndex] !== undefined,
@@ -302,6 +308,11 @@ Flea.PreviewColumn {
         else root.loadSelection()
     }
 
+    // The cursor has not rested since its last move: an earlier row's move still trailing, or a load made at once whose rest has not run out.
+    function unrested(key) { return (settle.running && root.settleTrails && root.settleKey !== key) || rested.running }
+    // A single-shot Timer stays running until its trigger, a posted event, is handled, so a held key's next repeat that a starved loop
+    // handles before then has not rested, however late its own load work made it, and trails instead of loading at once again.
+    Timer { id: rested; interval: settle.interval }
     Timer {
         id: settle
         interval: root.pane ? root.pane.settleMs : 120

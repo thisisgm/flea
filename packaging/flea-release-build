@@ -1,0 +1,62 @@
+#!/bin/bash
+# The native build and tarball checks shared by Candidate, Release and local containers.
+set -euo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(dirname "$here")
+cd "$repo"
+ci_tools="$repo/.superpowers/ci-tools/imagemagick"
+export PATH="$ci_tools/bin:$PATH"
+
+case "${1:-}" in
+  install-deps)
+    elevate=()
+    [ "$(id -u)" -eq 0 ] || elevate=(sudo)
+    "${elevate[@]}" apt-get update -o Acquire::Retries=3
+    "${elevate[@]}" apt-get install -y -o Acquire::Retries=3 \
+      build-essential ca-certificates curl fontconfig git pkg-config \
+      libfontconfig1-dev libfreetype6-dev libwayland-dev libxcb1-dev \
+      libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libegl1-mesa-dev libvulkan-dev \
+      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd libpng-dev libjpeg-dev libtiff-dev libwebp-dev poppler-utils \
+      libpoppler-glib8t64
+    "$here/flea-ci-tools" fonts "$HOME/.local/share/fonts/flea-ci"
+    "$here/flea-ci-tools" imagemagick "$ci_tools"
+    ;;
+  # Tests run the debug profile: GPUI compiles its debug selectors out of release builds, which the GUI tests query.
+  test) cargo test --locked --workspace --no-fail-fast ;;
+  build) cargo build --release --locked --workspace --bins ;;
+  stage)
+    "$here/flea-bin-tarball" "${CARGO_TARGET_DIR:-target}/release/flea" "${VERSION:?}" "${ARCH:?}" "${OUTDIR:-dist}"
+    ;;
+  check)
+    dist=$(realpath -e -- "${OUTDIR:-dist}")
+    unpacked=$(mktemp -d "${TMPDIR:-/tmp}/flea-release-check.XXXXXX")
+    : > "$unpacked/.flea-release-owned"
+    cleanup() {
+      [ -n "$unpacked" ] && [[ "$unpacked" = /*/flea-release-check.* ]] && [ -f "$unpacked/.flea-release-owned" ] || return 1
+      rm -rf -- "$unpacked"
+    }
+    trap cleanup EXIT
+    (cd "$dist" && sha256sum -c "flea-v${VERSION:?}-linux-${ARCH:?}.tar.gz.sha256")
+    tar -xzf "$dist/flea-v$VERSION-linux-$ARCH.tar.gz" -C "$unpacked"
+    cd "$unpacked/flea-$VERSION-linux-$ARCH"
+    # Sample input: install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals".
+    sources=$(sed -n '/^package() {/,/^}/p' "$here/flea-bin/PKGBUILD" \
+      | grep -E '^[[:space:]]*install ' | tr -s ' ' '\n' | grep -vE '^(|install|-[A-Za-z0-9]+|"?\$pkgdir.*)$') \
+      || { echo "flea-release-build: no install path found in flea-bin package()" >&2; exit 1; }
+    missing=0
+    while read -r source; do
+      compgen -G "$source" >/dev/null || {
+        echo "flea-release-build: flea-bin installs $source, absent from the tarball" >&2; missing=1; }
+    done <<< "$sources"
+    # package()'s catalog loop is no install line, so each catalog is compared with the checkout's own.
+    for catalog in "$repo"/i18n/*/flea.json; do
+      cmp -s "$catalog" "${catalog#"$repo/"}" || { echo "flea-release-build: the tarball lacks ${catalog#"$repo/"} or carries another copy" >&2; missing=1; }
+    done
+    for program in flea flea-gui; do
+      [ -x "$program" ] || { echo "flea-release-build: $program is not executable" >&2; missing=1; }
+    done
+    echo "checked $(wc -l <<< "$sources") paths flea-bin package() installs"
+    exit "$missing"
+    ;;
+  *) echo "flea-release-build: expected install-deps, test, build, stage or check" >&2; exit 2 ;;
+esac

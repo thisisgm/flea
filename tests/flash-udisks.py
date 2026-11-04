@@ -6,6 +6,7 @@ import os
 import socket
 import sys
 import types
+sys.dont_write_bytecode = True
 
 gi = types.ModuleType("gi")
 gi.require_version = lambda *args: None
@@ -245,9 +246,11 @@ class TapedProxy:
     def new_for_bus_sync(cls, *args):
         return cls()
 
-    def call_with_unix_fd_list_sync(self, method, params, *rest):
-        seen["method"] = method
-        seen["params"] = params
+    # Gio.DBusProxy's own in-arguments, named as GObject introspection names them; the reply type belongs to Gio.DBusConnection's call.
+    def call_with_unix_fd_list_sync(self, method_name, parameters, flags, timeout_msec, fd_list, cancellable):
+        seen["method"] = method_name
+        seen["params"] = parameters
+        seen["rest"] = (flags, timeout_msec, fd_list, cancellable)
         fd = os.open("/dev/null", os.O_RDONLY)
         seen["fd"] = fd
 
@@ -259,6 +262,8 @@ class TapedProxy:
 
 
 taped = types.SimpleNamespace(sent=[])
+# A refusal answers through sendmsg, so a broken OpenDevice call reads as a failed check, never a traceback.
+taped.sendmsg = lambda data, _anc: taped.sent.append(data)
 helper.GLib.Variant = TapedVariant
 helper.GLib.VariantType = lambda *args: args
 helper.Gio.BusType = types.SimpleNamespace(SYSTEM=0)
@@ -277,13 +282,31 @@ flags_variant = inner[1]["flags"] if inner else None
 check("OpenDevice flags travel as i", (seen.get("method"), getattr(flags_variant, "fmt", None),
                                        getattr(flags_variant, "value", None), inner[0] if inner else None),
       ("OpenDevice", "i", helper.OPEN_FLAGS, "rw"))
-check("the descriptor answer carries ok", [status for status, _fds in taped.sent], [[helper.STATUS_OK]])
-os.close(seen["fd"])
+check("OpenDevice passes flags, timeout, no fd list, no cancellable", seen.get("rest"),
+      (helper.Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, -1, None, None))
+check("the descriptor answer carries ok and the opened descriptor", taped.sent, [([helper.STATUS_OK], [seen.get("fd")])])
+if "fd" in seen:
+    os.close(seen["fd"])
+
+# EY-549: the fake's parameters are the real proxy's in-arguments, read from PyGObject where it exists (East2); skipped where gi is absent; GIDirection 1 is OUT (out_fd_list).
+import inspect
+import subprocess
+probe = subprocess.run([sys.executable, "-I", "-c",
+                        "try:\n    import gi\nexcept ImportError:\n    raise SystemExit('no-gi')\n"
+                        "gi.require_version('Gio', '2.0')\nfrom gi.repository import Gio\n"
+                        "print(' '.join(a.get_name() for a in Gio.DBusProxy.call_with_unix_fd_list_sync.get_arguments()"
+                        " if int(a.get_direction()) != 1))"],
+                       capture_output=True, text=True)
+if probe.stderr.strip() == "no-gi":
+    print("skip the fake proxy takes the real in-arguments: no PyGObject here")
+else:
+    if probe.returncode:
+        print(probe.stderr.strip())
+    check("the fake proxy takes the real in-arguments", (probe.returncode, probe.stdout.split()),
+          (0, list(inspect.signature(TapedProxy.call_with_unix_fd_list_sync).parameters)[1:]))
+
 
 # A proxy the daemon never hands over still answers the socket, never a traceback.
-taped.sendmsg = lambda data, _anc: taped.sent.append(data)
-
-
 class RefusingProxy:
     @classmethod
     def new_for_bus_sync(cls, *args):

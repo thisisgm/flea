@@ -35,7 +35,7 @@ check() {
 result=$(env -i PATH="$scratch/bin:/usr/bin:/bin" HOME="$scratch/home" XDG_STATE_HOME="$scratch/state" XDG_CONFIG_HOME="$scratch/config" \
   XDG_CACHE_HOME="$scratch/cache" XDG_RUNTIME_DIR="$scratch/runtime" TERM=xterm-256color \
   /usr/bin/python3 - "$bin" "$scratch/fixture" <<'PY'
-import os, pty, select, signal, struct, sys, time, fcntl, termios
+import os, pty, re, select, signal, struct, sys, time, fcntl, termios
 binary, fixture = sys.argv[1], sys.argv[2]
 # The stand-in's kitty payload, which no part of the TUI draws, marks one relayed mpv frame.
 FRAME, LEAVE = b"a=T,f=24,s=1,v=1,C=1,q=2,m=0;AAAA", b"\x1b[?1049l"
@@ -43,11 +43,11 @@ pid, fd = pty.fork()
 if pid == 0:
     os.execv(binary, [binary, "--tui", fixture])
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 160, 1600, 800))
-seen, replied = b"", False
+seen, replied, probe_id = b"", False, None
 
 def pump(seconds):
     """Reads for up to seconds, answering the kitty probe once the TUI asks it; False once the TUI closed its end."""
-    global seen, replied
+    global seen, replied, probe_id
     end = time.monotonic() + seconds
     while time.monotonic() < end:
         ready, _, _ = select.select([fd], [], [], 0.02)
@@ -58,9 +58,11 @@ def pump(seconds):
         except OSError:
             return False
         seen += chunk
-        if not replied and b"\x1b_Gi=31," in seen and b"\x1b[c" in seen:
-            replied = True
-            os.write(fd, b"\x1b_Gi=31;OK\x1b\\\x1b[?62;4c")
+        if not replied and b"\x1b[c" in seen:
+            query = re.search(rb"\x1b_Gi=([0-9]+),s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\", seen)
+            if query is not None:
+                replied, probe_id = True, query.group(1)
+                os.write(fd, b"\x1b_Gi=" + probe_id + b";OK\x1b\\\x1b[?62;4c")
     return True
 
 deadline = time.monotonic() + 8
@@ -86,7 +88,7 @@ else:
     os.waitpid(pid, 0)
 left = seen.rfind(LEAVE)
 late = seen[left + len(LEAVE):].count(FRAME) if left >= 0 else -1
-print("mpv_seen=%d late=%d exit=%s" % (mpv_seen, late, code))
+print("probe_id=%s mpv_seen=%d late=%d exit=%s" % (probe_id, mpv_seen, late, code))
 PY
 )
 echo "$result"

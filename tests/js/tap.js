@@ -175,8 +175,14 @@ function run(check) {
         }
         if (rows[i].where === "neighbour") {
             drivenNeighbour += 1
-            check("neighbour column, " + rows[i].press + " on a " + rows[i].row + ", does " + rows[i].does,
-                  driveNeighbour(rows[i]), rows[i].does)
+            if (rows[i].press === "left" && rows[i].row === "file") {
+                // CTL2 ruling 137 keeps a neighbour file's single click inert in the product and frozen QML.
+                check("product neighbour file tap declares no action", rows[i].does, "nothing")
+                check("frozen QML neighbour file tap opens nothing", driveNeighbour(rows[i]), "nothing")
+            } else {
+                check("neighbour column, " + rows[i].press + " on a " + rows[i].row + ", does " + rows[i].does,
+                      driveNeighbour(rows[i]), rows[i].does)
+            }
         }
     }
     check("every listing row of the table was driven", drivenListing, 12)

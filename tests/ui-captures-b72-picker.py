@@ -11,6 +11,11 @@ import tempfile
 import time
 import tomllib
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
 import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
@@ -172,7 +177,7 @@ class Request:
 
     def ipc(self, call):
         self.window()
-        return json.loads(run(["qs", "ipc", "--pid", self.pid, "call", "fleapicker", call], picker_env, 5))
+        return json.loads(run([*IPC.command(), "--pid", self.pid, "call", "fleapicker", call], picker_env, 5))
 
     def state(self):
         return self.ipc("snapshot")

@@ -1,12 +1,15 @@
+use super::words::Text;
+use crate::i18n::I18n;
 use crate::jsondoc::{self, Json};
 use std::io::{self, Read};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
-const UNREAD: &str = "Taildrop status could not be read";
-const TOO_LARGE: &str = "Taildrop status was too large to read";
+const UNREAD: &str = "tui.taildrop.unread";
+const TOO_LARGE: &str = "tui.taildrop.too_large";
 const MAX_STATUS_BYTES: u64 = 4 * 1024 * 1024;
+const SENDER: &str = "omarchy-tailscale-send";
 
 // The reader thread: the status call's whole answer, or InvalidData once it passes its limit.
 fn read_status(output: impl Read + Send + 'static) -> mpsc::Receiver<io::Result<Vec<u8>>> {
@@ -42,7 +45,10 @@ pub struct Taildrop {
     started: Instant,
     pub peers: Vec<Peer>,
     pub error: String,
-    pub submenu: bool,
+    problem: Option<Text>,
+    state_key: &'static str,
+    i18n: Option<I18n>,
+    outcome: Option<Result<Text, Text>>,
     sending: Option<String>,
     pub sent: Option<Result<String, String>>,
 }
@@ -56,10 +62,63 @@ impl Taildrop {
             started: Instant::now(),
             peers: Vec::new(),
             error: String::new(),
-            submenu: false,
+            problem: None,
+            state_key: "menu.state.offline",
+            i18n: None,
+            outcome: None,
             sending: None,
             sent: None,
         }
+    }
+    pub fn refresh_locale(&mut self, i18n: &I18n) {
+        self.i18n = Some(i18n.clone());
+        if let Some(words) = &self.problem {
+            self.error = words.render(i18n);
+        }
+        if self.sent.is_some() {
+            self.sent = self.outcome.as_ref().map(|result| match result {
+                Ok(text) => Ok(text.render(i18n)),
+                Err(text) => Err(text.render(i18n)),
+            });
+        }
+    }
+    pub fn state_key(&self) -> &'static str {
+        self.state_key
+    }
+    pub fn status(&mut self, value: &Json) {
+        match available_peers(value) {
+            Ok(peers) => {
+                self.peers = peers;
+                self.error.clear();
+                self.problem = None;
+            }
+            Err(key) => {
+                self.peers.clear();
+                self.fault(key);
+            }
+        }
+    }
+    pub fn take_sent(&mut self) -> Option<Result<Text, Text>> {
+        self.sent = None;
+        self.outcome.take()
+    }
+    fn fault(&mut self, key: &'static str) {
+        self.problem = Some(Text::Key(key));
+        self.error = self
+            .i18n
+            .as_ref()
+            .map_or_else(String::new, |i18n| i18n.tr(key));
+        self.state_key = match key {
+            "menu.state.signedOut" | "menu.state.noDevices" => key,
+            _ => "menu.state.offline",
+        };
+    }
+    fn sent(&mut self, result: Result<Text, Text>) {
+        self.sent = self.i18n.as_ref().map(|i18n| match &result {
+            Ok(text) => Ok(text.render(i18n)),
+            Err(text) => Err(text.render(i18n)),
+        });
+        self.outcome = Some(result);
     }
     pub fn refresh(&mut self) {
         if self.child.is_some() {
@@ -67,8 +126,10 @@ impl Taildrop {
         }
         self.peers.clear();
         self.error.clear();
+        self.problem = None;
+        self.state_key = "menu.state.noDevices";
         self.result = None;
-        match Command::new("tailscale")
+        match crate::backend::locale::command("tailscale")
             .args(["status", "--json"])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -77,46 +138,52 @@ impl Taildrop {
         {
             Ok(mut child) => {
                 let Some(output) = child.stdout.take() else {
-                    self.error = UNREAD.into();
+                    self.fault(UNREAD);
                     return;
                 };
                 self.child = Some(child);
                 self.output = Some(read_status(output));
                 self.started = Instant::now();
             }
-            Err(_) => self.error = "Taildrop unavailable: tailscale could not start".into(),
+            Err(_) => self.fault("tui.taildrop.unavailable"),
         }
     }
     pub fn loading(&self) -> bool {
         self.child.is_some()
     }
-    pub fn reason(&self) -> &str {
-        if self.sending.is_some() { "sending" }
-        else if self.loading() { "checking" }
-        else { &self.error }
-    }
     pub fn current_peer(&self, selected: &Peer) -> Option<Peer> {
-        self.peers.iter().find(|peer| peer.id == selected.id && peer.address == selected.address).cloned()
+        self.peers
+            .iter()
+            .find(|peer| peer.id == selected.id && peer.address == selected.address)
+            .cloned()
     }
     pub fn poll(&mut self) {
         let Some(child) = &mut self.child else { return };
         if let Some(label) = &self.sending {
             match child.try_wait() {
                 Ok(Some(status)) => {
-                    self.sent = Some(if status.success() {
-                        Ok(format!("Sent to {}", label))
+                    let result = if status.success() {
+                        Ok(Text::Args("tui.taildrop.sent", vec![label.clone().into()]))
                     } else {
-                        Err(format!("Could not send to {} ({})", label, status))
-                    });
+                        Err(Text::Args(
+                            "tui.taildrop.failed",
+                            vec![label.clone().into(), status.to_string().into()],
+                        ))
+                    };
+                    self.sent(result);
                     self.child = None;
                     self.sending = None;
                 }
                 Err(e) => {
-                    self.sent = Some(Err(format!("Could not send to {} ({})", label, crate::error::io_message(&e))));
+                    let result = Text::Args(
+                        "tui.taildrop.failed",
+                        vec![label.clone().into(), crate::error::io_message(&e).into()],
+                    );
                     let _ = child.kill();
                     let _ = child.wait();
                     self.child = None;
                     self.sending = None;
+                    self.sent(Err(result));
                 }
                 Ok(None) => {}
             }
@@ -128,7 +195,7 @@ impl Taildrop {
             let _ = child.wait();
             self.child = None;
             self.output = None;
-            self.error = "Taildrop status timed out".into();
+            self.fault("tui.taildrop.timeout");
             return;
         }
         if self.result.is_none() {
@@ -141,7 +208,7 @@ impl Taildrop {
             Ok(Some(status)) => status,
             Ok(None) => return,
             Err(_) => {
-                self.error = UNREAD.into();
+                self.fault(UNREAD);
                 return;
             }
         };
@@ -152,46 +219,56 @@ impl Taildrop {
         self.output = None;
         match (status, result) {
             // A reply past its limit or unreadable had its child killed, so its exit status says nothing more.
-            (_, Err(error)) if error.kind() == io::ErrorKind::InvalidData => self.error = TOO_LARGE.into(),
-            (_, Err(_)) => self.error = UNREAD.into(),
-            (status, Ok(_)) if !status.success() => self.error = "Tailscale reported an error".into(),
-            (_, Ok(bytes)) => {
-                match jsondoc::parse(&String::from_utf8_lossy(&bytes)) {
-                    Ok(value) => match available_peers(&value) {
-                        Ok(peers) => self.peers = peers,
-                        Err(reason) => self.error = reason,
-                    },
-                    Err(_) => self.error = UNREAD.into(),
-                }
-            }
+            (_, Err(error)) if error.kind() == io::ErrorKind::InvalidData => self.fault(TOO_LARGE),
+            (_, Err(_)) => self.fault(UNREAD),
+            (status, Ok(_)) if !status.success() => self.fault("tui.taildrop.status_failed"),
+            (_, Ok(bytes)) => match jsondoc::parse(&String::from_utf8_lossy(&bytes)) {
+                Ok(value) => self.status(&value),
+                Err(_) => self.fault(UNREAD),
+            },
         }
     }
     pub fn send(&mut self, peer: &Peer, paths: &[String]) -> io::Result<()> {
+        self.send_with(SENDER, peer, paths)
+    }
+    fn send_with(&mut self, sender: &str, peer: &Peer, paths: &[String]) -> io::Result<()> {
         if self.child.is_some() {
-            return Err(io::Error::other("Taildrop is already busy"));
+            return Err(io::Error::other(Text::Key("tui.taildrop.busy")));
         }
         if paths.is_empty()
             || paths
                 .iter()
                 .any(|path| !std::path::Path::new(path).is_absolute())
         {
-            return Err(io::Error::other(
-                "Taildrop needs an absolute file selection",
-            ));
+            return Err(io::Error::other(Text::Key("tui.taildrop.absolute")));
         }
         self.child = Some(
-            Command::new("omarchy-tailscale-send")
+            Command::new(sender)
                 .arg(&peer.address)
                 .args(paths)
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
-                .spawn()?,
+                .spawn()
+                .map_err(|error| spawn_failure(sender, &peer.label, &error))?,
         );
         self.sending = Some(peer.label.clone());
         self.sent = None;
+        self.outcome = None;
         Ok(())
     }
+}
+
+// A sender that cannot start names Taildrop, the peer, the sender program and the OS cause, since tailscale itself may be running fine.
+fn spawn_failure(sender: &str, label: &str, error: &io::Error) -> io::Error {
+    let cause = format!("{sender}: {}", crate::error::io_message(error));
+    io::Error::other(Text::Args(
+        "jobs.taildrop.reason",
+        vec![Text::Args(
+            "tui.taildrop.failed",
+            vec![label.to_string().into(), cause.into()],
+        )],
+    ))
 }
 
 impl Drop for Taildrop {
@@ -215,21 +292,34 @@ fn text<'a>(value: &'a Json, key: &str) -> &'a str {
 }
 
 // Sample input: {"BackendState":"Running","Self":{"CapMap":{"https://tailscale.com/cap/file-sharing":[]}},"Peer":{}}.
-fn available_peers(value: &Json) -> Result<Vec<Peer>, String> {
+fn available_peers(value: &Json) -> Result<Vec<Peer>, &'static str> {
     match text(value, "BackendState") {
         "Running" => {}
-        "NeedsLogin" => return Err("signed out".into()),
-        "" => return Err("unavailable".into()),
-        state => return Err(state.to_lowercase()),
+        "NeedsLogin" => return Err("menu.state.signedOut"),
+        "" => return Err("menu.state.offline"),
+        _ => return Err("menu.state.offline"),
     }
     let capability = "https://tailscale.com/cap/file-sharing";
     let owner = value.get("Self");
-    let mapped = owner.and_then(|owner| owner.get("CapMap")).and_then(|map| map.get(capability)).is_some();
-    let listed = owner.and_then(|owner| owner.get("Capabilities")).and_then(Json::as_array)
-        .unwrap_or(&[]).iter().any(|value| value.as_str() == Some(capability));
-    if !mapped && !listed { return Err("disabled for this account".into()); }
+    let mapped = owner
+        .and_then(|owner| owner.get("CapMap"))
+        .and_then(|map| map.get(capability))
+        .is_some();
+    let listed = owner
+        .and_then(|owner| owner.get("Capabilities"))
+        .and_then(Json::as_array)
+        .unwrap_or(&[])
+        .iter()
+        .any(|value| value.as_str() == Some(capability));
+    if !mapped && !listed {
+        return Err("tui.taildrop.disabled");
+    }
     let peers = peers(value);
-    if peers.is_empty() { Err("no peers".into()) } else { Ok(peers) }
+    if peers.is_empty() {
+        Err("menu.state.noDevices")
+    } else {
+        Ok(peers)
+    }
 }
 
 // Sample input: {"Self":{"UserID":1},"Peer":{"node":{"Online":true,"TaildropTarget":1,"DNSName":"host.tail.ts.net."}}}.
@@ -294,97 +384,5 @@ fn peers(value: &Json) -> Vec<Peer> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn refreshed_target_keeps_node_and_address_identity() {
-        let mut taildrop = Taildrop::new();
-        let selected = Peer { id: "node-one".into(), label: "before".into(), address: "alpha.invalid".into() };
-        taildrop.peers = vec![Peer { label: "renamed".into(), ..selected.clone() }];
-        assert_eq!(taildrop.current_peer(&selected).unwrap().label, "renamed");
-        taildrop.peers[0].id = "node-two".into();
-        assert!(taildrop.current_peer(&selected).is_none());
-        taildrop.peers[0] = Peer { address: "beta.invalid".into(), ..selected.clone() };
-        assert!(taildrop.current_peer(&selected).is_none());
-        taildrop.peers.clear();
-        assert!(taildrop.current_peer(&selected).is_none());
-    }
-
-    // A child already reaped, so poll learns its status with no wait: try_wait hands back the saved one.
-    fn finished(code: i32) -> Child {
-        let mut child = Command::new("sh").args(["-c", &format!("exit {code}")]).stdin(Stdio::null()).spawn().unwrap();
-        child.wait().unwrap();
-        child
-    }
-    #[test]
-    fn a_failed_send_and_a_failed_status_call_read_as_plain_sentences() {
-        let mut taildrop = Taildrop::new();
-        taildrop.child = Some(finished(7));
-        taildrop.sending = Some("Alpha".into());
-        taildrop.poll();
-        assert_eq!(taildrop.sent, Some(Err("Could not send to Alpha (exit status: 7)".into())));
-        // Each way the status call ends has its own sentence, so a test of one cannot pass through another.
-        let status_after = |code: i32, answer: io::Result<Vec<u8>>| {
-            let mut taildrop = Taildrop::new();
-            let (tx, rx) = mpsc::channel();
-            tx.send(answer).unwrap();
-            taildrop.child = Some(finished(code));
-            taildrop.output = Some(rx);
-            taildrop.poll();
-            taildrop.error.clone()
-        };
-        assert_eq!(status_after(7, Ok(Vec::new())), "Tailscale reported an error");
-        assert_eq!(status_after(0, Ok(Vec::new())), "Taildrop status could not be read", "an empty answer is not a status");
-        assert_eq!(status_after(0, Err(io::Error::new(io::ErrorKind::InvalidData, TOO_LARGE))), "Taildrop status was too large to read");
-        assert_eq!(status_after(7, Err(io::Error::from(io::ErrorKind::UnexpectedEof))), "Taildrop status could not be read");
-    }
-    // The limit is the reader thread's own, so a reply past it ends as the too-large sentence and one at it still parses.
-    #[test]
-    fn a_reply_past_the_limit_is_cut_by_the_reader_thread_and_reads_as_too_large() {
-        let after = |output: Box<dyn Read + Send>| {
-            let mut taildrop = Taildrop::new();
-            taildrop.output = Some(read_status(output));
-            taildrop.child = Some(finished(0));
-            for _ in 0..200 {
-                taildrop.poll();
-                if taildrop.child.is_none() { break; }
-                std::thread::sleep(std::time::Duration::from_millis(25));
-            }
-            (taildrop.error.clone(), taildrop.peers.iter().map(|peer| peer.label.clone()).collect::<Vec<_>>())
-        };
-        // A valid status padded with spaces to an exact size, so only the size differs between the legs.
-        let status = br#"{"BackendState":"Running","Self":{"Capabilities":["https://tailscale.com/cap/file-sharing"]},"Peer":{"a":{"Online":true,"TaildropTarget":1,"HostName":"alpha"}}}"#;
-        let padded = |size: u64| -> Box<dyn Read + Send> { Box::new(io::Cursor::new(status.as_slice()).chain(io::repeat(b' ')).take(size)) };
-        assert_eq!(after(Box::new(io::repeat(b'x'))), (TOO_LARGE.to_string(), Vec::new()));
-        assert_eq!(after(padded(MAX_STATUS_BYTES + 1)), (TOO_LARGE.to_string(), Vec::new()), "one byte past the limit is refused");
-        assert_eq!(after(padded(MAX_STATUS_BYTES)), (String::new(), vec!["alpha".to_string()]), "a reply at the limit is read whole and parsed");
-    }
-    #[test]
-    fn provider_state_overrides_stale_peer_eligibility() {
-        let fixture = r#"{"BackendState":"Running","Self":{"Capabilities":["https://tailscale.com/cap/file-sharing"]},"Peer":{"old":{"Online":true,"TaildropTarget":1,"HostName":"alpha"}}}"#;
-        assert_eq!(available_peers(&jsondoc::parse(fixture).unwrap()).unwrap()[0].label, "alpha");
-        for (state, reason) in [("NeedsLogin", "signed out"), ("Stopped", "stopped"), ("", "unavailable")] {
-            let value = jsondoc::parse(&fixture.replace("Running", state)).unwrap();
-            assert_eq!(available_peers(&value).err().as_deref(), Some(reason));
-        }
-        let disabled = jsondoc::parse(&fixture.replace("https://tailscale.com/cap/file-sharing", "unrelated")).unwrap();
-        assert_eq!(available_peers(&disabled).err().as_deref(), Some("disabled for this account"));
-        let mapped = fixture.replace(r#""Capabilities":["https://tailscale.com/cap/file-sharing"]"#,
-                                     r#""CapMap":{"https://tailscale.com/cap/file-sharing":[]}"#);
-        assert_eq!(available_peers(&jsondoc::parse(&mapped).unwrap()).unwrap().len(), 1);
-        let empty = jsondoc::parse(&fixture.replace(r#""Online":true"#, r#""Online":false"#)).unwrap();
-        assert_eq!(available_peers(&empty).err().as_deref(), Some("no peers"));
-    }
-
-    #[test]
-    fn targets_match_oem_eligibility_and_refuse_option_names() {
-        let value = jsondoc::parse(r#"{"Self":{"UserID":1},"Peer":{"a":{"Online":true,"UserID":1,"HostName":"alpha"},"b":{"Online":false,"TaildropTarget":1,"HostName":"offline"},"c":{"Online":true,"TaildropTarget":2,"HostName":"denied"},"d":{"Online":true,"TaildropTarget":1,"DNSName":"exit.mullvad.ts.net."},"e":{"Online":true,"TaildropTarget":1,"HostName":"--help"},"f":{"Online":true,"TaildropTarget":1,"HostName":"localhost","DNSName":"beta.tail.ts.net."}}}"#).unwrap();
-        let found = peers(&value);
-        assert_eq!(
-            found.iter().map(|p| p.label.as_str()).collect::<Vec<_>>(),
-            vec!["alpha", "beta"]
-        );
-        assert_eq!(found[1].address, "beta.tail.ts.net");
-        assert!(peers(&Json::Null).is_empty());
-    }
-}
+#[path = "taildrop_words_tests.rs"]
+mod tests;

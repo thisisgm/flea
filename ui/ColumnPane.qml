@@ -324,6 +324,8 @@ Item {
             TapHandler {
                 id: tap
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                // A held press must still tap on release.
+                longPressThreshold: 0
                 // A press held past the interval must not fire while the button
                 // is still down; ColumnsArea stops the pane's timer from onRowPressed.
                 onPressedChanged: if (pressed) root.rowPressed(cell.listingIndex)

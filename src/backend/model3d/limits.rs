@@ -1,0 +1,16 @@
+pub(super) const MAX_PLATES: usize = 128;
+pub(super) const MAX_PARTS: usize = 128;
+pub(super) const MAX_THUMBNAILS: usize = 128;
+pub(super) const MAX_NAME_BYTES: usize = 1024;
+pub(super) const MAX_METADATA_ENTRIES: usize = 1024;
+pub(super) const MAX_METADATA_KEY_BYTES: usize = 256;
+pub(super) const MAX_METADATA_VALUE_BYTES: usize = 16_384;
+pub(super) const MAX_METADATA_BYTES: usize = 8 * 1024 * 1024;
+pub(super) const MAX_LAYERS: usize = 100_000;
+pub(super) const MAX_LINE_BYTES: usize = 65_536;
+pub(super) const MAX_COMPONENT_DEPTH: usize = 32;
+pub(super) const MAX_COMPONENT_EXPANSIONS: usize = 65_536;
+pub(super) const MAX_MATERIAL_GROUP: usize = 64;
+pub(super) const MAX_POLYGON_VERTICES: usize = 1024;
+pub(super) const MAX_COORDINATE: f64 = 1e9;
+pub(super) const MAX_SLICER_QUANTITY: f64 = 1e12;

@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""Ratchet on four code metrics of non-test Rust: none may grow past tools/slop-ratchet-baseline.txt."""
+import collections
+import hashlib
+import itertools
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+TEST_DIRS = {"tests", "benches"}
+TEST_WORDS = {"test", "tests", "fixture", "fixtures"}
+TRIVIAL = {"}", "{", "},", ");", ")", "];"}
+WINDOW = 8
+BOOL_FIELDS = 4
+METRICS = ("bool_structs", "clone_lines", "backend_imports", "unwraps")
+# Comments, string and char literals; a lifetime such as 'a matches none of them, and nested block comments are not handled.
+LEXEME = re.compile(r"""(//[^\n]*|/\*.*?\*/)|(?<!\w)[bc]?r(#*)".*?"\2|"(?:\\.|[^"\\])*"|'(?:\\(?:u\{[0-9a-fA-F]{1,6}\}|x[0-9a-fA-F]{2}|.)|[^\\'\n])'""", re.S)
+CFG_TEST_BODY = r"\[\s*cfg\s*\(\s*(?:test|all\s*\((?:[^()]*,)?\s*test\s*(?:,[^()]*)?\))\s*\)\s*\]"
+CFG_TEST = re.compile(r"#\s*" + CFG_TEST_BODY)
+INNER_CFG_TEST = re.compile(r"#\s*!\s*" + CFG_TEST_BODY)
+ATTRS = re.compile(r"(?:\s*#\s*\[[^\]]*\])*")
+TOKEN = re.compile(r"->|=>|\bwhere\b|(?<=[\w:])<|[()\[\]{};,>]")
+AFTER_BLOCK = re.compile(r"\s*(?:else\b|as\b|[.?;,=])")
+MOD_DECL = re.compile(r"(?<![\w:])mod\s+(?:r#)?(\w+)\s*;")
+PATH_ATTR = re.compile(r'#\s*\[\s*path\s*=\s*"([^"]*)"')
+USE = re.compile(r"(?<![\w:])use\s+([^;]*);")
+FLEA_ALIAS = re.compile(r"(?<![\w:])extern\s+crate\s+flea\s+as\s+(\w+)")
+RELATIVE = re.compile(r"(?<![\w:])((?:crate|super|self)(?:\s*::\s*(?:super|self))*)\s*::\s*(\w+|\*)")
+
+
+def blank(s):
+    return "\n".join(" " * len(p) for p in s.split("\n"))
+
+
+def mask(s, literals):
+    # Comments become spaces, literals keep only their delimiters when asked; every offset and newline stays where it was.
+    def one(m):
+        g = m.group()
+        return blank(g) if m.group(1) else g[0] + blank(g[1:-1]) + g[-1] if literals else g
+    return LEXEME.sub(one, s)
+
+
+def item_end(code, pos):
+    # Sample input: from "n if n < 3 => 0, _ => 1" the span ends after "0,"; from "fn h<F>(f: F) where F: Fn(), { f() } fn g()" after "{ f() }".
+    # A < opens generics only when it touches the word before it, as rustfmt writes generics and spaces comparisons.
+    depth = angle = 0
+    clause = False
+    for t in TOKEN.finditer(code, pos):
+        c = t.group()
+        if c in ("(", "[", "{"):
+            depth += 1
+        elif c in (")", "]", "}"):
+            if not depth:
+                return t.start()
+            depth -= 1
+            if not depth and c == "}" and not AFTER_BLOCK.match(code, t.end()):
+                return t.end()
+        elif depth:
+            continue
+        elif c == ";":
+            return t.end()
+        elif c == "where":
+            clause = True
+        elif c == "<":
+            angle += 1
+        elif c == ">":
+            angle = max(angle - 1, 0)
+        elif c == "," and not angle and not clause:
+            return t.end()
+    return len(code)
+
+
+def enclosing_block(code, pos):
+    # Sample input: "mod t {\n    #![cfg(test)]" with pos at the "#" gives the offset of "{"; at file level it gives None.
+    depth = 0
+    for i in range(pos - 1, -1, -1):
+        if code[i] == "}":
+            depth += 1
+        elif code[i] == "{":
+            if not depth:
+                return i
+            depth -= 1
+    return None
+
+
+def test_spans(code):
+    # Sample input: "#[cfg(test)]\nmod t { }\nmod u {\n    #![cfg(test)]\n}" gives the span of "#[cfg(test)]\nmod t { }" and of u's block.
+    found = [(m.start(), item_end(code, ATTRS.match(code, m.end()).end())) for m in CFG_TEST.finditer(code)]
+    for m in INNER_CFG_TEST.finditer(code):
+        start = enclosing_block(code, m.start())
+        if start is not None:
+            found.append((start, item_end(code, start)))
+    spans = []
+    for a, b in sorted(found):
+        if spans and a < spans[-1][1]:
+            spans[-1] = (spans[-1][0], max(b, spans[-1][1]))
+        else:
+            spans.append((a, b))
+    return spans
+
+
+def cut(s, spans):
+    pieces, last = [], 0
+    for a, b in spans:
+        pieces += [s[last:a], blank(s[a:b])]
+        last = b
+    return "".join(pieces) + s[last:]
+
+
+def named_test(f):
+    # Sample input: "src/backend/a_tests.rs" and "crates/flea-gui/tests/i.rs" are test files, "src/latest_release.rs" is not.
+    parts = f.removesuffix(".rs").split("/")
+    return any(p in TEST_DIRS for p in parts[:-1]) or any(w in TEST_WORDS for p in parts for w in re.split(r"[_.-]", p))
+
+
+def children(f, raw, code, spans):
+    # Sample input: "#[cfg(test)]\n#[path = \"p/h.rs\"]\nmod hold;\nmod real;" in src/lib.rs gives ("src/p/h.rs", True), ("src/real.rs", False), ("src/real/mod.rs", False).
+    here = Path(f).parent
+    stem = Path(f).stem
+    base = here if stem in ("mod", "lib", "main") or here.name in ("bin", "tests", "examples", "benches") else here / stem
+    for m in MOD_DECL.finditer(code):
+        inside = any(a <= m.start() < b for a, b in spans)
+        head = max(code.rfind(c, 0, m.start()) for c in ";{}") + 1
+        attr = PATH_ATTR.search(raw, head, m.start())
+        attr = attr if attr and code[attr.start()] == "#" else None
+        paths = [here / attr.group(1)] if attr else [base / f"{m.group(1)}.rs", base / m.group(1) / "mod.rs"]
+        for p in paths:
+            yield os.path.normpath(p), inside
+
+
+def sources(root):
+    if (root / ".git").exists():
+        out = subprocess.check_output(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "*.rs"], text=True)
+        names = out.split("\0")
+    else:
+        # A tree without git (a CI lane's extracted tree.tar): every .rs file outside target/ and dot directories.
+        names = [str(p.relative_to(root)) for p in root.rglob("*.rs")
+                 if not any(part == "target" or part.startswith(".") for part in p.relative_to(root).parts[:-1])]
+    files = sorted(f for f in set(names) if f and (root / f).is_file())
+    parsed = {}
+    for f in files:
+        raw = (root / f).read_text(encoding="utf-8", errors="replace")
+        code = mask(raw, True)
+        spans = test_spans(code)
+        parsed[f] = (raw, code, spans, list(children(f, raw, code, spans)))
+    inner = {f for f, (_, code, _, _) in parsed.items() if any(enclosing_block(code, m.start()) is None for m in INNER_CFG_TEST.finditer(code))}
+    named = {f for f in files if named_test(f)}
+    test = inner | named
+    for _ in files:
+        prod_declared = {c for f, p in parsed.items() if f not in test for c, inside in p[3] if not inside}
+        test_declared = {c for f, p in parsed.items() for c, inside in p[3] if inside or f in test}
+        settled = inner | ((named | test_declared) - prod_declared)
+        if settled == test:
+            break
+        test = settled
+    return {f: (cut(code, spans), cut(mask(raw, False), spans)) for f, (raw, code, spans, _) in parsed.items() if f not in test}
+
+
+def use_leaves(tree, prefix=""):
+    # Sample input: "flea::{backend::{self, ops as o}, x}" gives ("flea::backend", "backend"), ("flea::backend::ops", "o"), ("flea::x", "x").
+    depth, start, parts = 0, 0, []
+    for i, c in enumerate(tree + ","):
+        depth += (c == "{") - (c == "}")
+        if c == "," and not depth:
+            parts.append(tree[start:i])
+            start = i + 1
+    for part in parts:
+        head, brace, rest = part.partition("{")
+        if brace:
+            yield from use_leaves(rest.rsplit("}", 1)[0], prefix + re.sub(r"\s+", "", head))
+        elif part.strip():
+            path, _, alias = re.sub(r"\s+", " ", part).strip().partition(" as ")
+            path = (prefix + path.replace(" ", "")).removeprefix("::").removesuffix("::self")
+            yield path, alias or path.rsplit("::", 1)[-1]
+
+
+def gui_backend_edges(code):
+    # Sample input: "use flea as core;\nfn f() { core::backend::listing::open(); }" gives {"flea::backend::listing"}.
+    crates = {"flea"} | set(FLEA_ALIAS.findall(code))
+    leaves = [leaf for u in USE.finditer(code) for leaf in use_leaves(u.group(1))]
+    crates |= {alias for path, alias in leaves if path == "flea"}
+    edges, modules = set(), set()
+    for path, alias in leaves:
+        seg = path.split("::")
+        if seg[0] in crates and seg[1:] == ["*"]:
+            edges.add("flea::*")
+            modules.add("backend")
+        if seg[0] in crates and seg[1:2] == ["backend"]:
+            edges.add("::".join(["flea"] + seg[1:3]))
+            if len(seg) == 2:
+                modules.add(alias)
+    rest = USE.sub(lambda m: blank(m.group()), code)
+    for name in sorted(crates):
+        edges.update(f"flea::backend::{x}" for x in re.findall(rf"(?<![\w:])(?:::\s*)?{name}\s*::\s*backend\s*::\s*(\w+|\*)", rest))
+    for name in sorted(modules):
+        edges.update(f"flea::backend::{x}" for x in re.findall(rf"(?<![\w:]){name}\s*::\s*(\w+|\*)", rest))
+    return edges
+
+
+def resolve(seg, here):
+    # ["super", "super", "gui"] from module ["backend", "x"] gives ["gui"]; None when the path does not start at crate, super or self.
+    if seg[0] == "crate":
+        return seg[1:]
+    if seg[0] not in ("super", "self"):
+        return None
+    base = list(here)
+    while seg and seg[0] in ("super", "self"):
+        base = base[:-1] if seg.pop(0) == "super" else base
+    return base + seg
+
+
+def backend_frontend_edges(f, code):
+    # Sample input: "use crate::{gui::Thing, keys};\nfn f() { super::super::tui::draw(); }" in src/backend/x.rs gives {"crate::gui", "crate::tui"}.
+    parts = f.removeprefix("src/").removesuffix(".rs").split("/")
+    here = parts[:-1] if parts[-1] == "mod" else parts
+    paths = [path.split("::") for u in USE.finditer(code) for path, _ in use_leaves(u.group(1))]
+    rest = USE.sub(lambda m: blank(m.group()), code)
+    paths += [re.split(r"\s*::\s*", chain) + [name] for chain, name in RELATIVE.findall(rest)]
+    edges = set()
+    for seg in paths:
+        full = resolve(seg, here)
+        if full and (full[0] in ("gui", "tui") or full == ["*"]):
+            edges.add(f"crate::{full[0]}")
+    return edges
+
+
+def measure(src):
+    m = {k: collections.Counter() for k in METRICS}
+    for f, (code, _) in src.items():
+        for st in re.finditer(r"\bstruct\s+(\w+)[^{;]*\{([^}]*)\}", code):
+            if len(re.findall(r"(\w+)\s*:\s*bool\b", st.group(2))) >= BOOL_FIELDS:
+                m["bool_structs"][f"{f} {st.group(1)}"] += 1
+        if f.startswith("crates/flea-gui/"):
+            m["backend_imports"].update(f"{f} {e}" for e in gui_backend_edges(code))
+        if f.startswith("src/backend/"):
+            m["backend_imports"].update(f"{f} {e}" for e in backend_frontend_edges(f, code))
+        n = len(re.findall(r"\.unwrap\(\)|\.expect\(", code))
+        if n:
+            m["unwraps"][f] = n
+    windows, total, dup = collections.defaultdict(set), 0, set()
+    for f, (_, text) in src.items():
+        lines = [re.sub(r"\s+", " ", l).strip() for l in text.splitlines()]
+        lines = [l for l in lines if l and l not in TRIVIAL]
+        total += len(lines)
+        for i in range(len(lines) - WINDOW + 1):
+            windows[hashlib.md5("\n".join(lines[i:i + WINDOW]).encode()).digest()].add((f, i))
+    for v in windows.values():
+        if len(v) > 1:
+            dup.update((f, i + j) for f, i in v for j in range(WINDOW))
+            for a, b in itertools.combinations_with_replacement(sorted({f for f, _ in v}), 2):
+                if a != b or sum(1 for g, _ in v if g == a) > 1:
+                    m["clone_lines"][f"{a} {b}"] += 1
+    return m, len(dup), total
+
+
+def read_baseline(path):
+    # Sample input: "total clone_lines 4488 193779", "total unwraps 777", "unwraps src/backend/ops.rs 12" (keys may hold spaces).
+    totals, detail = {}, {k: collections.Counter() for k in METRICS}
+    for line in path.read_text().splitlines():
+        k, _, rest = line.partition(" ")
+        if k == "total":
+            name, *vals = rest.split()
+            totals[name] = tuple(int(v) for v in vals)
+        elif k in METRICS:
+            key, n = rest.rsplit(" ", 1)
+            detail[k][key] = int(n)
+    return totals, detail
+
+
+def write_baseline(path, m, dup, total):
+    lines = [f"total clone_lines {dup} {total}"] + [f"total {k} {sum(m[k].values())}" for k in METRICS if k != "clone_lines"]
+    lines += [f"{k} {key} {n}" for k in METRICS for key, n in sorted(m[k].items())]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n")
+
+
+def main(argv):
+    args = argv[1:]
+    write = "--write-baseline" in args
+    args = [a for a in args if a != "--write-baseline"]
+    root = Path(args[0] if args else ".").resolve()
+    base = Path(args[1]) if len(args) > 1 else root / "tools/slop-ratchet-baseline.txt"
+    m, dup, total = measure(sources(root))
+    now = {k: (sum(m[k].values()),) for k in METRICS if k != "clone_lines"}
+    now["clone_lines"] = (dup, total)
+    if write and not base.exists():
+        write_baseline(base, m, dup, total)
+        print(f"wrote {base}")
+        return 0
+    if not base.exists():
+        print(f"NO BASELINE {base}: run with --write-baseline")
+        return 1
+    totals, detail = read_baseline(base)
+    grew, share_only = [], False
+    for k in METRICS:
+        cur, old = now[k], totals[k]
+        if k == "clone_lines":
+            more, share = cur[0] > old[0], cur[0] * old[1] > old[0] * cur[1]
+            up, share_only = more or share, share and not more
+            shown = f"{cur[0]} of {cur[1]} lines ({100 * cur[0] / max(cur[1], 1):.2f}%), baseline {old[0]} of {old[1]}"
+        else:
+            up, shown = cur[0] > old[0], f"{cur[0]}, baseline {old[0]}"
+        print(f"{'GREW' if up else 'ok'} {k} {shown}")
+        if up:
+            grew.append(k)
+            for key, n in sorted(m[k].items()):
+                if n > detail[k][key]:
+                    print(f"  {key} {n}, baseline {detail[k][key]}")
+    if share_only:
+        print("  no new duplicated lines: the share rose because other lines went; --write-baseline accepts this")
+    if write:
+        refused = [k for k in grew if k != "clone_lines" or not share_only]
+        if refused:
+            print(f"REFUSED: --write-baseline would raise {', '.join(refused)}")
+            return 1
+        write_baseline(base, m, dup, total)
+        print(f"wrote {base}")
+        return 0
+    return 1 if grew else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

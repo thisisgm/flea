@@ -20,6 +20,10 @@ import subprocess
 import sys
 import zlib
 
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
+PARSER_ENV.pop("LANGUAGE", None)
+
 NAV500 = 500  # Down steps of one run, one file per step
 ENTER1000 = 1000  # rows the Enter column enters
 NAV10K = 10000  # rows of the small launch folder
@@ -132,7 +136,7 @@ def refuse_tmpfs(root):
         target = parent
     try:
         fs = subprocess.run(["findmnt", "-no", "FSTYPE", "--target", target],
-                            capture_output=True, text=True).stdout.strip()
+                            capture_output=True, text=True, env=PARSER_ENV).stdout.strip()
     except OSError:
         fs = ""
     if not fs:

@@ -222,7 +222,11 @@ fn read_offer_inner(conn: &mut Conn, offer: u32, types: &[String],
             }
         }
     }
-    none
+    if has("image/png") {
+        OfferFiles { op: "image".to_string(), ..none }
+    } else {
+        none
+    }
 }
 
 // The current selection as files: our own token first, then GNOME's shape, then the uri-list.
@@ -339,3 +343,7 @@ mod tests;
 #[cfg(test)]
 #[path = "clear_tests.rs"]
 mod clear_tests;
+
+#[cfg(test)]
+#[path = "image_tests.rs"]
+mod image_tests;

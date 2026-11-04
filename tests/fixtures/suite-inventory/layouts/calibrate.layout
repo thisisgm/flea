@@ -1,0 +1,11 @@
+# Measurement layout, not a verdict: East times every headless suite serially on one prep tree while
+# West runs the other seven checks, so each suite's cost is known before shards are drawn.
+# host lane kind [args]
+east prep prep
+east cal calibrate
+west prep prep
+west ct cargo-test
+west ctr cargo-test --release
+west qml qmllint-gate
+west budget file-budget
+west proto protocol

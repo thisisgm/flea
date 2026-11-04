@@ -1,0 +1,51 @@
+# First matching rule supplies family and owner; name patterns ignore case.
+kind	path-glob	name-pattern	family	owner
+scope	*	^TUI|^The TUI|#198\b	Drag, clipboard, windows	T
+scope	*	#299\b|polish, field bench|Every language|^i18n	Settings	G0.10
+scope	*	^Copies reach	Drag, clipboard, windows	G2-drag
+ipc	*	^fleapicker\.	Picker	G2-picker
+suite	*	^(preview|quicklook|pdf|markdown|figure|fence|media|thumb|pv-|raw-|html|fontpane|code|csv)	Previews	G0.10
+suite	*	^(ops|archive|fatcopy|permissions|rename|unlock|flash|transfer|run-card|opener|sandbox|capability|gio-auth)	Operations and dialogs	G0.10
+suite	*	^(picker|portal|sweep-picker)	Picker	G0.10
+suite	*	^(menu|lockedmenu)	Menus	G0.10
+suite	*	^(network|mount|mtp|gvfs|trash|shelf|sidebar|rail|eject|device|tag)	Places	G0.10
+suite	*	^(search|filter)	Search	G0.10
+suite	*	^(settings|sheet|uiwriter|uistate|update|keymap|lang)	Settings	G0.10
+suite	*	^(list|column|grid|row|header|cursor|pane|nav|scroll|fling|touchpad|pointer|drag|drop|xw|tab|dual|watch|held|hidden|sort|folder|window)	Drag, clipboard, windows	G0.10
+suite	*	.*	Feedback	G0.10
+schema	*	^picker	Picker	G2-picker
+schema	*	^preview	Previews	G2-previews
+schema	*	^places|^shelf|^trash	Places	G2-places
+schema	*	^menu	Menus	G2-menus
+schema	*	.*	Settings	G2-settings
+binding	*	^(preview|loadPreview|togglePreview|facts|zoom|expand|mute)	Previews	G2-previews
+binding	*	^(filter|search|reveal)	Search	G2-search
+binding	*	^(copy|cut|paste|movePaste)	Drag, clipboard, windows	G2-drag
+binding	*	^(trash|delete|undo|redo|newFolder|duplicate|rename|properties|permissions)	Operations and dialogs	G2-operations
+binding	*	^(eject|sidebar|addNetwork|tags)	Places	G2-places
+binding	*	^(menu|copyAs|pasteAs)	Menus	G2-menus
+binding	*	^(settings|keymap|textSize)	Settings	G2-settings
+binding	*	.*	Drag, clipboard, windows	G1
+board	boards/tui-*	.*	Drag, clipboard, windows	T
+board	boards/lang-*	.*	Settings	I0
+board	boards/plugin-*	.*	Settings	G2-settings
+board	boards/recipes.png	.*	Feedback	G0.5
+board	boards/cols-preview-*	.*	Previews	G2-previews
+board	boards/cols-facts-*	.*	Previews	G2-previews
+board	boards/cols-html.png	.*	Previews	G2-previews
+board	boards/cols*	.*	Drag, clipboard, windows	G1
+qml	ui/Ipc*.qml	.*	Feedback	G0.4
+qml-test	tests/g1-*.qml	.*	Drag, clipboard, windows	G1
+*	*	^(?:flea\.)?(picker|portal)|#(?:123|297|312)\b	Picker	G2-picker
+*	*	^(?:flea\.)?(filedrag|drop|drag|raildrop|rowdrag|rowdrop|tabdrag|selectionband|clipboard|clipmark|clipselection|marquee|xw|tabtearoff|fleatab|windowdrag)|cross.window|#(?:57|231|262)\b	Drag, clipboard, windows	G2-drag
+*	*	^(?:flea\.)?(localsend|send|taildrop|tailscale|dropbox|cloud|sharebrowser|sharelink)|rclone|#176\b	Send	G2-send
+*	*	^(?:flea\.)?(settings|keymap|sheet|textsize|uistate|viewstate|statewords|update|aboutfacts|langtoggle|plugins-installed)|settings search|#(?:43|302)\b	Settings	G2-settings
+*	*	^(?:flea\.)?(preview|quicklook|ql-|pv-|pdf|markdown|md|media|facts|fontpane|fontfacts|html|csv|code|compare|figure|fence|extthumb|thumb|kind|propertyfacts|multi-facts|mermaid|math)|office.*preview|3D.*preview|#(?:39|280|320)\b|Quick Look|Warm.media	Previews	G2-previews
+*	*	^(?:flea\.)?(bulk|collid|convert|permission|archive|flash|fatnames|ops|transfer|unlock|devicelock|powersector|run.?card|runfile|scripts|openwith|opener|print|combine|dialog|card|rename|properties|compress|extract|delete|new.folder|copyto|arm.prompt)|jobs list|#(?:61|264|288|310|321)\b|copy.*progress|Trash.*latency|Q6 Empty Trash|External viewer	Operations and dialogs	G2-operations
+*	*	^(?:flea\.)?(contextmenu|menu|panemenu|chrome|flyout|columnmenu|lockedmenu|placemenu|railmenu|background|file-menu|copyas|pasteas|locked)|custom actions|#214\b	Menus	G2-menus
+*	*	^(?:flea\.)?(network|netfs|device|phone|mount|gvfs|trash|favourite|favorite|sidebar|rail|places|tag|shelf|recent|userdir|eject|loopdevices)|Favorites|#(?:32|113|232)\b	Places	G2-places
+*	*	^(?:flea\.)?(search|filter|fuzzy|match|git)|findbest|contents search|B13 filter|#(?:252|315|317)\b	Search	G2-search
+*	*	^(?:flea\.)?(empty|loading|spinner|status|glass|material|stateMessage|errors?|messages|escapehint|protocol|defaultclaim|makedefault|reload|notice|tooltip|checkBox|button|glyph|fleamark|hyprlandmark|langmark|fitmetrics|reveal|divider|resizehandle|theme|palette|contrast|density|format|icons|fillroles|cohesion)|focus frame|#151\b	Feedback	G0.5
+*	*	^(?:flea\.)?(pane|row|list|column|grid|header|cursor|selection|select|nav|anchor|backreturn|scroll|fastscroll|focus|input|mouse|tap|tab|path|crumb|jump|sort|folder|viewport|stablemodel|backend|countedworker|prebuild|parkedwait|hold|held|slow|startup|renderer|windowbody|shell|pickerless|motion|marks|markbox|keyname|keys|keyreach|ring|framegap|chromering|dual)|Grid|Dual|breadcrumb|#(?:60|144|242|265|273|292|322)\b	Drag, clipboard, windows	G1
+*	*	^(?:flea\.)?(names|swap|watch|dirsizes|ddtarget|sequences|shiftranges|dst|hoverready|uiwriter|hidden|reclick|fill|fsslot)|Local.list CPU|#207\b|Atomic updates	Drag, clipboard, windows	G1
+ipc	*	.*	Feedback	G0.4

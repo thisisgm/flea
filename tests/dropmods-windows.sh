@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
+test_frontend=qml
 # tests/ui.sh and tests/ui-captures-dropmods.sh window helpers against hyprctl, omarchy-drive and ipc doubles: geometry, focus, keys and the cursor seek are per qs pid, and a lookup or a key that fails ends the case.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -61,7 +64,7 @@ rows_reply() {
         *) return 1 ;;
     esac
 }
-# Records every argv; a --window flea key is refused with exit 3 and the driver's own text while two windows match.
+# Records every argv; a --window com.thisisgm.flea key is refused with exit 3 and the driver's own text while two windows match.
 omarchy-drive() {
     printf '%s\n' "$*" >> "$box/argv"
     case "$1" in
@@ -70,11 +73,11 @@ omarchy-drive() {
             if [ "$1" = path ]; then printf '%s\n' "$route_reply"; else rows_reply "$@"; fi ;;
         key)
             [ "$2" = --window ] || return 1
-            if [ "$3" = flea ] && [ "$ambiguous" = yes ]; then
-                printf "omarchy-drive: 'flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it\n" >&2
+            if [ "$3" = com.thisisgm.flea ] && [ "$ambiguous" = yes ]; then
+                printf "omarchy-drive: 'com.thisisgm.flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it\n" >&2
                 return 3
             fi
-            case "$3" in flea | 0xa1 | 0xb2) ;; *) return 1 ;; esac
+            case "$3" in com.thisisgm.flea | 0xa1 | 0xb2) ;; *) return 1 ;; esac
             if [ "$4" = "$refuse_key" ]; then printf 'omarchy-drive: key refused\n' >&2; return 3; fi
             printf '%s\n' "$4" >> "$box/keys.ok" ;;
         hotkey) ;;
@@ -174,14 +177,14 @@ active=11
 ambiguous=no
 reset_drive
 out=$(seek_row_named b1.txt 2>&1)
-[ -z "$out" ] && [ "$(grep '^key ' "$box/argv")" = "key --window flea g
-key --window flea j" ] \
-    && ok "with no pid set the seek sends today's class route" || bad "an unset pid must keep the --window flea route, got: $out / $(paste -sd'|' "$box/argv")"
+[ -z "$out" ] && [ "$(grep '^key ' "$box/argv")" = "key --window com.thisisgm.flea g
+key --window com.thisisgm.flea j" ] \
+    && ok "with no pid set the seek sends today's class route" || bad "an unset pid must keep the --window com.thisisgm.flea route, got: $out / $(paste -sd'|' "$box/argv")"
 
 ambiguous=yes
 reset_drive
 out=$(seek_row_named b1.txt 2>&1)
-[ "$out" = "omarchy-drive: 'flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it
+[ "$out" = "omarchy-drive: 'com.thisisgm.flea' matches 2 windows: com.thisisgm.flea,com.thisisgm.flea, narrow it
 FAIL: seek_row_named: key g was refused on the way to b1.txt, so no key can move the cursor" ] && [ "$(grep -c '^key ' "$box/argv")" = 1 ] \
     && ok "an ambiguous class ends the seek on its first key, not after forty tries" || bad "an ambiguous class must end the seek at once, got: $out / $(grep -c '^key ' "$box/argv") keys"
 
@@ -239,6 +242,12 @@ glide_red
 [ "$(tail -n 2 "$box/glide-argv")" = "$(printf 'mousemove -x 1 -y 0\nmousemove -x -1 -y 0')" ] \
     && ok "a glide landing on its crossing move still ends with the out-and-back" \
     || bad "the argv log must end with the 1 px out-and-back, got: $(paste -sd'|' "$box/glide-argv")"
+
+reset_drive
+out=$( (test_frontend=gpui; ipc_pid=""; key g) 2>&1)
+[ "$out" = 'FAIL: native input has no owned PID' ] && [ ! -s "$box/argv" ] \
+    && ok "the native route refuses input before sending a key without an owned PID" \
+    || bad "unowned native input must be refused without a key, got: $out"
 
 [ "$failed" = 0 ] || exit 1
 printf 'DROPMODSWINDOWS DONE\n'

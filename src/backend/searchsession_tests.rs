@@ -1,5 +1,7 @@
 use super::*;
+use crate::backend::searchwalkhold::wait_walk_landed;
 use crate::backend::testdir::TestDir;
+use std::time::Duration;
 
 // One session, ten queries typed character by character on nested directories.
 fn fixture() -> TestDir {
@@ -13,6 +15,9 @@ fn fixture() -> TestDir {
     d
 }
 
+// The edit budget rises at the 4th and 8th letter; the hyphen is no letter, so prefixes 4 and 9 rescore the index.
+const RESCORED_AT: [usize; 2] = [4, 9];
+
 #[test]
 fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     crate::backend::mountinfo::test_reset();
@@ -21,7 +26,7 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     let mut s = Session::open_sync(&root, &root, false);
     assert_eq!(s.counters.walks_started, 1, "1 walk over the session's directories");
     assert_eq!(s.walk_dirs(), 4, "the scope, docs, docs/work and downloads over 4 directories walked");
-    assert!(!s.capped(), "the fixture never reaches the cap");
+    assert_eq!(s.partial_reason(), None, "the fixture has complete coverage");
     assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the session's directories");
     let mut previous = usize::MAX;
     for (i, len) in (1..=10).enumerate() {
@@ -30,7 +35,8 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
         assert_eq!(s.counters.walks_started, 1, "still 1 walk after query {}", i + 1);
         assert_eq!(crate::backend::mountinfo::test_reads(), 1, "still 1 mountinfo read after query {}", i + 1);
         if i > 0 {
-            assert_eq!(s.counters.rows_scored, previous, "query {} scores the {} previous matches", i + 1, previous);
+            let expected = if RESCORED_AT.contains(&len) { s.indexed() } else { previous };
+            assert_eq!(s.counters.rows_scored, expected, "safe extensions narrow; budget increases rescore the index");
         }
         previous = answer.total;
     }
@@ -180,26 +186,17 @@ fn an_own_write_two_levels_down_shows_in_the_next_query_with_no_walk() {
 }
 
 #[test]
-fn an_outside_change_in_the_open_folder_shows_with_no_walk_but_two_levels_down_needs_a_reopen() {
+fn an_outside_change_two_levels_down_is_visible_without_reopening() {
     crate::backend::mountinfo::test_reset();
     let d = fixture();
     let root = d.path().to_str().expect("utf-8").to_string();
     let mut s = Session::open_sync(&root, &root, false);
-    let added = d.file("bench-outside.txt", "");
-    assert!(s.patch_open_dir(added.parent().unwrap()), "the open folder's change patches the index");
-    let answer = s.query(1, "bench-outside", 100).expect("the next query answers");
-    assert_eq!(answer.total, 1, "the open folder's change shows with {} match", answer.total);
-    assert_eq!(s.counters.walks_started, 1, "still 1 walk after the open folder's change");
     d.file("docs/work/bench-deep.txt", "");
-    let before = s.query(2, "bench-deep", 100).expect("a query before the reopen answers");
-    assert_eq!(before.total, 0, "a change two levels down stays unseen before the reopen over {} rows", before.indexed);
-    // Reopening is a fresh searchopen on the wire: the session closes and one new walk runs.
-    let _ = s.close();
-    assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the first session");
-    let mut reopened = Session::open_sync(&root, &root, false);
-    assert_eq!(crate::backend::mountinfo::test_reads(), 2, "the reopen costs its 1 mountinfo read");
-    let after = reopened.query(1, "bench-deep", 100).expect("the query after the reopen answers");
-    assert_eq!(after.total, 1, "the deep file shows after the reopen over {} rows", after.indexed);
+    assert!(s.apply_watch_deltas(), "the recursive event applies without another query");
+    let after = s.query(1, "bench-deep", 100).expect("the query answers");
+    assert_eq!(after.total, 1);
+    assert_eq!(s.counters.walks_started, 1, "the existing blocks were patched");
+    assert_eq!(crate::backend::mountinfo::test_reads(), 1, "no scope reopen or mount-table sweep");
 }
 
 #[test]
@@ -224,7 +221,7 @@ fn a_query_while_walking_re_runs_with_its_own_gen_at_landing() {
         d.dir(&format!("d{}", i));
     }
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     // Park the walk at its first directory, so the query below answers from a partial index.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
@@ -234,7 +231,7 @@ fn a_query_while_walking_re_runs_with_its_own_gen_at_landing() {
     assert!(partial.walking, "the answer says walking over {} indexed rows", partial.indexed);
     assert_eq!(partial.total, 0, "no match yet over the partial index");
     let _ = release.send(());
-    walked_rx.recv_timeout(std::time::Duration::from_secs(30)).expect("the walk lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), |_| false);
     assert!(s.poll_walked(), "the landing announces once");
     assert!(!s.poll_walked(), "the landing never announces twice");
     let landed = s.re_answer_standing().expect("the standing query re-runs at landing");
@@ -305,7 +302,7 @@ fn cancel_walk_keeps_the_session_and_its_partial_index() {
     }
     d.file("bench.txt", "");
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, _walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, _walked_rx) = crate::backend::events::channel();
     // Park the walk at its first directory, so the cancel below lands mid-walk.
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
@@ -370,7 +367,7 @@ fn an_empty_standing_query_lands_one_searched_line() {
         d.dir(&format!("d{}", i));
     }
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (walked_tx, walked_rx) = std::sync::mpsc::channel();
+    let (walked_tx, walked_rx) = crate::backend::events::channel();
     let probes = Arc::new(WalkProbes::new());
     let (parked, release) = probes.test_hold_walk_at(1);
     let mut s = Session::open_async_with_probes(&root, &root, false, walked_tx, Arc::clone(&probes));
@@ -378,7 +375,7 @@ fn an_empty_standing_query_lands_one_searched_line() {
     s.note_folder_count(7);
     s.claim_gen(1, "", 100);
     let _ = release.send(());
-    walked_rx.recv_timeout(std::time::Duration::from_secs(30)).expect("the walk lands");
+    wait_walk_landed(&walked_rx, &s, Duration::from_secs(30), |_| false);
     assert!(s.poll_walked(), "the landing announces once");
     let (gen, n, scanned, _) = s.landing_empty().expect("the empty query lands one line");
     assert_eq!((gen, n, scanned), (1, 7, 7), "the standing gen with the remembered folder count");

@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""Regenerate English source hashes, or check catalog keys, holes and shared references."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import tempfile
+
+HOLES = re.compile(r"%[1-9][0-9]*")
+CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
+CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
+KINDS = {"shell", "menu", "cli", "keybindings"}
+HASH = re.compile(r"[0-9a-f]{12}\Z")
+# This HIG correction is optional elsewhere because shared-mime-info supplies those descriptions.
+MIME_OVERRIDES = {"mime.markdown": {"en", "ja"}}
+ISOLATES = {"\u2066", "\u2068"}
+RIGHT_TO_LEFT_ISOLATE = "\u2067"
+POP_ISOLATE = "\u2069"
+
+
+# Sample input: [("label", "Open"), ("count", {"other": "%1 files"})] are decoded JSON members.
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+# Sample input: {"label":"Open","count":{"other":"%1 files"}} is a catalog object.
+def read(path):
+    value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(value, dict):
+        raise ValueError(f"{path}: expected a JSON object")
+    return value
+
+
+# Sample input: "Open %1" or {"one":"%1 file","other":"%1 files"} is a catalog value.
+def forms(value, location):
+    if isinstance(value, str) and value.strip():
+        return [value]
+    if isinstance(value, dict) and "other" in value and set(value) <= CATEGORIES:
+        if all(isinstance(text, str) and text.strip() for text in value.values()):
+            return list(value.values())
+    raise ValueError(f"{location}: expected nonempty text or CLDR forms including other")
+
+
+def source_hash(value):
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+# Sample input: "omarchy:shell.common.search" names an English Omarchy catalog key.
+def check_reference(reference, omarchy):
+    target = reference.removeprefix("omarchy:")
+    kind, dot, key = target.partition(".")
+    if not reference.startswith("omarchy:") or not dot or kind not in KINDS or not key:
+        raise ValueError(f"invalid Omarchy reference: {reference}")
+    if omarchy is None:
+        raise ValueError(f"{reference}: set OMARCHY_PATH or --omarchy-path to check the source key")
+    catalog = read(omarchy / "default/i18n/en" / f"{kind}.json")
+    if kind == "menu":
+        catalog = {f"{mid}.{field}": text for mid, fields in catalog.items()
+                   if isinstance(fields, dict) for field, text in fields.items()}
+    if key not in catalog:
+        raise ValueError(f"Omarchy source key disappeared: {reference}")
+    forms(catalog[key], reference)
+
+
+# Sample input: "\u2068%1\u2069 of %2" returns ["%2"], the holes outside a closed LRI or FSI run.
+# rtl-policy.json text_runs names only those two, so a hole whose innermost run is RLI is bare too.
+def bare_holes(text):
+    runs, bare = [], []
+    for match in re.finditer(r"%[1-9][0-9]*|[\u2066-\u2069]", text):
+        mark = match.group()
+        if mark in ISOLATES:
+            runs.append([])
+        elif mark == RIGHT_TO_LEFT_ISOLATE:
+            runs.append(None)
+        elif mark == POP_ISOLATE:
+            if runs:
+                runs.pop()
+        elif runs and runs[-1] is not None:
+            runs[-1].append(mark)
+        else:
+            bare.append(mark)
+    return bare + [hole for run in runs if run for hole in run]
+
+
+# Sample input: {"rtl_languages": ["ar", "he"]} lists the catalogs whose holes must be isolated.
+def rtl_languages(root):
+    path = root / "rtl-policy.json"
+    return set(read(path)["rtl_languages"]) if path.exists() else set()
+
+
+# Sample input: "" or {"one":"","other":"%1 files"} has no complete translation to record.
+def empty_translation(value):
+    if isinstance(value, str):
+        return not value.strip()
+    if isinstance(value, dict) and set(value) <= CATEGORIES:
+        return all(isinstance(text, str) for text in value.values()) and (
+            not value or any(not text.strip() for text in value.values()))
+    return False
+
+
+def required_keys(english, language):
+    return set(english) - {key for key, owners in MIME_OVERRIDES.items() if language not in owners}
+
+
+def current_hashes(root, omarchy, references, allow_empty=False):
+    english = read(root / "en/flea.json")
+    if not english or any(not key or not isinstance(key, str) for key in english):
+        raise ValueError("English catalog must have nonempty keys")
+    placeholders = {}
+    for key, value in english.items():
+        variants = forms(value, f"en:{key}")
+        expected = set(HOLES.findall(variants[0]))
+        if any(set(HOLES.findall(text)) != expected for text in variants):
+            raise ValueError(f"en:{key}: placeholders differ between plural forms")
+        placeholders[key] = expected
+    manifest = {}
+    right_to_left = rtl_languages(root)
+    for path in sorted(root.glob("*/flea.json")):
+        code = path.parent.name
+        if not CODE.fullmatch(code):
+            raise ValueError(f"invalid catalog language code: {code}")
+        catalog = read(path)
+        missing, extra = required_keys(english, code) - set(catalog), set(catalog) - set(english)
+        if missing or extra:
+            raise ValueError(f"{code}: key parity failed; missing={sorted(missing)}, extra={sorted(extra)}")
+        section = {}
+        for key, value in catalog.items():
+            if isinstance(value, dict) != isinstance(english[key], dict):
+                raise ValueError(f"{code}:{key}: text/plural shape differs from English")
+            if code != "en" and allow_empty and empty_translation(value):
+                continue
+            for text in forms(value, f"{code}:{key}"):
+                if set(HOLES.findall(text)) != placeholders[key]:
+                    raise ValueError(f"{code}:{key}: placeholder parity failed")
+                if code in right_to_left and bare_holes(text):
+                    raise ValueError(f"{code}:{key}: right-to-left placeholder {bare_holes(text)[0]} is not isolated")
+                if text.startswith("omarchy:"):
+                    references.add(text)
+            section[f"flea:{key}"] = source_hash(english[key])
+        manifest[code] = section
+    for reference in sorted(references):
+        check_reference(reference, omarchy)
+    return manifest
+
+
+# Sample input: {"de":{"flea:label":"0123456789ab"}} records the English source a translation used.
+def recorded_manifest(path):
+    manifest = read(path) if path.exists() else {}
+    for code, section in manifest.items():
+        if not CODE.fullmatch(code) or not isinstance(section, dict):
+            raise ValueError(f"{path}: invalid language section {code}")
+        for key, digest in section.items():
+            if not key.startswith("flea:") or not isinstance(digest, str) or not HASH.fullmatch(digest):
+                raise ValueError(f"{path}: invalid source hash for {code}:{key}")
+    return manifest
+
+
+def update_manifest(recorded, current, mark):
+    recorded = {
+        code: {unit: digest for unit, digest in section.items() if unit in current[code]}
+        for code, section in recorded.items() if code in current
+    }
+    recorded["en"] = current["en"]
+    for code, hashes in current.items():
+        if code != "en":
+            section = recorded.setdefault(code, {})
+            for key, digest in hashes.items():
+                section.setdefault(key, digest)
+    if mark:
+        code, *keys = mark
+        if code == "en" or code not in current:
+            raise ValueError(f"--mark requires an existing translated catalog: {code}")
+        units = [key if key.startswith("flea:") else f"flea:{key}" for key in keys]
+        for unit in units:
+            if unit not in current[code]:
+                raise ValueError(f"cannot mark missing translation {code}:{unit}")
+        for unit in units:
+            recorded[code][unit] = current[code][unit]
+    return recorded
+
+
+def check_manifest(recorded, current, path):
+    for code, section in sorted(recorded.items()):
+        if code not in current:
+            print(f"flea-i18n-manifest: warning: orphaned language {code}", file=sys.stderr)
+        for unit in sorted(section.keys() - current.get(code, {}).keys()):
+            print(f"flea-i18n-manifest: warning: orphaned entry {code}:{unit}", file=sys.stderr)
+    if any(recorded.get("en", {}).get(unit) != digest for unit, digest in current["en"].items()):
+        raise ValueError(f"{path}: stale English hashes; run tools/flea-i18n-manifest")
+    for code, hashes in current.items():
+        for unit, digest in hashes.items():
+            if unit not in recorded.get(code, {}):
+                raise ValueError(f"{path}: missing source hash for {code}:{unit}; run tools/flea-i18n-manifest")
+            if code != "en" and recorded[code][unit] != digest:
+                print(f"flea-i18n-manifest: warning: stale translation {code}:{unit}", file=sys.stderr)
+
+
+def atomic_write(path, text):
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=".translation-manifest.", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="validate without writing; stale translations warn")
+    mode.add_argument("--mark", nargs="+", metavar="LANG_OR_KEY", help="record updated translations: --mark LANG KEY...")
+    parser.add_argument("--i18n-dir", type=Path, default=Path(__file__).resolve().parents[1] / "i18n")
+    parser.add_argument("--omarchy-path", type=Path, default=os.environ.get("OMARCHY_PATH") or None)
+    parser.add_argument("--reference", action="append", default=[], help="also verify this omarchy:kind.key reference")
+    args = parser.parse_args()
+    if args.mark and len(args.mark) < 2:
+        parser.error("--mark requires a language and at least one key")
+    omarchy = args.omarchy_path
+    if omarchy is None and Path("/usr/share/omarchy/default/i18n/en").is_dir():
+        omarchy = Path("/usr/share/omarchy")
+    try:
+        current = current_hashes(args.i18n_dir, omarchy, set(args.reference), allow_empty=not args.check)
+        path = args.i18n_dir / "translation-manifest.json"
+        manifest = recorded_manifest(path)
+        if args.check:
+            check_manifest(manifest, current, path)
+        else:
+            manifest = update_manifest(manifest, current, args.mark)
+            atomic_write(path, json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    except (OSError, ValueError) as error:
+        print(f"flea-i18n-manifest: {error}", file=sys.stderr)
+        return 1
+    print(f"i18n manifest {'checked' if args.check else 'updated'}: {len(current)} catalogs, {len(current['en'])} English keys")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

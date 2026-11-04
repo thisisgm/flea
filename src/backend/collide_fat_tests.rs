@@ -166,7 +166,12 @@ fn redo_of_a_copy_writes_the_names_the_copy_was_made_with() {
     let (ok, failed, _, errors, entry) = transfer(false, &[&trip], &to, fat_policy(Choice::Rename, true));
     assert_eq!((ok, failed), (1, 0), "{errors:?}");
     // The journal file is the other window's redo source, so the entry goes through its codec first.
-    let doc = crate::backend::undoshare::Doc { undo: vec![entry], redo: Vec::new(), push_gen: 0 };
+    let doc = crate::backend::undoshare::Doc {
+        undo: vec![entry],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let written = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     let mut back = crate::backend::undocodec::decode(&written).expect("the journal reads back");
     let entry = back.undo.remove(0);
@@ -195,8 +200,17 @@ fn redo_of_a_cross_device_move_writes_the_names_the_move_was_made_with() {
     crate::backend::copyfile::test_force_exdev(true);
     let (ok, failed, _, errors, entry) = transfer(true, &[&trip], &to, fat_policy(Choice::Rename, true));
     assert_eq!((ok, failed), (1, 0), "{errors:?}");
-    assert_eq!(text(&to.join("trip/clip_ x.mp4")), "inside", "the move itself wrote the renamed name");
-    let doc = crate::backend::undoshare::Doc { undo: vec![entry], redo: Vec::new(), push_gen: 0 };
+    assert_eq!(
+        text(&to.join("trip/clip_ x.mp4")),
+        "inside",
+        "the move itself wrote the renamed name"
+    );
+    let doc = crate::backend::undoshare::Doc {
+        undo: vec![entry],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let written = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     let mut back = crate::backend::undocodec::decode(&written).expect("the journal reads back");
     let entry = back.undo.remove(0);

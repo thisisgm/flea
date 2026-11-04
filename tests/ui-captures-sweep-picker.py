@@ -11,6 +11,11 @@ import tempfile
 import time
 import tomllib
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
 import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
@@ -161,7 +166,7 @@ def owned_window():
 def state():
     owned_window()
     # Sample input: {"view":"grid","marksBusy":false,"marks":[],"themeLoaded":true,"themeForeground":"#dfe8e0"}.
-    return json.loads(run(["qs", "ipc", "--pid", picker_pid, "call", "fleapicker", "snapshot"], picker_env, 5))
+    return json.loads(run([*IPC.command(), "--pid", picker_pid, "call", "fleapicker", "snapshot"], picker_env, 5))
 
 
 def capture_state(mode):

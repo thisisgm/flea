@@ -243,13 +243,13 @@ PY
                 matrix_wait_column image preview.png
                 printf 'GLASSPICK owned-keys=ok preview=preview.png\n'
                 glasspick_focus "$fleapid" true "$mode"
-                [[ "$mode" != transparent ]] || jq -e '.alpha == (251/255)' <<< "$(ipc glass)" >/dev/null || fail "glasspick: focused Transparent is not 251/255"
+                [[ "$mode" != transparent ]] || jq -e '.alpha == 1' <<< "$(ipc glass)" >/dev/null || fail "glasspick: focused Transparent is not opaque"
                 settle
                 glasspick_foot_log "$config/foot.log"
                 glasspick_shot "glass-$mode-$theme-$backdrop" "$fleapid" "$glasspick_term_pid"
                 if [[ "$mode" == transparent ]]; then
                     glasspick_focus "$glasspick_term_pid" false "$mode"
-                    jq -e '.alpha == (245/255)' <<< "$(ipc glass)" >/dev/null || fail "glasspick: unfocused Transparent is not 245/255"
+                    jq -e '.alpha == 1' <<< "$(ipc glass)" >/dev/null || fail "glasspick: unfocused Transparent is not opaque"
                     settle
                     glasspick_foot_log "$config/foot.log"
                     glasspick_shot "glass-$mode-$theme-$backdrop-unfocused" "$fleapid" "$glasspick_term_pid"

@@ -415,11 +415,11 @@ c_trash() {
   printf 'trash me' > "$mnt/doomed.txt"
   # XDG_DATA_HOME is exported once before the first round, so this backend already has it.
   mkdir -p "$XDG_DATA_HOME"
-  # Sample trash line: {"t":"trashed","ok":1,"failed":0}
+  # Sample trash line: {"t":"trashed","id":0,"ok":1,"failed":0,"moved":["/mnt/x/doomed.txt"]}
   fresh
   send "{\"c\":\"trash\",\"paths\":[\"$mnt/doomed.txt\"]}"
   await '"t":"trashed"' 400 || { check "$mnt trash answers" "trashed" "timeout"; return; }
-  check "$mnt trash ok" "1" "$(seen '"t":"trashed","ok":1,"failed":0')"
+  check "$mnt trash ok" "1" "$(seen '"t":"trashed","id":0,"ok":1,"failed":0')"
   check "$mnt file left the directory" "no" "$([ -e "$mnt/doomed.txt" ] && echo yes || echo no)"
   check "$mnt volume trash dir exists" "yes" "$([ -d "$trashdir" ] && echo yes || echo no)"
   fresh

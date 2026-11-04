@@ -23,6 +23,10 @@ fail() {
     exit 1
 }
 
+# The shared transport launches only worktree binaries, so the case spawns its double the way ui.sh did before it.
+. "$repo/tests/lib/fixture-launch.sh" || fail "cannot load the fixture launch double"
+test_frontend=qml
+
 seed_ui_state() {
     :
 }
@@ -38,6 +42,7 @@ fixture_home_make() {
 real_launch_src=$(sed -n '/^launch_window() {$/,/^}$/p;/^launch() {$/,/^}$/{s/^launch()/real_launch()/;p}' "$repo/tests/ui.sh")
 [[ "$real_launch_src" == launch_window\(\)* && "$real_launch_src" == *$'\n'real_launch\(\)* ]] || fail "tests/ui.sh has no launch and launch_window functions to run"
 eval "$real_launch_src"
+eval "$(sed -n '/^case_homes() {$/,/^}$/p' "$repo/tests/ui.sh")"
 declare -F launch_window >/dev/null || fail "the launch_window of tests/ui.sh did not load"
 kill_flea() { :; }
 assert_window() { :; }

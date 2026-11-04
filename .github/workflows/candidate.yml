@@ -30,12 +30,13 @@ jobs:
         run: |
           set -euo pipefail
           for line in \
-            'sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1 bubblewrap' \
-            'run: cargo test --release --locked' \
-            'run: cargo build --release --locked' \
-            'run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist' \
-            'versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)' \
-            'aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)'; do
+            'run: packaging/flea-release-build install-deps' \
+            'run: packaging/flea-release-build test' \
+            'run: packaging/flea-release-build build' \
+            'run: packaging/flea-release-build stage' \
+            'run: packaging/flea-release-build check' \
+            'versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD)' \
+            'if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then'; do
             grep -qF -- "$line" .github/workflows/release.yml \
               || { echo "::error::release.yml no longer runs: $line; update candidate.yml with it"; exit 1; }
           done
@@ -53,8 +54,7 @@ jobs:
               echo "::error::$1 is '$2' but Cargo.toml says '$3'"; fail=1
             fi
           }
-          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)
-          aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)
+          versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD)
           for pkgbuild in "${versioned_pkgbuilds[@]}"; do
             # Sample input: PKGBUILD line `pkgver=0.3.3`.
             check "$pkgbuild pkgver" "$(grep -m1 '^pkgver=' "$pkgbuild" | cut -d= -f2)" "$version"
@@ -62,17 +62,12 @@ jobs:
           closure() {
             bash -c 'source "./$1"; printf "%s\n" "depends:" "${depends[@]}" "optdepends:" "${optdepends[@]}"' _ "$1"
           }
-          # Sample input: from `package() {` to the next line that is exactly `}`, minus comments, blank lines, the cd line and the binary line.
-          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^[[:space:]]*(#|$)|^  cd |/usr/bin/flea"$'; }
-          for pkgbuild in "${aur_pkgbuilds[@]}"; do
-            if ! diff <(closure PKGBUILD) <(closure "$pkgbuild"); then
-              echo "::error::$pkgbuild's depends or optdepends differ from PKGBUILD's"; fail=1
-            fi
-            if ! diff <(body PKGBUILD) <(body "$pkgbuild"); then
-              echo "::error::$pkgbuild's package() has drifted from PKGBUILD's"; fail=1
-            fi
-          done
+          # flea-bin packages the release's prebuilt binary, so it needs exactly what the root package needs.
+          if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then
+            echo "::error::packaging/flea-bin/PKGBUILD's depends or optdepends differ from PKGBUILD's"; fail=1
+          fi
           [ "$fail" -eq 0 ] || exit 1
+          FLEA_FIXTURE_ROOT=/tmp/flea-package-verify tests/figure-package.sh
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "verified candidate $version at $GITHUB_SHA"
 
@@ -88,7 +83,8 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    # The GPUI workspace tests and the release build ran past 30 minutes on hosted runners (Candidate run 41508630731).
+    timeout-minutes: 120
     env:
       VERSION: ${{ needs.verify.outputs.version }}
       ARCH: ${{ matrix.arch }}
@@ -101,36 +97,26 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install what the test suite shells out to
+      - name: Install what GPUI and the test suite need
+        run: packaging/flea-release-build install-deps
+
+      # The debug flea-gui build outgrew the arm runner's memory and the runner was shut down (run 41513658726).
+      - name: Add swap for the debug GPUI build
         run: |
-          set -eu
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1 bubblewrap
+          free -h && df -h /
+          sudo fallocate -l 8G /flea-swap && sudo chmod 600 /flea-swap
+          sudo mkswap /flea-swap >/dev/null && sudo swapon /flea-swap && free -h
 
       - name: Test
-        run: cargo test --release --locked
+        env:
+          CARGO_PROFILE_DEV_DEBUG: line-tables-only
+        run: packaging/flea-release-build test
 
       - name: Build
-        run: cargo build --release --locked
+        run: packaging/flea-release-build build
 
       - name: Stage the flea-bin tarball
-        run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist
+        run: packaging/flea-release-build stage
 
       - name: The tarball holds every path flea-bin's package() installs
-        run: |
-          set -euo pipefail
-          unpacked=$(mktemp -d)
-          tar -xzf "dist/flea-v$VERSION-linux-$ARCH.tar.gz" -C "$unpacked"
-          cd "$unpacked/flea-$VERSION-linux-$ARCH"
-          # Sample input: `  install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals"`.
-          # shellcheck disable=SC2016 # the pattern matches a literal $pkgdir
-          sources=$(sed -n '/^package() {/,/^}/p' "$GITHUB_WORKSPACE/packaging/flea-bin/PKGBUILD" \
-            | grep -E '^[[:space:]]*install ' | tr -s ' ' '\n' | grep -vE '^(|install|-[A-Za-z0-9]+|"?\$pkgdir.*)$') \
-            || { echo "::error::no install path could be read from packaging/flea-bin/PKGBUILD's package()"; exit 1; }
-          missing=0
-          while read -r source; do
-            compgen -G "$source" >/dev/null || {
-              echo "::error::flea-bin's package() installs $source, which packaging/flea-bin-tarball did not stage"; missing=1; }
-          done <<< "$sources"
-          echo "checked $(wc -l <<< "$sources") paths flea-bin's package() installs"
-          exit "$missing"
+        run: packaging/flea-release-build check

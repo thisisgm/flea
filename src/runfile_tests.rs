@@ -1,13 +1,9 @@
 use super::*;
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::PermissionsExt;
 
 // Every destructive probe writes inside hard rule 9's own sandbox and nowhere else.
 fn write(dir: &crate::backend::testdir::TestDir, name: &str, bytes: &[u8], mode: u32) -> PathBuf {
-    let path = dir.path().join(name);
-    std::fs::write(&path, bytes).expect("the fixture is written");
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).expect("its mode is set");
-    path
+    dir.executable(name, bytes, mode)
 }
 
 #[test]
@@ -393,3 +389,7 @@ fn probe_report() {
     let secret = std::env::vars_os().any(|(key, _)| key.to_string_lossy() == "FLEA_RUNFILE_SECRET");
     println!("secret={}", if secret { "present" } else { "absent" });
 }
+
+// The repro lives beside this file's write helper, in its own file so this one stays under the cap.
+#[path = "runfile_exec_tests.rs"]
+mod exec;

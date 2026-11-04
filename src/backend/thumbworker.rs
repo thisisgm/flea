@@ -546,6 +546,7 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::process::CommandExt;
     use std::process::Command;
 
     // The probe confines a second copy of this test binary, so nothing it locks down can reach the harness running every other test.
@@ -843,7 +844,7 @@ mod tests {
         }
         // Lowest-free numbering puts an idle job on 3 and 4 only when nothing was inherited, so a shifted idle arm fails rather than rerunning the busy one.
         if !busy && (reader, report) != (INPUT_FD, OUTPUT_FD) {
-            println!("probe=idle-arm-on {} {}", reader, report);
+            println!("probe=idle-arm-on {} {} fd4={}", reader, report, target(4));
             unsafe { _exit(CHILD_MACHINE) };
         }
         let (_peer, planted) = fdpass::pair().expect("the probe could not make its socket");
@@ -919,7 +920,19 @@ mod tests {
         let victim = dir.file("victim.mp4", "original");
         for busy in [false, true] {
             let report = dir.file("report", "");
-            let out = Command::new(std::env::current_exe().unwrap())
+            let mut command = Command::new(std::env::current_exe().unwrap());
+            // SAFETY: the child only marks inherited fds close-on-exec before it execs this test binary.
+            unsafe {
+                command.pre_exec(|| {
+                    const CLOSE_RANGE_CLOEXEC: c_int = 4;
+                    if close_range(3, u32::MAX, CLOSE_RANGE_CLOEXEC) == 0 {
+                        Ok(())
+                    } else {
+                        Err(std::io::Error::last_os_error())
+                    }
+                });
+            }
+            let out = command
                 .args(["--exact", THIS_TEST, "--test-threads=1", "--nocapture"])
                 .env(CONFINE_PROBE, dir.path())
                 .env(CONFINE_BUSY, if busy { "1" } else { "0" })

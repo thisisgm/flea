@@ -6,10 +6,13 @@ function due(now, last, interval) {
     return elapsed >= interval || elapsed < 0
 }
 
-// plan(50, 0, 120, "b", "b", true) keeps the pending timer; callers suppress shown duplicates by identity before scheduling.
-function plan(now, last, interval, key, lastKey, armedForKey) {
+// A settle armed for this row before its move reached the clock (ColumnsArea's folder to file step) is left to the clock.
+// plan(50, 0, 120, "b", "b", true) keeps the pending timer; plan(1000, 0, 120, "c", "b", true, false) is "now".
+function plan(now, last, interval, key, lastKey, armedForKey, pending) {
     if (key === lastKey && armedForKey === true)
         return "same"
+    if (pending === true)
+        return "later"
     return due(now, last, interval) ? "now" : "later"
 }
 

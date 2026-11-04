@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Generate Qt bindings from the same TOML table embedded by the TUI."""
+"""Generate frontend bindings from the shared key table."""
+import argparse
 import json
 import sys
 import tomllib
 from pathlib import Path
+from keymap_rust import catalog_entries, generate_rust, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 PRESETS = ('default', 'vim', 'mac', 'windows')
@@ -33,8 +35,7 @@ def caps(mods, key):
 
 # ui/js/Keymap.js folds an armed chord onto the action it completes, and the sheet groups the pair
 # as one row, so the group table names the action rather than the arm.
-ARMS = {'copyArm': 'copy', 'cutArm': 'cut', 'pasteArm': 'paste', 'cursorFirstArm': 'cursorFirst',
-        'trashArm': 'trash'}
+ARMS = {}
 
 
 # KeymapSheet.html rule 1: every action the listing binds gets a group, and one only. A missing row
@@ -69,7 +70,10 @@ def check_groups(data, rows):
         fail(f'the {seen[action]} sheet group names {action}, which nothing binds at all')
 
 
-def generate(data):
+def generate(data, rust=False):
+    validate(data)
+    ARMS.clear()
+    ARMS.update((row['arm'], row['action']) for row in data['sequence'])
     for required in ('preset', 'sheet', 'pointer', 'digits', 'sheetgroups'):
         if not data.get(required):
             fail(f'the {required} table is missing or empty')
@@ -100,7 +104,11 @@ def generate(data):
             seen[key] = row['action']
             shared.append(dict(name='all', mods=mods, key=key, keys=row.get('keys', caps(mods, key)),
                                action=row['action'], context='listing', frontend='all',
-                               **({} if row.get('sheet', True) else {'sheet': False})))
+                               **({} if row.get('sheet', True) else {'sheet': False}),
+                               **({'label': row['label']} if 'label' in row else {})))
+    check_groups(data, bindings + shared)
+    if rust:
+        return generate_rust(data, bindings, shared, CONTEXTS)
     lines = ['.pragma library', '', '// Generated from keys.toml by tools/flea-keymap-gen. Do not edit.']
     def emit(name, value):
         lines.append('var ' + name + ' = ' + json.dumps(value, ensure_ascii=True, separators=(',', ':')))
@@ -125,6 +133,7 @@ def generate(data):
     emit('POINTER', data['pointer'])
     emit('BASE_SHEET', data['sheet'])
     emit('SHEET_GROUPS', data['sheetgroups'])
+    emit('SHEET_TIE_PRIORITY', data['sheetties'])
     # A sheet group may name a binding the listing never sees, the way MediaMute's m is the media
     # context's alone; the sheet takes those from here rather than filtering the tables again. A row
     # whose action the listing binds anywhere is already in the sheet and must not arrive twice.
@@ -138,7 +147,7 @@ def generate(data):
                          and 'listing' not in row['context'].split(',')])
     emit('DIGITS', data['digits'])
     check_groups(data, bindings + shared)
-    lines.append(r'''
+    script = r'''
 function applies(row, context, frontend) {
     return (row.context.split(",").indexOf(context) >= 0 || row.context === "all")
            && (row.frontend === frontend || row.frontend === "all")
@@ -177,7 +186,7 @@ function lookup(key, text, modifiers, context, frontend) {
     return lookupFor(preset, key, text, modifiers, context, frontend)
 }
 function actionGroup(action) {
-    var arms = { copyArm: "copy", cutArm: "cut", pasteArm: "paste", cursorFirstArm: "cursorFirst", trashArm: "trash" }
+    var arms = @ACTION_GROUPS@
     return arms[action] || action
 }
 function bindingRows(name, frontend, group) {
@@ -199,12 +208,10 @@ function hintFor(action) {
 }
 // How wide a cap may get before a second spelling stops earning its place. The sheet draws two
 // columns of a 300 unit card, so a cap past this elides and the wording beside it has nowhere to go.
-var SHEET_CAP_BUDGET = 16
+var SHEET_CAP_BUDGET = @CAP_BUDGET@
 
 // Actions that answer each other show a second spelling on both members or on neither (width alone gave "]" beside "[ / ctrl-pageup").
-var SHEET_MIRRORS = [["cursorDown", "cursorUp"], ["cursorFirst", "cursorLast"], ["pageDown", "pageUp"],
-    ["historyBack", "historyForward"], ["tabNext", "tabPrevious"], ["tabMoveLeft", "tabMoveRight"],
-    ["zoomIn", "zoomOut"], ["textSizeUp", "textSizeDown"], ["extendDown", "extendUp"]]
+var SHEET_MIRRORS = @MIRRORS@
 
 // An action id is not wording. A row the base sheet does not name printed its own identifier, so the
 // pane advertised "pageDown" and "textSizeReset" beside sentences like "hidden files".
@@ -216,6 +223,13 @@ function spelledOut(action) {
 // before a chord. setPreset ranks the menu hint the same way, so the sheet and the menus agree.
 function capRank(row, preset) {
     return (row.preset === preset ? 0 : 2) + (row.mods === "text" ? 0 : 1)
+}
+
+function tieRank(row, preset) {
+    if (row.preset === preset) return Infinity
+    var keys = (SHEET_TIE_PRIORITY.all || []).concat(SHEET_TIE_PRIORITY[preset] || [])
+    var at = keys.indexOf(row.keys)
+    return at < 0 ? Infinity : at
 }
 
 function sheetFor(name, frontend) {
@@ -239,7 +253,13 @@ function sheetFor(name, frontend) {
     // the column beside it. The best spelling always shows, a second only while both still fit.
     for (var g = 0; g < result.length; g++) {
         var spellings = result[g].spellings.slice()
-        spellings.sort(function (left, right) { return capRank(left, name) - capRank(right, name) })
+        // Qt's sort need not preserve equal ranks, so table order is the final tie breaker.
+        spellings.sort(function (left, right) {
+            var rank = capRank(left, name) - capRank(right, name)
+            if (rank) return rank
+            var a = tieRank(left, name), b = tieRank(right, name)
+            return a !== b ? a - b : rows.indexOf(left) - rows.indexOf(right)
+        })
         var keys = spellings.length ? spellings[0].keys : ""
         result[g].alone = keys
         for (var k = 1; k < spellings.length; k++) {
@@ -284,14 +304,39 @@ function setPreset(name) {
 }
 var HINTS = {}
 setPreset("default")
-''')
+'''
+    pairs = [json.dumps(pair) for pair in data['sheetoptions']['mirrors']]
+    mirrors = '[' + ',\n    '.join(', '.join(pairs[i:i + 3]) for i in range(0, len(pairs), 3)) + ']'
+    action_groups = '{ ' + ', '.join(arm + ': ' + json.dumps(action) for arm, action in ARMS.items()) + ' }'
+    script = script.replace('@ACTION_GROUPS@', action_groups)
+    lines.append(script.replace('@CAP_BUDGET@', str(data['sheetoptions']['cap_budget'])).replace('@MIRRORS@', mirrors))
     return '\n'.join(lines).rstrip()
 
 
 try:
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'ui/js/Keymap.js'
-    source = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / 'keys.toml'
-    target.write_text(generate(tomllib.loads(source.read_text())) + '\n')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('target', nargs='?', type=Path)
+    parser.add_argument('source', nargs='?', type=Path, default=ROOT / 'keys.toml')
+    parser.add_argument('--rust', type=Path, help='also emit Rust to this file')
+    parser.add_argument('--catalog', type=Path, help='refresh the English keys.* catalog region')
+    args = parser.parse_args()
+    data = tomllib.loads(args.source.read_text())
+    javascript = generate(data) + '\n'
+    rust = generate(data, rust=True) + '\n'
+    (args.target or ROOT / 'ui/js/Keymap.js').write_text(javascript)
+    if args.rust or args.target is None:
+        (args.rust or ROOT / 'src/keys_generated.rs').write_text(rust)
+    catalog_target = args.catalog or (ROOT / 'i18n/en/flea.json' if args.target is None else None)
+    if catalog_target:
+        catalog = json.loads(catalog_target.read_text())
+        entries = catalog_entries(data)
+        for key in entries:
+            value = catalog.get(key)
+            if isinstance(value, str) and value.startswith('omarchy:'):
+                entries[key] = value
+        catalog = {key: value for key, value in catalog.items() if not key.startswith('keys.')}
+        catalog.update(entries)
+        catalog_target.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + '\n')
 except (OSError, ValueError, KeyError) as error:
     print(f'flea-keymap-gen: {error}', file=sys.stderr)
     sys.exit(1)

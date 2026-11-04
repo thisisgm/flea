@@ -113,3 +113,61 @@ fn a_loaded_sheet_deleted_before_record_cannot_be_cached_as_absent() {
     let mixed = r#"{"resources":[{"url":"file:///page/loaded.css","failed":true},{"url":"file:///page/loaded.css","failed":false}],"overflow":false}"#;
     assert!(record(mixed, d.path(), started).is_none(), "a failed duplicate must not hide a loaded resource");
 }
+
+#[test]
+fn foreign_and_newer_dependencies_survive_read_and_first_publish() {
+    let d = crate::backend::testdir::TestDir::new("html-deps-preserve");
+    let dest = d.join("existing.png");
+    let deps = sidecar(&dest);
+    let png = d.join("new.png");
+    let record = d.join("new.deps");
+    for original in ["{\"foreign\":true}\n", "{\"version\":999,\"dependencies\":[]}"] {
+        std::fs::write(&deps, original).unwrap();
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+        std::fs::write(&record, "{\"version\":1,\"dependencies\":[]}").unwrap();
+        assert!(!unchanged(&dest, d.path()));
+        assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
+        assert!(crate::backend::htmlcache::publish(&png, &record, &dest).unwrap_err().to_string().contains("left unchanged"));
+        assert_eq!(std::fs::read_to_string(&deps).unwrap(), original);
+    }
+}
+
+#[test]
+fn a_damaged_record_that_is_no_json_is_rendered_again() {
+    let d = TestDir::new("html-deps-damaged");
+    let dest = d.join("existing.png");
+    let png = d.join("new.png");
+    let record = d.join("new.deps");
+    for damaged in [&b"unparsable"[..], b"{\"truncated\":", "\u{fffd}\u{0}".as_bytes(), b"\xff\xfe"] {
+        std::fs::write(sidecar(&dest), damaged).unwrap();
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+        std::fs::write(&record, "{\"version\":1,\"dependencies\":[]}").unwrap();
+        assert!(!unchanged(&dest, d.path()));
+        assert!(replaceable(&dest), "{:?} is damage, not another writer's record", String::from_utf8_lossy(damaged));
+        crate::backend::htmlcache::publish(&png, &record, &dest).unwrap();
+        assert_eq!(std::fs::read_to_string(sidecar(&dest)).unwrap(), "{\"version\":1,\"dependencies\":[]}");
+    }
+}
+
+#[test]
+fn a_record_this_writer_produced_is_replaced_by_the_next_publish() {
+    let d = TestDir::new("html-deps-own-record");
+    let site = d.dir("site");
+    std::fs::write(site.join("style.css"), "body{}").unwrap();
+    let outside = TestDir::new("html-deps-own-outside");
+    std::os::unix::fs::symlink(outside.file("other.css", "data"), site.join("escape.css")).unwrap();
+    let resources = r#"{"resources":[{"url":"file:///page/late.css","failed":true},{"url":"file:///page/escape.css","failed":false},{"url":"file:///page/style.css","failed":false}],"overflow":false}"#;
+    let dest = d.join("cached.png");
+    for round in ["first", "second"] {
+        let bytes = record(resources, &site, SystemTime::now() + Duration::from_secs(1)).unwrap();
+        let png = d.join("new.png");
+        let deps = d.join("new.deps");
+        std::fs::write(&png, b"\x89PNG\r\n\x1a\n").unwrap();
+        std::fs::write(&deps, bytes).unwrap();
+        crate::backend::htmlcache::publish(&png, &deps, &dest).unwrap_or_else(|e| panic!("{round} publish refused its own record: {e}"));
+    }
+    let kinds: Vec<Json> = jsondoc::parse(&std::fs::read_to_string(sidecar(&dest)).unwrap()).unwrap()
+        .get("dependencies").and_then(Json::as_array).unwrap().iter().map(|row| row.as_array().unwrap()[1].clone()).collect();
+    assert_eq!(&kinds[..2], [Json::Str("absent".into()), Json::Str("blocked".into())]);
+    assert!(kinds[2].as_f64().is_some(), "the present sheet records its stamp");
+}

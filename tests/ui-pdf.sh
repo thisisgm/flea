@@ -111,9 +111,9 @@ case_pdffocus() {
     sandbox_scratch "$state"
     mkdir -p "$state/flea"
     printf 'listing cursor guard\n' > "$dir/a.txt"
-    magick \( -size 440x1100 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGEONE \) \
-           \( -size 440x1100 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGETWO \) \
-           \( -size 440x1100 xc:white -fill black -font Liberation-Sans -pointsize 24 -annotate +30+45 PAGETHREE \) "$dir/manual.pdf"
+    magick \( -size 440x1100 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGEONE \) \
+           \( -size 440x1100 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGETWO \) \
+           \( -size 440x1100 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 24 -annotate +30+45 PAGETHREE \) "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "PDF fixture generation failed"
     export XDG_STATE_HOME="$state"
     for preset in default vim mac windows; do

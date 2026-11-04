@@ -8,8 +8,8 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-// The first line of an entry, so a future layout is a different file and not a misread one.
-const FORMAT: &str = "flea-figure-svg 1";
+// The first line of an entry, so a future layout or engine is a different file and not a misread one (2: Pele, 3: SW-19, 4: v0.3.12 geometry).
+const FORMAT: &str = "flea-figure-svg 4";
 const SVG_DIR: &str = "svg";
 const EXTENSION: &str = ".svg";
 const SCRATCH_MARK: &str = ".tmp-";
@@ -73,7 +73,7 @@ fn encode(key: &str, svg: &str) -> Vec<u8> {
     bytes
 }
 
-// Sample input: "flea-figure-svg 1\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
+// Sample input: "flea-figure-svg 4\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
 fn decode(bytes: &[u8], key: &str) -> Option<String> {
     let body = bytes.strip_prefix(FORMAT.as_bytes())?.strip_prefix(b"\n")?;
     let end = body.iter().position(|&b| b == b'\n')?;
@@ -116,6 +116,8 @@ fn put(dir: &Path, key: &str, svg: &str, entries: usize, bytes: u64) -> Option<(
     let name = entry_name(key)?;
     fs::DirBuilder::new().recursive(true).mode(DIR_MODE).create(dir).ok()?;
     let target = dir.join(&name);
+    if !crate::persistdoc::replaceable(&target, MAX_ENTRY_BYTES + key.len() as u64 + HEADER_SLACK_BYTES + FORMAT.len() as u64,
+        format!("{FORMAT}\n").as_bytes(), |bytes| decode(bytes, key).is_some() || earlier_format(bytes)) { return None; }
     let scratch = dir.join(format!("{name}{SCRATCH_MARK}{}", std::process::id()));
     remove_ours(&scratch);
     let written = fs::OpenOptions::new().write(true).create_new(true).mode(FILE_MODE).open(&scratch).and_then(|mut file| file.write_all(&encode(key, svg)));
@@ -129,7 +131,23 @@ fn put(dir: &Path, key: &str, svg: &str, entries: usize, bytes: u64) -> Option<(
 
 // Stale scratch goes, then the least recently used entries until the count and the bytes are within the bound.
 fn evict(dir: &Path, entries: usize, bytes: u64) {
-    evict_leaf(dir, entries, bytes, &Names { entry: &is_entry, scratch: &is_scratch, age: &|meta| meta.modified().unwrap_or(SystemTime::UNIX_EPOCH) });
+    evict_leaf(dir, entries, bytes, &Names { entry: &|name| is_entry(name) && recognized(&dir.join(name)), scratch: &is_scratch, age: &|meta| meta.modified().unwrap_or(SystemTime::UNIX_EPOCH) });
+}
+
+// An entry an earlier Flea figure format wrote is still ours, so it is redrawn and evicted.
+fn earlier_format(bytes: &[u8]) -> bool {
+    [&b"flea-figure-svg 1\n"[..], b"flea-figure-svg 2\n", b"flea-figure-svg 3\n"].iter().any(|format| bytes.starts_with(format))
+}
+
+fn recognized(path: &Path) -> bool {
+    crate::persistdoc::replaceable(path, MAX_ENTRY_BYTES + MAX_LINE_BYTES as u64, format!("{FORMAT}\n").as_bytes(), |bytes| {
+        if earlier_format(bytes) { return true; }
+        let Some(body) = bytes.strip_prefix(format!("{FORMAT}\n").as_bytes()) else { return false };
+        let Some(end) = body.iter().position(|b| *b == b'\n') else { return false };
+        let Some(key_len) = std::str::from_utf8(&body[..end]).ok().and_then(|s| s.split_once(' ')).and_then(|(n, _)| n.parse::<usize>().ok()) else { return false };
+        body.get(end + 1..).and_then(|rest| rest.get(..key_len)).and_then(|key| std::str::from_utf8(key).ok())
+            .is_some_and(|key| entry_name(key).as_deref() == path.file_name().and_then(|n| n.to_str()) && decode(bytes, key).is_some())
+    })
 }
 
 // What a cache leaf calls its own and how old one of its files is, so another leaf can sit under the same bound.
@@ -167,12 +185,17 @@ pub(crate) fn evict_leaf(dir: &Path, entries: usize, bytes: u64, names: &Names) 
     }
 }
 
-// True when every listed key has its own entry, a plain file, so a warm helper would likely go unused; a theme, display or advance drawn otherwise is not known.
+// True when every listed key has its own entry of this format, a plain file, so a warm helper would likely go unused; a theme, display, advance or format drawn otherwise is not known.
 fn known(dir: &Path, keys: &[String]) -> bool {
-    !keys.is_empty()
-        && keys.iter().all(|key| {
-            entry_name(key).is_some_and(|name| fs::symlink_metadata(dir.join(name)).is_ok_and(|meta| meta.is_file()))
-        })
+    !keys.is_empty() && keys.iter().all(|key| entry_name(key).is_some_and(|name| current(&dir.join(name))))
+}
+
+// Sample input: a plain file opening "flea-figure-svg 4\n" is current; a link, a directory or an entry an earlier format wrote is not.
+fn current(path: &Path) -> bool {
+    let mut head = [0u8; FORMAT.len() + 1];
+    fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file())
+        && fs::OpenOptions::new().read(true).custom_flags(O_NOFOLLOW).open(path).and_then(|mut file| file.read_exact(&mut head)).is_ok()
+        && head.strip_suffix(b"\n") == Some(FORMAT.as_bytes())
 }
 
 // The store directory unless a link sits there: get and put would follow it out of the cache; a swap after this check is the same-user race the 0700 root bounds.

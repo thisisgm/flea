@@ -9,6 +9,11 @@ import shutil
 import subprocess
 import tempfile
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+Client("qs").export()
 
 
 source = Path(__file__).with_name("ui.sh").read_text()
@@ -77,6 +82,7 @@ if "\nxwsettings_route_snapshot() {" in source:
     helpers += "\n" + function("xwsettings_route_snapshot")
 prelude = f"""
 set -u -o pipefail
+. "$FLEA_IPC_HELPER"
 run_root={shlex.quote(str(root))}
 fixture_root="$run_root/fixture"
 thumb_fixture="$run_root/thumb"
@@ -170,8 +176,8 @@ routing = source[routing_start:routing_end].replace('    local active=', '    ac
 route_driver = r'''
 addrA=0xa
 addrB=0xb
-ipcA=(omarchy-drive ipc -p /a flea)
-ipcB=(omarchy-drive ipc -p /b flea)
+ipcA=(flea_ipc_drive -p /a flea)
+ipcB=(flea_ipc_drive -p /b flea)
 focus_required_reads=3
 route_no_key=false
 printf '0\n' > "$run_root/focus-reads"
@@ -228,7 +234,7 @@ for name, windows, code in (
     cases.append((name, body, code, "SIMULATED_CLICK click 22 62" if code == 0 else "FAIL",
                   "FAIL" if code == 0 else "SIMULATED_CLICK"))
 world_script = Path(__file__).with_name("ui-xwsettings-world.py").resolve()
-# A hang guard for one whole case run, not an assertion: the world answers every call at once.
+# A hang guard for one whole run of any case, not an assertion: a case does little work, but a loaded box can stall it for seconds.
 world_hang_guard_s = 120
 # The gap between looks at a file another process writes, in a wait for a condition and never an assertion on time.
 late_poll_s = 0.01
@@ -247,6 +253,7 @@ world_constants = "\n".join(re.findall(r"^(?:ipc_(?:call_\w+|pid)|async_wait_ms)
 def world_script_body(run):
     return f"""
 set -u -o pipefail
+. "$FLEA_IPC_HELPER"
 run_root={shlex.quote(str(run))}
 fixture_root="$run_root/fixture"
 flea_ui="$run_root/candidate-ui"
@@ -254,6 +261,7 @@ flea_bin="$run_root/stub/flea"
 flea_log="$run_root/flea.log"
 run_log="$run_root/run.log"
 flea_window_class=com.thisisgm.flea
+test_frontend=qml
 foreign_pids=""
 drain_wait_s=1
 settle_s=0
@@ -264,6 +272,7 @@ sleep() {{ :; }}
 fail() {{ printf 'FAIL %s\\n' "$*" >&2; exit 1; }}
 sandbox_scratch() {{ mkdir -p "$1"; }}
 assert_theme() {{ :; }}
+flea_test_exec() {{ setsid nohup "$@"; }}
 {world_functions}
 case_xwsettings
 """
@@ -281,8 +290,9 @@ def world_run(index, knobs):
     for name in world_names:
         (stub / name).write_text(f'#!/bin/bash\nexec python3 {shlex.quote(str(world_script))} {name} "$@"\n')
         (stub / name).chmod(0o755)
-    # Records the bounds the case hands timeout, then runs the real one.
-    (stub / "timeout").write_text('#!/bin/bash\nWORLD_TIMEOUT="$1 $2" exec "$(command -p -v timeout)" "$@"\n')
+    # Records the bounds the case hands timeout and runs the call without them: on a loaded box a world call can outlast the real 2 s bound and read as empty, and world_hang_guard_s bounds a stall. A call not shaped timeout --kill-after=X Y cmd fails loud.
+    (stub / "timeout").write_text('#!/bin/bash\n[[ $1 == --kill-after=* && $# -ge 3 ]] || { echo "timeout stub: unexpected call timeout $*" >&2; exit 125; }\n'
+                                  'WORLD_TIMEOUT="$1 $2" exec "${@:3}"\n')
     (stub / "timeout").chmod(0o755)
     env = {**os.environ, "PATH": f"{stub}:{os.environ['PATH']}", "FLEA_WORLD": str(run / "world"),
            "FLEA_TEST_RUN_ROOT": str(run), "XDG_STATE_HOME": str(run / "state"), **knobs}
@@ -382,7 +392,7 @@ def late_window_register_fail_pin():
 failures = 0
 try:
     for name, body, code, present, absent in cases:
-        result = subprocess.run(["bash"], input=prelude + helpers + "\n" + body + "\n", text=True, capture_output=True, timeout=5)
+        result = subprocess.run(["bash"], input=prelude + helpers + "\n" + body + "\n", text=True, capture_output=True, timeout=world_hang_guard_s)
         output = result.stdout + result.stderr
         if result.returncode != code or present not in output or absent in output:
             failures += 1

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Runs the real capture case with controlled replies and a clock advanced only by settle.
 set -uo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)" || exit 1
@@ -176,11 +177,11 @@ ipc() {
     esac
 }
 
-# Sample input: omarchy-drive wait ipc -p /fixture/ui/boot flea keymapQuery "" --timeout 10
-omarchy-drive() {
+# Sample input: flea_ipc_wait -p /fixture/ui/boot flea keymapQuery "" --timeout 10
+flea_ipc_wait() {
     local out
-    out=$(ipc "$6") || return $?
-    [[ "$out" == *"$7"* ]]
+    out=$(ipc "$4") || return $?
+    [[ "$out" == *"$5"* ]]
 }
 
 # The shots a clean run takes, in order: the sheet at rest, then the query with a place, a place beside a recent file, leaves alone, a key that works in one place, a live row, and the delete card on Cancel and on Delete.

@@ -1,0 +1,40 @@
+[[ctrl]]
+key = "C"
+action = "copy"
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "P"
+action = "preview"
+context = "listing,preview"
+
+[[preset]]
+name = "vim"
+key = "j"
+action = "cursorDown"
+
+[[text]]
+char = "f"
+action = "search"
+
+[[preset]]
+name = "plain"
+mods = "ctrl"
+key = "X"
+action = ""
+
+[[sheet]]
+keys = "j k"
+action = "cursorDown"
+
+[[pointer]]
+where = "listing"
+press = "left"
+row = "any"
+does = "selectOnly"
+
+[digits]
+from = 1
+to = 2
+prefix = "tab"

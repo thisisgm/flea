@@ -1,0 +1,690 @@
+#!/usr/bin/env python3
+"""Plan, prepare and verify the all-language native checks; capture is controller-only and today only reports what blocks it."""
+import argparse
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+REPO = Path(__file__).resolve().parents[1]
+ROSTER = REPO / 'src/i18n/fixtures/locales.json'
+CONTRACT = REPO / 'ci/visual/i50/contract.json'
+SCENES = REPO / 'ci/visual/scenes'
+INDEX = REPO / 'i18n/source-index.json'
+POLICY = REPO / 'i18n/rtl-policy.json'
+INVENTORY = REPO / 'ci/visual/i50/ime-cases.tsv'
+TUI_CANDIDATE = REPO / 'tests/tui_battery/candidate.py'
+# TUI-16's accepted handoff freezes this keyword-only signature; a drift is a new handoff, never a guess.
+TUI_SIGNATURE = ('args', 'root', 'display', 'terminal', 'state', 'variant', 'colors', 'identity', 'profiles',
+                 'reviews', 'overrides', 'seams', 'language', 'keyboard_group', 'prepare')
+IME_HEADER = ['case_id', 'entry_id', 'engine', 'checks_profile', 'expansion', 'receipt']
+IME_HOSTS = ('mounted', 'missing-host', 'unmounted-model', 'display-only')
+FRONTENDS = ('gui', 'tui')
+PLAN_SCHEMA = 'flea-i18n-native-plan/1'
+CAPTURE_SCHEMA = 'flea-i18n-native-capture/1'
+REQUIRED_FIT = ('de', 'ar', 'ja', 'zh-CN', 'th', 'hi')
+STATES = ('rest', 'hover', 'focus', 'pressed', 'disabled')
+KINDS = ('catalog', 'fit', 'ime', 'fonts', 'rtl', 'live')
+QUEUE = '/home/gm/flea-work/ctl-gates/minipc-q.sh'
+# Evidence for these kinds needs fields only their producers define, so verify refuses it until each adapter lands.
+KIND_ADAPTERS = {'fit': ['SCENE-LANG geometry'], 'ime': ['SCENE-LANG preedit and candidate geometry'],
+                 'fonts': ['I50-09', 'SCENE-LANG'], 'rtl': ['SCENE-LANG geometry'], 'live': ['I50-28', 'SCENE-LANG']}
+# tui_prepare supplies catalog_case's prepare(fx); verify still has no reader for the evidence a TUI case leaves.
+TUI_RECEIPT = {'id': 'TUI-RECEIPT', 'provides': 'a verify reader for tui_battery.candidate.catalog_case evidence',
+               'missing': 'check_record refuses every TUI record: no reader for catalog-case.json and its capture yet'}
+TUI_STATES = REPO / 'tests/tui_battery/states.json'
+STDERR_TAIL = 300
+SANDBOX = '.flea-test-sandbox'
+# The paths omarchy-language sees inside the namespace; /fx is the case fixture, the same mount the TUI arm uses.
+PRIVATE_ENV = {'OMARCHY_LOCALES_JSON': '/fx/omarchy/locales.json', 'OMARCHY_LOCALE_REGISTRY': '/fx/omarchy/locales.json',
+               'OMARCHY_LOCALE_GEN': '/fx/omarchy/locale.gen', 'OMARCHY_LANGUAGE_FILE': '/fx/config/omarchy/language'}
+# Omarchy's unprivileged test convention (test/shell.d/locale-sudoers-test.sh): the generator runs as the user on private files.
+SHIMS = {'sudo': 'exit 1', 'pkexec': 'exec "$@"', 'locale-gen': 'exit 0', 'hyprctl': 'exit 1',
+         'omarchy-restart-shell': 'exit 0', 'omarchy-notification-send': 'exit 0'}
+# What omarchy-language and its CJK seeding write for the real user; each must read the same after a preparation.
+HOST_FILES = ('/etc/locale.gen', '/etc/locale.conf', '~/.config/omarchy/language', '~/.config/uwsm/env.d/50-omarchy-language',
+              '~/.config/fontconfig/conf.d/50-omarchy-input-method.conf', '~/.config/fcitx5/profile')
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def shown(path):
+    path = Path(path).resolve()
+    return str(path.relative_to(REPO)) if path.is_relative_to(REPO) else str(path)
+
+
+def load_roster(path):
+    # Sample: {"en": {"direction": "ltr", ...}, "ar": {"direction": "rtl", ...}}
+    roster = json.loads(Path(path).read_text(encoding='utf-8'))
+    require(isinstance(roster, dict) and 'en' in roster, 'roster has no en entry')
+    for code, entry in roster.items():
+        require(re.fullmatch(r'[a-z]{2,3}(?:-[A-Za-z]{2})?', code) and isinstance(entry, dict), f'invalid roster code {code}')
+    return {'path': shown(path), 'sha256': sha(path), 'codes': sorted(roster),
+            'rtl': sorted(code for code, entry in roster.items() if entry.get('direction') == 'rtl')}
+
+
+def check_contract(contract):
+    require(contract.get('schema') == 'flea-i18n-native-contract/1', 'unknown contract schema')
+    require(contract['cases'] == ['catalog', 'fit', 'ime', 'fonts', 'rtl', 'live'], 'contract cases differ from the driver cases')
+    require(contract['frontends'] == ['gui', 'tui'], 'contract frontends must be gui and tui')
+    for code in REQUIRED_FIT:
+        require(code in contract['fit_languages'], f'fit languages must include {code}')
+    require(contract['states'] == list(STATES), 'contract states differ from the control states')
+    require(contract['viewport'] == {'width': 1100, 'height': 700, 'text_size': 14}, 'viewport must be 1100 x 700 at text size 14')
+    require(sorted(contract['rounding']) == [0, 8] and len(contract['themes']) == 2, 'rounding 0 and 8 on two themes')
+    ids = set()
+    for surface in contract['surfaces']:
+        name = surface['id']
+        require(re.fullmatch(r'[a-z-]+', name) and name not in ids, f'invalid or duplicate surface {name}')
+        ids.add(name)
+        require(surface['frontend'] in contract['frontends'] and surface['boards'], f'surface {name} needs a frontend and a board')
+        for state in surface['states']:
+            require(state in STATES, f'unknown state {state}')
+        require('rest' in surface['states'], f'surface {name} has no rest state')
+    deps = {row['id'] for row in contract['dependencies']}
+    require(all(row['provides'] and row['missing'] for row in contract['dependencies']), 'a dependency needs provides and missing')
+    require({'I50-02', 'I50-04', 'I50-07', 'TUI-16', 'SCENE-LANG'} <= deps, 'contract drops a brief dependency')
+    return contract
+
+
+def load_contract(path):
+    return check_contract(json.loads(Path(path).read_text(encoding='utf-8')))
+
+
+def source_commit():
+    done = subprocess.run(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    return done.stdout.strip() if done.returncode == 0 else None
+
+
+def load_source_index(path, roster, pinned):
+    # Sample record: "keys": {"window.column_name": {"call_sites": [{"surface": "gui", "usage": "translated-call", ...}], ...}}
+    raw = Path(path).read_bytes()
+    index = json.loads(raw)
+    require(isinstance(index, dict) and index.get('schema') == 1 and isinstance(index.get('keys'), dict),
+            'I50-01 source index schema is not 1')
+    require(index.get('roster', {}).get('file_sha256') == roster['sha256'], 'I50-01 source index roster differs from the plan roster')
+    digest = hashlib.sha256(raw).hexdigest()
+    require(digest == pinned, 'I50-01 source index differs from the accepted handoff')
+    required, unverified = {}, {}
+    for end in FRONTENDS:
+        sites = {key: [site for site in record['call_sites'] if site['surface'] == end] for key, record in index['keys'].items()}
+        # Only a verified translated call is native coverage; other occurrences stay source-owner work.
+        required[end] = sorted(key for key, found in sites.items() if any(site['usage'] == 'translated-call' for site in found))
+        unverified[end] = sorted(key for key, found in sites.items() if found and key not in set(required[end]))
+    return {'path': shown(path), 'sha256': digest, 'keys': len(index['keys']), 'required': required, 'unverified': unverified}
+
+
+def load_rtl_policy(path, roster, pinned):
+    # Sample: {"schema": 1, "rtl_languages": ["ar", "fa", "he", "ur"], "roles": {"rail": {"action": "mirror", ...}}}
+    raw = Path(path).read_bytes()
+    policy = json.loads(raw)
+    require(isinstance(policy, dict) and policy.get('schema') == 1 and isinstance(policy.get('roles'), dict) and policy['roles'],
+            'I50-04 rtl policy schema is not 1')
+    require(sorted(policy.get('rtl_languages') or []) == roster['rtl'], 'I50-04 rtl policy languages differ from the roster')
+    for name, role in policy['roles'].items():
+        require(isinstance(role, dict) and role.get('action') in ('mirror', 'keep'), f'I50-04 rtl policy role {name} has no known action')
+    digest = hashlib.sha256(raw).hexdigest()
+    require(digest == pinned, 'I50-04 rtl policy differs from the accepted handoff')
+    return {'path': shown(path), 'sha256': digest, 'status': policy.get('status'),
+            'roles': {name: role['action'] for name, role in sorted(policy['roles'].items())}}
+
+
+def load_inventory(path, pinned):
+    # Sample row: path-main/mozc<TAB>path-main<TAB>mozc<TAB>standard<TAB>one field<TAB>OWED: controller only; mounted
+    lines = Path(path).read_text(encoding='utf-8').splitlines()
+    require(lines and lines[0].split('\t') == IME_HEADER, 'I50-07 inventory header differs from native-cases.tsv')
+    rows = [line.split('\t') for line in lines[1:]]
+    require(rows and all(len(row) == len(IME_HEADER) for row in rows), 'I50-07 inventory row has the wrong field count')
+    cases = []
+    for ident, entry, engine, profile, expansion, receipt in rows:
+        host = receipt.removeprefix('OWED: controller only; ')
+        require(ident == f'{entry}/{engine}' and host in IME_HOSTS, f'I50-07 inventory row {ident} is malformed')
+        cases.append(dict(entry=entry, engine=engine, profile=profile, expansion=expansion, host=host))
+    pairs = {(row['entry'], row['engine']) for row in cases}
+    entries, engines = {row['entry'] for row in cases}, {row['engine'] for row in cases}
+    require(len(pairs) == len(cases), 'I50-07 inventory repeats a case')
+    require(len(pairs) == len(entries) * len(engines), 'I50-07 inventory does not run every entry on every engine')
+    require(sha(path) == pinned, 'I50-07 inventory differs from the accepted handoff')
+    return {'path': shown(path), 'sha256': sha(path), 'cases': cases}
+
+
+def load_tui_callable(path):
+    # Read, never import: importing the battery would pull its display driver into a plan run.
+    raw = Path(path).read_bytes()
+    try:
+        tree = ast.parse(raw, filename=str(path))
+    except SyntaxError as error:
+        raise ValueError(f'TUI-16 candidate {path} does not parse: {error}') from error
+    found = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'catalog_case']
+    require(len(found) == 1, 'TUI-16 candidate has no single catalog_case')
+    spec = found[0].args
+    names = tuple(arg.arg for arg in spec.kwonlyargs)
+    require(not (spec.posonlyargs or spec.args or spec.vararg or spec.kwarg) and names == TUI_SIGNATURE
+            and not any(spec.kw_defaults), 'TUI-16 catalog_case signature differs from the frozen handoff')
+    return {'path': shown(path), 'sha256': hashlib.sha256(raw).hexdigest(), 'callable': 'tui_battery.candidate.catalog_case',
+            'keywords': list(names)}
+
+
+def default_input(path, default):
+    return path if path is not None else (default if default.is_file() else None)
+
+
+def load_inputs(contract, roster, source_index=None, rtl_policy=None, entry_inventory=None, tui_candidate=None):
+    source_index, rtl_policy, entry_inventory = (default_input(source_index, INDEX), default_input(rtl_policy, POLICY),
+                                                 default_input(entry_inventory, INVENTORY))
+    tui_candidate = default_input(tui_candidate, TUI_CANDIDATE)
+    return {'scenes': registered_scenes() if SCENES.is_dir() else None,
+            'tui_callable': tui_candidate and load_tui_callable(tui_candidate),
+            'source_index': source_index and load_source_index(source_index, roster, contract['source_index']['sha256']),
+            'rtl_policy': rtl_policy and load_rtl_policy(rtl_policy, roster, contract['rtl_policy']['sha256']),
+            'ime_inventory': entry_inventory and load_inventory(entry_inventory, contract['ime_inventory']['sha256'])}
+
+
+def build_plan(contract, roster, languages, catalog_root=REPO / 'i18n', commit=None, inputs=None):
+    codes = roster['codes'] if languages == 'all' else languages
+    owed = {row['id']: row for row in contract['dependencies']}
+    inputs = inputs or {}
+    source, policy, inventory = inputs.get('source_index'), inputs.get('rtl_policy'), inputs.get('ime_inventory')
+    tui = inputs.get('tui_callable')
+    for dep, given in (('I50-02', source), ('I50-04', policy), ('I50-07', inventory), ('TUI-16', tui)):
+        if given:
+            owed.pop(dep)
+    if tui:
+        owed['TUI-RECEIPT'] = TUI_RECEIPT
+    hostless = sorted({row['entry'] for row in inventory['cases'] if row['host'] != 'mounted'}) if inventory else []
+    if hostless:
+        owed['IME-HOSTS'] = {'id': 'IME-HOSTS', 'provides': 'mounted hosts for ime entries',
+                             'missing': f'{len(hostless)} entries without a mounted host: {", ".join(hostless)}'}
+    absent = [code for code in codes if not (Path(catalog_root) / code / 'flea.json').is_file()]
+    if absent:
+        owed['CATALOGS'] = {'id': 'CATALOGS', 'provides': 'target catalogs',
+                            'missing': f'{len(absent)} catalogs absent: {", ".join(absent)}'}
+    # SCENE-LANG is delivered once the registry holds an i50 scene; each gui case then owes its own registered scene.
+    scenes = inputs.get('scenes')
+    if scenes is not None and any(scene.startswith('i50.') for scene in scenes):
+        owed.pop('SCENE-LANG')
+    cases = []
+
+    def case(ident, kind, frontend, missing, **fields):
+        missing = [dep for dep in missing if dep in owed]
+        cases.append(dict(id=ident, kind=kind, frontend=frontend, status='OWED' if missing else 'planned', missing=missing, **fields))
+
+    gui = 'SCENE-LANG' if 'SCENE-LANG' in owed else 'SCENES'
+    owed['SCENES'] = {'id': 'SCENES', 'provides': 'a registered visual scene for every gui case'}
+    view = {'gui': gui, 'tui': 'TUI-RECEIPT' if tui else 'TUI-16'}
+    for code in codes:
+        catalog = ['CATALOGS'] if code in absent else []
+        for end in contract['frontends']:
+            keys = {'required_keys': source['required'][end]} if source else {}
+            case(f'catalog.{code}.{end}', 'catalog', end, ['I50-02', view[end], *catalog], language=code, **keys)
+    surfaces = contract['surfaces']
+    for code in (c for c in contract['fit_languages'] if c in codes):
+        catalog = ['CATALOGS'] if code in absent else []
+        for surface in surfaces:
+            for state in surface['states']:
+                if surface['frontend'] == 'tui':
+                    case(f'fit.{code}.{surface["id"]}.{state}', 'fit', 'tui', [view['tui'], *catalog], language=code, surface=surface['id'], state=state)
+                    continue
+                for theme in contract['themes']:
+                    for rounding in contract['rounding']:
+                        spelled = f'{code}.{surface["id"]}.{state}.{theme}.r{rounding}'
+                        unregistered = gui == 'SCENE-LANG' or f'i50.fit.{spelled}' not in scenes
+                        case(f'fit.{spelled}', 'fit', 'gui', [gui, *catalog] if unregistered else catalog, language=code,
+                             surface=surface['id'], state=state, theme=theme, rounding=rounding, scene=f'i50.fit.{spelled}')
+    # I50-07 publishes every entry and engine case; without its inventory the plan holds one owed slot, never a guess.
+    if inventory:
+        for row in inventory['cases']:
+            hosted = [] if row['host'] == 'mounted' else ['IME-HOSTS']
+            case(f'ime.{row["entry"]}.{row["engine"]}', 'ime', 'gui', [gui, *hosted], language=None, **row)
+    else:
+        case('ime.entry-inventory', 'ime', 'gui', ['I50-07', gui], language=None)
+    # I50-09 publishes the font values and I50-28 the switch sequence; each is one owed slot until its handoff.
+    case('fonts.font-inventory', 'fonts', 'gui', ['I50-09', gui], language=None)
+    for code in (c for c in roster['rtl'] if c in codes):
+        for end in contract['frontends']:
+            roles = {'roles': policy['roles']} if policy else {}
+            case(f'rtl.{code}.{end}', 'rtl', end, ['I50-04', view[end]], language=code, **roles)
+    case('live.switch-sequence', 'live', 'gui', ['I50-28', gui], language=None)
+    # Counted from the cases, in the style of IME-HOSTS, so the row says exactly which gui work still has no scene.
+    fit = [row for row in cases if row['kind'] == 'fit' and row['frontend'] == 'gui']
+    unscened = [row for row in fit if 'SCENES' in row['missing']]
+    sceneless = [row for row in cases if row['frontend'] == 'gui' and row['kind'] != 'fit']
+    owed['SCENES']['missing'] = (f'{len(unscened)} of {len(fit)} gui fit cases name a scene that ci/visual/scenes does not register; '
+                                 f'{len(sceneless)} catalog, ime, fonts, rtl and live gui cases have no scene id yet')
+    used = sorted({dep for row in cases for dep in row['missing']})
+    return {
+        'schema': PLAN_SCHEMA, 'scope': 'all' if languages == 'all' else 'subset', 'languages': codes,
+        'targets': len([code for code in codes if code != 'en']), 'roster': roster,
+        'contract': {'path': shown(CONTRACT), 'sha256': hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()},
+        'source_commit': commit or source_commit(),
+        'source_index': source and {key: source[key] for key in ('path', 'sha256', 'keys', 'unverified')},
+        'rtl_policy': policy and {key: policy[key] for key in ('path', 'sha256', 'status')},
+        'ime_inventory': inventory and {'path': inventory['path'], 'sha256': inventory['sha256'], 'cases': len(inventory['cases'])},
+        'capture_protocol': {'queue': QUEUE, 'lease': 'TUI-16', 'own_lock': False, 'viewport': contract['viewport'],
+                             'tui_callable': tui, 'tui_prepare': {'callable': 'tui_prepare', 'environment': sorted(PRIVATE_ENV)},
+                             'restores': ['omarchy language file', 'omarchy font cjk', 'keyboard group', 'theme']},
+        'owed': [{'dependency': dep, 'provides': owed[dep]['provides'], 'missing': owed[dep]['missing']} for dep in used],
+        'complete': not used, 'cases': cases,
+    }
+
+
+def fit_scene_ids(plan):
+    return sorted({case['scene'] for case in plan['cases'] if case['kind'] == 'fit' and case['frontend'] == 'gui'})
+
+
+def registered_scenes(root=None):
+    # Sample: ci/visual/scenes/g1-01.json {"version": 1, "scenes": [{"id": "g1-01-list-r0", ...}]}
+    root = Path(SCENES if root is None else root)
+    require(root.is_dir(), f'{root}: no scene registry directory')
+    ids = set()
+    for path in sorted(root.glob('*.json')):
+        try:
+            scenes = json.loads(path.read_text())['scenes']
+            ids |= {scene['id'] for scene in scenes}
+        except (ValueError, KeyError, TypeError) as error:
+            raise ValueError(f'{path}: unreadable scene manifest: {error!r}') from error
+    return ids
+
+
+def coverage_errors(plan, undriven, registered=None):
+    registered = registered_scenes() if registered is None else registered
+    wanted = fit_scene_ids(plan)
+    reasons, errors = {}, []
+    for line in undriven.splitlines():
+        # Sample lines: 'i50.fit.de.list.hover BLOCKED SCENE-LANG: list registers rest only' (a group), 'i50.fit.de.list.hover.gm.r0 BLOCKED I50-27: no readback' (one scene)
+        match = re.fullmatch(r'(i50\.\S+) BLOCKED ([A-Za-z0-9-]+): (\S.*)', line)
+        if not line.startswith('i50.'):
+            continue
+        name = match[1] if match else line.split()[0]
+        if name in reasons:
+            errors.append(f'{name}: duplicate undriven line')
+        reasons[name] = match[3] if match else None
+    # A line covers the scene it spells or, as a group, every scene below it at a dot boundary.
+    covers = {name: [scene for scene in wanted if scene == name or scene.startswith(name + '.')] for name in reasons}
+    lines = {}
+    for name, scenes in covers.items():
+        for scene in scenes:
+            lines.setdefault(scene, []).append(name)
+    errors += [f'{scene}: more than one undriven line ({", ".join(names)})' for scene, names in sorted(lines.items())
+               if len(names) > 1]
+    errors += [f'{scene}: no registered scene and no undriven reason' for scene in wanted
+               if scene not in registered and not any(reasons[name] for name in lines.get(scene, []))]
+    errors += [f'{name}: undriven line names no planned scene' for name in sorted(reasons) if not covers[name]]
+    errors += [f'{name}: registered scene still has an undriven line' for name in sorted(reasons)
+               if covers[name] and all(scene in registered for scene in covers[name])]
+    return errors
+
+
+def matches(text, value):
+    # A plural form passes when its placeholders took the count and arguments the screen shows.
+    if not isinstance(text, str):
+        return False
+    forms = list(value.values()) if isinstance(value, dict) else [value]
+    for form in forms:
+        # A form that is only placeholders proves nothing about the language, so it never matches.
+        if not isinstance(form, str) or not re.sub(r'%\d+', '', form).strip():
+            continue
+        if not re.search(r'%\d', form):
+            if form == text:
+                return True
+            continue
+        tokens = re.findall(r'%\d+', form)
+        pieces = re.split(r'%\d+', form)
+
+        def pattern(raw=None):
+            slots = [re.escape(token) if index == raw else '(?:.+?)' for index, token in enumerate(tokens)] + ['']
+            return ''.join(re.escape(piece) + slot for piece, slot in zip(pieces, slots))
+        # Refuse when any reading leaves a placeholder as its own token on screen; a value that only holds %N stays real.
+        if re.fullmatch(pattern(), text) and not any(re.fullmatch(pattern(raw), text) for raw in range(len(tokens))):
+            return True
+    return False
+
+
+def placeholder_only(value):
+    forms = list(value.values()) if isinstance(value, dict) else [value]
+    return bool(forms) and all(isinstance(form, str) and not re.sub(r'%\d+', '', form).strip() for form in forms)
+
+
+def check_record(case, record, catalog_root, errors):
+    # Sample: {"case": "catalog.de.gui", "receipt": {"case": "catalog.de.gui", "window": 7, "frame": 3, "presented": true}, "catalog_sha256": "...", "texts": [{"key": "menu.open", "text": "Offnen"}]}
+    ident = case['id']
+    if 'approved' in record:
+        errors.append(f'{ident}: evidence may not carry approval')
+    if case['frontend'] == 'tui':
+        errors.append(f'{ident}: TUI receipt adapter OWED: TUI-RECEIPT')
+        return
+    if case['kind'] != 'catalog':
+        errors.append(f'{ident}: {case["kind"]} evidence adapter OWED: {", ".join(KIND_ADAPTERS[case["kind"]])}')
+        return
+    if not case.get('required_keys'):
+        errors.append(f'{ident}: case names no required keys')
+    receipt = record.get('receipt') if isinstance(record.get('receipt'), dict) else {}
+    if receipt.get('case', ident) != ident:
+        errors.append(f'{ident}: receipt names another case')
+    elif not (receipt.get('presented') is True and type(receipt.get('frame')) is int and receipt['frame'] > 0
+              and type(receipt.get('window')) is int and receipt['window'] > 0 and receipt.get('case') == ident):
+        errors.append(f'{ident}: no presented receipt')
+    code = case['language']
+    path = Path(catalog_root) / code / 'flea.json'
+    if not path.is_file():
+        errors.append(f'{ident}: catalog missing')
+        return
+    if record.get('catalog_sha256') != sha(path):
+        errors.append(f'{ident}: catalog changed since capture')
+        return
+    catalog = json.loads(path.read_text(encoding='utf-8'))
+    seen = set()
+    texts = record.get('texts')
+    for item in texts if isinstance(texts, list) else [None]:
+        if not isinstance(item, dict):
+            errors.append(f'{ident}: malformed displayed text {item!r}')
+            continue
+        key, text = item.get('key'), item.get('text')
+        if key is None:
+            errors.append(f'{ident}: displayed text {text!r} has no catalog key')
+        elif not isinstance(key, str) or key not in catalog:
+            errors.append(f'{ident}: {key} is not in the {code} catalog')
+        elif not matches(text, catalog[key]):
+            errors.append(f'{ident}: {key} shows {text!r}, catalog has {catalog[key]!r}')
+        else:
+            seen.add(key)
+    for key in case.get('required_keys') or []:
+        if key not in seen and not placeholder_only(catalog.get(key)):
+            errors.append(f'{ident}: required key {key} not displayed')
+
+
+def check_evidence(plan, capture, catalog_root, keymap, source_index, candidate, roster=ROSTER):
+    # Sample capture: {"schema": "flea-i18n-native-capture/1", "candidate": {"sha256": "..."}, "source_commit": "<40 hex>", "keymap_sha256": "...", "source_index_sha256": "...", "records": [<check_record sample>]}
+    if not isinstance(plan, dict) or not isinstance(capture, dict):
+        return ['plan or capture is not a JSON object']
+    errors = []
+    if plan.get('schema') != PLAN_SCHEMA or capture.get('schema') != CAPTURE_SCHEMA:
+        errors.append('unknown plan or capture schema')
+    if plan.get('scope') != 'all':
+        errors.append('subset plan is not all-language proof')
+    owed = plan.get('owed')
+    if not isinstance(owed, list):
+        errors.append('plan has no owed list')
+        owed = []
+    for row in owed:
+        if isinstance(row, dict) and isinstance(row.get('dependency'), str) and isinstance(row.get('missing'), str):
+            errors.append(f'plan owes {row["dependency"]}: {row["missing"]}')
+        else:
+            errors.append(f'malformed owed row {row!r}')
+    if not plan.get('complete') and not plan.get('owed'):
+        errors.append('plan is not complete')
+    cases = {}
+    planned = plan.get('cases')
+    if not isinstance(planned, list):
+        errors.append('malformed plan cases')
+        planned = []
+    for case in planned:
+        if not (isinstance(case, dict) and isinstance(case.get('id'), str) and isinstance(case.get('status'), str)
+                and case.get('kind') in KINDS and case.get('frontend') in ('gui', 'tui')
+                and (case.get('language') is None or isinstance(case.get('language'), str))
+                and (case.get('kind') not in ('catalog', 'rtl') or isinstance(case.get('language'), str))):
+            errors.append(f'malformed case {case!r}')
+            continue
+        if case['id'] in cases:
+            errors.append(f'duplicate case {case["id"]}')
+        cases[case['id']] = case
+        if case['status'] != 'planned':
+            errors.append(f'case {case["id"]} is OWED')
+    for code in load_roster(roster)['codes']:
+        if not any(c['kind'] == 'catalog' and c['language'] == code for c in cases.values()):
+            errors.append(f'roster language {code} has no case')
+    index = plan.get('source_index') if isinstance(plan.get('source_index'), dict) else {}
+    if index.get('sha256') != sha(source_index):
+        errors.append('source index differs from the plan')
+    head = capture.get('candidate') if isinstance(capture.get('candidate'), dict) else {}
+    if not candidate or not head.get('sha256'):
+        errors.append('candidate identity absent')
+    elif sha(candidate) != head['sha256']:
+        errors.append('candidate sha256 does not match capture')
+    commit = capture.get('source_commit')
+    if not (isinstance(commit, str) and re.fullmatch(r'[0-9a-f]{40}', commit) and commit == plan.get('source_commit')):
+        errors.append('source commit absent or mismatched')
+    if capture.get('keymap_sha256') != sha(keymap):
+        errors.append('keymap identity absent or stale')
+    if capture.get('source_index_sha256') != sha(source_index):
+        errors.append('source index identity absent or stale')
+    records = {}
+    evidence = capture.get('records', [])
+    if not isinstance(evidence, list):
+        errors.append('evidence records are not a list')
+        evidence = []
+    for record in evidence:
+        if not (isinstance(record, dict) and isinstance(record.get('case'), str)):
+            errors.append(f'malformed evidence record {record!r}')
+            continue
+        ident = record.get('case')
+        if ident in records:
+            errors.append(f'{ident}: duplicate evidence')
+        elif ident not in cases:
+            errors.append(f'{ident}: evidence for an unplanned case')
+        records.setdefault(ident, record)
+    for ident, case in cases.items():
+        if ident not in records:
+            errors.append(f'{ident}: no evidence')
+            continue
+        if records[ident].get('language') != case.get('language') or records[ident].get('frontend') != case['frontend']:
+            errors.append(f'{ident}: evidence names another language or frontend')
+        check_record(case, records[ident], catalog_root, errors)
+    return errors
+
+
+def verdict(plan, errors):
+    return {'status': 'REFUSED' if errors else 'PASS', 'errors': errors, 'cases': len(plan.get('cases', [])),
+            'visual_approval': 'controller-inspection-owed'}
+
+
+def marked_output(path):
+    path = Path(path).resolve()
+    marker = path.parent / '.flea-test-sandbox'
+    require(marker.is_file() and marker.stat().st_size > 0, f'{path.parent}: no nonempty .flea-test-sandbox marker')
+    require(not path.exists(), f'{path}: output exists')
+    return path
+
+
+def host_state(files=HOST_FILES):
+    # Sample: {"/etc/locale.gen": "<sha256>", "/home/gm/.config/omarchy/language": null}
+    paths = [Path(os.path.expanduser(name)) for name in files]
+    return {str(path): sha(path) if path.is_file() else None for path in paths}
+
+
+def omarchy_root(path=None):
+    root = Path(path or os.environ.get('OMARCHY_PATH') or '/usr/share/omarchy').resolve()
+    require((root / 'bin/omarchy-language').is_file() and (root / 'default/i18n/locales.json').is_file(),
+            f'{root}: no bin/omarchy-language and default/i18n/locales.json')
+    return root
+
+
+def fixture_files(fx):
+    # The fixture tree under v/ is the battery's and can be large; a preparation never writes there.
+    tops = [path for path in fx.iterdir() if path.name != 'v']
+    found = [path for top in tops for path in ([top] if top.is_file() else sorted(top.rglob('*')))]
+    return {str(path.relative_to(fx)): sha(path) for path in found if path.is_file() and not path.is_symlink()}
+
+
+def private_namespace(fx, omarchy, argv):
+    # The TUI arm's recipe (tests/tui_battery/fixtures.py namespace), so no Hyprland signature, session bus or network.
+    env = {'PATH': '/fx/omarchy/bin:/opt/omarchy/bin:/usr/bin:/bin', 'HOME': '/fx/home', 'XDG_CONFIG_HOME': '/fx/config',
+           'XDG_DATA_HOME': '/fx/data', 'XDG_STATE_HOME': '/fx/state', 'XDG_CACHE_HOME': '/fx/cache',
+           'XDG_RUNTIME_DIR': '/fx/runtime', 'TMPDIR': '/fx/tmp', 'LANG': 'C.UTF-8', 'TZ': 'UTC',
+           'OMARCHY_PATH': '/opt/omarchy', **PRIVATE_ENV}
+    system = [arg for path in ('/usr', '/bin', '/lib', '/lib64', '/etc') if Path(path).exists()
+              for arg in ('--ro-bind', path, path)]
+    return ['bwrap', '--die-with-parent', '--unshare-all', '--tmpfs', '/', *system, '--proc', '/proc', '--dev', '/dev',
+            '--ro-bind', str(omarchy), '/opt/omarchy', '--bind', str(fx), '/fx', '--bind', str(fx / 'tmp'), '/tmp',
+            '--clearenv', *[arg for key, value in env.items() for arg in ('--setenv', key, value)], '--chdir', '/fx', *argv]
+
+
+def tui_prepare(language, keyboard_group, candidate_inputs, omarchy=None, timeout=60):
+    """prepare(fx) for tui_battery.candidate.catalog_case: Omarchy's own omarchy-language, run against the fixture alone."""
+    root = omarchy_root(omarchy)
+
+    def prepare(fx):
+        fx = Path(fx).resolve()
+        marker = fx.parent / SANDBOX
+        require(marker.is_file() and marker.stat().st_size > 0, f'{fx.parent}: no nonempty {SANDBOX} marker')
+        require(shutil.which('bwrap'), 'bwrap is required for the private omarchy-language namespace')
+        host, before = host_state(), fixture_files(fx)
+        private = fx / 'omarchy'
+        (private / 'bin').mkdir(parents=True)
+        for name in ('home', 'config', 'data', 'state', 'cache', 'runtime', 'tmp'):
+            (fx / name).mkdir(mode=0o700, exist_ok=True)
+        shutil.copyfile(root / 'default/i18n/locales.json', private / 'locales.json')
+        system_gen = Path('/etc/locale.gen')
+        (private / 'locale.gen').write_bytes(system_gen.read_bytes() if system_gen.is_file() else b'')
+        for name, body in SHIMS.items():
+            shim = private / 'bin' / name
+            shim.write_text(f'#!/bin/bash\nprintf \'%s\\n\' "${{0##*/}} $*" >>/fx/omarchy/calls.log\n{body}\n')
+            shim.chmod(0o755)
+        runs = []
+        for argv in (['omarchy-language', language], ['omarchy-language']):
+            done = subprocess.run(private_namespace(fx, root, argv), stdin=subprocess.DEVNULL, capture_output=True,
+                                  text=True, timeout=timeout)
+            runs.append({'argv': argv, 'exit': done.returncode, 'stdout': done.stdout, 'stderr': done.stderr})
+            now = host_state()
+            changed = sorted(path for path in host.keys() | now.keys() if host.get(path) != now.get(path))
+            require(not changed, f'{" ".join(argv)} changed host locale or language files: {", ".join(changed)}')
+            require(done.returncode == 0, f'{" ".join(argv)} exit {done.returncode}: {done.stderr.strip()[-STDERR_TAIL:]}')
+        require(runs[1]['stdout'].strip() == language, f'omarchy-language reads {runs[1]["stdout"].strip()!r}, not {language}')
+        after = fixture_files(fx)
+        artifacts = {name: digest for name, digest in after.items() if before.get(name) != digest}
+        require('config/omarchy/language' in artifacts, 'omarchy-language wrote no private language file')
+        calls = private / 'calls.log'
+        # keyboard_group is the lease's group: the capture sets and restores it (capture_protocol restores), never this.
+        return {'language': language, 'keyboard_group': keyboard_group, 'candidate_inputs': candidate_inputs,
+                'artifacts': artifacts, 'locale': json.loads((private / 'locales.json').read_text())[language]['locale'],
+                'environment': PRIVATE_ENV, 'omarchy': {'path': str(root), 'omarchy-language': sha(root / 'bin/omarchy-language')},
+                'runs': runs, 'calls': calls.read_text().splitlines() if calls.is_file() else [], 'host_files': host}
+    return prepare
+
+
+def tui_language_cases(text, states=TUI_STATES):
+    # Sample: "all" or "tui-lang-ja,tui-lang-ru-keys"; a case's language is its catalog-<code> requirement.
+    rows = json.loads(Path(states).read_text(encoding='utf-8'))['states']
+    known = {row['id']: need[len('catalog-'):] for row in rows for need in row.get('requires', []) if need.startswith('catalog-')}
+    chosen = list(known) if text == 'all' else [ident for ident in text.split(',') if ident]
+    require(chosen and len(set(chosen)) == len(chosen) and all(ident in known for ident in chosen),
+            f'TUI language cases must be "all" or distinct ids from {", ".join(known)}')
+    return [(ident, known[ident]) for ident in chosen]
+
+
+def languages_arg(text, roster):
+    # Sample: "all" or "de,ar,zh-CN"
+    if text == 'all':
+        return 'all'
+    codes = [code for code in text.split(',') if code]
+    for code in codes:
+        require(code in roster['codes'], f'unknown language {code}')
+    require(codes and len(set(codes)) == len(codes), 'empty or duplicate language list')
+    return codes
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest='command', required=True)
+    plan = sub.add_parser('plan')
+    plan.add_argument('--languages', required=True)
+    plan.add_argument('--output', type=Path, required=True)
+    plan.add_argument('--roster', type=Path, default=ROSTER)
+    plan.add_argument('--catalog-root', type=Path, default=REPO / 'i18n')
+    plan.add_argument('--source-index', type=Path)
+    plan.add_argument('--rtl-policy', type=Path)
+    plan.add_argument('--entry-inventory', type=Path)
+    plan.add_argument('--tui-candidate', type=Path)
+    capture = sub.add_parser('capture')
+    capture.add_argument('--candidate', type=Path, required=True)
+    capture.add_argument('--languages', required=True)
+    capture.add_argument('--cases', required=True)
+    capture.add_argument('--output', type=Path, required=True)
+    prepare = sub.add_parser('prepare')
+    prepare.add_argument('--cases', default='all')
+    prepare.add_argument('--keyboard-group', required=True)
+    prepare.add_argument('--omarchy', type=Path)
+    prepare.add_argument('--output', type=Path, required=True)
+    verify = sub.add_parser('verify')
+    verify.add_argument('--input', type=Path, required=True)
+    verify.add_argument('--source-index', type=Path, required=True)
+    verify.add_argument('--rtl-policy', type=Path)
+    verify.add_argument('--entry-inventory', type=Path)
+    verify.add_argument('--tui-candidate', type=Path)
+    verify.add_argument('--candidate', type=Path)
+    verify.add_argument('--roster', type=Path, default=ROSTER)
+    verify.add_argument('--catalog-root', type=Path, default=REPO / 'i18n')
+    verify.add_argument('--keymap', type=Path, default=REPO / 'keys.toml')
+    args = parser.parse_args()
+    contract = load_contract(CONTRACT)
+    if args.command == 'plan':
+        roster = load_roster(args.roster)
+        out = marked_output(args.output)
+        inputs = load_inputs(contract, roster, args.source_index, args.rtl_policy, args.entry_inventory, args.tui_candidate)
+        doc = build_plan(contract, roster, languages_arg(args.languages, roster), args.catalog_root, inputs=inputs)
+        out.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
+        print(f'I50_NATIVE_PLAN scope={doc["scope"]} languages={len(doc["languages"])} cases={len(doc["cases"])} '
+              f'owed={len(doc["owed"])} complete={str(doc["complete"]).lower()}')
+        return 0
+    if args.command == 'prepare':
+        # A dry run of the preparation alone: each case gets its own marked root, kept so its contents can be read.
+        out, rows = marked_output(args.output), []
+        for ident, code in tui_language_cases(args.cases):
+            root = Path(tempfile.mkdtemp(prefix='flea-i18n-prepare.'))
+            (root / SANDBOX).write_text(f'flea-i18n-native prepare {ident} {os.getpid()}\n')
+            (root / 'fx').mkdir()
+            print(f'I50_TUI_PREPARE {ident} language={code} root={root}', flush=True)
+            receipt = tui_prepare(code, args.keyboard_group, {'dry_run': ident}, args.omarchy)(root / 'fx')
+            rows.append({'case': ident, 'root': str(root), 'receipt': receipt})
+            print(f'I50_TUI_PREPARE {ident} done locale={receipt["locale"]} artifacts={len(receipt["artifacts"])}')
+        out.write_text(json.dumps({'schema': 'flea-i18n-tui-prepare/1', 'cases': rows}, indent=1, ensure_ascii=False) + '\n')
+        return 0
+    if args.command == 'capture':
+        roster = load_roster(ROSTER)
+        kinds = args.cases.split(',')
+        require(kinds and all(kind in contract['cases'] for kind in kinds), f'unknown case kind in {args.cases}')
+        doc = build_plan(contract, roster, languages_arg(args.languages, roster), inputs=load_inputs(contract, roster))
+        owed = sorted({dep for case in doc['cases'] if case['kind'] in kinds for dep in case['missing']})
+        rows = {row['dependency']: row['missing'] for row in doc['owed']}
+        for dep in owed:
+            print(f'I50_NATIVE_CAPTURE BLOCKED {dep}: {rows[dep]}', file=sys.stderr)
+        print('I50_NATIVE_CAPTURE BLOCKED no display action taken and nothing written; no capture adapter exists yet',
+              file=sys.stderr)
+        return 3
+    root = args.input.resolve()
+    doc = json.loads((root / 'plan.json').read_text(encoding='utf-8'))
+    roster = load_roster(args.roster)
+    again = build_plan(contract, roster, doc.get('languages') if doc.get('scope') == 'subset' else 'all',
+                       args.catalog_root, doc.get('source_commit'),
+                       load_inputs(contract, roster, args.source_index, args.rtl_policy, args.entry_inventory, args.tui_candidate))
+    errors = [] if again == doc else ['plan differs from the plan this tree computes']
+    if doc.get('source_commit') != source_commit():
+        errors.append(f'plan source commit {doc.get("source_commit")} is not this tree\'s HEAD {source_commit()}')
+    errors += check_evidence(doc, json.loads((root / 'capture.json').read_text(encoding='utf-8')), args.catalog_root,
+                             args.keymap, args.source_index, args.candidate, args.roster)
+    report = verdict(doc, errors)
+    print(f'I50_NATIVE_VERIFY {report["status"]} errors={len(errors)} visual_approval={report["visual_approval"]}')
+    for error in errors:
+        print(f'  {error}')
+    return 1 if errors else 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, subprocess.SubprocessError) as error:
+        print(f'flea-i18n-native: {error}', file=sys.stderr)
+        sys.exit(2)

@@ -9,7 +9,7 @@ use std::time::Duration;
 const FENCE_WAIT: Duration = Duration::from_secs(10);
 
 // Everything the model has sent: the echo returns a fence line after it, so no quiet window can cut it short.
-pub(super) fn drain(wire: &mut Wire) -> Vec<Json> {
+pub(crate) fn drain(wire: &mut Wire) -> Vec<Json> {
     wire.send(vec![("c", word("fence"))]).unwrap();
     let mut out = Vec::new();
     loop {
@@ -22,7 +22,7 @@ pub(super) fn drain(wire: &mut Wire) -> Vec<Json> {
     }
 }
 
-pub(super) fn requests<'a>(sent: &'a [Json], command: &str) -> Vec<&'a Json> {
+pub(crate) fn requests<'a>(sent: &'a [Json], command: &str) -> Vec<&'a Json> {
     sent.iter().filter(|value| text(value, "c") == command).collect()
 }
 
@@ -217,7 +217,8 @@ fn stale_listing_inputs_leave_a_late_sort_reply_alone() {
     press(&mut model, &mut wire, &Key::character('q', ""));
     press(&mut model, &mut wire, &Key::named("Return", ""));
     let sent = drain(&mut wire);
-    assert_eq!(requests(&sent, "search").len(), 1, "Return runs the search");
+    assert_eq!(requests(&sent, "searchopen").len(), 1, "Return opens the ranked search session");
+    assert_eq!(requests(&sent, "searchquery").len(), 1, "Return runs the search query");
     assert!(model.sort_anchor.is_none(), "a search spends the outstanding anchor");
     model.receive(listed(2, "/listing", "/listing/amber", "1"), &mut wire).unwrap();
     drain(&mut wire);
@@ -290,4 +291,42 @@ fn a_cursor_key_spends_the_anchor_so_a_late_reply_moves_nothing() {
     drain(&mut wire);
     assert_eq!(model.cursor, moved, "the late reply leaves the cursor where the operator put it");
     finish(wire, reader);
+}
+
+#[test]
+fn size_sort_requests_the_tui_folder_name_policy_and_other_sorts_do_not() {
+    let (mut wire, reader) = super::echo_wire();
+    let mut model = Model::new("/listing".into(), &Json::Null);
+    open_names(&mut model, &mut wire, &[("folder", true), ("note.txt", false)]);
+    press(&mut model, &mut wire, &sort_key());
+    let sent = drain(&mut wire);
+    assert!(flag(requests(&sent, "sort")[0], "foldersByName"));
+    model.open("/other".into(), &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    assert!(flag(requests(&sent, "list")[0], "foldersByName"));
+    model.pending = None;
+    press(&mut model, &mut wire, &sort_key());
+    let sent = drain(&mut wire);
+    assert!(!flag(requests(&sent, "sort")[0], "foldersByName"));
+    super::finish(wire, reader);
+}
+
+#[test]
+fn size_sort_keeps_folders_alphabetic_ahead_of_size_sorted_files_in_both_directions() {
+    use crate::backend::{listing::Listing, mime::Db, ordering, testdir::TestDir};
+    let root = TestDir::new("t4-size-policy");
+    root.dir("A"); root.dir("Z"); root.file("A/large", &"x".repeat(4096));
+    root.file("small.txt", "1"); root.file("large.txt", "123456789");
+    for desc in [false, true] {
+        let mut listing = Listing::new();
+        for (name, folder) in [("Z", true), ("large.txt", false), ("A", true), ("small.txt", false)] { listing.push(name, folder); }
+        let request = format!(r#"{{"c":"sort","by":"size","desc":{desc},"foldersFirst":false,"groupByKind":true,"foldersByName":true}}"#);
+        let (_, _, seed) = ordering::request(&mut listing, root.path(), &Db::from_str(""), &request).unwrap();
+        let names: Vec<_> = (0..listing.len()).map(|i| listing.name(i)).collect();
+        assert_eq!(names, if desc { vec!["A", "Z", "large.txt", "small.txt"] } else { vec!["A", "Z", "small.txt", "large.txt"] });
+        assert!(seed.is_empty(), "sorting does not recursively walk folders to compare their sizes");
+    }
+    let mut legacy = Listing::new(); legacy.push("A", true); legacy.push("Z", true);
+    ordering::request(&mut legacy, root.path(), &Db::from_str(""), r#"{"c":"sort","by":"size"}"#).unwrap();
+    assert_eq!(legacy.name(0), "Z", "a GUI request retains its existing walked-size order");
 }

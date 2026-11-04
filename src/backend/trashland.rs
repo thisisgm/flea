@@ -7,14 +7,16 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
-pub(crate) fn run_trash(id: usize, paths: Vec<String>, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>) {
+pub(crate) fn run_trash(id: usize, request: usize, paths: Vec<String>, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>) {
     let owned: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
     // Undo and redo name this path while the batch's entry is pending; a leading empty path is a drag marker, not an item.
     let first = paths.iter().find(|p| !p.is_empty()).cloned().unwrap_or_default();
     let mut announced = false;
     let early = tx.clone();
-    let mut announce = |ok: usize, failed: usize, reason: &str| {
-        announced = early.send(OpMsg::TrashAnnounced { id, path: first.clone(), ok, failed, reason: reason.to_string() }).is_ok();
+    let mut announce = |moved: &[PathBuf], failed: usize, reason: &str| {
+        let moved: Vec<String> = moved.iter().map(|path| path.to_string_lossy().into_owned()).collect();
+        let ok = moved.len();
+        announced = early.send(OpMsg::TrashAnnounced { id, request, path: first.clone(), ok, failed, reason: reason.to_string(), moved }).is_ok();
     };
     let (entries, failed, reason) = match trash::trash_announcing(&owned, selection.as_deref(), &mut announce) {
         Ok(result) => result,
@@ -27,7 +29,7 @@ pub(crate) fn run_trash(id: usize, paths: Vec<String>, tx: Sender<OpMsg>, select
     let ok = entries.len();
     let steps = entries.into_iter().map(Step::Trashed).collect();
     let entry = Entry { op: "trash".to_string(), steps };
-    let _ = tx.send(OpMsg::Trashed { id, ok, failed, entry, reason, announced });
+    let _ = tx.send(OpMsg::Trashed { id, request, ok, failed, entry, reason, announced });
 }
 
 // The first batch whose entry is still pending, which is the path undo and redo answer busy with.
@@ -38,17 +40,21 @@ pub(crate) fn settling_path(ops: &Ops) -> Option<String> {
 // The announce writes the line and frees the slot, so any write runs and only undo and redo wait; the journal message pushes the entry and ends that wait.
 pub(crate) fn land(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
     match msg {
-        OpMsg::TrashAnnounced { id, path, ok, failed, reason } => {
+        OpMsg::TrashAnnounced { id, request, path, ok, failed, reason, moved } => {
             ops.settling.push((id, path));
             ops.journal.reserve(id);
             ops.live.finished_if(id);
-            writeln!(out, "{}", trashed_line(ok, failed, &reason)).ok();
+            writeln!(out, "{}", trashed_line(request, ok, failed, &reason, &moved)).ok();
         }
-        OpMsg::Trashed { id, ok, failed, entry, reason, announced } => {
-            ops.journal.fill(id, entry);
+        OpMsg::Trashed { id, request, ok, failed, entry, reason, announced } => {
+            let moved: Vec<String> = entry.steps.iter().filter_map(|step| match step {
+                Step::Trashed(gone) => Some(gone.original.to_string_lossy().into_owned()),
+                _ => None,
+            }).collect();
+            super::renamework::publish(ops, super::renamework::Publication::Fill(id, entry));
             ops.settling.retain(|(held, _)| *held != id);
             ops.live.finished_if(id);
-            if !announced { writeln!(out, "{}", trashed_line(ok, failed, &reason)).ok(); }
+            if !announced { writeln!(out, "{}", trashed_line(request, ok, failed, &reason, &moved)).ok(); }
         }
         _ => {}
     }
@@ -60,23 +66,31 @@ mod tests {
     use crate::backend::dirsizeworker::Worker;
     use crate::backend::events::Event;
     use crate::backend::flashslot;
-    use crate::backend::opsdispatch::{do_rename, do_undo, start_trash};
+    use crate::backend::opsdispatch::{do_undo, start_trash};
     use crate::backend::run::drain;
     use crate::backend::state::{State, Tables};
     use crate::backend::testdir::TestDir;
     use crate::backend::thumbcache::Cache;
     use crate::backend::thumbs::Pool;
 
+    fn land(out: &mut Vec<u8>, ops: &mut Ops, message: OpMsg) {
+        super::super::renamework::test_request(out, ops, |out, ops| { super::land(out, ops, message); Vec::new() });
+    }
+
+    fn do_rename(out: &mut Vec<u8>, ops: &mut Ops, path: &str, to: &str) {
+        super::super::renamework::test_request(out, ops, |out, ops| super::super::opsdispatch::do_rename(out, ops, path, to));
+    }
+
     fn created(path: &std::path::Path) -> Entry {
         Entry { op: "trash".to_string(), steps: vec![Step::Created { path: path.to_path_buf() }] }
     }
 
     fn announced(id: usize, path: &std::path::Path) -> OpMsg {
-        OpMsg::TrashAnnounced { id, path: path.to_string_lossy().into(), ok: 1, failed: 0, reason: String::new() }
+        OpMsg::TrashAnnounced { id, request: 0, path: path.to_string_lossy().into(), ok: 1, failed: 0, reason: String::new(), moved: vec![path.to_string_lossy().into()] }
     }
 
     fn journaled(id: usize, path: &std::path::Path) -> OpMsg {
-        OpMsg::Trashed { id, ok: 1, failed: 0, entry: created(path), reason: String::new(), announced: true }
+        OpMsg::Trashed { id, request: 0, ok: 1, failed: 0, entry: created(path), reason: String::new(), announced: true }
     }
 
     #[test]
@@ -86,13 +100,24 @@ mod tests {
         let (id, _) = o.claim_transfer();
         let mut buf: Vec<u8> = Vec::new();
         land(&mut buf, &mut o, announced(id, std::path::Path::new("/x")));
-        assert_eq!(String::from_utf8_lossy(&buf).trim(), r#"{"t":"trashed","ok":1,"failed":0}"#);
+        assert_eq!(String::from_utf8_lossy(&buf).trim(), r#"{"t":"trashed","id":0,"ok":1,"failed":0,"moved":["/x"]}"#);
         assert!(o.live.running().is_none(), "the announce frees the slot, so any write runs while the settle list is out");
         assert_eq!(o.journal.len(), 0, "the entry stays pending until the settle list lands");
         land(&mut buf, &mut o, journaled(id, std::path::Path::new("/x")));
         assert_eq!(String::from_utf8_lossy(&buf).matches(r#""t":"trashed""#).count(), 1, "the wire carries one line per batch");
         assert_eq!(o.journal.len(), 1);
         assert!(o.settling.is_empty(), "the journal ends the wait");
+    }
+
+    // The line names the request it answers and the paths that moved, so the client records only those.
+    #[test]
+    fn a_trash_line_carries_its_request_and_the_paths_that_moved() {
+        let (tx, _rx) = std::sync::mpsc::channel();
+        let mut o = Ops::new(tx);
+        let (id, _) = o.claim_transfer();
+        let mut buf: Vec<u8> = Vec::new();
+        land(&mut buf, &mut o, announced(id, std::path::Path::new("/x")));
+        assert_eq!(String::from_utf8_lossy(&buf).trim(), r#"{"t":"trashed","id":0,"ok":1,"failed":0,"moved":["/x"]}"#);
     }
 
     #[test]
@@ -127,9 +152,9 @@ mod tests {
         let mut buf: Vec<u8> = Vec::new();
         land(&mut buf, &mut o, announced(id, &first));
         let mut next: Vec<u8> = Vec::new();
-        start_trash(&mut next, &mut o, vec![missing.to_string_lossy().into()], 0);
-        assert!(String::from_utf8_lossy(&next).is_empty(), "a second trash in the window answers no refusal: {}", String::from_utf8_lossy(&next));
+        start_trash(&mut next, &mut o, vec![missing.to_string_lossy().into()], 0, 0);
         let second = o.live.running().expect("the second trash claimed the slot");
+        assert_eq!(String::from_utf8_lossy(&next), format!(r#"{{"t":"trashstarted","id":{second},"n":1,"cancellable":false}}"#) + "\n", "a second trash acknowledges acceptance without any refusal or extra line");
         land(&mut buf, &mut o, journaled(id, &first));
         assert_eq!(o.live.running(), Some(second), "the first batch landing never frees the second batch's slot");
         let done = rx.recv_timeout(std::time::Duration::from_secs(10)).expect("the second trash reports");
@@ -137,7 +162,7 @@ mod tests {
     }
 
     fn emptied(id: usize) -> OpMsg {
-        OpMsg::Trashed { id, ok: 0, failed: 1, entry: Entry { op: "trash".to_string(), steps: Vec::new() }, reason: String::new(), announced: true }
+        OpMsg::Trashed { id, request: 0, ok: 0, failed: 1, entry: Entry { op: "trash".to_string(), steps: Vec::new() }, reason: String::new(), announced: true }
     }
 
     fn undone(o: &mut Ops) -> String {
@@ -205,12 +230,12 @@ mod tests {
     }
 
     // A quit's drain over the parts it reads; the worker keeps its own channel, so dropping the sender closes the loop's.
-    fn quit_rig(d: &TestDir) -> (State, Pool, Cache, std::sync::mpsc::Sender<Event>, std::sync::mpsc::Receiver<Event>, flashslot::Ctx) {
+    fn quit_rig(d: &TestDir) -> (State, Pool, Cache, crate::backend::events::Sender<Event>, std::sync::mpsc::Receiver<Event>, flashslot::Ctx) {
         let tb = Tables::load();
         let (done_tx, _done_rx) = std::sync::mpsc::channel();
         let pool = Pool::new(1, done_tx, d.join("thumbs"), std::sync::Arc::clone(&tb.aliases), std::sync::Arc::clone(&tb.thumbs));
-        let (worker_tx, _worker_rx) = std::sync::mpsc::channel();
-        let (ev_tx, ev_rx) = std::sync::mpsc::channel();
+        let (worker_tx, _worker_rx) = crate::backend::events::channel();
+        let (ev_tx, ev_rx) = crate::backend::events::channel();
         let (flash_tx, _flash_rx) = std::sync::mpsc::channel();
         (State::new(Worker::new(worker_tx)), pool, Cache::at(d.join("cache")), ev_tx, ev_rx, flashslot::Ctx::new(flash_tx))
     }
@@ -220,7 +245,9 @@ mod tests {
         let d = TestDir::new("trashland-quit-wait");
         let (x, trashed) = (d.file("x.txt", "x"), d.file("trashed.txt", "t"));
         let (mut st, pool, cache, ev_tx, ev_rx, mut flash) = quit_rig(&d);
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, op_rx) = std::sync::mpsc::channel();
+        let events = ev_tx.clone();
+        std::thread::spawn(move || { for message in op_rx { if events.send(Event::Op(message)).is_err() { break; } } });
         let mut o = Ops::new(tx);
         let (id, _) = o.claim_transfer();
         let mut buf: Vec<u8> = Vec::new();

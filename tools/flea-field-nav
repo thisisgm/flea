@@ -200,10 +200,10 @@ def require_seeded_view(arm, extra):
     state = extra.get("XDG_STATE_HOME")
     if state is None:
         raise RuntimeError("arm %s has no launch state to verify" % (arm.get("id"),))
-    cmd = arm["flea_dir"] + "/target/release/flea"
+    cmd = S.Product.flea_binary(arm)
     probe = subprocess.run([cmd, "--ui-state"], capture_output=True,
-                           text=True, env=dict(os.environ, XDG_STATE_HOME=state,
-                                               XDG_CONFIG_HOME=state + "/no-config"),
+                           text=True, env=S.parsed_env(dict(os.environ, XDG_STATE_HOME=state,
+                                               XDG_CONFIG_HOME=state + "/no-config")),
                            timeout=LAUNCH_MAP_S)
     if probe.returncode != 0:
         lines = (probe.stderr or "").splitlines()
@@ -216,7 +216,7 @@ def require_seeded_view(arm, extra):
 
 def launch(arm, fixture, ctx):
     """Start one entrant on fixture; (Popen, window dict) once its window maps, else raise."""
-    spec = S.ENTRANTS[arm["entrant"]]
+    spec = S.entrant_spec(arm)
     argv, extra = S.entrant_argv(arm, fixture, ctx)
     env = dict(S.ENV, **extra)
     proc = subprocess.Popen(argv, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -637,7 +637,7 @@ def run_launch(arm, fixture, ctx, view, size, opts):
         while win is None and time.monotonic() - t0 < LAUNCH_MAP_S:
             owned = S.descendants(proc.pid)
             for c in S.clients():
-                if c.get("class") == S.ENTRANTS[arm["entrant"]]["cls"] and (c.get("pid") in owned or c.get("pid") == proc.pid):
+                if c.get("class") == S.entrant_spec(arm)["cls"] and (c.get("pid") in owned or c.get("pid") == proc.pid):
                     win = c
                     break
             time.sleep(MAP_POLL_S)
@@ -768,7 +768,8 @@ def measure(plan_path):
         "date": time.strftime("%Y-%m-%d %H:%M:%S"), "host": socket.gethostname(),
         "plan": plan, "fixtures": facts,
         "monitor": {k: monitor_info.get(k) for k in ("name", "width", "height", "refreshRate", "scale")},
-        "entrants": manifest_entrants(arms),
+        "entrants": {a["id"]: dict(manifest_entrants([a])[a["id"]], **S.arm_identity(a)) for a in arms},
+        "kernel": S.platform.release(),
         "recorder": ctx["rec_bin"], "nav_quiet_s": 2, "nav_cap_s": 15,
         "nav_split": {"inview_steps": plan.get("inview_steps", INVIEW_STEPS),
                       "scroll_steps": plan.get("scroll_steps", SCROLL_STEPS), "scroll_fixture": scroll_fixture,
@@ -1222,6 +1223,8 @@ def selftest():
     S.require_idle = lambda: None
     S.fixture_facts = lambda p: {}
     S.monitor = lambda: {"name": "t", "width": 1, "height": 1, "refreshRate": 60, "scale": 1}
+    saved_identity = S.arm_identity
+    S.arm_identity = lambda arm: {"version": "fixture"}
     keep_buf = io.StringIO()
     try:
         with redirect_stdout(keep_buf):
@@ -1233,6 +1236,7 @@ def selftest():
                                 for r in kept), True)
     finally:
         globals().update(saved_fns)
+        S.arm_identity = saved_identity
         S.require_idle, S.fixture_facts, S.monitor = saved_s[:3]
         S.UI_TOKENS[:] = saved_s[3]
         if os.path.isabs(tmpd) and tmpd.startswith(tempfile.gettempdir() + os.sep) and os.path.isfile(keep_marker):
@@ -1261,6 +1265,7 @@ def selftest():
         json.dump({"out": ql_out, "runs": 2, "fixtures": {"qltable": ql_dir},
                    "arms": [{"id": "f", "entrant": "flea"}], "columns": ["ql"]}, f)
     globals()["run_ql"] = fake_ql
+    S.arm_identity = lambda arm: {"version": "fixture"}
     globals()["make_ctx"] = fake_ctx
     S.require_idle = lambda: None
     S.fixture_facts = lambda p: {}
@@ -1273,6 +1278,7 @@ def selftest():
     finally:
         globals()["run_ql"] = saved_ql
         globals().update(saved_fns2)
+        S.arm_identity = saved_identity
         S.require_idle, S.fixture_facts, S.monitor = saved_s[:3]
         S.UI_TOKENS[:] = saved_s[3]
         if os.path.isabs(ql_dir) and ql_dir.startswith(tempfile.gettempdir() + os.sep) and "nav-ql-" in ql_dir:
@@ -1421,9 +1427,9 @@ def preflight():
     try:
         sbin = S.strata_bin()
         good = os.access(sbin, os.X_OK)
-        print("%-8s %-12s %s" % ("ok" if good else "MISSING", "strata v0.21", sbin))
+        print("%-8s %-12s %s" % ("ok" if good else "MISSING", "strata", sbin))
     except SystemExit as e:
-        print("MISSING   strata v0.21 %s" % e)
+        print("MISSING   strata %s" % e)
     sock = os.environ.get("YDOTOOL_SOCKET") or os.path.join(os.environ.get("XDG_RUNTIME_DIR", ""), ".ydotool_socket")
     print("%-8s %-12s %s" % ("ok" if os.path.exists(sock) else "MISSING", "ydotool socket", sock))
     return 0

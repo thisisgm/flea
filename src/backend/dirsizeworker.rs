@@ -28,10 +28,10 @@ const STUCK_TTL_SECS: u64 = 60;
 const STUCK_GRACE_MS: u64 = 1000;
 
 pub struct Worker {
-    jobs: Sender<Job>,
+    jobs: super::lazy::Lazy<Sender<Job>>,
     generation: Arc<AtomicU64>,
     active: Option<Active>,
-    events: Sender<Event>,
+    events: crate::backend::events::Sender<Event>,
     started: Option<Instant>,
     current: Arc<std::sync::Mutex<Option<PathBuf>>>,
     stuck: HashMap<PathBuf, (Instant, Arc<AtomicBool>)>,
@@ -39,7 +39,7 @@ pub struct Worker {
 }
 
 // One thread per worker generation; a stuck thread is abandoned, never joined.
-fn spawn_thread<F>(rx: Receiver<Job>, current_gen: Arc<AtomicU64>, events: Sender<Event>, walk: F, current: Arc<std::sync::Mutex<Option<PathBuf>>>)
+fn spawn_thread<F>(rx: Receiver<Job>, current_gen: Arc<AtomicU64>, events: crate::backend::events::Sender<Event>, walk: F, current: Arc<std::sync::Mutex<Option<PathBuf>>>)
 where F: Fn(&Path, &dyn Fn() -> bool) -> dirsize::DirSize + Send + 'static {
     // The recursive walker previously used the main thread; retain stack headroom for deep trees.
     std::thread::Builder::new().name("flea-dirsize".into()).stack_size(16 * 1024 * 1024).spawn(move || {
@@ -66,7 +66,7 @@ fn production_walk(path: &Path, cancelled: &dyn Fn() -> bool) -> dirsize::DirSiz
 }
 
 // A fresh thread always runs the production walk; a test mock blocks only the first thread.
-fn spawn_production(rx: Receiver<Job>, current_gen: Arc<AtomicU64>, events: Sender<Event>, current: Arc<std::sync::Mutex<Option<PathBuf>>>) {
+fn spawn_production(rx: Receiver<Job>, current_gen: Arc<AtomicU64>, events: crate::backend::events::Sender<Event>, current: Arc<std::sync::Mutex<Option<PathBuf>>>) {
     spawn_thread(rx, current_gen, events, production_walk, current)
 }
 
@@ -81,16 +81,20 @@ fn mark_alive((t, done): &(Instant, Arc<AtomicBool>)) -> bool {
 }
 
 impl Worker {
-    pub fn new(events: Sender<Event>) -> Self {
+    pub fn new(events: crate::backend::events::Sender<Event>) -> Self {
         Self::with_walk(events, production_walk)
     }
 
-    fn with_walk<F>(events: Sender<Event>, walk: F) -> Self
+    fn with_walk<F>(events: crate::backend::events::Sender<Event>, walk: F) -> Self
     where F: Fn(&std::path::Path, &dyn Fn() -> bool) -> dirsize::DirSize + Send + 'static {
-        let (jobs, rx) = channel::<Job>();
         let generation = Arc::new(AtomicU64::new(0));
         let current = Arc::new(std::sync::Mutex::new(None));
-        spawn_thread(rx, generation.clone(), events.clone(), walk, Arc::clone(&current));
+        let (worker_gen, worker_events, worker_current) = (generation.clone(), events.clone(), Arc::clone(&current));
+        let jobs = super::lazy::Lazy::new(move || {
+            let (jobs, rx) = channel::<Job>();
+            spawn_thread(rx, worker_gen, worker_events, walk, worker_current);
+            jobs
+        });
         Self { jobs, generation, active: None, events, started: None, current, stuck: HashMap::new(), abandoned: HashMap::new() }
     }
 
@@ -127,7 +131,7 @@ impl Worker {
             self.generation.fetch_add(1, Ordering::Relaxed);
             let (jobs, rx) = channel::<Job>();
             spawn_production(rx, self.generation.clone(), self.events.clone(), Arc::clone(&self.current));
-            self.jobs = jobs;
+            self.jobs = jobs.into();
             self.active = None;
             self.started = None;
         }
@@ -280,7 +284,7 @@ mod tests {
     #[test]
     fn deep_directory_tree_fits_the_worker_stack() {
         let tree = DeepTree::build("size-deep");
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let mut worker = Worker::new(events);
         worker.start(vec![(0, tree.root().to_path_buf())]);
         let Event::DirSize(done) = rx.recv_timeout(Duration::from_secs(10)).unwrap() else { panic!() };
@@ -291,7 +295,7 @@ mod tests {
 
     #[test]
     fn cancelled_running_job_cannot_publish_to_reused_row() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let mut worker = Worker::with_walk(events, move |_, cancelled| {
@@ -322,7 +326,7 @@ mod tests {
 
     #[test]
     fn a_completed_row_does_not_release_later_rows_in_same_batch() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (release, released) = channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let seen = Arc::clone(&calls);
@@ -344,7 +348,7 @@ mod tests {
 
     #[test]
     fn cancellation_skips_queued_paths_and_fresh_batch_progresses() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -376,7 +380,7 @@ mod tests {
 
     #[test]
     fn duplicate_done_cannot_release_or_reuse_a_batch_slot() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -403,7 +407,7 @@ mod tests {
 
     #[test]
     fn a_stuck_batch_is_replaced_so_sizes_resume() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let mut worker = Worker::with_walk(events, move |path: &Path, _| {
@@ -429,7 +433,7 @@ mod tests {
     #[test]
     fn a_healthy_batch_restarts_its_clock_per_row() {
         // Sample input: batch start forced past the deadline, then one row lands, so stuck clears.
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (release, released) = channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let seen = Arc::clone(&calls);
@@ -455,7 +459,7 @@ mod tests {
     #[test]
     fn a_cancelled_batch_keeps_its_clock_so_a_wedge_still_times_out() {
         // Sample input: cancel with a walk in flight keeps started, so the wedge becomes stuck.
-        let (events, _rx) = channel();
+        let (events, _rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let mut worker = Worker::with_walk(events, move |_, _| {
@@ -477,7 +481,7 @@ mod tests {
     #[test]
     fn a_dead_mount_holds_one_thread_until_its_walk_returns() {
         // Sample input: mark 61 s old with its thread still out stays, with its thread back goes.
-        let (events, _rx) = channel();
+        let (events, _rx) = crate::backend::events::channel();
         let mut worker = Worker::with_walk(events, |_, _| dirsize::DirSize { bytes: 1, partial: false });
         let probe = PathBuf::from("/media/stick");
         let mount = mount_key(&probe);
@@ -495,7 +499,7 @@ mod tests {
     #[test]
     fn a_batch_just_past_its_deadline_is_not_stuck_until_its_grace_passes() {
         // Sample input: started DEADLINE_MS plus 100 ms answers false, plus the grace answers true.
-        let (events, _rx) = channel();
+        let (events, _rx) = crate::backend::events::channel();
         let mut worker = Worker::with_walk(events, |_, _| dirsize::DirSize { bytes: 1, partial: false });
         worker.start(vec![(0, PathBuf::from("slow"))]);
         worker.started = Some(Instant::now() - Duration::from_millis(dirsize::DEADLINE_MS + 100));
@@ -507,7 +511,7 @@ mod tests {
     #[test]
     fn an_abandoned_batch_sets_its_mount_flag_once_its_walk_returns() {
         // Sample input: two-row batch wedged on row 0, abandoned, then both stale Dones accepted.
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let (entered, entry) = channel();
         let (release, released) = channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -549,7 +553,7 @@ mod tests {
 
     #[test]
     fn duplicate_rows_are_walked_once_and_all_unique_rows_release_batch() {
-        let (events, rx) = channel();
+        let (events, rx) = crate::backend::events::channel();
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let seen = Arc::clone(&calls);
         let mut worker = Worker::with_walk(events, move |_, _| {

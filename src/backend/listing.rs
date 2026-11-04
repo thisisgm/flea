@@ -34,6 +34,8 @@ pub struct Span {
 
 #[derive(Debug, Clone)]
 pub struct Listing {
+    pub outline_open: std::collections::BTreeSet<String>,
+    pub outline_watches: Vec<i32>,
     pub names: String,
     pub spans: Vec<Span>,
     // Empty for readdir listings; the gvfs path fills it, so local rows pay no store.
@@ -47,23 +49,31 @@ pub struct Listing {
 
 impl Listing {
     pub fn new() -> Listing {
-        let mut names = String::new();
-        names.reserve(NAME_RESERVE_BYTES);
-        let mut spans = Vec::new();
-        spans.reserve(SPAN_RESERVE);
-        Listing { names, spans, gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
+        Listing::with_reserve(NAME_RESERVE_BYTES, SPAN_RESERVE)
+    }
+
+    // A result list sized to its rows: a short answer's arena stays under the mmap threshold, so it costs no mmap.
+    pub fn with_reserve(names: usize, rows: usize) -> Listing {
+        Listing { outline_open: Default::default(), outline_watches: Vec::new(), names: String::with_capacity(names), spans: Vec::with_capacity(rows),
+            gio_meta: Vec::new(), gio_targets: Vec::new(), base_dev: 0, thread_hint: OnceLock::new() }
     }
 
     // corner: u32 offsets cap the arena at 4 GiB of names, see AGENTS.md.
     pub fn push(&mut self, name: &str, is_dir: bool) {
+        self.push_entry(name, is_dir, false);
+    }
+
+    // The new row's index, so a caller adjusting its span never looks it up again.
+    pub fn push_entry(&mut self, name: &str, is_dir: bool, is_symlink: bool) -> usize {
         let off = self.names.len() as u32;
         self.names.push_str(name);
         self.spans.push(Span {
             off,
             len: (self.names.len() as u32) - off,
             is_dir,
-            is_symlink: false,
+            is_symlink,
         });
+        self.spans.len() - 1
     }
 
     pub fn name(&self, i: usize) -> &str {

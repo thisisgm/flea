@@ -23,6 +23,7 @@ trap cleanup EXIT
 cut_out() { sed -n "/^$1() {/,/^}/p" "$2"; }
 launch_def=$(cut_out launch tests/ui.sh)
 window_def=$(cut_out launch_window tests/ui.sh)
+homes_def=$(cut_out case_homes tests/ui.sh)
 kill_def=$(cut_out kill_flea tests/ui.sh)
 helper_def=$(cut_out gvfsbridge_launch tests/ui-gvfsbridge.sh)
 fits_def=$(cut_out gvfsbridge_runtime_fits tests/ui-gvfsbridge.sh)
@@ -68,16 +69,20 @@ run_launch() {
     (
         eval "$launch_def"
         eval "$window_def"
+        eval "$homes_def"
+        test_frontend=qml
         eval "$kill_def"
         eval "$helper_def"
         fail() { printf 'FAIL: %s\n' "$*"; exit 1; }
+        # The shared transport launches only worktree binaries, so the subshell spawns the bridge stub the way ui.sh did before it.
+        . "$repo/tests/lib/fixture-launch.sh" || fail "cannot load the fixture launch double"
         flea_pids() { :; }
         backend_pids() { :; }
         owned_trash_monitors() { :; }
         flea_pid() { printf '123\n'; }
         assert_window() { omarchy-drive windows --json >/dev/null; }
         sleep() { :; }
-        foreign_pids="" drain_wait_s=2 run_root="$box" run_log="$rec/run.log" flea_log="$rec/flea.log"
+        foreign_pids="" drain_wait_s=2 run_root="$box" fixture_root="$box/fixtures" run_log="$rec/run.log" flea_log="$rec/flea.log"
         flea_ui="$repo/ui" flea_bin="$box/bin/flea" FLEA_UNDO_DIR="$box/undo"
         export REC="$rec" HOME="$box/operator-home" XDG_RUNTIME_DIR="$box/operator-rt" PATH="$operator_path"
         unset FLEA_GVFS_FUSE

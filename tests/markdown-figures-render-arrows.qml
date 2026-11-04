@@ -8,16 +8,12 @@ ShellRoot {
     id: shell
     property bool done: false
     property bool armed: false
-    property bool syntheticArmed: false
     property int checks: 0
     property int failures: 0
     property string output: Quickshell.env("XDG_RUNTIME_DIR") + "/markdown-arrows.png"
-    property var arrowCases: JSON.parse(casesFile.text() || "[]")
-    FileView {
-        id: casesFile
-        path: Quickshell.env("FLEA_ARROW_FIXTURE")
-        blockLoading: true
-    }
+    // A head at each end direction, a link marked at both ends, whose first mark is its start, and a back link that curves into its head.
+    readonly property var arrowCases: ["flowchart TD\n    A --> B", "flowchart BT\n    A --> B", "flowchart LR\n    A --> B", "flowchart RL\n    A --> B",
+        "flowchart TD\n    A <--> B", "flowchart TD\n    A --> B\n    B --> C\n    C --> A"]
     function quit() { Quickshell.execDetached(["kill", String(Quickshell.processId)]) }
     function check(ok, label) {
         checks++
@@ -33,33 +29,20 @@ ShellRoot {
             anchors.fill: parent
             Repeater {
                 id: figures
-                model: ["TD", "BT", "LR", "RL"]
+                model: shell.arrowCases
                 Flea.MarkdownFigure {
                     required property string modelData
                     required property int index
-                    x: (index % 2) * 240
-                    y: Math.floor(index / 2) * 160
+                    x: (index % 4) * 240
+                    y: Math.floor(index / 4) * 320
                     width: 220
-                    source: "flowchart " + modelData + "\n    A --> B"
+                    source: modelData
                     kind: "mermaid"
                     fontFamily: "monospace"
                     bodyPx: 14
                     bgHex: "#101315"
                     fgHex: "#c0caf5"
                     accentHex: "#7aa2f7"
-                }
-            }
-            Repeater {
-                id: synthetic
-                model: shell.arrowCases
-                Flea.MarkdownFigure {
-                    required property var modelData
-                    required property int index
-                    x: 480 + (index % 4) * 160
-                    y: Math.floor(index / 4) * 160
-                    width: 140
-                    askArmed: false
-                    kind: "mermaid"
                 }
             }
         }
@@ -72,12 +55,26 @@ ShellRoot {
             onPaint: if (shell.armed) shell.analyze(getContext("2d"))
         }
     }
-    function edge(svg) {
-        var found = svg.match(/<(?:polyline|path)\b[^>]*class="edge"[^>]*\s(?:points|d)="([^"]+)"/)
-        var points = found ? found[1].replace(/[ML]/g, " ").trim().split(/[\s,]+/).map(Number) : []
-        if (points.length < 4)
-            return null
-        return { start: { x: points[0], y: points[1] }, end: { x: points[points.length - 2], y: points[points.length - 1] } }
+    // Sample input: one pele-edge group with a line and two marks answers one line per mark, each end its tip and each start the line end nearest it, so the two run along the head.
+    // Every edge group is measured, so the C --> A back link of the last arrow case is never skipped for the first forward edge.
+    function edges(svg) {
+        var out = []
+        var groups = svg.match(/<g class="pele-edge"[^>]*>[\s\S]*?<\/g>/g) || []
+        for (var g = 0; g < groups.length; g++) {
+            var id = (groups[g].match(/data-id="([^"]+)"/) || [null, ""])[1]
+            var line = groups[g].match(/<path(?![^>]*pele-marker)[^>]*\sd="([^"]+)"/)
+            var points = line ? line[1].match(/-?\d*\.?\d+/g).map(Number) : []
+            var tipRe = /<path class="pele-marker" d="M(-?[\d.]+),(-?[\d.]+)/g
+            var tip = tipRe.exec(groups[g])
+            while (tip !== null && points.length >= 4) {
+                var end = { x: Number(tip[1]), y: Number(tip[2]) }
+                var first = { x: points[0], y: points[1] }, last = { x: points[points.length - 2], y: points[points.length - 1] }
+                var near = Math.hypot(first.x - end.x, first.y - end.y) < Math.hypot(last.x - end.x, last.y - end.y) ? first : last
+                out.push({ id: id, start: near, end: end })
+                tip = tipRe.exec(groups[g])
+            }
+        }
+        return out
     }
     function head(pixels, fig, line) {
         var at = fig.mapToItem(grab, 0, 0)
@@ -106,27 +103,37 @@ ShellRoot {
         return { count: count, along: along / count, cross: cross / count, tip: tip,
             tipCross: tipCross, wide: wide, narrow: narrow }
     }
+    // One head per link end: a single edge, two for A <--> B, three where C --> A closes the loop.
+    readonly property var edgeCounts: [1, 1, 1, 1, 2, 3]
     function analyze(ctx) {
         ctx.drawImage(shot, 0, 0)
         var pixels = ctx.getImageData(0, 0, 1200, 640).data
-        for (var i = 0; i < 4 + synthetic.count; i++) {
-            var fig = i < 4 ? figures.itemAt(i) : synthetic.itemAt(i - 4)
-            var label = i < 4 ? fig.modelData : fig.modelData.name
-            var line = edge(fig.svg)
-            check(line !== null, label + " has an edge")
-            if (!line) continue
-            if (i >= 4 && fig.modelData.atStart) {
-                var first = line.start
-                line.start = line.end
-                line.end = first
+        for (var i = 0; i < figures.count; i++) {
+            var fig = figures.itemAt(i)
+            var label = fig.modelData.replace(/\n\s*/g, "; ")
+            var lines = edges(fig.svg)
+            check(lines.length === shell.edgeCounts[i], label + " measures every head, want " + shell.edgeCounts[i])
+            for (var k = 0; k < lines.length; k++) {
+                var line = lines[k]
+                var tag = label + " " + line.id
+                var h = head(pixels, fig, line)
+                console.log("MARKDOWN_ARROWS PIXELS " + tag + " " + JSON.stringify(h))
+                check(h.count >= 10 && Math.abs(h.cross) <= 1 && h.along < -2,
+                    tag + " head centered behind edge end")
+                check(h.tip >= -2 && h.tip <= 2 && Math.abs(h.tipCross) <= 1.5,
+                    tag + " tip touches edge end")
+                check(h.wide > h.narrow && h.narrow > 0, tag + " head tapers along edge direction")
             }
-            var h = head(pixels, fig, line)
-            console.log("MARKDOWN_ARROWS PIXELS " + label + " " + JSON.stringify(h))
-            check(h.count >= 10 && Math.abs(h.cross) <= 1 && h.along < -2,
-                label + " head centered behind edge end")
-            check(h.tip >= -2 && h.tip <= 2 && Math.abs(h.tipCross) <= 1.5,
-                label + " tip touches edge end")
-            check(h.wide > h.narrow && h.narrow > 0, label + " head tapers along edge direction")
+            // A head moved 18 px past its line end goes red, so a displaced back-link head cannot pass.
+            if (lines.length > 0) {
+                var back = lines[lines.length - 1]
+                var bdx = back.end.x - back.start.x, bdy = back.end.y - back.start.y
+                var blen = Math.sqrt(bdx * bdx + bdy * bdy)
+                var off = head(pixels, fig, { start: back.start, end: { x: back.end.x + 18 * bdx / blen, y: back.end.y + 18 * bdy / blen } })
+                check(!(off.count >= 10 && Math.abs(off.cross) <= 1 && off.along < -2)
+                    && !(off.tip >= -2 && off.tip <= 2 && Math.abs(off.tipCross) <= 1.5)
+                    && !(off.wide > off.narrow && off.narrow > 0), label + " displaced head goes red")
+            }
         }
         shell.done = true
         console.log("MARKDOWN_ARROWS " + checks + " checks, " + failures + " failed")
@@ -138,7 +145,9 @@ ShellRoot {
         repeat: true
         running: !shell.done
         onTriggered: {
-            for (var i = 0; i < 4; i++) {
+            if (figures.count !== shell.arrowCases.length)
+                return
+            for (var i = 0; i < figures.count; i++) {
                 var fig = figures.itemAt(i)
                 if (fig.failed) {
                     console.log("MARKDOWN_ARROWS FAIL helper " + fig.error)
@@ -148,18 +157,6 @@ ShellRoot {
                 if (!fig.ready || fig.fitWidth <= 0 || fig.fitHeight <= 0)
                     return
             }
-            if (synthetic.count !== 16)
-                return
-            // An unarmed startup ask clears SVG, so inject fixtures after that timer has finished.
-            if (!shell.syntheticArmed) {
-                for (var a = 0; a < synthetic.count; a++)
-                    synthetic.itemAt(a).svg = synthetic.itemAt(a).modelData.svg
-                shell.syntheticArmed = true
-                return
-            }
-            for (var s = 0; s < synthetic.count; s++)
-                if (synthetic.itemAt(s).fitWidth <= 0 || synthetic.itemAt(s).fitHeight <= 0)
-                    return
             settle.stop()
             grab.grabToImage(function(result) {
                 if (!result.saveToFile(shell.output)) {
@@ -183,7 +180,7 @@ ShellRoot {
         interval: 15000
         running: !shell.done
         onTriggered: {
-            console.log("MARKDOWN_ARROWS FAIL watchdog cases=" + shell.arrowCases.length + " delegates=" + synthetic.count)
+            console.log("MARKDOWN_ARROWS FAIL watchdog cases=" + shell.arrowCases.length + " delegates=" + figures.count)
             shell.quit()
         }
     }

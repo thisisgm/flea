@@ -1,0 +1,71 @@
+{
+  "drives": {
+    "/drives/data": {
+      "Removable": false,
+      "MediaRemovable": false,
+      "ConnectionBus": "usb",
+      "Model": "USB HFS+ disk",
+      "CanPowerOff": true
+    }
+  },
+  "blocks": {
+    "/blocks/sdc": {
+      "Block": {
+        "Device": "/dev/sdc",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "",
+        "IdType": "",
+        "IdLabel": "",
+        "IdUUID": "sdc"
+      },
+      "PartitionTable": {
+        "Type": "gpt"
+      }
+    },
+    "/blocks/sdc1": {
+      "Block": {
+        "Device": "/dev/sdc1",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "filesystem",
+        "IdType": "vfat",
+        "IdLabel": "EFI",
+        "IdUUID": "sdc1"
+      },
+      "Filesystem": {
+        "MountPoints": []
+      },
+      "Partition": {
+        "Type": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+        "Table": "/blocks/sdc"
+      }
+    },
+    "/blocks/sdc2": {
+      "Block": {
+        "Device": "/dev/sdc2",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "filesystem",
+        "IdType": "hfsplus",
+        "IdLabel": "Archive",
+        "IdUUID": "sdc2"
+      },
+      "Filesystem": {
+        "MountPoints": [
+          "/run/media/user/Archive"
+        ]
+      },
+      "Partition": {
+        "Type": "48465300-0000-11aa-aa11-00306543ecac",
+        "Table": "/blocks/sdc"
+      }
+    }
+  }
+}

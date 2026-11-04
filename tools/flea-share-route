@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Times one share opened through two routes, the kernel mount and the GVFS FUSE path, each in a fresh Flea, interleaved so drift hits both.
 set -uo pipefail
 . "$(dirname "$0")/flea-sandbox-guard"
@@ -72,9 +73,10 @@ else
 fi
 
 # A live process, not a zombie that nothing has reaped yet.
-alive() { local s; s=$(ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s:0:1}" != Z ]; }
-ipc() { timeout 2 qs ipc --pid "$qpid" call flea "$@" 2>/dev/null; }
-now_ms() { date +%s%3N; }
+flea_ipc_init "$FLEA_BIN"
+alive() { local s; s=$(LC_ALL=C.UTF-8 LANGUAGE= ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s:0:1}" != Z ]; }
+ipc() { LC_ALL=C.UTF-8 LANGUAGE= timeout 2 "$FLEA_IPC_HELPER" --pid "$qpid" call flea "$@" 2>/dev/null; }
+now_ms() { LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N; }
 out=${OUT:-$root/share-route.csv}
 echo "route,run,listed_ms,first_rows_ms,rows" | tee "$out"
 
@@ -128,7 +130,7 @@ summary() {
   done < "$out"
   n=${#vals[@]}
   if [ "$n" -eq 0 ]; then echo "$1 0 0 0 0 $bad"; return; fi
-  mapfile -t sorted < <(printf '%s\n' "${vals[@]}" | sort -n)
+  mapfile -t sorted < <(printf '%s\n' "${vals[@]}" | LC_ALL=C.UTF-8 LANGUAGE= sort -n)
   echo "$1 $(( (sorted[(n - 1) / 2] + sorted[n / 2] + 1) / 2 )) ${sorted[0]} ${sorted[n - 1]} $n $bad"
 }
 read -r _ km kmin kmax kn kbad <<< "$(summary kernel)"
@@ -139,4 +141,4 @@ if [ "$kn" -eq 0 ] || [ "$gn" -eq 0 ]; then
   echo "kernel/gvfs: a route has no settled run"
   exit 1
 fi
-awk -v k="$km" -v g="$gm" 'BEGIN { printf "kernel/gvfs %.2f: the kernel route is %s\n", k / g, (k < g ? "faster" : "NOT faster") }'
+LC_ALL=C.UTF-8 LANGUAGE= awk -v k="$km" -v g="$gm" 'BEGIN { printf "kernel/gvfs %.2f: the kernel route is %s\n", k / g, (k < g ? "faster" : "NOT faster") }'

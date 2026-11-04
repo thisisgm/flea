@@ -45,8 +45,10 @@ palettes=$(wc -l < "$list")
 [ "$palettes" -eq "$palettes_expected" ] || fail "the sweep reads $palettes palettes, not $palettes_expected: a stock theme was added or removed, update palettes_expected here and paletteCount in tests/theme-contrast.qml with it"
 
 run_timeout_s=120
-# Per palette: 18 role checks, 2 glass checks, 6 R3 lift checks and 37 picked-mode checks, then 4 one-off checks.
-expected_checks=$((palettes * 63 + 4))
+# Per palette: 18 role checks, 2 glass checks, 6 R3 lift checks and 19 picked-mode checks, then 4 one-off checks.
+# The transparent section draws opaque inks (alpha 255), so its 7 role and 3 graphics contrast checks per focus
+# became one opaque-inks check: bare Transparent renders the theme's own palette, which translucent floors lifted.
+expected_checks=$((palettes * 45 + 4))
 config="$test_root/config"
 mkdir -p "$config" || exit 1
 # The probe imports ui/ as Flea, and ui/'s qs.Commons resolves against this root, as it does from ui/boot.

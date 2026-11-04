@@ -1,0 +1,500 @@
+#!/usr/bin/env python3
+"""Plan and validate Markdown preview campaigns; this command never starts a GUI.
+
+plan emits explicit unresolved applicability cells. verify accepts only complete
+native receipts and reports measured ranges. Component results remain separate.
+See the generated plan's protocol for the observation and receipt contracts.
+"""
+
+import argparse
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import re
+import runpy
+import statistics
+import subprocess
+import sys
+
+RECEIPT = '\0receipt'
+CATALOG = Path(__file__).with_name('flea-bench-markdown-matrix.json')
+MODES = ('cold', 'warm')
+CONTROLS = ('ql_md_table_first', 'ql_md_plain', 'ql_md_plain_b')
+NS_PER_MS = 1_000_000
+CONTROL_BYTES = 4096
+MERMAID_FAMILIES = 33
+VIEWPORT_PX = [1100, 700]
+TEXT_PX = 14
+CONTROL_PERCENTILE = .95
+COMPONENT_RUNS = 10
+PAIRS_PER_MODE = 10
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def expand_roots(path):
+    # Catalog paths keep ${FLEA_VISUAL_DESIGN} and ${FLEA_RELEASE_ROOT}; the environment supplies the roots.
+    for token, name in (('${FLEA_VISUAL_DESIGN}', 'FLEA_VISUAL_DESIGN'), ('${FLEA_RELEASE_ROOT}', 'FLEA_RELEASE_ROOT')):
+        if token in path:
+            require(os.environ.get(name), name + ' is unset; source path ' + path + ' needs it')
+            path = path.replace(token, os.environ[name])
+    return path
+
+
+def hex_hash(value, size=64):
+    return isinstance(value, str) and len(value) == size and all(c in '0123456789abcdef' for c in value)
+
+
+def load_catalog():
+    data = CATALOG.read_bytes()
+    catalog = json.loads(data)
+    ids = [row['id'] for row in catalog['features']]
+    require(len(ids) == len(set(ids)), 'duplicate feature')
+    required = {'rendered-default', 'source-toggle', 'kind-preference', 'headings', 'lists', 'links',
+                'inline-code', 'fenced-code', 'blockquote', 'tables', 'crlf', 'nesting', 'badges',
+                'math-inline', 'math-display', 'math-fence', 'local-images', 'remote-images',
+                'large-document', 'wide-content', 'scroll-end', *CONTROLS}
+    require(required <= set(ids), 'incomplete feature scope; helper rows cannot replace matrix')
+    families = {key.removeprefix('markdown-mermaid/') for key in catalog['fixtures']
+                if key.startswith('markdown-mermaid/')}
+    require(len(families) == MERMAID_FAMILIES and {'mermaid-' + key for key in families} <= set(ids),
+            'incomplete figure families')
+    require([row['id'] for row in catalog['entrants'][:2]] == ['strata-stable', 'strata-nightly'],
+            'stable and nightly must be separate first entries')
+    require(catalog['pairs_per_mode'] == PAIRS_PER_MODE and catalog['modes'] == list(MODES), 'missing cold/warm plan')
+    for row in catalog['features']:
+        require(row['checks'] and row['fixtures'] and row['source_refs'], 'unbound feature ' + row['id'])
+        require(all(key in catalog['fixtures'] for key in row['fixtures']), 'unknown fixture')
+        require(all(key in catalog['scenes'] for key in row['scenes'].values()), 'unregistered scene')
+    return catalog, digest(data)
+
+
+def cells(catalog):
+    for entrant in catalog['entrants']:
+        for feature in catalog['features']:
+            for surface in feature['scenes']:
+                yield entrant['id'], feature['id'], surface
+
+
+def control_texts(catalog):
+    source = catalog['sources'][catalog['fixtures']['table-control']['source']]
+    path = Path(__file__).resolve().parent / 'flea-nav-fixture'
+    data = path.read_bytes()
+    blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+    require(digest(data) == source['sha256'] and blob == source['blob'], 'original table generator identity changed')
+    generator = runpy.run_path(str(path))
+    return {name: text.encode() for name, text in generator['ql_texts']().items()}
+
+
+def generate_controls(root, catalog):
+    require(root is not None and root.is_absolute(), 'fixture root must be absolute')
+    root = root.resolve(strict=True)
+    require((root / '.flea-test-sandbox').is_file(), 'fixture root must hold a .flea-test-sandbox marker: ' + str(root))
+    files = {}
+    for name, data in control_texts(catalog).items():
+        path = root / 'qltable' / name / (name + '.md')
+        require(path.resolve().is_relative_to(root), 'fixture path escapes marked root')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open('xb') as stream:
+            stream.write(data)
+        files[name] = dict(path=str(path.relative_to(root)), sha256=digest(data))
+    source = catalog['sources']['nav-fixture']
+    receipt = dict(source_sha256=source['sha256'], source_blob=source['blob'], selector='ql_texts',
+                   generator_path=source['path'], generator_ref=source['ref'], files=files)
+    data = (json.dumps(receipt, indent=2) + '\n').encode()
+    with (root / 'table-control.json').open('xb') as stream:
+        stream.write(data)
+    return dict(status='GENERATED', receipt=dict(path='table-control.json', sha256=digest(data)))
+
+
+def plan(catalog, catalog_hash):
+    return dict(schema=1, matrix_sha256=catalog_hash, instrument_sha256=digest(Path(__file__).read_bytes()), status='NOT_RUN',
+                manifest=dict(host=None, kernel=None, recorded_at=None, session=None, candidate_sha=None,
+                              clock='CLOCK_MONOTONIC', viewport_px=VIEWPORT_PX, text_px=TEXT_PX, theme=None, calibration=None,
+                              cache_policy={'cold': None, 'warm': None}),
+                protocol={
+                    'artifacts': 'Each artifact is {path, sha256}, relative to the campaign file, confined to its directory. Preserve raw output and inspected PNG captures.',
+                    'binaries': 'Each entrant maps to an installed-product JSON receipt: entrant, installed=true, path, version, binary_sha256, source_sha, launch_argv, dependencies and recorded_at. Flea launch_argv begins with path and --gui. Preserve the installed reference, never rebuild it.',
+                    'capability': 'Every cell needs supported/unsupported with a product-capability JSON receipt binding entrant, feature, surface, status, binary_sha256, limitation=product, reason, observed_at and inspected capture. Observer limitations remain unresolved.',
+                    'fixtures': 'Each fixture binding maps to a JSON receipt with source_sha256, selector and files. Files map original names to archived {path, sha256}. Every non-board file must equal the catalog pin: whole-file the source hash, recipe fixtures their outputs map, controls the pinned generator. Controls are 4096 bytes; plain and twin are byte-identical.',
+                    'samples': 'For each supported opponent cell, collect matched flea/opponent arms for pairs 1..10 in cold and warm. Candidate-only supported cells use opponent=none and position=0. Samples carry entrant, opponent, feature, surface, mode, pair, position (flea first on odd pairs), observation artifact. Record fresh-process cold previews and primed same-process warm previews; cache receipt names the policy, not a label alone.',
+                    'observation': 'JSON binds every sample key, binary_sha256, fixture_receipts and manifest host/session/viewport_px/theme, plus kind=gui-presented-useful, clock=CLOCK_MONOTONIC, input_ns, presented_ns, frame1_useful=true, useful_content, blankFrames=loadingFrames=blinkBacks=0, cache_state (cold-first-use or warm-reuse), process_instance and captures. Captures maps every feature check to {image, reviewer, useful=true, matches=true}; image is a PNG artifact. Include network artifact {entrant,input_ns,presented_ns,remote_requests:[]} for remote-images. Reused helper events never establish GUI completion.',
+                    'calibration': 'Manifest calibration artifact is JSON: scope=presented-calibration, valid=true, clock=CLOCK_MONOTONIC, matching host and session, method and measured ranges_ms. Retain raw calibration output alongside it.',
+                    'components': 'Separate helper-response diagnostics for flea and flea-anchor, each original CASES source in cold and warm. Each row names entrant, case, mode, kind=helper-response and the raw flea-figure-bench output artifact. Parse its n=10 median/min/max; never invent raw values from a summary or compare helper latency with GUI or rivals.',
+                    'questions': 'Resolve each catalog question with an evidence artifact, conclusion and source citations. Missing native seams stay BLOCKED.',
+                    'timing': 'CLOCK_MONOTONIC input to useful presented content, reported as median/min/max, paired arms on one host/session/physical viewport. Inspect actual pixels at rest/scroll/source. Three helper cases do not close feature coverage.',
+                },
+                resolutions={key: None for key in catalog['questions']},
+                binaries={row['id']: None for row in catalog['entrants']},
+                fixtures={key: None for key in catalog['fixtures']},
+                applicability=[dict(entrant=e, feature=f, surface=s, status='unresolved', receipt=None,
+                                    question='Observe this feature in the actual installed product; no capability inferred from automation.')
+                               for e, f, s in cells(catalog)],
+                samples=[], components=[])
+
+
+def planned_commands(campaign, catalog, root, stage, driver):
+    require(driver is not None and driver.is_absolute() and driver.is_file(), 'native driver must be an existing absolute file: ' + str(driver))
+    rows = {(row['entrant'], row['feature'], row['surface']): row for row in campaign['applicability']}
+    require(len(rows) == len(campaign['applicability']) and set(rows) == set(cells(catalog)),
+            'command plan needs every rival/capability cell exactly once')
+    if stage == 'measure':
+        require(all(row['status'] in ('supported', 'unsupported') for row in rows.values()),
+                'timing command plan awaits native applicability census')
+    commands = []
+    for entrant, feature, surface in cells(catalog):
+        row = rows[entrant, feature, surface]
+        if stage == 'measure':
+            if row['status'] != 'supported':
+                continue
+            if entrant == 'flea':
+                if any(rows[peer['id'], feature, surface]['status'] == 'supported'
+                       for peer in catalog['entrants'] if peer['id'] != 'flea'):
+                    continue
+                entrant = 'none'
+        commands.append(dict(entrant=entrant, feature=feature, surface=surface,
+                             argv=[sys.executable, str(driver), 'run', str(root.resolve()), stage, entrant, feature, surface]))
+    return dict(status='PLAN_ONLY', stage=stage, commands=commands)
+
+
+class Evidence:
+    def __init__(self, root):
+        self.root = root.resolve()
+        self.cache = {}
+
+    def read(self, artifact):
+        require(isinstance(artifact, dict) and hex_hash(artifact.get('sha256')), 'missing artifact/hash: ' + repr(artifact)[:200])
+        path = artifact.get('path')
+        require(isinstance(path, str) and path and not Path(path).is_absolute(), 'artifact path must be relative: ' + repr(path))
+        target = (self.root / path).resolve()
+        require(target.is_relative_to(self.root), 'artifact escapes campaign root: ' + path)
+        require(target.is_file(), 'missing artifact file: ' + path)
+        key = str(target), artifact['sha256']
+        if key not in self.cache:
+            data = target.read_bytes()
+            require(digest(data) == artifact['sha256'], 'artifact hash mismatch: ' + path)
+            self.cache[key] = data
+        return self.cache[key]
+
+    def json(self, artifact):
+        value = json.loads(self.read(artifact))
+        require(isinstance(value, dict), 'receipt must be an object: ' + artifact['path'])
+        value[RECEIPT] = artifact['path']
+        return value
+
+    def capture(self, capture):
+        require(isinstance(capture, dict), 'capture must be an object: ' + repr(capture)[:200])
+        require(capture.get('reviewer') and capture.get('useful') is True and capture.get('matches') is True,
+                'missing inspected useful capture')
+        data = self.read(capture.get('image'))
+        # PNG input: 8-byte signature, then the IHDR chunk, b'\x00\x00\x00\rIHDR' + width:u32be + height:u32be + ...
+        require(data.startswith(b'\x89PNG\r\n\x1a\n') and len(data) > 24 and data[12:16] == b'IHDR',
+                'capture is not PNG output')
+        require(int.from_bytes(data[16:20], 'big') > 0 and int.from_bytes(data[20:24], 'big') > 0,
+                'empty capture')
+
+
+def check_identity(receipt, expected):
+    for key, value in expected.items():
+        require(receipt.get(key) == value and (type(value) is not bool or type(receipt.get(key)) is bool),
+                'receipt identity mismatch: ' + key + ' in ' + receipt.get(RECEIPT, '?'))
+
+
+def binary_receipts(campaign, catalog, evidence):
+    binaries = {}
+    for entrant in catalog['entrants']:
+        row = evidence.json(campaign['binaries'].get(entrant['id']))
+        check_identity(row, dict(scope='installed-product', entrant=entrant['id'], installed=True))
+        where = row[RECEIPT]
+        require(hex_hash(row.get('binary_sha256')) and row.get('dependencies') and row.get('recorded_at'),
+                'missing binary/dependency identity: ' + where)
+        require(isinstance(row.get('path'), str) and row['path'].startswith('/') and row.get('version'),
+                'missing installed executable/version: ' + where)
+        if entrant.get('version'):
+            require(row['version'] == entrant['version'], 'wrong installed version: ' + entrant['id'])
+        argv = row.get('launch_argv')
+        require(isinstance(argv, list) and argv and row['path'] in argv, 'missing product launch argv: ' + where)
+        if entrant['id'] in ('flea', 'flea-anchor'):
+            require(argv[:2] == [row['path'], '--gui'], 'Flea must launch installed --gui product: ' + where)
+            expected = catalog['reference_ref'] if entrant['id'] == 'flea-anchor' else campaign['manifest']['candidate_sha']
+            require(row.get('source_sha') == expected, 'wrong Flea source identity: ' + where)
+        binaries[entrant['id']] = row
+    require(binaries['strata-stable']['binary_sha256'] != binaries['strata-nightly']['binary_sha256'],
+            'stable/nightly alias the same binary')
+    return binaries
+
+
+def fixture_receipts(campaign, catalog, evidence):
+    for key, fixture in catalog['fixtures'].items():
+        receipt = evidence.json(campaign['fixtures'].get(key))
+        source = catalog['sources'][fixture['source']]
+        check_identity(receipt, dict(source_sha256=source['sha256'], selector=fixture['selector']))
+        files = receipt.get('files')
+        require(isinstance(files, dict) and set(files) == set(fixture['files']), 'missing original fixture files: ' + key)
+        for artifact in files.values():
+            evidence.read(artifact)
+        if fixture['selector'] == 'whole-file':
+            require(all(row['sha256'] == source['sha256'] for row in files.values()), 'fixture source changed: ' + key)
+        elif key != 'table-control':
+            pins = fixture.get('outputs')
+            require(pins, 'fixture output unpinned; pin original bytes before timing: ' + key)
+            for name, artifact in files.items():
+                require(artifact['sha256'] == pins[name], 'fixture output differs from pinned recipe: ' + key + '/' + name)
+    receipt = evidence.json(campaign['fixtures']['table-control'])
+    require(receipt.get('source_blob') == catalog['sources']['nav-fixture']['blob'], 'table generator blob missing')
+    data = [evidence.read(receipt['files'][key]) for key in CONTROLS]
+    require(all(len(row) == CONTROL_BYTES for row in data) and data[1] == data[2] and data[0] != data[1],
+            'invalid table/plain/twin bytes')
+    require(dict(zip(CONTROLS, data)) == control_texts(catalog), 'table/plain/twin drift from original generator')
+
+
+def applicability(campaign, catalog, evidence, binaries):
+    rows = {}
+    expected = set(cells(catalog))
+    for row in campaign['applicability']:
+        key = tuple(row.get(k) for k in ('entrant', 'feature', 'surface'))
+        require(key in expected and key not in rows, 'unknown/duplicate applicability cell')
+        require(row.get('status') in ('supported', 'unsupported'), 'unresolved capability: ' + '/'.join(key))
+        receipt = evidence.json(row.get('receipt'))
+        check_identity(receipt, dict(scope='product-capability', entrant=key[0], feature=key[1], surface=key[2],
+                                     status=row['status'], binary_sha256=binaries[key[0]]['binary_sha256'],
+                                     limitation='product'))
+        require(receipt.get('reason') and receipt.get('observed_at'), 'capability needs actual observation: ' + receipt[RECEIPT])
+        evidence.capture(receipt.get('capture'))
+        rows[key] = row['status']
+    require(set(rows) == expected, 'missing rival/capability cell')
+    for feature in catalog['features']:
+        for surface in feature['scenes']:
+            current = rows['flea', feature['id'], surface]
+            baseline = rows['flea-anchor', feature['id'], surface]
+            where = feature['id'] + '/' + surface
+            require(not feature['candidate_required'] or current == 'supported', 'required candidate feature unsupported: ' + where)
+            if baseline == 'supported':
+                require(current == 'supported', 'candidate lost reference capability: ' + where)
+            if any(rows[e['id'], feature['id'], surface] == 'supported' for e in catalog['entrants']):
+                require(current == 'supported', 'candidate missing applicable feature: ' + where)
+    return rows
+
+
+def observation(sample, feature, campaign, evidence, binaries):
+    row = evidence.json(sample.get('observation'))
+    fields = ('entrant', 'opponent', 'feature', 'surface', 'mode', 'pair', 'position')
+    check_identity(row, {key: sample[key] for key in fields})
+    check_identity(row, dict(kind='gui-presented-useful', clock='CLOCK_MONOTONIC', frame1_useful=True,
+                             binary_sha256=binaries[sample['entrant']]['binary_sha256'],
+                             cache_state='cold-first-use' if sample['mode'] == 'cold' else 'warm-reuse'))
+    check_identity(row, {key: campaign['manifest'][key] for key in ('host', 'session', 'viewport_px', 'theme')})
+    where = row[RECEIPT]
+    require(row.get('process_instance') and row.get('useful_content'), 'missing actual useful content/process: ' + where)
+    require(all(type(row.get(key)) is int and row[key] == 0 for key in ('blankFrames', 'loadingFrames', 'blinkBacks')),
+            'blank/loading/stale first useful frame: ' + where)
+    start, end = row.get('input_ns'), row.get('presented_ns')
+    require(type(start) is int and type(end) is int and 0 < start < end, 'invalid presented timestamps: ' + where)
+    wanted = {key: campaign['fixtures'][key]['sha256'] for key in feature['fixtures']}
+    require(row.get('fixture_receipts') == wanted, 'sample uses different fixture output: ' + where)
+    captures = row.get('captures')
+    require(isinstance(captures, dict) and set(captures) == set(feature['checks']),
+            'missing source toggle/fidelity/scroll capture: ' + where)
+    for capture in captures.values():
+        evidence.capture(capture)
+    if feature['id'] == 'remote-images':
+        network = evidence.json(row.get('network'))
+        check_identity(network, dict(entrant=sample['entrant'], input_ns=start, presented_ns=end, remote_requests=[]))
+    return (end - start) / NS_PER_MS, start, row['process_instance']
+
+
+def sample_groups(campaign, catalog, evidence, binaries, capabilities):
+    features = {row['id']: row for row in catalog['features']}
+    pairs = range(1, catalog['pairs_per_mode'] + 1)
+    expected = set()
+    for entrant, feature, surface in cells(catalog):
+        if entrant != 'flea' and capabilities[entrant, feature, surface] == 'supported':
+            for mode in MODES:
+                for pair in pairs:
+                    for arm in ('flea', entrant):
+                        expected.add((arm, entrant, feature, surface, mode, pair))
+    for feature in catalog['features']:
+        for surface in feature['scenes']:
+            if capabilities['flea', feature['id'], surface] == 'supported' and not any(
+                    key[2:4] == (feature['id'], surface) for key in expected):
+                expected.update(('flea', 'none', feature['id'], surface, mode, pair)
+                                for mode in MODES for pair in pairs)
+    found, times, processes, ordered, cold_processes = set(), {}, {}, {}, set()
+    for sample in campaign['samples']:
+        key = tuple(sample.get(k) for k in ('entrant', 'opponent', 'feature', 'surface', 'mode', 'pair'))
+        name = '/'.join(map(str, key))
+        require(type(sample.get('pair')) is int and key in expected, 'unknown or unpaired GUI sample: ' + name)
+        require(key not in found, 'duplicate GUI sample: ' + name)
+        first = 'flea' if sample['pair'] % 2 else sample['opponent']
+        position = 0 if sample['opponent'] == 'none' or sample['entrant'] == first else 1
+        require(type(sample.get('position')) is int and sample['position'] == position,
+                'pair order must alternate: ' + name)
+        elapsed, start, process = observation(sample, features[sample['feature']], campaign, evidence, binaries)
+        if sample['mode'] == 'cold':
+            require((sample['entrant'], process) not in cold_processes, 'cold first-use process reused: ' + name)
+            cold_processes.add((sample['entrant'], process))
+        group = key[:5]
+        times.setdefault(group, []).append(elapsed)
+        processes.setdefault(group, []).append(process)
+        ordered[key[1:]] = ordered.get(key[1:], {}) | {sample['position']: start}
+        found.add(key)
+    missing = sorted('/'.join(map(str, key)) for key in expected - found)
+    require(not missing, 'missing cold/warm sample or matched pair: %d, first %s' % (len(missing), missing[:3]))
+    for group, instances in processes.items():
+        require(len(set(instances)) == (len(pairs) if group[-1] == 'cold' else 1),
+                'cold/warm process reuse disagrees: ' + '/'.join(group))
+    for key, pair in ordered.items():
+        require(len(pair) == 1 or pair[0] < pair[1],
+                'presented pair ordering disagrees with capture timestamps: ' + '/'.join(map(str, key)))
+    return times
+
+
+def component_diagnostics(campaign, catalog, evidence):
+    expected = {(entrant, case, mode) for entrant in ('flea', 'flea-anchor')
+                for case in catalog['component_cases'] for mode in MODES}
+    seen, report = set(), []
+    for row in campaign['components']:
+        key = row.get('entrant'), row.get('case'), row.get('mode')
+        name = '/'.join(map(str, key))
+        require(key in expected and key not in seen and row.get('kind') == 'helper-response', 'invalid component row: ' + name)
+        output = evidence.read(row.get('output')).decode()
+        prefix = 'FIGBENCH warm' if row['mode'] == 'warm' else 'FIGBENCH'
+        # flea-figure-bench output: 'FIGBENCH flowchart n=10 median=41.2 min=38.0 max=55.9 ms', or 'FIGBENCH warm math n=10 ...'
+        pattern = (r'^' + prefix + r'\s+' + re.escape(row['case']) + r'\s+n=' + str(COMPONENT_RUNS)
+                   + r' median=([0-9.]+) min=([0-9.]+) max=([0-9.]+) ms$')
+        matches = re.findall(pattern, output, re.MULTILINE)
+        require(len(matches) == 1, 'missing/duplicate component cold/warm output: ' + name)
+        median, low, high = map(float, matches[0])
+        require(all(math.isfinite(value) for value in (median, low, high)) and 0 <= low <= median <= high,
+                'invalid component range: ' + name)
+        seen.add(key)
+        report.append(dict(entrant=key[0], case=key[1], mode=key[2], scope='component-only',
+                           n=COMPONENT_RUNS, median_ms=median, min_ms=low, max_ms=high))
+    require(seen == expected, 'missing component diagnostics; GUI rows remain separate')
+    return report
+
+
+def summary(values):
+    return dict(n=len(values), median_ms=statistics.median(values), min_ms=min(values), max_ms=max(values))
+
+
+def p95(values):
+    return sorted(values)[math.ceil(len(values) * CONTROL_PERCENTILE) - 1]
+
+
+def twin_controls(times, pairs):
+    groups = {(arm, opponent, surface, mode) for arm, opponent, feature, surface, mode in times
+              if feature in CONTROLS}
+    report = []
+    for arm, opponent, surface, mode in sorted(groups):
+        name = '/'.join((arm, opponent, surface, mode))
+        table, plain, twin = [times.get((arm, opponent, feature, surface, mode)) for feature in CONTROLS]
+        require(all(row is None or len(row) == pairs for row in (table, plain, twin)),
+                'missing table/plain/twin control samples: ' + name)
+        row = dict(entrant=arm, opponent=opponent, surface=surface, mode=mode)
+        if plain and twin:
+            require(min(plain) <= max(twin) and min(twin) <= max(plain), 'table twin INSTRUMENT-NOISE: ' + name)
+            row.update(plain_p95_ms=p95(plain), twin_p95_ms=p95(twin))
+        if table and plain and twin:
+            row.update(table_p95_ms=p95(table),
+                       verdict='PASS' if p95(table) <= p95(plain) + abs(p95(plain) - p95(twin)) else 'HOLD')
+        else:
+            row.update(verdict='PARTIAL', present=[key for key, value in zip(CONTROLS, (table, plain, twin)) if value])
+        report.append(row)
+    return report
+
+
+def verify(campaign, catalog, catalog_hash, root):
+    require(campaign.get('matrix_sha256') == catalog_hash, 'scope/catalog identity changed')
+    require(campaign.get('instrument_sha256') == digest(Path(__file__).read_bytes()), 'instrument identity changed')
+    manifest = campaign.get('manifest')
+    require(isinstance(manifest, dict), 'missing native manifest')
+    require(all(manifest.get(key) for key in ('host', 'kernel', 'recorded_at', 'session', 'theme')), 'missing native manifest')
+    require(hex_hash(manifest.get('candidate_sha'), 40), 'missing candidate SHA')
+    require(manifest.get('clock') == 'CLOCK_MONOTONIC' and manifest.get('viewport_px') == VIEWPORT_PX
+            and manifest.get('text_px') == TEXT_PX, 'unmatched clock/physical viewport/text size')
+    evidence = Evidence(root)
+    calibration = evidence.json(manifest.get('calibration'))
+    check_identity(calibration, dict(scope='presented-calibration', valid=True, clock='CLOCK_MONOTONIC',
+                                      host=manifest['host'], session=manifest['session']))
+    require(calibration.get('method') and calibration.get('ranges_ms'), 'missing native calibration output')
+    policy = manifest.get('cache_policy')
+    require(isinstance(policy, dict), 'missing cold/warm cache policy receipts')
+    for mode in MODES:
+        evidence.read(policy.get(mode))
+    for question in catalog['questions']:
+        answer = evidence.json(campaign['resolutions'].get(question))
+        require(answer.get('conclusion') and answer.get('sources'), 'unresolved source/native question: ' + question)
+        for artifact in answer['sources']:
+            evidence.read(artifact)
+    binaries = binary_receipts(campaign, catalog, evidence)
+    fixture_receipts(campaign, catalog, evidence)
+    capabilities = applicability(campaign, catalog, evidence, binaries)
+    times = sample_groups(campaign, catalog, evidence, binaries, capabilities)
+    controls = twin_controls(times, catalog['pairs_per_mode'])
+    report, wins = [], []
+    for key, values in times.items():
+        arm, opponent, feature, surface, mode = key
+        report.append(dict(entrant=arm, opponent=opponent, feature=feature, surface=surface, mode=mode, **summary(values)))
+        if arm == 'flea' and opponent != 'none':
+            wins.append(statistics.median(values) < statistics.median(times[opponent, opponent, feature, surface, mode]))
+    holds = any(row['entrant'] == 'flea' and row['verdict'] == 'HOLD' for row in controls)
+    return dict(status='COMPLETE', superiority='FIRST' if wins and all(wins) and not holds else 'NOT_FIRST',
+                applicability_cells=len(capabilities), gui=report,
+                table_controls=controls, components=component_diagnostics(campaign, catalog, evidence))
+
+
+def check_sources(catalog, git_root):
+    for key, source in catalog['sources'].items():
+        if source['kind'] == 'git':
+            data = subprocess.check_output(['git', '-C', str(git_root), 'show', source['ref'] + ':' + source['path']])
+        else:
+            data = Path(expand_roots(source['path'])).read_bytes()
+        require(digest(data) == source['sha256'], 'source identity changed: ' + key)
+    return dict(status='SOURCE_IDENTITIES_MATCH', sources=len(catalog['sources']))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command', choices=['plan', 'verify', 'sources', 'fixtures', 'commands'])
+    parser.add_argument('campaign', nargs='?', type=Path)
+    parser.add_argument('--stage', choices=['capability', 'measure'], default='capability')
+    parser.add_argument('--driver', type=Path, help='absolute path of the native driver the command plan invokes')
+    args = parser.parse_args()
+    try:
+        catalog, catalog_hash = load_catalog()
+        if args.command == 'plan':
+            result = plan(catalog, catalog_hash)
+        elif args.command == 'sources':
+            result = check_sources(catalog, Path(__file__).resolve().parents[1])
+        elif args.command == 'fixtures':
+            result = generate_controls(args.campaign, catalog)
+        elif args.command == 'commands':
+            require(args.campaign is not None, 'commands requires a campaign JSON file')
+            require(args.campaign.name == 'campaign.json', 'native command plan requires a campaign.json basename')
+            campaign = json.loads(args.campaign.read_text())
+            require(isinstance(campaign, dict) and campaign.get('matrix_sha256') == catalog_hash, 'scope/catalog identity changed')
+            result = planned_commands(campaign, catalog, args.campaign.parent, args.stage, args.driver)
+        else:
+            require(args.campaign is not None, 'verify requires a campaign JSON file')
+            campaign = json.loads(args.campaign.read_text())
+            require(isinstance(campaign, dict), 'campaign must be a JSON object')
+            result = verify(campaign, catalog, catalog_hash, args.campaign.parent)
+        print(json.dumps(result, indent=2, allow_nan=False))
+        return 1 if result.get('superiority') == 'NOT_FIRST' else 0
+    except Exception as error:
+        print(json.dumps(dict(status='BLOCKED', reason=type(error).__name__ + ': ' + str(error))))
+        return 2
+
+
+if __name__ == '__main__':
+    sys.exit(main())

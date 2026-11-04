@@ -45,6 +45,8 @@ ShellRoot {
     property double firstFolderMs: -1
     property double landedMs: -1
     property real landedY: -1
+    // The view as the landing's own turn left it, read where rowsLanded ends the listing; every queued call runs after it.
+    property real turnY: -1
     property var trace: []
 
     function check(label, actual, expected) {
@@ -119,6 +121,11 @@ ShellRoot {
         }
     }
 
+    Connections {
+        target: root.pane
+        function onListInFlightChanged() { if (root.watching && !root.pane.listInFlight && root.turnY < 0) root.turnY = root.viewY() }
+    }
+
     // The exit's verdict once the folder has stood settleMs, against the swap's own counters and the frames drawn.
     function exited(label) {
         if (!root.landed() || root.folderFrames === 0) { root.landedAt = 0; return false }
@@ -138,6 +145,8 @@ ShellRoot {
         // The counted check: the folder's first frame is the landing frame, so no frame draws row 0 or the top first.
         root.check(label + " folder frames up to the cursor on its row", root.landedFrame, 1)
         root.check(label + " the view stays where it landed", root.viewY(), root.landedY)
+        // The frame check above sees a later move only when a frame falls between; this one sees it on every run.
+        root.check(label + " the landing turn leaves the view where it stays", root.viewY(), root.turnY)
         console.log("EXITDEEP TIME view=" + root.pane.viewMode + " depth=" + root.target.depth + " firstFolderMs=" + root.firstFolderMs
             + " landedMs=" + root.landedMs + " heldFrames=" + root.heldFrames + " folderFrames=" + root.folderFrames)
         if (root.landedFrame !== 1)
@@ -255,6 +264,7 @@ ShellRoot {
             root.firstFolderMs = -1
             root.landedMs = -1
             root.landedY = -1
+            root.turnY = -1
             root.trace = []
             root.landedAt = 0
             root.escAt = Date.now()

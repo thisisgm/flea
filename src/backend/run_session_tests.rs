@@ -3,8 +3,14 @@ use crate::backend::testdir::TestDir;
 
 const WIRE_DEADLINE: Duration = Duration::from_secs(30);
 
+// The walk's landing as the loop meets it, past the walk progress that shares its event.
+fn walk_landed(rx: &Receiver<Event>, st: &State, skip: fn(&Event) -> bool) {
+    let session = st.search_session.as_ref().expect("a session stands");
+    crate::backend::searchwalkhold::wait_walk_landed(rx, session, WIRE_DEADLINE, skip);
+}
+
 // Opens the session with its walk hold armed first, so the walk can never pass `at` before the test parks it.
-fn open_held(st: &mut State, root: &str, events: &Sender<Event>, at: usize) -> (Receiver<()>, Sender<()>) {
+fn open_held(st: &mut State, root: &str, events: &crate::backend::events::Sender<Event>, at: usize) -> (Receiver<()>, std::sync::mpsc::Sender<()>) {
     let probes = Arc::new(crate::backend::searchwalk::WalkProbes::new());
     let hold = probes.test_hold_walk_at(at);
     st.search_session = Some(Session::open_async_with_probes(root, root, false, events.clone(), probes));
@@ -21,7 +27,7 @@ fn a_session_answers_listed_rows_and_searched_with_its_generation() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let cache_root = d.join("cache");
@@ -49,8 +55,7 @@ fn a_session_answers_listed_rows_and_searched_with_its_generation() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the query below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();
     assert_eq!(lines.len(), 1, "open answers one line, no rows change: {lines:?}");
     assert_eq!(crate::json::field_str(&lines[0], "t").as_deref(), Some("searchopened"));
@@ -114,7 +119,7 @@ fn a_window_past_the_head_returns_the_full_ranked_order() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -141,8 +146,7 @@ fn a_window_past_the_head_returns_the_full_ranked_order() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Two bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -189,7 +193,7 @@ fn a_menu_select_all_resolves_every_match_in_ranked_order() {
     d.file("other.txt", "");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -216,8 +220,7 @@ fn a_menu_select_all_resolves_every_match_in_ranked_order() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Two bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -252,12 +255,12 @@ fn a_menu_select_all_resolves_every_match_in_ranked_order() {
 #[test]
 fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
     let d = TestDir::new("sessionlocatepartial");
-    for i in 0..400 {
-        d.file(&format!("bench-{:04}.txt", i), "");
-    }
+    // Child-only writers cannot leak through another test's fork and close after this scope's watch is armed.
+    let files: Vec<_> = (0..400).map(|i| d.join(&format!("bench-{:04}.txt", i))).collect();
+    assert!(std::process::Command::new("/usr/bin/touch").args(&files).status().expect("the fixture writer starts").success(), "the fixture writer finishes");
     let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
     let tb = Tables::load();
-    let (events, events_rx) = channel::<Event>();
+    let (events, events_rx) = crate::backend::events::channel::<Event>();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     let (results, _done) = channel();
     let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -285,8 +288,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
 
     ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     // The walk lands on its own event; the queries below must score the whole scope.
-    let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-    assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+    walk_landed(&events_rx, &st, |_| false);
     out.clear();
     // Four hundred bench matches over the fixture, asked with a window of one.
     ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
@@ -294,6 +296,25 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
     assert_eq!(lines.len(), 3, "listed, rows, searched: {lines:?}");
     assert_eq!(crate::json::field_usize(&lines[0], "n"), Some(400), "all four hundred matches counted");
     assert_eq!(held(&st), 399, "the rest waits unranked for a scroll");
+    // Empty windows clamp against the full count without ranking or materializing the held remainder.
+    for (start, clamped) in [(200, 200), (999, 400)] {
+        ask(&format!(r#"{{"c":"window","start":{start},"count":0}}"#), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
+        let reply = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert_eq!(crate::json::field_usize(&reply, "start"), Some(clamped));
+        assert_eq!(crate::json::field_usize(&reply, "listing"), Some(st.generation as usize));
+        assert!(reply.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
+        assert_eq!(held(&st), 399, "an empty request leaves every unranked match held");
+        assert_eq!(st.listing.len(), 1);
+        write_window_gen(&mut out, &mut st, start, 0, &tb, Some(7));
+        let generated = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert_eq!(crate::json::field_usize(&generated, "start"), Some(clamped));
+        assert!(generated.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
+        assert_eq!(held(&st), 399, "the generated empty window shares the dispatch clamp");
+    }
+    write_window_gen(&mut out, &mut st, 999, 1, &tb, Some(7));
+    let beyond = String::from_utf8(std::mem::take(&mut out)).unwrap();
+    assert_eq!(crate::json::field_usize(&beyond, "start"), Some(400));
+    assert_eq!(held(&st), 399, "an out-of-range generated window ranks no held rows");
     // Past the head: one window of 350 joins, 49 stay held.
     ask(r#"{"c":"window","start":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();
@@ -328,7 +349,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -367,8 +388,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert_eq!(lines.len(), 3, "the walking query answers: {lines:?}");
         assert!(lines[2].contains(r#""walking":true"#), "the partial answer says walking");
         let _ = release.send(());
-        let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-        assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+        walk_landed(&events_rx, &st, |_| false);
         on_search_walked(&mut out, &mut st, &tb, &pool);
         let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();
         assert_eq!(lines.len(), 3, "the landing re-runs once: {lines:?}");
@@ -390,7 +410,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("gamma-new.txt", "c");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -416,8 +436,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         ops.journal.push(Entry { op: "rename".to_string(), steps: vec![moved("alpha-old.txt", "alpha-new.txt"), moved("beta-old.txt", "beta-new.txt")] });
         ops.journal.push(Entry { op: "rename".to_string(), steps: vec![moved("gamma-old.txt", "gamma-new.txt")] });
         ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut st, &mut ops);
-        let landed = events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands");
-        assert!(matches!(landed, Event::SearchWalked), "the walk announces itself");
+        walk_landed(&events_rx, &st, |_| false);
         let total = |lines: &[String]| crate::json::field_usize(lines.last().expect("a searched line"), "n");
         assert_eq!(total(&ask(r#"{"c":"searchquery","query":"gamma-new","gen":1,"count":100}"#, &mut st, &mut ops)), Some(1));
         let opened = st.search_session.as_ref().expect("a session stands").probes_opened();
@@ -434,6 +453,44 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert!(!session.walking() && session.probes_opened() == opened, "both undos patch with no walk");
     }
 
+    // A newfile through the wire patches the index itself; no watch event is dispatched, so only the own-write patch can show it.
+    #[test]
+    fn a_newfile_patches_the_session_with_no_watch_event() {
+        let d = TestDir::new("sessionnewfile");
+        d.dir("sub");
+        d.file("other.txt", "x");
+        let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
+        let tb = Tables::load();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
+        let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
+        let (results, _done) = channel();
+        let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+        let cache = Cache::new();
+        let (tx, _rx) = channel();
+        let mut ops = Ops::new(tx);
+        let (mut watch, mut peeks) = (Watch::start(events.clone()), PeekWatch::start(events.clone()));
+        let mut fsinfo = FsInfo::new(events.clone());
+        let poller = super::super::watchpoll::Poller::new(events.clone());
+        let mut out = Vec::new();
+        let mut ask = |line: &str, st: &mut State, ops: &mut Ops| -> Vec<String> {
+            assert!(
+                handle_line(line, &mut out, st, &tb, &pool, &cache, ops, &mut flashslot::Ctx::new(channel().0), &mut watch, &mut peeks, &mut fsinfo, &poller, &events, &mut Gate::new(events.clone()))
+                    == Control::Continue
+            );
+            String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect()
+        };
+        ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut st, &mut ops);
+        walk_landed(&events_rx, &st, |_| false);
+        let last = |lines: &[String], key: &str| crate::json::field_usize(lines.last().expect("a searched line"), key);
+        let first = ask(r#"{"c":"searchquery","query":"zz","gen":1,"count":100}"#, &mut st, &mut ops);
+        assert_eq!((last(&first, "n"), last(&first, "gen")), (Some(0), Some(1)), "the first query finds no zz: {first:?}");
+        let created = ask(&format!(r#"{{"c":"newfile","path":"{}","name":"zzfile.txt","id":7}}"#, root), &mut st, &mut ops);
+        assert!(d.path().join("zzfile.txt").exists(), "the newfile lands on disk: {created:?}");
+        let next = ask(r#"{"c":"searchquery","query":"zz","gen":2,"count":100}"#, &mut st, &mut ops);
+        assert_eq!((last(&next, "n"), last(&next, "gen")), (Some(1), Some(2)), "the backend's own create shows in the next query: {next:?}");
+        assert!(next.last().expect("a searched line").contains(r#""walking":false"#), "that answer lands after the walk");
+    }
+
     // A cancel over a parked walk answers the held key, keeps the session and its partial index; a bare cancel answers only its searched line.
     #[test]
     fn a_cancel_stops_the_walk_and_keeps_the_session() {
@@ -444,7 +501,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -484,7 +541,7 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert!(st.search_session.is_some(), "the session stands after a cancel");
         // The landing event still arrives, perhaps behind the held key's cap event; the cancel swallowed the landing, so no re-run follows it.
         let _ = release.send(());
-        while !matches!(events_rx.recv_timeout(WIRE_DEADLINE).expect("the stopped walk still announces"), Event::SearchWalked) {}
+        walk_landed(&events_rx, &st, |_| true);
         on_search_walked(&mut out, &mut st, &tb, &pool);
         assert!(out.is_empty(), "no landing re-run after a cancel");
         std::thread::sleep(std::time::Duration::from_millis(300));

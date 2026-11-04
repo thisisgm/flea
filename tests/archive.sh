@@ -97,6 +97,24 @@ for format in $round_trip_formats; do
   stop_backend
 done
 
+# A program member at 0755 keeps its owner execute bit through Flea's own extract, for a zip and a tar.xz.
+mkdir -p "$D/execsrc" || exit 1
+printf '\177ELF\002\001\001' > "$D/execsrc/Godot_linux.x86_64" || exit 1
+chmod 755 "$D/execsrc/Godot_linux.x86_64" || exit 1
+for format in zip tar.xz; do
+  echo "--- extract keeps the execute bit of a $format member ---"
+  if ! bsdtar -a -c -f "$D/exec.$format" -C "$D/execsrc" Godot_linux.x86_64; then
+    echo "FAIL bsdtar could not build the $format fixture"; fail=1; continue
+  fi
+  start_backend
+  send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/exec.$format\",\"dest\":\"$D/exec-back-$format\"}"
+  await '"t":"archivedone","id":1' || fail=1
+  check "$format with a 0755 program extracted without error" "1" "$(seen '"t":"archivedone","id":1,"ok":true')"
+  echo "  mode after extract: $(stat -c %a "$D/exec-back-$format/Godot_linux.x86_64" 2>/dev/null || echo missing)"
+  check "and the program kept its owner execute bit" "x" "$(stat -c %A "$D/exec-back-$format/Godot_linux.x86_64" 2>/dev/null | cut -c4)"
+  stop_backend
+done
+
 # A selected name holding a wildcard is taken literally: beside an unselected sibling only one entry lands.
 if [ "$seven_zip_advertised" = 1 ]; then
 echo "--- a wildcard-looking name compresses literally ---"
@@ -126,40 +144,9 @@ check "and its index was readable, so the extract was verified" "1" "$(seen '"id
 check "the rar round trip kept the file" "hello from a rar" "$(cat "$D/back-rar/hello.txt" 2>/dev/null)"
 stop_backend
 
-# #165: an extract drives the copy card; its Cancel reaches the job and it holds the copy's slot.
-echo "--- an extract drives the transfer card, refuses a second write, and cancels cleanly ---"
-start_backend
-mkdir -p "$D/slow/src"
-i=0
-while [ "$i" -lt 2000 ]; do : > "$D/slow/src/f$i"; i=$((i + 1)); done
-bsdtar -a -c -f "$D/slow/slow.zip" -C "$D/slow/src" . \
-  || { echo "FAIL the slow extraction fixture could not be built"; fail=1; }
-send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/slow/slow.zip\",\"dest\":\"$D/slow/out\"}"
-# Sent while it runs, so both refusals are answered by the live slot and not by a quiet box.
-send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/slow/slow.zip\",\"dest\":\"$D/slow/second\"}"
-send "{\"c\":\"transfer\",\"op\":\"copy\",\"paths\":[\"$D/src/a.txt\"],\"dest\":\"$D/slow/copy\"}"
-send '{"c":"transfercancel","id":1}'
-await '"t":"archivedone","id":1' || fail=1
-check "an extract has its distinct card start line" "1" \
-  "$(seen '"t":"extractstarted","id":1')"
-check "and the card is told the archive's name with no fabricated bytes" "1" \
-  "$(seen '"t":"transferprogress","id":1,"index":0,"name":"slow.zip","bytes":0,"total":0,"scanned":0')"
-check "a second extract while it runs is refused busy" "1" \
-  "$(seen '"t":"error","where":"archive","path":"","msg":"an operation is already running"')"
-check "and so is a copy" "1" \
-  "$(seen '"t":"error","where":"transfer","path":"","msg":"an operation is already running"')"
-check "neither refused job was numbered" "0" \
-  "$(( $(seen '"t":"archivestarted","id":2') + $(seen '"t":"transferstarted","id":2') ))"
-check "the card's cancel reaches the job as cancelled" "1" \
-  "$(seen '"t":"archivedone","id":1,"ok":false,"verified":true,"err":"cancelled"')"
-check "a cancelled extract publishes no destination" "no" "$([ -e "$D/slow/out" ] && echo yes || echo no)"
-check "and leaves no work directory" "0" "$(find "$D/slow" -maxdepth 1 -name '.flea-work-*' | wc -l | tr -d ' ')"
-# The slot the cancelled extract took is free again: the next job answers instead of refusing busy.
-send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/slow/slow.zip\",\"dest\":\"$D/slow/out\"}"
-await '"t":"archivedone","id":2' || fail=1
-check "a later extract runs to completion rather than refusing busy" "1" "$(seen '"t":"archivedone","id":2,"ok":true')"
-check "and writes what the archive held" "yes" "$([ -f "$D/slow/out/f1" ] && echo yes || echo no)"
-stop_backend
+# Extracts share the destination-drive queue with copies and moves, while other drives run beside them.
+echo "--- extraction jobs wait by drive, run together across drives, and cancel independently ---"
+python3 -B tests/archive-jobs.py "$BIN" "$D" || { echo "FAIL archive drive scheduling"; fail=1; }
 
 echo "--- a destination already there is refused, both directions ---"
 start_backend

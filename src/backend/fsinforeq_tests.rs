@@ -22,7 +22,7 @@ fn gui(mut fs: FsInfo) -> FsInfo {
 
 // A fake statfs that takes delay_ms and counts its calls.
 fn counted(delay_ms: u64, free: u64) -> (FsInfo, Receiver<Event>, Arc<AtomicUsize>) {
-    let (events, rx) = std::sync::mpsc::channel();
+    let (events, rx) = crate::backend::events::channel();
     let calls = Arc::new(AtomicUsize::new(0));
     let seen = Arc::clone(&calls);
     let reader: Reader = Arc::new(move |_: PathBuf| {
@@ -42,7 +42,7 @@ fn next_done(rx: &Receiver<Event>) -> Done {
 
 #[test]
 fn a_client_that_never_asks_for_figures_starts_no_statfs() {
-    let (events, _rx) = std::sync::mpsc::channel();
+    let (events, _rx) = crate::backend::events::channel();
     let mut fs = FsInfo::with_reader(events, Arc::new(|_: PathBuf| (figures(7), None)));
     fs.list_arrived(&share_dir("a"), &Listing::new());
     assert!(fs.inflight.is_empty(), "the TUI lists a share and never asks for its figures, so no statfs starts");
@@ -120,7 +120,7 @@ fn a_folder_the_client_has_left_prints_nothing() {
 
 // A fake statfs that records every path it was asked for and fails for one named "gone".
 fn recording() -> (FsInfo, Receiver<Event>, Arc<std::sync::Mutex<Vec<PathBuf>>>) {
-    let (events, rx) = std::sync::mpsc::channel();
+    let (events, rx) = crate::backend::events::channel();
     let asked = Arc::new(std::sync::Mutex::new(Vec::new()));
     let seen = Arc::clone(&asked);
     let reader: Reader = Arc::new(move |path: PathBuf| {
@@ -216,7 +216,7 @@ fn a_kernel_network_mount_is_answered_off_the_loop() {
 
 #[test]
 fn a_local_directory_still_answers_synchronously() {
-    let (events, _rx) = std::sync::mpsc::channel();
+    let (events, _rx) = crate::backend::events::channel();
     let mut fs = FsInfo::new(events);
     let sandbox = super::super::testdir::TestDir::new("fsinfoearly-local");
     let (info, class, _) = fs.answer(sandbox.path());
@@ -301,7 +301,7 @@ fn a_decided_path_takes_no_statfs_and_a_local_one_takes_exactly_one() {
     assert_eq!(statfs_calls(), 0, "fstype already decided; a dead server gets no statfs for nothing");
     let sandbox = super::super::testdir::TestDir::new("fsinfoonestatfs");
     let local = "1 0 0:30 / / rw - ext4 /dev/a rw\n";
-    let (events, _rx) = std::sync::mpsc::channel();
+    let (events, _rx) = crate::backend::events::channel();
     let mut real = FsInfo::new(events);
     test_reset_statfs();
     let (info, class, _) = real.answer_in(sandbox.path(), local);
@@ -312,7 +312,7 @@ fn a_decided_path_takes_no_statfs_and_a_local_one_takes_exactly_one() {
 
 // A fake statfs that records every path it was asked for, refusing the ones named in `refuse`.
 fn recorded(refuse: &'static [&'static str]) -> (FsInfo, Receiver<Event>, Arc<std::sync::Mutex<Vec<PathBuf>>>) {
-    let (events, rx) = std::sync::mpsc::channel();
+    let (events, rx) = crate::backend::events::channel();
     let paths = Arc::new(std::sync::Mutex::new(Vec::new()));
     let seen = Arc::clone(&paths);
     let reader: Reader = Arc::new(move |path: PathBuf| {

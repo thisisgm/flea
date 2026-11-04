@@ -1,586 +1,526 @@
-// Maths (MathJax) and diagrams (beautiful-mermaid) through a pure ES module shared by node and quickjs-ng.
+// Maths (MathJax) and diagrams (Pele) through a pure ES module shared by node and quickjs-ng.
 
 // Requests carry {id, kind, source, display, theme}; answers carry {id, svg} or {id, error}; FigureService caches by kind, source, display and theme.
 
 export var MATH_LIMIT = 4096;
 export var MERMAID_LIMIT = 32768;
-// Bound nested variable and color-mix resolution before it can exhaust the stack.
-var RESOLVER_DEPTH_MAX = 12;
 // MathJax uses a 16 px body when the theme supplies no body size.
 var DEFAULT_BODY_PX = 16;
 // MathJax's TeX SVG sizes one ex at 442 thousandths of an em.
 var EX_PER_EM = 0.442;
 // Keep converted SVG dimensions to two decimal places.
 var PX_ROUNDING_FACTOR = 100;
-// CSS color-mix stops express each share as a percentage.
-const PERCENT_SCALE = 100;
-// Token lengths for slicing a var( or color-mix( call, and the radix and byte arithmetic of #rrggbb.
-const VAR_NAME_LENGTH = "var".length;
-const VAR_OPEN_LENGTH = "var(".length;
-const MIX_NAME_LENGTH = "color-mix".length;
-const MIX_OPEN_LENGTH = "color-mix(".length;
-const HEX_RADIX = 16;
-const RED_SHIFT = 16;
-const GREEN_SHIFT = 8;
-const BYTE_MASK = 255;
 
-// Sample input: #abc or #aabbcc answers [r, g, b] bytes, anything else answers null.
-function hexRGB(h) {
-    h = String(h).trim();
-    if (h.charAt(0) !== "#")
-        return null;
-    h = h.slice(1);
-    if (h.length === 3)
-        h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    if (h.length !== 6)
-        return null;
-    var n = parseInt(h, HEX_RADIX);
-    if (isNaN(n))
-        return null;
-    return [(n >> RED_SHIFT) & BYTE_MASK, (n >> GREEN_SHIFT) & BYTE_MASK, n & BYTE_MASK];
-}
+// A start or end tag whole, a quoted value holding ">" included; the words between two tags are never inside one.
+var TAG = /<[^<>"']*(?:(?:"[^"]*"|'[^']*')[^<>"']*)*>/g;
+var ATTRIBUTE = /([^\s=<>"'\/]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+var NAMED_REFERENCES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+var DECIMAL_RADIX = 10;
+var HEX_RADIX = 16;
+var MAX_CODE_POINT = 0x10ffff;
 
-function toHex(c) {
-    function b(v) {
-        var s = Math.max(0, Math.min(BYTE_MASK, Math.round(v))).toString(HEX_RADIX);
-        return s.length < 2 ? "0" + s : s;
-    }
-    return "#" + b(c[0]) + b(c[1]) + b(c[2]);
-}
-
-// CSS color-mix(in srgb, ...) mixes in sRGB directly, so plain lerp.
-export function mix(h1, h2, p) {
-    var a = hexRGB(h1);
-    var b = hexRGB(h2);
-    if (!a || !b)
-        return h1;
-    return toHex([a[0] * p + b[0] * (1 - p), a[1] * p + b[1] * (1 - p), a[2] * p + b[2] * (1 - p)]);
-}
-
-// Every diagram paint comes from a theme role, including themes with no accent.
-function baseVars(t) {
-    return { bg: t.bg, fg: t.fg, accent: t.accent || t.fg,
-        muted: t.muted || t.fg, line: t.line || t.muted || t.fg,
-        surface: t.surface || t.bg, border: t.border || t.muted || t.fg };
-}
-
-// Sample input: closeParen("var(--a, #fff)", 3) answers 13, the matching close paren; -1 if unbalanced.
-function closeParen(s, i) {
-    var depth = 0;
-    for (var k = i; k < s.length; k++) {
-        if (s[k] === "(")
-            depth++;
-        else if (s[k] === ")") {
-            depth--;
-            if (depth === 0)
-                return k;
-        }
-    }
-    return -1;
-}
-
-// Sample input: splitTop("in srgb, var(--a, #fff) 25%, #000", ",") answers three parts, none cut inside parens.
-function splitTop(s, sep) {
-    var parts = [];
-    var depth = 0;
-    var cur = "";
-    for (var k = 0; k < s.length; k++) {
-        var c = s[k];
-        if (c === "(")
-            depth++;
-        else if (c === ")")
-            depth--;
-        if (c === sep && depth === 0) {
-            parts.push(cur);
-            cur = "";
-        } else {
-            cur += c;
-        }
-    }
-    parts.push(cur);
-    return parts;
-}
-
-// Sample input: in srgb, var(--fg) 25%, var(--bg).
-function parseMix(inner, table, depth, trail) {
-    var args = splitTop(inner, ",").map(function (x) { return x.trim(); });
-    if (args.length < 3 || args[0] !== "in srgb")
-        return null;
-    var stops = args.slice(1).map(function (a) {
-        var m = a.match(/^(.*?)\s+([\d.]+)%\s*$/);
-        if (m)
-            return [resolveValue(m[1].trim(), table, depth + 1, trail), parseFloat(m[2]) / PERCENT_SCALE];
-        return [resolveValue(a, table, depth + 1, trail), -1];
+// Sample input: "&#102;ile:x" reads "file:x" and "&amp;#102;" reads "&#102;", in one pass, as an XML parser reads an attribute value.
+function decodeReferences(text) {
+    return text.replace(/&(?:#(\d+)|#x([0-9a-f]+)|(\w+));/gi, function (all, decimal, hex, name) {
+        if (decimal === undefined && hex === undefined)
+            return Object.prototype.hasOwnProperty.call(NAMED_REFERENCES, name) ? NAMED_REFERENCES[name] : all;
+        var code = decimal !== undefined ? parseInt(decimal, DECIMAL_RADIX) : parseInt(hex, HEX_RADIX);
+        return code > 0 && code <= MAX_CODE_POINT ? String.fromCodePoint(code) : all;
     });
-    var named = stops.filter(function (s) { return s[1] >= 0; });
-    var share = 0;
-    if (named.length < stops.length) {
-        var rest = 1 - named.reduce(function (t, s) { return t + s[1]; }, 0);
-        share = rest / (stops.length - named.length);
-    }
-    if (stops.length !== 2)
-        return null;
-    var p0 = stops[0][1] < 0 ? share : stops[0][1];
-    if (!hexRGB(stops[0][0]) || !hexRGB(stops[1][0]))
-        return null;
-    return mix(stops[0][0], stops[1][0], p0);
 }
 
-// Sample input: var(--accent, color-mix(in srgb, var(--fg) 25%, var(--bg))).
-function resolveValue(s, table, depth, trail) {
-    if (depth > RESOLVER_DEPTH_MAX)
-        throw new Error("diagram style exceeds resolver depth cap");
-    trail = trail || [];
-    var out = s;
-    var again = true;
-    while (again) {
-        again = false;
-        var i = out.indexOf("var(");
-        if (i >= 0) {
-            var j = closeParen(out, i + VAR_NAME_LENGTH);
-            if (j < 0)
-                return out;
-            var inner = out.slice(i + VAR_OPEN_LENGTH, j);
-            var parts = splitTop(inner, ",");
-            var name = parts[0].trim().replace(/^--/, "");
-            var val;
-            if (Object.prototype.hasOwnProperty.call(table, name)) {
-                if (trail.indexOf(name) >= 0)
-                    throw new Error("diagram style variable cycle at --" + name);
-                val = resolveValue(table[name], table, depth + 1, trail.concat(name));
-            } else if (parts.length > 1)
-                val = resolveValue(parts.slice(1).join(","), table, depth + 1, trail);
-            else
-                return out;
-            out = out.slice(0, i) + val + out.slice(j + 1);
-            again = true;
-            continue;
-        }
-        var m = out.indexOf("color-mix(");
-        if (m >= 0) {
-            var e = closeParen(out, m + MIX_NAME_LENGTH);
-            if (e < 0)
-                return out;
-            var got = parseMix(out.slice(m + MIX_OPEN_LENGTH, e), table, depth, trail);
-            if (got === null)
-                return out;
-            out = out.slice(0, m) + got + out.slice(e + 1);
-            again = true;
-        }
-    }
-    return out;
-}
+// The corpus vocabulary, the formulas' and diagrams' output and every style attribute the post-pass writes; anything else refuses.
+var ELEMENTS = ["a", "circle", "desc", "ellipse", "g", "line", "path", "polygon", "rect", "svg", "text", "title", "tspan"];
+var ATTRIBUTES = ["class", "cx", "cy", "d", "fill", "fill-opacity", "focusable", "font-family", "font-size", "font-style",
+    "font-weight", "height", "href", "id", "letter-spacing", "opacity", "pointer-events", "points", "preserveAspectRatio", "r", "role",
+    "rx", "ry", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-opacity", "stroke-width",
+    "style", "text-anchor", "text-decoration", "transform", "viewBox", "width", "word-spacing", "x", "x1", "x2", "xml:space", "y", "y1", "y2"];
+// A data attribute holds words, a formula's TeX among them, which no renderer loads or paints, so only its name is checked.
+var DATA_ATTRIBUTES = ["array-padding", "bgcolor", "c", "frame", "frame-styles", "hitbox", "icon", "id", "id-align", "idbox", "labels", "latex",
+    "line", "mjx-linebox", "mjx-lineno", "mjx-linestack", "mjx-texclass", "mjx-viewBox", "mml-node", "table", "variant", "width-includes-label"];
+var STYLE_PROPERTIES = ["min-width", "vertical-align"];
+var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
-// Sample input: <svg xmlns="http://www.w3.org/2000/svg"><use href="#a"/></svg> answers null; a remote reference answers its reason, and xmlns is exempt.
-export function checkSafe(svg) {
-    var s = svg.replace(/xmlns(?::\w+)?="[^"]*"/g, "");
-    if (s.indexOf("@import") >= 0)
-        return "remote import";
-    if (/<image[\s/>]/.test(s))
-        return "image element";
-    if (/<foreignObject[\s/>]/.test(s))
-        return "foreign object";
-    if (/<script[\s/>]/.test(s))
-        return "script element";
-    if (s.indexOf("http:") >= 0 || s.indexOf("https:") >= 0)
-        return "remote reference";
-    if (/url\((?!\s*#)/.test(s))
-        return "non-local url";
-    // Sample input: href="#glyph" or xlink:href="https://example.com/icon.svg".
-    var href = s.match(/(?:href|xlink:href)\s*=\s*"([^"]*)"/g) || [];
-    for (var k = 0; k < href.length; k++) {
-        var v = href[k].replace(/^[^"]*"/, "").replace(/"$/, "");
-        if (v.indexOf("//") >= 0 || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v))
-            return "remote link";
+// Sample input: "vertical-align: -2.5px; min-width: 40px" answers null and "fill: red" "style property"; a declaration is an allowed property and a length.
+function styleError(style) {
+    var declarations = style.split(";");
+    for (var i = 0; i < declarations.length; i++) {
+        var declaration = /^\s*([a-z-]+)\s*:\s*-?\d*\.?\d+(?:px)?\s*$/i.exec(declarations[i]);
+        if (declarations[i].trim() !== "" && (declaration === null || STYLE_PROPERTIES.indexOf(declaration[1].toLowerCase()) < 0))
+            return "style property";
     }
-    if (s.indexOf("var(") >= 0 || s.indexOf("color-mix(") >= 0)
-        return "unresolved style";
     return null;
+}
+
+// Sample input: ("href", "#glyph") answers null and ("href", "x.svg#a") "remote link"; the value arrives decoded, and a link or url() reads without the spaces and controls a URL parser drops.
+function attributeError(name, value) {
+    if (name === "xmlns")
+        return value === SVG_NAMESPACE ? null : "namespace";
+    if (/^data-/.test(name))
+        return DATA_ATTRIBUTES.indexOf(name.slice("data-".length)) >= 0 ? null : "unlisted attribute " + name;
+    if (ATTRIBUTES.indexOf(name) < 0)
+        return "unlisted attribute " + name;
+    var compact = value.replace(/[\x00-\x20\x7f]/g, "");
+    if (name === "href" && compact !== "" && compact.charAt(0) !== "#")
+        return "remote link";
+    if (/url\((?!#)/i.test(compact))
+        return "non-local url";
+    if (/https?:/i.test(compact))
+        return "remote reference";
+    if (/var\(|color-mix\(/i.test(compact))
+        return "unresolved style";
+    return name === "style" ? styleError(value) : null;
+}
+
+// Sample input: <svg xmlns="http://www.w3.org/2000/svg"><a href="#e"><path d="M0 0"/></a></svg> answers null; anything the figure corpus never draws answers its reason.
+export function checkSafe(svg) {
+    var reason = null;
+    // Every "<" opens a tag read whole, so a comment, a document type, an instruction or character data is an unlisted element.
+    var words = svg.replace(TAG, function (tag) {
+        var name = /^<\/?([^\s\/>]*)/.exec(tag)[1];
+        if (ELEMENTS.indexOf(name) < 0)
+            reason = reason || "unlisted element " + name;
+        var unread = tag.slice(0, -1).replace(/^<\/?[^\s\/>]*/, "").replace(ATTRIBUTE, function (all, attribute, double, single) {
+            reason = reason || attributeError(attribute, decodeReferences(double !== undefined ? double : single));
+            return "";
+        });
+        if (!/^\s*\/?$/.test(unread))
+            reason = reason || "unread tag text";
+        return "";
+    });
+    if (words.indexOf("<") >= 0)
+        return reason || "unread markup";
+    // The literal checks read all but the namespace name, so a label's words or a formula's TeX still refuse a remote reference.
+    var s = svg.replace(/\sxmlns\s*=\s*(?:"[^"]*"|'[^']*')/g, "");
+    if (/@import/i.test(s))
+        return reason || "remote import";
+    if (s.indexOf("http:") >= 0 || s.indexOf("https:") >= 0)
+        return reason || "remote reference";
+    if (/url\((?!\s*#)/.test(s))
+        return reason || "non-local url";
+    return reason;
+}
+
+// Sample input: <text fill="currentColor">currentColor</text> with a rewrite to "#fff" reads <text fill="#fff">currentColor</text>: every attribute value, in either quote style, and never a label's words.
+function inAttributes(svg, rewrite) {
+    return svg.replace(TAG, function (tag) {
+        return tag.replace(/(=\s*)(?:"([^"]*)"|'([^']*)')/g, function (all, equals, double, single) {
+            return double !== undefined ? equals + '"' + rewrite(double) + '"' : equals + "'" + rewrite(single) + "'";
+        });
+    });
 }
 
 function escAttr(s) {
     return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-// Inline only fill, stroke, widths, opacity and font class rules as SVG attributes, then drop style blocks Qt never reads.
-var INLINE_PROPS = ["fill", "stroke", "stroke-width", "stroke-linecap",
-    "stroke-linejoin", "stroke-dasharray", "opacity",
-    "font-family", "font-size", "font-weight", "text-anchor"];
+// Presentation attributes a Pele style attribute carries, as attributes since Qt SVG reads no rx and no var() from a style; no font family, since every label is measured in the theme font the root names.
+var STYLE_ATTRIBUTES = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset",
+    "stroke-linecap", "stroke-linejoin", "stroke-opacity", "opacity", "rx", "ry",
+    "font-size", "font-weight", "font-style", "text-decoration", "letter-spacing", "word-spacing"];
 
-// Sample input: <style>rect.node { fill: #ffffff; }</style><rect class="node"/>.
-function inlineClasses(svg) {
-    var styles = [];
-    svg = svg.replace(/<style>([\s\S]*?)<\/style>/g, function (m, css) {
-        styles.push(css);
-        return "";
-    });
-    var rules = [];
-    styles.join("\n").replace(/\/\*[\s\S]*?\*\//g, "").split("}").forEach(function (block) {
-        var kv = block.split("{");
-        if (kv.length !== 2)
-            return;
-        var sel = kv[0].trim();
-        if (!sel || sel.indexOf("@") === 0 || sel === "svg" || sel === "text")
-            return;
-        var decls = {};
-        kv[1].split(";").forEach(function (d) {
-            var p = d.split(":");
-            if (p.length < 2)
-                return;
-            var name = p[0].trim();
-            if (INLINE_PROPS.indexOf(name) < 0)
-                return;
-            decls[name] = p.slice(1).join(":").trim();
-        });
-        if (Object.keys(decls).length === 0)
-            return;
-        sel.split(",").forEach(function (one) {
-            one = one.trim();
-            var m = one.match(/^([a-zA-Z]+)?((?:\.[a-zA-Z0-9_-]+)+)$/);
-            if (!m)
-                return;
-            rules.push({ tag: m[1] || null, classes: m[2].split(".").filter(function (x) { return x; }), decls: decls });
-        });
-    });
-    if (rules.length === 0)
-        return svg;
-    return svg.replace(/<([a-zA-Z]+)((?:\s[^<>]*?)?)(\/?)>/g, function (tag, name, attrs, self) {
-        var cm = attrs.match(/class="([^"]*)"/);
-        if (!cm)
+// Sample input: <rect x="1" style="rx:4px;fill:#fff"/> reads <rect x="1" rx="4" fill="#fff"/>; a property already set as an attribute keeps the attribute.
+function styleToAttributes(svg) {
+    return svg.replace(/<([a-zA-Z]+)((?:\s[^<>]*?)?)\sstyle="([^"]*)"([^<>]*?)(\/?)>/g, function (tag, name, before, style, after, self) {
+        if (name === "svg")
             return tag;
-        var have = cm[1].split(/\s+/);
+        var attrs = before + after;
         var add = [];
-        rules.forEach(function (r) {
-            if (r.tag && r.tag !== name)
+        style.split(";").forEach(function (declaration) {
+            var at = declaration.indexOf(":");
+            if (at <= 0)
                 return;
-            var ok = r.classes.every(function (c) { return have.indexOf(c) >= 0; });
-            if (!ok)
+            var prop = declaration.slice(0, at).trim().toLowerCase();
+            var value = declaration.slice(at + 1).trim();
+            if (STYLE_ATTRIBUTES.indexOf(prop) < 0 || new RegExp("\\s" + prop + "=").test(attrs + " " + add.join(" ")))
                 return;
-            Object.keys(r.decls).forEach(function (p) {
-                if (new RegExp("\\s" + p + "\\s*=").test(attrs) || new RegExp("\\s" + p + "\\s*=").test(add.join(" ")))
-                    return;
-                add.push(p + "=\"" + escAttr(r.decls[p]) + "\"");
-            });
+            if (prop === "rx" || prop === "ry")
+                value = value.replace(/px$/, "");
+            add.push(prop + '="' + escAttr(value) + '"');
         });
-        if (add.length === 0)
-            return tag;
-        return "<" + name + attrs + " " + add.join(" ") + self + ">";
+        return "<" + name + attrs + (add.length ? " " + add.join(" ") : "") + self + ">";
     });
 }
 
-const MERMAID_BODY_PX = 13;
-// A diagram scales to the theme's body size; this size in px stands in when the request carries none.
-const MERMAID_FALLBACK_BODY_PX = 14;
-// The padding in px the diagram library lays round the drawing; tightenCanvas re-fits the canvas after it.
-const MERMAID_PADDING = 1;
-const CANVAS_MARGIN = 1;
-// The drawing starts on the canvas's left edge, the content column's, like an image; the library's own 30 unit left margin goes.
-const LEFT_MARGIN = 0;
-// The wide class: "@" 1.015, W 0.989, m 0.974, % 0.95, M 0.907 (DejaVu, Liberation, Noto Sans maxima, PIL at 1000 px), and any non-ASCII glyph at one em.
-const WIDE_ADVANCE_EM = 1.02;
-const WIDE_GLYPHS = "@Wm%M";
-// The symbol class: "#+<=>^~" 0.838 and w 0.818.
-const SYMBOL_ADVANCE_EM = 0.84;
-const SYMBOL_GLYPHS = "#+<=>^~w";
-// The capital class: O and Q 0.787, & 0.78, G 0.778, D 0.77, N 0.76, H 0.752, down to E K P S Y 0.667; the other capitals sit below it.
-const CAPITAL_ADVANCE_EM = 0.79;
-const CAPITAL_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ&";
-// The rest: digits, "$", "{" and "}" 0.636, lowercase at most 0.635, punctuation below.
-const TEXT_ADVANCE_EM = 0.64;
-const ASCII_LIMIT = 0x7f;
-// A centred label reaches half its width left of its x.
-const MIDDLE_SHARE = 0.5;
-const BOUNDS_PRECISION = 10;
-const TEXT_DESCENT_RATIO = 0.3;
-const DEFAULT_STROKE_WIDTH = 1;
-const DEFAULT_MITER_LIMIT = 4;
-const MARKER_EXTENT = 4;
-// A stroke reaches half its width past the geometry on each side.
-const HALF_STROKE = 0.5;
-
-// Sample input: <text font-size="13" dy="4.55">A</text> keeps the library's label metrics.
-function forceText(svg, family, foreground) {
-    var font = escAttr(family);
-    return svg.replace(/<(?:text|tspan)(\s[^<>]*?)?>/g, function (tag) {
-        var out = tag.replace(/\s(?:font-family|fill)\s*=\s*(?:"[^"]*"|'[^']*')/g, "");
-        return out.replace(/>$/, ' font-family="' + font + '" fill="' + escAttr(foreground) + '">');
-    });
-}
-
-// Sample input: <svg width="100" height="50" viewBox="0 0 100 50"> doubles as one figure at body 26.
-function scaleCanvas(svg, px) {
-    var scale = px / MERMAID_BODY_PX;
-    return svg.replace(/<svg\b[^<>]*>/, function (root) {
-        return root.replace(/\s(width|height)="([\d.]+)"/g, function (m, name, value) {
-            return ' ' + name + '="' + Number(value) * scale + '"';
-        });
-    });
-}
-
-// Sample input: dy="1.5em" at font 13 shifts a baseline 19.5, and a bare dy="4" shifts 4.
-function shift(tag, font) {
-    var dy = tag.match(/\sdy="(-?[\d.]+)(em|%)?"/);
-    return dy ? Number(dy[1]) * (dy[2] === "em" ? font : dy[2] === "%" ? font / PERCENT_SCALE : 1) : 0;
-}
-
-// QtSvg ignores every dy, so a baseline lands on its y alone; the library centres a label with a dy of 0.35 em, which is the whole of the centring.
-const BAKED_DECIMALS = 3;
-// Sample input: <text x="31" y="19.45" font-size="13" dy="4.55">A</text> reads <text y="24" x="31" font-size="13">A</text>, and a tspan's dy becomes its own y.
-function bakeDy(svg) {
-    function put(tag, y) {
-        var rest = tag.replace(/\sdy="[^"]*"/, "").replace(/\sy="[^"]*"/, "");
-        return rest.replace(/^<(text|tspan)/, '<$1 y="' + Number(y.toFixed(BAKED_DECIMALS)) + '"');
-    }
-    function attr(tag, name) {
-        var found = tag.match(new RegExp("\\s" + name + '="([^"]*)"'));
-        return found ? Number(found[1]) : NaN;
-    }
-    return svg.replace(/<text\b([^<>]*)>((?:[^<]|<tspan\b[^<>]*>[^<]*<\/tspan>)*)<\/text>/g, function (all, attrs, content) {
-        var head = "<text" + attrs + ">";
-        var font = attr(head, "font-size");
-        var baseline = attr(head, "y");
-        // A text whose size or baseline cannot be read stays as the library drew it.
-        if (!Number.isFinite(baseline) || !Number.isFinite(font))
-            return all;
-        var textShift = shift(head, font);
-        var lines = 0;
-        var body = content.replace(/<tspan\b[^<>]*>/g, function (tag) {
-            var size = Number.isFinite(attr(tag, "font-size")) ? attr(tag, "font-size") : font;
-            var pen = Number.isFinite(attr(tag, "y")) ? attr(tag, "y") : baseline;
-            // The nearest element naming a dy supplies it, so the text's own moves only a first line that names none.
-            baseline = pen + (/\sdy=/.test(tag) ? shift(tag, size) : lines === 0 ? textShift : 0);
-            lines++;
-            return put(tag, baseline);
-        });
-        return lines === 0 ? put(head, baseline + textShift) + content + "</text>" : put(head, attr(head, "y")) + body + "</text>";
-    });
-}
-
-// Sample input: "WOi" advances 2.45 em, the wide glyph at 1.02, the capital at 0.79 and the narrow one at 0.64.
-function advance(words) {
-    var em = 0;
-    Array.from(words).forEach(function (glyph) {
-        em += glyph.codePointAt(0) > ASCII_LIMIT || WIDE_GLYPHS.indexOf(glyph) >= 0 ? WIDE_ADVANCE_EM
-            : SYMBOL_GLYPHS.indexOf(glyph) >= 0 ? SYMBOL_ADVANCE_EM
-            : CAPITAL_GLYPHS.indexOf(glyph) >= 0 ? CAPITAL_ADVANCE_EM : TEXT_ADVANCE_EM;
-    });
-    return em;
-}
-
-// Trim the SVG canvas padding above, below and left of the drawing where every painted primitive has explicit bounds.
-function tightenCanvas(svg) {
-    var root = svg.match(/<svg\s[^<>]*>/);
+// Sample input: <svg class="pele-icon" x="10" y="8" width="20" height="20" viewBox="0 0 24 24" fill="none"><path/></svg> reads a group translated to 10,8 and scaled by 20/24.
+function iconGroups(svg) {
+    var open = /<svg\b([^<>]*)>/g;
+    var root = open.exec(svg);
     if (!root)
         return svg;
-    var view = root[0].match(/viewBox="([^"]+)"/);
-    var box = view ? view[1].trim().split(/\s+/).map(Number) : [];
-    var body = svg.replace(/<defs>[\s\S]*?<\/defs>/g, "");
-    // Unknown paths and transforms retain the library's safe canvas.
-    if (box.length !== 4 || !box.every(Number.isFinite) || /\btransform=|<path\b/.test(body)
-            || /<(?:g|svg)\b[^>]*\sstroke(?:-width)?=|\sstyle="[^"]*stroke/.test(body))
+    var head = svg.slice(0, open.lastIndex);
+    var body = svg.slice(open.lastIndex).replace(/<svg\b([^<>]*)>([\s\S]*?)<\/svg>(?=[\s\S]*<\/svg>\s*$)/g, function (all, attrs, inner) {
+        function num(name, fallback) {
+            var found = attrs.match(new RegExp("\\s" + name + '="([^"]*)"'));
+            return found ? Number(found[1]) : fallback;
+        }
+        var box = (attrs.match(/\sviewBox="([^"]*)"/) || [0, ""])[1].trim().split(/[\s,]+/).map(Number);
+        var width = num("width", NaN);
+        var height = num("height", NaN);
+        if (box.length !== 4 || !box.every(Number.isFinite) || !(box[2] > 0) || !(box[3] > 0) || !Number.isFinite(width) || !Number.isFinite(height))
+            return "";
+        var keep = attrs.replace(/\s(?:x|y|width|height|viewBox|xmlns|preserveAspectRatio)="[^"]*"/g, "");
+        var transform = "translate(" + num("x", 0) + "," + num("y", 0) + ") scale(" + width / box[2] + "," + height / box[3] + ") translate(" + -box[0] + "," + -box[1] + ")";
+        return "<g" + keep + ' transform="' + transform + '">' + inner + "</g>";
+    });
+    return head + body;
+}
+
+// Sample input: <svg ... style="max-width:100%;--_bg:#101315;font:14px sans-serif;font-family:mono" fill="#c0caf5" role="graphics-document document"> keeps its size and fill and names its font.
+function rootFont(svg, t) {
+    return svg.replace(/<svg\b[^<>]*>/, function (root) {
+        var out = root.replace(/\s(?:style|role|aria-[\w-]+|class)="[^"]*"/g, "");
+        return out.replace(/>$/, ' font-family="' + escAttr(t.font || "sans-serif") + '" font-size="' + MERMAID_LAYOUT_PX + '">');
+    });
+}
+
+// Sample input: <text a="1"><tspan x="0" y="-9">The </tspan><tspan font-weight="bold">dog</tspan><tspan x="0" y="9">ran</tspan></text> reads two texts, <text a="1" x="0" y="-9">The <tspan font-weight="bold">dog</tspan></text> and <text a="1" x="0" y="9">ran</text>, because Qt SVG places no tspan by its own x and y.
+function lineTexts(svg) {
+    return svg.replace(/<text\b([^<>]*)>((?:<tspan\b[^<>]*>[^<]*<\/tspan>)+)<\/text>/g, function (all, attrs, content) {
+        if (/\s(?:x|y)="/.test(attrs))
+            return all;
+        var lines = [];
+        content.replace(/<tspan\b([^<>]*)>([^<]*)<\/tspan>/g, function (span, own, words) {
+            var x = own.match(/\sx="([^"]*)"/);
+            var y = own.match(/\sy="([^"]*)"/);
+            if (x && y)
+                lines.push({ x: x[1], y: y[1], runs: [] });
+            else if (x || y || lines.length === 0)
+                lines = null;
+            if (lines)
+                lines[lines.length - 1].runs.push({ attrs: own.replace(/\s(?:x|y)="[^"]*"/g, ""), words: words });
+            return span;
+        });
+        if (!lines)
+            return all;
+        return lines.map(function (line) {
+            var body = line.runs.map(function (run) {
+                return /\S/.test(run.attrs) ? "<tspan" + run.attrs + ">" + run.words + "</tspan>" : run.words;
+            }).join("");
+            return "<text" + attrs + ' x="' + line.x + '" y="' + line.y + '">' + body + "</text>";
+        }).join("");
+    });
+}
+
+// Sample input: <g class="pele-edges" stroke="#565f89"><g class="pele-edge"><path class="pele-marker" fill="#565f89" stroke="none"/></g></g> fills the mark with the accent, as Flea drew a link's marks before; a mark inheriting the stroke gets an accent stroke, and an edge a user style colours keeps its marks.
+function accentMarks(svg, t) {
+    var edges = svg.match(/<g class="pele-edges"[^<>]*\sstroke="([^"]*)"/);
+    if (!edges)
         return svg;
-    var top = Infinity;
-    var bottom = -Infinity;
-    var left = Infinity;
-    var valid = true;
-    // Sample input: <rect height="80"/> reads 80 from its height attribute.
-    function number(tag, name, fallback) {
-        var found = tag.match(new RegExp('\\s' + name + '="([^"]*)"'));
-        return found ? (found[1].trim() === "" ? NaN : Number(found[1])) : fallback;
-    }
-    function include(low, high, pad) {
-        if (!Number.isFinite(low) || !Number.isFinite(high) || !Number.isFinite(pad)) {
-            valid = false;
-            return;
+    var line = edges[1];
+    var accent = escAttr(t.accent || t.fg);
+    // One entry per open group: true inside an edge no user style colours, false inside a styled one, or the enclosing group's value.
+    var open = [];
+    return svg.replace(/<\/g>|<g\b[^<>]*>|<[a-z]+\b[^<>]*\sclass="pele-marker(?:\s[^"]*)?"[^<>]*>/g, function (tag) {
+        if (tag === "</g>") {
+            open.pop();
+            return tag;
         }
-        top = Math.min(top, low - pad);
-        bottom = Math.max(bottom, high + pad);
-    }
-    function includeLeft(x, pad) {
-        if (!Number.isFinite(x) || !Number.isFinite(pad)) {
-            valid = false;
-            return;
+        var inherited = open.length ? open[open.length - 1] : false;
+        if (/^<g\b/.test(tag)) {
+            open.push(/\sclass="pele-edge(?:\s[^"]*)?"/.test(tag) ? !/\sstroke="/.test(tag) : inherited);
+            return tag;
         }
-        left = Math.min(left, x - pad);
+        if (!inherited)
+            return tag;
+        var out = tag.split('fill="' + line + '"').join('fill="' + accent + '"').split('stroke="' + line + '"').join('stroke="' + accent + '"');
+        return /\sstroke="/.test(out) ? out : out.replace(/\s*(\/?)>$/, ' stroke="' + accent + '"$1>');
+    });
+}
+
+// The bundle lays a diagram out at body 13 and scales its canvas to the theme's body size, as v0.3.12 did, so its text is set at 13.
+const MERMAID_LAYOUT_PX = 13;
+
+// SVG's defaults for a stroke the figure does not style: one unit wide, mitred joins cut off past a ratio of 4, butt caps.
+const DEFAULT_STROKE_WIDTH = 1;
+const DEFAULT_MITER_LIMIT = 4;
+const HALF_STROKE = 0.5;
+// The middle of two ends, and the quarter of a half turn in degrees.
+const HALF = 0.5;
+const RIGHT_ANGLE = 90;
+const DEGREES = 180;
+// The canvas grows in hundredths of a unit, rounded outward, so a stroke on its edge is never cut by rounding.
+const ROOM_PRECISION = 100;
+const IDENTITY = [1, 0, 0, 1, 0, 0];
+const PATH_ARGUMENTS = { M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0 };
+
+// Sample input: ([1, 0, 0, 1, 5, 0], [2, 0, 0, 2, 0, 0]) answers [2, 0, 0, 2, 5, 0], the second applied first.
+function compose(m, n) {
+    return [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+        m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+}
+
+// Sample input: "translate(10,4) rotate(90)" answers [0, 1, -1, 0, 10, 4]; a skew or anything unread answers null.
+function transformOf(text) {
+    var m = IDENTITY;
+    var rest = String(text).replace(/([a-zA-Z]+)\s*\(([^()]*)\)/g, function (all, name, args) {
+        var a = args.trim() === "" ? [] : args.trim().split(/[\s,]+/).map(Number);
+        var r;
+        if (!a.every(Number.isFinite))
+            m = null;
+        else if (name === "translate" && (a.length === 1 || a.length === 2))
+            r = [1, 0, 0, 1, a[0], a.length > 1 ? a[1] : 0];
+        else if (name === "scale" && (a.length === 1 || a.length === 2))
+            r = [a[0], 0, 0, a.length > 1 ? a[1] : a[0], 0, 0];
+        else if (name === "rotate" && (a.length === 1 || a.length === 3)) {
+            var t = a[0] * Math.PI / DEGREES;
+            var cx = a.length > 1 ? a[1] : 0;
+            var cy = a.length > 1 ? a[2] : 0;
+            r = compose(compose([1, 0, 0, 1, cx, cy], [Math.cos(t), Math.sin(t), -Math.sin(t), Math.cos(t), 0, 0]), [1, 0, 0, 1, -cx, -cy]);
+        } else if (name === "matrix" && a.length === 6)
+            r = a;
+        else
+            m = null;
+        if (m)
+            m = compose(m, r);
+        return "";
+    });
+    return rest.trim() === "" ? m : null;
+}
+
+// Sample input: "4px" answers 4 and "2" answers 2; a width in any other unit answers NaN, which the figure cannot place.
+function strokeWidthOf(text) {
+    var found = String(text).trim().match(/^(\d+(?:\.\d+)?|\.\d+)(px)?$/);
+    return found ? Number(found[1]) : NaN;
+}
+
+// Sample input: <polygon points="0,0 10,0 5,8"/> answers one closed run of three joins, and <path d="M0,0C5,5 5,5 10,0"/> an open run whose control points join nothing: a shape's outline as runs of points, each marked where a stroke joins two segments, plus the loose points a curve or arc may reach.
+function outlineOf(name, attrs) {
+    function num(key, fallback) {
+        var found = attrs.match(new RegExp("\\s" + key + '="([^"]*)"'));
+        return found ? Number(found[1]) : fallback;
     }
-    // Sample input: <polygon stroke="#fff" stroke-width="8" stroke-linejoin="miter"/> includes its joins.
-    function strokePad(tag, kind) {
-        var stroke = tag.match(/\sstroke="([^"]*)"/);
-        var width = number(tag, "stroke-width", DEFAULT_STROKE_WIDTH);
-        if (!Number.isFinite(width) || width < 0)
-            return NaN;
-        if (!stroke || stroke[1] === "none")
-            return 0;
-        var pad = width * HALF_STROKE;
-        if (kind === "polygon" || kind === "polyline") {
-            var join = tag.match(/\sstroke-linejoin="([^"]*)"/);
-            if (!join || join[1] === "miter") {
-                var limit = number(tag, "stroke-miterlimit", DEFAULT_MITER_LIMIT);
-                if (!(limit >= 1))
-                    return NaN;
-                pad *= limit;
+    var runs = [];
+    var loose = [];
+    if (name === "rect" || name === "circle" || name === "ellipse") {
+        var rect = name === "rect";
+        var rx = rect ? 0 : name === "circle" ? num("r", NaN) : num("rx", NaN);
+        var ry = rect ? 0 : name === "circle" ? num("r", NaN) : num("ry", NaN);
+        var x = rect ? num("x", 0) : num("cx", 0) - rx;
+        var y = rect ? num("y", 0) : num("cy", 0) - ry;
+        var w = rect ? num("width", NaN) : 2 * rx;
+        var h = rect ? num("height", NaN) : 2 * ry;
+        // A rounded rect, a circle and an ellipse have no corner for a miter, so only a sharp rect joins at its corners.
+        var sharp = rect && !(num("rx", 0) > 0) && !(num("ry", 0) > 0);
+        runs.push({ closed: true, points: [[x, y, sharp], [x + w, y, sharp], [x + w, y + h, sharp], [x, y + h, sharp]] });
+    } else if (name === "line") {
+        runs.push({ closed: false, points: [[num("x1", 0), num("y1", 0), false], [num("x2", 0), num("y2", 0), false]] });
+    } else if (name === "polygon") {
+        var found = attrs.match(/\spoints="([^"]*)"/);
+        var n = found ? found[1].trim().split(/[\s,]+/).map(Number) : [];
+        var points = [];
+        for (var i = 0; i + 1 < n.length; i += 2)
+            points.push([n[i], n[i + 1], true]);
+        if (n.length % 2 !== 0)
+            points.push([NaN, NaN, false]);
+        runs.push({ closed: true, points: points });
+    } else if (name === "path") {
+        var d = attrs.match(/\sd="([^"]*)"/);
+        var px = 0;
+        var py = 0;
+        var run = null;
+        String(d ? d[1] : "").replace(/([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)/g, function (all, letter, body) {
+            var cmd = letter.toUpperCase();
+            var relative = letter !== cmd;
+            var a = body.match(/[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g) || [];
+            var step = PATH_ARGUMENTS[cmd];
+            if (cmd === "Z") {
+                if (run)
+                    run.closed = true;
+                run = null;
+                return all;
             }
-            else if (join[1] !== "round" && join[1] !== "bevel")
-                return NaN;
-        }
-        if (kind === "line" || kind === "polyline") {
-            var cap = tag.match(/\sstroke-linecap="([^"]*)"/);
-            if (cap && cap[1] === "square")
-                pad *= Math.SQRT2;
-            else if (cap && cap[1] !== "round" && cap[1] !== "butt")
-                return NaN;
-        }
-        if (/marker-/.test(tag))
-            pad += MARKER_EXTENT * width;
-        return pad;
-    }
-    body.replace(/<(rect|line|circle|ellipse|polygon|polyline)\b[^<>]*>/g, function (tag, kind) {
-        var pad = strokePad(tag, kind);
-        if (kind === "rect") {
-            var y = number(tag, "y", 0);
-            include(y, y + number(tag, "height", NaN), pad);
-            includeLeft(number(tag, "x", 0), pad);
-        } else if (kind === "line") {
-            var y1 = number(tag, "y1", 0), y2 = number(tag, "y2", 0);
-            include(Math.min(y1, y2), Math.max(y1, y2), pad);
-            includeLeft(Math.min(number(tag, "x1", 0), number(tag, "x2", 0)), pad);
-        } else if (kind === "circle" || kind === "ellipse") {
-            var cy = number(tag, "cy", 0);
-            var radius = number(tag, kind === "circle" ? "r" : "ry", NaN);
-            include(cy - radius, cy + radius, pad);
-            includeLeft(number(tag, "cx", 0) - (kind === "circle" ? radius : number(tag, "rx", NaN)), pad);
-        } else if (kind === "polygon" || kind === "polyline") {
-            var points = tag.match(/\spoints="([^"]*)"/);
-            var numbers = points ? points[1].trim().split(/[\s,]+/).map(Number) : [];
-            if (numbers.length < 2 || numbers.length % 2 !== 0)
-                valid = false;
-            for (var i = 1; i < numbers.length; i += 2) {
-                include(numbers[i], numbers[i], pad);
-                includeLeft(numbers[i - 1], pad);
+            if (a.length === 0 || a.length % step !== 0) {
+                runs.push({ closed: false, points: [[NaN, NaN, false]] });
+                return all;
             }
+            for (var k = 0; k < a.length; k += step) {
+                var v = a.slice(k, k + step).map(Number);
+                var ox = relative ? px : 0;
+                var oy = relative ? py : 0;
+                if (cmd === "M" && k === 0) {
+                    run = { closed: false, points: [] };
+                    runs.push(run);
+                } else if (!run) {
+                    run = { closed: false, points: [[px, py, true]] };
+                    runs.push(run);
+                }
+                if (cmd === "H")
+                    px = ox + v[0];
+                else if (cmd === "V")
+                    py = oy + v[0];
+                else if (cmd === "A") {
+                    var ex = ox + v[5];
+                    var ey = oy + v[6];
+                    loose.push.apply(loose, arcExtremes(px, py, v[0], v[1], v[2], v[3] !== 0, v[4] !== 0, ex, ey));
+                    px = ex;
+                    py = ey;
+                } else {
+                    // A curve stays inside the hull of its control points, which stand in the run so a join reads the curve's tangent from them.
+                    for (var c = 0; c + 2 < step; c += 2)
+                        run.points.push([ox + v[c], oy + v[c + 1], false]);
+                    px = ox + v[step - 2];
+                    py = oy + v[step - 1];
+                }
+                run.points.push([px, py, true]);
+            }
+            return all;
+        });
+    }
+    return { runs: runs, loose: loose };
+}
+
+const QUARTER_TURN = Math.PI * HALF;
+const FULL_TURN = 2 * Math.PI;
+const QUARTERS = 4;
+// Sample input: (10, 0, 10, 10, 0, false, true, -10, 0), the lower half turn about (0, 0), answers its bottom point [[0, 10]], its ends counting elsewhere: the points of an arc reaching furthest up, down, left and right, from SVG's endpoint form (F.6.5); an axis-aligned ellipse is a circle with y stretched by ry / rx, and one turned off the axes answers its ends' box grown by its larger radius.
+function arcExtremes(x0, y0, rx, ry, turn, large, sweep, x1, y1) {
+    var quarter = Math.abs(turn) % DEGREES;
+    var across = quarter === RIGHT_ANGLE;
+    var r = Math.abs(across ? ry : rx);
+    var stretch = r > 0 ? Math.abs(across ? rx : ry) / r : 0;
+    if ((quarter !== 0 && !across) || !(stretch > 0)) {
+        var far = Math.max(Math.abs(rx), Math.abs(ry));
+        return [[Math.min(x0, x1) - far, Math.min(y0, y1) - far], [Math.max(x0, x1) + far, Math.max(y0, y1) + far]];
+    }
+    var hx = (x0 - x1) * HALF;
+    var hy = (y0 - y1) / stretch * HALF;
+    var chord = hx * hx + hy * hy;
+    if (!(chord > 0))
+        return [];
+    // A radius too short for its chord grows until the arc is a half turn.
+    r = Math.max(r, Math.sqrt(chord));
+    var lift = Math.sqrt(Math.max(0, (r * r - chord) / chord)) * (large === sweep ? -1 : 1);
+    var cx = lift * hy + (x0 + x1) * HALF;
+    var cy = -lift * hx + (y0 + y1) / stretch * HALF;
+    var from = Math.atan2(y0 / stretch - cy, x0 - cx);
+    var span = Math.atan2(y1 / stretch - cy, x1 - cx) - from;
+    if (sweep && span < 0)
+        span += FULL_TURN;
+    else if (!sweep && span > 0)
+        span -= FULL_TURN;
+    var out = [];
+    for (var q = -QUARTERS; q <= 2 * QUARTERS; q++) {
+        var a = q * QUARTER_TURN;
+        var into = sweep ? a - from : from - a;
+        if (into > 0 && into < Math.abs(span))
+            out.push([cx + r * Math.cos(a), (cy + r * Math.sin(a)) * stretch]);
+    }
+    return out;
+}
+
+// Sample input: a right-angled corner answers the miter ratio 1.41; a join sharper than the limit is bevelled, so it answers 1.
+function miterRatio(prev, at, next, limit) {
+    var ux = prev[0] - at[0];
+    var uy = prev[1] - at[1];
+    var vx = next[0] - at[0];
+    var vy = next[1] - at[1];
+    var lu = Math.hypot(ux, uy);
+    var lv = Math.hypot(vx, vy);
+    if (!(lu > 0) || !(lv > 0))
+        return 1;
+    var cos = (ux * vx + uy * vy) / (lu * lv);
+    var sinHalf = Math.sqrt(Math.max(0, (1 - cos) * HALF));
+    var ratio = sinHalf > 0 ? 1 / sinHalf : Infinity;
+    return ratio <= limit ? Math.max(1, ratio) : 1;
+}
+
+// Sample input: <svg viewBox="0 0 50 140" width="50" height="140"><rect x="1" y="94" width="48" height="45" stroke="#fff" stroke-width="8"/></svg> reads viewBox="-3 -3 56 146" width="56" height="146": the canvas grows, never shrinks, to hold every stroke as it paints, half its width past its outline and more at a mitred join or a square cap; a stroke inside the canvas, or a shape it cannot place, leaves it alone.
+function strokeRoom(svg) {
+    var root = svg.match(/<svg\b[^<>]*>/);
+    var view = root ? root[0].match(/\sviewBox="([^"]*)"/) : null;
+    var box = view ? view[1].trim().split(/[\s,]+/).map(Number) : [];
+    if (box.length !== 4 || !box.every(Number.isFinite) || !(box[2] > 0) || !(box[3] > 0))
+        return svg;
+    var low = [box[0], box[1]];
+    var high = [box[0] + box[2], box[1] + box[3]];
+    var stack = [{ m: IDENTITY, stroke: "none", width: DEFAULT_STROKE_WIDTH, join: "miter", cap: "butt", limit: DEFAULT_MITER_LIMIT }];
+    function own(attrs, key) {
+        var found = attrs.match(new RegExp("\\s" + key + '="([^"]*)"'));
+        return found ? found[1] : null;
+    }
+    function reach(m, x, y, pad) {
+        // A transform stretches the stroke by at most the larger of its column lengths.
+        var stretch = m ? Math.max(Math.hypot(m[0], m[1]), Math.hypot(m[2], m[3])) : 0;
+        var tx = m[0] * x + m[2] * y + m[4];
+        var ty = m[1] * x + m[3] * y + m[5];
+        low = [Math.min(low[0], tx - pad * stretch), Math.min(low[1], ty - pad * stretch)];
+        high = [Math.max(high[0], tx + pad * stretch), Math.max(high[1], ty + pad * stretch)];
+    }
+    var body = svg.slice(root.index + root[0].length);
+    var placed = true;
+    body.replace(/<(\/?)([a-zA-Z][\w:-]*)((?:\s[^<>]*?)?)(\/?)>/g, function (tag, closing, name, attrs, self) {
+        if (closing) {
+            if (stack.length > 1)
+                stack.pop();
+            return tag;
         }
+        var up = stack[stack.length - 1];
+        var transform = own(attrs, "transform");
+        var m = up.m && transform !== null ? (transformOf(transform) ? compose(up.m, transformOf(transform)) : null) : up.m;
+        var widthText = own(attrs, "stroke-width");
+        var limitText = own(attrs, "stroke-miterlimit");
+        var state = { m: m, stroke: own(attrs, "stroke") !== null ? own(attrs, "stroke") : up.stroke,
+            width: widthText !== null ? strokeWidthOf(widthText) : up.width, join: own(attrs, "stroke-linejoin") || up.join,
+            cap: own(attrs, "stroke-linecap") || up.cap, limit: limitText !== null ? Number(limitText) : up.limit };
+        var shape = /^(rect|circle|ellipse|line|polygon|path)$/.test(name);
+        if (shape && state.stroke !== "none" && state.stroke !== "transparent") {
+            var outline = outlineOf(name, attrs);
+            var half = state.width * HALF_STROKE;
+            var capRatio = state.cap === "square" ? Math.SQRT2 : 1;
+            var mitred = state.join === "miter" || state.join === "miter-clip" || state.join === "arcs";
+            var known = state.m !== null && Number.isFinite(half) && half >= 0 && state.limit >= 1;
+            outline.runs.forEach(function (run) {
+                var n = run.points.length;
+                run.points.forEach(function (p, i) {
+                    if (!Number.isFinite(p[0]) || !Number.isFinite(p[1]) || !known) {
+                        placed = false;
+                        return;
+                    }
+                    var end = !run.closed && (i === 0 || i === n - 1);
+                    var ratio = end ? capRatio : p[2] && mitred && n > 2
+                        ? miterRatio(run.points[(i + n - 1) % n], p, run.points[(i + 1) % n], state.limit) : 1;
+                    reach(state.m, p[0], p[1], half * ratio);
+                });
+            });
+            outline.loose.forEach(function (p) {
+                if (known && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+                    reach(state.m, p[0], p[1], half);
+                else
+                    placed = false;
+            });
+        }
+        if (!self)
+            stack.push(state);
         return tag;
     });
-    // Sample input: <text x="70" y="50" font-size="13" text-anchor="middle"><tspan x="70" dy="-4">a</tspan><tspan x="70" dy="17">b</tspan></text> holds two lines.
-    var texts = body.match(/<text\b/g) || [];
-    var read = 0;
-    body.replace(/<text\b([^<>]*)>((?:[^<]|<tspan\b[^<>]*>[^<]*<\/tspan>)*)<\/text>/g, function (all, attrs, content) {
-        read++;
-        var lines = [];
-        content.replace(/<tspan\b([^<>]*)>([^<]*)<\/tspan>/g, function (m, own, words) {
-            lines.push({ attrs: own, words: words });
-            return m;
-        });
-        var bare = content.replace(/<tspan\b[^<>]*>[^<]*<\/tspan>/g, "");
-        // A line of its own sits in a tspan, and a text mixing bare words with tspans has no position the scan can read.
-        if (lines.length === 0)
-            lines.push({ attrs: "", words: content });
-        else if (/\S/.test(bare))
-            valid = false;
-        if (/\sstyle=/.test(attrs))
-            valid = false;
-        var pad = strokePad(attrs, "text");
-        var font = number(attrs, "font-size", NaN);
-        var baseline = number(attrs, "y", NaN);
-        var textShift = shift(attrs, font);
-        lines.forEach(function (line, index) {
-            // Without its own x, only the first line starts at the text's; a later one continues from an unknown pen position.
-            if (/\sstyle=/.test(line.attrs) || (index > 0 && !/\sx=/.test(line.attrs)))
-                valid = false;
-            var size = number(line.attrs, "font-size", font);
-            var pen = /\sy=/.test(line.attrs) ? number(line.attrs, "y", NaN) : baseline;
-            // SVG takes a glyph's dy from the nearest element naming one, so the text's own dy moves only a first line that names none.
-            baseline = pen + (/\sdy=/.test(line.attrs) ? shift(line.attrs, size) : index === 0 ? textShift : 0);
-            var linePad = Math.max(pad, strokePad(line.attrs, "text"));
-            include(baseline - size, baseline + TEXT_DESCENT_RATIO * size, linePad);
-            var anchor = line.attrs.match(/\stext-anchor="([^"]*)"/) || attrs.match(/\stext-anchor="([^"]*)"/);
-            var share = !anchor || anchor[1] === "start" ? 0 : anchor[1] === "middle" ? MIDDLE_SHARE : anchor[1] === "end" ? 1 : NaN;
-            includeLeft(number(line.attrs, "x", number(attrs, "x", NaN)), share * advance(line.words) * size + linePad);
-        });
-        return all;
-    });
-    // A text the scan could not read whole, a self-closing one or one holding another element, keeps the library's canvas.
-    if (read !== texts.length)
-        valid = false;
-    if (!valid || !Number.isFinite(top) || !(bottom > top) || !Number.isFinite(left))
+    var grown = [Math.floor(low[0] * ROOM_PRECISION) / ROOM_PRECISION, Math.floor(low[1] * ROOM_PRECISION) / ROOM_PRECISION];
+    var far = [Math.ceil(high[0] * ROOM_PRECISION) / ROOM_PRECISION, Math.ceil(high[1] * ROOM_PRECISION) / ROOM_PRECISION];
+    if (!placed || (grown[0] >= box[0] && grown[1] >= box[1] && far[0] <= box[0] + box[2] && far[1] <= box[1] + box[3]))
         return svg;
-    var y = Math.floor((top - CANVAS_MARGIN) * BOUNDS_PRECISION) / BOUNDS_PRECISION;
-    var height = Math.ceil((bottom + CANVAS_MARGIN - y) * BOUNDS_PRECISION) / BOUNDS_PRECISION;
-    var head = root[0].replace(/height="[^"]*"/, 'height="' + height + '"');
-    // Only ever shrink: a primitive painted left of the library's canvas keeps the canvas it had.
-    var x = Math.max(box[0], Math.floor((left - LEFT_MARGIN) * BOUNDS_PRECISION) / BOUNDS_PRECISION);
-    var width = box[2] - (x - box[0]);
-    head = head.replace(/\swidth="[\d.]+"/, ' width="' + width + '"');
-    head = head.replace(/viewBox="[^"]*"/, 'viewBox="' + x + ' ' + y + ' ' + width + ' ' + height + '"');
-    return svg.replace(root[0], head);
-}
-
-// Sample input: <polyline points="10,10 40,40 40,40" marker-end="url(#tip)"/> becomes a path, since QtSvg's polyline end tangent uses last-to-last.
-function markerPaths(svg) {
-    return svg.replace(/<polyline\b[^<>]*\/>/g, function (tag) {
-        if (!/\smarker-(?:start|mid|end)=/.test(tag))
-            return tag;
-        var found = tag.match(/\spoints="([^"]*)"/);
-        var numbers = found ? found[1].match(/[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?/g) : null;
-        if (!numbers || numbers.length < 4 || numbers.length % 2 !== 0)
-            return tag;
-        var points = [];
-        for (var i = 0; i < numbers.length; i += 2) {
-            if (i > 0 && Number(numbers[i]) === Number(numbers[i - 2])
-                    && Number(numbers[i + 1]) === Number(numbers[i - 1]))
-                continue;
-            points.push(numbers[i] + " " + numbers[i + 1]);
-        }
-        if (points.length < 2)
-            return tag;
-        return tag.replace(/^<polyline\b/, "<path")
-            .replace(/\spoints="[^"]*"/, ' d="M' + points.join(" L") + '"');
-    });
-}
-
-export function postMermaid(svg, t) {
-    var table = baseVars(t);
-    // Sample input: <style>svg { --_text: var(--fg); --xychart-color-0: var(--accent); }</style>.
-    svg.replace(/<style>([\s\S]*?)<\/style>/g, function (m, css) {
-        css.replace(/\/\*[\s\S]*?\*\//g, "").split(";").forEach(function (d) {
-            var p = d.split(":");
-            if (p.length < 2)
-                return;
-            // The first declaration's selector prefix ("svg { --_text") ends at the last brace before the variable name.
-            var name = p[0].trim();
-            var brace = Math.max(name.lastIndexOf("{"), name.lastIndexOf("}"));
-            if (brace >= 0)
-                name = name.slice(brace + 1).trim();
-            if (name.indexOf("--") !== 0)
-                return;
-            table[name.replace(/^--/, "")] = p.slice(1).join(":").trim();
+    var x = Math.min(box[0], grown[0]);
+    var y = Math.min(box[1], grown[1]);
+    var w = Math.round((Math.max(box[0] + box[2], far[0]) - x) * ROOM_PRECISION) / ROOM_PRECISION;
+    var h = Math.round((Math.max(box[1] + box[3], far[1]) - y) * ROOM_PRECISION) / ROOM_PRECISION;
+    // The canvas keeps its scale: the root's width and height grow by the share its viewBox does.
+    var head = root[0].replace(/\sviewBox="[^"]*"/, ' viewBox="' + x + " " + y + " " + w + " " + h + '"')
+        .replace(/\s(width|height)="([\d.]+)"/g, function (all, key, value) {
+            var share = key === "width" ? w / box[2] : h / box[3];
+            return " " + key + '="' + Math.round(Number(value) * share * ROOM_PRECISION) / ROOM_PRECISION + '"';
         });
-        return m;
-    });
-    // Every label uses foreground; the remaining paints use theme edge and surface roles.
-    table["_text-sec"] = "var(--fg)";
-    table["_text-muted"] = "var(--fg)";
-    table["_text-faint"] = "var(--fg)";
-    if (table.line !== undefined)
-        table["_inner-stroke"] = "var(--line)";
-    table["_group-hdr"] = "var(--surface)";
-    table["_key-badge"] = "var(--surface)";
-    Object.keys(table).forEach(function (k) {
-        table[k] = resolveValue(table[k], table, 0);
-    });
-    var out = resolveValue(svg, table, 0);
-    // Surviving @import lines are remote; match the paren because font URLs carry semicolons.
-    out = out.replace(/@import\s+url\([^)]*\)\s*;?/g, "");
-    // A non-local url() is a fetch; a local #fragment (arrow markers) stays.
-    out = out.replace(/url\((?!\s*#)[^)]*\)/g, "none");
-    out = inlineClasses(out);
-    out = out.replace(/<style>([\s\S]*?)<\/style>/g, "");
-    // The root style only carried the theme vars and a background paint.
-    out = out.replace(/<svg([^<>]*?)\sstyle="[^"]*"/, "<svg$1");
-    // A click directive unwraps to its content; the link never ships.
-    out = out.replace(/<a\s[^<>]*>/g, "").replace(/<\/a>/g, "");
-    out = scaleCanvas(tightenCanvas(bakeDy(forceText(out, t.font || "sans-serif", t.fg))), t.bodyPx || MERMAID_FALLBACK_BODY_PX);
-    out = markerPaths(out);
+    return svg.slice(0, root.index) + head + body;
+}
+
+// Pele's SVG with every value concrete, rewritten into the subset Qt SVG and the GPUI renderer both draw, then checked.
+export function postMermaid(svg, t) {
+    var out = lineTexts(iconGroups(rootFont(styleToAttributes(svg), t)));
+    // An icon draws in currentColor, which the root's text colour set before its style went.
+    out = inAttributes(out, function (value) { return value.split("currentColor").join(t.fg); });
+    out = accentMarks(out, t);
+    // A link and an image never ship: the bundle renders neither, and a stray one unwraps or goes.
+    out = out.replace(/<a\s[^<>]*>/g, "").replace(/<\/a>/g, "").replace(/<image\b[^<>]*\/?>/g, "");
+    // The layout pads its geometry by one unit, so a border wider than two units, a user style's, would be cut at the canvas edge.
+    out = strokeRoom(out);
     var bad = checkSafe(out);
     if (bad)
         throw new Error("unsafe diagram: " + bad);
@@ -590,7 +530,7 @@ export function postMermaid(svg, t) {
 export function postMath(svg, t) {
     if (svg.indexOf("merror") >= 0 || svg.indexOf("data-mjx-error") >= 0)
         throw new Error("formula did not render");
-    var out = svg.split("currentColor").join(t.fg);
+    var out = inAttributes(svg, function (value) { return value.split("currentColor").join(t.fg); });
     // MathJax's TeX SVG has 442 units per ex; a formula draws its ex at the body x-height the pane measured, or the em rule when none came.
     var exPx = t.exPx > 0 ? t.exPx : (t.bodyPx || DEFAULT_BODY_PX) * EX_PER_EM;
     out = out.replace(/(-?\d+(?:\.\d+)?)ex/g, function (m, v) {
@@ -613,7 +553,6 @@ export function renderFigure(kind, source, display, theme, apis) {
         throw new Error("diagram over 32 KiB");
     if (kind === "math")
         return postMath(apis.texToSvg(source, !!display), theme);
-    // The advance tables are the theme font's own, per printable ASCII character in thousandths of an em, so the library sizes every label from the font that is drawn.
-    return postMermaid(apis.mermaidToSvg(source, theme.bg, theme.fg, { font: theme.font, padding: MERMAID_PADDING,
-        charAdvances: theme.advances, boldCharAdvances: theme.boldAdvances }), theme);
+    // The bundle takes the whole theme: its colour roles, its font and body size, and the font's own advance tables, so every label is sized from the font that is drawn.
+    return postMermaid(apis.mermaidToSvg(source, theme), theme);
 }

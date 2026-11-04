@@ -6,11 +6,14 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::{atomic::{AtomicBool, Ordering}, mpsc::{self, Receiver}, Arc};
 
+pub mod words;
+use words::Text;
+
 const TEXT_BYTES: u64 = 1024 * 1024;
 #[derive(Default)]
 pub struct Reader {
     pending: Option<(PathBuf, usize)>,
-    running: Option<(usize, Arc<AtomicBool>, Receiver<Result<String, String>>)>,
+    running: Option<(usize, Arc<AtomicBool>, Receiver<Result<String, &'static str>>)>,
 }
 impl Reader {
     fn request(&mut self, path: PathBuf, generation: usize) {
@@ -36,12 +39,12 @@ impl Reader {
         std::thread::spawn(move || { let _ = tx.send(read_text(&path, &stopped)); });
         self.running = Some((generation, cancel, receiver));
     }
-    fn poll(&mut self) -> Option<(usize, Result<String, String>)> {
+    fn poll(&mut self) -> Option<(usize, Result<String, &'static str>)> {
         let (generation, cancel, receiver) = self.running.as_ref()?;
         let result = match receiver.try_recv() {
             Ok(result) => result,
             Err(mpsc::TryRecvError::Empty) => return None,
-            Err(mpsc::TryRecvError::Disconnected) => Err("Text preview reader stopped.".into()),
+            Err(mpsc::TryRecvError::Disconnected) => Err("tui.preview.text_reader_stopped"),
         };
         let generation = *generation;
         let accepted = !cancel.load(Ordering::Relaxed);
@@ -53,20 +56,22 @@ impl Reader {
 impl Drop for Reader {
     fn drop(&mut self) { self.cancel(); }
 }
-fn read_text(path: &Path, cancel: &AtomicBool) -> Result<String, String> {
-    const READ_FAILED: &str = "This file could not be read.";
+fn read_text(path: &Path, cancel: &AtomicBool) -> Result<String, &'static str> {
+    const READ_FAILED: &str = "preview.unreadable";
     let before = path.symlink_metadata().map_err(|_| READ_FAILED)?;
     let mut file = regfile::open_if_regular(path, O_NOFOLLOW).map_err(|_| READ_FAILED)?;
     if !file.metadata().is_ok_and(|after| before.dev() == after.dev() && before.ino() == after.ino()) {
-        return Err("Selected item changed".into());
+        return Err("tui.preview.changed");
     }
     let mut bytes = Vec::new();
     let mut chunk = [0; 8192];
     loop {
-        if cancel.load(Ordering::Relaxed) { return Err("Preview cancelled".into()); }
+        if cancel.load(Ordering::Relaxed) { return Err("tui.preview.cancelled"); }
         let count = file.read(&mut chunk).map_err(|_| READ_FAILED)?;
         if count == 0 { break; }
-        if bytes.len() as u64 + count as u64 > TEXT_BYTES { return Err("This file is too large to preview.".into()); }
+        // Data with a NUL in its first chunk is binary, so the rest of it is never read.
+        if bytes.is_empty() && chunk[..count].contains(&0) { return Ok(String::new()); }
+        if bytes.len() as u64 + count as u64 > TEXT_BYTES { return Err("preview.tooLarge"); }
         bytes.extend_from_slice(&chunk[..count]);
     }
     if bytes.contains(&0) { return Ok(String::new()); }
@@ -81,15 +86,19 @@ pub fn load(m: &mut Model, force: bool) {
     if m.selected.len() > 1 || (!m.preview_visible && !m.quicklook) {
         m.preview_reader.cancel();
         m.preview_path.clear();
+        m.retract_preview_errors(true);
         return;
     }
-    let Some(path) = m.current_path() else {
+    let Some(path) = m.current_path().or_else(|| super::trashview::content(m)) else {
         return;
     };
-    if !force && path == m.preview_path {
+    // A Markdown document Quick Look read rests on its head again once Quick Look closes.
+    let read_for_quicklook = !m.quicklook && markdown(&path) && (!m.preview_body.is_empty() || m.preview_reader.outstanding(m.preview_generation));
+    if !force && path == m.preview_path && !read_for_quicklook {
         return;
     }
     m.preview_reader.cancel();
+    m.retract_preview_errors(path != m.preview_path);
     m.preview_path = path.clone();
     m.preview_loaded = force || m.preview_auto || m.quicklook;
     m.preview_generation = m.preview_generation.wrapping_add(1);
@@ -100,53 +109,59 @@ pub fn load(m: &mut Model, force: bool) {
     m.preview_metadata.clear();
     m.media_probe = None;
     m.preview_children = None;
+    super::pane_state::reset(&mut m.preview_state);
+    words::metadata(m);
     let Some(row) = m.rows.get(&m.cursor) else {
         return;
     };
     m.preview.push(row.name.clone());
     m.preview
-        .push(format!("{} · {}", row.kind, super::render::bytes(row.size)));
-    if row.modified > 0 {
-        m.preview_metadata.push(format!(
-            "Modified · {}",
-            super::render::modified(row.modified)
-        ));
-    }
-    if !row.link.is_empty() {
-        m.preview.push(format!("→ {}", row.link));
-        return;
-    }
+        .push(format!("{} · {}", row.kind, m.preview_state.i18n.locale().format_size(row.size as u64)));
     if !m.preview_loaded {
         if !m.hints.load_preview.is_empty() {
-            m.preview.push(format!("{} to load preview", m.hints.load_preview));
+            set_text(m, Text::Args("preview.loadHint", vec![Text::Data(super::cells::clean(&m.hints.load_preview))]));
         }
         return;
     }
     if row.directory {
-        m.preview.push("Folder".into());
+        set_text(m, Text::Key("preview.points.folder"));
         return;
     }
-    if !row.icon.starts_with("text") && !row.kind.to_lowercase().contains("source") {
+    // Text reads as text, and so does data that holds no NUL; a link reads its target, which the reader opens without following.
+    let text = row.icon.starts_with("text") || row.kind.to_lowercase().contains("source");
+    if super::pane_state::kind(row) == super::pane_state::Kind::Model3d || !text && super::pane_state::kind(row) != super::pane_state::Kind::Data {
         return;
     }
-    if row.size as u64 > TEXT_BYTES {
-        m.preview.push("This file is too large to preview.".into());
+    // A Markdown document rests on its head in the pane, as v0.3.12 and the TUI boards draw todo.md; Quick Look still reads it.
+    if !m.quicklook && markdown(std::path::Path::new(&row.name)) {
         return;
     }
-    m.preview.push("Loading…".into());
-    m.preview_reader.request(path, m.preview_generation);
+    if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
+        if text { set_text(m, Text::Key("preview.tooLarge")); }
+        return;
+    }
+    set_text(m, Text::Key("preview.loading"));
+    let content = super::pane_state::content(m).unwrap_or(path);
+    m.preview_reader.request(content, m.preview_generation);
+}
+fn markdown(path: &std::path::Path) -> bool {
+    path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
 }
 pub fn poll(m: &mut Model) {
     let Some((generation, result)) = m.preview_reader.poll() else { return };
     if generation != m.preview_generation { return; }
     m.preview.truncate(2);
     match result {
-        Ok(body) => { m.preview.push(String::new()); m.preview_body = body; }
-        Err(error) => m.preview.push(error),
+        Ok(body) => { m.preview_state.text = None; m.preview.push(String::new()); m.preview_body = body; }
+        Err(error) => set_text(m, Text::Key(error)),
     }
     m.preview_width = 0;
 }
 pub fn request(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
+    meta(m, wire)?;
+    super::syntax::request(m, wire)
+}
+fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
     use super::wire::{number, word};
     use crate::jsondoc::Json;
     if !m.preview_loaded
@@ -163,10 +178,12 @@ pub fn request(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<(
         return Ok(());
     }
     m.preview_requested = m.preview_generation;
+    if super::pane_state::kind(row) == super::pane_state::Kind::Model3d { return Ok(()); }
     if row.directory {
         m.preview_children = Some(m.preview_path.clone());
         wire.send(vec![
             ("c", word("peek")),
+            ("details", Json::Bool(true)),
             ("path", word(&m.preview_path.to_string_lossy())),
             ("first", number(m.height)),
             ("hidden", Json::Bool(m.hidden)),
@@ -187,36 +204,7 @@ pub fn request(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<(
     Ok(())
 }
 pub fn layout(m: &mut Model) {
-    let columns = if m.quicklook || m.preview_visible { super::render::preview_area(m.columns, m.quicklook).1 } else { 0 };
-    let changed = m.preview_width != columns || m.preview_layout_generation != m.preview_generation;
-    if !changed
-        && m.preview_layout_scroll == m.preview_scroll
-        && m.preview_layout_height == m.height
-    {
-        return;
-    }
-    m.preview_width = columns;
-    m.preview_layout_generation = m.preview_generation;
-    let lines = || {
-        m.preview
-            .iter()
-            .chain(m.preview_metadata.iter())
-            .map(String::as_str)
-            .chain(m.preview_body.lines())
-            .flat_map(|line| super::render::Wrapped::new(line, columns))
-    };
-    if changed {
-        m.preview_line_count = lines().count();
-    }
-    m.preview_scroll = m.preview_scroll.min(m.preview_line_count.saturating_sub(1));
-    let shown: Vec<String> = lines()
-        .skip(m.preview_scroll)
-        .take(m.height)
-        .map(super::render::clean)
-        .collect();
-    m.preview_display = shown;
-    m.preview_layout_scroll = m.preview_scroll;
-    m.preview_layout_height = m.height;
+    super::layout::prepare(m);
 }
 #[cfg(test)]
 mod tests {
@@ -237,7 +225,7 @@ mod tests {
                 link: String::new(),
                 kind: "Plain text document".into(),
                 thumbnail: false,
-                modified: 0,
+                modified: 0, birth: None,
                 icon: "text-x-generic".into(),
             },
         );
@@ -267,7 +255,7 @@ mod tests {
         std::os::unix::fs::symlink(d.join("note.txt"), d.join("link")).unwrap();
         m.rows.get_mut(&0).unwrap().name = "link".into();
         load(&mut m, true);
-        assert_eq!(read_text(&d.join("link"), &AtomicBool::new(false)).unwrap_err(), "This file could not be read.");
+        assert_eq!(read_text(&d.join("link"), &AtomicBool::new(false)).unwrap_err(), "preview.unreadable");
     }
     // The hint under an unloaded preview names the key the keymap binds, and says nothing when none is bound.
     #[test]
@@ -283,21 +271,53 @@ context = "listing"
         let d = TestDir::new("tui-preview-hint");
         d.file("note.txt", "body");
         let mut m = Model::new(d.path().into(), &Json::Null);
-        let row = Row { name: "note.txt".into(), directory: false, size: 4, mode: 0o100644, link: String::new(), kind: "Plain text document".into(), thumbnail: false, modified: 0, icon: "text-x-generic".into() };
+        let row = Row { name: "note.txt".into(), directory: false, size: 4, mode: 0o100644, link: String::new(), kind: "Plain text document".into(), thumbnail: false, modified: 0, birth: None, icon: "text-x-generic".into() };
         m.rows.insert(0, row);
         m.preview_visible = true;
         m.preview_auto = false;
         m.hints = crate::tui::keymap::Hints::new(&crate::tui::keymap::Map::load(), "default");
         load(&mut m, false);
-        assert_eq!(m.preview.last().unwrap(), "Ctrl+Space to load preview");
+        assert_eq!(m.preview.last().unwrap(), "Ctrl+Space loads it");
         m.hints = crate::tui::keymap::Hints::new(&rebound, "default");
         m.preview_path.clear();
         load(&mut m, false);
-        assert_eq!(m.preview.last().unwrap(), "Ctrl+P to load preview");
+        assert_eq!(m.preview.last().unwrap(), "Ctrl+P loads it");
         m.hints.load_preview.clear();
         m.preview_path.clear();
         load(&mut m, false);
         assert!(!m.preview.iter().any(|line| line.contains("load preview")), "{:?}", m.preview);
+    }
+    // Data without a NUL reads as text and data with one as nothing; a picture is never read; a link reads its target.
+    #[test]
+    fn data_reads_as_text_and_a_link_reads_its_target() {
+        let d = TestDir::new("tui-preview-data");
+        d.file("notes.cfg", "key = value");
+        d.file("real.txt", "target body");
+        std::os::unix::fs::symlink(d.join("real.txt"), d.join("link")).unwrap();
+        assert_eq!(read_text(&d.file("blob.bin", "ab\0cd"), &AtomicBool::new(false)).unwrap(), "");
+        let mut m = Model::new(d.path().into(), &Json::Null);
+        let row = |name: &str, icon: &str, link: &str| Row { name: name.into(), directory: false, size: 11, mode: 0o100644, link: link.into(), kind: "Data".into(), thumbnail: false, modified: 0, birth: None, icon: icon.into() };
+        let settle = |m: &mut Model| {
+            let started = std::time::Instant::now();
+            while m.preview_reader.outstanding(m.preview_generation) {
+                poll(m);
+                assert!(started.elapsed() < std::time::Duration::from_secs(5), "the text read did not finish");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            poll(m);
+        };
+        m.rows.insert(0, row("notes.cfg", "application-octet-stream", ""));
+        load(&mut m, true);
+        assert!(m.preview_reader.outstanding(m.preview_generation), "data was not read as text");
+        settle(&mut m);
+        assert_eq!(m.preview_body, "key = value");
+        m.rows.insert(0, row("photo.png", "image-png", ""));
+        load(&mut m, true);
+        assert!(!m.preview_reader.outstanding(m.preview_generation), "a picture was read as text");
+        m.rows.insert(0, row("link", "text-plain", "real.txt"));
+        load(&mut m, true);
+        settle(&mut m);
+        assert_eq!(m.preview_body, "target body", "{:?}", m.preview);
     }
     #[test]
     fn text_reader_replaces_pending_work_and_discards_stale_results() {
@@ -315,4 +335,72 @@ context = "listing"
         assert_eq!(generation, 2);
         assert_eq!(receiver.recv_timeout(std::time::Duration::from_secs(5)).unwrap().unwrap(), "current body");
     }
+    // Q3: the TUI boards and v0.3.12 rest todo.md on its head in the pane with its 48 B of text unread; Quick Look still reads it.
+    #[test]
+    fn a_markdown_document_rests_on_its_head_in_the_pane() {
+        let d = TestDir::new("tui-preview-markdown");
+        d.file("todo.md", "# Todo\n");
+        let mut m = crate::tui::render::frame_tests::model();
+        m.path = d.path().into();
+        let row = m.rows.get_mut(&7).unwrap();
+        (row.name, row.icon, row.kind, row.size) = ("todo.md".into(), "text-markdown".into(), "Markdown document".into(), 48);
+        let head = vec!["todo.md".to_string(), "Markdown document · 48 B".to_string()];
+        load(&mut m, true);
+        assert_eq!(m.preview, head, "the pane asked for the document's text");
+        for answered in [false, true] {
+            m.quicklook = true;
+            load(&mut m, true);
+            assert_eq!(m.preview[2], m.preview_state.i18n.tr("preview.loading"), "Quick Look asked the reader for the document");
+            let started = std::time::Instant::now();
+            while answered && m.preview_body.is_empty() {
+                poll(&mut m);
+                assert!(started.elapsed() < std::time::Duration::from_secs(5), "Quick Look's read did not finish");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            // Each case closes Quick Look through one arm: the read still out, or the body it answered with.
+            assert_eq!((m.preview_reader.outstanding(m.preview_generation), m.preview_body.is_empty()), (!answered, !answered));
+            m.quicklook = false;
+            load(&mut m, false);
+            assert_eq!((&m.preview, m.preview_body.as_str()), (&head, ""), "Quick Look closed with its read answered: {answered}");
+            assert!(!m.preview_reader.outstanding(m.preview_generation), "the pane kept Quick Look's read in flight");
+        }
+    }
 }
+
+// Receives the controller's frozen frame locale; implemented by the preview projection transaction.
+pub fn refresh_locale(m: &mut Model) {
+    m.preview_state.i18n = m.i18n.clone();
+    if let Some(Text::Args("preview.loadHint", values)) = &mut m.preview_state.text {
+        *values = vec![Text::Data(super::cells::clean(&m.hints.load_preview))];
+    }
+    if let Some(text) = m.preview_state.text.clone() { set_text(m, text); }
+    if let Some(key) = m.preview_state.refusal {
+        m.preview_refusal = m.preview_state.i18n.tr(key);
+    }
+    if let Some(key) = m.preview_state.unshown_key {
+        if let Some(unshown) = &mut m.preview_state.unshown { unshown.sentence = m.preview_state.i18n.tr(key); }
+    }
+    words::metadata(m);
+    if let Some(player) = &mut m.player { player.refresh_locale(&m.preview_state.i18n); }
+    m.preview_width = 0;
+    super::pane::prepare(m);
+}
+pub fn set_text(m: &mut Model, text: Text) {
+    m.preview.truncate(2);
+    m.preview.push(text.render(&m.preview_state.i18n));
+    m.preview_state.text = Some(text);
+    m.preview_width = 0;
+}
+// Called after an accepted peek reply, retaining its semantic refusal independently of rendered words.
+pub fn peeked(m: &mut Model, value: &crate::jsondoc::Json) {
+    m.preview_state.refusal = if !super::wire::flag(value, "failed") { None }
+        else if super::wire::count(value, "mode") > 0 && super::wire::count(value, "mode") & 0o444 == 0 { Some("pane.locked") }
+        else { Some("pane.unread") };
+    m.preview_refusal = m.preview_state.refusal.map(|key| m.preview_state.i18n.tr(key)).unwrap_or_default();
+    m.preview_state.text = None;
+    m.preview_width = 0;
+}
+
+#[cfg(test)]
+#[path = "preview_locale_tests.rs"]
+mod locale_tests;

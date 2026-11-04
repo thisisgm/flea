@@ -13,60 +13,57 @@ below.
 
 ## Which package?
 
-The recommended install is `omarchy pkg aur add flea-bin`, and `omarchy update` keeps it current: a
-release reaches it minutes after it ships. Omarchy's own repository carries the same release as
-`flea`, a day or more behind. Install one of these, never two: all three own `/usr/bin/flea`, so pacman refuses a pair rather than leaving two
-half-installed.
-
-| Package | What you get | Built where | Install | Updates |
-|---|---|---|---|---|
-| `flea-bin`, AUR, recommended | the tagged release | Flea's release workflow, for x86_64 and aarch64; nothing compiles on your machine | `omarchy pkg aur add flea-bin` | `omarchy update`; a release arrives minutes after it ships |
-| `flea`, Omarchy's repository | the same tagged release | Omarchy's build host, signed; nothing compiles on your machine | `omarchy pkg add flea` | `omarchy update`; a release arrives a day or more after it ships, once Omarchy has reviewed and built it |
-| `flea-git`, AUR | current `main`, unreleased fixes included, for testers | your machine, with `cargo` | `yay -S flea-git` | `yay -Sua --devel` follows `main`; `omarchy update` rebuilds it only when its AUR PKGBUILD changes |
-
-The AUR also carries a `flea` that compiles the tagged release on your machine. Omarchy's repository
-package shares its name, so `omarchy update` replaces it with the repository build; use `flea-bin`
-instead.
-
-**Switching.** From `flea` to `flea-bin`, run the interactive command and answer `y` when pacman
-asks whether to remove `flea`:
+Flea is available only from the Omarchy Package Repository, as `flea`. It needs Omarchy, and the
+AUR accepts only packages that work on a plain Arch install, so Flea has no AUR package.
 
 ```
-yay -S flea-bin
+omarchy pkg add flea
 ```
 
-`omarchy pkg aur add flea-bin` cannot make that swap: it passes `--noconfirm`, pacman then answers
-its own "Remove flea?" with the default No, and the install stops at "unresolvable package
-conflicts". On a box with no Flea installed yet, both commands work. `flea-git` switches the same
-way, and going back to Omarchy's package is `sudo pacman -S flea`, answering `y` to remove the other.
-Omarchy refuses `yay -Syu` and `pacman -Syu`; `omarchy update`, or `yay -Sua` for the AUR alone, are
-the update commands.
+Omarchy's build host builds and signs each tagged release for x86_64 and aarch64, so nothing
+compiles on your machine. `omarchy update` keeps it current: a release arrives a day or more after
+it ships, once Omarchy has reviewed and built it. Omarchy refuses `yay -Syu` and `pacman -Syu`;
+`omarchy update` is the update command.
 
-What lands on disk is the table below whichever package it is, the licence directory aside, which
-takes the package's name: every AUR PKGBUILD runs the source `PKGBUILD`'s `package()` commands, and
-the release workflow refuses a tag where one has drifted. `flea --default` and `flea --picker` write
-per-user files, so a switch keeps them. The AUR also carries `flea`, the same release built from
-source on your machine, but on Omarchy the repository package of the same name comes first, so
-there is no reason to pick it there. [docs/release.md](release.md) is how each package is made.
+**Moving from the AUR.** Earlier releases were also on the AUR as `flea-bin`, `flea-git` and a
+source-built `flea`. To move from `flea-bin` or `flea-git`, run the interactive command and answer
+`y` when pacman asks whether to remove the AUR package:
+
+```
+sudo pacman -S flea
+```
+
+`omarchy pkg add flea` cannot make that swap: it passes `--noconfirm`, pacman then answers its own
+removal question with the default No, and the install stops at "unresolvable package conflicts".
+The AUR's `flea` shares the repository package's name, so `omarchy update` replaces it with the
+repository build at the next release. `flea --default` and `flea --picker` write per-user files, so
+the move keeps them.
 
 ## Build and install
 
 ```
 git clone https://github.com/thisisgm/flea.git
 cd flea
-makepkg -si
+mkdir -p ../flea-build
+cp PKGBUILD ../flea-build/
+pkgver=$(. ./PKGBUILD && echo "$pkgver")
+git archive --prefix="flea-$pkgver/" -o "../flea-build/flea-v$pkgver.tar.gz" HEAD
+(cd ../flea-build && makepkg -fCsi --skipchecksums)
 ```
 
-Three lines, and the third one is the whole build: `-s` pulls in anything missing from `depends`
-and `makedepends`, and `-i` hands the finished package to pacman.
-
-`source=()` is empty on purpose, and it is worth saying why, because it is not obvious: with no
-source array makepkg builds from `$startdir`, the directory the PKGBUILD sits in. So a fresh clone
-is the source, and so is a checkout you are editing. `build()` reads that directory in place and
-redirects `CARGO_TARGET_DIR` into makepkg's own source directory so a package build never disturbs
-the tree's `target/` under a benchmark. `check()` runs `cargo test --release`, so a package that
-builds is a package whose suite passed. **Build from a clean tree:** the checkout is the source, so
-uncommitted edits are what gets packaged.
+The repository's `PKGBUILD` is the Omarchy Package Repository's recipe, the same text apart from the
+release fields, so a local build is the build the repository makes. Its `source` is the release
+tarball. `git archive` writes that tarball from the checkout under the same name into `flea-build`,
+and makepkg uses a source file it finds beside the `PKGBUILD` instead of downloading one. The build
+runs there and not in the clone because makepkg unpacks into a `src/` beside the `PKGBUILD`, and the
+clone's `src/` is Flea's own code. `-f` builds again when the version has not changed, where makepkg
+would otherwise install the package it already has, and `-C` empties the previous build's `src/`
+first, so a file deleted since then is not packaged. `--skipchecksums` is needed because the
+recipe's checksum is a placeholder that only a release replaces; the tarball is your own commit, so
+git already vouches for it. `-s` pulls in anything missing from `depends` and `makedepends`, and
+`-i` hands the finished package to pacman. `check()` runs the test suites, so a package that builds
+is a package whose suites passed. **The last commit is the source:** `git archive` packages `HEAD`,
+so commit an edit before you build it.
 
 ## What lands on disk
 
@@ -75,6 +72,7 @@ uncommitted edits are what gets packaged.
 | `/usr/bin/flea` | the binary, backend and launcher both |
 | `/usr/share/flea/ui/` | the Quickshell UI, which `paths.rs` looks for by `boot/shell.qml` |
 | `/usr/share/flea/ui/Commons`, `/usr/share/flea/ui/Ui` | symlinks into `/usr/share/omarchy/shell/`, reached from QML as `qs.Commons` |
+| `/usr/share/flea/i18n/<code>/flea.json` | the translation catalogs, one per Omarchy language, which `src/i18n/mod.rs` reads |
 | `/usr/lib/flea/flea-portal` | the XDG portal backend, which answers `org.freedesktop.impl.portal.FileChooser` |
 | `/usr/lib/flea/flea-filemanager1` | the D-Bus service, which answers `org.freedesktop.FileManager1` for "Show in folder" |
 | `/usr/share/dbus-1/services/com.thisisgm.flea.FileManager1.service` | what D-Bus activates that with |
@@ -113,17 +111,18 @@ Then run `sudo systemctl restart NetworkManager`.
 sudo pacman -Rns flea
 ```
 
-Or `flea-bin`, or `flea-git`, whichever is installed. Everything above goes, including the
-directories the install created. The package carries no `.INSTALL` scriptlet, so nothing is ever
-created outside the file list pacman tracks, and the desktop and icon caches are re-indexed by
+An older AUR install removes the same way under its own name, `flea-bin` or `flea-git`.
+Everything above goes, including the directories the install created. The package carries no
+`.INSTALL` scriptlet, so nothing is ever created outside the file list pacman tracks, and the
+desktop and icon caches are re-indexed by
 Arch's own `update-desktop-database` and `gtk-update-icon-cache` hooks, which fire on Remove as
 well as on Install.
 
 Removal also runs Flea's own `flea.hook`, before any file goes. It prints `flea --default off` and
 `flea --picker off`, because what those two commands undo lives in each user's home, where pacman
 never reaches. Run them before the removal; once Flea is gone, the two "What `pacman -Rns flea`
-leaves behind" sections below name each file to delete by hand. Swapping `flea-bin` for `flea` or
-`flea-git` removes one package too, so the note appears then as well; its first line says it only
+leaves behind" sections below name each file to delete by hand. Moving from an AUR package to
+`flea` removes one package too, so the note appears then as well; its first line says it only
 matters when Flea is leaving for good.
 
 ## Make Flea the default
@@ -390,8 +389,9 @@ meaning the window. Launcher stdio is beside the point either way, and every lau
 hands over none: glib routes the launch through the session bus, so the child's stdio is the user
 manager's.
 
-`StartupWMClass` because the window's app id comes from the `AppId` pragma at `ui/boot/shell.qml:1` and
-is not the binary name. `packaging/flea-package-test` reads both and fails if they drift apart.
+`StartupWMClass` matches the GPUI window's `APP_ID`, `com.thisisgm.flea`, set in
+`crates/flea-gui/src/window/mod.rs`. The retained QML entry has the same `AppId`;
+`packaging/flea-package-test` still compares that pragma with the desktop entry.
 
 ## Proving it
 

@@ -173,6 +173,7 @@ bad "empty set stays empty, got '$norm_empty'"
 fi
 # The probe verdict against the native lines that failed it: one torn pid (before "169083 ", after "169083 169306 ") reading as the lifted folder is the catcher drop.
 . "$repo/tests/probes/layer-drop-verdict.sh" || { bad "cannot source layer-drop-verdict.sh"; }
+flea_ipc_init qs
 torn_case=$(layerdrop_torn_pids "169083 " "169083 169306 " || true)
 if [ "$torn_case" = "169306" ]; then
 ok "native before/after leaves one torn pid: $torn_case"
@@ -462,6 +463,11 @@ for shape in ('object', 'integer'):
     valid = scan.workspace_ids(entry)
     check(shape + ' active and special workspaces stay supported', valid == {1, 99})
     check(shape + ' client workspace stays supported', scan.client_rects([client], valid) == [[0, 0, 100, 100]])
+# Omarchy 4.5's bar surface spans the screen and takes input only on its reserved strip.
+bar = {'1': [], '2': [{'namespace': 'omarchy-bar', 'x': 0, 'y': 0, 'w': 100, 'h': 100}], '3': []}
+strip = scan.layer_rects({'DP-2': {'levels': bar}}, 'DP-2', 0, 0, 100, 100, dict(monitor, reserved=[0, 26, 0, 0]))
+check('a screen-wide bar surface covers only its reserved strip', strip == [[0, 0, 100, 26]])
+check('below the bar strip a free point is found', scan.find_free_point(0, 0, 100, 100, strip) == (8, 92))
 print(str(checks) + ' retained snapshot shape checks, 0 failed')
 PYSHAPES
 then
@@ -470,6 +476,7 @@ else
     bad "retained snapshot shapes"
 fi
 if python3 -B "$repo/tests/xwtab-safety.py"; then ok "live shell safety regressions"; else bad "live shell safety regressions"; fi
+if python3 -B "$repo/tests/xwtab-gpui-return.py"; then ok "GPUI own-strip return guards"; else bad "GPUI own-strip return guards"; fi
 if python3 -B "$repo/tests/layerdrop-receipts.py"; then
     ok "layer receiver receipts"
 else

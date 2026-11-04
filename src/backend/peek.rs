@@ -10,7 +10,7 @@ use crate::backend::sort::sort_by_name;
 use crate::json::escape;
 
 // One peek, answered on a worker when the mount is slow; the columns view's own also arms a watch BEFORE the scan, so no change is lost to its gap.
-pub(crate) fn answer(path: &str, first: usize, hidden: bool, order: Order, focus: String, watch: Option<(std::ffi::c_int, std::sync::mpsc::Sender<crate::backend::events::Event>)>, tb: &crate::backend::state::Tables) -> String {
+pub(crate) fn answer(path: &str, (first, details): (usize, bool), hidden: bool, order: Order, focus: String, watch: Option<(std::ffi::c_int, crate::backend::events::Sender<crate::backend::events::Event>)>, tb: &crate::backend::state::Tables) -> String {
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     let base = std::path::PathBuf::from(path);
     let (mime, icons) = (std::sync::Arc::clone(&tb.mime), std::sync::Arc::clone(&tb.icons));
@@ -20,7 +20,8 @@ pub(crate) fn answer(path: &str, first: usize, hidden: bool, order: Order, focus
             let wd = super::watch::Watch::add_raw(fd, std::path::Path::new(&owned));
             let _ = tx.send(crate::backend::events::Event::PeekArmed(wd, std::path::PathBuf::from(&owned)));
         }
-        peek_line(&owned, first, hidden, order, &focus, &mime, &icons)
+        if details { peek_line_details(&owned, first, true, hidden, order, &focus, (&mime, &icons)) }
+        else { peek_line(&owned, first, hidden, order, &focus, &mime, &icons) }
     }) {
         Ok(line) => line,
         Err(_) => format!("{{\"t\":\"peeked\",\"path\":\"{}\",\"hidden\":{},\"hiddenLast\":{},\"first\":{}{},\"n\":0,\"failed\":true,\"rows\":[]}}", escape(path), hidden, order.hidden_last, first, order.echo()),
@@ -51,6 +52,10 @@ pub const PEEK_CAP: usize = 512;
 
 // corner: a symlink draws its own mark rather than its target's, unlike a listing row.
 pub fn peek_line(path: &str, first: usize, hidden: bool, order: Order, focus: &str, mime: &Db, icons: &Names) -> String {
+    peek_line_details(path, first, false, hidden, order, focus, (mime, icons))
+}
+fn peek_line_details(path: &str, first: usize, details: bool, hidden: bool, order: Order, focus: &str, tables: (&Db, &Names)) -> String {
+    let (mime, icons) = tables;
     let hidden_last = order.hidden_last;
     let (mut listing, _read_ms) = match scan(path, hidden) {
         Ok(v) => v,
@@ -83,11 +88,11 @@ pub fn peek_line(path: &str, first: usize, hidden: bool, order: Order, focus: &s
         }
         let name = listing.name(i);
         let dir = listing.is_dir(i);
-        // Mode 0, because no row here is stat'd, so an unlisted program draws the generic mark, not the executable one.
+        // Peek icons use filename facts; optional size metadata does not change their classification.
         let icon = icons.icon_for(mime.lookup(name), dir, 0);
         out.push_str(&format!(
-            r#"{{"n":"{}","d":{},"i":"{}"}}"#,
-            escape(name), dir, escape(icon)
+            r#"{{"n":"{}","d":{},"i":"{}"{}}}"#,
+            escape(name), dir, escape(icon), super::peekdetail::fields(path, name, details)
         ));
     }
     out.push_str("]}");

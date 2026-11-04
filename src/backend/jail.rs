@@ -20,6 +20,8 @@ const STATUS_STEP_MS: u64 = 5;
 // How long kill_tree waits for a killed pid to vanish; the cancel tests pin their promptness to this same bound.
 pub(crate) const WAIT_GONE_SECS: u64 = 2;
 const WAIT_GONE_STEP_MS: u64 = 10;
+// The execute bits of st_mode; a launcher needs any one of them.
+const ANY_EXECUTE_BIT: u32 = 0o111;
 
 extern "C" {
     fn pipe2(fds: *mut i32, flags: i32) -> i32;
@@ -119,6 +121,13 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     if full.is_empty() {
         return Err(std::io::Error::other("empty jail argv"));
     }
+    let launcher = launcher_path(&full[0])?;
+    // Our prlimit wrappers attach limit values to their flags; the first non-option is the launcher.
+    let nested = if std::path::Path::new(&full[0]).file_name()
+        == Some(std::ffi::OsStr::new(crate::backend::sandbox::PRLIMIT)) {
+        full.iter().enumerate().skip(1).find(|(_, arg)| !arg.starts_with('-'))
+            .map(|(at, program)| launcher_path(program).map(|path| (at, path))).transpose()?
+    } else { None };
     let mut fds = [0, 0];
     if unsafe { pipe2(fds.as_mut_ptr(), O_CLOEXEC) } != 0 {
         return Err(std::io::Error::last_os_error());
@@ -128,8 +137,12 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     let read_raw = read_fd.as_raw_fd();
     let write_raw = write_fd.as_raw_fd();
     let status_fd = crate::backend::sandbox::STATUS_FD;
-    let mut cmd = std::process::Command::new(&full[0]);
-    cmd.args(&full[1..]);
+    let mut cmd = crate::backend::locale::command(launcher);
+    if let Some((at, path)) = nested {
+        cmd.args(&full[1..at]).arg(path).args(&full[at + 1..]);
+    } else {
+        cmd.args(&full[1..]);
+    }
     setup(&mut cmd);
     unsafe {
         use std::os::unix::process::CommandExt;
@@ -166,6 +179,42 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
         return Err(std::io::Error::other("the jail status reader could not start"));
     }
     Ok(Jailed { child, sandbox_pid: pid })
+}
+
+fn launcher_path(program: &str) -> std::io::Result<std::path::PathBuf> {
+    use std::path::{Path, PathBuf};
+    let directories: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|path| {
+            std::env::split_paths(&path)
+                .filter(|directory| directory.is_absolute())
+                .collect()
+        })
+        .unwrap_or_default();
+    let program = Path::new(program);
+    let launcher = if program.is_absolute() {
+        Some(program.to_owned())
+    } else if program.components().count() == 1 {
+        directories
+            .iter()
+            .map(|directory| directory.join(program))
+            .find(|candidate| executable_file(candidate))
+    } else {
+        None
+    };
+    let launcher = launcher.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Sandbox launcher is unavailable",
+        )
+    })?;
+    Ok(launcher)
+}
+
+// A launcher lookup's criterion: a regular file, or a link to one, with any execute bit set.
+pub(crate) fn executable_file(path: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    path.metadata()
+        .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & ANY_EXECUTE_BIT != 0)
 }
 
 // Kills bwrap and the sandbox init, reaps bwrap within a bound, and leaves the Jailed finished.
@@ -212,3 +261,7 @@ fn wait_gone(pid: i32) {
 #[cfg(test)]
 #[path = "jail_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "jail_path_tests.rs"]
+mod path_tests;

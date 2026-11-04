@@ -1,0 +1,36 @@
+{
+  "protocolVersion": 1,
+  "transport": "UTF-8 JSON lines on stdin and stdout",
+  "maxMessageBytes": 65536,
+  "maxRows": 256,
+  "maxSelection": 512,
+  "maxProgress": 128,
+  "maxProgressBytes": 1048576,
+  "readyTimeoutSeconds": 5,
+  "requestTimeoutSeconds": 30,
+  "idleTimeoutSeconds": 30,
+  "restartBudget": {"failures": 3, "windowSeconds": 60},
+  "actionInput": {
+    "manifestPath": "menuActions[].input",
+    "fields": ["key", "title", "label", "submit", "placeholder", "maxChars"],
+    "maxChars": 4096,
+    "requestPath": "run.input",
+    "cancel": "Cancel, Escape and window close send no run request",
+    "selection": "Revalidate the original captured selection after submit"
+  },
+  "hello": ["op", "protocolVersion", "flea", "language", "decimal", "settings", "kinds"],
+  "operations": [
+    {"op": "targets", "kind": "send-target", "response": "targets"},
+    {"op": "send", "kind": "send-target", "response": "done"},
+    {"op": "run", "kind": "menu-action", "response": "done"},
+    {"op": "section", "kind": "rail-section", "response": "section"},
+    {"op": "list", "kind": "place", "response": "list"},
+    {"op": "copy", "kind": "place", "response": "done"},
+    {"op": "move", "kind": "place", "response": "done"},
+    {"op": "rename", "kind": "place", "response": "done"},
+    {"op": "delete", "kind": "place", "response": "done"},
+    {"op": "preview", "kind": "previewer", "response": "preview"},
+    {"op": "shelf", "kind": "shelf", "response": "done"},
+    {"op": "settings", "kind": "", "response": "done"}
+  ]
+}

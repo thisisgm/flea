@@ -1,13 +1,20 @@
-use crate::backend::meta::stat_range;
-use crate::backend::meta::Meta;
+#[cfg(test)]
+#[path = "trashthumb_protocol_tests.rs"]
+mod trashthumb_protocol_tests;
+#[cfg(test)]
+#[path = "contents_tests.rs"]
+mod contents_tests;
+#[cfg(test)]
+#[path = "contents_roundtrip_tests.rs"]
+mod contents_roundtrip_tests;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peekwatch::PeekWatch;
 use crate::backend::metareq::spawn as spawn_meta;
-use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_link, start_link_target, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
+use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
-use crate::backend::events::{spawn_forwarder, spawn_op_forwarder, spawn_reader, Event};
+use crate::backend::events::{spawn_op_forwarder, Event, Sender};
 use crate::backend::{flashop, flashslot};
 use crate::backend::fsinfo::fsinfo_line;
 use crate::backend::fsinforeq::FsInfo;
@@ -15,17 +22,21 @@ use crate::backend::listpaths;
 use crate::backend::listwork::{self, Gate};
 use crate::backend::proto::{error_line, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::proto::with_anchor;
-use crate::backend::rows::rows_line;
-use crate::backend::sandbox;
+pub use super::windowreq::{write_window, write_window_gen};
+pub(crate) use super::windowreq::window_metas;
+use super::windowreq::window_line;
 use crate::backend::listing::Listing;
 use crate::backend::search::Search;
+use crate::backend::searchjobs::route_delta;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::searchreq::{collapse_query_burst, emit_session_answer, finish_search, is_search_query_line,
     op_tag_paths, op_write_paths, searchclosed_line, searchopened_line, step_search};
-use crate::backend::thumbcache::{default_root, Cache};
+use crate::backend::thumbcache::Cache;
 use crate::backend::thumbreq::{cancel_all, cancel_row, report_done, thumb_rows};
-use crate::backend::thumbs::{Done, Pool};
+use crate::backend::thumbs::Pool;
+#[cfg(test)]
+use crate::backend::thumbs::Done;
 use crate::backend::thumbwrite::sweep_own_temps;
 use crate::backend::unmount::leave_mount;
 use crate::backend::watch::{changed_line, Watch};
@@ -34,7 +45,7 @@ use crate::heap;
 use std::collections::VecDeque;
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -56,34 +67,34 @@ enum Control {
 
 // Errors are responses, so the loop never exits on a bad request.
 pub fn run() -> i32 {
+    if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
-    // Recorded when the first rows go out, the next launch's prefetch list; see src/prefetch.rs.
-    crate::prefetch::record_after_first_rows();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
-    let (tx, rx) = channel::<Event>();
+    let (tx, rx, inbox) = match super::inbox::open() { Ok(open) => open, Err(e) => { say(&mut out, &error_line(&e)); return 1 } };
     let mut st = State::new(super::dirsizeworker::Worker::new(tx.clone()));
-    let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
-    let mut ops = Ops::new_shared(op_tx);
-    let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+    let mut ops = Ops::new_shared(op_tx.clone());
+    let op_events = tx.clone();
+    ops.tx = super::lazy::DeferredSender::new(move || {
+        spawn_op_forwarder(op_rx, op_events);
+        op_tx
+    });
+    let pool = Pool::lazy(THUMB_WORKERS, &tb, super::thumbcache::default_root(), tx.clone());
     let cache = Cache::new();
-    // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
-    if !sandbox::available() {
-        eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
-    }
-    // The workers hold senders too, so no exit can come from a disconnect and every exit is an explicit event; see AGENTS.md "Thumbnail requests".
-    spawn_forwarder(done, tx.clone());
-    spawn_op_forwarder(op_rx, tx.clone());
     // One flash at a time beside transfers; its worker reports on its own channel, joined the same way.
     let (flash_tx, flash_rx) = channel::<flashslot::FlashMsg>();
-    let mut flash = flashslot::Ctx::new(flash_tx);
-    flashslot::spawn_forwarder(flash_rx, tx.clone());
-    spawn_reader(tx.clone(), Arc::clone(&ops.live));
+    let mut flash = flashslot::Ctx::new(flash_tx.clone());
+    let flash_events = tx.clone();
+    flash.tx = super::lazy::DeferredSender::new(move || {
+        flashslot::spawn_forwarder(flash_rx, flash_events);
+        flash_tx
+    });
+    let mut inbox = inbox.start(super::inbox::STDIN, tx.clone(), Arc::clone(&ops.live));
     let mut fsinfo = FsInfo::new(tx.clone());
     let loop_tx = tx.clone();
-    // Armed before the first request, so no listing is ever answered with nothing watching it.
+    // The descriptor starts on first use, still armed before the listing scan.
     let mut watch = Watch::start(tx.clone());
     let mut peeks = PeekWatch::start(tx.clone());
     let poller = super::watchpoll::Poller::new(tx.clone());
@@ -91,17 +102,16 @@ pub fn run() -> i32 {
     let mut gate = Gate::new(loop_tx.clone());
     // Drained events wait here in order, so a collapsed query burst loses no sibling line.
     let mut buffered: VecDeque<Event> = VecDeque::new();
+    let mut search_jobs = super::searchjobs::Gate::default();
     loop {
         start_next(&mut st);
-        // Size results wake this receiver; only search still needs idle ticks.
+        // A request or any send wakes the loop here, with no hop through another thread; only search still needs idle ticks.
         let event = if let Some(ev) = buffered.pop_front() {
             ev
         } else if st.search.is_none() {
-            match rx.recv() {
-                Ok(e) => e,
-                Err(_) => break,
-            }
+            match inbox.next(&rx) { Some(e) => e, None => break }
         } else {
+            inbox.hand_over();
             match rx.try_recv() {
                 Ok(e) => e,
                 // Search takes one bounded step before checking requests again.
@@ -112,36 +122,56 @@ pub fn run() -> i32 {
                 Err(TryRecvError::Disconnected) => break,
             }
         };
-        let Some(event) = collapse_burst(&rx, event, &mut buffered, st.search_session.is_some(), gate.holds()) else { continue };
-        if dispatch(event, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash, &mut watch, &mut peeks, &mut fsinfo, &poller, &loop_tx, &mut gate) == Control::Quit {
+        let Some(event) = collapse_burst(&rx, event, &mut buffered, st.search_session.is_some() || search_jobs.busy(), gate.holds(), &mut search_jobs) else { continue };
+        let Some(event) = search_jobs.route(event, &mut st, &mut out, &tb, &pool, &loop_tx, &mut buffered, gate.holds()) else { continue };
+        if dispatch_inner(event, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash, &mut watch, &mut peeks, &mut fsinfo, &poller, &loop_tx, &mut gate, Some(&mut search_jobs)) == Control::Quit {
             break;
         }
     }
+    st.nearby.close();
+    st.contents.clear();
     st.dirsize_worker.cancel();
     drain(&mut out, &mut st, &mut ops, &mut flash, &rx, &pool, &cache);
     0
 }
 
 // A burst answers only its newest query, in its own place; a held burst collapses too, as the session a deferred searchopen opens is not visible yet.
-fn collapse_burst(rx: &Receiver<Event>, event: Event, buffered: &mut VecDeque<Event>, session: bool, held: bool) -> Option<Event> {
+fn collapse_burst(rx: &Receiver<Event>, event: Event, buffered: &mut VecDeque<Event>, session: bool, held: bool, jobs: &mut super::searchjobs::Gate) -> Option<Event> {
     match event {
-        Event::Request(line) if is_search_query_line(&line) && (session || held) => collapse_query_burst(rx, line, buffered).map(Event::Request),
+        Event::Request(line) if is_search_query_line(&line) && (session || held) => {
+            let (now, gen) = collapse_query_burst(rx, line, buffered);
+            jobs.supersede(gen);
+            now.map(Event::Request)
+        },
         other => Some(other),
     }
 }
 
 // One event against everything the loop owns, so a test drives the arms the loop runs; Quit ends the loop.
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
                       flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
                       poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate) -> Control {
+    dispatch_inner(event, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, None)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
+                      flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
+                      poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate,
+                      mut search_jobs: Option<&mut super::searchjobs::Gate>) -> Control {
     match event {
+        Event::Contents(done) => super::contentsreq::done(out, st, tb, pool, loop_tx, done, (watch, poller)),
         Event::Request(line) => {
+            if super::nearby::is_request(&line) {
+                return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            }
             // A list for another folder takes the place of a plain list scan still out, after the requests that waited replay against the listing still current.
             while gate.holds() && listwork::list_path(&line).is_some_and(|path| gate.let_go(&path)) {
-                let quit = listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit);
+                let quit = listwork::replay(gate, |waiting, gate| handle_with_jobs(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()) == Control::Quit);
                 gate.release_late().into_iter().for_each(|late| watch.abandon_wd(late)); // a local list answers inline, with no Event::List to release them
-                for held in gate.take_held() { dispatch(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate); }
+                for held in gate.take_held() { dispatch_inner(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()); }
                 if quit { return Control::Quit; }
             }
             // A scan is out, so a later request cannot be answered against a listing it will replace.
@@ -149,7 +179,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 gate.defer(line);
                 return Control::Continue;
             }
-            return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            return handle_with_jobs(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut());
         }
         // The scan answered: it becomes the listing, then every request that waited replays in order.
         Event::List(done) => {
@@ -161,20 +191,28 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 }
                 gate.take_unmounts().into_iter().for_each(|wd| leave_mount(out, &st.base, watch, poller, wd));
                 // A poll or a probe seen during the scan is judged against the folder that landed.
-                for held in gate.take_held() { dispatch(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate); }
-                // A walk that landed during a session's folder scan is announced after that folder answer.
-                on_search_walked(out, st, tb, pool);
+                for held in gate.take_held() { dispatch_inner(held, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()); }
+                // An empty query's landing carries no scored rows and follows its folder answer immediately.
+                let empty = st.search_session.as_ref().is_some_and(|session| session.held.is_none()
+                    && session.standing.as_ref().is_some_and(|(_, query, _)| query.is_empty()));
+                if empty { on_search_walked(out, st, tb, pool); }
+                else if let Some(jobs) = search_jobs.as_deref_mut() {
+                    jobs.route(Event::SearchWalked, st, out, tb, pool, loop_tx, &mut VecDeque::new(), false);
+                } else { on_search_walked(out, st, tb, pool); }
             }
             gate.release_late().into_iter().for_each(|late| watch.abandon_wd(late)); // judged against the watch that landed
-            if listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit) {
+            if listwork::replay(gate, |waiting, gate| handle_with_jobs(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate, search_jobs.as_deref_mut()) == Control::Quit) {
                 return Control::Quit;
             }
             // stdin closed while the scan was out: the listing was answered first, so now leave.
             if gate.closed() && gate.idle() {
-                return Control::Quit;
+                if let Some(jobs) = search_jobs.filter(|jobs| jobs.busy()) { jobs.close_after_waiting(); }
+                else { return Control::Quit; }
             }
         }
+        Event::Git(line) => say(out, &line),
         Event::Thumb(d) => report_done(out, st, pool, d),
+        Event::Nearby { ticket, line } => if st.nearby.accept(ticket) { say(out, &line) },
         Event::Flash(m) => flash.report(out, &m),
         Event::DirSize(d) => report_dirsize(out, st, d),
         // A slow mount's figures, printed only for the directory on screen now.
@@ -186,19 +224,23 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // The one line no client asked for, and only ever for the directory being listed now.
         Event::Changed(wd) => {
+            #[cfg(test)]
+            super::renametiming::mark("watch_begin");
             // The current descriptor is unknown while a scan is out, so the burst waits for the scan's answer.
             if gate.holds() {
                 gate.note_change(wd);
             } else if watch.is_current(wd) {
                 say_changed(out, st);
             }
+            #[cfg(test)]
+            super::renametiming::mark("watch_end");
         }
         // The open mount went away; while a scan is out the current descriptor is unknown, so it waits for the scan's answer.
         Event::Unmounted(wd) => if gate.holds() { gate.note_unmount(wd) } else { leave_mount(out, &st.base, watch, poller, wd) },
         // A network folder's mtime moved, which inotify never delivers; only the open path counts, and while a scan is out it waits for the scan's answer.
         Event::PollChanged(path) if gate.holds() => gate.hold(Event::PollChanged(path)),
         Event::PollChanged(path) => {
-            if path == st.base {
+            if super::outline::watched(&st.listing, &st.base, &path) {
                 say(out, &changed_line(&st.base));
             }
         }
@@ -209,17 +251,20 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         // A late list worker's descriptor goes unless a re-list aliased it onto the live watch, which a scan still out may not have committed yet.
         Event::AbandonWatch(wd) => gate.park_late(wd).into_iter().for_each(|late| watch.abandon_wd(late)),
         Event::Op(m) => {
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
                 // An own write under the scope patches the index, and a due batch re-runs the standing query.
+                session.row_cache.clear();
                 let patched = session.patch_after_writes(&op_write_paths(&m));
                 // A late or redone tag write changes names only: the cache swaps them, and the landing re-runs the query.
                 session.note_tags_written(&op_tag_paths(&m));
                 if patched && session.batch_due() {
-                    if let Some(answer) = session.re_answer_now() {
-                        emit_session_answer(out, st, tb, pool, &answer);
-                    }
+                    let _ = loop_tx.send(Event::SearchRefresh);
                 }
             }
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_end"); }
             report_op(out, ops, m);
         }
         // A session walk landed; the standing query is re-run once when it is still the newest.
@@ -230,7 +275,14 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
+        Event::SearchDelta(token) if gate.holds() => gate.hold(Event::SearchDelta(token)),
+        // A delta replayed from the listing gate enters the execution gate at once, so the requests replayed after it queue behind it.
+        Event::SearchDelta(token) => route_delta(search_jobs, token, st, out, tb, pool, loop_tx),
+        Event::SearchRefresh if gate.holds() => gate.hold(Event::SearchRefresh),
+        Event::SearchRefresh => super::searchjobs::route_refresh(search_jobs, st, out, tb, pool, loop_tx),
+        Event::SearchReady => {},
         Event::ReadError(e) => {
+            st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.
             writeln!(out, "{}", error_line(&e)).ok();
             out.flush().ok();
@@ -243,6 +295,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // A scan still out is answered before the process leaves, so no client loses its listing.
         Event::Closed => {
+            st.nearby.close();
             if gate.holds() {
                 gate.close();
                 return Control::Continue;
@@ -266,14 +319,16 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
     if listwork::finish(out, st, tb, pool, watch, landed) {
         // After the rows, because a statfs beside gio's own listing slows it on the share.
         fsinfo.list_arrived(Path::new(&path), &st.listing);
-        // The open folder alone is polled, so a remote change arrives without inotify.
+        // Every open outline folder uses the same remote poll path as its root.
         poller.set(PathBuf::from(path));
+        poller.set_children(st.listing.outline_open.iter().map(|name| st.base.join(name)));
     }
 }
 
 // The listed folder's change line, after an open search session patches that folder's own entries.
 fn say_changed(out: &mut impl Write, st: &mut State) {
     if let Some(session) = st.search_session.as_mut() {
+        session.row_cache.clear();
         let folder = session.folder.clone();
         session.patch_open_dir(&folder);
     }
@@ -284,6 +339,21 @@ fn say_changed(out: &mut impl Write, st: &mut State) {
 pub(crate) fn say(out: &mut impl Write, line: &str) {
     writeln!(out, "{}", line).ok();
     out.flush().ok();
+}
+
+// Listing-gate replays enter the same execution gate as requests read by the main loop.
+#[allow(clippy::too_many_arguments)]
+fn handle_with_jobs(line: &str, out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops,
+    flash: &mut flashslot::Ctx, watch: &mut Watch, peeks: &mut PeekWatch, fsinfo: &mut FsInfo,
+    poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate,
+    search_jobs: Option<&mut super::searchjobs::Gate>) -> Control {
+    if let Some(jobs) = search_jobs {
+        let mut buffered = VecDeque::new();
+        if jobs.route(Event::Request(line.to_string()), st, out, tb, pool, loop_tx, &mut buffered, gate.holds()).is_none() {
+            return Control::Continue;
+        }
+    }
+    handle_line(line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate)
 }
 
 fn handle_line(
@@ -308,37 +378,98 @@ fn handle_line(
         return Control::Continue;
     }
     let request = parse_request(line);
+    if super::contentsreq::intercept(line, &request, out, st, tb, pool) {
+        return Control::Continue;
+    }
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
+        Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
+        Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
+        Request::Git { line } => st
+            .git
+            .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
+            .request(line),
+        Request::Plugins { line } => super::plugins::request(line, ops.tx.clone()),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
             ops.picker.get_or_insert_with(|| super::picker::Picker::new(replies)).request(line);
         }
         Request::MenuAction { line, rows } => {
-            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
-            let cursor = crate::json::field_usize(&line, "cursor").map(|index|
-                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default());
+            if matches!(crate::json::field_str(&line, "op").as_deref(), Some("tagstates" | "settags")) {
+                let changed = super::tagsreq::menu(out, ops, st, &line);
+                note_tag_writes(st, &changed);
+                return Control::Continue;
+            }
+            let paths = resolve_rows(crate::json::field_str_array(&line, "paths"), &rows, &st.base, &st.listing);
+            let cursor = crate::json::field_str(&line, "cursorPath").or_else(|| crate::json::field_usize(&line, "cursor").map(|index|
+                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default()));
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
-        Request::LocalSend { op, peer, paths, id } => super::localsend::request(op, peer, paths, id, ops.tx.clone()),
+        Request::Rclone { line } => super::rclone::request(out, ops, &line),
+        Request::Jobs { line } => {
+            let reached = super::jobevents::request(out, ops, &line);
+            patch_session_paths(st, reached.dirs);
+            note_tag_writes(st, &reached.tags);
+        }
+        Request::Actions { line } => {
+            super::actions::request(line, Arc::clone(&tb.mime), ops.tx.clone())
+        }
+        Request::LocalSend {
+            op,
+            peer,
+            paths,
+            id,
+        } => {
+            if op == "send" {
+                let job = ops.claim_id();
+                ops.jobs.submit(
+                    out,
+                    job,
+                    super::jobwork::Spec { kind: "send", label: "Sending", target: None },
+                    super::jobwork::Work::Send {
+                        peer,
+                        paths,
+                        request: id,
+                        selection: None,
+                    },
+                    &ops.detached,
+                    &ops.tx,
+                );
+            } else {
+                super::localsend::request(op, peer, paths, id, ops.tx.clone());
+            }
+        }
         Request::TrashBrowse { line } => {
-            let replies = ops.tx.clone();
-            // The browser resolves its originals inside, so the mounts held slow travel with the request.
-            let pending = ops.pending.iter().map(|held| held.mount.clone()).collect();
-            let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line, pending, body);
+            super::trashbrowse::request(out, ops, line);
+        }
+        Request::Outline { row, open, enabled, first } => {
+            if let Some(enabled) = enabled.filter(|_| st.held != Held::List) {
+                st.outline.disabled = !enabled;
+                return Control::Continue;
+            }
+            match super::outline::request(st, row, open, enabled, first) {
+                Ok(line) => return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate),
+                Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: st.base.to_string_lossy().into_owned(), msg })),
+            }
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed } => {
+            #[cfg(test)]
+            super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
             close_search_session(st);
-            let job = listwork::Job { path, first, line: line.to_string(), hidden, want_changed, session: None };
+            let line = st.outline.list(line);
+            let job = listwork::Job { path, first, line, hidden, want_changed, session: None };
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
+            // Desktop priors load on their own worker after the first listing, so an empty window starts no thread.
+            super::searchprior::start();
+            #[cfg(test)]
+            super::renametiming::mark("list_complete");
         }
         // A set of named paths is not a directory, so the watch stops rather than following its base.
         Request::ListPaths { paths, first } => {
@@ -347,12 +478,19 @@ fn handle_line(
             poller.clear();
             listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
+        Request::Filter { query, id } => {
+            let line = super::findnames::requested(&st.listing, &query, id, line);
+            say(out, &super::rowguard::stamped(line, st.generation));
+        }
         Request::Window { start, count } => {
+            let start = st.window_start(start);
+            if count == 0 {
+                say(out, &super::rowguard::stamped(super::rows::empty_line(start, 0.0), st.generation));
+                return Control::Continue;
+            }
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
-                    let start_w = start.min(st.listing.len());
-                    let mut kinds = tb.kinds.borrow_mut();
-                    let line = super::rows::rows_line(&st.base, &st.listing, &metas, start_w, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+                    let line = window_line(st, tb, &metas, start, ms);
                     writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok();
                 }
                 Err(e) => {
@@ -386,6 +524,7 @@ fn handle_line(
             }
             out.flush().ok();
         }
+        Request::SearchContents { line } => super::contentsreq::start(&line, out, st, loop_tx),
         Request::SearchCancel => {
             if st.search_session.is_some() {
                 // The walk stops, the index stays and the standing query re-answers once; with no walk, silence.
@@ -461,6 +600,7 @@ fn handle_line(
             }
         }
         Request::Sort { by, desc: _, anchor } => {
+            st.outline.sort(line);
             close_search_session(st);
             // The walk owns the listing sort would reorder, so it ends first rather than racing it.
             if finish_search(out, st, true) {
@@ -510,8 +650,8 @@ fn handle_line(
             }
             out.flush().ok();
         }
-        Request::Thumb { rows, cache_only } => {
-            thumb_rows(out, &rows, st, tb, pool, cache, cache_only);
+        Request::Thumb { rows, cache_only, identity } => {
+            thumb_rows(out, &rows, st, tb, pool, cache, super::thumbreq::identity::Options { cache_only, identity });
             out.flush().ok();
         }
         Request::ThumbCancel { rows } => {
@@ -522,6 +662,13 @@ fn handle_line(
                     cancel_row(out, st, pool, *row);
                 }
             }
+        }
+        Request::TrashThumb { line } => {
+            super::trashthumb::request(out, st, tb, pool, cache, &line);
+            out.flush().ok();
+        }
+        Request::TrashThumbCancel { ids } => {
+            super::trashthumb::cancel(out, st, pool, &ids);
         }
         Request::DirSize { rows } => {
             queue_dirsizes(out, st, &rows);
@@ -548,27 +695,39 @@ fn handle_line(
         Request::ClipGet => super::clipreq::request_get(ops.tx.clone()),
         Request::ClipClear { token, cut } => super::clipreq::request_clear(ops.tx.clone(), token, cut),
         Request::ClipWatch => super::clipreq::request_watch(ops.tx.clone(), &mut st.clip_watching, None),
-        Request::Link { op, paths, rows, dest, collide } => {
+        Request::Link { held, op, paths, rows, dest, collide } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_link(out, ops, &op, named, &dest, collide)
+            super::linkheld::start(out, ops, held, &op, named, &dest, collide)
         }
-        Request::LinkTarget { path, id } => start_link_target(ops, &path, id),
+        Request::LinkTarget { path, id, expected } => super::linkheld::target(ops, &path, id, expected),
         Request::PermissionsBatch { paths, modes, id } => do_permissions_batch(out, ops, paths, modes, id),
         Request::TransferCancel { id } => cancel_transfer(out, ops, id),
-        Request::Trash { paths, rows, menu_id } => {
+        Request::Trash { paths, rows, menu_id, request } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_trash(out, ops, named, menu_id)
+            start_trash(out, ops, named, menu_id, request)
         }
         Request::Rename { path, to, menu_id } => {
-            // A rename is an own write: its landed paths patch the index with no walk.
+            #[cfg(test)]
+            super::renametiming::begin();
+            // The worker result patches the search index using the rename's owned paths.
             let touched = if menu_id == 0 { do_rename(out, ops, &path, &to) }
                 else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id) };
             patch_session_paths(st, touched);
         }
         Request::BulkRename { paths, names } => patch_session_paths(st, super::bulkrename::do_bulkrename(out, ops, paths, names)),
-        Request::MkDir { path, name } => patch_session_paths(st, do_mkdir(out, ops, &path, &name)),
+        Request::MkDir { path, name, default_base } => {
+            let request = crate::json::field_usize(line, "request").unwrap_or(0);
+            let default_base = default_base.as_deref();
+            let touched = if request == 0 { do_mkdir(out, ops, &path, &name, default_base) }
+                else { super::opsdispatch::do_mkdir_requested(out, ops, &path, &name, default_base, request) };
+            patch_session_paths(st, touched);
+        }
         Request::NewFile { path, name, id } => patch_session_paths(st, do_newfile(out, ops, &path, &name, id)),
-        Request::Duplicate { path, menu_id } => start_duplicate(out, ops, &path, menu_id),
+        Request::Duplicate { path, menu_id } => {
+            let request = crate::json::field_usize(line, "request").unwrap_or(0);
+            if request == 0 { start_duplicate(out, ops, &path, menu_id) }
+            else { super::opsdispatch::created_request::duplicate(out, ops, &path, menu_id, request) }
+        }
         Request::Undo => {
             // An undo is an own write: its reversal patches the index with no walk.
             let reached = do_undo(out, ops);
@@ -577,14 +736,14 @@ fn handle_line(
         }
         Request::Redo => start_redo(out, ops),
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
-        Request::Peek { path, first, hidden, hidden_last, focus, watch, keep, by, desc } => {
+        Request::Peek { path, first, details, hidden, hidden_last, focus, watch, keep, by, desc } => {
             if watch && !keep.is_empty() { peeks.keep(keep.into_iter().map(PathBuf::from).collect()) }
             let order = match super::peek::Order::wire(hidden_last, by.as_deref(), desc) {
                 Ok(order) => order,
                 // A key this wire never defined answers the sort's own error, never a name-order column.
                 Err(msg) => { say(out, &error_line(&FleaError { where_: "sort".to_string(), path: by.unwrap_or_default(), msg: msg.to_string() })); return Control::Continue }
             };
-            let line = super::peek::answer(&path, first, hidden, order, focus, watch.then(|| (peeks.raw_fd(), loop_tx.clone())), tb);
+            let line = super::peek::answer(&path, (first, details), hidden, order, focus, watch.then(|| (peeks.raw_fd(), loop_tx.clone())), tb);
             say(out, &line)
         }
         // A compress names absolute paths and no path; an extract names the one archive in path.
@@ -594,6 +753,7 @@ fn handle_line(
             paths, format, PathBuf::from(&path), PathBuf::from(&dest), menu_id, password, encrypt_names),
         Request::Convert { path, dest, strip, menu_id, request_id, check } =>
             start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip, menu_id, request_id, check),
+        Request::PrintConvert(ask) => super::printreq::serve(out, ops, ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases)),
         Request::Formats { id } => {
             let mut line = formats_line(&tb.formats, convert::available());
             line.insert_str(line.len() - 1, &format!(r#", "id":{},"providers":{}"#, id, super::providers::facts()));
@@ -608,9 +768,13 @@ fn handle_line(
         Request::PdfCopy { id, slot, path } => {
             super::pdfcopy::spawn(id, slot, PathBuf::from(&path), ops.tx.clone());
         }
-        Request::OfficePdf { id, path } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path),
+        Request::OfficePdf { id, path, sheets } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path, sheets),
         Request::FontLook(ask) => super::fontinfo::render::spawn(ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases), ops.tx.clone()),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
+        Request::Owner { row, token } => {
+            let path = (row < st.listing.len()).then(|| st.base.join(st.listing.name(row)));
+            super::owner::spawn(row, path, token, ops.tx.clone());
+        }
         Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
@@ -624,14 +788,30 @@ fn handle_line(
         // Answered on a thread, since bat runs in a jail and a read on a hung mount never returns.
         Request::Code(ask) => super::codereq::spawn(ask, ops.tx.clone()),
         Request::Html(ask) => super::htmlreq::spawn(ask, ops.tx.clone()),
+        Request::Model3d(ask) => super::model3dreq::spawn(ask, ops.tx.clone()),
         // Answered on a thread: diff runs in a jail and a read on a hung mount never returns.
         Request::Compare(ask) => super::compare::spawn(ask, ops.tx.clone()),
         tags @ (Request::SetTags { .. } | Request::TagStates { .. }) => {
             let written = super::tagsreq::handle(out, ops, st, tags);
             note_tag_writes(st, &written);
         }
-        Request::Paths { rows } =>
-            say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::Paths { rows } => {
+            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
+            if crate::json::field_bool(line, "hold") {
+                super::linkheld::request(out, ops.tx.clone(), paths, st.generation, true, crate::json::field_usize(line, "id").unwrap_or(0));
+            } else {
+                say(out, &paths_line(&paths));
+            }
+        }
+        Request::ImagePaths(ask) => say(
+            out,
+            &paths_line(&super::viewerpaths::ordered(
+                &st.base,
+                &st.listing,
+                &tb.mime,
+                &ask,
+            )),
+        ),
         Request::Locate { path } => {
             let index = st.listing.index_of(&st.base, Path::new(&path));
             say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
@@ -659,6 +839,8 @@ fn handle_line(
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}
     }
+    super::renamework::flush_pending(ops);
+    ops.jobs.refresh_undo(out, &ops.journal);
     Control::Continue
 }
 
@@ -676,78 +858,9 @@ fn note_tag_writes(st: &mut State, written: &[PathBuf]) {
     }
 }
 
-// One past the last adopted row, so a request naming only held rows spends nothing.
-fn rows_end(rows: &[usize]) -> usize {
-    rows.iter().copied().max().map(|last| last.saturating_add(1)).unwrap_or(0)
-}
-
-// One past the last row a request can read; no wildcard arm, so a new request must classify its rows to compile.
-fn rows_needed(request: &Request) -> usize {
-    match request {
-        Request::Window { start, count } => start.saturating_add(*count),
-        Request::MenuAction { rows, .. }
-        | Request::Thumb { rows, .. }
-        | Request::DirSize { rows, .. }
-        | Request::Transfer { rows, .. }
-        | Request::Collisions { rows, .. }
-        | Request::Link { rows, .. }
-        | Request::Trash { rows, .. }
-        | Request::Paths { rows } => rows_end(rows),
-        Request::Meta { row, .. } => row.saturating_add(1),
-        // Tags apply to and read held rows; the bulk rename names paths, never rows.
-        Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
-        Request::BulkRename { .. } => 0,
-        // A path lookup can name any match, and a sort reorders the whole set.
-        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } => usize::MAX,
-        // A listing request replaces what it reads; the session lifecycle answers fresh, not from adopted rows.
-        Request::List { .. }
-        | Request::ListPaths { .. }
-        | Request::Search { .. }
-        | Request::SearchCancel
-        | Request::SearchOpen { .. }
-        | Request::SearchQuery { .. }
-        | Request::SearchClose => 0,
-        // A viewport map, not the listing: these rows index work already queued.
-        Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
-        // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::TransferCancel { .. }
-        | Request::Rename { .. }
-        | Request::Duplicate { .. }
-        | Request::MkDir { .. }
-        | Request::NewFile { .. }
-        | Request::Undo
-        | Request::Redo
-        | Request::PermissionsBatch { .. }
-        | Request::LinkTarget { .. }
-        | Request::Archive { .. }
-        | Request::Convert { .. }
-        | Request::PasteImage(_) => 0,
-        // Lines, dialogs and the clipboard name paths or nothing, never a row index.
-        Request::Shebang { .. }
-        | Request::Code(_)
-        | Request::Html(_)
-        | Request::Compare(_)
-        | Request::FsInfo
-        | Request::Peek { .. }
-        | Request::PdfCopy { .. }
-        | Request::OfficePdf { .. }
-        | Request::FontLook(_)
-        | Request::Formats { .. }
-        | Request::Permissions { .. }
-        | Request::Picker { .. }
-        | Request::LocalSend { .. }
-        | Request::TrashBrowse { .. }
-        | Request::Jump { .. }
-        | Request::Devs { .. }
-        | Request::Flash(_)
-        | Request::ClipSet { .. }
-        | Request::ClipGet
-        | Request::ClipClear { .. }
-        | Request::ClipWatch
-        | Request::Quit
-        | Request::Unknown => 0,
-    }
-}
+#[path = "run_rows.rs"]
+mod row_needs;
+use row_needs::rows_needed;
 
 // Appends held rest rows in the answer's order and never renumbers; true when rows joined, so a miss can retry.
 fn extend_search_listing(st: &mut State, end: usize) -> bool {
@@ -767,7 +880,7 @@ fn extend_search_listing(st: &mut State, end: usize) -> bool {
 }
 
 // A navigation drops the session and frees its arena; Esc reaches this through searchclose.
-fn close_search_session(st: &mut State) {
+pub(crate) fn close_search_session(st: &mut State) {
     if let Some(session) = st.search_session.take() {
         let _ = session.close();
     }
@@ -780,7 +893,7 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
             if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {
                 emit_session_answer(out, st, tb, pool, &answer);
             } else if let Some((gen, n, scanned, ms)) = session.landing_empty() {
-                writeln!(out, "{}", super::searchreq::searched_gen_line(n, scanned, ms, gen, false)).ok();
+                writeln!(out, "{}", super::searchreq::searched_status_line(n, scanned, ms, gen, false, session.partial_reason())).ok();
                 out.flush().ok();
             }
         }
@@ -789,9 +902,12 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
 
 // A new row order invalidates every outstanding index, so the queue goes and no result can be reported against the new listing.
 pub fn forget_rows(st: &mut State, pool: &Pool) {
+    st.contents.clear();
     st.generation += 1;
-    st.outstanding = st.outstanding.saturating_sub(pool.cancel_all().len() + st.deferred.take_all().len());
+    cancel_all(st, pool);
     st.asked.clear();
+    st.thumb_mtimes.clear();
+    st.thumb_replies.clear();
     st.window_meta.clear();
     // A list or a sort changes which row an index names, the same reason thumbnails clear their map.
     st.dirsizes.clear();
@@ -833,10 +949,10 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     };
     let listed = if same && want_changed { crate::backend::proto::with_changed(&listed, changed) } else { listed };
     writeln!(out, "{}", listed).ok();
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = super::rows::rows_line(&st.base, &st.listing, &done.first_metas, done.first_start, done.first_ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+    let start = st.window_start(done.first_start);
+    let line = tb.rows_line(&st.base, &st.listing, &done.first_metas, start, done.first_ms);
     let line = match gen {
-        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, done.first_start..done.first_start + done.first_metas.len()),
+        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..start + done.first_metas.len()),
         None => super::rowguard::stamped(line, st.generation),
     };
     writeln!(out, "{}", line).ok();
@@ -870,8 +986,8 @@ pub(crate) fn drain(
     if let Some(id) = flash.slot.running() {
         flash.slot.cancel(id);
     }
-    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too.
-    while st.outstanding > 0 || ops.live.running().is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
+    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too; a journal no request started owes none.
+    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.get().is_some_and(|journal| journal.deferred.is_some()) || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, pool, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),
@@ -880,7 +996,10 @@ pub(crate) fn drain(
             Err(_) => break,
         }
     }
-    ops.journal.release_held();
+    if let Some(journal) = ops.journal.get_mut() {
+        journal.release_held();
+    }
+    let thumb_replies: Vec<_> = st.thumb_replies.iter().filter_map(|weak| weak.upgrade()).collect();
     pool.cancel_all();
     // The queue is empty now, so no worker can start a new job and the temps still on disk are exactly the abandoned ones.
     if st.outstanding > 0 {
@@ -890,36 +1009,13 @@ pub(crate) fn drain(
     for (_, row) in std::mem::take(&mut st.asked) {
         writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
     }
-    out.flush().ok();
-}
-
-pub fn write_window(out: &mut impl Write, st: &mut State, start: usize, count: usize, tb: &Tables) {
-    write_window_gen(out, st, start, count, tb, None);
-}
-
-// A session answer's window, stamped with the query gen beside the listing stamp.
-pub fn write_window_gen(
-    out: &mut impl Write,
-    st: &mut State,
-    start: usize,
-    count: usize,
-    tb: &Tables,
-    gen: Option<usize>,
-) {
-    let (metas, ms) = stat_range(&st.base, &st.listing, start, count);
-    let start = start.min(st.listing.len());
-    for (i, m) in metas.iter().enumerate() {
-        st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
+    st.thumb_replies.clear();
+    for shared in thumb_replies {
+        super::thumbreq::identity::complete(out, st, &Some(shared), "", 0.0);
     }
-    // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
-    let end = start.saturating_add(metas.len());
-    st.window_meta.retain(|&row, _| row >= start && row < end);
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = rows_line(&st.base, &st.listing, &metas, start, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
-    match gen {
-        Some(gen) => writeln!(out, "{}", super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..end)).ok(),
-        None => writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok(),
-    };
+    st.thumb_mtimes.clear();
+    super::trashthumb::drain(out, st);
+    out.flush().ok();
 }
 
 // The walk root's figures, statted through the bound so a dead server answers instead of hanging.
@@ -930,22 +1026,13 @@ pub(crate) fn search_root_info(base: &Path) -> Result<(u64, bool), FleaError> {
     super::iomount::call(&key, &body, "search", move || (super::fsinfo::dev_of(&owned), super::ops::dir_writable(&owned)))
 }
 
-// One window's metas: remoteness is decided before anything is moved, so a local window stats inline with no clone and a remote one moves only its rows to the worker.
-pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Vec<Meta>, f64), FleaError> {
-    let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-    if super::iomount::is_remote(&st.base, &body) {
-        let rows = super::meta::window_rows(&st.listing, start, count);
-        let threaded = st.listing.threaded_cached_with(&body);
-        let base = st.base.clone();
-        super::iomount::call(&base.clone(), &body, "window", move || super::meta::stat_window_rows(&base, &rows, threaded))
-    } else {
-        Ok(super::meta::stat_range(&st.base, &st.listing, start, count))
-    }
-}
-
 #[cfg(test)]
 #[path = "run_tags_tests.rs"]
 mod tags_tests;
+
+#[cfg(test)]
+#[path = "run_empty_tests.rs"]
+mod empty_tests;
 
 #[cfg(test)]
 mod tests {
@@ -960,7 +1047,7 @@ mod tests {
         const REMOTE_PATH: &str = "/run/user/flea-window-test/gvfs/smb-share:server=test,share=wire/folder \"café\"\\name/../";
         const NO_WATCH: i32 = -1;
         let tb = Tables::load();
-        let (events, _events_rx) = channel();
+        let (events, _events_rx) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let cache_root = std::env::temp_dir().join("flea-window-error-cache");
@@ -1025,14 +1112,14 @@ mod tests {
         let cache_root = d.join("cache");
         let backend = std::thread::spawn(move || {
             let tb = Tables::load();
-            let (events, _events_rx) = channel();
+            let (events, _events_rx) = crate::backend::events::channel();
             let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
             st.base = src;
             st.listing.push("a.txt", false);
             st.listing.push("b.txt", false);
             let (results, _done) = channel();
-            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root, Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
-            let cache = Cache::new();
+            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root.clone(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+            let cache = Cache::at(cache_root);
             let (tx, rx) = channel();
             let mut ops = Ops::new(tx);
             let (flash_tx, _flash_rx) = channel();
@@ -1080,12 +1167,12 @@ mod tests {
         let d = TestDir::new("windowlocal");
         d.file("a.txt", "a");
         d.file("b.txt", "b");
-        let (tx, _rx) = channel::<Event>();
+        let (tx, _rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(crate::backend::dirsizeworker::Worker::new(tx));
         st.base = d.path().to_path_buf();
         st.listing.push("a.txt", false);
         st.listing.push("b.txt", false);
-        let (metas, _) = window_metas(&st, 0, 10).expect("a local window answers");
+        let (metas, _) = window_metas(&mut st, 0, 10).expect("a local window answers");
         assert_eq!(metas.len(), 2, "the window carries its rows");
         assert_eq!(crate::backend::iomount::test_calls(), 0, "a local window takes no bound call and clones no listing");
     }
@@ -1108,9 +1195,37 @@ mod tests {
 mod gate_tests;
 
 #[cfg(test)]
+#[path = "run_jobs_tests.rs"]
+mod jobs_tests;
+
+#[cfg(test)]
 #[path = "run_session_tests.rs"]
 mod session_wire_tests;
 
 #[cfg(test)]
 #[path = "run_hold_tests.rs"]
 mod hold_wire_tests;
+
+#[cfg(test)]
+#[path = "run_search_landing_tests.rs"]
+mod search_landing_tests;
+
+#[cfg(test)]
+#[path = "viewerorder_tests.rs"]
+mod viewerorder_tests;
+
+#[cfg(test)]
+#[path = "run_git_tests.rs"]
+mod git_wire_tests;
+
+#[cfg(test)]
+#[path = "run_emptytrash_tests.rs"]
+mod emptytrash_tests;
+
+#[cfg(test)]
+#[path = "run_searchorder_tests.rs"]
+mod searchorder_tests;
+
+#[cfg(test)]
+#[path = "run_menu_targets_tests.rs"]
+mod menu_targets_tests;

@@ -64,7 +64,7 @@ impl Rig {
     // The first line the request leaves: converting on a miss, otherwise the terminal line that frees its registry id.
     fn ask(&self, wire: usize, path: &Path) -> String {
         let reg = self.claims.fetch_add(1, Ordering::SeqCst) + 1;
-        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, &self.tx);
+        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, false, &self.tx);
         match self.rx.recv_timeout(BOUND).expect("a request always answers") {
             OpMsg::Meta { line } => line,
             OpMsg::DetachedDone { id, line } => {
@@ -94,17 +94,6 @@ impl Rig {
 
 fn mtime_of(p: &Path) -> SystemTime {
     std::fs::metadata(p).unwrap().modified().unwrap()
-}
-
-#[test]
-fn the_six_office_types_are_found_by_canonical_name() {
-    let mime = Db::from_str("50:application/vnd.oasis.opendocument.text:*.odt\n50:text/rtf:*.rtf\n50:application/pdf:*.pdf\n50:application/msword:*.doc\n");
-    let aliases = Aliases::from_str("text/rtf application/rtf\n");
-    assert!(is_office("/x/a.odt", &mime, &aliases));
-    assert!(is_office("/x/a.rtf", &mime, &aliases), "an alias is canonicalised first");
-    assert!(!is_office("/x/a.pdf", &mime, &aliases));
-    assert!(!is_office("/x/a.doc", &mime, &aliases), "formats outside the six never convert");
-    assert!(!is_office("/x/a.unknown", &mime, &aliases));
 }
 
 #[test]
@@ -219,22 +208,6 @@ fn a_changed_file_is_tried_again_after_a_failure() {
 }
 
 #[test]
-fn a_symlink_planted_at_the_cache_path_is_not_followed() {
-    let d = TestDir::new("officepdf-symlink");
-    let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
-    let src = d.file("a.docx", "doc");
-    let decoy = d.file("decoy.pdf", "decoy");
-    std::fs::OpenOptions::new().write(true).open(&decoy).unwrap().set_modified(mtime_of(&src)).unwrap();
-    let pdf = r.svc.store.pdf_path(&Store::key(&src));
-    std::fs::create_dir_all(pdf.parent().unwrap()).unwrap();
-    std::os::unix::fs::symlink(&decoy, &pdf).unwrap();
-    assert_eq!(r.ask(1, &src), converting_line(1), "a planted link is a miss even when its target matches");
-    assert_eq!(r.end().1, ready_line(1, &pdf));
-    assert!(std::fs::symlink_metadata(&pdf).unwrap().is_file(), "the link was replaced, not written through");
-    assert_eq!(std::fs::read(&decoy).unwrap(), b"decoy", "the target was never written");
-}
-
-#[test]
 fn a_queued_request_is_replaced_while_the_running_one_completes() {
     let d = TestDir::new("officepdf-queue");
     let r = rig(&d, GATED, CONVERT_TIMEOUT);
@@ -294,8 +267,8 @@ fn a_convert_that_finds_a_hit_runs_nothing() {
     let key = Store::key(&src);
     let pdf = r.svc.store.pdf_path(&key);
     Store::publish(&pdf, mtime_of(&src), &mut "other window".as_bytes()).unwrap();
-    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new() };
-    assert_eq!(r.svc.convert(&job), Ok(pdf));
+    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, sheets: false, cancel: None };
+    assert_eq!(r.svc.convert(&job), Ok(Done::Pdf(pdf)));
     assert_eq!(r.jobs(), 0);
 }
 
@@ -310,19 +283,6 @@ fn without_soffice_no_request_is_served() {
     let line = r.ask(1, &src);
     assert_eq!(line, failed_line(1, "LibreOffice is not installed on this box.", true));
     assert!(r.svc.locked().running.is_none() && r.svc.locked().queued.is_none());
-}
-
-#[test]
-fn the_production_runner_converts_through_the_real_jail() {
-    if skipped() { return; }
-    let d = TestDir::new("officepdf-jail");
-    let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
-    let r = rig_in(&d, MAKE_PDF, CONVERT_TIMEOUT, jail);
-    let src = d.file("a.docx", "doc");
-    assert_eq!(r.ask(1, &src), converting_line(1));
-    let pdf = r.svc.store.pdf_path(&Store::key(&src));
-    assert_eq!(r.end().1, ready_line(1, &pdf));
-    assert_eq!(std::fs::read(&pdf).unwrap(), b"%PDF-1.4 stub");
 }
 
 #[test]
@@ -347,7 +307,7 @@ fn start_returns_before_the_worker_has_looked_at_the_file() {
         Some("/usr/bin/sh".to_string())
     });
     let src = d.file("a.docx", "doc");
-    r.svc.start(1, 1, src.clone(), r.tx.clone());
+    r.svc.start(1, 1, src.clone(), false, r.tx.clone());
     assert!(r.rx.try_recv().is_err(), "start returned while the worker still waited, so the caller's thread did no path work");
     open_tx.send(()).unwrap();
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(1)));
@@ -380,7 +340,7 @@ fn a_local_publish_error_records_no_failure_and_the_next_request_converts() {
     std::fs::remove_dir(&pdf).unwrap();
     assert_eq!(r.ask(2, &src), converting_line(2));
     assert_eq!(r.end().1, ready_line(2, &pdf));
-    assert_eq!(r.jobs(), 2);
+    assert_eq!(r.jobs(), 1, "the refused path cost no conversion, and the next request converted");
 }
 
 #[test]
@@ -398,3 +358,9 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
     assert_eq!(kept, [false, true, true], "the first conversion went, the newest stays");
 }
 #[path = "officepdf_order_tests.rs"] mod order;
+#[path = "officepdf_kind_tests.rs"] mod kinds;
+#[path = "officepdf_cancel_tests.rs"] mod cancel;
+#[path = "officepdf_jail_tests.rs"] mod jail_caps;
+#[path = "officepdf_limits_tests.rs"] mod limits;
+#[path = "officepdf_preserve_tests.rs"] mod preserve;
+#[path = "officesheets_tests.rs"] mod sheets;

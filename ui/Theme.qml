@@ -418,7 +418,10 @@ Singleton {
 
     // Hyprland reloads its config for a Window Corners, Gaps or Transparency change with no theme switch, so Style's rounding and Glass's mode are read again then.
     signal configReloaded()
-    function hyprEvent(name) {
+    signal fleaWindowOpened()
+    // Sample input, openwindow's data: "55bacb0a1f80,1,com.thisisgm.flea,Flea", the class third.
+    function hyprEvent(name, data) {
+        if (name === "openwindow" && String(data).split(",")[2] === "com.thisisgm.flea") root.fleaWindowOpened();
         if (name !== "configreloaded") return;
         Style.scheduleRefresh();
         root.configReloaded();
@@ -426,7 +429,7 @@ Singleton {
     // The Hyprland singleton is only touched inside Hyprland, so a headless run has no socket to join.
     Connections {
         target: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") !== null ? Hyprland : null
-        function onRawEvent(event) { root.hyprEvent(event.name) }
+        function onRawEvent(event) { root.hyprEvent(event.name, event.data) }
     }
 
     // Read once, not watched: the Display section reports the compositor's scale and Flea owns no

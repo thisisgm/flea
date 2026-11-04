@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "states": [
+    {
+      "id": "tui-close-matches",
+      "surface": "filter-close",
+      "setup": [
+        {
+          "action": "filter"
+        },
+        {
+          "text": "fixture close query"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "predicate": {
+        "contains": [
+          "0 of 9 shown",
+          "1 close match"
+        ]
+      },
+      "checks": [
+        "status-counts",
+        "match-wash",
+        "close-rows",
+        "real-filter-input"
+      ],
+      "status": "BLOCKED",
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2ROWS filter owner.",
+      "owner": "Root / G2ROWS filter owner",
+      "required_api": "Accepted no-exact-match fixture/query returning 0 of 9 shown and 1 close match, plus TUI cell mapping for filter-close."
+    },
+    {
+      "id": "tui-search-contents",
+      "surface": "search-contents",
+      "setup": [
+        {
+          "action": "search"
+        },
+        {
+          "text": "fixture contents query"
+        },
+        {
+          "key": "G",
+          "mods": "ctrl"
+        },
+        {
+          "key": "Return"
+        }
+      ],
+      "predicate": {
+        "contains": [
+          "Find"
+        ]
+      },
+      "checks": [
+        "ctrl-g-emission",
+        "contents-mode",
+        "two-row-result",
+        "single-cursor",
+        "line-number-alignment",
+        "typed-run-wash",
+        "ranked-order"
+      ],
+      "status": "BLOCKED",
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2ROWS-01 and TUI08.",
+      "owner": "Root / G2ROWS-01 and TUI08",
+      "required_api": "Accepted bounded contents producer route, ranked two-row result fixture and TUI cell mapping for search-contents; Ctrl+G must be observed natively."
+    },
+    {
+      "id": "tui-jobs",
+      "surface": "jobs",
+      "setup": [],
+      "predicate": {
+        "contains": [
+          "· 3 jobs"
+        ]
+      },
+      "checks": [
+        "actual-three-unfinished-jobs",
+        "newest-headline",
+        "status-row-progress",
+        "job-count-meta",
+        "cancel-reap"
+      ],
+      "status": "BLOCKED",
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2 Jobs and backend operations owners.",
+      "owner": "Root / G2 Jobs and backend operations owners",
+      "required_api": "Three real unfinished private operations with a copy barrier, newest headline, count and cancel/reap receipt; TUI status-row mapping for jobs."
+    },
+    {
+      "id": "tui-open-refused",
+      "surface": "open-refused",
+      "setup": [
+        {
+          "key": "Return"
+        }
+      ],
+      "predicate": {
+        "contains": [
+          "A folder can’t be opened together with files."
+        ]
+      },
+      "checks": [
+        "real-marked-selection",
+        "exact-refusal-sentence",
+        "error-role",
+        "zero-app-launches",
+        "Enter-emission"
+      ],
+      "status": "BLOCKED",
+      "reason": "BLOCKED: accepted route/fixture and independent TUI reference mapping must be supplied by Root / G2 open-selection and TUI action owners.",
+      "owner": "Root / G2 open-selection and TUI action owners",
+      "required_api": "Mixed file/folder marks, actual Enter refusal, error-role TUI cells and sealed application-launches.json proving zero launches. No fallback app route."
+    }
+  ]
+}

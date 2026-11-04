@@ -20,6 +20,9 @@ pub(crate) fn read(text: &str) -> Read {
     super::undoprobe::decode();
     let Ok(root) = parse(text) else { return Read::Malformed };
     let Some(pairs) = root.as_object() else { return Read::Malformed };
+    if pairs.iter().any(|(key, _)| !["v", "gen", "jobGen", "undo", "redo"].contains(&key.as_str())) {
+        return Read::Malformed;
+    }
     match get(pairs, "v") {
         Some(Json::Num(literal)) if literal.parse::<u64>().is_ok_and(|v| v > VERSION as u64) => return Read::Newer,
         // v1 files predate the barrier kind and v2 the merge kinds; both still read, anything else is foreign.
@@ -42,6 +45,7 @@ fn encode_pieces(doc: &Doc) -> (Vec<String>, Vec<String>) {
 // The document's generation and its rendered undo and redo items, in file order.
 pub(crate) struct Staged {
     push_gen: u64,
+    job_gen: u64,
     undo: Vec<String>,
     redo: Vec<String>,
 }
@@ -51,12 +55,23 @@ impl Staged {
         #[cfg(test)]
         super::undoprobe::render();
         let (undo, redo) = encode_pieces(doc);
-        Staged { push_gen: doc.push_gen, undo, redo }
+        Staged {
+            push_gen: doc.push_gen,
+            job_gen: doc.job_gen,
+            undo,
+            redo,
+        }
     }
 
     pub(crate) fn len(&self) -> u64 {
         let mut tally = Tally(0);
-        write_document(&mut tally, self.push_gen, &self.undo, &self.redo);
+        write_document(
+            &mut tally,
+            self.push_gen,
+            self.job_gen,
+            &self.undo,
+            &self.redo,
+        );
         tally.0 as u64
     }
 
@@ -84,7 +99,13 @@ impl Staged {
 
     pub(crate) fn text(&self) -> String {
         let mut out = String::new();
-        write_document(&mut out, self.push_gen, &self.undo, &self.redo);
+        write_document(
+            &mut out,
+            self.push_gen,
+            self.job_gen,
+            &self.undo,
+            &self.redo,
+        );
         out
     }
 }
@@ -111,9 +132,23 @@ fn write_list(out: &mut impl Write, pieces: &[String]) {
     let _ = write!(out, "\n{}]", INDENT);
 }
 
-// Renders keys v, gen, undo, redo in that order, then one newline.
-fn write_document(out: &mut impl Write, push_gen: u64, undo: &[String], redo: &[String]) {
-    let _ = write!(out, "{{\n{}\"v\": {},\n{}\"gen\": {},\n{}\"undo\": ", INDENT, VERSION, INDENT, push_gen, INDENT);
+// Renders v, gen, optional jobGen, undo and redo in that order, then one newline.
+fn write_document(
+    out: &mut impl Write,
+    push_gen: u64,
+    job_gen: u64,
+    undo: &[String],
+    redo: &[String],
+) {
+    let _ = write!(
+        out,
+        "{{\n{}\"v\": {},\n{}\"gen\": {},\n",
+        INDENT, VERSION, INDENT, push_gen
+    );
+    if job_gen != 0 {
+        let _ = writeln!(out, "{}\"jobGen\": {},", INDENT, job_gen);
+    }
+    let _ = write!(out, "{}\"undo\": ", INDENT);
     write_list(out, undo);
     let _ = write!(out, ",\n{}\"redo\": ", INDENT);
     write_list(out, redo);

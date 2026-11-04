@@ -1,13 +1,13 @@
-// Dispatch for the five write operations: one runs at a time, because the status bar has one sticky slot for it.
-use crate::backend::iomount::{internal_failure, mount_body, mount_key, slow_sentence, slow_write_with, CALL_DEADLINE, SlowWrite, SLOW_MKDIR, SLOW_RENAME};
+// Write dispatch: destination-keyed jobs share workers; other mutations retain their existing slot.
+use crate::backend::iomount::{mount_body, mount_key, CALL_DEADLINE};
 use crate::backend::ops;
 use crate::backend::opsreq::{
-    duplicated_line, made_line, op_err, renamed_line, run_duplicate_checked, run_transfer_checked, run_trash,
+    duplicated_line, made_line, op_err, run_trash,
     transferdone_line, transferitem_line, transferprogress_line, transferstarted_line, undone_line, usable_dest,
     LinkOutcome, OpMsg,
 };
 use crate::backend::listing::Listing;
-use crate::backend::proto::{error_line, slow_line};
+use crate::backend::proto::error_line;
 use crate::backend::undo::{Entry, ItemIdentity, Journal, Step};
 use crate::error::FleaError;
 use std::io::Write;
@@ -18,10 +18,13 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+#[path = "created_request.rs"]
+pub(crate) mod created_request;
+
 // The answer for a menu route whose captured selection is gone or differs from the request; a path outside a held selection gets selected_path's own sentence.
 pub(crate) const SELECTION_CHANGED: &str = "Selected items changed; reopen the menu.";
 
-// A slow remote write still running past its slow line, keyed by the mount it holds.
+// A write that outlives dispatch, keyed by the mount it holds until publication.
 pub(crate) struct SlowClaim {
     pub id: usize,
     pub path: String,
@@ -30,7 +33,8 @@ pub(crate) struct SlowClaim {
 
 // Everything the write operations own, kept apart from the listing state they never touch.
 pub(crate) struct Ops {
-    pub journal: Journal,
+    pub journal: super::lazy::Local<Journal>,
+    pub jobs: super::jobs::Jobs,
     pub permissions: super::permissions::Permissions,
     pub picker: Option<super::picker::Picker>,
     pub menuactions: Option<super::menu_actions::MenuActions>,
@@ -39,28 +43,51 @@ pub(crate) struct Ops {
     pub question: Option<super::collide::Question>,
     pub asked: usize,
     pub next_id: usize,
-    // The operation on the thread and its cancel flag, shared with the reader thread; one at a time.
+    // The operation on the thread and its cancel flag, shared with the stdin helper; one at a time.
     pub live: Arc<super::opscancel::Live>,
-    // Slow writes still running past their slow lines; a second write on the same mount waits.
+    // Pending writes; a second write on the same mount waits until the first journals.
     pub pending: Vec<SlowClaim>,
     // Trash batches announced but not yet journaled: undo and redo wait on them, every other write runs.
     pub settling: Vec<(usize, String)>,
     // Detached jobs, so a quit cancels each one; they run alongside by design.
     pub detached: Arc<super::opscancel::DetachedJobs>,
-    pub tx: Sender<OpMsg>,
+    pub tx: super::lazy::DeferredSender<OpMsg>,
 }
 
 impl Ops {
+    #[cfg(test)]
     pub fn new(tx: Sender<OpMsg>) -> Ops {
-        Ops { journal: Journal::new(), permissions: super::permissions::Permissions::default(), picker: None, menuactions: None, trashbrowser: None,
-               transfer_retry: (0, Vec::new()), question: None, asked: 0, next_id: 1, live: Arc::new(super::opscancel::Live::new()), pending: Vec::new(), settling: Vec::new(), detached: Arc::new(super::opscancel::DetachedJobs::new()), tx }
+        Self::with_journal(tx, Journal::new().into())
+    }
+
+    fn with_journal(tx: Sender<OpMsg>, journal: super::lazy::Local<Journal>) -> Ops {
+        let live = Arc::new(super::opscancel::Live::new());
+        Ops {
+            journal,
+            jobs: Default::default(),
+            permissions: super::permissions::Permissions::default(),
+            picker: None,
+            menuactions: None,
+            trashbrowser: None,
+            transfer_retry: (0, Vec::new()),
+            question: None,
+            asked: 0,
+            next_id: 1,
+            live: Arc::clone(&live),
+            pending: Vec::new(),
+            settling: Vec::new(),
+            detached: Arc::clone(&live.1),
+            tx: tx.into(),
+        }
     }
 
     // Production shares one undo history across every backend in the session; tests keep new().
     pub fn new_shared(tx: Sender<OpMsg>) -> Ops {
-        let mut ops = Ops::new(tx);
-        ops.journal.attach_shared();
-        ops
+        Self::with_journal(tx, super::lazy::Local::new(|| {
+            let mut journal = Journal::new();
+            journal.attach_shared();
+            journal
+        }))
     }
 
     // An id with no slot claimed: archive and convert are id-keyed and run concurrently by design,
@@ -81,7 +108,7 @@ impl Ops {
     }
 }
 
-// The status bar shows one operation, so a second one is refused as data rather than queued invisibly behind the first.
+// Non-job mutations retain their existing busy refusal while another mutation is in flight.
 fn busy(out: &mut impl Write, where_: &str) -> bool {
     let e = op_err(where_, "", "an operation is already running");
     writeln!(out, "{}", error_line(&e)).ok();
@@ -107,7 +134,7 @@ pub(crate) fn start_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, path
 
 pub(crate) fn request_menu_action(out: &mut impl Write, ops: &mut Ops, line: String, paths: Vec<String>, cursor: Option<String>) {
     let deleting = crate::json::field_str(&line, "op").as_deref() == Some("delete");
-    if deleting && ops.live.running().is_some() {
+    if deleting && (ops.live.running().is_some() || ops.jobs.unfinished() > 0) {
         writeln!(out, "{}", super::menu_actions::response(&line, Err("An operation is already running.".into()))).ok();
         out.flush().ok();
         return;
@@ -138,47 +165,14 @@ pub(crate) fn start_menu_transfer(out: &mut impl Write, ops: &mut Ops, op: &str,
     }
 }
 
-fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str,
-                          selection: Option<Vec<super::menu_actions::Selected>>, destination: Option<super::menu_actions::Selected>, collide: super::collide::Ask) {
-    if ops.live.running().is_some() {
-        busy(out, "transfer");
-        return;
-    }
-    let dest = match usable_dest(dest) {
-        Ok(d) => d,
-        Err(e) => {
-            writeln!(out, "{}", error_line(&e)).ok();
-            out.flush().ok();
-            return;
-        }
-    };
-    // A source or target on a pending mount waits; writes elsewhere run beside the held write.
-    let mut sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
-    if let Some(items) = &selection {
-        sources.extend(items.iter().map(|item| item.path.clone()));
-    }
-    let mut dests = vec![dest.clone()];
-    if let Some(held) = &destination {
-        dests.push(held.path.clone());
-    }
-    if pending_busy_for(out, ops, "transfer", &sources, &dests) {
-        return;
-    }
-    // Anything that is not exactly "move" is a copy, so a malformed op can never remove a source.
-    let moving = op == "move";
-    let n = paths.len();
-    ops.transfer_retry = (0, Vec::new());
-    let (id, cancel) = ops.claim_transfer();
-    writeln!(out, "{}", transferstarted_line(id, n, moving)).ok();
-    out.flush().ok();
-    let tx = ops.tx.clone();
-    let policy = collide.policy(ops.question.take(), &dest);
-    thread::spawn(move || run_transfer_checked(id, moving, paths, dest, cancel, tx, selection, destination, policy));
-}
+#[path = "transferstart.rs"]
+mod transferstart;
+use transferstart::start_transfer_checked;
 
-// A slow write holds no slot and no flag its worker polls, so a cancel reaches only the live operation.
-pub(crate) fn cancel_transfer(_out: &mut impl Write, ops: &mut Ops, id: usize) {
+// A cancel reaches the matching slot operation or detached job without changing other flags.
+pub(crate) fn cancel_transfer(out: &mut impl Write, ops: &mut Ops, id: usize) {
     ops.live.cancel(id);
+    ops.jobs.advance(out, &ops.detached, &ops.tx);
 }
 
 // One gate for every write: each resolved source and the destination wait while their mount holds a slow write.
@@ -209,6 +203,7 @@ fn pending_busy(out: &mut impl Write, ops: &Ops, where_: &str) -> bool {
         out.flush().ok();
         return true;
     }
+    if ops.journal.deferred.is_some() { return busy(out, where_); }
     false
 }
 
@@ -228,7 +223,7 @@ fn delete_blocked(ops: &Ops, paths: &[String], cursor: Option<&str>, selection: 
 }
 
 // A landed Done clears only its own pending entry, so a second mount's write stays busy.
-fn forget_pending(ops: &mut Ops, id: usize) {
+pub(crate) fn forget_pending(ops: &mut Ops, id: usize) {
     ops.pending.retain(|held| held.id != id);
 }
 
@@ -238,8 +233,8 @@ pub(crate) fn menu_sources(ops: &Ops, id: usize) -> Result<Option<Vec<super::men
         .and_then(|menu| menu.selection(id)).map(Some)
 }
 
-pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize) {
-    if ops.live.running().is_some() {
+pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize, request: usize) {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "trash");
         return;
     }
@@ -256,49 +251,40 @@ pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String
         return;
     }
     let (id, _) = ops.claim_transfer();
+    writeln!(out, r#"{{"t":"trashstarted","id":{},"n":{},"cancellable":false}}"#, id, paths.iter().filter(|path| !path.is_empty()).count()).ok();
+    out.flush().ok();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_trash(id, paths, tx, selection));
+    thread::spawn(move || run_trash(id, request, paths, tx, selection));
 }
 
 pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, menu_id: usize) {
-    if ops.live.running().is_some() {
-        busy(out, "duplicate");
-        return;
-    }
-    let selection = match menu_sources(ops, menu_id) {
-        Ok(selection) => selection,
-        Err(message) => { writeln!(out, "{}", error_line(&op_err("duplicate", path, &message))).ok(); out.flush().ok(); return; }
-    };
-    // The source's mount waits while its slow write is pending; writes elsewhere run.
-    let mut sources = vec![PathBuf::from(path)];
-    if let Some(items) = &selection {
-        sources.extend(items.iter().map(|item| item.path.clone()));
-    }
-    if pending_busy_for(out, ops, "duplicate", &sources, &[]) {
-        return;
-    }
-    ops.claim_transfer();
-    let tx = ops.tx.clone();
-    let owned = path.to_string();
-    thread::spawn(move || run_duplicate_checked(owned, tx, selection));
+    created_request::duplicate(out, ops, path, menu_id, 0);
 }
 
-// Rename answers on the calling thread; rclone directory compatibility may copy before removing its source.
+// A menu rename captures the selected identity before its worker outlives the menu and listing.
 pub(crate) fn do_menu_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str, id: usize) -> Vec<PathBuf> {
-    let checked = ops.menuactions.as_ref().ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
-        .and_then(|menu| menu.selected_path(id, Path::new(path)))
-        .and_then(|item| item.current());
-    if let Err(error) = checked {
-        writeln!(out, "{}", error_line(&op_err("rename", path, &error))).ok();
-        out.flush().ok();
-        return Vec::new();
+    let selected = ops.menuactions.as_ref().ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
+        .and_then(|menu| menu.selected_path(id, Path::new(path)));
+    match selected {
+        Ok(item) => {
+            if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+                busy(out, "rename");
+                return Vec::new();
+            }
+            let from = path.to_string();
+            let name = to.to_string();
+            do_rename_with(out, ops, path, CALL_DEADLINE, move || {
+                item.current().map_err(|error| op_err("rename", &from, &error))?;
+                ops::rename(Path::new(&from), &name)
+            })
+        }
+        Err(error) => { writeln!(out, "{}", error_line(&op_err("rename", path, &error))).ok(); out.flush().ok(); Vec::new() }
     }
-    do_rename(out, ops, path, to)
 }
 
-// A local rename answers inline; a remote one past the deadline answers slow first and journals when its worker lands, so the loop never waits on a hung share longer than CALL_DEADLINE.
+// Even a local rename can wait on the filesystem; the dispatcher only accepts its immutable paths.
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "rename");
         return Vec::new();
     }
@@ -306,98 +292,43 @@ pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &st
     let name = to.to_string();
     do_rename_with(out, ops, path, CALL_DEADLINE, move || ops::rename(Path::new(&from), &name))
 }
-// The work is a parameter so tests hold it on a channel while production runs the real rename.
+
 pub(crate) fn do_rename_with<F>(out: &mut impl Write, ops: &mut Ops, path: &str, deadline: Duration, work: F) -> Vec<PathBuf>
-where
-    F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
+where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 {
-    let key = Path::new(path).parent().unwrap_or(Path::new("/")).to_path_buf();
-    // A source or target on a pending mount waits; writes elsewhere run beside the held write.
-    let source = PathBuf::from(path);
-    let target = key.clone();
-    if pending_busy_for(out, ops, "rename", &[source], &[target]) {
-        return Vec::new();
-    }
-    let body = mount_body();
-    match slow_write_with(&key, &body, "rename", deadline, work) {
-        SlowWrite::Ready(result) => land_rename(out, ops, result),
-        SlowWrite::Slow { mount, rx } => {
-            writeln!(out, "{}", slow_line("rename", path, &slow_sentence(&mount, SLOW_RENAME))).ok();
-            out.flush().ok();
-            // The pending id is only a number: the slot stays with whatever holds it, so a transfer beside this write keeps its id and its cancel.
-            let id = ops.claim_id();
-            ops.pending.push(SlowClaim { id, path: path.to_string(), mount });
-            let tx = ops.tx.clone();
-            let failed = internal_failure("rename", Path::new(path));
-            thread::spawn(move || {
-                let result = rx.recv().unwrap_or(Err(failed));
-                let _ = tx.send(OpMsg::RenameDone { id, result });
-            });
-            // The slow path lands later through RenameDone, which the session patches on arrival.
-            Vec::new()
-        }
-    }
-}
-// One journal entry per request, so one undo reverses the in-time answer and the late one alike.
-// Answers the landed paths, so a session patches its index; failures touched nothing new.
-fn land_rename(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec<Step>), FleaError>) -> Vec<PathBuf> {
-    let touched = match &result {
-        Ok((_, steps)) => Journal::touched_paths(steps),
-        Err(_) => Vec::new(),
-    };
-    match result {
-        Ok((dst, steps)) => {
-            ops.journal.push(Entry { op: "rename".to_string(), steps });
-            writeln!(out, "{}", renamed_line(true, &dst.to_string_lossy())).ok();
-        }
-        Err(e) => {
-            writeln!(out, "{}", error_line(&e)).ok();
-        }
-    }
-    out.flush().ok();
-    touched
+    let parent = Path::new(path).parent().unwrap_or(Path::new("/")).to_path_buf();
+    if pending_busy_for(out, ops, "rename", &[PathBuf::from(path)], &[parent]) { return Vec::new(); }
+    super::renamework::start(ops, path.to_string(), deadline, work);
+    Vec::new()
 }
 
-// One mkdir(2), so like rename it answers inline on a local mount and goes slow on a remote one.
-pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
-        busy(out, "mkdir");
+// A local mkdir answers inline; a remote mkdir uses the bounded slow-write worker.
+pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, default_base: Option<&str>) -> Vec<PathBuf> {
+    do_mkdir_requested(out, ops, parent, name, default_base, 0)
+}
+pub(crate) fn do_mkdir_requested(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, default_base: Option<&str>, request: usize) -> Vec<PathBuf> {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+        let mut legacy = Vec::new();
+        busy(&mut legacy, "mkdir");
+        created_request::refused(out, request, "made", legacy);
         return Vec::new();
     }
     let base = parent.to_string();
     let given = name.to_string();
-    do_mkdir_with(out, ops, parent, CALL_DEADLINE, move || ops::mkdir(Path::new(&base), &given))
+    let default_base = default_base.map(str::to_owned);
+    let work = move || match default_base.as_deref() {
+        Some(default_base) => ops::mkdir_with_base(Path::new(&base), &given, Some(default_base)),
+        None => ops::mkdir(Path::new(&base), &given),
+    };
+    if request == 0 { do_mkdir_with(out, ops, parent, CALL_DEADLINE, work) }
+    else { created_request::mkdir_with(out, ops, parent, request, CALL_DEADLINE, work) }
 }
 // The work is a parameter so tests hold it on a channel while production runs the real mkdir.
 pub(crate) fn do_mkdir_with<F>(out: &mut impl Write, ops: &mut Ops, parent: &str, deadline: Duration, work: F) -> Vec<PathBuf>
 where
     F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 {
-    let key = PathBuf::from(parent);
-    // The new folder lands in its parent, so the parent is the whole gate; writes elsewhere run beside the held write.
-    let gate = key.clone();
-    if pending_busy_for(out, ops, "mkdir", &[gate], &[]) {
-        return Vec::new();
-    }
-    let body = mount_body();
-    match slow_write_with(&key, &body, "mkdir", deadline, work) {
-        SlowWrite::Ready(result) => land_mkdir(out, ops, result),
-        SlowWrite::Slow { mount, rx } => {
-            writeln!(out, "{}", slow_line("mkdir", parent, &slow_sentence(&mount, SLOW_MKDIR))).ok();
-            out.flush().ok();
-            // The pending id is only a number: the slot stays with whatever holds it, so a transfer beside this write keeps its id and its cancel.
-            let id = ops.claim_id();
-            ops.pending.push(SlowClaim { id, path: parent.to_string(), mount });
-            let tx = ops.tx.clone();
-            let failed = internal_failure("mkdir", Path::new(parent));
-            thread::spawn(move || {
-                let result = rx.recv().unwrap_or(Err(failed));
-                let _ = tx.send(OpMsg::MkdirDone { id, result });
-            });
-            // The slow path lands later through MkdirDone, which the session patches on arrival.
-            Vec::new()
-        }
-    }
+    created_request::mkdir_with(out, ops, parent, 0, deadline, work)
 }
 // One journal entry per request, so one undo reverses the in-time answer and the late one alike.
 fn land_mkdir(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec<Step>), FleaError>) -> Vec<PathBuf> {
@@ -420,14 +351,26 @@ fn land_mkdir(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec<
 
 // Answers every path the reversal may have touched, failed or not, so a session patches its index.
 pub(crate) fn do_undo(out: &mut impl Write, ops: &mut Ops) -> super::undo::Reached {
-    if ops.live.running().is_some() {
+    do_undo_matching(out, ops, None)
+}
+
+pub(crate) fn do_undo_matching(
+    out: &mut impl Write,
+    ops: &mut Ops,
+    token: Option<&super::undo::UndoToken>,
+) -> super::undo::Reached {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "undo");
         return Default::default();
     }
     if pending_busy(out, ops, "undo") {
         return Default::default();
     }
-    match ops.journal.undo() {
+    match if let Some(key) = token {
+        ops.journal.undo_for_job(key)
+    } else {
+        ops.journal.undo()
+    } {
         Ok(op) => writeln!(out, "{}", undone_line(&op, true)).ok(),
         Err(e) => writeln!(out, "{}", error_line(&e)).ok(),
     };
@@ -476,8 +419,22 @@ fn fail_link_verify() -> bool {
 }
 
 // Paste as links: the slot and the collide answer are decided here, the links land beside the loop.
-pub(crate) fn start_link(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str, collide: super::collide::Ask) {
-    if ops.live.running().is_some() { busy(out, "link"); return; }
+pub(crate) fn start_link(
+    out: &mut impl Write,
+    ops: &mut Ops,
+    op: &str,
+    paths: Vec<String>,
+    dest: &str,
+    collide: super::collide::Ask,
+) {
+    start_link_held(out, ops, op, paths, dest, collide, None);
+}
+pub(crate) fn start_link_held(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str,
+    collide: super::collide::Ask, held: Option<Vec<super::linkheld::Identity>>) {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+        busy(out, "link");
+        return;
+    }
     let dest_path = match usable_dest(dest) {
         Ok(d) => d,
         Err(mut e) => {
@@ -499,7 +456,7 @@ pub(crate) fn start_link(out: &mut impl Write, ops: &mut Ops, op: &str, paths: V
     let owned_op = op.to_string();
     let owned_dest = dest.to_string();
     thread::spawn(move || {
-        let done = run_link(&owned_op, paths, dest_path, policy);
+        let done = run_link_held(&owned_op, paths, dest_path, policy, held.as_deref());
         let entry = Entry { op: "link".to_string(), steps: done.steps };
         let _ = tx.send(OpMsg::Linked { ok: done.ok, failed: done.failed, skipped: done.skipped,
             entry, note: done.note, first_err: done.first_err, dest: owned_dest });
@@ -524,7 +481,12 @@ pub(crate) fn test_hold_link(dest: &Path) -> (Sender<()>, std::sync::mpsc::Recei
 }
 
 // One exclusive link per source, replacing through the trash when the card chose it.
+#[cfg(test)]
 pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: super::collide::Policy) -> LinkOutcome {
+    run_link_held(op, paths, dest, policy, None)
+}
+fn run_link_held(op: &str, paths: Vec<String>, dest: PathBuf, policy: super::collide::Policy,
+    held: Option<&[super::linkheld::Identity]>) -> LinkOutcome {
     #[cfg(test)]
     {
         let held = {
@@ -550,9 +512,9 @@ pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: supe
     let mut note = String::new();
     for source in &paths {
         let src = Path::new(source);
-        if src.symlink_metadata().is_err() {
+        if !super::linkheld::matches(held, src) || src.symlink_metadata().is_err() {
             failed += 1;
-            if first_err.is_empty() { first_err = format!("the link source {source} no longer exists"); }
+            if first_err.is_empty() { first_err = format!("the link source {source} changed or no longer exists"); }
             continue;
         }
         let Some(dst) = super::link::dest_path(&dest, src) else {
@@ -579,11 +541,13 @@ pub(crate) fn run_link(op: &str, paths: Vec<String>, dest: PathBuf, policy: supe
                         }
                     }
                 }
-                let made = match &kind {
+                let made = if !super::linkheld::matches(held, src) {
+                    Err(op_err("link", source, "the held link source changed before creation"))
+                } else { match &kind {
                     super::link::LinkKind::Absolute => super::link::create_absolute(src, &to),
                     super::link::LinkKind::Hard => super::link::create_hard(src, &to),
                     super::link::LinkKind::Relative => super::link::create_relative(src, &to),
-                };
+                }};
                 match made {
                     Ok(()) => {
                         match inspect_made_link(&to) {
@@ -665,6 +629,9 @@ pub(crate) fn start_link_target(ops: &Ops, path: &str, id: usize) {
 
 // Show original: reveal the symlink target in its own folder, never resolve a non-link.
 pub(crate) fn do_link_target(out: &mut impl Write, path: &str, id: usize) {
+    do_link_target_held(out, path, id, None);
+}
+pub(crate) fn do_link_target_held(out: &mut impl Write, path: &str, id: usize, expected: Option<&str>) {
     let target = Path::new(path);
     let text = match std::fs::read_link(target) {
         Ok(t) => t,
@@ -674,6 +641,11 @@ pub(crate) fn do_link_target(out: &mut impl Write, path: &str, id: usize) {
             return;
         }
     };
+    if expected.is_some_and(|expected| text.as_os_str() != expected) {
+        writeln!(out, "{}", error_line(&op_err("linktarget", path, "the selected link changed before Follow could run"))).ok();
+        out.flush().ok();
+        return;
+    }
     let absolute = if text.is_absolute() {
         text.clone()
     } else {
@@ -706,7 +678,7 @@ fn link_target_parts(absolute: &Path) -> (String, String) {
 
 // Permissions batch: one entry holds every path Apply changed, so one undo restores all.
 pub(crate) fn do_permissions_batch(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, modes: Vec<String>, id: usize) {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         writeln!(out, "{}", super::proto::permissions_batch_line(id, false, "", "an operation is already running")).ok();
         out.flush().ok();
         return;
@@ -745,7 +717,7 @@ pub(crate) fn do_permissions_batch(out: &mut impl Write, ops: &mut Ops, paths: V
 }
 
 pub(crate) fn do_newfile(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, id: usize) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         let request = format!(r#"{{"op":"newFile","id":{}}}"#, id);
         writeln!(out, "{}", super::menu_actions::response(&request, Err("An operation is already running.".into()))).ok();
         out.flush().ok();
@@ -771,8 +743,13 @@ pub(crate) fn do_newfile(out: &mut impl Write, ops: &mut Ops, parent: &str, name
 }
 
 pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
-    if ops.live.running().is_some() { busy(out, "redo"); return; }
-    if pending_busy(out, ops, "redo") { return; }
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+        busy(out, "redo");
+        return;
+    }
+    if pending_busy(out, ops, "redo") {
+        return;
+    }
     let (op, n) = match ops.journal.redo_info() {
         Ok(info) => info,
         Err(error) => {
@@ -782,7 +759,7 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
         }
     };
     let (id, cancel) = ops.claim_transfer();
-    let mut journal = std::mem::replace(&mut ops.journal, Journal::new());
+    let mut journal = std::mem::replace(&mut *ops.journal, Journal::new());
     writeln!(out, r#"{{"t":"redostarted","id":{},"n":{},"op":"{}"}}"#, id, n, crate::json::escape(&op)).ok();
     out.flush().ok();
     let tx = ops.tx.clone();
@@ -790,15 +767,71 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
         let result = journal.redo(id, &cancel, &tx);
         // The worker owns this journal alone, so the take cannot race the loop.
         let touched = journal.take_last_touched();
-        let _ = tx.send(OpMsg::RedoDone { journal, result, touched });
+        let _ = tx.send(OpMsg::RedoDone {
+            journal: Box::new(journal),
+            result,
+            touched,
+        });
     });
 }
 
 // Every message an operation thread sends, written out and, when terminal, recorded in the journal.
-pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
+pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
+    // A publisher's own return never restarts it, so a held lock costs one bounded attempt per later event.
+    let returned = matches!(msg, OpMsg::JournalDone { .. });
+    if let OpMsg::TransferDone {
+        id, entry, failed, ..
+    }
+    | OpMsg::MergeDone {
+        id, entry, failed, ..
+    } = &mut msg
+    {
+        let owned = std::mem::replace(
+            entry,
+            Entry {
+                op: String::new(),
+                steps: Vec::new(),
+            },
+        );
+        if let Some(job) = ops.jobs.rows.iter_mut().find(|job| job.id == *id) {
+            job.undo_key = if *failed == 0 {
+                ops.journal.push_for_job(owned)
+            } else {
+                ops.journal.push(owned);
+                None
+            };
+        } else {
+            ops.journal.push(owned);
+        }
+    }
+    super::jobevents::observe(out, ops, &msg);
     match msg {
-        OpMsg::MenuDeleteDone { line } | OpMsg::SlotDone { line } => {
+        OpMsg::CreationReceipt { request, inner } => {
+            created_request::report(out, ops, request, *inner);
+            return;
+        }
+        OpMsg::SendStatus { .. }
+        | OpMsg::JobEntries { .. }
+        | OpMsg::JobReady { .. }
+        | OpMsg::JobSample { .. } => {}
+        OpMsg::JobDone { id, line, .. } => {
+            ops.live.finished_if(id);
+            if !line.is_empty() {
+                writeln!(out, "{}", line).ok();
+            }
+        }
+        OpMsg::ActionReady { request, result } => super::actions::ready(out, ops, request, result),
+        OpMsg::MenuDeleteDone { line } => {
             ops.live.finished();
+            writeln!(out, "{}", line).ok();
+        }
+        #[cfg(test)]
+        OpMsg::SlotDone { line } => {
+            if let Some(id) = crate::json::field_usize(&line, "id") {
+                ops.live.finished_if(id);
+            } else {
+                ops.live.finished();
+            }
             writeln!(out, "{}", line).ok();
         }
         OpMsg::Progress { id, index, name, bytes, total, scanned } => {
@@ -807,17 +840,28 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         OpMsg::Item { id, index, name, ok, err } => {
             writeln!(out, "{}", transferitem_line(id, index, &name, ok, &err)).ok();
         }
-        OpMsg::TransferDone { id, ok, failed, skipped, cancelled, entry, retry, durable, note, refused } => {
-            ops.journal.push(entry);
-            ops.live.finished();
+        OpMsg::TransferDone {
+            id,
+            ok,
+            failed,
+            skipped,
+            cancelled,
+            retry,
+            durable,
+            note,
+            refused,
+            ..
+        } => {
+            ops.live.finished_if(id);
             ops.transfer_retry = (id, retry);
             writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled, &ops.transfer_retry.1, durable, &note, &refused)).ok();
         }
         done @ OpMsg::MergeDone { .. } => {
             let line = super::merge::transferdone_merge_line(&done);
-            let OpMsg::MergeDone { id, entry, retry, .. } = done else { return };
-            ops.journal.push(entry);
-            ops.live.finished();
+            let OpMsg::MergeDone { id, retry, .. } = done else {
+                return;
+            };
+            ops.live.finished_if(id);
             ops.transfer_retry = (id, retry);
             writeln!(out, "{}", line).ok();
         }
@@ -837,11 +881,17 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         }
         OpMsg::Asked { turn, question, line } => if super::collide::landed(ops, turn, question) { writeln!(out, "{}", line).ok(); },
         OpMsg::Pasted { line, entry } => super::pasteimage::land(out, ops, line, entry),
-        // A slow remote write reporting late journals exactly as its in-time path would.
+        // Rename execution landed; its ordered journal publication also belongs to a worker.
         OpMsg::RenameDone { id, result } => {
-            land_rename(out, ops, result);
-            forget_pending(ops, id);
-            ops.live.finished_if(id);
+            if ops.pending.iter().any(|held| held.id == id) {
+                super::renamework::publish(ops, super::renamework::Publication::Rename(id, result));
+            }
+        }
+        OpMsg::RenameSlow { id, line } => {
+            if ops.pending.iter().any(|held| held.id == id) { writeln!(out, "{}", line).ok(); }
+        }
+        OpMsg::JournalDone { journal, renames } => {
+            super::renamework::published(out, ops, *journal, renames)
         }
         OpMsg::MkdirDone { id, result } => {
             land_mkdir(out, ops, result);
@@ -874,7 +924,7 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             }
         }
         OpMsg::RedoDone { journal, result, .. } => {
-            ops.journal = journal;
+            ops.journal = (*journal).into();
             ops.live.finished();
             match result {
                 Ok(op) => writeln!(out, r#"{{"t":"redone","op":"{}","ok":true}}"#, crate::json::escape(&op)).ok(),
@@ -882,6 +932,10 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             };
         }
     }
+    if !returned {
+        super::renamework::flush_pending(ops);
+    }
+    ops.jobs.refresh_undo(out, &ops.journal);
     out.flush().ok();
 }
 
@@ -892,6 +946,20 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use crate::backend::undo::Step;
     use std::sync::mpsc::channel;
+
+    fn do_rename(out: &mut Vec<u8>, ops: &mut Ops, path: &str, to: &str) -> Vec<PathBuf> {
+        super::super::renamework::test_request(out, ops, |out, ops| super::do_rename(out, ops, path, to))
+    }
+    fn do_menu_rename(out: &mut Vec<u8>, ops: &mut Ops, path: &str, to: &str, id: usize) -> Vec<PathBuf> {
+        super::super::renamework::test_request(out, ops, |out, ops| super::do_menu_rename(out, ops, path, to, id))
+    }
+    fn do_rename_with<F>(out: &mut Vec<u8>, ops: &mut Ops, path: &str, deadline: Duration, work: F) -> Vec<PathBuf>
+    where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static {
+        super::super::renamework::test_request(out, ops, |out, ops| super::do_rename_with(out, ops, path, deadline, work))
+    }
+    fn report_op(out: &mut Vec<u8>, ops: &mut Ops, message: OpMsg) {
+        super::super::renamework::test_request(out, ops, |out, ops| { super::report_op(out, ops, message); Vec::new() });
+    }
 
     fn ops() -> Ops {
         let (tx, _rx) = channel();
@@ -1075,7 +1143,7 @@ mod tests {
         let mut o = ops();
         o.claim_transfer();
         let mut buf = out();
-        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()], 0);
+        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()], 0, 0);
         assert!(text(&buf).contains("an operation is already running"));
         assert!(d.join("a.txt").exists(), "the refused operation touched nothing");
     }
@@ -1089,11 +1157,11 @@ mod tests {
         report_op(
             &mut buf,
             &mut o,
-            OpMsg::Trashed { id: 1, ok: 1, failed: 0, entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] }, reason: String::new(), announced: false },
+            OpMsg::Trashed { id: 1, request: 0, ok: 1, failed: 0, entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] }, reason: String::new(), announced: false },
         );
         assert!(o.live.running().is_none(), "the cap would otherwise refuse every operation for the rest of the session");
         assert_eq!(o.journal.len(), 1);
-        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","ok":1,"failed":0}"#);
+        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","id":0,"ok":1,"failed":0,"moved":[]}"#);
     }
 
     #[test]
@@ -1101,7 +1169,7 @@ mod tests {
         let d = TestDir::new("dispatchmkdir");
         let mut o = ops();
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "photos");
+        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "photos", None);
         assert!(d.join("photos").is_dir());
         assert_eq!(text(&buf).trim(), format!(r#"{{"t":"made","ok":true,"path":"{}"}}"#, d.join("photos").display()));
         assert_eq!(o.journal.len(), 1);
@@ -1118,7 +1186,7 @@ mod tests {
         let mut o = ops();
         d.file("taken", "t");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "taken");
+        do_mkdir(&mut buf, &mut o, &d.path().to_string_lossy(), "taken", None);
         assert!(text(&buf).contains(r#""t":"error","where":"mkdir""#), "the refusal is an error line, not a silent no-op");
         assert!(o.journal.is_empty(), "a folder that was not made must not be undoable");
         assert_eq!(std::fs::read_to_string(d.join("taken")).unwrap(), "t");
@@ -1435,7 +1503,7 @@ mod tests {
         let mut o = Ops::new(tx);
         let parent = d.dir("p");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made");
+        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made", None);
         let mut buf = out();
         do_undo(&mut buf, &mut o);
         assert!(text(&buf).contains("undone"), "{}", text(&buf));
@@ -1532,7 +1600,7 @@ mod tests {
         let mut o = Ops::new(tx);
         let parent = d.dir("p");
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made");
+        do_mkdir(&mut buf, &mut o, &parent.to_string_lossy(), "made", None);
         let mut buf = out();
         do_undo(&mut buf, &mut o);
         let mut buf = out();
@@ -1660,7 +1728,7 @@ mod tests {
         let (tx, rx) = channel();
         let mut o = Ops::new(tx);
         let mut buf = out();
-        do_mkdir(&mut buf, &mut o, &parent, "older");
+        do_mkdir(&mut buf, &mut o, &parent, "older", None);
         assert!(text(&buf).contains(r#""t":"made""#), "the older mkdir journals first: {}", text(&buf));
         let victim = d.file("victim.txt", "v");
         let path = victim.to_string_lossy().to_string();
@@ -1681,7 +1749,7 @@ mod tests {
         start_redo(&mut redone, &mut o);
         assert!(text(&redone).contains("already running"), "redo waits too: {}", text(&redone));
         let mut second = out();
-        do_mkdir(&mut second, &mut o, &parent, "newer");
+        do_mkdir(&mut second, &mut o, &parent, "newer", None);
         assert!(text(&second).contains("already running"), "a second write waits too: {}", text(&second));
         drop(release);
         let landed = rx.recv_timeout(std::time::Duration::from_secs(5)).expect("the released write reports through the op channel");
@@ -1735,17 +1803,24 @@ mod tests {
             }
         }
         assert!(landed, "the released rename journals late");
-        // The local transfer's own Done may still be in flight; it frees the slot it claimed.
+        // The local transfer's own Done may still be in flight; drain its job before undo.
         for _ in 0..LAND_ROUNDS {
-            if o.live.running().is_none() {
+            if o.jobs.unfinished() == 0 {
                 break;
             }
             let msg = rx.recv_timeout(LAND_BOUND).expect("the local transfer reports through the op channel");
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
         }
-        assert!(o.live.running().is_none(), "the local transfer frees the slot it claimed");
-        assert!(dest.join("cargo.txt").exists(), "the local transfer landed beside the held write");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the local transfer finishes its own job"
+        );
+        assert!(
+            dest.join("cargo.txt").exists(),
+            "the local transfer landed beside the held write"
+        );
         let mut undone = out();
         do_undo(&mut undone, &mut o);
         assert!(text(&undone).contains(r#"{"t":"undone""#), "no pending entry survives the late Done: {}", text(&undone));
@@ -2010,24 +2085,29 @@ mod tests {
         let remote_trash = remote.file("t.txt", "t");
         let journaled = o.journal.len();
         let mut busy = out();
-        start_trash(&mut busy, &mut o, vec![remote_trash.to_string_lossy().to_string()], 0);
+        start_trash(&mut busy, &mut o, vec![remote_trash.to_string_lossy().to_string()], 0, 0);
         assert!(text(&busy).contains("already running"), "trash on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused trash journals nothing");
         assert!(remote_trash.exists(), "the refused trash touches nothing");
         // The same trash elsewhere leaves the process with no refusal on the wire.
         let local_trash = local.file("t.txt", "t");
         let mut quiet = out();
-        start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0);
-        assert!(text(&quiet).is_empty(), "trash elsewhere answers nothing in sync: {}", text(&quiet));
+        start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0, 0);
+        assert!(text(&quiet).contains(r#""t":"trashstarted""#), "trash elsewhere acknowledges acceptance in sync: {}", text(&quiet));
+        let mut trash_journaled = None;
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the trash reports through the op channel");
             let terminal = matches!(&msg, OpMsg::Trashed { .. });
+            if let OpMsg::Trashed { entry, .. } = &msg {
+                trash_journaled = Some(usize::from(!entry.steps.is_empty()));
+            }
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
                 break;
             }
         }
+        let trash_journaled = trash_journaled.expect("the trash batch must complete before the sweep continues");
         assert!(o.live.running().is_none(), "the trash frees the slot it claimed");
         // A menu selection on the held mount waits even when the paths name files elsewhere.
         let remote_sel = remote.file("sel.txt", "s");
@@ -2039,7 +2119,7 @@ mod tests {
         let local_other = local.file("other.txt", "o");
         let journaled = o.journal.len();
         let mut busy = out();
-        start_trash(&mut busy, &mut o, vec![local_other.to_string_lossy().to_string()], 5);
+        start_trash(&mut busy, &mut o, vec![local_other.to_string_lossy().to_string()], 5, 0);
         assert!(text(&busy).contains("already running"), "a selection on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused trash journals nothing");
         assert!(local_other.exists(), "the refused trash touches nothing");
@@ -2082,13 +2162,13 @@ mod tests {
         // Mkdir on the held mount waits, and the folder never appears.
         let journaled = o.journal.len();
         let mut busy = out();
-        do_mkdir(&mut busy, &mut o, &remote.path().to_string_lossy(), "heldsub");
+        do_mkdir(&mut busy, &mut o, &remote.path().to_string_lossy(), "heldsub", None);
         assert!(text(&busy).contains("already running"), "a mkdir on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused mkdir journals nothing");
         assert!(!remote.join("heldsub").exists(), "the refused mkdir touches nothing");
         // The same mkdir elsewhere lands at once.
         let mut done = out();
-        do_mkdir(&mut done, &mut o, &local.path().to_string_lossy(), "photos");
+        do_mkdir(&mut done, &mut o, &local.path().to_string_lossy(), "photos", None);
         assert!(text(&done).contains(r#""t":"made","ok":true"#), "a mkdir elsewhere lands: {}", text(&done));
         // A new file on the held mount waits, and nothing is created.
         let journaled = o.journal.len();
@@ -2161,7 +2241,7 @@ mod tests {
         assert!(text(&started).contains("archivestarted"), "a compress elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the compress reports through the op channel");
-            let terminal = matches!(&msg, OpMsg::DetachedDone { .. });
+            let terminal = matches!(&msg, OpMsg::JobDone { .. });
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
@@ -2169,6 +2249,11 @@ mod tests {
             }
         }
         assert!(o.detached.is_empty(), "the compress leaves the quit registry");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the archive terminal result completes its job"
+        );
         let local_divergent = local.file("c2.txt", "c");
         let mut busy = out();
         crate::backend::archivereq::start_archive(&mut busy, &mut o, std::sync::Arc::clone(&formats), "compress",
@@ -2195,7 +2280,7 @@ mod tests {
         assert!(text(&started).contains("archivestarted"), "an extract elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the extract reports through the op channel");
-            let terminal = matches!(&msg, OpMsg::SlotDone { .. });
+            let terminal = matches!(&msg, OpMsg::JobDone { .. });
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
@@ -2203,6 +2288,11 @@ mod tests {
             }
         }
         assert!(o.live.running().is_none(), "the extract frees the slot it claimed");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the archive terminal result completes its job"
+        );
         // A convert of the held mount waits before anything is inspected.
         let remote_convert = remote.file("in.png", "pixels");
         let journaled = o.journal.len();
@@ -2244,14 +2334,15 @@ mod tests {
         let mut done = out();
         do_permissions_batch(&mut done, &mut o, vec![local_perm.to_string_lossy().to_string()], vec!["644".to_string()], 82);
         assert!(text(&done).contains(r#""ok":true"#), "permissions elsewhere apply: {}", text(&done));
-        // Releasing the held write journals it late behind everything the sweep ran.
+        // Eight known writes journal once; Trash adds one only when its completed receipt has steps.
         let journaled = o.journal.len();
         drop(release);
         let landed = rx.recv_timeout(LAND_BOUND).expect("the released write reports through the op channel");
         let mut late = out();
         report_op(&mut late, &mut o, landed);
         assert!(text(&late).contains(r#""t":"renamed""#), "the released rename journals late: {}", text(&late));
-        assert_eq!(o.journal.len(), journaled + 1, "the late entry lands exactly once");
+        assert_eq!(journaled, 0, "the accepted rename holds later entries behind its reservation");
+        assert_eq!(o.journal.len(), 8 + trash_journaled, "every completed write journals exactly once; an empty Trash receipt journals nothing");
         assert!(o.live.running().is_none(), "no pending entry survives the late Done");
         assert!(o.pending.is_empty(), "the late Done clears its own pending entry");
     }

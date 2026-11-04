@@ -1,0 +1,281 @@
+#!/usr/bin/env python3
+"""Validate a frozen fleet inventory against a controller capture, without updates or app launches."""
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import stat
+import subprocess
+import sys
+import tarfile
+from urllib.parse import urlparse
+
+
+ANCHORS = ("flea-candidate", "flea-0.3.12")
+DESKTOP = ("strata-stable", "strata-nightly", "dolphin", "nautilus", "nemo", "thunar")
+ROSTERS = {
+    "B1": ANCHORS + DESKTOP + ("krusader",),
+    "field": ANCHORS + DESKTOP + ("pcmanfm",),
+    "B7": ANCHORS + DESKTOP + ("krusader", "pcmanfm"),
+    "tui": ANCHORS + ("yazi", "mc", "broot", "nnn", "lf", "ranger", "xplr", "superfile"),
+    "search": ANCHORS + ("fsearch-nd", "fff-bare", "fff-rich", "fsearch"),
+}
+MAX_AGE = dt.timedelta(hours=24)
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def text(value):
+    require(isinstance(value, str) and bool(value.strip()), "missing text")
+    return value
+
+
+def hex_id(value, size):
+    require(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{%d}" % size, value), "invalid identity")
+    return value
+
+
+# Sample input: "2026-10-24T11:30:00Z"
+def timestamp(value):
+    result = dt.datetime.fromisoformat(text(value).replace("Z", "+00:00"))
+    require(result.utcoffset() == dt.timedelta(0), "timestamp must be UTC")
+    return result
+
+
+def fresh(value, now):
+    age = now - timestamp(value)
+    require(dt.timedelta(0) <= age <= MAX_AGE, "stale or future timestamp: controller refresh required")
+
+
+# Sample input: {"schema": 1, "captured_at": "2026-10-24T11:30:00Z", "entrants": [...]}
+def read_json(path):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, "duplicate JSON key: " + key)
+            result[key] = value
+        return result
+    return json.loads(Path(path).read_bytes(), object_pairs_hook=unique)
+
+
+def file_id(path):
+    path = Path(text(path))
+    require(path.is_absolute(), "file path must be absolute")
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode), "evidence must be a regular file")
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    return {"path": str(path), "sha256": digest, "bytes": info.st_size}
+
+
+def verify_file(identity, executable=False):
+    hex_id(identity["sha256"], 64)
+    require(type(identity["bytes"]) is int and identity["bytes"] > 0, "invalid file size")
+    require(file_id(identity["path"]) == identity, "file identity changed: " + identity["path"])
+    if executable:
+        require(os.access(identity["path"], os.X_OK), "binary is not executable")
+
+
+def indexed(rows):
+    result = {}
+    for row in rows:
+        alias = text(row["alias"])
+        require(alias not in result, "duplicate alias: " + alias)
+        result[alias] = row
+    return result
+
+
+def source_identity(source, version, alias):
+    require(urlparse(text(source["url"])).scheme == "https", "source URL must be HTTPS")
+    hex_id(source["build_commit"], 40)
+    if source["tag"] is not None:
+        tag_version = text(source["tag"]).removeprefix("v")
+        if alias not in ("strata-stable", "strata-nightly"):
+            tag_version = source.get("tag_version", tag_version)
+        require(re.search(r"(?<![0-9.])" + re.escape(text(tag_version)) + "$", source["tag"]), "tag_version does not match tag")
+        require(tag_version == version, "tag/build version mismatch")
+        hex_id(source["tag_commit"], 40)
+        hex_id(source["tag_object"], 40)
+    else:
+        require(source["tag_commit"] is None and source["tag_object"] is None, "untagged source has tag identities")
+    verify_file(source["evidence"])
+
+
+def signed_artifact(row):
+    artifact = row["artifact"]
+    for name in ("archive", "manifest", "signed_message", "signature", "key_der"):
+        verify_file(artifact[name])
+    manifest_bytes = Path(artifact["manifest"]["path"]).read_bytes()
+    message = Path(artifact["signed_message"]["path"]).read_bytes()
+    require(message == b"strata-update-manifest-v1\0" + manifest_bytes, "signed message/manifest mismatch")
+    key = bytes.fromhex(hex_id(artifact["public_key"], 64))
+    require(Path(artifact["key_der"]["path"]).read_bytes() == bytes.fromhex("302a300506032b6570032100") + key,
+            "signed artifact key mismatch")
+    probe = subprocess.run(["openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-keyform", "DER",
+                            "-inkey", artifact["key_der"]["path"], "-sigfile", artifact["signature"]["path"],
+                            "-in", artifact["signed_message"]["path"]], capture_output=True, timeout=15)
+    require(probe.returncode == 0, "signed artifact signature mismatch")
+    manifest = read_json(artifact["manifest"]["path"])
+    require(manifest["schema"] == 1 and manifest["repository"] == "lgse/strata", "signed artifact repository mismatch")
+    require(manifest["tag"] == row["source"]["tag"], "signed artifact tag mismatch")
+    require(manifest["source_commit"] == row["source"]["build_commit"], "signed build source mismatch")
+    matches = [item for item in manifest["artifacts"] if item["target"] == artifact["target"]]
+    require(len(matches) == 1, "signed artifact target missing or ambiguous")
+    member = matches[0]
+    require((member["sha256"], member["size"]) == (artifact["archive"]["sha256"], artifact["archive"]["bytes"]),
+            "signed archive mismatch")
+    require(member["name"] == artifact["name"], "signed artifact name mismatch")
+    with tarfile.open(artifact["archive"]["path"], "r:gz") as archive:
+        for name, expected in (("binary_member", row["binary"]["sha256"]),
+                               ("source_member", row["source"]["build_commit"])):
+            entries = [item for item in archive.getmembers() if item.name == artifact[name]]
+            require(len(entries) == 1 and entries[0].isfile(), "archive member missing or ambiguous")
+            # Sample input: the source member holds "<40 hex build commit>\n"
+            with archive.extractfile(entries[0]) as stream:
+                actual = (hashlib.file_digest(stream, "sha256").hexdigest() if name == "binary_member"
+                          else stream.read(128).decode("ascii").strip())
+            require(actual == expected, "archive binary/source mismatch")
+
+
+def validate_row(expected, observed, now, captured):
+    alias = expected["alias"]
+    version = text(expected["version"])
+    require(expected["kind"] in ("stable", "source-head", "nightly-build", "anchor", "candidate"), "invalid release kind")
+    if alias == "fff-rich":
+        require(expected["kind"] == "anchor", "historical fff rich must remain an anchor")
+    if alias not in (*ANCHORS, "fff-rich", "strata-nightly") and any(alias in roster for roster in ROSTERS.values()):
+        require(expected["kind"] in ("stable", "source-head"), "latest rival cannot be relabelled historical or candidate")
+    if alias == "strata-stable":
+        require(expected["kind"] == "stable" and "-" not in version, "stable/nightly collision")
+    if alias == "strata-nightly":
+        require(expected["kind"] == "nightly-build" and re.fullmatch(r"\d+\.\d+\.\d+-nightly\.\d{8}", version),
+                "nightly updater head cannot replace published nightly-build")
+    if alias == "flea-0.3.12":
+        require(expected["kind"] == "anchor" and version == "0.3.12" and
+                expected["source"]["build_commit"] == "f21789e56cc4b0877caa3156fff7bce52a8dd9c2",
+                "installed 0.3.12 anchor mismatch")
+    if alias == "flea-candidate":
+        require(expected["kind"] == "candidate", "candidate cannot be a historical anchor")
+    if alias.startswith("fff-"):
+        require(expected["profile"] == alias.removeprefix("fff-"), "fff bare/rich profile mismatch")
+    for field in ("version", "kind", "profile", "source", "package", "dependencies", "thumbnailers", "latest",
+                  "binary", "version_args", "version_stdout"):
+        require(observed[field] == expected[field], "changed " + field)
+    source_identity(expected["source"], version, alias)
+    package = expected["package"]
+    text(package["name"])
+    text(package["version"])
+    require(package["method"] in ("system-package", "source-build", "release-archive"), "missing install method")
+    require(isinstance(expected["dependencies"], dict), "dependencies must be a version map")
+    for name, dependency_version in expected["dependencies"].items():
+        text(name)
+        text(dependency_version)
+    require(expected["thumbnailers"]["policy"] in ("internal", "external", "none"), "missing thumbnailer policy")
+    names = expected["thumbnailers"]["packages"]
+    require(isinstance(names, list) and len(names) == len(set(names)), "invalid thumbnailer packages")
+    require(all(name in expected["dependencies"] for name in names), "thumbnailer version missing")
+    require(bool(names) == (expected["thumbnailers"]["policy"] == "external"), "thumbnailer policy mismatch")
+    latest = expected["latest"]
+    require(latest["channel"] == expected["kind"] and latest["version"] == version, "latest selection/build mismatch")
+    require(urlparse(text(latest["url"])).scheme == "https", "missing primary upstream URL")
+    fresh(latest["checked_at"], now)
+    require(timestamp(latest["checked_at"]) <= captured, "upstream check is after capture")
+    verify_file(latest["evidence"])
+    verify_file(expected["binary"], executable=True)
+    probe = observed["probe"]
+    require(probe["argv"] == [expected["binary"]["path"]] + expected["version_args"], "version command mismatch")
+    require(type(probe["exit"]) is int and probe["exit"] == 0, "version command failed")
+    require(text(probe["stdout"]).strip() == text(expected["version_stdout"]).strip(), "actual version output mismatch")
+    require(version in probe["stdout"], "version output does not identify build")
+    if alias in ("strata-stable", "strata-nightly"):
+        require(observed["artifact"] == expected["artifact"], "changed artifact")
+        signed_artifact(expected)
+    return observed
+
+
+def validate(inventory, capture, now, groups):
+    require(inventory["schema"] == capture["schema"] == 1, "unknown schema")
+    require(not capture.get("errors"), "capture failed: " + str(capture.get("errors")))
+    require(text(inventory["host"]) == capture["host"], "capture host mismatch")
+    fresh(capture["captured_at"], now)
+    captured = timestamp(capture["captured_at"])
+    packages = inventory["installed_packages"]
+    require(isinstance(packages, dict) and bool(packages), "missing complete installed package inventory")
+    require(packages == capture["installed_packages"], "changed installed package inventory: refresh dependency pins")
+    for name, version in packages.items():
+        text(name)
+        text(version)
+    expected = indexed(inventory["entrants"])
+    observed = indexed(capture["entrants"])
+    errors, rows = [], []
+    required = set().union(*(set(ROSTERS[group]) for group in groups))
+    for label, roster in (("inventory", expected), ("capture", observed)):
+        for alias in sorted(required - roster.keys()):
+            errors.append(label + ": missing entrant " + alias)
+    require(expected.keys() == observed.keys(), "inventory/capture aliases differ")
+    for alias, row in expected.items():
+        try:
+            checked = validate_row(row, observed[alias], now, captured)
+            for name, version in row["dependencies"].items():
+                require(packages.get(name) == version, "dependency not bound to installed package inventory")
+            if row["package"]["method"] == "system-package":
+                require(packages.get(row["package"]["name"]) == row["package"]["version"], "package inventory mismatch")
+            rows.append(checked)
+        except (KeyError, TypeError, ValueError, OSError, tarfile.TarError, subprocess.SubprocessError) as error:
+            errors.append(alias + ": " + str(error))
+    for left, right, label in (("strata-stable", "strata-nightly", "stable/nightly"),
+                               ("flea-candidate", "flea-0.3.12", "candidate/anchor")):
+        if not {left, right} <= expected.keys():
+            continue
+        try:
+            for field in ("path", "sha256"):
+                require(expected[left]["binary"][field] != expected[right]["binary"][field], label + " binary collision")
+            require(os.path.realpath(expected[left]["binary"]["path"]) != os.path.realpath(expected[right]["binary"]["path"]),
+                    label + " resolved path collision")
+        except (KeyError, TypeError, ValueError) as error:
+            errors.append(str(error))
+    complete = set(groups) == set(ROSTERS)
+    status = ("IDENTITIES_VERIFIED_NOT_BENCHMARK_ACCEPTANCE" if complete
+              else "GROUP_IDENTITIES_VERIFIED_NOT_COMPLETE_FLEET")
+    return {"schema": 1, "status": "BLOCKED" if errors else status,
+            "host": capture["host"], "captured_at": capture["captured_at"], "validated_at": now.isoformat(),
+            "max_age_hours": 24, "rosters": ROSTERS, "entrants": rows, "errors": errors,
+            "validated_groups": groups, "complete_fleet": complete and not errors,
+            "installed_packages": packages,
+            "benchmark": "UNMEASURED"}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("inventory", nargs="?")
+    parser.add_argument("capture", nargs="?")
+    parser.add_argument("--as-of", help="UTC validation time; defaults to current UTC, never the receipt timestamp")
+    parser.add_argument("--describe", action="store_true", help="print roster and freshness contract")
+    parser.add_argument("--groups", nargs="+", choices=tuple(ROSTERS), help="host-specific groups; default requires all")
+    args = parser.parse_args()
+    if args.describe:
+        print(json.dumps({"schema": 1, "rosters": ROSTERS, "max_age_hours": 24}, indent=2))
+        return 0
+    if not args.inventory or not args.capture:
+        parser.error("inventory and capture are required")
+    try:
+        now = timestamp(args.as_of) if args.as_of else dt.datetime.now(dt.timezone.utc)
+        groups = list(dict.fromkeys(args.groups or ROSTERS))
+        report = validate(read_json(args.inventory), read_json(args.capture), now, groups)
+        report["inputs"] = {"inventory": file_id(str(Path(args.inventory).resolve())),
+                            "capture": file_id(str(Path(args.capture).resolve()))}
+    except (KeyError, TypeError, ValueError, OSError) as error:
+        report = {"schema": 1, "status": "BLOCKED", "errors": [str(error)], "benchmark": "UNMEASURED"}
+    print(json.dumps(report, indent=2))
+    return 1 if report["status"] == "BLOCKED" else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

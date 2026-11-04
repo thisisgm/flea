@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbel version="1.0">
+  <bookmark href="file:///older.txt" visited="2026-08-01T00:00:00Z"/>
+  <bookmark href="https://example.invalid/refused" visited="2026-09-01T00:00:00Z"/>
+  <bookmark href="file:///newer.txt" visited="2026-08-30T00:00:00Z"/>
+</xbel>

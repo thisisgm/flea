@@ -5,10 +5,17 @@ use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Refusal
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
+
+mod job;
+mod details;
+#[cfg(test)]
+mod queue_tests;
+pub(crate) use job::request;
+#[cfg(test)]
+use job::delete_confirmed;
 
 const SUMMARY_BUDGET_MS: u64 = 2000;
 
@@ -75,6 +82,7 @@ struct Confirmation {
     listing: Vec<Item>,
     targets: Manifest,
     count: usize,
+    nodes: usize,
     all: bool,
 }
 struct Selection {
@@ -88,6 +96,7 @@ struct Session {
     next_token: usize,
     cancellation: Cancellation,
     scratch: PathBuf,
+    job: Option<job::Progress>,
     // Mounts the loop holds slow writes on, with the mount table they were read from, so restore and delete wait for them.
     pending: Vec<PathBuf>,
     body: String,
@@ -95,31 +104,40 @@ struct Session {
 impl Default for Session {
     fn default() -> Self {
         Self { items: Vec::new(), confirmation: None, selection: None, next_token: 0,
-            cancellation: Cancellation::default(), scratch: std::env::temp_dir(), pending: Vec::new(), body: String::new() }
+            cancellation: Cancellation::default(), scratch: std::env::temp_dir(), job: None, pending: Vec::new(), body: String::new() }
     }
 }
 
+type BrowserRequest = (String, Cancellation, Vec<PathBuf>, String, Option<job::Progress>);
 pub struct TrashBrowser {
-    tx: Sender<(String, Cancellation, Vec<PathBuf>, String)>,
+    tx: Sender<BrowserRequest>,
     cancellation: Cancellation,
 }
 impl TrashBrowser {
     pub fn new(replies: Sender<OpMsg>) -> Self {
-        let (tx, rx) = channel::<(String, Cancellation, Vec<PathBuf>, String)>();
+        let (tx, rx) = channel::<BrowserRequest>();
         thread::spawn(move || {
             let mut session = Session::default();
-            for (request, cancellation, pending, body) in rx {
+            for (request, cancellation, pending, body, job) in rx {
                 session.cancellation = cancellation;
                 session.pending = pending;
                 session.body = body;
+                session.job = job;
+                if let Some(progress) = &session.job {
+                    let count = session.confirmation.as_ref().filter(|c| Some(c.token) == field_usize(&request, "token")).map(|c| c.count).unwrap_or(0);
+                    progress.count.set(count);
+                    progress.nodes.set(session.confirmation.as_ref().filter(|c| Some(c.token) == field_usize(&request, "token")).map(|c| c.nodes).unwrap_or(0));
+                    progress.sample("checking", 0, 0, None, true);
+                }
                 let line = session.handle(&request);
-                if replies.send(OpMsg::Meta { line }).is_err() { break; }
+                let message = match session.job.take() {
+                    Some(progress) => progress.finish(line, session.cancellation.check().is_err()),
+                    None => OpMsg::Meta { line },
+                };
+                if replies.send(message).is_err() { break; }
             }
         });
         Self { tx, cancellation: Cancellation::default() }
-    }
-    pub fn request(&self, line: String, pending: Vec<PathBuf>, body: String) {
-        let _ = self.tx.send((line, self.cancellation.next(), pending, body));
     }
 }
 impl Drop for TrashBrowser {
@@ -128,8 +146,7 @@ impl Drop for TrashBrowser {
 
 fn gio(args: &[&str]) -> Result<String, Refusal> {
     let prefix = super::trash::gio_prefix();
-    answer(Command::new(&prefix[0])
-        .env("LC_ALL", "C")
+    answer(crate::backend::locale::command(&prefix[0])
         .args(&prefix[1..])
         .args(args)
         .output())
@@ -222,22 +239,25 @@ fn attribute<'a>(text: &'a str, name: &str) -> Option<&'a str> {
 }
 fn detail(item: &Item) -> Result<Detail, Refusal> {
     let text = gio(&["info", "--nofollow-symlinks", "--attributes=standard::size,standard::type,trash::deletion-date,id::file,id::filesystem,standard::icon,standard::target-uri", &item.uri])?;
-    let size = attribute(&text, "standard::size")
+    detail_text(item, &text)
+}
+fn detail_text(item: &Item, text: &str) -> Result<Detail, Refusal> {
+    let size = attribute(text, "standard::size")
         .and_then(|s| s.parse().ok())
         .ok_or_else(|| unreadable("The Trash helper did not report the item's size."))?;
     let identity = match (
-        attribute(&text, "id::filesystem"),
-        attribute(&text, "id::file"),
+        attribute(text, "id::filesystem"),
+        attribute(text, "id::file"),
     ) {
         (Some(fs), Some(file)) if !fs.is_empty() && !file.is_empty() => format!("{}:{}", fs, file),
         _ => String::new(),
     };
-    let backing = attribute(&text, "standard::target-uri")
+    let backing = attribute(text, "standard::target-uri")
         .and_then(|uri| uri.strip_prefix("file://"))
         .and_then(|path| {
             Reviewed::inspect(
                 PathBuf::from(crate::paths::percent_decode(path)),
-                attribute(&text, "id::file").unwrap_or(""),
+                attribute(text, "id::file").unwrap_or(""),
             )
             .ok()
         });
@@ -245,12 +265,12 @@ fn detail(item: &Item) -> Result<Detail, Refusal> {
         backing,
         item: item.clone(),
         size,
-        deleted: attribute(&text, "trash::deletion-date")
+        deleted: attribute(text, "trash::deletion-date")
             .unwrap_or("")
             .into(),
         identity,
-        directory: attribute(&text, "standard::type") == Some("2"),
-        icon: attribute(&text, "standard::icon")
+        directory: attribute(text, "standard::type") == Some("2"),
+        icon: attribute(text, "standard::icon")
             .unwrap_or("")
             .split(", ")
             .next()
@@ -269,6 +289,19 @@ fn row(item: &Detail) -> String {
         escape(&item.icon),
         escape(&selection_identity(item))
     )
+}
+
+fn thumbnail(item: &Detail) -> String {
+    if !item.directory && item.icon.starts_with("image-") {
+        if let Some(backing) = &item.backing {
+            if let Some((path, mtime)) = backing.thumbnail() {
+                return format!(r#"{{"path":"{}","provider":"{}","identity":"{}","mtime":{}}}"#,
+                    escape(&path.to_string_lossy()), escape(&backing.provider_identity()),
+                    escape(&backing.selection_identity()), mtime);
+            }
+        }
+    }
+    "null".into()
 }
 
 fn selection_identity(item: &Detail) -> String {
@@ -318,9 +351,22 @@ fn failure(item: &Item, expected: &str, error: &str) -> String {
     format!(r#"{{"uri":"{}","name":"{}","identity":"{}","error":"{}"}}"#,
         escape(&item.uri), escape(item.original.rsplit('/').next().unwrap_or(&item.original)), escape(expected), escape(error))
 }
-fn delete_one(item: &Detail, recovery: &Result<PathBuf, String>) -> Result<(), String> {
+// Purge once on request exit, including a partial restore that stops on an unreadable target record.
+struct ThumbnailPurge(Vec<String>);
+impl ThumbnailPurge {
+    fn record(&mut self, reviewed: &Reviewed, result: &Result<(), Refusal>) {
+        if let Some(uri) = reviewed.departed_uri(result) { self.0.push(uri); }
+    }
+}
+impl Drop for ThumbnailPurge {
+    fn drop(&mut self) { super::trashthumbcache::purge(&self.0); }
+}
+#[cfg(test)]
+fn delete_one(item: &Detail, recovery: &Result<PathBuf, String>, thumbnails: &mut ThumbnailPurge) -> Result<(), String> {
     let reviewed = item.backing.as_ref().ok_or_else(|| unchecked(Op::Delete).shown())?;
-    reviewed.delete(recovery.as_ref().map_err(Clone::clone)?).map_err(String::from)
+    let result = reviewed.delete(recovery.as_ref().map_err(Clone::clone)?);
+    thumbnails.record(reviewed, &result);
+    result.map_err(String::from)
 }
 // A record that will not read back fails its own item, so items already deleted stay counted; a record with no readable uri gets an empty one.
 fn unread(item: Option<Item>) -> String {
@@ -357,41 +403,6 @@ fn left_unread(confirmation: &Confirmation, reached: usize) -> (Vec<String>, usi
     unnamed += left.saturating_sub(rows.len() + unnamed);
     if unnamed > 0 { rows.push(unread_many(unnamed)); }
     (rows, left)
-}
-fn delete_confirmed(confirmation: &Confirmation, recovery: &Result<PathBuf, String>) -> String {
-    let mut done = 0;
-    let mut failures = Vec::new();
-    let mut offset = 0;
-    let mut reached = 0;
-    let mut folded = 0;
-    loop {
-        let bytes = match confirmation.items.records().next(&mut offset) {
-            Ok(Some(bytes)) => bytes,
-            Ok(None) => break,
-            // The offset does not move past a frame that cannot be read, so the records after it cannot be found there.
-            Err(error) => {
-                damaged(&error);
-                let (rows, left) = left_unread(confirmation, reached);
-                folded += left.saturating_sub(rows.len());
-                failures.extend(rows);
-                break;
-            }
-        };
-        reached += 1;
-        let text = match record_text(bytes) {
-            Ok(text) => text,
-            Err(_) => { failures.push(unread(None)); continue; }
-        };
-        match load_detail(&text, &confirmation.trees) {
-            Ok(item) => match delete_one(&item, recovery) {
-                Ok(()) => done += 1,
-                Err(error) => failures.push(failure(&item.item, &surviving_identity(&item), &error)),
-            },
-            Err(_) => failures.push(unread(record_item(&text).ok())),
-        }
-    }
-    // `failed` counts items, and a row for records that could not be read stands for several of them.
-    format!(r#""done":{},"failed":{},"failures":[{}]"#, done, failures.len() + folded, failures.join(","))
 }
 fn surviving_identity(item: &Detail) -> String {
     if let Ok(current) = detail(&item.item) {
@@ -458,22 +469,7 @@ impl Session {
                 Ok(r#""cancelled":true"#.into())
             }
             "restore" => Ok(self.restore(line)?),
-            "delete" => {
-                // A target whose original sits on a pending mount waits, checked before any listing so the refusal needs no trash round trip.
-                if let Some(confirmation) = self.confirmation.as_ref().filter(|c| c.token == field_usize(line, "token").unwrap_or(0)) {
-                    if self.targets_blocked(&confirmation.targets)? {
-                        return Err("an operation is already running".into());
-                    }
-                }
-                if !self.valid(field_usize(line, "token").unwrap_or(0))? {
-                    return Err(Failure::Stale(Refusal::new(Outcome::ConfirmAgain, "Trash changed; confirm again.").logged()));
-                }
-                let confirmation = self
-                    .confirmation
-                    .take()
-                    .ok_or("Trash confirmation expired.")?;
-                Ok(delete_confirmed(&confirmation, &crate::backend::trashdelete::recovery_root()))
-            }
+            "delete" => self.delete(line),
             _ => Err("Unknown Trash request.".into()),
         }
     }
@@ -506,10 +502,16 @@ impl Session {
             }
         }
         if stale { self.selection = None; selected_count = 0; members.clear(); }
+        let mut classes = HashMap::new();
         let rows = rows.iter().map(|item| {
             let mut text = row(item);
             text.pop();
-            text.push_str(&format!(r#","bulkSelected":{}}}"#, members.contains(&item.item.uri)));
+            let class = if self.body.is_empty() { "null".into() } else {
+                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(PathBuf::from))
+                    .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
+                format!(r#""{}""#, class)
+            };
+            text.push_str(&format!(r#","bulkSelected":{},"storageClass":{},"thumbnail":{},{}}}"#, members.contains(&item.item.uri), class, thumbnail(item), details::content(item)));
             text
         }).collect::<Vec<_>>();
         Ok(format!(r#""total":{},"start":{},"rows":[{}],"selectionToken":{},"selectionCount":{},"selectionStale":{}"#,
@@ -609,8 +611,10 @@ impl Session {
     }
     // Originals behind trash uris, checked against the mounts the loop holds slow writes on.
     fn targets_blocked(&self, targets: &Manifest) -> Result<bool, String> {
+        if self.pending.is_empty() { return Ok(false); }
         let mut offset = 0;
         while let Some(bytes) = targets.records().next(&mut offset)? {
+            self.cancellation.check()?;
             let item = record_item(&record_text(bytes)?)?;
             let mount = crate::backend::iomount::mount_key(&PathBuf::from(&item.original), &self.body);
             if self.pending.iter().any(|held| held == &mount) {
@@ -648,24 +652,31 @@ impl Session {
         let mut trees = Manifest::new(&self.scratch)?;
         let mut cursor = 0;
         let mut count = 0;
+        let mut nodes = 0usize;
         let mut bytes = 0u64;
-        while let Some(record) = targets.records().next(&mut cursor)? {
+        loop {
+            let batch = details::records(&targets, &mut cursor)?;
+            if batch.is_empty() { break; }
             self.cancellation.check()?;
-            let text = record_text(record)?;
-            let mut current = detail(&record_item(&text)?)?;
-            if !all && refresh_token == 0 {
-                require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
+            let names = batch.iter().map(|text| record_item(text)).collect::<Result<Vec<_>, _>>()?;
+            let current_items = details::many(&names)?;
+            for (text, mut current) in batch.into_iter().zip(current_items) {
+                self.cancellation.check()?;
+                if !all && refresh_token == 0 {
+                    require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
+                }
+                if current.identity.is_empty() { return Err(indistinct(false).into()); }
+                let size = current.backing.as_mut()
+                    .ok_or_else(|| unchecked(Op::Delete))?
+                    .snapshot(&mut trees, &self.scratch, &self.cancellation)?;
+                nodes = nodes.checked_add(current.backing.as_ref().unwrap().reviewed_nodes()).ok_or("Trash file total exceeds the supported range.")?;
+                bytes = bytes.checked_add(size).ok_or("Trash byte total exceeds the supported range.")?;
+                items.append(save_detail(&current)?.as_bytes())?;
+                count += 1;
             }
-            if current.identity.is_empty() { return Err(indistinct(false).into()); }
-            let size = current.backing.as_mut()
-                .ok_or_else(|| unchecked(Op::Delete))?
-                .snapshot(&mut trees, &self.scratch, &self.cancellation)?;
-            bytes = bytes.checked_add(size).ok_or("Trash byte total exceeds the supported range.")?;
-            items.append(save_detail(&current)?.as_bytes())?;
-            count += 1;
         }
         self.next_token += 1;
-        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, all });
+        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, nodes, all });
         if !self.valid(self.next_token)? {
             self.confirmation = None;
             return Err("Trash changed while reviewing its contents; try the action again.".into());
@@ -678,19 +689,30 @@ impl Session {
             Some(c) if c.token == token => c,
             _ => return Ok(false),
         };
+        self.cancellation.check()?;
         if !same_items(&list()?, &confirmation.listing) { return Ok(false); }
         let mut cursor = 0;
-        while let Some(bytes) = confirmation.items.records().next(&mut cursor)? {
+        let mut checked = 0;
+        loop {
             self.cancellation.check()?;
-            let old = load_detail(&record_text(bytes)?, &confirmation.trees)?;
-            let Some(backing) = old.backing.as_ref() else { return Ok(false); };
-            if !backing.contents_unchanged(&self.cancellation)? { return Ok(false); }
-            let current = detail(&old.item)?;
-            if !selection_current(&current, &selection_identity(&old)) { return Ok(false); }
+            let batch = details::records(&confirmation.items, &mut cursor)?;
+            if batch.is_empty() { break; }
+            let old_items = batch.iter().map(|text| load_detail(text, &confirmation.trees)).collect::<Result<Vec<_>, _>>()?;
+            let names = old_items.iter().map(|old| old.item.clone()).collect::<Vec<_>>();
+            let current_items = details::many(&names)?;
+            for (old, current) in old_items.iter().zip(current_items) {
+                self.cancellation.check()?;
+                let Some(backing) = old.backing.as_ref() else { return Ok(false); };
+                if !backing.contents_unchanged(&self.cancellation)? { return Ok(false); }
+                if !selection_current(&current, &selection_identity(old)) { return Ok(false); }
+                checked += 1;
+                if let Some(progress) = &self.job { progress.sample("checking", 0, checked, Some(old), false); }
+            }
         }
         Ok(true)
     }
     fn restore(&mut self, line: &str) -> Result<String, String> {
+        let mut thumbnails = ThumbnailPurge(Vec::new());
         if field_bool(line, "all") { self.items = list()?; }
         let targets = self.targets(line)?;
         // A target whose original sits on a pending mount waits, so the late write lands first.
@@ -708,10 +730,10 @@ impl Session {
                 if !field_bool(line, "all") {
                     require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
                 }
-                let result = current.backing.as_ref()
-                    .ok_or_else(|| unchecked(Op::Restore))?
-                    .restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?)
-                    .map_err(String::from);
+                let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
+                let result = backing.restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?);
+                thumbnails.record(backing, &result);
+                let result = result.map_err(String::from);
                 if result.is_err() { retained = surviving_identity(&current); }
                 result
             });
@@ -729,6 +751,9 @@ impl Session {
 
 #[cfg(test)]
 mod refusal_tests;
+#[cfg(test)]
+#[path = "trashbrowse/thumbnail_tests.rs"]
+mod thumbnail_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -875,7 +900,7 @@ mod tests {
         targets.append(br#"{"uri":"trash:///a","original":"/old/a","identity":"old-inode"}"#).unwrap();
         targets.append(br#"{"uri":"trash:///gone","original":"/old/gone","identity":"gone-inode"}"#).unwrap();
         let confirmation = Confirmation { token: 3, items: Manifest::new(d.path()).unwrap(),
-            trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, all: false };
+            trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
         let session = Session { items: parse_list("trash:///a\t/new/a\ntrash:///new\t/new\n").unwrap(),
             scratch: d.path().to_path_buf(), ..Session::default() };
         let refreshed = session.refreshed_targets(&confirmation).unwrap();
@@ -1005,7 +1030,7 @@ mod tests {
         targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
             remote.path().to_string_lossy()).as_bytes()).unwrap();
         let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, all: false };
+            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
         let delete = r#"{"c":"trashbrowse","op":"delete","id":9,"token":7}"#;
         let mut held = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(),
             pending: vec![remote.path().to_path_buf()], body, ..Session::default() };
@@ -1017,7 +1042,7 @@ mod tests {
         targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
             remote.path().to_string_lossy()).as_bytes()).unwrap();
         let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, all: false };
+            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
         let mut free = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(), ..Session::default() };
         let past = free.handle(delete);
         assert!(!past.contains("already running"), "a delete elsewhere runs past the gate: {}", past);

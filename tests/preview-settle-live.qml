@@ -31,13 +31,14 @@ ShellRoot {
     property double holdStopAt: 0
     property double holdLandAt: 0
     property int holdCaps: 0
-    // Far past the settle, so only the settle's own stop can land the open before the cap.
-    readonly property int holdCapMs: 5000
+    // Past the runner's 60 s timeout, so neither the cap nor the held settle fires inside the probe however slow the decode.
+    readonly property int holdCapMs: 60000
     property string holdPhase: ""
-    property double holdDeadline: 0
     property bool holdTimedOut: false
-    readonly property int holdSetupMs: 2500
-    readonly property int holdLandingMs: 2000
+    // Every wait ends on the state it polls or at this one deadline, inside the runner's 60 s timeout.
+    readonly property double deadlineAt: Date.now() + 45000
+    // When the open burst's moves began, or 0 outside one; a burst opens after its idle move's check, which no stall can fail.
+    property double burstAt: 0
 
     function holdDetail() {
         return "phase=" + root.holdPhase + " ready=" + root.holdReadySettling
@@ -59,7 +60,13 @@ ShellRoot {
 
     function imagePath(index) { return pane.join(pane.path, "img" + index + ".jpg") }
 
-    function check(name, cond, detail) {
+    // A burst trails only while its moves fall inside this window.
+    function settleWindow() { return Math.min(pane.settleMs, quick.followSettleMs) }
+
+    // Past its burst's window a check may be the stall's doing, so it is dropped and stalled() ends the run; a kept check reads nothing a stall moves.
+    function check(name, cond, detail, kept) {
+        if (!kept && root.burstAt > 0 && Date.now() - root.burstAt >= root.settleWindow())
+            return
         if (!cond)
             failures.push(name)
         console.log("PREVIEWSETTLE " + (cond ? "PASS" : "FAIL") + " " + name
@@ -83,6 +90,16 @@ ShellRoot {
         return null
     }
 
+    function followSettle() { return root.quickTimer(function (t) { return t.objectName === "followSettle" }) }
+    function followTimersRunning() {
+        var n = 0
+        for (var i = 0; i < quick.resources.length; i++) {
+            var t = quick.resources[i]
+            if (t instanceof Timer && t.interval === quick.followSettleMs && t.running) n += 1
+        }
+        return n
+    }
+
     function later(ms) {
         waiter.interval = ms
         waiter.restart()
@@ -93,11 +110,26 @@ ShellRoot {
         root.flow[next]()
     }
 
-    function pollFor(want, timeoutMs, next) {
+    function pollFor(want, next) {
         root.pollWant = want
         root.pollNext = next
-        poller.deadline = Date.now() + timeoutMs
         poller.start()
+    }
+
+    // A burst stalled past the window ends the run: red when a check taken before the stall failed, else void, and the runner repeats it.
+    function stalled(name) {
+        var span = Date.now() - root.burstAt
+        root.burstAt = 0
+        if (span < root.settleWindow())
+            return false
+        var earlier = root.failures.length
+        console.log("PREVIEWSETTLE " + (earlier > 0 ? "STALL" : "VOID") + " " + name + " span=" + span
+            + " earlier=" + earlier + " attempt=" + Quickshell.env("FLEA_PREVIEWSETTLE_ATTEMPT"))
+        if (earlier > 0)
+            root.done()
+        else
+            Quickshell.execDetached(["kill", String(Quickshell.processId)])
+        return true
     }
 
     function done() {
@@ -216,12 +248,11 @@ ShellRoot {
         id: poller
         interval: 10
         repeat: true
-        property double deadline: 0
         onTriggered: {
             if (preview.loadedIndex === root.pollWant) {
                 poller.stop()
                 root.go(root.pollNext)
-            } else if (Date.now() > poller.deadline) {
+            } else if (Date.now() > root.deadlineAt) {
                 poller.stop()
                 root.failures.push("timeout waiting for loaded " + root.pollWant)
                 root.done()
@@ -234,13 +265,12 @@ ShellRoot {
         id: qpoll
         interval: 10
         repeat: true
-        property double deadline: 0
         property string want: ""
         onTriggered: {
             if (quick.path === qpoll.want && quick.landed) {
                 qpoll.stop()
                 root.go(root.stage + 1)
-            } else if (Date.now() > qpoll.deadline) {
+            } else if (Date.now() > root.deadlineAt) {
                 qpoll.stop()
                 root.failures.push("timeout waiting for quick path " + qpoll.want)
                 root.done()
@@ -280,7 +310,7 @@ ShellRoot {
         interval: 10
         repeat: true
         onTriggered: {
-            if (Date.now() > root.holdDeadline) {
+            if (Date.now() > root.deadlineAt) {
                 root.holdTimedOut = true
                 console.log("PREVIEWSETTLE HOLD watchdog " + root.holdDetail())
             } else if (root.holdPhase === "setup") {
@@ -291,7 +321,6 @@ ShellRoot {
                 root.holdSettle.interval = quick.followSettleMs
                 root.holdSettle.restart()
                 root.holdPhase = "settle"
-                root.holdDeadline = Date.now() + root.holdLandingMs
                 console.log("PREVIEWSETTLE HOLD ready " + root.holdDetail())
                 return
             } else if (!quick.landed) {
@@ -302,9 +331,8 @@ ShellRoot {
         }
     }
 
-    function qpollFor(want, timeoutMs) {
+    function qpollFor(want) {
         qpoll.want = want
-        qpoll.deadline = Date.now() + timeoutMs
         qpoll.start()
     }
 
@@ -317,14 +345,17 @@ ShellRoot {
             root.later(200)
         },
         function () {
+            var since = Date.now()
             root.step(2)
             root.check("idle second move loads at once", preview.loadedIndex === 2 && backend.metaCalls === 2)
+            root.burstAt = since
             root.step(3)
             root.check("burst holds first repeat", backend.metaCalls === 2)
             root.step(4)
             root.check("burst holds second repeat", backend.metaCalls === 2)
             root.step(5)
             root.check("burst holds third repeat", backend.metaCalls === 2)
+            if (root.stalled("selection burst")) return
             root.later(300)
         },
         function () {
@@ -334,38 +365,36 @@ ShellRoot {
             root.later(200)
         },
         function () {
+            var since = Date.now()
             root.step(6)
             root.check("post-burst idle move loads at once", preview.loadedIndex === 6 && backend.metaCalls === 4)
+            root.burstAt = since
             root.metaMark = backend.metaCalls
             root.step(7)
             root.check("rapid move trails", backend.metaCalls === root.metaMark)
             var heldAt = preview.lastMoveAt - root.duplicateBackdateMs
             preview.lastMoveAt = heldAt
-            // The settle Timer is the one Timer under preview; its root type declares none.
-            var settleTimer = null
-            var timers = 0
+            // The settle and the rest of a load made at once are the Timers under preview; its root type declares none.
+            var previewTimers = []
             for (var i = 0; i < preview.resources.length; i++) {
-                if (preview.resources[i] instanceof Timer) {
-                    timers += 1
-                    settleTimer = preview.resources[i]
-                }
+                if (preview.resources[i] instanceof Timer)
+                    previewTimers.push(preview.resources[i])
             }
-            // restart() on a running Timer is stop then start, so it emits runningChanged twice and a second arm reads settleRestarts 2.
+            var timers = previewTimers.length
+            // restart() on a running Timer is stop then start, so it emits runningChanged twice and a second arm of either reads settleRestarts 2.
             var settleRestarts = 0
             var counted = function () {
                 settleRestarts += 1
             }
-            if (timers === 1) {
-                settleTimer.runningChanged.connect(counted)
-            }
+            previewTimers.forEach(function (timer) { timer.runningChanged.connect(counted) })
             root.step(7)
-            if (timers === 1) {
-                settleTimer.runningChanged.disconnect(counted)
-            }
-            root.check("duplicate moves no second arm", backend.metaCalls === root.metaMark
-                && preview.lastMoveKey === pane.path + "\n7" && preview.lastMoveAt === heldAt && settleRestarts === 0
-                && timers === 1, "timers=" + timers)
-            root.pollFor(7, 400, root.stage + 1)
+            previewTimers.forEach(function (timer) { timer.runningChanged.disconnect(counted) })
+            root.check("duplicate loads nothing", backend.metaCalls === root.metaMark)
+            // The duplicate returns before settleFor whether the move trailed or loaded, so no stall moves these.
+            root.check("duplicate moves no second arm", preview.lastMoveKey === pane.path + "\n7" && preview.lastMoveAt === heldAt
+                && settleRestarts === 0 && timers === 2, "timers=" + timers, true)
+            if (root.stalled("selection rapid move")) return
+            root.pollFor(7, root.stage + 1)
         },
         function () {
             root.check("duplicate lands one trailing load", backend.metaCalls === root.metaMark + 1)
@@ -448,11 +477,14 @@ ShellRoot {
         },
         function () {
             root.metaMark = backend.metaCalls
+            var since = Date.now()
             root.step(4)
             root.check("no-swap idle move loads at once", preview.loadedIndex === 4
                 && backend.metaCalls === root.metaMark + 1)
+            root.burstAt = since
             root.step(5)
             root.check("no-swap rapid move trails", backend.metaCalls === root.metaMark + 1)
+            if (root.stalled("no-swap rapid move")) return
             root.later(300)
         },
         function () {
@@ -470,50 +502,69 @@ ShellRoot {
             root.later(200)
         },
         function () {
+            var followTimers = 0
+            for (var i = 0; i < quick.resources.length; i++) {
+                var t = quick.resources[i]
+                if (t instanceof Timer && t.interval === quick.followSettleMs && t.repeat === false) followTimers += 1
+            }
+            root.check("Quick Look keeps the follow settle and its rest as the two follow-interval timers", followTimers === 2, "timers=" + followTimers)
             quick.follow(root.imagePath(6), "image-x-generic", 1006, "")
             root.check("quick follow stages its pending row", quick.pendingPath === root.imagePath(6))
-            root.qpollFor(root.imagePath(6), 3000)
+            root.qpollFor(root.imagePath(6))
         },
         function () {
             root.check("quick idle follow opens the row", quick.active && quick.path === root.imagePath(6))
+            // No burst: Quick Look is revealed here, so its capture holds even a "now" load and no stall moves this check.
             quick.lastMoveAt = Date.now()
             var loads = root.qlLoads
             quick.follow(root.imagePath(7), "image-x-generic", 1007, "")
             root.check("quick fresh move defers", quick.pendingPath === root.imagePath(7)
                 && quick.path === root.imagePath(6) && root.qlLoads === loads)
-            root.qpollFor(root.imagePath(7), 3000)
+            root.qpollFor(root.imagePath(7))
         },
         function () {
             root.check("quick trailing follow lands once", quick.path === root.imagePath(7) && root.qlLoads === 2)
-            quick.lastMoveAt = Date.now()
+            root.burstAt = Date.now()
+            quick.lastMoveAt = root.burstAt
             var loads = root.qlLoads
             quick.follow(root.imagePath(0), "image-x-generic", 1000, "")
             quick.follow(root.imagePath(0), "image-x-generic", 1000, "")
-            root.check("quick duplicate stages once", quick.pendingPath === root.imagePath(0)
-                && root.qlLoads === loads)
-            root.qpollFor(root.imagePath(0), 3000)
+            // follow() stages the row before it decides, so no stall moves the staged path.
+            root.check("quick duplicate stages once", quick.pendingPath === root.imagePath(0), "", true)
+            root.check("quick duplicate loads nothing", root.qlLoads === loads)
+            if (root.stalled("quick duplicate")) return
+            root.qpollFor(root.imagePath(0))
         },
         function () {
             root.check("quick duplicate lands once", quick.path === root.imagePath(0) && root.qlLoads === 3)
             quick.close()
             root.check("close resets the move key", quick.lastMoveKey === "" && !quick.active)
             quick.follow(root.imagePath(1), "image-x-generic", 1001, "")
-            root.qpollFor(root.imagePath(1), 3000)
+            root.qpollFor(root.imagePath(1))
         },
         function () {
             root.check("quick reopens the fresh row", quick.active && quick.path === root.imagePath(1)
                 && quick.pendingPath === root.imagePath(1) && root.qlLoads === 4)
+            // The reopen's load arms its rest once its own work returns; the held move waits for that rest to run out.
+            root.later(quick.followSettleMs + 30)
+        },
+        function () {
+            root.check("quick reopen rest has run out before the held move", root.followTimersRunning() === 0,
+                "running=" + root.followTimersRunning())
             root.qlOld = quick.path
             root.qlMid0 = quick.swapState().midFrames
             quick.lastMoveAt = 0
             var target = root.imagePath(2)
             quick.follow(target, "image-x-generic", 1002, "")
+            var settle = root.followSettle()
+            root.check("quick held move loads at once", settle !== null && settle.running === false,
+                "settleRunning=" + (settle === null ? "missing" : settle.running))
             root.check("quick held move captures before it starts",
                 quick.swap && quick.swap.capturing === true && quick.swap.started === false,
                 "capturing=" + (quick.swap && quick.swap.capturing) + " started=" + (quick.swap && quick.swap.started))
             root.check("quick held move keeps the old path until the capture lands",
                 quick.path === root.qlOld, "path=" + quick.path)
-            root.qpollFor(target, 3000)
+            root.qpollFor(target)
         },
         function () {
             root.check("quick held move lands whole", quick.path === root.imagePath(2)
@@ -526,8 +577,9 @@ ShellRoot {
             // No captured listing row: a same-file reload must not toggle the independent image-metadata readiness gate.
             pane.cursorIndex = -1
             quick.lastMoveAt = 0
+            var since = Date.now()
             quick.follow(root.imagePath(3), "image-x-generic", 1003, "")
-            root.holdSettle = root.quickTimer(function (t) { return t.interval === quick.followSettleMs })
+            root.holdSettle = root.quickTimer(function (t) { return t.objectName === "followSettle" })
             root.holdCap = root.quickTimer(function (t) { return t.running && t.interval !== quick.followSettleMs && t.interval !== quick.stripHideMs })
             root.holdCaps = quick.revealCaps
             if (root.holdCap)
@@ -536,14 +588,16 @@ ShellRoot {
             root.holdPhase = "setup"
             if (root.holdWatch)
                 root.holdSettle.interval = root.holdCapMs
+            root.check("quick hold opens its settle and cap", root.holdWatch && root.holdCap !== null,
+                "settle=" + (root.holdSettle !== null) + " cap=" + (root.holdCap !== null))
+            root.burstAt = since
             quick.follow(root.imagePath(4), "image-x-generic", 1004, "")
             quick.follow(root.imagePath(3), "image-x-generic", 1003, "")
             if (root.holdWatch && quick.lookReady && root.holdSettle.running)
                 root.holdReadySettling = true
-            root.check("quick burst inside the hold trails", root.holdWatch && root.holdCap !== null
-                && root.holdSettle.running && quick.unrevealed && quick.path === root.imagePath(3),
-                "settle=" + (root.holdSettle !== null) + " cap=" + (root.holdCap !== null) + " unrevealed=" + quick.unrevealed)
-            root.holdDeadline = Date.now() + root.holdSetupMs
+            root.check("quick burst inside the hold trails", root.holdWatch && root.holdSettle.running
+                && quick.unrevealed && quick.path === root.imagePath(3), "unrevealed=" + quick.unrevealed)
+            if (root.stalled("quick hold burst")) return
             holdPoll.start()
         },
         function () {

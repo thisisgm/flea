@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "example.torrent-preview",
+  "name": "Torrent Preview",
+  "version": "1.0.0",
+  "author": "Flea",
+  "license": "MIT",
+  "description": "Shows a torrent file's name, size and files as plain text.",
+  "kinds": ["previewer"],
+  "entryPoints": {"run": "preview.py"},
+  "previewer": {"mime": ["application/x-bittorrent"], "output": "text"},
+  "access": ["selection"]
+}

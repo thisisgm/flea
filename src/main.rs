@@ -1,23 +1,36 @@
 mod backend;
 mod chooser;
+mod claims;
 mod clip;
 mod defaults;
 mod desktopid;
-mod error;
+use flea::error;
 mod gui;
 mod heap;
 mod hyprkeys;
+// Tests swap in a catalog module that also carries the fixture catalogs.
+#[cfg(not(test))]
+use flea::i18n;
+#[cfg(test)]
+mod i18n {
+    pub use flea::i18n::{I18n, Locale, Paths};
+    #[path = "test_catalogs.rs"]
+    pub(crate) mod test_catalogs;
+}
 mod icdexclude;
+mod imageopen;
 mod json;
 mod jsondoc;
 mod jsonmembers;
 mod jsonstring;
 mod launcher;
+mod launchargs;
 mod oflags;
 mod open;
 mod paths;
 mod prefetch;
 mod procsignal;
+#[cfg(test)]
 mod qsregistry;
 mod tearoff;
 mod runfile;
@@ -30,6 +43,8 @@ mod uischema;
 mod uimigrate;
 mod uistate;
 mod uistatecli;
+mod uiplugins;
+mod plugincli;
 mod favourites;
 mod figurebuild;
 mod figurecache;
@@ -48,67 +63,19 @@ mod shelfundo;
 mod shelfzip;
 mod summon;
 mod uistore;
+mod persistdoc;
+mod cachewrite;
 mod update;
 mod userfile;
-mod vkprobecache;
+mod usage;
 mod vulkan;
 
+pub(crate) use usage::usage;
 use crate::backend::proto::error_line;
+use claims::{claim_both, claim_picker, release_both};
 use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::process::exit;
-
-// --default owns both per-user steps, because a user updating from 0.1.3 has no picker routing yet.
-fn claim_both() -> i32 {
-    let handler = defaults::claim();
-    // A refused handler claim has claimed nothing, so the picker half must not write either.
-    if handler != 0 {
-        return handler;
-    }
-    // A source build has no flea.portal to prefer, which is the picker's precondition, not a failure here.
-    let status = if chooser::backend_installed() {
-        chooser::claim("flea --default")
-    } else {
-        eprintln!("flea: no file chooser service is installed, so Flea could not become the file chooser");
-        0
-    };
-    // The one undo line this invocation ends on: --default off releases both halves it just claimed.
-    println!("undo both with: flea --default off");
-    status
-}
-
-// flea --picker on its own, so it owns the undo line --default must not print for it.
-fn claim_picker() -> i32 {
-    let installed = chooser::backend_installed();
-    let status = chooser::claim("flea --picker");
-    if installed {
-        println!("undo both with: flea --picker off");
-    }
-    status
-}
-
-fn release_both() -> i32 {
-    let handler = defaults::release();
-    let picker = chooser::release();
-    handler.max(picker)
-}
-
-pub(crate) fn usage(message: &str) -> ! {
-    eprintln!("flea: {}", message);
-    eprintln!("usage: flea [--tui|--gui] [--select <uri|path>] [path]");
-    eprintln!("       flea --default [off]");
-    eprintln!("       flea --picker [off]");
-    eprintln!("       flea --ui-state [<json patch>]");
-    eprintln!("       flea --update [check]");
-    eprintln!("       flea --run <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --run-terminal <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --open-text <path>");
-    eprintln!("       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --clip get|set copy|cut|clear TOKEN");
-    eprintln!("       flea flash choose [start]");
-    eprintln!("       flea --version");
-    exit(2)
-}
 
 // A reveal names a file; the window opens on its parent with that entry selected.
 fn select_target(raw: &str) -> Option<(PathBuf, PathBuf)> {
@@ -139,8 +106,21 @@ fn main() {
             exit(2);
         }
     };
+    if args.get(1).map(String::as_str) == Some("--plugin-host") {
+        exit(backend::pluginhost::run());
+    }
 
-    // Bare and checked before every other mode, so a script can ask which Flea is installed without parsing.
+    // IPC owns its arguments, including strings that spell another mode flag.
+    if args.get(1).map(String::as_str) == Some("ipc") {
+        exit(flea::ipc::client::run(&args[2..]));
+    }
+
+    // flea --action <id> and flea --actions: one request to a running window's IPC socket, never a new window.
+    if matches!(args.get(1).map(String::as_str), Some("--action" | "--actions")) {
+        exit(flea::ipc::action::run(&args[1..]));
+    }
+
+    // A bare version query needs no display or path parsing.
     if args.len() == 2 && args[1] == "--version" {
         println!("{}", env!("CARGO_PKG_VERSION"));
         exit(0);
@@ -151,7 +131,13 @@ fn main() {
     }
 
     if args.iter().any(|a| a == "--backend") {
-        exit(backend::run::run());
+        let code = backend::run::run();
+        backend::pluginruntime::shutdown();
+        exit(code);
+    }
+
+    if args.get(1).map(String::as_str) == Some("--preview-raster") {
+        exit(backend::previewraster::run(&args[2..]));
     }
 
     // flea --thumb-worker: only ever started by the backend, inside its sandbox, with a socket on stdin.
@@ -187,12 +173,12 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path>: the window's entrance, which asks the run card; in-process callers use open::open.
-    if args.len() == 3 && args[1] == "--open" {
-        exit(open::open_ask(&args[2]));
+    // flea --open <path> [images...]: the window's entrance; the first target still asks the run card.
+    if args.len() >= 3 && args[1] == "--open" {
+        exit(open::open_many(&args[2..]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
-        usage("--open takes one path");
+        usage("--open <path> [images...]");
     }
 
     // flea --terminal <dir>
@@ -293,35 +279,12 @@ fn main() {
     match args.get(1).map(String::as_str) {
         Some("--favourites") => exit(favourites::command(&args)),
         Some("shelf") => exit(shelfcli::command(&args)),
+        Some("plugin") if plugincli::is_command(&args) => exit(plugincli::command(&args)),
         Some("flash") if flash_picker(&args) => exit(shelfplaces::flash_command(&args)),
         _ => {}
     }
-    let mut want_tui = false;
-    let mut want_gui = false;
-    let mut print_target = false;
-    let mut select_raw: Option<String> = None;
-    let mut start: Option<String> = None;
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--tui" => want_tui = true,
-            "--gui" => want_gui = true,
-            "--print-target" => print_target = true,
-            "--select" => {
-                i += 1;
-                match args.get(i) {
-                    Some(v) => select_raw = Some(v.clone()),
-                    None => usage("--select needs a target"),
-                }
-            }
-            a if a.starts_with("--") => usage(&format!("unknown flag {}", a)),
-            a => start = start.or_else(|| Some(a.to_string())),
-        }
-        i += 1;
-    }
-    if want_tui && want_gui {
-        usage("--tui and --gui cannot be used together");
-    }
+    let launchargs::Options { want_tui, print_target, tui_options, select_raw, start } =
+        launchargs::Options::parse(&args).unwrap_or_else(|error| usage(&error));
     // A relative start or reveal is resolved here, because the window has no launch directory to read it against.
     let start = start.map(|s| paths::commandline_path(&s));
     let select_raw = select_raw.map(|s| paths::commandline_path(&s));
@@ -350,35 +313,18 @@ fn main() {
             eprintln!("flea: the terminal interface needs a terminal on stdin and stdout");
             exit(2);
         }
-        exit(tui::run(open_path.as_deref(), select_path.as_deref()));
+        exit(tui::run(open_path.as_deref(), select_path.as_deref(), &tui_options));
     }
 
+    if gui::reject_legacy_frontend() {
+        exit(2);
+    }
     if !paths::has_display() {
         eprintln!("flea: there is no graphical session to open a window in");
         exit(2);
     }
-    match paths::ui_dir() {
-        Some(ui) => {
-            // Before the window, so the first paint reads what the settle left, see AGENTS.md "The
-            // state file"; it can fail or decline, and the window then opens on a file it did not touch.
-            match uistore::Store::user().and_then(|store| store.settle()) {
-                Ok(()) => {}
-                Err(e) => eprintln!("flea: the view state was not settled ({})", e),
-            }
-            // An upgrade ships a new plugin under a switch that is already on, and the copy in the
-            // user's own plugin directory is the one the bar reads.
-            if let Ok(store) = uistore::Store::user() {
-                if let Err(e) = shelfplugin::refresh(uistatecli::shelf_enabled(&store.read())) {
-                    eprintln!("flea: the shelf plugin was not refreshed ({})", e);
-                }
-            }
-            exit(gui::exec_qs(&ui, open_path.as_deref(), select_path.as_deref()))
-        }
-        None => {
-            eprintln!("{}", paths::missing_ui_message());
-            exit(2);
-        }
-    }
+
+    exit(gui::exec_gpui(open_path.as_deref(), select_path.as_deref()));
 }
 
 #[cfg(test)]

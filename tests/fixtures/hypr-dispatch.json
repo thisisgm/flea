@@ -198,7 +198,7 @@
   },
   {
     "name": "class",
-    "code": "hypr_dispatch 'hl.dsp.focus({ window = \"class:flea\" })' || fail nope",
+    "code": "hypr_dispatch 'hl.dsp.focus({ window = \"class:com.thisisgm.flea\" })' || fail nope",
     "issues": [
       "hypr-window-selector"
     ],
@@ -978,5 +978,13 @@
       1
     ],
     "calls": 0
+  },
+  {
+    "name": "bench-offline-compositor",
+    "code": "#!/usr/bin/env python3\nimport json, os, sys\nfrom pathlib import Path\nstate = Path(os.environ['FAKE_STATE'])\nargv = sys.argv[1:]\ngui = json.loads((state / 'gui.json').read_text()) if (state / 'gui.json').exists() else None\nrows = [dict(address='0xold', pid=1, mapped=True, **{'class': 'other'})]\nif gui:\n    rows.append(dict(address='0xf1ea', pid=gui['pid'], mapped=True, **{'class': 'com.thisisgm.flea'}))\n    if os.environ['FAKE_SCENARIO'] == 'twowin':\n        rows.append(dict(address='0xbad', pid=gui['pid'] + 1, mapped=True, **{'class': 'other'}))\nif argv == ['clients', '-j']:\n    print(json.dumps(rows))\nelif argv[:1] == ['dispatch']:\n    assert argv[1] == 'hl.dsp.focus({ window = \"address:0xf1ea\" })', argv\n    if os.environ['FAKE_SCENARIO'] == 'nofocus':\n        print('error: refused'); sys.exit(0)\n    (state / 'focused').write_text('0xf1ea'); print('ok')\nelif argv == ['activewindow', '-j']:\n    print(json.dumps(dict(address=(state / 'focused').read_text() if (state / 'focused').exists() else '0xold')))\nelse:\n    sys.exit(2)\n",
+    "calls": 1,
+    "issues": [
+      "hypr-window-selector"
+    ]
   }
 ]

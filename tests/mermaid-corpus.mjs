@@ -1,5 +1,7 @@
-// The Mermaid test corpus, and the readers the layout and fit checks share: one render through the real figure path, SVG parts as numbers.
-import { absolute, importFile, prepareEngine, repoRoot, resolve } from "./js-runtime.mjs";
+// The Mermaid test corpus, one render through the real figure path, and a label's measured width; the SVG readers live in mermaid-svg.mjs.
+import { absolute, importFile, repoRoot, resolve } from "./js-runtime.mjs";
+
+export * from "./mermaid-svg.mjs";
 
 export const ARROW_LABEL_PAD = 8;
 // A face is a per-character advance table for printable ASCII, 32 to 126, in thousandths of an em, regular and bold.
@@ -82,45 +84,12 @@ export const others = [
 
 // Load the renderer pair of one tree, so the same checks run on a scratch copy of an older commit.
 export async function load(root) {
-    prepareEngine();
     const base = root ? absolute(root) : repoRoot(import.meta.url);
     const worker = await importFile(resolve(base, "ui/js/FigureWorker.mjs"));
     const api = await importFile(resolve(base, "ui/vendor/mermaid.mjs"));
-    return (source, face) => worker.renderFigure("mermaid", source, false, { ...theme, advances: face.regular, boldAdvances: face.bold }, api);
+    return (source, face, extra) => worker.renderFigure("mermaid", source, false, { ...theme, ...extra, advances: face.regular, boldAdvances: face.bold }, api);
 }
 
-// Sample input: &lt;b&gt; reads <b>.
-export function decode(text) {
-    return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-}
-// Sample input: <rect x="3" width="40"/> answers 40 for "width", or NaN.
-export function num(tag, name) {
-    const found = tag.match(new RegExp("\\s" + name + '="([^"]*)"'));
-    return found ? Number(found[1]) : NaN;
-}
-// Sample input: <g data-label="a &amp; b"> answers "a & b" for "data-label", or an empty string.
-export function text(tag, name) {
-    const found = tag.match(new RegExp("\\s" + name + '="([^"]*)"'));
-    return found ? decode(found[1]) : "";
-}
-// Sample input: <g class="node" data-id="A">...\n</g> reads attrs ' data-id="A"' and its body; a nested group closes indented, so only the outer closes at column 0.
-export function groups(svg, cls) {
-    const found = [];
-    svg.replace(new RegExp('<g class="' + cls + '"([^>]*)>([\\s\\S]*?)\\n</g>', "g"), (all, attrs, body) => found.push({ attrs, body }));
-    return found;
-}
-// The text elements of a body with their anchor, font size, weight and plain content.
-// Sample input: <text x="10" y="20" text-anchor="middle" font-size="13" font-weight="700">Animal</text> reads anchor middle, size 13, bold.
-export function texts(body) {
-    const found = [];
-    body.replace(/<text\b([^>]*)>([\s\S]*?)<\/text>/g, (all, attrs, content) => {
-        found.push({ x: num(attrs, "x"), y: num(attrs, "y"), size: num(attrs, "font-size"), bold: num(attrs, "font-weight") >= BOLD_WEIGHT,
-            anchor: text(attrs, "text-anchor") || "start", string: decode(content.replace(/<[^>]*>/g, "")) });
-    });
-    return found;
-}
-// The weight from which the library measures with the bold table.
-const BOLD_WEIGHT = 600;
 // Sample input: "WM" at 10 px on a face whose W and M are 0.92 em reaches 18.4; a character past ASCII counts the table's mean, a CJK one twice that.
 export function labelWidth(string, size, face, bold) {
     const table = bold ? face.bold : face.regular;
@@ -133,55 +102,8 @@ export function labelWidth(string, size, face, bold) {
     }
     return total / THOUSAND * size;
 }
-// The bounding box [left, top, right, bottom] of the first shape in a body, or null.
-// Sample input: <rect x="3" y="4" width="40" height="20"/> reads [3, 4, 43, 24]; a polygon reads its points' extremes, a circle its radius.
-export function bounds(body) {
-    const rect = body.match(/<rect\b[^>]*>/);
-    if (rect) {
-        const x = num(rect[0], "x"), y = num(rect[0], "y");
-        return [x, y, x + num(rect[0], "width"), y + num(rect[0], "height")];
-    }
-    const poly = body.match(/<polygon\b[^>]*points="([^"]*)"/);
-    if (poly) {
-        const p = poly[1].trim().split(/[\s,]+/).map(Number);
-        const xs = p.filter((v, i) => i % 2 === 0), ys = p.filter((v, i) => i % 2 === 1);
-        return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-    }
-    const circles = [...body.matchAll(/<circle\b[^>]*>/g)].map((m) => [num(m[0], "cx"), num(m[0], "cy"), num(m[0], "r")]);
-    if (circles.length === 0)
-        return null;
-    const r = Math.max(...circles.map((c) => c[2]));
-    return [circles[0][0] - r, circles[0][1] - r, circles[0][0] + r, circles[0][1] + r];
-}
 // A text's [left, right] by anchor and measured width.
 export function extent(t, face) {
     const w = labelWidth(t.string, t.size, face, t.bold);
     return t.anchor === "middle" ? [t.x - w / 2, t.x + w / 2] : t.anchor === "end" ? [t.x - w, t.x] : [t.x, t.x + w];
-}
-// The drawn edges of a flowchart-like diagram with their points; the library writes a polyline, and the figure path turns an arrowed one into a path.
-// Sample input: <path class="edge" data-from="A" data-to="B" d="M187 81.9 L187 105.9" /> or <polyline class="edge" data-from="A" data-to="B" points="187,81.9 187,105.9" /> reads A to B through [[187, 81.9], [187, 105.9]].
-export function edgePaths(svg, cls = "edge", ends = ["data-from", "data-to"]) {
-    return [...svg.matchAll(new RegExp('<(?:path|polyline) class="' + cls + '"([^>]*)>', "g"))].map((m) => {
-        const d = m[1].match(/\sd="([^"]*)"/);
-        const raw = d ? d[1].replace(/[ML]/g, " ") : m[1].match(/\spoints="([^"]*)"/)[1].replace(/,/g, " ");
-        const n = raw.trim().split(/\s+/).map(Number);
-        return { from: text(m[1], ends[0]), to: text(m[1], ends[1]), points: n.filter((v, i) => i % 2 === 0).map((x, i) => [x, n[2 * i + 1]]) };
-    });
-}
-// The lifelines of a sequence diagram.
-// Sample input: <line class="lifeline" data-actor="A" x1="140" y1="70" x2="140" y2="199" stroke="#c0caf5" /> reads [{ id: "A", x: 140, end: 199 }].
-export function lifelines(svg) {
-    return [...svg.matchAll(/<line class="lifeline"([^>]*)>/g)].map((m) => ({ id: text(m[1], "data-actor"), x: num(m[1], "x1"), end: num(m[1], "y2") }));
-}
-// The viewBox [x, y, width, height] of a figure.
-// Sample input: <svg width="300" height="200" viewBox="0 0 300 200"> reads [0, 0, 300, 200].
-export function view(svg) {
-    return svg.match(/<svg\b[^>]*>/)[0].match(/viewBox="([^"]*)"/)[1].split(/\s+/).map(Number);
-}
-
-// Sample input: <g class="subgraph" data-id="one" data-label="one">\n  <rect x="1" y="1" width="92" height="97" .../> reads [1, 1, 93, 98].
-export function frame(svg, id) {
-    const found = svg.match(new RegExp('<g class="subgraph" data-id="' + id + '"[^>]*>\\s*<rect\\b[^>]*>'));
-    const rect = found ? found[0].match(/<rect\b[^>]*>/)[0] : "";
-    return found ? [num(rect, "x"), num(rect, "y"), num(rect, "x") + num(rect, "width"), num(rect, "y") + num(rect, "height")] : null;
 }

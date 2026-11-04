@@ -92,6 +92,31 @@ fn the_argv_carries_the_caps_the_flags_both_binds_and_qjs_last() {
     assert_eq!(tail, ["/usr/bin/qjs", "/ui/vendor/figure-helper.mjs"]);
 }
 
+// Sample argv: "--clearenv", "--setenv", "TZ", "UTC" ahead of the locale pin.
+#[test]
+fn the_helper_argv_sets_utc_after_clearing_the_environment() {
+    let got = argv_for("/usr/bin/qjs");
+    let cleared = got.iter().position(|a| a == "--clearenv").expect("--clearenv");
+    assert_eq!(got[cleared + 1..cleared + 4], ["--setenv", "TZ", "UTC"], "the pin must follow --clearenv");
+    assert_eq!(got.iter().filter(|a| a.as_str() == "TZ").count(), 1, "the zone is pinned exactly once");
+}
+
+#[test]
+fn an_argv_without_a_clearenv_still_pins_utc_after_bwrap() {
+    let mut argv = ["prlimit", "--cpu=5", "bwrap", "--unshare-all", "/usr/bin/qjs"].map(String::from).to_vec();
+    pin_utc(&mut argv);
+    assert_eq!(argv, ["prlimit", "--cpu=5", "bwrap", "--setenv", "TZ", "UTC", "--unshare-all", "/usr/bin/qjs"]);
+}
+
+#[test]
+fn an_argv_that_is_not_a_jail_gets_no_bwrap_flag() {
+    for given in [vec!["/usr/bin/qjs", "/ui/vendor/figure-helper.mjs"], vec![]] {
+        let mut argv: Vec<String> = given.iter().map(|a| a.to_string()).collect();
+        pin_utc(&mut argv);
+        assert_eq!(argv, given, "a launch outside bwrap is left as it is");
+    }
+}
+
 #[test]
 fn a_verified_bytecode_directory_is_bound_read_only_and_named_after_the_helper() {
     let got = figure_argv(Path::new("/usr/bin/qjs"), Path::new("/ui/vendor"), Some(Path::new("/cache/flea/figures/k")), &[]);

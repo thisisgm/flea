@@ -1,0 +1,10 @@
+# Sourced by image fixture tools; fontconfig failure leaves ImageMagick's default in use.
+if [[ ${flea_magick_font_ready:-0} == 1 ]]; then return 0; fi
+flea_magick_font_ready=1
+flea_magick_font_args=()
+flea_magick_font_wait_s=10
+if flea_magick_font_file=$(timeout "$flea_magick_font_wait_s" fc-match -f '%{file}' monospace 2>/dev/null) \
+    && [[ $flea_magick_font_file == /* && -f $flea_magick_font_file && -r $flea_magick_font_file ]]; then
+    flea_magick_font_args=(-font "$flea_magick_font_file")
+fi
+unset flea_magick_font_file flea_magick_font_wait_s

@@ -1,0 +1,542 @@
+# suite|ERE|N (data): a suite run-all calls ok, or MINIPC, must print N lines matching ERE; every headless suite needs one.
+js|^qml: (js: )?[1-9][0-9]* checks, 0 failed$|1
+keymap-gen|^ok   ui/js/Keymap\.js matches keys\.toml$|1
+charts|^ok   the [1-9][0-9]* charts in docs/images match the bench CSVs$|1
+budget|^ok   |3
+signalarity|^signalarity: [1-9][0-9]* signal\(s\), [1-9][0-9]* emit\(s\) checked, 0 failed$|1
+empty-state|^empty-state: search hint always, new-folder tip gated, column hint absent$|1
+sandbox|^sandbox\.sh: all checks passed$|1
+sandbox|^ok   |50
+capability-ownership|^[1-9][0-9]* checks, 0 failed$|1
+gio-auth|^gio-auth: identity=1 certificate=1 no-prompt=1 |1
+gvfs|^gvfs: mount=ok list=ok read=ok fuse=ok unmount=ok$|1
+ops|^ops\.sh: all checks passed$|1
+ops|^ok   |30
+modes|^modes: all checks passed$|1
+modes|^ok   |190
+update|^update: all checks passed$|1
+update|^ok   |40
+protocol|^ok   |180
+portal|^portal\.sh: all checks passed$|1
+portal|^ok   |15
+archive|^archive\.sh: all checks passed$|1
+archive|^ok   |54
+thumbs|^thumbs: all checks passed$|1
+thumbs|^ok   |39
+thumbs-exec|^thumbs: all checks passed$|1
+thumbs-exec|^ok   |35
+network-open-share|^network-open-share: overlap blocked$|1
+network-keyless|^network-keyless: passwordless opens, only a refused mount asks$|1
+mount-listing|^mount-listing: populated then empty reports empty, and carries nothing over$|1
+lazy-objects|^lazy-objects: live wrapper absent before first open, whole after$|1
+connections-style|^connections-style: [1-9][0-9]* file\(s\), [1-9][0-9]* block\(s\), 0 problem\(s\)|1
+pdf-turn|^pdf-turn: [1-9][0-9]* check\(s\), [0-9]+ failed$|1
+pdf-turn|^ok   |8
+pdf-first|^pdf-first: [1-9][0-9]* check\(s\), [0-9]+ failed$|1
+preview-decode|^preview-decode: [1-9][0-9]* check\(s\), 0 failed$|1
+preview-swap|^preview-swap: [1-9][0-9]* check\(s\), 0 failed$|1
+uistate|^(ok   |FAIL )(no kill ever left a partial state file|none of the [0-9]+ killed rounds left a partial state file)$|1
+uistate|^ok   |193
+uistate|^uistate: all checks passed$|1
+uistate|^ok   a kill before the temp kept the seeded bytes$|1
+uistate|^ok   deterministic interrupted publication kept the seeded bytes$|1
+uistate|^ok   a kill past the rename kept the published bytes$|1
+uistate|^ok   released barrier published the exact expected state$|1
+uiwriter|^uiwriter: all checks passed$|1
+uiwriter|^ok   |43
+media|^media\.sh: all checks passed$|1
+media|^ok   |10
+filemanager1|^filemanager1: 0 failure\(s\)$|1
+filemanager1|^PASS |10
+dragwire|^dragwire: [1-9][0-9]* check\(s\), 0 failed$|1
+shellload|^shellload: [1-9][0-9]* check\(s\), 0 failed$|1
+settings-columns|^SETTINGS_COLUMNS PASS |1
+preview-frame|^PREVIEW_FRAME PASS |1
+markdown-render|^MARKDOWN_RENDER PASS |1
+jump-ui|jump-ui: [1-9][0-9]* checks, 0 failed$|1
+jump-gap|^jump-gap: top=[0-9]+ bottom=[0-9]+ slot=[0-9]+ off=[0-9]+ gap=[0-9]+, the board draws 2$|1
+picker-recent|picker-recent: [1-9][0-9]* checks, 0 failed$|1
+grid-gap|^GRID_GAP PASS |1
+menu-settle|^MENU_SETTLE PASS |1
+arm-prompt|^ARM_PROMPT DONE [1-9][0-9]* checks, 0 failed$|1
+acceptance-matrix|^ACCEPTANCE_SELF_CHECK passed|1
+counts|^counts: [1-9][0-9]* checks, every count groups$|1
+picker-stall|^picker-stall: 6 process lifecycle scenarios passed$|1
+rowcost|^ROWCOST PASS row=[0-9]+ grid=[0-9]+( locating=[0-9]+ armed-unmatched=[0-9]+ unarmed-unmatched=[0-9]+( grid-armed=[0-9]+ grid-marked=[0-9]+)?)?$|1
+headercost|HEADERCOST PASS accents=0 metrics=0 hot=1 fit=[0-9]+$|1
+headercost|HEADERCOST DONE checks=236$|1
+columnscost|^COLUMNCOST PASS panes=3 row=[0-9]+ columns=3$|1
+columnrow-geom|^COLUMNROWGEOM PASS file=columnrow-geom\.txt dir=full$|1
+columndividers|^COLUMNDIVIDERS PASS panes=[0-9]+ dividers=[0-9]+$|1
+columnsfolder|^COLUMNSFOLDER PASS folder=data-held preview=kept file=reshown empty=settled w25=kept-landed-bounded$|1
+headerhandles|^HEADERHANDLES PASS list=4 shown=[0-4] columns=0 grid=0 dual=0 search=0 nopane=0 presses=[0-8]$|1
+listcost|^LISTCOST PASS delegates=6 calls=[0-9]+$|1
+columnspeekgate|^COLUMNSPEEKGATE PASS width=parent path=parent root=empty hidden=held visible=/p$|1
+lockedmenu|^LOCKEDMENU PASS [1-9][0-9]* checks$|1
+listnamebudget|^LISTNAMEBUDGET PASS rows=6 plain=[0-9]+ resized=[0-9]+$|1
+ui-fixture-home|^ok present icons\.theme copied byte-equal as regular bytes, rest unaltered$|1
+ui-fixture-home|^ok absent icons\.theme stays absent, rest unaltered$|1
+menu-scroll-width|^MENUSCROLL PASS short frame=[0-9]+ holder=[0-9]+ (overflow=false flyout=[0-9]+ plain=[0-9]+/[0-9]+ )?long frame=[0-9]+ holder=[0-9]+ (overflow=true flyout=[0-9]+ plain=[0-9]+/[0-9]+ )?text=[0-9.]+/[0-9.]+ pad=[0-9.]+$|1
+menu-scroll-width|^MENUSCROLL STATUS qs_exit=143 done=1$|1
+scroll-fill|^SCROLLFILL PASS list=700 col=400 pick=700$|1
+scroll-fill|^SCROLLFILL STATUS qs_exit=143 done=1$|1
+columnclip-empty|^COLUMNCLIPEMPTY PASS delegates=10 built=[1-9][0-9]* calls=[1-9][0-9]*$|1
+gridhidden|^GRIDHIDDEN PASS rows=60 cursor=45$|1
+gridcaption|^GRIDCAPTION PASS base=12,14 normal=2lines drop=1line( texts=1,2( tip=built,gone)?| tip=elided-only)?$|1
+menu-snapshot-retire|^SNAPRETIRE PASS |11
+menu-snapshot-retire|^SNAPRETIRE STATUS qs_exit=143 done=1$|1
+statusbar-hint|^STATUSHINT PASS checks=[1-9][0-9]*$|1
+statusbar-hint|^STATUSHINT STATUS qs_exit=(0|124) metrics=hint12,hint14$|1
+listhidden|^LISTHIDDEN PASS rows=60 cursor=45$|1
+preview-settle-live|^PREVIEWSETTLE STATUS phase=(auto|manual) qs_exit=143 done=1 pass=[1-9][0-9]* fail=0$|2
+pkgrel-check|^pkgrel-check: all [1-9][0-9]* checks passed$|1
+preview-geometry|^GEOMETRY cells=(3[6-9]|[4-9][0-9]) ok=(3[6-9]|[4-9][0-9]) fail=0$|1
+preview-select|^PREVIEWSELECT PASS |6
+clickedge-origin|^CLICKEDGE_ORIGIN PASS row=[0-9]+ contentY=[0-9]+ originY=-?[1-9][0-9]*$|1
+touchpad|^TOUCHPAD PASS stroke=1200 lift=[1-9][0-9]* rest=[1-9][0-9]* tail=[1-9][0-9]*\.[0-9] objs=[0-9]+ delegates=[1-9][0-9]*( edgeTop=-[0-9.]+ edgeBottom=[0-9.]+ tailPeak=[0-9.]+)?( first[A-Za-z]+=[0-9]+(/[0-9]+)?)*$|1
+touchpad|^TOUCHPAD EDGE PASS top=-[0-9.]+ bottom=[0-9.]+ tailPeak=[0-9.]+ rest=bound$|1
+touchpad-tool|^touchpad-tool: PASS ioctls=[1-9][0-9]* writes=[1-9][0-9]* axes=[1-9][0-9]*$|1
+touchpad-edge|^TOUCHPAD_EDGE PASS return cursor press tailpeak$|1
+scroll-bounds|^SCROLL_BOUNDS PASS grid diag( bars)?$|1
+fs-matrix-smoke|^fs-matrix --smoke: [1-9][0-9]* passed, 0 failed, [0-9]+ skipped$|1
+scroll-lanes|^SCROLLLANES PASS rail=[1-9][0-9]* body=[1-9][0-9]*/[1-9][0-9]*$|1
+scroll-lanes|^SCROLLLANES STATUS qs_exit=143 done=1$|1
+xwsettings|^xwsettings: all checks passed$|1
+xwsettings|^ok   |12
+pane-states|^PANESTATES PASS states=[0-9]+ overlays-gated$|1
+eject-verdict|^EJECTVERDICT PASS pins=[0-9]+$|1
+preview-colwork|^COLWORK DONE checks=[1-9][0-9]* failed=0$|1
+markdown-security|^PASS zero remote requests \(blocks=[0-9]+, corpus rendered\)$|1
+markdown-figures|^MARKDOWN_FIGURES DONE failures=0$|1
+markdown-linearity|^PASS (every pathological input stays linear|[1-9][0-9]* pathological inputs, [1-9][0-9]* complete repetitions, work bound .+)$|1
+markdown-lazy|^PASS [0-9]+ blocks draw through [0-9]+ delegates, parsed off thread$|1
+markdown-memory|^PASS .*MARKDOWN_MEMORY lookMarkdown=null.*columnMarkdown=null|1
+bootload|^BOOTLOAD PASS files=[1-9][0-9]*$|1
+markdown-figures-render|^MARKDOWN_FIGRENDER PASS |1
+xwtab-scan|^[1-9][0-9]* checks, 0 failed$|1
+picker-grid|^PICKERGRID PASS |1
+permissions-adv|^PERMADV PASS|1
+scrolloff-view|^SCROLLOFFVIEW PASS|1
+xw-addr|^xw-addr: hyprctl pid lookup pins one, none and two matches$|1
+sidebarcost|^sidebarcost: sidebar and menu count gates passed$|1
+menu-shebang|^menu-shebang: [1-9][0-9]* checks, 0 failed$|1
+staticgates|^STATICGATES PASS gates=([5-9]|[1-9][0-9])$|1
+staticgates|^STATICGATE [a-z-]+ PASS files=[1-9][0-9]*$|5
+staticgates|^Ran [1-9][0-9]* tests in |1
+tabcatcher|^tabcatcher: geometry, launch ack and tear-off checks passed$|1
+tabcatcher|TEAROFF PASS stubExited=true sourceTabs=2$|1
+ui-captures-sheet|^ui-captures-sheet: 2?6 checks, 0 failed$|1
+startup-objects|^startup-objects: 1 passed, 0 failed$|1
+hyprdispatch|^hyprdispatch: 2 checks passed, 0 failed$|1
+hyprdispatch|^hypr-dispatch-proof: [1-9][0-9]* passed, 0 failed$|1
+picker-hunt|^picker-hunt: [1-9][0-9]* phases, 0 failed$|1
+picker-selection|picker-selection QML: [1-9][0-9]* checks, 0 failed$|1
+picker-selection|^picker-runner-check: [1-9][0-9]* checks, 0 failed$|1
+preview-layout-loop|^preview-layout-loop: [1-9][0-9]* cases, 0 binding loops$|1
+preview-hunt|^preview-hunt: [1-9][0-9]* phases, 0 failed$|1
+xw-harness|^xw-harness: [1-9][0-9]* checks \(.+\); 0 failed$|1
+sidebar-flows|SIDEBAR_FLOWS DONE checks=[1-9][0-9]* failed=0$|1
+capsweep-check|^CAPSWEEP_CHECK refusal-controls=4 success=1$|1
+capsweep-check|^CAPSWEEP_CHECK state-composition=2$|1
+figure-package|^figure-package: [1-9][0-9]* check\(s\), 0 failed$|1
+tabreceive|tabreceive: [1-9][0-9]* checks, 0 failed$|1
+xwstate|^xwstate: [1-9][0-9]* checks, 0 failed$|1
+menus-evidence|^ok   menus_evidence returns 0 and says what happened under set -eu$|1
+permissions-focus|PERMFOCUS DONE checks=(2[2-9][0-9]|[3-9][0-9]{2}) failed=0$|1
+menu-clipboard-hunt|^menu-clipboard-hunt: [1-9][0-9]* checks, 0 failed$|1
+menu-backend-hunt|^menu-backend-hunt: [1-9][0-9]* checks, 0 failed$|1
+runall-rule|^runall-rule: [1-9][0-9]* checks, 0 failed$|1
+menu-card-sink|^MENUSINK PASS [1-9][0-9]* checks$|1
+menu-card-sink|^MENUSINK STATUS qs_exit=[0-9]+ done=1$|1
+button-system|^BUTTONSYS PASS [1-9][0-9]* checks, strip, dialog, set members, picker and field draw one ladder$|1
+ring-bounds|RINGBOUNDS DONE checks=[1-9][0-9]* failed=0$|1
+sheet-query|SHEETQUERY PASS checks=[1-9][0-9]*$|1
+rename-frame|RENAMEFRAME DONE checks=[1-9][0-9]* failed=0$|1
+rename-frame|RENAMEFRAME OVERHANG measured=4$|1
+rename-scroll|RENAMESCROLL DONE checks=[1-9][0-9]* failed=0$|1
+menu-fit|MENUFIT PASS [1-9][0-9]* checks|1
+settings-tail|SETTAIL PASS [1-9][0-9]* checks|1
+chromering|CHROMERING PASS [1-9][0-9]* checks$|1
+permissions-skips|^PERMSKIP STATUS qs_exit=143 done=1$|1
+ui-captures-permissions|^ui-captures-permissions: [1-9][0-9]* checks, 0 failed$|1
+dialog-board|DIALOGBOARD PASS [1-9][0-9]* checks|1
+picker-header|^PICKERHEADER PASS |1
+markdown-blockcost|^PASS each block kind builds only its own parts within its object count$|1
+markdown-blockcost|^ok the gate refuses every kind over its count, with a foreign or unknown part, or with no count or part list$|1
+markdown-spec|^PASS every section holds its recorded count$|1
+markdown-html|^MARKDOWN_HTML [1-9][0-9]* checks, 0 failed$|1
+markdown-html|^PASS markdown-html: every fixture draws, and each raw HTML element draws as its recipe$|1
+markdown-nest|^PASS nested blocks draw with their top-level recipe$|1
+quicklook-firstframe|^quicklook-firstframe: [1-9][0-9]* legs, 0 failed$|1
+watch-views|^watch-views: every view followed every outside change$|1
+colwatch-gate|^colwatch-gate: [1-9][0-9]* checks, every verdict held$|1
+figure-warm|^figure-warm: [1-9][0-9]* check\(s\), 0 failed$|1
+figure-store|^figure-store: [1-9][0-9]* (hung-store |hang drain |slow drain )?check\(s\), 0 failed$|4
+qslog-crash|^qslog-crash: [1-9][0-9]* checks, 0 bad$|1
+markdown-tables|^markdown-tables: every table fits its pane or scrolls sideways with every word whole, in Quick Look and the column$|1
+rowscroll|^ROWSCROLL PASS perRow=22 built=[0-9]+ rowFor=[0-9]+ thumb=[0-9]+$|1
+fencehosts|^fencehosts: [1-9][0-9]* documents in 3 hosts, 0 failed$|1
+hidden-release|HIDDEN_RELEASE DONE checks=[1-9][0-9]* failed=0$|1
+rename-grid-bottom|^rename-grid-bottom: 126 prior \+ [1-9][0-9]* owner checks, 0 failed$|1
+columnsfilter|^COLUMNSFILTER PASS active=6-of-12 grid=6-of-12 strip=list esc=restored nav=forgotten parent=kept commit=enter-kept walk=j-k-kept preview=follows escape=name-kept stamps=columns-grid nomatch=empty-esc-restored-backspace-match( hidden=no-marks)?$|1
+network-kernel-mounts|^network-kernel-mounts: gio rows join mountinfo rows, open direct, unmount once, idle automount never touched$|1
+qml-compile|^QMLCOMPILE checked [1-9][0-9]* failed 0$|1
+rename-list-bottom|^RENAMELISTBOTTOM DONE checks=[1-9][0-9]* failed=0$|1
+search-live|SEARCHLIVE DONE checks=[1-9][0-9]* failed=0$|1
+remote-start|^remote-start: [1-9][0-9]* passed, 0 failed$|1
+pdf-idle|^PDFIDLE DONE failures=0$|1
+pdf-idle|^PDFIDLE PASS |6
+preview-earlyask|^PREVIEWEARLYASK PASS isolated=precapture once=1 walk=silent-then-one columnoff=silent$|1
+filter-firstkey|FIRSTKEY DONE phases=[1-9][0-9]* failures=0$|1
+search-exit-reads|EXITREADS DONE checks=[1-9][0-9]* failed=0$|1
+menu-copyas-reveal|MENUCOPYREVEAL PASS |12
+search-exit-columns|EXITCOLS DONE [1-9][0-9]* checks, 0 failed$|1
+wait-listing|WAITLISTING DONE$|1
+search-keep|SEARCHKEEP DONE checks=[1-9][0-9]* failed=0$|1
+search-answered|SEARCHANSWERED DONE checks=[1-9][0-9]* failed=0$|1
+foldersort-keep|FOLDERSORTKEEP DONE checks=[1-9][0-9]* failed=0$|1
+columns-peekdrag|COLUMNSPEEKDRAG DONE checks=[1-9][0-9]* failed=0$|1
+field-write-guard|^field-write-guard: all passed$|1
+field-prefetch-park|^field-prefetch-park: all passed$|1
+shelf-add-queue|^SHELFQUEUE PASS |2
+shelf-add-queue|^SHELFQUEUE STATUS qs_exit=143 done=1$|1
+listnarrow|^LISTNARROW PASS drawn=[0-9]+ pooled=[0-9]+$|1
+gridnarrow|^GRIDNARROW PASS drawn=[0-9]+ pooled=[0-9]+ cursor=[0-9]+$|1
+columnnarrow|^COLUMNNARROW PASS drawn=[0-9]+ pooled=[0-9]+ widened=[0-9]+$|1
+rename-cost|RENAMECOST DONE checks=[1-9][0-9]* failed=0$|1
+field-entrant-sweep|^field-entrant-sweep: all passed$|1
+field-tui-frame|^field-tui-frame: all passed$|1
+fatcopy|^fatcopy\.sh: all checks passed$|1
+fatcopy|^ok   |15
+search-sizes|SEARCHSIZES DONE checks=[1-9][0-9]* failed=0$|1
+filter-held|FILTERHELD PASS list drawn=[1-9][0-9]* made=0 gone=0 moved=0 .*grid drawn=[1-9][0-9]* made=0 gone=0 moved=0|1
+columnsfilter-edge|^COLUMNSFILTEREDGE PASS file-match=held-no-empty folder-match=held-until-answered nomatch=empty refresh=empty( zero-rows=empty rows-back=shown)?$|1
+navcost|NAVCOST DONE [1-9][0-9]* checks, 0 failed$|1
+columnspeekorder|^COLUMNSPEEKORDER PASS reorder=reask stale=dropped held=rows remember=reask quiet=none$|1
+glass|^glass: checks=[1-9][0-9]* failed=0$|1
+glass-boot|^glass-boot: failed=0$|1
+tui-wake|^tui-wake: all passed$|1
+ui-captures-fences|^ui-captures-fences: [1-9][0-9]* checks, 0 failed$|1
+quicklook-tablewarm|^quicklook-tablewarm: 0 failed$|1
+quicklook-tablewarm|TABLEWARM DONE [1-9][0-9]* checks, 0 failed$|1
+spinner-still|^SPINNERSTILL PASS [1-9][0-9]* checks$|1
+mtp-scan|^mtp-scan: scan=off-loop progress=live cancel=live queued=in-order$|1
+quicklook-hold|^quicklook-hold: 0 failed$|1
+quicklook-hold|QLHOLD DONE steps=[1-9][0-9]* failures=0$|1
+archive-threat|^archive-threat\.sh: all checks passed$|1
+run-card-sink|^RUNCARD PASS [1-9][0-9]* checks$|1
+run-card-sink|^RUNCARD STATUS qs_exit=143 done=1$|1
+opener-ask|^OPENER PASS [1-9][0-9]* checks$|1
+opener-ask|^OPENER STATUS qs_exit=143 done=1$|1
+cursorback|^CURSORBACK STATUS checks=[1-9][0-9]*$|1
+cursorback|^CURSORBACK views STATUS qs_exit=143 checks=[1-9][0-9]*$|1
+cursorback|^CURSORBACK dual STATUS qs_exit=143 checks=[1-9][0-9]*$|1
+cursor-swap|^CURSORSWAP STATUS qs_exit=143 done=1$|1
+cursor-swap|^CURSORSWAP PASS |13
+unlock-stdin|^UNLOCKSTDIN PASS |46
+unlock-stdin|^UNLOCKSTDIN STATUS qs_exit=143 done=1$|1
+unlock-poller|^UNLOCKPOLLER PASS |31
+unlock-poller|^UNLOCKPOLLER STATUS qs_exit=143 done=1$|1
+unlock-lsblk-shim|^unlock-lsblk-shim: (2[4-9]|[3-9][0-9]) checks passed$|1
+emptybeats|^EMPTYBEATS PASS [1-9][0-9]* checks$|1
+poolpark|^POOLPARK DONE (list|grid|columns)$|3
+preview-holdframes|^preview-holdframes: [1-9][0-9]* check\(s\), 0 failed$|1
+navframe|^navframe: Enter and Back draw no frame before the landing in three views, and the listing gate still refuses input$|1
+cursormark|^CURSORMARK DONE (list|grid|columns)$|3
+gridmark|GRIDMARK PASS armed=\+[1-9][0-9]* keybuilt=0 states=.*search|1
+# Deferred 0.3.12 language evidence: 9d8b6fc75de6a083bd3875e91a87463774e3a61d, listed with the pending release work.
+# DEFERRED gridmark|^LANGCREATE KEY filter-r calls=0$|1
+# DEFERRED gridmark|^LANGCREATE KEY backspace calls=0$|1
+# DEFERRED gridmark|^LANGCREATE KEY filter-r-again calls=0$|1
+# DEFERRED gridmark|^LANGCREATE PASS narrow backspace exit hidden toggle cold$|1
+# DEFERRED gridmark|^LANGCREATE MUTANT pool-drop rejected by backspace creation$|1
+# DEFERRED gridmark|^LANGCREATE MUTANT cold-filter rejected by first-key creation$|1
+search-exit-deep|EXITDEEP DONE checks=[1-9][0-9]* failed=0$|1
+columnshidden|COLHID DONE [1-9][0-9]* checks, 0 failed$|1
+search-warm|SEARCHWARM DONE checks=[1-9][0-9]* failed=0$|1
+pointer-glide-proof|^POINTERGLIDE DONE checks=[1-9][0-9]* failed=0$|1
+tagrows|^TAGROWS PASS grid=[0-9.]+/[0-9]+$|1
+trash-locations|^TRASHLOC PASS checks=[0-9]+$|1
+picker-save-wrap|^PICKERSAVEWRAP PASS 16 checks$|1
+framegap|^FRAMEGAP PASS [1-9][0-9]* checks over |1
+slowsource-load|^slowsource-load: [1-9][0-9]* check\(s\), 0 failed$|1
+columnsback|^columnsback: [1-9][0-9]* rounds of 31 Columns Back landings drew parent, active and child whole in their first frame$|1
+columnsprebuild|^COLUMNSPREBUILD PASS warmRows=|1
+gridprebuild|^GRIDPREBUILD DONE warmRows=[1-9][0-9]*$|1
+listprebuild|^LISTPREBUILD DONE warmRows=[1-9][0-9]* parked=[0-9]+$|1
+flash-ending-focus|^FLASHFOCUS STATUS qs_exit=143 done=1$|1
+devicelock|^DEVICELOCK STATUS qs_exit=143 done=1$|1
+dropmods-box-proof|^DROPMODSBOX DONE checks=[0-9]+ failed=0$|1
+unlock-host|^UNLOCKHOST PASS |5
+unlock-host|^UNLOCKHOST STATUS qs_exit=(0|143) done=1$|1
+ui-gvfsbridge-env|^ok   |15
+ui-gvfsbridge-env|^UIGVFSBRIDGEENV DONE$|1
+columns-peekdrag-noise|^columns-peekdrag-noise: [1-9][0-9]* check\(s\), 0 failed$|1
+slowsource-load-cleanup|^slowsource-load-cleanup: [1-9][0-9]* check\(s\), 0 failed$|1
+field-instant|^field-instant: all passed$|1
+field-instant|^ok   |34
+cap-drops-trash|^cap-drops-trash: [1-9][0-9]* checks, 0 failed$|1
+dropcase-guards|^DROPLINEPEEK DONE checks=[1-9][0-9]* failed=0$|1
+heldlisting|^HELDLISTING helpers=ok pane=list,columns boot=list,columns$|1
+heldlisting|^ok   pane (list|columns): HELDLISTING PASS view=(list|columns) mode=(list|columns) samples=[1-9][0-9]*$|2
+heldlisting|^ok   |16
+dropmods-wait|^DROPMODSWAIT DONE$|1
+dropmods-wait|^ok   |29
+dropmods-windows|^DROPMODSWINDOWS DONE$|1
+dropmods-windows|^ok   |23
+folderviews-flow|FOLDERVIEWS DONE checks=[1-9][0-9]* failed=0$|1
+gridbare|^GRIDBARE PASS gestures=[1-9][0-9]* icon=hit caption=short,wrapped margin=band hover=icon,caption$|1
+sweep-picker-env|^SWEEPPICKERENV DONE$|1
+sweep-picker-env|^ok   |7
+click-chrome|^CLICKCHROME DONE$|1
+click-chrome|^ok   |9
+gridcapbreak|^GRIDCAPBREAK PASS base=14 window=[0-9]+ tiles=[1-9][0-9]* widths=[0-9,]+ queries=|1
+cap-filter-width|^CAPFILTERWIDTH DONE$|1
+cap-filter-width|^ok   |9
+readme-grab|^READMEGRAB DONE$|1
+readme-grab|^ok   |7
+search-rawnames|^test result: ok\. [1-9][0-9]* passed; 0 failed;|1
+columns-held|COLHELD DONE [1-9][0-9]* checks, 0 failed$|1
+columns-held|^columns-held: a held j in columns asks the backend and rebinds like the list, holds at its floor and shows no half-built frame$|1
+hiddenlast-views|HLV DONE [1-9][0-9]* checks, 0 failed$|1
+portal-startup|^portal-startup\.sh: all checks passed$|1
+portal-startup|^ok   |14
+portal-startup-abort|^portal-startup-abort\.sh: all checks passed$|1
+portal-startup-abort|^ok   |10
+holdoff-cap|^holdoff-cap: [1-9][0-9]* check\(s\), 0 failed$|1
+fillroles|^FILLROLES PASS [1-9][0-9]* checks, fills on accentFrame, |1
+gridjump|^GRIDJUMP DONE failures=0$|1
+gridjump|^GRIDJUMP grid [A-Za-z.]+ created=[0-9]+ reused=[0-9]+ windows=1 replies=1 .* unchangedRowRebinds=0 blankedTiles=[0-9]+ isSelectedCalls=[1-9][0-9]* movedBeforeWindow=[0-9]+/[0-9]+$|10
+quicklook-firstkind|^quicklook-firstkind: [1-9][0-9]* legs, 0 failed$|1
+slowsource-nas|^slowsource-nas: [1-9][0-9]* legs, 0 failed$|1
+quicklook-zoom|QLZOOM PASS checks=[1-9][0-9]* failures=0$|1
+mediastrip-volume|^MEDIASTRIPVOL PASS [1-9][0-9]* checks$|1
+dualdivider|DUALDIV DONE checks=[1-9][0-9]* failed=0$|1
+menu-contents|^MENUCONTENTS PASS [1-9][0-9]* checks, the folder counts in place and closes with menuaction close$|1
+tagflyout|^TAGFLYOUT PASS [1-9][0-9]* checks$|1
+railmotion|RAILMOTION DONE checks=[1-9][0-9]* failed=0$|1
+railmotion|RAILMOTION reduced DONE checks=[1-9][0-9]* failed=0$|1
+theme-contrast|^THEMECONTRAST PASS [1-9][0-9]* checks over [1-9][0-9]* palettes, |1
+theme-contrast|THEMECONTRAST ok |100
+navsupersede|NAVSUPERSEDE DONE [1-9][0-9]* checks, 0 failed$|1
+keyreach|KEYREACH DONE checks=[1-9][0-9]* failed=0$|1
+heldcolumns|HELDCOLUMNS DONE [1-9][0-9]* checks, 0 failed$|1
+columnsdrawn|^COLUMNSDRAWN PASS file-cursor=no-child folder-cursor=its-rows$|1
+reveal|^REVEAL PASS [1-9][0-9]* checks|1
+reveal|^REVEAL STATUS qs_exit=143 done=1$|1
+permissions-point-proof|^PERMPOINT PASS |10
+presskeep|^PRESSKEEP STATUS qs_exit=[0-9]+$|1
+transferlive-owners|^transferlive-owners: [1-9][0-9]* checks, 0 bad$|1
+flingframe|FLINGFRAME DONE$|1
+menu-refresh-scroll|^MENUREFRESH PASS contentY=[0-9.-]+ rowY=[0-9.-]+$|1
+menu-refresh-scroll|^MENUREFRESH STATUS qs_exit=143 done=1$|1
+gridviewport|GRIDVIEWPORT DONE [1-9][0-9]* checks, 0 failed$|1
+gridviewport|^gridviewport: a switch to Grid builds the viewport first, the cache rows after the frame, and draws no half-built frame$|1
+hoverready|hoverready: [1-9][0-9]* checks, 0 failed$|1
+dragready|dragready: [1-9][0-9]* checks, 0 failed$|1
+gridgrowth|^GRIDGROWTH PASS steps=[0-9]+ frames=[0-9]+$|1
+griddroplive|^GRIDDROPLIVE PASS checks=[1-9][0-9]*$|1
+heldkey|HELDKEY (list|grid|columns) load=(0|10|30) sent=[0-9]+ steps=[0-9]+ after=0 |9
+transferhold|^TRANSFERHOLD STATUS qs_exit=143 done=1$|1
+tui-quit-playing|^tui-quit-playing: all passed$|1
+mountfail-image|^mountfail-image: (ok \((btrfs|ext4)\)|no mkfs\.btrfs or mkfs\.ext4 here, nothing to build)$|1
+glass-mode|^glass-mode: checks=[1-9][0-9]* failed=0$|1
+flingframe|^FLINGFRAME DONE$|1
+flingframe|^FLINGFRAME (list|grid|columns) (top|mid) rows=(1|3|6) frames=[1-9][0-9]* travel=[0-9]+/[0-9]+px .* writeMs=[0-9.]+/[0-9.]+$|18
+code-engine|^code-engine: all checks passed$|1
+columns-pwid|^PWID PASS [1-9][0-9]* checks$|2
+mediasession|^MEDIASESSION PASS [1-9][0-9]* checks$|1
+mpris|^mpris: 0 failure\(s\)$|1
+pv-gif|^pv-gif: 0 failed$|1
+pv-gif-reply|^pv-gif-reply: 0 failed$|1
+trash-view|^TRASHVIEW PASS [1-9][0-9]* checks$|1
+fontpane|^fontpane: 0 failed$|1
+preview-tall|^TALL (1200x760|760x560|relaunch) QMLTALLY passed=[1-9][0-9]* failed=0$|3
+code-column|CODECOL DONE [1-9][0-9]* checks, 0 failed$|2
+code-column|^CODECOL PASS the (markup line opened no connection to the listener|listener sees a connection made to it)$|2
+appimage-icon|^APPIMAGE_ICON PASS views=list,grid,columns modes=media,images,off$|1
+gridresize|GRIDRESIZE DONE [1-9][0-9]* checks, 0 failed$|4
+gridresize|^gridresize: a Grid narrowed while scrolled, narrowed with no scroll, widened, or grown in height draws the row of every tile it shows$|1
+shelf-mark|^SHELFMARK DONE [1-9][0-9]* checks, 0 failed$|1
+preview-raw|PVRAW DONE checks=[1-9][0-9]* failures=0$|1
+preview-raw|^preview-raw: 0 failed$|1
+field-launch-order|^field-launch-order: all passed$|1
+field-strata-src|^field-strata-src: all passed$|1
+preview-pdf-flow|^FLOW (1200x760|760x560) QMLTALLY passed=[1-9][0-9]* failed=0$|2
+quicklook-code|^quicklook-code: [1-9][0-9]* legs, 0 failed$|1
+quicklook-rect|QLRECT PASS checks=[1-9][0-9]* failures=0$|1
+quicklook-rect|^quicklook-rect: 0 failed$|1
+quicklook-followrest|^quicklook-followrest: 0 failed$|1
+quicklook-followrest|QLFR DONE sweeps=[1-9][0-9]* checks=[1-9][0-9]* failed=0$|1
+pv-compare|PVCMP DONE [1-9][0-9]* checks, 0 failed$|2
+pv-compare-menu|PVCMP DONE [1-9][0-9]* checks, 0 failed$|1
+preview-scroll|PVSCROLL DONE [1-9][0-9]* checks, 0 failed$|1
+markdown-code|MARKDOWN_REBIND DONE 0 failed$|1
+markdown-code|^MARKDOWN_CODE PASS the listener sees a connection made to it$|1
+csv-preview|CSVPREV DONE [1-9][0-9]* checks, 0 failed$|1
+csv-preview|^csv-preview: 0 failed$|1
+sortnew|SORTNEW DONE [1-9][0-9]* checks, 0 failed$|1
+cohesion-reader|^cohesion-reader [a-z-]+: owned process group gone$|5
+cohesion-reader|(COHREADER|COHPICKER|COHCAPTURE) DONE checks=[1-9][0-9]* failed=0|5
+capture-port|^CAPTUREPORT DONE checks=[1-9][0-9]* failed=0$|1
+raw-fixture|^raw-fixture: real DNG, preview decode and photo facts passed$|1
+columnsmoves|COLUMNMOVES DONE [1-9][0-9]* moves, 0 failed$|1
+columnsmoves|^COLUMNMOVES MUTANT rejected [a-z-]+ by its regression control$|6
+settings-ground|SETTINGS_GROUND DONE checks=[1-9][0-9]* failed=0$|1
+settings-ground|^SETTINGS_GROUND CONTROL [a-z-]+ exit=1 checks=[1-9][0-9]* failed=[1-9][0-9]*$|2
+fenceparity|^fenceparity: real List and Columns windows, 0 failed$|1
+fenceparity|^ok fenceparity: column-only colour mutant rejected for token inks$|1
+office-preview|^office-preview: real hosts passed; routing mutant rejected$|1
+raildrop|^raildrop: healthy file drops, collision card and undo passed; device-blind mutant rejected$|1
+trash-thumbs|^TRASHTHUMB PASS no-request mutant rejected$|1
+html-preview|^html-preview: backend isolation and Quick Look/column passed$|1
+html-preview|^((([[:cntrl:]]\[[0-9;]*m)*[[:space:]]*(DEBUG|INFO|WARN)([[:cntrl:]]\[[0-9;]*m)* qml([[:cntrl:]]\[[0-9;]*m)*: )|qml: )?HTML_PREVIEW DONE 9 checks, 0 failed$|1
+html-preview|^((([[:cntrl:]]\[[0-9;]*m)*[[:space:]]*(DEBUG|INFO|WARN)([[:cntrl:]]\[[0-9;]*m)* qml([[:cntrl:]]\[[0-9;]*m)*: )|qml: )?HTML_PREVIEW DONE 30 checks, 0 failed$|1
+html-preview|^((([[:cntrl:]]\[[0-9;]*m)*[[:space:]]*(DEBUG|INFO|WARN)([[:cntrl:]]\[[0-9;]*m)* qml([[:cntrl:]]\[[0-9;]*m)*: )|qml: )?HTML_PREVIEW DONE 35 checks, 0 failed$|1
+html-preview|^((([[:cntrl:]]\[[0-9;]*m)*[[:space:]]*(DEBUG|INFO|WARN)([[:cntrl:]]\[[0-9;]*m)* qml([[:cntrl:]]\[[0-9;]*m)*: )|qml: )?HTML_PREVIEW DONE reload, 0 failed$|1
+html-preview|^PASS html-preview: same-path before pixels srgb\(69,188,35\)$|1
+html-preview|^PASS html-preview: same-path pending pixels srgb\(69,188,35\)$|1
+html-preview|^PASS html-preview: same-path after pixels srgb\(35,69,188\)$|1
+html-preview|^HTML_CLIP_CONTROL PASS ready valid capture exits 0$|1
+html-preview|^HTML_CLIP_CONTROL PASS ready bad capture exits 1$|1
+html-preview|^HTML_CLIP_CONTROL PASS failed valid capture exits 0$|1
+html-preview|^HTML_CLIP_CONTROL PASS failed bad capture exits 1$|1
+html-preview|^HTML_CLIP_CONTROL PASS large valid capture exits 0$|1
+html-preview|^HTML_CLIP_CONTROL PASS large bad capture exits 1$|1
+markdown-preview-state|^((([[:cntrl:]]\[[0-9;]*m)*[[:space:]]*(DEBUG|INFO|WARN)([[:cntrl:]]\[[0-9;]*m)* qml([[:cntrl:]]\[[0-9;]*m)*: )|qml: )?MARKDOWN_PREVIEW_STATE 35 checks, 0 failed$|1
+langmarks3|^LANGCOST PASS noncode-added=0 code-added=[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]* reuse=0 thumbnail=0 fallback=1 inks=ok cut=0\.55$|1
+langmarks3|^LANGMARK_SPEC PASS marks=16( .*)?$|1
+langmarks3|^LANGCOST MUTANT displaced-mark rejected Row,GridTile,ColumnRow$|1
+langmarks3|^LANGCOST MUTANT python-invisible old-accepted=1 fixed-phase3-rejected=Row,GridTile,ColumnRow$|1
+langtoggle|^LANGTOGGLE MUTANT default-false rejected by default-on setting$|1
+langtoggle|^LANGTOGGLE MUTANT nonpersisting rejected by saved-off setting$|1
+langtoggle|^langtoggle: live panes and windows, teardown, persistence and both negative controls passed$|1
+glasspick-case|^GLASSPICK_CASE owned=stopped foreign=refused gone=accepted$|1
+glasspick-case|^GLASSPICK_CASE targeting=owned launches=12 shots=16 scope=restored ambiguous=refused foreign-focus=refused$|1
+glasspick-case|^GLASSPICK_CASE cleanup=success status=0 fixtures=28 stopped=28 focus=restored ipc=restored trap=preserved$|1
+glasspick-case|^GLASSPICK_CASE outer-interrupt=137 owned=3 stopped=3 foreign=alive refusal=checked$|1
+glasspick-case|^GLASSPICK_CASE cleanup=failure status=1 fixtures=3 stopped=3 focus=restored ipc=restored trap=preserved$|1
+glasspick-case|^GLASSPICK_CASE foot=check-rejected shots=0 fixtures=1 stopped=1 focus=restored ipc=restored trap=preserved$|1
+glasspick-case|^GLASSPICK_CASE foot=check-diagnostic shots=0 fixtures=1 stopped=1 focus=restored ipc=restored trap=preserved$|1
+glasspick-case|^GLASSPICK_CASE cleanup=startup-error status=1 fixtures=3 stopped=3 focus=restored ipc=restored trap=preserved$|1
+material-startup|^MATERIAL_STARTUP opaque calls=0 floorMs=0 alpha=255 expected=255$|1
+material-startup|^MATERIAL_STARTUP transparent calls=0 floorMs=0 alpha=255 expected=255$|1
+material-startup|^MATERIAL_STARTUP user-override calls=0 floorMs=0 alpha=87 expected=87$|1
+material-startup|^MATERIAL_STARTUP theme-override calls=0 floorMs=0 alpha=87 expected=87$|1
+material-startup|^MATERIAL_STARTUP glassy calls=[1-9][0-9]* floorMs=[0-9]+ alpha=192 expected=192$|1
+material-startup|^material-startup: failed=0$|1
+trashthumb-backend|^trashthumb-backend: producer, descriptor and cancellation checks passed without skips$|1
+viewerorder-backend|^viewerorder-backend: PASS$|1
+properties-multi|^properties-multi: PASS 9 protocol scenarios$|1
+properties-races|^properties-races: PASS metadata stalls, link swaps, single-item replies and 4 async size-walk scenarios$|1
+locale|^locale: 46 passed, 0 failed$|1
+jobs|^PASS final snapshot excludes failed and done jobs from unfinished count$|1
+rename-lag|^RENAMELAG DONE cases=3 failed=0$|1
+empty-trash|^PASS empty-trash: completion, 100k determinate progress, cancel during validation and deletion, responsive listing, paired metadata$|1
+tui-battery|^PASS tui-battery: (8[3-9]|9[0-9]|[1-9][0-9]{2}) regressions, 5 fake adapters$|1
+tui-cwd|^ok A executes omarchy agent in the shown folder$|1
+gpui-capture-smoke|^GPUI_CAPTURE PASS backend=vulkan adapter=.+ size=[0-9]+x[0-9]+$|1
+gpui-capture-smoke|^GPUI_CAPTURE PASS backend=gl adapter=.+ size=[0-9]+x[0-9]+$|1
+gpui-capture-smoke|^GPUI_CAPTURE_STABLE backend=vulkan tries=[1-9][0-9]* interval=1s png=.+/vulkan[.]png$|1
+gpui-capture-smoke|^GPUI_CAPTURE_STABLE backend=gl tries=[1-9][0-9]* interval=1s png=.+/gl[.]png$|1
+gpui-capture-smoke|^GPUI_CAPTURE_CONTROL name=never-maps rejected=GPUI_CAPTURE_REJECT window_never_mapped .+$|1
+gpui-capture-smoke|^GPUI_CAPTURE_CONTROL name=black-frame rejected=GPUI_CAPTURE_REJECT uniform_frame$|1
+gpui-capture-smoke|^GPUI_CAPTURE_CONTROL name=size-mismatch rejected=GPUI_CAPTURE_REJECT size_mismatch .+$|1
+gpui-capture-smoke|^GPUI_CAPTURE_CONTROL name=wrong-backend rejected=GPUI_CAPTURE_REJECT wrong_backend .+$|1
+parity|^parity: 3749 checks, 0 failed; fixture 149 rows; real (2[0-9]|[3-9][0-9])[0-9]{3} rows; unassigned 354$|1
+volume-udisks|^VOLUME_UDISKS PASS tests=3[46]$|1
+tui-detail|^PASS tui-detail: four modes, local dates, properties, folder-name size sorting, clean TTY quit$|1
+tui-owner-stall|^PASS tui-owner-stall: held-stat deadline, healthy navigation, release control, clean TTY quit$|1
+unzip-progress|^PASS unzip-progress: 17 cases passed$|1
+gpui-lint|^flea-gpui-lint: PASS files=[0-9]+ findings=0$|1
+gpui-gates|^(GATE (fmt-crates|clippy|gpui-lint) rc=0|ok strict flea-gui warning mutant rejected(; cargo rc=101| by tools/flea-clippy; rc=1))$|4
+rclone|^PASS [a-zA-Z]|30
+rclone-ci|^PASS rclone (workspace build has zero warnings|flea-clippy has no rise and no denied findings|CI environment and process isolation assertions|CI parity: clean environment, no controlling tty, private PID namespace)$|4
+print-office-real|^ok   print-office-real: [a-z]|1
+tui-editor-stop|^tui-editor-stop: all passed$|1
+matchtext-zerowidth|^MATCHTEXT ok: green passes all [0-9]+ cases; the revert fails the [0-9]+ late cases and holds the [0-9]+ controls$|1
+g1-01|^G1_01 PASS lifecycle, startup, drain, locale and clippy$|1
+g1-02|^G1_02 PASS snapshots, cap, window, generation, state, IPC and clippy$|1
+g1-03|^G1_03 PASS history, watch, anchor, folder state, sort, transport and clippy$|1
+g1-04|^G1_04 PASS generated Rust, native events, oracle vectors, locale, allocation control and clippy$|1
+gpui-spinner|^GPUISPINNER PASS [1-9][0-9]* checks$|1
+gui-ipc|^GUI_IPC DONE$|1
+native-transport|^TRANSPORT_NATIVE picker=ok quit=clean roundtrip-ms=[0-9.]+[.][.][0-9.]+$|1
+native-transport-r1|^TRANSPORT_R1 checks=4 failed=0$|1
+gpui-visual-scenes|^GPUI_SCENES PASS scenes=8 controls=4$|1
+gpui-visual-scenes|^GPUI_SCENE PASS scene=[a-z0-9-]+ frame=|8
+gui-render-fallback|^RANGE (vulkan|no-vulkan-icd|device-create-failure|gl-only|neither) entry=(fork|launcher) first_buffer_ms=|10
+gui-render-fallback|^gui-render-fallback: all five renderer cases passed$|1
+search-ci-lint|^PASS search-ci-lint: unchanged clippy baseline, no deny, rise or rustc warning$|1
+searchprior-ci|^PASS searchprior-ci: prior regressions, isolated timing, workspace warnings and clippy$|1
+g1-06|^G1_06 PASS columns, #333 widths, header, row cache, formats, marks, row IPC and clippy$|1
+g1-07|^G1_07 PASS columns geometry, peeks, landing, carry, third-column host, track Elements and clippy$|1
+g1-08|^G1_08 PASS grid geometry, captions, view, frames, pictures and clippy$|1
+g1-10|^G1_10 PASS tab model, strip, saved strip, restore, refusals, reorder, transfer acknowledgment and clippy$|1
+g1-11|^G1_11 PASS rail model, GPUI host \([1-9][0-9]* tests\) and clippy$|1
+g1-12|^G1_12 PASS crumbs, path entry, completion, suggestions, IPC readers, window wiring and clippy$|1
+g2-mn1|^G2_MN1 PASS clippy baseline$|1
+g2-pl3|^G2_PL3 PASS core and GPUI Trash tests and clippy$|1
+g2-sr1|^G2SR1 PASS [1-9][0-9]* core and [1-9][0-9]* GPUI checks$|1
+g2-op1|^G2OP1 PASS [1-9][0-9]* core and [1-9][0-9]* GPUI checks$|1
+g2-pv2|^G2_PV2 PASS renderer, surface, view, strip and clippy \(poppler [^)]+\)$|1
+g2-pl1|^G2_PL1 PASS devices, phones, eject, unlock and clippy$|1
+g2-st2|^G2_ST2 PASS backend protocol, pages, pane and clippy$|1
+third-party-licenses|^PASS THIRD-PARTY-LICENSES[.]txt: [1-9][0-9]* bytes; package licenses: .+$|1
+third-party-licenses|^PASS third-party licenses: inventory, package declarations and regression controls$|1
+g1-13|^G1_13 PASS filter strip states, status priority, IPC readers and clippy$|1
+g2-pv2-md|^G2_PV2_MD PASS parser, layout, view and clippy$|1
+g2-pv2-web|^G2_PV2_WEB PASS code, html, font, archive and clippy$|1
+g2-pv2-office|^G2_PV2_OFFICE PASS office states, sheets, CSV table and clippy$|1
+raw-corpus|^PASS raw-corpus: all offline checks passed$|1
+field-product|^field-product: all passed$|1
+field-localsearch|^field-localsearch: all passed$|1
+ui-uish-inventory|^PASS ui-uish-inventory [1-9][0-9]* controls$|1
+ui-uish-fixtures|^PASS ui-uish-fixtures: [1-9][0-9]* controls; |1
+ui-uish-native-admission|^PASS native-admission controls=[1-9][0-9]* passing=[0-9]+ refused=[0-9]+ failed=0 |1
+suite-inventory|^suite-inventory: [1-9][0-9]* checks, 0 failed; 13 mutants rejected with passing twins$|1
+license-policy|^ok exact-version license exception rejects the next version$|1
+license-policy|^ok product workspace licenses pass deny.toml$|1
+bench-fleet-contract|^PASS bench-fleet-contract: [1-9][0-9]* controls, 0 failures; native inventory and benchmarks remain unmeasured$|1
+bench-markdown-matrix|^PASS: bench-markdown-matrix$|1
+strata-bench|^strata-bench: PASS capture/CPU/coverage/report contracts$|1
+g2-dg1|^G2DG1 PASS [1-9][0-9]* core and [1-9][0-9]* GPUI checks$|1
+g2-mn2|^G2MN2 PASS [1-9][0-9]* core and [1-9][0-9]* GPUI checks$|1
+g2-op2|^g2-op2: ok G2OP2 PASS [1-9][0-9]* core and [1-9][0-9]* GPUI checks$|1
+g2-sr2|^G2_SR2 PASS gui=[1-9][0-9]* core=[1-9][0-9]* consumer=[1-9][0-9]* producer=[1-9][0-9]* filter controller, strip, matcher, window consumer, backend producer and clippy$|1
+search-fb5|^search-fb5: PASS focused gates, CI conditions, and three probe repetitions$|1
+gpui-theme-gate|^GPUI_THEME_GATE PASS stock=2[45] contrast and live atomic replacement$|1
+ui-gpui-headless|^UI_GPUI_HEADLESS PASS mounted Window input, production IPC, identity, refusal, deadlines and teardown$|1
+ui-uish-common-observers|^UISH_04 HARNESS PASS 6 controls: QML, current, changed, stale, unloaded, invalid$|1
+ui-uish-common-observers|^UISH_04 PASS live palette, 34 tokens, applied wheel gain and refusal controls$|1
+# Compat, i18n, bench and native suites joined after the inventory was drawn.
+g1-14|^G1_14 PASS retained glyphs, invalidation, allocation controls and clippy$|1
+g1-05|^G1_05 PASS scroll and slow-click policy, shell wiring tests, oracle vectors, mutation controls and clippy$|1
+i18n-quality|^PASS i18n-quality: [1-9][0-9]* tests$|1
+cli-contract|^cli-contract: all rows passed$|2
+cli-contract-mutations|^cli-contract-mutations: all [1-9][0-9]* source mutations rejected$|1
+legacy-upgrade|^legacy-upgrade: all cases passed$|1
+legacy-helpers|^legacy-helpers: all cases passed$|1
+state-compat|^state-compat: all covered readers preserved source files$|1
+chooser-replies|^chooser-replies: all cases passed$|1
+bench-field-work|^ok   |36
+bench-gate-provenance|^BENCH_GATE_PROVENANCE PASS$|1
+fs-instrument|^fs-instrument: PASS$|1
+native-runtime|^NATIVE RUNTIME PASS [1-9][0-9]* adapter/display pairs and [1-9][0-9]* executable guards$|1
+native-runtime|^ARCHIVE SCENES PASS submitted mismatch and lit primary focus$|1
+bench-b3-capture|^BENCH_B3_CAPTURE PASS controls=23$|1
+bench-raw-corpus-contract|^PASS bench-raw-corpus-contract: all offline checks passed$|1
+prove-ci-runner|^PROVE_02_PASS checks=[1-9][0-9]* failed=0$|1
+tool-preflight|^tool-preflight: PASS$|1
+opr-recipe|^opr-recipe: PASS recipes match outside release metadata and Maintainer$|1
+slop-ratchet|^slop-ratchet: PASS$|1
+preview-quality|^preview-quality: PASS [1-9][0-9]* regression tests$|1
+
+bench-thumbs|^bench-thumbs: [1-9][0-9]* contracts, 0 failed$|1
+bench-thumbs|^bench-thumbs-native: [1-9][0-9]* offline contracts, 0 failed$|1
+bench-thumbs|^bench-thumbs-background: [1-9][0-9]* offline contracts, 0 failed$|1
+bench-thumbs|^bench-thumbs-safety: [1-9][0-9]* offline contracts, 0 failed$|1
+nvidia-gpui|^Ran [1-9][0-9]* tests in [0-9]+([.][0-9]+)?s$|1
+nvidia-gpui|^OK$|1
+aur-versions|^aur-versions: 19 check\(s\), 0 failed$|1
+startup-order-tool|^PASS startup order cleanup: inherited directory preserved, own traces removed, short trace refused$|1

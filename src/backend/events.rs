@@ -1,19 +1,23 @@
-// Every source of work the read loop waits on, and the threads that join them onto its one channel.
-// std has no select, so each blocking source is a thread and the loop only ever waits on the receiver.
+// The loop polls stdin and its channel's doorbell together; threads forward every other blocking source to that channel.
+#[cfg(test)]
+pub use super::wake::channel;
+pub use super::wake::Sender;
 use crate::backend::opscancel::Live;
 use crate::backend::opsreq::OpMsg;
 use crate::backend::proto::{parse_request, Request, TRANSFER_CANCEL};
 use crate::backend::thumbs::Done;
 use crate::error::{from_io, FleaError};
-use std::io::{self, BufRead};
+use std::io;
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
+use std::sync::mpsc::Receiver;
 use std::thread;
 
-// std has no select, so every source of work reaches the loop as one of these.
+// Every source of work reaches the loop as one of these.
 pub enum Event {
+    Contents(super::contents::Done),
+    Git(String),
     Request(String),
+    Nearby { ticket: u64, line: String },
     Thumb(Done),
     DirSize(crate::backend::dirsizeworker::Done),
     // A slow mount's figures, decided off the loop so no statfs ever blocks a window behind it.
@@ -41,41 +45,76 @@ pub enum Event {
     PeekGone(i32),
     // A session walk landed; the loop re-runs the standing query once when it is still the newest.
     SearchWalked,
+    // The session token rejects events from a closed scope before directory deltas are applied.
+    SearchDelta(usize),
     // A query held while a session walk runs reached the listing swap's cap; the loop answers it from the partial index.
     SearchHeld,
+    SearchReady,
+    SearchRefresh,
     ReadError(FleaError),
     Closed,
 }
 
-// stdin blocks, so reading it is a thread and the loop only ever waits on the channel.
-// Issue 144: a cancel is acted on here rather than only forwarded, because the loop that would act on
-// it can be inside a read_dir on a FUSE mount for as long as the device takes to answer.
-pub fn spawn_reader(tx: Sender<Event>, live: Arc<Live>) {
-    thread::spawn(move || read_lines(io::stdin().lock(), &tx, &live));
-}
-
-// The loop itself, over any reader, so what this thread does with a line is asserted without a stdin.
-fn read_lines(source: impl BufRead, tx: &Sender<Event>, live: &Live) {
-    for line in source.lines() {
-        let event = match line {
-            Ok(l) => read_line(l, live),
-            // The reader has no writer, so the decode failure is handed back for the loop to report.
-            Err(e) => Event::ReadError(from_io("read", "stdin", &e)),
-        };
-        let fatal = matches!(event, Event::ReadError(_));
-        if tx.send(event).is_err() || fatal {
-            return;
-        }
-    }
-    let _ = tx.send(Event::Closed);
-}
-
-// One line's worth of that job, split out so a cancel and an ordinary request are asserted apart.
-fn read_line(line: String, live: &Live) -> Event {
+// Issue 144: whichever thread reads the cancel sets its operation's flag before forwarding the line to the loop.
+pub(crate) fn read_line(line: String, live: &Live) -> Event {
+    #[cfg(test)]
+    super::renametiming::input(&line);
     if let Some(Request::TransferCancel { id }) = cancel_in(&line) {
         live.cancel(id);
     }
+    if line.contains("jobs")
+        && crate::json::field_str(&line, "c").as_deref() == Some("jobs")
+        && crate::json::field_str(&line, "op").as_deref() == Some("cancel")
+    {
+        live.cancel(crate::json::field_usize(&line, "id").unwrap_or(0));
+    }
     Event::Request(line)
+}
+
+// Sample input: b"{\"c\":\"pi" then b"ng\"}\r\n" sends {"c":"ping"}; CR LF ends a line as LF does.
+// False once input is over: the end sends the rest, then Closed, as BufRead::lines stops.
+pub(crate) fn feed(
+    tail: &mut Vec<u8>,
+    bytes: &[u8],
+    end: bool,
+    tx: &Sender<Event>,
+    live: &Live,
+) -> bool {
+    let mut rest = bytes;
+    while let Some(at) = rest.iter().position(|&b| b == b'\n') {
+        tail.extend_from_slice(&rest[..at]);
+        rest = &rest[at + 1..];
+        if tail.last() == Some(&b'\r') {
+            tail.pop();
+        }
+        if !send_line(std::mem::take(tail), tx, live) {
+            return false;
+        }
+    }
+    tail.extend_from_slice(rest);
+    if !end {
+        return true;
+    }
+    if !tail.is_empty() && !send_line(std::mem::take(tail), tx, live) {
+        return false;
+    }
+    let _ = tx.send(Event::Closed);
+    false
+}
+
+fn send_line(bytes: Vec<u8>, tx: &Sender<Event>, live: &Live) -> bool {
+    match String::from_utf8(bytes) {
+        Ok(line) => tx.send(read_line(line, live)).is_ok(),
+        // The framing cannot be trusted past a line that is not UTF-8, so input stops there and the loop reports it.
+        Err(_) => {
+            let _ = tx.send(Event::ReadError(from_io(
+                "read",
+                "stdin",
+                &io::Error::from(io::ErrorKind::InvalidData),
+            )));
+            false
+        }
+    }
 }
 
 // Parsed only for the one request this thread acts on, so no other line pays for a second parse.

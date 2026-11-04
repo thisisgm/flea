@@ -1,4 +1,8 @@
-use super::{input::Key, render};
+use super::{
+    input::Key,
+    render,
+    theme::{Depth, Theme},
+};
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
@@ -7,7 +11,9 @@ pub struct Editor {
     pub value: String,
     pub path: PathBuf,
     pub pending: bool,
+    pub default_base: Option<String>,
     pub error: String,
+    error_text: Option<(super::words::Text, String)>,
     cursor: usize,
     anchor: usize,
     editable_end: usize,
@@ -26,9 +32,18 @@ impl Editor {
             editable_end: cursor,
             full_name: true,
             pending: false,
+            default_base: None,
             error: String::new(),
+            error_text: None,
             identity: None,
         }
+    }
+    // New Folder and New File open with their whole suggested name selected, so typing replaces it.
+    pub fn named(kind: &'static str, value: String, path: PathBuf) -> Self {
+        let mut editor = Self::new(kind, value, path);
+        editor.anchor = 0;
+        editor.default_base = (kind == "mkdir").then(|| editor.value.clone());
+        editor
     }
     pub fn rename(value: String, path: PathBuf, directory: bool) -> std::io::Result<Self> {
         let meta = path.symlink_metadata()?;
@@ -48,23 +63,58 @@ impl Editor {
         editor.full_name = editor.cursor == editor.value.len();
         Ok(editor)
     }
+    pub fn fail_data(&mut self, error: String) {
+        self.error_text = None;
+        self.error = error;
+    }
+    pub fn refresh_locale(&mut self, i18n: &crate::i18n::I18n) {
+        if let Some((text, before)) = &mut self.error_text {
+            if self.error == *before {
+                self.error = text.render(i18n);
+                *before = self.error.clone();
+            } else {
+                self.error_text = None;
+            }
+        }
+    }
+    fn fail_key(&mut self, key: &'static str, i18n: &crate::i18n::I18n) {
+        let text = super::words::Text::Key(key);
+        self.error = text.render(i18n);
+        self.error_text = Some((text, self.error.clone()));
+    }
+    #[cfg(test)]
     pub fn valid(&mut self) -> bool {
+        self.valid_localized(&crate::i18n::test_catalogs::english())
+    }
+    pub fn valid_localized(&mut self, i18n: &crate::i18n::I18n) -> bool {
         if !self.full_name && self.editable_end == 0 {
-            self.error = "Enter a filename before the extension.".into();
+            self.fail_key("tui.editor.enter_a_filename_before_the_extension", i18n);
             return false;
         }
-        if matches!(self.kind, "rename" | "mkdir" | "newfile") {
-            if let Some(refusal) = crate::backend::ops::name_refusal_sentence(&self.value) {
-                self.error = refusal;
-                return false;
-            }
+        if matches!(self.kind, "rename" | "mkdir" | "newfile")
+            && crate::backend::ops::name_refusal(&self.value).is_some()
+        {
+            // The shared validator decides refusal; input facts select only its presentation key.
+            let key = if self.value.is_empty() {
+                "tui.editor.name_empty"
+            } else if matches!(self.value.as_str(), "." | "..") {
+                "tui.editor.name_dots"
+            } else if self.value.contains('/') {
+                "tui.editor.name_slash"
+            } else if self.value.contains('\0') {
+                "tui.editor.name_nul"
+            } else {
+                "tui.editor.invalid_name"
+            };
+            self.fail_key(key, i18n);
+            return false;
         }
         if self.kind == "rename" {
             match self.path.symlink_metadata() {
                 Ok(meta)
                     if self.identity == Some((meta.dev(), meta.ino(), meta.mode() & 0o170000)) => {}
                 _ => {
-                    self.error = "Selected item changed; reopen Rename.".into();
+                    self.fail_key("tui.editor.selected_item_changed_reopen_rename", i18n);
                     return false;
                 }
             }
@@ -88,6 +138,13 @@ impl Editor {
             self.cursor = self.value.len();
             return;
         }
+        let old_length = self.value.len();
+        if self.word_command(key) {
+            self.editable_end = self.editable_end + self.value.len() - old_length;
+            self.error.clear();
+            self.error_text = None;
+            return;
+        }
         let start = self.cursor.min(self.anchor);
         let end = self.cursor.max(self.anchor);
         let previous = self.value[..self.cursor]
@@ -98,7 +155,8 @@ impl Editor {
             + self.value[self.cursor..]
                 .chars()
                 .next()
-                .map_or(0, char::len_utf8)).min(self.editable_end);
+                .map_or(0, char::len_utf8))
+        .min(self.editable_end);
         let old_length = self.value.len();
         match key.name.as_str() {
             "Left" | "Right" | "Home" | "End" => {
@@ -146,142 +204,129 @@ impl Editor {
         }
         self.editable_end = self.editable_end + self.value.len() - old_length;
         self.error.clear();
+        self.error_text = None;
     }
-    /// A clipped editor line with unsafe value characters filtered at paint time, so byte offsets and the stored name are untouched.
-    pub fn line(
+    fn word_command(&mut self, key: &Key) -> bool {
+        use super::editor_words::{backward, forward, kill_length};
+        let mods = key.mods.as_str();
+        let motion = match (mods, key.name.as_str()) {
+            ("alt", "B") | ("ctrl" | "ctrlshift", "Left") => Some(false),
+            ("alt", "F") | ("ctrl" | "ctrlshift", "Right") => Some(true),
+            _ => None,
+        };
+        if let Some(right) = motion {
+            self.cursor = if right {
+                forward(&self.value, self.cursor, self.editable_end)
+            } else {
+                backward(&self.value, self.cursor)
+            };
+            if mods != "ctrlshift" {
+                self.anchor = self.cursor;
+            }
+            return true;
+        }
+        let range = match (mods, key.name.as_str()) {
+            ("ctrl", "U") => 0..self.cursor,
+            ("ctrl", "K") => self.cursor..self.editable_end,
+            ("ctrl", "W" | "Backspace") => {
+                self.cursor - kill_length(self.value[..self.cursor].chars().rev())..self.cursor
+            }
+            ("alt", "D") | ("ctrl", "Delete") => {
+                self.cursor
+                    ..self.cursor + kill_length(self.value[self.cursor..self.editable_end].chars())
+            }
+            _ => return false,
+        };
+        let range = if self.cursor != self.anchor {
+            self.cursor.min(self.anchor)..self.cursor.max(self.anchor)
+        } else {
+            range
+        };
+        self.cursor = range.start;
+        self.anchor = self.cursor;
+        self.value.replace_range(range, "");
+        true
+    }
+    /// Draws the status-row field and returns its cells and caret cell; unsafe characters are filtered at paint time, so the stored name stays whole.
+    pub fn field(
         &self,
-        prefix: &str,
-        suffix: &str,
+        ghost: &str,
         columns: usize,
-        base: &str,
-        muted: &str,
-        accent: &str,
-    ) -> String {
-        let prefix = render::fit(prefix, render::text_width(prefix).min(columns));
-        let available = columns.saturating_sub(render::text_width(&prefix));
+        theme: &Theme,
+    ) -> (String, usize, Option<usize>) {
+        if columns == 0 {
+            return (String::new(), 0, None);
+        }
+        let (start, end) = (self.cursor.min(self.anchor), self.cursor.max(self.anchor));
+        let ghost = if start == end && self.cursor == self.value.len() {
+            render::clean(ghost)
+        } else {
+            String::new()
+        };
+        let ghost = if render::text_width(&self.value) + render::text_width(&ghost) < columns {
+            ghost
+        } else {
+            String::new()
+        };
         let mut first = 0;
-        while first < self.cursor
-            && render::text_width(&self.value[first..self.cursor]) >= available.max(1)
+        while first < self.cursor && render::text_width(&self.value[first..self.cursor]) >= columns
         {
             first += self.value[first..].chars().next().map_or(0, char::len_utf8);
         }
-        let mut out = if self.kind == "path" { format!("{accent}{prefix}{base}") } else { prefix };
-        let mut used = 0;
-        let (start, end) = (self.cursor.min(self.anchor), self.cursor.max(self.anchor));
+        let room = columns - 1;
+        let (mut out, mut used, mut caret, mut ink) = (String::new(), 0, None, "");
+        let (mut shown, mut boundary) = (String::new(), None);
         for (offset, c) in self.value[first..].char_indices() {
             let offset = first + offset;
-            if offset == self.cursor && start == end && used < available {
-                out.push_str(&format!("{accent}▏{base}"));
-                used += 1;
+            if offset == self.cursor {
+                caret = Some(used);
+                boundary = Some(shown.len());
             }
-            // Keep byte offsets and the editable value intact, but never print filename controls.
-            if !render::safe(c) { continue; }
-            let cells = render::text_width(&c.to_string());
-            if used + cells > available {
+            if !render::safe(c) {
+                continue;
+            }
+            let cells = super::cells::width(c);
+            if used + cells > room {
                 break;
             }
-            if offset >= start && offset < end {
-                out.push_str("\x1b[7m");
+            let wanted = if offset >= start && offset < end {
+                "stem"
             } else if !self.full_name && offset >= self.editable_end {
-                out.push_str(muted);
+                "ext"
+            } else {
+                "text"
+            };
+            if wanted != ink {
+                ink = wanted;
+                out.push_str(&match ink {
+                    "stem" if theme.depth == Depth::Sixteen => {
+                        format!("\x1b[0m{}{}\x1b[7m", theme.field, theme.foreground)
+                    }
+                    "stem" => format!("\x1b[0m{}{}", theme.stem, theme.foreground),
+                    "ext" => format!("\x1b[0m{}{}", theme.field, theme.ext),
+                    _ => format!("\x1b[0m{}{}", theme.field, theme.foreground),
+                });
             }
             out.push(c);
-            if offset >= start && offset < end {
-                out.push_str(base);
-            }
+            shown.push(c);
             used += cells;
         }
-        if self.cursor == self.value.len() && start == end && used < available {
-            out.push_str(&format!("{accent}▏{base}"));
-            used += 1;
+        if self.cursor == self.value.len() && used <= room {
+            caret = Some(used);
+            boundary = Some(shown.len());
         }
-        out.push_str(muted);
-        let tail = if self.error.is_empty() {
-            suffix.to_owned()
-        } else {
-            format!(" · {}", self.error)
-        };
-        out.push_str(&render::fit(&tail, available.saturating_sub(used)));
-        out.push_str(base);
-        out
+        if super::cells::visual::needed(&shown) {
+            caret = boundary.map(|at| super::cells::visual::caret(&shown, at));
+            if let Some((open, close)) = super::cells::markers(super::cells::Run::Name) {
+                out = format!("{open}{out}{close}");
+            }
+        }
+        out.push_str(&format!("\x1b[0m{}{}{ghost} ", theme.field, theme.ext));
+        used += render::text_width(&ghost) + 1;
+        (out, used, caret.filter(|_| start == end))
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::backend::testdir::TestDir;
-    /// Existing path text may contain controls even though typed input is already filtered.
-    #[test]
-    fn editor_output_filters_terminal_controls_without_changing_the_value() {
-        let value = "a\u{1b}[2Jb\u{7}c\r\nd\t\u{9b}31m\u{202e}txt\u{2066}é";
-        let editor = Editor::new("path", value.into(), "/".into());
-        let line = editor.line("", "", 100, "", "", "");
-        assert!(line.chars().all(render::safe), "untrusted controls reached terminal output");
-        assert!(line.starts_with(&render::clean(value)));
-        assert_eq!(editor.value, value, "rendering must preserve the filesystem spelling");
-    }
-
-    /// Filtering must also hold during rename selection and scrolling without touching the file.
-    #[test]
-    fn rename_filters_controls_with_selection_and_after_cursor_movement() {
-        let sandbox = TestDir::new("tui-editor-controls");
-        let name = "a\u{1b}[2J\u{202e}é.txt";
-        let path = sandbox.file(name, "original");
-        let mut editor = Editor::rename(name.into(), path.clone(), false).unwrap();
-        // Selection contributes only trusted SGR; stripping those leaves entirely safe text.
-        let line = editor.line("", "", 100, "BASE", "", "").replace("\x1b[7m", "");
-        assert!(line.chars().all(render::safe));
-        assert_eq!(editor.value, name);
-        assert!(editor.valid());
-        for _ in 0..name.chars().count() {
-            editor.update(&Key { name: "Left".into(), text: "".into(), mods: "".into(), pointer: None });
-            let line = editor.line("", "", 8, "", "", "");
-            assert!(line.chars().all(render::safe));
-            assert_eq!(editor.value, name);
-        }
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "original");
-    }
-
-    // Each refused name gets the sentence for its own fault, never one that names a character it does not hold.
-    #[test]
-    fn a_refused_name_is_told_the_fault_it_has() {
-        for (name, said) in [("a/b", "A name cannot contain /."), ("..", "A name cannot be a single dot or a double dot."), (".", "A name cannot be a single dot or a double dot."),
-                             ("nul\0byte", "A name cannot contain a null character.")] {
-            let mut editor = Editor::new("mkdir", name.into(), "/".into());
-            assert!(!editor.valid(), "{:?}", name);
-            assert_eq!(editor.error, said, "{:?}", name);
-        }
-    }
-
-    #[test]
-    fn path_prompt_and_caret_use_accent_without_coloring_typed_text() {
-        let editor = Editor::new("path", "am".into(), "/".into());
-        assert_eq!(editor.line(": ", "ber/", 12, "BASE", "MUTED", "ACCENT"),
-            "ACCENT: BASEamACCENT▏BASEMUTEDber/   BASE");
-    }
-    #[test]
-    fn rename_preserves_extension_unicode_and_changed_identity() {
-        let sandbox = TestDir::new("tui-editor");
-        let path = sandbox.file("café.txt", "original");
-        let mut editor = Editor::rename("café.txt".into(), path.clone(), false).unwrap();
-        editor.update(&Key::character('新', ""));
-        assert_eq!(editor.value, "新.txt");
-        editor.update(&Key::named("Left", ""));
-        editor.update(&Key::named("Delete", ""));
-        assert_eq!(editor.value, ".txt");
-        editor.replace("../escape".into());
-        assert!(!editor.valid());
-        editor.replace("renamed.txt".into());
-        assert!(editor.valid());
-        let moved = sandbox.join("old");
-        assert!(
-            path.is_absolute()
-                && path.starts_with(sandbox.path())
-                && moved.starts_with(sandbox.path())
-        );
-        std::fs::rename(&path, moved).unwrap();
-        sandbox.file("café.txt", "replacement");
-        assert!(!editor.valid());
-    }
-}
+#[path = "editor_tests.rs"]
+mod tests;

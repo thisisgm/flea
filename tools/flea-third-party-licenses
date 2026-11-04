@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+"""Collect the locked release binaries' notices without third-party Python modules."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+import tomllib
+
+TARGETS = ("x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu")
+OUTPUT = "THIRD-PARTY-LICENSES.txt"
+PACKAGES = ("PKGBUILD", "packaging/flea-bin/PKGBUILD")
+LEGAL = ("LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE")
+
+
+# Sample input: "MIT OR Apache-2.0", "(MIT AND Zlib) OR ISC" and "MIT/Apache-2.0" parse; "MIT OR" and "(MIT" raise ValueError.
+def alternatives(expression):
+    """Parse SPDX AND/OR/WITH and Cargo's older slash-as-OR spelling."""
+    expression = expression.replace("/", " OR ")
+    tokens = re.findall(r"\(|\)|[A-Za-z0-9.+-]+", expression)
+    if re.sub(r"\s+", "", expression) != "".join(tokens):
+        raise ValueError(f"invalid SPDX expression: {expression}")
+    position = 0
+
+    def term():
+        nonlocal position
+        if position == len(tokens):
+            raise ValueError(f"incomplete SPDX expression: {expression}")
+        token = tokens[position]
+        position += 1
+        if token == "(":
+            result = either()
+            if position == len(tokens) or tokens[position] != ")":
+                raise ValueError(f"unclosed SPDX expression: {expression}")
+            position += 1
+            return result
+        if token in {"AND", "OR", "WITH", ")"}:
+            raise ValueError(f"unexpected SPDX token: {token}")
+        if position < len(tokens) and tokens[position] == "WITH":
+            position += 1
+            if position == len(tokens) or tokens[position] in {"AND", "OR", "WITH", "(", ")"}:
+                raise ValueError(f"missing SPDX exception: {expression}")
+            token += " WITH " + tokens[position]
+            position += 1
+        return [frozenset([token])]
+
+    def both():
+        nonlocal position
+        result = term()
+        while position < len(tokens) and tokens[position] == "AND":
+            position += 1
+            right = term()
+            result = [a | b for a in result for b in right]
+        return result
+
+    def either():
+        nonlocal position
+        result = both()
+        while position < len(tokens) and tokens[position] == "OR":
+            position += 1
+            result += both()
+        return result
+
+    result = either()
+    if position != len(tokens):
+        raise ValueError(f"unexpected SPDX suffix: {expression}")
+    return result
+
+
+def xxhash32(data):
+    """cargo-deny uses twox-hash's XXHash32 with seed zero, not a notice SHA256."""
+    mask = 0xffffffff
+    p1, p2, p3, p4, p5 = 0x9e3779b1, 0x85ebca77, 0xc2b2ae3d, 0x27d4eb2f, 0x165667b1
+
+    def rotate(value, count):
+        value &= mask
+        return ((value << count) | (value >> (32 - count))) & mask
+
+    position = 0
+    if len(data) >= 16:
+        lanes = [(p1 + p2) & mask, p2, 0, (-p1) & mask]
+        while position + 16 <= len(data):
+            for index in range(4):
+                start = position + index * 4
+                word = int.from_bytes(data[start:start + 4], "little")
+                lanes[index] = (rotate(lanes[index] + word * p2, 13) * p1) & mask
+            position += 16
+        result = sum(rotate(lane, count) for lane, count in zip(lanes, (1, 7, 12, 18))) & mask
+    else:
+        result = p5
+    result = (result + len(data)) & mask
+    while position + 4 <= len(data):
+        word = int.from_bytes(data[position:position + 4], "little")
+        result = (rotate(result + word * p3, 17) * p4) & mask
+        position += 4
+    for byte in data[position:]:
+        result = (rotate(result + byte * p5, 11) * p1) & mask
+    result ^= result >> 15
+    result = (result * p2) & mask
+    result ^= result >> 13
+    result = (result * p3) & mask
+    return result ^ (result >> 16)
+
+
+def license_file_hash(path):
+    """Match cargo-deny 0.20.2 get_file_source: trim CR/LF per line, append LF."""
+    lines = path.read_bytes().decode("utf-8").split("\n")
+    if lines[-1] == "":
+        lines.pop()
+    content = "".join(line.rstrip("\r") + "\n" for line in lines)
+    return xxhash32(content.encode("utf-8"))
+
+
+def license_expression(package, policy):
+    clarifications = [item for item in policy.get("clarify", [])
+                      if (item["name"], item.get("version")) == (package["name"], "=" + package["version"])]
+    if len(clarifications) > 1:
+        raise ValueError(f"{package['name']} {package['version']}: duplicate license clarifications")
+    if clarifications:
+        clarification = clarifications[0]
+        owner = f"{package['name']} {package['version']}: license clarification"
+        files = clarification.get("license-files", [])
+        if not files or not package.get("manifest_path"):
+            raise ValueError(f"{owner} requires license-files and a manifest_path")
+        directory = Path(package["manifest_path"]).parent.resolve(strict=True)
+        for item in files:
+            name, expected = item.get("path"), item.get("hash")
+            if not isinstance(name, str) or not name or Path(name).is_absolute():
+                raise ValueError(f"{owner} requires a relative license-file path")
+            if type(expected) is not int or not 0 <= expected <= 0xffffffff:
+                raise ValueError(f"{owner} requires a 32-bit license-file hash: {name}")
+            try:
+                path = (directory / name).resolve(strict=True)
+                if not path.is_relative_to(directory) or not path.is_file():
+                    raise ValueError(f"{owner} license-file must stay inside the crate: {name}")
+                actual = license_file_hash(path)
+            except (OSError, UnicodeError) as error:
+                raise ValueError(f"{owner} cannot read license-file {name}: {error}") from error
+            if actual != expected:
+                raise ValueError(f"{owner} fingerprint mismatch for {name}: expected {expected:#010x}, got {actual:#010x}")
+        return clarification["expression"], True
+    return package.get("license"), False
+
+
+def chosen_license(package, policy):
+    expression, _clarified = license_expression(package, policy)
+    if not expression:
+        raise ValueError(f"{package['name']} {package['version']} has no SPDX license")
+    allowed = set(policy["allow"])
+    for exception in policy.get("exceptions", []):
+        if (exception["name"], exception["version"]) == (package["name"], "=" + package["version"]):
+            allowed.update(exception["allow"])
+    choices = [choice for choice in alternatives(expression) if choice <= allowed]
+    if not choices:
+        raise ValueError(f"{package['name']} {package['version']}: deny.toml does not allow {expression}")
+    return min(choices, key=lambda c: ("MIT" not in c, "Apache-2.0" not in c, len(c), sorted(c)))
+
+
+def binary_closure(metadata):
+    packages = {package["id"]: package for package in metadata["packages"]}
+    nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+    roots = [pid for pid in metadata["workspace_members"]
+             if any("bin" in target["kind"] for target in packages[pid]["targets"])]
+    if not roots:
+        raise ValueError("metadata contains no shipped workspace binaries")
+    pending, seen = list(roots), set()
+    while pending:
+        pid = pending.pop()
+        if pid in seen:
+            continue
+        seen.add(pid)
+        pending.extend(dep["pkg"] for dep in nodes[pid]["deps"]
+                       if any(kind["kind"] is None for kind in dep["dep_kinds"]))
+    return [packages[pid] for pid in seen]
+
+
+def legal_files(directory, recursive=True):
+    files = []
+    for base, directories, names in os.walk(directory):
+        directories[:] = sorted(d for d in directories if d not in {".git", "target", ".superpowers"})
+        in_legal_directory = any(part.upper().startswith(LEGAL) for part in Path(base).relative_to(directory).parts)
+        for name in sorted(names):
+            path = Path(base) / name
+            if (name.upper().startswith(LEGAL) or in_legal_directory) and path.is_file():
+                files.append(path)
+        if not recursive and not in_legal_directory:
+            directories[:] = [d for d in directories if d.upper().startswith(LEGAL)]
+    return files
+
+
+def crate_notices(package, metadata_root, root):
+    directory = Path(package["manifest_path"]).parent
+    if not package.get("source"):
+        directory = root / directory.relative_to(metadata_root)
+    if not directory.is_dir():
+        raise ValueError(f"crate source is not available: {directory}")
+    found = legal_files(directory, recursive=bool(package.get("source")))
+    files = [(path, path.relative_to(directory).as_posix()) for path in found]
+    if not files and not package.get("source"):
+        files = [(path, "workspace/" + path.relative_to(root).as_posix()) for path in legal_files(root, recursive=False)]
+    explicit = package.get("license_file")
+    if explicit:
+        path = directory / explicit
+        if not path.is_file():
+            raise ValueError(f"missing license-file for {package['name']}: {explicit}")
+        files.append((path, explicit))
+    if (package.get("source") or "").startswith("git+") and not (directory / ".git").exists():
+        for ancestor in directory.parents:
+            files.extend((path, "checkout/" + path.relative_to(ancestor).as_posix())
+                         for path in legal_files(ancestor, recursive=False))
+            if (ancestor / ".git").exists():
+                break
+            if ancestor.parent == ancestor:
+                raise ValueError(f"cannot find git checkout root for {package['name']}")
+    return files
+
+
+def render(root, metadata_by_target):
+    policy = tomllib.loads((root / "deny.toml").read_text())["licenses"]
+    records, texts, licenses = {}, {}, set()
+
+    def add_text(path, owner, label):
+        raw = path.read_bytes()
+        text = raw.decode("utf-8")
+        if not text.strip():
+            raise ValueError(f"empty license or notice: {path}")
+        digest = hashlib.sha256(raw).hexdigest()
+        entry = texts.setdefault(digest, {"text": text, "owners": set()})
+        entry["owners"].add(f"{owner}: {label}")
+        return digest
+
+    for target, metadata in sorted(metadata_by_target.items()):
+        for package in binary_closure(metadata):
+            source = package.get("source") or "workspace"
+            key = package["name"], package["version"], source
+            owner = f"{package['name']} {package['version']} ({source})"
+            selected = chosen_license(package, policy)
+            licenses.update(selected)
+            expression, clarified = license_expression(package, policy)
+            record = records.setdefault(key, {"expression": expression, "selected": selected,
+                                              "clarified": clarified, "targets": set(), "texts": set()})
+            record["targets"].add(target)
+            for path, label in crate_notices(package, Path(metadata["workspace_root"]), root):
+                record["texts"].add(add_text(path, owner, label))
+    add_text(root / "LICENSE", "Flea", "LICENSE")
+    licenses.update(chosen_license(tomllib.loads((root / "Cargo.toml").read_text())["package"], policy))
+    for path in sorted((root / "ui/vendor/LICENSES").iterdir()):
+        if not path.is_file():
+            continue
+        add_text(path, "ui/vendor", path.name)
+        if path.name.upper().startswith("NOTICE"):
+            continue
+        matches = [name for name in policy["allow"] if path.name.startswith(name + "-") or path.name == name]
+        if len(matches) != 1:
+            raise ValueError(f"vendor license filename needs an unambiguous SPDX prefix: {path.name}")
+        licenses.update(matches)
+    lines = ["Flea third-party licenses and notices", "Generated by tools/flea-third-party-licenses; do not edit.",
+             "Package licenses: " + " ".join(sorted(licenses)),
+             "Cargo.lock SHA256: " + hashlib.sha256((root / "Cargo.lock").read_bytes()).hexdigest(),
+             "Release targets: " + " ".join(TARGETS),
+             "Normal dependencies of every workspace binary, including proc macros; build and dev edges excluded.",
+             "OR alternatives prefer MIT, then Apache-2.0, within deny.toml; AND terms are retained.",
+             "All discovered license and notice texts are retained, including unselected alternatives.",
+             "For MPL-covered crates, the source is available from the crate/version or git revision below.", "", "CRATES", ""]
+    for (name, version, source), record in sorted(records.items()):
+        lines += [f"{name} {version} ({source})"]
+        if source.startswith("registry+") and "crates.io" in source:
+            lines.append(f"Source: https://crates.io/api/v1/crates/{name}/{version}/download")
+        lines += ["SPDX: " + record["expression"].replace("/", " OR "),
+                  "Selected: " + " AND ".join(sorted(record["selected"])),
+                  "Targets: " + " ".join(sorted(record["targets"]))]
+        if record["clarified"]:
+            lines.append("Expression source: deny.toml version-pinned clarification; full upstream notice retained.")
+        lines += ["Texts: " + " ".join(sorted(record["texts"]))] if record["texts"] else [
+            "No license or notice file supplied by this crate; see its SPDX expression above."]
+        lines.append("")
+    lines += ["LICENSE AND NOTICE TEXTS", ""]
+    for digest, entry in sorted(texts.items()):
+        lines += ["=" * 72, "Text SHA256: " + digest, "Covers:"]
+        lines += ["  " + owner for owner in sorted(entry["owners"])]
+        lines += ["", entry["text"], ""]
+    return "\n".join(lines), licenses
+
+
+# Sample input: a PKGBUILD line "license=('Apache-2.0' 'MIT')" is read as the set {"Apache-2.0", "MIT"}; "license=()" reads as empty.
+def package_licenses(root, expected):
+    for filename in PACKAGES:
+        match = re.search(r"^license=\(([^\n]*)\)$", (root / filename).read_text(), re.M)
+        actual = shlex.split(match[1]) if match else []
+        if len(actual) != len(expected) or set(actual) != expected:
+            raise ValueError(f"{filename}: license array must equal {' '.join(sorted(expected))}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="fail on notice or PKGBUILD license drift")
+    args = parser.parse_args()
+    root = Path(__file__).resolve().parent.parent
+    metadata = {}
+    for target in TARGETS:
+        result = subprocess.run([os.environ.get("CARGO", "cargo"), "metadata", "--locked", "--offline",
+                                 "--format-version", "1", "--filter-platform", target],
+                                cwd=root, check=True, stdout=subprocess.PIPE)
+        metadata[target] = json.loads(result.stdout)
+    content, licenses = render(root, metadata)
+    output = root / OUTPUT
+    if args.check:
+        if not output.is_file() or output.read_bytes() != content.encode("utf-8"):
+            raise ValueError(f"{OUTPUT} is stale; run tools/flea-third-party-licenses")
+        package_licenses(root, licenses)
+    else:
+        output.write_bytes(content.encode("utf-8"))
+    print(f"{'PASS' if args.check else 'WROTE'} {OUTPUT}: {len(content.encode('utf-8'))} bytes; "
+          f"package licenses: {' '.join(sorted(licenses))}")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        sys.exit(f"FAIL third-party licenses: {error}")

@@ -4,7 +4,7 @@ use crate::backend::peekpump::pump;
 use std::collections::VecDeque;
 use std::ffi::{c_int, c_void};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::thread::{self, JoinHandle};
 
 // Parent, grandparent, great-grandparent and the child column, plus room for one navigation's leftovers.
@@ -26,38 +26,33 @@ const STOP_TICKET: u64 = 1;
 
 // Its own inotify descriptor, so a descriptor removed here can never be the listed directory's own watch.
 pub struct PeekWatch {
-    fd: c_int,
-    // Written once on drop, so the pump thread wakes from its poll and ends before the descriptor closes.
-    stop: c_int,
-    pumper: Option<JoinHandle<()>>,
+    pump: super::lazy::Lazy<Pump>,
     held: VecDeque<(c_int, PathBuf)>,
     // The column directories the client draws now, once it has said; None until its first keep.
     shown: Option<Vec<PathBuf>>,
 }
 
+struct Pump {
+    fd: c_int,
+    // Written once on drop, so the pump thread wakes from its poll and ends before the descriptor closes.
+    stop: c_int,
+    pumper: Option<JoinHandle<()>>,
+}
+
 impl PeekWatch {
-    // A box with no inotify keeps its neighbour columns as live as before, and the listed folder already said so once.
+    // A box with no inotify keeps its neighbour columns as live as before.
     pub fn start(tx: Sender<Event>) -> PeekWatch {
-        let fd = unsafe { inotify_init1(IN_CLOEXEC) };
-        let stop = if fd >= 0 { unsafe { eventfd(0, EFD_CLOEXEC) } } else { -1 };
-        if fd >= 0 && stop < 0 {
-            unsafe { close(fd) };
-        }
-        if stop < 0 {
-            return PeekWatch { fd: -1, stop: -1, pumper: None, held: VecDeque::new(), shown: None };
-        }
-        let pumper = Some(thread::spawn(move || pump(fd, tx, stop)));
-        PeekWatch { fd, stop, pumper, held: VecDeque::new(), shown: None }
+        PeekWatch { pump: super::lazy::Lazy::new(move || Pump::start(tx)), held: VecDeque::new(), shown: None }
     }
 
     // The peek worker arms with this descriptor, so a dead mount never blocks the loop.
     pub fn raw_fd(&self) -> c_int {
-        self.fd
+        self.pump.fd
     }
 
     // Only a directory the client still draws stays watched, so a column on screen never loses its watch to one scrolled past.
     pub fn keep(&mut self, shown: Vec<PathBuf>) {
-        let fd = self.fd;
+        let fd = self.pump.get().map_or(-1, |pump| pump.fd);
         self.held.retain(|(wd, path)| {
             let drawn = shown.contains(path);
             if !drawn {
@@ -75,13 +70,13 @@ impl PeekWatch {
         }
         // A peek answered after the client scrolled on arms a column nobody draws any more.
         if self.shown.as_ref().is_some_and(|shown| !shown.contains(&path)) {
-            unsafe { inotify_rm_watch(self.fd, wd) };
+            unsafe { inotify_rm_watch(self.pump.fd, wd) };
             return;
         }
         self.held.push_back((wd, path));
         while self.held.len() > PEEK_WATCH_CAP {
             if let Some((old, _)) = self.held.pop_front() {
-                unsafe { inotify_rm_watch(self.fd, old) };
+                unsafe { inotify_rm_watch(self.pump.fd, old) };
             }
         }
     }
@@ -97,8 +92,24 @@ impl PeekWatch {
     }
 }
 
+impl Pump {
+    fn start(tx: Sender<Event>) -> Self {
+        let fd = unsafe { inotify_init1(IN_CLOEXEC) };
+        let stop = if fd >= 0 { unsafe { eventfd(0, EFD_CLOEXEC) } } else { -1 };
+        if fd >= 0 && stop < 0 {
+            unsafe { close(fd) };
+        }
+        if stop < 0 {
+            return Pump { fd: -1, stop: -1, pumper: None };
+        }
+        let pumper = Some(thread::spawn(move || pump(fd, tx, stop)));
+        Pump { fd, stop, pumper }
+    }
+
+}
+
 // The pump is joined before either descriptor closes, so a closed number is never read by a thread still running.
-impl Drop for PeekWatch {
+impl Drop for Pump {
     fn drop(&mut self) {
         if let Some(pumper) = self.pumper.take() {
             unsafe { write(self.stop, (&STOP_TICKET as *const u64).cast(), std::mem::size_of::<u64>()) };
@@ -117,7 +128,7 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use crate::backend::watch::Watch;
-    use std::sync::mpsc::channel;
+    use crate::backend::events::channel;
     use std::time::Duration;
 
     // Bounds the wait for a kernel event; the test asserts what arrived, never how long it took.
