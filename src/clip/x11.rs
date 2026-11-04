@@ -35,6 +35,8 @@ extern "C" {
     fn XFree(data: *mut c_void) -> c_int;
     fn XSetErrorHandler(handler: Option<unsafe extern "C" fn(*mut c_void, *mut c_void) -> c_int>)
         -> Option<unsafe extern "C" fn(*mut c_void, *mut c_void) -> c_int>;
+    fn XGrabServer(display: *mut c_void) -> c_int;
+    fn XUngrabServer(display: *mut c_void) -> c_int;
     fn XSelectInput(display: *mut c_void, window: c_ulong, event_mask: c_long) -> c_int;
     fn setsid() -> c_int;
 }
@@ -84,12 +86,18 @@ impl Display {
         unsafe { XGetSelectionOwner(self.raw, self.clipboard) }
     }
 
-    fn clear(&self) -> bool {
+    // The owner check and the clear run under one server grab, so a copy another application makes
+    // between them is never the selection that gets cleared. Nothing that needs the server (an xclip
+    // read) may run while it is held.
+    fn clear_if_owner(&self, owner: c_ulong) -> bool {
         unsafe {
-            XSetSelectionOwner(self.raw, self.clipboard, 0, 0);
+            XGrabServer(self.raw);
+            let same = XGetSelectionOwner(self.raw, self.clipboard) == owner;
+            if same { XSetSelectionOwner(self.raw, self.clipboard, 0, 0); }
+            XUngrabServer(self.raw);
             XSync(self.raw, 0);
+            same && XGetSelectionOwner(self.raw, self.clipboard) == 0
         }
-        self.owner() == 0
     }
 
     fn put_token(&self, owner: c_ulong, token: &str) -> bool {
@@ -281,8 +289,8 @@ pub fn clear(token: &str) -> Result<bool, String> {
     if !valid_token(token) { return Ok(false); }
     let display = Display::open()?;
     let owner = display.owner();
-    if display.get_token(owner).as_deref() != Some(token) || display.owner() != owner { return Ok(false); }
-    Ok(display.clear())
+    if display.get_token(owner).as_deref() != Some(token) { return Ok(false); }
+    Ok(display.clear_if_owner(owner))
 }
 
 pub fn clear_cut(paths: &[String]) -> Result<bool, String> {
@@ -290,8 +298,8 @@ pub fn clear_cut(paths: &[String]) -> Result<bool, String> {
     let display = Display::open()?;
     let owner = display.owner();
     let got = read_files(&display, owner)?;
-    if got.op != "cut" || got.paths != paths || display.owner() != owner { return Ok(false); }
-    Ok(display.clear())
+    if got.op != "cut" || got.paths != paths { return Ok(false); }
+    Ok(display.clear_if_owner(owner))
 }
 
 fn changed(got: &OfferFiles) -> String {
