@@ -205,7 +205,14 @@ impl Shell {
             shape: Shape::unknown(state),
             body,
         };
-        if let Some(mount) = mount::Mount::of(row) {
+        // a name with no known type opens as text when it reads as text (.bash_aliases, .jc141rc).
+        let mount = mount::Mount::of(row).or_else(|| {
+            (state == State::Unsupported && super::selection_preview::sniff::candidate(row))
+                .then(|| super::selection_preview::sniff::looks_text(&path))
+                .filter(|text| *text)
+                .map(|_| mount::Mount::Text)
+        });
+        if let Some(mount) = mount {
             if self.show_doc(side, index, row, &path, mount, window, cx) {
                 return;
             }

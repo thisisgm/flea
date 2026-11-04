@@ -227,7 +227,176 @@ impl Subject {
         if self.selected_count > 1 {
             Kind::Multi
         } else {
-            Kind::of(&self.row)
+            match Kind::of(&self.row) {
+                // A row with no known type (.jc141rc, notes) previews as text when it reads as text.
+                Kind::Facts if sniff::candidate(&self.row) && sniff::looks_text(&self.path()) => {
+                    Kind::Text
+                }
+                kind => kind,
+            }
+        }
+    }
+}
+
+pub(crate) mod sniff {
+    use flea::{protocol::RowFacts, ui_logic_pv1::kinds};
+    use std::{
+        io::Read,
+        path::{Component, Path, PathBuf},
+    };
+
+    /// Only a regular row the backend could name no type for, and never a font, which Quick Look opens itself.
+    pub(crate) fn candidate(row: &RowFacts) -> bool {
+        !row.dir
+            && row.kind == kinds::UNKNOWN_KIND
+            && !kinds::is_font(&row.name.to_ascii_lowercase())
+    }
+
+    /// The mount table's octal escapes (space, tab, newline, backslash) decoded.
+    fn unescape(field: &str) -> String {
+        let bytes = field.as_bytes();
+        let mut out = Vec::with_capacity(bytes.len());
+        let mut at = 0;
+        while at < bytes.len() {
+            let octal = bytes.get(at + 1..at + 4).filter(|digits| {
+                bytes[at] == b'\\' && digits.iter().all(|digit| (b'0'..=b'7').contains(digit))
+            });
+            match octal {
+                Some(digits) => {
+                    out.push(
+                        digits
+                            .iter()
+                            .fold(0u8, |value, digit| value * 8 + (digit - b'0')),
+                    );
+                    at += 4;
+                }
+                None => {
+                    out.push(bytes[at]);
+                    at += 1;
+                }
+            }
+        }
+        String::from_utf8_lossy(&out).into_owned()
+    }
+
+    /// Whether the mount holding this path answers slowly: network, FUSE, or an automount not yet triggered.
+    /// Purely lexical, so asking never touches the mount itself.
+    fn remote(table: &str, path: &Path) -> bool {
+        table
+            .lines()
+            .filter_map(|line| {
+                let mut fields = line.split_whitespace();
+                let (_, point, kind) = (fields.next()?, fields.next()?, fields.next()?);
+                let point = PathBuf::from(unescape(point));
+                path.starts_with(&point)
+                    .then(|| (point.components().count(), kind.to_owned()))
+            })
+            .max_by_key(|(depth, _)| *depth)
+            .is_none_or(|(_, kind)| {
+                kind.starts_with("fuse")
+                    || matches!(
+                        kind.as_str(),
+                        "nfs" | "nfs4" | "cifs" | "smb3" | "9p" | "sshfs" | "autofs"
+                    )
+            })
+    }
+
+    /// The path with every symlink followed one component at a time, checking each step against the mount
+    /// table before it is looked at, so a link into a remote mount is refused rather than followed there.
+    fn resolve_local(table: &str, path: &Path) -> Option<PathBuf> {
+        let mut pending: Vec<PathBuf> = path
+            .components()
+            .rev()
+            .map(|part| PathBuf::from(part.as_os_str()))
+            .collect();
+        let mut resolved = PathBuf::from("/");
+        let mut hops = 0;
+        while let Some(part) = pending.pop() {
+            match Path::new(&part).components().next()? {
+                Component::RootDir => resolved = PathBuf::from("/"),
+                Component::CurDir => {}
+                Component::ParentDir => {
+                    resolved.pop();
+                }
+                Component::Normal(name) => {
+                    let candidate = resolved.join(name);
+                    if remote(table, &candidate) {
+                        return None;
+                    }
+                    let meta = std::fs::symlink_metadata(&candidate).ok()?;
+                    if !meta.file_type().is_symlink() {
+                        resolved = candidate;
+                        continue;
+                    }
+                    hops += 1;
+                    if hops > 40 {
+                        return None;
+                    }
+                    let target = std::fs::read_link(&candidate).ok()?;
+                    pending.extend(
+                        target
+                            .components()
+                            .rev()
+                            .map(|part| PathBuf::from(part.as_os_str())),
+                    );
+                }
+                Component::Prefix(_) => return None,
+            }
+        }
+        Some(resolved)
+    }
+
+    /// The first 4 KiB of a regular local file: no NUL and valid UTF-8, where only a character the
+    /// 4 KiB cut through may be incomplete.
+    pub(crate) fn looks_text(path: &str) -> bool {
+        if !path.starts_with('/') {
+            return false;
+        }
+        let Ok(table) = std::fs::read_to_string("/proc/self/mounts") else {
+            return false;
+        };
+        let Some(path) = resolve_local(&table, Path::new(path)) else {
+            return false;
+        };
+        let Ok(meta) = std::fs::metadata(&path) else {
+            return false;
+        };
+        if !meta.is_file() || meta.len() == 0 {
+            return false;
+        }
+        let mut head = [0u8; 4096];
+        let Ok(mut file) = std::fs::File::open(&path) else {
+            return false;
+        };
+        let Ok(read) = file.read(&mut head) else {
+            return false;
+        };
+        if read == 0 {
+            return false;
+        }
+        let head = &head[..read];
+        if head.contains(&0) {
+            return false;
+        }
+        match std::str::from_utf8(head) {
+            Ok(_) => true,
+            Err(error) => error.error_len().is_none() && meta.len() > read as u64,
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        const TABLE: &str = "/dev/root / btrfs rw 0 0\nrc: /mnt/My\\040Drive fuse.rclone rw 0 0\nauto /net autofs rw 0 0\n";
+
+        #[test]
+        fn mount_points_with_escapes_and_automounts_count_as_remote() {
+            assert!(remote(TABLE, Path::new("/mnt/My Drive/notes")));
+            assert!(remote(TABLE, Path::new("/net/host/notes")));
+            assert!(!remote(TABLE, Path::new("/home/me/notes")));
+            assert!(!remote(TABLE, Path::new("/mnt/My Drivers/notes")));
+            assert_eq!(unescape("a\\011b\\134c"), "a\tb\\c");
         }
     }
 }
