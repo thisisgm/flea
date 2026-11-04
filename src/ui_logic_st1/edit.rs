@@ -64,26 +64,28 @@ fn stored_size(data: &Json) -> Stored {
 }
 
 // Enter and Space. A choice steps forward rather than opening a menu, since a walk reaches every value.
-/// Shift+J and Shift+K on a shown column: it trades places with its shown neighbour, and the stored order is the
-/// order the list draws them in. A hidden column has no place to move to.
-pub fn move_column(row: &Row, data: &Json, step: isize) -> Edit {
+/// A shown column's grip dragged this many rows: it leaves its place and lands that many shown columns away, held
+/// at either end, and the stored order is the order the list draws them in. A hidden column has no place to move to.
+pub fn move_column(row: &Row, data: &Json, rows: isize) -> Edit {
     let Some(column) = row.id.strip_prefix("column:") else {
         return Edit::None;
     };
     let mut shown = columns(data);
-    let Some(from) = shown.iter().position(|key| key == column) else {
-        return Edit::None;
-    };
     // The name is always shown and always first; only the metadata columns trade places.
-    let movable: Vec<usize> = shown.iter().enumerate().filter(|(_, key)| *key != "name").map(|(at, _)| at).collect();
-    let Some(place) = movable.iter().position(|&at| at == from) else {
+    let mut movable: Vec<String> = shown.iter().filter(|key| *key != "name").cloned().collect();
+    let Some(from) = movable.iter().position(|key| key == column) else {
         return Edit::None;
     };
-    let to = place as isize + step;
-    if to < 0 || to as usize >= movable.len() {
+    let to = (from as isize + rows).clamp(0, movable.len() as isize - 1) as usize;
+    if to == from {
         return Edit::None;
     }
-    shown.swap(from, movable[to as usize]);
+    let key = movable.remove(from);
+    movable.insert(to, key);
+    let mut rest = movable.into_iter();
+    for slot in shown.iter_mut().filter(|key| *key != "name") {
+        *slot = rest.next().unwrap_or_default();
+    }
     Edit::Patch(object(vec![("columns", strings(&shown))]))
 }
 

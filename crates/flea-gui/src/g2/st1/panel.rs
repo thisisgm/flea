@@ -23,7 +23,7 @@ pub enum Press {
     Step,
     Pick(usize),
     Remove,
-    /// A favourite's grip released this many rows from where it was pressed.
+    /// A favourite's or a shown column's grip released this many rows from where it was pressed.
     Drag(isize),
 }
 
@@ -64,7 +64,7 @@ pub struct Panel {
     pub scale: Scale,
     /// View's height, which sets the card's, so the card keeps one height whichever section is open.
     pub view_height: f32,
-    /// A favourite's grip held down: its row and where the press began.
+    /// A favourite's or a shown column's grip held down: its row and where the press began.
     pub grip: Option<(usize, f32)>,
     store: Box<dyn Store>,
     everything: Vec<(usize, Vec<Row>)>,
@@ -276,6 +276,15 @@ impl Panel {
                     self.requests.push(Request::RemoveFavourite(at));
                 }
             }
+            Press::Drag(rows) if self.rows[index].id.starts_with("column:") => {
+                let id = self.rows[index].id.clone();
+                let change = edit::move_column(&self.rows[index], self.store.document(), rows);
+                self.apply(change);
+                // The rows were rebuilt in the new order: the cursor follows the column it moved.
+                if let Some(at) = self.rows.iter().position(|row| row.id == id) {
+                    self.cursor = at;
+                }
+            }
             Press::Drag(rows) => {
                 let Some(from) = self.rows[index].favourite else {
                     return;
@@ -391,25 +400,6 @@ impl Panel {
             self.side == Side::Pane && row.as_ref().is_some_and(|row| row.kind == Kind::Favourite);
         // Shift+J and Shift+K by key, since a layout or a synthetic press can hand over the unshifted "j" as the text.
         let letter = if matches!(text, "J" | "K") { text } else { key };
-        let column = self.side == Side::Pane
-            && row
-                .as_ref()
-                .is_some_and(|row| row.id.starts_with("column:"));
-        if column && shift && matches!(letter, "j" | "k" | "J" | "K") {
-            let down = letter.eq_ignore_ascii_case("j");
-            let id = row.as_ref().map(|row| row.id.clone()).unwrap_or_default();
-            let change = edit::move_column(
-                &self.rows[self.cursor],
-                self.store.document(),
-                if down { 1 } else { -1 },
-            );
-            self.apply(change);
-            // The rows were rebuilt in the new order: the cursor follows the column it moved.
-            if let Some(at) = self.rows.iter().position(|row| row.id == id) {
-                self.cursor = at;
-            }
-            return;
-        }
         if favourite && shift && matches!(letter, "j" | "k" | "J" | "K") {
             let down = letter.eq_ignore_ascii_case("j");
             return self.press(self.cursor, Press::Drag(if down { 1 } else { -1 }));

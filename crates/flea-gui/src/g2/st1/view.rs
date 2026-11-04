@@ -427,9 +427,14 @@ impl Render for SettingsView {
             MouseButton::Left,
             cx.listener(|view, event: &MouseUpEvent, _, cx| {
                 if let Some((index, from)) = view.panel.grip.take() {
-                    let rows = ((f32::from(event.position.y) - from)
-                        / view.panel.scale.of(g::FAVOURITE_H))
-                    .round() as isize;
+                    // A favourite stands taller than a column's check row; the grip counts rows of its own kind.
+                    let height = match view.panel.rows.get(index) {
+                        Some(row) if row.kind == Kind::Favourite => {
+                            view.panel.scale.of(g::FAVOURITE_H)
+                        }
+                        _ => view.panel.scale.row,
+                    };
+                    let rows = ((f32::from(event.position.y) - from) / height).round() as isize;
                     view.panel.press(index, Press::Drag(rows));
                     view.flush(cx);
                 }
