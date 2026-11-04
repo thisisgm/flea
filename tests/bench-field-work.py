@@ -245,6 +245,9 @@ MUTANTS = [
     ("the per-device client key", r'key="\$device:\$id"', 'key="$id"', "drm"),
     ("the GiB unit", r' GiB\) amount=\$\(\( amount \* 1048576 \)\) ;;', ' GiB) ;;', "drm"),
     ("the unit-less byte reading", r'case \$unit in "" *\) amount=\$\(\( \(amount \+ 1023\) / 1024 \)\) ;; ', 'case $unit in ', "drm"),
+    ("the NVIDIA driver reading", r"-lname '/dev/nvidia\[0-9\]\*'", "-lname '/dev/never'", "drm"),
+    ("the unlisted NVIDIA refusal", r'\{ DRM_KB=unmeasurable; return 0; \}', '{ return 0; }', "drm"),
+    ("the NVIDIA GPU-node match", r"'/dev/nvidia\[0-9\]\*'", "'/dev/nvidia*'", "drm"),
     ("the unfinished-work refusal", r'if \[ "\$settled" -lt 0 \]', 'if false', None),
     ("the helper lifetime", r'HELPER_TICKS=\$\(\( \$\{HELPER_DONE_TICKS:-0\} \+ CPU_TREE_TICKS \)\)',
      'HELPER_TICKS=$CPU_TREE_TICKS', "an outside helper replaced mid-run keeps both lifetimes"),
@@ -285,18 +288,31 @@ def drm_readings(source, base, quiet=False):
               "9": "pos:\t0\nflags:\t02\n"},
         "2": {"3": "drm-pdev:\t0000:00:02.0\ndrm-client-id:\t9\ndrm-resident-system0:\t0\n"},
         "3": {"3": "pos:\t0\n"},
+        # NVIDIA: an idle i915 client beside /dev/nvidia0; the driver names 68 + 2 MiB on two GPUs.
+        "4": {"3": "drm-pdev:\t0000:00:02.0\ndrm-client-id:\t5\ndrm-resident-system0:\t0\n"},
+        # On the NVIDIA device but absent from the driver's list: no honest total.
+        "5": {"3": "drm-pdev:\t0000:00:02.0\ndrm-client-id:\t6\ndrm-resident-system0:\t0\n"},
     }
     for pid, files in fds.items():
         (root / pid / "fdinfo").mkdir(parents=True)
+        (root / pid / "fd").mkdir()
         for fd, text in files.items():
             (root / pid / "fdinfo" / fd).write_text(text)
-    script = m.group(0) + 'for pid in 1 2 3; do drm_kb "$pid"; printf "%s " "$DRM_KB"; done\n'
+    for pid in ("4", "5"):
+        (root / pid / "fd" / "7").symlink_to("/dev/nvidia0")
+    # The control: pid 1 holds /dev/nvidiactl only, which is not a GPU node and must not reach the driver query.
+    (root / "1" / "fd" / "8").symlink_to("/dev/nvidiactl")
+    smi = root / "nvidia-smi"
+    smi.write_text("#!/bin/sh\nprintf '4, 68\\n77, 5\\n4, 2\\n1, 999\\n'\n")
+    smi.chmod(0o755)
+    script = m.group(0) + 'for pid in 1 2 3 4 5; do drm_kb "$pid"; printf "%s " "$DRM_KB"; done\n'
     run = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
-                         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "DRM_PROC_ROOT": str(root)})
-    want = ["1051138", "0", "unmeasurable"]
+                         env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "DRM_PROC_ROOT": str(root),
+                              "NVIDIA_SMI": str(smi)})
+    want = ["1051138", "0", "unmeasurable", "71680", "unmeasurable"]
     ok = run.returncode == 0 and run.stdout.split() == want
     if not quiet:
-        print(f"{'ok  ' if ok else 'FAIL'} drm_kb sums each device's clients once, in kernel units, and keeps a zero")
+        print(f"{'ok  ' if ok else 'FAIL'} drm_kb sums each device's clients once, in kernel units, keeps a zero, and reads NVIDIA from its driver")
         if not ok:
             print(f"  expected {want} got {run.stdout.split()} rc {run.returncode} {run.stderr.strip()[-200:]}")
     return [] if ok else ["drm readings"]

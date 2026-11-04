@@ -970,6 +970,16 @@ drm_kb() {
     [ "$DRM_KB" = unmeasurable ] && DRM_KB=0
     DRM_KB=$(( DRM_KB + amount ))
   done
+  # NVIDIA's driver publishes no drm-resident key, so a process holding /dev/nvidiaN would read as the 0 of an idle iGPU client.
+  [ -n "$(LC_ALL=C.UTF-8 LANGUAGE= find "${DRM_PROC_ROOT:-/proc}/$pid/fd" -maxdepth 1 -lname '/dev/nvidia[0-9]*' -print -quit 2>/dev/null)" ] || return 0
+  # Sample input: "4242, 68", one line per GPU the pid holds memory on, used_memory in MiB.
+  local mib
+  mib=$(LC_ALL=C.UTF-8 LANGUAGE= "${NVIDIA_SMI:-nvidia-smi}" --query-compute-apps=pid,used_memory --format=csv,noheader,nounits 2>/dev/null \
+    | LC_ALL=C.UTF-8 LANGUAGE= awk -F', *' -v p="$pid" '$1 == p && $2 ~ /^[0-9]+$/ { s += $2; n++ } END { if (n) print s }')
+  # A process on the NVIDIA device whose memory the driver will not name has no honest total.
+  [ -n "$mib" ] || { DRM_KB=unmeasurable; return 0; }
+  [ "$DRM_KB" = unmeasurable ] && DRM_KB=0
+  DRM_KB=$(( DRM_KB + mib * 1024 ))
 }
 
 # Resolve every live pid whose comm matches exactly, optionally requiring a cmdline token.
