@@ -28,6 +28,7 @@ pub const DEFAULTS: &str = r#"{
   "openMode": "double",
   "clickRename": true,
   "openFoldersWhileDragging": false,
+  "keepScreenLine": false,
   "keyHints": false,
   "startIn": "home",
   "startFolder": "",
@@ -216,6 +217,8 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("openMode", Rule::Word(&["double", "single"])),
     ("clickRename", Rule::Bool),
     ("openFoldersWhileDragging", Rule::Bool),
+    // Coming back to a folder puts the cursor row on the screen line it was left on; off until chosen.
+    ("keepScreenLine", Rule::Bool),
     // The Menus section's "Show keyboard hints" row: every menu's key column and the empty
     // directory's own tip, off until it is switched on.
     ("keyHints", Rule::Bool),
@@ -310,6 +313,7 @@ mod tests {
                 "openMode",
                 "clickRename",
                 "openFoldersWhileDragging",
+                "keepScreenLine",
                 "keyHints",
                 "startIn",
                 "startFolder",
