@@ -73,7 +73,7 @@ cap_dropmods_wait_gone() {
 cap_dropmods_launch_second() {
     [[ "$#" -eq 1 ]] || fail "cap_dropmods: launch_second needs a path, got $#"
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$1" >"$flea_log.second" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$1" >"$flea_log.second" 2>&1 </dev/null &
     local count="" end=$((SECONDS + 20))
     while (( SECONDS < end )); do
         count=$(hyprctl clients -j 2>/dev/null | jq '[.[] | select(.class == "com.thisisgm.flea")] | length' 2>/dev/null || printf "")

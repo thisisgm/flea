@@ -3,7 +3,7 @@ use crate::backend::events::Event;
 use crate::backend::iomount::{internal_failure, ListErr, ListOut};
 use crate::backend::proto::{error_line, error_line_with_mode, parse_request, Request};
 use crate::backend::run::{adopt_listed, adopt_session, forget_rows};
-use crate::backend::searchreq::{finish_search, searched_gen_line};
+use crate::backend::searchreq::finish_search;
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::thumbs::Pool;
 use crate::backend::watch::Watch;
@@ -58,7 +58,7 @@ const LET_GO: u8 = 2;
 // What waits for a scan: the job, the requests behind it, and the watch bursts and unmounts seen before the new descriptor is known.
 pub struct Gate {
     // The loop's channel: the scan answers on it and its worker hands a late watch descriptor back on it.
-    answers: Sender<Event>,
+    answers: crate::backend::events::Sender<Event>,
     // The one thread every remote scan runs on, started by the first remote list, so no later list pays a thread start.
     scanner: Option<Sender<Work>>,
     // The newest scan's fate, shared with its worker.
@@ -75,7 +75,7 @@ pub struct Gate {
 }
 
 impl Gate {
-    pub fn new(answers: Sender<Event>) -> Gate {
+    pub fn new(answers: crate::backend::events::Sender<Event>) -> Gate {
         Gate { answers, scanner: None, fate: Arc::new(AtomicU8::new(ANSWERED)), job: None, deferred: VecDeque::new(), changes: Vec::new(), unmounts: Vec::new(), held: Vec::new(), late: Vec::new(), closed: false }
     }
 
@@ -85,7 +85,7 @@ impl Gate {
     }
 
     // The loop's channel, so an inline scan names the same answer path its worker would.
-    pub fn answers(&self) -> Sender<Event> {
+    pub fn answers(&self) -> crate::backend::events::Sender<Event> {
         self.answers.clone()
     }
 
@@ -106,7 +106,7 @@ impl Gate {
     }
 
     // Runs the scan on the kept thread; it answers exactly once, a panic included, or the gate would hold for good.
-    fn scan(&mut self, path: String, work: impl FnOnce(Sender<Event>) -> Result<ListOut, ListErr> + Send + 'static) {
+    fn scan(&mut self, path: String, work: impl FnOnce(crate::backend::events::Sender<Event>) -> Result<ListOut, ListErr> + Send + 'static) {
         let (answers, loop_tx) = (self.answers.clone(), self.answers.clone());
         let fate = Arc::new(AtomicU8::new(READING));
         self.fate = Arc::clone(&fate);
@@ -117,6 +117,9 @@ impl Gate {
             if fate.compare_exchange(READING, ANSWERED, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
                 let _ = answers.send(Event::List(Done { result }));
                 return;
+            }
+            if let Ok(listed) = &result {
+                for &wd in &listed.listing.outline_watches { let _ = answers.send(Event::AbandonWatch(wd)); }
             }
             // Let go for a newer list: nothing is answered, and the watch this scan armed goes back to the loop.
             let wd = match &result { Ok(listed) => listed.watch_wd, Err(failed) => failed.watch_wd };
@@ -223,6 +226,13 @@ pub enum Started {
     Remote,
 }
 
+// Sample input: {"c":"list","path":"/home/gm","outlinePaths":["/home/gm/NAS/share"]}
+// An open child mount can block even when its outline root is local.
+pub(crate) fn threaded(path: &Path, line: &str, body: &str) -> bool {
+    super::iomount::is_remote(path, body) || crate::json::field_str_array(line, "outlinePaths")
+        .iter().map(Path::new).any(|child| child.starts_with(path) && super::iomount::is_remote(child, body))
+}
+
 // Classifies once, so the local path costs no more than v0.3.8's inline call.
 pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watch, gate: &mut Gate,
              job: Job, mime: Arc<super::mime::Db>) -> Started {
@@ -231,7 +241,7 @@ pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watc
         forget_rows(st, pool);
     }
     let body = super::iomount::mount_body();
-    if !super::iomount::is_remote(Path::new(&job.path), &body) {
+    if !threaded(Path::new(&job.path), &job.line, &body) {
         // A local scan runs inline and a panic ends the process, as v0.3.8 did.
         let fd = watch.raw_fd();
         let tx = gate.answers();
@@ -253,7 +263,7 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
     let landed = match done.result {
         Ok(listed) => {
             watch.set_incoming(listed.watch_wd, listed.watch_mount.clone());
-            watch.commit();
+            watch.commit(listed.listing.outline_watches.clone());
             // Said once per listing, because a folder nobody can watch goes stale in silence.
             if watch.refused() {
                 eprintln!("flea: {} will not follow outside changes, inotify refused a watch on it", path);
@@ -294,7 +304,8 @@ pub fn finish_session<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: 
             let ms = listed.read_ms + listed.sort_ms;
             adopt_session(out, st, pool, tb, &job.path, listed, scan.gen);
             st.held = Held::Walk;
-            writeln!(out, "{}", searched_gen_line(n, n, ms, scan.gen, scan.walking)).ok();
+            let reason = st.search_session.as_ref().and_then(|session| session.partial_reason());
+            writeln!(out, "{}", super::searchreq::searched_status_line(n, n, ms, scan.gen, scan.walking, reason)).ok();
         }
         Err(failed) => {
             watch.abandon_wd(failed.watch_wd);

@@ -131,5 +131,90 @@
       "1"
     ],
     "text": "hl.dsp.window.set_prop({window = \"address:0xAbC\", prop = \"opacity_inactive_override\", value = \"1\"})"
-  }
+  },
+  {
+    "operation": "window_send_shortcut",
+    "args": [
+      "0xabc",
+      "SHIFT SUPER",
+      "Return"
+    ],
+    "text": "hl.dsp.send_shortcut({ mods = \"SHIFT SUPER\", key = \"Return\", window = \"address:0xabc\" })"
+  },
+  {
+    "operation": "window_rounding",
+    "args": [
+      "0xabc",
+      "8"
+    ],
+    "text": "hl.dsp.window.set_prop({window = \"address:0xabc\", prop = \"rounding\", value = \"8\"})"
+  },
+  {
+    "operation": "output_create",
+    "args": [
+      "FLEA-fixture"
+    ],
+    "text": "output create headless FLEA-fixture"
+  },
+  {
+    "operation": "output_remove",
+    "args": [
+      "FLEA-fixture"
+    ],
+    "text": "output remove FLEA-fixture"
+  },
+  {
+    "operation": "monitor_mode",
+    "args": [
+      "FLEA-fixture",
+      "2560x1440@60"
+    ],
+    "text": "hl.monitor({ output = \"FLEA-fixture\", mode = \"2560x1440@60\", position = \"auto\", scale = 1 })"
+  },
+  {
+    "operation": "query_monitors",
+    "args": [],
+    "text": "-j monitors all",
+    "reply": "[{\"name\":\"FLEA-fixture\",\"id\":7}]\n"
+  },
+  {
+    "operation": "query_clients",
+    "args": [],
+    "text": "-j clients",
+    "reply": "[{\"pid\":111,\"address\":\"0xabc\"}]\n"
+  },
+  {
+    "operation": "query_cursor",
+    "args": [],
+    "text": "-j cursorpos",
+    "reply": "{\"x\":1280,\"y\":720}\n"
+  },
+  {
+    "operation": "query_option",
+    "args": [
+      "decoration:rounding"
+    ],
+    "text": "-j getoption decoration:rounding",
+    "reply": "{\"option\":\"decoration:rounding\",\"int\":8}\n"
+  },
+  {
+    "operation": "query_version",
+    "args": [],
+    "text": "version",
+    "reply": "Hyprland 0.56.2 (fake)\n"
+  },
+  {
+    "operation": "query_help",
+    "args": [],
+    "text": "--help",
+    "reply": "usage: hyprctl command\n"
+  },
+  {
+    "operation": "query_output_help",
+    "args": [],
+    "text": "output --help",
+    "reply": "usage: hyprctl output create|remove\n"
+  },
+{"operation": "session_exec_rules", "args": ["name:flea-fixture", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"name:flea-fixture\", monitor = \"FLEA-fixture\", float = true })"},
+{"operation": "session_exec_rules", "args": ["99", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"99\", monitor = \"FLEA-fixture\", float = true })"}
 ]

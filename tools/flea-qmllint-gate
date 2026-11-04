@@ -11,6 +11,10 @@
 # checks the binary exists at an absolute path before running anything, because that check is the
 # entire reason this script exists.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 cd "$(dirname "$0")/.." || exit 1
 
 bin=${FLEA_QMLLINT:-/usr/lib/qt6/bin/qmllint}
@@ -44,11 +48,19 @@ fi
 exit_status_note="Type QProcess::ExitStatus of parameter exitStatus in signal called exited was not found"
 # Quickshell converts the QVariantMap an `environment: ({ ... })` literal binds into its QVariantHash, so only this message is filtered and any other incompatible-type still fails.
 environment_note="Cannot assign binding of type QVariantMap to QVariantHash"
+# qmllint 6.12 raises this import finding on every pragma Singleton file, so it is filtered only for a type ui/qmldir declares singleton.
+singletons=$(awk '$1 == "singleton" { print $2 }' ui/qmldir | jq -R . | jq -sc .)
+# first of an empty list is null, so a message that does not match still answers false rather than nothing.
+singleton_filter='([.message | capture("^Type (?<t>[^ ]+) not declared as singleton in qmldir but using pragma Singleton$") | .t] | first) as $t
+  | ($t != null and ($declared | any(. == $t)))'
 
 counts=$(printf '%s' "$json" \
-  | jq -r --arg note "$exit_status_note" --arg env "$environment_note" \
-    '.files[].warnings[] | select((.message | contains($note)) or (.message | contains($env)) | not) | .id' \
+  | jq -r --arg note "$exit_status_note" --arg env "$environment_note" --argjson declared "$singletons" \
+    ".files[].warnings[] | select((.message | contains(\$note)) or (.message | contains(\$env)) or ($singleton_filter) | not) | .id" \
   | sort | uniq -c)
+singleton_filtered=$(printf '%s' "$json" \
+  | jq -r --argjson declared "$singletons" ".files[].warnings[] | select($singleton_filter) | .id" \
+  | wc -l)
 exit_status_filtered=$(printf '%s' "$json" \
   | jq -r --arg note "$exit_status_note" '.files[].warnings[] | select(.message | contains($note)) | .id' \
   | wc -l)
@@ -73,20 +85,27 @@ get() {
 # is exactly the number of real findings that can land under it unseen. property-override's ceiling
 # was 1 for the one accepted case, ui/OmarchyMark.qml:13 overriding "scale"; that file left the
 # tree with the Omarchy logo it drew, so the ceiling is re-measured at 0. AGENTS.md says why import is 12.
+# qmllint 6.12 added confusing-expression-statement (9 deliberate dependency reads) and id-shadows-member (56, backend hand-downs), counted 2026-10-21.
 actionable="import|12
 unused-imports|0
 signal-handler-parameters|0
-unresolved-type|6
+unresolved-type|5
 property-override|0
-incompatible-type|0"
+incompatible-type|0
+confusing-expression-statement|9
+id-shadows-member|56"
 
 # import qs.Commons never resolves under qmllint (it is a Quickshell module, not a Qt one), so
 # Theme.color and Theme.spacing degrade to bare QObject and every access to either fills one of
 # these two categories with a false positive. They are context, not verdict: AGENTS.md's own
 # baseline was 548/301 and is higher here only because the tree has grown since, which is expected
 # and not itself a finding.
+# block-scope-var-declaration (qmllint 6.12) flags ui/'s house style, var for every local.
+# renamed-type (qmllint 6.12) names Flea.X a rename of X, the same file, since ui/qmldir renames no type.
 context="missing-property
-unqualified"
+unqualified
+block-scope-var-declaration
+renamed-type"
 
 drift=0
 echo "flea-qmllint-gate: actionable categories (ceiling, this run)"
@@ -108,6 +127,7 @@ while IFS= read -r id; do
 done <<< "$context"
 echo "  ---   signal-handler-parameters on QProcess::ExitStatus: $exit_status_filtered (one per Process onExited, filtered out of the gated count above)"
 echo "  ---   incompatible-type on Process environment (QVariantMap to QVariantHash): $environment_filtered (one per environment literal, filtered out of the gated count above)"
+echo "  ---   import on a pragma Singleton type ui/qmldir declares singleton: $singleton_filtered (one per such file, filtered out of the gated count above)"
 
 # A category this table has never seen is a genuine unknown, not a false positive by default: name
 # it and fail, rather than let a new finding class hide inside a total the way "index" hid inside a

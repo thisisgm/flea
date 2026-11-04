@@ -1,4 +1,6 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 # Drives two shipped WindowBody instances offscreen through a test seam that exists only in a sandbox copy.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
@@ -89,7 +91,7 @@ launch() {
         timeout "$WINDOW_TIMEOUT_SECONDS" qs -p "$box/ui/boot" > "$box/$1.log" 2>&1
 }
 call() {
-    env XDG_RUNTIME_DIR="$box/runtime" timeout "$CALL_TIMEOUT_SECONDS" qs ipc --pid "$1" call hunt "$2" "${@:3}"
+    env XDG_RUNTIME_DIR="$box/runtime" timeout "$CALL_TIMEOUT_SECONDS" "$FLEA_IPC_HELPER" --pid "$1" call hunt "$2" "${@:3}"
 }
 await_state() {
     local pid=$1 predicate=$2 attempt snapshot

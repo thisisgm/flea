@@ -1,0 +1,1003 @@
+#!/usr/bin/env python3
+"""Capture the published visual/CPU suite with reviewable bounds and isolated app groups.
+
+init ROOT [--rival-manifest JSON] [--flea-bin PATH --anchor-bin PATH]
+fixtures ROOT --raw-corpus DIR generate non-RAW media and copy verified real RAW sets
+dry-run ROOT                  inventory and write the complete, unranked run plan
+run ROOT --raw-corpus DIR [--only IDS --installed] capture selected entrant trials
+report ROOT                   validate annotations.json and emit results.json/results.csv
+selftest ROOT                 check bounds, coverage, quiet/rebound and ranking contracts
+
+ROOT must be a canonical directory with its own .flea-test-sandbox marker. No cleanup
+or cache deletion occurs. Every trial has private HOME/XDG directories and a private
+D-Bus session inside its cgroup, including activated thumbnailers. The field-search
+tool supplies the existing native input, session and window inspection primitives.
+Visual judgments belong in annotations.json, referencing adjacent captured frames.
+No pixel-change, CPU-quiet or thumbnail-cache heuristic stands in for visual review.
+The gate covers historical B1 only; the release's full coverage belongs to its campaign ledger.
+"""
+import argparse
+import csv
+from datetime import datetime, timezone
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import threading
+import time
+import traceback
+
+REPO = Path(__file__).resolve().parent.parent
+SOURCE_SHA = "e6b79c11f45621f80cb0a082f6985ffaa06dec0d"
+SOURCE = "https://github.com/lgse/strata-website/blob/" + SOURCE_SHA
+MARKER = ".flea-test-sandbox"
+FORMATS = ("jpg", "png", "webp", "tiff", "mp4", "webm", "pdf", "raw")
+VISUAL = ("large-folder", "jpeg-2000", *FORMATS)
+CPU = ("cpu-entries", "cpu-mp4", "cpu-raw", "cpu-jpeg")
+IDS = ("flea", "flea-0.3.12", "strata-stable", "strata-nightly", "strata-nightly-channel", "krusader",
+       "dolphin", "nautilus", "nemo", "thunar")
+METHOD = {
+    "source": SOURCE + "/src/lib/benchmarks.ts",
+    "method_source": SOURCE + "/src/components/benchmark-card.tsx",
+    "visual": "seconds from navigation, adjacent capture bounds, median endpoints; midpoint ranking",
+    "memory": "sampled maximum cgroup memory.current, including file cache and all app-group helpers",
+    "cpu": "first consecutive one-second interval below 5% of one core in app-group CPU samples; two-second rebound follow-up",
+    "cpu_timeout_s": 60, "sample_s": 0.05, "capture_s": 0.25,
+    "coverage": "visually verified thumbnails, incomplete sets never become zero-second completions",
+    "repetition": "three runs per entrant, including CPU (the published CPU chart used one); requested medians replace single-run figures",
+    "limitations": "upstream publishes no corpus, hardware, cache state or visual run count; generated non-RAW media and pinned real RAW files define this rerun",
+}
+BUSY_FRACTION = 0.05
+QUIET_S = 1
+REBOUND_S = 2
+CPU_TAIL_MARGIN_S = 3
+POLL_S = 0.05
+CLEANUP_TIMEOUT_S = 10
+MAP_TIMEOUT_S = 30
+KEY_SETTLE_S = 0.3
+TYPE_SETTLE_S = 0.2
+MONITOR_GEOMETRY = ("name", "width", "height", "refreshRate", "x", "y", "scale", "transform")
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def monitor_geometry(monitors):
+    rows = []
+    for monitor in monitors:
+        missing = [key for key in MONITOR_GEOMETRY if key not in monitor]
+        require(not missing, "hyprctl -j monitors: monitor %s lacks %s" % (monitor.get("name", "<unnamed>"), ", ".join(missing)))
+        rows.append({key: monitor[key] for key in MONITOR_GEOMETRY})
+    return rows
+
+
+def load_module(name, path):
+    sys.dont_write_bytecode = True
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def root_path(value):
+    p = Path(value)
+    require(p.is_absolute() and p == p.resolve(strict=True), "ROOT must be absolute and canonical")
+    require(p.is_dir() and (p / MARKER).is_file() and not (p / MARKER).is_symlink(),
+            "ROOT needs its own regular sandbox marker")
+    require(p != Path.home() and p != Path("/"), "ROOT cannot be HOME or /")
+    return p
+
+
+def write_json(path, value, replace=False):
+    destination = path.with_name("." + path.name + "." + str(time.time_ns())) if replace else path
+    with destination.open("x") as out:
+        json.dump(value, out, indent=2, allow_nan=False)
+        out.write("\n")
+    if replace:
+        destination.replace(path)
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def command(args, **kwargs):
+    return subprocess.run([str(a) for a in args], check=True, timeout=kwargs.pop("timeout", 30),
+                          **kwargs)
+
+
+def output(args):
+    try:
+        return command(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       text=True).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as e:
+        return "UNAVAILABLE: " + str(e)
+
+
+def init(root, args):
+    binaries = [args.flea_bin, args.anchor_bin, args.strata_stable, args.strata_nightly,
+                args.strata_nightly_channel,
+                "krusader", "dolphin", "nautilus", "nemo", "thunar"]
+    entrants = {}
+    for ident, binary in zip(IDS, binaries):
+        entrants[ident] = {"binary": binary, "args": ["--gui"] if ident.startswith("flea") else [],
+                           "frontend": "gpui" if ident == "flea" else None,
+                           "version_args": ["--version"], "expected_version": "B5_REQUIRED",
+                           "latest_source": "B5_REQUIRED", "latest_checked_utc": "B5_REQUIRED",
+                           "upstream_commit": None,
+                           "config_seed": None, "setup_keys": [], "navigation_keys": ["ctrl", "l"]}
+    entrants["flea-0.3.12"]["latest_source"] = "installed release comparison"
+    entrants["flea-0.3.12"]["expected_version"] = "0.3.12"
+    plan = {"runs": 3, "visual_timeout_s": 60, "warmup_s": 3,
+               "cache_state": "fresh private thumbnail cache; filesystem page cache uncontrolled",
+               "before_trial": [], "entrants": entrants, "method": METHOD}
+    if args.rival_manifest:
+        pin_inventory(plan, Path(args.rival_manifest))
+    write_json(root / "plan.json", plan)
+    print("plan.json created; fill exact B5 version attestations and native grid/thumbnail setup keys")
+
+
+def pin_inventory(plan, path):
+    require(path.is_absolute() and path.is_file() and not path.is_symlink(), "rival manifest must be an absolute regular file")
+    data = json.loads(path.read_text())
+    require(data.get("host") and data.get("kernel") and data.get("date_utc"), "rival manifest lacks host/kernel/date")
+    archives = {asset["id"]: asset for asset in data["archives"]}
+    for ident, spec in plan["entrants"].items():
+        if ident.startswith("strata-"):
+            asset = archives[ident]
+            require(asset["version_check"]["rc"] == 0 and
+                    asset["version_check"]["stdout"] == asset["expected_version"], "archive version receipt differs: " + ident)
+            require(asset["url"].startswith("https://") and len(asset["sha256"]) == 64 and
+                    len(asset["binary_sha256"]) == 64, "archive receipt lacks URL and hashes: " + ident)
+            spec.update(binary=asset["binary_path"], expected_version=asset["expected_version"],
+                        upstream_commit=asset["source_commit"], latest_source=asset["url"],
+                        latest_checked_utc=data["date_utc"], archive=asset)
+        elif ident not in ("flea", "flea-0.3.12"):
+            package = data["packages"][ident]
+            require(package["package"]["rc"] == 0 and package["owner"]["rc"] == 0,
+                    "invalid installed package receipt: " + ident)
+            require(output(["pacman", "-Q", ident]) == package["package"]["stdout"], "installed package changed: " + ident)
+            spec.update(binary=package["realpath"], package=package,
+                        expected_version=output([package["realpath"], *spec["version_args"]]),
+                        latest_source="rival inventory: " + package["package"]["stdout"], latest_checked_utc=data["date_utc"])
+    plan["rival_inventory"] = {"path": str(path), "sha256": sha(path)}
+
+
+def rival_inventory(plan):
+    identity = plan.get("rival_inventory")
+    if not identity:
+        return None
+    path = Path(identity["path"])
+    require(sha(path) == identity["sha256"], "rival inventory changed after pinning")
+    return json.loads(path.read_text())
+
+
+def make_pdf(index):
+    stream = ("0.2 0.4 0.7 rg 0 0 640 480 re f 1 1 1 rg BT /F1 52 Tf 60 200 Td "
+              "(Fixture %02d) Tj ET" % index).encode()
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>",
+               b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+               b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 640 480] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+               b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+               b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"]
+    data, offsets = bytearray(b"%PDF-1.4\n"), [0]
+    for i, obj in enumerate(objects, 1):
+        offsets.append(len(data))
+        data.extend(("%d 0 obj\n" % i).encode() + obj + b"\nendobj\n")
+    start = len(data)
+    data.extend(b"xref\n0 6\n0000000000 65535 f \n")
+    data.extend(b"".join(("%010d 00000 n \n" % o).encode() for o in offsets[1:]))
+    data.extend(("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % start).encode())
+    return data
+
+
+def load_raw_corpus(value):
+    require(value is not None, "RAW workloads require --raw-corpus DIR; no generated substitute is allowed")
+    root = Path(value)
+    require(root.is_absolute() and root == root.resolve(strict=True) and root.is_dir(), "RAW corpus root must be canonical")
+    helper, manifest_path = REPO / "tools/flea-raw-corpus", REPO / "tools/flea-raw-corpus.tsv"
+    require(helper.is_file() and os.access(helper, os.X_OK) and manifest_path.is_file(), "stage tools/flea-raw-corpus and tools/flea-raw-corpus.tsv first")
+    # Sample input: "set\tsuffix\tmake\tmodel\turl\tsha256\tbytes\tlicence\tmime"
+    with manifest_path.open() as source:
+        rows = list(csv.DictReader((line for line in source if not line.startswith("#")), delimiter="\t"))
+    result = {"root": str(root), "manifest_sha256": sha(manifest_path), "sets": {}}
+    for name, count in (("twelve", 12), ("hundred", 100)):
+        directory = root / name
+        command([helper, "verify", root, "--set", name], timeout=600)
+        selected = [r for r in rows if r["set"] == name]
+        require(len(selected) == count and len({r["sha256"] for r in selected}) == count,
+                "RAW corpus needs distinct real files: " + name)
+        if name == "twelve":
+            require(len({r["suffix"].lower().lstrip(".") for r in selected}) == 12, "RAW visual set needs twelve camera formats")
+        sizes = {int(r["bytes"]) for r in selected}
+        expected = {r["sha256"] for r in selected}
+        files = {}
+        for path in directory.rglob("*"):
+            if path.is_file() and not path.is_symlink() and path.stat().st_size in sizes:
+                digest = sha(path)
+                if digest in expected:
+                    require(digest not in files, "duplicate RAW corpus file: " + digest)
+                    files[digest] = path
+        require(set(files) == expected, "verified RAW corpus files do not match pinned manifest: " + name)
+        result["sets"][name] = [{**r, "bytes": int(r["bytes"]), "format": r["suffix"].lower().lstrip("."),
+                                 "path": str(files[r["sha256"]]),
+                                 "fixture_name": "sample_%03d.%s" % (i, r["suffix"].lower().lstrip("."))}
+                                for i, r in enumerate(selected)]
+    return result
+
+
+def fixtures(root, raw_corpus=None):
+    corpus = load_raw_corpus(raw_corpus)
+    require(shutil.which("ffmpeg") and shutil.which("magick"), "ffmpeg and ImageMagick are required")
+    target = root / "fixtures"
+    target.mkdir()
+    paths = {}
+    for kind in (*VISUAL, "cpu-mp4", "cpu-raw", "cpu-jpeg", "empty"):
+        paths[kind] = target / kind
+        paths[kind].mkdir()
+    paths["cpu-entries"] = paths["large-folder"]
+    for i in range(90000):
+        (paths["large-folder"] / ("file_%05d.txt" % i)).touch(exist_ok=False)
+    for i in range(10000):
+        (paths["large-folder"] / ("dir_%05d" % i)).mkdir()
+    seeds = root / "fixture-seeds"
+    seeds.mkdir()
+    for i in range(12):
+        png = paths["png"] / ("sample_%02d.png" % i)
+        command(["magick", "-limit", "thread", "1", "-seed", str(7 + i), "-size", "1920x1080", "plasma:fractal",
+                 "-depth", "8", "-strip", "-define", "png:exclude-chunks=date,time", png], timeout=120)
+        for fmt in ("jpg", "png", "webp", "tiff"):
+            if fmt != "png":
+                command(["magick", png, "-strip", "-quality", "88", paths[fmt] / ("sample_%02d.%s" % (i, fmt))])
+        (paths["pdf"] / ("sample_%02d.pdf" % i)).write_bytes(make_pdf(i))
+    for fmt, codec in (("mp4", "libx264"), ("webm", "libvpx-vp9")):
+        seed = seeds / ("seed." + fmt)
+        command(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=1920x1080:rate=30",
+                 "-t", "2", "-c:v", codec, "-threads", "1", "-pix_fmt", "yuv420p",
+                 "-fflags", "+bitexact", "-flags:v", "+bitexact", seed], timeout=180)
+        for i in range(12):
+            shutil.copyfile(seed, paths[fmt] / ("sample_%02d.%s" % (i, fmt)))
+    for kind, count, source, ext in (("jpeg-2000", 2000, "jpg", "jpg"),
+                                      ("cpu-jpeg", 100, "jpg", "jpg"),
+                                      ("cpu-mp4", 100, "mp4", "mp4")):
+        for i in range(count):
+            shutil.copyfile(paths[source] / ("sample_%02d.%s" % (i % 12, ext)),
+                            paths[kind] / ("sample_%04d.%s" % (i, ext)))
+    for kind, name in (("raw", "twelve"), ("cpu-raw", "hundred")):
+        for i, item in enumerate(corpus["sets"][name]):
+            suffix = item["format"]
+            require(suffix.isalnum(), "invalid RAW corpus suffix")
+            destination = paths[kind] / item["fixture_name"]
+            shutil.copyfile(item["path"], destination)
+            require(destination.stat().st_size == item["bytes"] and sha(destination) == item["sha256"],
+                    "copied RAW fixture differs from verified corpus")
+    records = {}
+    for kind, path in paths.items():
+        if kind == "cpu-entries":
+            continue
+        files = sorted(p for p in path.iterdir() if p.is_file())
+        records[kind] = {"path": str(path.relative_to(root)), "files": len(files),
+                         "directories": sum(p.is_dir() for p in path.iterdir()),
+                         "bytes": sum(p.stat().st_size for p in files)}
+        if kind not in ("large-folder", "empty"):
+            records[kind]["sha256"] = {p.name: sha(p) for p in files}
+    write_json(root / "fixtures.json", {"recipe": "strata-real-raw-v2", "image_size": [1920, 1080],
+               "video_seconds": 2, "raw_corpus": corpus,
+               "imagemagick": output(["magick", "-version"]).splitlines()[0],
+               "ffmpeg": output(["ffmpeg", "-version"]).splitlines()[0],
+               "sets": records})
+    print("fixtures: 90,000 files + 10,000 directories, 2,000 JPEGs, eight 12-file sets, four CPU workloads")
+
+
+MISSING = object()
+SHOWN_VALUE_CHARS = 80
+
+
+def texts(value):
+    return type(value) is list and all(type(item) is str for item in value)
+
+
+def within(low, high):
+    return lambda value: type(value) in (int, float) and low <= value <= high
+
+
+def optional(kind):
+    return lambda value: value is None or type(value) is kind
+
+
+# plan.json is edited by hand, so every plan field the harness reads, archive and package keys included, is named on refusal.
+PLAN_FIELDS = (("runs", lambda value: type(value) is int and value >= 3, "an integer of at least 3"),
+               ("visual_timeout_s", within(1, 60), "a number from 1 to 60"),
+               ("warmup_s", within(1, 30), "a number from 1 to 30"),
+               ("method", lambda value: value == METHOD, "the harness METHOD"),
+               ("before_trial", texts, "a list of strings"),
+               ("cache_state", lambda value: type(value) is str, "a string"),
+               ("entrants", lambda value: type(value) is dict and tuple(value) == IDS, "every entrant in the declared order"))
+ENTRANT_FIELDS = (("binary", lambda value: type(value) is str, "a string"),
+                  ("args", texts, "a list of strings"),
+                  ("frontend", optional(str), "a string or null"),
+                  ("version_args", texts, "a list of strings"),
+                  ("expected_version", lambda value: type(value) is str, "a string"),
+                  ("latest_source", lambda value: type(value) is str, "a string"),
+                  ("latest_checked_utc", lambda value: type(value) is str, "a string"),
+                  ("upstream_commit", optional(str), "a string or null"),
+                  ("config_seed", optional(str), "a string or null"),
+                  ("setup_keys", lambda value: type(value) is list and all(texts(chord) for chord in value),
+                   "a list of key chords, each a list of strings"),
+                  ("navigation_keys", texts, "a list of strings"))
+# inventory() reads these from a pinned archive or package; the rest is compared whole against the product.
+ARCHIVE_FIELDS = tuple((name, lambda value: type(value) is str, "a string")
+                       for name in ("binary_path", "binary_sha256", "expected_version"))
+PACKAGE_FIELDS = (("sha256", lambda value: type(value) is str, "a string"),)
+
+
+def check_fields(path, prefix, data, fields):
+    for name, valid, kind in fields:
+        value = data.get(name, MISSING)
+        shown = "missing" if value is MISSING else json.dumps(value)[:SHOWN_VALUE_CHARS]
+        require(value is not MISSING and valid(value), "plan %s: field %s%s must be %s, not %s" % (path, prefix, name, kind, shown))
+
+
+def read_plan(root):
+    path = root / "plan.json"
+    plan = json.loads(path.read_text())
+    require(type(plan) is dict, "plan %s: must be a JSON object" % path)
+    check_fields(path, "", plan, PLAN_FIELDS)
+    for ident, entrant in plan["entrants"].items():
+        require(type(entrant) is dict, "plan %s: field entrants.%s must be an object" % (path, ident))
+        check_fields(path, "entrants.%s." % ident, entrant, ENTRANT_FIELDS)
+        for name, fields in (("archive", ARCHIVE_FIELDS), ("package", PACKAGE_FIELDS)):
+            if entrant.get(name) is None:
+                continue
+            require(type(entrant[name]) is dict, "plan %s: field entrants.%s.%s must be an object" % (path, ident, name))
+            check_fields(path, "entrants.%s.%s." % (ident, name), entrant[name], fields)
+    inventory = plan.get("rival_inventory")
+    require(inventory is None or (type(inventory) is dict and type(inventory.get("path")) is str
+                                  and type(inventory.get("sha256")) is str),
+            "plan %s: field rival_inventory must be null or an object with string path and sha256" % path)
+    return plan
+
+
+def trial_specs(plan):
+    for run in range(1, plan["runs"] + 1):
+        order = list(IDS[run - 1:] + IDS[:run - 1])
+        for workload in (*VISUAL, *CPU):
+            for ident in order:
+                yield {"id": "%s.%s.%d" % (ident, workload, run), "entrant": ident,
+                       "workload": workload, "run": run}
+
+
+def inventory(plan):
+    result = {}
+    for ident, spec in plan["entrants"].items():
+        path = shutil.which(spec["binary"])
+        result[ident] = {"requested_binary": spec["binary"], "binary": str(Path(path).resolve()) if path else None,
+                         "version": output([path, *spec["version_args"]]) if path else "MISSING",
+                         "sha256": sha(path) if path else None, "attestation": spec}
+        if spec.get("archive"):
+            asset = spec["archive"]
+            require(path and str(Path(path).resolve()) == asset["binary_path"] and
+                    result[ident]["sha256"] == asset["binary_sha256"] and
+                    result[ident]["version"] == asset["expected_version"], "archive binary/version changed: " + ident)
+        if spec.get("package"):
+            require(result[ident]["sha256"] == spec["package"]["sha256"], "packaged binary changed: " + ident)
+        if ident == "flea":
+            gui = Path(path).resolve().with_name("flea-gui") if path else None
+            if not gui or not gui.is_file():
+                gui_path = shutil.which("flea-gui")
+                gui = Path(gui_path).resolve() if gui_path else None
+            result[ident]["gui"] = {"binary": str(gui) if gui else None, "sha256": sha(gui) if gui else None}
+        seed = spec.get("config_seed")
+        if seed:
+            folder = Path(seed)
+            require(folder.is_absolute() and folder.is_dir() and not folder.is_symlink(), "invalid config seed")
+            require(not any(p.is_symlink() for p in folder.rglob("*")), "symlink in config seed")
+            result[ident]["config_seed_sha256"] = {str(p.relative_to(folder)): sha(p)
+                                                  for p in sorted(folder.rglob("*")) if p.is_file()}
+    return result
+
+
+def manifest(plan):
+    return {"host": os.uname().nodename, "kernel": os.uname().release,
+            "date_utc": datetime.now(timezone.utc).isoformat(), "build_sha": output(["git", "-C", REPO, "rev-parse", "HEAD"]),
+            "worktree_dirty": output(["git", "-C", REPO, "status", "--porcelain"]),
+            "harness_sha256": sha(__file__), "method": METHOD, "plan": plan,
+            "rival_inventory": rival_inventory(plan),
+            "entrants": inventory(plan), "packages": output(["pacman", "-Q", "krusader", "dolphin", "nautilus",
+                       "nemo", "thunar", "libraw", "tumbler", "ffmpegthumbnailer", "kdegraphics-thumbnailers", "qt6-imageformats"]),
+            "fixture_manifest_sha256": None, "load_average": os.getloadavg()}
+
+
+def dry_run(root):
+    plan = read_plan(root)
+    data = manifest(plan)
+    data["dry_run"] = True
+    data.update(gate_scope="historical-b1", release_scope_complete=False)
+    data["trials"] = list(trial_specs(plan))
+    data["fixture_manifest_sha256"] = sha(root / "fixtures.json") if (root / "fixtures.json").exists() else None
+    data["native_prerequisites"] = {name: shutil.which(name) for name in ("hyprctl", "grim", "dbus-run-session")}
+    data["display"] = {name: os.environ.get(name) for name in ("WAYLAND_DISPLAY", "DISPLAY")}
+    write_json(root / "dry-run.json", data, replace=True)
+    print("dry-run: %d trials, 11 tests, 33 measures; no timing or rank claimed" % len(data["trials"]))
+
+
+def validate_fixtures(root):
+    data = json.loads((root / "fixtures.json").read_text())
+    require(data["recipe"] == "strata-real-raw-v2", "unrecognized fixture recipe; regenerate with verified real RAW corpus")
+    expected = {"large-folder": (90000, 10000), "jpeg-2000": (2000, 0), "empty": (0, 0),
+                **{k: (12, 0) for k in FORMATS}, **{k: (100, 0) for k in CPU if k != "cpu-entries"}}
+    require(set(data["sets"]) == set(expected), "fixture set is incomplete")
+    for name, counts in expected.items():
+        path = root / "fixtures" / name
+        require(path.is_dir() and not path.is_symlink(), "fixture directory missing or symlinked")
+        entries = list(path.iterdir())
+        require((sum(p.is_file() for p in entries), sum(p.is_dir() for p in entries)) == counts,
+                "wrong fixture counts: " + name)
+        require(not any(p.is_symlink() for p in entries), "symlink in fixture")
+        for filename, digest in data["sets"][name].get("sha256", {}).items():
+            require(Path(filename).name == filename and sha(path / filename) == digest, "fixture hash differs: " + filename)
+    for kind, name in (("raw", "twelve"), ("cpu-raw", "hundred")):
+        expected_files = {item["fixture_name"]: item["sha256"] for item in data["raw_corpus"]["sets"][name]}
+        require(data["sets"][kind]["sha256"] == expected_files, "RAW fixture differs from pinned corpus: " + kind)
+    return data
+
+
+class AppGroup:
+    def __init__(self, name):
+        # Sample input: "0::/user.slice/flea-strata-bench-1.service/controller"
+        cgroup = Path("/sys/fs/cgroup" + Path("/proc/self/cgroup").read_text().strip().split(":", 2)[2])
+        require("flea-strata-bench-" in str(cgroup), "run in a delegated flea-strata-bench-* systemd unit")
+        if cgroup.name == "controller":
+            cgroup = cgroup.parent
+        require(cgroup.name.startswith("flea-strata-bench-") and cgroup.suffix in (".service", ".scope"),
+                "app groups must be inside the benchmark's own systemd unit")
+        require({"cpu", "memory"} <= set((cgroup / "cgroup.controllers").read_text().split()),
+                "CPU and memory controllers are not delegated")
+        controller = cgroup / "controller"
+        controller.mkdir(exist_ok=True)
+        (controller / "cgroup.procs").write_text(str(os.getpid()))
+        (cgroup / "cgroup.subtree_control").write_text("+cpu +memory")
+        self.path = cgroup / name
+        self.path.mkdir()
+        if not (self.path / "memory.current").exists():
+            self.path.rmdir()
+            raise ValueError("memory controller is not delegated")
+
+    def join(self):
+        (self.path / "cgroup.procs").write_text(str(os.getpid()))
+
+    def cpu(self):
+        # Sample input: "usage_usec 123456\nuser_usec 100000"
+        return int(dict(line.split() for line in (self.path / "cpu.stat").read_text().splitlines())["usage_usec"]) / 1e6
+
+    def memory(self):
+        # Sample input: "52428800"
+        return int((self.path / "memory.current").read_text()) / (1024 * 1024)
+
+    def pids(self):
+        return [int(p) for f in self.path.rglob("cgroup.procs") for p in f.read_text().split()]
+
+    def close(self):
+        (self.path / "cgroup.kill").write_text("1")
+        deadline = time.monotonic() + CLEANUP_TIMEOUT_S
+        while self.pids() and time.monotonic() < deadline:
+            time.sleep(POLL_S)
+        require(not self.pids(), "app-group processes outlived cleanup")
+        for path in sorted(self.path.rglob("*"), reverse=True):
+            if path.is_dir():
+                path.rmdir()
+        self.path.rmdir()
+
+
+def quiet_result(samples, end_s):
+    start = None
+    for i in range(1, len(samples)):
+        a, b = samples[i - 1], samples[i]
+        if b[0] > METHOD["cpu_timeout_s"]:
+            break
+        busy = (b[1] - a[1]) / (b[0] - a[0]) >= BUSY_FRACTION
+        if busy:
+            start = None
+            continue
+        if start is None:
+            start = a[0]
+        if b[0] - start < QUIET_S:
+            continue
+        if end_s < b[0] + REBOUND_S:
+            return None
+        follow = [s for s in samples[i:] if s[0] <= b[0] + REBOUND_S]
+        rebound = any((y[1] - x[1]) / (y[0] - x[0]) >= BUSY_FRACTION for x, y in zip(follow, follow[1:]))
+        return {"seconds": start, "confirmed_s": b[0], "rebound": rebound, "timeout": False}
+    return {"seconds": None, "rebound": False, "timeout": True} if end_s >= METHOD["cpu_timeout_s"] else None
+
+
+class Sampler:
+    def __init__(self, group):
+        self.group, self.samples, self.stop, self.error = group, [], threading.Event(), None
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+
+    def loop(self):
+        try:
+            while not self.stop.is_set():
+                self.samples.append((time.monotonic(), self.group.cpu(), self.group.memory()))
+                self.stop.wait(METHOD["sample_s"])
+        except Exception as error:
+            self.error = str(error)
+
+    def finish(self):
+        self.stop.set()
+        self.thread.join()
+        require(self.error is None, "app-group sampling failed: " + str(self.error))
+
+
+def copy_settings(source, target):
+    p = Path(source)
+    require(p.is_absolute() and p.is_dir() and not p.is_symlink(), "config_seed must be an absolute directory")
+    require(not any(x.is_symlink() for x in p.rglob("*")), "config_seed cannot contain symlinks")
+    shutil.copytree(p, target, dirs_exist_ok=True)
+
+
+def capture(path, region):
+    start = time.monotonic()
+    data = command(["grim", "-g", region, "-t", "jpeg", "-q", "90", "-"], stdout=subprocess.PIPE).stdout
+    end = time.monotonic()
+    require(data.startswith(b"\xff\xd8") and data.endswith(b"\xff\xd9"), "capture is not a complete JPEG")
+    digest = hashlib.sha256(data).hexdigest()
+    with path.open("xb") as out:
+        out.write(data)
+    return start, end, digest
+
+
+def bind_products(plan, data, selected):
+    helper = REPO / "tools/flea_bench_product.py"
+    require(helper.is_file() and not helper.is_symlink(), "stage tools/flea_bench_product.py before native capture")
+    product = load_module("strata_bench_product", helper)
+    identities = {}
+    for ident in selected:
+        item, settings = data["entrants"][ident], plan["entrants"][ident]
+        arm = {"entrant": "flea" if ident.startswith("flea") else ident,
+               "frontend": "gpui" if ident == "flea" else "qml"}
+        if settings.get("archive"):
+            arm.update(archive_id=ident, rival_manifest=plan["rival_inventory"]["path"])
+        checked = product.identity(arm, [item["binary"], *settings["args"]])
+        require(checked["binary"] == item["binary"] and checked["sha256"] == item["sha256"] and
+                checked["version"] == item["version"].splitlines()[0], "shared product identity differs: " + ident)
+        if ident == "flea":
+            require(checked.get("frontend") == "gpui" and checked.get("gui_sha256") == item["gui"]["sha256"],
+                    "shared GPUI companion differs")
+        if settings.get("archive"):
+            require(checked.get("archive") == settings["archive"] and
+                    checked.get("rival_manifest", {}).get("sha256") == plan["rival_inventory"]["sha256"],
+                    "shared archive receipt differs: " + ident)
+        identities[ident] = checked
+    return {"helper_sha256": sha(helper), "identities": identities}
+
+
+def run_trial(root, plan, spec, native, binaries):
+    trial = root / "trials" / spec["id"]
+    if trial.exists():
+        require(trial.is_dir() and not trial.is_symlink(), "partial trial is not a regular directory")
+        trial.rename(trial.with_name(trial.name + ".interrupted-" + str(time.time_ns())))
+    trial.mkdir()
+    entrant = plan["entrants"][spec["entrant"]]
+    home = trial / "home"
+    env = {k: v for k, v in native.ENV.items() if not k.startswith("FLEA_")}
+    env["HOME"] = str(home)
+    if entrant["frontend"]:
+        env["FLEA_FRONTEND"] = entrant["frontend"]
+    if spec["entrant"].startswith("flea"):
+        env["FLEA_BIN"] = binaries[spec["entrant"]]["binary"]
+    for key, suffix in (("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"),
+                        ("XDG_STATE_HOME", "state"), ("XDG_DATA_HOME", "data"), ("TMPDIR", "tmp")):
+        path = trial / suffix
+        path.mkdir()
+        env[key] = str(path)
+    home.mkdir()
+    if entrant["config_seed"]:
+        copy_settings(entrant["config_seed"], trial / "config")
+    env["GSETTINGS_BACKEND"] = "keyfile"
+    env["QML_DISK_CACHE_PATH"] = str(trial / "cache" / "qml")
+    group = AppGroup(spec["id"])
+    proc, sampler, keys = None, None, None
+    try:
+        argv = ["dbus-run-session", "--", binaries[spec["entrant"]]["binary"],
+                *entrant["args"], str(root / "fixtures" / "empty")]
+        with (trial / "app.log").open("x") as log:
+            proc = subprocess.Popen(argv, env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log,
+                                    preexec_fn=group.join, start_new_session=True)
+        sampler = Sampler(group)
+        sampler.thread.start()
+        deadline = time.monotonic() + MAP_TIMEOUT_S
+        window = None
+        while time.monotonic() < deadline:
+            window = next((c for c in native.clients() if c.get("pid") in group.pids() and c.get("mapped", True)), None)
+            if window:
+                break
+            require(proc.poll() is None, "entrant exited before mapping, see " + str(trial / "app.log"))
+            time.sleep(POLL_S)
+        require(window, "no owned window mapped")
+        native.focus_window(window["address"])
+        keys = native.Keys()
+        for chord in entrant["setup_keys"]:
+            keys.chord(*chord)
+            time.sleep(KEY_SETTLE_S)
+        time.sleep(plan["warmup_s"])
+        window = next(c for c in native.clients() if c["address"] == window["address"])
+        region = "%d,%d %dx%d" % (*window["at"], *window["size"])
+        keys.chord(*entrant["navigation_keys"])
+        time.sleep(TYPE_SETTLE_S)
+        keys.chord("ctrl", "a")
+        fixture = root / "fixtures" / ("large-folder" if spec["workload"] == "cpu-entries" else spec["workload"])
+        for ch in str(fixture):
+            keys.type_char(ch)
+        time.sleep(TYPE_SETTLE_S)
+        frame_dir = trial / "frames"
+        frame_dir.mkdir()
+        before = capture(frame_dir / "before.jpg", region)
+        nav_start = time.monotonic()
+        keys.chord("enter")
+        nav_end = time.monotonic()
+        frames, prior_digest, prior_name = [], None, None
+        end_after = METHOD["cpu_timeout_s"] + CPU_TAIL_MARGIN_S if spec["workload"] in CPU else plan["visual_timeout_s"]
+        until = nav_start + end_after
+        index = 0
+        while time.monotonic() < until:
+            require(proc.poll() is None and any(c["address"] == window["address"] for c in native.clients()),
+                    "entrant/window disappeared during capture")
+            name = "frame-%04d.jpg" % index
+            start, end, digest = capture(frame_dir / name, region)
+            if digest == prior_digest:
+                (frame_dir / name).unlink()
+                name = prior_name
+            frames.append({"index": index, "start_s": start - nav_start, "end_s": end - nav_start,
+                           "file": "frames/" + name, "sha256": digest})
+            prior_digest, prior_name = digest, name
+            index += 1
+            if spec["workload"] in CPU:
+                rel = [(t - nav_end, cpu, mem) for t, cpu, mem in sampler.samples if t >= nav_end]
+                if quiet_result(rel, time.monotonic() - nav_end) is not None:
+                    break
+            time.sleep(max(0, METHOD["capture_s"] - (time.monotonic() - start)))
+        sampler.finish()
+        data = dict(spec, product_identity=binaries[spec["entrant"]]["product_identity"],
+                    product_helper_sha256=binaries[spec["entrant"]]["product_helper_sha256"],
+                    frames=frames, navigation_span_s=nav_end - nav_start,
+                    baseline={"start_s": before[0] - nav_start, "end_s": before[1] - nav_start,
+                              "file": "frames/before.jpg", "sha256": before[2]},
+                    samples=[(t - nav_end, cpu, mem) for t, cpu, mem in sampler.samples],
+                    region=region, argv=argv, window=window, app_group=str(group.path),
+                    ended_s=time.monotonic() - nav_end)
+        write_json(trial / "trial.json", data)
+        print(spec["id"] + ": captured, visual review pending", flush=True)
+    finally:
+        try:
+            if sampler and sampler.thread.is_alive():
+                sampler.finish()
+        finally:
+            if keys:
+                keys.sock.close()
+            group.close()
+            if proc:
+                proc.wait(timeout=10)
+
+
+def run(root, only=None, installed=False, raw_corpus=None):
+    plan = read_plan(root)
+    corpus = load_raw_corpus(raw_corpus)
+    fixture_data = validate_fixtures(root)
+    require(fixture_data["raw_corpus"] == corpus, "RAW corpus identity differs from the generated fixture")
+    data = manifest(plan)
+    data["raw_corpus"] = corpus
+    selected = only.split(",") if only else list(IDS)
+    require(selected and len(selected) == len(set(selected)) and all(i in IDS for i in selected), "invalid --only roster")
+    data["roster"] = list(IDS)
+    data["latest_verified"] = not installed
+    data["phase"] = "installed-version baseline" if installed else "latest-version gate"
+    if "flea" in selected:
+        require(plan["entrants"]["flea"]["frontend"] == "gpui", "candidate must use the G-line GPUI launcher")
+        require(data["entrants"]["flea"]["gui"]["binary"], "candidate flea-gui companion is missing")
+    for ident, item in data["entrants"].items():
+        if ident not in selected:
+            continue
+        spec = plan["entrants"][ident]
+        require(item["binary"], "missing entrant " + ident)
+        require(spec["expected_version"] == item["version"], "exact B5 version differs: " + ident)
+        if not installed:
+            require(all(spec[key] and "B5_REQUIRED" not in spec[key] for key in
+                        ("latest_source", "latest_checked_utc")), "latest version attestation missing: " + ident)
+        if ident.startswith("strata-") and not installed:
+            commit = spec.get("upstream_commit") or ""
+            require(len(commit) == 40 and all(ch in "0123456789abcdef" for ch in commit),
+                    "exact Strata source commit is required: " + ident)
+    archive_paths = [data["entrants"][ident]["binary"] for ident in selected if ident.startswith("strata-")]
+    require(len(archive_paths) == len(set(archive_paths)), "Strata channels must have separate installed paths")
+    products = bind_products(plan, data, selected)
+    data["product_helper_sha256"] = products["helper_sha256"]
+    native = load_module("strata_field_search", REPO / "tools/flea-field-search")
+    native.ENV = native.session_env()
+    os.environ.update(native.ENV)
+    data["monitors"] = monitor_geometry(json.loads(native.hypr("-j", "monitors")))
+    data["fixture_manifest_sha256"] = sha(root / "fixtures.json")
+    manifest_file = root / "manifest.json"
+    if manifest_file.exists():
+        previous = json.loads(manifest_file.read_text())
+        require(all(previous[key] == data[key] for key in ("host", "kernel", "build_sha", "harness_sha256", "plan", "entrants", "monitors", "fixture_manifest_sha256", "latest_verified", "rival_inventory", "raw_corpus", "product_helper_sha256")),
+                "resume environment differs from the original manifest")
+    else:
+        write_json(manifest_file, data)
+    (root / "trials").mkdir(exist_ok=True)
+    invocations = root / "invocations"
+    invocations.mkdir(exist_ok=True)
+    write_json(invocations / (str(time.time_ns()) + ".json"),
+               {"date_utc": data.get("date_utc"), "selected": selected,
+                "latest_verified": data["latest_verified"], "manifest_sha256": sha(manifest_file),
+                "products": products})
+    for ident, checked in products["identities"].items():
+        data["entrants"][ident].update(product_identity=checked, product_helper_sha256=products["helper_sha256"])
+    annotations = {s["id"]: {"reviewer": "", "navigation_verified": False, "settings_verified": False,
+                   "visible_total": None, "verified": None, "first": None, "ready": None}
+                   for s in trial_specs(plan)}
+    if not (root / "annotations.json").exists():
+        write_json(root / "annotations.json", annotations)
+    for spec in trial_specs(plan):
+        if spec["entrant"] not in selected:
+            continue
+        if (root / "trials" / spec["id"] / "trial.json").is_file():
+            continue
+        if plan["before_trial"]:
+            command(plan["before_trial"], timeout=120)
+        run_trial(root, plan, spec, native, data["entrants"])
+
+
+def bounds(trial, pair):
+    require(isinstance(pair, list) and len(pair) == 2, "bounds need [last_absent, first_present]")
+    a, b = pair
+    require(type(a) is int and type(b) is int and b == a + 1 and -1 <= a < b < len(trial["frames"]),
+            "capture bounds must reference adjacent frames, -1 is the pre-navigation baseline")
+    first = trial["baseline"] if a == -1 else trial["frames"][a]
+    last = trial["frames"][b]
+    return [max(0, first["start_s"] - trial["navigation_span_s"]), max(0, last["end_s"])]
+
+
+def judge(trial, annotation):
+    require(isinstance(annotation["reviewer"], str) and annotation["reviewer"].strip() and annotation["navigation_verified"] is True and
+            annotation["settings_verified"] is True, "visual/navigation/settings review is missing")
+    workload = trial["workload"]
+    samples = [s for s in trial["samples"] if s[0] >= 0]
+    require(samples and all(all(math.isfinite(x) for x in s) and s[2] >= 0 for s in trial["samples"]), "no valid memory samples")
+    require(all(b[0] > a[0] and b[1] >= a[1] for a, b in zip(samples, samples[1:])), "CPU sample clock/counter regressed")
+    result = {"peak_mib": max(s[2] for s in trial["samples"])}
+    if workload in CPU:
+        result["quiet"] = quiet_result(samples, trial["ended_s"])
+        require(result["quiet"] is not None, "CPU follow-up is incomplete")
+    if workload not in ("large-folder", "cpu-entries"):
+        total = annotation["visible_total"]
+        verified = annotation["verified"]
+        require(type(total) is int and total > 0 and type(verified) is int and 0 <= verified <= total,
+                "coverage must be a verified integer count")
+        if workload in FORMATS:
+            require(total == 12, "all 12 files must be fully visible")
+        elif workload.startswith("cpu-"):
+            require(total <= 100, "CPU viewport count exceeds its fixture")
+        else:
+            require(total <= 2000, "JPEG viewport count exceeds its fixture")
+        result["coverage"] = [verified, total]
+        if workload not in CPU:
+            require((annotation["first"] is not None) == (verified > 0), "first capture and coverage disagree")
+            require((annotation["ready"] is not None) == (verified == total), "ready capture and coverage disagree")
+            result["first_s"] = bounds(trial, annotation["first"]) if verified else None
+            result["ready_s"] = bounds(trial, annotation["ready"]) if verified == total else None
+            if result["ready_s"] and result["first_s"]:
+                require(annotation["first"][1] <= annotation["ready"][1], "ready precedes first thumbnail")
+    elif workload == "large-folder":
+        result["ready_s"] = bounds(trial, annotation["ready"]) if annotation["ready"] is not None else None
+    return result
+
+
+def summarize(values):
+    require(values, "cannot summarize no values")
+    if isinstance(values[0], list):
+        low = statistics.median(v[0] for v in values)
+        high = statistics.median(v[1] for v in values)
+        return {"lower": low, "upper": high, "midpoint": (low + high) / 2,
+                "observed_lower": min(v[0] for v in values), "observed_upper": max(v[1] for v in values)}
+    return {"median": statistics.median(values), "min": min(values), "max": max(values)}
+
+
+def ranked(rows):
+    scores = sorted(set(r["score"] for r in rows if r["score"] is not None))
+    for row in rows:
+        row["rank"] = scores.index(row["score"]) + 1 if row["score"] is not None else None
+    return rows
+
+
+def report(root):
+    plan = read_plan(root)
+    manifest_data = json.loads((root / "manifest.json").read_text())
+    require(manifest_data["plan"] == plan and manifest_data["harness_sha256"] == sha(__file__), "plan/harness changed after capture")
+    require(manifest_data["fixture_manifest_sha256"] == sha(root / "fixtures.json"), "fixture manifest changed")
+    annotations = json.loads((root / "annotations.json").read_text())
+    groups, pending = {}, []
+    for spec in trial_specs(plan):
+        path = root / "trials" / spec["id"] / "trial.json"
+        try:
+            trial = json.loads(path.read_text())
+            require(all(trial[k] == spec[k] for k in spec), "trial identity differs")
+            item = manifest_data["entrants"][spec["entrant"]]
+            product = trial["product_identity"]
+            require(trial["product_helper_sha256"] == manifest_data["product_helper_sha256"], "stale shared product adapter")
+            require(product["binary"] == item["binary"] and product["sha256"] == item["sha256"] and
+                    product["version"] == item["version"].splitlines()[0], "shared product identity differs")
+            require(isinstance(trial["argv"], list) and trial["argv"][:3] == ["dbus-run-session", "--", item["binary"]],
+                    "trial launched the wrong product")
+            if spec["entrant"] == "flea":
+                require(product.get("frontend") == "gpui" and product.get("gui_sha256") == item["gui"]["sha256"],
+                        "shared GPUI companion differs")
+            if item["attestation"].get("archive"):
+                require(product.get("archive") == item["attestation"]["archive"] and
+                        product.get("rival_manifest", {}).get("sha256") == plan["rival_inventory"]["sha256"],
+                        "shared archive receipt differs")
+            evidence = {f["file"]: f.get("sha256") for f in [trial["baseline"], *trial["frames"]]}
+            for filename, digest in evidence.items():
+                require(Path(filename).parts[:1] == ("frames",) and len(Path(filename).parts) == 2,
+                        "capture evidence path must be inside frames/")
+                require(digest and sha(path.parent / filename) == digest, "capture evidence missing or changed")
+            result = judge(trial, annotations[spec["id"]])
+            groups.setdefault((spec["entrant"], spec["workload"]), []).append(result)
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            pending.append({"trial": spec["id"], "reason": str(e)})
+    columns = []
+    for workload in (*VISUAL, *CPU):
+        metrics = ("quiet_s",) if workload in CPU else (("ready_s", "peak_mib") if workload == "large-folder" else ("first_s", "ready_s", "peak_mib"))
+        for metric in metrics:
+            rows = []
+            for ident in IDS:
+                values = groups.get((ident, workload), [])
+                complete = len(values) == plan["runs"]
+                numbers = [r["quiet"]["seconds"] if metric == "quiet_s" else r.get(metric) for r in values]
+                numeric = complete and all(n is not None for n in numbers)
+                stats = summarize(numbers) if numeric else None
+                coverage = [v["coverage"] for v in values if "coverage" in v]
+                row = {"entrant": ident, "workload": workload, "metric": metric, "runs": len(values),
+                       "statistics": stats, "score": (stats.get("midpoint", stats.get("median")) if stats else None),
+                       "coverage": coverage, "rebound_runs": sum(v.get("quiet", {}).get("rebound", False) for v in values),
+                       "status": "complete" if numeric else ("pending" if not complete else
+                                 (">60 s (timeout)" if metric == "quiet_s" else
+                                  "; ".join("%d/%d verified" % tuple(v) for v in coverage) or "not visually settled before timeout")),
+                       "incomplete_previews": any(a < b for a, b in coverage)}
+                rows.append(row)
+            columns.extend(ranked(rows))
+    require(len(columns) == 33 * len(IDS), "measure count is not 33 per entrant")
+    losses = []
+    for row in columns:
+        if row["entrant"] != "flea":
+            continue
+        peers = [r for r in columns if r["workload"] == row["workload"] and r["metric"] == row["metric"] and r["entrant"] != "flea"]
+        strict = row["score"] is not None and not row["incomplete_previews"] and all(
+            p["status"] != "pending" and (p["score"] is None or row["score"] < p["score"]) for p in peers)
+        if not strict:
+            losses.append({"workload": row["workload"], "metric": row["metric"], "status": row["status"],
+                           "rank": row["rank"], "cause": "pending native evidence" if pending else "measured score/coverage does not beat every rival"})
+    write_json(root / "results.json", {"method": METHOD, "manifest": "manifest.json", "measures_per_entrant": 33,
+               "gate_scope": "historical-b1", "release_scope_complete": False,
+               "entrants": manifest_data.get("entrants"), "product_helper_sha256": manifest_data.get("product_helper_sha256"),
+               "raw_corpus": manifest_data.get("raw_corpus"),
+               "pending": pending, "rows": columns, "flea_not_first": losses,
+               "phase": manifest_data.get("phase"),
+               "gate_passed": not pending and not losses and manifest_data.get("latest_verified", False)}, replace=True)
+    csv_path = root / (".results.csv." + str(time.time_ns()))
+    with csv_path.open("x", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=("entrant", "workload", "metric", "runs", "status", "rank",
+                               "lower", "upper", "median", "min", "max", "observed_lower", "observed_upper", "coverage", "rebound_runs"))
+        writer.writeheader()
+        for row in columns:
+            record = {k: row[k] for k in ("entrant", "workload", "metric", "runs", "status", "rank", "rebound_runs")}
+            record.update(row["statistics"] or {})
+            record.pop("midpoint", None)
+            record["coverage"] = "; ".join("%d/%d verified" % tuple(v) for v in row["coverage"])
+            writer.writerow(record)
+    csv_path.replace(root / "results.csv")
+    print("report: %d pending trials; %d of 33 Flea measures not proven strictly first" % (len(pending), len(losses)))
+    return 2 if pending else (1 if losses or not manifest_data.get("latest_verified", False) else 0)
+
+
+def selftest(root):
+    trial = {"baseline": {"start_s": -0.2, "end_s": -0.1}, "navigation_span_s": 0.01,
+             "frames": [{"start_s": 0.1, "end_s": 0.15}, {"start_s": 0.35, "end_s": 0.4}]}
+    require(bounds(trial, [-1, 0]) == [0, 0.15], "first-capture bound")
+    require(bounds(trial, [0, 1]) == [0.09000000000000001, 0.4], "capture/input uncertainty")
+    for pair in ([0, 0], [-1, 1], [1, 2], [True, 2]):
+        try:
+            bounds(trial, pair)
+        except ValueError:
+            continue
+        raise ValueError("invalid capture bounds accepted")
+    quiet = [(i / 20, 0.01 * i / 20, 20) for i in range(81)]
+    result = quiet_result(quiet, 4)
+    require(result["seconds"] == 0 and not result["rebound"], "quiet window onset/confirmation")
+    rebound = [(t, c + (0.2 if t >= 2 else 0), m) for t, c, m in quiet]
+    require(quiet_result(rebound, 4)["rebound"], "CPU rebound follow-up")
+    require(quiet_result(quiet[:30], 1.5) is None, "unfinished follow-up accepted")
+    busy = [(i / 20, i / 20, 20) for i in range(1261)]
+    require(quiet_result(busy, 63)["timeout"], "60-second timeout")
+    require(summarize([[0, 2], [2, 4], [1, 3]])["midpoint"] == 2, "median endpoint ranking")
+    ranks = ranked([{"score": None}, {"score": 3}, {"score": 1}, {"score": 1}])
+    require([r["rank"] for r in ranks] == [None, 2, 1, 1], "missing or tied midpoint ranking")
+    trial.update(workload="raw", samples=[(0, 0, 10), (1, 0.1, 30)])
+    annotation = {"reviewer": "selftest", "navigation_verified": True, "settings_verified": True,
+                  "visible_total": 12, "verified": 11, "first": [-1, 0], "ready": None}
+    result = judge(trial, annotation)
+    require(result["ready_s"] is None and result["peak_mib"] == 30, "11/12 turned into completion or memory is not peak")
+    annotation["ready"] = [0, 1]
+    try:
+        judge(trial, annotation)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("incomplete RAW completion accepted")
+    write_json(root / "selftest.json", {"passed": True, "contracts": ["adjacent bounds", "navigation uncertainty",
+               "median endpoints", "midpoint ties", "sampled charged memory", "RAW incomplete", "CPU quiet", "rebound", "timeout"]}, replace=True)
+    print("strata-bench: capture bounds, peak memory, coverage, quiet/rebound/timeout and midpoint ranking passed")
+
+
+class Parser(argparse.ArgumentParser):
+    # Exit 2 would read as a result; a usage error is a harness error, exit 3.
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        print("strata-bench: usage error: " + message, file=sys.stderr)
+        sys.exit(3)
+
+
+def main():
+    parser = Parser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("action", choices=("init", "fixtures", "dry-run", "run", "report", "selftest"))
+    parser.add_argument("root")
+    parser.add_argument("--flea-bin", default=str(REPO / "target/release/flea"))
+    parser.add_argument("--anchor-bin", default="/usr/bin/flea")
+    parser.add_argument("--strata-stable", default="/home/flea-sandbox/strata-stable/strata")
+    parser.add_argument("--strata-nightly", default="/home/flea-sandbox/strata-nightly/strata")
+    parser.add_argument("--strata-nightly-channel", default="/home/flea-sandbox/strata-nightly-channel/strata")
+    parser.add_argument("--rival-manifest", help="verified package/archive inventory JSON to pin at init")
+    parser.add_argument("--raw-corpus", help="verified real RAW corpus parent containing twelve/ and hundred/")
+    parser.add_argument("--only", help="comma-separated entrant IDs for a bounded capture")
+    parser.add_argument("--installed", action="store_true", help="record installed versions; never pass the latest-version gate")
+    args = parser.parse_args()
+    root = root_path(args.root)
+    if args.action == "init":
+        init(root, args)
+    elif args.action == "run":
+        run(root, args.only, args.installed, args.raw_corpus)
+    elif args.action == "fixtures":
+        fixtures(root, args.raw_corpus)
+    else:
+        result = {"dry-run": dry_run,
+                  "report": report, "selftest": selftest}[args.action](root)
+        return result or 0
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, KeyError, ImportError, subprocess.SubprocessError) as error:
+        print("strata-bench: " + str(error), file=sys.stderr)
+        sys.exit(3)
+    except Exception:
+        # Exit 1 reads as a Flea loss, so a harness bug keeps its traceback and exits 3, never a result.
+        traceback.print_exc()
+        print("strata-bench: harness error, not a result", file=sys.stderr)
+        sys.exit(3)

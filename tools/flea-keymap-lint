@@ -1,0 +1,443 @@
+#!/usr/bin/python3
+"""Lint Flea's keys.toml, and check proposed new keys against every preset.
+
+Usage:
+  /usr/bin/python3 tools/flea-keymap-lint <keys.toml> --baseline <shipped keys.toml> [--proposed "F5,ctrl-r,T,preview:w"]
+                                  [--proposed-file FILE] [--new-contexts "search"]
+
+Layers mirror tools/flea-keymap-gen: the shared tables (ctrl, ctrlshift, shift, code, text) apply to the listing
+and the rail in every preset; [[preset]] rows belong to one preset or to "all"; [digits] is the TUI's tab row.
+A preset's own row, then an "all" row, then a shared row answers a key, so a later layer is an override, not a
+duplicate; only a row the release added is held to one (added-bound).
+
+Findings:
+  duplicate          two rows of one layer claim the same chord in overlapping contexts and front ends
+  super-chord        a proposed Super chord; Super belongs to Hyprland (Omarchy binds it)
+  alt-chord          a proposed Alt chord; GNOME HIG keeps Alt for menus and the window manager
+  modifier-special   a proposed modifier plus Esc, Enter, Return, Tab or Space (WAI-ARIA keyboard guide); shift-tab
+                     is exempt as the platform's reverse focus step
+  proposed-bound     a proposed key some preset already binds; a sequence such as gt claims its first key, which
+                     Flea binds to the sequence's arm action (keys.toml key = "g", keys = "gg")
+  proposed-twice     two proposed keys claim the same chord in overlapping contexts
+  added-bound        a row the baseline lacks binds a chord another live row binds to another action in an
+                     overlapping context and front end, so it silently overrides or is overridden; two rows are
+                     live together unless they sit in two different named presets, which never load at once
+The same three chord rules run over the file's own rows too. A row the --baseline file (the last shipped keys.toml)
+does not have was added by this release, so its hit is a finding; a shipped row's hit is listed under "shipped_info"
+and never sets the exit code.
+Severity is major when the row reaches the default user (shared, "all", [digits] or "default"), minor in the opt-in
+vim, mac and windows presets. The three collision rules (proposed-bound,
+proposed-twice, added-bound) are blocking in every layer, since the key they shadow stops working.
+Proposed keys are spelled the keys.toml way: "t", "T", "F5", "ctrl-r", "ctrl-shift-k", "alt-enter", "gt", and a
+comma as "comma" ("ctrl-comma", or "comma" alone) because the list is comma separated; an empty entry is an error.
+Shift plus a letter is that capital typed, since a text row takes the key with Shift held, so "shift-t" and "T"
+are one chord; a character Shift types from a digit or a symbol is spelled as itself ("?", not "shift-/"), and a
+key name the lint does not know is an error, never an unbound chord.
+A key that lives in one context names it first, "preview:r"; a bare key is checked in every context. A context
+the release adds, which no keys.toml row uses yet, is named in --new-contexts; any other unknown context is an error.
+A key may end with its action, "preview:r=renderToggle": a row binding that key to that same action is the proposal
+itself once it has landed, so it is no collision, and every other rule still applies to the proposal.
+Prints JSON; exit 0 clean, 1 findings, 2 usage or input error.
+"""
+import argparse
+import json
+import re
+import sys
+
+EXIT_CLEAN, EXIT_FINDINGS, EXIT_USAGE = 0, 1, 2
+SHARED_TABLES = [("ctrlshift", "key", "ctrlshift"), ("ctrl", "key", "ctrl"), ("shift", "key", "shift"),
+                 ("code", "key", "none"), ("text", "char", "text")]
+SHARED_CONTEXTS = {"listing", "rail"}
+DEFAULT_LAYERS = {"shared", "all", "default", "digits"}
+SPECIAL_KEYS = {"escape", "return", "enter", "tab", "backtab", "space"}
+MODIFIER_WORDS = {"ctrl": "ctrl", "control": "ctrl", "shift": "shift", "alt": "alt", "super": "super",
+                  "cmd": "super", "meta": "super", "win": "super"}
+# The order keys.toml writes a combined modifier in: ctrlshift, superalt, supershift.
+MOD_ORDER = ["super", "ctrl", "alt", "shift"]
+NAMED_KEYS = {"esc": "escape", "escape": "escape", "enter": "enter", "return": "return", "tab": "tab",
+              "backtab": "backtab", "space": "space", "backspace": "backspace", "delete": "delete",
+              "del": "delete", "insert": "insert", "ins": "insert", "home": "home", "end": "end",
+              "pageup": "pageup", "pgup": "pageup", "pagedown": "pagedown", "pgdn": "pagedown", "up": "up",
+              "down": "down", "left": "left", "right": "right", "menu": "menu"}
+PUNCTUATION = {",": "comma", ".": "period", "-": "minus", "=": "equal", "+": "plus", "/": "slash",
+               "[": "bracketleft", "]": "bracketright", ">": "greater", "_": "underscore"}
+PUNCTUATION_WORDS = {word: char for char, word in PUNCTUATION.items()}
+RE_STRING = re.compile(r'"(?:[^"\\]|\\.)*"')
+
+
+def fail(message):
+    print(json.dumps({"error": message}))
+    sys.exit(EXIT_USAGE)
+
+
+def strip_comment(line):
+    """Drop a # comment that sits outside a quoted string; a backslash in a "..." string escapes the next character."""
+    # Sample input: char = "\"#"   # an escaped quote and a hash inside quotes are the key, this hash starts a comment
+    quote, escaped = None, False
+    for i, ch in enumerate(line):
+        if escaped:
+            escaped = False
+        elif quote == '"' and ch == "\\":
+            escaped = True
+        elif quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "#":
+            return line[:i]
+    return line
+
+
+def parse_value(text, where):
+    text = text.strip()
+    # Sample input: "ctrl-1"   or   9   or   ["cursorDown", "cursorUp"]
+    try:
+        if text.startswith('"') and text.endswith('"'):
+            return json.loads(text)
+        if text.startswith("[") and set(RE_STRING.sub("", text)) <= set("[], \t"):
+            return [json.loads(s) for s in RE_STRING.findall(text)]
+    except ValueError as err:
+        fail("%s: cannot read the value %s: %s" % (where, text, err))
+    if re.fullmatch(r"-?\d+", text):
+        return int(text)
+    if text in ("true", "false"):
+        return text == "true"
+    fail("%s: cannot read the value %s" % (where, text))
+
+
+# tomllib drops line numbers, and every finding reports the keys.toml line.
+def parse_toml(path):
+    """The subset keys.toml uses: [[array-tables]], [tables], key = value, multi-line string arrays."""
+    try:
+        lines = open(path, encoding="utf-8").read().split("\n")
+    except (OSError, UnicodeDecodeError) as err:
+        fail("cannot read %s: %s" % (path, err))
+    tables, current, pending, pending_line = {}, None, None, 0
+    # Sample input: [[preset]] then name = "mac" then move = ["cursorDown", "cursorUp", with "open"] on the next line
+    for number, raw in enumerate(lines, 1):
+        line = strip_comment(raw).strip()
+        if pending is not None:
+            pending[1] += " " + line
+            if pending[1].count("[") <= pending[1].count("]"):
+                current[pending[0]] = parse_value(pending[1], "%s line %d" % (path, pending_line))
+                pending = None
+            continue
+        if not line:
+            continue
+        header = re.fullmatch(r"\[\[(\w+)\]\]", line)
+        if header:
+            current = {"_line": number}
+            if not isinstance(tables.setdefault(header.group(1), []), list):
+                fail("%s line %d: [[%s]] after a [%s] table of that name" % (path, number, header.group(1), header.group(1)))
+            tables[header.group(1)].append(current)
+            continue
+        header = re.fullmatch(r"\[(\w+)\]", line)
+        if header:
+            current = {"_line": number}
+            if header.group(1) in tables:
+                fail("%s line %d: [%s] is defined a second time" % (path, number, header.group(1)))
+            tables[header.group(1)] = current
+            continue
+        pair = re.fullmatch(r"(\w+)\s*=\s*(.+)", line)
+        if not pair or current is None:
+            fail("%s line %d: not a table header or key = value: %s" % (path, number, raw))
+        key, value = pair.group(1), pair.group(2)
+        if key in current:
+            fail("%s line %d: %s is set a second time in this table" % (path, number, key))
+        if value.startswith("[") and value.count("[") > value.count("]"):
+            pending, pending_line = [key, value], number
+            continue
+        current[key] = parse_value(value, "%s line %d" % (path, number))
+    if pending is not None:
+        fail("%s line %d: the array %s opens here and is never closed" % (path, pending_line, pending[0]))
+    return tables
+
+
+def chord_of(mods, key):
+    """A comparable chord: text keeps its case and codes do not; Shift plus a letter is the capital a text row takes."""
+    if mods == "shift" and len(key) == 1 and key.isascii() and key.isalpha():
+        return ("text", key.upper())
+    return (mods, key if mods == "text" else key.lower())
+
+
+def spelled(mods, key):
+    """A shared row in the keys.toml spelling: ('ctrlshift', 'N') -> 'ctrl-shift-n'."""
+    prefix = {"ctrl": "ctrl-", "ctrlshift": "ctrl-shift-", "shift": "shift-"}.get(mods, "")
+    return key if mods == "text" else prefix + key.lower()
+
+
+def bindings(tables, path):
+    rows = []
+    for table in [t for t, _, _ in SHARED_TABLES] + ["preset"]:
+        if not isinstance(tables.get(table, []), list):
+            fail("%s line %d: %s must be [[%s]] rows, not a [%s] table" % (path, tables[table]["_line"], table, table, table))
+    for table, field, mods in SHARED_TABLES:
+        for row in tables.get(table, []):
+            if field not in row or "action" not in row:
+                fail("%s line %d: a [[%s]] row needs %s and action" % (path, row["_line"], table, field))
+            for check in (field, "action", "keys"):
+                if check in row and not isinstance(row[check], str):
+                    fail("%s line %d: a [[%s]] row's %s must be a string" % (path, row["_line"], table, check))
+            rows.append({"layer": "shared", "table": table, "mods": mods, "key": row[field],
+                         "keys": row.get("keys", spelled(mods, row[field])), "action": row["action"],
+                         "contexts": set(SHARED_CONTEXTS), "frontend": "all", "line": row["_line"]})
+    for row in tables.get("preset", []):
+        for check in ("name", "mods", "key", "action", "context", "frontend", "keys"):
+            if check in row and not isinstance(row[check], str):
+                fail("%s line %d: a [[%s]] row's %s must be a string" % (path, row["_line"], "preset", check))
+        missing = [k for k in ("name", "mods", "key", "action") if k not in row]
+        if missing:
+            fail("%s line %d: a [[preset]] row lacks %s" % (path, row["_line"], ", ".join(missing)))
+        rows.append({"layer": row["name"], "table": "preset", "mods": row["mods"], "key": row["key"],
+                     "keys": row.get("keys", row["key"]), "action": row["action"],
+                     "contexts": set(row.get("context", "listing").split(",")),
+                     "frontend": row.get("frontend", "all"), "line": row["_line"]})
+    digits = tables.get("digits")
+    if digits is not None:
+        if not isinstance(digits, dict):
+            fail("%s line %d: digits must be one [digits] table" % (path, digits[0]["_line"]))
+        if not all(type(digits.get(k)) is int for k in ("from", "to")):
+            fail("%s line %d: [digits] needs whole-number from and to" % (path, digits["_line"]))
+        for n in range(digits["from"], digits["to"] + 1):
+            rows.append({"layer": "digits", "table": "digits", "mods": "text", "key": str(n), "keys": str(n),
+                         "action": "%s%d" % (digits.get("prefix", "digit"), n), "contexts": {"listing"},
+                         "frontend": "tui", "line": digits["_line"]})
+    return rows
+
+
+def frontends_meet(a, b):
+    return a == b or "all" in (a, b)
+
+
+def severity(row):
+    return "major" if row["layer"] in DEFAULT_LAYERS else "minor"
+
+
+def chord_problem(mods, key):
+    """The chord rule a modifier set and key break, as (rule, detail), or None."""
+    if "super" in mods:
+        return "super-chord", "Super belongs to Hyprland; prefer Ctrl+letter (GNOME HIG)"
+    if "alt" in mods:
+        return "alt-chord", "Alt drives menus and the compositor; prefer Ctrl+letter (GNOME HIG)"
+    reverse_focus = mods == "shift" and key.lower() in ("tab", "backtab")
+    if mods not in ("text", "none") and key.lower() in SPECIAL_KEYS and not reverse_focus:
+        return "modifier-special", ("a modifier plus %s is hard to discover and collides with focus and "
+                                    "activation keys (WAI-ARIA)" % key)
+    return None
+
+
+def row_identity(row):
+    """What makes two rows the same binding across two keys.toml files; the line number is left out."""
+    return (row["layer"], chord_of(row["mods"], row["key"]), row["keys"], row["action"],
+            frozenset(row["contexts"]), row["frontend"])
+
+
+def presets_meet(a, b):
+    """Two layers are live together unless they are two different named presets, which never load at once."""
+    return a == b or a in DEFAULT_LAYERS - {"default"} or b in DEFAULT_LAYERS - {"default"}
+
+
+def check_added(rows, shipped_ids):
+    """added-bound findings: every row this release added meets every other row on its chord, as a proposal does."""
+    findings = []
+    for a in rows:
+        if row_identity(a) in shipped_ids:
+            continue
+        for b in rows:
+            if b is a or a["action"] == b["action"] or not a["contexts"] & b["contexts"]:
+                continue
+            same = chord_of(a["mods"], a["key"]) == chord_of(b["mods"], b["key"])
+            if same and frontends_meet(a["frontend"], b["frontend"]) and presets_meet(a["layer"], b["layer"]):
+                findings.append({"rule": "added-bound", "severity": "blocking", "preset": a["layer"], "keys": a["keys"],
+                                 "action": a["action"], "context": ",".join(sorted(a["contexts"])),
+                                 "frontend": a["frontend"], "line": a["line"],
+                                 "detail": "added since the baseline; %s line %d binds %s to %s"
+                                           % (b["layer"], b["line"], b["keys"], b["action"])})
+    return findings
+
+
+def lint_rows(rows, shipped_ids):
+    """(findings, shipped_info): duplicates are always findings; a chord-rule hit is a finding on an added row and information on a shipped row."""
+    findings, shipped = [], []
+
+    def add(rule, row, detail, into=findings):
+        into.append({"rule": rule, "severity": severity(row), "preset": row["layer"], "keys": row["keys"],
+                         "action": row["action"], "context": ",".join(sorted(row["contexts"])),
+                         "frontend": row["frontend"], "line": row["line"], "detail": detail})
+
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            if a["layer"] != b["layer"] or chord_of(a["mods"], a["key"]) != chord_of(b["mods"], b["key"]):
+                continue
+            if a["contexts"] & b["contexts"] and frontends_meet(a["frontend"], b["frontend"]):
+                add("duplicate", b, "line %d already binds %s to %s" % (a["line"], a["keys"], a["action"]))
+    for row in rows:
+        problem = chord_problem(row["mods"], row["key"])
+        if problem and row_identity(row) in shipped_ids:
+            add(problem[0], row, problem[1], into=shipped)
+        elif problem:
+            add(problem[0], row, problem[1] + "; added since the baseline")
+    return findings, shipped
+
+
+def key_code(key):
+    """The keys.toml code a key spelling names, lowercased, or None: 'F5' -> 'f5', 'pgdn' -> 'pagedown', '-' -> 'minus'."""
+    lower = key.lower()
+    if lower in NAMED_KEYS:
+        return NAMED_KEYS[lower]
+    if re.fullmatch(r"f\d{1,2}", lower) or lower in PUNCTUATION_WORDS:
+        return lower
+    if key in PUNCTUATION:
+        return PUNCTUATION[key]
+    if len(key) == 1 and key.isascii() and key.isalnum():
+        return lower
+    return None
+
+
+def parse_proposed(spelling):
+    """'ctrl-shift-k' -> [('ctrlshift', 'k')]; 'shift-t' and 'T' -> [('text', 'T')]; 'gt' claims its g; None when unreadable."""
+    s = spelling.strip()
+    # Sample input: ctrl-shift-k   or   F5   or   T   or   ctrl--   or   comma   or   gt
+    mods, rest = set(), s
+    while True:
+        m = re.match(r"([A-Za-z]+)-(.+)$", rest)
+        if not m or m.group(1).lower() not in MODIFIER_WORDS:
+            break
+        mods.add(MODIFIER_WORDS[m.group(1).lower()])
+        rest = m.group(2)
+    key = rest
+    if not key:
+        return None
+    if not mods:
+        if len(key) == 1 or key.lower() in PUNCTUATION_WORDS:
+            return {"chords": [("text", PUNCTUATION_WORDS.get(key.lower(), key))], "sequence": None}
+        code = key_code(key)
+        if code:
+            codes = ["enter", "return"] if code in ("enter", "return") else [code]
+            return {"chords": [("none", c) for c in codes], "sequence": None}
+        # A two-key sequence such as gt claims its first key.
+        if not re.fullmatch(r"[A-Za-z0-9]{2}", key):
+            return None
+        return {"chords": [("text", key[0])], "sequence": key}
+    code = key_code(key)
+    # Shift turns a digit or a symbol into another character, which keys.toml binds as that text ("?", not shift-/).
+    if code is None or (mods == {"shift"} and (code in PUNCTUATION_WORDS or code.isdigit())):
+        return None
+    word = "".join(m for m in MOD_ORDER if m in mods)
+    codes = ["enter", "return"] if code in ("enter", "return") else [code]
+    return {"chords": [chord_of(word, c) for c in codes], "sequence": None}
+
+
+def split_context(spelling, known):
+    """'preview:r' -> ({'preview'}, 'r'); a bare key is checked in every context keys.toml names."""
+    # Sample input: preview:r   or   listing:+   or   ctrl-r   or   :
+    context, colon, key = spelling.strip().partition(":")
+    if not colon or not context.isalpha() or not key:
+        return set(known), spelling.strip()
+    if context not in known:
+        fail("the proposed key %r names context %r; keys.toml and --new-contexts give %s"
+             % (spelling, context, ", ".join(sorted(known))))
+    return {context}, key
+
+
+def split_action(key):
+    """'r=renderToggle' -> ('r', 'renderToggle'); '=' and 'ctrl-=' are keys with no action."""
+    # Sample input: r=renderToggle   or   ==zoomReset   or   ctrl-=   or   gt
+    head, equals, tail = key.rpartition("=")
+    if equals and head and re.fullmatch(r"[A-Za-z]\w*", tail):
+        return head, tail
+    return key, ""
+
+
+def same_claim(a, b):
+    """Two proposals meet when they claim one chord, unless both name the same action for the same chords."""
+    if a["action"] and a["action"] == b["action"] and a["chords"] == b["chords"]:
+        return False
+    return bool(a["chords"] & b["chords"])
+
+
+def check_proposed(spellings, rows, new_contexts):
+    known = set().union(*(row["contexts"] for row in rows)) | new_contexts
+    out, earlier = [], []
+    for spelling in spellings:
+        contexts, key = split_context(spelling, known)
+        key, action = split_action(key)
+        parsed = parse_proposed(key)
+        if parsed is None:
+            fail("cannot read the proposed key %r; a key name must be one the lint knows, and a character Shift types "
+                 "from a digit or a symbol is spelled as itself (? not shift-/)" % spelling)
+        wanted = set(parsed["chords"])
+        # A row binding the key to the proposal's own action is the proposal once it has landed.
+        hits = [row for row in rows if row["contexts"] & contexts and chord_of(row["mods"], row["key"]) in wanted
+                and not (action and row["action"] == action)]
+        this = {"spelling": spelling, "contexts": contexts, "chords": wanted, "action": action}
+        twice = [e["spelling"] for e in earlier if e["contexts"] & contexts and same_claim(e, this)]
+        earlier.append(this)
+        out.append({"proposed": spelling, "context": ",".join(sorted(contexts)), "action": action, "chords": parsed["chords"],
+                    "sequence": parsed["sequence"], "free": not hits, "twice": twice,
+                    "bound": [{"preset": h["layer"], "keys": h["keys"], "action": h["action"],
+                               "context": ",".join(sorted(h["contexts"])), "frontend": h["frontend"],
+                               "line": h["line"]} for h in hits]})
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("keys_toml")
+    ap.add_argument("--baseline", required=True)
+    ap.add_argument("--proposed", default="")
+    ap.add_argument("--proposed-file")
+    ap.add_argument("--new-contexts", default="")
+    args = ap.parse_args()
+    tables = parse_toml(args.keys_toml)
+    if not tables.get("preset"):
+        fail("%s has no [[preset]] rows; is it Flea's keys.toml?" % args.keys_toml)
+    rows = bindings(tables, args.keys_toml)
+    base_tables = parse_toml(args.baseline)
+    if not base_tables.get("preset"):
+        fail("%s has no [[preset]] rows; is it the shipped keys.toml?" % args.baseline)
+    shipped_ids = {row_identity(r) for r in bindings(base_tables, args.baseline)}
+    findings, shipped = lint_rows(rows, shipped_ids)
+    findings += check_added(rows, shipped_ids)
+
+    spellings = args.proposed.split(",") if args.proposed.strip() else []
+    if any(not s.strip() for s in spellings):
+        fail("--proposed %r has an empty entry; a comma key is spelled comma" % args.proposed)
+    if args.proposed_file:
+        try:
+            spellings += [l.strip() for l in open(args.proposed_file, encoding="utf-8") if l.strip()]
+        except (OSError, UnicodeDecodeError) as err:
+            fail("cannot read %s: %s" % (args.proposed_file, err))
+    new_contexts = {c.strip() for c in args.new_contexts.split(",") if c.strip()}
+    proposed = check_proposed(spellings, rows, new_contexts)
+    for p in proposed:
+        for mods, key in p["chords"]:
+            problem = chord_problem(mods, key)
+            if problem:
+                findings.append({"rule": problem[0], "severity": "major", "preset": "", "keys": p["proposed"],
+                                 "action": "", "context": p["context"], "frontend": "", "line": 0,
+                                 "detail": problem[1]})
+                break
+        if p["twice"]:
+            findings.append({"rule": "proposed-twice", "severity": "blocking", "preset": "", "keys": p["proposed"],
+                             "action": "", "context": p["context"], "frontend": "", "line": 0,
+                             "detail": "already proposed as %s in an overlapping context" % ", ".join(p["twice"])})
+        if not p["free"]:
+            findings.append({"rule": "proposed-bound", "severity": "blocking", "preset": "",
+                             "keys": p["proposed"], "action": "", "context": p["context"], "frontend": "", "line": 0,
+                             "detail": "; ".join("%s %s -> %s (%s, %s)" % (b["preset"], b["keys"], b["action"],
+                                                                          b["context"], b["frontend"])
+                                                 for b in p["bound"])})
+    counts = {}
+    for f in findings:
+        counts[f["rule"]] = counts.get(f["rule"], 0) + 1
+    report = {"file": args.keys_toml, "bindings": len(rows),
+              "presets": sorted({r["layer"] for r in rows}), "total": len(findings), "counts": counts,
+              "findings": findings, "proposed": proposed, "shipped_info": shipped}
+    print(json.dumps(report, indent=1))
+    sys.exit(EXIT_FINDINGS if findings else EXIT_CLEAN)
+
+
+if __name__ == "__main__":
+    main()

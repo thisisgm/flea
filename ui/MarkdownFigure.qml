@@ -1,6 +1,8 @@
 import QtQuick
 
 // One rendered figure: the helper's SVG at its aspect ratio within the pane width, or fenced source when rendering fails.
+import "js/FigureDate.js" as FigureDate
+
 Item {
     id: root
 
@@ -91,7 +93,8 @@ Item {
             root.lastRequest = "";
             return;
         }
-        var theme = root.hexTheme();
+        // A Gantt chart is asked for today, so its key, its stored entry and its drawing name one day.
+        var theme = FigureDate.datedTheme(root.kind, root.source, root.hexTheme());
         var request = JSON.stringify([root.kind, root.source, root.display, theme]);
         if (request === root.lastRequest)
             return;
@@ -129,7 +132,7 @@ Item {
     function takeRemembered() {
         if (!root.askArmed || root.source === "" || !root.inView)
             return false;
-        var theme = root.hexTheme();
+        var theme = FigureDate.datedTheme(root.kind, root.source, root.hexTheme());
         var hit = FigureService.cached(root.kind, root.source, theme, root.display);
         if (hit === undefined)
             return false;

@@ -1,0 +1,619 @@
+{
+  "schema": 1,
+  "source": "Flea 0.4.0 approved design-hig TUI references, 2026-10-18",
+  "archive_sha256": "51dda6d5cac3c53b671c0b13db7aaf3eeeecd6ec992e4b6726e39b4c11d50930",
+  "files": {
+    "boards/tui-3d-chafa.html": {
+      "sha256": "03c6f88aa57a16cd4b33e412417abe5b4770f73c26ce50722162832a954c2689",
+      "size": 264264
+    },
+    "boards/tui-3d-chafa.png": {
+      "sha256": "9632a7f5e83bfddb700c12edf4331c3656f69d7b02522ead8fb9070d57102b86",
+      "size": 42158
+    },
+    "boards/tui-3d-column.html": {
+      "sha256": "b076c65cd7c16f3528d9e104aae1c79119766d954fdac642c654bc3e050b1d95",
+      "size": 273100
+    },
+    "boards/tui-3d-column.png": {
+      "sha256": "bcc7e00375e911aef83222d52e4e29e891244848e67d15e0358dee11fe7b097d",
+      "size": 69825
+    },
+    "boards/tui-3d-quicklook.html": {
+      "sha256": "88b224387af1747a0267618a8afaa20968b87bce567bde56960765a0c8eb88ca",
+      "size": 351464
+    },
+    "boards/tui-3d-quicklook.png": {
+      "sha256": "f0a574b32555054e8115f839b4a4b47e2b613e061bddad9de3107ce1a2550c25",
+      "size": 106985
+    },
+    "boards/tui-collision.html": {
+      "sha256": "68cdcff4c329d025912bc0aa76eb5d6319ccc6c381fb00adc5958e64ca41f12b",
+      "size": 246832
+    },
+    "boards/tui-collision.png": {
+      "sha256": "b1c80dd8bb433851e66dd9dd3d5e4f71ce8feb1139eb38209a71c0b0cde0c113",
+      "size": 54000
+    },
+    "boards/tui-combine.html": {
+      "sha256": "35bd6b42de533fa3128eb38b09d0de07ba1dc647d39b9760d0533e212c93df3e",
+      "size": 385716
+    },
+    "boards/tui-combine.png": {
+      "sha256": "440c4ae4cbbdee86f3e50825e8a4e51315f8d171c68fa53e5601e3e9b06f32a9",
+      "size": 149321
+    },
+    "boards/tui-convert.html": {
+      "sha256": "ee87a86553e252ca8e602c9bace0f3cf67ba4e7742d28f3ec1df90d4f60a9d97",
+      "size": 285134
+    },
+    "boards/tui-convert.png": {
+      "sha256": "aba04a62d56e56f90468cdc771f0a11fddddc0f591c6b496911a61dd7ca95568",
+      "size": 54641
+    },
+    "boards/tui-convert-pdf.html": {
+      "sha256": "23ebc87ed0311d18f109032d60caba542cb1c7d134dc57d5046730a2830f29eb",
+      "size": 284406
+    },
+    "boards/tui-convert-pdf.png": {
+      "sha256": "f87fe8923db85c0492fc3c56b59c0c0de6d000f0de09709cddf15af13322d3b9",
+      "size": 57264
+    },
+    "boards/tui-copied.html": {
+      "sha256": "497527bed09ed957afa783e5116ddf4bc5977a768c77cd9989e5360dcb3c66b1",
+      "size": 245719
+    },
+    "boards/tui-copied.png": {
+      "sha256": "87be3e939593145a6a8535c30d9aed1c91065bd94fd029e27cc01b5ceb8c69e4",
+      "size": 39460
+    },
+    "boards/tui-delete.html": {
+      "sha256": "9570b7503916d309ba2d0a3a0f05526b1869ad3cdb9e3928aa491dc9e0703c61",
+      "size": 276537
+    },
+    "boards/tui-delete.png": {
+      "sha256": "9a195ee0739941c4c2b860ce4714fa9c8f7bdf08b54364e072e200375133224e",
+      "size": 44935
+    },
+    "boards/tui-delete-focus.html": {
+      "sha256": "0f0383bbc38563cc15b881d35af02ff612d72ba6c7f816ae932bd243bb6c8817",
+      "size": 276543
+    },
+    "boards/tui-delete-focus.png": {
+      "sha256": "c7c97987687da0339206dce0641025bded6067c66a3d1b838a46567ea082b629",
+      "size": 44949
+    },
+    "boards/tui-detail.html": {
+      "sha256": "181a11de65db56e85a627dc218f05eaecd5629ebc6945aa7dab821744e622784",
+      "size": 245872
+    },
+    "boards/tui-detail.png": {
+      "sha256": "0f6d91db176747fb4f62772755eef65a3753a0bac62f669e6461141893dfc7ca",
+      "size": 51395
+    },
+    "boards/tui-empty.html": {
+      "sha256": "1856c6b9470ecae26aae14d256e743c0d43e1883f33dde3cea8384d679a789a0",
+      "size": 243388
+    },
+    "boards/tui-empty.png": {
+      "sha256": "5f86fc234dde3fc825b778f197d145b63f12015faef12f0c2d81e0893a95d3d4",
+      "size": 20245
+    },
+    "boards/tui-filter.html": {
+      "sha256": "df0119a7bfed70fe0cd8402b7b75cd029fbadffcf3f78e42bbce6b1788a6a3b8",
+      "size": 245436
+    },
+    "boards/tui-filter.png": {
+      "sha256": "c491dffa8c5762fdf4a50194b11d543eb5e1ccd1bf4baae0a907e811fb6f20d1",
+      "size": 34934
+    },
+    "boards/tui-filter-nomatch.html": {
+      "sha256": "0f56fca2abf1ac8cb6dbe4f9ee3f8a3c7c56f05dd13ee8c40120a4b26422255a",
+      "size": 242171
+    },
+    "boards/tui-filter-nomatch.png": {
+      "sha256": "e2240876bad47eaa3ce650a76bc6ba6daf91beb5a396ef02f4c4c8c0b2bf7cad",
+      "size": 14707
+    },
+    "boards/tui-filter-typing.html": {
+      "sha256": "d30094958b3334493ad78c6891f7ab72ad80e5104b70ea0f8f81bd95dd2e2f53",
+      "size": 245329
+    },
+    "boards/tui-filter-typing.png": {
+      "sha256": "fe2c3bfb8f253167870a441d54b5c181d5e9df2402236479a6ecf9a8a00d68b0",
+      "size": 32290
+    },
+    "boards/tui-image-chafa.html": {
+      "sha256": "47216a7daaf7164a7d452cb254375fd63ccdf3032df059c1bd583ee361a4d6c7",
+      "size": 355936
+    },
+    "boards/tui-image-chafa.png": {
+      "sha256": "d81c80649e1170ebc31d05980004191d2e8e04765c6a83bf2a9097aded6a53e4",
+      "size": 55502
+    },
+    "boards/tui-keys.html": {
+      "sha256": "79152dadf9c7085fe6068dc21c25801c3ddc1b9f5e21353870e1e97e3e406f27",
+      "size": 293823
+    },
+    "boards/tui-keys.png": {
+      "sha256": "3aae216ea5335a77feb4530019432b7f24647f7cf281bfa13ab1f5c865ddd942",
+      "size": 88410
+    },
+    "boards/tui-lang-ar.html": {
+      "sha256": "656632d585e2eecc4362bfdd415d2959f4dcdf7a07b78bcd4c65b1f03a45e359",
+      "size": 255126
+    },
+    "boards/tui-lang-ar.png": {
+      "sha256": "d5f418178b8b3ecb8f997ff656d9507b76a74e8f1fe7bf551d0f758c9c1e85ef",
+      "size": 49020
+    },
+    "boards/tui-lang-ja.html": {
+      "sha256": "19b04babf36dea04df37dad6fcd18dbd5363265e7f9c0252da1e12877671f568",
+      "size": 248118
+    },
+    "boards/tui-lang-ja.png": {
+      "sha256": "0ad878afe73c886335a6a8e78fbae3736fa5f3336ceb2972a5d2673cc0185f4a",
+      "size": 38678
+    },
+    "boards/tui-lang-ja-menu.html": {
+      "sha256": "f9a9566b50b6f5b838e3e7e37e88a14ed00c587132c58325d6b2c9898a45e654",
+      "size": 271819
+    },
+    "boards/tui-lang-ja-menu.png": {
+      "sha256": "898452d8cacfb820121a62eba21fba5ef278db524b7e390f6ba14e5d2d05c573",
+      "size": 53597
+    },
+    "boards/tui-lang-ru-keys.html": {
+      "sha256": "39ac381961a5bd2d179f73015ff31ff193ed2a25df590360c80c5ce2b232ae3b",
+      "size": 347208
+    },
+    "boards/tui-lang-ru-keys.png": {
+      "sha256": "b56b7ba6fd42e25337feb7184b453612be84f051a12c00e6ec55ec476707abbb",
+      "size": 103212
+    },
+    "boards/tui-list-archive.html": {
+      "sha256": "424a471e203a16c8f8c338553a5203912a987790531935015591b42fc5e8dcf4",
+      "size": 247463
+    },
+    "boards/tui-list-archive.png": {
+      "sha256": "dea558ef02b2a7f7e779124433b989bead09f44e11830e365b21c371e1c3abe3",
+      "size": 49487
+    },
+    "boards/tui-list-audio.html": {
+      "sha256": "8fe5147cc094b603e130dae7db4877750c45db0eab9f23f6d1635c1cf6b52033",
+      "size": 249956
+    },
+    "boards/tui-list-audio.png": {
+      "sha256": "fafdb87a1af55e9d48bf6ebb7706d2ae3cf3f85c706ffdef4054f4078c410933",
+      "size": 50025
+    },
+    "boards/tui-list-blob.html": {
+      "sha256": "87a8fac90aec1c9caccdea654c98261862478d498ca16f30d823d0fbfbeec78d",
+      "size": 247148
+    },
+    "boards/tui-list-blob.png": {
+      "sha256": "1c17ce677e9aa79aed0a91be92a5891a49d5c5442db8deaac14968951913b05d",
+      "size": 45528
+    },
+    "boards/tui-list-code.html": {
+      "sha256": "4d322be5608f34ad21292ce0bfdf60f47ed88e8c328d598b9499bbd7db3c113b",
+      "size": 249382
+    },
+    "boards/tui-list-code.png": {
+      "sha256": "44279416f7d9a7112c35cd0a330c3d2bc5677795696eb2b127a533f9354776fe",
+      "size": 58950
+    },
+    "boards/tui-list-folder.html": {
+      "sha256": "93f7e8348cf9099025e0f54093b682132c201aa0cc39fe4a0182676b8c6269ef",
+      "size": 246267
+    },
+    "boards/tui-list-folder.png": {
+      "sha256": "8bb26229a31129c104e723128388711da8f170a1c9d879793d036aa81f5ad198",
+      "size": 34714
+    },
+    "boards/tui-list-image.html": {
+      "sha256": "fc25182108eb94d068af1fc5b50cbf0cebb2c7c20d9d423d5cba9b85b588f5cb",
+      "size": 352194
+    },
+    "boards/tui-list-image.png": {
+      "sha256": "0fb3c9c2e891ad5caa6ec57a9a2f8929ecc005a350b5d5551a0befbd5e53b501",
+      "size": 281573
+    },
+    "boards/tui-list-pdf.html": {
+      "sha256": "d81b8a1c886e666beeb09c4bad4acb9f0be976898748f01eb1ae26c06c783c06",
+      "size": 252319
+    },
+    "boards/tui-list-pdf.png": {
+      "sha256": "85f1fa430acfaad0c03482fec914441a49af191d888c633a88cac2e60c51676d",
+      "size": 59674
+    },
+    "boards/tui-list-plain.html": {
+      "sha256": "189ccb899282c309fd024d7bdf89ae186ecff91397b56a1e6713a2276a09a689",
+      "size": 247564
+    },
+    "boards/tui-list-plain.png": {
+      "sha256": "ef34cf88814ad693f06cc9e87074e7450c57a4ea25c98928064d3d3abae758bd",
+      "size": 50127
+    },
+    "boards/tui-list-symlink.html": {
+      "sha256": "0be9e0e08762584fb7fa4a036221ca53bd09ce873b82ecba18cb79f68747b496",
+      "size": 352446
+    },
+    "boards/tui-list-symlink.png": {
+      "sha256": "d4a76af1fa4afbcb5cd00e68a0ba4119d74c5c002a78555e59e931a318e36dd9",
+      "size": 282041
+    },
+    "boards/tui-list-text.html": {
+      "sha256": "d4d1776aad3c73aa71ac3136ab2978df8b85774538471ab28afdc18912dd2733",
+      "size": 245719
+    },
+    "boards/tui-list-text.png": {
+      "sha256": "4806fff09a5009ab4c3686f17968b4ffcae23f3d5918f4cd72be9066637df8f7",
+      "size": 38622
+    },
+    "boards/tui-list-video.html": {
+      "sha256": "86f48bd17a5df799d6ed6ef484ede3a01bdfb89cabfedb26a07f34200a754c22",
+      "size": 255750
+    },
+    "boards/tui-list-video.png": {
+      "sha256": "770117e42599bd6f3a096ab1a16977411ae13b76751048351395274241b8f85e",
+      "size": 76764
+    },
+    "boards/tui-locked.html": {
+      "sha256": "7b76ab8bc04a84391eab43386f4f12d05167bad72733ad23253f766295f82c07",
+      "size": 245690
+    },
+    "boards/tui-locked.png": {
+      "sha256": "2752d2224b93c47bf0c5664966751390970961ae5a704657bde3781028446a57",
+      "size": 36500
+    },
+    "boards/tui-locked-peek.html": {
+      "sha256": "6fe75420e3bd1fb5a2d7adb1d5df8fc3374e6f8a6b219daa6ad209186c322226",
+      "size": 245441
+    },
+    "boards/tui-locked-peek.png": {
+      "sha256": "e379866525a4e24e12d283e5080f36a6633b9641ee086c3b0035c29211b29c79",
+      "size": 32811
+    },
+    "boards/tui-long.html": {
+      "sha256": "dfe5e8079d2709349e7dfdf5c6de3658c7b5813bbe750cb73b16fcdf0567aff4",
+      "size": 251261
+    },
+    "boards/tui-long.png": {
+      "sha256": "c62a070d802e624ddeca6f496dab892d69ce1a318c723a5d32a7915e0278623d",
+      "size": 71118
+    },
+    "boards/tui-marked.html": {
+      "sha256": "b0131f50d12ef7a9ded4cda2c19445e60b72af42d617f1731ecc03f169e61246",
+      "size": 245576
+    },
+    "boards/tui-marked.png": {
+      "sha256": "075ffb0e52661aad6a5215093c07e5dcba7370d068e004345f3c4e6ef1d20d16",
+      "size": 32444
+    },
+    "boards/tui-menu.html": {
+      "sha256": "48dac10fd01a3871f00f685f553e44b7262d5f8ccbe1be315159edf8331b1a2e",
+      "size": 266838
+    },
+    "boards/tui-menu.png": {
+      "sha256": "3b884407f834b1bfceac763d03ae280cdd580a5d646e6dc80366eb347efd3479",
+      "size": 51230
+    },
+    "boards/tui-menu-send.html": {
+      "sha256": "e5b0b15eb27ae3739df3d1a4b50b6b8514558b620c079843409a392ab39b281e",
+      "size": 266838
+    },
+    "boards/tui-menu-send.png": {
+      "sha256": "fe2239056a70593b18c9add88a783059712e36f2dc7bbedfbb11bcaa9e9c199b",
+      "size": 51233
+    },
+    "boards/tui-new-folder.html": {
+      "sha256": "ee37a313962f212e9d5516a73d5d74268697b7459b11ec2ce449c22799c4225b",
+      "size": 246312
+    },
+    "boards/tui-new-folder.png": {
+      "sha256": "e5ede013e651f3bde1ea3b10c4a9ea31a01d59abf0c767f950792ac00c028adb",
+      "size": 33175
+    },
+    "boards/tui-no-icons.html": {
+      "sha256": "ba10491e7d14c01bc4f64dc9043e14d79bdb1ca496510930c18698d8a2ff89bf",
+      "size": 55389
+    },
+    "boards/tui-no-icons.png": {
+      "sha256": "34d5d649fdbf54e324f79d335c54320f89f6cfd289884e9588030369e9541b5e",
+      "size": 37696
+    },
+    "boards/tui-no-preview.html": {
+      "sha256": "4f77254d9680a88b73d41508681b71518dc069662f65dc80fe124b0fdcfe2c7d",
+      "size": 241728
+    },
+    "boards/tui-no-preview.png": {
+      "sha256": "4309b4c2b0b8f707a7aba8a3a9dfdf1e9de6064989de94a27fcda1eecdee0b95",
+      "size": 25075
+    },
+    "boards/tui-office.html": {
+      "sha256": "386bbc164546e4193e062e849529fe86073226f935feca5a69f4eefeecb5ae70",
+      "size": 453669
+    },
+    "boards/tui-office.png": {
+      "sha256": "6824f35e9718974e6dd1a851c77d67a52ec67754ad0e81a87b3f12834b681542",
+      "size": 79277
+    },
+    "boards/tui-path.html": {
+      "sha256": "ac5538a6a5ad69e9a323ebce9188c9921c707e755435bb447fa2d7f301b984ed",
+      "size": 246221
+    },
+    "boards/tui-path.png": {
+      "sha256": "04ae778c317ebdcaac58b0edd0c37bcfaae29dd051b9f1adde5b834e8dd14467",
+      "size": 32442
+    },
+    "boards/tui-plugin-rows.html": {
+      "sha256": "5e6cef2f1743a3d5ebc01051f80876e0487716d7defe48e7f691daa93065c14a",
+      "size": 267274
+    },
+    "boards/tui-plugin-rows.png": {
+      "sha256": "af3b3a0b87291470fd64469e0d099d508f65dd20a04b8fe570a5e1ff5a1b039c",
+      "size": 53607
+    },
+    "boards/tui-print.html": {
+      "sha256": "1edfd6d32f15afe14c49db4903cce2976136b48bcf0d23836a10fe3ba3af5e56",
+      "size": 276480
+    },
+    "boards/tui-print.png": {
+      "sha256": "7f162b86cb2e8c4924abf4ce55c2921e365b8a8db635f0a07c550281a51d274e",
+      "size": 54584
+    },
+    "boards/tui-print-sent.html": {
+      "sha256": "fa0f6487adbe5303321517163bb650829f92079647f420c5422c35a15cecb917",
+      "size": 453614
+    },
+    "boards/tui-print-sent.png": {
+      "sha256": "0932db772900a4c491ec73c66816d439a28f522f7ad246a18e1a678e5861f03a",
+      "size": 79144
+    },
+    "boards/tui-progress.html": {
+      "sha256": "0ca20e78fc682570b5c82762aae2bbcf35615999fbd876fba58a61ccdabbf6ab",
+      "size": 247604
+    },
+    "boards/tui-progress.png": {
+      "sha256": "aa2f5df5d31b5953b9389793cf5115121a9f99de28bffe92ef0677d2db0e4fe9",
+      "size": 40836
+    },
+    "boards/tui-properties.html": {
+      "sha256": "4213792683051c79ddca499be2780cc78102ff00481ddeab223c8bce6ce77e23",
+      "size": 274441
+    },
+    "boards/tui-properties.png": {
+      "sha256": "9bd24f2ca290409f32f34b1665adc7b3fc57641cc340861d0664e2941678646a",
+      "size": 54620
+    },
+    "boards/tui-quicklook-image.html": {
+      "sha256": "4603e7ec257d1aeff325bfb59c36504547d4b4f4d15763b28fce1a5e6a03bdfc",
+      "size": 390020
+    },
+    "boards/tui-quicklook-image.png": {
+      "sha256": "931213f08631339d24286fb770e28a0ab453e2e3610cb02ecca7bd3813925343",
+      "size": 491383
+    },
+    "boards/tui-quicklook-text.html": {
+      "sha256": "265b4e046a0fb98d204e412406ee0d43bb74a801142dd533df2a73dc935e1eff",
+      "size": 284250
+    },
+    "boards/tui-quicklook-text.png": {
+      "sha256": "c5bf81410a7fb1479f26ce656d9b7d19119139d93ca4fa347af06eac51a75e38",
+      "size": 24609
+    },
+    "boards/tui-rename.html": {
+      "sha256": "76b9002136e5329543dba8b87b09b8e9373d4429ef66b323b4d7c9c808bc754c",
+      "size": 246158
+    },
+    "boards/tui-rename.png": {
+      "sha256": "f639d2dade8da09f4a325d64e37c17b739a67fd1c4d2387bf06282490f7a0afa",
+      "size": 40402
+    },
+    "boards/tui-rename-error.html": {
+      "sha256": "cba75df9a91d2dcf8452fdee16a4df8b15e0b50e9865722bfdfe1704c5a2ba54",
+      "size": 245774
+    },
+    "boards/tui-rename-error.png": {
+      "sha256": "91cd0271b17b26749d523ef7e24fd0a2135e0c40502c0f1356c876bf522f742c",
+      "size": 39158
+    },
+    "boards/tui-search-here.html": {
+      "sha256": "76f19d5b62fb146cda9f69595c1a68c09dc483bb6584f4ac005a17905c7bf892",
+      "size": 246406
+    },
+    "boards/tui-search-here.png": {
+      "sha256": "160f0f4b71f2c79163dfa350a9a29c974274a284b7cc7d412dd60f6e515936f3",
+      "size": 35228
+    },
+    "boards/tui-search-results.html": {
+      "sha256": "3ee3132fd7b4b8cb24fde73c362f45d0a52968728169935e7b17826aaadd494b",
+      "size": 251609
+    },
+    "boards/tui-search-results.png": {
+      "sha256": "d70188a281f01c98bdd8b9aa961abeff1d889fc19a612dfdba7b4e656f58c858",
+      "size": 79906
+    },
+    "boards/tui-search-typing.html": {
+      "sha256": "4c6ac4d8eacfa0b62ac927fc9a9f44434a6d479159d59849310c3f9f0162f1d0",
+      "size": 246397
+    },
+    "boards/tui-search-typing.png": {
+      "sha256": "9aa51e6883cb65f3711ce831e86209b8aa8b7903bf1733bada19ca3b1d88511a",
+      "size": 34365
+    },
+    "boards/tui-send-taildrop.html": {
+      "sha256": "eb1539af55304f65b8c03bca9b35b3c57bbc4033ef3347b8ce7ec97e6526236f",
+      "size": 253155
+    },
+    "boards/tui-send-taildrop.png": {
+      "sha256": "a9c78096482c6f4d846e60ba9870dd015a7b1a19d441135ddbd5128933943ac3",
+      "size": 41304
+    },
+    "boards/tui-send-with.html": {
+      "sha256": "59d5f3bfac44222a7d7c76cb8039dd0bc064e98a41bd377d486dcd77045c7aa9",
+      "size": 253466
+    },
+    "boards/tui-send-with.png": {
+      "sha256": "662e6cb5d3950e0ad09746a9a5d5e525e39820627e0a6e09a90882770ce64de9",
+      "size": 43295
+    },
+    "boards/tui-small.html": {
+      "sha256": "ee59a0dbc00eddf876a4e855c832ad1781cb12d728a9aeecc6afe5ed3bfee721",
+      "size": 205545
+    },
+    "boards/tui-small.png": {
+      "sha256": "e17654b1852eba4fd38b998c373da82cf7685e35432bfd0b8fff8bdd6807dabb",
+      "size": 15428
+    },
+    "boards/tui-sort-size.html": {
+      "sha256": "bfb7a69f18d455bd0d55879440a7623ea76ca3f20992c7051ae12040cb4a1b81",
+      "size": 246268
+    },
+    "boards/tui-sort-size.png": {
+      "sha256": "df5456cbed779ca8a827c23c81cef7cc8d1c0b780e71011de4980f7b387cdd23",
+      "size": 35355
+    },
+    "boards/tui-tabs.html": {
+      "sha256": "5993c4bcc4a393bb03c5e031747d525197711160505dcf84fa52e4891e42c957",
+      "size": 246512
+    },
+    "boards/tui-tabs.png": {
+      "sha256": "3b5c6c01bfc14406039a1106e73eaf4b478415e01a39c8cf2c9c77bf8c8ee0d0",
+      "size": 36177
+    },
+    "boards/tui-trash-arm.html": {
+      "sha256": "f90aa0d45ab2efebbe8275f035732669dade71948470db282290bc514b270408",
+      "size": 245093
+    },
+    "boards/tui-trash-arm.png": {
+      "sha256": "a0f890e1bf64e5b5960d401e27065b168fb009f301f77de33b95b27a6258a8c4",
+      "size": 33194
+    },
+    "boards/tui-trash-view.html": {
+      "sha256": "dc19e645ed80883ad388ce01eb716addd73616e1747d9ad2ca4edf3f968c5298",
+      "size": 243098
+    },
+    "boards/tui-trash-view.png": {
+      "sha256": "8f8ae5ac47f0411c74bd841adaef1ea830f68011d8d215e924bace7100c20b61",
+      "size": 24913
+    },
+    "boards/tui-trashed.html": {
+      "sha256": "f7ba4ee6bdb3862ebac6d4b791a7fb631e3eefc0a51570418246ec0ae3d9da40",
+      "size": 245610
+    },
+    "boards/tui-trashed.png": {
+      "sha256": "e94af127c3f947298b448ba3b2f542092e004cfd683d2be5528ad363c03f5cce",
+      "size": 39149
+    },
+    "boards/tui-undone.html": {
+      "sha256": "23557b26ec9743e4644973fa0d04eba0790bf236c9d175e795964b1203d3edd2",
+      "size": 245093
+    },
+    "boards/tui-undone.png": {
+      "sha256": "26ec3ca7352e9a7875303b2d577636e86a162fd5dcf7a9eb1471a9efa6578b59",
+      "size": 31089
+    }
+  },
+  "inventory": {
+    "schema": 1,
+    "state_manifest_sha256": "9ba464450078c639d1bd4ff1507d14ac9aa6bb6cac41c828102792d2d8b0e562",
+    "terminals": [
+      "alacritty",
+      "foot",
+      "ghostty",
+      "kitty",
+      "tmux"
+    ],
+    "original_states": [
+      "tui-list-text",
+      "tui-no-icons",
+      "tui-list-folder",
+      "tui-no-preview",
+      "tui-tabs",
+      "tui-sort-size",
+      "tui-long",
+      "tui-marked",
+      "tui-small",
+      "tui-empty",
+      "tui-locked-peek",
+      "tui-locked",
+      "tui-list-image",
+      "tui-image-chafa",
+      "tui-list-symlink",
+      "tui-list-code",
+      "tui-list-archive",
+      "tui-list-blob",
+      "tui-list-plain",
+      "tui-list-pdf",
+      "tui-list-video",
+      "tui-list-audio",
+      "tui-quicklook-text",
+      "tui-quicklook-image",
+      "tui-3d-column",
+      "tui-3d-chafa",
+      "tui-3d-quicklook",
+      "tui-menu",
+      "tui-menu-send",
+      "tui-send-taildrop",
+      "tui-plugin-rows",
+      "tui-keys",
+      "tui-properties",
+      "tui-delete",
+      "tui-delete-focus",
+      "tui-filter-typing",
+      "tui-filter",
+      "tui-filter-nomatch",
+      "tui-search-typing",
+      "tui-search-here",
+      "tui-search-results",
+      "tui-path",
+      "tui-new-folder",
+      "tui-rename",
+      "tui-rename-error",
+      "tui-trash-arm",
+      "tui-trashed",
+      "tui-undone",
+      "tui-copied",
+      "tui-progress",
+      "tui-collision",
+      "tui-trash-view",
+      "tui-detail",
+      "tui-office",
+      "tui-print",
+      "tui-print-sent",
+      "tui-combine",
+      "tui-lang-ja",
+      "tui-lang-ja-menu",
+      "tui-lang-ar",
+      "tui-lang-ru-keys"
+    ],
+    "additional_states": [
+      "tui-convert",
+      "tui-convert-pdf"
+    ],
+    "excluded": [
+      {
+        "id": "tui-send-with",
+        "reason": "Provider submenu not selected; providers are separate file-menu rows."
+      }
+    ],
+    "counts": {
+      "required_boards": 63,
+      "excluded_boards": 1,
+      "reference_inputs": 128,
+      "terminal_state_pairs": 315,
+      "variant_captures": 325
+    },
+    "variant_extras": {
+      "tui-long": "rest",
+      "tui-small": "narrow"
+    },
+    "authority": {
+      "decisions.json": "2ab1935febb6afd24f9326291cf8834696aff58a9cc541f27a481e55ba4eb1e0",
+      "CHANGES.md": "ed33f44c03e360808f9c7e231c7600b7ce2b1c5674ad225ccef259501e83958e",
+      "specs/TUI-SPEC.md": "dec4245db07a3702b06801e4cccafc48a4fd2a6095c14aa8567a0894a98afd75"
+    }
+  }
+}

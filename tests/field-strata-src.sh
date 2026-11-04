@@ -102,6 +102,15 @@ make_stub "$scratch/g/target/release/strata" "strata 1.0.0"
 out=$(run_case "$scratch/g/target/release/strata" ""); rc=$?
 check "a tree with no version is refused" 3 "$rc"
 
+# A nightly checked in its own subshell still hands its derived tree to the manifest.
+archive=$(sed -n '/^# archive provenance begin$/,/^# archive provenance end$/p' "$bench")
+make_tree "$scratch/n" 2.0.0
+make_stub "$scratch/n/target/release/strata" "strata 2.0.0"
+out=$( fail() { printf 'refused: %s\n' "$*"; exit 3; }; only_has() { [ "$1" = strata-nightly ]; }
+       eval "$block"; B5_RIVAL_MANIFEST= STRATA_BIN= STRATA_SRC= STRATA_NIGHTLY_SRC= STRATA_NIGHTLY_BIN=$scratch/n/target/release/strata
+       eval "$archive"; printf '%s|%s|%s' "$STRATA_NIGHTLY_SRC" "$STRATA_SRC" "$(bash -c 'printf %s "$STRATA_NIGHTLY_SRC"')" )
+check "a derived nightly tree is exported and leaves STRATA_SRC alone" "$scratch/n||$scratch/n" "$out"
+
 # A sibling without the provenance marker must give way to the tree's current manifest tool.
 export MANIFEST_SELECTION=$(sed -n '/^# manifest selection begin$/,/^# manifest selection end$/p' "$bench")
 mkdir -p "$scratch/sibling"
@@ -115,7 +124,8 @@ chmod -x "$scratch/sibling/flea-bench-manifest"
 check "a non-executable sibling manifest tool falls back" "$PWD/tools/flea-bench-manifest" "$(select_manifest)"
 
 # The bench and standalone manifest must compare resolved trees while preserving an empty anchor.
-repo_resolve=$(grep '^FLEA_REPO=$(readlink -f ' "$bench")
+repo_resolve=$(grep '^FLEA_REPO=' "$bench")
+[ -n "$repo_resolve" ] || { echo "FAIL: no FLEA_REPO resolution in $bench"; exit 1; }
 anchor_setup=$(sed -n '/^# anchor setup begin$/,/^# anchor setup end$/p' "$bench")
 anchor_src=$(sed -n '/^anchor_line() {$/,/^}$/p' tools/flea-bench-manifest)
 mkdir -p "$scratch/tree" "$scratch/other"

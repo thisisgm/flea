@@ -1,4 +1,6 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/flea-magick-font"
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Builds the fixture the README images are shot against.
 #   tools/flea-readme-shots fixture     build it and list it
 #   tools/flea-readme-shots teardown    delete it
@@ -59,9 +61,9 @@ require_tools() {
   for tool in magick rsvg-convert ffmpeg bsdtar findmnt; do
     command -v "$tool" >/dev/null || fail "$tool is missing"
   done
-  ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 \
+  LC_ALL=C.UTF-8 LANGUAGE= ffmpeg -hide_banner -encoders 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= grep -q libx264 \
     || fail "ffmpeg has no libx264, so the clips cannot be encoded"
-  ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libmp3lame \
+  LC_ALL=C.UTF-8 LANGUAGE= ffmpeg -hide_banner -encoders 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= grep -q libmp3lame \
     || fail "ffmpeg has no libmp3lame, so the audio file cannot be encoded"
 }
 
@@ -277,7 +279,7 @@ build_contact_sheet() {
     run magick "$work/sheet-$page.png" -background white -gravity center \
       -extent "${page_w}x$((page_h - page_header_h))" \
       -background white -gravity north -splice "0x$page_header_h" \
-      -font Adwaita-Mono -pointsize 34 -fill '#1b1b1b' -annotate +0+56 'SELECTS  contact sheet' \
+      "${flea_magick_font_args[@]}" -pointsize 34 -fill '#1b1b1b' -annotate +0+56 'SELECTS  contact sheet' \
       -pointsize 24 -fill '#6b6b6b' -annotate +0+100 "sheet $page of $contact_pages" \
       "$work/page-$page.png"
     pages+=("$work/page-$page.png")
@@ -330,27 +332,27 @@ build_root_files() {
 
 verify() {
   local jpgs mp4s masters
-  jpgs=$(find "$selects" -maxdepth 1 -name '*.jpg' | wc -l)
-  mp4s=$(find "$selects" -maxdepth 1 -name '*.mp4' | wc -l)
-  masters=$(find "$root/Raw" -maxdepth 1 -name '*-master.mp4' | wc -l)
+  jpgs=$(LC_ALL=C.UTF-8 LANGUAGE= find "$selects" -maxdepth 1 -name '*.jpg' | wc -l)
+  mp4s=$(LC_ALL=C.UTF-8 LANGUAGE= find "$selects" -maxdepth 1 -name '*.mp4' | wc -l)
+  masters=$(LC_ALL=C.UTF-8 LANGUAGE= find "$root/Raw" -maxdepth 1 -name '*-master.mp4' | wc -l)
   [ "$jpgs" -eq "$selects_count" ] || fail "Selects holds $jpgs jpegs, expected $selects_count"
   [ "$mp4s" -eq 2 ] || fail "Selects holds $mp4s clips, expected 2"
   [ "$masters" -eq "$master_count" ] || fail "Raw holds $masters masters, expected $master_count"
   [ -s "$root/contact-sheet.pdf" ] || fail "the contact sheet is missing or empty"
   [ -d "$root/Scans" ] || fail "Scans is missing"
   # ls -A, never ls: a bare ls is structurally blind to exactly the dotfile temps this build makes.
-  [ -z "$(ls -A "$root/Scans")" ] || fail "Scans must stay empty, it is the empty-state fixture"
+  [ -z "$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$root/Scans")" ] || fail "Scans must stay empty, it is the empty-state fixture"
   printf 'FIXTURE %s\n' "$root"
-  ls -A -l "$root"
+  LC_ALL=C.UTF-8 LANGUAGE= ls -A -l "$root"
   printf '\nSELECTS %s\n' "$selects"
-  ls -A -l "$selects" | head -8
+  LC_ALL=C.UTF-8 LANGUAGE= ls -A -l "$selects" | head -8
 }
 
 cmd_fixture() {
   require_tools
   local parent fs
   parent=$(dirname "$root")
-  fs=$(findmnt -no FSTYPE -T "$parent" 2>/dev/null)
+  fs=$(LC_ALL=C.UTF-8 LANGUAGE= findmnt -no FSTYPE -T "$parent" 2>/dev/null)
   [ -n "$fs" ] || fail "findmnt could not name the filesystem holding $parent"
   [ "$fs" != tmpfs ] || fail "$root would be on tmpfs, where the thumbnail cache measures nothing"
 
@@ -390,6 +392,7 @@ repo=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 ui_src=$repo/ui
 ui=$ui_src
 bin=${FLEA_BIN:-$repo/target/release/flea}
+flea_ipc_init "$bin"
 frames=${FRAMES:-/tmp/flea-readme-frames}
 flea_log=$frames/flea.log
 # The canvas draws FleaWindow.dc.html at 880x620 and the wider boards at 1000, so this is the design
@@ -411,14 +414,14 @@ settle_s=0.4
 empty_burst=14
 empty_gap_s=0.35
 
-drive() { omarchy-drive "$@"; }
-ipc() { omarchy-drive ipc -p "$ui/boot" flea "$@"; }
-key() { omarchy-drive key --window flea "$@" >/dev/null; }
+drive() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive "$@"; }
+ipc() { LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_drive -p "$ui/boot" flea "$@"; }
+key() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window com.thisisgm.flea "$@" >/dev/null; }
 # Every chord goes through wtype, never omarchy-drive's hotkey. hotkey uses hl.dsp.send_shortcut,
 # whose keysym lookup fails on this box for digits and letters alike ("send_shortcut: key not
 # found"); its evdev table has them but is only reachable via --global, which the compositor sees
 # first. wtype reaches the application directly, the route tests/ui.sh drives ctrl+d with.
-# Sample input: chord ctrl+shift n  ->  omarchy-drive key --window flea -M ctrl -M shift n -m shift -m ctrl
+# Sample input: chord ctrl+shift n  ->  omarchy-drive key --window com.thisisgm.flea -M ctrl -M shift n -m shift -m ctrl
 chord() {
   local mods=$1 k=$2 parts pre post i
   IFS='+' read -ra parts <<< "$mods"
@@ -434,18 +437,18 @@ dwell() { sleep "$1"; }
 require_display_tools() {
   export PATH="$HOME/.local/bin:$PATH"
   command -v omarchy-drive >/dev/null || fail "omarchy-drive is not on PATH"
-  eval "$(omarchy-drive env)"
+  eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
   # omarchy-drive env omits the Qt platform theme, without which no row icon resolves. The same
   # three-step recovery tests/ui.sh uses: the ambient value, then the user manager, then a live
   # client's own environ, which is the only one that answers on an idle box.
   # pgrep -x matches the process name, never a command line, so it cannot match the shell running it.
   [ -n "${QT_QPA_PLATFORMTHEME:-}" ] || \
-    export QT_QPA_PLATFORMTHEME="$(systemctl --user show-environment | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
+    export QT_QPA_PLATFORMTHEME="$(LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
   if [ -z "$QT_QPA_PLATFORMTHEME" ]; then
     local pid
-    pid=$(pgrep -x quickshell | head -1)
+    pid=$(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x quickshell | head -1)
     [ -n "$pid" ] && [ -r "/proc/$pid/environ" ] && \
-      export QT_QPA_PLATFORMTHEME="$(tr '\0' '\n' < "/proc/$pid/environ" | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
+      export QT_QPA_PLATFORMTHEME="$(LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
   fi
   [ -n "$QT_QPA_PLATFORMTHEME" ] || fail "nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon"
   printf 'PLATFORMTHEME %s\n' "$QT_QPA_PLATFORMTHEME"
@@ -455,9 +458,9 @@ require_display_tools() {
 
 flea_pids() {
   local pid
-  for pid in $(pgrep -x qs || true); do
+  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
     [ -r "/proc/$pid/cmdline" ] || continue
-    tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | grep -Fq "$ui" && printf '%s\n' "$pid"
+    LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$ui" && printf '%s\n' "$pid"
   done
 }
 
@@ -466,7 +469,7 @@ flea_pids() {
 # lists nothing at all.
 assert_box_clear() {
   local others
-  others=$(hyprctl clients -j | jq -r '.[] | select(.class != "com.thisisgm.flea") | .class' | sort -u | tr '\n' ' ')
+  others=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -r '.[] | select(.class != "com.thisisgm.flea") | .class' | LC_ALL=C.UTF-8 LANGUAGE= sort -u | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' ')
   [ -z "$others" ] || fail "another lane holds the display, these windows are open: $others"
 }
 
@@ -481,7 +484,7 @@ snapshot_ui() {
 
 launch() {
   assert_box_clear
-  if omarchy-drive wait window flea --timeout 0 >/dev/null 2>&1; then
+  if LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout 0 >/dev/null 2>&1; then
     fail "a Flea window is already open, and only one lane may hold the display"
   fi
   mkdir -p "$frames" || fail "could not create $frames"
@@ -490,15 +493,15 @@ launch() {
   # detached child inherits it. An orphaned qs then holds the lock after its own run is dead, which
   # is what wedged the box for eight lanes on 2026-09-02 (pid 2197778, ppid 1, fd 3 -> the lock).
   FLEA_UI="$ui" FLEA_BIN="$bin" setsid nohup "$bin" --gui "$root" >"$flea_log" 2>&1 </dev/null 3>&- 4>&- &
-  omarchy-drive wait window flea --timeout 15 >/dev/null || fail "no Flea window appeared in 15 s"
-  omarchy-drive focus flea >/dev/null
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout 15 >/dev/null || fail "no Flea window appeared in 15 s"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus flea >/dev/null
   wait_path "$root"
 }
 
 # Reads one key out of the live colors.toml.
 # Sample input line: accent = "#7aa2f7"
 theme_key() {
-  grep -E "^$1[[:space:]]*=" "$colors_toml" | head -1 | cut -d'"' -f2
+  LC_ALL=C.UTF-8 LANGUAGE= grep -E "^$1[[:space:]]*=" "$colors_toml" | head -1 | cut -d'"' -f2
 }
 
 # Asserted, never assumed: a shot taken on the fallback palette is worthless and looks fine. The
@@ -528,10 +531,10 @@ assert_theme() {
       && fail "the palette carries the fallback $fallback_surface, so colors.toml did not parse"
   done
   printf 'THEME %s, loaded, surface %s, accent %s (matches %s)\n' \
-    "$(omarchy theme current 2>/dev/null)" "$surface" "$accent" "$colors_toml"
+    "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy theme current 2>/dev/null)" "$surface" "$accent" "$colors_toml"
 }
 
-window_json() { hyprctl clients -j | jq -c '.[] | select(.class == "com.thisisgm.flea")'; }
+window_json() { LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c '.[] | select(.class == "com.thisisgm.flea")'; }
 window_geometry() { window_json | jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1]) \(.address)"'; }
 
 # hyprctl exits 0 on error, so the geometry read back is the only evidence the resize took.
@@ -540,7 +543,7 @@ size_window() {
   read -r wx wy ww wh addr < <(window_geometry)
   [ -n "$addr" ] || fail "no Flea window to size"
   if [ "$(window_json | jq -r '.floating')" != true ]; then
-    omarchy-drive window float flea >/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive window float flea >/dev/null
     settle
   fi
   hyprctl dispatch "hl.dsp.window.resize({ x = $shot_w, y = $shot_h, exact = true, window = \"address:$addr\" })" >/dev/null
@@ -551,7 +554,7 @@ size_window() {
     hyprctl dispatch "hl.dsp.window.resize({ x = $dx, y = $dy, window = \"address:$addr\" })" >/dev/null
     settle
   fi
-  omarchy-drive window center flea >/dev/null
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive window center flea >/dev/null
   settle
   read -r wx wy ww wh addr < <(window_geometry)
   [ "$ww" -eq "$shot_w" ] && [ "$wh" -eq "$shot_h" ] \
@@ -597,7 +600,7 @@ view() {
 }
 
 frame() {
-  omarchy-drive shot "$frames/$1.png" flea >/dev/null || fail "the shot of $1 failed"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot "$frames/$1.png" flea >/dev/null || fail "the shot of $1 failed"
   printf 'FRAME %s\n' "$frames/$1.png"
 }
 
@@ -606,8 +609,8 @@ measure() {
   printf 'METRIC metrics %s\n' "$(ipc metrics)"
   printf 'METRIC chromeHeight %s\n' "$(ipc chromeHeight)"
   printf 'METRIC railCount %s\n' "$(ipc railCount)"
-  printf 'METRIC deviceEntries %s\n' "$(ipc deviceEntries | tr '\n' ';')"
-  printf 'METRIC networkEntries %s\n' "$(ipc networkEntries | tr '\n' ';')"
+  printf 'METRIC deviceEntries %s\n' "$(ipc deviceEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ';')"
+  printf 'METRIC networkEntries %s\n' "$(ipc networkEntries | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ';')"
   local i
   for i in $(seq 0 $(( $(ipc railCount) - 1 ))); do
     printf 'METRIC railRowCentre %s %s\n' "$i" "$(ipc railRowCentre "$i")"
@@ -778,7 +781,7 @@ pick_empty() {
   local f ink best best_ink=-1
   for f in "$frames"/empty-[0-9][0-9].png; do
     [ -f "$f" ] || fail "no burst frames to choose from"
-    ink=$(magick "$f" -crop 110x80+670+330 +repage -colorspace Gray -threshold 25% \
+    ink=$(LC_ALL=C.UTF-8 LANGUAGE= magick "$f" -crop 110x80+670+330 +repage -colorspace Gray -threshold 25% \
       -format '%[fx:int(w*h*mean)]' info:) || fail "could not measure $f"
     printf 'INK %s %s\n' "$(basename "$f")" "$ink"
     if [ "$ink" -gt "$best_ink" ]; then best_ink=$ink; best=$f; fi
@@ -844,7 +847,7 @@ cmd_shots() {
   teardown_window
   [ "$ui" != "$ui_src" ] && rm -rf "$ui"
   printf 'FRAMES %s\n' "$frames"
-  ls -A -l "$frames"
+  LC_ALL=C.UTF-8 LANGUAGE= ls -A -l "$frames"
 }
 
 # ------------------------------------------------------------------ the crops
@@ -886,7 +889,7 @@ cmd_crop() {
     printf 'CROP %-10s %-18s %s\n' "$name.png" "$geom" "$why"
   done 3< <(crops_table)
   printf '\nIMAGES %s\n' "$repo/docs/images"
-  ls -A -l "$repo/docs/images"
+  LC_ALL=C.UTF-8 LANGUAGE= ls -A -l "$repo/docs/images"
 }
 
 case "${1:-}" in

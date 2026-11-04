@@ -31,7 +31,7 @@ const ONE_PIXEL: [u8; 67] = [
 
 // The pid is in the name so a shutdown sweep can find this process's temps and no other process's.
 fn temp_prefix() -> String {
-    format!(".flea-{}-", std::process::id())
+    super::rastertemp::temp_prefix_of(std::process::id())
 }
 
 // A predictable destination is never handed to a child; see AGENTS.md "Predictable path writes".

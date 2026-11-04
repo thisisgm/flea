@@ -17,7 +17,7 @@ use crate::backend::testdir::TestDir;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
 // Sample wire line: {"t":"archivedone","id":41,"ok":false,"verified":true,"err":"cancelled"}
@@ -83,11 +83,11 @@ fn writing_a_jobs_terminal_line_forgets_it_for_a_quit() {
 }
 
 // The parts drain reads and writes, over a channel the test feeds the way the op forwarder does.
-fn drain_rig(d: &TestDir) -> (State, Ops, Pool, Cache, Sender<Event>, Receiver<Event>, crate::backend::flashslot::Ctx) {
+fn drain_rig(d: &TestDir) -> (State, Ops, Pool, Cache, crate::backend::events::Sender<Event>, Receiver<Event>, crate::backend::flashslot::Ctx) {
     let tb = Tables::load();
     let (done_tx, _done_rx) = std::sync::mpsc::channel();
     let pool = Pool::new(1, done_tx, d.join("thumbs"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
-    let (ev_tx, ev_rx) = std::sync::mpsc::channel();
+    let (ev_tx, ev_rx) = crate::backend::events::channel();
     let st = State::new(Worker::new(ev_tx.clone()));
     let (op_tx, _op_rx) = std::sync::mpsc::channel();
     let (flash_tx, _flash_rx) = std::sync::mpsc::channel();
@@ -103,6 +103,7 @@ fn a_thumb_finishing_during_the_detached_wait_is_reported() {
     let row_path = d.join("pic.jpg");
     std::fs::write(&row_path, "pixels").expect("row file");
     st.asked.push((row_path.clone(), 7));
+    st.thumb_mtimes.insert(row_path.clone(), 0);
     st.outstanding = 1;
     // One detached job held open the way a running compress is.
     let work = Work::new(d.path(), "arc").expect("work");
@@ -117,7 +118,7 @@ fn a_thumb_finishing_during_the_detached_wait_is_reported() {
     });
     // The thumb lands while the detached job is still running.
     let thumb_file = d.join("pic.png");
-    ev_tx.send(Event::Thumb(Done { path: row_path, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
+    ev_tx.send(Event::Thumb(Done { replies: None, mtime: 0, path: row_path, trash_identity: None, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
     let mut out = Vec::new();
     let began = Instant::now();
     drain(&mut out, &mut st, &mut ops, &mut flash, &ev_rx, &pool, &cache);

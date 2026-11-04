@@ -1,0 +1,98 @@
+--- a/src/backend/run.rs
++++ b/src/backend/run.rs
+@@ -306,6 +306,43 @@
+     if let Some(refused) = super::rowguard::refusal(line, st.generation) {
+         say(out, &refused);
+         return Control::Continue;
++    }
++    // Bench-only framing and raw identity audit, outside timed product work.
++    match crate::json::field_str(line, "c").as_deref() {
++        Some("benchping") => {
++            say(out, r#"{"t":"pong"}"#);
++            return Control::Continue;
++        }
++        Some("benchaudit") => {
++            if let Some(session) = st.search_session.as_mut() {
++                let gen = crate::json::field_usize(line, "gen").unwrap_or(0);
++                let count = crate::json::field_usize(line, "count").unwrap_or(350);
++                let query = crate::json::field_str(line, "query").unwrap_or_default();
++                let target = crate::json::field_str(line, "target").unwrap_or_default();
++                if let Some(answer) = session.query(gen, &query, count) {
++                    let rank = answer.rows.iter().position(|(path, _)| path == &target).map_or(0, |rank| rank + 1);
++                    writeln!(out, r#"{{"t":"rank","gen":{},"rank":{},"n":{},"complete":{}}}"#, gen, rank, answer.total, answer.rows.len() == answer.total).ok();
++                    out.flush().ok();
++                }
++            }
++            return Control::Continue;
++        }
++        Some("benchinventory") => {
++            if let Some(session) = st.search_session.as_ref() {
++                let index = session.index.lock().unwrap();
++                write!(out, r#"{{"t":"inventory","identities":["#).ok();
++                for row in 0..index.len() {
++                    if row > 0 { write!(out, ",").ok(); }
++                    write!(out, "[\"").ok();
++                    for byte in index.raw(row) { write!(out, "{byte:02x}").ok(); }
++                    write!(out, "\",\"{}\"]", if index.is_dir(row) { "d" } else { "f" }).ok();
++                }
++                writeln!(out, "]}}").ok();
++                out.flush().ok();
++            }
++            return Control::Continue;
++        }
++        _ => {}
+     }
+     let request = parse_request(line);
+     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
+@@ -777,6 +814,12 @@
+ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Pool) {
+     if let Some(session) = st.search_session.as_mut() {
+         if session.poll_walked() {
++            let index = session.index.lock().unwrap();
++            writeln!(out, r#"{{"t":"searchready","n":{},"bytes":{},"ms":{:.6},"capped":{}}}"#,
++                index.len(), super::searchindex::index_bytes(&index),
++                session.opened_at.elapsed().as_secs_f64() * 1000.0, index.capped).ok();
++            drop(index);
++            out.flush().ok();
+             if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {
+                 emit_session_answer(out, st, tb, pool, &answer);
+             } else if let Some((gen, n, scanned, ms)) = session.landing_empty() {
+--- a/src/backend/searchreq.rs
++++ b/src/backend/searchreq.rs
+@@ -73,6 +73,7 @@
+     pub indexed: usize,
+     pub walking: bool,
+     pub ms: f64,
++    pub matcher_ms: f64,
+     pub count: usize,
+     pub scope: PathBuf,
+     pub dev: u64,
+@@ -161,6 +162,8 @@
+     answer: &Answer,
+     cancelled: bool,
+ ) {
++    // Bench-only matcher duration is separate from the answer field a landing replaces with walk time.
++    writeln!(out, r#"{{"t":"searchcore","gen":{},"matcher_ms":{:.9},"answer_ms":{:.9}}}"#, answer.gen, answer.matcher_ms, answer.ms).ok();
+     st.base = answer.scope.clone();
+     st.listing = crate::backend::listing::Listing::new();
+     for (path, is_dir) in &answer.rows {
+--- a/src/backend/searchsession.rs
++++ b/src/backend/searchsession.rs
+@@ -264,6 +264,7 @@
+         let total = all.len();
+         let indexed = index.len();
+         drop(index);
++        let matcher_ms = started.elapsed().as_secs_f64() * 1000.0;
+         Answer {
+             gen: 0,
+             all,
+@@ -271,7 +272,8 @@
+             total,
+             indexed,
+             walking: self.walking() || unread,
+-            ms: started.elapsed().as_secs_f64() * 1000.0,
++            ms: matcher_ms,
++            matcher_ms,
+             count,
+             scope: self.scope.clone(),
+             dev: self.dev,

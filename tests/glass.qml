@@ -19,6 +19,8 @@ ShellRoot {
     readonly property int listedAlpha: Pixels.listAlpha(Flea.Theme.color.opaquePalette, root.expect, root.stock && Flea.Glass.split && Flea.Glass.usesDefault && Flea.Glass.mode === "glassy")
     // Parse mode: a user value written after launch, which an opaque launch must not take until the next one.
     readonly property string lateUser: Quickshell.env("GLASS_LATE_USER") || ""
+    // The 8-bit alpha a late value must reach: its own on a clear launch, 255 on a launch a value pinned opaque.
+    readonly property int lateExpect: Number(Quickshell.env("GLASS_LATE_EXPECT") || root.expect)
     // Where grabs are saved as PNG for the identity comparison against the base tree, or "" for none.
     readonly property string shots: Quickshell.env("GLASS_SHOTS") || ""
     readonly property var backdrops: ["#ff00ff", "#00ff00"]
@@ -178,8 +180,9 @@ ShellRoot {
             s.push(root.settle(800))
             s.push(root.measure("late", function (px) {
                 root.read(Number(root.lateUser), "late user value")
-                root.listPlanes(px, "late user value", root.expect)
-                if (root.expect === 255) root.allOpaque(px, "late user value")
+                root.listPlanes(px, "late user value", root.lateExpect)
+                if (root.lateExpect > 0) root.noHoles(px, "late user value")
+                if (root.lateExpect === 255) root.allOpaque(px, "late user value")
             }))
         }
         if (root.mode === "sweep")

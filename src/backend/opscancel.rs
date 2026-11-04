@@ -1,16 +1,16 @@
-// Issue 144: a transfercancel reached the running operation through the event loop, and a listing of
-// an MTP directory held that loop inside read_dir while the copy went on, so the cancel was read only
-// after the copy had finished by itself. The reader thread sets the flag here instead, so a cancel
-// never queues behind whatever the loop is doing.
+// Issue 144: the stdin-reading thread sets the cancel flag here, so a slow listing cannot hold cancellation behind the loop.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 // The operation on the thread and the flag it polls, or None while nothing is running.
-pub(crate) struct Live(Mutex<Option<(usize, Arc<AtomicBool>)>>);
+pub(crate) struct Live(
+    Mutex<Option<(usize, Arc<AtomicBool>)>>,
+    pub Arc<DetachedJobs>,
+);
 
 impl Live {
     pub fn new() -> Live {
-        Live(Mutex::new(None))
+        Live(Mutex::new(None), Arc::new(DetachedJobs::new()))
     }
 
     pub fn claim(&self, id: usize, cancel: &Arc<AtomicBool>) {
@@ -41,6 +41,7 @@ impl Live {
     // The id is what keeps a cancel off the operation after the one it was aimed at, and the lock is
     // what keeps it off one claimed between the read and the store.
     pub fn cancel(&self, id: usize) {
+        self.1.cancel(id);
         if let Ok(held) = self.0.lock() {
             if let Some((running, flag)) = held.as_ref() {
                 if *running == id {
@@ -61,6 +62,13 @@ impl DetachedJobs {
     pub fn insert(&self, id: usize, cancel: &Arc<AtomicBool>) {
         if let Ok(mut held) = self.0.lock() {
             held.insert(id, Arc::clone(cancel));
+        }
+    }
+    pub fn cancel(&self, id: usize) {
+        if let Ok(held) = self.0.lock() {
+            if let Some(flag) = held.get(&id) {
+                flag.store(true, Ordering::Relaxed);
+            }
         }
     }
     pub fn remove(&self, id: usize) {
@@ -90,7 +98,7 @@ mod tests {
         let live = Live::new();
         let flag = Arc::new(AtomicBool::new(false));
         live.claim(7, &flag);
-        // The reader thread's own call, made while the loop is inside a read_dir on a FUSE mount.
+        // The stdin helper's own call, made while the loop is inside a read_dir on a FUSE mount.
         live.cancel(7);
         assert!(flag.load(Ordering::Relaxed), "the operation on the thread is the one a cancel reaches");
         assert_eq!(live.running(), Some(7));

@@ -64,34 +64,11 @@ ShellRoot {
                  })]
         if (root.mode === "reload") s = s.concat(root.reloadSteps())
         if (root.mode === "socket") s = s.concat(root.socketSteps())
-        if (root.mode === "edge") s.push(root.act(root.transparentEdges))
+        if (root.mode === "tag") s = s.concat(root.tagSteps())
+        if (root.mode === "tag-stable") s = s.concat(root.stableSteps())
         root.steps = s
     }
 
-    // Near the AA boundary, neither white nor black ink can be lifted further; the ground must protect both focus states.
-    function transparentEdges() {
-        var inks = ["#ffffff", "#000000"], backdrops = ["#ffffff", "#000000"], focuses = [true, false]
-        for (var i = 0; i < inks.length; i++) {
-            Flea.Theme.applyColors('background = "#757575"\ndark_background = "#757575"\nforeground = "' + inks[i] + '"\n')
-            for (var f = 0; f < focuses.length; f++) {
-                Flea.Glass.focused = focuses[f]
-                var c = Flea.Theme.color, a = Flea.Glass.alpha
-                var roles = [c.foreground, c.muted, c.metadata, c.error, c.errorOnSurface, c.symlink, c.executable]
-                var planes = [c.background, c.surface], worst = Infinity
-                for (var r = 0; r < roles.length; r++)
-                    for (var p = 0; p < planes.length; p++)
-                        for (var b = 0; b < backdrops.length; b++)
-                            worst = Math.min(worst, Contrast.ratio(String(roles[r]), Contrast.hexOf(Contrast.over(String(planes[p]), a, backdrops[b]))))
-                root.check(worst >= Flea.Theme.textContrast, "edge ink=" + inks[i] + " focus=" + focuses[f] + " alpha=" + root.eight() + " ratio=" + worst)
-                var nominal = focuses[f] ? 251 : 245
-                root.check(root.eight() >= nominal, "edge alpha is thinner than Omarchy's ground")
-                var prior = Math.min(Contrast.ratio(inks[i], Contrast.hexOf(Contrast.over(String(c.background), (root.eight() - 1) / 255, backdrops[0]))),
-                    Contrast.ratio(inks[i], Contrast.hexOf(Contrast.over(String(c.background), (root.eight() - 1) / 255, backdrops[1]))))
-                root.check(root.eight() === nominal || prior < Flea.Theme.textContrast, "edge alpha rose beyond the first legible step")
-                console.log("GLASSM EDGE ink=" + inks[i] + " focus=" + focuses[f] + " alpha=" + root.eight() + " ratio=" + worst)
-            }
-        }
-    }
     // The launch was glassy at 191; a reload that finds no toggle goes to Omarchy's default, and one that finds it comes back.
     function reloadSteps() {
         return [
@@ -106,7 +83,7 @@ ShellRoot {
             root.wait(function () { return Commons.Style.cornerRadius === 0 }),
             root.act(function () {
                 root.check(Flea.Glass.mode === "transparent", "a reload without the toggle left mode " + Flea.Glass.mode)
-                root.check(root.eight() === 251, "focused transparent without a theme value drew " + root.eight())
+                root.check(root.eight() === 255, "bare transparent without a theme value drew " + root.eight())
                 opaque.setText("return\n")
             }),
             root.act(function () { root.reload() }),
@@ -140,6 +117,48 @@ ShellRoot {
     Component.onCompleted: root.buildSteps()
 
     FileView { id: go; path: root.roundingFile.replace(/rounding$/, "go"); printErrors: false; blockWrites: true }
+    // Each dispatch the hyprctl stand-in logged, one per line.
+    function dispatches() { dispatchLog.reload(); return dispatchLog.text().split("\n").filter(function (l) { return l.length > 0 }) }
+    // Each opacity read the stand-in answered, so a check that nothing was tagged waits until the window was asked about.
+    function probes() { probeLog.reload(); return probeLog.text().split("\n").filter(function (l) { return l.length > 0 }) }
+    function opened(cls) { Flea.Theme.hyprEvent("openwindow", "abc123,1," + cls + ",Flea") }
+
+    // Bare Transparent with Hyprland at 1: another app's window asks nothing, Flea's own takes the tag, Glassy takes it off, Transparent puts it back.
+    function tagSteps() {
+        return [
+            root.act(function () { root.opened("org.gnome.Nautilus") }),
+            root.settle(root.eventSettleMs),
+            root.act(function () { root.check(root.probes().length === 0 && root.dispatches().length === 0, "another app's window was asked about"); root.opened("com.thisisgm.flea") }),
+            root.wait(function () { return root.dispatches().length === 1 }),
+            root.act(function () {
+                var d = root.dispatches()[0]
+                root.check(d.indexOf("address:0xabc123") >= 0 && d.indexOf("+transparent") >= 0, "the open did not tag the window: " + d)
+                glassy.setText("return\n")
+            }),
+            root.act(function () { root.reload() }),
+            root.wait(function () { return root.dispatches().length === 2 }),
+            root.act(function () { root.check(root.dispatches()[1].indexOf("-transparent") >= 0, "Glassy did not take the tag off: " + root.dispatches()[1]) }),
+            root.act(function () { Quickshell.execDetached(["rm", "-f", root.toggles + "/window-glassy.lua"]) }),
+            root.settle(root.toggleRemoveSettleMs),
+            root.act(function () { root.reload() }),
+            root.wait(function () { return root.dispatches().length === 3 }),
+            root.act(function () { root.check(root.dispatches()[2].indexOf("+transparent") >= 0, "Transparent did not put the tag back: " + root.dispatches()[2]) }),
+            root.settle(root.eventSettleMs),
+            root.act(function () { root.check(root.dispatches().length === 3, "a settled window was dispatched again") })
+        ]
+    }
+    // Stable Omarchy's catch-all rule already draws the window at 0.985, so Flea adds no tag of its own and nothing stacks.
+    function stableSteps() {
+        return [
+            root.act(function () { root.opened("com.thisisgm.flea") }),
+            root.wait(function () { return root.probes().length >= 2 }),
+            root.settle(root.eventSettleMs),
+            root.act(function () { root.check(root.dispatches().length === 0, "a window Hyprland already draws below 1 was tagged") })
+        ]
+    }
+
+    FileView { id: dispatchLog; path: Quickshell.env("GLASSM_DISPATCH") || ""; printErrors: false; blockLoading: true }
+    FileView { id: probeLog; path: Quickshell.env("GLASSM_PROBE") || ""; printErrors: false; blockLoading: true }
     FileView { id: ws; path: root.roundingFile.replace(/rounding$/, "ws"); printErrors: false; blockWrites: true }
     FileView { id: wsSent; path: root.roundingFile.replace(/rounding$/, "ws-sent"); printErrors: false; blockLoading: true }
     FileView { id: rounding; path: root.roundingFile; printErrors: false; blockWrites: true }

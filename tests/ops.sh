@@ -11,7 +11,7 @@ BIN=./target/debug/flea
 # Trash runs on this run's own session bus, whose daemons take the sandbox's home, so no earlier suite's gvfsd answers and no real trash is touched.
 if [ "${FLEA_OPS_BUS:-}" != 1 ]; then
   command -v dbus-run-session >/dev/null || { echo 'ops.sh: dbus-run-session is required for isolated Trash' >&2; exit 1; }
-  FLEA_OPS_BASE="$FIXTURE_ROOT/flea-ops-bus-$$"
+  FLEA_OPS_BASE="$FIXTURE_ROOT/ops-bus-$$"
   sandbox_make "$FLEA_OPS_BASE"
   # This outer pass owns the sandbox and removes it once the bus and its daemons have gone, however the cases ended.
   trap 'sandbox_remove "$FLEA_OPS_BASE"' EXIT
@@ -119,7 +119,7 @@ start_backend
 printf 'trash me' > "$D/doomed.txt"
 send "{\"c\":\"trash\",\"paths\":[\"$D/doomed.txt\"]}"
 await '"t":"trashed"' || fail=1
-check "trash reports one ok and no failures" "1" "$(seen '"t":"trashed","ok":1,"failed":0')"
+check "trash reports one ok and no failures" "1" "$(seen '"t":"trashed","id":0,"ok":1,"failed":0')"
 check "the file left the directory" "no" "$([ -e "$D/doomed.txt" ] && echo yes || echo no)"
 send '{"c":"undo"}'
 await '"t":"undone"' || fail=1
@@ -134,7 +134,7 @@ start_backend
 printf 'still here' > "$D/present.txt"
 send "{\"c\":\"trash\",\"paths\":[\"$D/present.txt\",\"$D/never-existed.txt\"]}"
 await '"t":"trashed"' || fail=1
-check "the missing path is a failure and the real one is not" "1" "$(seen '"t":"trashed","ok":1,"failed":1')"
+check "the missing path is a failure and the real one is not" "1" "$(seen '"t":"trashed","id":0,"ok":1,"failed":1')"
 send '{"c":"undo"}'
 await '"t":"undone"' || fail=1
 check "undo reverses the batch rather than stopping on a step it cannot restore" "1" "$(seen '"t":"undone","op":"trash","ok":true')"

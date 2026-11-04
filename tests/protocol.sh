@@ -434,11 +434,11 @@ chmod 0755 "$D/prog.so"
 # Row order is sub, cert.pem, empty.txt, linkdir, prog.so, three.txt.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
 check "a symlink to a directory keeps d false" "false" "$(echo "$out" | sed -n 2p | grep -oE '"n":"linkdir","d":(true|false)' | cut -d: -f3)"
-check "and draws as a folder" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"linkdir","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"folder"')"
+check "and draws as a folder" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"linkdir","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"folder"')"
 # Each icon grep is anchored to its own row's fields: a .* here spans into the next row's icon.
-check "a pem is not an executable" "0" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
-check "a pem draws as a generic file" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-generic"')"
-check "an executable shared object still draws as an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"prog.so","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
+check "a pem is not an executable" "0" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
+check "a pem draws as a generic file" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"cert.pem","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-generic"')"
+check "an executable shared object still draws as an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"prog.so","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
 
 # An extensionless ELF has no glob, so its execute bit alone makes it a program; the same bytes without the bit stay a document.
 setup
@@ -447,8 +447,8 @@ chmod 0755 "$D/PinyonShiftLauncher"
 cp /usr/bin/true "$D/PinyonNoExec"
 chmod 0644 "$D/PinyonNoExec"
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
-check "an extensionless pie with its execute bit draws an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonShiftLauncher","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"application-x-executable"')"
-check "the same bytes without the bit draw a document" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonNoExec","d":false,"s":[0-9]*,"m":[0-9-]*,"p":[0-9]*,"i":"text-x-generic"')"
+check "an extensionless pie with its execute bit draws an executable" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonShiftLauncher","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"application-x-executable"')"
+check "the same bytes without the bit draw a document" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"PinyonNoExec","d":false,"s":[0-9]*,"m":[0-9-]*,"b":\(null\|[0-9-]*\),"p":[0-9]*,"i":"text-x-generic"')"
 
 # Row order after setup plus the copy is sub, empty.txt, photo.jpg, three.txt, so the indices are 1, 3 and 4.
 setup
@@ -556,16 +556,37 @@ check "hidden true includes both dotfile entries" "5" "$(echo "$out" | head -1 |
 check "the dotfile row is present" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotfile"')"
 check "the dot-directory row is present and marked a directory" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotdir","d":true')"
 
-# Directory sizes: each argument is one stage; pacing allows asynchronous replies between stages.
+# Directory sizes: a sort or quit drops an unfinished walk (docs/protocol.md "dirsized", "quit"), so a stage owed answers is followed by wait:N, N dirsized lines.
 dirsize_run() {
-  ( for stage in "$@"; do
+  local out="$DZ_SB/dirsize.out" in="$DZ_SB/dirsize.in" step waited pid
+  rm -f "$out" "$in"
+  mkfifo "$in"
+  : > "$out"
+  $BIN --backend < "$in" > "$out" &
+  pid=$!
+  # Read-write, so the open never blocks and a write after an early backend exit raises no SIGPIPE; closing it is the backend's EOF.
+  exec 8<> "$in"
+  for step in "$@"; do
+    case "$step" in
+      wait:*)
+        waited=0
+        until [ "$(grep -c '"t":"dirsized"' "$out")" -ge "${step#wait:}" ]; do
+          waited=$((waited + 1))
+          [ "$waited" -le "$DIRSIZE_WAIT_TENTHS" ] || { echo "dirsize_run: fewer than ${step#wait:} dirsized lines within the wait" >&2; break; }
+          sleep 0.1
+        done ;;
       # $(...) strips a stage's trailing newline, so it comes back here or the next stage glues onto this one's last line.
-      printf '%s\n' "$stage"
-      sleep 0.3
-    done
-    printf '{"c":"quit"}\n'
-  ) | $BIN --backend
+      *) printf '%s\n' "$step" >&8 ;;
+    esac
+  done
+  printf '{"c":"quit"}\n' >&8
+  exec 8>&-
+  wait "$pid"
+  cat "$out"
+  rm -f "$out" "$in"
 }
+# Ten seconds, five times the walk's own 2000 ms deadline, so only a walk that never answers runs it out.
+DIRSIZE_WAIT_TENTHS=100
 
 DZ_SB="$FIXTURE_ROOT/flea-dirsize-test-$$"
 DZ="$DZ_SB/tree"
@@ -575,7 +596,7 @@ mkdir -p "$DZ/sub"
 printf 'abc' > "$DZ/sub/a.txt"
 printf 'de' > "$DZ/file.txt"
 # Directories sort first, so row 0 is sub and row 1 is file.txt.
-out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")")
+out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" wait:1)
 check "a dirsize request answers one dirsized line" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
 check "it names the row it was asked for" "1" "$(echo "$out" | grep -c '"row":0')"
 check "the walk is not marked partial well inside the 2000 ms deadline" "1" "$(echo "$out" | grep -c '"partial":false')"
@@ -583,14 +604,15 @@ bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | cut -d: -f2)
 [ -n "$bytes" ] && [ "$bytes" -gt 3 ] 2>/dev/null
 check "sub's size counts its own entry plus a.txt inside it" "0" "$?"
 
-# A file row is never a valid dirsize target, and neither is one past the end.
-out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[1,99999]}\n' "$DZ")")
-check "a file row and an out-of-range row both answer nothing" "0" "$(echo "$out" | grep -c '"t":"dirsized"')"
+# A file row is never a valid dirsize target, and neither is one past the end; row 0 asked after them answers after anything they were owed.
+out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[1,99999]}\n' "$DZ")" '{"c":"dirsize","rows":[0]}' wait:1)
+check "a file row and an out-of-range row answer nothing, so the row 0 marker's is the one dirsized line" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
+check "and that one answer names row 0" "1" "$(echo "$out" | grep '"t":"dirsized"' | grep -c '"row":0[,}]')"
 
 # A row already answered is re-answered at once from the cache; staged separately, or two requests sent together would just dedup against the queue instead.
 out=$(dirsize_run \
-    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" \
-    "$(printf '{"c":"dirsize","rows":[0]}\n')")
+    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" wait:1 \
+    "$(printf '{"c":"dirsize","rows":[0]}\n')" wait:2)
 check "a repeated ask for an already-answered row still answers" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 
 # A queued cancellation suppresses the result even if the worker has already picked up the row.
@@ -606,8 +628,8 @@ mkdir -p "$SZ/aaa" "$SZ/zzz"
 printf 'abc' > "$SZ/aaa/small.txt"
 printf '%050d' 0 > "$SZ/zzz/bigger.txt"
 out=$(dirsize_run \
-    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$SZ")" \
-    "$(printf '{"c":"sort","by":"name","desc":true}\n{"c":"dirsize","rows":[0]}\n')")
+    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$SZ")" wait:1 \
+    "$(printf '{"c":"sort","by":"name","desc":true}\n{"c":"dirsize","rows":[0]}\n')" wait:2)
 check "a sort still answers a fresh dirsize for the row at its new position" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 first_bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | head -1 | cut -d: -f2)
 second_bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | sed -n 2p | cut -d: -f2)
@@ -1020,7 +1042,7 @@ out=$( ( printf '{"c":"list","path":"%s","first":10}\n' "$WT"
          printf '{"c":"quit"}\n' ) | $BIN --backend)
 check_changed "a change under a search answers nothing, because matches are not a directory" "$out" 0 0
 
-# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create shows next, and the gen names each answer.
+# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create shows in the next query, and the gen names each answer. The recursive watch may index the create first; a_newfile_patches_the_session_with_no_watch_event pins the own-write patch alone.
 SW="$SB/session"
 mkdir -p "$SW/sub/deep"
 printf 'x' > "$SW/other.txt"
@@ -1028,18 +1050,16 @@ out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          sleep 0.5
          printf '{"c":"searchquery","query":"zz","gen":1}\n'
          sleep 0.4
-         printf '{"c":"newfile","path":"%s","name":"zzfile.txt","id":7}\n' "$SW"
-         sleep 0.4
-         printf '{"c":"searchquery","query":"zz","gen":2}\n'
+         printf '{"c":"newfile","path":"%s","name":"zzfile.txt","id":7}\n{"c":"searchquery","query":"zz","gen":2}\n' "$SW"
          sleep 0.4
          printf '{"c":"quit"}\n' ) | $BIN --backend)
 check "open answers searchopened and changes no rows" "1" "$(echo "$out" | grep -c '"t":"searchopened"')"
 check "the first query finds no zz" "0" "$(echo "$out" | grep '"t":"searched"' | sed -n 1p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "the backend's own create shows in the next query" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "that answer carries the newer generation" "2" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"gen":[0-9]+' | cut -d: -f2)"
-check "that answer lands after the walk" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -c '"walking":false')"
+check "the backend's own create shows in the next query" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":2,' | head -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "that answer carries the newer generation" "2" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":2,' | head -n1 | grep -oE '"gen":[0-9]+' | cut -d: -f2)"
+check "that answer lands after the walk" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":2,' | head -n1 | grep -c '"walking":false')"
 
-# An outside file two levels down stays invisible until a reopen re-walks the scope.
+# An outside file two levels down reaches the index through the recursive watch, which pushes the standing query again; a reopen re-walks it.
 out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          sleep 0.5
          printf '{"c":"searchquery","query":"deepzz","gen":1}\n'
@@ -1055,8 +1075,9 @@ out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          printf '{"c":"searchquery","query":"deepzz","gen":3}\n'
          sleep 0.4
          printf '{"c":"quit"}\n' ) | $BIN --backend)
-check "an outside change two levels down hides until a reopen" "0" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "the reopen walks it into the index" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 3p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "the recursive watch pushes the standing query again with the change" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":1,' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "an outside change two levels down shows without a reopen" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":2,' | head -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "the reopen walks it into the index" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":3,' | head -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
 rm -rf "$SW"
 
 # A cancel right behind the open races the 200-directory walk: mid-walk it answers one searched line naming the stop, after the landing it says nothing; run_session_tests parks the walk to pin the stop.

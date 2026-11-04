@@ -4,7 +4,7 @@ use crate::backend::searchreq::Answer;
 use crate::backend::searchsession::Session;
 use crate::backend::testdir::TestDir;
 use std::os::unix::ffi::OsStrExt;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
 pub(super) const DEADLINE: Duration = Duration::from_secs(10);
@@ -30,10 +30,10 @@ pub(super) fn fixture(tag: &str) -> TestDir {
 // A session with its walk landed and its landing event taken, the way the loop sees an idle one.
 pub(super) fn opened(d: &TestDir) -> (Session, Receiver<Event>) {
     let root = d.path().to_str().expect("utf-8").to_string();
-    let (tx, rx) = channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut s = Session::open_async(&root, &root, false, tx);
     s.join_walk();
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the walk landing arrives");
+    crate::backend::searchwalkhold::take_joined_walk(&rx, DEADLINE);
     (s, rx)
 }
 
@@ -43,7 +43,7 @@ pub(super) fn tagged(s: &mut Session, rx: &Receiver<Event>, gen: usize, query: &
     let partial = s.query(gen, query, 50).expect("a newer generation answers");
     assert!(partial.walking, "{query}: an answer on unread names says it is still walking");
     s.tags.release_read();
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the tag worker lands through the walk's event");
+    crate::backend::searchwalkhold::wait_landed(rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the tag landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "{query}: the re-run is whole");
@@ -107,7 +107,7 @@ fn each_entry_is_read_once_per_session_and_an_extension_never_reads_again() {
     let narrowed = s.query(2, "tag:Red holiday", 50).expect("answers");
     assert!(!narrowed.walking, "the names are in, so the extension answers whole at once");
     assert_eq!(narrowed.total, 1);
-    assert_eq!(s.counters.rows_scored, first.total, "the extension scores only the Red matches");
+    assert_eq!(s.counters.rows_scored, rows, "edit-eligible text rescans candidates while reusing every tag read");
     let other = s.query(3, "tag:Blue", 50).expect("answers");
     assert_eq!(other.total, 1, "another tag is answered from the same names");
     assert_eq!(s.tags.reads(), rows, "no second read for the extension or another tag");
@@ -132,7 +132,7 @@ fn an_empty_text_with_a_tag_matches_every_carrying_entry() {
 
 // The names swap in, the landing event arrives, and the standing query is re-run once.
 pub(super) fn landed(s: &mut Session, rx: &Receiver<Event>) -> Answer {
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the rewrite lands through the walk's event");
+    crate::backend::searchwalkhold::wait_landed(rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the rewrite landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "the re-run is whole");
@@ -175,7 +175,7 @@ fn a_patch_that_drops_rows_moves_the_surviving_names_to_their_new_ids() {
 
 #[test]
 fn a_tag_query_on_a_pass_not_started_keeps_no_row() {
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let mut tags = Tags::new(tx);
     let terms = Tags::terms("tag:Red");
     let index = Arc::new(Mutex::new(Index::new()));
@@ -297,7 +297,7 @@ fn a_local_scope_reads_its_tags_with_no_mount_hop() {
     let d = holiday("taglocal");
     let body = "1 0 8:1 / / rw - ext4 /dev/a rw\n";
     crate::backend::iomount::test_reset();
-    let have = Bound::new(d.path(), body).read(&rels(&["holiday.jpg", "notes.txt"]));
+    let have = Bound::new(d.path(), body).read(&rels(&["holiday.jpg", "notes.txt"]), &Arc::new(AtomicBool::new(false)));
     assert_eq!(have, [Some(vec!["Red".to_string()]), Some(Vec::<String>::new())]);
     assert_eq!(crate::backend::iomount::test_calls(), 0, "a local scope pays no bounded call per row");
 }
@@ -307,7 +307,7 @@ fn a_remote_scope_reads_a_chunk_of_rows_under_one_bounded_call() {
     let d = holiday("tagremote");
     let bound = Bound::new(d.path(), &remote_body(&d));
     crate::backend::iomount::test_reset();
-    let have = bound.read(&rels(&["holiday.jpg", "notes.txt"]));
+    let have = bound.read(&rels(&["holiday.jpg", "notes.txt"]), &Arc::new(AtomicBool::new(false)));
     assert_eq!(have, [Some(vec!["Red".to_string()]), Some(Vec::<String>::new())], "only the Red file carries its tag");
     assert_eq!(crate::backend::iomount::test_calls(), 1, "two rows ride one mount bound");
 }
@@ -317,7 +317,7 @@ fn a_stuck_remote_scope_reads_no_tag() {
     let d = holiday("tagstuck");
     let bound = Bound::new(d.path(), &remote_body(&d));
     let _stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());
-    let have = bound.read(&rels(&["holiday.jpg", "notes.txt"]));
+    let have = bound.read(&rels(&["holiday.jpg", "notes.txt"]), &Arc::new(AtomicBool::new(false)));
     assert!(have.iter().all(Option::is_none), "an unreadable mount leaves its rows unread, never untagged");
 }
 
@@ -327,15 +327,15 @@ fn a_failed_bound_chunk_is_unread_and_readable_again_later() {
     let body = remote_body(&d);
     let bound = Bound::new(d.path(), &body);
     let stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());
-    assert!(bound.read(&rels(&["holiday.jpg", "notes.txt"])).iter().all(Option::is_none), "a failed chunk leaves its rows unread, not untagged");
+    assert!(bound.read(&rels(&["holiday.jpg", "notes.txt"]), &Arc::new(AtomicBool::new(false))).iter().all(Option::is_none), "a failed chunk leaves its rows unread, not untagged");
     drop(stuck);
-    assert_eq!(bound.read(&rels(&["holiday.jpg", "notes.txt"])), [Some(vec!["Red".to_string()]), Some(Vec::<String>::new())], "a later query reads the same rows again");
+    assert_eq!(bound.read(&rels(&["holiday.jpg", "notes.txt"]), &Arc::new(AtomicBool::new(false))), [Some(vec!["Red".to_string()]), Some(Vec::<String>::new())], "a later query reads the same rows again");
 }
 
 #[test]
 fn a_finished_pass_with_unread_rows_answers_partial_and_retries_them() {
     let d = holiday("tagpartial");
-    let (tx, rx) = channel();
+    let (tx, rx) = crate::backend::events::channel();
     let mut index = Index::new();
     index.push("holiday.jpg", false);
     index.push("notes.txt", false);
@@ -349,7 +349,7 @@ fn a_finished_pass_with_unread_rows_answers_partial_and_retries_them() {
     tags.pass = Some(Arc::clone(&pass));
     let terms = Tags::terms("tag:Red");
     assert!(tags.prepare(&terms, &index, d.path(), "", false), "rows still unread keep the answer partial, never whole");
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the retry re-read lands");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     assert_eq!(pass.names.lock().unwrap()[1].as_deref(), Some(&[][..]), "the retry read the missing row");
     assert!(!tags.prepare(&terms, &index, d.path(), "", false), "with every row read the answer is whole");
 }
@@ -366,7 +366,7 @@ fn remote_pass(d: &TestDir) -> (Arc<Pass>, Arc<Mutex<Index>>) {
 fn a_failed_first_read_leaves_its_rows_unread_and_raises_the_flag() {
     let d = holiday("tagreadfail");
     let (pass, index) = remote_pass(&d);
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let _stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());
     read_all(&pass, &index, 2, &tx);
     assert!(pass.names.lock().unwrap().iter().all(Option::is_none), "a failed chunk leaves both rows unread, not untagged");
@@ -377,7 +377,7 @@ fn a_failed_first_read_leaves_its_rows_unread_and_raises_the_flag() {
 fn a_failed_reread_drops_the_old_names_and_raises_the_flag() {
     let d = holiday("tagrereadfail");
     let (pass, index) = remote_pass(&d);
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     read_all(&pass, &index, 2, &tx);
     assert!(!pass.unread_failed.load(Ordering::Relaxed) && pass.names.lock().unwrap()[0].is_some(), "the first read answered whole");
     let _stuck = crate::backend::iomount::test_hold_stuck(d.path().to_path_buf());
@@ -456,7 +456,7 @@ fn nested_remote(tag: &str) -> (TestDir, String) {
 fn a_row_under_a_remote_mount_inside_a_local_scope_reads_under_the_bound() {
     let (d, body) = nested_remote("tagnested");
     crate::backend::iomount::test_reset();
-    let have = Bound::new(d.path(), &body).read(&rels(&["plain.jpg", "nas/held.jpg"]));
+    let have = Bound::new(d.path(), &body).read(&rels(&["plain.jpg", "nas/held.jpg"]), &Arc::new(AtomicBool::new(false)));
     assert_eq!(have, [Some(vec!["Red".to_string()]), Some(vec!["Red".to_string()])], "both Red files are read");
     assert_eq!(crate::backend::iomount::test_calls(), 1, "only the row under the nested mount rides the bound");
 }
@@ -465,7 +465,7 @@ fn a_row_under_a_remote_mount_inside_a_local_scope_reads_under_the_bound() {
 fn a_stuck_mount_inside_a_local_scope_drops_only_its_own_rows() {
     let (d, body) = nested_remote("tagnestedstuck");
     let _stuck = crate::backend::iomount::test_hold_stuck(d.join("nas"));
-    let have = Bound::new(d.path(), &body).read(&rels(&["plain.jpg", "nas/held.jpg"]));
+    let have = Bound::new(d.path(), &body).read(&rels(&["plain.jpg", "nas/held.jpg"]), &Arc::new(AtomicBool::new(false)));
     assert_eq!(have, [Some(vec!["Red".to_string()]), None], "the unreadable mount leaves its own row unread and the local file still reads");
 }
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-magick-font"
 . "$(dirname "$0")/headless-commons.sh"
 # Exercise preview layout offscreen and fail on every engine binding loop, with no warning filter.
 set -u
@@ -49,7 +50,7 @@ done
 { printf 'A long text line that wraps in the preview. %.0s' $(seq 1 "$wrap_repeats"); printf '\n'; printf 'plain text\n%.0s' $(seq 1 "$overflow_lines"); } \
     > "$test_root/plain.txt"
 printf 'let long_line = "a long code line that wraps in Quick Look";\n%.0s' $(seq 1 "$overflow_lines") > "$test_root/code.rs"
-magick -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 30 \
+magick -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 30 \
     -annotate +40+80 'LAYOUT' "$test_root/page.pdf" || exit 1
 # Each scenario is a first visit in both hosts; relative Markdown images stay beside their documents.
 for scenario in $(seq 0 5); do

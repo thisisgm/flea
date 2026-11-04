@@ -1,4 +1,5 @@
 use super::*;
+use crate::backend::searchwalkhold::wait_walk_landed;
 use crate::backend::testdir::TestDir;
 
 const WIRE_DEADLINE: Duration = Duration::from_secs(30);
@@ -6,7 +7,7 @@ const WIRE_DEADLINE: Duration = Duration::from_secs(30);
 // One backend over a sandbox, driven line by line the way the loop drives it, with the walk parked at its last directory.
 struct Wire {
     tb: Tables,
-    events: Sender<Event>,
+    events: crate::backend::events::Sender<Event>,
     events_rx: Receiver<Event>,
     st: State,
     pool: Pool,
@@ -18,7 +19,7 @@ struct Wire {
     fsinfo: FsInfo,
     poller: super::super::watchpoll::Poller,
     out: Vec<u8>,
-    release: Sender<()>,
+    release: std::sync::mpsc::Sender<()>,
     // When the loop received the walk's landing, read against the session's own cap.
     landed_at: Option<Instant>,
 }
@@ -34,7 +35,7 @@ impl Wire {
         d.file("bench.txt", "");
         let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
         let tb = Tables::load();
-        let (events, events_rx) = channel::<Event>();
+        let (events, events_rx) = crate::backend::events::channel::<Event>();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
         let (results, _done) = channel();
         let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
@@ -65,10 +66,11 @@ impl Wire {
         while !kind(&self.events_rx.recv_timeout(WIRE_DEADLINE).expect("the event arrives")) {}
     }
 
-    // Releases the parked walk and answers its landing as the loop does.
+    // Releases the parked walk and answers its landing as the loop does; walk progress before the landing is passed over.
     fn land(&mut self) -> Vec<String> {
         let _ = self.release.send(());
-        self.next(|event| matches!(event, Event::SearchWalked));
+        let session = self.st.search_session.as_ref().expect("a session stands");
+        wait_walk_landed(&self.events_rx, session, WIRE_DEADLINE, |_| true);
         self.landed_at = Some(Instant::now());
         on_search_walked(&mut self.out, &mut self.st, &self.tb, &self.pool);
         self.taken()
@@ -172,6 +174,55 @@ fn an_emptied_query_answers_at_once_while_the_walk_runs() {
     assert_eq!(crate::json::field_usize(&lines[2], "gen"), Some(2), "with the empty query's gen");
     crate::backend::searchhold::on_search_held(&mut wire.out, &mut wire.st, &wire.tb, &wire.pool);
     assert!(wire.taken().is_empty(), "the held key is gone, so the cap answers nothing");
+}
+
+// Walk progress shares the landing event, so a walk still out after its release is waited for, never taken for its landing.
+#[test]
+fn a_landing_wait_skips_walk_progress_while_the_walk_is_still_out() {
+    let d = TestDir::new("sessionholdprogress");
+    let mut wire = Wire::parked(&d);
+    assert!(
+        wire.ask(r#"{"c":"searchquery","query":"bench","gen":1,"count":100}"#)
+            .is_empty(),
+        "the key waits for the walk"
+    );
+    wire.next(|event| matches!(event, Event::SearchHeld));
+    crate::backend::searchhold::on_search_held(&mut wire.out, &mut wire.st, &wire.tb, &wire.pool);
+    assert_eq!(
+        kinds(&wire.taken()),
+        ["listed", "rows", "searched"],
+        "the cap answers from the partial index"
+    );
+    let probes = Arc::clone(
+        &wire
+            .st
+            .search_session
+            .as_ref()
+            .expect("a session stands")
+            .probes,
+    );
+    let (parked, release) = probes.test_hold_walk_late_in("docs");
+    // The walk parks again after its first release for three progress ticks, so progress arrives before its landing.
+    let late = std::thread::spawn(move || {
+        parked
+            .recv_timeout(WIRE_DEADLINE)
+            .expect("the walk is still out after its first release");
+        std::thread::sleep(Duration::from_millis(
+            3 * crate::backend::searchsession::BATCH_MS,
+        ));
+        let _ = release.send(());
+    });
+    let lines = wire.land();
+    late.join().expect("the late hold thread ends");
+    assert_eq!(
+        kinds(&lines),
+        ["listed", "rows", "searched"],
+        "the landing re-runs once: {lines:?}"
+    );
+    assert!(
+        lines[2].contains(r#""walking":false"#) && lines[2].contains(r#""gen":1"#),
+        "with its own gen, landed"
+    );
 }
 
 // The cap is the listing swap's own, read from the client that holds a listing.

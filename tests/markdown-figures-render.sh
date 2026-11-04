@@ -236,38 +236,38 @@ if [ -n "${FLEA_CI_SUITE_LOGS:-}" ] && [ -f "$test_root/runtime/markdown-figflus
     cp "$test_root/runtime/markdown-figflush.png" "$FLEA_CI_SUITE_LOGS/markdown-figflush.png" || exit 1
 fi
 
-# The canvas trim over real library output and hand-built shapes: no broken viewBox, no label cut, tspan lines read.
+# The post-pass over real library output and hand-built shapes: no broken viewBox, no label cut, every tspan line its own text.
 tighten_output=$(timeout 45 "$qjs" tests/markdown-figtighten.mjs 2>&1)
 tighten_status=$?
-expected_tighten_checks=149 # Unreadable texts alone and beside a rect, tspan lines with inherited anchor and size, real multi-line figures, wide and narrow labels, every ASCII glyph run at its measured maximum, a long CJK message, labels centred in their boxes with no dy left for QtSvg to drop.
-# Sample input: MARKDOWN_FIGTIGHTEN 149 checks, 0 failed
+expected_tighten_checks=570 # Unreadable texts alone and beside a rect, tspan lines split with inherited anchor and size, real multi-line figures, wide and narrow labels, every ASCII glyph run at its measured maximum, a long CJK message, labels centred in their boxes with no dy left for QtSvg to drop.
+# Sample input: MARKDOWN_FIGTIGHTEN 570 checks, 0 failed
 if [ "$tighten_status" -ne 0 ] || ! printf '%s\n' "$tighten_output" | grep -qE "^MARKDOWN_FIGTIGHTEN $expected_tighten_checks checks, 0 failed$"; then
     printf 'FAIL markdown-figures-render: figtighten expected %s checks, 0 failed; exited %s; arrived [%s]\n' "$expected_tighten_checks" "$tighten_status" "${tighten_output:-<empty>}" >&2
     exit 1
 fi
 printf '%s\n' "$tighten_output" | head -1
 
-# The parsed positions read stdout alone; stderr goes to a file and prints on failure.
-paths_output=$("$qjs" tests/markdown-figures-render-paths.mjs 2>"$test_root/paths-stderr.log")
+# Every link mark is a plain shape in the accent, or in the colour a user style gives its link; stderr goes to a file and prints on failure.
+paths_output=$(timeout 45 "$qjs" tests/markdown-figures-render-paths.mjs 2>"$test_root/paths-stderr.log")
 paths_status=$?
-if [ "$paths_status" -ne 0 ]; then
-    printf 'FAIL markdown-figures-render: paths expected generated arrow cases; helper exited %s; arrived [%s] stderr [%s]\n' "$paths_status" "${paths_output:-<empty>}" "$(cat "$test_root/paths-stderr.log")" >&2
+expected_paths_checks=125 # Three checks for each of 37 corpus and end-mark diagrams, a mark count for each of the five end-mark ones, four on a styled set and five on hand-built marks.
+# Sample input: MARKDOWN_PATHS 125 checks, 0 failed
+if [ "$paths_status" -ne 0 ] || ! printf '%s\n' "$paths_output" | grep -qE "^MARKDOWN_PATHS $expected_paths_checks checks, 0 failed$"; then
+    printf 'FAIL markdown-figures-render: paths expected %s checks, 0 failed; exited %s; arrived [%s] stderr [%s]\n' "$expected_paths_checks" "$paths_status" "${paths_output:-<empty>}" "$(cat "$test_root/paths-stderr.log")" >&2
     exit 1
 fi
 printf '%s\n' "$paths_output" | head -1
-printf '%s\n' "$paths_output" | tail -1 > "$test_root/arrow-cases.json" || exit 1
 cp tests/markdown-figures-render-arrows.qml "$test_root/config/shell.qml" || exit 1
 arrow_output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     HOME="$test_root/home" XDG_STATE_HOME="$test_root/state" XDG_CACHE_HOME="$test_root/cache" \
     XDG_RUNTIME_DIR="$test_root/runtime" FLEA_BIN="$fleabin" FLEA_QJS="$qjs" FLEA_UI="$FLEA_UI" \
-    FLEA_ARROW_FIXTURE="$test_root/arrow-cases.json" \
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_QPA_UPDATE_IDLE_TIME=1 QT_FORCE_STDERR_LOGGING=1 \
     timeout 25 qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
 printf '%s\n' "$arrow_output" | grep -oE 'MARKDOWN_ARROWS .*'
 warnings=$(printf '%s\n' "$arrow_output" | grep -aE 'TypeError|ReferenceError|WARN|invalid nullptr parameter' | grep -vF "$platform_warning")
 [ -z "$warnings" ] || { printf 'FAIL arrow harness warning: %s\n' "$warnings"; exit 1; }
-expected_arrow_checks=80 # Four checks for each of 16 synthetic paths and four helper figures.
-# Sample input: MARKDOWN_ARROWS 80 checks, 0 failed
+expected_arrow_checks=39 # Every head measured with a displaced-head control: five checks for each of four single heads, eight for the double-marked link, eleven for the back-link loop.
+# Sample input: MARKDOWN_ARROWS 24 checks, 0 failed
 if ! printf '%s\n' "$arrow_output" | grep -qE "(^|: )MARKDOWN_ARROWS $expected_arrow_checks checks, 0 failed$"; then
     printf 'FAIL markdown-figures-render: arrows expected %s checks, 0 failed; arrived [%s]\n' "$expected_arrow_checks" "${arrow_output:-<empty>}" >&2
     exit 1

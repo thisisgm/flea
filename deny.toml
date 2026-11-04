@@ -1,0 +1,163 @@
+[licenses]
+allow = ["MIT", "Apache-2.0", "Zlib", "BSD-2-Clause", "BSD-3-Clause"]
+confidence-threshold = 0.95
+
+[[licenses.exceptions]]
+name = "hexf-parse"
+version = "=0.2.1"
+# Public-domain parser or hashing code inherited from GPUI.
+allow = ["CC0-1.0"]
+
+[[licenses.exceptions]]
+name = "icu_collections"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_locale_core"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_normalizer"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_normalizer_data"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_properties"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_properties_data"
+version = "=2.3.0"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_provider"
+version = "=2.3.1"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "libloading"
+version = "=0.8.9"
+# Dynamic library loader inherited from GPUI.
+allow = ["ISC"]
+
+[[licenses.exceptions]]
+name = "litemap"
+version = "=0.8.3"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "option-ext"
+version = "=0.2.0"
+# Platform or optional-value helper inherited from GPUI.
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+name = "potential_utf"
+version = "=0.1.6"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "tiny-keccak"
+version = "=2.0.2"
+# Public-domain parser or hashing code inherited from GPUI.
+allow = ["CC0-1.0"]
+
+[[licenses.exceptions]]
+name = "tinystr"
+version = "=0.8.4"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "unicode-ident"
+version = "=1.0.27"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "writeable"
+version = "=0.6.4"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "yoke"
+version = "=0.8.3"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "yoke-derive"
+version = "=0.8.4"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerofrom"
+version = "=0.1.8"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerofrom-derive"
+version = "=0.1.8"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerotrie"
+version = "=0.2.5"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerovec"
+version = "=0.11.8"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerovec-derive"
+version = "=0.11.6"
+# Unicode text data and helpers inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "dwrote"
+version = "=0.11.5"
+# Platform or optional-value helper inherited from GPUI.
+allow = ["MPL-2.0"]
+
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre -> image 0.25.10 -> exr 1.74.2 -> pulp 0.22.3 -> paste 1.0.15; pastey exists in another branch but this caller needs a migration." },
+    { id = "RUSTSEC-2026-0192", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre -> ttf-parser 0.25.1; skrifa exists through cosmic-text but replacing the direct parser requires an API migration." },
+    { id = "RUSTSEC-2026-0370", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre-platform -> gpui-pre-linux -> oo7 0.6.0 -> zvariant 5.15.1; current oo7, ashpd and accesskit_unix still require zbus 5, so zbus 6 needs upstream migrations." },
+    { id = "RUSTSEC-2026-0371", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre-platform -> gpui-pre-linux -> accesskit_unix 0.22.1 -> zbus 5.19.0 -> zbus_names 4.3.5; maintained names live in zbus 6, requiring upstream migrations." },
+    { id = "RUSTSEC-2026-0372", reason = "Unmaintained only, no vulnerability or patched release: flea-gui -> gpui-pre-platform -> gpui-pre-linux -> oo7 0.6.0 -> zvariant 5.15.1 -> zvariant_derive 5.15.1; maintained derives live in zbus 6, requiring upstream migrations." },
+]
+
+[[licenses.clarify]]
+name = "omi"
+version = "=1.0.0"
+# GM approved shipping Omi on 2026-10-22; MIT covers code only, not its reserved design.
+expression = "MIT"
+license-files = [{ path = "LICENSE", hash = 0x9a5bab21 }]

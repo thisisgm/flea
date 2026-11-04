@@ -1,0 +1,11 @@
+#!/bin/bash
+# Synthetic unit includes the image, inventory and process-launch anchors.
+run_dir=${1:?run directory}
+shift
+image=$(cat "$run_dir/in/image.id") || exit 125
+dri=()
+# Sample inventory entry: fixture-suite
+for s in "$@"; do /usr/bin/grep -qx -- "$s" /srv/ci/dri-suites.txt 2>/dev/null && { dri=(--device /dev/dri/card0); break; }; done
+podman run --rm "${dri[@]}" \
+  "$image" setpriv --inh-caps=-all --ambient-caps=-all -- /bin/bash /in/flea-ci-lane "$@" &
+wait $!

@@ -1,4 +1,32 @@
+mod findnames;
+mod findnormalizer;
+pub mod linkheld;
+mod paritysort;
+pub mod birthtime;
+mod peekdetail;
+pub(crate) mod locale;
+mod actionmanifest;
+mod actionpreview;
+mod actionrun;
+mod actions;
+mod jobdrive;
+mod jobevents;
+mod jobs;
+mod jobview;
+mod jobstart;
+mod jobwork;
+mod rclone;
+mod rcloneenv;
+mod rclonefolders;
+mod rclonelog;
+mod rcloneproc;
+mod rclonerun;
+
 pub mod listing;
+pub mod outline;
+pub mod filter;
+#[cfg(test)]
+mod filter_tests;
 pub mod aliases;
 pub mod archive;
 pub mod archiveenc;
@@ -9,28 +37,78 @@ pub mod archivepass;
 pub mod archivespec;
 pub mod archivereq;
 pub mod archivework;
+mod extractindex;
+mod extractprogress;
+mod extractrun;
 pub mod appicon;
 pub mod mime;
 pub mod fsinfo;
 pub mod fsname;
 pub mod fsinforeq;
 pub mod extclass;
+#[cfg(test)]
+pub(crate) mod gitfixture;
+pub mod gitprobe;
+pub mod gitreq;
+#[cfg(test)]
+mod gitreq_process_tests;
+pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
+pub mod networkaddress;
+pub mod nearby;
+pub mod nearbyrows;
+mod nearbytool;
+// Settings > Plugins; see docs/protocol.md "plugins".
+pub mod plugins;
+pub mod pluginadd;
+pub mod pluginfs;
+pub mod plugingit;
+mod pluginops;
+pub(crate) mod pluginruntime;
+mod pluginpreview;
+#[cfg(test)]
+mod pluginpreview_tests;
+pub mod pluginhost;
+mod pluginshelf;
+#[cfg(test)]
+mod pluginruntime_tests;
+#[cfg(test)]
+mod plugins_tests;
+#[cfg(test)]
+mod pluginadd_tests;
+#[cfg(test)]
+mod pluginsafe_tests;
+#[cfg(test)]
+mod pluginbound_tests;
+#[cfg(test)]
+mod pluginsource_tests;
+#[cfg(test)]
+mod rev2_st2_tests;
+#[cfg(test)]
+mod rev3_st2_tests;
+#[cfg(test)]
+mod rev4_st2_tests;
 pub mod durable;
 pub mod icons;
+pub use flea::backend::rastertemp;
 pub mod regfile;
 pub mod exiffacts;
 pub mod imagesize;
+pub mod imageformats;
+pub mod imagevector;
 pub mod kind;
 pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+pub mod viewerpaths;
 // Issue 144: a remote list scans off the event loop; see src/backend/listwork.rs.
 pub mod listwork;
 pub mod unmount;
 pub mod events;
+pub mod inbox;
+pub mod wake;
 pub mod scan;
 pub mod gvfslist;
 pub mod fuzzy;
@@ -40,14 +118,30 @@ pub mod jump;
 pub mod devsreq;
 pub mod search;
 pub mod searchindex;
+mod searchnames;
+mod searchread;
+mod searchblocks;
+mod searchbits;
+mod searchmatch;
+mod searchtypo;
+mod searchprior;
+mod searchrowcache;
+mod searchrowinodes;
+mod searchjobs;
 pub mod searchsession;
 pub mod searchtags;
+#[cfg(test)]
+pub(crate) mod tagreadprobe;
 pub mod searchwalk;
+mod searchwalkread;
 #[cfg(test)]
 pub(crate) mod searchwalkhold;
 pub mod searchreq;
 pub mod searchhold;
 pub mod searchpatch;
+pub(crate) mod searchwatch;
+mod searchwatchpump;
+mod searchdelta;
 pub mod answersizes;
 pub mod shebang;
 pub mod sgr;
@@ -59,9 +153,17 @@ mod htmlsandbox;
 pub mod compare;
 pub mod sort;
 pub mod ordering;
+mod tuifolders;
 pub mod state;
+pub(crate) mod lazy;
 pub mod mediaprobe;
+pub mod model3d;
+pub mod model3dreq;
+mod model3dadmit;
+mod model3dcache;
 pub mod meta;
+mod metarow;
+mod windowreq;
 pub mod metareq;
 pub mod metasort;
 pub mod owner;
@@ -69,6 +171,8 @@ pub mod peek;
 pub mod pdfcopy;
 pub mod officepdf;
 pub mod proto;
+pub mod contents;
+mod contentsreq;
 mod providers;
 // Directive 71: the LocalSend row's peers and its send, driven against localsend-cli on a pty.
 pub mod localsend;
@@ -77,23 +181,36 @@ pub mod localsendtext;
 pub mod permissions;
 pub mod picker;
 pub mod menu_actions;
+#[cfg(test)]
+#[path = "menu_snapshot_names_tests.rs"]
+mod menu_snapshot_names_tests;
 mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
+mod menu_many;
 mod menucontents;
+mod menuproperties;
+#[cfg(test)]
+mod menuproperties_tests;
 mod menufacts;
 mod walkmounts;
 mod menudelete;
 pub mod trashbrowse;
+pub(crate) mod trashthumb;
+pub(crate) mod trashthumbcache;
 pub mod trashland;
 pub mod journalgate;
+pub(crate) mod renamework;
 pub mod trashdelete;
 pub mod trashmanifest;
 pub mod rows;
 pub mod rowguard;
 // Dolphin-compatible file tags in user.xdg.tags, read per viewport row and never swept.
 pub mod tags;
+mod tagsedit;
 pub mod tagsreq;
+mod menutags_states;
+mod menutags_io;
 pub mod tagsundo;
 pub mod filegen;
 pub mod run;
@@ -128,6 +245,13 @@ pub mod mergeapply;
 pub mod fatnames;
 pub mod pasteimage;
 pub mod convert;
+pub mod pagerange;
+pub mod printconvert;
+pub mod printing;
+pub mod printreq;
+pub mod printtool;
+pub mod convertbatch;
+pub mod combine;
 // Quick Look's font page: the facts from the font's tables and the sample job; see src/backend/fontinfo/render.rs.
 pub mod fontinfo;
 pub mod copyfile;
@@ -136,6 +260,7 @@ pub mod manifestdir;
 pub mod copynode;
 mod copyread;
 pub mod unheld;
+mod newfolder;
 pub mod ops;
 pub mod opsname;
 pub mod opscancel;
@@ -201,6 +326,9 @@ mod undostage_tests;
 // Test-only: a kernel network mount's EINVAL on RENAME_NOREPLACE, routed to a plain rename and never a copy.
 #[cfg(test)]
 mod renamecompat_tests;
+// Test-only: a program's execute bit through a copy and the two moves the ops run.
+#[cfg(test)]
+mod copyexec_tests;
 // Test-only: the closing progress line a paced transfer sends after its last item.
 #[cfg(test)]
 mod transferclose_tests;
@@ -227,6 +355,9 @@ mod manifestfsize_tests;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: bounded inode-reuse attempts and an asserted replacement identity on every filesystem.
+#[cfg(test)]
+mod inodereuse;
 // Test-only: the fifo, writer and bound every hang test shares.
 #[cfg(test)]
 pub mod fifotest;
@@ -246,6 +377,9 @@ pub mod quietpanic;
 #[cfg(test)]
 pub mod reaphold;
 
+#[cfg(test)]
+pub mod renametiming;
+
 pub mod dirsizeworker;
 // The decode-free RAW container walker: the largest embedded JPEG preview plus EXIF facts.
 pub mod rawembed;
@@ -255,3 +389,11 @@ pub mod rawbmff;
 pub mod rawraf;
 pub mod rawexif;
 pub mod rawpreview;
+pub mod previewraster;
+
+#[cfg(test)]
+mod jobtests;
+
+#[cfg(test)]
+#[path = "tree_outline_tests.rs"]
+mod tree_outline_tests;

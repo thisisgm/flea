@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "unit": "g2-fb1",
+  "scenes": [
+    {
+      "scene": "g2.fb1.empty.primary",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/empty.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/empty.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "87d9ab508a050260621c86a8c149a7ff9b09544b842397e42264385855548c05",
+        "board_html": "394cae93ed0b9a313a3234390c46f0bfa727f561c616288b3d0095ea28407faf"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Empty",
+        "fixture": "fb1-boards",
+        "view": "list",
+        "entries": 0
+      },
+      "assertions": [
+        "a zero-row listing mounts EmptyHero in the pane state slot",
+        "48px spiral mark and caption centred in the pane",
+        "nothing is built before the pane shows Empty"
+      ],
+      "parity_ids": [
+        "board:empty"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.fb1.locked.primary",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/locked.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/locked.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "0c061b84a257bac5b0523c6e0a072ec8b1201489e4aabdf0c9a173d5f5f85437",
+        "board_html": "e1b4b07e2d177f58ca23686ed0de008ae2a241fe7abd1c2465a2015fc9ea35ec"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Locked",
+        "fixture": "fb1-boards",
+        "view": "list",
+        "entries": 0
+      },
+      "assertions": [
+        "a denied scan mounts the Locked message with the refusal sentence and mode line",
+        "the message clears when a listing lands"
+      ],
+      "parity_ids": [
+        "board:locked"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.fb1.grid-empty.primary",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/grid-empty.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/grid-empty.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "9b7e7825eac51e86f593e97823bc5cdfe7c7bb085ecdd92a5aee6705b1fcc6be",
+        "board_html": "6542c916f721a6e71cb6f14c897b4bc70fa8182d073dbd699f72bdc3d98b8afb"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Empty",
+        "fixture": "fb1-boards",
+        "view": "grid",
+        "entries": 0
+      },
+      "assertions": [
+        "a zero-row listing mounts EmptyHero with the grid metrics",
+        "nothing is built before the pane shows Empty"
+      ],
+      "parity_ids": [
+        "board:grid-empty"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.fb1.grid-locked.primary",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/grid-locked.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/grid-locked.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "95222fd8a5bb4477d7e0eb95c131d4c49dd51caee0122a09c237935a84574383",
+        "board_html": "ee51bdc2370ea62e9dcba63cd74b93947392b2d2868b330abd9530e9c58f5b24"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Locked",
+        "fixture": "fb1-boards",
+        "view": "grid",
+        "entries": 0
+      },
+      "assertions": [
+        "a denied scan mounts the Locked message with the grid metrics",
+        "the message clears when a listing lands"
+      ],
+      "parity_ids": [
+        "board:grid-locked"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.fb1.empty-rest.primary",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/empty-rest.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/empty-rest.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "3f6b782a61a816d8c947809fca466ae1cb7e93fe869b7d57e0a0f572a7c39e19",
+        "board_html": "ace44adc5977817f0496d233a6fe98b86a9e79881be3ddf81c7ef0cd97c34c18"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Empty",
+        "fixture": "fb1-boards",
+        "view": "list",
+        "entries": 0
+      },
+      "assertions": [
+        "the hero settles after the third beat with no wake",
+        "nothing is built before the pane shows Empty"
+      ],
+      "parity_ids": [
+        "board:empty-rest"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.fb1.extra.empty-reduced",
+      "unit": "g2-fb1",
+      "board_png": ".superpowers/g2-fb1/references/boards/empty.png",
+      "board_html": ".superpowers/g2-fb1/references/boards/empty.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "87d9ab508a050260621c86a8c149a7ff9b09544b842397e42264385855548c05",
+        "board_html": "394cae93ed0b9a313a3234390c46f0bfa727f561c616288b3d0095ea28407faf"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "fb1-boards",
+      "setup": {
+        "path": "/fx/v/work/Empty",
+        "fixture": "fb1-boards",
+        "view": "list",
+        "entries": 0,
+        "reduced_motion": true
+      },
+      "assertions": [
+        "reduced motion shows the first phrase whole with no wake",
+        "the static hero matches the before-first-beat board"
+      ],
+      "parity_ids": [
+        "board:empty"
+      ],
+      "producer_owner": [
+        "gcomp-wire",
+        "G2-fb1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}

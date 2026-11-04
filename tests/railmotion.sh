@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 . "$(dirname "$0")/headless-commons.sh"
 # The auto-hidden rail slides on x in the real window offscreen, once with motion and once with FLEA_REDUCED_MOTION=1.
 set -u

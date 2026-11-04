@@ -76,6 +76,30 @@ pub fn record(text: &str, folder: &Path, started: SystemTime) -> Option<Vec<u8>>
 
 pub fn sidecar(png: &Path) -> PathBuf { png.with_extension("deps") }
 
+// The rendered record up to its dependency list, which every version 1 record starts with.
+fn own_header() -> String {
+    let full = jsondoc::render(&Json::Obj(vec![("version".into(), number(1)), ("dependencies".into(), Json::Arr(Vec::new()))]));
+    full[..full.find("\"dependencies\"").unwrap_or(0)].to_string()
+}
+
+pub(super) fn replaceable(png: &Path) -> bool {
+    crate::persistdoc::replaceable(&sidecar(png), MAX_RECORD_BYTES as u64, own_header().as_bytes(), |bytes| {
+        // Bytes that are no JSON at all are damage to this cache's own record, which 0.3.12 rendered again (html-engine F4).
+        let Some(doc) = std::str::from_utf8(bytes).ok().and_then(|s| jsondoc::parse(s).ok()) else { return true };
+        doc.as_object().is_some_and(|pairs| pairs.len() == 2)
+            && doc.get("version") == Some(&number(1))
+            && doc.get("dependencies").and_then(Json::as_array).is_some_and(|rows| {
+                rows.len() <= MAX_RESOURCES && rows.iter().all(|row| {
+                    row.as_array().is_some_and(|fields| {
+                        fields.first().and_then(Json::as_str).is_some()
+                            && ((fields.len() == 2 && matches!(fields[1].as_str(), Some("absent" | "blocked")))
+                                || (fields.len() == 6 && fields[1..].iter().all(|v| v.as_f64().is_some())))
+                    })
+                })
+            })
+    })
+}
+
 pub fn unchanged(png: &Path, folder: &Path) -> bool {
     let Ok(file) = regfile::open_if_regular(&sidecar(png), O_NOFOLLOW) else { return false };
     let mut text = String::new();

@@ -134,7 +134,7 @@ ShellRoot {
     // Muted text sits near 4.5 on the opaque ground, so no translucent ground holds it: the floor over white is 255/255 for 16 palettes (RESULT, 2026-10-12). A palette's recorded floor only moves down, when a look lifts the ink on glass.
     readonly property var glassFloors: ({ "catppuccin": 253, "catppuccin-latte": 255, "ethereal": 240, "everforest": 255, "flexoki-light": 255,
         "gruvbox": 255, "hackerman": 255, "kanagawa": 255, "last-horizon": 253, "lumon": 255, "lupine": 255, "matte-black": 253, "miasma": 255,
-        "nord": 255, "osaka-jade": 255, "retro-82": 255, "ristretto": 255, "rose-pine": 255, "solitude": 255, "tokyo-night": 255,
+        "nord": 255, "jade-horse": 255, "retro-82": 255, "ristretto": 255, "rose-pine": 255, "solitude": 255, "tokyo-night": 255,
         "vantablack": 249, "white": 254, "starship": 236, "cool-dawn": 232, "sunset": 253 })
     // Option B: the lowest 8-bit alpha at which the unlifted muted and metadata ink hold 4.5 on the background plane alone, the plane under the list and preview.
     function listFloor(c) {
@@ -178,7 +178,7 @@ ShellRoot {
         "matte-black": { muted: "#a7a7a7", metadata: "#a7a7a7" },
         "miasma": { muted: "#b8b8b8", metadata: "#b8b8af" },
         "nord": { muted: "#c8ccd1", metadata: "#c9cccf" },
-        "osaka-jade": { muted: "#a6b2ab", metadata: "#afb19b" },
+        "jade-horse": { muted: "#a8bcb5", metadata: "#b1bab5" },
         "retro-82": { muted: "#8fb2b8", metadata: "#baaa8c" },
         "ristretto": { muted: "#c1bdbd", metadata: "#c2bcbc" },
         "rose-pine": { muted: "#434242", metadata: "#3e3b56" },
@@ -192,7 +192,7 @@ ShellRoot {
     // The closest shipped muted sits 1.31:1 from the primary ink (rose-pine), so a lifted muted nearer than this, or past the primary ink, has collapsed into it.
     readonly property real stepFloor: 1.25
     // Palettes whose lifted muted collapses into the primary ink: the primary ink itself sits near 4.5 on glass there, so no quieter ink holds the floor.
-    readonly property var glassCollapsed: ["catppuccin-latte", "everforest", "gruvbox", "miasma", "nord", "osaka-jade", "rose-pine", "tokyo-night", "sunset"]
+    readonly property var glassCollapsed: ["catppuccin-latte", "everforest", "gruvbox", "miasma", "nord", "rose-pine", "tokyo-night", "sunset"]
     // True where the lifted ink is nearer the primary ink than the step floor, or on its far side.
     function collapsedInto(ink, c) {
         var fg = Contrast.parse(c.foreground), bg = Contrast.parse(c.background), x = Contrast.parse(ink)
@@ -284,16 +284,11 @@ ShellRoot {
             shell.atLeast(name, "picked " + texts[t][0], "both planes over both backdrops", shell.modeWorst(texts[t][1], c, a, shell.blurBrightness), Flea.Theme.textContrast)
         shell.log("floor PICK " + name + " alpha=" + a + " list=" + list + " primary=" + String(drawn.foreground) + " muted=" + String(drawn.muted) + " metadata=" + String(drawn.metadata))
         Flea.Glass.mode = "transparent"
-        var focuses = [true, false], alphas = [251, 245]
+        var focuses = [true, false]
         for (var f = 0; f < focuses.length; f++) {
             Flea.Glass.focused = focuses[f]
-            shell.check(name + " transparent focus " + focuses[f] + " alpha", Math.round(Flea.Glass.alpha * 255), alphas[f])
-            var roles = [["primary", drawn.foreground], ["muted", drawn.muted], ["metadata", drawn.metadata], ["error", drawn.error], ["status error", drawn.errorOnSurface], ["symlink", drawn.symlink], ["executable", drawn.executable]]
-            for (var r = 0; r < roles.length; r++)
-                shell.atLeast(name, "transparent " + roles[r][0] + " focus " + focuses[f], "unblurred extreme backdrops", shell.modeWorst(roles[r][1], c, alphas[f], 1), Flea.Theme.textContrast)
-            var graphics = [["muted frame", drawn.mutedFrame], ["metadata glyph", drawn.metadataFrame], ["accent frame", drawn.accentFrame]]
-            for (var j = 0; j < graphics.length; j++)
-                shell.atLeast(name, "transparent " + graphics[j][0] + " focus " + focuses[f], "unblurred extreme backdrops", shell.modeWorst(graphics[j][1], c, alphas[f], 1), Flea.Theme.frameContrast)
+            shell.check(name + " transparent focus " + focuses[f] + " alpha", Math.round(Flea.Glass.alpha * 255), 255)
+            shell.check(name + " transparent draws opaque inks", [String(drawn.foreground), String(drawn.muted), String(drawn.metadata)], [String(c.foreground), String(c.muted), String(c.metadata)])
         }
         Flea.Glass.mode = "opaque"
         shell.check(name + " opaque restores all three inks", [String(drawn.foreground), String(drawn.muted), String(drawn.metadata)], [String(c.foreground), String(c.muted), String(c.metadata)])

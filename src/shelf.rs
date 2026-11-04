@@ -38,8 +38,7 @@ impl Shelf {
         }
     }
 
-    // Read by this file's own tests, which reach for the pile without going through a verb.
-    #[cfg(test)]
+    // Read by this file's own tests and by Settings > Plugins, which lists the pins.
     pub fn pile_file(&self) -> &Path {
         &self.pile
     }
@@ -82,8 +81,7 @@ impl Shelf {
 
     // Which of the paths the shelf holds are pinned, which is what a move has to re-point.
     pub fn pinned_among(&self, paths: &[String]) -> Vec<String> {
-        let text = fs::read_to_string(&self.pile).unwrap_or_default();
-        let doc = jsondoc::parse(&text).unwrap_or(Json::Obj(Vec::new()));
+        let doc = crate::persistdoc::read_pile(&self.pile).unwrap_or_else(|_| crate::persistdoc::empty());
         let items: Vec<Json> = doc.get("items").and_then(Json::as_array).map(<[Json]>::to_vec).unwrap_or_default();
         items
             .iter()
@@ -228,19 +226,9 @@ impl Shelf {
 
     // Sample input, the whole of shelf.json:
     // {"items":[{"path":"/home/gm/Work/a.txt","folder":false,"pinned":true}]}
-    // A file that is not there yet is an empty pile; one that cannot be read or parsed is a pile
-    // this must not write over, because the write would take every row in it.
+    // Absent, empty or blank is an empty pile; anything unreadable, unparsable or not a pile is never written over.
     pub(crate) fn held(&self) -> Result<Vec<Json>, String> {
-        let text = match fs::read_to_string(&self.pile) {
-            Ok(text) => text,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-            Err(e) => return Err(format!("{} could not be read: {}", self.pile.display(), io_message(&e))),
-        };
-        if text.trim().is_empty() {
-            return Ok(Vec::new());
-        }
-        let doc = jsondoc::parse(&text)
-            .map_err(|e| format!("{} is not the shelf's own file any more ({})", self.pile.display(), e))?;
+        let doc = crate::persistdoc::read_pile(&self.pile)?;
         Ok(doc.get("items").and_then(Json::as_array).map(<[Json]>::to_vec).unwrap_or_default())
     }
 

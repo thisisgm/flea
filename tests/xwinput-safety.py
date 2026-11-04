@@ -47,7 +47,7 @@ check('key extraction ignores an earlier hotkey declaration',
 # Sample input: if key -k Escape; then :; fi, or omarchy-drive key -k Escape.
 def ambiguous_input(body):
     prefix = r'(?:^|&&|\|\||;|\||\$\(|[(){`])\s*(?:(?:if|then|elif|else|while|until|do|!)\s+)*'
-    pattern = (prefix + r'(?:key|hotkey)\s|--window(?:\s+|=)["\']?flea\b|'
+    pattern = (prefix + r'(?:key|hotkey)\s|--window(?:\s+|=)["\']?(?:flea|com[.]thisisgm[.]flea)\b|'
                + prefix + r'omarchy-drive\s+(?:key|hotkey)\b(?![^;&|\n]*--window(?:\s|=))')
     # Sample input: key -k Escape >/dev/null, or omarchy-drive key --window flea /fixture.
     return re.search(pattern, body, re.M)
@@ -66,7 +66,9 @@ for prefix in ('', 'xwdrag_focus "$bid" && ', 'xwdrag_focus "$bid" || ', 'true; 
 for fixture in ('echo key -k Escape', 'printf hotkey', 'hotkey() { :; }', 'key() { :; }'):
     check('ambiguity guard accepts argument or declaration ' + fixture, ambiguous_input(fixture) is None)
 for spelling in ('--window flea', '--window=flea', '--window "flea"', "--window 'flea'",
-                 '--window="flea"', "--window='flea'", '--window  flea'):
+                 '--window="flea"', "--window='flea'", '--window  flea',
+                 '--window com.thisisgm.flea', '--window=com.thisisgm.flea',
+                 '--window "com.thisisgm.flea"', "--window 'com.thisisgm.flea'", '--window  com.thisisgm.flea'):
     fixture = 'omarchy-drive input ' + spelling + ' /fixture'
     check('ambiguity guard refuses the class target spelled ' + spelling, ambiguous_input(fixture) is not None)
 for fixture in ('omarchy-drive input --window "$addr" /fixture', 'omarchy-drive input --window=$addr /fixture',

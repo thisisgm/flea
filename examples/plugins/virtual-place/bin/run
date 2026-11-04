@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""An in-memory place. Operations change this process's fixture, never real files."""
+import json
+import sys
+
+entries = {
+    "/": [{"name": "Photos", "kind": "dir", "size": 0,
+             "mtime": "2026-10-17T10:00:00Z"},
+            {"name": "notes.txt", "kind": "file", "size": 99,
+             "mtime": "2026-10-17T10:00:00Z"}],
+    "/Photos": [{"name": "lake.png", "kind": "file", "size": 412,
+                   "mtime": "2026-10-17T10:00:00Z"}],
+}
+for line in sys.stdin:
+    request = json.loads(line)
+    op = request["op"]
+    if op == "hello":
+        answer = {"op": "ready", "protocolVersion": 1}
+    elif op == "list":
+        path = request["path"].rstrip("/") or "/"
+        answer = ({"op": "list", "entries": entries[path]} if path in entries else
+                  {"op": "error", "message": "The example folder no longer exists."})
+    elif op == "rename":
+        path = request["path"]
+        parent, name = path.rsplit("/", 1)
+        parent = parent or "/"
+        found = next((row for row in entries.get(parent, []) if row["name"] == name), None)
+        if found is None or any(row["name"] == request["to"] for row in entries[parent]):
+            answer = {"op": "error", "message": "The source changed or the new name exists."}
+        else:
+            found["name"] = request["to"]
+            if found["kind"] == "dir":
+                entries[(parent.rstrip("/") + "/" + request["to"])] = entries.pop(path)
+            answer = {"op": "done"}
+    elif op == "delete":
+        for path in request["paths"]:
+            path = path.rstrip("/") or "/"
+            parent, name = path.rsplit("/", 1)
+            parent = parent or "/"
+            if parent in entries:
+                entries[parent] = [row for row in entries[parent] if row["name"] != name]
+            for folder in list(entries):
+                if folder == path or folder.startswith(path + "/"):
+                    del entries[folder]
+        answer = {"op": "done"}
+    elif op in ("copy", "move"):
+        destination = request["dest"].rstrip("/") or "/"
+        if request.get("destinationLocal") or request.get("sourceLocal") or destination not in entries:
+            answer = {"op": "error", "message": "Choose a folder inside this example place."}
+        else:
+            sources = []
+            for path in request["paths"]:
+                parent, name = path.rsplit("/", 1)
+                parent = parent or "/"
+                row = next((row for row in entries.get(parent, []) if row["name"] == name), None)
+                if row is None or row["kind"] != "file" or any(item["name"] == name for item in entries[destination]):
+                    break
+                sources.append((parent, row))
+            if len(sources) != len(request["paths"]):
+                answer = {"op": "error", "message": "The source changed or the destination exists."}
+            else:
+                for parent, row in sources:
+                    entries[destination].append(dict(row))
+                    if op == "move":
+                        entries[parent].remove(row)
+                answer = {"op": "done"}
+    elif op == "settings":
+        answer = {"op": "done"}
+    elif op == "cancel":
+        continue
+    else:
+        answer = {"op": "error", "message": "Unsupported example request."}
+    print(json.dumps(answer), flush=True)

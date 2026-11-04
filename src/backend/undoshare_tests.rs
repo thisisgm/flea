@@ -137,21 +137,6 @@ fn a_group_accessible_runtime_dir_is_refused_and_falls_back() {
 }
 
 #[test]
-fn a_malformed_file_is_ignored_and_heals_on_push() {
-    let sandbox = TestDir::new("xundo-malformed");
-    let dir = runtime_0700(&sandbox);
-    std::fs::write(dir.join(JOURNAL_FILE), "{ this is not json").unwrap();
-    let mut journal = shared_journal(&sandbox);
-    // Ignored, not trusted: the next push starts a fresh document over it.
-    let (_, to, steps) = rename_steps(&sandbox, "a.txt", "b.txt");
-    journal.push(Entry { op: "rename".to_string(), steps });
-    let text = std::fs::read_to_string(dir.join(JOURNAL_FILE)).unwrap();
-    assert!(crate::backend::undocodec::decode(&text).is_some(), "the push healed the file it ignored");
-    assert_eq!(journal.undo().unwrap(), "rename");
-    assert!(!to.exists());
-}
-
-#[test]
 fn an_oversized_file_is_ignored() {
     let sandbox = TestDir::new("xundo-huge");
     let dir = runtime_0700(&sandbox);
@@ -159,17 +144,17 @@ fn an_oversized_file_is_ignored() {
     std::fs::write(dir.join(JOURNAL_FILE), &big).unwrap();
     let mut journal = shared_journal(&sandbox);
     assert!(journal.undo().is_err(), "an oversized file is ignored, not trusted");
-    // ...and the next push heals it into a working shared journal.
+    // The next push remains in memory and leaves the oversized document intact.
     let (_, to, steps) = rename_steps(&sandbox, "a.txt", "b.txt");
     journal.push(Entry { op: "rename".to_string(), steps });
-    let mut other = shared_journal(&sandbox);
-    assert_eq!(other.undo().unwrap(), "rename");
+    assert_eq!(std::fs::read(dir.join(JOURNAL_FILE)).unwrap(), big);
+    assert_eq!(journal.undo().unwrap(), "rename");
     assert!(!to.exists());
     drop(big);
 }
 
 #[test]
-fn a_planted_symlink_at_the_journal_path_is_replaced_not_followed() {
+fn a_planted_symlink_at_the_journal_path_is_left_unchanged() {
     let sandbox = TestDir::new("xundo-plant");
     let dir = runtime_0700(&sandbox);
     let outside = sandbox.path().join("outside.txt");
@@ -177,7 +162,7 @@ fn a_planted_symlink_at_the_journal_path_is_replaced_not_followed() {
     std::os::unix::fs::symlink(&outside, dir.join(JOURNAL_FILE)).unwrap();
     let mut journal = shared_journal(&sandbox);
     journal.push(Entry { op: "rename".to_string(), steps: vec![Step::Created { path: sandbox.path().join("x") }] });
-    assert!(!dir.join(JOURNAL_FILE).symlink_metadata().unwrap().file_type().is_symlink());
+    assert!(dir.join(JOURNAL_FILE).symlink_metadata().unwrap().file_type().is_symlink());
     assert_eq!(std::fs::read_to_string(&outside).unwrap(), "untouched");
 }
 
@@ -279,7 +264,12 @@ fn every_step_kind_round_trips_with_exact_integers() {
             Step::Barrier,
         ],
     };
-    let doc = super::Doc { undo: vec![entry], redo: Vec::new(), push_gen: 0 };
+    let doc = super::Doc {
+        undo: vec![entry],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let text = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     assert!(text.contains("\"born\": null"), "an unknown birth time is encoded as null");
     assert!(text.contains("\"b\": null"), "and so is an identity's");
@@ -304,6 +294,7 @@ fn a_trash_entry_with_no_uri_is_a_record_not_a_defect() {
         }],
         redo: Vec::new(),
         push_gen: 0,
+        job_gen: 0,
     };
     let text = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     let mut back = crate::backend::undocodec::decode(&text).expect("an empty uri decodes");
@@ -341,7 +332,12 @@ fn a_record_from_before_birth_time_was_kept_decodes_as_unknown() {
 #[test]
 fn an_oversized_doc_trims_oldest_and_keeps_newest() {
     let big = "op-".to_string() + &"x".repeat(1024 * 1024);
-    let mut doc = super::Doc { undo: Vec::new(), redo: Vec::new(), push_gen: 0 };
+    let mut doc = super::Doc {
+        undo: Vec::new(),
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     for index in 0..40 {
         let path = PathBuf::from(format!("/x{}", index));
         doc.undo.push(Entry { op: format!("{}-{}", big, index), steps: vec![Step::Created { path }] });
@@ -561,3 +557,6 @@ fn a_push_between_claim_and_finish_drops_the_stale_replay() {
     let (top, _) = super::claim_undo(&shared).unwrap().unwrap();
     assert_eq!(top.op, "second", "the pushed entry still undoes");
 }
+
+#[path = "undoshare_preserve_tests.rs"]
+mod preserve;

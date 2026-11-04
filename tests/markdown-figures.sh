@@ -166,7 +166,7 @@ EOF
 js_runners=("$qjs")
 command -v node >/dev/null && js_runners+=(node)
 for runner in "${js_runners[@]}"; do
-    for figure_test in figure-cache figure-worker mermaid-syntax mermaid-layout mermaid-fit; do
+    for figure_test in figure-cache figure-worker mermaid-syntax mermaid-layout mermaid-fit mermaid-types; do
         echo "markdown-figures.sh: $figure_test under $(basename "$runner")"
         "$runner" "tests/$figure_test.mjs" || exit 1
     done
@@ -180,7 +180,7 @@ for runner in "${js_runners[@]}"; do
         spaced="$test_root/$spaced_name"
         mkdir -p "$spaced/ui/js" "$spaced/ui/vendor" "$spaced/tests" || exit 1
         cp ui/js/FigureWorker.mjs "$spaced/ui/js/" && cp ui/vendor/mermaid.mjs "$spaced/ui/vendor/" || exit 1
-        cp tests/js-runtime.mjs tests/mermaid-corpus.mjs tests/mermaid-layout.mjs "$spaced/tests/" || exit 1
+        cp tests/js-runtime.mjs tests/mermaid-corpus.mjs tests/mermaid-svg.mjs tests/mermaid-layout.mjs "$spaced/tests/" || exit 1
         echo "markdown-figures.sh: mermaid-layout from the path '$spaced_name' under $(basename "$runner")"
         "$runner" "$spaced/tests/mermaid-layout.mjs" || exit 1
     done

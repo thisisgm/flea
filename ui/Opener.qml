@@ -30,6 +30,7 @@ Item {
     property string terminalCurrent: ""
     // One open at a time: pending is the launch with no exit yet, and the stream arrives before the exit.
     property bool pending: false
+    property bool copierPending: false
     property string askText: ""
 
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
@@ -113,12 +114,22 @@ Item {
         copier.command = ["sh", "-c", x11
                           ? "printf '%s' \"$1\" | xclip -selection clipboard -in"
                           : "printf '%s' \"$1\" | wl-copy", "_", text]
+        root.copierPending = true
         copier.running = true
     }
 
     Process {
         id: copier
+        onStarted: root.copierPending = false
+        // A process that stops before it ever started (a missing xclip) never reaches onExited.
+        onRunningChanged: {
+            if (!root.copierPending || copier.running)
+                return
+            root.copierPending = false
+            root.clipboardFailed()
+        }
         onExited: function (exitCode) {
+            root.copierPending = false
             if (exitCode !== 0) root.clipboardFailed()
         }
     }

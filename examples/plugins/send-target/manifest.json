@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "example.send-target",
+  "name": "Selection Receiver",
+  "version": "1.0.0",
+  "author": "Flea contributors",
+  "license": "MIT",
+  "description": "A local protocol fixture that acknowledges the selected paths.",
+  "kinds": [
+    "send-target"
+  ],
+  "sendTargets": {
+    "label": "Selection Receiver",
+    "glyph": "network",
+    "refreshSec": 10
+  },
+  "access": [
+    "selection"
+  ],
+  "entryPoints": {
+    "run": "plugin.py"
+  }
+}

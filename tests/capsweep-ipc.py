@@ -6,6 +6,11 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
+
 PREVIEW_LOAD_SECONDS = 10
 PREVIEW_POLL_SECONDS = 0.05
 
@@ -35,7 +40,7 @@ environment = os.environ | {
 
 def call(function, *arguments, target="sweepipc"):
     result = subprocess.run(
-        ["timeout", "5", "qs", "ipc", "-p", str(config), "call", target, function,
+        ["timeout", "5", *IPC.command(), "-p", str(config), "call", target, function,
          *map(str, arguments)],
         env=environment, capture_output=True, timeout=6, check=True,
     )

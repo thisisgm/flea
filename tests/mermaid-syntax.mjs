@@ -1,5 +1,5 @@
 // Mermaid's flowchart syntax reads as mermaid.js reads it: every documented link form, and which subgraph a node belongs to.
-import { FACES, bounds, frame, groups, load, num, text } from "./mermaid-corpus.mjs";
+import { FACES, edges, frame, load, nodes, parse } from "./mermaid-corpus.mjs";
 import { argv, finish } from "./js-runtime.mjs";
 
 const render = await load(argv[0]);
@@ -13,13 +13,13 @@ function check(ok, why) {
         console.log("FAIL " + why);
     }
 }
-// A tolerance for the float arithmetic of ELK's coordinates, in px.
+// A tolerance for the float arithmetic of the layout's coordinates, in px.
 const EPSILON = 0.01;
 // A link one rank longer must sit at least this much further from its source, in px; the library's layer spacing is 48.
 const RANK_STEP_MIN = 40;
 // The stroke widths of a plain and a thick link, in px.
 const PLAIN_WIDTH = 1;
-const THICK_WIDTH = 2;
+const THICK_WIDTH = 2.5;
 
 const edge = (from, to, style, start, end, length = 1, label = "") => ({ from, to, style, start, end, length, label });
 // Every documented link form of mermaid's flowchart docs: [source, the edges it draws].
@@ -63,31 +63,29 @@ const forms = [
     ["A ~~~ B", []]
 ];
 
-// Sample input: <polyline class="edge" data-from="A" data-to="B" data-style="dotted" data-arrow-start="false" data-end-mark="circle" stroke-width="1" stroke-dasharray="4 4" /> reads the edge A to B.
-function drawnEdges(svg) {
-    return [...svg.matchAll(/<(?:path|polyline) class="edge"([^>]*)>/g)].map((m) => ({ from: text(m[1], "data-from"), to: text(m[1], "data-to"),
-        style: text(m[1], "data-style"), start: text(m[1], "data-start-mark"), end: text(m[1], "data-end-mark"), label: text(m[1], "data-label"),
-        width: num(m[1], "stroke-width"), dashed: m[1].includes("stroke-dasharray") }));
+// Sample input: <g class="pele-edge" data-id="L_A_B_0"><path d="M25,46L25,87" stroke-dasharray="3 4"/><path class="pele-marker" d="M25,94L21.64,86L28.36,86Z"/></g>
+// reads the edge A to B, dotted, with an arrow at its end.
+function drawnEdges(tree) {
+    return edges(tree).map((e) => ({ from: e.from, to: e.to, style: e.dashed ? "dotted" : e.width === THICK_WIDTH ? "thick" : "solid",
+        start: e.start, end: e.end, label: e.label, width: e.width }));
 }
 const key = (e) => [e.from, e.to, e.style, e.start, e.end, e.label].join(" ");
 for (const [source, want] of forms) {
-    const svg = render("flowchart TD\n" + source, face);
-    const drawn = drawnEdges(svg);
+    const tree = parse(render("flowchart TD\n" + source, face));
+    const drawn = drawnEdges(tree);
     check(JSON.stringify(drawn.map(key).sort()) === JSON.stringify(want.map(key).sort()),
         `${source}: draws [${drawn.map(key).join("; ")}], want [${want.map(key).join("; ")}]`);
-    check(drawn.every((e) => (e.style === "dotted") === e.dashed && e.width === (e.style === "thick" ? THICK_WIDTH : PLAIN_WIDTH)),
-        `${source}: dotted is dashed and thick is heavier`);
-    const labels = groups(svg, "edge-label").map((g) => text(g.attrs, "data-label"));
+    check(drawn.every((e) => e.width === (e.style === "thick" ? THICK_WIDTH : PLAIN_WIDTH)), `${source}: dotted and plain links are plain width and thick is heavier`);
+    const labels = drawn.map((e) => e.label).filter((l) => l !== "");
     check(JSON.stringify(labels.sort()) === JSON.stringify(want.map((e) => e.label).filter((l) => l !== "").sort()), `${source}: labels [${labels}]`);
-    const nodes = groups(svg, "node").map((g) => text(g.attrs, "data-id")).sort();
+    const drawnNodes = nodes(tree).map((n) => n.id).sort();
     const wantNodes = want.length === 0 ? ["A", "B"] : [...new Set(want.flatMap((e) => [e.from, e.to]))].sort();
-    check(JSON.stringify(nodes) === JSON.stringify(wantNodes), `${source}: nodes [${nodes}], want [${wantNodes}]`);
+    check(JSON.stringify(drawnNodes) === JSON.stringify(wantNodes), `${source}: nodes [${drawnNodes}], want [${wantNodes}]`);
 }
 
 // How far node B sits below node A, in px, in a top-down graph.
 function drop(link) {
-    const svg = render("flowchart TD\nA " + link + " B", face);
-    const box = new Map(groups(svg, "node").map((g) => [text(g.attrs, "data-id"), bounds(g.body)]));
+    const box = new Map(nodes(parse(render("flowchart TD\nA " + link + " B", face))).map((n) => [n.id, n.box]));
     return box.has("A") && box.has("B") ? box.get("B")[1] - box.get("A")[3] : NaN;
 }
 // A longer link spans more ranks: each extra dash, dot or equals sign moves the target a rank further down.
@@ -97,11 +95,12 @@ for (const [family, links] of [["solid", ["-->", "--->", "---->", "----->"]], ["
         check(drops[i] >= drops[0] + i * RANK_STEP_MIN - EPSILON, `${family} link ${links[i]} drops ${drops[i].toFixed(1)}, want at least ${(drops[0] + i * RANK_STEP_MIN).toFixed(1)} beyond ${links[0]} at ${drops[0].toFixed(1)}`);
 }
 // The edge a longer link draws is one unbroken line from its source to its target, not one piece per rank.
-const longEdge = render("flowchart TD\nA ------> B", face).match(/<(?:path|polyline) class="edge"[^>]*>/g);
-check(longEdge !== null && longEdge.length === 1, `a long link draws one edge, got ${longEdge === null ? 0 : longEdge.length}`);
+const longEdge = edges(parse(render("flowchart TD\nA ------> B", face)));
+check(longEdge.length === 1 && longEdge[0].from === "A" && longEdge[0].to === "B", `a long link draws one edge, got ${longEdge.length}`);
 // An invisible link orders its ends and draws nothing.
-const invisible = render("flowchart TD\nA ~~~ B", face);
-const invisibleBoxes = new Map(groups(invisible, "node").map((g) => [text(g.attrs, "data-id"), bounds(g.body)]));
+const invisible = parse(render("flowchart TD\nA ~~~ B", face));
+const invisibleBoxes = new Map(nodes(invisible).map((n) => [n.id, n.box]));
+check(edges(invisible).length === 0, "an invisible link draws no edge");
 check(invisibleBoxes.has("B") && invisibleBoxes.get("A")[3] <= invisibleBoxes.get("B")[1] + EPSILON, "an invisible link still ranks B below A");
 
 // A node belongs to the first subgraph whose block closes with it named, as mermaid's flowDb keeps it; an earlier mention outside any block does not count.
@@ -116,31 +115,31 @@ const subgraphs = [
         { outer: ["n", "m", "k"], inner: ["m", "k"] }]
 ];
 for (const [name, source, members] of subgraphs) {
-    const svg = render(source, face);
-    const box = new Map(groups(svg, "node").map((g) => [text(g.attrs, "data-id"), bounds(g.body)]));
-    for (const [id, nodes] of Object.entries(members)) {
-        const outline = frame(svg, id);
+    const tree = parse(render(source, face));
+    const box = new Map(nodes(tree).map((n) => [n.id, n.box]));
+    for (const [id, held] of Object.entries(members)) {
+        const outline = frame(tree, id);
         check(outline !== null, `${name}: subgraph ${id} is drawn`);
         if (outline === null)
             continue;
         for (const node of box.keys()) {
             const b = box.get(node);
             const inside = b[0] >= outline[0] - EPSILON && b[1] >= outline[1] - EPSILON && b[2] <= outline[2] + EPSILON && b[3] <= outline[3] + EPSILON;
-            check(inside === nodes.includes(node), `${name}: ${node} ${inside ? "sits in" : "sits outside"} subgraph ${id}, want ${nodes.includes(node) ? "inside" : "outside"}`);
+            check(inside === held.includes(node), `${name}: ${node} ${inside ? "sits in" : "sits outside"} subgraph ${id}, want ${held.includes(node) ? "inside" : "outside"}`);
         }
     }
 }
 // A later bare mention of a node keeps the shape and label its first definition gave it, as mermaid.js keeps them.
 const mentions = [
-    ["a bare mention after a diamond", "flowchart TD\nA[Start] --> B{Is it?}\nB --> C", { B: ["diamond", "Is it?"], C: ["rectangle", "C"] }],
-    ["docs link length, D --> B after the diamond", "flowchart TD\nA[Start] --> B{Is it?}\nB -->|Yes| C[OK]\nC --> D[Rethink]\nD --> B\nB ----->|No| E[End]", { B: ["diamond", "Is it?"], D: ["rectangle", "Rethink"] }]
+    ["a bare mention after a diamond", "flowchart TD\nA[Start] --> B{Is it?}\nB --> C", { B: ["diam", "Is it?"], C: ["rect", "C"] }],
+    ["docs link length, D --> B after the diamond", "flowchart TD\nA[Start] --> B{Is it?}\nB -->|Yes| C[OK]\nC --> D[Rethink]\nD --> B\nB ----->|No| E[End]", { B: ["diam", "Is it?"], D: ["rect", "Rethink"] }]
 ];
 for (const [name, source, expected] of mentions) {
-    const svg = render(source, face);
+    const drawn = nodes(parse(render(source, face)));
     for (const [id, [shape, label]] of Object.entries(expected)) {
-        const node = groups(svg, "node").find((g) => text(g.attrs, "data-id") === id);
-        check(node !== undefined && text(node.attrs, "data-shape") === shape && text(node.attrs, "data-label") === label,
-            `${name}: ${id} keeps ${shape} "${label}", got ${node === undefined ? "nothing" : text(node.attrs, "data-shape") + ' "' + text(node.attrs, "data-label") + '"'}`);
+        const node = drawn.find((n) => n.id === id);
+        check(node !== undefined && node.shape === shape && node.label === label,
+            `${name}: ${id} keeps ${shape} "${label}", got ${node === undefined ? "nothing" : node.shape + ' "' + node.label + '"'}`);
     }
 }
 console.log(`mermaid-syntax: ${checks} check(s), ${failures} failed`);

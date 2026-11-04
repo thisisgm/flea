@@ -1,0 +1,8 @@
+{
+  "fixture.open": "Open a file",
+  "fixture.files": {
+    "one": "%1 file",
+    "other": "%1 files"
+  },
+  "fixture.cancel": "omarchy:shell.common.cancel"
+}

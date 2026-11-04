@@ -281,7 +281,7 @@ function runPreviewSettle(check) {
     var quick = Source.source("ui/Preview.qml")
     var followArm = squashed(bodyOf(quick, "function follow"))
     check("a pending repeat returns first",
-        followArm.indexOf("PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running)") >= 0
+        followArm.indexOf("PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running, root.unrested(key))") >= 0
         && followArm.indexOf('if (decision === "same") return') >= 0, true)
     check("a settled revisit of the shown target stays put",
         followArm.indexOf("root.isShown(newPath, newIcon, newSize, newKind)") >= 0, true)

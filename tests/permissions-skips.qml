@@ -17,8 +17,10 @@ ShellRoot {
     // Owner R W X, Group R W X, Everyone R W X, as the grid reads them.
     readonly property var gridBits: [256, 128, 64, 32, 16, 8, 4, 2, 1]
     readonly property int ownerExecute: 64
-    // Permissions040 draws the title glyphs on rows 7-16 from the card top, esc on 10-16 and the lock on 7-20; at base 14 the 17 px line boxes and the 16 px lock sit at these tops.
-    readonly property var boardStripTops: ({ lock: 5, title: 4, esc: 4 })
+    // Permissions040 draws the title glyphs on rows 7-16 from the card top, esc on 10-16 and the lock on 7-20, so at base 14 both texts
+    // sit on baseline 17 and the 16 px lock's mark box starts on row 6. The line boxes around them are Qt's own: 17 px under Qt 6.11
+    // and 16 under Qt 6.12, with the ink on the same rows, so the strip is pinned by what the board's rows fix, not by a line box top.
+    readonly property var boardStrip: ({ lockTop: 6, titleBaseline: 17, escBaseline: 17 })
     // Text size 14 in a window 800 px wide, the narrowest the post-Apply line must fit whole in, with a 20-character name.
     readonly property int statusWindowWidth: 800
     readonly property string longestName: "twenty-char-name.txt"
@@ -52,10 +54,13 @@ ShellRoot {
         return out.join(",")
     }
     function checkStrip() {
-        var tops = {}
-        if (!dialog.stripItems) { shell.check("strip marks sit on the board's rows", false, "the dialog exposes no stripItems"); return }
-        for (var name in shell.boardStripTops) tops[name] = dialog.stripItems[name].mapToItem(dialog.cardItem, 0, 0).y
-        shell.check("strip marks sit on the board's rows", JSON.stringify(tops) === JSON.stringify(shell.boardStripTops), JSON.stringify(tops))
+        var items = dialog.stripItems
+        if (!items) { shell.check("strip marks sit on the board's rows", false, "the dialog exposes no stripItems"); return }
+        // A baseline is fractional under Qt 6.12 (12.23 px into a 12 px caption's line), so each is read at the pixel row it lands on.
+        var row = function (item, y) { return Math.round(item.mapToItem(dialog.cardItem, 0, y).y) }
+        var got = { lockTop: row(items.lock, (items.lock.height - items.lock.markSize) / 2),
+                    titleBaseline: row(items.title, items.title.baselineOffset), escBaseline: row(items.esc, items.esc.baselineOffset) }
+        shell.check("strip marks sit on the board's rows", JSON.stringify(got) === JSON.stringify(shell.boardStrip), JSON.stringify(got))
     }
 
     Item { id: holder }

@@ -106,10 +106,15 @@ rename_design_backend_loss() {
     menus_expect renameState '.index >= 0 and .pending' "$mode repeated submit and Escape cannot abandon an unresolved write"
     permissions_backend_owned "$pid" || fail 'rename: backend identity changed before termination'
     kill -KILL "$pid" || fail 'rename: owned backend termination failed'
+    if [[ "$test_frontend" == gpui ]]; then
+        printf '%s\n' 'flea-gui: The backend closed its reply stream' >> "$expected_warnings"
+    fi
     rename_stopped=""
     menus_expect renameState '.index == -1 and (.pending | not) and .listingState == "error"' "$mode backend loss releases the editor and its pending request"
     menus_expect statusError '. == true' "$mode backend loss remains an acknowledged error"
-    [[ "$(ipc statusPrimary)" == *'rename outcome unknown'* ]] || fail 'rename: backend loss misreported the operation outcome'
+    local stopped_message
+    stopped_message=$(by_frontend 'rename outcome unknown' 'Flea stopped responding, so the rename may not have finished. Check the name.')
+    [[ "$(ipc statusPrimary)" == *"$stopped_message"* ]] || fail 'rename: backend loss misreported the operation outcome'
     menus_shot "rename-$mode-backend-lost"
     menus_acknowledge
     menus_guard "$menu_dir/a-original.md"

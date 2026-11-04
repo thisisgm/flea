@@ -5,7 +5,7 @@ use crate::backend::testdir::TestDir;
 use std::sync::mpsc::channel;
 
 pub(super) fn state_for(base: &Path) -> State {
-    let (tx, _rx) = channel();
+    let (tx, _rx) = crate::backend::events::channel();
     let mut st = State::new(Worker::new(tx));
     st.base = base.to_path_buf();
     st

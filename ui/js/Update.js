@@ -17,11 +17,9 @@ var WORDS = {
     current: "Up to date · %1",
     failed: "Could not check",
     launched: "Updating in terminal",
-    rolling: "flea-git · rolling",
     source: "Built from source",
     noteLaunched: "Restart Flea when the update finishes",
     noteFailed: "Offline: Omarchy update still opens",
-    noteRolling: "Rolling build: yay -Sua --devel follows main",
     noteSource: "Built locally: rebuild from the checkout",
     opening: "Opening Omarchy update · restart Flea when it finishes",
     launchFailed: "Omarchy's updater could not be started."
@@ -73,7 +71,7 @@ function acts(status) {
     return onActivate(status) !== ""
 }
 
-// A rolling or local build has nothing to check or launch, so its row is a fact.
+// A local build has nothing to check or launch, so its row is a fact.
 function isFact(status) {
     return status.state === "unchecked"
 }
@@ -99,7 +97,7 @@ function value(status) {
     case "current": return Format.fill(WORDS.current, status.installed.split("-")[0])
     case "failed": return WORDS.failed
     case "launched": return WORDS.launched
-    case "unchecked": return status.kind === "git" ? WORDS.rolling : WORDS.source
+    case "unchecked": return WORDS.source
     }
     return WORDS.check
 }
@@ -116,7 +114,7 @@ function note(status) {
     switch (status.state) {
     case "launched": return [WORDS.noteLaunched, "accent"]
     case "failed": return [WORDS.noteFailed, "foreground"]
-    case "unchecked": return [status.kind === "git" ? WORDS.noteRolling : WORDS.noteSource, "foreground"]
+    case "unchecked": return [WORDS.noteSource, "foreground"]
     }
     return null
 }

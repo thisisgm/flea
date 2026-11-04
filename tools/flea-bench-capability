@@ -15,13 +15,13 @@ cd "$(dirname "$0")/.." || exit 1
 FLEA_REPO=$PWD
 . "$FLEA_REPO/tools/flea-sandbox-guard"
 
-export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)"
+export PATH="${B5_BENCH_PATH:-$HOME/.local/bin:$PATH}"
+eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
 
 MEDIA=${MEDIA:-$FIXTURE_ROOT/flea-media-btrfs}
 FLEA_UI="$FLEA_REPO/ui"
-FLEA_BIN="$FLEA_REPO/target/release/flea"
-STRATA_BIN=${STRATA_BIN:-$HOME/Work/strata/target/release/strata}
+FLEA_BIN="${FLEA_BIN:-$FLEA_REPO/target/release/flea}"
+STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
 # The one entrant in this field that persists no thumbnail. strata renders each one in a sandboxed
 # helper that writes result.png into /tmp/strata-preview-<pid>-<n> and deletes the directory on drop
 # (src/sandbox.rs:382 names it, :53 the file, :397 removes it), so it fills the screen and leaves
@@ -53,7 +53,7 @@ OWNED_CONTROL_GROUP=
 OWNED_UNIT_SEQUENCE=0
 
 process_command() {
-  ps -o command= -p "$1" 2>/dev/null
+  LC_ALL=C.UTF-8 LANGUAGE= ps -o command= -p "$1" 2>/dev/null
 }
 
 # Sample input: `/proc/4123/stat` starts `4123 (flea) S 4100 4123 4123 ...` and field 22 is starttime.
@@ -77,7 +77,7 @@ read_unit_properties() {
   UNIT_CONTROL_GROUP=
   UNIT_INVOCATION=
   UNIT_KILL_MODE=
-  output=$(systemctl --user show "$unit" --no-pager \
+  output=$(LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show "$unit" --no-pager \
     --property=LoadState --property=ActiveState --property=SubState --property=MainPID \
     --property=ControlGroup --property=InvocationID --property=KillMode 2>/dev/null) || return 1
   while IFS='=' read -r key value; do
@@ -134,7 +134,7 @@ boundary_contains() {
 pids_for_target() {
   local comm=$1 token=${2:-} pid command
   TARGET_PIDS=()
-  for pid in $(pgrep -x "$comm" 2>/dev/null); do
+  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x "$comm" 2>/dev/null); do
     command=$(process_command "$pid") || continue
     if [ -n "$token" ]; then
       case "$command" in *"$token"*) ;; *) continue ;; esac
@@ -143,13 +143,27 @@ pids_for_target() {
   done
 }
 
+# Strata renders to a temporary file and deletes it, so each of its rows is measured by live watch.
+cap_is_transient() {
+  case $1 in "$TRANSIENT_ID"|strata-stable|strata-nightly|strata-nightly-channel) return 0 ;; esac
+  return 1
+}
+
 select_process_targets() {
   if [ "$CAP_ONLY" = flea ]; then
-    PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
+    if [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
+      PROCESS_TARGETS=("flea-gui|$(dirname "$FLEA_BIN")/flea-gui" "flea|")
+    else
+      PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
+    fi
+  # Self-contained: the suites load this function alone, and every Strata row runs as comm strata.
+  elif case $CAP_ONLY in strata-stable|strata-nightly|strata-nightly-channel) true ;; *) false ;; esac; then
+    PROCESS_TARGETS=("strata|" )
   elif [ -n "$CAP_ONLY" ]; then
     PROCESS_TARGETS=("$CAP_ONLY|")
   else
     PROCESS_TARGETS=(
+      "flea-gui|$(dirname "${FLEA_BIN:-/nonexistent-flea-bench/flea}")/flea-gui"
       "qs|$FLEA_UI" "flea|" "nautilus|" "thunar|" "pcmanfm|" "nemo|"
       "dolphin|" "strata|" "tumblerd|"
     )
@@ -378,9 +392,15 @@ stop_watches() {
 
 require_flea_enumeration() {
   local shells status=0
-  shells=$(qs list --all 2>/dev/null) || status=$?
+  local listing="qs list --all"
+  if [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
+    listing="native IPC list --all"
+    shells=$(FLEA_IPC_KIND=gpui FLEA_IPC_BIN="$FLEA_BIN" FLEA_IPC_HELPER="$FLEA_REPO/tools/flea-ipc" "$FLEA_REPO/tools/flea-ipc" list --all 2>/dev/null) || status=$?
+  else
+    shells=$(LC_ALL=C.UTF-8 LANGUAGE= qs list --all 2>/dev/null) || status=$?
+  fi
   [ "$status" -eq 0 ] \
-    || { printf 'REFUSED: qs list --all failed with status %s\n' "$status" >&2; return 1; }
+    || { printf 'REFUSED: %s failed with status %s\n' "$listing" "$status" >&2; return 1; }
   case "$shells" in
     *"Shell ID: flea"*) printf 'REFUSED: a Flea instance already owns the display\n' >&2; return 1 ;;
   esac
@@ -422,7 +442,7 @@ drop_thumbs() {
   mkdir -p "$THUMBS/large" "$THUMBS/fail"
   local d
   for d in "$THUMBS"/*/; do
-    [ "$(ls -A "$d" | wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start: $d"
+    [ "$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$d" | wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start: $d"
   done
 }
 restore_thumbs() {
@@ -457,7 +477,7 @@ trap 'cap_terminate 130' INT
 trap 'cap_terminate 143' TERM
 # A transient entrant is measured by live watch and never writes this cache, so a run for it alone
 # has no reason to move the operator's real one out from under whatever else is on screen.
-if [ "$CAP_ONLY" != "$TRANSIENT_ID" ]; then
+if [ -z "$CAP_ONLY" ] || ! cap_is_transient "$CAP_ONLY"; then
   park_thumbs
 fi
 
@@ -465,7 +485,8 @@ FIXTURE="$SB/files"
 mkdir -p "$FIXTURE" || fail "could not make $FIXTURE"
 # Flea's state is a sandbox copy of the operator's, as tools/flea-field-bench makes one: name sort forced, nothing written back.
 FLEA_STATE="$SB/flea-state"
-mkdir -p "$FLEA_STATE/flea" || fail "could not make $FLEA_STATE/flea"
+FLEA_QMLCACHE="$SB/qmlcache"
+mkdir -p "$FLEA_STATE/flea" "$FLEA_QMLCACHE" || fail "could not make Flea's state and QML cache"
 operator_ui="${XDG_STATE_HOME:-$HOME/.local/state}/flea/ui.json"
 if [ -f "$operator_ui" ]; then
   cp "$operator_ui" "$FLEA_STATE/flea/ui.json" || fail "could not copy $operator_ui"
@@ -477,7 +498,7 @@ XDG_STATE_HOME="$FLEA_STATE" "$FLEA_BIN" --ui-state '{"sort":{"key":"name","reve
 # same bytes the field bench uses rather than something generated here.
 formats=""
 for ext in jpg png webp heic mp4 webm mkv txt; do
-  src=$(ls -U "$MEDIA" | grep "\.$ext\$" | head -1)
+  src=$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$MEDIA" | LC_ALL=C LANGUAGE= grep "\.$ext\$" | head -1) # locale-bytes: select a raw fixture filename by extension
   if [ -z "$src" ]; then
     printf 'SKIP: the media fixture holds no .%s, so that format is not tested\n' "$ext" >&2
     continue
@@ -493,13 +514,13 @@ MAP="$SB/fixture.map"
 # Every key in the cache, minus the failure markers, which are their own answer.
 cap_keys() {
   local out=$1
-  find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$out"
+  LC_ALL=C.UTF-8 LANGUAGE= find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C.UTF-8 LANGUAGE= sed 's/\.png$//' | LC_ALL=C.UTF-8 LANGUAGE= sort -u > "$out"
 }
 cap_fail_keys() {
   local out=$1
-  find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$out"
+  LC_ALL=C.UTF-8 LANGUAGE= find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C.UTF-8 LANGUAGE= sed 's/\.png$//' | LC_ALL=C.UTF-8 LANGUAGE= sort -u > "$out"
 }
 
 # One directory per format holding exactly one file, so a render can only be that format's, and one
@@ -514,7 +535,7 @@ cap_transient() {
     cp "$FIXTURE/sample.$ext" "$dir/sample.$ext" || fail "could not copy the $ext sample"
 
     : > "$log"
-    inotifywait -m -q -r -e close_write --format '%w%f' /tmp > "$log" 2>/dev/null &
+    LC_ALL=C.UTF-8 LANGUAGE= inotifywait -m -q -r -e close_write --format '%w%f' /tmp > "$log" 2>/dev/null &
     watch_pid=$!
     remember_watch "$watch_pid" || fail "the $id $ext render watch exited before this run recorded it"
     sleep 2
@@ -528,9 +549,9 @@ cap_transient() {
     require_no_foreign_processes \
       || fail "an unowned process appeared during the $id $ext capability window, so no result from it is attributable"
 
-    n=$(grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log")
+    n=$(LC_ALL=C LANGUAGE= grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log") # locale-bytes: count raw event paths
     # Two entrant processes in one window would let one format's renders be counted for another.
-    pids=$(grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C sort -u | wc -l)
+    pids=$(LC_ALL=C.UTF-8 LANGUAGE= grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C.UTF-8 LANGUAGE= sort -u | wc -l)
     [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders during the $ext window, so no count from it is attributable"
     stop_watches
     kill_entrants \
@@ -551,9 +572,9 @@ cap_transient() {
   printf '%-10s can %s | cannot %s (live watch)\n' "$id" "${can:-nothing}" "${cannot:-nothing}"
 }
 
-repo_sha=$(git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null || printf unknown)
+repo_sha=$(LC_ALL=C.UTF-8 LANGUAGE= git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null || printf unknown)
 repo_state=clean
-[ -z "$(git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || repo_state=DIRTY
+[ -z "$(LC_ALL=C.UTF-8 LANGUAGE= git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || repo_state=DIRTY
 binary_size=$(stat -c %s "$FLEA_BIN")
 binary_sha=$(sha256sum "$FLEA_BIN" | cut -d' ' -f1)
 instrument_sha=$(sha256sum "$FLEA_REPO/tools/flea-bench-capability" | cut -d' ' -f1)
@@ -562,7 +583,7 @@ mkdir -p "$(dirname "$OUT")"
 {
   echo "# What each GUI entrant can actually thumbnail"
   echo
-  echo "Written by tools/flea-bench-capability on $(date -Is). Eight files, one per format, a"
+  echo "Written by tools/flea-bench-capability on $(LC_ALL=C.UTF-8 LANGUAGE= date -Is). Eight files, one per format, a"
   echo "private cache per entrant, and $CAP_TIMEOUT_S seconds each. **Nothing here is ranked and no"
   echo "timing is taken.** The field bench's format column answers a different question, how far an"
   echo "entrant got through a 2000-file directory whose names sort by format, and it was being read"
@@ -577,10 +598,15 @@ mkdir -p "$(dirname "$OUT")"
 } > "$OUT"
 
 # Sample input, one row of the field bench's ENTRANTS table: "strata|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_BIN $FIXTURE"
-# corner: one multi-statement sed expands the five variables the bench's command field uses, rather than five processes.
-mapfile -t CAP_ROWS < <(sed -n '/^  declare -ga ENTRANTS=(/,/^  )/p' "$FLEA_REPO/tools/flea-field-bench" \
-  | grep '^    "' | tr -d '"' \
-  | sed "s|\$FIXTURE|$FIXTURE|g; s|\$FLEA_UI|$FLEA_UI|g; s|\$FLEA_BIN|$FLEA_BIN|g; s|\$STRATA_BIN|$STRATA_BIN|g; s|\$FLEA_STATE|$FLEA_STATE|g")
+# The shared builder expands the same product paths and optional channels as the timing instrument.
+# capability roster begin
+mapfile -t CAP_ROWS < <(
+  TUI_CONF= TUI_CLASS=flea-bench-kitty TUI_TERM=kitty WITH_ANCHOR=no
+  eval "$(LC_ALL=C.UTF-8 LANGUAGE= sed -n '/^build_entrants() {$/,/^}$/p' "$FLEA_REPO/tools/flea-field-bench")"
+  build_entrants
+  printf '%s\n' "${ENTRANTS[@]}"
+)
+# capability roster end
 [ ${#CAP_ROWS[@]} -gt 0 ] || fail "no entrant rows were read out of tools/flea-field-bench"
 
 # The rows were read whole above, because an entrant reading stdin would eat the next row.
@@ -591,13 +617,19 @@ for cap_row in "${CAP_ROWS[@]}"; do
   # A variable the bench table gained and this pass does not expand would run empty, so it stops the pass instead.
   case $cmd in *'$'*) fail "entrant $id's command still names an unexpanded variable: $cmd" ;; esac
   [ -z "$CAP_ONLY" ] || [ "$id" = "$CAP_ONLY" ] || continue
-  if [ "$id" = strata ]; then
+  if [ "$id" = flea ] && [ "${FLEA_FRONTEND:-gpui}" = gpui ]; then
+    [ -x "$(dirname "$FLEA_BIN")/flea-gui" ] || fail "GPUI binary is absent beside $FLEA_BIN"
+  elif [ "$id" = strata-nightly ]; then
+    [ -x "${STRATA_NIGHTLY_BIN:-}" ] || fail "Strata nightly binary is absent"
+  elif [ "$id" = strata-nightly-channel ]; then
+    [ -x "${STRATA_NIGHTLY_CHANNEL_BIN:-}" ] || fail "Strata nightly channel binary is absent"
+  elif [ "$id" = strata ] || [ "$id" = strata-stable ]; then
     [ -x "$STRATA_BIN" ] || { printf 'SKIP: strata is not built at %s\n' "$STRATA_BIN" >&2; continue; }
   else
     command -v "$comm" >/dev/null 2>&1 || { printf 'SKIP: %s is not installed\n' "$id" >&2; continue; }
   fi
 
-  if [ "$id" = "$TRANSIENT_ID" ]; then
+  if cap_is_transient "$id"; then
     cap_transient "$id" "$cmd"
     continue
   fi
@@ -636,7 +668,7 @@ for cap_row in "${CAP_ROWS[@]}"; do
   can=""
   cannot=""
   for ext in $formats; do
-    got=$(printf '%s\n' "$made" | tr ';' '\n' | grep "^$ext=" | cut -d= -f2)
+    got=$(printf '%s\n' "$made" | LC_ALL=C.UTF-8 LANGUAGE= tr ';' '\n' | LC_ALL=C.UTF-8 LANGUAGE= grep "^$ext=" | cut -d= -f2)
     if [ "${got:-0}" -gt 0 ]; then
       can="${can:+$can, }$ext"
     else

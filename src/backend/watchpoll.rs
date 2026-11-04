@@ -1,7 +1,8 @@
 use crate::backend::events::Event;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{atomic::{AtomicBool, Ordering}, mpsc::Sender, Arc, Mutex};
+use crate::backend::events::Sender;
+use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 // Inotify never delivers a remote change, so the open network folder is re-statted here.
@@ -106,8 +107,35 @@ fn poll_once(
     }
 }
 
+type OpenFolder = Arc<Mutex<(PathBuf, i64)>>;
+type Children = Arc<Mutex<HashMap<PathBuf, OpenFolder>>>;
+
+// One round of the thread: the open folder, then each expanded remote child, each behind its own wedge and deadline.
+fn poll_round(
+    open: &OpenFolder,
+    children: &Children,
+    wedged: &Wedged,
+    classify: &Arc<dyn Fn(&Path) -> &'static str + Send + Sync>,
+    stat: &Arc<dyn Fn(&Path) -> i64 + Send + Sync>,
+    timeout: Duration,
+    tx: &Sender<Event>,
+) {
+    let path = open.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+    if path.as_os_str().is_empty() {
+        return;
+    }
+    poll_once(&path, open, wedged, classify, stat, timeout, tx);
+    let children: Vec<OpenFolder> = children.lock().unwrap_or_else(|p| p.into_inner()).values().cloned().collect();
+    for state in children {
+        let path = state.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+        poll_once(&path, &state, wedged, classify, stat, timeout, tx);
+    }
+}
+
 pub struct Poller {
+    children: Children,
     state: Arc<Mutex<(PathBuf, i64)>>,
+    startup: super::lazy::Lazy<()>,
 }
 
 impl Poller {
@@ -122,29 +150,39 @@ impl Poller {
         stat: impl Fn(&Path) -> i64 + Send + Sync + 'static,
     ) -> Self {
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
+        let children: Children = Arc::default();
+        let extra = children.clone();
         let wedged: Wedged = Arc::new(Mutex::new(HashMap::new()));
         let (at, held) = (Arc::clone(&state), Arc::clone(&wedged));
         let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(classify);
         let stat: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(stat);
-        std::thread::Builder::new().name("flea-watchpoll".into()).spawn(move || {
-            loop {
-                std::thread::sleep(Duration::from_secs(POLL_SECS));
-                let open = at.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
-                if open.as_os_str().is_empty() {
-                    continue;
+        let startup = super::lazy::Lazy::new(move || {
+            std::thread::Builder::new().name("flea-watchpoll".into()).spawn(move || {
+                loop {
+                    std::thread::sleep(Duration::from_secs(POLL_SECS));
+                    poll_round(&at, &extra, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
                 }
-                // The thread owns one iteration's wedge check, deadline pair and apply.
-                poll_once(&open, &at, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
-            }
-        }).expect("could not start watch poller");
-        Self { state }
+            }).expect("could not start watch poller");
+        });
+        Self { children, state, startup }
     }
 
     pub fn set(&self, path: PathBuf) {
+        let _ = &*self.startup;
         *self.state.lock().unwrap_or_else(|p| p.into_inner()) = (path, 0);
     }
 
+    pub fn set_children(&self, paths: impl IntoIterator<Item = PathBuf>) {
+        let wanted: Vec<PathBuf> = paths.into_iter().collect();
+        let mut children = self.children.lock().unwrap_or_else(|p| p.into_inner());
+        children.retain(|path, _| wanted.contains(path));
+        for path in wanted {
+            children.entry(path.clone()).or_insert_with(|| Arc::new(Mutex::new((path, 0))));
+        }
+    }
+
     pub fn clear(&self) {
+        self.children.lock().unwrap_or_else(|p| p.into_inner()).clear();
         *self.state.lock().unwrap_or_else(|p| p.into_inner()) = (PathBuf::new(), 0);
     }
 }
@@ -152,6 +190,42 @@ impl Poller {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // A helper that answers is given the poller's own deadline, so a loaded host cannot turn it into a wedge; the wait ends as soon as it answers.
+    const ANSWERS: Duration = Duration::from_secs(STAT_TIMEOUT_SECS);
+    // A helper the test holds blocked never answers, so this only sets how long the test waits before calling it wedged.
+    const MISSES: Duration = Duration::from_millis(50);
+    // A gate the test holds is released at its end; this bound only ends a hold the test never released.
+    const HOLD: Duration = Duration::from_secs(30);
+
+    // Rounds driven here, never the thread: the open folder is set on the state directly, since set starts the thread.
+    #[test]
+    fn tree_outline_remote_children_use_the_existing_poll_and_release_on_collapse() {
+        use std::sync::atomic::AtomicI64;
+        let (tx, rx) = super::super::events::channel();
+        let poller = Poller::with_hooks(tx.clone(), |_| "network", |_| 1);
+        *poller.state.lock().unwrap() = (PathBuf::from("/root"), 0);
+        let path = PathBuf::from("/root/child");
+        poller.set_children([path.clone()]);
+        let child_mtime = Arc::new(AtomicI64::new(1));
+        let class: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| "network");
+        let stat: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new({
+            let child_mtime = Arc::clone(&child_mtime);
+            move |p| if p == Path::new("/root") { 5 } else { child_mtime.load(Ordering::Relaxed) }
+        });
+        let wedged: Wedged = Arc::default();
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(rx.try_recv().is_err(), "the first round baselines the open folder and the child silently");
+        child_mtime.store(2, Ordering::Relaxed);
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(matches!(rx.try_recv(), Ok(Event::PollChanged(found)) if found == path), "the round polls the expanded child");
+        assert!(rx.try_recv().is_err(), "and the open folder, which did not move, says nothing");
+        poller.set_children([]);
+        assert!(poller.children.lock().unwrap().is_empty());
+        child_mtime.store(3, Ordering::Relaxed);
+        poll_round(&poller.state, &poller.children, &wedged, &class, &stat, ANSWERS, &tx);
+        assert!(rx.try_recv().is_err(), "a collapsed child is never polled again");
+    }
 
     #[test]
     fn a_phone_or_network_class_is_polled_and_local_is_not() {
@@ -188,12 +262,12 @@ mod tests {
             gate.lock().unwrap_or_else(|p| p.into_inner()).recv().ok();
             0
         });
-        let blocked = classify_and_stat_under_deadline(Path::new("/dead"), Arc::clone(&network), blocked_stub, Duration::from_millis(50));
+        let blocked = classify_and_stat_under_deadline(Path::new("/dead"), Arc::clone(&network), blocked_stub, MISSES);
         assert!(blocked.0.is_none(), "a dead server must time out rather than wedge polling");
         assert!(!blocked.1.load(Ordering::Relaxed), "its helper is still out, so the mark must stay");
         let fast_stub: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(|_| 7);
-        let fast = classify_and_stat_under_deadline(Path::new("/live"), network, fast_stub, Duration::from_millis(50));
-        assert!(fast.0.is_some_and(|(class, mtime)| class == "network" && mtime == 7), "a live folder still answers under the same deadline");
+        let fast = classify_and_stat_under_deadline(Path::new("/live"), network, fast_stub, ANSWERS);
+        assert!(fast.0.is_some_and(|(class, mtime)| class == "network" && mtime == 7), "a live folder still answers under the poller's own deadline");
         assert!(fast.1.load(Ordering::Relaxed), "a returned helper releases its mark to the TTL");
     }
 
@@ -203,7 +277,7 @@ mod tests {
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
         let classify_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         wedged.lock().unwrap().insert(PathBuf::from("/dead"), (Instant::now(), Arc::new(AtomicBool::new(false))));
@@ -223,58 +297,70 @@ mod tests {
                 11
             }
         });
-        poll_once(Path::new("/live"), &state, &wedged, &classify, &stat, Duration::from_millis(50), &tx);
+        poll_once(Path::new("/live"), &state, &wedged, &classify, &stat, ANSWERS, &tx);
         assert_eq!(state.lock().unwrap().1, 11, "the live folder baselines silently");
         assert!(rx.try_recv().is_err(), "a baseline sends nothing");
         assert_eq!(stat_calls.load(Ordering::Relaxed), 1, "the live path stats once");
-        poll_once(Path::new("/dead"), &state, &wedged, &classify, &stat, Duration::from_millis(50), &tx);
+        // A helper the wedge failed to stop would answer or panic inside this deadline, so the counts below would see it.
+        poll_once(Path::new("/dead"), &state, &wedged, &classify, &stat, ANSWERS, &tx);
         assert_eq!(stat_calls.load(Ordering::Relaxed), 1, "the wedged path never reaches stat");
         assert_eq!(classify_calls.load(Ordering::Relaxed), 1, "nor classify");
     }
 
     #[test]
     fn a_timed_out_stat_wedges_its_path_until_its_helper_returns() {
-        // Sample input: stat asleep 5 s with a 50 ms deadline wedges /dead while /live still polls.
+        // Sample input: stat held for /dead past a 50 ms deadline wedges /dead while /live still polls.
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, _rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         *state.lock().unwrap() = (PathBuf::from("/dead"), 0);
         let network: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|_| "network");
+        let (entered, inside) = std::sync::mpsc::channel();
+        let (release, gate) = std::sync::mpsc::channel::<()>();
+        let gate = Mutex::new(gate);
         let stat: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new({
             let seen = Arc::clone(&stat_calls);
             move |p| {
                 seen.fetch_add(1, Ordering::Relaxed);
                 if p == Path::new("/dead") {
-                    std::thread::sleep(Duration::from_secs(5));
+                    let _ = entered.send(());
+                    // Held until the test ends, bounded so a regression that waits on it fails instead of hanging.
+                    let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(HOLD);
                     0
                 } else {
                     22
                 }
             }
         });
-        poll_once(Path::new("/dead"), &state, &wedged, &network, &stat, Duration::from_millis(50), &tx);
+        poll_once(Path::new("/dead"), &state, &wedged, &network, &stat, MISSES, &tx);
         assert!(wedged.lock().unwrap().contains_key(&PathBuf::from("/dead")), "a timed-out path is wedged");
-        poll_once(Path::new("/dead"), &state, &wedged, &network, &stat, Duration::from_millis(50), &tx);
+        inside.recv_timeout(ANSWERS).expect("the timed-out helper reaches its stat");
+        // A second helper would reach its held stat inside this deadline, so the count below would see it.
+        poll_once(Path::new("/dead"), &state, &wedged, &network, &stat, ANSWERS, &tx);
         assert_eq!(stat_calls.load(Ordering::Relaxed), 1, "a wedged path spawns no second helper");
         *state.lock().unwrap() = (PathBuf::from("/live"), 0);
-        poll_once(Path::new("/live"), &state, &wedged, &network, &stat, Duration::from_millis(50), &tx);
+        poll_once(Path::new("/live"), &state, &wedged, &network, &stat, ANSWERS, &tx);
         assert_eq!(state.lock().unwrap().1, 22, "a later folder still polls past the wedge");
+        drop(release);
     }
 
     #[test]
     fn a_blocked_classify_times_out_without_parking_later_folders() {
-        // Sample input: classify asleep 5 s for /dead with a 50 ms deadline, instant for /live.
+        // Sample input: classify held for /dead past a 50 ms deadline, instant for /live.
         use std::sync::atomic::{AtomicUsize, Ordering};
         let stat_calls = Arc::new(AtomicUsize::new(0));
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, _rx) = crate::backend::events::channel();
         let state = Arc::new(Mutex::new((PathBuf::new(), 0i64)));
         let wedged = Arc::new(Mutex::new(HashMap::new()));
         *state.lock().unwrap() = (PathBuf::from("/dead"), 0);
-        let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(|p| {
+        let (release, gate) = std::sync::mpsc::channel::<()>();
+        let gate = Mutex::new(gate);
+        let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(move |p| {
             if p == Path::new("/dead") {
-                std::thread::sleep(Duration::from_secs(5));
+                // Held until the test ends, so its stat cannot run inside the test; bounded so a regression fails instead of hanging.
+                let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(HOLD);
             }
             "network"
         });
@@ -285,12 +371,13 @@ mod tests {
                 33
             }
         });
-        poll_once(Path::new("/dead"), &state, &wedged, &classify, &stat, Duration::from_millis(50), &tx);
+        poll_once(Path::new("/dead"), &state, &wedged, &classify, &stat, MISSES, &tx);
         assert!(wedged.lock().unwrap().contains_key(&PathBuf::from("/dead")), "a blocked classify wedges its own path");
         assert_eq!(stat_calls.load(Ordering::Relaxed), 0, "its stat never runs");
         *state.lock().unwrap() = (PathBuf::from("/live"), 0);
-        poll_once(Path::new("/live"), &state, &wedged, &classify, &stat, Duration::from_millis(50), &tx);
+        poll_once(Path::new("/live"), &state, &wedged, &classify, &stat, ANSWERS, &tx);
         assert_eq!(stat_calls.load(Ordering::Relaxed), 1, "a later folder still stats");
         assert_eq!(state.lock().unwrap().1, 33, "and baselines");
+        drop(release);
     }
 }

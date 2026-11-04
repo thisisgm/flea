@@ -56,6 +56,18 @@ fi
 check_report "MARKDOWN_LAZY blocks=12500 delegates=12 offthread=true" >/dev/null || exit 1
 printf "ok lazy wrapper rejects zero and accepts drawn delegates\n"
 
+# A hang bound for each qs run, not a speed budget: the harness quits itself after its last line.
+qs_bound_s=600
+# Sample input: 124 is the status timeout gives a run it stopped; 143 is the harness's own kill after its last line.
+check_finished() {
+    [ "$1" -ne 124 ] || { printf 'FAIL the %s run did not finish inside %ss\n' "$2" "$qs_bound_s"; return 1; }
+}
+if check_finished 124 test >/dev/null; then
+    echo "FAIL a run stopped at the bound was accepted"
+    exit 1
+fi
+check_finished 143 test >/dev/null || exit 1
+
 if ! command -v qs >/dev/null; then
     echo "markdown-lazy.sh: qs is not installed, cannot render the preview"
     exit 1
@@ -90,7 +102,8 @@ output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     HOME="$test_root/home" XDG_STATE_HOME="$test_root/state" XDG_CACHE_HOME="$test_root/cache" \
     XDG_RUNTIME_DIR="$test_root/runtime" FLEA_MARKDOWN_FIXTURE="$test_root/notes.md" \
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_QPA_UPDATE_IDLE_TIME=1 QT_FORCE_STDERR_LOGGING=1 QT_LOGGING_RULES="$(qslog_rules "${QT_LOGGING_RULES:-}")" \
-    timeout 60 qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
+    timeout "$qs_bound_s" qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
+check_finished "$?" logged || exit 1
 
 printf '%s\n' "$output" | qslog_nullptr markdown-lazy || exit 1
 # The same document with no logging rules or qtlogging.ini: the announcement stays off, and the null connect lines prove a worker did start.
@@ -98,7 +111,8 @@ quiet=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE -u Q
     HOME="$test_root/home" XDG_CONFIG_HOME="$test_root/home/.config" XDG_CONFIG_DIRS="$test_root/xdg" XDG_STATE_HOME="$test_root/state" XDG_CACHE_HOME="$test_root/cache" \
     XDG_RUNTIME_DIR="$test_root/runtime" FLEA_MARKDOWN_FIXTURE="$test_root/notes.md" \
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_QPA_UPDATE_IDLE_TIME=1 QT_FORCE_STDERR_LOGGING=1 \
-    timeout 60 qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
+    timeout "$qs_bound_s" qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
+check_finished "$?" default || exit 1
 printf '%s\n' "$quiet" | qslog_silent markdown-lazy || exit 1
 if printf '%s\n' "$output" | grep -q 'MARKDOWN_LAZY FAIL'; then
     printf 'FAIL the lazy harness refused its fixture\n'
@@ -138,6 +152,10 @@ check_roundtrip() {
 }
 if check_roundtrip "MARKDOWN_LAZY source roundtrip chunks=140 same=false" >/dev/null; then
     echo "FAIL chunks that do not put the file back were accepted"
+    exit 1
+fi
+if check_roundtrip "MARKDOWN_LAZY source chars=8190 total=573019 endlaid=12286 lastline=true" >/dev/null; then
+    echo "FAIL a run that never reported its round trip was accepted"
     exit 1
 fi
 check_roundtrip "$output"

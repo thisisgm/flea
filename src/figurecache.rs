@@ -221,6 +221,19 @@ pub fn parse_manifest(text: &str) -> Option<(String, Vec<BlobEntry>)> {
 // A manifest is a few hundred bytes, so anything larger is not ours.
 const MAX_MANIFEST_BYTES: u64 = 4096;
 
+// A generation can be rebuilt only when its manifest belongs to this reader's format.
+pub(crate) fn replaceable(dir: &Path, key: &str) -> bool {
+    match fs::symlink_metadata(dir) {
+        Err(e) => return e.kind() == std::io::ErrorKind::NotFound,
+        Ok(meta) if !meta.is_dir() => return false,
+        _ => {}
+    }
+    let manifest = dir.join(MANIFEST);
+    manifest.exists() && crate::persistdoc::replaceable(&manifest, MAX_MANIFEST_BYTES, format!("{FORMAT}\n").as_bytes(), |bytes| {
+        std::str::from_utf8(bytes).ok().and_then(parse_manifest).is_some_and(|(named, _)| named == key)
+    })
+}
+
 // The directory only when it holds exactly what its manifest names for this key, and it never deletes.
 pub fn verified(dir: &Path, key: &str) -> Option<PathBuf> {
     // O_NOFOLLOW on the manifest guards only its last component, so the key directory is opened without following a link too.

@@ -1,0 +1,31 @@
+[package]
+name = "findbench1-engines"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+fff-search = { path = "/sources/fff/crates/fff-core", default-features = true }
+libc = "0.2"
+rayon = "1.12"
+memchr = "2.8"
+memmap2 = "0.9"
+regex = "1.12"
+regex-syntax = "0.8"
+serde_json = "1"
+
+[[bin]]
+name = "fff-driver"
+path = "rust/fff.rs"
+
+[[bin]]
+name = "fsearch-nd-driver"
+path = "rust/nd.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true

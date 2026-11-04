@@ -19,6 +19,10 @@
 # public README and the operator's machine names are not public.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 die() { echo "flea-bench-report: $*" >&2; exit 1; }
 
 if [ "${1:-}" = "--selftest" ] || [ "${1:-}" = "selftest" ]; then
@@ -170,10 +174,10 @@ runs=$(tail -n +2 "$CSV" | cut -d, -f"$run_col" | sort -u | grep -c .)
 entrant_line() { grep -m1 -E "^$1 +(gui|tui) " "$MANIFEST" | tr -s ' '; }
 kind_of() { entrant_line "$1" | cut -d' ' -f2; }
 version_of() { entrant_line "$1" | cut -d' ' -f3-; }
-# One entrant's Version cell, from its manifest line only: a package version, or a source ref with (dirty).
+# One entrant's Version cell: package/archive version, or a source ref with (dirty).
 # Sample input: "flea       gui  source 1bd18d9 (clean), release binary built 2026-09-23T00:14:24-04:00, 2706072 bytes".
 short_version() {
-  local line rest sha dirty
+  local line rest sha dirty version receipt
   line=$(entrant_line "$1")
   [ -n "$line" ] || die "the manifest has no entrant line for '$1', so its version is unknown"
   rest=${line#* }
@@ -181,6 +185,15 @@ short_version() {
   case "$rest" in
     "NOT INSTALLED") printf 'NOT INSTALLED'; return 0 ;;
     unpackaged\ at\ *) printf 'unpackaged'; return 0 ;;
+    archive\ *)
+      # Sample input: "strata-stable gui archive 1.0.0 {"archive": {"id": "strata-stable", ...}, "version": "strata 1.0.0", ...}".
+      rest=${rest#archive }
+      version=${rest%% *}
+      receipt=${rest#* }
+      case "$version" in ''|*[!0-9A-Za-z.+_-]*) die "the manifest version line for entrant '$1' is unparseable" ;; esac
+      case "$receipt" in \{*\}) ;; *) die "the manifest version line for entrant '$1' is unparseable" ;; esac
+      # The complete archive receipt stays in the manifest and the versions list below.
+      printf '%s' "$version"; return 0 ;;
     source\ *) rest=${rest#source } ;;
     *" "*)
       case "$rest" in *" "*" "*) die "the manifest version line for entrant '$1' is unparseable" ;; esac

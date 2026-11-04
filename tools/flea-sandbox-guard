@@ -3,7 +3,7 @@
 # Needs realpath from coreutils, which is the tree's only test-side binary dependency. An absent or
 # failing one fails closed: sandbox_canon returns non-zero and every caller either refuses on that or
 # treats it as a refusal, including sandbox_forbidden, which must never read it as "not under".
-# A lane agent test-driving file operations against real paths under $HOME emptied /home/gm on
+# A lane agent test-driving file operations against real paths under $HOME emptied the operator home on
 # 2026-09-01, and there is no @home snapshot, so every destructive path in this tree comes through
 # here. Each check is code that runs before the delete, not a promise in a report.
 
@@ -12,7 +12,7 @@ FIXTURE_ROOT=${FLEA_FIXTURE_ROOT:-/home/flea-sandbox}
 # The marker is what stands between a directory and rm -rf: no marker, no delete.
 SANDBOX_MARKER=.flea-test-sandbox
 # When this shell sourced the guard, never inherited: a crash report older than this is from an earlier run.
-SANDBOX_GUARD_START=$(date +%s)
+SANDBOX_GUARD_START=$(LC_ALL=C.UTF-8 LANGUAGE= date +%s)
 
 sandbox_refuse() {
   printf 'REFUSED: %s\n' "$*" >&2
@@ -59,7 +59,7 @@ sandbox_plausible() {
   return 0
 }
 
-# True when child is under parent, comparing whole components: /home/gmother is not under /home/gm.
+# True when child is under parent, comparing whole components: /srv/userother is not under /srv/user.
 # Both sides are normalised first: a trailing slash on the parent silently matched nothing, which
 # emptied the whole forbidden-roots list whenever HOME carried one.
 sandbox_under() {
@@ -172,7 +172,7 @@ sandbox_crash_report() {
       fi
     fi
     printf 'FAIL %s: cannot copy crash report %s to %s\n' "${0##*/}" "$crash" "$dest"
-  done < <(find "$root" -mindepth 3 -type d -path '*/quickshell/crashes/*' -prune 2>/dev/null)
+  done < <(LC_ALL=C.UTF-8 LANGUAGE= find "$root" -mindepth 3 -type d -path '*/quickshell/crashes/*' -prune 2>/dev/null)
   return 0
 }
 
@@ -402,7 +402,7 @@ sandbox_trash_remove_own() {
     # A name with no .trashinfo is already gone, so it stays a no-op.
     [ -f "$info" ] || continue
     # Sample .trashinfo line: "Path=/home/u/a%20b.txt".
-    path=$(sed -n 's/^Path=//p' -- "$info" 2>/dev/null | head -n 1) || { rc=2; continue; }
+    path=$(LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^Path=//p' -- "$info" 2>/dev/null | head -n 1) || { rc=2; continue; }
     [ -n "$path" ] || { rc=2; continue; }
     # GLib percent-escapes Path, so %XX decodes before the compare.
     sandbox_trash_unescape "$path"

@@ -9,6 +9,11 @@ import sys
 import tomllib
 import traceback
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
+
 
 def backend_request(native, name, folder, hidden):
     # The public frontend drops show_hidden, so explicit overrides use the real implementation interface.
@@ -111,7 +116,7 @@ def test_issue313(native):
         payload = json.loads(environment[b"FLEA_PICKER"])
         check(f"{request.name}: {stage} exact portal override presence", ("hidden" in payload) == (override is not None)
               and (override is None or payload["hidden"] is override), payload)
-        centres = [run(["qs", "ipc", "--pid", request.pid, "call", "fleapicker", "rowCentre", index],
+        centres = [run([*IPC.command(), "--pid", request.pid, "call", "fleapicker", "rowCentre", index],
                        native["picker_env"]) for index in range(len(expected_names))]
         check(f"{request.name}: {stage} rows have live delegates", all(re.fullmatch(r"[0-9]+ [0-9]+", value)
               and 0 < int(value.split()[0]) < state["width"] and 0 < int(value.split()[1]) < state["height"] for value in centres), centres)

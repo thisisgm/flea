@@ -3,16 +3,31 @@ use crate::jsondoc::Json;
 use crate::uischema::STATE_VERSION;
 
 // Each change by the stateVersion it arrived in, oldest first; a file stamped below one has not had it.
-const STEPS: &[(f64, fn(Json) -> Json)] =
-    &[(1.0, show_unmounted_drives), (2.0, hide_new_menu_rows), (3.0, hide_run_rows)];
+type Step = fn(Json) -> Json;
+const STEPS: &[(f64, Step)] = &[
+    (1.0, show_unmounted_drives),
+    (2.0, hide_new_menu_rows),
+    (3.0, hide_run_rows),
+    (4.0, hide_0_4_0_rows),
+];
+
+// Automatic settlement must leave a newer schema for the version that understands it.
+pub fn newer_than_known(found: &Json) -> bool {
+    STEPS.last().is_some_and(|(known, _)| stored_version(found) > *known)
+}
 
 // The file as found carries the stamp: the merged document already holds the shipped one in its place.
 pub fn migrated(found: &Json, merged: Json) -> Json {
     let stored = stored_version(found);
+    // Only a stored list the merge kept is a saved list; one that fell back is the shipped default.
+    let hidden = |doc: &Json| doc.get("menu").and_then(|menu| menu.get("hidden")).cloned();
+    let stored_menu = hidden(found).is_some() && hidden(found) == hidden(&merged);
     let mut state = merged;
     for (version, step) in STEPS {
         if stored < *version {
-            state = with_key(step(state), STATE_VERSION, Json::Num(format!("{}", version)));
+            // Menu migrations apply to a saved list, never the current unset default.
+            let next = if *version >= 2.0 && !stored_menu { state } else { step(state) };
+            state = with_key(next, STATE_VERSION, Json::Num(format!("{}", version)));
         }
     }
     state
@@ -71,6 +86,30 @@ fn hide_run_rows(state: Json) -> Json {
     for owned in ["run", "openAsText"] {
         if !kept.iter().any(|name| name == owned) {
             kept.push(owned.to_string());
+        }
+    }
+    let hidden = Json::Arr(kept.into_iter().map(Json::Str).collect());
+    with_key(state, "menu", with_key(menu, "hidden", hidden))
+}
+
+// Open in Agent ships off, so a stored list that never named it hides it once; Actions ships with Run Script's place hidden, so only a list that hid Run Script hides Actions too, and nothing beyond those ids is removed, reordered or changed.
+fn hide_0_4_0_rows(state: Json) -> Json {
+    let menu = state.get("menu").cloned().unwrap_or(Json::Obj(Vec::new()));
+    let items = match menu.get("hidden").and_then(Json::as_array) {
+        Some(items) => items.to_vec(),
+        None => return state,
+    };
+    if items.iter().any(|item| !matches!(item, Json::Str(_))) {
+        return state;
+    }
+    let mut kept: Vec<String> = items.iter().filter_map(Json::as_str).map(str::to_string).collect();
+    let mut owned = vec!["openAgent"];
+    if kept.iter().any(|name| name == "runScript") {
+        owned.push("actions");
+    }
+    for name in owned {
+        if !kept.iter().any(|held| held == name) {
+            kept.push(name.to_string());
         }
     }
     let hidden = Json::Arr(kept.into_iter().map(Json::Str).collect());
@@ -222,8 +261,8 @@ mod tests {
         );
         assert_eq!(
             hidden(&read),
-            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "extThumbs", "pasteAs", "invertSelection", "run", "openAsText"],
-            "copypath becomes copyAs where it stood, the other two are appended, then the run rows"
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "extThumbs", "pasteAs", "invertSelection", "run", "openAsText", "openAgent", "actions"],
+            "copypath becomes copyAs where it stood, the other two are appended, then the run rows, then the agent row, then Actions where Run Script was hidden"
         );
         assert_eq!(stamp(&read), Some(LATEST));
         assert_eq!(shown(&read), Some(true), "the 1.0 step does not run again for a stamped file");
@@ -246,15 +285,15 @@ mod tests {
         let read = from_file(
             r#"{"stateVersion":2,"menu":{"hidden":["delete","copyAs","invertSelection"]}}"#,
         );
-        assert_eq!(hidden(&read), ["delete", "copyAs", "invertSelection", "run", "openAsText"], "pasteAs stays shown");
+        assert_eq!(hidden(&read), ["delete", "copyAs", "invertSelection", "run", "openAsText", "openAgent"], "pasteAs stays shown");
         assert_eq!(stamp(&read), Some(LATEST));
     }
 
     #[test]
-    fn a_0_3_2_file_gets_all_three_steps_in_one_read() {
+    fn a_0_3_2_file_gets_every_step_in_one_read() {
         let read = from_file(r#"{"places":{"showUnmounted":false},"menu":{"hidden":["delete","copypath"]}}"#);
         assert_eq!((shown(&read), stamp(&read)), (Some(true), Some(LATEST)));
-        assert_eq!(hidden(&read), ["delete", "copyAs", "pasteAs", "invertSelection", "run", "openAsText"]);
+        assert_eq!(hidden(&read), ["delete", "copyAs", "pasteAs", "invertSelection", "run", "openAsText", "openAgent"]);
     }
 
     // The run card's own rows ship hidden, so a stored list that never named them gains them once.
@@ -264,10 +303,59 @@ mod tests {
             r#"{"stateVersion":2,"places":{"showUnmounted":true},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs"]}}"#,
         );
         let got = hidden(&read);
-        assert_eq!(got[got.len() - 2..], ["run".to_string(), "openAsText".to_string()]);
+        assert_eq!(got[got.len() - 4..], ["run".to_string(), "openAsText".to_string(), "openAgent".to_string(), "actions".to_string()]);
         assert_eq!(stamp(&read), Some(LATEST));
         let again = from_file(r#"{"stateVersion":3,"menu":{"hidden":["delete"]}}"#);
-        assert_eq!(hidden(&again), ["delete"], "a stamped file that shows the run rows keeps them shown");
+        assert_eq!(hidden(&again), ["delete", "openAgent"], "a stamped file keeps its shown run rows and still hides the agent row");
+    }
+
+    // Open in Agent ships off, so a stored list that never named it hides it once.
+    #[test]
+    fn a_0_4_0_file_lacking_the_agent_row_hides_it_once() {
+        let read = from_file(
+            r#"{"stateVersion":3,"places":{"showUnmounted":true},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText"]}}"#,
+        );
+        let got = hidden(&read);
+        assert_eq!(got[got.len() - 2..], ["openAgent".to_string(), "actions".to_string()]);
+        assert_eq!(stamp(&read), Some(LATEST));
+        let again = from_file(r#"{"stateVersion":4,"menu":{"hidden":["delete"]}}"#);
+        assert_eq!(hidden(&again), ["delete"], "a stamped file that shows the agent row keeps it shown");
+    }
+
+    // A hidden list holding a non-string is not a list this step understands, so it passes through untouched.
+    #[test]
+    fn a_hidden_list_with_a_non_string_is_left_as_it_is() {
+        let state = patch(r#"{"stateVersion":3,"menu":{"hidden":["delete",7]}}"#);
+        assert_eq!(super::hide_0_4_0_rows(state.clone()), state);
+        assert_eq!(
+            hidden(&from_file(r#"{"stateVersion":3,"menu":{"hidden":["runScript","openAgent","actions"]}}"#)),
+            ["runScript", "openAgent", "actions"],
+            "a held id is not added twice"
+        );
+    }
+
+    // Actions ships off with Run Script's place, so a 0.3.7 file that kept Run Script hidden hides it too.
+    #[test]
+    fn a_0_3_7_file_that_hid_run_script_gains_actions_hidden_once() {
+        let read = from_file(r#"{"stateVersion":1,"menu":{"hidden":["delete","runScript"]}}"#);
+        assert_eq!(
+            hidden(&read),
+            ["delete", "runScript", "pasteAs", "invertSelection", "run", "openAsText", "openAgent", "actions"],
+            "the steps append their own ids in order, and Actions joins once"
+        );
+        assert_eq!(stamp(&read), Some(LATEST));
+        let again = from_file(r#"{"stateVersion":4,"menu":{"hidden":["delete","runScript"]}}"#);
+        assert_eq!(hidden(&again), ["delete", "runScript"], "a file stamped 4 is left alone");
+    }
+
+    // A 0.3.7 file that showed Run Script never hid Actions, so the migration leaves its row shown.
+    #[test]
+    fn a_0_3_7_file_that_showed_run_script_keeps_actions_shown() {
+        let read = from_file(r#"{"stateVersion":1,"menu":{"hidden":["delete","moveto","copyAs"]}}"#);
+        let got = hidden(&read);
+        assert!(got.iter().any(|id| id == "openAgent"), "the agent row still joins the hidden list");
+        assert!(!got.iter().any(|id| id == "actions"), "Run Script was shown, so Actions stays shown: {}", got.join(","));
+        assert_eq!(stamp(&read), Some(LATEST));
     }
 
     // Two windows and the TUI write under one lock: whoever migrates first, the stamp rides every later write.

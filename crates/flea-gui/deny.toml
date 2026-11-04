@@ -1,0 +1,140 @@
+[licenses]
+allow = ["MIT", "Apache-2.0", "Zlib", "BSD-2-Clause", "BSD-3-Clause"]
+
+[[licenses.exceptions]]
+name = "hexf-parse"
+version = "=0.2.1"
+# Public-domain parsing or hashing implementation inherited from GPUI.
+allow = ["CC0-1.0"]
+
+[[licenses.exceptions]]
+name = "icu_collections"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_locale_core"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_normalizer"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_normalizer_data"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_properties"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_properties_data"
+version = "=2.3.0"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "icu_provider"
+version = "=2.3.1"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "libloading"
+version = "=0.8.9"
+# Permissive dynamic library loading dependency inherited from GPUI.
+allow = ["ISC"]
+
+[[licenses.exceptions]]
+name = "litemap"
+version = "=0.8.3"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "option-ext"
+version = "=0.2.0"
+# Optional-value helpers inherited from GPUI; approval is limited to this release.
+allow = ["MPL-2.0"]
+
+[[licenses.exceptions]]
+name = "potential_utf"
+version = "=0.1.6"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "tiny-keccak"
+version = "=2.0.2"
+# Public-domain parsing or hashing implementation inherited from GPUI.
+allow = ["CC0-1.0"]
+
+[[licenses.exceptions]]
+name = "tinystr"
+version = "=0.8.4"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "unicode-ident"
+version = "=1.0.27"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "writeable"
+version = "=0.6.4"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "yoke"
+version = "=0.8.3"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "yoke-derive"
+version = "=0.8.4"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerofrom"
+version = "=0.1.8"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerofrom-derive"
+version = "=0.1.8"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerotrie"
+version = "=0.2.5"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerovec"
+version = "=0.11.8"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]
+
+[[licenses.exceptions]]
+name = "zerovec-derive"
+version = "=0.11.6"
+# Unicode data and generated text support inherited from GPUI.
+allow = ["Unicode-3.0"]

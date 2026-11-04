@@ -1,5 +1,9 @@
 // Claim the exact reviewed payload and metadata before deletion; later arrivals keep their original names.
 mod recovery;
+mod cancel;
+use cancel::remove_tree_cancellable;
+#[cfg(test)]
+mod cancel_tests;
 pub use recovery::{recover, recovery_root, RecoveryReport};
 use recovery::Recovery;
 
@@ -154,6 +158,8 @@ pub struct Reviewed {
     payload: Identity,
     metadata: Identity,
     tree: Option<Records>,
+    nodes: usize,
+    bytes: u64,
 }
 
 // Open one ancestor at a time; neither deep paths nor substituted symlinks need recursive traversal.
@@ -174,7 +180,7 @@ fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> 
     MATCH_WALKS.with(|walks| walks.set(walks.get() + 1));
     let mut offset = tree.start();
     while let Some(bytes) = tree.next(&mut offset).changed("Trash review unreadable")? {
-        cancel.check().map_err(Refusal::said)?;
+        cancel.check().map_err(Refusal::cancelled)?;
         let node = Node::decode(&bytes)?;
         let Ok((parent, name)) = parent_at(base, root, &node.relative) else { return Ok(false); };
         let path = fd_path(&parent, &name);
@@ -183,7 +189,7 @@ fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> 
             let directory = open_dir(&path)?;
             let mut children = 0;
             for entry in std::fs::read_dir(fd_path(&directory, OsStr::new("."))).changed("Could not read a Trash folder")? {
-                cancel.check().map_err(Refusal::said)?;
+                cancel.check().map_err(Refusal::cancelled)?;
                 entry.changed("Could not read a Trash folder entry")?;
                 children += 1;
             }
@@ -245,7 +251,7 @@ fn stored<T>(result: Result<T, String>, what: &str) -> Result<T, Refusal> {
 }
 
 fn snapshot_tree(path: &Path, payload: &Identity, manifest: &mut Manifest, scratch: &Path,
-    cancel: &Cancellation) -> Result<(Records, u64), Refusal> {
+    cancel: &Cancellation) -> Result<(Records, u64, usize), Refusal> {
         let files = open_dir(path.parent().changed("Missing Trash parent.")?)?;
         let name = path.file_name().changed("Missing Trash filename.")?;
         let mut queue = stored(Manifest::new(scratch), "Could not start the Trash review")?;
@@ -253,6 +259,7 @@ fn snapshot_tree(path: &Path, payload: &Identity, manifest: &mut Manifest, scrat
         let start = manifest.len();
         let mut cursor = 0;
         let mut bytes = 0u64;
+        let mut nodes = 0usize;
         while let Some(record) = stored(queue.records().next(&mut cursor), "Could not read the Trash review")? {
             cancel.check().map_err(Refusal::said)?;
             let mut node = Node::decode(&record)?;
@@ -281,25 +288,16 @@ fn snapshot_tree(path: &Path, payload: &Identity, manifest: &mut Manifest, scrat
                 bytes = bytes.checked_add(node.identity.size).changed("Trash byte total exceeds the supported range.")?;
             }
             stored(manifest.append(&node.encode()), "Could not write the Trash review")?;
+            nodes = nodes.checked_add(1).changed("Trash file total exceeds the supported range.")?;
         }
         let tree = stored(manifest.range(start, manifest.len()), "Could not read the Trash review")?;
         if identity(path).ok().as_ref() != Some(payload) || !matches(&tree, &files, name, cancel)? {
             return Err(Refusal::changed("Trash changed while reviewing its contents."));
         }
-        Ok((tree, bytes))
+        Ok((tree, bytes, nodes))
 }
 fn remove_tree(tree: &Records, quarantine: &File, refused: Refusal) -> Result<(), Refusal> {
-    // matches() counts children: identity alone is blind to a same-tick arrival that keeps size and mtime.
-    if !matches(tree, quarantine, OsStr::new("payload"), &Cancellation::default())? {
-        return Err(refused);
-    }
-    let mut offset = tree.end();
-    while let Some(bytes) = tree.previous(&mut offset).changed("Trash review unreadable")? {
-        let node = Node::decode(&bytes)?;
-        let (parent, child_name) = parent_at(quarantine, OsStr::new("payload"), &node.relative)?;
-        node.claim_remove(&parent, &child_name, quarantine, offset - tree.start())?;
-    }
-    Ok(())
+    remove_tree_cancellable(tree, quarantine, refused, &Cancellation::default(), &mut || {})
 }
 
 
@@ -395,21 +393,25 @@ impl Reviewed {
             payload,
             metadata: Identity::of(&info_meta),
             tree: None,
+            nodes: 0,
+            bytes: 0,
         })
     }
     pub fn snapshot(&mut self, manifest: &mut Manifest, scratch: &Path, cancel: &Cancellation) -> Result<u64, Refusal> {
         self.tree = None;
-        let (tree, bytes) = snapshot_tree(&self.path, &self.payload, manifest, scratch, cancel).map_err(Refusal::logged)?;
+        let (tree, bytes, nodes) = snapshot_tree(&self.path, &self.payload, manifest, scratch, cancel).map_err(Refusal::logged)?;
         if !self.unchanged() { return Err(Refusal::changed("Trash changed while reviewing its contents.").logged()); }
         self.tree = Some(tree);
+        self.nodes = nodes;
+        self.bytes = bytes;
         Ok(bytes)
     }
     pub fn saved(&self) -> Result<String, Refusal> {
         let tree = self.tree.as_ref().changed("Trash contents have not been reviewed.").map_err(Refusal::logged)?;
         let (path, info) = self.path.to_str().zip(self.info.to_str())
             .changed("Trash path is not valid text.").map_err(Refusal::logged)?;
-        Ok(format!(r#"{{"path":"{}","info":"{}","payload":"{}","metadata":"{}","start":{},"end":{}}}"#,
-            escape(path), escape(info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end()))
+        Ok(format!(r#"{{"path":"{}","info":"{}","payload":"{}","metadata":"{}","start":{},"end":{},"nodes":{},"bytes":{}}}"#,
+            escape(path), escape(info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end(), self.nodes, self.bytes))
     }
     pub fn from_saved(text: &str, manifest: &Manifest) -> Result<Self, Refusal> {
         Self::read_saved(text, manifest).map_err(Refusal::logged)
@@ -420,6 +422,8 @@ impl Reviewed {
             info: PathBuf::from(field_str(text, "info").changed("Missing Trash review metadata path.")?),
             payload: Identity::from_saved(&field_str(text, "payload").changed("Missing Trash review identity.")?)?,
             metadata: Identity::from_saved(&field_str(text, "metadata").changed("Missing Trash metadata identity.")?)?,
+            nodes: field_usize(text, "nodes").changed("Missing Trash review file total.")?,
+            bytes: field_usize(text, "bytes").changed("Missing Trash review byte total.")? as u64,
             tree: Some(manifest.range(field_usize(text, "start").changed("Missing Trash review start.")? as u64,
                 field_usize(text, "end").changed("Missing Trash review end.")? as u64).changed("Invalid Trash review range")?),
         })
@@ -461,24 +465,31 @@ impl Reviewed {
         // This ephemeral value is compared within one backend session, never parsed or persisted.
         format!("{:?}|{:?}", self.payload, self.metadata)
     }
+    pub fn thumbnail(&self) -> Option<(PathBuf, i64)> {
+        (self.thumbnail_path().is_some() && self.unchanged())
+            .then(|| (self.path.clone(), self.payload.mtime))
+    }
+    pub fn thumbnail_path(&self) -> Option<&Path> {
+        (self.payload.mode & 0o170000 == 0o100000).then_some(&self.path)
+    }
+    pub fn provider_identity(&self) -> String {
+        format!("l{}:{}", self.payload.dev, self.payload.ino)
+    }
     pub fn same_item(&self, other: &Self) -> bool {
         self.path == other.path && self.info == other.info
             && self.payload.dev == other.payload.dev && self.payload.ino == other.payload.ino
             && self.payload.mode & 0o170000 == other.payload.mode & 0o170000
             && self.metadata.dev == other.metadata.dev && self.metadata.ino == other.metadata.ino
     }
-    pub fn delete(&self, recovery_root: &Path) -> Result<(), Refusal> {
-        self.delete_after(recovery_root, || {})
-    }
-    fn delete_after(&self, recovery_root: &Path, before_claim: impl FnOnce()) -> Result<(), Refusal> {
-        self.delete_with(recovery_root, before_claim, |_| {})
-    }
-    fn delete_with(&self, recovery_root: &Path, before_claim: impl FnOnce(), before_remove: impl FnOnce(&Path)) -> Result<(), Refusal> {
-        let tree = self.tree.as_ref().changed("Trash contents have not been reviewed.").map_err(Refusal::logged)?;
-        self.with_claimed(Op::Delete, recovery_root, None, before_claim, |quarantine| {
-            before_remove(&fd_path(quarantine, OsStr::new("payload")));
-            remove_tree(tree, quarantine, Refusal::new(Outcome::NothingDeleted, "Trash contents changed; no deletion attempted."))
-        })
+    // Cleanup failures after payload removal still retire this item's thumbnail namespace.
+    pub fn departed_uri(&self, result: &Result<(), Refusal>) -> Option<String> {
+        let completed = match result {
+            Ok(()) => true,
+            Err(refusal) => matches!(refusal.outcome(),
+                Outcome::InfoLeft(_, _) | Outcome::FolderLeft(_, _)
+                | Outcome::RecordLeft(Some(_)) | Outcome::RecordUnconfirmed(Some(_))),
+        };
+        completed.then(|| super::thumbcache::uri_for(&self.path))
     }
     pub fn restore(&self, original: &Path, recovery_root: &Path) -> Result<(), Refusal> {
         self.restore_after(original, recovery_root, || {})
@@ -581,6 +592,10 @@ impl Reviewed {
             if journal.remove_empty(&quarantine_path, &quarantine, &files).is_err() {
                 return Err(error.wrap(Outcome::StuckInTrash(op, recovery)));
             }
+            if error.outcome() == &Outcome::Cancelled {
+                finish(journal, op, false).map_err(Refusal::logged)?;
+                return Err(error);
+            }
             settle(journal, op);
             // A refusal that is a whole sentence already says what was done: nothing was deleted, or nothing was restored.
             let whole = match (op, error.outcome()) {
@@ -612,7 +627,7 @@ impl PathReview {
             return Err(Refusal::changed("Permanent deletion requires an absolute item path; filesystem roots are refused.").logged());
         }
         let payload = identity(&path).changed("Item unreadable").map_err(Refusal::logged)?;
-        let (tree, bytes) = snapshot_tree(&path, &payload, manifest, scratch, cancel).map_err(Refusal::logged)?;
+        let (tree, bytes, _) = snapshot_tree(&path, &payload, manifest, scratch, cancel).map_err(Refusal::logged)?;
         Ok((Self { path, payload, tree }, bytes))
     }
     pub fn unchanged(&self, cancel: &Cancellation) -> Result<bool, Refusal> {
@@ -674,6 +689,11 @@ impl PathReview {
 #[cfg(test)]
 #[path = "trashdelete/refusal_tests.rs"]
 mod refusal_tests;
+
+// Compatibility deletion hooks used by trashdelete::tests.
+#[cfg(test)]
+#[path = "trashdelete/deletetest.rs"]
+mod deletetest;
 
 #[cfg(test)]
 mod tests {

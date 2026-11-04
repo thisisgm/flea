@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import "flea" as Flea
 import "flea/js/Swap.js" as Swap
+import "flea/js/DirSizes.js" as DirSizes
 
 // The first answer of a search over a folder shorter than the view builds nothing in any view: the strip's warm turn already built it, unseen.
 ShellRoot {
@@ -122,6 +123,14 @@ ShellRoot {
         return out
     }
     function answered() { return root.pane.searchGen === root.gen && !root.pane.searchRunning && root.pane.searchSettledAt >= root.pane.searchKeyAt }
+    // Every drawn directory row a view sizes shows its answer, which lands after the folder's rows.
+    function sizesLanded() {
+        if (!DirSizes.wantsSizes(root.pane.viewMode, Flea.ViewState.hiddenCols, root.pane.storageClass, root.pane.storageKnown)) return true
+        return root.delegates().every(function (d) {
+            var row = d.visible && d.index < root.lv.count && d.listingIndex >= 0 ? root.pane.rowFor(d.listingIndex) : null
+            return row === null || !row.d || DirSizes.sizeFor(root.pane.dirSizeState, d.listingIndex) !== null
+        })
+    }
 
     FloatingWindow {
         id: win
@@ -223,11 +232,11 @@ ShellRoot {
             root.keys = Qt.createQmlObject("import QtTest; TestEvent {}", root.pane.listArea)
             root.pane.open(root.fixture)
             var still = { frame: "", since: 0 }
-            // The folder's sizes and icons land after its rows, so the strip opens only once the drawn rows stood still for the warm span.
+            // The folder's sizes and icons land after its rows, so the strip opens only once every drawn folder shows its size and the drawn rows then stood still for the warm span.
             root.awaiting = function () {
                 if (root.pane.listInFlight || root.pane.total === 0 || root.pane.viewMode !== op.view) return false
                 root.lv = op.view === "columns" ? (root.pane.columnsArea ? root.pane.columnsArea.activeColumn().viewport : null) : root.pane.listArea
-                if (root.lv === null || root.delegates().length === 0) return false
+                if (root.lv === null || root.delegates().length === 0 || !root.sizesLanded()) return false
                 var frame = JSON.stringify(root.drawn())
                 if (frame !== still.frame) { still.frame = frame; still.since = Date.now() }
                 return Date.now() - still.since >= root.warmMs
@@ -236,9 +245,12 @@ ShellRoot {
             root.stripFrame = null
             root.pane.listArea.forceActiveFocus()
             root.keys.keyClickChar("f", Qt.NoModifier, -1)
-            var opened = Date.now()
+            var warmAt = 0
             root.awaiting = function () {
-                if (root.stripFrame === null || Date.now() - opened < root.warmMs) return false
+                if (root.stripFrame === null || !root.pane.swap.searchWarm) return false
+                if (warmAt === 0) warmAt = Date.now()
+                // An absence, judged from the warm turn itself: it fills the rows in that turn, and the window holds whatever it queued.
+                if (Date.now() - warmAt < root.warmMs) return false
                 var view = root.pane.viewMode
                 root.check(view + " the folder lists fewer rows than the view holds", root.pane.total < root.pane.visibleRows, true)
                 root.check(view + " the warm turn draws nothing the strip's frame did not", root.drawn(), root.stripFrame)
@@ -281,6 +293,7 @@ ShellRoot {
             root.awaiting = function () {
                 if (!root.answered()) return false
                 if (settled === 0) settled = Date.now()
+                // An absence, judged from the settled answer: a second answer for this key would arrive behind it.
                 if (Date.now() - settled < root.warmMs) return false
                 root.counting = false
                 var gens = root.answers.map(function (a) { return a.gen === root.gen })

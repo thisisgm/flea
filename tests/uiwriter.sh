@@ -69,6 +69,7 @@ import Quickshell
 ShellRoot {
     id: root
     property int failures: 0
+    property bool started: false
 
     property var reporter: Connections {
         target: ViewState
@@ -78,18 +79,34 @@ ShellRoot {
     Component.onCompleted: {
         ViewState.toggleColumn("kind")
         ViewState.toggleColumn("mode")
+        root.started = true
     }
 
-    // Long enough for two writers to run and exit on this box, where one --ui-state costs single
-    // digit milliseconds; the suite reads the printed book and never a timing.
-    property var settled: Timer {
-        interval: 1500
+    function report() {
+        console.log("PROBE failures=" + root.failures)
+        console.log("PROBE inflight=[" + ViewState.writeBook.inflight + "]")
+        console.log("PROBE pending=[" + ViewState.writeBook.pending + "]")
+        Qt.quit()
+    }
+
+    // Quits on the book draining and not on a timing, so a writer a loaded box holds up is waited for.
+    property var watcher: Timer {
+        interval: 100
+        repeat: true
         running: true
         onTriggered: {
-            console.log("PROBE failures=" + root.failures)
-            console.log("PROBE inflight=[" + ViewState.writeBook.inflight + "]")
-            console.log("PROBE pending=[" + ViewState.writeBook.pending + "]")
-            Qt.quit()
+            if (root.started && ViewState.writeBook.inflight.length === 0)
+                root.report()
+        }
+    }
+
+    // A backstop with its own line, so a book that never drained prints what it still holds and fails.
+    property var backstop: Timer {
+        interval: 30000
+        running: true
+        onTriggered: {
+            console.log("PROBE stalled")
+            root.report()
         }
     }
 }
@@ -103,20 +120,37 @@ import Quickshell
 
 ShellRoot {
     id: root
+    property bool started: false
 
     Component.onCompleted: {
         ViewState.toggleColumn("kind")
         ViewState.setKeysPreset("windows")
         console.log("PROBE queued=" + ViewState.writeBook.pending)
+        root.started = true
     }
 
-    property var settled: Timer {
-        interval: 1500
+    function report() {
+        console.log("PROBE inflight=[" + ViewState.writeBook.inflight + "]")
+        console.log("PROBE pending=[" + ViewState.writeBook.pending + "]")
+        Qt.quit()
+    }
+
+    property var watcher: Timer {
+        interval: 100
+        repeat: true
         running: true
         onTriggered: {
-            console.log("PROBE inflight=[" + ViewState.writeBook.inflight + "]")
-            console.log("PROBE pending=[" + ViewState.writeBook.pending + "]")
-            Qt.quit()
+            if (root.started && ViewState.writeBook.inflight.length === 0)
+                root.report()
+        }
+    }
+
+    property var backstop: Timer {
+        interval: 30000
+        running: true
+        onTriggered: {
+            console.log("PROBE stalled")
+            root.report()
         }
     }
 }
@@ -139,24 +173,40 @@ ShellRoot {
         function onSaveFailed() { root.failures = root.failures + 1 }
     }
 
-    Component.onCompleted: ViewState.setKeysPreset("windows")
+    property int step: 0
 
-    // Long enough for the first writer to have exited or failed to start on this box, where one
-    // --ui-state costs single-digit milliseconds; the suite reads the printed patch and no timing.
-    property var second: Timer {
-        interval: 700
+    Component.onCompleted: {
+        ViewState.setKeysPreset("windows")
+        root.step = 1
+    }
+
+    // Each tick reads the book, not a delay: the second change waits for the first writer to exit or fail to start, and one that never ends fails.
+    property var watcher: Timer {
+        interval: 100
+        repeat: true
         running: true
         onTriggered: {
-            console.log("PROBE failures=" + root.failures)
-            ViewState.setTextSize({ mode: 16 })
-            console.log("PROBE second=" + ViewState.writeBook.inflight)
-            done.running = true
+            if (root.step === 0 || ViewState.writeBook.inflight.length > 0)
+                return
+            if (root.step === 1) {
+                console.log("PROBE failures=" + root.failures)
+                ViewState.setTextSize({ mode: 16 })
+                console.log("PROBE second=" + ViewState.writeBook.inflight)
+                root.step = 2
+            } else {
+                console.log("PROBE drained failures=" + root.failures)
+                Qt.quit()
+            }
         }
     }
 
-    property var done: Timer {
-        interval: 700
-        onTriggered: Qt.quit()
+    property var backstop: Timer {
+        interval: 30000
+        running: true
+        onTriggered: {
+            console.log("PROBE stalled failures=" + root.failures)
+            Qt.quit()
+        }
     }
 }
 QML
@@ -176,6 +226,7 @@ ShellRoot {
     readonly property string trigger: Quickshell.env("PROBE_TRIGGER") || ""
 
     property int failures: 0
+    property bool sent: false
 
     property var reporter: Connections {
         target: ViewState
@@ -188,7 +239,8 @@ ShellRoot {
         else
             ViewState.setKeysPreset("windows")
         console.log("PROBE sent=" + ViewState.writeBook.inflight)
-        settled.running = true
+        root.sent = true
+        backstop.running = true
     }
 
     Component.onCompleted: {
@@ -207,10 +259,24 @@ ShellRoot {
         onExited: root.write()
     }
 
-    property var settled: Timer {
-        interval: 1200
+    // Quits once this window's own writer has ended, so a writer a loaded box holds up is never cut off.
+    property var watcher: Timer {
+        interval: 100
+        repeat: true
+        running: true
         onTriggered: {
-            console.log("PROBE failures=" + root.failures)
+            if (root.sent && ViewState.writeBook.inflight.length === 0) {
+                console.log("PROBE failures=" + root.failures)
+                Qt.quit()
+            }
+        }
+    }
+
+    // Started by the write and not at launch, so a window waiting on its trigger is never cut off.
+    property var backstop: Timer {
+        interval: 30000
+        onTriggered: {
+            console.log("PROBE stalled failures=" + root.failures)
             Qt.quit()
         }
     }
@@ -263,6 +329,7 @@ check "the probe printed the patch after the refusal" "1" "$([ -n "$refused_seco
 check "the refusal is reported before the next change" "1" "$(echo "$out" | grep -c 'PROBE failures=1')"
 check "the patch after a refusal still carries the refused setting" "1" "$(echo "$refused_second" | grep -c '"keys":"windows"')"
 check "and the setting the change itself made" "1" "$(echo "$refused_second" | grep -c '"display"')"
+check "and the second refusal is reported once the book drains" "1" "$(echo "$out" | grep -c 'PROBE drained failures=2')"
 
 # The other half: a write that LANDS clears what it carried, so the next change names only itself.
 # Without that, every later patch keeps this window's own read of every key it has ever written, and
@@ -271,6 +338,7 @@ out=$(drive "$BIN" owed.qml)
 landed_second=$(echo "$out" | grep 'PROBE second=' | head -1)
 check "the probe printed the patch after the landed write" "1" "$([ -n "$landed_second" ] && echo 1 || echo 0)"
 check "a landed write is not reported" "1" "$(echo "$out" | grep -c 'PROBE failures=0')"
+check "and the second writer drains with nothing reported" "1" "$(echo "$out" | grep -c 'PROBE drained failures=0')"
 check "the change after a landed write names its own setting" "1" "$(echo "$landed_second" | grep -c '"display"')"
 check "and nothing else" "0" "$(echo "$landed_second" | grep -c '"keys"')"
 state_flat=$(tr -d ' \n' < "$SANDBOX/state/flea/ui.json" 2>/dev/null)
@@ -308,6 +376,8 @@ two_windows() {
   # previous pair's file and the previous pair's patch.
   two_flat=""
   two_sent=""
+  two_act_rc=""
+  two_wait_rc=""
   sandbox_scratch "$SANDBOX/two" || exit 1
   mkdir -p "$state" || exit 1
   env XDG_STATE_HOME="$state" "$BIN" --ui-state "$SEED" >/dev/null 2>&1 \
@@ -332,6 +402,7 @@ two_windows() {
   env QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 XDG_STATE_HOME="$state" \
       FLEA_BIN="$BIN" PROBE_CHANGE="$acts" PROBE_TRIGGER="" \
       timeout 60 qs -p "$QMLDIR/two.qml" > "$SANDBOX/two/acting.log" 2>&1
+  two_act_rc=$?
   # The ordering is proven and not assumed: the trigger is only released once the acting window's
   # change is in the file, so the waiting window's save is the later of the two and its read the older.
   if ! grep -q '"mode": 16\|"keys": "windows"' "$state/flea/ui.json" 2>/dev/null; then
@@ -340,11 +411,16 @@ two_windows() {
   fi
   : > "$trigger" || exit 1
   wait "$waiting_pid"
+  two_wait_rc=$?
   two_flat=$(tr -d ' \n' < "$state/flea/ui.json" 2>/dev/null)
   two_sent=$(grep 'PROBE sent=' "$SANDBOX/two/waiting.log" | head -1)
   # Printed, so what is said about this pair is read off the run rather than off the check labels.
   echo "     the waiting window changed $waits and sent ${two_sent##*PROBE sent=}"
   echo "     and the file then held $two_flat"
+  # Each window prints its drained line only once its writer ends, so a writer still running or killed first fails the pair.
+  check "two windows: the acting window's writer drained with nothing reported" "1" "$(grep -c 'PROBE failures=0' "$SANDBOX/two/acting.log" 2>/dev/null)"
+  check "two windows: and the waiting window's did too" "1" "$(grep -c 'PROBE failures=0' "$SANDBOX/two/waiting.log" 2>/dev/null)"
+  check "two windows: and both windows quit by themselves" "0 0" "$two_act_rc $two_wait_rc"
 }
 
 # The waiting window saves a text size; the other window's preset change has to survive it.
@@ -585,12 +661,13 @@ headless_commons "$nav_root" || exit 1
 ln -s "$(readlink -f ui/boot/Ui)" "$nav_root/config/Ui" || exit 1
 cp tests/uiwriter-navigation.qml "$nav_root/config/shell.qml" || exit 1
 printf '%s\n' '{"updates":{"autoCheck":false},"places":{"rail":"hidden","showTrash":false,"showNetwork":false,"showDevices":false}}' > "$nav_root/state/flea/ui.json" || exit 1
+# The 60 s kill every probe here has; the probe's own 50 s backstop fires inside it and names the step it stalled on.
 env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     HOME="$nav_root/home" XDG_STATE_HOME="$nav_root/state" XDG_CACHE_HOME="$nav_root/cache" XDG_RUNTIME_DIR="$nav_root/runtime" \
     FLEA_BIN="$SANDBOX/wrapflea" FLEA_PATH="$nav_root/from" PROBE_NAV_TO="$nav_root/to" \
     PROBE_WRAP_DIR="$nav_root/bin" PROBE_WRAP_REAL="$BIN" \
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_FORCE_STDERR_LOGGING=1 \
-    timeout 30 qs -p "$nav_root/config" > "$nav_root/probe.log" 2>&1
+    timeout 60 qs -p "$nav_root/config" > "$nav_root/probe.log" 2>&1
 nav_status=$?
 check "navigation probe exits normally" 0 "$nav_status"
 check "navigation completes all spawn and payload checks" 1 "$(grep -c 'NAVWRITE DONE .* checks, 0 failed' "$nav_root/probe.log")"

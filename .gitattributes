@@ -1,2 +1,4 @@
 # Generated minified bundles carry trailing spaces inside string literals, so git diff --check skips them.
 ui/vendor/*.mjs -whitespace
+# Generated license quotations retain the upstream files' whitespace verbatim.
+THIRD-PARTY-LICENSES.txt -whitespace

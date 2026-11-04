@@ -1,0 +1,71 @@
+# Old commits whose message breaks one flea-commit-rules check, recorded on 2026-10-30 instead of rewriting history: sha, a tab, the exact failure.
+df26c4e09b102ffc30bac5f1de0cf3cebd939cd8	body holds a blank line
+55b9c4f47ee636fe567e532fdae9933bb4ea0987	body holds a blank line
+619cc5bca5eb4543e7802573a4f1911eaa565f36	merge subject must start with 'Merge ': merge: land Stage13 and gate repairs
+980825c1628ffa9b7677c43567e402e8e3fca868	merge subject must start with 'Merge ': feat(gui): land preview scrollbar parity
+0be58cf2f4e1ba8274ea592197c42d72fbf75d9e	merge subject must start with 'Merge ': feat(tui): land 3D and Office previews
+aab126e04d000b4acc6ac965cf4026f53642509d	merge subject must start with 'Merge ': merge(gui): stage reviewed parity and search work
+0c046457306e9ff3408e023371fc5fe3e52a3c7f	body holds 1 line(s), want 2 to 4
+08ca97ace54e0003a0044ab489bac045cebf3e35	body holds 1 line(s), want 2 to 4
+5c2674a1b7fdeb8fffe5da0dfbc8ce570ace41fb	body holds 5 line(s), want 2 to 4
+4eb08ca1929bbc367f527035055bb28898700644	body holds 5 line(s), want 2 to 4
+0fec469a69c2b2e9b39504a40733d059898ab62d	body needs one blank line after the subject
+73463c58e628f8b6a55286eb78db7a5b25ca8eba	body needs one blank line after the subject
+73d4b00bbec368a88f86b4900fcdb0e188ec7028	body holds 1 line(s), want 2 to 4
+b6a1b17f61a99a64aa0b4106568a4906665d9ec2	body holds a blank line
+26949168426b36455097163b0db2cfe7f0a70d14	body holds a blank line
+c6076acad1c9f099dfb5c305dd069da59af42759	subject holds 64 char(s), want at most 60
+657a013da01577d9bbccbce698dead0c86738692	subject holds 61 char(s), want at most 60
+58c4d3a034843d5eb880d3dc80cc49fe2372dcd8	subject holds 63 char(s), want at most 60
+89075ae596f9b5f7c9360df90ed5f2494a9edace	subject holds 65 char(s), want at most 60
+d3d4e12ec4c2609ed41a150d3f3c29b36749cb91	subject holds 62 char(s), want at most 60
+94ecda2322237b17549ef27392a85e6c5d5606ff	body holds 1 line(s), want 2 to 4
+43e3d52c06b0fa661b54db2e2d300f5551c5d973	subject holds 63 char(s), want at most 60
+f40dcd4a628cf731894748b83f4f35a4a03e220a	subject holds 62 char(s), want at most 60
+9624ac5f5fac1afe15f09024aeca9a9972394c41	merge subject must start with 'Merge ': merge(ci): join the release builder
+a32b5826bd3ddfc64eb26280a4206f74d2c49ff1	merge subject must start with 'Merge ': merge(gui): join the menu family integration
+86008c410a4cc75014f2d4164f09dc6d208beae4	merge subject must start with 'Merge ': merge(gui): join integration area C
+b5402cfe79cb36c3e7fabbbf3aad23e604332130	merge subject must start with 'Merge ': merge(gui): join integration area B
+dbb10b5c4a054f3e966ab5954f65b43c8be3bf99	merge subject must start with 'Merge ': merge(gui): join integration area A
+38bb8fbbfafdd62e64d41edf1b6c37db45b9dc6d	merge subject must start with 'Merge ': merge(gui): join tree fam-fileops
+04bcb38077e0f30b617a1baf8316d155c316f553	merge subject must start with 'Merge ': merge(gui): join tree fam-preview
+477ceafd98da711592e94afdf91b860ea3ed8795	merge subject must start with 'Merge ': merge(gui): join tree fam-listing
+cf18b2b75b20d864902e5f0b90f2103c999a1506	merge subject must start with 'Merge ': merge(gui): join tree join-rail-devices
+91d48744d082b80f4489718f7bf545ee960f276b	merge subject must start with 'Merge ': merge(gui): join tree fam-rename
+12566c5b2c8b04331075da519a54bf9faa72d5b0	merge subject must start with 'Merge ': merge(gui): join tree fam-previewtypes
+d558682d58cda654c09ef989dc93b12c48f46e32	merge subject must start with 'Merge ': merge(gui): join tree join-g2-pv2
+a647414c13c6353df1f43cd4621b758367e08689	merge subject must start with 'Merge ': merge(gui): join tree fam-opener
+9d69a20d319258aa9fab52c59d151e9648d08823	merge subject must start with 'Merge ': merge(gui): join tree orig14-fix
+cdbbba86ae9dbe3fc3df722d49a410f85488555a	merge subject must start with 'Merge ': merge(gui): land the theme join
+970a1fd7cbc986cf85cbe2acab276d670c05cf59	merge subject must start with 'Merge ': merge(gui): join stage j2 with its review fixes
+07ee933dc5a0e1eafcc16f1932f66269bb4c83a9	merge subject must start with 'Merge ': merge(gui): join stage j3 with its review fixes
+2504d0f08185fa96aa4e7a75fd69801960a43cb7	merge subject must start with 'Merge ': merge(gui): join stage j1 with its review fixes
+b19a035d18b7b2c2e98f4fc61a602fd9cfb7a27f	body holds 1 line(s), want 2 to 4
+2ed2f37dcac9efdfbc82d305287b21f0061483b6	body holds 1 line(s), want 2 to 4
+2426a9b5d106cdb4ac53f5644c09b8c82a2f2c1c	body holds 1 line(s), want 2 to 4
+9b4ab80056a8f5fb8189b0026730d367bdacc953	subject holds 62 char(s), want at most 60
+82158639818f503b747c0c77efc7e26647d056c3	body holds 1 line(s), want 2 to 4
+e91830e0300c59b3a80b9454218a1d15edaf0ad6	subject holds 66 char(s), want at most 60
+24e79a09e4f60bcd62f23c98791dbe959374f889	subject holds 68 char(s), want at most 60
+f04e8a9f219fb36a23ccb048c95a41c16b10f4f3	subject holds 62 char(s), want at most 60
+f04e8a9f219fb36a23ccb048c95a41c16b10f4f3	body holds 1 line(s), want 2 to 4
+cc934986484df51612bbcdb4ee86ef6f78370913	body holds 1 line(s), want 2 to 4
+29725547ed73ab3ec74b0ecb70516f31a0787a58	subject holds 64 char(s), want at most 60
+29725547ed73ab3ec74b0ecb70516f31a0787a58	body holds 1 line(s), want 2 to 4
+4a8765e67e8e1a6449819c504a53232111618faf	body holds 1 line(s), want 2 to 4
+10a5d48e86a8ebd29aca6299b54b4309962efe98	subject holds 64 char(s), want at most 60
+bfeecd66ad01bb0dbec8ed71dd19ca7186daacfd	subject holds 62 char(s), want at most 60
+85ece62fb596cc56b15d440645b6b12e68eb26d0	subject holds 82 char(s), want at most 80
+0ef1e56d5bfb960d210604128288ea5130666560	body holds 1 line(s), want 2 to 4
+653dd0f5a69dcd73640cffc90ec4fc4809ee39ee	body holds a blank line
+34cd682ba833a78ff8161753575f9bebeb7961e3	body holds 1 line(s), want 2 to 4
+e7cc96c8e7345e598222ec79a5b821eb37a4e4d2	body holds 1 line(s), want 2 to 4
+c524f9bc584f1106e83a6d42b65613b8f375e422	subject holds 66 char(s), want at most 60
+a0dd5af50deacfe3d3d266a95958082abb250dd6	body holds 1 line(s), want 2 to 4
+8bae8b132d24d06a563cee86e335ff264c96e85d	body holds 1 line(s), want 2 to 4
+a328efc6abea4e33280a5ba8ee655e7625d0406e	body holds 1 line(s), want 2 to 4
+37b9f56088029b3ac8889c8164a8d18d968eb8b7	body holds 1 line(s), want 2 to 4
+2a1403975a14bd1d1fd49233a1e7e8058c7e7332	body holds 1 line(s), want 2 to 4
+6021056d2b28dbcf0a178a779d94fe83b58af5be	subject holds 62 char(s), want at most 60
+6021056d2b28dbcf0a178a779d94fe83b58af5be	body holds 1 line(s), want 2 to 4
+d00959421946c3161efb52caff4362553b84d75e	subject holds 63 char(s), want at most 60

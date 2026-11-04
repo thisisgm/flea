@@ -2,6 +2,10 @@
 # Fails when a fresh pkgver does not start at pkgrel 1; docs/release.md states the usage and exit codes.
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 die() {
   printf 'flea-pkgrel-check: ERROR %s\n' "$*" >&2
   exit 2
@@ -29,7 +33,7 @@ fi
 prevtag=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' "$sha^" 2>/dev/null) \
   || die "no vX.Y.Z tag reachable from $short, fetch tags before tagging a release"
 
-flea_file=packaging/flea/PKGBUILD
+flea_file=PKGBUILD
 bin_file=packaging/flea-bin/PKGBUILD
 cur_flea_ver=$(field "$sha" "$flea_file" pkgver) || die "cannot read pkgver from $flea_file at $short"
 cur_bin_ver=$(field "$sha" "$bin_file" pkgver) || die "cannot read pkgver from $bin_file at $short"

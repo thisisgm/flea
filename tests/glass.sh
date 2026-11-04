@@ -63,9 +63,9 @@ setup_failed() {
     printf 'FAIL glass %s: %s\n' "$1" "$2"
     failed=$((failed + 1))
 }
-# run_case NAME MODE EXPECT THEME USER [LATE]: THEME and USER are the [flea] value, "-" for no file and "" for a file without one.
+# run_case NAME MODE EXPECT THEME USER [LATE [LATE_EXPECT]]: THEME and USER are the [flea] value, "-" for no file and "" for a file without one.
 run_case() {
-    local name=$1 mode=$2 expect=$3 theme=$4 user=$5 late=${6:-} stock=0
+    local name=$1 mode=$2 expect=$3 theme=$4 user=$5 late=${6:-} late_expect=${7:-$3} stock=0
     local probe="$probe_root/$name" budget=$parse_budget_s
     local theme_dir="$probe/home/.local/state/omarchy/current/theme"
     [[ "$mode" == sweep ]] && budget=$sweep_budget_s
@@ -108,7 +108,7 @@ run_case() {
         HOME="$probe/home" XDG_STATE_HOME="$probe/state" XDG_CONFIG_HOME="$probe/config" \
         XDG_DATA_HOME="$probe/data" XDG_CACHE_HOME="$probe/cache" XDG_RUNTIME_DIR="$probe/runtime" \
         FLEA_PATH="$probe/home/fixture" FLEA_BIN="$bin" GLASS_MODE="$mode" GLASS_EXPECT="$expect" GLASS_STOCK="$stock" \
-        GLASS_LATE_USER="$late" GLASS_SHOTS="${GLASS_SHOTS:+$GLASS_SHOTS/$name}" \
+        GLASS_LATE_USER="$late" GLASS_LATE_EXPECT="$late_expect" GLASS_SHOTS="${GLASS_SHOTS:+$GLASS_SHOTS/$name}" \
         QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_FORCE_STDERR_LOGGING=1 \
         setsid dbus-run-session -- qs -p "$probe/config" >"$log" 2>&1 </dev/null &
     qs_pid=$!
@@ -154,9 +154,12 @@ run_case word parse 255 abc -
 run_case quoted parse 255 '"x"' -
 run_case above parse 255 1.5 -
 run_case below parse 0 -0.2 -
-# A value that rounds to 1 in 8 bits is 1, and so is no value at all; an opaque launch holds 1 until the next launch.
+# A value that rounds to 1 in 8 bits is 1, and so is no signal at all: bare Transparent draws the theme opaque.
 run_case rounds parse 255 0.999 -
-run_case none parse 255 - - 0.34
+run_case bare parse 255 - -
+# A launch no value pins is clear, so a value written after it shows at once; one a value pins opaque holds 1 until the next.
+run_case none parse 255 - - 0.34 87
+run_case pinned parse 255 - 0.999 0.34 255
 
 printf 'glass: checks=%s failed=%s\n' "$total" "$failed"
 [[ "$failed" -eq 0 ]]

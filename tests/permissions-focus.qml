@@ -276,7 +276,7 @@ ShellRoot {
             }
             next("dismissed")
         } else if (stage === "dismissed") {
-            if (dialog().opened || pane.listInFlight) return
+            if (dialog().opened || pane.listInFlight || pane.wire.stale || pane.wire.anchor) return
             if (!closedAt) closedAt = Date.now()
             // The 140 ms fade-out keeps the dialog drawn after opened flips; past fadeLimitMs a dialog still drawn fails the check below.
             if (dialog().visible && Date.now() - closedAt < fadeLimitMs) return

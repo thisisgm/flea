@@ -5,7 +5,7 @@ use crate::backend::searchsession::Session;
 use crate::backend::state::{State, Tables};
 use crate::backend::thumbs::Pool;
 use std::io::Write;
-use std::sync::mpsc::Sender;
+use crate::backend::events::Sender;
 use std::time::{Duration, Instant};
 
 // The listing swap's cap, ui/js/Swap.js HOLD_MS, so a key waits no longer for a walk than a folder waits for a listing.
@@ -23,6 +23,12 @@ impl Session {
     pub(crate) fn ask(&mut self, gen: usize, query: &str, count: usize, loop_tx: &Sender<Event>) -> Option<Answer> {
         if gen <= self.last_answered_gen || self.held.as_ref().is_some_and(|held| gen <= held.gen) {
             return None;
+        }
+        #[cfg(test)]
+        if query == super::searchjobs::INJECTED_PANIC_QUERY {
+            let mut index = self.index.lock().unwrap();
+            index.push("alpha-panic.txt", false);
+            panic!("injected panic after index mutation");
         }
         let now = Instant::now();
         // An empty query answers the folder's own listing, and past the cap the walk is a slow source drawn from at once.

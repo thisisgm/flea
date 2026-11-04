@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "upstream": {
+    "repository": "https://github.com/omacom/omarchy.git",
+    "tag": "v4.5.0-rc2",
+    "commit": "5978d93ae7da0a325b7493501911e3f1266cadd3"
+  },
+  "files": {
+    "shell": {
+      "source": "default/i18n/en/shell.json",
+      "sha256": "c34e291f8309073442ed9d2cfa971877b04c1bd4eaea9462f2f3906fce758584",
+      "git_blob": "235c89e45d37d83ff37e535c4096eac74637abe8"
+    },
+    "keybindings": {
+      "source": "default/i18n/en/keybindings.json",
+      "sha256": "78b8a07baae0a3fda06cd30c7bf725b26c0b411593907c491d90cd6c5817c87a",
+      "git_blob": "bf5f5c94b222e07618d9fec2edd9210e92cfb497"
+    }
+  }
+}

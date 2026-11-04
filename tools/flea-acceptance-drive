@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/flea-magick-font"
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+# Sourced for definitions by callers with no binary, so the binary keeps the same default chain tools/flea-acceptance sets.
+flea_ipc_init "${BIN:-${FLEA_BIN:-flea}}"
 # The display half of tools/flea-acceptance, which sources this. Everything in here needs a real
 # Flea window, which is why it is a separate file behind a separate flag: the request battery still
 # runs headless on a box whose one display another lane is holding.
@@ -32,21 +36,21 @@ DRIVE_SHOTS=0
 # three-step recovery tests/ui.sh and tools/flea-showcase both use, ending at a live client's own
 # environment, which is the only authoritative answer.
 platform_theme() {
-  systemctl --user show-environment | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
+  LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 
 platform_theme_from_a_live_client() {
   local pid
-  pid=$(pgrep -x quickshell | head -1)
+  pid=$(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x quickshell | head -1)
   [ -n "$pid" ] || return 0
-  tr '\0' '\n' < "/proc/$pid/environ" | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
+  LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 
 drive_session_setup() {
   export PATH="$HOME/.local/bin:$PATH"
   command -v omarchy-drive >/dev/null || die "omarchy-drive is not on PATH, so no window can be driven"
   local session line name names=" "
-  session=$(omarchy-drive env) || die "omarchy-drive env failed"
+  session=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env) || die "omarchy-drive env failed"
   # Sample session line: export XDG_RUNTIME_DIR=/run/user/1000.
   while IFS= read -r line; do
     name=${line%%=*}; name=${name#export }
@@ -75,7 +79,7 @@ drive_session_setup() {
 # ---- the seam into the running window --------------------------------------------------------------
 
 ipc() {
-  omarchy-drive ipc -p "$REPO/ui" flea "$@"
+  LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_drive -p "$REPO/ui" flea "$@"
 }
 
 # Every keystroke goes through omarchy-drive, which focuses the window and refuses a wrong class first.
@@ -94,16 +98,16 @@ k() {
     shift_letter=$4
   fi
   if [[ -n "$shift_letter" ]]; then
-    omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || die "Shift-letter target could not receive focus"
-    active=$(hyprctl activewindow -j) || die "active window unavailable before kernel input"
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || die "Shift-letter target could not receive focus"
+    active=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl activewindow -j) || die "active window unavailable before kernel input"
     jq -e --argjson owned "$identity" '.address == $owned.address and .pid == $owned.pid' <<< "$active" >/dev/null \
       || die "kernel input refused: the owned candidate does not have focus"
     printf 'ROUTE kernel Shift+%s\n' "$shift_letter" >> "$DRIVE_EVIDENCE/commands.log"
-    omarchy-drive hotkey --global shift "$shift_letter" >> "$DRIVE_EVIDENCE/commands.log" 2>&1 \
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive hotkey --global shift "$shift_letter" >> "$DRIVE_EVIDENCE/commands.log" 2>&1 \
       || die "native Shift-letter delivery failed for $DRIVE_ROW_ID"
     return
   fi
-  omarchy-drive key --window "$DRIVE_WINDOW_ADDRESS" "$@" >> "$DRIVE_EVIDENCE/commands.log" 2>&1 \
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window "$DRIVE_WINDOW_ADDRESS" "$@" >> "$DRIVE_EVIDENCE/commands.log" 2>&1 \
     || die "omarchy-drive key failed for $DRIVE_ROW_ID"
 }
 
@@ -113,9 +117,9 @@ settle() {
 
 park_pointer() {
   local x y
-  read -r x y < <(hyprctl monitors -j | jq -er '.[0] | "\(.x) \(.y)"')
+  read -r x y < <(LC_ALL=C.UTF-8 LANGUAGE= hyprctl monitors -j | jq -er '.[0] | "\(.x) \(.y)"')
   [[ "$x" =~ ^-?[0-9]+$ && "$y" =~ ^-?[0-9]+$ ]] || die "monitor origin unavailable"
-  omarchy-drive move "$x" "$y" || die "pointer parking failed"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive move "$x" "$y" || die "pointer parking failed"
 }
 
 # A picture of one surface, for a claim no IPC reader can carry. It is never an assertion on its own:
@@ -128,8 +132,8 @@ drive_shot() {
   drive_guard "$output"
   [[ ! -e "$output" ]] || die "screenshot output already exists: $output"
   drive_window_identity >/dev/null || die "screenshot target lost ownership"
-  omarchy-drive shot "$output" "$DRIVE_WINDOW_ADDRESS" || die "native screenshot failed: $output"
-  [[ -s "$output" && "$(od -An -tx1 -N8 "$output" | tr -d ' \n')" == 89504e470d0a1a0a ]] \
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot "$output" "$DRIVE_WINDOW_ADDRESS" || die "native screenshot failed: $output"
+  [[ -s "$output" && "$(od -An -tx1 -N8 "$output" | LC_ALL=C.UTF-8 LANGUAGE= tr -d ' \n')" == 89504e470d0a1a0a ]] \
     || die "native screenshot did not create a fresh PNG: $output"
   printf 'SHOT %s sha256=%s visual_inspection=pending\n' "$output" "$(sha256sum "$output" | cut -d' ' -f1)"
 }
@@ -150,9 +154,9 @@ window_geometry() {
 
 flea_pids() {
   local pid
-  for pid in $(pgrep -x qs || true); do
+  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
     [ -r "/proc/$pid/cmdline" ] || continue
-    if tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | grep -Fq "$REPO/ui"; then
+    if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$REPO/ui"; then
       printf '%s\n' "$pid"
     fi
   done
@@ -160,9 +164,9 @@ flea_pids() {
 
 backend_pids() {
   local pid
-  for pid in $(pgrep -x flea || true); do
+  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x flea || true); do
     [ -r "/proc/$pid/cmdline" ] || continue
-    if tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | grep -Fq -- "$BIN --backend"; then
+    if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq -- "$BIN --backend"; then
       printf '%s\n' "$pid"
     fi
   done
@@ -200,7 +204,7 @@ changed_from() {
 
 # Sample row: key-id|mac|gui|listing|ctrl|X| (empty action is an explicit refusal).
 derive_bindings() {
-  python3 - "$REPO/ui/js/Keymap.js" <<'PYTHON'
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$REPO/ui/js/Keymap.js" <<'PYTHON'
 import hashlib, json, os, pathlib, re, shutil, subprocess, sys, tempfile
 keymap = pathlib.Path(sys.argv[1]).resolve()
 # The same derivation calls the real lookupFor under Node or the existing headless Qt runner.
@@ -335,7 +339,7 @@ keysym_for() {
     Equal) printf 'equal' ;;
     Minus) printf 'minus' ;;
     Underscore) printf 'underscore' ;;
-    [A-Z]) printf '%s' "$1" | tr 'A-Z' 'a-z' ;;
+    [A-Z]) printf '%s' "$1" | LC_ALL=C.UTF-8 LANGUAGE= tr 'A-Z' 'a-z' ;;
     [0-9]) printf '%s' "$1" ;;
     *) return 1 ;;
   esac
@@ -432,9 +436,9 @@ drive_fixture_build() {
     magick -size 320x200 gradient:'#0e1112-#b38956' "$DRIVE_FIXTURE/b-image.png" 2>/dev/null && HAVE_IMAGE=1
     # Each page in its own parentheses, or magick draws one annotation onto every page. The pages
     # carry different text because the page turn is asserted by reading the page back off the screen.
-    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
-           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
+    magick \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+           \( -size 400x560 xc:white -fill black "${flea_magick_font_args[@]}" -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
            "$DRIVE_FIXTURE/c-doc.pdf" 2>/dev/null && HAVE_PDF=1
   fi
   if command -v ffmpeg >/dev/null; then
@@ -470,7 +474,7 @@ drive_mutation_guard() {
 }
 
 drive_owned_pids() {
-  python3 - "$SB" "${1:-}" <<'PY'
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$SB" "${1:-}" <<'PY'
 import os, pathlib, sys
 root, requested = sys.argv[1:]
 for process in [pathlib.Path('/proc', requested)] if requested else pathlib.Path('/proc').iterdir():
@@ -490,7 +494,7 @@ PY
 }
 
 drive_window_identity() {
-  python3 - "$SB" "$BIN" "$REPO/ui" "${1:-$DRIVE_WINDOW_ADDRESS}" <<'PY'
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$SB" "$BIN" "$REPO/ui" "${1:-$DRIVE_WINDOW_ADDRESS}" <<'PY'
 import json, os, pathlib, subprocess, sys
 root, binary, ui, address = sys.argv[1:]
 clients = json.loads(subprocess.check_output(['hyprctl', 'clients', '-j']))
@@ -538,8 +542,8 @@ drive_seed_preset() {
 }
 
 drive_bus_id() {
-  gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
-    --method org.freedesktop.DBus.GetId | python3 -c 'import ast,sys; print(ast.literal_eval(sys.stdin.read())[0])'
+  LC_ALL=C.UTF-8 LANGUAGE= gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+    --method org.freedesktop.DBus.GetId | LC_ALL=C.UTF-8 LANGUAGE= python3 -c 'import ast,sys; print(ast.literal_eval(sys.stdin.read())[0])'
 }
 
 drive_private_trash() {
@@ -568,17 +572,17 @@ drive_private_trash() {
 # The product's own launcher, with both seams on the launch line so a packaged /usr/share/flea/ui can
 # never outrank this tree.
 drive_launch() {
-  if omarchy-drive wait window flea --timeout 0 >/dev/null 2>&1; then
+  if LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout 0 >/dev/null 2>&1; then
     die "a Flea window is already open, and only one lane may hold the display"
   fi
   FLEA_UI="$REPO/ui" FLEA_BIN="$BIN" setsid nohup "$BIN" --gui "$DRIVE_FIXTURE" \
     >"$SB/flea-$DRIVE_PRESET.log" 2>&1 </dev/null &
   DRIVE_LAUNCHED=1
-  omarchy-drive wait window flea --timeout 15 >/dev/null 2>&1 || die "no Flea window appeared in 15 s"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait window flea --timeout 15 >/dev/null 2>&1 || die "no Flea window appeared in 15 s"
   DRIVE_WINDOW_ADDRESS=$(drive_window_identity | jq -er '.address') || die "cannot identify native candidate window"
-  omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || die "owned candidate could not receive focus"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || die "owned candidate could not receive focus"
   # The seam is built after the first listing, so the window has mapped before it answers.
-  omarchy-drive wait ipc -p "$REPO/ui" flea ready true --timeout 20 >/dev/null 2>&1 || die "the IPC seam never answered ready in 20 s"
+  LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_wait -p "$REPO/ui" flea ready true --timeout 20 >/dev/null 2>&1 || die "the IPC seam never answered ready in 20 s"
   # A window under a fixture HOME renders the fallback palette, and every colour claim off it is
   # worthless; ui/Theme.qml carries the flag for exactly this check.
   [ "$(ipc themeLoaded)" = true ] || die "themeLoaded is not true, so this window paints a fallback palette"
@@ -1288,7 +1292,7 @@ keycase_tabClose() {
 # The backend answers mkdir with the first free "New Folder", so the assertion is a directory that
 # was not there before, read off the filesystem: a status line would also be set by a dead handler.
 drive_dir_count() {
-  find "$DRIVE_FIXTURE" -mindepth 1 -maxdepth 1 -type d | wc -l
+  LC_ALL=C.UTF-8 LANGUAGE= find "$DRIVE_FIXTURE" -mindepth 1 -maxdepth 1 -type d | wc -l
 }
 
 keycase_newFolder() {
@@ -1375,7 +1379,7 @@ keycase_pageForward() {
   open_pdf_preview || return 1
   before=$(ipc previewPdfPage)
   [ -n "$before" ] || { WHY="the PDF page reader returned no value"; return 1; }
-  before_text=$(omarchy-drive ocr flea 2>/dev/null)
+  before_text=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive ocr flea 2>/dev/null)
   case $before_text in
     *PAGEONE*) ;;
     *) WHY="UNREADABLE: the first page's text did not come back off the screen, so a page turn is not assertable here"
@@ -1383,9 +1387,9 @@ keycase_pageForward() {
   esac
   expected=$((before + 1))
   k "$@"
-  omarchy-drive wait ipc -p "$REPO/ui" flea previewPdfPage "$expected" --timeout 10 >/dev/null \
+  LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_wait -p "$REPO/ui" flea previewPdfPage "$expected" --timeout 10 >/dev/null \
     || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
-  omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
     || { WHY="the preview state advanced but the second page was not painted"; return 1; }
 }
 
@@ -1585,11 +1589,11 @@ keycase_copydirpath() {
   local before after
   enter_dir sub || return 1
   drive_action copydirpath || return 1
-  before=$(wl-paste --no-newline) || { WHY="clipboard cannot be observed"; return 2; }
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= wl-paste --no-newline) || { WHY="clipboard cannot be observed"; return 2; }
   [[ "$before" == "$DRIVE_FIXTURE/sub" ]] || { WHY="clipboard setup did not publish the owned child path"; return 1; }
   leave_dir || return 1
   k "$@"; settle
-  after=$(wl-paste --no-newline) || return 1
+  after=$(LC_ALL=C.UTF-8 LANGUAGE= wl-paste --no-newline) || return 1
   changed_to "copied directory path" "$before" "$after" "$DRIVE_FIXTURE"
 }
 
@@ -1629,11 +1633,11 @@ keycase_openTerminal() {
   command -v foot >/dev/null || { WHY="native foot terminal unavailable; existing ui-tui.sh terminal matrix also requires it"; return 2; }
   reset_state || return 1
   local before terminal="" pid shell_pid="" child output end
-  before=$(hyprctl clients -j | jq -c 'map(.address)') || return 1
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c 'map(.address)') || return 1
   k "$@"
   end=$((SECONDS + 15))
   while (( SECONDS < end )); do
-    terminal=$(hyprctl clients -j | jq -c --argjson before "$before" '.[] | .address as $address | select($before | index($address) | not)') || return 1
+    terminal=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --argjson before "$before" '.[] | .address as $address | select($before | index($address) | not)') || return 1
     if [[ -n "$terminal" ]]; then break; fi
     sleep 0.05
   done
@@ -1642,7 +1646,7 @@ keycase_openTerminal() {
   [[ "$(drive_owned_pids "$pid")" == "$pid" && "$(readlink -f "/proc/$pid/exe")" == "$(realpath -e "$(command -v foot)")" ]] \
     || { WHY="new terminal window is not the owned stock foot process"; return 1; }
   while (( SECONDS < end )); do
-    for child in $(pgrep -P "$pid" || true); do
+    for child in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -P "$pid" || true); do
       if [[ "$(drive_owned_pids "$child")" == "$child" && "$(readlink -f "/proc/$child/exe")" == "$(realpath -e /bin/sh)" ]]; then shell_pid=$child; break; fi
     done
     [[ -n "$shell_pid" ]] && break
@@ -1655,44 +1659,44 @@ keycase_openTerminal() {
   drive_guard "$output"
   [[ ! -e "$output" ]] || { WHY="terminal screenshot already exists"; return 1; }
   terminal=$(jq -er .address <<< "$terminal") || return 1
-  omarchy-drive shot "$output" "$terminal" || { WHY="native terminal screenshot failed"; return 1; }
-  [[ -s "$output" && "$(od -An -tx1 -N8 "$output" | tr -d ' \n')" == 89504e470d0a1a0a ]] || return 1
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive shot "$output" "$terminal" || { WHY="native terminal screenshot failed"; return 1; }
+  [[ -s "$output" && "$(od -An -tx1 -N8 "$output" | LC_ALL=C.UTF-8 LANGUAGE= tr -d ' \n')" == 89504e470d0a1a0a ]] || return 1
   printf 'SHOT %s sha256=%s visual_inspection=pending\n' "$output" "$(sha256sum "$output" | cut -d' ' -f1)"
   [[ "$(drive_owned_pids "$pid")" == "$pid" && "$(drive_owned_pids "$shell_pid")" == "$shell_pid" ]] || return 1
-  omarchy-drive key --window "$terminal" exit -k Return || { WHY="native terminal would not accept exit"; return 1; }
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window "$terminal" exit -k Return || { WHY="native terminal would not accept exit"; return 1; }
   end=$((SECONDS + 15))
   while (( SECONDS < end )); do
     [[ -z "$(drive_owned_pids "$pid")" ]] && break
     sleep 0.05
   done
   [[ -z "$(drive_owned_pids "$pid")" ]] || { WHY="native terminal remained after exit"; return 1; }
-  omarchy-drive focus "$DRIVE_WINDOW_ADDRESS"
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS"
 }
 
 keycase_windowNew() {
   local before after pid
   reset_state || return 1
-  before=$(hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')
   k "$@"
   local end=$((SECONDS + 15))
   while (( SECONDS < end )); do
-    after=$(hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')
+    after=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')
     [[ "$after" == "$((before + 1))" ]] && break
     sleep 0.05
   done
   [[ "$after" == "$((before + 1))" ]] || { WHY="New window did not create another native window"; return 1; }
   local second
-  second=$(hyprctl clients -j | jq -er --arg first "$DRIVE_WINDOW_ADDRESS" '.[] | select(.class == "com.thisisgm.flea" and .address != $first) | .address') || return 1
+  second=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg first "$DRIVE_WINDOW_ADDRESS" '.[] | select(.class == "com.thisisgm.flea" and .address != $first) | .address') || return 1
   drive_window_identity "$second" || return 1
-  pid=$(hyprctl clients -j | jq -er --arg address "$second" '.[] | select(.address == $address) | .pid') || return 1
+  pid=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -er --arg address "$second" '.[] | select(.address == $address) | .pid') || return 1
   [[ "$(drive_owned_pids "$pid")" == "$pid" ]] || { WHY="new window has foreign ownership"; return 1; }
   hyprctl dispatch closewindow "address:$second" || return 1
   while (( SECONDS < end )); do
-    [[ "$(hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')" == "$before" ]] && break
+    [[ "$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')" == "$before" ]] && break
     sleep 0.05
   done
-  [[ "$(hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')" == "$before" ]] || return 1
-  omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
+  [[ "$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq '[.[] | select(.class == "com.thisisgm.flea")] | length')" == "$before" ]] || return 1
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
 }
 
 # ---- the key runner ---------------------------------------------------------------------------------
@@ -2000,7 +2004,7 @@ menu_row_for() {
 
 # Sample inventory: ["delete", "Delete permanently", "trash", "F", "trash", "deletePermanently"].
 derive_menu_actions() {
-  python3 - "$REPO/ui/js/Menu.js" <<'PY'
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$REPO/ui/js/Menu.js" <<'PY'
 import json, pathlib, re, sys
 # The table carries its own comments, and a // line is not JSON: dropped before the decoder reads it.
 source = re.sub(r'^\s*//.*$', '', pathlib.Path(sys.argv[1]).read_text(), flags=re.M)
@@ -2032,7 +2036,7 @@ PY
 # The one entry whose label is a ternary rather than a literal, so it needs its own reader.
 # Sample input: '        label: showHidden ? "Hide hidden files" : "Show hidden files",'
 derive_menu_toggle_labels() {
-  sed -n 's/.*label: showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/js/Menu.js"
+  LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/.*label: showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/js/Menu.js"
 }
 
 # Steps the menu cursor onto the row carrying one of the given labels and returns its index, using
@@ -2160,10 +2164,10 @@ menucase_newFolder() {
   menu_open_on newFolder || return 1
   directory=$(ipc path)
   drive_mutation_guard "$directory" || return 1
-  before=$(find "$directory" -mindepth 1 -maxdepth 1 -type d | wc -l)
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= find "$directory" -mindepth 1 -maxdepth 1 -type d | wc -l)
   menu_activate
   sleep 2
-  after=$(find "$directory" -mindepth 1 -maxdepth 1 -type d | wc -l)
+  after=$(LC_ALL=C.UTF-8 LANGUAGE= find "$directory" -mindepth 1 -maxdepth 1 -type d | wc -l)
   changed_to "the directory count in the fixture" "$before" "$after" "$((before + 1))"
 }
 
@@ -2324,7 +2328,7 @@ click_at() {
   # is what turned every pointer failure into a lie about the product.
   [ -n "$wx" ] && [ -n "$wy" ] \
     || { WHY="hyprctl reported no geometry for the Flea window, so a click cannot be aimed at it"; return 1; }
-  omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$@" >/dev/null 2>&1 \
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$@" >/dev/null 2>&1 \
     || { WHY="the compositor would not accept a click at $((cx + wx)),$((cy + wy))"; return 1; }
   settle
 }
@@ -2441,7 +2445,7 @@ drive_pointer() {
         skip pointer "$name" "does $does; activating a rail row navigates out of the fixture and no IPC route comes back, so driving it would strand every later check"
         continue ;;
     esac
-    fn="pointercase_$(printf '%s_%s_%s' "$where" "$press" "$rowkind" | tr ' ' '_')"
+    fn="pointercase_$(printf '%s_%s_%s' "$where" "$press" "$rowkind" | LC_ALL=C.UTF-8 LANGUAGE= tr ' ' '_')"
     if ! declare -F "$fn" >/dev/null; then
       skip pointer "$name" "does $does; declared in keys.toml and this battery has no driver for it yet"
       continue
@@ -2476,12 +2480,12 @@ OMARCHY_CLIPBOARD_LUA=/usr/share/omarchy/default/hypr/bindings/clipboard.lua
 #   o.bind("SUPER + C", "Universal copy", universal_clipboard_shortcut("CTRL", "C", "CTRL", "Insert"))
 derive_omarchy_clipboard_binds() {
   [ -r "$OMARCHY_CLIPBOARD_LUA" ] || return 0
-  sed -n 's/^o\.bind("\(SUPER[^"]*\)", "\([^"]*\)".*/\1|\2/p' "$OMARCHY_CLIPBOARD_LUA"
+  LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^o\.bind("\(SUPER[^"]*\)", "\([^"]*\)".*/\1|\2/p' "$OMARCHY_CLIPBOARD_LUA"
 }
 
 # "SUPER + CTRL + V" becomes "super_ctrl_v", which names both the driver and the chord's own parts.
 omarchy_slug() {
-  printf '%s' "$1" | tr -d ' ' | tr 'A-Z+' 'a-z_'
+  printf '%s' "$1" | LC_ALL=C.UTF-8 LANGUAGE= tr -d ' ' | LC_ALL=C.UTF-8 LANGUAGE= tr 'A-Z+' 'a-z_'
 }
 
 # Presses one derived chord as a real key the compositor sees first, which is the only route that
@@ -2491,14 +2495,14 @@ omarchy_press() {
   local slug=$1 mods key identity active
   key=${slug##*_}
   mods=${slug%_*}
-  mods=$(printf '%s' "$mods" | tr '_' '+')
+  mods=$(printf '%s' "$mods" | LC_ALL=C.UTF-8 LANGUAGE= tr '_' '+')
   identity=$(drive_window_identity) || { WHY="Omarchy chord target lost its owned identity"; return 1; }
   drive_mutation_guard "$(ipc path)" || return 1
-  omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || { WHY="owned Flea would not take focus before the chord"; return 1; }
-  active=$(hyprctl activewindow -j) || return 1
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || { WHY="owned Flea would not take focus before the chord"; return 1; }
+  active=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl activewindow -j) || return 1
   jq -e --argjson owned "$identity" '.address == $owned.address and .pid == $owned.pid' <<< "$active" >/dev/null \
     || { WHY="Omarchy chord refused: owned Flea does not have focus"; return 1; }
-  omarchy-drive hotkey --global "$mods" "$key" >/dev/null 2>&1 \
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive hotkey --global "$mods" "$key" >/dev/null 2>&1 \
     || { WHY="the compositor would not accept a real $mods+$key press"; return 1; }
   settle
 }
@@ -2559,10 +2563,10 @@ omarchycase_super_x() {
 omarchy_layer_case() {
   local slug=$1 before after restored
   reset_state || return 1
-  before=$(omarchy-drive layers 2>/dev/null)
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive layers 2>/dev/null)
   omarchy_press "$slug" || return 1
   sleep 1
-  after=$(omarchy-drive layers 2>/dev/null)
+  after=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive layers 2>/dev/null)
   if [ "$before" = "$after" ]; then
     WHY="no layer surface appeared over the focused Flea window, so the chord did not reach the compositor"
     return 1
@@ -2570,8 +2574,8 @@ omarchy_layer_case() {
   mapfile -t esc < <(chord_args code Escape)
   k "${esc[@]}"
   sleep 1
-  restored=$(omarchy-drive layers 2>/dev/null)
-  drive_window_identity >/dev/null && omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
+  restored=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive layers 2>/dev/null)
+  drive_window_identity >/dev/null && LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
   [ "$(ipc ready)" = true ] || { WHY="Flea stopped answering after the chord"; return 1; }
   [ "$restored" = "$before" ] && return 0
   WHY="the surface the chord raised is still on screen after Escape"
@@ -2603,11 +2607,11 @@ omarchycase_super_f() {
 omarchycase_super_return() {
   local before terminal="" pid address identity end
   reset_state || return 1
-  before=$(hyprctl clients -j | jq -c 'map(.address)') || return 1
+  before=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c 'map(.address)') || return 1
   omarchy_press super_return || return 1
   end=$((SECONDS + 15))
   while (( SECONDS < end )); do
-    terminal=$(hyprctl clients -j | jq -c --argjson before "$before" '[.[] | .address as $address | select($before | index($address) | not)]') || return 1
+    terminal=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --argjson before "$before" '[.[] | .address as $address | select($before | index($address) | not)]') || return 1
     [[ "$terminal" != '[]' ]] && break
     sleep 0.05
   done
@@ -2618,13 +2622,13 @@ omarchycase_super_return() {
     || { WHY="Super+Return created an unowned compositor window at $address, PID $pid; it lacks this run's sandbox identity and was left untouched"; return 2; }
   command -v foot >/dev/null && [[ "$(readlink -f "/proc/$pid/exe")" == "$(realpath -e "$(command -v foot)")" ]] \
     || { WHY="Super+Return window is not the owned stock terminal; it was left untouched"; return 2; }
-  identity=$(hyprctl clients -j | jq -c --arg address "$address" '[.[] | select(.address == $address)]') || return 1
+  identity=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --arg address "$address" '[.[] | select(.address == $address)]') || return 1
   jq -e --argjson pid "$pid" 'length == 1 and .[0].pid == $pid' <<< "$identity" >/dev/null \
     && [[ "$(drive_owned_pids "$pid")" == "$pid" ]] \
     || { WHY="terminal identity changed before close; no window was touched"; return 1; }
   hyprctl dispatch closewindow "address:$address" || return 1
   drive_window_identity >/dev/null || return 1
-  omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
+  LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || return 1
   [ "$(ipc ready)" = true ] || { WHY="Flea stopped answering after the chord"; return 1; }
   return 0
 }
@@ -2634,8 +2638,8 @@ omarchycase_super_return() {
 
 omarchy_invariant_consuming() {
   local total leaky
-  total=$(hyprctl binds -j | jq '[.[] | select((.modmask / 64 | floor) % 2 == 1)] | length')
-  leaky=$(hyprctl binds -j | jq '[.[] | select((.modmask / 64 | floor) % 2 == 1 and .nonConsuming == true)] | length')
+  total=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl binds -j | jq '[.[] | select((.modmask / 64 | floor) % 2 == 1)] | length')
+  leaky=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl binds -j | jq '[.[] | select((.modmask / 64 | floor) % 2 == 1 and .nonConsuming == true)] | length')
   [ "$total" -gt 0 ] || { WHY="the compositor reports no SUPER binds at all, so this check could not fail"; return 1; }
   [ "$leaky" = 0 ] && { WHY="$total SUPER binds, none of them non-consuming"; return 0; }
   WHY="$leaky of $total SUPER binds are non-consuming, so they can leak into a focused client"
@@ -2644,7 +2648,7 @@ omarchy_invariant_consuming() {
 
 omarchy_invariant_no_super() {
   local n
-  n=$(grep -c '^\[\[super' "$REPO/keys.toml")
+  n=$(LC_ALL=C.UTF-8 LANGUAGE= grep -c '^\[\[super' "$REPO/keys.toml")
   [ "$n" = 0 ] && { WHY="keys.toml declares no super table, so Flea cannot shadow an Omarchy chord"; return 0; }
   WHY="keys.toml declares $n super table(s), which would shadow an Omarchy chord"
   return 1
@@ -2705,7 +2709,7 @@ omarchy_general_case() {
   local slug=$1 key mods bound rc
   key=${slug##*_}
   mods=${slug%_*}
-  bound=$(hyprctl binds -j | jq --arg k "$key" \
+  bound=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl binds -j | jq --arg k "$key" \
     '[.[] | select((.modmask / 64 | floor) % 2 == 1 and (.key | ascii_downcase) == ($k | ascii_downcase))] | length')
   if [ "$bound" = 0 ]; then
     skip omarchy "$mods + $key" "Omarchy binds no such chord on this box, so there is nothing to pass through"
@@ -2779,12 +2783,12 @@ drive_delivery_probe() {
 # is the line that lets somebody rebuild the tree this tally came from.
 drive_provenance() {
   local sha binary_sha
-  sha=$(git -C "$REPO" rev-parse HEAD) || die "source identity unavailable"
+  sha=$(LC_ALL=C.UTF-8 LANGUAGE= git -C "$REPO" rev-parse HEAD) || die "source identity unavailable"
   binary_sha=$(sha256sum "$BIN" | cut -d' ' -f1) || die "binary digest unavailable"
   [[ "${FLEA_SOURCE_SHA:-}" == "$sha" ]] || die "FLEA_SOURCE_SHA must match the recorded build source: $sha"
   [[ "${FLEA_BINARY_SHA256:-}" == "$binary_sha" ]] || die "FLEA_BINARY_SHA256 must match the recorded build artifact: $BIN"
   drive_require_clean_sources
-  python3 - "$REPO" "$BIN" "$sha" "$binary_sha" <<'PY' > "$DRIVE_EVIDENCE/provenance.json"
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$REPO" "$BIN" "$sha" "$binary_sha" <<'PY' > "$DRIVE_EVIDENCE/provenance.json"
 import hashlib, json, pathlib, subprocess, sys
 repo, binary, source, digest = sys.argv[1:]
 ui = pathlib.Path(repo, 'ui')
@@ -2808,8 +2812,8 @@ PY
 #   (cd "$d" && ./tools/flea-acceptance --drive)
 drive_require_clean_sources() {
   local dirty
-  dirty=$(git -C "$REPO" status --porcelain --untracked-files=no) || die "candidate dirty-state query failed"
-  dirty+=$(git -C "$REPO" ls-files --others --exclude-standard -- ui src tools tests) || die "candidate untracked-source query failed"
+  dirty=$(LC_ALL=C.UTF-8 LANGUAGE= git -C "$REPO" status --porcelain --untracked-files=no) || die "candidate dirty-state query failed"
+  dirty+=$(LC_ALL=C.UTF-8 LANGUAGE= git -C "$REPO" ls-files --others --exclude-standard -- ui src tools tests) || die "candidate untracked-source query failed"
   [ -z "$dirty" ] && return 0
   printf 'FAIL: the checklist is derived from these, and they are mid-edit:\n%s\n' "$dirty" >&2
   die "--drive needs a clean derivation source; export the commit and drive that, see drive_require_clean_sources"
@@ -2914,7 +2918,7 @@ drive_stop() {
   journal="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/flea/undo-journal"
   if [[ -f "$journal" ]]; then
     found=0
-    grep -qF -- "$SB" "$journal" 2>/dev/null || found=$?
+    LC_ALL=C.UTF-8 LANGUAGE= grep -qF -- "$SB" "$journal" 2>/dev/null || found=$?
     case $found in
       0) printf 'FAIL: run leaked sandbox paths into the operator journal %s from %s\n' "$journal" "$SB" >&2; status=1 ;;
       1) ;;
@@ -2923,7 +2927,7 @@ drive_stop() {
   fi
   if [[ -n "$DRIVE_BUS_PID" ]] && ! kill -0 "$DRIVE_BUS_PID" 2>/dev/null; then wait "$DRIVE_BUS_PID" 2>/dev/null || true; fi
   if [[ -f "${BINDINGS:-}" && "${DRIVE:-0}" == 1 ]] && drive_wants key; then
-    python3 - "$BINDINGS" "$DRIVE_EVIDENCE/keys.jsonl" <<'PY' || status=1
+    LC_ALL=C.UTF-8 LANGUAGE= python3 - "$BINDINGS" "$DRIVE_EVIDENCE/keys.jsonl" <<'PY' || status=1
 import collections, json, pathlib, sys
 matrix, report = map(pathlib.Path, sys.argv[1:])
 results = [json.loads(line) for line in report.read_text().splitlines()] if report.exists() else []

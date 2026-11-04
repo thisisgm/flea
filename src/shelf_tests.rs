@@ -207,7 +207,7 @@ fn a_pile_that_cannot_be_read_says_why_in_words() {
     let (_dir, shelf) = shelf("shelfreadwhy");
     // A folder where the pile file belongs: the read is refused with a reason a person can act on.
     std::fs::create_dir_all(shelf.pile_file()).unwrap();
-    assert_eq!(shelf.held().unwrap_err(), format!("{} could not be read: item is a folder", shelf.pile_file().display()));
+    assert_eq!(shelf.held().unwrap_err(), format!("{} is not a regular file, so the shelf document was left unchanged", shelf.pile_file().display()));
 }
 
 #[test]
@@ -225,4 +225,17 @@ fn a_pile_file_with_no_folder_above_it_says_so_in_the_shelfs_words() {
     // The root has no parent, so there is no folder to write the pile in.
     shelf.pile = PathBuf::from("/");
     assert_eq!(shelf.clear().unwrap_err(), "the shelf has no folder to write in");
+}
+
+#[test]
+fn an_empty_or_blank_pile_file_is_an_empty_pile_as_0312_read_it() {
+    for (tag, bytes) in [("shelfemptypile", ""), ("shelfblankpile", " \n\t\n")] {
+        let (dir, shelf) = shelf(tag);
+        std::fs::create_dir_all(shelf.pile_file().parent().unwrap()).unwrap();
+        std::fs::write(shelf.pile_file(), bytes).unwrap();
+        assert_eq!(shelf.held(), Ok(Vec::new()), "{tag}: the read is an empty pile");
+        let one = file(&dir, "one.txt");
+        assert!(shelf.add(std::slice::from_ref(&one)).is_ok(), "{tag}: the first add lands");
+        assert_eq!(shelf.pile(), vec![one], "{tag}: and the pile holds it");
+    }
 }

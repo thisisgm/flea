@@ -1,0 +1,116 @@
+{
+  "cli:ui-state": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\"\n    ]",
+      "reason": "src/uimigrate.rs hides openAgent; actions remains shown when the prior runScript row was shown."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    },
+    {
+      "from": "    \"width\": 0,\n    \"wrap\": false",
+      "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
+      "reason": "The existing 0.4.0 preview state persists subtitle and audio track choices."
+    }
+  ],
+  "cli:ui-state-write": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\"\n    ]",
+      "reason": "src/uimigrate.rs hides openAgent; actions remains shown when the prior runScript row was shown."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    },
+    {
+      "from": "    \"width\": 0,\n    \"wrap\": false",
+      "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
+      "reason": "The existing 0.4.0 preview state persists subtitle and audio track choices."
+    }
+  ],
+  "state:ui-state": [
+    {
+      "from": "      \"openAsText\"\n    ]",
+      "to": "      \"openAsText\",\n      \"openAgent\",\n      \"actions\"\n    ]",
+      "reason": "Migration step 4 (src/uimigrate.rs hide_0_4_0_rows) ships the 0.4.0 menu rows hidden, so a 0.3.12 document keeps its menus."
+    },
+    {
+      "from": "\"stateVersion\": 3\n",
+      "to": "\"stateVersion\": 4\n",
+      "reason": "The same migration stamps the document with state version 4."
+    },
+    {
+      "from": "    \"width\": 0,\n    \"wrap\": false",
+      "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
+      "reason": "src/uischema.rs supplies preview.tracks for the 0.4.0 state reader, matching its already-declared CLI default."
+    }
+  ],
+  "cli:gui-desktop": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:bare-directory": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:bare-file": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:bare-relative": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:select-path": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:select-uri": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:pick": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli:unlock": [
+    {
+      "from": "}\n",
+      "to": ",\"frontend\":\"gpui\"}\n",
+      "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli-usage:actions": [
+    {
+      "from": "       flea ipc [--pid N|--any] call",
+      "to": "       flea --action <id> [--window <pid>] | --actions [--window <pid>]\n       flea ipc [--pid N|--any] call",
+      "reason": "The existing 0.4.0 action CLI adds this usage row while preserving every 0.3.12 invocation."
+    }
+  ]
+}

@@ -1,22 +1,37 @@
 use super::{
-    graphics::{kitty, Protocol},
+    graphics::{kitty, Protocol, FALLBACK_CELL},
     job::Job,
+    pane::Ink,
 };
 use std::path::PathBuf;
 
 pub struct Pdf {
+    // The file the row names; path is the PDF drawn, which an Office conversion makes a copy of.
+    pub source: PathBuf,
     pub path: PathBuf,
+    pub title: String,
+    pub author: String,
     pub page: usize,
     pub pages: usize,
     pub zoom: usize,
     pub scroll: usize,
     pub control: usize,
     pub bytes: Vec<u8>,
+    // A half-block page's PNG, and a count that rises with each new one so its cells are asked for once.
+    pub png: Vec<u8>,
+    pub revision: usize,
     pub error: String,
+    pub failure: Option<super::preview::words::Text>,
     pub columns: usize,
     pub rows: usize,
     pub pixels: (usize, usize),
+    // The decoded page's pixels, and whether a first page decode has finished either way.
+    pub shown: Option<(usize, usize)>,
+    pub settled: bool,
     protocol: Protocol,
+    // The window's page ground veil, and whether the page is decoded as PNG for half-block cells.
+    ground: String,
+    still: bool,
     info: Option<Job>,
     image: Option<Job>,
 }
@@ -27,12 +42,17 @@ impl Pdf {
         columns: usize,
         rows: usize,
         pixels: (usize, usize),
+        ground: &str,
+        still: bool,
     ) -> Self {
         let info = Some(Job::start(
             path.clone(),
             vec!["/usr/bin/pdfinfo".into(), "{input}".into()],
         ));
         let mut pdf = Self {
+            source: path.clone(),
+            title: String::new(),
+            author: String::new(),
             path,
             page: 1,
             pages: 0,
@@ -40,11 +60,18 @@ impl Pdf {
             scroll: 0,
             control: 0,
             bytes: Vec::new(),
+            png: Vec::new(),
+            revision: 0,
             error: String::new(),
+            failure: None,
             columns,
             rows,
             pixels,
+            shown: None,
+            settled: false,
             protocol,
+            ground: ground.into(),
+            still: still && protocol == Protocol::None,
             info,
             image: None,
         };
@@ -52,17 +79,14 @@ impl Pdf {
         pdf
     }
     pub fn refresh(&mut self) {
-        if self.protocol == Protocol::None {
+        if self.protocol == Protocol::None && !self.still {
+            self.settled = true;
             return;
         }
-        let (width, height) = self.pixels;
-        let format = if self.protocol == Protocol::Kitty {
-            "png:-"
-        } else {
-            "sixel:-"
-        };
-        // The script has only numeric positional arguments; /input is the sandbox's held file descriptor.
-        let script="/usr/bin/pdftoppm -f \"$1\" -l \"$1\" -singlefile -scale-to \"$2\" -png /input | /usr/bin/magick png:- -resize \"$3\" -resize \"$4\" -crop \"$5\" +repage \"$6\"";
+        let (width, height) = self.extent();
+        let format = if self.protocol == Protocol::Sixel { "sixel:-" } else { "png:-" };
+        // The script takes numbers and one #rrggbb ground; /input is the sandbox's held file descriptor.
+        let script = format!("/usr/bin/pdftoppm -f \"$1\" -l \"$1\" -singlefile -scale-to \"$2\" -png /input | /usr/bin/magick png:- -resize \"$3\" -resize \"$4\" -crop \"$5\" +repage -fill \"$7\" -colorize {VEIL_PERCENT}% \"$6\"");
         self.image = Some(Job::start(
             self.path.clone(),
             vec![
@@ -70,7 +94,7 @@ impl Pdf {
                 "-o".into(),
                 "pipefail".into(),
                 "-c".into(),
-                script.into(),
+                script,
                 "flea-pdf".into(),
                 self.page.to_string(),
                 width.max(height).saturating_mul(3).min(4096).to_string(),
@@ -78,6 +102,7 @@ impl Pdf {
                 format!("{}%", self.zoom),
                 format!("{}x{}+0+{}", width, height, self.scroll),
                 format.into(),
+                ground(&self.ground),
             ],
         ));
     }
@@ -85,9 +110,16 @@ impl Pdf {
         let mut changed = false;
         if let Some(info) = &self.info {
             if let Ok(result) = info.result.try_recv() {
+                let failure = result.as_ref().err().map(|error| info.failure(error.clone()));
                 self.info = None;
+                if failure.is_some() { self.failure = failure; }
                 match result {
-                    Ok(bytes) => self.pages = pages(&String::from_utf8_lossy(&bytes)),
+                    Ok(bytes) => {
+                        let text = String::from_utf8_lossy(&bytes);
+                        self.pages = pages(&text);
+                        self.title = fact(&text, "Title:");
+                        self.author = fact(&text, "Author:");
+                    }
                     Err(e) => self.error = e,
                 }
                 changed = true;
@@ -95,17 +127,25 @@ impl Pdf {
         }
         if let Some(image) = &self.image {
             if let Ok(result) = image.result.try_recv() {
+                let failure = result.as_ref().err().map(|error| image.failure(error.clone()));
                 self.image = None;
+                if failure.is_some() { self.failure = failure; }
                 match result {
                     Ok(bytes) => {
-                        self.bytes = if self.protocol == Protocol::Kitty {
-                            kitty(&bytes)
+                        self.shown = size(&bytes);
+                        // A half-block page never reaches the terminal as bytes; chafa reads it from png.
+                        if self.still {
+                            self.png = bytes;
+                            self.revision += 1;
+                        } else if self.protocol == Protocol::Kitty {
+                            self.bytes = kitty(&bytes);
                         } else {
-                            bytes
+                            self.bytes = bytes;
                         }
                     }
                     Err(e) => self.error = e,
                 }
+                self.settled = true;
                 changed = true;
             }
         }
@@ -133,58 +173,85 @@ impl Pdf {
         }
     }
     pub fn scroll(&mut self, delta: isize) {
-        let next = (self.scroll as isize + delta * (self.pixels.1 / self.rows.max(1)) as isize)
+        let height = self.extent().1;
+        let next = (self.scroll as isize + delta * (height / self.rows.max(1)) as isize)
             .max(0)
-            .min(self.pixels.1 as isize * 2) as usize;
+            .min(height as isize * 2) as usize;
         if next != self.scroll {
             self.scroll = next;
             self.refresh();
         }
     }
-    pub fn prefix(&self) -> String {
-        format!("Page {} / {} · {}%  ", self.page, if self.pages == 0 { "?".into() } else { self.pages.to_string() }, self.zoom)
+    // The page box in pixels; a half-block page without known cell pixels takes eight by sixteen a cell.
+    fn extent(&self) -> (usize, usize) {
+        if self.still && self.pixels.0 * self.pixels.1 == 0 { (self.columns * FALLBACK_CELL.0, self.rows * FALLBACK_CELL.1) } else { self.pixels }
+    }
+    // Page 1 of 12 · 100%, the page line over the controls.
+    pub fn page_line(&self, i18n: &crate::i18n::I18n) -> String {
+        let pages = if self.pages == 0 { "?".into() } else { i18n.locale().format_count(self.pages as i64) };
+        i18n.tr_args("pdf.page", &[&i18n.locale().format_count(self.page as i64), &pages, &i18n.locale().format_count(self.zoom as i64)])
     }
     pub fn control_at(&self, cell: usize, quicklook: bool, columns: usize) -> Option<(usize, bool)> {
-        toolbar(self.control, quicklook, columns).1.get(cell).copied().flatten()
+        toolbar(self.control, false, quicklook, columns).1.get(cell).copied().flatten()
     }
-    pub fn line(&self, quicklook: bool, columns: usize) -> String {
-        toolbar(self.control, quicklook, columns).0
+    pub fn runs(&self, focused: bool, quicklook: bool, columns: usize) -> Vec<(Ink, String)> {
+        toolbar(self.control, focused, quicklook, columns).0
     }
 }
-fn toolbar(control: usize, quicklook: bool, columns: usize) -> (String, Vec<Option<(usize, bool)>>) {
-    let labels: Vec<String> = ["‹", "›", "−", "+", "↗", "×"].iter()
-        .take(if quicklook { 6 } else { 5 }).enumerate()
-        .map(|(index, label)| if index == control { format!("[{label}]") } else { label.to_string() }).collect();
-    let widths: Vec<usize> = labels.iter().map(|label| super::render::text_width(label)).collect();
-    let overflow = widths.iter().sum::<usize>() + (labels.len() - 1) * 2 > columns;
-    let available = columns.saturating_sub(if overflow { 2 } else { 0 });
-    let (mut first, mut end, mut used) = (control, control + 1, widths[control]);
-    // Keep complete controls around focus; overflow arrows reveal controls without activating them.
-    while first > 0 && used + 2 + widths[first - 1] <= available {
-        first -= 1;
-        used += 2 + widths[first];
-    }
-    while end < labels.len() && used + 2 + widths[end] <= available {
-        used += 2 + widths[end];
-        end += 1;
-    }
-    let (mut line, mut hits) = (String::new(), Vec::new());
-    let mut append = |text: &str, hit| {
-        line.push_str(text);
-        hits.extend(std::iter::repeat(hit).take(super::render::text_width(text)));
-    };
+// The toolbar's inked runs, and per cell the control a press there reaches and whether it activates it.
+type Runs = Vec<(Ink, String)>;
+type Hits = Vec<Option<(usize, bool)>>;
+// Each control owns three cells, its brackets blank until the preview holds the keyboard, so nothing moves when focus enters.
+fn toolbar(control: usize, focused: bool, quicklook: bool, columns: usize) -> (Runs, Hits) {
+    const LABELS: [&str; 6] = ["‹", "›", "−", "+", "↗", "×"];
+    const SLOT: usize = 3;
+    let count = if quicklook { 6 } else { 5 };
+    let overflow = count * SLOT > columns;
+    let shown = if overflow { (columns.saturating_sub(2) / SLOT).max(1) } else { count };
+    // Keep the focused control in view; overflow arrows reveal controls without activating them.
+    let first = control.saturating_sub(shown - 1).min(count - shown);
+    let end = first + shown;
+    let (mut runs, mut hits) = (Vec::new(), Vec::new());
+    let ink = if focused { Ink::Foreground } else { Ink::Muted };
     if overflow {
-        append(if first > 0 { "←" } else { " " }, first.checked_sub(1).map(|index| (index, false)));
+        runs.push((ink, if first > 0 { "←" } else { " " }.to_string()));
+        hits.push(first.checked_sub(1).map(|index| (index, false)));
     }
-    for (index, label) in labels.iter().enumerate().take(end).skip(first) {
-        if index > first { append("  ", None); }
-        append(label, Some((index, true)));
+    for (index, label) in LABELS.iter().enumerate().take(end).skip(first) {
+        let text = if focused && index == control { format!("[{label}]") } else { format!(" {label} ") };
+        runs.push((ink, text));
+        hits.extend([Some((index, true)); SLOT]);
     }
     if overflow {
-        append(&" ".repeat(available.saturating_sub(used)), None);
-        append(if end < labels.len() { "→" } else { " " }, (end < labels.len()).then_some((end, false)));
+        let gap = columns.saturating_sub(shown * SLOT + 2);
+        runs.push((ink, " ".repeat(gap)));
+        hits.extend(std::iter::repeat(None).take(gap));
+        runs.push((ink, if end < count { "→" } else { " " }.to_string()));
+        hits.push((end < count).then_some((end, false)));
     }
-    (line, hits)
+    (runs, hits)
+}
+const FALLBACK_GROUND: &str = "#101315";
+const VEIL_PERCENT: usize = 5;
+// The magick colour for the page veil, the ground as #rrggbb or the fallback ground when it is not one.
+fn ground(hex: &str) -> String {
+    if hex.len() == 7 && hex.starts_with('#') && hex[1..].bytes().all(|b| b.is_ascii_hexdigit()) { hex.into() } else { FALLBACK_GROUND.into() }
+}
+// A decoded page's pixels: a PNG's IHDR, or a sixel's raster attributes after its introducer.
+// Sample input: "1;1;640;480
+fn size(bytes: &[u8]) -> Option<(usize, usize)> {
+    if bytes.starts_with(b"\x89PNG") && bytes.len() >= 24 {
+        let read = |at: usize| u32::from_be_bytes([bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]]) as usize;
+        return Some((read(16), read(20)));
+    }
+    let start = bytes.iter().take(64).position(|&b| b == b'"')? + 1;
+    let end = bytes[start..].iter().position(|b| !b.is_ascii_digit() && *b != b';')? + start;
+    let fields: Vec<usize> = std::str::from_utf8(&bytes[start..end]).ok()?.split(';').map(|n| n.parse().ok()).collect::<Option<_>>()?;
+    (fields.len() == 4).then(|| (fields[2], fields[3]))
+}
+// Sample input: Title:           Spring report 2025; a field the file leaves out is an empty string.
+fn fact(text: &str, key: &str) -> String {
+    text.lines().find_map(|line| line.strip_prefix(key)).map(|value| value.trim().to_string()).unwrap_or_default()
 }
 // Sample input: Pages:           12
 fn pages(text: &str) -> usize {
@@ -206,8 +273,17 @@ mod tests {
     #[test]
     fn narrow_toolbar_keeps_focus_and_pointer_targets_visible() {
         let labels = ["‹", "›", "−", "+", "↗", "×"];
-        assert_eq!(toolbar(0, false, 80).0, "[‹]  ›  −  +  ↗");
+        let toolbar = |control, quicklook, columns| {
+            let (runs, hits) = super::toolbar(control, true, quicklook, columns);
+            (runs.into_iter().map(|run| run.1).collect::<String>(), hits)
+        };
+        assert_eq!(toolbar(0, false, 80).0, "[‹] ›  −  +  ↗ ");
         assert!(!super::super::render::fit(&toolbar(4, false, 80).0, 6).contains("[↗]"));
+        // At rest every slot keeps its three cells in the muted ink, with no brackets.
+        let (rest, _) = super::toolbar(0, false, false, 80);
+        assert_eq!(rest.iter().map(|run| run.1.as_str()).collect::<String>(), " ‹  ›  −  +  ↗ ");
+        assert!(rest.iter().all(|run| run.0 == Ink::Muted));
+        assert!(super::toolbar(0, true, false, 80).0.iter().all(|run| run.0 == Ink::Foreground));
         for quicklook in [false, true] {
             let count = if quicklook { 6 } else { 5 };
             for terminal_columns in 12..=100 {

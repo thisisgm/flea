@@ -7,6 +7,7 @@ use std::sync::mpsc::{self, Receiver};
 
 pub struct Wire {
     child: Child,
+    pub listing: Option<usize>,
     input: ChildStdin,
     pub events: Receiver<Result<Json, String>>,
     // One byte per backend event, so the main loop wakes for it instead of waiting out its input timeout.
@@ -25,7 +26,10 @@ pub(crate) fn backend_command(exe: &std::path::Path, prefetch: Option<&crate::gv
 }
 impl Wire {
     pub fn start(prefetch: Option<&crate::gvfsprefetch::Prefetch>) -> io::Result<Self> {
-        let mut child = backend_command(&std::env::current_exe()?, prefetch)
+        Self::spawn(backend_command(&std::env::current_exe()?, prefetch))
+    }
+    pub(super) fn spawn(mut command: Command) -> io::Result<Self> {
+        let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -33,11 +37,11 @@ impl Wire {
         let input = child
             .stdin
             .take()
-            .ok_or_else(|| io::Error::other("backend stdin unavailable"))?;
+            .ok_or_else(|| super::words::error("tui.wire.backend_stdin_unavailable"))?;
         let output = child
             .stdout
             .take()
-            .ok_or_else(|| io::Error::other("backend stdout unavailable"))?;
+            .ok_or_else(|| super::words::error("tui.wire.backend_stdout_unavailable"))?;
         let (tx, events) = mpsc::channel();
         let (wake, ring) = UnixStream::pair()?;
         wake.set_nonblocking(true)?;
@@ -53,10 +57,11 @@ impl Wire {
                 }
                 let _ = (&ring).write(&[1]);
             }
-            let _ = tx.send(Err("The file list stopped; restart Flea".into()));
+            let _ = tx.send(Err(super::words::Text::Key("tui.wire.the_file_list_stopped_restart_flea").to_string()));
             let _ = (&ring).write(&[1]);
         });
         Ok(Self {
+            listing: None,
             child,
             input,
             events,
@@ -87,7 +92,13 @@ impl Wire {
             self.wake = None;
         }
     }
-    pub fn send(&mut self, fields: Vec<(&str, Json)>) -> io::Result<()> {
+    pub fn send(&mut self, mut fields: Vec<(&str, Json)>) -> io::Result<()> {
+        let command = fields.iter().find(|(key, _)| *key == "c").and_then(|(_, value)| value.as_str()).unwrap_or("");
+        if matches!(command, "trash" | "transfer" | "paths" | "menuaction" | "collisions" | "mergecollisions" | "link" | "settags")
+            && !fields.iter().any(|(key, _)| *key == "listing")
+        {
+            if let Some(listing) = self.listing { fields.push(("listing", number(listing))); }
+        }
         let document = Json::Obj(fields.into_iter().map(|(k, v)| (k.into(), v)).collect());
         let text = jsondoc::render(&document).replace('\n', "");
         writeln!(self.input, "{}", text)?;
@@ -138,7 +149,7 @@ pub(crate) fn echo_wire() -> (Wire, std::thread::JoinHandle<()>) {
         }
     });
     // The tests read events straight from the channel and never poll, so they need no wake.
-    (Wire { child, input, events, wake: None }, reader)
+    (Wire { child, input, events, wake: None, listing: None }, reader)
 }
 
 // Ends an echo wire, proving the child exits cleanly rather than lingering.
@@ -152,7 +163,7 @@ pub(crate) fn finish(mut wire: Wire, reader: std::thread::JoinHandle<()>) {
 // The sort-anchor battery, kept beside this suite so this file stays a mechanism file.
 #[cfg(test)]
 #[path = "sort_tests.rs"]
-mod sort_tests;
+pub(super) mod sort_tests;
 
 // Issue 133's key battery, which drives the same echo wire.
 #[cfg(test)]
@@ -176,6 +187,9 @@ mod tests {
     use std::path::PathBuf;
     use std::time::Duration;
 
+    // How long a test waits, in milliseconds, for the wake socket to poll ready; the poll returns as soon as it does.
+    const WAKE_WAIT_MS: i32 = 5000;
+
     #[test]
     fn a_wake_the_reader_closed_leaves_the_poll() {
         let (mut wire, reader) = echo_wire();
@@ -185,8 +199,16 @@ mod tests {
         wire.wake = Some(wake);
         wire.drain_wake();
         assert!(wire.wake_fd() >= 0, "an open wake stays polled after its bytes are read");
+        // A process another test forks holds a copy of the ring until it execs or exits, so the close shows only after the last copy goes.
+        let forked = ring.try_clone().unwrap();
         // The reader thread's end goes away with it; a closed socket would poll ready on every call from then on.
         drop(ring);
+        wire.drain_wake();
+        assert!(wire.wake_fd() >= 0, "a ring a forked copy still holds is not closed yet");
+        drop(forked);
+        // The main loop drains after its poll returns, so the test waits for the close the same way, bounded for a fork that lingers.
+        let (stdin, _held) = UnixStream::pair().unwrap();
+        crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), WAKE_WAIT_MS).unwrap();
         wire.drain_wake();
         assert_eq!(wire.wake_fd(), -1);
         drop(wire);
@@ -199,8 +221,8 @@ mod tests {
         let wire = Wire::start(None).unwrap();
         let (stdin, _held) = UnixStream::pair().unwrap();
         let before = std::time::Instant::now();
-        assert!(!crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), 5000).unwrap());
-        assert!(before.elapsed() < Duration::from_millis(5000), "the wake never rang after the backend exited");
+        assert!(!crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), WAKE_WAIT_MS).unwrap());
+        assert!(before.elapsed() < Duration::from_millis(WAKE_WAIT_MS as u64), "the wake never rang after the backend exited");
         let event = wire.events.try_recv();
         assert!(matches!(&event, Ok(Err(error)) if error == "The file list stopped; restart Flea"), "a ringing wake had no stop queued: {:?}", event.map(|value| value.map(|_| ())));
     }
@@ -226,6 +248,7 @@ mod tests {
             }
         });
         let mut wire = Wire {
+            listing: None,
             child,
             input,
             events,
@@ -251,7 +274,8 @@ mod tests {
         let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
         model.total = 6;
         model.cursor = 3;
-        model.top = 2;
+        // A reload of the same folder keeps its scroll, so the cursor row starts at the top of the view.
+        model.top = 3;
         model.rows.insert(3, Row::parse(&row("charlie.txt"), &[]));
         model.open(model.path.clone(), &mut wire).unwrap();
         assert_eq!(text(&next(&wire), "c"), "list");

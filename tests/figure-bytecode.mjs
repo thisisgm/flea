@@ -1,8 +1,7 @@
 // The bytecode path answers the source path's bytes for the whole figure corpus, and refuses what is not bytecode; quickjs-ng only, node has no bjson.
-import { finish, importFile, prepareEngine, readText, repoRoot, resolve } from "./js-runtime.mjs";
+import { finish, importFile, readText, repoRoot, resolve } from "./js-runtime.mjs";
 import { FACES, layered, notes, others, sequences } from "./mermaid-corpus.mjs";
 
-prepareEngine();
 const root = repoRoot(import.meta.url);
 const worker = await importFile(resolve(root, "ui/js/FigureWorker.mjs"));
 const bytecode = await importFile(resolve(root, "ui/vendor/figure-bytecode.mjs"));

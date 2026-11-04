@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
+HARNESS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # What was benched, recorded beside the numbers, so a result stays citable after the box moves on.
 #   printf '%s\n' "${ENTRANTS[@]}" | cut -d'|' -f1,2,4 | flea-bench-manifest <manifest> <fixture>
 # One "id|kind|comm" line per entrant on stdin. Every version here is read off the installed
 # artefact rather than typed, because a hand-kept table is wrong the first time anything upgrades.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 OUT=${1:-}
 FIXTURE=${2:-}
-[ -n "$OUT" ] && [ -n "$FIXTURE" ] || { echo "usage: flea-bench-manifest <manifest> <fixture>|close <csv>" >&2; exit 2; }
+[ -n "$OUT" ] && [ -n "$FIXTURE" ] || { echo "usage: flea-bench-manifest <manifest> <fixture>|close <csv>|verify <csv>" >&2; exit 2; }
 
 FLEA_REPO=${FLEA_REPO:-$HOME/Work/claude/flea}
 FLEA_BIN=${FLEA_BIN:-$FLEA_REPO/target/release/flea}
-STRATA_SRC=${STRATA_SRC:-$HOME/Work/strata}
+STRATA_SRC=${STRATA_SRC:-}
+STRATA_BIN=${STRATA_STABLE_BIN:-${STRATA_BIN:-}}
 # The terminal the TUI group runs in, named here because a TUI's image capability is the
 # terminal's before it is the program's.
 TUI_TERMINAL=${TUI_TERMINAL:-kitty}
@@ -19,6 +25,17 @@ TUI_TERMINAL=${TUI_TERMINAL:-kitty}
 UPGRADE_STALE_HOURS=${UPGRADE_STALE_HOURS:-24}
 
 say() { printf '%s\n' "$*" >> "$OUT"; }
+
+# A collector calls this after close: only a complete close over these exact CSV bytes passes.
+if [ "$FIXTURE" = verify ]; then
+  csv=${3:-}
+  [ -s "$OUT" ] && [ -s "$csv" ] || { echo "flea-bench-manifest: verify needs a manifest and its CSV" >&2; exit 1; }
+  [ "$(grep -c '^## Run close' "$OUT")" = 1 ] || { echo "flea-bench-manifest: $OUT has no single close" >&2; exit 1; }
+  [ "$(tail -1 "$OUT")" = "- close complete: yes" ] || { echo "flea-bench-manifest: $OUT close did not complete" >&2; exit 1; }
+  grep -qxF -- "- closed CSV sha256: $(sha256sum -- "$csv" | cut -d' ' -f1)" "$OUT" \
+    || { echo "flea-bench-manifest: $csv differs from the bytes $OUT closed" >&2; exit 1; }
+  exit 0
+fi
 
 # The harness that ran: its sha256 and whether it matches the arm's committed copy.
 harness_marker() {
@@ -104,12 +121,12 @@ if [ "$FIXTURE" = close ]; then
     c=$(col_of "$1") || { echo "flea-bench-manifest: the CSV header has no '$1' column" >&2; exit 1; }
     printf '%s' "$c"
   }
-  id_col=$(need_col id)
-  run_col=$(need_col run)
-  thumbs_col=$(need_col thumbs_n)
-  fmt_col=$(need_col thumbs_by_format)
-  ranked_col=$(need_col ranked)
-  preview_col=$(need_col preview_ms)
+  id_col=$(need_col id) || exit 1
+  run_col=$(need_col run) || exit 1
+  thumbs_col=$(need_col thumbs_n) || exit 1
+  fmt_col=$(need_col thumbs_by_format) || exit 1
+  ranked_col=$(need_col ranked) || exit 1
+  preview_col=$(need_col preview_ms) || exit 1
 
   # "jpg=601;png=189;unknown=0" and "png" gives 189, and a format the string does not mention is 0.
   fmt_count() {
@@ -144,7 +161,7 @@ if [ "$FIXTURE" = close ]; then
   say "before notes before photo. **A never-attempted count is not a capability claim.**"
   say ""
   if [ -s "$KEY_MAP" ]; then
-    exts=$(cut -d' ' -f2 "$KEY_MAP" | LC_ALL=C sort -u)
+    exts=$(cut -d' ' -f2 "$KEY_MAP" | sort -u)
     tmp_fail=$(mktemp) || exit 1
     for id in $ids; do
       rows=$(grep "^$id," "$csv")
@@ -158,7 +175,7 @@ if [ "$FIXTURE" = close ]; then
       for f in "$KEYS_DIR/$id"-run*.fail.keys; do
         [ -s "$f" ] && cat "$f" >> "$tmp_fail"
       done
-      LC_ALL=C sort -u -o "$tmp_fail" "$tmp_fail"
+      sort -u -o "$tmp_fail" "$tmp_fail"
       refused_fmt=$("$KEYS_TOOL" classify "$KEY_MAP" "$tmp_fail" 2>/dev/null)
       produced=""
       refused=""
@@ -187,7 +204,7 @@ if [ "$FIXTURE" = close ]; then
   say ""
   never=""
   for id in $ids; do
-    vals=$(grep "^$id," "$csv" | cut -d, -f"$preview_col" | LC_ALL=C sort -u)
+    vals=$(grep "^$id," "$csv" | cut -d, -f"$preview_col" | sort -u)
     [ "$vals" = "-1" ] && never="${never:+$never, }$id"
   done
   if [ -n "$never" ]; then
@@ -230,7 +247,7 @@ if [ "$FIXTURE" = close ]; then
   # The work-difference refusal. Flea thumbnails the viewport by design and another entrant thumbnails the
   # directory, so a settle time compared across that gap is not a comparison at all.
   counts=$(tail -n +2 "$csv" | cut -d, -f"$thumbs_col","$ranked_col" | grep ',yes$' \
-           | cut -d, -f1 | grep -E '^[0-9]+$' | grep -v '^0$' | LC_ALL=C sort -n)
+           | cut -d, -f1 | grep -E '^[0-9]+$' | grep -v '^0$' | sort -n)
   lo=$(printf '%s\n' "$counts" | head -1)
   hi=$(printf '%s\n' "$counts" | tail -1)
   if [ -n "$lo" ] && [ -n "$hi" ] && [ "$hi" -ge $(( lo * 10 )) ]; then
@@ -238,10 +255,46 @@ if [ "$FIXTURE" = close ]; then
     refused_rows=$(( refused_rows + 1 ))
   fi
   [ "$refused_rows" -gt 0 ] || say "- none: every row in this run is comparable"
+  [ -w "$OUT" ] || { echo "flea-bench-manifest: $OUT is not writable, the close is incomplete" >&2; exit 1; }
+  # Last, so a partial close cannot approve numbers, and the close binds these exact CSV bytes.
+  csv_sha=$(sha256sum -- "$csv" | cut -d' ' -f1) || exit 1
+  say "- closed CSV sha256: $csv_sha" || exit 1
+  say "- close complete: yes" || exit 1
   exit 0
 fi
 
 [ -d "$FIXTURE" ] || { echo "flea-bench-manifest: no fixture at $FIXTURE" >&2; exit 1; }
+# One front end for the whole run: the two names the harness exports must agree, and GPUI is the candidate.
+FRONT_END=${FIELD_FRONTEND:-${FLEA_FRONTEND:-gpui}}
+[ "${FLEA_FRONTEND:-$FRONT_END}" = "$FRONT_END" ] \
+  || { echo "flea-bench-manifest: FIELD_FRONTEND=$FIELD_FRONTEND and FLEA_FRONTEND=$FLEA_FRONTEND disagree" >&2; exit 1; }
+case $FRONT_END in gpui|qml) ;; *) echo "flea-bench-manifest: front end must be gpui or qml, not $FRONT_END" >&2; exit 1 ;; esac
+# The whole list first: a loop that reads stdin while calling other programs inside it is one
+# stdin-consuming helper away from skipping an entrant silently.
+mapfile -t ENTRANT_ROWS
+roster_has() {
+  local row id
+  for row in "${ENTRANT_ROWS[@]}"; do
+    id=${row%%|*}
+    id=${id//[[:space:]]/}
+    [ "$id" = "$1" ] && return 0
+  done
+  return 1
+}
+# The field bench pipes its whole roster; LAUNCH_ORDER, when given, names the entrants that actually run.
+runs_here() {
+  [ -n "${LAUNCH_ORDER:-}" ] || { roster_has "$1"; return; }
+  # The field bench writes an absent row as id@-; only id@<place> launches.
+  case " ${LAUNCH_ORDER//$'\n'/ } " in *" $1@"[0-9]*) return 0 ;; esac
+  return 1
+}
+# Strata is two required rows wherever it runs at all: stable and nightly, never one standing for both.
+STRATA_ROSTER=no
+if runs_here strata || runs_here strata-stable || runs_here strata-nightly; then
+  STRATA_ROSTER=yes
+  { runs_here strata || runs_here strata-stable; } && runs_here strata-nightly \
+    || { echo "flea-bench-manifest: a run with Strata names both the stable and the nightly row" >&2; exit 1; }
+fi
 mkdir -p "$(dirname "$OUT")" || exit 1
 : > "$OUT" || exit 1
 
@@ -266,12 +319,66 @@ say "- fixture kind: ${FIXTURE_KIND:-btrfs}"
 say "- fixture payload: $(ls -U "$FIXTURE" | wc -l) visible entries, filesystem $(findmnt -no FSTYPE -T "$FIXTURE")"
 say "- TUI terminal: $TUI_TERMINAL $(pkg_version "$TUI_TERMINAL")"
 say "- flea launch line: ${FLEA_LAUNCH_LINE:-not recorded by the caller}"
+say "- front end: $FRONT_END; profile: ${FIELD_PROFILE:-field}"
+say "- candidate source commit: $(git -C "$FLEA_REPO" rev-parse HEAD 2>/dev/null || printf unreadable)"
+if [ -x "$HARNESS_DIR/flea-bench-gate" ]; then
+  gate_context=$(FLEA_REPO="$FLEA_REPO" FLEA_BIN="$FLEA_BIN" "$HARNESS_DIR/flea-bench-gate" record-context "$FIXTURE") || exit 1
+  say "- gate context: $gate_context" || exit 1
+fi
+say "- cpu_s: complete run cgroup plus an external helper, identical to cpu_tree_s; cpu_main_s retains the main-process reading"
+if [ "${FIELD_PROFILE:-field}" = engine ]; then
+  say "- engine method: cold cache, 3 s pause, Hyprland openwindow event, PSS and resident DRM at map plus 3 s; three interleaved runs per build"
+  say "- engine PSS: cold_pss_kb is the GUI alone; cold_child_pss_kb is the backend; the gate compares their sum"
+fi
 say "- harness: $(harness_marker)"
 say "- manifest tool: $(manifest_tool_marker)"
 say "- anchor arm (flea-anchor): $(anchor_line)"
 if [ -x "${STRATA_BIN:-}" ]; then
-  say "- strata binary: $STRATA_BIN reports '$("$STRATA_BIN" --version 2>&1 | head -1)', built from ${STRATA_SRC:-an unrecorded source tree}"
+  say "- strata binary: $STRATA_BIN reports '$("$STRATA_BIN" --version 2>&1 | head -1)'"
 fi
+for strata_channel in stable nightly; do
+  [ "$STRATA_ROSTER" = yes ] || break
+  strata_binary=${STRATA_BIN:-}
+  [ "$strata_channel" != nightly ] || strata_binary=${STRATA_NIGHTLY_BIN:-}
+  [ "$strata_channel" != nightly-channel ] || strata_binary=${STRATA_NIGHTLY_CHANNEL_BIN:-}
+  if [ -x "$strata_binary" ]; then
+    if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+      archive_record=$(python3 -B "$HARNESS_DIR/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "strata-$strata_channel" "$strata_binary") \
+        || { printf 'flea-bench-manifest: archive identity refused for %s\n' "$strata_channel" >&2; exit 1; }
+      say "- Strata $strata_channel origin: official archive, verified against $B5_RIVAL_MANIFEST"
+      say '```json'
+      say "$archive_record"
+      say '```'
+    fi
+    say "- Strata $strata_channel: $strata_binary; exact version: $("$strata_binary" --version 2>&1); sha256: $(sha256sum "$strata_binary" | cut -d' ' -f1)"
+  else
+    say "- Strata $strata_channel: NOT INSTALLED"
+    exit 1
+  fi
+done
+if [ -n "${FLEA_RIVAL_MANIFEST:-}" ]; then
+  [ -f "$FLEA_RIVAL_MANIFEST" ] || { printf 'flea-bench-manifest: rival receipt missing\n' >&2; exit 1; }
+  say "- complete rival receipt: $FLEA_RIVAL_MANIFEST sha256 $(sha256sum "$FLEA_RIVAL_MANIFEST" | cut -d' ' -f1)"
+  say '```json'
+  cat -- "$FLEA_RIVAL_MANIFEST" >> "$OUT" || exit 1
+  say ''
+  say '```'
+fi
+for flea_binary in "$FLEA_BIN" "${FLEA_BIN%/*}/flea-gui" "${ANCHOR_BIN:-}"; do
+  [ -f "$flea_binary" ] || continue
+  say "- Flea binary identity: $flea_binary sha256 $(sha256sum "$flea_binary" | cut -d' ' -f1)"
+done
+# The host and session a row depends on; a field that cannot be read says so instead of reading blank.
+first_line() { local v; v=$("$@" 2>/dev/null | head -1) || true; printf '%s' "${v:-unreadable}"; }
+say "- gpu: $(for d in /sys/class/drm/card[0-9]*/device; do [ -r "$d/vendor" ] && printf '%s:%s %s; ' "$(cat "$d/vendor")" "$(cat "$d/device")" "$(basename "$(readlink -f "$d/driver")")"; done | sort -u | tr -d '\n')"
+say "- display: $(first_line sh -c 'hyprctl monitors -j | python3 -c "import json,sys; print(\"; \".join(\"%s %sx%s@%.3f scale %s\" % (m[\"name\"], m[\"width\"], m[\"height\"], m[\"refreshRate\"], m[\"scale\"]) for m in json.load(sys.stdin)))"')"
+say "- theme: $(first_line readlink -f "${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/current/theme")"
+say "- fonts: sans $(first_line fc-match sans-serif), mono $(first_line fc-match monospace)"
+say "- decoders: ffmpeg $(pkg_version ffmpeg), libheif $(pkg_version libheif), libraw $(pkg_version libraw), libjxl $(pkg_version libjxl), libwebp $(pkg_version libwebp)"
+say "- thumbnailers: $(if [ -d /usr/share/thumbnailers ]; then find /usr/share/thumbnailers -maxdepth 1 -name '*.thumbnailer' -type f -print0 | sort -z | xargs -0r sha256sum | sha256sum | cut -c1-16; printf ' over %s files' "$(find /usr/share/thumbnailers -maxdepth 1 -name '*.thumbnailer' -type f | wc -l)"; else printf absent; fi)"
+say "- storage: $(first_line findmnt -no SOURCE,FSTYPE,OPTIONS -T "$FIXTURE")"
+say "- cache: ${BENCH_CACHE_STATE:-not recorded by the caller}"
+say "- accounting: ${BENCH_ACCOUNTING:-cgroup v2 leaf per entrant run, usage_usec}"
 # Each kind's rows rotate one place a run, so the place an entrant held is recorded beside the numbers.
 say "- launch order: each kind's rows rotate one place a run and reverse every other full cycle; place N is the Nth entrant of its kind that launched in that run, after ONLY and absence"
 if [ -n "${LAUNCH_ORDER:-}" ]; then
@@ -312,9 +419,9 @@ say ""
 say "## Fixture by extension"
 say ""
 say '```'
-ls -U "$FIXTURE" | sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | sort | uniq -c | sort -rn >> "$OUT"
+ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | sort | uniq -c | sort -rn >> "$OUT" # locale-bytes: count extensions of raw filename bytes
 # sed drops a name with no dot in it, so those are counted separately rather than vanishing.
-printf '%7s no extension\n' "$(ls -U "$FIXTURE" | grep -c -v '\.')" >> "$OUT"
+printf '%7s no extension\n' "$(ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -c -v '\.')" >> "$OUT" # locale-bytes: count raw filenames without an extension
 say '```'
 say ""
 # The denominator any "N of M" phrasing has to use, derived here so nobody re-derives it by hand.
@@ -323,7 +430,7 @@ say ""
 total_payload=$(ls -U "$FIXTURE" | wc -l)
 not_thumbnailable=0
 for ext in ${NOT_THUMBNAILABLE:-txt}; do
-  n=$(ls -U "$FIXTURE" | grep -c "\.$ext$")
+  n=$(ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -c "\.$ext$") # locale-bytes: count raw filename extensions
   not_thumbnailable=$(( not_thumbnailable + n ))
   say "- excluded from the denominator: $n .$ext files, which no thumbnailer attempts"
 done
@@ -356,9 +463,6 @@ say ""
 say "## Entrants"
 say ""
 say '```'
-# The whole list first: a loop that reads stdin while calling other programs inside it is one
-# stdin-consuming helper away from skipping an entrant silently.
-mapfile -t ENTRANT_ROWS
 for row in "${ENTRANT_ROWS[@]}"; do
   IFS='|' read -r id kind comm <<< "$row"
   # A row grepped out of the bench arrives indented where one expanded from the array does not, and
@@ -367,23 +471,43 @@ for row in "${ENTRANT_ROWS[@]}"; do
   kind=${kind//[[:space:]]/}
   comm=${comm//[[:space:]]/}
   [ -n "${id:-}" ] || continue
+  if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+    binary=
+    case $id in
+      strata-stable) binary=$STRATA_BIN ;;
+      strata-nightly) binary=${STRATA_NIGHTLY_BIN:-} ;;
+      xplr) binary=$(command -v xplr) || { echo "flea-bench-manifest: B5 entrant xplr is absent from PATH" >&2; exit 1; } ;;
+    esac
+    case $id in strata-stable|strata-nightly|xplr)
+      python3 -B "$(dirname "$0")/flea_bench_product.py" "$B5_RIVAL_MANIFEST" "$id" "$binary" --row "$kind" >> "$OUT" || exit 1
+      continue ;;
+    esac
+  fi
   case $id in
-    flea|flea-tui|flea-anchor)
+    flea|flea-tui|flea-anchor|flea-tui-anchor)
       # flea-tui is the arm's own binary run with --tui and flea-anchor the anchor arm, never the installed package.
       repo=$FLEA_REPO bin=$FLEA_BIN
-      [ "$id" = flea-anchor ] && repo=${ANCHOR_REPO:-} bin=${ANCHOR_BIN:-}
+      { [ "$id" = flea-anchor ] || [ "$id" = flea-tui-anchor ]; } && repo=${ANCHOR_REPO:-} bin=${ANCHOR_BIN:-}
       # An empty repo names no git at all: git -C "" would read the caller's directory.
       if [ -z "$repo" ]; then
         sha=absent tag=absent dirty=absent
       # Product, instrument and package paths count; session-only files elsewhere in the tree do not.
       elif sha=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null) \
-        && changes=$(git -C "$repo" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null); then
+        && changes=$(git -C "$repo" status --porcelain -- src crates ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null); then
         tag=$(git -C "$repo" describe --tags --exact-match HEAD 2>/dev/null) || tag="untagged"
         dirty=clean
         [ -z "$changes" ] || dirty=DIRTY
       else
         # A path git cannot read is said so, never recorded as a blank sha that reads clean.
         sha=unreadable tag=unreadable dirty=unreadable
+      fi
+      if [ -n "$repo" ] && [ -n "$bin" ]; then
+        resolved_repo=$(readlink -f "$repo") || resolved_repo=''
+        resolved_bin=$(readlink -f "$bin") || resolved_bin=''
+        case $resolved_bin in
+          "$resolved_repo"/*) [ -n "$resolved_repo" ] || { sha=unknown; tag=unknown; dirty=unknown; } ;;
+          *) sha=unknown; tag=unknown; dirty=unknown ;;
+        esac
       fi
       if [ -n "$bin" ] && [ -x "$bin" ]; then
         built=$(date -Is -r "$bin")
@@ -393,20 +517,43 @@ for row in "${ENTRANT_ROWS[@]}"; do
       fi
       printf '%-10s %-4s source %s %s (%s), release binary built %s, %s bytes\n' \
         "$id" "$kind" "${sha:-absent}" "$tag" "$dirty" "$built" "$size" >> "$OUT"
+      row_front=$FRONT_END row_ui=${FLEA_UI:-}
+      { [ "$id" = flea-anchor ] || [ "$id" = flea-tui-anchor ]; } && row_front=qml row_ui=${ANCHOR_UI:-}
+      # A TUI row draws no GUI, so its build needs no sibling and no interface files.
+      [ "$kind" = tui ] && row_front=tui
+      if [ -n "$bin" ] && [ -x "$bin" ] && [ "$row_front" != tui ]; then
+        identity_args=(build "$bin" "$row_front")
+        [ -n "$repo" ] && identity_args+=(--repo "$repo")
+        [ -n "$row_ui" ] && identity_args+=(--ui "$row_ui")
+        BUILD_IDENTITIES="${BUILD_IDENTITIES:-}$(python3 -B "$HARNESS_DIR/flea_bench_product.py" "${identity_args[@]}")"$'\n' \
+          || { echo "flea-bench-manifest: build identity refused for $id" >&2; exit 1; }
+      fi
       ;;
-    strata)
+    strata|strata-stable|strata-nightly|strata-nightly-channel)
+      source_tree=${STRATA_SRC:-}
+      binary=${STRATA_BIN:-}
+      if [ "$id" = strata-nightly ]; then source_tree=${STRATA_NIGHTLY_SRC:-}; binary=${STRATA_NIGHTLY_BIN:-}; fi
+      if [ "$id" = strata-nightly-channel ]; then source_tree=${STRATA_NIGHTLY_CHANNEL_SRC:-}; binary=${STRATA_NIGHTLY_CHANNEL_BIN:-}; fi
       # The one unpackaged entrant. A tag is what a user installs, so the tag is what the row records
       # and a bare sha is called out as not being a release.
-      desc=$(git -C "$STRATA_SRC" describe --tags --always 2>/dev/null)
+      desc= when=
+      # An empty source names no git at all, as for flea above: git -C "" would read the caller's directory.
+      if [ -n "$source_tree" ]; then
+        desc=$(git -C "$source_tree" describe --tags --always 2>/dev/null)
+        when=$(git -C "$source_tree" log -1 --format=%cs 2>/dev/null)
+      fi
       # The prose below names the tag the row records, so the two cannot drift apart.
       strata_tag=$desc
-      when=$(git -C "$STRATA_SRC" log -1 --format=%cs 2>/dev/null)
       note=""
       case $desc in
         *-g*) note=" NOT A RELEASE, this is a mid-stream commit" ;;
       esac
-      printf '%-10s %-4s source %s committed %s, built locally from this checkout%s\n' \
-        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$note" >> "$OUT"
+      reports="binary absent"
+      [ -x "$binary" ] && reports="binary reports $("$binary" --version 2>&1 | head -1)"
+      build_note='local build provenance unknown'
+      [ -n "$desc" ] && build_note='built locally from this checkout'
+      printf '%-10s %-4s source %s committed %s, %s%s\n' \
+        "$id" "$kind" "${desc:-absent}" "${when:-unknown}" "$build_note" "$note; $reports" >> "$OUT"
       ;;
     *)
       path=$(command -v "$comm" 2>/dev/null)
@@ -426,12 +573,26 @@ for row in "${ENTRANT_ROWS[@]}"; do
 done
 say '```'
 say ""
-say "strata is the one entrant pacman did not install. It is built here from the ${strata_tag:-unknown} tag in a"
-say "local checkout. **The project also publishes a prebuilt x86_64 binary for that tag and it was"
-say "not used**: this harness does not download and execute a third-party binary unattended, and"
-say "every packaged entrant is itself built from source by the distribution, so building from the"
-say "tag is more consistent with the field than fetching one binary would be. Build flags may differ"
-say "from the published release, which is equally true of every AUR entrant in the list."
+if [ -n "${BUILD_IDENTITIES:-}" ]; then
+  say ""
+  say "## Flea build identities"
+  say ""
+  say "Launcher, sibling, interface files, helpers, package, source, compiler, bench seams and the GPUI fork pin of each executed Flea build."
+  say '```json'
+  printf '%s' "$BUILD_IDENTITIES" >> "$OUT"
+  say '```'
+fi
+say "Archive rows record the executed binary's version and SHA-256, upstream URL, archive SHA-256, tag and embedded source commit. Source rows describe explicitly selected local builds."
+if [ -n "${B5_RIVAL_MANIFEST:-}" ]; then
+  say ""
+  say "## B5 rival receipt"
+  say ""
+  say "Receipt: $B5_RIVAL_MANIFEST, $(sha256sum "$B5_RIVAL_MANIFEST")"
+  say '```json'
+  cat "$B5_RIVAL_MANIFEST" >> "$OUT" || exit 1
+  say ''
+  say '```'
+fi
 say ""
 
 # 12e directive 2: every config recorded verbatim beside its version, so a reader reproduces the
@@ -458,7 +619,7 @@ if [ -n "${TUI_CONFIG_DIR:-}" ] && [ -d "${TUI_CONFIG_DIR:-}" ]; then
     cat "$f" >> "$OUT"
     say '```'
     say ""
-  done < <(find "$TUI_CONFIG_DIR" -type f ! -name '.*' | LC_ALL=C sort)
+  done < <(find "$TUI_CONFIG_DIR" -type f ! -name '.*' | sort)
 fi
 
 say "## Libraries the entrants render through"

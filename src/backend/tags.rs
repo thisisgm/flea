@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, c_void, CString};
 use std::path::Path;
 
 // The attribute Dolphin reads and writes; a comma separated list of names.
-const ATTR_NAME: &str = "user.xdg.tags";
+pub(super) const ATTR_NAME: &str = "user.xdg.tags";
 // ENOTSUP on Linux; EOPNOTSUPP shares this value, so one constant refuses either spelling.
 const ENOTSUP: i32 = 95;
 // ENODATA: the filesystem answers tags, this file just has none.
@@ -65,8 +65,13 @@ fn io_err(where_: &str, path: &Path, code: i32) -> FleaError {
     crate::error::from_io(where_, &path.to_string_lossy(), &std::io::Error::from_raw_os_error(code))
 }
 
+#[cfg(test)]
+thread_local! { pub(crate) static SEARCH_TAG_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+
 // Sample input: a file Dolphin tagged "Red,Blue" answers Some of those bytes; untagged answers None.
 pub fn read_raw(path: &Path) -> Result<Option<Vec<u8>>, FleaError> {
+    #[cfg(test)]
+    SEARCH_TAG_CALLS.with(|calls| calls.set(calls.get() + 1));
     let cpath = cpath(path)?;
     let name = attr();
     let size = unsafe { lgetxattr(cpath.as_ptr(), name.as_ptr(), std::ptr::null_mut(), 0) };
@@ -94,6 +99,8 @@ pub fn read_raw(path: &Path) -> Result<Option<Vec<u8>>, FleaError> {
 }
 
 pub fn read(path: &Path) -> Result<Vec<String>, FleaError> {
+    #[cfg(test)]
+    super::tagreadprobe::observe(path);
     Ok(read_raw(path)?.map(|raw| parse(&raw)).unwrap_or_default())
 }
 
@@ -231,49 +238,7 @@ pub fn test_take_copies() -> usize {
     COPIES.with(|calls| calls.replace(0))
 }
 
-// Sample input: (["Custom", "Red"], "toggle", "Red") answers ["Custom"], the foreign name untouched.
-pub fn apply(names: &[String], op: &str, tag: &str) -> Result<Vec<String>, FleaError> {
-    if op == "clear" {
-        return Ok(Vec::new());
-    }
-    if !matches!(op, "add" | "remove" | "toggle") {
-        return Err(FleaError {
-            where_: "settags".into(),
-            path: op.into(),
-            msg: "a tag change is add, remove, toggle or clear".into(),
-        });
-    }
-    let tag = check_tag(tag)?;
-    let present = names.iter().any(|name| name.eq_ignore_ascii_case(&tag));
-    match op {
-        "add" if present => Ok(names.to_vec()),
-        "add" => {
-            let mut out = names.to_vec();
-            out.push(tag);
-            Ok(out)
-        }
-        "remove" => Ok(names.iter().filter(|name| !name.eq_ignore_ascii_case(&tag)).cloned().collect()),
-        _ if present => Ok(names.iter().filter(|name| !name.eq_ignore_ascii_case(&tag)).cloned().collect()),
-        _ => {
-            let mut out = names.to_vec();
-            out.push(tag);
-            Ok(out)
-        }
-    }
-}
-
-// Sample input: "red" answers "Red"; "Custom" answers "Custom"; "" and "a,b" refuse.
-fn check_tag(tag: &str) -> Result<String, FleaError> {
-    let trimmed = tag.trim();
-    let refuse = |msg: &str| FleaError { where_: "settags".into(), path: tag.into(), msg: msg.into() };
-    if trimmed.contains(',') {
-        return Err(refuse("a tag cannot contain a comma"));
-    }
-    if trimmed.is_empty() || trimmed.contains('\0') || trimmed.chars().any(|c| c.is_control()) {
-        return Err(refuse("a tag name cannot be empty or hold control characters"));
-    }
-    Ok(known(trimmed).map(str::to_string).unwrap_or_else(|| trimmed.to_string()))
-}
+pub use super::tagsedit::apply;
 
 #[cfg(test)]
 pub(crate) static SEAM: std::sync::Mutex<()> = std::sync::Mutex::new(());

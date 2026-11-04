@@ -88,7 +88,6 @@ Item {
         onAskRunRaw: function (path, text) { pane.askRunCard({ path: path, raw: text }) }
         onAskOpenWith: function (path) { pane.showOpenWith(path) }
         onClipboardFailed: pane.message("The path could not be copied to the clipboard.", true)
-
     }
 
     Flea.ShareLink {

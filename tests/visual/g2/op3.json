@@ -1,0 +1,771 @@
+{
+  "version": 1,
+  "unit": "g2-op3",
+  "scenes": [
+    {
+      "scene": "g2.op3.openwith.primary",
+      "unit": "g2-op3",
+      "title": "Open With, search focused, Neovim the default under the grey cursor",
+      "board_png": "boards/openwith.png",
+      "board_html": "boards/openwith.html",
+      "before_png": "before/dialog-openwith-1100x700.png",
+      "sha256": {
+        "board_png": "3c34b09012129ee9d000b5f955b99d3beed9556413fdda81abf52872fc741257",
+        "board_html": "13d6a19fd444e2ab57da7a440d9bd980b410fc9b04daa04896aa04ced15a2096",
+        "before_png": "db8b13fbaf852460b7a7c2290030f6740c5a08c7b3f97a109b65169e35e7201e"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "openwith",
+        "focus": "search",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "title Open notes.txt With",
+        "search field accent frame with caret",
+        "Neovim row grey hover wash with default tail",
+        "seven application rows",
+        "checkbox off muted frame",
+        "Open default 14% wash"
+      ],
+      "parity_ids": [
+        "board:openwith"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.openwith-list.primary",
+      "unit": "g2-op3",
+      "title": "Open With, list focused",
+      "board_png": "boards/openwith-list.png",
+      "board_html": "boards/openwith-list.html",
+      "before_png": "before/dialog-openwith-listfocus-1100x700.png",
+      "sha256": {
+        "board_png": "0b1d3bb0bf1ba518006706afea6a42d6270b55590fe34bdaab29b9464c966bb2",
+        "board_html": "2e76de1d06a6996dd7901f432f64803b5a0c3d2e0d46b5f9130ce6440adbf2a9",
+        "before_png": "129f779a9b801727526b31106589d6d0051dacaaa4a514b41bdce84853b34275"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "openwith",
+        "input": [
+          "Tab"
+        ],
+        "focus": "list",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "cursor row accent 18% wash and 2px accent edge",
+        "search frame muted"
+      ],
+      "parity_ids": [
+        "board:openwith-list"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.openwith-check.primary",
+      "unit": "g2-op3",
+      "title": "Open With, checkbox focused",
+      "board_png": "boards/openwith-check.png",
+      "board_html": "boards/openwith-check.html",
+      "before_png": "before/dialog-openwith-checkfocus-1100x700.png",
+      "sha256": {
+        "board_png": "e92ba1b770292e42129d3de0e811414179ed9e18d47e66758792d85a81a2288d",
+        "board_html": "f2ab932b82511acb68ceec8646632753b443ad906d573eeee44045c3a2421c47",
+        "before_png": "8d7ca472397b1cb68a768537940ff44b557e4bf38badea10d3a4d9fef6b27d05"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "openwith",
+        "input": [
+          "Tab",
+          "Tab"
+        ],
+        "focus": "always",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "checkbox frame foreground"
+      ],
+      "parity_ids": [
+        "board:openwith-check"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.openwith-cancel.primary",
+      "unit": "g2-op3",
+      "title": "Open With, Cancel focused",
+      "board_png": "boards/openwith-cancel.png",
+      "board_html": "boards/openwith-cancel.html",
+      "before_png": "before/dialog-openwith-cancelfocus-1100x700.png",
+      "sha256": {
+        "board_png": "bd12694dc7bf0ea5736bf506649708bc4367038ae2d34633b2eb2cfdb725a6d0",
+        "board_html": "cfe5f6f8544f8e7b796bd50b58a067f381bcb4df5fecc55dde27c3e169d6a8a1",
+        "before_png": "367ff46ac36e4ead3636613becb7f2e0043339cdc0687971f054175b72e275fa"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "openwith",
+        "input": [
+          "Tab",
+          "Tab",
+          "Tab"
+        ],
+        "focus": "cancel",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "Cancel foreground frame no wash",
+        "Open accent frame with wash"
+      ],
+      "parity_ids": [
+        "board:openwith-cancel"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.openwith-open.primary",
+      "unit": "g2-op3",
+      "title": "Open With, Open focused",
+      "board_png": "boards/openwith-open.png",
+      "board_html": "boards/openwith-open.html",
+      "before_png": "before/dialog-openwith-openfocus-1100x700.png",
+      "sha256": {
+        "board_png": "95d7b804e9f9dfafd281bdb7453c65e311114e3d33b8e0c4b1170c4e51e6e6d2",
+        "board_html": "77fedff31bbb3295217664421cf8fff5acbe615122f70beee6ceb7dbc4c35b2e",
+        "before_png": "c81d712adbcf08f0daae976ee8ef5a10bb4bb6fe7b034dfeadb97ab4ee30e2f6"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "openwith",
+        "input": [
+          "Tab",
+          "Tab",
+          "Tab",
+          "Tab"
+        ],
+        "focus": "open",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "Open foreground frame over wash"
+      ],
+      "parity_ids": [
+        "board:openwith-open"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.permissions.primary",
+      "unit": "g2-op3",
+      "title": "Permissions of notes.txt, Apply focused",
+      "board_png": "boards/permissions.png",
+      "board_html": "boards/permissions.html",
+      "before_png": "before/dialog-permissions-1100x700.png",
+      "sha256": {
+        "board_png": "77d72d6e2bb1b6953048492014f9d154e836558238d160c6d1a8a107c1e2f9b9",
+        "board_html": "a97ee9a7354db1a54a8fe267cec26e42587bd418971070e8936734a03820fb01",
+        "before_png": "047c97de480f4aaf24ff828fb3e1ef1a392102010b063f291d105906c5ce1311"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "permissions",
+        "path": "/fx/v/work/notes.txt",
+        "mode": "0644",
+        "focus": "apply"
+      },
+      "assertions": [
+        "no close mark in title",
+        "OCTAL field name above the field",
+        "EXECUTE column",
+        "Plain text document kind",
+        "WILL CHANGE lines foreground",
+        "Apply foreground frame over wash"
+      ],
+      "parity_ids": [
+        "board:permissions"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.permissions-close.primary",
+      "unit": "g2-op3",
+      "title": "Permissions, Cancel focused",
+      "board_png": "boards/permissions-close.png",
+      "board_html": "boards/permissions-close.html",
+      "before_png": "before/dialog-permissions-closefocus-1100x700.png",
+      "sha256": {
+        "board_png": "4038c3d1d6e98a918116706323a4f5af53f73038fcbeea267b902f1452ff9419",
+        "board_html": "a93c2bc0a53aa9f26be4e70776a37f7f5507d74976e69ba6432cf08b12019ebc",
+        "before_png": "da949a519a360dd60defabc34d1f675326d16ae59210fd61b27c32c082bc7177"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "permissions",
+        "input": [
+          "shift+Tab"
+        ],
+        "focus": "cancel",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "Cancel foreground frame",
+        "Apply accent frame with wash"
+      ],
+      "parity_ids": [
+        "board:permissions-close"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.permissions-check.primary",
+      "unit": "g2-op3",
+      "title": "Permissions, empty box focused",
+      "board_png": "boards/permissions-check.png",
+      "board_html": "boards/permissions-check.html",
+      "before_png": "before/dialog-permissions-checkfocus-1100x700.png",
+      "sha256": {
+        "board_png": "2dee8086ea168a1060deac9d8fed7d1a59dd6793850d1b100be1bc8f0815be0f",
+        "board_html": "01d02cf9ab4d68f160de610224d933d423c5017782c65fc425501a2f2498c244",
+        "before_png": "dbc9c9ec7ca2eaf807eeb710aaa89174a58542ad873f060328383a8140542c87"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "permissions",
+        "input": [
+          "Tab",
+          "Right",
+          "Right"
+        ],
+        "focus": "owner-execute",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "empty box frame foreground"
+      ],
+      "parity_ids": [
+        "board:permissions-check"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.permissions-checked.primary",
+      "unit": "g2-op3",
+      "title": "Permissions, checked box focused",
+      "board_png": "boards/permissions-checked.png",
+      "board_html": "boards/permissions-checked.html",
+      "before_png": "before/dialog-permissions-checkedfocus-1100x700.png",
+      "sha256": {
+        "board_png": "9c0cda1f020edaf1336b4a10c61a75b15ea717c3baa90c0652366ab1031f203e",
+        "board_html": "1eb15bbd096bc769f44abfb94950d6696c1025e67133516d49dee939432222cb",
+        "before_png": "d3833eb31b99a90a8f454843275b4cadbacdb558135381b9553dccb5699f5c01"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "permissions",
+        "input": [
+          "Tab"
+        ],
+        "focus": "owner-read",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "ring 2px outside the filled box"
+      ],
+      "parity_ids": [
+        "board:permissions-checked"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.permissions-several.primary",
+      "unit": "g2-op3",
+      "title": "Permissions for 9 Items, mixed boxes",
+      "board_png": "boards/permissions-several.png",
+      "board_html": "boards/permissions-several.html",
+      "before_png": "before/dialog-permissions-several-1100x700.png",
+      "sha256": {
+        "board_png": "9f7b8a6d57e4bde04859e1e8130b19e9c725655a8bdc63ce912eed9345b9cc18",
+        "board_html": "731317faa57d03df94d21e8f91c5e344a774b8dd815ca3aa5068aa6bc49e9447",
+        "before_png": "6ac0627da5466fc531060844076a864f41c31d6a488f6ac90b09ec59369ff1bd"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "permissions",
+        "paths": 9,
+        "focus": "apply",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "title Permissions for 9 Items",
+        "mixed boxes filled with an 8x2 bar",
+        "mixed note foreground"
+      ],
+      "parity_ids": [
+        "board:permissions-several"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.properties.primary",
+      "unit": "g2-op3",
+      "title": "Properties of notes.txt",
+      "board_png": "boards/properties.png",
+      "board_html": "boards/properties.html",
+      "before_png": "before/properties-1100x700.png",
+      "sha256": {
+        "board_png": "fc6e3c413a18f67dff874b48f939c95d3b427a73653a896889ccbf4969a77b30",
+        "board_html": "5bfaeea4c4e8b7138a75af8337b49774dce1193365f4f78cf26a4bd7336aa22c",
+        "before_png": "70390bd35563bad839c1db9b664403c19a3e0c46a29def9c45f1b6f978166c67"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "properties",
+        "path": "/fx/v/work/notes.txt"
+      },
+      "assertions": [
+        "two columns on 24px lines",
+        "Kind Plain text document",
+        "Close default focused with wash",
+        "frame to frame 298px"
+      ],
+      "parity_ids": [
+        "board:properties"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.properties-folder.primary",
+      "unit": "g2-op3",
+      "title": "Properties of a folder",
+      "board_png": "boards/properties-folder.png",
+      "board_html": "boards/properties-folder.html",
+      "before_png": "before/properties-folder-1100x700.png",
+      "sha256": {
+        "board_png": "34e00ada2266ca9cba96f1ef7e33a40206176e2aa8f45524f1df2b9b5f0a7539",
+        "board_html": "a580a54e09dc1bb7e6f371d913d0978ff39e3bcb59ac4c3d562bc3f2c71dbb2b",
+        "before_png": "609d02c684da947f4c03b9d208b7148cb2c771b08c688bae013b09c05fa89d2e"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "properties",
+        "path": "/fx/v/work/Media"
+      },
+      "assertions": [
+        "Kind Folder",
+        "Size 2.6 MB (2,560,562 bytes)",
+        "Contains 11 items"
+      ],
+      "parity_ids": [
+        "board:properties-folder"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.properties-tagged.primary",
+      "unit": "g2-op3",
+      "title": "Properties of a tagged file",
+      "board_png": "boards/properties-tagged.png",
+      "board_html": "boards/properties-tagged.html",
+      "before_png": "before/properties-tagged-1100x700.png",
+      "sha256": {
+        "board_png": "05dabdf63530b6cd02a74f18b81f023b70033f3b3e30afc3dd37a503db158373",
+        "board_html": "ee126fe7362b0a16dc3810dc8da9851c827a5af14113e316b9ece1ca554c173d",
+        "before_png": "f68d2da010977d2bda12c89206e0bde1a5e641e914674e20a94eea54013d6557"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "properties",
+        "path": "/fx/v/work/tagged.txt",
+        "tags": [
+          "Red",
+          "Blue"
+        ]
+      },
+      "assertions": [
+        "Tags pair after Size, each tag after its mark"
+      ],
+      "parity_ids": [
+        "board:properties-tagged"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.runfile.primary",
+      "unit": "g2-op3",
+      "title": "Run card for hello.sh",
+      "board_png": "boards/runfile.png",
+      "board_html": "boards/runfile.html",
+      "before_png": "before/runfile-card-1100x700.png",
+      "sha256": {
+        "board_png": "0177fabe88da82477dd4c4a37e2a97b644fddd06bfc4154358971d0c74032030",
+        "board_html": "8da9c3b2b06afceea72f006157dad0311767affd74c448d48c9df20f6e28cc9d",
+        "before_png": "248419511a354d3032e8afb7dc18af40db051e04486358340df90912486f23d8"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "runfile",
+        "path": "/fx/v/work/hello.sh"
+      },
+      "assertions": [
+        "title hello.sh is a program.",
+        "three buttons",
+        "Run in Terminal default focused"
+      ],
+      "parity_ids": [
+        "board:runfile"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.bulkrename.primary",
+      "unit": "g2-op3",
+      "title": "Rename 2 Items, unchanged",
+      "board_png": "boards/bulkrename.png",
+      "board_html": "boards/bulkrename.html",
+      "before_png": "before/dialog-bulkrename-1100x700.png",
+      "sha256": {
+        "board_png": "c8a2303901554f8957a1d70fad17f9c7c00e2c29ce88c1508c6d7394818db4a7",
+        "board_html": "ff24487357fd576eff9207c4e6a5d2d40d682ccca58a507ca847e455d7768b16",
+        "before_png": "65bb9c2987a336d39a00ac8b0af4f998d3d9e468ae26a15affacfe9467798089"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "bulkrename",
+        "paths": [
+          "alpha.txt",
+          "beta.md"
+        ],
+        "focus": "find",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "title Rename 2 Items",
+        "Edit in Terminal…",
+        "Rename unavailable",
+        "error line held empty"
+      ],
+      "parity_ids": [
+        "board:bulkrename"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.bulkrename-clash.primary",
+      "unit": "g2-op3",
+      "title": "Rename 2 Items, two names clash",
+      "board_png": "boards/bulkrename-clash.png",
+      "board_html": "boards/bulkrename-clash.html",
+      "before_png": "before/dialog-bulkrename-invalid-1100x700.png",
+      "sha256": {
+        "board_png": "6ea4af091cb4d0fdb14f976b1020b9fec2492984746dbda0373a2cc92032b4cf",
+        "board_html": "7954978b2d1624acf07b0548b51694629a172bcdf0903bc17f6ac0d0e62d160a",
+        "before_png": "4ce95d726d4b950eba1b060f3c75e16eb6109e3ee0223a620b876a06371e6b75"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "bulkrename",
+        "paths": [
+          "alpha.txt",
+          "gamma.txt"
+        ],
+        "find": "alpha",
+        "replace": "gamma",
+        "focus": "replace",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "line 1 error ink same as line 2",
+        "Give each item a different name.",
+        "0 renamed · 1 unchanged"
+      ],
+      "parity_ids": [
+        "board:bulkrename-clash"
+      ],
+      "producer_owner": [
+        "g2-op3",
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.op3.lang-de-dialog.primary",
+      "unit": "g2-op3",
+      "title": "German name collision card (op1 card; op3 pins Abbrechen and the decimal comma)",
+      "board_png": "boards/lang-de-dialog.png",
+      "board_html": "boards/lang-de-dialog.html",
+      "before_png": "before/collision-card-1100x700.png",
+      "sha256": {
+        "board_png": "22f0f87bda6d9ba416373cdfde9933b880faebbcebb6a4ae8e5ceed9018daa1a",
+        "board_html": "b75d2c821bccd4e2b4d473d0589c2d1f3dd990188243cdb8cc33fed83f5cd856",
+        "before_png": "7563345938e85815443979ef5dac02e86a63b4cc4e71020756a16a5ce69e753e"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "de",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "card": "collision",
+        "language": "de",
+        "path": "/fx/v/work"
+      },
+      "assertions": [
+        "Cancel reads Abbrechen",
+        "22,1 kB"
+      ],
+      "parity_ids": [
+        "board:lang-de-dialog"
+      ],
+      "producer_owner": [
+        "op1"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}

@@ -17,71 +17,29 @@ pub(crate) const SELECTION_CHANGED: &str = "Selected items changed; reopen the m
 const MENU_STOPPED: &str = "The menu stopped answering; reopen this window.";
 const DELETE_EXPIRED: &str = "The delete confirmation expired; confirm again.";
 
+#[path = "menu_selection.rs"]
+mod selection;
+#[path = "menu_worker.rs"]
+mod worker;
+
 pub struct MenuActions {
     slot: Arc<MenuSlot>,
+    catalogue: Arc<MenuSlot>,
     replies: Sender<OpMsg>,
     snapshot: Arc<Mutex<Snapshot>>,
     cancellation: Mutex<Cancellation>,
     registry: Registry,
+    catalogue_registry: Registry,
     requested_id: AtomicUsize,
     restoration: Arc<Mutex<(usize, Vec<Selected>)>>,
 }
 impl MenuActions {
-    pub fn new(replies: Sender<OpMsg>) -> Self {
-        // One pending request bounds repeated activation while an application registry query runs.
-        let slot = Arc::new(MenuSlot::default());
-        let output = replies.clone();
-        let queued = Arc::clone(&slot);
-        let snapshot = Arc::new(Mutex::new(Snapshot::default()));
-        let published = Arc::clone(&snapshot);
-        let registry = Registry::default();
-        let queries = registry.clone();
-        let restoration = Arc::new(Mutex::new((0, Vec::new())));
-        let completed = Arc::clone(&restoration);
-        std::thread::spawn(move || {
-            let _close = CloseOnExit(Arc::clone(&queued));
-            while let Some((line, paths, cursor, cancel)) = queued.take() {
-                let mut state = published.lock().unwrap().clone();
-                if field_str(&line, "op").as_deref() == Some("contents") {
-                    if super::menucontents::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
-                }
-                if field_str(&line, "op").as_deref() == Some("facts") {
-                    if super::menufacts::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
-                }
-                let mut reply = if cancel.check().is_ok() {
-                    state.handle_request(&line, paths, cursor.as_deref(), &queries, &cancel)
-                } else { response(&line, Err("Menu request cancelled.".into())) };
-                if cancel.check().is_err() && field_str(&line, "op").as_deref() != Some("delete") {
-                    reply.insert_str(reply.len() - 1, r#", "cancelled":true"#);
-                }
-                if field_str(&line, "op").as_deref() == Some("delete") {
-                    // Close expires mutation immediately; the completed operation still identifies survivors for reselection.
-                    *completed.lock().unwrap() = (state.id, state.items.clone());
-                }
-                if matches!(field_str(&line, "op").as_deref(), Some("snapshot" | "close" | "prepareDelete" | "refreshDelete" | "delete" | "providerDestination" | "activate")) {
-                    publish_snapshot(published.lock().unwrap(), state, &cancel);
-                }
-                let message = if field_str(&line, "op").as_deref() == Some("delete") {
-                    OpMsg::MenuDeleteDone { line: reply }
-                } else { OpMsg::Meta { line: reply } };
-                if output.send(message).is_err() { break; }
-            }
-        });
-        Self { slot, replies, snapshot, cancellation: Mutex::new(Cancellation::default()), registry, requested_id: AtomicUsize::new(0), restoration }
-    }
     pub(crate) fn retain_survivors(&self, id: usize, matches: &mut Vec<(&str, usize)>) -> Result<(), String> {
         let restoration = self.restoration.lock().map_err(|_| MENU_STOPPED)?;
         if id == 0 || restoration.0 != id { return Err("The items changed; select them again.".into()); }
         let originals: HashMap<_, _> = restoration.1.iter().map(|item| (item.path.as_path(), item)).collect();
         matches.retain(|(path, _)| originals.get(Path::new(path)).is_some_and(|item| item.current().is_ok()));
         Ok(())
-    }
-    pub(crate) fn selection(&self, id: usize) -> Result<Vec<Selected>, String> {
-        let snapshot = self.snapshot.lock().map_err(|_| MENU_STOPPED)?;
-        if id == 0 || snapshot.id != id || snapshot.items.is_empty() {
-            return Err(SELECTION_CHANGED.into());
-        }
-        Ok(snapshot.items.clone())
     }
     pub(crate) fn provider_destination(&self, id: usize, dest: &Path) -> Result<Option<Selected>, String> {
         let snapshot = self.snapshot.lock().map_err(|_| MENU_STOPPED)?;
@@ -110,7 +68,7 @@ impl MenuActions {
             *cancellation = cancellation.next();
             self.requested_id.store(if op == "snapshot" { id } else { 0 }, Ordering::Relaxed);
             *self.snapshot.lock().unwrap() = Snapshot::default();
-            if let Err(error) = self.registry.cancel() {
+            if let Some(error) = [self.registry.cancel(), self.catalogue_registry.cancel()].into_iter().find_map(Result::err) {
                 let _ = self.replies.send(OpMsg::Meta { line: response(&line, Err(error)) });
                 return false;
             }
@@ -119,7 +77,7 @@ impl MenuActions {
                 return false;
             }
         }
-        let refusal = match self.slot.send((line, paths, cursor, cancellation.clone())) {
+        let refusal = match (if op == "applications" { &self.catalogue } else { &self.slot }).send((line, paths, cursor, cancellation.clone())) {
             Sent::Queued => return true,
             Sent::Displaced(older) => {
                 let mut reply = response(&older.0, Err("Menu request cancelled.".into()));
@@ -140,12 +98,15 @@ impl Drop for MenuActions {
     fn drop(&mut self) {
         self.cancellation.lock().unwrap().next();
         self.slot.close();
-        if let Err(error) = self.registry.cancel() { eprintln!("flea: {}", error); }
+        self.catalogue.close();
+        for registry in [&self.registry, &self.catalogue_registry] {
+            if let Err(error) = registry.cancel() { eprintln!("flea: {}", error); }
+        }
     }
 }
 
 #[derive(Clone, Default)]
-struct Snapshot {
+pub(super) struct Snapshot {
     id: usize,
     items: Vec<Selected>,
     cursor: Option<Selected>,
@@ -164,6 +125,8 @@ pub(crate) struct Selected {
     dev: u64,
     ino: u64,
     kind: u32,
+    mode: u32,
+    retry: Option<super::undo::ItemIdentity>,
 }
 impl Selected {
     pub(crate) fn inspect(path: &str) -> Result<Self, String> {
@@ -171,12 +134,48 @@ impl Selected {
         if !path.is_absolute() || path.file_name().is_none() {
             return Err("Menu selection requires an absolute item path.".into());
         }
-        let meta = path.symlink_metadata().map_err(|e| format!("Could not inspect selected item {}: {}.", path.display(), crate::error::io_message(&e)))?;
-        Ok(Self { path, dev: meta.dev(), ino: meta.ino(), kind: meta.mode() & 0o170000 })
+        let meta = path.symlink_metadata().map_err(|e| {
+            format!(
+                "Could not inspect selected item {}: {}.",
+                path.display(),
+                crate::error::io_message(&e)
+            )
+        })?;
+        Ok(Self {
+            path,
+            dev: meta.dev(),
+            ino: meta.ino(),
+            kind: meta.mode() & 0o170000,
+            mode: meta.mode(),
+            retry: None,
+        })
+    }
+    pub(crate) fn retry_item(path: PathBuf, identity: super::undo::ItemIdentity) -> Self {
+        let (dev, ino, kind) = identity.parts();
+        Self {
+            path,
+            dev,
+            ino,
+            kind,
+            mode: kind,
+            retry: Some(identity),
+        }
+    }
+    pub(crate) fn retry_identity(&self) -> Option<super::undo::ItemIdentity> {
+        self.retry.clone()
     }
     pub(crate) fn current(&self) -> Result<Metadata, String> {
-        let meta = self.path.symlink_metadata().map_err(|_| "Selected item moved or disappeared; reopen the menu.")?;
-        if meta.dev() != self.dev || meta.ino() != self.ino || meta.mode() & 0o170000 != self.kind {
+        let meta = self
+            .path
+            .symlink_metadata()
+            .map_err(|_| "Selected item moved or disappeared; reopen the menu.")?;
+        if meta.dev() != self.dev
+            || meta.ino() != self.ino
+            || meta.mode() & 0o170000 != self.kind
+            || self.retry.as_ref().is_some_and(|expected| {
+                !expected.same_item(&super::undo::ItemIdentity::record(&meta))
+            })
+        {
             return Err("Selected item changed; reopen the menu.".into());
         }
         Ok(meta)
@@ -191,37 +190,9 @@ pub(crate) fn validate_sources(items: Option<&[Selected]>, paths: &[PathBuf]) ->
     for item in items { item.current().map_err(|error| format!("{}: {}", item.path.display(), error))?; }
     Ok(())
 }
+mod snapshot;
+
 impl Snapshot {
-    // Sample input: {"c":"menuaction","op":"snapshot","id":3}; paths are resolved from the active listing by run.rs.
-    fn handle_request(&mut self, line: &str, paths: Vec<String>, cursor: Option<&str>, registry: &Registry, cancel: &Cancellation) -> String {
-        let id = field_usize(line, "id").unwrap_or(0);
-        let op = field_str(line, "op").unwrap_or_default();
-        let result = if op == "snapshot" {
-            self.id = 0;
-            self.items.clear();
-            self.cursor = None;
-            self.deletion = None;
-            self.provider_destination = None;
-            self.provider_transfer = false;
-            if id == 0 || paths.is_empty() {
-                Err("There are no selected items to inspect.".into())
-            } else {
-                paths.iter().map(|path| Selected::inspect(path)).collect::<Result<Vec<_>, _>>().and_then(|items| {
-                    self.cursor = cursor.map(Selected::inspect).transpose()?;
-                    self.items = items;
-                    self.id = id;
-                    let kinds = self.items.iter().map(|item| item.kind.to_string()).collect::<Vec<_>>().join(",");
-                    Ok(format!(r#""count":{},"kinds":[{}]"#, self.items.len(), kinds))
-                })
-            }
-        } else if op == "close" {
-            if self.id == id { *self = Self::default(); }
-            Ok(String::new())
-        } else {
-            self.perform(id, &op, line, registry, cancel)
-        };
-        response(line, result)
-    }
     fn perform(&mut self, id: usize, op: &str, line: &str, registry: &Registry, cancel: &Cancellation) -> Result<String, String> {
         if id == 0 || id != self.id || self.items.is_empty() {
             return Err(SELECTION_CHANGED.into());
@@ -274,6 +245,11 @@ impl Snapshot {
                 self.check_provider_destination(Path::new(&field_str(line, "dest").unwrap_or_default()))?;
             }
             if op == "activate" { self.provider_transfer = action == "dropbox"; }
+            if action == "extract" {
+                let cursor = self.extract_item()?;
+                cursor.current()?;
+                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.to_string_lossy())));
+            }
             if action.starts_with("taildrop:") || action == "sharelink" {
                 let cursor = self.cursor.as_ref().ok_or("The item under the cursor changed; reopen the menu.")?;
                 cursor.current()?;
@@ -285,21 +261,12 @@ impl Snapshot {
                 escape(&action), paths.join(","),
                 escape(&field_str(line, "dest").unwrap_or_default())));
         }
+        if self.items.len() > 1 && matches!(op, "applications" | "openWith") { return super::menu_many::perform(op, &self.items, line, registry, cancel); }
         if self.items.len() != 1 { return Err("This action requires one selected item.".into()); }
         let item = &self.items[0];
         let meta = item.current()?;
         match op {
-            "properties" => {
-                let kind = if meta.file_type().is_symlink() { "Symbolic link" } else if meta.is_dir() { "Directory" }
-                           else if meta.is_file() { "File" } else { "Special file" };
-                let target = if meta.file_type().is_symlink() {
-                    std::fs::read_link(&item.path).map_err(|e| format!("Could not read the link: {}.", crate::error::io_message(&e)))?.to_string_lossy().to_string()
-                } else { String::new() };
-                Ok(format!(r#""path":"{}","kind":"{}","directory":{},"symlink":{},"target":"{}","bytes":{},"modified":{},"mode":"{:04o}","owner":"{}","uid":{},"gid":{},"tags":{},"photo":{}"#,
-                    escape(&item.path.to_string_lossy()), kind, meta.is_dir(), meta.file_type().is_symlink(), escape(&target),
-                    meta.len(), meta.mtime(), meta.mode() & 0o7777, escape(&super::owner::name(meta.uid())), meta.uid(), meta.gid(), super::tags::names_json(&item.path),
-                    super::metareq::photo_json(&super::metareq::photo(&item.path, true))))
-            }
+            "properties" => super::menuproperties::single(item, &meta),
             "applications" => {
                 let found = menu_registry::catalogue(registry, &item.path, field_bool(line, "installed"), cancel)?;
                 Ok(format!(r#""applications":[{}],"installed":[{}],"mime":"{}","kind":"{}","path":"{}""#,
@@ -309,7 +276,7 @@ impl Snapshot {
             "openWith" => {
                 let app = menu_registry::resolve(&field_str(line, "application").unwrap_or_default(), cancel)?;
                 item.current()?;
-                registry.launch(&app.path, &item.path, cancel)?;
+                registry.launch(&app.path, &[&item.path], cancel)?;
                 // OpenWith.html rule 1: the dialog is the one place a default is written, and it is
                 // written after the launch so a launcher that refuses outright leaves nothing behind.
                 // The file is already open by this point, so a failure here says only what failed.
@@ -340,13 +307,13 @@ impl Snapshot {
         Ok(())
     }
     #[cfg(test)]
-    fn handle(&mut self, line: &str, paths: Vec<String>) -> String {
+    pub(super) fn handle(&mut self, line: &str, paths: Vec<String>) -> String {
         self.handle_request(line, paths, None, &Registry::default(), &Cancellation::default())
     }
 }
 
 // One application row, the shape ui/js/Menu.js and ui/OpenWithDialog.qml both read.
-fn application_entries(apps: &[menu_registry::Application]) -> String {
+pub(super) fn application_entries(apps: &[menu_registry::Application]) -> String {
     apps.iter().map(|a| format!(r#"{{"id":"{}","label":"{}","icon":"{}","default":{}}}"#,
         escape(&a.id), escape(&a.label), escape(&a.icon), a.default))
         .collect::<Vec<String>>().join(",")
@@ -385,10 +352,12 @@ mod tests {
         let (tx, rx) = std::sync::mpsc::channel();
         let menu = MenuActions {
             slot: Arc::new(MenuSlot::default()),
+            catalogue: Arc::new(MenuSlot::default()),
             replies: tx,
             snapshot: Arc::new(Mutex::new(Snapshot::default())),
             cancellation: Mutex::new(Cancellation::default()),
             registry: Registry::default(),
+            catalogue_registry: Registry::default(),
             requested_id: AtomicUsize::new(0),
             restoration: Arc::new(Mutex::new((0, Vec::new()))),
         };
@@ -672,3 +641,7 @@ mod tests {
 #[cfg(test)]
 #[path = "menu_actions_wording_tests.rs"]
 mod wording;
+
+#[cfg(test)]
+#[path = "menu_archive_tests.rs"]
+mod archive_tests;

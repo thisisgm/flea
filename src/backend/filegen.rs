@@ -75,9 +75,6 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
 
-    // Creates tried before a filesystem that never hands back a freed inode is skipped, as in tagsundo_tests.
-    const REUSE_TRIES: usize = 8;
-
     #[test]
     fn a_file_reads_the_same_generation_every_time_and_a_missing_one_reads_none() {
         let d = TestDir::new("filegen-stable");
@@ -133,25 +130,23 @@ mod tests {
     fn a_file_recreated_on_the_freed_inode_keeps_its_mode() {
         use crate::backend::permissions::{born_of, chmod_pinned};
         use std::os::unix::fs::MetadataExt;
-        let d = TestDir::new("filegen-reuse");
-        let mut a = d.file("a.txt", "a");
-        let before = a.symlink_metadata().unwrap();
-        let (dev, ino, birth) = (before.dev(), before.ino(), (born_of(&before), of_path(&a)));
-        // ext4 hands the freed inode to the next create; a few tries cover an allocator that skips it once.
-        for _ in 0..REUSE_TRIES {
-            std::fs::remove_file(&a).unwrap();
-            a = d.file("a.txt", "other");
-            if a.symlink_metadata().unwrap().ino() == ino {
-                break;
-            }
-        }
-        if a.symlink_metadata().unwrap().ino() != ino || birth.1.is_none() {
-            eprintln!("skipped: the filesystem did not hand back inode {ino}, or gives no inode generation");
-            return;
+        let d = crate::backend::inodereuse::sandbox("filegen-reuse");
+        let a = d.file("a.txt", "a");
+        let recreated = crate::backend::inodereuse::recreate(&d, &a, "other", || {
+            let before = a.symlink_metadata().unwrap();
+            (before.dev(), before.ino(), (born_of(&before), of_path(&a)))
+        });
+        let (dev, ino, birth) = recreated.saved;
+        let after = a.symlink_metadata().unwrap();
+        if recreated.reused_inode {
+            assert_eq!((after.dev(), after.ino()), (dev, ino), "the new file really reuses the recorded inode");
+            assert!(crate::backend::undo::born_differs(birth.0, born_of(&after)) || differs(birth.1, of_path(&a)), "the reused inode has a distinct birth or generation");
+        } else {
+            assert_ne!((after.dev(), after.ino()), (dev, ino), "the fallback has a distinct inode");
         }
         set_mode(&a, 0o644);
         let refused = chmod_pinned(&a, dev, ino, birth, 0o644, 0o600);
-        assert!(refused.is_err(), "a recreated file is not the one the step recorded, got {:?}", refused);
+        assert_eq!(refused, Err("the item was replaced, so its mode was left in place.".to_string()));
         assert_eq!(a.metadata().unwrap().mode() & 0o777, 0o644, "its mode stays");
     }
 

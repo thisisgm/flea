@@ -1,0 +1,155 @@
+# Native-undriven G2 scenes: <id> BLOCKED <owner>: <reason>; only the four op1 card ids are compiled from ci/visual/scenes/g2-op1.json.
+uts.ey380.trash-view-14 BLOCKED U-TEXT-SIZE: text-size variants of the existing Trash surface are outside the fixed-size visual lane; guarded native uts.tsv compares 14 and 20 px with v0.3.12.
+uts.ey400.toolbar-collide-14 BLOCKED U-TEXT-SIZE: toolbar and collision mark scaling needs a real text-size change; guarded native uts.tsv compares 14 and 20 px with v0.3.12.
+uts.ey422.settings-step-16 BLOCKED U-TEXT-SIZE: Settings ruler, reopen and geometry at 14, 16 and 20 px need native state transitions; guarded native uts.tsv covers them against v0.3.12.
+uts.ey410.grid-captions-14 BLOCKED U-TEXT-SIZE: the fixed-size visual lane does not measure two-line font pitch against Qt; guarded native uts.tsv reads gridCaptionState and captures both arms at 14 px.
+g2.op1.collide-merge-inner.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-merge.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-replace.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-skip.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.delete-focus.primary BLOCKED op1: menu Delete row (mn1 menu) and G1.05 keys; G0.10 runner
+g2.op1.delete.primary BLOCKED op1: menu Delete row (mn1 menu) and G1.05 keys; G0.10 runner
+g2.op1.jobs.primary BLOCKED op1: job backend lines (G1.02 transport); G0.10 runner
+g2.op1.trash-arm.primary BLOCKED op1: Trash view arming and status producers (G1.13); G0.10 runner
+g2.op1.trash-emptying.primary BLOCKED op1: Trash view and emptying lines (G1.02 transport); G0.10 runner
+g2.pv2.cols-preview-pdf3.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
+g2.pv2.ql-pdf.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
+g2.pv2.ql-pdf3.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
+g2.pv3.cols-preview-video.primary BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv3.ql-audio.muted BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv3.ql-audio.primary BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv3.ql-video.failed BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv3.ql-video.playing BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv3.ql-video.primary BLOCKED pv3: pv1 Quick Look host (not in tree)
+g2.pv4.cols-preview-3mf.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.extra.column-orbit BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.extra.failed BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.extra.light BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.extra.wireframe BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.grid-3d.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.ql-3mf.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.ql-gcode.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.ql-stl-orbit.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pv4.ql-stl.primary BLOCKED pv4: pv1 Quick Look host (not in tree); G1.02/B and b-3d-parse for the model reply
+g2.pl1.eject-refusal.primary BLOCKED pl1: G1.11 rail host, G1.05 keys, G1.12 text field, G1.13 status
+g2.pl1.rail-menu-device-off.primary BLOCKED pl1: G1.11 rail host, G1.05 keys, G1.12 text field, G1.13 status
+g2.pl1.rail-menu-device.primary BLOCKED pl1: G1.11 rail host, G1.05 keys, G1.12 text field, G1.13 status
+g2.pl1.unlock-empty.primary BLOCKED pl1: G1.11 rail host, G1.05 keys, G1.12 text field, G1.13 status
+g2.pl1.unlock.primary BLOCKED pl1: G1.11 rail host, G1.05 keys, G1.12 text field, G1.13 status
+g2.st1.keymap-dead.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.keymap-field.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.keymap-query.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.keymap.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.lang-about.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.lang-caps.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.lang-de-settings.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.lang-ru-keys.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-about.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-display.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-favorites.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-git.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-keys.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-menus-extras.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-menus.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-opening.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-places.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-preview.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-search.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.st1.settings-view.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11 and mn1 Sources, G1 compositor corner, G1.05 keys, G0.10
+g2.pk1 BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
+g2.pk1.picker-open.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
+g2.pk1.picker-save.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
+g2.fb1.empty.primary BLOCKED fb1: G0.10 native registration and geometry: board inventory only, no compiled fb1 sidecar; the validator requires row roles absent from a zero-row frame
+g2.fb1.locked.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar or state-message roles satisfying the listing-row geometry contract
+g2.fb1.grid-empty.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar; the validator requires row roles absent from a zero-row frame
+g2.fb1.grid-locked.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar or state-message roles satisfying the listing-row geometry contract
+g2.fb1.empty-rest.primary BLOCKED fb1: G0.10 native time control: no compiled fb1 sidecar or setup to present the hero after its third beat
+g2.fb1.extra.empty-reduced BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar; reduced motion does not supply the required listing-row roles
+g2.fb1.cols-insideempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols-peekempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols2-hero-empty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols4-hero-empty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.empty-beat.primary BLOCKED fb1: G0.10 runner time control: must catch the first beat, a path and view setup has no clock
+g2.fb1.error.primary BLOCKED fb1: G1.02 transport: needs a failing backend, a fixture path alone cannot fail
+g2.fb1.extra.empty-beat2 BLOCKED fb1: G0.10 runner time control: must catch the second beat, a path and view setup has no clock
+g2.fb1.extra.empty-beat3 BLOCKED fb1: G0.10 runner time control: must catch the third beat, a path and view setup has no clock
+g2.fb1.extra.error-detail BLOCKED fb1: G1.02 transport: needs a long-detail backend error, a fixture path alone cannot fail
+g2.fb1.extra.error-then-receipt BLOCKED fb1: G1.02 transport: needs backend event ordering, a fixture setup sends one listing
+g2.fb1.extra.focus-return-324 BLOCKED fb1: G1.13 status refusal path: needs a status refusal before focus can return to the pane
+g2.fb1.extra.hints-off BLOCKED fb1: G1.05 keys: needs the key hints preset, no key reaches the window in a scene setup
+g2.fb1.extra.hints-on BLOCKED fb1: G1.05 keys: needs the key hints preset, no key reaches the window in a scene setup
+g2.fb1.extra.loading-cancel BLOCKED fb1: G1.05 keys: needs a cancel keystroke mid-load
+g2.fb1.extra.loading-slow BLOCKED fb1: G1.02 transport: needs a slow backend, a fixture answers at once
+g2.fb1.extra.locale-de BLOCKED fb1: G0.10 runner: scene settings carry no language, so no setup can switch the catalog live
+g2.fb1.extra.no-trash BLOCKED fb1: G1.05 keys: needs the shift-delete hint
+g2.fb1.extra.receipt-then-error BLOCKED fb1: G1.02 transport: needs backend event ordering, a fixture setup sends one listing
+g2.fb1.extra.reload-under-card BLOCKED fb1: G1.13 status MessageLine: the card half mounts now, the reload notice lives in the status bar
+g2.fb1.extra.undo-hint BLOCKED fb1: G1.05 keys: needs the z keystroke under the pointer
+g2.fb1.extra.waiting BLOCKED fb1: G1.02 transport: needs a pending listing, a fixture never pends
+g2.fb1.open-refused.primary BLOCKED fb1: G1.05 keys plus a backend refusal, and the G1.13 status MessageLine: a setup cannot drive an open, so nothing refuses it and no notice can show
+g2.fb1.reload-notice.primary BLOCKED fb1: G1.13 status MessageLine: the notice lives in the status bar, not in a pane slot
+g2.st2.plugin-add.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
+g2.st2.plugin-failed.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
+g2.st2.plugin-git-page.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
+g2.st2.plugin-shelf-page.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
+g2.st2.plugins-installed.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
+g2.pl4.plugin-rail-section.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
+g2.pl4.rail-favorites.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
+g2.pl4.tag-marks.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
+g2.pl4.tags-menu.primary BLOCKED pl4: G1.11 RailContentHost impl, mn1 menu hand-off, G0.5 ThemeRoles
+# Native-undriven I50 language fit scenes: <id> BLOCKED <owner>: <reason>; tools/flea-i18n-native plans the ids and tests/i18n/test_visual_coverage.py keeps the ids exact; owner and reason are hand-written.
+i50.fit.ar.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.ar.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.ar.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.ar.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.ar.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.ar.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.ar.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.ar.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.ar.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.de.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.de.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.de.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.de.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.de.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.de.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.de.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.de.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.de.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.hi.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.hi.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.hi.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.hi.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.hi.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.hi.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.hi.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.hi.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.hi.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.ja.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.ja.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.ja.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.ja.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.ja.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.ja.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.ja.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.ja.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.ja.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.th.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.th.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.th.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.th.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.th.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.th.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.th.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.th.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.th.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+i50.fit.zh-CN.about BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); about needs its own drawn-state readback
+i50.fit.zh-CN.caps BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); caps needs its own drawn-state readback
+i50.fit.zh-CN.dialog BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); dialog needs its own drawn-state readback
+i50.fit.zh-CN.keys BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); keys needs its own drawn-state readback
+i50.fit.zh-CN.list.hover BLOCKED SCENE-LANG: list registers rest only; hover needs a drawn-state readback
+i50.fit.zh-CN.list.focus BLOCKED SCENE-LANG: list registers rest only; focus needs a drawn-state readback
+i50.fit.zh-CN.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
+i50.fit.zh-CN.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
+i50.fit.zh-CN.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback

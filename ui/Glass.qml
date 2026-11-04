@@ -15,7 +15,6 @@ QtObject {
     property real glassAlpha: root.mode === "glassy" && root.usesDefault ? Material.floor(Theme.color.opaquePalette, Theme.textContrast) / 255 : 1
     property bool focused: Qt.application.active
     readonly property bool split: true
-    readonly property real transparentAlpha: root.focused ? 0.985 : 0.96
     readonly property bool usesDefault: root.valueIn(Commons.Color.userShellValues) < 0 && root.valueIn(Commons.Color.themeShellValues) < 0
     // "opaque", "glassy" or "transparent" (Omarchy's default), read from its toggle files by reread().
     property string mode: "transparent"
@@ -23,7 +22,7 @@ QtObject {
     property bool hasGlassy: false
     // Set once by launch(), before the window exists, because a Wayland surface's format is fixed at creation.
     property bool clear: false
-    // In whole 8-bit steps, so a value that rounds to 1 is 1; an opaque launch holds 1 until the next launch.
+    // In whole 8-bit steps, so a value that rounds to 1 is 1; a launch a [flea] value pins opaque holds 1 until the next launch.
     readonly property real alpha: root.clear ? root.stepped(root.wanted()) : 1
     // False keeps every plane on its own opaque role, so a stock theme draws exactly what it drew before.
     readonly property bool on: root.alpha < 1
@@ -49,8 +48,15 @@ QtObject {
     // Hyprland reloads its config for a Window Transparency change, with no theme switch.
     property Connections reloads: Connections {
         target: Theme
-        function onConfigReloaded() { root.reread() }
+        function onConfigReloaded() { root.reread(); root.retag() }
+        function onFleaWindowOpened() { root.startTagger() }
     }
+    // Only inside Hyprland, as ui/Theme.qml's event hookup: a headless run has no compositor to ask.
+    readonly property bool inHyprland: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") !== null
+    // ui/GlassTagger.qml, made when Hyprland opens the first Flea window, so it costs nothing before the first rows.
+    property QtObject tagger: null
+    onModeChanged: root.retag()
+    onUsesDefaultChanged: root.retag()
 
     // Sample input: 0.34 answers 87/255, 0.999 answers 1.
     function stepped(value) { return Math.round(value * 255) / 255 }
@@ -62,14 +68,14 @@ QtObject {
         var n = Number(v)
         return isFinite(n) ? Util.clampAlpha(n) : 1
     }
-    // User and theme values keep their precedence; bare Transparent follows Omarchy's grounds unless its ink needs more alpha.
+    // User and theme values keep their precedence; bare Transparent is opaque: no shipped theme sets an opacity of its own, and no toggle file means transparency was never chosen.
     function wanted() {
         var user = root.valueIn(Commons.Color.userShellValues)
         if (user >= 0) return user
         if (root.mode === "opaque") return 1
         var theme = root.valueIn(Commons.Color.themeShellValues)
         if (theme >= 0) return theme
-        return root.mode === "glassy" ? root.glassAlpha : Material.transparentFloor(Theme.color.opaquePalette, Theme.textContrast, Math.round(root.transparentAlpha * 255)) / 255
+        return root.mode === "glassy" ? root.glassAlpha : 1
     }
 
     function reread() {
@@ -80,11 +86,29 @@ QtObject {
         root.mode = root.hasGlassy ? "glassy" : root.hasOpaque ? "opaque" : "transparent"
     }
 
+    // A [flea] value that pins 1 keeps an opaque surface; every other launch is made clear, so each Window Transparency switch shows live.
+    function pinsOpaque() {
+        var user = root.valueIn(Commons.Color.userShellValues)
+        if (user >= 0) return root.stepped(user) >= 1
+        var theme = root.valueIn(Commons.Color.themeShellValues)
+        return theme >= 0 && root.stepped(theme) >= 1
+    }
+
     // Color's two shell readers load asynchronously; waiting here lands both before the decision.
     function launch() {
         Commons.Color.shellFile.waitForJob()
         Commons.Color.userShellFile.waitForJob()
         root.reread()
-        root.clear = root.stepped(root.wanted()) < 1
+        root.clear = !root.pinsOpaque()
     }
+
+    function startTagger() {
+        if (!root.inHyprland) return
+        if (!root.tagger) root.tagger = Qt.createComponent("GlassTagger.qml").createObject(root, {
+            mode: Qt.binding(function () { return root.mode }),
+            usesDefault: Qt.binding(function () { return root.usesDefault })
+        })
+        root.retag()
+    }
+    function retag() { if (root.tagger) root.tagger.retag() }
 }

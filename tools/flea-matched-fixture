@@ -1,6 +1,10 @@
 #!/bin/bash
 # Builds the capability-matched fixture, see AGENTS.md "Fixtures".
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 # Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below. The
 # marker stays this fixture's own name, so a media build can never delete a matched fixture.
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
@@ -61,11 +65,11 @@ fi
 if [ "$copied" -eq 0 ]; then
   fail "copied nothing out of $src, so it is not a media fixture"
 fi
-left=$(ls "$dir" | grep -cE '\.(heic|mkv)$')
+left=$(ls "$dir" | LC_ALL=C LANGUAGE= grep -cE '\.(heic|mkv)$') # locale-bytes: count excluded raw filename extensions
 if [ "$left" -ne 0 ]; then
   fail "$left dropped-type files survived into $dir"
 fi
 
 sync
 echo "flea-matched-fixture: $built files in $dir on $(findmnt -no FSTYPE -T "$dir"), EXPECT_FILES=$(ls -A "$dir" | wc -l)"
-ls "$dir" | sed 's/.*\.//' | sort | uniq -c | sort -rn
+ls "$dir" | LC_ALL=C LANGUAGE= sed 's/.*\.//' | sort | uniq -c | sort -rn # locale-bytes: count extensions of raw filename bytes

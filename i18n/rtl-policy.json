@@ -1,0 +1,348 @@
+{
+  "schema": 1,
+  "status": "provisional-source-contract",
+  "direction_signal": "Locale::right_to_left",
+  "rtl_languages": [
+    "ar",
+    "fa",
+    "he",
+    "ur"
+  ],
+  "source": {
+    "repository": "https://github.com/omacom/omarchy",
+    "sha": "5978d93ae7da0a325b7493501911e3f1266cadd3",
+    "tag": "v4.5.0-rc2",
+    "final_release": false
+  },
+  "native_reference": {
+    "status": "owed",
+    "languages": [
+      "ar",
+      "he"
+    ],
+    "surfaces": [
+      "panels",
+      "menu/flyout",
+      "slider",
+      "toggle",
+      "key catcher",
+      "mixed numbers/keys"
+    ],
+    "required_provenance": [
+      "shell SHA/version",
+      "language",
+      "theme",
+      "font",
+      "bar/dock configuration"
+    ],
+    "acceptance": "Controller pairs actual native shell and Flea captures before accepting any UI mirror unit. Source extraction alone does not certify native fidelity."
+  },
+  "adaptation": "Shell-source entries describe observed source behavior. Flea-adaptation entries map that behavior to file-manager geometry. Shared-text-contract entries preserve approved Flea bidi, date, key and content rules; they are not claims of corresponding shell widgets.",
+  "text_runs": {
+    "names_and_paths": "FSI+unchanged-text+PDI",
+    "numbers_dates_keycaps": "LRI+unchanged-text+PDI",
+    "reverse_bytes": false,
+    "strip_raw_display_controls": true,
+    "backend_identity": "original-bytes"
+  },
+  "sources": {
+    "roster": {
+      "path": "default/i18n/locales.json",
+      "line": 18,
+      "sha256": "dbe622637c2ee6acb320c0ba6f02cc2eb6338642ae71aa2a8e10e93a5f3beace",
+      "excerpt": "  \"ar\": {\n    \"name\": \"العربية\",\n    \"englishName\": \"Arabic\",\n    \"formatLocale\": \"ar-AE\",\n    \"locale\": \"ar_AE.UTF-8\",\n    \"direction\": \"rtl\",\n    \"decimal\": \".\",\n    \"zeroDigit\": \"0\"\n  },\n  \"fi\": {",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/default/i18n/locales.json#L18"
+    },
+    "direction": {
+      "path": "shell/Commons/I18n.qml",
+      "line": 29,
+      "sha256": "ef01debf0303e3081630dbd4736b308a362f8454ae74417ff044a225156b233c",
+      "excerpt": "  readonly property bool rightToLeft: localeSettings.direction === \"rtl\"",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Commons/I18n.qml#L29"
+    },
+    "reading_key": {
+      "path": "shell/Commons/Util.qml",
+      "line": 125,
+      "sha256": "f252d02a43c9ae10d394e1a2e9349a74a81e1c83021314299b182d58c21f3cf6",
+      "excerpt": "  function readingKey(event, vim) {\n    var key = event.key\n    if (vim && (key === Qt.Key_H || event.text === \"h\")) key = Qt.Key_Left\n    else if (vim && (key === Qt.Key_L || event.text === \"l\")) key = Qt.Key_Right\n    if (I18n.rightToLeft) {\n      if (key === Qt.Key_Left) return Qt.Key_Right\n      if (key === Qt.Key_Right) return Qt.Key_Left\n    }\n    return key\n  }",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Commons/Util.qml#L125"
+    },
+    "overlay": {
+      "path": "shell/Ui/OverlayWindow.qml",
+      "line": 94,
+      "sha256": "563753469de1ae53bb595ddfb0b45803615ca7000ecf05d823a50b7dd4da1e9d",
+      "excerpt": "    property: \"LayoutMirroring.enabled\"\n    value: Commons.I18n.rightToLeft\n  }\n  Binding {\n    target: window.contentItem\n    property: \"LayoutMirroring.childrenInherit\"\n    value: true",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/OverlayWindow.qml#L94"
+    },
+    "popup": {
+      "path": "shell/Ui/PopupCard.qml",
+      "line": 192,
+      "sha256": "7138ab57505734e74084f8af1816206b3db0c6bc659f1f83a419638238b2d550",
+      "excerpt": "      LayoutMirroring.enabled: Commons.I18n.rightToLeft\n      LayoutMirroring.childrenInherit: true",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PopupCard.qml#L192"
+    },
+    "panel": {
+      "path": "shell/Ui/KeyboardPanel.qml",
+      "line": 558,
+      "sha256": "e8e0779598c9aaec0fb084a98c60178ab4fcfee87664a41e30f8e481684c4af9",
+      "excerpt": "      LayoutMirroring.enabled: Commons.I18n.rightToLeft\n      LayoutMirroring.childrenInherit: true",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/KeyboardPanel.qml#L558"
+    },
+    "key_catcher": {
+      "path": "shell/Ui/PanelKeyCatcher.qml",
+      "line": 78,
+      "sha256": "f39fe259bd811ef3be00834a888dfe4ba003b4148738e495708c2070a914c27f",
+      "excerpt": "    var right = event.key === Qt.Key_Right || event.text === \"l\"\n    var left = event.key === Qt.Key_Left || event.text === \"h\"\n    if (LayoutMirroring.enabled ? left : right) {\n      moveRequested(1, 0); event.accepted = true; return\n    }\n    if (LayoutMirroring.enabled ? right : left) {\n      moveRequested(-1, 0); event.accepted = true; return\n    }\n    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelKeyCatcher.qml#L78"
+    },
+    "slider": {
+      "path": "shell/Ui/PanelSlider.qml",
+      "line": 47,
+      "sha256": "b1cf37e74a65133ff0e272233860cb4b6635ccd5f11a83c014a072888d583a54",
+      "excerpt": "  function trackX(fraction) {\n    return track.width * (root.mirrored ? 1 - fraction : fraction)\n  }",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelSlider.qml#L47"
+    },
+    "slider_pointer": {
+      "path": "shell/Ui/PanelSlider.qml",
+      "line": 118,
+      "sha256": "b1cf37e74a65133ff0e272233860cb4b6635ccd5f11a83c014a072888d583a54",
+      "excerpt": "    function valueFromX(x) {\n      var clamped = Math.max(0, Math.min(track.width, root.mirrored ? track.width - x : x))\n      var raw = root.minimum + (clamped / track.width) * root.range\n      if (root.integer) raw = Math.round(raw)\n      return Math.max(root.minimum, Math.min(root.maximum, raw))\n    }",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/PanelSlider.qml#L118"
+    },
+    "toggle": {
+      "path": "shell/Ui/ToggleSwitch.qml",
+      "line": 97,
+      "sha256": "ee2419357a064767d4b6de3b3c341f92ebfce7c8cd9b4b294eb9a6de48f6e167",
+      "excerpt": "      x: root.checked !== root.mirrored ? track.width - width - root.knobInset : root.knobInset",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/ToggleSwitch.qml#L97"
+    },
+    "image": {
+      "path": "shell/Ui/SizedImage.qml",
+      "line": 35,
+      "sha256": "e7c2a140de06e5aa4a3e7bbf6588428ed3f687b257efa6dded6a63e2c384e0f8",
+      "excerpt": "  readonly property int effectiveHorizontalAlignment: !LayoutMirroring.enabled ? horizontalAlignment\n    : horizontalAlignment === Image.AlignLeft ? Image.AlignRight\n    : horizontalAlignment === Image.AlignRight ? Image.AlignLeft\n    : horizontalAlignment",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/Ui/SizedImage.qml#L35"
+    },
+    "menu_navigation": {
+      "path": "shell/plugins/menu/Menu.qml",
+      "line": 1344,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
+      "excerpt": "          } else if ((event.key === Qt.Key_Backspace || Util.readingKey(event) === Qt.Key_Left) && !root.filterText) {\n            root.goBack()\n            event.accepted = true\n          } else if (event.key === Qt.Key_Up) {\n            root.select(-1)\n            event.accepted = true\n          } else if (event.key === Qt.Key_Down) {\n            root.select(1)\n            event.accepted = true\n          } else if (event.key === Qt.Key_PageUp) {\n            root.select(-6)\n            event.accepted = true\n          } else if (event.key === Qt.Key_PageDown) {\n            root.select(6)\n            event.accepted = true\n          } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || Util.readingKey(event) === Qt.Key_Right) {\n            if (root.dmenuActive) {\n              if (root.mode === \"input\") root.applyDmenuSelection(root.filterText)",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1344"
+    },
+    "menu_arrow": {
+      "path": "shell/plugins/menu/Menu.qml",
+      "line": 1604,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
+      "excerpt": "                  text: row.kind === \"menu\" || row.kind === \"link\" ? (Commons.I18n.rightToLeft ? \"‹\" : \"›\") : \"\"",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1604"
+    },
+    "crumbs": {
+      "path": "shell/plugins/menu/Menu.qml",
+      "line": 1573,
+      "sha256": "f76b25be69e80fbb139d29ca8e4bca8a98078f559d203750c3ced0f86f6d5f21",
+      "excerpt": "                  text: Commons.I18n.rightToLeft && row.kind !== \"dmenu\" ? row.detail.replace(/ › /g, \" ‹ \") : row.detail",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/menu/Menu.qml#L1573"
+    },
+    "dock": {
+      "path": "shell/plugins/dock/DockWindow.qml",
+      "line": 16,
+      "sha256": "7fd7fb9442c2f0c13036d1c97958e9a935529eafb2a201b14336fc897da76308",
+      "excerpt": "  Binding { target: window.contentItem; property: \"LayoutMirroring.enabled\"; value: Commons.I18n.rightToLeft }\n  Binding { target: window.contentItem; property: \"LayoutMirroring.childrenInherit\"; value: true }",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/dock/DockWindow.qml#L16"
+    },
+    "dock_strip": {
+      "path": "shell/plugins/dock/DockWindow.qml",
+      "line": 266,
+      "sha256": "7fd7fb9442c2f0c13036d1c97958e9a935529eafb2a201b14336fc897da76308",
+      "excerpt": "    LayoutMirroring.enabled: false\n    LayoutMirroring.childrenInherit: true",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/dock/DockWindow.qml#L266"
+    },
+    "media": {
+      "path": "shell/plugins/services/media/BarWidget.qml",
+      "line": 199,
+      "sha256": "ce306a3b6d2308c948b0acf08fcf7fa651d69a6d8d5b672b3e004d1c165748a2",
+      "excerpt": "        LayoutMirroring.enabled: false\n        LayoutMirroring.childrenInherit: true",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/services/media/BarWidget.qml#L199"
+    },
+    "weather": {
+      "path": "shell/plugins/panels/weather/Panel.qml",
+      "line": 605,
+      "sha256": "55dfe63d84b5421a5e3cad0f619bc3e0a5b3b495a972b44af0fe3a32269ed829",
+      "excerpt": "            LayoutMirroring.enabled: false",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/panels/weather/Panel.qml#L605"
+    },
+    "qr": {
+      "path": "shell/plugins/panels/wifiqr/Panel.qml",
+      "line": 291,
+      "sha256": "92da41453df61c4aff27119a15959743ddcc54fe87718c5c086320de97424f7b",
+      "excerpt": "              LayoutMirroring.enabled: false",
+      "url": "https://github.com/omacom/omarchy/blob/5978d93ae7da0a325b7493501911e3f1266cadd3/shell/plugins/panels/wifiqr/Panel.qml#L291"
+    }
+  },
+  "roles": {
+    "panels": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Mirror overlay and card contents and descendants. Keep the popup or keyboard panel at its configured bar anchor; mirroring contents does not move its outer window.",
+      "sources": [
+        "overlay",
+        "popup",
+        "panel"
+      ]
+    },
+    "rail": {
+      "action": "mirror",
+      "basis": "flea-adaptation",
+      "rule": "Place the application rail at logical leading (right in RTL), including its row mark, cursor edge and pointer targets. This maps mirrored panel contents to Flea; it does not relocate the configured desktop bar or dock.",
+      "sources": [
+        "overlay",
+        "panel",
+        "dock_strip"
+      ]
+    },
+    "columns": {
+      "action": "mirror",
+      "basis": "flea-adaptation",
+      "rule": "Reflect visual column and cell geometry in its container. Preserve model indices and path identities; map input through the inverse rather than reversing the listing or row data.",
+      "sources": [
+        "overlay",
+        "key_catcher"
+      ]
+    },
+    "menu_arrows": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "The submenu affordance points left in RTL and right in LTR. Place it at logical trailing. Do not reflect unrelated glyphs.",
+      "sources": [
+        "menu_arrow",
+        "panel"
+      ]
+    },
+    "navigation": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Physical Left advances and Right goes back in RTL; h/l follow only where their navigation bindings are active. Vertical moves, Tab/Shift+Tab, Return, Escape and text editing keep their semantics. Menu Backspace goes back only with an empty filter after edit handling.",
+      "sources": [
+        "reading_key",
+        "key_catcher",
+        "menu_navigation"
+      ]
+    },
+    "path_crumbs": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Reverse only the directional crumb separator and its logical placement. Keep ancestor/path identity order and every path component unchanged. Shell dmenu detail strings are explicitly exempt from separator replacement.",
+      "sources": [
+        "crumbs",
+        "reading_key"
+      ]
+    },
+    "sliders": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Minimum is at logical leading (right in RTL), maximum at logical trailing. Mirror fill, knob, ticks and pointer-to-value together. Numeric values and vertical wheel increment meaning stay unchanged.",
+      "sources": [
+        "slider",
+        "slider_pointer"
+      ]
+    },
+    "toggles": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Unchecked knob is at logical leading, checked at logical trailing, so checked is left in RTL. Keep checked state and the click target unchanged.",
+      "sources": [
+        "toggle"
+      ]
+    },
+    "alignment": {
+      "action": "mirror",
+      "basis": "shell-source",
+      "rule": "Swap logical left/right alignment and anchors with layout direction; preserve centered and vertical alignment. SizedImage changes placement inside its box, never its image pixels.",
+      "sources": [
+        "image",
+        "overlay"
+      ]
+    },
+    "numbers": {
+      "action": "keep",
+      "basis": "shared-text-contract",
+      "rule": "Keep locale-formatted numeric text and its unit in LTR run order, isolated from surrounding RTL labels. Do not reverse digits or change Locale formatting.",
+      "sources": [
+        "roster",
+        "weather"
+      ]
+    },
+    "dates": {
+      "action": "keep",
+      "basis": "shared-text-contract",
+      "rule": "Keep the core fixed sortable date form and isolate the whole date/time run LTR. Mirrored column placement does not reverse date characters.",
+      "sources": [
+        "weather",
+        "image"
+      ]
+    },
+    "keycaps": {
+      "action": "keep",
+      "basis": "shared-text-contract",
+      "rule": "Keep the resolved key label and canonical chord order unchanged, isolating the display run LTR. Mirrored navigation changes an action mapping, never keycap bytes or shortcut identity.",
+      "sources": [
+        "reading_key",
+        "key_catcher"
+      ]
+    },
+    "nondirectional_icons": {
+      "action": "keep",
+      "basis": "shared-text-contract",
+      "rule": "Keep nondirectional artwork, file-kind marks and vertical sort arrows unchanged. Only a glyph with a navigation meaning can reflect; moving its box does not reflect its pixels.",
+      "sources": [
+        "image",
+        "menu_arrow",
+        "media"
+      ]
+    },
+    "media": {
+      "action": "keep",
+      "basis": "shell-source",
+      "rule": "Transport controls remain previous, play, next with their original glyphs in every language. A surrounding panel can mirror independently.",
+      "sources": [
+        "media"
+      ]
+    },
+    "file_content": {
+      "action": "keep",
+      "basis": "shared-text-contract",
+      "rule": "Do not reflect file or preview pixels, document contents, QR modules or filename/path bytes. Strip raw bidi and single-line display controls before isolating names and paths with automatic run direction; preserve original backend path bytes and mirror only surrounding application chrome.",
+      "sources": [
+        "image",
+        "qr",
+        "media"
+      ]
+    },
+    "dock": {
+      "action": "keep",
+      "basis": "shell-source",
+      "rule": "The dock app strip and its drag/drop slots keep physical order and configured position. Its window inherits RTL for menus while the strip explicitly disables inherited mirroring.",
+      "sources": [
+        "dock",
+        "dock_strip"
+      ]
+    },
+    "weather": {
+      "action": "keep",
+      "basis": "shell-source",
+      "rule": "A numeric weather reading and its unit keep their order inside a mirrored panel.",
+      "sources": [
+        "weather"
+      ]
+    },
+    "qr": {
+      "action": "keep",
+      "basis": "shell-source",
+      "rule": "QR module columns retain left-to-right order so the code scans; surrounding panel layout can mirror.",
+      "sources": [
+        "qr"
+      ]
+    }
+  }
+}

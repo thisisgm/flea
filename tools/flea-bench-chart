@@ -23,6 +23,10 @@ import re
 import subprocess
 import sys
 
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
+PARSER_ENV.pop("LANGUAGE", None)
+
 # The Bench artboard's palette, read off the canvas. A static chart cannot follow the live Omarchy
 # theme, so these are the chart's colours only; in the app every mark takes a palette role.
 GROUND = "#16161e"
@@ -53,7 +57,7 @@ def esc(s):
 
 
 def report(csv):
-    out = subprocess.run(["tools/flea-bench-report", csv], capture_output=True, text=True)
+    out = subprocess.run(["tools/flea-bench-report", csv], capture_output=True, text=True, env=PARSER_ENV)
     if out.returncode != 0 or "## GUI group" not in out.stdout:
         sys.exit("flea-bench-chart: flea-bench-report gave nothing usable for %s" % csv)
     return out.stdout

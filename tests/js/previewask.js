@@ -1,4 +1,5 @@
 .import "../../ui/js/PreviewAsk.js" as PreviewAsk
+.import "../../ui/js/PreviewSettle.js" as PreviewSettle
 .import "sourcefixture.js" as Source
 
 // The cursor row's thumbnail ask (AGENTS.md "Thumbnail requests in the GUI"): the early ask and load()'s askThumb share one gate, so the second sends nothing twice.
@@ -35,6 +36,33 @@ function run(check) {
         PreviewAsk.earlyWorkFor(earlyBase({ now: 50 })), null)
     check("a pending repeat asks nothing early",
         PreviewAsk.earlyWorkFor(earlyBase({ now: 1000, key: "/d\n2", lastMoveKey: "/d\n2", armed: true })), null)
+    // A held key whose next repeat a busy loop delivers late still has the last row's settle pending: the cursor never rested.
+    check("a late step under a still pending settle asks nothing early",
+        PreviewAsk.earlyWorkFor(earlyBase({ now: 1000, pending: true })), null)
+    check("the settle plan trails such a step", PreviewSettle.plan(1000, 0, 120, "c", "b", false, true), "later")
+    check("and a pending repeat of its own row stays put", PreviewSettle.plan(1000, 0, 120, "b", "b", true, true), "same")
+    // ColumnsArea.moveThird arms the settle for a file row it steps onto from a folder before the move reaches the clock, so that arm is no earlier row.
+    check("a settle armed for this row leaves an idle move to load at once", PreviewSettle.plan(1000, 0, 120, "c", "b", true, false), "now")
+    var column = Source.source("ui/SelectionPreview.qml")
+    check("the column passes an unrested cursor to both decisions",
+        column.split("settle.running && root.settleKey === key, root.unrested(key))").length === 2
+        && column.indexOf("armed: settle.running && root.settleKey === key, pending: root.unrested(key),") >= 0
+        && column.indexOf("function unrested(key) { return (settle.running && root.settleTrails && root.settleKey !== key) || rested.running }") >= 0, true)
+    // ColumnsArea's own arm for a row the preview cannot read stamps no move, so a step off that row still loads at once after quiet.
+    check("only a trailing move's settle counts as pending",
+        /root\.settleKey = key\s*root\.settleTrails = false\s*settle\.restart\(\)/.test(column)
+        && /root\.settleKey = key\s*root\.settleTrails = true\s*settle\.restart\(\)/.test(column), true)
+    // A load made at once leaves its rest running, armed only once the load returns, so a key its work held back trails.
+    check("an at-once load arms the rest after its own work",
+        /root\.fireSettle\(\)\s*\/\/[^\n]*\n\s*rested\.restart\(\)/.test(column), true)
+    // Quick Look's follow reads the same rule: the settle it keeps for an earlier row, or a load made at once whose rest has not run out.
+    var quick = Source.source("ui/Preview.qml")
+    check("Quick Look passes an unrested cursor to its follow decision",
+        quick.indexOf("followSettle.running, root.unrested(key))") >= 0
+        && quick.indexOf("function unrested(key) { return (followSettle.running && root.lastMoveKey !== key) || rested.running }") >= 0, true)
+    check("an at-once follow arms the rest after its own work",
+        /root\.load\(newPath, newIcon, newSize, newKind, newThumb, root\.pendingImageRow\)\s*\/\/[^\n]*\n\s*rested\.restart\(\)/.test(quick)
+        && quick.indexOf("Timer { id: rested; interval: root.followSettleMs }") >= 0, true)
     check("unknown storage asks nothing early, a NAS image would thumbnail in full",
         PreviewAsk.earlyWorkFor(earlyBase({ storageKnown: false })), null)
     check("and load's own ask stays held too", PreviewAsk.workFor(base({ storageKnown: false })), null)

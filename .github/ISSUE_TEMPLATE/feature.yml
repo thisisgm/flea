@@ -1,0 +1,54 @@
+name: Feature request
+description: Something you want Flea to do.
+labels: [enhancement]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you file
+      options:
+        - label: The [latest release](https://github.com/thisisgm/flea/releases/latest) does not already do this.
+          required: true
+        - label: I searched the open issues and this is not already requested.
+          required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you want to do
+      description: The task you are trying to get done, not only the control you picture.
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How it could work
+      description: Keys, menus or views you have in mind.
+  - type: textarea
+    id: proof
+    attributes:
+      label: Screenshots or video
+      description: A mockup, or a capture of another app doing it.
+  - type: input
+    id: elsewhere
+    attributes:
+      label: Seen elsewhere
+      description: Another app that does this well, if any.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where in Flea
+      multiple: true
+      options:
+        - List view
+        - Columns view
+        - Grid view
+        - Two panes
+        - Quick Look
+        - Search
+        - Copy, move, rename or trash
+        - Sidebar and devices
+        - Network
+        - Settings
+        - File chooser
+        - Shelf
+        - Other

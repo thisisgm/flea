@@ -151,6 +151,18 @@ function run(check) {
     fake.start()
     check("the drain's exit starts a clean store that gets the put", fake.root.available === true && fake.writes.length === 2 && fake.writes[1].op === "put" && fake.root.owed === 0 && fake.signals.length === 0, true)
 
+    // A line queued behind a slow start waits past drainMs, then the start writes it and its reply lands.
+    fake = store()
+    fake.root.ask(16, [key])
+    check("a query while the store is down queues behind its start", fake.root.queued.length === 1 && fake.root.starting && fake.root.owed === 1, true)
+    fake.now = fake.root.drainMs + 1
+    fake.tick()
+    check("a queued line behind a start is not lapsed past drainMs", fake.knowns.length === 0 && fake.root.owed === 1, true)
+    fake.start()
+    check("the start writes the queued line", fake.writes.length === 1 && fake.writes[0].op === "known", true)
+    fake.reply({ id: 16, known: true })
+    check("its reply lands when the start does", fake.knowns.length === 1 && fake.knowns[0].all === true && fake.root.owed === 0, true)
+
     // A store that ignores EOF is hung at drainHangMs and killed, never latched; its lines were answered at drainMs and its queued puts go to the next store.
     fake = store()
     fake.root.put(key, "<svg/>")

@@ -73,7 +73,7 @@ def flea_binary():
 # on this box with PyGObject 3.56.3: a D-Bus `as` unpacks to a list of str, and
 # GLib.filename_from_uri refuses a foreign scheme, a relative URI and a %00, but accepts both a
 # foreign authority and a %0A. The decoder is glib's own; the two rules it does not carry are here.
-# Sample input: file:///home/gm/Downloads/caf%C3%A9.pdf
+# Sample input: file:///srv/Downloads/caf%C3%A9.pdf
 def path_for(uri):
     if not isinstance(uri, str):
         return None, "a URI that is not a string"

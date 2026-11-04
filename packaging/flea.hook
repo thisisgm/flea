@@ -3,8 +3,6 @@
 Type = Package
 Operation = Remove
 Target = flea
-Target = flea-bin
-Target = flea-git
 
 [Action]
 Description = Noting what Flea leaves in each user's config

@@ -153,7 +153,7 @@ fn evict_between(dir: &Path, bound: &Bound, between: impl FnOnce()) {
             if stale {
                 let _ = std::fs::remove_file(&path);
             }
-        } else if name.ends_with(COPY_SUFFIX) {
+        } else if name.ends_with(COPY_SUFFIX) && crate::cachewrite::allowed(&path) {
             count += 1;
             total += meta.len();
             if stale {
@@ -195,6 +195,7 @@ fn head_orientation(head: &[u8]) -> Option<u16> {
 
 // Temp, exclusive create, rename: a planted path is never followed and a reader sees a whole copy or none.
 fn publish(dir: &Path, file: &Path, src: &Path, stamp: SystemTime) -> Option<()> {
+    crate::cachewrite::require(file).ok()?;
     let (preview, facts) = inspect(src)?;
     let preview = preview?;
     let mut input = open_regular(src)?;

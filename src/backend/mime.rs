@@ -44,7 +44,9 @@ impl Db {
                 _ => continue,
             };
             // The 4th field is a comma-separated flag list, and "cs" is the only flag this database uses.
-            let cs = parts.next().is_some_and(|f| f.split(',').any(|flag| flag == "cs"));
+            let cs = parts
+                .next()
+                .is_some_and(|f| f.split(',').any(|flag| flag == "cs"));
 
             // corner: 10 of 1594 globs use a character class or a non-leading star; see AGENTS.md "MIME globs".
             if glob.contains('[') || glob.contains('?') {
@@ -67,7 +69,12 @@ impl Db {
                 insert_heaviest(map, key, weight, mime);
             }
         }
-        Db { by_suffix_cs, by_suffix, by_name_cs, by_name }
+        Db {
+            by_suffix_cs,
+            by_suffix,
+            by_name_cs,
+            by_name,
+        }
     }
 
     // Takes a name or a path, and answers on the last component: a directory's own dot is not a suffix.
@@ -80,10 +87,10 @@ impl Db {
         };
         let lower = name.to_lowercase();
         if let Some((_, mime)) = self.by_name_cs.get(name) {
-            return Some(mime);
+            return Some(camera_type(mime, name));
         }
         if let Some((_, mime)) = self.by_name.get(&lower) {
-            return Some(mime);
+            return Some(camera_type(mime, name));
         }
         // Lowercasing never adds or removes a dot, so the two strings' dots pair up and each offset indexes its own string.
         let dots = name.match_indices('.').zip(lower.match_indices('.'));
@@ -94,13 +101,21 @@ impl Db {
                 continue;
             }
             if let Some((_, mime)) = self.by_suffix_cs.get(&name[dot..]) {
-                return Some(mime);
+                return Some(camera_type(mime, name));
             }
             if let Some((_, mime)) = self.by_suffix.get(&lower[dot_lower..]) {
-                return Some(mime);
+                return Some(camera_type(mime, name));
             }
         }
-        None
+        flea::rawname::mime_for_name(name)
+    }
+}
+
+fn camera_type<'a>(mime: &'a str, name: &str) -> &'a str {
+    if mime == "application/octet-stream" {
+        flea::rawname::mime_for_name(name).unwrap_or(mime)
+    } else {
+        mime
     }
 }
 
@@ -146,7 +161,10 @@ mod tests {
     #[test]
     fn the_longer_extension_wins() {
         let d = db();
-        assert_eq!(d.lookup("archive.tar.gz"), Some("application/x-compressed-tar"));
+        assert_eq!(
+            d.lookup("archive.tar.gz"),
+            Some("application/x-compressed-tar")
+        );
         assert_ne!(d.lookup("archive.tar.gz"), d.lookup("blob.gz"));
     }
 
@@ -210,13 +228,33 @@ mod tests {
     #[test]
     fn a_row_below_the_base_is_looked_up_by_its_own_name() {
         let d = db();
-        assert_eq!(d.lookup("src/Makefile"), d.lookup("Makefile"), "the by-name glob is keyed on the name");
-        assert_eq!(d.lookup("src/notes.txt"), Some("text/plain"), "and a suffix below the base still resolves");
+        assert_eq!(
+            d.lookup("src/Makefile"),
+            d.lookup("Makefile"),
+            "the by-name glob is keyed on the name"
+        );
+        assert_eq!(
+            d.lookup("src/notes.txt"),
+            Some("text/plain"),
+            "and a suffix below the base still resolves"
+        );
         // A dot in a directory component is not this file's extension, and a leading dot below the
         // base is a hidden file the same as one at the top, which an offset-zero test used to miss.
-        assert_eq!(d.lookup("v1.2/notes"), None, "a directory's own dot offers no suffix");
-        assert_eq!(d.lookup("src/.jpg"), None, "a hidden file below the base is still hidden");
-        assert_eq!(d.lookup("v1.2/holiday.jpg"), Some("image/jpeg"), "and the real suffix is still read");
+        assert_eq!(
+            d.lookup("v1.2/notes"),
+            None,
+            "a directory's own dot offers no suffix"
+        );
+        assert_eq!(
+            d.lookup("src/.jpg"),
+            None,
+            "a hidden file below the base is still hidden"
+        );
+        assert_eq!(
+            d.lookup("v1.2/holiday.jpg"),
+            Some("image/jpeg"),
+            "and the real suffix is still read"
+        );
     }
 
     #[test]

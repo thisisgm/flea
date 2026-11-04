@@ -3,23 +3,12 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::Instant;
 
-pub struct Meta {
-    pub size: u64,
-    pub mtime: i64,
-    pub mode: u32,
-    pub target_is_dir: bool,
-    // Where a symlink points, verbatim and unresolved, empty for every other kind of row; see
-    // docs/protocol.md "rows". The link's own bytes, so a relative target stays relative.
-    pub target: String,
-    // The filesystem this row lives on, so a drop can tell a move within one volume from a copy
-    // across two the way Finder does. Free here: the stat that fills the fields above already read it.
-    pub dev: u64,
-}
+pub use super::metarow::Meta;
 
 // The st_mode file-type bits, plus the two types a thumbnail request can reach: a regular file, or a symlink whose target is stat'd when the row is asked for.
-const S_IFMT: u32 = 0o170000;
+pub(crate) const S_IFMT: u32 = 0o170000;
 const S_IFREG: u32 = 0o100000;
-const S_IFLNK: u32 = 0o120000;
+pub(crate) const S_IFLNK: u32 = 0o120000;
 
 // A fifo, socket or device node named like a video would block a decoder for its whole timeout, so no such row is offered; see AGENTS.md "Thumbnail requests".
 pub fn thumbnailable(mode: u32) -> bool {
@@ -80,7 +69,7 @@ fn cached_or(base: &Path, l: &Listing, i: usize, stat: &(impl Fn(&Path, &str) ->
     let name = l.name(i);
     if let Some(g) = l.gio_for(i) {
         let target_is_dir = linked_dir(base, name, l.spans.get(i).is_some_and(|s| s.is_symlink));
-        return Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: l.gio_target(g.name_off).to_string(), dev: l.base_dev };
+        return Meta { birth: None, size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: l.gio_target(g.name_off).to_string(), dev: l.base_dev };
     }
     stat(base, name)
 }
@@ -111,7 +100,12 @@ fn stat_parallel(start: usize, end: usize, row: &(impl Fn(usize) -> Meta + Sync)
     })
 }
 
+#[cfg(test)]
+thread_local! { pub(crate) static SEARCH_STAT_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+
 fn meta_one(base: &Path, name: &str) -> Meta {
+    #[cfg(test)]
+    SEARCH_STAT_CALLS.with(|calls| calls.set(calls.get() + 1));
     // corner: a row that vanished between listing and stat reports zeroes, see AGENTS.md.
     match base.join(name).symlink_metadata() {
         Ok(m) => {
@@ -124,7 +118,7 @@ fn meta_one(base: &Path, name: &str) -> Meta {
             } else {
                 String::new()
             };
-            Meta { size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev() }
+            Meta { birth: super::birthtime::of(&m), size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev() }
         }
         Err(_) => zeroes(),
     }
@@ -133,7 +127,12 @@ fn meta_one(base: &Path, name: &str) -> Meta {
 // mode 0 needs no flag beside it: a real st_mode always carries its file-type bits, so
 // 0 is outside the domain and is itself the "I could not look" marker for the whole row.
 fn zeroes() -> Meta {
-    Meta { size: 0, mtime: 0, mode: 0, target_is_dir: false, target: String::new(), dev: 0 }
+    Meta { birth: None, size: 0, mtime: 0, mode: 0, target_is_dir: false, target: String::new(), dev: 0 }
+}
+// The rows of a window whose stat failed: names stay with the zeroes, clamped to the listing like window_rows.
+pub(crate) fn lost_window(l: &Listing, start: usize, count: usize) -> Vec<Meta> {
+    let end = start.saturating_add(count).min(l.len());
+    (start.min(end)..end).map(|_| zeroes()).collect()
 }
 
 // One window row's cached gio facts, owned so a remote worker answers from the store with no arena clone.
@@ -177,7 +176,7 @@ fn stat_window_rows_with(base: &Path, rows: &[WindowRow], slow_ms: f64, threaded
 // One row's answer: a cached row from its snapshot, any other by stat, a cached symlink paying one follow-stat.
 fn window_meta_one(base: &Path, row: &WindowRow) -> Meta {
     match &row.cached {
-        Some(g) => Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir: linked_dir(base, &row.name, g.is_symlink), target: g.target.clone(), dev: g.base_dev },
+        Some(g) => Meta { birth: None, size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir: linked_dir(base, &row.name, g.is_symlink), target: g.target.clone(), dev: g.base_dev },
         None => meta_one(base, &row.name),
     }
 }
@@ -391,7 +390,7 @@ mod tests {
         let seen = Arc::clone(&seen_fast);
         let fast = move |_: &Path, name: &str| {
             seen.lock().unwrap().insert(std::thread::current().id());
-            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+            Meta { birth: None, size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
         };
         let (metas, _) = stat_range_with(d.path(), &l, 0, 16, SLOW_PASS_MS, fast);
         assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));
@@ -402,7 +401,7 @@ mod tests {
         let slow = move |_: &Path, name: &str| {
             seen.lock().unwrap().insert(std::thread::current().id());
             std::thread::sleep(std::time::Duration::from_millis(25));
-            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+            Meta { birth: None, size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
         };
         let (metas, _) = stat_range_with(d.path(), &l, 0, 16, SLOW_PASS_MS, slow);
         assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));
@@ -432,7 +431,7 @@ mod tests {
                 move |_: &Path, name: &str| {
                     seen.lock().unwrap().insert(std::thread::current().id());
                     std::thread::sleep(std::time::Duration::from_millis(25));
-                    Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+                    Meta { birth: None, size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
                 }
             };
             let (metas, _) = stat_range_with(d.path(), &mk(dev), 0, 16, SLOW_PASS_MS, slow);
@@ -525,7 +524,7 @@ mod tests {
             let stub = move |_: &Path, row: &WindowRow| {
                 seen.lock().unwrap().insert(std::thread::current().id());
                 std::thread::sleep(std::time::Duration::from_millis(sleep_ms));
-                Meta { size: row.name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+                Meta { birth: None, size: row.name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
             };
             let (metas, _) = stat_window_rows_with(d.path(), &rows, SLOW_PASS_MS, threaded, stub);
             assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));

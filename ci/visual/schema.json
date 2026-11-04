@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "boards": [
+    "columns",
+    "dual",
+    "grid",
+    "list",
+    "copyto",
+    "copyto-empty",
+    "lang-about",
+    "lang-ar-list",
+    "lang-caps",
+    "lang-de-dialog",
+    "lang-de-menu",
+    "lang-de-settings",
+    "lang-ja-list",
+    "lang-ja-rename",
+    "lang-ru-keys"
+  ],
+  "references": [
+    "cols-cursorfull-1100x700",
+    "dual-populated-1100x700",
+    "grid-populated-1100x700",
+    "list-populated-1100x700",
+    "collision-card-1100x700",
+    "keymap-sheet-1100x700",
+    "menu-submenu-1100x700",
+    "rename-list14-1100x700",
+    "settings-about-1100x700",
+    "settings-view-1100x700"
+  ],
+  "views": [
+    "columns",
+    "dual",
+    "grid",
+    "list"
+  ],
+  "densities": [
+    "comfortable",
+    "compact"
+  ],
+  "required": [
+    "id",
+    "unit",
+    "board",
+    "reference",
+    "reference_tag",
+    "fixture",
+    "width",
+    "height",
+    "text_size",
+    "density",
+    "view",
+    "selection",
+    "cursor",
+    "corner_radius",
+    "reduced_motion",
+    "caret_blink",
+    "theme",
+    "decisions",
+    "changes",
+    "covers"
+  ],
+  "scene_ids": [
+    "g1-01-columns-r0",
+    "g1-01-columns-r8",
+    "g1-01-list-r0",
+    "g1-01-list-r8",
+    "g1-01-grid-r0",
+    "g1-01-grid-r8",
+    "g1-01-dual-r0",
+    "g1-01-dual-r8",
+    "g2.op1.copyto.r8",
+    "g2.op1.copyto.r0",
+    "g2.op1.copyto-empty.r8",
+    "g2.op1.copyto-empty.r0"
+  ],
+  "decisions": [
+    "columns-name"
+  ],
+  "changes": [
+    "columns",
+    "list",
+    "grid",
+    "dual",
+    "recipes"
+  ],
+  "language_scenes": {
+    "prefix": "i50.",
+    "pattern": "i50\\.(catalog|fit|ime|fonts|rtl|live)\\.[A-Za-z0-9_.-]+",
+    "surfaces": [
+      "about",
+      "caps",
+      "dialog",
+      "keys",
+      "list",
+      "menu",
+      "rename",
+      "settings"
+    ],
+    "states": [
+      "rest",
+      "hover",
+      "focus",
+      "pressed",
+      "disabled"
+    ]
+  }
+}

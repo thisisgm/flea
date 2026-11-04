@@ -18,7 +18,6 @@ fn open_child() {
 
 // A stub gio that logs every call, names FLEA_STUB_TYPE for any file and a default only for FLEA_STUB_CLAIMED, on a PATH only the child sees.
 fn stub_gio(dir: &crate::backend::testdir::TestDir) -> (OsString, PathBuf) {
-    use std::os::unix::fs::PermissionsExt;
     let bin = dir.path().join("bin");
     std::fs::create_dir(&bin).expect("the stub dir is made");
     let log = dir.path().join("gio.log");
@@ -26,8 +25,7 @@ fn stub_gio(dir: &crate::backend::testdir::TestDir) -> (OsString, PathBuf) {
         "#!/bin/sh\necho \"gio $*\" >> \"{}\"\nif [ \"$1\" = open ]; then exit ${{FLEA_STUB_OPEN:-1}}; fi\nif [ \"$1\" = launch ]; then exit 0; fi\nif [ \"$1\" = info ]; then echo \"  standard::content-type: ${{FLEA_STUB_TYPE:-application/octet-stream}}\"; exit 0; fi\nif [ \"$1\" = mime ] && [ \"$2\" = \"$FLEA_STUB_CLAIMED\" ]; then echo \"Default application for '$2': $FLEA_STUB_HANDLER\"; exit 0; fi\nif [ \"$1\" = mime ]; then echo \"No default applications for '$2'\"; exit 0; fi\nexit 1\n",
         log.display()
     );
-    std::fs::write(bin.join("gio"), stub.as_bytes()).expect("the stub is written");
-    std::fs::set_permissions(bin.join("gio"), std::fs::Permissions::from_mode(0o755)).expect("the stub runs");
+    dir.executable("bin/gio", stub.as_bytes(), 0o755);
     let mut path = bin.into_os_string();
     path.push(":");
     path.push(std::env::var_os("PATH").unwrap_or_default());
@@ -77,7 +75,7 @@ fn an_in_process_open_refuses_a_binary_missing_its_bit_without_asking_gio() {
     std::fs::set_permissions(&elf, std::fs::Permissions::from_mode(0o644)).expect("its run bit is off");
     let (path, log) = stub_gio(&dir);
     let out = run_child("FLEA_TEST_OPEN", &elf, path);
-    assert_eq!(out.status.code(), Some(super::FAILED), "the binary is refused");
+    assert_eq!(out.status.code(), Some(crate::runfile::NOT_EXECUTABLE), "the binary is refused under its own status");
     assert!(String::from_utf8_lossy(&out.stderr).contains("that file is a program"), "with the program sentence: {}", String::from_utf8_lossy(&out.stderr));
     let calls = std::fs::read_to_string(&log).unwrap_or_default();
     assert!(!calls.contains("gio open"), "gio was never asked to open it: {calls}");
@@ -164,11 +162,63 @@ fn a_window_open_refuses_a_binary_missing_its_bit_without_a_card() {
         let target = fixture(&dir, name, &bytes, 0o644);
         let (path, log) = stub_gio(&dir);
         let out = run_child_with("FLEA_TEST_OPEN_ASK", target.as_os_str(), path, &[("FLEA_STUB_OPEN", "0".as_ref())]);
-        assert_eq!(out.status.code(), Some(super::FAILED), "{} is refused", target.display());
+        assert_eq!(out.status.code(), Some(crate::runfile::NOT_EXECUTABLE), "{} is refused under its own status", target.display());
         assert!(!String::from_utf8_lossy(&out.stdout).contains(r#""ask""#), "no card was asked for");
         assert!(String::from_utf8_lossy(&out.stderr).contains("that file is a program"), "with the program sentence");
         assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("gio open"), "gio was never asked to open it");
     }
+}
+
+// The mount table a box without a noexec volume reads: every path below it allows running.
+const MOUNTS: &str = "1 0 8:1 / / rw - ext4 /dev/a rw\n";
+
+// A binary missing its bit answers its own status and never the generic failure the window words as a missing application.
+#[test]
+fn a_binary_missing_its_bit_answers_its_own_status() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    for (name, bytes) in [("tool", elf), ("app.AppImage", appimage_bytes())] {
+        let dir = crate::backend::testdir::TestDir::new("open-unbit-status");
+        let target = fixture(&dir, name, &bytes, 0o644);
+        let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+        assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS, &[]), crate::runfile::NOT_EXECUTABLE, "{} answers its own status", name);
+    }
+}
+
+// A program on a noexec volume answers the run card's status, and the same program on a volume that allows running still asks.
+#[test]
+fn a_program_on_a_noexec_volume_answers_the_run_card_status() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    let dir = crate::backend::testdir::TestDir::new("open-noexec-status");
+    let target = fixture(&dir, "tool", &elf, 0o755);
+    let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+    let noexec = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:99 / {} rw,noexec - tmpfs tmpfs rw\n", dir.path().display());
+    assert_eq!(super::open_snapshot(&target, &opened, true, &noexec, &[]), crate::runfile::RUN_NOEXEC, "the noexec volume refuses under the card's status");
+    assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS, &[]), crate::runfile::ASK_RUN, "the same program on an exec volume asks");
+}
+
+// open() never asks the card, and a binary missing its bit still answers its own status with no handler run: open_normally answers only 0, 2 and 5.
+#[test]
+fn a_binary_missing_its_bit_answers_its_own_status_for_in_process_callers() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    let dir = crate::backend::testdir::TestDir::new("open-unbit-ask-false");
+    let target = fixture(&dir, "tool", &elf, 0o644);
+    let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+    assert_eq!(super::open_snapshot(&target, &opened, false, MOUNTS, &[]), crate::runfile::NOT_EXECUTABLE, "the in-process caller gets the binary's own status");
+}
+
+// open() never asks the card, and a program on a noexec volume still answers the run card's status with no handler run: status 7 is never an open_normally answer.
+#[test]
+fn a_program_on_a_noexec_volume_answers_its_status_for_in_process_callers() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    let dir = crate::backend::testdir::TestDir::new("open-noexec-ask-false");
+    let target = fixture(&dir, "tool", &elf, 0o755);
+    let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+    let noexec = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:99 / {} rw,noexec - tmpfs tmpfs rw\n", dir.path().display());
+    assert_eq!(super::open_snapshot(&target, &opened, false, &noexec, &[]), crate::runfile::RUN_NOEXEC, "the in-process caller gets the noexec status");
 }
 
 // F3: an application uninstalled between the ask and the press answers its own exit, and nothing is launched.
@@ -206,3 +256,6 @@ fn the_handler_button_launches_the_named_entry_with_the_file() {
     assert_eq!(out.status.code(), Some(crate::runfile::RUN_CHANGED), "a swapped file is refused");
     assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("launch"), "and nothing was launched");
 }
+
+#[path = "open_selection_tests.rs"]
+mod selection_tests;

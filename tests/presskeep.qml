@@ -4,7 +4,7 @@ import QtTest
 import Quickshell
 import "flea" as Flea
 
-// A press held across a watched re-read of an unchanged listing must still tap on release, in every view.
+// A press held across a watched re-read of an unchanged listing, or past the press-and-hold interval, must still tap on release, in every view.
 ShellRoot {
     id: root
     readonly property var pane: body.currentPane
@@ -16,6 +16,8 @@ ShellRoot {
     readonly property int pointerEventMs: 1
     // Longer than the 400 ms watchMs burst timer plus a local round trip, so a re-read the press does not hold lands inside the press.
     readonly property int holdMs: 700
+    // Past the platform's press-and-hold interval, where a TapHandler's default long press would swallow the release.
+    readonly property int longHoldMarginMs: 200
     readonly property int liftSteps: 1
     readonly property int liftStepPx: 40
     readonly property var cases: {
@@ -23,6 +25,8 @@ ShellRoot {
         for (var view of ["list", "grid", "columns"])
             for (var button of [Qt.RightButton, Qt.LeftButton])
                 for (var changed of [false, true]) out.push({view: view, button: button, changed: changed})
+        for (var longView of ["list", "grid", "columns"])
+            for (var longButton of [Qt.RightButton, Qt.LeftButton]) out.push({view: longView, button: longButton, changed: false, long: true})
         // A press that lifts a file drag: the platform drag takes the release, so the pane must clear the hold itself.
         for (var dragView of ["list", "grid", "columns"]) out.push({view: dragView, button: Qt.LeftButton, changed: true, drag: true})
         return out
@@ -44,7 +48,7 @@ ShellRoot {
     property point heldPoint: Qt.point(0, 0)
     readonly property var current: cases[caseIndex]
 
-    function label() { return caseIndex < cases.length ? current.view + "/" + (current.button === Qt.RightButton ? "right" : "left") + (current.drag ? "/drag" : current.changed ? "/changed" : "/quiet") : "end" }
+    function label() { return caseIndex < cases.length ? current.view + "/" + (current.button === Qt.RightButton ? "right" : "left") + (current.drag ? "/drag" : current.long ? "/long" : current.changed ? "/changed" : "/quiet") : "end" }
     function check(name, actual, expected) {
         checks += 1
         var equal = actual === expected
@@ -126,7 +130,10 @@ ShellRoot {
             next("paid")
         } else if (stage === "held") {
             if (current.changed && Date.now() - started < holdMs) return
+            if (current.long === true && Date.now() - started < Qt.styleHints.mousePressAndHoldInterval + longHoldMarginMs) return
             if (current.changed) check("the pressed delegate lasts the press", pane.visibleItemFor(pressedRow) === heldItem, true)
+            if (current.long === true) check("the press is still held past the press-and-hold interval",
+                                             Qt.styleHints.mousePressAndHoldInterval > 0 && pane.pointerHeld, true)
             driver.mouseRelease(body, heldPoint.x, heldPoint.y, current.button, Qt.NoModifier, pointerEventMs)
             if (current.button === Qt.RightButton) check("release opens the menu", pane.contextMenu().opened, true)
             else check("release moves the cursor to the pressed row", pane.cursorIndex, pressedRow)

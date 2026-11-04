@@ -1,3 +1,4 @@
+. "$(dirname "${BASH_SOURCE[0]}")/flea-ipc"
 # The pid of the one Flea running a given ui tree, because a path is not an instance selector.
 #
 #   . tools/flea-ipc-pid
@@ -18,6 +19,10 @@
 #     Shell ID: flea
 #     Config path: /usr/share/flea/ui/boot/shell.qml
 flea_ipc_pids() {
+  if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+    LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" lookup "$FLEA_TEST_WINDOWS_ROOT" "$1"
+    return $?
+  fi
   local want="$1/boot/shell.qml" pid= line
   while IFS= read -r line; do
     case $line in
@@ -25,14 +30,14 @@ flea_ipc_pids() {
       *"Process ID: "*) pid=${line##*": "} ;;
       *"Config path: "*) [ "${line##*": "}" = "$want" ] && printf '%s\n' "$pid" ;;
     esac
-  done < <(qs list --all 2>/dev/null)
+  done < <(LC_ALL=C.UTF-8 LANGUAGE= flea_ipc_list --all 2>/dev/null)
 }
 
 # Refuses rather than picks: two instances at one path is the exact state that produced a wrong
 # reading, so the caller is told instead of being handed whichever one qs happened to reach first.
 flea_ipc_pid() {
   local ui="$1" pids
-  pids=$(flea_ipc_pids "$ui" | tr '\n' ' ')
+  pids=$(flea_ipc_pids "$ui" | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' ')
   set -- $pids
   case $# in
     0) echo "flea-ipc-pid: no Flea is running from $ui" >&2; return 1 ;;

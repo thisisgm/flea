@@ -32,11 +32,10 @@ pub fn resolve(id: &str) -> Option<PathBuf> {
 
 // The text editor the desktop names for text/plain, or "" when it names none.
 pub fn text_editor() -> String {
-    let out = std::process::Command::new("xdg-mime")
+    let out = crate::backend::locale::command("xdg-mime")
         .arg("query")
         .arg("default")
         .arg("text/plain")
-        .env("LC_ALL", "C")
         .output();
     match out {
         Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
@@ -57,10 +56,9 @@ pub fn handler_of(output: &str) -> String {
 
 // Sample output: "Default application for 'x': a.desktop" runs gio, "No default ..." asks, and a failed lookup is claimed so a refused launch keeps its sentence.
 pub fn default_handler_gio(mime: &str) -> String {
-    let out = std::process::Command::new("gio")
+    let out = crate::backend::locale::command("gio")
         .arg("mime")
         .arg(mime)
-        .env("LC_ALL", "C")
         .output();
     match out {
         Ok(o) if o.status.success() => handler_of(&String::from_utf8_lossy(&o.stdout)),

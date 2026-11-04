@@ -1,39 +1,52 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 // The exit status ui/Opener.qml reads. 0 is a successful handoff and needs no name.
 pub const FAILED: i32 = 2;
 
-/// Resolve a relative path or symlink to the directory the terminal should use.
+// Canonical, so a relative path and a symlink both name the one real directory the terminal sits in.
 fn resolved(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
 
-/// Open a terminal in `path`, preferring the desktop's `xdg-terminal-exec`.
-/// If that launcher is missing, try Alacritty, Kitty, then xterm in the resolved directory.
-/// Return [`FAILED`] when the path is invalid or no terminal can be launched.
+// xdg-terminal-exec is the OEM route: `omarchy default terminal` configures what it reads,
+// and --dir= names the working directory without taking a command.
 pub fn open_terminal(path: &str) -> i32 {
     let target = match resolved(path) {
-        Some(p) => p,
-        // The reason is elided, never shown raw, and the path is the user's own input.
-        None => {
-            eprintln!("flea: that folder could not be opened in a terminal; check that it still exists");
-            return FAILED;
-        }
+        Some(p) if p.is_dir() => Some(p),
+        // A file row, a dangling link included, opens in the folder that lists it, not its link target's.
+        _ if Path::new(path).symlink_metadata().is_ok() => listing_folder(path),
+        _ => None,
     };
-    if !target.is_dir() {
-        eprintln!("flea: that folder could not be opened in a terminal; check that it still exists");
+    let Some(target) = target.filter(|p| p.is_dir()) else {
+        // The reason is elided, never shown raw, and the path is the user's own input.
+        eprintln!(
+            "flea: that folder could not be opened in a terminal; check that it still exists"
+        );
         return FAILED;
-    }
+    };
     // An OsString and not a format!, because Path::display would substitute U+FFFD for a byte that is not UTF-8.
     let mut dir = OsString::from("--dir=");
     dir.push(&target);
     // corner: spawn and not exec, because the terminal outlives us; see AGENTS.md "Opening a file".
-    let mut terminal = Command::new("xdg-terminal-exec");
+    let mut terminal = match resolved_command(&dir) {
+        Some(argv) => {
+            let mut command = Command::new(&argv[0]);
+            // The launcher's own cd, for an entry that names no directory option.
+            command.args(&argv[1..]).current_dir(&target);
+            command
+        }
+        None => {
+            let mut command = Command::new("xdg-terminal-exec");
+            command.arg(&dir);
+            command
+        }
+    };
     detach(&mut terminal);
-    let started = terminal.arg(&dir).spawn().or_else(|error| {
+    let started = terminal.spawn().or_else(|error| {
         if error.kind() != std::io::ErrorKind::NotFound { return Err(error); }
         // Desktop setups without xdg-terminal-exec can still use a local emulator.
         let mut alacritty = Command::new("alacritty");
@@ -60,8 +73,54 @@ pub fn open_terminal(path: &str) -> i32 {
     }
 }
 
-/// Apply the process guards to a child that Flea starts without waiting for it.
-/// The updater in `src/update.rs` uses these guards too.
+// A bare file name is listed in the folder flea was started in.
+fn listing_folder(path: &str) -> Option<PathBuf> {
+    match Path::new(path).parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.canonicalize().ok(),
+        _ => resolved("."),
+    }
+}
+
+// A running single-instance Ghostty drops --working-directory, so its own launch is asked for; #373.
+fn resolved_command(dir: &OsStr) -> Option<Vec<OsString>> {
+    let printed = Command::new("xdg-terminal-exec")
+        .arg("--print-cmd=\\0")
+        .arg(dir)
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+        .ok()
+        .filter(|out| out.status.success())?;
+    let mut argv = command_from(&printed.stdout)?;
+    if Path::new(&argv[0]).file_name() == Some(OsStr::new("ghostty")) {
+        argv.push("--gtk-single-instance=false".into());
+    }
+    Some(argv)
+}
+
+// Sample input: b"ghostty\0--gtk-single-instance=true\0--working-directory=/home/u/src"
+fn command_from(printed: &[u8]) -> Option<Vec<OsString>> {
+    let argv: Vec<OsString> = printed
+        .split(|b| *b == 0)
+        .map(|word| OsStr::from_bytes(word).to_os_string())
+        .collect();
+    (!argv[0].is_empty()).then_some(argv)
+}
+
+// The same OEM launcher with a command, passed as argv after the option terminator.
+pub(crate) fn open_argv(directory: &std::path::Path, argv: &[String]) -> std::io::Result<()> {
+    if argv.is_empty() {
+        return Err(std::io::Error::other("empty terminal action"));
+    }
+    let target = directory.canonicalize()?;
+    let mut dir = OsString::from("--dir=");
+    dir.push(target);
+    let mut terminal = Command::new("xdg-terminal-exec");
+    detach(&mut terminal);
+    terminal.arg(dir).arg("--").args(argv).spawn().map(|_| ())
+}
+
+// The guards every program Flea starts and does not wait for carries; src/update.rs hands its updater the same.
 pub fn detach(child: &mut Command) {
     // One helper owns the environment, so a new guard reaches every launcher at once; see src/open.rs.
     crate::open::prepare(child);

@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Fetch pinned CC0 camera originals from raw.pixls.us, or verify them offline.
+
+The sibling TSV pins the site's json/getrepository.php?set=all listing. Its
+licence column preserves the CC0 link's title, verbatim. Filenames include a
+hash prefix so different samples from one camera have stable, unique names.
+Use --manifest PATH on a command to operate on another pinned manifest.
+"""
+
+import argparse
+import csv
+import hashlib
+import os
+from pathlib import Path
+import re
+import stat
+import sys
+import tempfile
+import unicodedata
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+
+FIELDS = "set suffix make model url sha256 bytes licence mime".split()
+SETS = ("twelve", "hundred")
+LICENCE = "Creative Commons 0 - Public Domain"
+MANIFEST = Path(__file__).with_suffix(".tsv")
+TIMEOUT = 30
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def https_url(url):
+    parsed = urlsplit(url)
+    require(parsed.scheme == "https" and parsed.netloc == "raw.pixls.us"
+            and parsed.path.startswith("/") and not parsed.fragment
+            and not re.search(r"[\s\x00-\x1f\x7f]", url),
+            "URL must use HTTPS on raw.pixls.us: " + url)
+    return url
+
+
+class SafeRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        https_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def safe_part(value):
+    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
+    return re.sub(r"[^A-Za-z0-9]+", "-", ascii_value).strip("-")[:80] or "camera"
+
+
+def filename(row):
+    return "{}-{}-{}.{}".format(safe_part(row["make"]), safe_part(row["model"]),
+                                row["sha256"][:12], row["suffix"])
+
+
+def load_manifest(path):
+    with path.open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream, delimiter="\t")
+        require(reader.fieldnames == FIELDS, "wrong manifest header")
+        rows = list(reader)
+    seen_hashes, seen_names = set(), set()
+    for line, row in enumerate(rows, 2):
+        require(set(row) == set(FIELDS) and all(row.values()),
+                "missing or extra field at manifest line " + str(line))
+        require(row["set"] in SETS, "unknown set at line " + str(line))
+        require(re.fullmatch(r"[a-z0-9]+", row["suffix"]), "invalid suffix")
+        require(re.fullmatch(r"[0-9a-f]{64}", row["sha256"]), "invalid sha256")
+        require(row["licence"] == LICENCE, "licence must be CC0: " + row["licence"])
+        require(re.fullmatch(r"[1-9][0-9]*", row["bytes"]), "invalid byte count")
+        require(re.fullmatch(r"[\w.+-]+/[\w.+-]+", row["mime"]), "invalid MIME type")
+        https_url(row["url"])
+        require(row["sha256"] not in seen_hashes, "duplicate sha256")
+        name = (row["set"], filename(row))
+        require(name not in seen_names, "duplicate filename")
+        seen_hashes.add(row["sha256"])
+        seen_names.add(name)
+    return rows
+
+
+def matches(path, row):
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISREG(info.st_mode) or info.st_size != int(row["bytes"]):
+        return False
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest() == row["sha256"]
+
+
+def fetch(root, rows):
+    root.mkdir(parents=True, exist_ok=True)
+    opener = build_opener(SafeRedirect())
+    for row in rows:
+        folder = root / row["set"]
+        require(not folder.is_symlink(), "set directory is a symlink: " + str(folder))
+        folder.mkdir(exist_ok=True)
+        target = folder / filename(row)
+        if matches(target, row):
+            print("skip " + str(target), flush=True)
+            continue
+        require(not target.is_symlink() and (not target.exists() or target.is_file()),
+                "destination is not a regular file: " + str(target))
+        descriptor, temp_name = tempfile.mkstemp(prefix=".raw-", suffix=".tmp", dir=root)
+        temporary = Path(temp_name)
+        try:
+            count, digest = 0, hashlib.sha256()
+            with os.fdopen(descriptor, "wb") as stream:
+                request = Request(https_url(row["url"]), headers={"User-Agent": "flea-raw-corpus/1"})
+                with opener.open(request, timeout=TIMEOUT) as response:
+                    https_url(response.geturl())
+                    require(response.status == 200, "expected HTTP 200")
+                    while True:
+                        chunk = response.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        count += len(chunk)
+                        require(count <= int(row["bytes"]), "byte count mismatch: " + row["url"])
+                        digest.update(chunk)
+                        stream.write(chunk)
+            require(count == int(row["bytes"]), "byte count mismatch: " + row["url"])
+            require(digest.hexdigest() == row["sha256"], "sha256 mismatch: " + row["url"])
+            os.replace(temporary, target)
+            print("fetch " + str(target), flush=True)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def verify(root, rows, selected):
+    require(root.is_dir(), "missing corpus directory: " + str(root))
+    for entry in root.iterdir():
+        require(entry.name.startswith(".") or (entry.name in SETS and entry.is_dir()
+                and not entry.is_symlink()),
+                "extra file: " + str(entry))
+    for name in selected:
+        folder = root / name
+        require(folder.is_dir() and not folder.is_symlink(), "missing set directory: " + str(folder))
+        expected = {filename(row) for row in rows if row["set"] == name}
+        for entry in folder.iterdir():
+            require(entry.name.startswith(".") or entry.name in expected,
+                    "extra file: " + str(entry))
+    for row in rows:
+        target = root / row["set"] / filename(row)
+        require(matches(target, row), "missing file, byte count or sha256 mismatch: " + str(target))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("fetch", "verify", "list"):
+        command = commands.add_parser(name)
+        if name != "list":
+            command.add_argument("directory", type=Path)
+        command.add_argument("--set", choices=(*SETS, "all"), default="all")
+        command.add_argument("--manifest", type=Path, default=MANIFEST)
+    args = parser.parse_args()
+    try:
+        rows = load_manifest(args.manifest)
+        selected = SETS if args.set == "all" else (args.set,)
+        rows = [row for row in rows if row["set"] in selected]
+        for name in selected:
+            require(any(row["set"] == name for row in rows), "missing manifest rows for " + name)
+        if args.command == "list":
+            writer = csv.DictWriter(sys.stdout, fieldnames=FIELDS, delimiter="\t", lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+        else:
+            root = args.directory.absolute()
+            if args.command == "fetch":
+                fetch(root, rows)
+            verify(root, rows, selected)
+            print("{}: {} files, {} bytes verified".format(args.command, len(rows),
+                                                         sum(int(row["bytes"]) for row in rows)))
+    except (OSError, ValueError) as error:
+        print("raw-corpus: " + str(error), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

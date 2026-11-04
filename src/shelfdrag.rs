@@ -77,10 +77,7 @@ impl Shelf {
         let dir = self.drags.parent().ok_or("the shelf has no folder to write in")?;
         uistore::make_dir(dir)?;
         let lock = uistore::take_lock(&self.lock)?;
-        let current = fs::read_to_string(&self.drags)
-            .ok()
-            .and_then(|text| jsondoc::parse(&text).ok())
-            .unwrap_or(Json::Obj(Vec::new()));
+        let current = crate::persistdoc::read(&self.drags, crate::persistdoc::drags)?;
         let next = change(&current)?;
         let written = uistore::replace(&self.drags, &jsondoc::render(&next));
         uistore::unlock(&lock).map_err(|e| format!("{} could not be unlocked: {}", self.lock.display(), io_message(&e)))?;

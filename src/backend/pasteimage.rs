@@ -6,7 +6,7 @@ use crate::json::field_str;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
@@ -155,7 +155,7 @@ fn execute(dest: &Path, name: &str, argv: &[String]) -> (String, Option<Entry>) 
 
 // The clipboard's PNG bytes, or why there are none; the reader runs beside the reaper because a big image fills the pipe.
 fn read_paste(argv: &[String]) -> Result<Vec<u8>, String> {
-    let mut child = Command::new(&argv[0])
+    let mut child = crate::backend::locale::command(&argv[0])
         .args(&argv[1..])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

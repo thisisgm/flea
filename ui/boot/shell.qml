@@ -54,7 +54,7 @@ ShellRoot {
                 return
             bodyLoader.setSource(fleaWindow.fileUrl(Quickshell.shellDir + "/../WindowBody.qml"), { host: fleaWindow })
             // Only before the window exists does Quickshell still take a clear surface; see ui/Glass.qml.
-            if (bodyLoader.item && bodyLoader.item.color.a < 1) {
+            if (bodyLoader.item && bodyLoader.item.clearSurface) {
                 fleaWindow.clearedEarly = !(bodyLoader.Window.window && bodyLoader.Window.window.visible)
                 if (fleaWindow.clearedEarly) fleaWindow.color = "transparent"
             }

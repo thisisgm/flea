@@ -18,14 +18,14 @@ fn ui_dir_from(value: Option<String>) -> Option<PathBuf> {
 // The Quickshell entry, in its own directory so ui/qmldir's singletons stay off the startup path.
 pub const ENTRY: &str = "boot/shell.qml";
 
-// The chooser's own entry, beside it; see AGENTS.md "The first window".
-pub const PICKER_ENTRY: &str = "boot/picker.qml";
-
 // The ShellId pragmas in ui/boot/shell.qml and ui/boot/picker.qml; qsregistry prunes only these.
+#[cfg(test)]
 pub const SHELL_ID: &str = "flea";
+#[cfg(test)]
 pub const PICKER_SHELL_ID: &str = "fleapicker";
 
 // Issue 216: names the entry file sought, since a package missing ui/boot reads as a missing dir.
+#[cfg(test)]
 pub fn missing_ui_message() -> String {
     format!("flea: Flea's interface files are missing (/usr/share/flea/ui/{}). Reinstall flea.", ENTRY)
 }

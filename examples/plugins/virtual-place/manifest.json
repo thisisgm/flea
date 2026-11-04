@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "example.virtual-place",
+  "name": "Example Files",
+  "version": "1.0.0",
+  "author": "Flea contributors",
+  "license": "MIT",
+  "description": "An in-memory place for exercising listings and routed operations.",
+  "kinds": ["place"],
+  "entryPoints": {"run": "bin/run"},
+  "place": {"label": "Example Files", "glyph": "folder"},
+  "access": []
+}

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Native drag regression checks through the identified product launcher and owned fixtures.
 #
 # Motion goes through uinput and never through hl.dsp.cursor.move. That warp emits wl_pointer.motion
@@ -11,13 +12,22 @@ set -o pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 # Without this the UI resolves "flea" from PATH, which is the installed package and not this tree.
 export FLEA_BIN="${FLEA_BIN:-$repo/target/release/flea}"
+flea_ipc_init "$FLEA_BIN"
 export FLEA_UI="$repo/ui"
-. "$repo/tools/flea-sandbox-guard"
 
 drag_case=${1:-all}
 if [[ "$drag_case" == headless ]]; then
   exec /bin/bash "$repo/tests/raildrop.sh"
 fi
+case "$drag_case" in
+  all|raildrop|look235)
+    PATH="${HOME:+$HOME/.local/bin:}$PATH" command -v omarchy-drive >/dev/null 2>&1 || {
+      printf 'FAIL: native drag tests require omarchy-drive (private helper); use tests/drag.sh headless for the rail-drop headless checks\n' >&2
+      exit 1
+    }
+    ;;
+esac
+. "$repo/tools/flea-sandbox-guard"
 capture_root=""
 case "$drag_case" in
   all)
@@ -402,7 +412,7 @@ glide_to() {
 # window. Matching the window by class alone aborted three runs beside another lane's Flea, which is
 # right to refuse but needlessly blind, because the pid is already in hand.
 myid() {
-  qs list --all --json 2>/dev/null | python3 -c '
+  flea_ipc_list --all --json 2>/dev/null | python3 -c '
 import json, sys
 hits = [i for i in json.load(sys.stdin) if i["config_path"] == sys.argv[1] and i["pid"] == int(sys.argv[2])]
 if len(hits) != 1:
@@ -410,10 +420,10 @@ if len(hits) != 1:
 print("%s %s" % (hits[0]["id"], hits[0]["pid"]))
 ' "$repo/ui/boot/shell.qml" "$FLEA_PID"
 }
-ipc() { qs ipc -i "$MYID" call flea "$@" 2>&1; }
+ipc() { flea_ipc_call -i "$MYID" call flea "$@" 2>&1; }
 native_key() {
   local result=0
-  omarchy-drive key --window flea "$@" || result=$?
+  omarchy-drive key --window com.thisisgm.flea "$@" || result=$?
   (( result == 0 )) || die "native key delivery failed with status $result: $*"
 }
 # Sample input: '{"notice":""}' stays JSON; '/home/x' or an observer error becomes one JSON string.
@@ -502,10 +512,10 @@ r5_wait_listing() {
 
 # Read the same target-owned activity as expect_feedback before releasing the held drag.
 r5_wait_feedback() {
-  local attempt state owner="$HOMEDIR/bbb" line="Move 1 item to $HOMEDIR/bbb · Ctrl copies, Shift moves"
+  local attempt state owner="$HOMEDIR/bbb" line="Move 1 item to $HOMEDIR/bbb · ctrl copies, shift moves"
   for ((attempt=1; attempt<=r5_poll_attempts; attempt++)); do
     state=$(ipc statusActivityState) || { r5_evidence; die "R5 drag activity observer failed"; }
-    # Sample input: {"activities":[{"running":false,"ownerPath":"/run/home/bbb","text":"Move 1 item to /run/home/bbb · Ctrl copies, Shift moves"}]}.
+    # Sample input: {"activities":[{"running":false,"ownerPath":"/run/home/bbb","text":"Move 1 item to /run/home/bbb · ctrl copies, shift moves"}]}.
     if jq -e --arg owner "$owner" --arg line "$line" '
         [.activities[] | select(.running | not) | {ownerPath,text}] ==
         [{ownerPath:$owner,text:$line}]' <<< "$state" >/dev/null; then
@@ -718,7 +728,7 @@ raildrop_case() {
     press; sleep 0.3
     glide_to "$((WX + x))" "$((WY + y))"
     if [[ "$verb" == Move ]]; then
-      expect_ipc stickyMessage "Move 1 item to Favorite · Ctrl copies, Shift moves"
+      expect_ipc stickyMessage "Move 1 item to Favorite · ctrl copies, shift moves"
     else
       expect_ipc stickyMessage "Copy 1 item to USB"
     fi
@@ -900,7 +910,7 @@ press; sleep 0.3
 glide_to "$bx" "$by"; sleep 0.8
 MID=$(ipc stickyMessage)
 release; sleep 0.6
-check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · Ctrl copies, Shift moves"
+check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · ctrl copies, shift moves"
 
 # ---------------------------------------------------------------- R1
 echo
@@ -1357,7 +1367,7 @@ dual_drag_diagnostic() {
 
 visit_targets() {
   local destination="$1" verb="$2" suffix=""
-  [[ "$verb" != Move ]] || suffix=' · Ctrl copies, Shift moves'
+  [[ "$verb" != Move ]] || suffix=' · ctrl copies, shift moves'
   glide_to "$folder_x" "$folder_y"
   expect_feedback "$destination" "$verb 2 items to folder$suffix"
   glide_to "$floor_x" "$floor_y"

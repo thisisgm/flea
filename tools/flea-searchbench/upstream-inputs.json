@@ -1,0 +1,202 @@
+{
+  "tools/flea-searchbench/engine/presentation.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/presentation.py",
+    "sha256": "c3d01104b6ca4de6e2d83346b2e87b74bd9b17bbf8c65658c488d39ca30a13de"
+  },
+  "tools/flea-searchbench/engine/fixtures.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/fixtures.py",
+    "sha256": "0d71a441a4fd88a4b627636422a3c79ac425b58ea2053f97ea066b7d8733b57d"
+  },
+  "tools/flea-searchbench/engine/build.sh": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/build.sh",
+    "sha256": "d23eeeac23b26eb8b00688ea1274e45398b26d59494906294802be27e3d386e4"
+  },
+  "tools/flea-searchbench/engine/compare.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/compare.py",
+    "sha256": "6a979a243d6f17d647f854bbf848e37b1bbf20e1712cb7b18a7c50ddc73ca508"
+  },
+  "tools/flea-searchbench/engine/run.sh": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/run.sh",
+    "sha256": "69de3af2c47e72a4c73cb97f37ad695b27765711f6f1d54eee6f344868e68d85"
+  },
+  "tools/flea-searchbench/engine/flea-metrics.patch.v0.3.12": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/flea-metrics.patch.v0.3.12",
+    "sha256": "6d389b444a8590a02a9648898a50641aef40e2ea4f3c2e9fb40d8d1a65d48495"
+  },
+  "tools/flea-searchbench/engine/provenance.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/provenance.py",
+    "sha256": "e80de278ca54777794aa48c85e6755514d7b2152f12b55bfa7fe695b8ed6cfea"
+  },
+  "tools/flea-searchbench/engine/Cargo.toml": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/Cargo.toml",
+    "sha256": "da4aa882ceb7e91bfddf444d3d54a2733ec6d10d87786028b20a37079ca7e0d8"
+  },
+  "tools/flea-searchbench/engine/priors.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/priors.py",
+    "sha256": "866b1dc75a5f3e344348cc460e2b8ff0eb106c76b5086845728d455f4da8904a"
+  },
+  "tools/flea-searchbench/engine/runner.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/runner.py",
+    "sha256": "fdb800e6061bf10ee167ae577c88db2b9156a8fda71e718999c86a322569977d"
+  },
+  "tools/flea-searchbench/engine/negative_controls.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/negative_controls.py",
+    "sha256": "8a50c3399825f7cc6eba2d413f3565756688962c1d0150243557de57e32a231d"
+  },
+  "tools/flea-searchbench/engine/production_adapter.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/production_adapter.py",
+    "sha256": "cdc09d51483982cb744e9393973f14d7a92a544e646e5ce73ec2c5f3acaa6503"
+  },
+  "tools/flea-searchbench/engine/measure.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/measure.py",
+    "sha256": "6f9ed9a7b0153b1e0bbd1626cde074891afaf8adc9867af28a724ea2efe6c917"
+  },
+  "tools/flea-searchbench/engine/Containerfile": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/Containerfile",
+    "sha256": "1be50223a1d1608b8f6f77b17c62be0c84148fa99611a74705447eefdfb9c609"
+  },
+  "tools/flea-searchbench/engine/engines.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/engines.py",
+    "sha256": "8606d3c3d33009708e99d9077768c854f32ff24c4946d37e135dda8b6c38a3db"
+  },
+  "tools/flea-searchbench/engine/production_controls.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/production_controls.py",
+    "sha256": "6988dede8af38bff86669c66a13342a586784a888be03708f179b174e83bc915"
+  },
+  "tools/flea-searchbench/engine/cold-controller.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/cold-controller.py",
+    "sha256": "ff5ba1e515d7d9c2b1805876c6a952c955f08bd1f8bfb1bac16c3e893123266b"
+  },
+  "tools/flea-searchbench/engine/contracts.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/contracts.py",
+    "sha256": "566d38f212f9c529c2c26bfad91af8229458e9d65b7d7445055801f56953dd2d"
+  },
+  "tools/flea-searchbench/engine/flea-metrics.patch": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/flea-metrics.patch",
+    "sha256": "b1f5ef451d72f043d7891a78fb8a93682c94aec93b76eaa8808cbc4b9928bf75"
+  },
+  "tools/flea-searchbench/engine/rival-pins.tsv": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/rival-pins.tsv",
+    "sha256": "2ffd3fb739f4b4af7b5995d32baaef4b6be47ffb8ca80aa18585f71a403a5639"
+  },
+  "tools/flea-searchbench/engine/live.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/live.py",
+    "sha256": "a568f67505e46c3188013caaf3105bddf38f91750c444f0341845de90a24949a"
+  },
+  "tools/flea-searchbench/engine/flea-engine/Cargo.toml": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/flea-engine/Cargo.toml",
+    "sha256": "c31d97149928a690c4ca6eb400fac865fb4d43b2f6025e784a0f65eb5aa88585"
+  },
+  "tools/flea-searchbench/engine/rust/linux_walk.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/rust/linux_walk.rs",
+    "sha256": "2c9aab3d06943d959164bdb5961746d6a148c1448624e225bb52b68e743dd11b"
+  },
+  "tools/flea-searchbench/engine/rust/fff.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/rust/fff.rs",
+    "sha256": "e764247b4d49d319b28c1b71fa2eb001f46a658ae4cd20232e17ddb94862c302"
+  },
+  "tools/flea-searchbench/engine/rust/nd.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/rust/nd.rs",
+    "sha256": "9d3501efc4485d3d775b067dfeeb0cc5649b6a827639af3c9ab043bbe3ad2e4b"
+  },
+  "tools/flea-matchbench/fzf_driver.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/fzf_driver.py",
+    "sha256": "a7d804284d097f53e6d974cd45bfaf29ec49f964478dd8abff5872c1e8bb0a42"
+  },
+  "tools/flea-matchbench/Cargo.toml": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/Cargo.toml",
+    "sha256": "1c091116113a2ddd2e3d9f3d04c356ca7ad9ef00b59b5fdc1bcc9700ee0f91cf"
+  },
+  "tools/flea-matchbench/runner.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/runner.py",
+    "sha256": "9e3ef7f10a9436721f8ed863d39e9d094364db68ff7d30c7c94cf6711c0fc317"
+  },
+  "tools/flea-matchbench/build.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/build.rs",
+    "sha256": "818e7e616d73082e776561566ef4c1cdb39e451bff43490c0ba199a3a0cefcab"
+  },
+  "tools/flea-matchbench/contract.json": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/contract.json",
+    "sha256": "d2efe3b2c61bf8ee30fb15496d0602ab031e53f7819ce3e46c6fe67a7022d494"
+  },
+  "tools/flea-matchbench/ROSTER.tsv": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/ROSTER.tsv",
+    "sha256": "932e24a89a34ae21510d1c6f104f25455d653f35605f4a8d9ba64fd7e01fc36a"
+  },
+  "tools/flea-matchbench/Cargo.lock": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/Cargo.lock",
+    "sha256": "5a8df77b96b068281ee5f73fcdc4699fe4affd32f4550a582054d894e9c8e791"
+  },
+  "tools/flea-matchbench/src/adapters.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/src/adapters.rs",
+    "sha256": "32f9b7b6fcc954b538e547621a5e937cfb28824d6b82daa3877590ffc8911511"
+  },
+  "tools/flea-matchbench/src/main.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-dcb5c8ca/tools/flea-matchbench/src/main.rs",
+    "sha256": "e73ed0c72f86b6d60dabba1a0a32ccee966b86345892fed7ccfe61ed6d102bc1"
+  },
+  "tools/flea-walkbench/Cargo.toml": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/Cargo.toml",
+    "sha256": "876778cddb068ffb8cf15613831ed148a2da2bfcfeab394d891d315896ccefdd"
+  },
+  "tools/flea-walkbench/ROSTER.tsv": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/ROSTER.tsv",
+    "sha256": "ca9d6516ebd3995352e5353d4843e1a3542cff085afdce5a49f4d2f63ac90ad3"
+  },
+  "tools/flea-walkbench/Cargo.lock": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/Cargo.lock",
+    "sha256": "62367190048ea884aecbbc13670198b2a002e3a382b3eba184c67a95b6613390"
+  },
+  "tools/flea-walkbench/src/fixture.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/fixture.rs",
+    "sha256": "8e1ea4991858d2bf6ea688256900b06f78f70f77a6d64e31798270702a62671f"
+  },
+  "tools/flea-walkbench/src/measure.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/measure.rs",
+    "sha256": "38dfe70579471e9be0004c1fe832f45c2fccf328555d364d91443de0055e09d2"
+  },
+  "tools/flea-walkbench/src/stats.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/stats.rs",
+    "sha256": "614af2471d818298bd40a0b2d3c0eb2f9200f85c857589f0970c4c2caceb3258"
+  },
+  "tools/flea-walkbench/src/adapters.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/adapters.rs",
+    "sha256": "a3b847a7f5af8a726819158bf5e761c984456cdb340a8e1549ab4aba3052c83a"
+  },
+  "tools/flea-walkbench/src/tests.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/tests.rs",
+    "sha256": "89ad59d40c22473e28d11d47577f3ddd1517e6c25c7f9531233be5c3f59d3362"
+  },
+  "tools/flea-walkbench/src/main.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/main.rs",
+    "sha256": "ee0f079d467da44f17329c902641690189f562737cb9b8a37196ae8020f8b187"
+  },
+  "tools/flea-walkbench/src/run.rs": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-93457445/tools/flea-walkbench/src/run.rs",
+    "sha256": "a8320867faa83254b4fc51d35a6ab74f764298f36db98bc09053535cbd5e0134"
+  },
+  "tools/flea-searchbench/fair/clocks.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/tools/flea-findbench/clocks.py",
+    "sha256": "a95ab18f3cca6e27750bb662979c23c655db4302dd4e229ae5a090d6dd75d81a"
+  },
+  "tools/flea-searchbench/fair/eligibility.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/tools/flea-findbench/eligibility.py",
+    "sha256": "6a04f2d42376c9f581fe8b2c1845ae89049414e2b6eb648af877053afcb6678c"
+  },
+  "tools/flea-searchbench/cold-controller.py": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/cold-controller.py",
+    "sha256": "22326c75914350246901f0ebda4157592c0452fad24957b7aee82b1abcf0a36e"
+  },
+  "tools/flea-searchbench/engine/fsearch-driver/config.h": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/fsearch-driver/config.h",
+    "sha256": "0ef8850a304c3799eabf7ee34f076aaa976dfd897a90df1ed075322daf15562f"
+  },
+  "tools/flea-searchbench/engine/fsearch-driver/main.c": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/fsearch-driver/main.c",
+    "sha256": "e3ba043f77f3afa20ae1f01213c21e02535e5e7f63a7c3af741ca6c47ee90229"
+  },
+  "tools/flea-searchbench/engine/fsearch-driver/sources.txt": {
+    "source": "/home/gm/.t3/worktrees/flea-release/t3-59ba78a0/.superpowers/m9-bench-07/fb0/harness/fsearch-driver/sources.txt",
+    "sha256": "5deb8fda5e05635b58edab2956cf33eed71939ab936518e9f340254c3b6eff2e"
+  }
+}
