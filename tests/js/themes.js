@@ -36,7 +36,7 @@ function roles(body) {
     var background = Palette.pick(found, ["background", "color0"], "#101315")
     var accent = Palette.pick(found, ["accent", "color4"], "#cacccc")
     var urgent = Palette.pick(found, ["red", "color1"], "#a55555")
-    var surface = Palette.pick(found, Palette.SURFACE_KEYS, "#181825")
+    var surface = Palette.surface(background, foreground, Palette.pick(found, Palette.SURFACE_KEYS, "#181825"))
     var mutedFrame = Contrast.ensureRatio(Palette.pick(found, ["muted"], darker(foreground)), background, MARK_MIN)
     var muted = Contrast.ensureRatio(Contrast.ensureRatio(mutedFrame, background, TEXT_MIN), surface, TEXT_MIN)
     var hued = saturation(urgent) > 0.2
