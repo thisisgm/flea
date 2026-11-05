@@ -2394,6 +2394,7 @@
   "keys.undo": "Anular",
   "keys.redo": "Refazer",
   "keys.newFolder": "Nova pasta",
+  "keys.create": "New file or folder",
   "keys.toggleSelect": "Selecionar",
   "keys.menu": "Menu",
   "keys.openTerminal": "Abrir terminal",

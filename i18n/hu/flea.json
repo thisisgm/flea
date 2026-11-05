@@ -2296,6 +2296,7 @@
   "keys.undo": "Visszavonás",
   "keys.redo": "Ismétlés",
   "keys.newFolder": "Új mappa",
+  "keys.create": "New file or folder",
   "keys.toggleSelect": "Kijelölés",
   "keys.menu": "Menü",
   "keys.openTerminal": "Terminál megnyitása",

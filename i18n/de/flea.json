@@ -2296,6 +2296,7 @@
   "keys.undo": "Rückgängig",
   "keys.redo": "Wiederholen",
   "keys.newFolder": "Neuer Ordner",
+  "keys.create": "New file or folder",
   "keys.toggleSelect": "Auswählen",
   "keys.menu": "Menü",
   "keys.openTerminal": "Terminal öffnen",

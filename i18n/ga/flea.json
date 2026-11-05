@@ -2590,6 +2590,7 @@
   "keys.undo": "Cealaigh",
   "keys.redo": "Athdhéan",
   "keys.newFolder": "Fillteán nua",
+  "keys.create": "New file or folder",
   "keys.toggleSelect": "Roghnaigh",
   "keys.menu": "Roghchlár",
   "keys.openTerminal": "Oscail críochfort",

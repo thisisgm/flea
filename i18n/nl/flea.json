@@ -1194,6 +1194,7 @@
   "keys.label.8dd6857baf02": "omarchy:keybindings.Mute",
   "keys.action.newFolder": "Nieuwe map",
   "keys.newFolder": "Nieuwe map",
+  "keys.create": "New file or folder",
   "keys.action.openAgent": "Agent hier openen",
   "keys.openAgent": "Agent hier openen",
   "keys.action.openTab": "Openen in nieuw tabblad",

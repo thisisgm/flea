@@ -54,7 +54,14 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     let i18n = &m.prompts.i18n;
     let base = theme.base();
     let label = i18n.tr(match editor.kind {
-        "rename" => "prompt.rename", "mkdir" => "prompt.folder", "newfile" => "prompt.file", "path" => "prompt.path", "filter" => "prompt.filter", _ => "prompt.find",
+        "rename" => "prompt.rename",
+        // One prompt makes either entry, so the label names the one the draft spells: a trailing
+        // slash asks for the folder, and the words change with it as it is typed, the way yazi's
+        // create title flips between "Create:" and "Create (dir):".
+        "mkdir" | "newfile" => {
+            if editor.value.ends_with('/') { "prompt.folder" } else { "prompt.file" }
+        }
+        "path" => "prompt.path", "filter" => "prompt.filter", _ => "prompt.find",
     });
     let mut used = text_width(&label).min(columns);
     let mut out = format!("{}{}", theme.muted, fit(&label, used));

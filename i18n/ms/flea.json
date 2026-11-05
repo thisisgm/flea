@@ -2198,6 +2198,7 @@
   "keys.undo": "Buat asal",
   "keys.redo": "Buat semula",
   "keys.newFolder": "Folder baharu",
+  "keys.create": "New file or folder",
   "keys.toggleSelect": "Pilih",
   "keys.menu": "Menu",
   "keys.openTerminal": "Buka terminal",

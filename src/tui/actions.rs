@@ -531,11 +531,13 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "newFolder" => {
-            m.editor = Some(Editor::named(
-                "mkdir",
-                m.prompts.i18n.tr("prompt.newFolder"),
-                m.path.clone(),
-            ))
+            // One prompt makes either kind of entry: a name typed without a trailing slash is a
+            // file, one that ends in a slash is a folder (see editor_input). The suggested name
+            // keeps its slash so Enter still creates a folder, the way this key always has.
+            let base = m.prompts.i18n.tr("prompt.newFolder");
+            let mut editor = Editor::named("mkdir", format!("{base}/"), m.path.clone());
+            editor.default_base = Some(base);
+            m.editor = Some(editor)
         }
         "copy" | "cut" => {
             if m.pending_clipboard || m.parity17.copy_text.is_some() || m.taildrop_target.is_some()

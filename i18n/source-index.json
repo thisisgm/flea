@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "cb3a6d4b659c7fb5d16d957cc5782960593b0d8475a10b89405ebad001232884",
-  "catalog_sha256": "86dcd503a81275d024ab757240075285eb1437a91d20653b1f45be8fb9364808",
+  "catalog_file_sha256": "73857ce91a0c877b3eb03775666646750508cb0ef397e0e6157165b03b6b5b9d",
+  "catalog_sha256": "ad8e174993c435fc62cd36b03bd2cf45555a1cd13018d620fa292bc4cb8b0003",
   "counts": {
     "direct_references": 0,
-    "keys": 2227,
+    "keys": 2228,
     "plurals": 106
   },
   "direct_references": {},
@@ -2478,7 +2478,7 @@
     {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
-      "expression": "match editor.kind {\n        \"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",\n    }",
+      "expression": "match editor.kind {\n        \"rename\" => \"prompt.rename\",\n        // One prompt makes either entry, so the label names the one the draft spells: a trailing\n        // slash asks for the folder, and the words change with it as it is typed, the way yazi's\n        // create title flips between \"Create:\" and \"Create (dir):\".\n        \"mkdir\" | \"newfile\" => {\n            if editor.value.ends_with('/') { \"prompt.folder\" } else { \"prompt.file\" }\n        }\n        \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",\n    }",
       "line": 56,
       "path": "src/tui/prompts.rs",
       "pattern": null,
@@ -2489,7 +2489,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if editor.kind == \"rename\" { \"prompt.renaming\" } else { \"prompt.working\" }",
-      "line": 84,
+      "line": 91,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2499,7 +2499,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }",
-      "line": 139,
+      "line": 146,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2509,7 +2509,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undid\" } else { \"receipt.redid\" }",
-      "line": 184,
+      "line": 191,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2519,7 +2519,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "step",
-      "line": 184,
+      "line": 191,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2529,7 +2529,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }",
-      "line": 185,
+      "line": 192,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2539,7 +2539,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }",
-      "line": 214,
+      "line": 221,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -21839,14 +21839,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 146,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 237,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -21886,14 +21886,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 146,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 237,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22103,14 +22103,14 @@
       "call_sites": [
         {
           "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 337,
+          "line": 344,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 341,
+          "line": 348,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22132,7 +22132,7 @@
       "call_sites": [
         {
           "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 335,
+          "line": 342,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22166,7 +22166,7 @@
       "call_sites": [
         {
           "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&question.name, &folder]) }",
-          "line": 334,
+          "line": 341,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60350,7 +60350,7 @@
         },
         {
           "excerpt": "m.prompts.i18n.tr_args(\"filter.shown\", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])",
-          "line": 93,
+          "line": 100,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60472,7 +60472,7 @@
       "call_sites": [
         {
           "excerpt": "else { m.prompts.i18n.tr_args(\"find.found\", &[&m.i18n.locale().format_count(m.total as i64)]) }",
-          "line": 116,
+          "line": 123,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60496,7 +60496,7 @@
       "call_sites": [
         {
           "excerpt": "if m.searching { m.prompts.i18n.tr_args(\"find.scanning\", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }",
-          "line": 115,
+          "line": 122,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -67187,7 +67187,7 @@
         },
         {
           "excerpt": "\"keys.action.openTerminal\"",
-          "line": 638,
+          "line": 640,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -69055,6 +69055,28 @@
       "resolved_sha256": "4f60d1e142affa9c95598f06cc5fd65a39395ea317819d200f25e466661ccc7c",
       "resolved_source_hash": "e21f935f11d7",
       "source_hash": "e21f935f11d7"
+    },
+    "keys.create": {
+      "call_sites": [
+        {
+          "excerpt": "(\"change\", &[\"newFolder\"], \"keys.create\", &[\"ctrl-shift-n\", \"N\"]),",
+          "line": 48,
+          "path": "src/tui/key_sheet.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "keys.create: src/tui/key_sheet.rs:48",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "New file or folder",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "New file or folder",
+      "resolved_sha256": "43d5133319d8227bbf7225385bf5116ebc6913da4c12c92ecf660fe22b91add1",
+      "resolved_source_hash": "e25537f39786",
+      "source_hash": "e25537f39786"
     },
     "keys.cursorDown": {
       "call_sites": [
@@ -71081,17 +71103,9 @@
       "source_hash": "99af6606ff9d"
     },
     "keys.newFolder": {
-      "call_sites": [
-        {
-          "excerpt": "(\"change\", &[\"newFolder\"], \"keys.newFolder\", &[\"ctrl-shift-n\", \"N\"]),",
-          "line": 48,
-          "path": "src/tui/key_sheet.rs",
-          "surface": "tui",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "keys.newFolder: src/tui/key_sheet.rs:48",
-      "coverage": "occurrence-needs-owner-verification",
+      "call_sites": [],
+      "context": "keys.newFolder: caller missing; source owner must identify the surface",
+      "coverage": "missing-callsite",
       "english": "New folder",
       "kind": "text",
       "omarchy_reference": null,
@@ -79133,7 +79147,7 @@
         },
         {
           "excerpt": "self.fail_key(\"pane.locked\");",
-          "line": 1242,
+          "line": 1251,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79436,7 +79450,7 @@
         },
         {
           "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 262,
+          "line": 269,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79458,7 +79472,7 @@
       "call_sites": [
         {
           "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 263,
+          "line": 270,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -90469,8 +90483,8 @@
     "prompt.file": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
-          "line": 57,
+          "excerpt": "if editor.value.ends_with('/') { \"prompt.folder\" } else { \"prompt.file\" }",
+          "line": 62,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90478,28 +90492,28 @@
       ],
       "context": "prompt.file: src/tui/prompts.rs:39",
       "coverage": "existing-translated-call",
-      "english": "File name",
+      "english": "New file",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "File name",
-      "resolved_sha256": "b5c661c0f0a805a33c6905a1fd40c7055cb63ba296651c2e785fc029c8a0a667",
-      "resolved_source_hash": "3efed3de9d4b",
-      "source_hash": "3efed3de9d4b"
+      "resolved_english": "New file",
+      "resolved_sha256": "1b04a3a169bbbaa2f598f13aadc1fd179999303b1e4762185a72f209d66c54b1",
+      "resolved_source_hash": "44dedd0f97fe",
+      "source_hash": "44dedd0f97fe"
     },
     "prompt.filter": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
-          "line": 57,
+          "excerpt": "\"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
+          "line": 64,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "return vec![(theme.muted.as_str(), format!(\"{} {}\", i18n.tr(\"prompt.filter\"), m.filter), 0), (theme.foreground.as_str(), shown(m), 2)];",
-          "line": 105,
+          "line": 112,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90520,8 +90534,8 @@
     "prompt.find": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
-          "line": 57,
+          "excerpt": "\"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
+          "line": 64,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90542,8 +90556,8 @@
     "prompt.folder": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
-          "line": 57,
+          "excerpt": "if editor.value.ends_with('/') { \"prompt.folder\" } else { \"prompt.file\" }",
+          "line": 62,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90551,15 +90565,15 @@
       ],
       "context": "prompt.folder: src/tui/prompts.rs:39",
       "coverage": "existing-translated-call",
-      "english": "Folder name",
+      "english": "New folder",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "Folder name",
-      "resolved_sha256": "92cf9044e79d262f0c4e6c61a8a53540fd5b7227a0b120af54c91f6ab1be1d54",
-      "resolved_source_hash": "14d34edf50ef",
-      "source_hash": "14d34edf50ef"
+      "resolved_english": "New folder",
+      "resolved_sha256": "fe22a14ebafb6a2236ca1ef15a02f1733e3bb7a91e908491cbb380387feab76d",
+      "resolved_source_hash": "cf28f49ec597",
+      "source_hash": "cf28f49ec597"
     },
     "prompt.home": {
       "call_sites": [],
@@ -90579,7 +90593,7 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFile\"),",
-          "line": 604,
+          "line": 606,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90607,8 +90621,8 @@
           "usage": "translated-call"
         },
         {
-          "excerpt": "m.prompts.i18n.tr(\"prompt.newFolder\"),",
-          "line": 536,
+          "excerpt": "let base = m.prompts.i18n.tr(\"prompt.newFolder\");",
+          "line": 537,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90629,8 +90643,8 @@
     "prompt.path": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
-          "line": 57,
+          "excerpt": "\"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
+          "line": 64,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90651,7 +90665,7 @@
     "prompt.rename": {
       "call_sites": [
         {
-          "excerpt": "\"rename\" => \"prompt.rename\", \"mkdir\" => \"prompt.folder\", \"newfile\" => \"prompt.file\", \"path\" => \"prompt.path\", \"filter\" => \"prompt.filter\", _ => \"prompt.find\",",
+          "excerpt": "\"rename\" => \"prompt.rename\",",
           "line": 57,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
@@ -90674,7 +90688,7 @@
       "call_sites": [
         {
           "excerpt": "\"rename\" => (i18n.tr(\"prompt.renameHint\"), &theme.muted, true),",
-          "line": 86,
+          "line": 93,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90696,7 +90710,7 @@
       "call_sites": [
         {
           "excerpt": "if editor.pending { return (i18n.tr(if editor.kind == \"rename\" { \"prompt.renaming\" } else { \"prompt.working\" }), &theme.muted, false); }",
-          "line": 84,
+          "line": 91,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90734,7 +90748,7 @@
       "call_sites": [
         {
           "excerpt": "if editor.pending { return (i18n.tr(if editor.kind == \"rename\" { \"prompt.renaming\" } else { \"prompt.working\" }), &theme.muted, false); }",
-          "line": 84,
+          "line": 91,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90916,7 +90930,7 @@
       "call_sites": [
         {
           "excerpt": "m.properties = Some(vec![(String::new(), m.i18n.tr(\"properties.loading\"))]);",
-          "line": 705,
+          "line": 707,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91204,14 +91218,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-          "line": 217,
+          "line": 224,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-          "line": 253,
+          "line": 260,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91233,14 +91247,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 221,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 256,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91273,14 +91287,14 @@
       "call_sites": [
         {
           "excerpt": "\"duplicated\" => { record(m, \"duplicate\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.duplicated\")) }",
-          "line": 180,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"duplicated\" => Text::Key(\"receipt.duplicated\"),",
-          "line": 238,
+          "line": 245,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91302,14 +91316,14 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.failed\", &[&i18n.locale().format_count(failed as i64)]))); }",
-          "line": 216,
+          "line": 223,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 257,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91333,7 +91347,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(super::prompts::undoable_text(self, super::words::Text::Key(\"receipt.fileCreated\")));",
-          "line": 1119,
+          "line": 1122,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91355,14 +91369,14 @@
       "call_sites": [
         {
           "excerpt": "\"made\" => { record(m, \"mkdir\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.made\")) }",
-          "line": 179,
+          "line": 186,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"made\" => Text::Key(\"receipt.made\"),",
-          "line": 237,
+          "line": 244,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91384,14 +91398,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 221,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 256,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91424,14 +91438,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 250,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91455,14 +91469,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 192,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 251,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91484,14 +91498,14 @@
       "call_sites": [
         {
           "excerpt": "\"renamed\" => { record(m, \"rename\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.renamed\")) }",
-          "line": 178,
+          "line": 185,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"renamed\" => Text::Key(\"receipt.renamed\"),",
-          "line": 236,
+          "line": 243,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91513,14 +91527,14 @@
       "call_sites": [
         {
           "excerpt": "if skipped > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.skipped\", &[&i18n.locale().format_count(skipped as i64)]))); }",
-          "line": 215,
+          "line": 222,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 257,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91544,14 +91558,14 @@
       "call_sites": [
         {
           "excerpt": "let line = m.prompts.i18n.trn(\"receipt.trashed\", ok as i64);",
-          "line": 209,
+          "line": 216,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"trashed\" => Text::Plural(\"receipt.trashed\", ok, vec![]),",
-          "line": 239,
+          "line": 246,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91584,14 +91598,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 250,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91615,14 +91629,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 192,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 251,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91644,14 +91658,14 @@
       "call_sites": [
         {
           "excerpt": "if m.hints.undo.is_empty() { String::new() } else { format!(\" {}\", m.prompts.i18n.tr_args(\"receipt.undoes\", &[&m.hints.undo])) }",
-          "line": 119,
+          "line": 126,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(\" \"), args(\"receipt.undoes\", vec![Text::from(m.hints.undo.clone())])]) }",
-          "line": 227,
+          "line": 234,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100143,7 +100157,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 170,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100165,7 +100179,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 169,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100194,7 +100208,7 @@
         },
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 170,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100216,7 +100230,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 170,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100238,7 +100252,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 169,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100260,7 +100274,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 170,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100282,7 +100296,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 170,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100304,7 +100318,7 @@
       "call_sites": [
         {
           "excerpt": "\"permissions\" => \"step.permissions\", _ => return None,",
-          "line": 164,
+          "line": 171,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100326,7 +100340,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 169,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100348,7 +100362,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 169,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100665,7 +100679,7 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { m.fail_text(super::words::Text::Plural(\"transfer.failed\", failed, vec![])); }",
-          "line": 218,
+          "line": 225,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100845,7 +100859,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 154,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100870,7 +100884,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 154,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100894,7 +100908,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 154,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100919,7 +100933,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 154,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101415,14 +101429,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 209,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "line": 211,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101455,14 +101469,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 209,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "line": 211,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102113,7 +102127,7 @@
       "call_sites": [
         {
           "excerpt": "m.launched(\"tui.actions.agent\", child);",
-          "line": 649,
+          "line": 651,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102135,7 +102149,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.an_agent_needs_a_folder_to_open_in\");",
-          "line": 646,
+          "line": 648,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102157,7 +102171,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.clipboard_cleared\");",
-          "line": 561,
+          "line": 563,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102179,7 +102193,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.new_flea_window\"",
-          "line": 636,
+          "line": 638,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102201,7 +102215,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.nine_tabs_is_the_most\");",
-          "line": 824,
+          "line": 826,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102267,7 +102281,7 @@
       "call_sites": [
         {
           "excerpt": "None => m.say_key(\"tui.actions.only_a_folder_opens_in_a_new_tab\"),",
-          "line": 629,
+          "line": 631,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102289,7 +102303,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.properties_requires_one_selected_item\");",
-          "line": 700,
+          "line": 702,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102311,7 +102325,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.save_settings\",",
-          "line": 865,
+          "line": 867,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102335,7 +102349,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.select_one_available_item_to_duplicate\");",
-          "line": 597,
+          "line": 599,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103317,7 +103331,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.invalid_name\"",
-          "line": 107,
+          "line": 113,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103339,7 +103353,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_dots\"",
-          "line": 101,
+          "line": 107,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103361,7 +103375,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_empty\"",
-          "line": 99,
+          "line": 105,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103383,7 +103397,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_nul\"",
-          "line": 105,
+          "line": 111,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103405,7 +103419,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_slash\"",
-          "line": 103,
+          "line": 109,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103427,14 +103441,14 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.selected_item_changed_reopen_rename\", i18n);",
-          "line": 117,
+          "line": 123,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 268,
+          "line": 275,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103573,7 +103587,7 @@
       "call_sites": [
         {
           "excerpt": "\"search\" => (i18n.tr_args(\"tui.find.scope_hint\", &[&scope(m, m.find.mode)]), &theme.muted, false),",
-          "line": 88,
+          "line": 95,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -103597,7 +103611,7 @@
       "call_sites": [
         {
           "excerpt": "parts.push((&theme.muted, i18n.tr_args(\"tui.find.status\", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));",
-          "line": 110,
+          "line": 117,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -103908,7 +103922,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.bulk_rename_selection_is_incomplete_select_the_items_again\");",
-          "line": 1189,
+          "line": 1192,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103999,14 +104013,14 @@
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1201,
+          "line": 1204,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1209,
+          "line": 1212,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104028,7 +104042,7 @@
       "call_sites": [
         {
           "excerpt": "let mut line = vec![super::words::Text::Plural(\"tui.model.deleted\", self.menu_count, vec![super::words::Text::Count(count(&value, \"deleted\"))])];",
-          "line": 1142,
+          "line": 1145,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104062,7 +104076,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-          "line": 1143,
+          "line": 1146,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104084,7 +104098,7 @@
       "call_sites": [
         {
           "excerpt": "if count(&value, \"failed\") > 0 { self.fail_text(super::words::args(\"tui.model.deleted_failed\", vec![super::words::Text::Count(count(&value, \"failed\")), text(&value, \"error\").into()])); }",
-          "line": 1145,
+          "line": 1148,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104109,14 +104123,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-          "line": 1137,
+          "line": 1140,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.say_key(\"tui.model.deletion_cancelled\");",
-          "line": 1140,
+          "line": 1143,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104138,7 +104152,7 @@
       "call_sites": [
         {
           "excerpt": "if token == 0 { return Err(super::words::error(\"tui.model.deletion_could_not_be_confirmed_try_again\")); }",
-          "line": 1177,
+          "line": 1180,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104275,7 +104289,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_key(\"tui.model.selection_changed_confirm_again\");",
-          "line": 1130,
+          "line": 1133,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104297,7 +104311,7 @@
       "call_sites": [
         {
           "excerpt": "Ok(()) => self.say_text(super::words::args(\"tui.model.sending\", vec![peer.label.clone().into()])),",
-          "line": 1218,
+          "line": 1221,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104365,7 +104379,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_selection_is_incomplete\");",
-          "line": 1215,
+          "line": 1218,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -129765,18 +129779,18 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "label = \"New folder\"",
-      "line": 2683,
-      "literal": "New folder",
+      "excerpt": "label = \"New file or folder\"",
+      "line": 2686,
+      "literal": "New file or folder",
       "owner": "controller",
       "path": "keys.toml",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "label = \"New folder\"",
-      "line": 2691,
-      "literal": "New folder",
+      "excerpt": "label = \"New file or folder\"",
+      "line": 2694,
+      "literal": "New file or folder",
       "owner": "controller",
       "path": "keys.toml",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -129784,7 +129798,7 @@
     },
     {
       "excerpt": "label = \"Move here\"",
-      "line": 2699,
+      "line": 2702,
       "literal": "Move here",
       "owner": "controller",
       "path": "keys.toml",
@@ -129793,7 +129807,7 @@
     },
     {
       "excerpt": "label = \"Duplicate\"",
-      "line": 2707,
+      "line": 2710,
       "literal": "Duplicate",
       "owner": "controller",
       "path": "keys.toml",
@@ -129802,7 +129816,7 @@
     },
     {
       "excerpt": "label = \"Properties\"",
-      "line": 2715,
+      "line": 2718,
       "literal": "Properties",
       "owner": "controller",
       "path": "keys.toml",
@@ -129811,7 +129825,7 @@
     },
     {
       "excerpt": "label = \"Edit in terminal\"",
-      "line": 2723,
+      "line": 2726,
       "literal": "Edit in terminal",
       "owner": "controller",
       "path": "keys.toml",
@@ -129820,7 +129834,7 @@
     },
     {
       "excerpt": "label = \"Detail column\"",
-      "line": 2731,
+      "line": 2734,
       "literal": "Detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -129829,7 +129843,7 @@
     },
     {
       "excerpt": "label = \"Print…\"",
-      "line": 2739,
+      "line": 2742,
       "literal": "Print…",
       "owner": "controller",
       "path": "keys.toml",
@@ -129838,7 +129852,7 @@
     },
     {
       "excerpt": "label = \"Quit\"",
-      "line": 2747,
+      "line": 2750,
       "literal": "Quit",
       "owner": "controller",
       "path": "keys.toml",
@@ -129847,7 +129861,7 @@
     },
     {
       "excerpt": "label = \"Quit without directory handoff\"",
-      "line": 2755,
+      "line": 2758,
       "literal": "Quit without directory handoff",
       "owner": "controller",
       "path": "keys.toml",
@@ -129856,7 +129870,7 @@
     },
     {
       "excerpt": "key = \"Tab\"",
-      "line": 2761,
+      "line": 2764,
       "literal": "Tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -129865,7 +129879,7 @@
     },
     {
       "excerpt": "label = \"Focus the preview\"",
-      "line": 2763,
+      "line": 2766,
       "literal": "Focus the preview",
       "owner": "controller",
       "path": "keys.toml",
@@ -129874,7 +129888,7 @@
     },
     {
       "excerpt": "label = \"Next tab\"",
-      "line": 2771,
+      "line": 2774,
       "literal": "Next tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -129883,7 +129897,7 @@
     },
     {
       "excerpt": "label = \"Previous tab\"",
-      "line": 2779,
+      "line": 2782,
       "literal": "Previous tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -129892,7 +129906,7 @@
     },
     {
       "excerpt": "label = \"Back\"",
-      "line": 2787,
+      "line": 2790,
       "literal": "Back",
       "owner": "controller",
       "path": "keys.toml",
@@ -129901,7 +129915,7 @@
     },
     {
       "excerpt": "label = \"Forward\"",
-      "line": 2795,
+      "line": 2798,
       "literal": "Forward",
       "owner": "controller",
       "path": "keys.toml",
@@ -129910,7 +129924,7 @@
     },
     {
       "excerpt": "label = \"Cursor down\"",
-      "line": 2803,
+      "line": 2806,
       "literal": "Cursor down",
       "owner": "controller",
       "path": "keys.toml",
@@ -129919,7 +129933,7 @@
     },
     {
       "excerpt": "label = \"Cursor up\"",
-      "line": 2811,
+      "line": 2814,
       "literal": "Cursor up",
       "owner": "controller",
       "path": "keys.toml",
@@ -129928,7 +129942,7 @@
     },
     {
       "excerpt": "label = \"Close tab\"",
-      "line": 2819,
+      "line": 2822,
       "literal": "Close tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -129937,7 +129951,7 @@
     },
     {
       "excerpt": "label = \"Close or go back\"",
-      "line": 2827,
+      "line": 2830,
       "literal": "Close or go back",
       "owner": "controller",
       "path": "keys.toml",
@@ -129946,7 +129960,7 @@
     },
     {
       "excerpt": "label = \"Half page up\"",
-      "line": 2835,
+      "line": 2838,
       "literal": "Half page up",
       "owner": "controller",
       "path": "keys.toml",
@@ -129955,7 +129969,7 @@
     },
     {
       "excerpt": "label = \"Half page down\"",
-      "line": 2843,
+      "line": 2846,
       "literal": "Half page down",
       "owner": "controller",
       "path": "keys.toml",
@@ -129964,7 +129978,7 @@
     },
     {
       "excerpt": "label = \"Page up\"",
-      "line": 2851,
+      "line": 2854,
       "literal": "Page up",
       "owner": "controller",
       "path": "keys.toml",
@@ -129973,7 +129987,7 @@
     },
     {
       "excerpt": "label = \"Page down\"",
-      "line": 2859,
+      "line": 2862,
       "literal": "Page down",
       "owner": "controller",
       "path": "keys.toml",
@@ -129982,7 +129996,7 @@
     },
     {
       "excerpt": "label = \"Half page up\"",
-      "line": 2867,
+      "line": 2870,
       "literal": "Half page up",
       "owner": "controller",
       "path": "keys.toml",
@@ -129991,7 +130005,7 @@
     },
     {
       "excerpt": "label = \"Half page down\"",
-      "line": 2875,
+      "line": 2878,
       "literal": "Half page down",
       "owner": "controller",
       "path": "keys.toml",
@@ -130000,7 +130014,7 @@
     },
     {
       "excerpt": "label = \"Open\"",
-      "line": 2883,
+      "line": 2886,
       "literal": "Open",
       "owner": "controller",
       "path": "keys.toml",
@@ -130009,7 +130023,7 @@
     },
     {
       "excerpt": "key = \"Right\"",
-      "line": 2889,
+      "line": 2892,
       "literal": "Right",
       "owner": "controller",
       "path": "keys.toml",
@@ -130018,7 +130032,7 @@
     },
     {
       "excerpt": "label = \"Open\"",
-      "line": 2891,
+      "line": 2894,
       "literal": "Open",
       "owner": "controller",
       "path": "keys.toml",
@@ -130027,7 +130041,7 @@
     },
     {
       "excerpt": "key = \"Space\"",
-      "line": 2897,
+      "line": 2900,
       "literal": "Space",
       "owner": "controller",
       "path": "keys.toml",
@@ -130036,7 +130050,7 @@
     },
     {
       "excerpt": "label = \"Select and move down\"",
-      "line": 2899,
+      "line": 2902,
       "literal": "Select and move down",
       "owner": "controller",
       "path": "keys.toml",
@@ -130045,7 +130059,7 @@
     },
     {
       "excerpt": "label = \"Invert selection\"",
-      "line": 2907,
+      "line": 2910,
       "literal": "Invert selection",
       "owner": "controller",
       "path": "keys.toml",
@@ -130054,7 +130068,7 @@
     },
     {
       "excerpt": "label = \"Select\"",
-      "line": 2915,
+      "line": 2918,
       "literal": "Select",
       "owner": "controller",
       "path": "keys.toml",
@@ -130063,7 +130077,7 @@
     },
     {
       "excerpt": "label = \"Clear selection\"",
-      "line": 2923,
+      "line": 2926,
       "literal": "Clear selection",
       "owner": "controller",
       "path": "keys.toml",
@@ -130072,7 +130086,7 @@
     },
     {
       "excerpt": "label = \"Open\"",
-      "line": 2931,
+      "line": 2934,
       "literal": "Open",
       "owner": "controller",
       "path": "keys.toml",
@@ -130081,7 +130095,7 @@
     },
     {
       "excerpt": "label = \"Copy\"",
-      "line": 2939,
+      "line": 2942,
       "literal": "Copy",
       "owner": "controller",
       "path": "keys.toml",
@@ -130090,7 +130104,7 @@
     },
     {
       "excerpt": "label = \"Cut\"",
-      "line": 2947,
+      "line": 2950,
       "literal": "Cut",
       "owner": "controller",
       "path": "keys.toml",
@@ -130099,7 +130113,7 @@
     },
     {
       "excerpt": "label = \"Paste\"",
-      "line": 2955,
+      "line": 2958,
       "literal": "Paste",
       "owner": "controller",
       "path": "keys.toml",
@@ -130108,7 +130122,7 @@
     },
     {
       "excerpt": "label = \"Clear clipboard\"",
-      "line": 2963,
+      "line": 2966,
       "literal": "Clear clipboard",
       "owner": "controller",
       "path": "keys.toml",
@@ -130117,7 +130131,7 @@
     },
     {
       "excerpt": "label = \"Move to Trash\"",
-      "line": 2971,
+      "line": 2974,
       "literal": "Move to Trash",
       "owner": "controller",
       "path": "keys.toml",
@@ -130126,7 +130140,7 @@
     },
     {
       "excerpt": "label = \"Delete permanently\"",
-      "line": 2979,
+      "line": 2982,
       "literal": "Delete permanently",
       "owner": "controller",
       "path": "keys.toml",
@@ -130134,9 +130148,9 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "label = \"New file\"",
-      "line": 2987,
-      "literal": "New file",
+      "excerpt": "label = \"New file or folder\"",
+      "line": 2990,
+      "literal": "New file or folder",
       "owner": "controller",
       "path": "keys.toml",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -130144,7 +130158,7 @@
     },
     {
       "excerpt": "label = \"Rename\"",
-      "line": 2995,
+      "line": 2998,
       "literal": "Rename",
       "owner": "controller",
       "path": "keys.toml",
@@ -130153,7 +130167,7 @@
     },
     {
       "excerpt": "label = \"Filter\"",
-      "line": 3003,
+      "line": 3006,
       "literal": "Filter",
       "owner": "controller",
       "path": "keys.toml",
@@ -130162,7 +130176,7 @@
     },
     {
       "excerpt": "label = \"Filter\"",
-      "line": 3011,
+      "line": 3014,
       "literal": "Filter",
       "owner": "controller",
       "path": "keys.toml",
@@ -130171,7 +130185,7 @@
     },
     {
       "excerpt": "label = \"Find\"",
-      "line": 3019,
+      "line": 3022,
       "literal": "Find",
       "owner": "controller",
       "path": "keys.toml",
@@ -130180,7 +130194,7 @@
     },
     {
       "excerpt": "label = \"Keyboard Shortcuts\"",
-      "line": 3027,
+      "line": 3030,
       "literal": "Keyboard Shortcuts",
       "owner": "controller",
       "path": "keys.toml",
@@ -130189,7 +130203,7 @@
     },
     {
       "excerpt": "label = \"Keyboard Shortcuts\"",
-      "line": 3035,
+      "line": 3038,
       "literal": "Keyboard Shortcuts",
       "owner": "controller",
       "path": "keys.toml",
@@ -130198,7 +130212,7 @@
     },
     {
       "excerpt": "label = \"First item\"",
-      "line": 3083,
+      "line": 3086,
       "literal": "First item",
       "owner": "controller",
       "path": "keys.toml",
@@ -130207,7 +130221,7 @@
     },
     {
       "excerpt": "label = \"Home folder\"",
-      "line": 3092,
+      "line": 3095,
       "literal": "Home folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130216,7 +130230,7 @@
     },
     {
       "excerpt": "label = \"Configuration folder\"",
-      "line": 3101,
+      "line": 3104,
       "literal": "Configuration folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130225,7 +130239,7 @@
     },
     {
       "excerpt": "label = \"Downloads folder\"",
-      "line": 3110,
+      "line": 3113,
       "literal": "Downloads folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130234,7 +130248,7 @@
     },
     {
       "excerpt": "key = \"Space\"",
-      "line": 3117,
+      "line": 3120,
       "literal": "Space",
       "owner": "controller",
       "path": "keys.toml",
@@ -130243,7 +130257,7 @@
     },
     {
       "excerpt": "label = \"Go to folder\"",
-      "line": 3119,
+      "line": 3122,
       "literal": "Go to folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130252,7 +130266,7 @@
     },
     {
       "excerpt": "label = \"New tab\"",
-      "line": 3128,
+      "line": 3131,
       "literal": "New tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130261,7 +130275,7 @@
     },
     {
       "excerpt": "label = \"Sort by name\"",
-      "line": 3137,
+      "line": 3140,
       "literal": "Sort by name",
       "owner": "controller",
       "path": "keys.toml",
@@ -130270,7 +130284,7 @@
     },
     {
       "excerpt": "label = \"Sort by name descending\"",
-      "line": 3146,
+      "line": 3149,
       "literal": "Sort by name descending",
       "owner": "controller",
       "path": "keys.toml",
@@ -130279,7 +130293,7 @@
     },
     {
       "excerpt": "label = \"Sort by modified time\"",
-      "line": 3155,
+      "line": 3158,
       "literal": "Sort by modified time",
       "owner": "controller",
       "path": "keys.toml",
@@ -130288,7 +130302,7 @@
     },
     {
       "excerpt": "label = \"Sort by modified time descending\"",
-      "line": 3164,
+      "line": 3167,
       "literal": "Sort by modified time descending",
       "owner": "controller",
       "path": "keys.toml",
@@ -130297,7 +130311,7 @@
     },
     {
       "excerpt": "label = \"Sort by size\"",
-      "line": 3173,
+      "line": 3176,
       "literal": "Sort by size",
       "owner": "controller",
       "path": "keys.toml",
@@ -130306,7 +130320,7 @@
     },
     {
       "excerpt": "label = \"Sort by size descending\"",
-      "line": 3182,
+      "line": 3185,
       "literal": "Sort by size descending",
       "owner": "controller",
       "path": "keys.toml",
@@ -130315,7 +130329,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Specific detail modes are unavailable in this terminal build\"",
-      "line": 3190,
+      "line": 3193,
       "literal": "unsupported:Specific detail modes are unavailable in this terminal build",
       "owner": "controller",
       "path": "keys.toml",
@@ -130324,7 +130338,7 @@
     },
     {
       "excerpt": "label = \"Detail column\"",
-      "line": 3191,
+      "line": 3194,
       "literal": "Detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -130333,7 +130347,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Specific detail modes are unavailable in this terminal build\"",
-      "line": 3199,
+      "line": 3202,
       "literal": "unsupported:Specific detail modes are unavailable in this terminal build",
       "owner": "controller",
       "path": "keys.toml",
@@ -130342,7 +130356,7 @@
     },
     {
       "excerpt": "label = \"Detail column\"",
-      "line": 3200,
+      "line": 3203,
       "literal": "Detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -130351,7 +130365,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Specific detail modes are unavailable in this terminal build\"",
-      "line": 3208,
+      "line": 3211,
       "literal": "unsupported:Specific detail modes are unavailable in this terminal build",
       "owner": "controller",
       "path": "keys.toml",
@@ -130360,7 +130374,7 @@
     },
     {
       "excerpt": "label = \"Detail column\"",
-      "line": 3209,
+      "line": 3212,
       "literal": "Detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -130369,7 +130383,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Specific detail modes are unavailable in this terminal build\"",
-      "line": 3217,
+      "line": 3220,
       "literal": "unsupported:Specific detail modes are unavailable in this terminal build",
       "owner": "controller",
       "path": "keys.toml",
@@ -130378,7 +130392,7 @@
     },
     {
       "excerpt": "label = \"Detail column\"",
-      "line": 3218,
+      "line": 3221,
       "literal": "Detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -130387,7 +130401,7 @@
     },
     {
       "excerpt": "label = \"Delete permanently\"",
-      "line": 3224,
+      "line": 3227,
       "literal": "Delete permanently",
       "owner": "controller",
       "path": "keys.toml",
@@ -130396,7 +130410,7 @@
     },
     {
       "excerpt": "label = \"Redo\"",
-      "line": 3228,
+      "line": 3231,
       "literal": "Redo",
       "owner": "controller",
       "path": "keys.toml",
@@ -130405,7 +130419,7 @@
     },
     {
       "excerpt": "label = \"New file\"",
-      "line": 3232,
+      "line": 3235,
       "literal": "New file",
       "owner": "controller",
       "path": "keys.toml",
@@ -130414,7 +130428,7 @@
     },
     {
       "excerpt": "label = \"Move here\"",
-      "line": 3236,
+      "line": 3239,
       "literal": "Move here",
       "owner": "controller",
       "path": "keys.toml",
@@ -130423,7 +130437,7 @@
     },
     {
       "excerpt": "label = \"Duplicate\"",
-      "line": 3240,
+      "line": 3243,
       "literal": "Duplicate",
       "owner": "controller",
       "path": "keys.toml",
@@ -130432,7 +130446,7 @@
     },
     {
       "excerpt": "label = \"Move tab left\"",
-      "line": 3244,
+      "line": 3247,
       "literal": "Move tab left",
       "owner": "controller",
       "path": "keys.toml",
@@ -130441,7 +130455,7 @@
     },
     {
       "excerpt": "label = \"Move tab right\"",
-      "line": 3248,
+      "line": 3251,
       "literal": "Move tab right",
       "owner": "controller",
       "path": "keys.toml",
@@ -130450,7 +130464,7 @@
     },
     {
       "excerpt": "label = \"New tab\"",
-      "line": 3252,
+      "line": 3255,
       "literal": "New tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130459,7 +130473,7 @@
     },
     {
       "excerpt": "label = \"Close tab\"",
-      "line": 3256,
+      "line": 3259,
       "literal": "Close tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130468,7 +130482,7 @@
     },
     {
       "excerpt": "label = \"Next tab\"",
-      "line": 3260,
+      "line": 3263,
       "literal": "Next tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130477,7 +130491,7 @@
     },
     {
       "excerpt": "label = \"Previous tab\"",
-      "line": 3264,
+      "line": 3267,
       "literal": "Previous tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130486,7 +130500,7 @@
     },
     {
       "excerpt": "label = \"Back\"",
-      "line": 3271,
+      "line": 3274,
       "literal": "Back",
       "owner": "controller",
       "path": "keys.toml",
@@ -130495,7 +130509,7 @@
     },
     {
       "excerpt": "label = \"Forward\"",
-      "line": 3279,
+      "line": 3282,
       "literal": "Forward",
       "owner": "controller",
       "path": "keys.toml",
@@ -130504,7 +130518,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Focus the preview with Tab, then use Left to seek a supported player\"",
-      "line": 3326,
+      "line": 3329,
       "literal": "unsupported:Focus the preview with Tab, then use Left to seek a supported player",
       "owner": "controller",
       "path": "keys.toml",
@@ -130513,7 +130527,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Focus the preview with Tab, then use Right to seek a supported player\"",
-      "line": 3334,
+      "line": 3337,
       "literal": "unsupported:Focus the preview with Tab, then use Right to seek a supported player",
       "owner": "controller",
       "path": "keys.toml",
@@ -130522,7 +130536,7 @@
     },
     {
       "excerpt": "key = \"Return\"",
-      "line": 3341,
+      "line": 3344,
       "literal": "Return",
       "owner": "controller",
       "path": "keys.toml",
@@ -130531,7 +130545,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Interactive application picking is unavailable in this terminal build; O opens a folder tab\"",
-      "line": 3342,
+      "line": 3345,
       "literal": "unsupported:Interactive application picking is unavailable in this terminal build; O opens a folder tab",
       "owner": "controller",
       "path": "keys.toml",
@@ -130540,7 +130554,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Forced overwrite is unavailable; paste with p and answer the collision prompt\"",
-      "line": 3350,
+      "line": 3353,
       "literal": "unsupported:Forced overwrite is unavailable; paste with p and answer the collision prompt",
       "owner": "controller",
       "path": "keys.toml",
@@ -130549,7 +130563,7 @@
     },
     {
       "excerpt": "key = \"Underscore\"",
-      "line": 3373,
+      "line": 3376,
       "literal": "Underscore",
       "owner": "controller",
       "path": "keys.toml",
@@ -130558,7 +130572,7 @@
     },
     {
       "excerpt": "key = \"Minus\"",
-      "line": 3381,
+      "line": 3384,
       "literal": "Minus",
       "owner": "controller",
       "path": "keys.toml",
@@ -130567,7 +130581,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Shell prompts are unavailable; Ctrl+T opens a terminal in this folder\"",
-      "line": 3390,
+      "line": 3393,
       "literal": "unsupported:Shell prompts are unavailable; Ctrl+T opens a terminal in this folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130576,7 +130590,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Blocking shell prompts are unavailable; Ctrl+T opens a terminal in this folder\"",
-      "line": 3398,
+      "line": 3401,
       "literal": "unsupported:Blocking shell prompts are unavailable; Ctrl+T opens a terminal in this folder",
       "owner": "controller",
       "path": "keys.toml",
@@ -130585,7 +130599,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Content search is unavailable; s opens built-in filename search\"",
-      "line": 3406,
+      "line": 3409,
       "literal": "unsupported:Content search is unavailable; s opens built-in filename search",
       "owner": "controller",
       "path": "keys.toml",
@@ -130594,7 +130608,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Closing only search is unavailable; Escape leaves search or clears its active field\"",
-      "line": 3414,
+      "line": 3417,
       "literal": "unsupported:Closing only search is unavailable; Escape leaves search or clears its active field",
       "owner": "controller",
       "path": "keys.toml",
@@ -130603,7 +130617,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Fuzzy-finder plugins are unavailable; f filters the held rows\"",
-      "line": 3422,
+      "line": 3425,
       "literal": "unsupported:Fuzzy-finder plugins are unavailable; f filters the held rows",
       "owner": "controller",
       "path": "keys.toml",
@@ -130612,7 +130626,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Directory ranking plugins are unavailable; use g then Space to enter a path\"",
-      "line": 3430,
+      "line": 3433,
       "literal": "unsupported:Directory ranking plugins are unavailable; use g then Space to enter a path",
       "owner": "controller",
       "path": "keys.toml",
@@ -130621,7 +130635,7 @@
     },
     {
       "excerpt": "action = \"unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting\"",
-      "line": 3553,
+      "line": 3556,
       "literal": "unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting",
       "owner": "controller",
       "path": "keys.toml",
@@ -130630,7 +130644,7 @@
     },
     {
       "excerpt": "label = \"Trash\"",
-      "line": 3572,
+      "line": 3575,
       "literal": "Trash",
       "owner": "controller",
       "path": "keys.toml",
@@ -130639,7 +130653,7 @@
     },
     {
       "excerpt": "action = \"unsupported:Custom tab names are unavailable; tabs show their folders\"",
-      "line": 3589,
+      "line": 3592,
       "literal": "unsupported:Custom tab names are unavailable; tabs show their folders",
       "owner": "controller",
       "path": "keys.toml",
@@ -130648,7 +130662,7 @@
     },
     {
       "excerpt": "action = \"unsupported:A task list is unavailable; running operations report in the status row\"",
-      "line": 3598,
+      "line": 3601,
       "literal": "unsupported:A task list is unavailable; running operations report in the status row",
       "owner": "controller",
       "path": "keys.toml",
@@ -130657,7 +130671,7 @@
     },
     {
       "excerpt": "label = \"Search contents\"",
-      "line": 3607,
+      "line": 3610,
       "literal": "Search contents",
       "owner": "controller",
       "path": "keys.toml",
@@ -130666,7 +130680,7 @@
     },
     {
       "excerpt": "label = \"Open agent here\"",
-      "line": 3615,
+      "line": 3618,
       "literal": "Open agent here",
       "owner": "controller",
       "path": "keys.toml",
@@ -130675,7 +130689,7 @@
     },
     {
       "excerpt": "key = \"Left\"",
-      "line": 3637,
+      "line": 3640,
       "literal": "Left",
       "owner": "controller",
       "path": "keys.toml",
@@ -130684,7 +130698,7 @@
     },
     {
       "excerpt": "key = \"Right\"",
-      "line": 3645,
+      "line": 3648,
       "literal": "Right",
       "owner": "controller",
       "path": "keys.toml",
@@ -130693,7 +130707,7 @@
     },
     {
       "excerpt": "key = \"Backspace\"",
-      "line": 3685,
+      "line": 3688,
       "literal": "Backspace",
       "owner": "controller",
       "path": "keys.toml",
@@ -130702,7 +130716,7 @@
     },
     {
       "excerpt": "key = \"Delete\"",
-      "line": 3693,
+      "line": 3696,
       "literal": "Delete",
       "owner": "controller",
       "path": "keys.toml",
@@ -130711,7 +130725,7 @@
     },
     {
       "excerpt": "text = \"Copy directory URI\"",
-      "line": 3702,
+      "line": 3705,
       "literal": "Copy directory URI",
       "owner": "controller",
       "path": "keys.toml",
@@ -130720,7 +130734,7 @@
     },
     {
       "excerpt": "text = \"Copy filename\"",
-      "line": 3706,
+      "line": 3709,
       "literal": "Copy filename",
       "owner": "controller",
       "path": "keys.toml",
@@ -130729,7 +130743,7 @@
     },
     {
       "excerpt": "text = \"Copy path\"",
-      "line": 3710,
+      "line": 3713,
       "literal": "Copy path",
       "owner": "controller",
       "path": "keys.toml",
@@ -130738,7 +130752,7 @@
     },
     {
       "excerpt": "text = \"Copy filename without extension\"",
-      "line": 3714,
+      "line": 3717,
       "literal": "Copy filename without extension",
       "owner": "controller",
       "path": "keys.toml",
@@ -130747,7 +130761,7 @@
     },
     {
       "excerpt": "text = \"Copy URI\"",
-      "line": 3718,
+      "line": 3721,
       "literal": "Copy URI",
       "owner": "controller",
       "path": "keys.toml",
@@ -130756,7 +130770,7 @@
     },
     {
       "excerpt": "text = \"Copy directory path\"",
-      "line": 3722,
+      "line": 3725,
       "literal": "Copy directory path",
       "owner": "controller",
       "path": "keys.toml",
@@ -130765,7 +130779,7 @@
     },
     {
       "excerpt": "text = \"Show creation time\"",
-      "line": 3726,
+      "line": 3729,
       "literal": "Show creation time",
       "owner": "controller",
       "path": "keys.toml",
@@ -130774,7 +130788,7 @@
     },
     {
       "excerpt": "text = \"Hide detail column\"",
-      "line": 3730,
+      "line": 3733,
       "literal": "Hide detail column",
       "owner": "controller",
       "path": "keys.toml",
@@ -130783,7 +130797,7 @@
     },
     {
       "excerpt": "text = \"Find next\"",
-      "line": 3734,
+      "line": 3737,
       "literal": "Find next",
       "owner": "controller",
       "path": "keys.toml",
@@ -130792,7 +130806,7 @@
     },
     {
       "excerpt": "text = \"Find previous\"",
-      "line": 3738,
+      "line": 3741,
       "literal": "Find previous",
       "owner": "controller",
       "path": "keys.toml",
@@ -130801,7 +130815,7 @@
     },
     {
       "excerpt": "text = \"Follow link\"",
-      "line": 3742,
+      "line": 3745,
       "literal": "Follow link",
       "owner": "controller",
       "path": "keys.toml",
@@ -130810,7 +130824,7 @@
     },
     {
       "excerpt": "text = \"Delete previous word (field)\"",
-      "line": 3746,
+      "line": 3749,
       "literal": "Delete previous word (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130819,7 +130833,7 @@
     },
     {
       "excerpt": "text = \"Delete to start (field)\"",
-      "line": 3750,
+      "line": 3753,
       "literal": "Delete to start (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130828,7 +130842,7 @@
     },
     {
       "excerpt": "text = \"Delete to end (field)\"",
-      "line": 3754,
+      "line": 3757,
       "literal": "Delete to end (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130837,7 +130851,7 @@
     },
     {
       "excerpt": "text = \"Delete next word (field)\"",
-      "line": 3758,
+      "line": 3761,
       "literal": "Delete next word (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130846,7 +130860,7 @@
     },
     {
       "excerpt": "text = \"Paste absolute symbolic links\"",
-      "line": 3762,
+      "line": 3765,
       "literal": "Paste absolute symbolic links",
       "owner": "controller",
       "path": "keys.toml",
@@ -130855,7 +130869,7 @@
     },
     {
       "excerpt": "text = \"Paste hard links\"",
-      "line": 3766,
+      "line": 3769,
       "literal": "Paste hard links",
       "owner": "controller",
       "path": "keys.toml",
@@ -130864,7 +130878,7 @@
     },
     {
       "excerpt": "text = \"Paste relative symbolic links\"",
-      "line": 3770,
+      "line": 3773,
       "literal": "Paste relative symbolic links",
       "owner": "controller",
       "path": "keys.toml",
@@ -130873,7 +130887,7 @@
     },
     {
       "excerpt": "text = \"Sort by creation time\"",
-      "line": 3774,
+      "line": 3777,
       "literal": "Sort by creation time",
       "owner": "controller",
       "path": "keys.toml",
@@ -130882,7 +130896,7 @@
     },
     {
       "excerpt": "text = \"Sort by creation time (reverse)\"",
-      "line": 3778,
+      "line": 3781,
       "literal": "Sort by creation time (reverse)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130891,7 +130905,7 @@
     },
     {
       "excerpt": "text = \"Sort by extension\"",
-      "line": 3782,
+      "line": 3785,
       "literal": "Sort by extension",
       "owner": "controller",
       "path": "keys.toml",
@@ -130900,7 +130914,7 @@
     },
     {
       "excerpt": "text = \"Shuffle files\"",
-      "line": 3786,
+      "line": 3789,
       "literal": "Shuffle files",
       "owner": "controller",
       "path": "keys.toml",
@@ -130909,7 +130923,7 @@
     },
     {
       "excerpt": "text = \"Suspend\"",
-      "line": 3790,
+      "line": 3793,
       "literal": "Suspend",
       "owner": "controller",
       "path": "keys.toml",
@@ -130918,7 +130932,7 @@
     },
     {
       "excerpt": "text = \"Previous word (field)\"",
-      "line": 3794,
+      "line": 3797,
       "literal": "Previous word (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -130927,7 +130941,7 @@
     },
     {
       "excerpt": "text = \"Next word (field)\"",
-      "line": 3798,
+      "line": 3801,
       "literal": "Next word (field)",
       "owner": "controller",
       "path": "keys.toml",
@@ -173767,7 +173781,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 168,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173776,7 +173790,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 168,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173785,7 +173799,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 168,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173794,7 +173808,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 168,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173803,7 +173817,7 @@
     },
     {
       "excerpt": "\"Home\" => 0,",
-      "line": 164,
+      "line": 170,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173812,7 +173826,7 @@
     },
     {
       "excerpt": "\"End\" => self.editable_end,",
-      "line": 165,
+      "line": 171,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173821,7 +173835,7 @@
     },
     {
       "excerpt": "\"Left\" => {",
-      "line": 166,
+      "line": 172,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173830,7 +173844,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 185,
+      "line": 191,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173839,7 +173853,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 185,
+      "line": 191,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173848,7 +173862,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Backspace\" {",
-      "line": 188,
+      "line": 194,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173857,7 +173871,7 @@
     },
     {
       "excerpt": "(\"alt\", \"B\") | (\"ctrl\" | \"ctrlshift\", \"Left\") => Some(false),",
-      "line": 213,
+      "line": 219,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173866,7 +173880,7 @@
     },
     {
       "excerpt": "(\"alt\", \"F\") | (\"ctrl\" | \"ctrlshift\", \"Right\") => Some(true),",
-      "line": 214,
+      "line": 220,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173875,7 +173889,7 @@
     },
     {
       "excerpt": "(\"ctrl\", \"W\" | \"Backspace\") => {",
-      "line": 231,
+      "line": 237,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -173884,7 +173898,7 @@
     },
     {
       "excerpt": "(\"alt\", \"D\") | (\"ctrl\", \"Delete\") => {",
-      "line": 234,
+      "line": 240,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175054,7 +175068,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-      "line": 1137,
+      "line": 1140,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -175063,7 +175077,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-      "line": 1143,
+      "line": 1146,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -175072,7 +175086,7 @@
     },
     {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1163,
+      "line": 1166,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -175081,7 +175095,7 @@
     },
     {
       "excerpt": "if text(&value, \"where\") == \"scan\" && text(&value, \"msg\") == \"permission denied\" {",
-      "line": 1241,
+      "line": 1250,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -175702,7 +175716,7 @@
     },
     {
       "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-      "line": 163,
+      "line": 170,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175711,7 +175725,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-      "line": 217,
+      "line": 224,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175720,7 +175734,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-      "line": 253,
+      "line": 260,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175729,7 +175743,7 @@
     },
     {
       "excerpt": "let mut fields = vec![(\"c\", word(if linked { \"link\" } else { \"transfer\" })), (\"op\", word(paste.op)), (\"paths\", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),",
-      "line": 311,
+      "line": 318,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175738,7 +175752,7 @@
     },
     {
       "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 319,
+      "line": 326,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175747,7 +175761,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 329,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175756,7 +175770,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 329,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -246342,7 +246356,7 @@
       "surface": "qml-reference"
     }
   ],
-  "reference_checkout_path": "/home/gm/flea-work/omarchy-dev",
+  "reference_checkout_path": "/home/choug/Projects/omarchy-ref",
   "reference_checkout_sha": "4e059acff2f4e4c4e5a303ce9bc97223097e45eb",
   "references": {
     "omarchy:keybindings.Mute": {
@@ -247610,7 +247624,7 @@
     "crates/flea-gui/src/window/unlock.rs": "c2a41a570c8414f59502138177b7731232e5bab7b87f75b96ba8842e878991e5",
     "crates/flea-gui/src/window/user_keys.rs": "5bea733cb86fc270acfa191856a8ded5717f4d79b0ea03d84a914efa5567c25b",
     "crates/flea-gui/src/window/user_keys_layout.rs": "3da432cfd52893136e6fcebacc310c582522bbac90b1f6df51b1fb4b5920511a",
-    "keys.toml": "867694d22c8e2140aaf4504b299102845dc6e1a247c9197bcad628fd0098cbfe",
+    "keys.toml": "49069c96a5d2bbe29b0dabf13161ca28d01aa3b2921437a4c9bdd572e64fcf8b",
     "src/backend/actionmanifest.rs": "313e2e58558367a78e596c67cc563a41892fe48131024ef986a730e468fab56b",
     "src/backend/actionpreview.rs": "8df7559a4b1a0af88d520e46fe75cb708dbbb1204934296560f43447726592e7",
     "src/backend/actionrun.rs": "aaf0e4a17dd748fb85ddc18b212dc6e86a0c4aac6bf828fc2935d3d13a7d8006",
@@ -248099,7 +248113,7 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "8c5788e22e59144dd24e27ad68451da44aa494e63d2a83d252e7a0a93a11724c",
+    "src/tui/actions.rs": "788df85f1f1f5e97d8cffd11e890dc85aadd7851b69244116d18f32c82fa0a55",
     "src/tui/actions_pointer.rs": "ca908c3e1550c87f841b5ea4397ae71a5ad93c3f974f85442e0dd735a80d0c72",
     "src/tui/batch.rs": "79ae57c24af694b2f1cf643a348d4eae9ca47d85d6f54c40cc8980587c146b3f",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
@@ -248126,8 +248140,8 @@
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
     "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
-    "src/tui/editor.rs": "de688501f5b896c7a1d4705a2d1d40476749abfe05365ce48f24f70262d509a3",
-    "src/tui/editor_input.rs": "b1428f2db23a6e4b86d7a13cf136294706fe2a7908403d86247cadfda9d3ef99",
+    "src/tui/editor.rs": "68587dfbb76b856b509ddb5f5fd5999f28cab1f52d01e3cc2892feed9105a0e0",
+    "src/tui/editor_input.rs": "2c2d572b357b553a86de65e2e9f53e5239655a7f5209a77f3ad134611eec58d9",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
     "src/tui/external_editor.rs": "65eb226f506519506ddc26a40ab9eea742a2e449a3ed77ce021f5d460843480a",
@@ -248140,7 +248154,7 @@
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
     "src/tui/jobstatus.rs": "969480bbe62dbc75e775e1acbb14ca55d0a06068ed0b6995951c3bd3f6709864",
-    "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
+    "src/tui/key_sheet.rs": "14e0f7b6b98cc50446ac9a7dd354db2204307f57f30eacdaa39b7fde9a31aa9c",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
     "src/tui/launch.rs": "84cc19c56ccf2c72666c11665d34dc46e376757ca56b3135605c5bd9886ea852",
@@ -248150,7 +248164,7 @@
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "64d336b4cb5e4614702f6d13e3f290a02241cb7ca9d91387b7200f1da8ba7fbb",
     "src/tui/mod.rs": "0c2339b4ba8e3ac9dee702d291120c2c392c27a9f2cdb76b1378afcb45e7b020",
-    "src/tui/model.rs": "be8e9a74dc02d729437f42d0fb1e99de722c30e522b5cdf2bba21ac1b36c96ef",
+    "src/tui/model.rs": "de944a62196260f4bfa495a1963e9f240b2ae474ef9707fb06915973fc4113f8",
     "src/tui/model3d.rs": "411b95b4851090efd363fefecf527ee042c0239e2c14a51604c50abf5a738573",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -248168,7 +248182,7 @@
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
-    "src/tui/prompts.rs": "73ec6423ef4c341075b1e7e1627d506c2333a405cc525caeb002452b411671b8",
+    "src/tui/prompts.rs": "c2a6e2c87254892ddad3fd92016ab57f53835e8d127bbcb031de0f30a24fbc78",
     "src/tui/render.rs": "7e686a909f5934896a6978970f3cb995844068a4efdb23593fe73b6302f93307",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "0f1265d38041eb3ae29357f69c8bd1808f0d512d119f4173c64c127f9351449b",
@@ -249105,9 +249119,9 @@
     "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
-  "source_ref": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_ref_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
+  "source_ref": "HEAD",
+  "source_ref_sha": "a2ee636bcbeecebf5b7b4b6b90acb7881b67df06",
+  "source_sha": "a2ee636bcbeecebf5b7b4b6b90acb7881b67df06",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1294,
@@ -249173,6 +249187,7 @@
     "keys.action.tag7",
     "keys.action.toggleWrap",
     "keys.action.zoomFit",
+    "keys.newFolder",
     "menu.state.filesOnly",
     "network.bridge_failed",
     "network.bridge_timeout",

@@ -89,12 +89,22 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     let mut m = frame_tests::model();
     m.path = sandbox.path().into();
     press(&mut m, &mut w, Key::character('N', "shift"));
-    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens New Folder");
-    let (cells, caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Folder name").0, theme.muted);
-    assert_eq!(span(&cells, 12, "New Folder"), (theme.foreground.clone(), theme.stem.clone()));
-    assert_eq!(span(&cells, 22, " ").1, theme.field);
-    assert_eq!(caret, None);
+    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens the one create prompt");
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "New folder").0, theme.muted);
+    // The suggested name carries the slash that makes Enter a folder, and the whole draft is
+    // selected, so it draws in the stem ink until something is typed over it.
+    assert_eq!(span(&cells, 11, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
+    // The label names the entry the draft spells, so dropping the slash turns the row into a file
+    // prompt without touching the suggestion's words (yazi flips "Create:" / "Create (dir):").
+    m.editor.as_mut().unwrap().replace("New Folder".into());
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "New file").0, theme.muted, "no trailing slash names a file");
+    assert_eq!(span(&cells, 9, "New Folder"), (theme.foreground.clone(), theme.field.clone()), "a typed draft draws in the field ink");
+    // And the yazi preset's own file prompt flips the same way.
+    m.editor = Some(Editor::named("newfile", "photos/".into(), m.path.clone()));
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "New folder").0, theme.muted, "a trailing slash names a folder");
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);

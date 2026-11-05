@@ -91,17 +91,23 @@ impl Editor {
             self.fail_key("tui.editor.enter_a_filename_before_the_extension", i18n);
             return false;
         }
-        if matches!(self.kind, "rename" | "mkdir" | "newfile")
-            && crate::backend::ops::name_refusal(&self.value).is_some()
-        {
+        // One prompt makes a file or a folder: a trailing slash names a folder, so the name the
+        // shared validator reads drops that one slash and nothing else. A slash anywhere else is
+        // still refused, which is why the name, not the draft, is what gets validated.
+        let made = matches!(self.kind, "rename" | "mkdir" | "newfile");
+        let name = match self.value.strip_suffix('/') {
+            Some(name) if made && self.kind != "rename" => name,
+            _ => self.value.as_str(),
+        };
+        if made && crate::backend::ops::name_refusal(name).is_some() {
             // The shared validator decides refusal; input facts select only its presentation key.
-            let key = if self.value.is_empty() {
+            let key = if name.is_empty() {
                 "tui.editor.name_empty"
-            } else if matches!(self.value.as_str(), "." | "..") {
+            } else if matches!(name, "." | "..") {
                 "tui.editor.name_dots"
             } else if self.value.contains('/') {
                 "tui.editor.name_slash"
-            } else if self.value.contains('\0') {
+            } else if name.contains('\0') {
                 "tui.editor.name_nul"
             } else {
                 "tui.editor.invalid_name"
