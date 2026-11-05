@@ -223,11 +223,23 @@ impl Subject {
     fn path(&self) -> String {
         crate::navigation::history::join(&self.directory, &self.row.name)
     }
+    /// A row with no known type: whether its head was read as text, None until a read answered or for other rows.
+    pub(crate) fn sniffed(&self) -> Option<bool> {
+        crate::window::sniff::candidate(&self.row)
+            .then(|| {
+                crate::window::sniff::answer(&crate::window::sniff::key(&self.row, &self.path()))
+            })
+            .flatten()
+    }
     fn kind(&self) -> Kind {
         if self.selected_count > 1 {
             Kind::Multi
         } else {
-            Kind::of(&self.row)
+            match Kind::of(&self.row) {
+                // A row with no known type (.jc141rc, notes) previews as text when it reads as text.
+                Kind::Facts if self.sniffed() == Some(true) => Kind::Text,
+                kind => kind,
+            }
         }
     }
 }

@@ -52,6 +52,7 @@ pub mod root;
 pub(crate) mod run_card;
 pub(crate) mod search;
 pub mod selection_preview;
+mod sniff;
 pub mod settings;
 pub(crate) mod sidebar_edge;
 pub mod startup;
