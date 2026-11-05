@@ -98,6 +98,22 @@ pub fn preview_rows(state: &State<'_>) -> Vec<Row> {
         // Grid zoom never greys with thumbnails: the tiles still size from it.
         Row::check("preview.ctrlZoom", "settings.row.ctrl_zoom", "move-horizontal", not_false(data, &p("ctrlZoom"))),
     ]);
+    if std::env::var_os("FLEA_CUSTOM_PREVIEW").is_some_and(|v| v == "1") {
+        let mut group = Row::group("");
+        group.label = Text::Data("Quick Look".into());
+        out.push(group);
+        for (key, label) in [
+            ("preloadAdjacent", "Preload adjacent files"),
+            ("mediaControls", "Show media controls"),
+            ("infoPanel", "Open file info with preview"),
+            ("hideNavbarFullscreen", "Hide toolbar in fullscreen"),
+        ] {
+            let on = if key == "infoPanel" { is_true(data, &p(key)) } else { not_false(data, &p(key)) };
+            let mut row = Row::check(&format!("preview.{key}"), "", "", on);
+            row.label = Text::Data(label.into());
+            out.push(row);
+        }
+    }
     out
 }
 

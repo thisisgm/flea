@@ -1,8 +1,8 @@
 //! Mounted document scrollbars write the drawn content on either axis without consuming the shared corner.
-use super::{code, csv, html, render, surface::Surface, Metrics, Palette, PdfView};
+use super::{Metrics, Palette, PdfView, code, csv, html, render, surface::Surface};
 use gpui::{
-    font, point, px, size, AppContext, Bounds, Modifiers, MouseButton, Pixels, Render, RenderImage,
-    TestAppContext, TestDispatcher, VisualTestContext, WindowHandle,
+    AppContext, Bounds, Modifiers, MouseButton, Pixels, Render, RenderImage, TestAppContext,
+    TestDispatcher, VisualTestContext, WindowHandle, font, point, px, size,
 };
 use std::sync::Arc;
 
@@ -113,6 +113,20 @@ fn pb_scroll_document_pdf_stack_and_zoomed_page_lanes_move_content() {
                 .unwrap();
         }
     }
+}
+
+#[test]
+fn pdf_zoom_keeps_the_page_centered_in_quick_look() {
+    let mut cx = context();
+    let handle = pdf(&mut cx, false);
+    frame(&mut cx, handle);
+    handle
+        .update(&mut cx, |view, _, _| {
+            view.viewer.as_mut().unwrap().zoom = 1.25;
+            view.centre_zoom();
+            assert_eq!(view.pan, (75., 50.));
+        })
+        .unwrap();
 }
 
 #[test]

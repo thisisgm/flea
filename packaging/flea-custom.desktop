@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Flea
+GenericName=File Manager
+Comment=Flea 0.4.0 with custom previews
+Exec=/home/adam/Work/flea-040-preview/tools/flea-custom --gui %f
+Icon=/home/adam/Work/flea-040-preview/packaging/com.thisisgm.flea.svg
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+Keywords=files;folder;manager;browser;flea;
+StartupNotify=true
+StartupWMClass=com.thisisgm.flea

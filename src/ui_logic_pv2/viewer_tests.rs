@@ -260,16 +260,11 @@ fn viewer_strip_matches_the_boards() {
         .collect();
     assert_eq!(
         drawn,
-        vec![
-            Control::ZoomOut,
-            Control::ZoomIn,
-            Control::Expand,
-            Control::Close
-        ],
-        "ql-pdf: one page draws no chevrons"
+        vec![Control::ZoomOut, Control::ZoomIn, Control::Expand],
+        "ql-pdf: one page draws no chevrons or Quick Look close control"
     );
     assert!(
-        !one[2].enabled && one[3].enabled,
+        !one[2].enabled && one[3].enabled && !one[5].visible,
         "zoom out rests disabled at the fitted zoom"
     );
     let three = viewer.strip(0, 3);

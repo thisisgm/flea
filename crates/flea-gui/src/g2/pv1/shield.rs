@@ -1,10 +1,10 @@
 //! Quick Look's ground (#331): one blocking hitbox over the window and a listener that ends every pointer event there.
 use flea::ui_logic_pv1::ground::{Button, Pointer};
 use gpui::{
-    fill, relative, size, App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId, Hitbox,
-    HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, PinchEvent, Pixels, Point, ScrollDelta, ScrollWheelEvent, Style,
-    Window,
+    App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId, Hitbox, HitboxBehavior, Hsla,
+    InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent,
+    MouseUpEvent, PinchEvent, Pixels, Point, ScrollDelta, ScrollWheelEvent, Style, Window, fill,
+    relative, size,
 };
 use std::rc::Rc;
 
@@ -15,6 +15,7 @@ pub struct Hand {
     pub at: Point<Pixels>,
     pub inside: bool,
     pub wheel: Option<ScrollDelta>,
+    pub pinch_delta: Option<f32>,
     /// A move made with the left button down; a held knob or pan ends on a move without it.
     pub held: bool,
 }
@@ -127,13 +128,15 @@ impl Element for Shield {
                         return;
                     }
                     cx.stop_propagation();
-                    let read: fn(&$event) -> (Pointer, Option<ScrollDelta>, bool) = $pointer;
-                    let (pointer, wheel, held) = read(event);
+                    let read: fn(&$event) -> (Pointer, Option<ScrollDelta>, bool, Option<f32>) =
+                        $pointer;
+                    let (pointer, wheel, held, pinch_delta) = read(event);
                     let hand = Hand {
                         pointer,
                         at: event.position,
                         inside: card.contains(&event.position),
                         wheel,
+                        pinch_delta,
                         held,
                     };
                     on_pointer(hand, window, cx);
@@ -146,25 +149,34 @@ impl Element for Shield {
                 clicks: e.click_count
             },
             None,
-            false
+            false,
+            None
         ));
         end!(MouseUpEvent, true, |e| (
             Pointer::Release {
                 button: button(e.button)
             },
             None,
-            false
+            false,
+            None
         ));
         end!(MouseMoveEvent, true, |e| (
             Pointer::Move,
             None,
-            e.pressed_button == Some(MouseButton::Left)
+            e.pressed_button == Some(MouseButton::Left),
+            None
         ));
         end!(ScrollWheelEvent, false, |e| (
             Pointer::Wheel,
             Some(e.delta),
-            false
+            false,
+            None
         ));
-        end!(PinchEvent, false, |_| (Pointer::Pinch, None, false));
+        end!(PinchEvent, false, |e| (
+            Pointer::Pinch,
+            None,
+            false,
+            Some(e.delta)
+        ));
     }
 }

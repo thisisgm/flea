@@ -18,6 +18,8 @@ use std::time::Duration;
 
 #[path = "quick_look_compare.rs"]
 mod compare_open;
+#[path = "quick_look_custom.rs"]
+pub(crate) mod custom;
 #[path = "quick_look_docs.rs"]
 mod docs;
 #[path = "quick_look_interim.rs"]
@@ -26,10 +28,14 @@ mod interim;
 mod keys;
 #[path = "quick_look_mount.rs"]
 mod mount;
+#[path = "quick_look_popout.rs"]
+mod popout;
 #[path = "quick_look_readers.rs"]
 pub(crate) mod readers;
 #[path = "quick_look_replies.rs"]
 mod replies;
+#[path = "quick_look_row.rs"]
+mod row;
 #[path = "quick_look_warm.rs"]
 pub(crate) mod warm;
 #[path = "quick_look_wire.rs"]
@@ -70,6 +76,7 @@ pub(crate) enum Ask {
 
 pub(crate) struct Host {
     pub view: Entity<QuickLook>,
+    pub custom: custom::Host,
     pub side: usize,
     pub token: u64,
     pub ask: Ask,
@@ -125,6 +132,7 @@ impl Shell {
             });
             self.quick_look = Some(Host {
                 view,
+                custom: Default::default(),
                 side,
                 token: 0,
                 ask: Ask::Nothing,
@@ -151,6 +159,7 @@ impl Shell {
             .and_then(flea::jsondoc::Json::as_bool)
             != Some(false);
         let host = self.quick_look.as_mut().expect("built above");
+        host.custom.detached = host.view.read(cx).custom.is_some();
         docs::remember_markdown(host, cx);
         host.view
             .update(cx, |view, cx| view.set_languages(languages, cx));
@@ -165,6 +174,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if custom::enabled() {
+            return self.custom_preview_open(side, window, cx);
+        }
         let Some(pane) = self.panes[side]
             .as_ref()
             .filter(|p| !p.pane.busy() && !p.stopped)
@@ -184,63 +196,6 @@ impl Shell {
         let path = crate::navigation::history::join(pane.pane.path(), &row.name);
         self.show_row(side, index, &row, path, window, cx);
         true
-    }
-
-    /// One row's subject by its kind, held back until the backend answers what it still needs.
-    fn show_row(
-        &mut self,
-        side: usize,
-        index: usize,
-        row: &RowFacts,
-        path: String,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let state = kinds::quick_look_kind(&row.icon, &row.name, false);
-        let subject = |state, body| Subject {
-            name: row.name.clone(),
-            icon: row.icon.clone(),
-            mode: row.mode,
-            state,
-            shape: Shape::unknown(state),
-            body,
-        };
-        if let Some(mount) = mount::Mount::of(row) {
-            if self.show_doc(side, index, row, &path, mount, window, cx) {
-                return;
-            }
-        }
-        if state == State::Image {
-            self.show_picture(side, index, row, path, window, cx);
-            return;
-        }
-        let token = token();
-        let (subject, revealed, line, ask) = match state {
-            State::Text => {
-                let state = if kinds::is_code(&row.name) {
-                    State::Code
-                } else {
-                    State::Text
-                };
-                let body = Body::Text {
-                    lines: Vec::new(),
-                    count: String::new(),
-                };
-                let line = code_line(token, &path, 1);
-                (subject(state, body), false, Some(line), Ask::Code { path })
-            }
-            _ => {
-                let body = self.quick_look_unsupported(row, &path, token, window, cx);
-                (subject(State::Unsupported, body), true, None, Ask::Nothing)
-            }
-        };
-        let early = replies::header_path(&ask, &subject.body);
-        let host = self.quick_look_host(side, window, cx);
-        host.token = token;
-        host.row = Some(index);
-        host.ask = ask;
-        self.show(subject, revealed, line, window, cx);
-        self.quick_look_header(token, early, cx);
     }
 
     /// Opens or replaces the card's subject and sends its one ask; the card takes the keyboard.
@@ -285,6 +240,9 @@ impl Shell {
         if let Some(line) = line {
             self.quick_look_send(side, line);
         }
+        if custom::enabled() {
+            self.custom_preview_present(window, cx);
+        }
         cx.notify();
     }
 
@@ -302,6 +260,7 @@ impl Shell {
     }
 
     fn quick_look_send(&mut self, side: usize, line: String) {
+        let line = self.custom_preview_line(line);
         let locale = self.locale.clone();
         let Some(pane) = self.panes[side].as_mut().filter(|p| !p.stopped) else {
             return;
@@ -315,6 +274,7 @@ impl Shell {
     }
 
     fn quick_look_closed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.custom_preview_end(cx);
         self.quick_look_release();
         let Some(host) = self.quick_look.as_mut() else {
             return;
@@ -354,6 +314,9 @@ impl Shell {
         match event {
             Event::Closed if !self.quick_look_open(cx) => self.quick_look_closed(window, cx),
             // CompareView copyPatch: the whole patch, headers included, goes to the clipboard.
+            Event::Navigate(index) => self.custom_preview_select(index, window, cx),
+            Event::OpenDefault => self.custom_preview_default(window, cx),
+            Event::Fullscreen => self.custom_preview_fullscreen(window, cx),
             Event::CopyPatch => {
                 if let Some(host) = self.quick_look.as_ref().filter(|h| !h.patch.is_empty()) {
                     cx.write_to_clipboard(ClipboardItem::new_string(host.patch.clone()));

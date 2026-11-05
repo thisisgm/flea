@@ -264,20 +264,26 @@ impl Surface {
     }
 
     /// Applies one renderer reply; an image for a document no longer open is released, never drawn.
-    pub fn reply(&mut self, reply: Reply, now: u64) {
-        match reply {
+    pub fn reply(&mut self, reply: Reply, now: u64) -> bool {
+        let visible = match reply {
             Reply::Opened { doc, sizes, read } if Some(doc) == self.doc => {
                 self.counters.size_reads += read;
                 self.sizes = sizes;
                 self.page = self.page.min(self.sizes.len().saturating_sub(1));
                 self.relayout();
+                true
             }
             Reply::Sizes { doc, sizes, read } if Some(doc) == self.doc => {
+                let page_size = self.sizes.get(self.page).copied();
                 self.counters.size_reads += read;
                 self.sizes = sizes;
                 self.relayout();
+                self.continuous || self.sizes.get(self.page).copied() != page_size
             }
-            Reply::OpenFailed { doc, .. } if Some(doc) == self.doc => self.open_failed = true,
+            Reply::OpenFailed { doc, .. } if Some(doc) == self.doc => {
+                self.open_failed = true;
+                true
+            }
             Reply::Rendered {
                 doc,
                 page,
@@ -285,25 +291,37 @@ impl Surface {
                 image,
                 took,
             } if Some(doc) == self.doc => {
+                let visible = width == self.render_width
+                    && (page == self.page
+                        || (self.continuous && self.slots.iter().any(|slot| slot.page == page)));
                 self.counters.landed += 1;
                 self.counters.last_render = took;
                 self.inflight.retain(|&(p, w)| (p, w) != (page, width));
                 let keep = self.kept();
                 self.cache.insert(page, width, image, &keep);
                 self.settle(page, true, now);
+                visible
             }
-            Reply::Rendered { image, .. } => self.cache.release(image),
+            Reply::Rendered { image, .. } => {
+                self.cache.release(image);
+                false
+            }
             Reply::RenderFailed { doc, page, width } if Some(doc) == self.doc => {
+                let visible = width == self.render_width
+                    && (page == self.page
+                        || (self.continuous && self.slots.iter().any(|slot| slot.page == page)));
                 self.counters.failed += 1;
                 self.inflight.retain(|&(p, w)| (p, w) != (page, width));
                 if !self.failed_pages.contains(&page) {
                     self.failed_pages.push(page);
                 }
                 self.settle(page, false, now);
+                visible
             }
-            _ => {}
-        }
+            _ => false,
+        };
         self.want();
+        visible
     }
 
     // A landed or failed page: the single page's cap ends, the stack's slot settles and may hold the first frame.

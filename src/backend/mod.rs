@@ -165,6 +165,7 @@ pub mod meta;
 mod metarow;
 mod windowreq;
 pub mod metareq;
+mod previewmeta;
 pub mod metasort;
 pub mod owner;
 pub mod peek;
