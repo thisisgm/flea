@@ -17,6 +17,8 @@ pub const NO_LANDLOCK: u8 = b'K';
 pub const SUCCEEDED: u8 = b'S';
 pub const FAILED: u8 = b'F';
 pub const NOT_STARTED: u8 = b'N';
+pub(super) const CANCEL_VIDEO: u8 = b'C';
+pub(super) const VIDEO_CANCELLED: u8 = b'X';
 // A request is the thumbnail size as four little-endian bytes and then the film-strip flag.
 pub const REQUEST_BYTES: usize = 5;
 // The ffmpegthumbnailer 2.x soname, the same library /usr/bin/ffmpegthumbnailer links.
@@ -141,7 +143,7 @@ const METADATA_WRITES: &[(&str, u32)] = &[
     ("removexattrat", 466),
     ("file_setattr", 469),
 ];
-// A process a job starts would outlive the SIGKILL finish() sends, which the exec path's own bwrap init never allowed.
+// A process a job starts would outlive the SIGKILL that stops a job, which the exec path's own bwrap init never allowed.
 #[cfg(target_arch = "x86_64")]
 const NEW_PROCESSES: &[(&str, u32)] = &[("fork", 57), ("vfork", 58)];
 // aarch64 has no fork or vfork call; its processes start only through clone, which the thread check below gates.
@@ -407,119 +409,11 @@ fn child(input: RawFd, output: RawFd, size: c_int, film_strip: bool, decoder: &D
     unsafe { _exit(verdict.unwrap_or(CHILD_MACHINE)) }
 }
 
-struct Running {
-    pid: c_int,
-    pidfd: OwnedFd,
-    reply: OwnedFd,
-    deadline: Instant,
-}
-
-// Reaps one child and answers its job; a child killed by a signal, the deadline's included, ran on the file and failed.
-fn finish(job: Running, past_deadline: bool) {
-    if past_deadline {
-        let _ = crate::procsignal::signal_process(job.pid, SIGKILL);
-    }
-    let mut status: c_int = 0;
-    let verdict = if unsafe { waitpid(job.pid, &mut status, 0) } != job.pid {
-        NOT_STARTED
-    } else {
-        match std::process::ExitStatus::from_raw(status).code() {
-            Some(CHILD_OK) if !past_deadline => SUCCEEDED,
-            Some(CHILD_MACHINE) => NOT_STARTED,
-            _ => FAILED,
-        }
-    };
-    // corner: a backend that gave up on this job has closed its end, and there is no one left to tell.
-    let _ = fdpass::send_byte(&job.reply, verdict);
-}
-
-// Sample request: payload [0, 1, 0, 0, 1] (size 256, film strip on), descriptors [input, output, reply].
-fn start(message: fdpass::Received, decoder: &Decoder, abi: i64, running: &mut Vec<Running>) {
-    let mut fds = message.fds.into_iter();
-    let (Some(input), Some(output), Some(reply), None) = (fds.next(), fds.next(), fds.next(), fds.next()) else {
-        return;
-    };
-    let payload = message.payload;
-    let size = if payload.len() == REQUEST_BYTES { u32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]) } else { 0 };
-    if size == 0 || size > MAX_SIZE {
-        let _ = fdpass::send_byte(&reply, NOT_STARTED);
-        return;
-    }
-    let film_strip = payload[4] != 0;
-    let pid = unsafe { fork() };
-    if pid == 0 {
-        child(input.as_raw_fd(), output.as_raw_fd(), size as c_int, film_strip, decoder, abi);
-    }
-    if pid < 0 {
-        let _ = fdpass::send_byte(&reply, NOT_STARTED);
-        return;
-    }
-    drop(input);
-    drop(output);
-    let raw = unsafe { pidfd_open(pid, 0) };
-    if raw < 0 {
-        // corner: with no descriptor there is no deadline to enforce, so the child is ended now and judges nothing.
-        let _ = crate::procsignal::signal_process(pid, SIGKILL);
-        let mut status: c_int = 0;
-        unsafe { waitpid(pid, &mut status, 0) };
-        let _ = fdpass::send_byte(&reply, NOT_STARTED);
-        return;
-    }
-    let pidfd = unsafe { OwnedFd::from_raw_fd(raw) };
-    running.push(Running { pid, pidfd, reply, deadline: Instant::now() + JOB_TIMEOUT });
-}
-
-// Milliseconds to the nearest deadline, rounded up, or -1 to wait for a request with no child running.
-fn poll_timeout(running: &[Running]) -> c_int {
-    match running.iter().map(|r| r.deadline).min() {
-        None => -1,
-        Some(at) => at.saturating_duration_since(Instant::now()).as_millis().saturating_add(1).min(c_int::MAX as u128) as c_int,
-    }
-}
-
-fn serve(requests: &OwnedFd, decoder: &Decoder, abi: i64) -> i32 {
-    let mut running: Vec<Running> = Vec::new();
-    loop {
-        let mut fds: Vec<PollFd> = Vec::with_capacity(running.len() + 1);
-        fds.push(PollFd { fd: requests.as_raw_fd(), events: POLLIN, revents: 0 });
-        for job in &running {
-            fds.push(PollFd { fd: job.pidfd.as_raw_fd(), events: POLLIN, revents: 0 });
-        }
-        let ready = unsafe { poll(fds.as_mut_ptr(), fds.len(), poll_timeout(&running)) };
-        if ready < 0 {
-            if std::io::Error::last_os_error().raw_os_error() == Some(EINTR) {
-                continue;
-            }
-            return 1;
-        }
-        // Children first, so a verdict is never held behind a request.
-        let now = Instant::now();
-        let mut still = Vec::with_capacity(running.len());
-        for (job, polled) in running.into_iter().zip(fds.iter().skip(1)) {
-            if polled.revents != 0 {
-                finish(job, false);
-            } else if now >= job.deadline {
-                finish(job, true);
-            } else {
-                still.push(job);
-            }
-        }
-        running = still;
-        if fds[0].revents != 0 {
-            match fdpass::recv(requests.as_raw_fd()) {
-                Ok(Some(message)) => start(message, decoder, abi, &mut running),
-                // The backend closed its end, so there will be no more work; bwrap's own init ends any child still running.
-                Ok(None) => return 0,
-                Err(e) if e.raw_os_error() == Some(EINTR) => {}
-                // A malformed packet is dropped with its descriptors; anything else is a socket that no longer works.
-                Err(e) if e.kind() == std::io::ErrorKind::InvalidData => {}
-                Err(_) => return 1,
-            }
-        }
-    }
-}
+#[path = "thumbworker_jobs.rs"]
+mod jobs;
 
 // The whole process: stdin is the request socket, and the first byte says whether this worker can serve.
+/// Load the decoder once and serve confined video thumbnail jobs.
 pub fn run() -> i32 {
     let requests = unsafe { OwnedFd::from_raw_fd(0) };
     unsafe { prctl(PR_SET_DUMPABLE, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong) };
@@ -534,7 +428,7 @@ pub fn run() -> i32 {
     if fdpass::send_byte(&requests, READY).is_err() {
         return 1;
     }
-    serve(&requests, &decoder, abi)
+    jobs::serve(&requests, &decoder, abi)
 }
 
 #[cfg(test)]
@@ -568,9 +462,6 @@ mod tests {
     const EACCES: u32 = 13;
     // ioctl(2) FS_IOC_GETFLAGS, a read that only the filter refuses with EPERM.
     const FS_IOC_GETFLAGS: usize = 0x8008_6601;
-    // A child that ends at once is readable on its pidfd long before this; it bounds a broken test, it times nothing.
-    const CHILD_WAIT_MS: c_int = 5000;
-
     #[repr(C)]
     struct Timespec {
         seconds: i64,
@@ -585,8 +476,6 @@ mod tests {
         fn futimens(fd: c_int, times: *const [Timespec; 2]) -> c_int;
         fn fsetxattr(fd: c_int, name: *const c_char, value: *const c_void, size: usize, flags: c_int) -> c_int;
         fn ioctl(fd: i32, request: usize, ...) -> i32;
-        fn getpid() -> c_int;
-        fn pause() -> c_int;
     }
 
     // 0 for a call that worked, otherwise the errno it set.
@@ -606,35 +495,6 @@ mod tests {
         let mut status: c_int = 0;
         unsafe { waitpid(pid, &mut status, 0) };
         0
-    }
-
-    // How a job's child ends in the verdict test.
-    enum Ends {
-        Exits(i32),
-        Dies,
-        Hangs,
-    }
-
-    // Forks a child that ends the given way, waits until it has ended without reaping it, and hands finish() the job.
-    fn job_that(ends: &Ends, reply: OwnedFd) -> Running {
-        let pid = unsafe { fork() };
-        if pid == 0 {
-            match ends {
-                Ends::Exits(code) => unsafe { _exit(*code) },
-                Ends::Dies => drop(crate::procsignal::signal_process(unsafe { getpid() }, SIGKILL)),
-                Ends::Hangs => loop {
-                    unsafe { pause() };
-                },
-            };
-            unsafe { _exit(CHILD_OK) };
-        }
-        assert!(pid > 0, "the test could not fork");
-        let pidfd = unsafe { OwnedFd::from_raw_fd(pidfd_open(pid, 0)) };
-        if !matches!(ends, Ends::Hangs) {
-            let mut ended = PollFd { fd: pidfd.as_raw_fd(), events: POLLIN, revents: 0 };
-            assert_eq!(unsafe { poll(&mut ended, 1, CHILD_WAIT_MS) }, 1, "the child never ended");
-        }
-        Running { pid, pidfd, reply, deadline: Instant::now() }
     }
 
     // Where the kernel's own numbers live, Arch's first, then Debian and Ubuntu's multiarch copy, so the table is checked against something it did not write.
@@ -796,24 +656,6 @@ mod tests {
         assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number("read"), 0), SECCOMP_RET_ALLOW, "an ordinary call must run");
         assert_eq!(verdict_of(&program, AUDIT_ARCH_NATIVE, number("read") | X32_SYSCALL_BIT, 0), refused, "an x32 call must not");
         assert_eq!(verdict_of(&program, AUDIT_ARCH_FOREIGN, number("read"), 0), SECCOMP_RET_KILL_PROCESS);
-    }
-
-    #[test]
-    fn a_verdict_is_read_from_how_the_child_ended() {
-        let cases = [
-            (Ends::Exits(CHILD_OK), false, SUCCEEDED),
-            (Ends::Exits(CHILD_REFUSED), false, FAILED),
-            (Ends::Exits(CHILD_MACHINE), false, NOT_STARTED),
-            (Ends::Dies, false, FAILED),
-            (Ends::Exits(CHILD_OK), true, FAILED),
-            (Ends::Hangs, true, FAILED),
-        ];
-        for (ends, past_deadline, verdict) in cases {
-            let (mine, theirs) = fdpass::pair().unwrap();
-            finish(job_that(&ends, mine), past_deadline);
-            let answer = fdpass::recv(theirs.as_raw_fd()).unwrap().expect("a verdict");
-            assert_eq!(answer.payload, vec![verdict], "past deadline {} wanted {}", past_deadline, verdict as char);
-        }
     }
 
     fn soft_limit(resource: c_int) -> u64 {

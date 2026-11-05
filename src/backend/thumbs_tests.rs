@@ -259,6 +259,7 @@ fn a_missing_input_reports_failed_rather_than_hanging() {
     assert_eq!(left, 0, "a temp file survived a failed job");
 }
 
+/// Check that the real thumbnail route publishes the source metadata.
 #[test]
 fn a_real_file_round_trips_to_a_stamped_cache_entry() {
     if crate::backend::sandboxprobe::skipped() {
@@ -291,7 +292,7 @@ fn a_real_file_round_trips_to_a_stamped_cache_entry() {
         .expect("no result");
     let out = match done.result {
         Outcome::Ready(p) => p,
-        Outcome::Failed => panic!("a real thumbnailer failed on a valid png"),
+        Outcome::Failed | Outcome::Cancelled => panic!("a real thumbnailer failed on a valid png"),
     };
     let bytes = std::fs::read(&out).unwrap();
     let published = std::fs::read_dir(fixture.sandbox.join("large"))

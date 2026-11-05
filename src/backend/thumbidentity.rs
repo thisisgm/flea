@@ -6,6 +6,7 @@ use crate::{
 };
 use std::{
     io::Write,
+    os::fd::OwnedFd,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -100,10 +101,19 @@ pub struct Replies {
     replies: Vec<Reply>,
     refused: Vec<Reply>,
     finished: bool,
+    video: VideoControl,
 }
 pub type Shared = Arc<Mutex<Replies>>;
 pub type Registry = Vec<std::sync::Weak<Mutex<Replies>>>;
 
+enum VideoControl {
+    Disabled,
+    Pending,
+    Armed(OwnedFd),
+    Cancelled,
+}
+
+/// Attach a subscriber to a matching job that can still return a result.
 pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
     // Subscription eligibility uses the original work's version, never a later row mapping.
     let mut refusal = None;
@@ -114,7 +124,7 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
         .filter_map(std::sync::Weak::upgrade)
     {
         let mut replies = shared.lock().unwrap();
-        if replies.finished || replies.path != path {
+        if replies.finished || matches!(replies.video, VideoControl::Cancelled) || replies.path != path {
             continue;
         }
         // Already answered refusals are terminal, so a retry cannot publish or subscribe again.
@@ -138,6 +148,7 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
     false
 }
 
+/// Register the initial subscriber and the job's listing identity.
 pub fn start(st: &mut State, path: PathBuf, mtime: i64, reply: Option<Reply>) -> Shared {
     st.thumb_replies.retain(|weak| weak.strong_count() > 0);
     let shared = Arc::new(Mutex::new(Replies {
@@ -147,9 +158,64 @@ pub fn start(st: &mut State, path: PathBuf, mtime: i64, reply: Option<Reply>) ->
         replies: reply.into_iter().collect(),
         refused: Vec::new(),
         finished: false,
+        video: VideoControl::Disabled,
     }));
     st.thumb_replies.push(Arc::downgrade(&shared));
     shared
+}
+
+/// Mark a job eligible before it leaves the pool queue.
+pub(in crate::backend) fn begin_video(shared: &Shared) {
+    shared.lock().unwrap().video = VideoControl::Pending;
+}
+
+/// Tell the worker whether a pending cancellation already retired this job.
+pub(in crate::backend) fn video_cancelled(shared: &Shared) -> bool {
+    matches!(shared.lock().unwrap().video, VideoControl::Cancelled)
+}
+
+/// Install the reply socket unless the request was cancelled before dispatch.
+pub(in crate::backend) fn arm_video(shared: &Shared, reply: &OwnedFd) -> bool {
+    let mut context = shared.lock().unwrap();
+    if matches!(context.video, VideoControl::Cancelled) {
+        return false;
+    }
+    context.video = reply.try_clone().map_or(VideoControl::Disabled, VideoControl::Armed);
+    true
+}
+
+/// Retire the control socket and keep a recorded cancellation terminal.
+pub(in crate::backend) fn finish_video(shared: &Shared) -> bool {
+    let mut context = shared.lock().unwrap();
+    if matches!(context.video, VideoControl::Cancelled) {
+        return true;
+    }
+    context.video = VideoControl::Disabled;
+    false
+}
+
+/// Cancel an eligible video after its last subscriber has left.
+pub(in crate::backend) fn cancel_video(st: &State, path: &Path) -> bool {
+    let Some(mtime) = st.thumb_mtimes.get(path) else { return false };
+    for shared in st.thumb_replies.iter().rev().filter_map(std::sync::Weak::upgrade) {
+        let mut context = shared.lock().unwrap();
+        if context.path != path || context.listing != st.generation || context.mtime != *mtime
+            || context.finished || !context.replies.is_empty() || matches!(context.video, VideoControl::Cancelled)
+        {
+            continue;
+        }
+        let accepted = match &context.video {
+            VideoControl::Pending => true,
+            VideoControl::Armed(reply) => crate::backend::fdpass::send_byte(reply, crate::backend::thumbworker::CANCEL_VIDEO).is_ok(),
+            VideoControl::Disabled | VideoControl::Cancelled => false,
+        };
+        if !accepted {
+            return false;
+        }
+        context.video = VideoControl::Cancelled;
+        return true;
+    }
+    false
 }
 
 pub fn retire_row(st: &State, row: usize) {

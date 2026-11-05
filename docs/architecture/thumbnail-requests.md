@@ -179,8 +179,10 @@ repeats. The FIFO queues the victim first; without the dedupe the repeated row i
 which the second check catches. The first check guards against eviction, and the dedupe keeps the request to six distinct rows.
 
 **A cancelled row leaves the map with its job.** `thumbcancel` with an explicit `rows` unmaps each
-row whose queued job it actually dropped, and `thumbcancel` with an empty or malformed `rows`
-cancels everything queued and unmaps every one of those rows too. The asymmetry that made the empty
+row whose queued job it dropped or whose active video cancellation it sent. An active
+cancellation keeps its outstanding slot until the worker reports. A replacement can be
+requested immediately, and the cancelled job's report leaves the replacement mapping alone.
+`thumbcancel` with an empty or malformed `rows` cancels and unmaps queued jobs. The asymmetry that made the empty
 form poison the map was real and reproduced: `list` and `sort` clear the map through `forget_rows`,
 `thumbcancel` did not, so every cancelled mapping went stale, `queue_row`'s dedupe then swallowed
 every later request for those paths until the next `list`, and shutdown answered them all with an

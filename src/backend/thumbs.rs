@@ -4,6 +4,7 @@ use crate::backend::child::{run_with_timeout, Ran};
 use crate::backend::{rawpreview, sandbox, thumbbind};
 use crate::backend::thumbargv::argv;
 use crate::backend::thumbcache::{uri_for, Cache};
+use crate::backend::thumbreq::identity;
 use crate::backend::thumbspec::Thumbnailers;
 use crate::backend::thumbwrite::{exclusive_temp, stamp, write_marker};
 use crate::backend::workerlink::{worker_shape, WorkerLink};
@@ -54,6 +55,7 @@ pub fn trace(row: usize) -> Option<Trace> {
 pub enum Outcome {
     Ready(PathBuf),
     Failed,
+    Cancelled,
 }
 
 pub struct Done {
@@ -175,24 +177,37 @@ impl Pool {
     }
 }
 
+/// Take queued jobs, run them and return one outcome per job.
 fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
     loop {
-        let mut job = {
+        let (mut job, video_pending) = {
             let (lock, cv) = &*inner;
             let mut q = lock.lock().unwrap();
             while q.is_empty() {
                 q = cv.wait(q).unwrap();
             }
-            match q.pop_front() {
-                Some(j) => j,
-                None => continue,
+            let Some(job) = q.pop_front() else { continue };
+            // A cancel sees either the queued job or its worker eligibility under this same lock.
+            let video_identity = job.replies.as_ref().filter(|_| {
+                tables.worker.as_ref().is_some_and(WorkerLink::may_accept)
+                    && tables.specs.for_mime(&job.mime, &tables.aliases).and_then(worker_shape).is_some()
+            });
+            if let Some(shared) = video_identity {
+                identity::begin_video(shared);
             }
+            let video_pending = video_identity.is_some();
+            (job, video_pending)
         };
         if let Some(t) = job.trace.as_mut() {
             t.popped = t.at.elapsed();
         }
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job);
+        let outcome = if video_pending && job.replies.as_ref().is_some_and(identity::finish_video) {
+            Outcome::Cancelled
+        } else {
+            outcome
+        };
         let ms = started.elapsed().as_secs_f64() * 1000.0;
         if results.send(Done { replies: job.replies, path: job.path, mtime: job.mtime, trash_identity: job.trash_identity, result: outcome, ms, trace: job.trace }).is_err() {
             return;
@@ -206,6 +221,7 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 }
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
+/// Generate and publish one thumbnail while honoring active video cancellation.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
     if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) { return super::model3dreq::thumbnail(tables,job) }
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
@@ -254,7 +270,13 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
     // A video the pre-linked worker can take goes there first; anything it does not finish runs the exec path as before.
     let by_worker = match (&tables.worker, worker_shape(spec)) {
-        (Some(worker), Some(film_strip)) => worker.generate(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT),
+        (Some(worker), Some(film_strip)) => match worker.generate_for(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT, job.replies.as_ref()) {
+            Ok(result) => result,
+            Err(_) => {
+                discard(&temp);
+                return Outcome::Cancelled;
+            }
+        },
         _ => None,
     };
     let ran = match by_worker {

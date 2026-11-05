@@ -345,5 +345,51 @@ fn policy_identity_disconnected_drain_keeps_queued_request_identity_with_raw_emp
     );
 }
 
+/// Check that a cancelled job cannot remove a replacement for the same path.
+#[test]
+fn cancelling_an_active_video_leaves_the_replacement_request_mapped() {
+    use crate::backend::{fdpass, thumbreq::identity, thumbworker::CANCEL_VIDEO};
+    use std::os::fd::AsRawFd;
+
+    let mut l = fixture("thumb-active-video-retry");
+    ask(&mut l, "old", "old.jpg");
+    let old = l.pool.cancel_all().pop().unwrap();
+    let (backend, worker) = fdpass::pair().unwrap();
+    let replies = old.replies.as_ref().unwrap();
+    identity::arm_video(replies, &backend);
+
+    assert!(l.request(r#"{"c":"thumbcancel","rows":[0]}"#) == Control::Continue);
+    assert!(l.st.asked.is_empty());
+    assert_eq!(l.st.outstanding, 1);
+    assert!(identity::finish_video(replies));
+    drop(backend);
+    assert_eq!(fdpass::recv(worker.as_raw_fd()).unwrap().unwrap().payload, [CANCEL_VIDEO]);
+
+    ask(&mut l, "new", "old.jpg");
+    assert_eq!(l.st.outstanding, 2);
+    let replacement = l.pool.cancel_all().pop().unwrap();
+    report_done(
+        &mut l.out,
+        &mut l.st,
+        &l.pool,
+        Done {
+            replies: old.replies,
+            path: old.path,
+            mtime: old.mtime,
+            trash_identity: None,
+            result: Outcome::Cancelled,
+            ms: 0.0,
+            trace: old.trace,
+        },
+    );
+    assert!(l.out.is_empty());
+    assert_eq!(l.st.asked.len(), 1);
+    assert_eq!(l.st.outstanding, 1);
+    let path = l.dir.join("new.png");
+    finish(&mut l, replacement, Some(path));
+    assert_eq!(l.st.outstanding, 0);
+    assert_eq!(tagged(&mut l)[0].get("thumbToken").and_then(crate::jsondoc::Json::as_str), Some("new"));
+}
+
 #[path = "run_thumb_identity_stale_tests.rs"]
 mod stale_tests;
