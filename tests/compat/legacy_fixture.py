@@ -4,6 +4,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -12,6 +13,8 @@ import time
 root = Path(os.environ["UPGRADE_FIXTURE"])
 runtime = Path(os.environ["XDG_RUNTIME_DIR"])
 args = sys.argv[1:]
+LUA_CLOSE = r'hl\.dsp\.window\.close\(\{ window = "address:(0x[0-9a-f]+)" \}\)'
+CLASSIC_CLOSE = r"closewindow address:(0x[0-9a-f]+)"
 
 
 def exchange(pid, message):
@@ -29,10 +32,15 @@ def exchange(pid, message):
 
 if args[:2] == ["-j", "clients"]:
     print((root / "clients.json").read_text())
-elif args[:2] == ["dispatch", "closewindow"]:
-    address = args[2].removeprefix("address:")
+elif args[:1] == ["dispatch"]:
+    # Hyprland parses a dispatch as Lua unless the session predates it, and a shape it cannot run exits 7.
+    shape = CLASSIC_CLOSE if (root / "classic-compositor").exists() else LUA_CLOSE
+    close = re.fullmatch(shape, " ".join(args[1:]))
+    if not close:
+        print("error: ')' expected near 'address'")
+        raise SystemExit(7)
     clients = json.loads((root / "clients.json").read_text())
-    pid = next(c["pid"] for c in clients if c["address"] == address)
+    pid = next(c["pid"] for c in clients if c["address"] == close[1])
     exchange(pid, "CLOSE")
     print("ok")
 elif args[:2] == ["ipc", "--pid"]:
