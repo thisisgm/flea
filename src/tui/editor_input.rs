@@ -64,7 +64,9 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 // prompt creates either, so the request carries the kind the name spells.
                 let folder = value.ends_with('/');
                 let name = value.strip_suffix('/').unwrap_or(value);
-                let default_base = editor.default_base.as_deref().filter(|base| *base == name);
+                // The default name belongs to the folder request alone: a draft that dropped the
+                // slash asks for a file of that name, and an empty name is no file at all.
+                let default_base = editor.default_base.as_deref().filter(|base| folder && *base == name);
                 let mut fields = vec![
                     ("c", word(if folder { "mkdir" } else { "newfile" })),
                     ("op", word("newFile")),

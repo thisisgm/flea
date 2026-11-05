@@ -1239,7 +1239,13 @@ impl Model {
             "trashbrowse" => super::trashview::receive(self, &value),
             "collisions" | "fatnames" => super::prompts::collided(self, &value, wire)?,
             "error" => {
-                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.fail_data(text(&value, "msg").into()); }).is_some();
+                // The one create prompt sends either request from either kind, so a refusal from
+                // either one names the draft that asked for it and releases that draft.
+                let opened = text(&value, "where");
+                let create = matches!(opened, "mkdir" | "newfile");
+                let held = self.editor.as_mut().filter(|editor| {
+                    editor.kind == opened || (create && matches!(editor.kind, "mkdir" | "newfile"))
+                }).map(|editor| { editor.pending = false; editor.fail_data(text(&value, "msg").into()); }).is_some();
                 if !held {
                     if text(&value, "where") == "scan" && text(&value, "msg") == "permission denied" {
                         self.fail_key("pane.locked");

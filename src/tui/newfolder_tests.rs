@@ -6,6 +6,7 @@ use super::{
     wire::{self, text},
 };
 use crate::backend::testdir::TestDir;
+use crate::jsondoc::parse;
 use flea::i18n::{I18n, Paths};
 
 fn catalog(d: &TestDir, base: &str) -> I18n {
@@ -132,4 +133,51 @@ fn newfolder_tui_keeps_captured_suggestion_parent_and_invalid_draft() {
         m.editor = None;
     }
     wire::finish(w, reader);
+}
+
+// Dropping the slash from the suggestion asks for a file of that name, so the folder's default
+// name must not reach the file request as an empty name the backend would refuse.
+#[test]
+fn newfolder_tui_dropped_slash_asks_for_a_file_named_after_the_suggestion() {
+    let d = TestDir::new("newfolder-tui-dropped-slash");
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = listing(&mut w, "default");
+    m.prompts.i18n = catalog(&d, "New Folder");
+    actions::act(&mut m, "newFolder", &mut w).unwrap();
+    m.editor.as_mut().unwrap().replace("New Folder".into());
+    actions::key(&mut m, &Key::named("Return", ""), &Map::load(), &mut w).unwrap();
+    let sent = drain(&mut w);
+    let ask = sent.iter().find(|v| text(v, "c") == "newfile").unwrap();
+    assert_eq!(text(ask, "name"), "New Folder");
+    assert!(ask.get("defaultBase").is_none());
+    m.editor = None;
+    wire::finish(w, reader);
+}
+
+// The create prompt sends either request from either kind, so a refusal from one releases the
+// draft the other opened instead of leaving it pending and deaf to Escape.
+#[test]
+fn newfolder_tui_refusal_releases_the_create_draft_whichever_kind_asked() {
+    for (kind, typed, where_) in [
+        ("newfile", "photos/", "mkdir"),
+        ("mkdir", "notes.md", "newfile"),
+    ] {
+        let d = TestDir::new("newfolder-tui-refusal");
+        let (mut w, reader) = wire::echo_wire();
+        let mut m = listing(&mut w, "yazi");
+        m.prompts.i18n = catalog(&d, "New Folder");
+        m.editor = Some(super::editor::Editor::named(kind, typed.into(), m.path.clone()));
+        actions::key(&mut m, &Key::named("Return", ""), &Map::load(), &mut w).unwrap();
+        assert!(m.editor.as_ref().unwrap().pending, "{kind} submitted");
+        m.receive(
+            parse(&format!(r#"{{"t":"error","where":"{where_}","msg":"that folder cannot be written"}}"#)).unwrap(),
+            &mut w,
+        )
+        .unwrap();
+        let editor = m.editor.as_ref().unwrap();
+        assert!(!editor.pending, "{kind} draft released by a {where_} refusal");
+        assert_eq!(editor.error, "that folder cannot be written");
+        m.editor = None;
+        wire::finish(w, reader);
+    }
 }
