@@ -7,11 +7,15 @@ impl QuickLook {
         if self.subject.is_none() {
             return;
         }
+        if self.custom.is_some() {
+            self.custom_reveal(cx);
+        }
         let Hand {
             pointer,
             at,
             inside,
             wheel,
+            pinch_delta,
             held,
         } = hand;
         match pointer {
@@ -47,6 +51,14 @@ impl QuickLook {
             Pointer::Wheel if self.revealed => {
                 for axis in wheel.map(|d| self.scroll.wheel(at, d)).unwrap_or_default() {
                     self.hold(axis, cx);
+                }
+            }
+            Pointer::Pinch if inside => {
+                if let Some(delta) = pinch_delta {
+                    let doc = self.subject.as_ref().and_then(|s| s.body.doc()).cloned();
+                    if !doc.is_some_and(|doc| doc.pinch(delta, cx)) {
+                        self.picture_pinch(delta, cx);
+                    }
                 }
             }
             _ => {}

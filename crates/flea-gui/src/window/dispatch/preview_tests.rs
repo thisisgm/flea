@@ -373,3 +373,6 @@ fn every_key_that_opens_quick_look_opens_it_in_every_view(cx: &mut TestAppContex
     }
     close(&shell, cx);
 }
+
+#[path = "../custom_preview_tests.rs"]
+mod custom_port;

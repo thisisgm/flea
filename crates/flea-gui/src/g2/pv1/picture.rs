@@ -1,18 +1,49 @@
 //! Quick Look's image fit, physical decode request and zoomed picture viewport.
 use super::{
+    Body, QuickLook, RasterState, Subject,
     bar::{self, Name},
-    body::{fit_own, fit_painted_path, fit_rounded_path, Fit},
+    body::{Fit, fit_own, fit_painted_path, fit_rounded_path},
     card::text,
     look::{self, Look},
     scroller::View,
-    Body, QuickLook, RasterState, Subject,
 };
 use gpui::{
-    div, img, point, prelude::*, px, size, AnyElement, Bounds, Context, ObjectFit, Pixels, Window,
+    AnyElement, Bounds, Context, ObjectFit, Pixels, Window, div, img, point, prelude::*, px, size,
 };
 use std::path::Path;
 
+pub(super) fn pinch_zoom(zoom: f64, delta: f32) -> f64 {
+    (zoom * (1. + f64::from(delta))).clamp(
+        flea::ui_logic_pv1::keys::ZOOM_MIN,
+        flea::ui_logic_pv1::keys::ZOOM_MAX,
+    )
+}
+
 impl QuickLook {
+    pub(super) fn picture_pinch(&mut self, delta: f32, cx: &mut Context<Self>) -> bool {
+        if !self.subject.as_ref().is_some_and(|s| {
+            matches!(
+                s.body,
+                Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
+            )
+        }) {
+            return false;
+        }
+        let next = pinch_zoom(self.zoom, delta);
+        if next != self.zoom {
+            self.scroll.anchor = (next > 1.).then(|| self.scroll.centre());
+            if next <= 1. {
+                self.scroll.x = 0.;
+                self.scroll.y = 0.;
+                self.scroll.pan = None;
+                self.scroll.view = None;
+            }
+            self.zoom = next;
+            cx.notify();
+        }
+        true
+    }
+
     fn picture_fit(&self, w: f64, h: f64, device: f64) -> Option<(&Path, Fit, (f64, f64))> {
         let (path, sw, sh, top, bottom, painted) = match &self.subject.as_ref()?.body {
             Body::Image { path, w, h } => (path, *w, *h, 0., 0., false),

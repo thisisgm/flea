@@ -28,6 +28,7 @@ mod finder;
 mod parity17;
 mod layout;
 mod look;
+mod custom_preview;
 mod pane;
 mod pane_state;
 mod picture;

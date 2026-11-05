@@ -48,7 +48,7 @@ impl Pictures {
         map.policy = Some(policy);
         let mut lines = Vec::new();
         if !live {
-            let pending = map.release();
+            let pending = map.suspend();
             if !pending.is_empty() && map.listing == held.listing {
                 map.counters.cancelled += pending.len();
                 lines.push(rows_line("thumbcancel", &pending, None));

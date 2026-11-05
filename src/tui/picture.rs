@@ -25,7 +25,7 @@ pub fn stack(m: &Model, area: &Area) -> ((usize, usize), Vec<Slot>) {
 fn laid(m: &Model, area: &Area) -> ((usize, usize), usize, Vec<Slot>) {
     let Some(row) = m.rows.get(&m.cursor) else { return ((0, 0), area.height.saturating_sub(usize::from(area.card)), Vec::new()) };
     let kind = pane_state::kind(row);
-    let details: Vec<Slot> = if area.card { Vec::new() } else {
+    let details: Vec<Slot> = if area.card && !(m.custom_preview.enabled && m.custom_preview.info) { Vec::new() } else {
         let limit = if kind == Kind::Model3d { area.height.saturating_sub(5) } else { 3 };
         m.preview_metadata.iter().enumerate().filter(|(index, line)| super::pane::metadata_visible(m, *index, line)).map(|(index, _)| Slot::Detail(index)).take(limit).collect()
     };
@@ -43,6 +43,7 @@ fn laid(m: &Model, area: &Area) -> ((usize, usize), usize, Vec<Slot>) {
         Kind::Office => lead(vec![Slot::Blank, Slot::Page, Slot::Controls], details),
         _ => lead(Vec::new(), details),
     };
+    if m.custom_preview.enabled && !m.custom_preview.media_controls { tail.retain(|s| *s != Slot::Player); }
     let room = area.height.saturating_sub(tail.len() + usize::from(area.card));
     let room = model_room(m, kind, area.width(), room, area.card);
     let cells = picture(m, row, kind, (area.width(), room));

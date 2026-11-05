@@ -95,6 +95,9 @@ impl QuickLook {
 
     /// One named action while Quick Look holds the keyboard.
     pub fn action(&mut self, action: &str, cx: &mut Context<Self>) -> Command {
+        if self.custom_action(action, cx) {
+            return Command::Nothing;
+        }
         // A refused read draws the calm card, which takes the keys of a card with no document.
         let calm = self.calm_body(cx);
         if calm.is_none() {
