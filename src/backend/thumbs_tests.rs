@@ -259,6 +259,7 @@ fn a_missing_input_reports_failed_rather_than_hanging() {
     assert_eq!(left, 0, "a temp file survived a failed job");
 }
 
+/// Check that the real thumbnail route publishes the source metadata.
 #[test]
 fn a_real_file_round_trips_to_a_stamped_cache_entry() {
     if crate::backend::sandboxprobe::skipped() {

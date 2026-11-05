@@ -413,6 +413,7 @@ fn child(input: RawFd, output: RawFd, size: c_int, film_strip: bool, decoder: &D
 mod jobs;
 
 // The whole process: stdin is the request socket, and the first byte says whether this worker can serve.
+/// Load the decoder once and serve confined video thumbnail jobs.
 pub fn run() -> i32 {
     let requests = unsafe { OwnedFd::from_raw_fd(0) };
     unsafe { prctl(PR_SET_DUMPABLE, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong, 0 as c_ulong) };

@@ -175,6 +175,7 @@ pub(crate) fn cancel_all(st: &mut State, pool: &Pool) {
 }
 
 // Cancel queued work or an active job owned by the shared video worker.
+/// Retire one row and cancel work when its remaining subscribers permit it.
 pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row: usize) {
     identity::retire_row(st, row);
     let at = match st.asked.iter().position(|(_, r)| *r == row) {
@@ -198,6 +199,7 @@ pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row:
 }
 
 // A result whose path is no longer mapped belongs to a superseded listing and is dropped, never reported against the current one.
+/// Deliver one worker outcome and release its outstanding slot.
 pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, done: Done) {
     st.outstanding = st.outstanding.saturating_sub(1);
     // Workers have taken jobs off the pool since the last pump, so the oldest waiting rows go in now.

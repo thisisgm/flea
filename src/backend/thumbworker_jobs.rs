@@ -15,11 +15,13 @@ enum Stop {
 }
 
 impl Running {
+    /// Record the stop reason and signal the decoder child.
     fn request_stop(&mut self, stop: Stop) {
         self.stop = Some(stop);
         let _ = crate::procsignal::signal_process(self.pid, SIGKILL);
     }
 
+    /// Poll exit and control while a decoder is live, then wait only for exit.
     fn poll_fds(&self) -> [PollFd; 2] {
         [
             PollFd {
@@ -42,6 +44,7 @@ impl Running {
 
 // Reap only after the pidfd says the child exited. A decoder waiting on I/O
 // can hold its own slot after SIGKILL without holding up the other jobs.
+/// Reap an exited decoder and report the final job verdict.
 fn finish(job: Running) {
     let mut status: c_int = 0;
     let reaped = loop {
@@ -69,6 +72,7 @@ fn finish(job: Running) {
 }
 
 // Sample request: payload [0, 1, 0, 0, 1] (size 256, film strip on), descriptors [input, output, reply].
+/// Validate a worker request and start its confined decoder child.
 fn start(message: fdpass::Received, decoder: &Decoder, abi: i64, running: &mut Vec<Running>) {
     let mut fds = message.fds.into_iter();
     let (Some(input), Some(output), Some(reply), None) =
@@ -124,6 +128,7 @@ fn start(message: fdpass::Received, decoder: &Decoder, abi: i64, running: &mut V
 }
 
 // Milliseconds to the nearest deadline, rounded up, or -1 to wait for a request with no child running.
+/// Wait until the earliest deadline among live decoder jobs.
 fn poll_timeout(running: &[Running]) -> c_int {
     match running
         .iter()
@@ -140,6 +145,7 @@ fn poll_timeout(running: &[Running]) -> c_int {
     }
 }
 
+/// Handle controls, reap completed decoders and stop expired jobs.
 fn update_jobs(running: Vec<Running>, polled: &[PollFd]) -> Vec<Running> {
     let now = Instant::now();
     let mut still = Vec::with_capacity(running.len());
@@ -165,6 +171,7 @@ fn update_jobs(running: Vec<Running>, polled: &[PollFd]) -> Vec<Running> {
     still
 }
 
+/// Poll requests and in-flight decoder jobs until the backend disconnects.
 pub(super) fn serve(requests: &OwnedFd, decoder: &Decoder, abi: i64) -> i32 {
     let mut running: Vec<Running> = Vec::new();
     loop {
@@ -254,6 +261,7 @@ mod tests {
         exited
     }
 
+    /// Verify that a stopped decoder cannot delay another job's reply.
     #[test]
     fn a_cancelled_child_waits_for_its_pidfd_while_another_job_reports() {
         let (reply, controller) = fdpass::pair().unwrap();
@@ -289,6 +297,23 @@ mod tests {
         assert_eq!(answer.payload, [VIDEO_CANCELLED]);
     }
 
+    /// A live child past its deadline is stopped by the normal poll pass.
+    #[test]
+    fn an_expired_job_stops_without_a_cancel_message() {
+        let (mine, theirs) = fdpass::pair().unwrap();
+        let mut job = job_that(&Ends::Hangs, mine);
+        job.deadline = Instant::now();
+        let polled = job.poll_fds();
+        let waiting = update_jobs(vec![job], &polled);
+        assert_eq!(waiting.len(), 1);
+        assert!(matches!(waiting[0].stop, Some(Stop::Deadline)));
+        let exited = wait_for_exit(&waiting[0]);
+        let [_, control] = waiting[0].poll_fds();
+        assert!(update_jobs(waiting, &[exited, control]).is_empty());
+        assert_eq!(fdpass::recv(theirs.as_raw_fd()).unwrap().unwrap().payload, [FAILED]);
+    }
+
+    /// Classify completed children by their exit or by the reason they were stopped.
     #[test]
     fn a_verdict_is_read_from_how_the_child_ended() {
         let cases = [

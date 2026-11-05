@@ -345,6 +345,7 @@ fn policy_identity_disconnected_drain_keeps_queued_request_identity_with_raw_emp
     );
 }
 
+/// Check that a cancelled job cannot remove a replacement for the same path.
 #[test]
 fn cancelling_an_active_video_leaves_the_replacement_request_mapped() {
     use crate::backend::{fdpass, thumbreq::identity, thumbworker::CANCEL_VIDEO};

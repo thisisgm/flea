@@ -133,6 +133,11 @@ impl WorkerLink {
         WorkerLink { state: Mutex::new(if off { State::Gone } else { State::Unstarted }) }
     }
 
+    /// Check eligibility without waiting for the pool's worker to start.
+    pub(super) fn may_accept(&self) -> bool {
+        !self.state.try_lock().is_ok_and(|state| matches!(*state, State::Gone))
+    }
+
     // Started under the lock, so pool threads meeting their first video together start one worker between them.
     fn spawn() -> Result<(crate::backend::jail::Jailed, OwnedFd), String> {
         let exe = std::fs::canonicalize("/proc/self/exe").map_err(|e| format!("/proc/self/exe did not resolve: {}", e))?;
@@ -186,8 +191,17 @@ impl WorkerLink {
         *state = State::Gone;
     }
 
-    // Some only for a thumbnail the worker made or an input that is not a file to judge; None sends the job down the exec path.
+    /// Serve an eligible video, or leave it to the exec path if the worker declines it.
     pub(super) fn generate_for(&self, input: &Path, output: &Path, size: u32, film_strip: bool, limit: Duration, identity: Option<&identity::Shared>) -> Result<Option<Ran>, Cancelled> {
+        let result = self.generate_request(input, output, size, film_strip, limit, identity);
+        if identity.is_some_and(identity::finish_video) { Err(Cancelled) } else { result }
+    }
+
+    /// Dispatch one job, checking cancellation before opening files and before sending the request.
+    fn generate_request(&self, input: &Path, output: &Path, size: u32, film_strip: bool, limit: Duration, identity: Option<&identity::Shared>) -> Result<Option<Ran>, Cancelled> {
+        if identity.is_some_and(identity::video_cancelled) {
+            return Err(Cancelled);
+        }
         if matches!(*self.state.lock().unwrap(), State::Gone) {
             return Ok(None);
         }
@@ -200,8 +214,8 @@ impl WorkerLink {
         }
         let Ok(output) = std::fs::OpenOptions::new().write(true).custom_flags(O_NOFOLLOW | O_NOCTTY).open(output) else { return Ok(None) };
         let Ok((reply, theirs)) = fdpass::pair() else { return Ok(None) };
-        if let Some(identity) = identity {
-            identity::arm_video(identity, &reply);
+        if identity.is_some_and(|shared| !identity::arm_video(shared, &reply)) {
+            return Err(Cancelled);
         }
         let mut payload = [0u8; REQUEST_BYTES];
         payload[..4].copy_from_slice(&size.to_le_bytes());
@@ -210,7 +224,6 @@ impl WorkerLink {
         // Only the worker may hold the far end, or its death would never read as a closed socket here.
         drop(theirs);
         let heard = sent.then(|| read_byte(&reply, limit + REPLY_GRACE));
-        let cancelled = identity.is_some_and(identity::finish_video);
         let result = match heard {
             Some(Heard::Byte(SUCCEEDED)) => Some(Ran::Succeeded),
             Some(Heard::Byte(VIDEO_CANCELLED)) => return Err(Cancelled),
@@ -222,7 +235,7 @@ impl WorkerLink {
                 None
             }
         };
-        if cancelled { Err(Cancelled) } else { Ok(result) }
+        Ok(result)
     }
 
     #[cfg(test)]

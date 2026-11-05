@@ -12,6 +12,7 @@ fn dummy_jailed(child: std::process::Child) -> crate::backend::jail::Jailed {
 }
 
 // Stands in for the worker: answers the one request it is sent with `verdict`, on the reply socket that request carried.
+/// Reply to one worker request with a controlled decoder verdict.
 fn answered_by(verdict: u8) -> (WorkerLink, std::thread::JoinHandle<()>) {
     let (mine, theirs) = fdpass::pair().unwrap();
     let child = Command::new("true").spawn().unwrap();
@@ -24,6 +25,7 @@ fn answered_by(verdict: u8) -> (WorkerLink, std::thread::JoinHandle<()>) {
     (link, answering)
 }
 
+/// Check which verdicts publish a thumbnail, retry, or retire the worker.
 #[test]
 fn only_a_thumbnail_is_final_and_a_machine_failure_retires_the_worker() {
     let dir = TestDir::new("worker-verdicts");
@@ -42,6 +44,66 @@ fn only_a_thumbnail_is_final_and_a_machine_failure_retires_the_worker() {
 // A non-blocking open returns at once; this bounds a regression to a failure rather than a hung suite.
 const HUNG: Duration = Duration::from_secs(5);
 
+/// Register a job as it would be after leaving the pool queue.
+fn pending_video(path: &Path) -> (crate::backend::state::State, identity::Shared) {
+    let (events, _received) = crate::backend::events::channel();
+    let mut st = crate::backend::state::State::new(crate::backend::dirsizeworker::Worker::new(events));
+    st.thumb_mtimes.insert(path.to_owned(), 1);
+    let shared = identity::start(&mut st, path.to_owned(), 1, None);
+    assert!(!identity::cancel_video(&st, path), "exec-only work must stay ineligible");
+    identity::begin_video(&shared);
+    (st, shared)
+}
+
+/// A cancellation before socket registration never sends a decode request.
+#[test]
+fn a_pending_video_cancel_prevents_dispatch() {
+    let dir = TestDir::new("worker-cancel-before-arm");
+    let input = dir.file("clip.mp4", "not a video");
+    let output = dir.file("out.png", "");
+    let (st, shared) = pending_video(&input);
+    let (mine, theirs) = fdpass::pair().unwrap();
+    let child = Command::new("true").spawn().unwrap();
+    let link = WorkerLink {
+        state: Mutex::new(State::Running { jailed: dummy_jailed(child), requests: mine }),
+    };
+    assert!(identity::cancel_video(&st, &input));
+    assert!(link.generate_for(&input, &output, THUMB_SIZE, false, HUNG, Some(&shared)).is_err());
+    assert!(matches!(read_byte(&theirs, Duration::ZERO), Heard::Silence));
+}
+
+/// A success reply racing an accepted cancellation cannot publish the old thumbnail.
+#[test]
+fn an_active_video_cancel_wins_over_a_successful_reply() {
+    let dir = TestDir::new("worker-cancel-before-success");
+    let input = dir.file("clip.mp4", "not a video");
+    let output = dir.file("out.png", "");
+    let (st, shared) = pending_video(&input);
+    let (mine, theirs) = fdpass::pair().unwrap();
+    let child = Command::new("true").spawn().unwrap();
+    let link = WorkerLink {
+        state: Mutex::new(State::Running { jailed: dummy_jailed(child), requests: mine }),
+    };
+    std::thread::scope(|scope| {
+        let (sent, ready) = std::sync::mpsc::channel();
+        let fake = scope.spawn(move || {
+            let mut incoming = PollFd { fd: theirs.as_raw_fd(), events: POLLIN, revents: 0 };
+            assert_eq!(unsafe { poll(&mut incoming, 1, HUNG.as_millis() as i32) }, 1);
+            let request = fdpass::recv(theirs.as_raw_fd()).unwrap().unwrap();
+            let reply = request.fds.into_iter().nth(2).unwrap();
+            sent.send(()).unwrap();
+            assert!(matches!(read_byte(&reply, HUNG), Heard::Byte(crate::backend::thumbworker::CANCEL_VIDEO)));
+            fdpass::send_byte(&reply, SUCCEEDED).unwrap();
+        });
+        let generate = scope.spawn(|| link.generate_for(&input, &output, THUMB_SIZE, false, HUNG, Some(&shared)));
+        ready.recv_timeout(HUNG).unwrap();
+        assert!(identity::cancel_video(&st, &input));
+        fake.join().unwrap();
+        assert!(generate.join().unwrap().is_err());
+    });
+}
+
+/// Check that a symlink at the output path is refused before dispatch.
 #[test]
 fn arm_oflags_output_symlinks_never_reach_the_worker() {
     let dir = TestDir::new("arm-oflags-worker-output");
@@ -83,6 +145,7 @@ fn arm_oflags_output_symlinks_never_reach_the_worker() {
     answering.join().unwrap();
 }
 
+/// Check that a FIFO or vanished input cannot dispatch a video request.
 #[test]
 fn an_input_that_is_not_a_file_to_judge_never_reaches_the_worker() {
     let dir = TestDir::new("worker-not-a-file");
@@ -112,6 +175,7 @@ fn a_worker_that_is_not_serving_says_why() {
     assert_eq!(why_not(&Heard::Broken(std::io::Error::other("a test error"))), "its socket failed: a test error");
 }
 
+/// Check that reply waits distinguish an answer, silence and a broken socket.
 #[test]
 fn a_wait_names_what_it_heard() {
     let (mine, theirs) = fdpass::pair().unwrap();
@@ -143,6 +207,7 @@ fn the_shipped_exec_line_is_the_worker_shape() {
     assert_eq!(worker_shape(&spec("/usr/bin/ffmpegthumbnailer -s %s -i %i -o %o")), Some(false));
 }
 
+/// Keep custom thumbnailer commands on the regular exec path.
 #[test]
 fn any_other_program_or_flag_stays_on_the_exec_path() {
     for exec in [
