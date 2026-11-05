@@ -333,14 +333,14 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         return discard(&temp);
     }
     // corner: a thumbnailer that wrote then renamed would fail against this file bind, and only glycin and ffmpegthumbnailer were probed; see AGENTS.md "Thumbnail pool".
-    let Some(full) = thumbbind::wrap(&inner, &abs, &temp) else {
-        return discard(&temp);
-    };
+    let full = thumbbind::wrap(&inner, &abs, &temp);
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
     let deadline = Instant::now() + JOB_TIMEOUT;
     // The video worker handles only compatible .thumbnailer specs.
+    // An unbindable native executable can leave a usable system STL provider.
+    let mut ran = if let Some(full) = full {
     let by_worker = match (&tables.worker, worker_shape(spec)) {
         (Some(worker), Some(film_strip)) => match worker.generate(
             &abs,
@@ -359,7 +359,8 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         },
         _ => None,
     };
-    let mut ran = by_worker.unwrap_or_else(|| run_with_timeout(&full, JOB_TIMEOUT));
+    by_worker.unwrap_or_else(|| run_with_timeout(&full, JOB_TIMEOUT))
+    } else { Ran::NotStarted };
     let mut ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
     if !ready && !matches!(ran, Ran::TimedOut) {
         if let Some(fallback) = tables.specs.stl_fallback(&job.mime, &tables.aliases) {
@@ -372,7 +373,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
     if ready {
         publish(&temp, &key_uri, job.mtime, final_path)
-    } else if records_marker(&ran, super::extclass::classify(&job.path)) {
+    } else if !matches!(ran, Ran::NotStarted) && records_marker(&ran, super::extclass::classify(&job.path)) {
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
         record_failure_for(&tables.cache, &key_uri, job.mtime, tables.specs.fingerprint(), job.trash_identity.as_deref());
         discard(&temp)
