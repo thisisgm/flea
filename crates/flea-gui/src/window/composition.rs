@@ -38,6 +38,8 @@ pub struct Geometry {
     pub rail_overlay: bool,
     pub panes: [Rect; 2],
     pub status: Rect,
+    /// the preview beside the List view, cut from panes[0] (window/list_side.rs).
+    pub side: Option<Rect>,
 }
 
 impl Geometry {
@@ -134,6 +136,7 @@ impl Geometry {
                 ),
             ],
             status: Rect::at(0., (height - header).max(0.), width, header),
+            side: None,
         }
     }
 

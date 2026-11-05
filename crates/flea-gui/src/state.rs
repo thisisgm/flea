@@ -18,6 +18,8 @@ use gpui::{Context, FocusHandle, SharedString, Task, Window};
 const FALLBACK_HEADER_HEIGHT: f32 = 27.;
 
 pub struct Shell {
+    /// The list preview's share while its edge is held in this window (window/list_side.rs).
+    pub(crate) list_side_live: std::cell::Cell<Option<f32>>,
     pub(crate) capture: crate::capture::Capture,
     pub(crate) visual: crate::visual::Visual,
     pub(crate) presentation: crate::window::frame_feedback::Presentation,
@@ -115,6 +117,7 @@ impl Shell {
                 == Some(1.),
         );
         let mut shell = Self {
+            list_side_live: Default::default(),
             capture,
             visual: crate::visual::Visual::default(),
             presentation: Default::default(),

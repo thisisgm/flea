@@ -78,11 +78,20 @@ pub fn preview_rows(state: &State<'_>) -> Vec<Row> {
     // Rule 7: with the column off neither load path reads, so Load greys rather than lying.
     let load = Row { available: column, ..choice("preview.loadOn", "settings.row.load", "eye", &["automatic", "manual"],
         &["settings.choice.automatic", "settings.choice.manual"], word(data, &p("loadOn"), "automatic")) };
+    let list = is_true(data, &p("list"));
+    // A dragged width between the presets shows, and steps from, the nearest one.
+    let stored = number(data, &p("listWidth"), 40.);
+    let width = [30., 40., 50., 60.].into_iter().min_by(|a: &f64, b: &f64| (a - stored).abs().total_cmp(&(b - stored).abs())).unwrap_or(40.).to_string();
     let mut out = vec![Row::group("settings.group.preview_column"),
         Row::check("preview.column", "settings.row.preview_column", "columns", column), load];
     // A hint sits under the control it explains; none when the preset binds no key to name.
     let manual = at(data, &p("loadOn")).and_then(|v| v.as_str()) == Some("manual");
     out.extend(load_hint(manual, key_for(state.preset, "loadPreview")));
+    out.extend([
+        Row { available: column, ..Row::check("preview.list", "settings.row.preview_list", "list", list) },
+        Row { available: column && list, ..choice("preview.listWidth", "settings.row.preview_list_width", "", &["30", "40", "50", "60"],
+            &["settings.choice.p30", "settings.choice.p40", "settings.choice.p50", "settings.choice.p60"], &width) },
+    ]);
     let class = |id: &str, label: &'static str, on: bool| Row { available: thumbs_on, ..Row::check(id, label, "", on) };
     out.extend([
         Row::group("settings.group.thumbnails"),

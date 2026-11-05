@@ -46,6 +46,14 @@ impl Shell {
         }) else {
             return quiet;
         };
+        // Beside the List view a folder row draws its own entries, which Load releases like any held preview.
+        if event.action == "loadPreview"
+            && self.view == crate::window::startup::View::List
+            && super::list_peek::release(host)
+        {
+            cx.notify();
+            return true;
+        }
         let Some(preview) = host.preview.clone().filter(|p| p.read(cx).visible) else {
             return quiet;
         };
