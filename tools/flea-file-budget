@@ -175,7 +175,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1292
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 622
+src/uischema.rs 626
 src/uistate.rs 856
 src/uistore.rs 568
 src/vulkan.rs 751
@@ -331,7 +331,7 @@ src/ui_logic_mn1/places_tests.rs 402
 src/ui_logic_mn1/rows.rs 515
 src/ui_logic_mn1/rows_tests.rs 1095
 crates/flea-gui/src/window/view_tests.rs 405
-crates/flea-gui/src/navigation/mod.rs 406
+crates/flea-gui/src/navigation/mod.rs 407
 crates/flea-gui/src/navigation/landing.rs 429
 crates/flea-gui/src/g2/dg2/rail_drop.rs 439
 crates/flea-gui/src/window/columns.rs 409

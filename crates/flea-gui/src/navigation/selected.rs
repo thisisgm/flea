@@ -52,6 +52,9 @@ impl Navigator {
         };
         pane.cursor = *at;
         pane.reveal_cursor();
+        if self.keep_screen_line {
+            self.lines.restore(pane, super::position::leaf(&path));
+        }
         selected.clear();
         selected.push(*at);
         self.landed = Some((pane.held.listing, *at));
