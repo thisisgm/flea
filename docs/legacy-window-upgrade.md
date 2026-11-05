@@ -16,7 +16,8 @@ the new launch with status 2. All old windows pass preflight before any is close
 
 For an idle instance, Hyprland's client list must name its pid and a valid hexadecimal window
 address. `hyprctl dispatch closewindow address:<address>` invokes the normal last-window-close
-path. In v0.3.12 `ui/boot/shell.qml` calls `WindowBody.quitBackends`, which sends `quit` to both
+path. A Lua session refuses that shape with a syntax error, so the launcher then sends
+`hl.dsp.window.close({ window = "address:<address>" })`, which takes the same path. In v0.3.12 `ui/boot/shell.qml` calls `WindowBody.quitBackends`, which sends `quit` to both
 backends and waits for their drain before terminating the shell. The launcher waits up to 30 s
 for each original process identity to disappear. It never force-kills a window or backend.
 Any failed close or remaining old instance prevents the new launch. If a later close fails, earlier windows may already have closed; they are not force-restarted.
@@ -32,7 +33,6 @@ upgrade and resolve the new `flea` executable for each child. Their public argv 
 protocols are preserved. An already open QML picker is not a browser instance and is not killed:
 it must finish its reply before its old runtime assets are removed.
 
-Native Hyprland closure and backend drain still require validation on a real desktop.
 Other compositors have no verified graceful-close route here and refuse a live browser handoff.
 The GPUI unlock dialog and full selection restore must be supplied by their owning GUI units;
 the GPUI picker takes its reply file as `flea-gui --pick <reply>`. A hung old window stays untouched and blocks replacement rather than risking its writes.

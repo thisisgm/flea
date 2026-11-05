@@ -61,6 +61,17 @@ fn absolute(value: Option<&Json>) -> Option<String> {
         .map(str::to_string)
 }
 
+// A Lua session answers the classic shape with a syntax error and closes nothing, so it is safe to try first;
+// the classic shape stays because an update can land under a session that predates the Lua dispatch.
+fn close_window(address: &str) -> Result<(), String> {
+    let classic = format!("address:{address}");
+    let lua = format!("hl.dsp.window.close({{ window = \"address:{address}\" }})");
+    output(Command::new("hyprctl").args(["dispatch", "closewindow", &classic]))
+        .or_else(|_| output(Command::new("hyprctl").args(["dispatch", &lua])))
+        .map(drop)
+        .map_err(|_| "the compositor refused to close the old window".to_string())
+}
+
 pub(super) fn replace() -> Result<Carry, String> {
     let runtime = std::env::var_os("XDG_RUNTIME_DIR")
         .filter(|s| !s.is_empty())
@@ -170,11 +181,7 @@ pub(super) fn replace() -> Result<Carry, String> {
         if !instance.verified() {
             return Err("the old window changed identity during the upgrade".into());
         }
-        output(Command::new("hyprctl").args([
-            "dispatch",
-            "closewindow",
-            &format!("address:{address}"),
-        ]))?;
+        close_window(&address)?;
     }
     let deadline = Instant::now() + Duration::from_secs(30);
     while instances.iter().any(Instance::alive) {
