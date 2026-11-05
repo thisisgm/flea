@@ -42,6 +42,7 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         Row::group("settings.group.cursor"),
         Row { caption: Text::Key("settings.caption.wrap"), ..check("wrapAtEnds", "settings.row.wrap", "arrow-up", is_true(data, &["wrapAtEnds"])) },
         Row { caption: Text::Key("settings.caption.escape_up"), ..check("escapeUp", "settings.row.escape_up", "", is_true(data, &["escapeUp"])) },
+        check("scrollKeepsCursor", "settings.row.scroll_keeps_cursor", "", is_true(data, &["scrollKeepsCursor"])),
         Row::group("settings.group.opening"),
         choice("startIn", "settings.row.start_in", "house", &["home", "last", "folder"],
             &["settings.choice.home", "settings.choice.last", "settings.choice.chosen"], word(data, &["startIn"], "home")),
