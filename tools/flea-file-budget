@@ -80,7 +80,7 @@ crates/flea-gui/src/g2/pl1/view_quad_tests.rs 517
 crates/flea-gui/src/g2/pv4/frame_tests.rs 512
 crates/flea-gui/src/g2/pv4/tests.rs 410
 crates/flea-gui/src/g2/st1/board_strings.rs 886
-crates/flea-gui/src/g2/st1/draw.rs 646
+crates/flea-gui/src/g2/st1/draw.rs 678
 crates/flea-gui/src/g2/st1/tests.rs 457
 crates/flea-gui/src/g2/st1/view.rs 493
 crates/flea-gui/src/g2/st2/page_tests.rs 596
@@ -89,7 +89,7 @@ crates/flea-gui/src/columns/mod.rs 404
 crates/flea-gui/src/g2/op3/card_tests.rs 474
 crates/flea-gui/src/g2/pl3/pane.rs 456
 crates/flea-gui/src/g2/pl3/list.rs 419
-crates/flea-gui/src/g2/st1/panel.rs 421
+crates/flea-gui/src/g2/st1/panel.rs 431
 crates/flea-gui/src/window/settings/fix1_tests.rs 406
 crates/flea-gui/src/g2/pl3/tests.rs 527
 crates/flea-gui/src/g2/sr1/contents.rs 430

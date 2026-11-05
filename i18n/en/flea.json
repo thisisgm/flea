@@ -693,6 +693,7 @@
   "settings.caption.wrap": "up at the top",
   "settings.caption.escape_up": "with nothing to close",
   "settings.caption.permanently": "permanently",
+  "settings.hint.column_order": "Drag a shown column by its grip to move it; the list draws them in this order.",
   "settings.hint.compact_default": "Compact stays the default.",
   "settings.hint.last_folder_tabs": "Last folder reopens every tab you had.",
   "settings.hint.automatic_load": "Automatic follows the cursor.",

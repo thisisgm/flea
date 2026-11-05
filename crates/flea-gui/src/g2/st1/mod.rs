@@ -43,6 +43,8 @@ mod sheet_board_tests;
 mod sheet_keycap_tests;
 mod sheet_menus;
 #[cfg(test)]
+mod column_tests;
+#[cfg(test)]
 mod sheet_scroll_tests;
 #[cfg(test)]
 mod sheet_symbol_tests;

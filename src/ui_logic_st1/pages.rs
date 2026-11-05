@@ -144,9 +144,13 @@ pub fn column_label(key: &str) -> Text {
 pub fn column_rows(data: &Json) -> Vec<Row> {
     let shown = columns(data);
     let mut out = vec![Row::group("settings.group.columns"), Row { glyph: "file", ..Row::new(Kind::Lock, column_label("name")) }];
-    for id in ["mode", "size", "date", "kind"] {
+    // The shown columns in the order they draw, then the hidden ones; a shown one is dragged by its grip.
+    let mut ids: Vec<&str> = shown.iter().map(String::as_str).filter(|id| ["mode", "size", "date", "kind"].contains(id)).collect();
+    ids.extend(["mode", "size", "date", "kind"].into_iter().filter(|id| !shown.iter().any(|c| c == id)));
+    for id in ids {
         out.push(Row { id: format!("column:{id}"), on: shown.iter().any(|c| c == id), ..Row::new(Kind::Check, column_label(id)) });
     }
+    out.push(Row::hint(Text::Key("settings.hint.column_order")));
     out.push(Row::action("backView", "settings.row.back_view", "", Text::Key("settings.row.back")));
     out
 }
