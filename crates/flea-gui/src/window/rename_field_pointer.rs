@@ -65,7 +65,6 @@ pub(super) fn register(
                 return;
             }
             if event.pressed_button != Some(MouseButton::Left)
-                || shell.menu.text.is_some()
                 || edit.pending.is_some()
                 || !edit.entry.editing
             {

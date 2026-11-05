@@ -39,6 +39,11 @@ pub(crate) struct Shaped {
 }
 
 impl Shaped {
+    /// Ends the pointer gesture while keeping the text selection for the next action.
+    pub(crate) fn end_selection_drag(&mut self) {
+        self.selecting = false;
+    }
+
     pub(super) fn origin(&self) -> Pixels {
         self.frame
             .map_or(px(0.), |frame| frame.origin.x + self.inset)

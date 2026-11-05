@@ -1,6 +1,6 @@
 //! Pointer selection must edit only the dragged part of an inline filename.
-use super::{close, draw, editing, ready, ready_root, sent};
-use crate::{state::Shell, window::startup::View};
+use super::{close, draw, editing, ready, ready_root, receive, sent};
+use crate::{backend::Event as BackendEvent, state::Shell, window::startup::View};
 use gpui::{Entity, EntityInputHandler, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 use std::time::Duration;
 
@@ -140,5 +140,107 @@ fn rename_menu_retires_a_held_filename_selection(cx: &mut TestAppContext) {
     );
     cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
     assert!(sent(&mut lines).is_empty());
+    close(&shell, cx);
+}
+
+/// Opening the menu ends the gesture even if no move is delivered while the menu is open.
+#[gpui::test]
+fn rename_menu_escape_without_motion_ends_selection(cx: &mut TestAppContext) {
+    for release_left_in_menu in [false, true] {
+        let (shell, cx, mut lines) = ready_root(cx, "default");
+        cx.simulate_keystrokes("f2");
+        draw(cx);
+        let (start, end) = points(&shell, cx, 1, 4);
+        cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+        draw(cx);
+        cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::default());
+        draw(cx);
+        assert_eq!(editing(&shell, cx).unwrap().2, "ote");
+
+        cx.simulate_mouse_down(end, MouseButton::Right, Modifiers::default());
+        draw(cx);
+        cx.simulate_mouse_up(end, MouseButton::Right, Modifiers::default());
+        assert!(shell.read_with(cx, |shell, _| shell.menu.text.is_some()));
+        if release_left_in_menu {
+            cx.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
+        }
+        cx.simulate_keystrokes("escape");
+        draw(cx);
+        assert!(shell.read_with(cx, |shell, _| shell.menu.text.is_none()));
+        let held = (!release_left_in_menu).then_some(MouseButton::Left);
+        cx.simulate_mouse_move(start, held, Modifiers::default());
+        draw(cx);
+        assert_eq!(
+            editing(&shell, cx).unwrap().2,
+            "ote",
+            "Escape must not revive the drag"
+        );
+        if !release_left_in_menu {
+            cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
+        }
+        drag(&shell, cx, 2, 5);
+        assert_eq!(editing(&shell, cx).unwrap().2, "tes");
+        assert!(sent(&mut lines).is_empty());
+        close(&shell, cx);
+    }
+}
+
+/// A backend refusal received before the next move must not revive a submitted drag.
+#[gpui::test]
+fn rename_refusal_without_motion_does_not_revive_selection(cx: &mut TestAppContext) {
+    let (shell, cx, mut lines) = ready_root(cx, "default");
+    cx.simulate_keystrokes("f2");
+    cx.simulate_input("alpha");
+    draw(cx);
+    let (start, end) = points(&shell, cx, 1, 4);
+    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+    draw(cx);
+    cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(editing(&shell, cx).unwrap().2, "lph");
+
+    cx.simulate_keystrokes("enter");
+    assert_eq!(sent(&mut lines).len(), 1);
+    receive(
+        &shell,
+        cx,
+        BackendEvent::Refused {
+            operation: "rename".into(),
+            path: "/files/notes.txt".into(),
+            message: "file exists".into(),
+            mode: 0,
+        },
+    );
+    draw(cx);
+    cx.simulate_mouse_move(start, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(editing(&shell, cx).unwrap().2, "lph");
+    cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
+    assert!(sent(&mut lines).is_empty());
+    close(&shell, cx);
+}
+
+/// Losing window activation ends the drag even when the release goes to another window.
+#[gpui::test]
+fn rename_window_blur_ends_selection_drag(cx: &mut TestAppContext) {
+    let (shell, cx, _) = ready_root(cx, "default");
+    cx.update(|window, _| window.activate_window());
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    let (start, end) = points(&shell, cx, 1, 4);
+    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+    draw(cx);
+    cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(editing(&shell, cx).unwrap().2, "ote");
+    cx.deactivate_window();
+    cx.run_until_parked();
+    assert!(!cx.update(|window, _| window.is_window_active()));
+    cx.update(|window, _| window.activate_window());
+    draw(cx);
+    cx.simulate_mouse_move(start, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(editing(&shell, cx).unwrap().2, "ote");
+    cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
     close(&shell, cx);
 }
