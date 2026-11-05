@@ -97,7 +97,15 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 #[path = "copysrc_tests.rs"]
 mod copysrc_tests;
 
+mod stl_thumbnail;
 fn main() {
+    if std::env::args_os().nth(1).is_some_and(|arg| arg == "--stl-thumbnail-worker") {
+        if let Err(error) = stl_thumbnail::run(std::env::args_os().skip(2)) {
+            eprintln!("flea STL thumbnail: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so refuse instead.
     let args: Vec<String> = match std::env::args_os().map(|a| a.into_string()).collect() {
         Ok(v) => v,

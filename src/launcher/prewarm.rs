@@ -51,7 +51,7 @@ fn write_to_tmp(path: &str, first: usize, dest: &Path, tmp: &Path) -> Result<(),
     let (metas, ms) = stat_range(&PathBuf::from(path), &listing, 0, first);
     // Its own copy: prewarm is one shot, so there is no loop to hoist the load out of.
     let (mime, icons, aliases) = (Db::load(), Names::load(), Aliases::load());
-    let thumbs = Thumbnailers::load(&aliases);
+    let thumbs = Thumbnailers::load_for_listing(&aliases);
     let mut kinds = Kinds::new();
     let rows = rows_line(&PathBuf::from(path), &listing, &metas, 0, ms, &mime, &icons, &aliases, &thumbs, &mut kinds);
     writeln!(out, "{}", stamped(rows, FIRST_LISTING))
