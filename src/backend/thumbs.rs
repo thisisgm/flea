@@ -359,6 +359,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     };
     let ran = match by_worker {
         Some(ran) => ran,
+        None if tables.specs.can_speed_up_jpeg(&job.mime, &tables.aliases) => super::jpegthumb::run(&abs, &temp, THUMB_SIZE, &full),
         None => run_with_timeout(&full, JOB_TIMEOUT),
     };
     if let Some(t) = job.trace.as_mut() {

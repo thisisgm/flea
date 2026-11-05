@@ -32,7 +32,7 @@ pub fn header(path: &Path) -> Option<Header> {
     if buf.starts_with(&[0xFF, 0xD8]) {
         f.seek(SeekFrom::Start(2)).ok()?;
         // Buffered, because the walk resyncs a byte at a time and a raw File makes that a syscall each.
-        return jpeg_header(&mut BufReader::new(&mut f));
+        return jpeg_frame(&mut BufReader::new(&mut f)).map(|(header, _)| header);
     }
     from_header(&buf).map(|(width, height)| Header { width, height, orientation: NO_TURN })
 }
@@ -100,12 +100,11 @@ fn step<R: Read>(r: &mut R, walked: &mut u64) -> Option<u8> {
 }
 
 fn jpeg<R: Read + Seek>(r: &mut R) -> Option<(u32, u32)> {
-    jpeg_header(r).map(|h| (h.width, h.height))
+    jpeg_frame(r).map(|(header, _)| (header.width, header.height))
 }
 
-// Sample input: FF D8 | FF C0 <len:2> <precision:1> <height:2> <width:2> ..., with any number of
-// other FF xx segments before that frame header, one of which may be the APP1 carrying EXIF.
-fn jpeg_header<R: Read + Seek>(r: &mut R) -> Option<Header> {
+// Read after SOI. A frame gives its dimensions and component count (0 when the count is missing).
+pub fn jpeg_frame<R: Read + Seek>(r: &mut R) -> Option<(Header, u8)> {
     let mut walked: u64 = 0;
     let mut orientation: Option<u8> = None;
     loop {
@@ -132,12 +131,14 @@ fn jpeg_header<R: Read + Seek>(r: &mut R) -> Option<Header> {
         // A frame header, except the four that are not: DHT, JPG, DAC and the restart markers.
         let is_frame = (0xC0..=0xCF).contains(&marker) && marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
         if is_frame {
-            // Sample input, a frame header after its length: precision(1) | height(2) | width(2), big endian.
+            // After its length: precision(1) | height(2) | width(2) | components(1), big endian.
             let mut head = [0u8; 5];
             r.read_exact(&mut head).ok()?;
             let height = u16::from_be_bytes([head[1], head[2]]) as u32;
             let width = u16::from_be_bytes([head[3], head[4]]) as u32;
-            return Some(Header { width, height, orientation: orientation.unwrap_or(NO_TURN) });
+            let mut components = [0];
+            let _ = r.read_exact(&mut components);
+            return Some((Header { width, height, orientation: orientation.unwrap_or(NO_TURN) }, components[0]));
         }
         let mut body = u64::from(len) - 2;
         // The first APP1 named Exif carries the orientation near its start, so only its head is read, in this same walk.
@@ -359,7 +360,7 @@ mod tests {
     }
 
     fn walk(v: &[u8]) -> Option<Header> {
-        jpeg_header(&mut std::io::Cursor::new(&v[2..]))
+        jpeg_frame(&mut std::io::Cursor::new(&v[2..])).map(|(header, _)| header)
     }
 
     #[test]

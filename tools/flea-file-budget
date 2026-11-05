@@ -134,7 +134,7 @@ src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
 src/backend/renamecompat.rs 822
 src/backend/gvfslist.rs 514
-src/backend/imagesize.rs 559
+src/backend/imagesize.rs 560
 src/backend/iomount.rs 634
 src/backend/localsend.rs 466
 src/backend/menu_actions.rs 709

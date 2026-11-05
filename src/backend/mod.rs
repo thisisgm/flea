@@ -95,6 +95,7 @@ pub use flea::backend::rastertemp;
 pub mod regfile;
 pub mod exiffacts;
 pub mod imagesize;
+mod jpegthumb;
 pub mod imageformats;
 pub mod imagevector;
 pub mod kind;
