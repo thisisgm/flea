@@ -148,6 +148,7 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use std::io::Write;
 
+    /// Verify that the JPEG probe accepts only large three-component files.
     #[test]
     fn only_large_three_component_jpeg_inputs_take_the_fast_path() {
         let directory = TestDir::new("fast-jpeg-signature");
@@ -164,6 +165,7 @@ mod tests {
         assert!(!is_large_rgb_jpeg(&directory.join("missing.jpg")));
     }
 
+    /// Verify that filenames cannot inject vips loader or saver options.
     #[test]
     fn thumbnailer_options_cannot_come_from_filenames() {
         let input = Path::new("/tmp/a b.jpg");

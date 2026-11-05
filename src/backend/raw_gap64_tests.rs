@@ -91,6 +91,7 @@ fn sol_gap64_raw_thumbnail_routes_keep_explicit_handlers_and_iiq_tiff_input() {
     );
 }
 
+/// Exercise the original-file route for an IIQ thumbnail request.
 #[test]
 fn sol_gap64_iiq_thumbnailer_gets_the_original_tiff_input_instead_of_a_jpeg_copy() {
     let dir = crate::backend::testdir::TestDir::new("gap64-iiq-input");

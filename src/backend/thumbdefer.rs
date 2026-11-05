@@ -74,6 +74,7 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use crate::backend::events::channel;
 
+    /// Verify that jobs evicted after the queue snapshot still receive replies.
     #[test]
     fn a_submit_return_is_answered_and_released_after_the_room_snapshot() {
         let d = TestDir::new("thumbdeferreturned");

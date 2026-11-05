@@ -162,7 +162,7 @@ pub(crate) fn thumb_rows(
     }
 }
 
-// One entry per queued, waiting or running job, so MAX_QUEUE, MAX_DEFERRED and the worker count bound this map too.
+/// One entry per queued, waiting or running job, so MAX_QUEUE, MAX_DEFERRED and the worker count bound this map too.
 fn queue_row(
     out: &mut impl Write,
     st: &mut State,

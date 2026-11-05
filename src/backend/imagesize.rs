@@ -358,7 +358,7 @@ mod tests {
         v.extend_from_slice(&[0u8; 8]);
         v
     }
-
+    /// Read the frame from an in-memory JPEG fixture after its signature.
     fn walk(v: &[u8]) -> Option<Header> {
         jpeg_frame(&mut std::io::Cursor::new(&v[2..])).map(|(header, _)| header)
     }

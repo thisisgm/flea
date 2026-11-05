@@ -37,7 +37,7 @@ fn tables() -> Tables {
     }
 }
 
-// A listing of `count` jpegs, each row carrying the figures the window holds for it, so no stat is taken.
+/// A listing of `count` jpegs, each row carrying the figures the window holds for it, so no stat is taken.
 fn listed(dir: &TestDir, st: &mut State, count: usize) {
     st.base = dir.path().to_path_buf();
     let mut listing = Listing::new();
