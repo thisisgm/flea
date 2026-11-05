@@ -14,6 +14,9 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+/// open(2)'s O_NOCTTY, the same value on x86_64 and aarch64 (asm-generic).
+const O_NOCTTY: i32 = 0o400;
+
 /// Answers kept before the cache starts over.
 const KEPT: usize = 256;
 
@@ -257,6 +260,11 @@ fn descriptor_kind(fd: i32, mountinfo: &str) -> Option<String> {
         .lines()
         .find_map(|line| line.strip_prefix("mnt_id:"))?
         .trim();
+    mount_kind(mountinfo, id)
+}
+
+/// The filesystem type of the mount with this id in /proc/self/mountinfo.
+fn mount_kind(mountinfo: &str, id: &str) -> Option<String> {
     mountinfo.lines().find_map(|line| {
         let (head, tail) = line.split_once(" - ")?;
         (head.split_whitespace().next()? == id)
@@ -274,14 +282,22 @@ pub(crate) fn looks_text(path: &str) -> Option<bool> {
     }
     let table = std::fs::read_to_string("/proc/self/mounts").ok()?;
     let path = resolve_local(&table, Path::new(path))?;
-    // A fifo or device swapped in after the walk opens without blocking and is refused by the descriptor's type;
-    // a link swapped in is not followed.
-    let (mut file, meta) =
-        match flea::backend::regfile::open_if_regular_with_meta(&path, flea::oflags::O_NOFOLLOW) {
-            Ok(opened) => opened,
-            Err(error) if error.kind() == std::io::ErrorKind::InvalidInput => return Some(false),
-            Err(_) => return None,
-        };
+    // Only a regular file is opened: a device or tty row is refused before any open, which could have side effects.
+    match std::fs::symlink_metadata(&path) {
+        Ok(stat) if stat.is_file() => {}
+        Ok(_) => return Some(false),
+        Err(_) => return None,
+    }
+    // A fifo or device swapped in after that check opens without blocking, never as a controlling terminal, and is
+    // refused by the descriptor's type; a link swapped in is not followed.
+    let (mut file, meta) = match flea::backend::regfile::open_if_regular_with_meta(
+        &path,
+        flea::oflags::O_NOFOLLOW | O_NOCTTY,
+    ) {
+        Ok(opened) => opened,
+        Err(error) if error.kind() == std::io::ErrorKind::InvalidInput => return Some(false),
+        Err(_) => return None,
+    };
     if meta.len() == 0 {
         return Some(false);
     }

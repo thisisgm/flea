@@ -16,13 +16,8 @@ fn mount_points_with_escapes_and_automounts_count_as_remote() {
 fn the_descriptor_mount_is_found_by_its_id() {
     let info =
         "21 1 0:20 / / rw - btrfs /dev/root rw\n57 21 0:50 / /mnt/d rw - fuse.rclone rc: rw\n";
-    let kind = |id: &str| {
-        info.lines().find_map(|line| {
-            let (head, tail) = line.split_once(" - ")?;
-            (head.split_whitespace().next()? == id).then(|| tail.split_whitespace().next())?
-        })
-    };
-    assert_eq!(kind("57"), Some("fuse.rclone"));
+    assert_eq!(mount_kind(info, "57").as_deref(), Some("fuse.rclone"));
+    assert_eq!(mount_kind(info, "99"), None);
     // This process's own open file resolves to some mount kind through fdinfo.
     let file = std::fs::File::open("/proc/self/mountinfo").unwrap();
     let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").unwrap();
