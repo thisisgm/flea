@@ -1,8 +1,8 @@
 //! A native window for Quick Look. The browser keeps its size, cursor and pane state.
 use crate::{g2::pv1::QuickLook, state::Shell};
 use gpui::{
-    div, prelude::*, px, size, AppContext, Context, Entity, FocusHandle, Render, Subscription,
-    TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions,
+    AppContext, Context, Entity, FocusHandle, Render, Subscription, TitlebarOptions, WeakEntity,
+    Window, WindowBounds, WindowOptions, div, prelude::*, px, size,
 };
 
 pub(crate) struct Popout {
@@ -140,9 +140,15 @@ impl Shell {
             }
         }
     }
-    pub(super) fn custom_preview_fullscreen(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn custom_preview_fullscreen(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(handle) = self.quick_look.as_ref().and_then(|h| h.custom.window) {
             let _ = handle.update(cx, |_, window, _| window.toggle_fullscreen());
+        } else {
+            window.toggle_fullscreen();
         }
     }
     pub(crate) fn custom_preview_end(&mut self, cx: &mut Context<Self>) {

@@ -2,8 +2,8 @@
 use super::glyph::Glyph;
 use crate::g2::{
     pv2::{
-        archive::ArchiveView, code::CodeView, csv::CsvView, font::FontView, html::HtmlView,
-        markdown::MarkdownView, office::OfficeView, PdfView,
+        PdfView, archive::ArchiveView, code::CodeView, csv::CsvView, font::FontView,
+        html::HtmlView, markdown::MarkdownView, office::OfficeView,
     },
     pv3::{
         player::MediaPlayer,
@@ -131,6 +131,21 @@ fn words(views: Option<crate::g2::pv2::code::ViewWords>) -> Vec<(String, bool)> 
 }
 
 impl Doc {
+    pub(crate) fn pinch(&self, delta: f32, cx: &mut gpui::Context<super::QuickLook>) -> bool {
+        let pdf = match &self.view {
+            View::Pdf(pdf) => Some(pdf.clone()),
+            View::Office(office) if !office.read(cx).office.wants_sheets() => {
+                Some(office.read(cx).pdf.clone())
+            }
+            _ => None,
+        };
+        let Some(pdf) = pdf else {
+            return false;
+        };
+        pdf.update(cx, |pdf, cx| pdf.pinch_by(delta, cx));
+        true
+    }
+
     pub fn id(&self) -> EntityId {
         match &self.view {
             View::Code(v) => v.entity_id(),
@@ -320,7 +335,7 @@ impl Doc {
                     .read(cx)
                     .failure(i18n)
                     .filter(|f| !f.error_tone)
-                    .map(|f| f.sentence)
+                    .map(|f| f.sentence);
             }
             _ => return None,
         };

@@ -18,24 +18,24 @@ use std::time::Duration;
 
 #[path = "quick_look_compare.rs"]
 mod compare_open;
+#[path = "quick_look_custom.rs"]
+pub(crate) mod custom;
 #[path = "quick_look_docs.rs"]
 mod docs;
 #[path = "quick_look_interim.rs"]
 mod interim;
 #[path = "quick_look_keys.rs"]
 mod keys;
-#[path = "quick_look_row.rs"]
-mod row;
-#[path = "quick_look_custom.rs"]
-pub(crate) mod custom;
-#[path = "quick_look_popout.rs"]
-mod popout;
 #[path = "quick_look_mount.rs"]
 mod mount;
+#[path = "quick_look_popout.rs"]
+mod popout;
 #[path = "quick_look_readers.rs"]
 pub(crate) mod readers;
 #[path = "quick_look_replies.rs"]
 mod replies;
+#[path = "quick_look_row.rs"]
+mod row;
 #[path = "quick_look_warm.rs"]
 pub(crate) mod warm;
 #[path = "quick_look_wire.rs"]
@@ -316,7 +316,7 @@ impl Shell {
             // CompareView copyPatch: the whole patch, headers included, goes to the clipboard.
             Event::Navigate(index) => self.custom_preview_select(index, window, cx),
             Event::OpenDefault => self.custom_preview_default(window, cx),
-            Event::Fullscreen => self.custom_preview_fullscreen(cx),
+            Event::Fullscreen => self.custom_preview_fullscreen(window, cx),
             Event::CopyPatch => {
                 if let Some(host) = self.quick_look.as_ref().filter(|h| !h.patch.is_empty()) {
                     cx.write_to_clipboard(ClipboardItem::new_string(host.patch.clone()));

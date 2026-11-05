@@ -1,6 +1,7 @@
 use super::{
     custom::{Custom, Item, Options},
     custom_chrome::band,
+    picture::pinch_zoom,
 };
 use flea::{
     jsondoc::{self, Json},
@@ -58,4 +59,12 @@ fn custom_port_info_cannot_remove_the_content_viewport() {
         let bounds = custom.card(size(px(w), px(h)));
         assert!(bounds.size.width > px(0.) && bounds.size.height > px(0.));
     }
+}
+
+#[test]
+fn quick_look_pinch_zoom_is_smooth_and_bounded() {
+    assert!((pinch_zoom(1., 0.1) - 1.1).abs() < 0.0001);
+    assert!((pinch_zoom(2., -0.25) - 1.5).abs() < 0.0001);
+    assert_eq!(pinch_zoom(3.9, 0.5), 4.);
+    assert_eq!(pinch_zoom(1.1, -2.), 1.);
 }
