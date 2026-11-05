@@ -37,7 +37,7 @@ fn tables() -> Tables {
     }
 }
 
-// A listing of `count` jpegs, each row carrying the figures the window holds for it, so no stat is taken.
+/// A listing of `count` jpegs, each row carrying the figures the window holds for it, so no stat is taken.
 fn listed(dir: &TestDir, st: &mut State, count: usize) {
     st.base = dir.path().to_path_buf();
     let mut listing = Listing::new();
@@ -45,7 +45,7 @@ fn listed(dir: &TestDir, st: &mut State, count: usize) {
         let name = format!("img-{row:03}.jpg");
         let path = dir.file(&name, "not a picture, and nothing here decodes it");
         let m = std::fs::symlink_metadata(&path).unwrap();
-        st.window_meta.insert(row, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(row, (m.mode(), m.mtime(), false, 0));
         listing.push(&name, false);
     }
     st.listing = listing;

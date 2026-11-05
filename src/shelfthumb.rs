@@ -30,6 +30,7 @@ pub fn command(rest: &[String]) -> i32 {
 
 // The cache is the answer whenever it holds one; a miss is produced through the writer every other
 // part of Flea produces one with, so the shelf and the pane share one cache and one failure record.
+/// Look up or create a Shelf thumbnail, reusing the metadata needed for the cache key.
 fn thumb_of(
     file: &Path,
     mime: &Db,
@@ -57,7 +58,7 @@ fn thumb_of(
                 cache: Cache::at(root.to_path_buf()),
                 worker: None,
             };
-            let mut job = Job { replies: None, path: file.to_path_buf(), mtime, trash_identity: None, mime: kind, trace: None };
+            let mut job = Job { replies: None, path: file.to_path_buf(), mtime, source_size: Some(meta.len()), trash_identity: None, mime: kind, trace: None };
             match run_one(&tables, &mut job) {
                 Outcome::Ready(made) => Some(made.to_string_lossy().to_string()),
                 Outcome::Failed => None,

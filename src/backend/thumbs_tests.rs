@@ -55,11 +55,13 @@ impl Drop for TestPool {
     }
 }
 
+/// Build an untracked thumbnail job for a test path.
 fn job(path: &str) -> Job {
     Job {
         replies: None,
         path: PathBuf::from(path),
         mtime: 0,
+        source_size: None,
         trash_identity: None,
         mime: "image/jpeg".to_string(),
         trace: None,
@@ -259,6 +261,7 @@ fn a_missing_input_reports_failed_rather_than_hanging() {
     assert_eq!(left, 0, "a temp file survived a failed job");
 }
 
+/// Exercise a real decoder and check the cache stamp on its output.
 #[test]
 fn a_real_file_round_trips_to_a_stamped_cache_entry() {
     if crate::backend::sandboxprobe::skipped() {
@@ -279,6 +282,7 @@ fn a_real_file_round_trips_to_a_stamped_cache_entry() {
         replies: None,
         path: src.clone(),
         mtime: FIXTURE_MTIME,
+        source_size: None,
         trash_identity: None,
         mime: "image/png".to_string(),
         trace: None,
@@ -333,6 +337,7 @@ fn a_failure_after_a_table_miss_rewrites_the_marker_under_the_current_table() {
     );
 }
 
+/// Verify that a decoder failure is stamped with the active provider table.
 #[test]
 fn a_decoder_failure_records_its_marker_under_the_loaded_table() {
     if crate::backend::sandboxprobe::skipped() {
@@ -350,6 +355,7 @@ fn a_decoder_failure_records_its_marker_under_the_loaded_table() {
         replies: None,
         path: src.clone(),
         mtime: FIXTURE_MTIME,
+        source_size: None,
         trash_identity: None,
         mime: "image/jpeg".to_string(),
         trace: None,

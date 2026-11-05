@@ -71,13 +71,14 @@ pub(super) struct Fixture {
     pub(super) job: Job,
 }
 
+/// Build an isolated AppImage job and its provider table.
 pub(super) fn fixture(tag: &str, text: &str) -> Fixture {
     let dir = TestDir::new(tag);
     dir.file("app.AppImage", text);
     let aliases = Arc::new(Aliases::load());
     let specs = Arc::new(Thumbnailers::load(&aliases).with_appimage_route(&aliases, true));
     let cache = Cache::at(dir.join("cache"));
-    let job = Job { replies: None, path: dir.join("app.AppImage"), mtime: MTIME, trash_identity: None, mime: APPIMAGE.to_string(), trace: None };
+    let job = Job { replies: None, path: dir.join("app.AppImage"), mtime: MTIME, source_size: None, trash_identity: None, mime: APPIMAGE.to_string(), trace: None };
     Fixture { _dir: dir, tables: Tables { aliases, specs, cache, worker: None }, job }
 }
 
