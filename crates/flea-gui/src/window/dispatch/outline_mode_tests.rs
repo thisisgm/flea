@@ -56,6 +56,7 @@ fn ride(
             folder: "/files".into(),
             line: line.into(),
             mode,
+            open: false,
         });
     });
     key(cx, "enter");
