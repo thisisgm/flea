@@ -258,7 +258,7 @@ impl Render for TrashPane {
                 .top_0()
                 .bottom_0()
                 .right_0()
-                // Centred in the whole view, as TrashView.qml does, less the places a window-wide strip runs over.
+                // Centred in the whole view, less the places a window-wide strip runs over.
                 .left(px(inset))
                 .flex()
                 .items_center()
