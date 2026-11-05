@@ -2141,7 +2141,7 @@
   "keys.action.redo": "다시 실행",
   "keys.redo": "다시 실행",
   "keys.action.newFolder": "새 폴더",
-  "keys.newFolder": "새 폴더",
+  "keys.create": "새 폴더",
   "keys.action.addNetwork": "네트워크 위치 추가",
   "keys.action.autofitColumns": "열 너비 자동 맞춤",
   "keys.action.copyAs": "다음 형식으로 복사",

@@ -2197,7 +2197,7 @@
   "keys.deletePermanently": "Padam secara kekal",
   "keys.undo": "Buat asal",
   "keys.redo": "Buat semula",
-  "keys.newFolder": "Folder baharu",
+  "keys.create": "Folder baharu",
   "keys.toggleSelect": "Pilih",
   "keys.menu": "Menu",
   "keys.openTerminal": "Buka terminal",

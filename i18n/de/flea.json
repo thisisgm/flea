@@ -2295,7 +2295,7 @@
   "keys.deletePermanently": "Endgültig löschen",
   "keys.undo": "Rückgängig",
   "keys.redo": "Wiederholen",
-  "keys.newFolder": "Neuer Ordner",
+  "keys.create": "Neuer Ordner",
   "keys.toggleSelect": "Auswählen",
   "keys.menu": "Menü",
   "keys.openTerminal": "Terminal öffnen",

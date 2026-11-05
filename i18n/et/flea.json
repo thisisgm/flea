@@ -2295,7 +2295,7 @@
   "keys.deletePermanently": "Kustuta jäädavalt",
   "keys.undo": "Võta tagasi",
   "keys.redo": "Korda",
-  "keys.newFolder": "Uus kaust",
+  "keys.create": "Uus kaust",
   "keys.toggleSelect": "Vali",
   "keys.menu": "Menüü",
   "keys.openTerminal": "Ava terminal",

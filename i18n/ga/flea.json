@@ -2589,7 +2589,7 @@
   "keys.deletePermanently": "Scrios go buan",
   "keys.undo": "Cealaigh",
   "keys.redo": "Athdhéan",
-  "keys.newFolder": "Fillteán nua",
+  "keys.create": "Fillteán nua",
   "keys.toggleSelect": "Roghnaigh",
   "keys.menu": "Roghchlár",
   "keys.openTerminal": "Oscail críochfort",

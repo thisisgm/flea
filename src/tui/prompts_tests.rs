@@ -89,12 +89,13 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     let mut m = frame_tests::model();
     m.path = sandbox.path().into();
     press(&mut m, &mut w, Key::character('N', "shift"));
-    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens New Folder");
-    let (cells, caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Folder name").0, theme.muted);
-    assert_eq!(span(&cells, 12, "New Folder"), (theme.foreground.clone(), theme.stem.clone()));
-    assert_eq!(span(&cells, 22, " ").1, theme.field);
-    assert_eq!(caret, None);
+    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens the one create prompt");
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "Name").0, theme.muted);
+    // The suggested name carries the slash that makes Enter a folder, and the whole draft is
+    // selected, so it draws in the stem ink until something is typed over it.
+    assert_eq!(span(&cells, 5, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
+    assert_eq!(span(&cells, 16, " ").1, theme.field);
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);

@@ -2393,7 +2393,7 @@
   "keys.deletePermanently": "Apagar permanentemente",
   "keys.undo": "Anular",
   "keys.redo": "Refazer",
-  "keys.newFolder": "Nova pasta",
+  "keys.create": "Nova pasta",
   "keys.toggleSelect": "Selecionar",
   "keys.menu": "Menu",
   "keys.openTerminal": "Abrir terminal",

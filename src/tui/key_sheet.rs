@@ -45,7 +45,7 @@ const ROWS: &[Row] = &[
     ("change", &["deletePermanently"], "keys.deletePermanently", &["shift-delete"]),
     ("change", &["undo"], "keys.undo", &["z", "ctrl-z"]),
     ("change", &["redo"], "keys.redo", &["ctrl-shift-z", "ctrl-y"]),
-    ("change", &["newFolder"], "keys.newFolder", &["ctrl-shift-n", "N"]),
+    ("change", &["newFolder"], "keys.create", &["ctrl-shift-n", "N"]),
     ("change", &["toggleSelect"], "keys.toggleSelect", &["v"]),
     ("change", &["menu"], "keys.menu", &["m", "menu"]),
     ("change", &["openTerminal"], "keys.openTerminal", &["ctrl-t"]),

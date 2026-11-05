@@ -13,7 +13,7 @@ const BOARD: [&str; 22] = [
     "        ctrl-u  Page up                       /  Filter                         shift-delete  Delete permanently",
     "         enter  Open                 f / ctrl-f  Find                             z / ctrl-z  Undo",
     "      h / left  Parent folder            ctrl-g  Search contents       ctrl-shift-z / ctrl-y  Redo",
-    "             H  Back                          o  Reveal                     ctrl-shift-n / N  New folder",
+    "             H  Back                          o  Reveal                     ctrl-shift-n / N  New file or folder",
     "             L  Forward                       s  Sort                                      v  Select",
     "tab / ctrl-tab  Focus the preview             S  Reverse sort                       m / menu  Menu",
     "             t  New tab              : / ctrl-l  Go to folder                         ctrl-t  Open terminal",

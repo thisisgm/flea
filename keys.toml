@@ -2675,12 +2675,15 @@ action = "redo"
 label = "Redo"
 context = "listing"
 
+# N opens one prompt that makes either entry: a name typed plainly is a file and one ending in a
+# slash is the folder of that name (yazi's create rule), so both rows carry the one label. The
+# action id stays the GUI's newFolder; only the words this terminal prints changed.
 [[tui]]
 name = "all"
 mods = "text"
 key = "N"
 action = "newFolder"
-label = "New folder"
+label = "New file or folder"
 context = "listing"
 
 [[tui]]
@@ -2688,7 +2691,7 @@ name = "all"
 mods = "ctrlshift"
 key = "N"
 action = "newFolder"
-label = "New folder"
+label = "New file or folder"
 context = "listing"
 
 [[tui]]
@@ -2984,7 +2987,7 @@ name = "yazi"
 mods = "text"
 key = "a"
 action = "newFile"
-label = "New file"
+label = "New file or folder"
 context = "listing"
 
 [[tui]]

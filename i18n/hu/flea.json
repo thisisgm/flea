@@ -2295,7 +2295,7 @@
   "keys.deletePermanently": "Végleges törlés",
   "keys.undo": "Visszavonás",
   "keys.redo": "Ismétlés",
-  "keys.newFolder": "Új mappa",
+  "keys.create": "Új mappa",
   "keys.toggleSelect": "Kijelölés",
   "keys.menu": "Menü",
   "keys.openTerminal": "Terminál megnyitása",

@@ -1106,10 +1106,13 @@ impl Model {
                 self.refresh(wire)?;
             }
             "menuaction" if text(&value, "op") == "newFile" => {
+                // Either create kind can have asked for a file: `N` types a file name over the
+                // folder suggestion and `a` (yazi) opens the file prompt, and both receive this
+                // reply, so the pending draft of either kind owns it.
                 if count(&value, "id") != self.action_id || !self
                     .editor
                     .as_ref()
-                    .is_some_and(|e| e.kind == "newfile" && e.pending)
+                    .is_some_and(|e| matches!(e.kind, "newfile" | "mkdir") && e.pending)
                 {
                     return Ok(());
                 }
