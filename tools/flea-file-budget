@@ -36,11 +36,11 @@ crates/flea-gui/src/window/status.rs 408
 crates/flea-gui/src/g2/mn1/delivery.rs 403
 src/backend/mod.rs 407
 crates/flea-gui/src/window/columns_render.rs 407
-crates/flea-gui/src/window/composition.rs 401
+crates/flea-gui/src/window/composition.rs 404
 crates/flea-gui/src/g2/dg1/join_tests.rs 447
 crates/flea-gui/src/tabs/join_tests.rs 449
 crates/flea-gui/src/feedback/spinner_surface_tests.rs 402
-crates/flea-gui/src/state.rs 404
+crates/flea-gui/src/state.rs 407
 crates/flea-gui/src/window/settings/apply.rs 402
 crates/flea-gui/src/g2/pk1/view.rs 407
 crates/flea-gui/src/rail/element.rs 424
@@ -175,7 +175,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1292
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 622
+src/uischema.rs 626
 src/uistate.rs 856
 src/uistore.rs 568
 src/vulkan.rs 751

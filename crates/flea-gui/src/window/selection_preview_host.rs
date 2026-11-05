@@ -11,6 +11,17 @@ pub(crate) fn settings(data: &Json) -> crate::columns::preview_host::PreviewSett
         manual_hold: false,
     }
 }
+/// Whether a preview loads by itself in a folder of this storage class: Load: manual holds every one, and a
+/// class whose thumbnails are off holds it, unless thumbnails are off altogether.
+pub(crate) fn loads(preview: &Json, automatic: bool, class: &str) -> bool {
+    let class_on = match class {
+        "network" => preview.get("thumbNetwork").and_then(Json::as_bool) == Some(true),
+        "phone" => preview.get("thumbPhone").and_then(Json::as_bool) == Some(true),
+        "usb" => preview.get("thumbUsb").and_then(Json::as_bool) != Some(false),
+        _ => true,
+    };
+    automatic && (class_on || preview.get("thumbnails").and_then(Json::as_str) == Some("off"))
+}
 pub(crate) fn share(data: &Json) -> f32 {
     data.get("preview")
         .and_then(|v| v.get("width"))
@@ -135,10 +146,7 @@ impl Shell {
                     view.follow(None, false, false, window, cx);
                     return;
                 }
-                if subject.is_none() && !folder_wait {
-                    view.hide(window, cx);
-                    return;
-                }
+                // The folder's storage class, asked before a folder row hides the view: the list's folder peek reads it.
                 if view
                     .class
                     .as_ref()
@@ -147,19 +155,15 @@ impl Shell {
                     view.class = Some((path.clone(), "?".into()));
                     view.outbox.borrow_mut().push(r#"{"c":"fsinfo"}"#.into());
                 }
+                if subject.is_none() && !folder_wait {
+                    view.hide(window, cx);
+                    return;
+                }
                 let class = view.class.as_ref().map_or("?", |(_, class)| class.as_str());
                 if class == "?" && setting.automatic {
                     return;
                 }
-                let class_on = match class {
-                    "network" => preview.get("thumbNetwork").and_then(Json::as_bool) == Some(true),
-                    "phone" => preview.get("thumbPhone").and_then(Json::as_bool) == Some(true),
-                    "usb" => preview.get("thumbUsb").and_then(Json::as_bool) != Some(false),
-                    _ => true,
-                };
-                let manual = !setting.automatic
-                    || (!class_on
-                        && preview.get("thumbnails").and_then(Json::as_str) != Some("off"));
+                let manual = !loads(preview, setting.automatic, class);
                 view.follow(subject, manual, false, window, cx);
             });
             let published = readers::Reader {

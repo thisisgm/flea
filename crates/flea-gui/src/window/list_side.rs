@@ -7,10 +7,7 @@ use super::composition::{Geometry, Rect};
 use crate::{list::Palette, palette::Theme, state::Shell};
 use flea::jsondoc::Json;
 use gpui::{div, prelude::*, px, AnyElement, Context, SharedString, Window};
-use std::cell::RefCell;
 
-/// Entries a folder preview lists at most; the count above them is the real one.
-const MAX_ENTRIES: usize = 500;
 /// The list keeps at least this much room; below twice of it there is no preview.
 const LIST_MIN: f32 = 360.;
 const SIDE_MIN: f32 = 240.;
@@ -49,20 +46,6 @@ pub(crate) fn split(pane: &mut Rect, data: &Json, live: Option<f32>) -> Option<R
     })
 }
 
-/// A folder preview older than this is read again, so a folder that changed under it catches up.
-const PEEK_FRESH: std::time::Duration = std::time::Duration::from_secs(2);
-
-struct Peek {
-    path: String,
-    hidden: bool,
-    read_at: std::time::Instant,
-    entries: Option<Result<(Vec<(String, bool)>, usize), String>>,
-}
-
-thread_local! {
-    static PEEK: RefCell<Option<Peek>> = const { RefCell::new(None) };
-}
-
 /// The held edge between the list and its preview.
 #[derive(Clone, Copy)]
 pub(crate) struct SideEdge;
@@ -73,6 +56,18 @@ impl gpui::Render for EdgeGhost {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
     }
+}
+
+/// The window follows a held edge anywhere, and a release anywhere ends it.
+pub(crate) fn edge_listeners<E: InteractiveElement>(root: E, cx: &mut Context<Shell>) -> E {
+    root.on_drag_move::<SideEdge>(cx.listener(
+        |shell, event: &gpui::DragMoveEvent<SideEdge>, window, cx| {
+            shell.list_side_drag(f32::from(event.event.position.x), window, cx);
+        },
+    ))
+    .capture_any_mouse_up(cx.listener(|shell, _, window, cx| {
+        shell.list_side_release(window, cx);
+    }))
 }
 
 fn edge(cx: &mut Context<Shell>) -> impl IntoElement {
@@ -93,38 +88,6 @@ fn edge(cx: &mut Context<Shell>) -> impl IntoElement {
                 shell.store_list_width(40., window, cx);
             }
         }))
-}
-
-fn read(path: &str, hidden: bool) -> Result<(Vec<(String, bool)>, usize), String> {
-    let mut entries = Vec::new();
-    for entry in std::fs::read_dir(path).map_err(|error| error.to_string())? {
-        let Ok(entry) = entry else { continue };
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if !hidden && name.starts_with('.') {
-            continue;
-        }
-        let dir = entry
-            .file_type()
-            .is_ok_and(|kind| kind.is_dir() || (kind.is_symlink() && entry.path().is_dir()));
-        entries.push((name, dir));
-    }
-    let total = entries.len();
-    entries.sort_by(|a, b| {
-        b.1.cmp(&a.1)
-            .then_with(|| a.0.to_lowercase().cmp(&b.0.to_lowercase()))
-    });
-    entries.truncate(MAX_ENTRIES);
-    Ok((entries, total))
-}
-
-fn join(directory: &str, name: &str) -> String {
-    if name.starts_with('/') {
-        name.to_owned()
-    } else if directory.ends_with('/') {
-        format!("{directory}{name}")
-    } else {
-        format!("{directory}/{name}")
-    }
 }
 
 impl Shell {
@@ -153,7 +116,7 @@ impl Shell {
         let row = host.pane.held.row(host.pane.cursor);
         let folder = row
             .filter(|row| row.dir && !row.name.is_empty() && host.selected.len() <= 1)
-            .map(|row| join(host.pane.path(), &row.name));
+            .map(|row| super::list_peek::join(host.pane.path(), &row.name));
         let Some(path) = folder else {
             let preview = host.preview.clone().filter(|view| view.read(cx).visible);
             return Some(
@@ -170,64 +133,41 @@ impl Shell {
             .get("hidden")
             .and_then(Json::as_bool)
             == Some(true);
-        let fresh = PEEK.with(|peek| {
-            peek.borrow().as_ref().is_some_and(|peek| {
-                peek.path == path
-                    && peek.hidden == hidden
-                    && (peek.entries.is_none() || peek.read_at.elapsed() < PEEK_FRESH)
-            })
-        });
-        if !fresh {
-            PEEK.with(|peek| {
-                let mut peek = peek.borrow_mut();
-                // A re-read of the folder already shown keeps its entries until the new ones land.
-                let kept = peek
-                    .take()
-                    .filter(|old| old.path == path && old.hidden == hidden)
-                    .and_then(|old| old.entries);
-                *peek = Some(Peek {
-                    path: path.clone(),
-                    hidden,
-                    read_at: std::time::Instant::now(),
-                    entries: kept,
-                })
-            });
-            let wanted = path.clone();
-            let task = cx
-                .background_executor()
-                .spawn(async move { read(&wanted, hidden) });
-            let wanted = path.clone();
-            cx.spawn(async move |this, cx| {
-                let read = task.await;
-                PEEK.with(|peek| {
-                    if let Some(peek) = peek
-                        .borrow_mut()
-                        .as_mut()
-                        .filter(|peek| peek.path == wanted && peek.hidden == hidden)
-                    {
-                        peek.entries = Some(read);
-                        peek.read_at = std::time::Instant::now();
-                    }
-                });
-                let _ = this.update(cx, |_, cx| cx.notify());
-            })
-            .detach();
+        // The folder is read only where the preview loads by itself, or once Load released it.
+        let class = host
+            .preview
+            .as_ref()
+            .and_then(|preview| preview.read(cx).class.clone())
+            .filter(|(directory, _)| directory == host.pane.path())
+            .map_or_else(|| "?".to_owned(), |(_, class)| class);
+        let data = &self.launch.settings.data;
+        let automatic = super::selection_preview::host::settings(data).automatic;
+        let released = super::list_peek::released(&path);
+        let preview = data.get("preview").unwrap_or(&Json::Null);
+        let loads = released
+            || (class != "?" && super::selection_preview::host::loads(preview, automatic, &class));
+        if loads {
+            self.peek(&path, hidden, cx);
         }
         let name = row.map(|row| row.name.clone()).unwrap_or_default();
-        let (summary, entries) =
-            PEEK.with(
-                |peek| match peek.borrow().as_ref().and_then(|peek| peek.entries.clone()) {
-                    None => ("…".to_owned(), Vec::new()),
-                    Some(Err(error)) => (error, Vec::new()),
-                    Some(Ok((entries, total))) => (
-                        match total {
-                            0 => self.locale.catalog.tr("folder.empty"),
-                            n => self.locale.catalog.trn("items.count", n as i64),
-                        },
-                        entries,
-                    ),
+        let shown = super::list_peek::shown(&path, hidden);
+        let (summary, entries) = match shown.filter(|_| loads) {
+            None if !loads && (class != "?" || !automatic) => (
+                self.locale
+                    .catalog
+                    .tr_args("preview.loadHint", &["Ctrl+Space"]),
+                Vec::new(),
+            ),
+            None => ("…".to_owned(), Vec::new()),
+            Some(Err(error)) => (error, Vec::new()),
+            Some(Ok((entries, total))) => (
+                match total {
+                    0 => self.locale.catalog.tr("folder.empty"),
+                    n => self.locale.catalog.trn("items.count", n as i64),
                 },
-            );
+                entries,
+            ),
+        };
         let metrics = crate::list::Metrics::for_typeface(&typeface);
         let line = px(metrics.row);
         let pad = px(metrics.pad);
@@ -311,6 +251,13 @@ impl Shell {
         self.list_side_live
             .set(Some(((right - x) / (right - left)).clamp(0.2, 0.7)));
         cx.notify();
+    }
+
+    /// A list preview edge released where the body never saw the release still settles.
+    pub(crate) fn settle_list_side(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.list_side_live.get().is_some() && !cx.has_active_drag() {
+            self.list_side_release(window, cx);
+        }
     }
 
     /// Release: the held share becomes preview.listWidth, in whole percent.
