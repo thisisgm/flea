@@ -1,14 +1,18 @@
 //! The settled List's visible folder sizes, using the existing backend walker and bounded planner.
 use super::{columns::Column, pane::Held};
 use crate::{
-    navigation::sort::{DirSizes, Size, wants_sizes},
+    navigation::sort::{wants_sizes, DirSizes, Size},
     pane::requests::RowAction,
     state::Shell,
     window::startup::View,
 };
 use flea::jsondoc::Json;
 use gpui::{Context, Task, Window};
-use std::{rc::Rc, time::Duration};
+use std::{
+    collections::{HashMap, VecDeque},
+    rc::Rc,
+    time::Duration,
+};
 
 // ui/Pane.qml: the first rest is 70 ms, subsequent rests 120 ms, with 240 answered rows.
 const FIRST_MS: u64 = 70;
@@ -109,6 +113,8 @@ pub(crate) struct State {
     asked_fs: bool,
     asked_sizes: bool,
     sizes: DirSizes,
+    history: HashMap<String, HashMap<FolderKey, Size>>,
+    history_order: VecDeque<String>,
     waiting: Vec<usize>,
     key: Option<Key>,
     task: Option<Task<()>>,
@@ -116,6 +122,25 @@ pub(crate) struct State {
     pub requests: usize,
     /// Every dirsizecancel line the backend took, so a scroll that drops waiting walks can be counted (GPUI-only dirSizeCancels).
     pub cancels: usize,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+struct FolderKey {
+    name: String,
+    size: u64,
+    mtime: i64,
+    mode: u32,
+}
+
+impl FolderKey {
+    fn of(row: &flea::protocol::RowFacts) -> Option<Self> {
+        row.dir.then(|| Self {
+            name: row.name.clone(),
+            size: row.size,
+            mtime: row.mtime,
+            mode: row.mode,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -160,6 +185,34 @@ impl State {
     /// The shown folder's filesystem class word, once the backend has answered for it.
     pub(crate) fn class(&self) -> Option<&str> {
         self.class.as_deref()
+    }
+
+    fn remembered(&self, path: &str, row: &flea::protocol::RowFacts) -> Option<Size> {
+        self.history.get(path)?.get(&FolderKey::of(row)?).copied()
+    }
+
+    fn remember(&mut self, path: &str, row: &flea::protocol::RowFacts, size: Size) {
+        if size.partial {
+            return;
+        }
+        let Some(key) = FolderKey::of(row) else {
+            return;
+        };
+        if !self.history.contains_key(path) {
+            self.history_order.push_back(path.to_owned());
+        } else {
+            self.history_order.retain(|known| known != path);
+            self.history_order.push_back(path.to_owned());
+        }
+        self.history
+            .entry(path.to_owned())
+            .or_default()
+            .insert(key, size);
+        while self.history_order.len() > 32 {
+            if let Some(oldest) = self.history_order.pop_front() {
+                self.history.remove(&oldest);
+            }
+        }
     }
 
     pub(crate) fn cancel(&mut self, backend: &crate::backend::Backend) {
@@ -222,6 +275,17 @@ impl Shell {
         }
         if fresh {
             state.sizes.inlined(&current.rows, current.start, CAP);
+            for (at, row) in current.rows.iter().enumerate() {
+                let index = current.start + at;
+                let size = state
+                    .sizes
+                    .size_for(index)
+                    .or_else(|| state.remembered(&host.path, row));
+                if let Some(size) = size {
+                    state.sizes.remember(index, size, CAP);
+                    state.remember(&host.path, row, size);
+                }
+            }
             state.held = Rc::clone(current);
             let mut list = host.list.borrow_mut();
             for (at, _) in current.rows.iter().enumerate() {
@@ -360,6 +424,9 @@ impl Shell {
                 };
                 host.sizes.waiting.swap_remove(at);
                 host.sizes.sizes.remember(row, size, CAP);
+                if let Some(facts) = host.pane.held.row(row) {
+                    host.sizes.remember(&host.path, facts, size);
+                }
                 let mut list = host.list.borrow_mut();
                 list.view.folder_size(host.pane.held.listing, row, size);
                 list.retain_folder_sizes(&host.sizes.sizes);
