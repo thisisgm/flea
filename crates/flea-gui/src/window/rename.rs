@@ -121,6 +121,7 @@ impl Shell {
         if edit.pending.is_some() || edit.entry.marked.is_some() {
             return;
         }
+        edit.line.end_selection_drag();
         let next = edit.entry.text.trim().to_owned();
         if edit.entry.text == edit.name || next == edit.name {
             self.rename_abandon(cx);

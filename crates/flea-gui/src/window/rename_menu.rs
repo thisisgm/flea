@@ -50,6 +50,7 @@ impl Shell {
         ]
     }
 
+    /// Opens the text menu with the selection frozen at the point the menu was requested.
     pub(crate) fn rename_menu_open(
         &mut self,
         event: &MouseDownEvent,
@@ -62,7 +63,7 @@ impl Shell {
         let Some(edit) = self
             .rename
             .edit
-            .as_ref()
+            .as_mut()
             .filter(|edit| edit.pending.is_none())
         else {
             return;
@@ -71,6 +72,7 @@ impl Shell {
             return;
         };
         let side = edit.side;
+        edit.line.end_selection_drag();
         self.retire_menu(window, cx);
         self.observe_menu(window, cx);
         self.menu.text = Some((side, session));
