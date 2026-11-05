@@ -47,8 +47,8 @@ pub(crate) fn answer(key: &Key) -> Option<bool> {
     SNIFFER.with(|sniffer| sniffer.borrow().answers.get(key).copied())
 }
 
-/// Reads the file's head in the background; `done` runs on the UI thread once the answer is kept, and never
-/// for an ask a newer one replaced while it waited.
+/// Reads the file's head in the background; `done` runs on the UI thread once the read is over, whether or not
+/// it kept an answer, and never for an ask a newer one replaced while it waited.
 pub(crate) fn ask(key: Key, cx: &mut App, done: impl FnOnce(&mut App) + 'static) {
     let done: Done = Box::new(done);
     let start = SNIFFER.with(|sniffer| {
@@ -85,13 +85,16 @@ fn run(key: Key, cx: &mut App) {
     .detach();
 }
 
-fn landed(key: Key, text: bool, cx: &mut App) {
+fn landed(key: Key, text: Option<bool>, cx: &mut App) {
     let (done, next) = SNIFFER.with(|sniffer| {
         let mut sniffer = sniffer.borrow_mut();
         if sniffer.answers.len() >= KEPT {
             sniffer.answers.clear();
         }
-        sniffer.answers.insert(key, text);
+        // A read that failed keeps no answer, so the next ask for this file reads it again.
+        if let Some(text) = text {
+            sniffer.answers.insert(key, text);
+        }
         let done = sniffer
             .running
             .take()
@@ -136,13 +139,16 @@ impl crate::state::Shell {
             window.window_handle(),
             key.0.clone(),
         );
+        let asked = key.clone();
         ask(key, cx, move |cx| {
             let _ = handle.update(cx, |_, window, cx| {
                 this.update(cx, |shell, cx| {
-                    let current = shell
-                        .quick_look
-                        .as_ref()
-                        .is_some_and(|host| host.token == token);
+                    let text = answer(&asked) == Some(true);
+                    let current = text
+                        && shell
+                            .quick_look
+                            .as_ref()
+                            .is_some_and(|host| host.token == token);
                     if current && shell.quick_look_open(cx) {
                         shell.show_row(side, index, &row, path, window, cx);
                     }
@@ -260,49 +266,40 @@ fn descriptor_kind(fd: i32, mountinfo: &str) -> Option<String> {
 }
 
 /// The first 4 KiB of a regular local file: no NUL and valid UTF-8, where only a character the
-/// 4 KiB cut through may be incomplete.
-pub(crate) fn looks_text(path: &str) -> bool {
+/// 4 KiB cut through may be incomplete. None when it could not be read this time (no permission, gone, a
+/// failed read), which is not kept, so a later ask reads it again.
+pub(crate) fn looks_text(path: &str) -> Option<bool> {
     if !path.starts_with('/') {
-        return false;
+        return Some(false);
     }
-    let Ok(table) = std::fs::read_to_string("/proc/self/mounts") else {
-        return false;
-    };
-    let Some(path) = resolve_local(&table, Path::new(path)) else {
-        return false;
-    };
+    let table = std::fs::read_to_string("/proc/self/mounts").ok()?;
+    let path = resolve_local(&table, Path::new(path))?;
     // A fifo or device swapped in after the walk opens without blocking and is refused by the descriptor's type;
     // a link swapped in is not followed.
-    let Ok((mut file, meta)) =
-        flea::backend::regfile::open_if_regular_with_meta(&path, flea::oflags::O_NOFOLLOW)
-    else {
-        return false;
-    };
+    let (mut file, meta) =
+        match flea::backend::regfile::open_if_regular_with_meta(&path, flea::oflags::O_NOFOLLOW) {
+            Ok(opened) => opened,
+            Err(error) if error.kind() == std::io::ErrorKind::InvalidInput => return Some(false),
+            Err(_) => return None,
+        };
     if meta.len() == 0 {
-        return false;
+        return Some(false);
     }
     // A directory swapped in above the file could have led the open onto a slow mount; the descriptor says which.
-    let Ok(mountinfo) = std::fs::read_to_string("/proc/self/mountinfo") else {
-        return false;
-    };
-    if descriptor_kind(file.as_raw_fd(), &mountinfo).is_none_or(|kind| slow(&kind)) {
-        return false;
+    let mountinfo = std::fs::read_to_string("/proc/self/mountinfo").ok()?;
+    if slow(&descriptor_kind(file.as_raw_fd(), &mountinfo)?) {
+        return Some(false);
     }
     let mut head = [0u8; 4096];
-    let Ok(read) = file.read(&mut head) else {
-        return false;
-    };
-    if read == 0 {
-        return false;
-    }
+    let read = file.read(&mut head).ok().filter(|read| *read > 0)?;
     let head = &head[..read];
     if head.contains(&0) {
-        return false;
+        return Some(false);
     }
-    match std::str::from_utf8(head) {
+    Some(match std::str::from_utf8(head) {
         Ok(_) => true,
         Err(error) => error.error_len().is_none() && meta.len() > read as u64,
-    }
+    })
 }
 
 #[cfg(test)]

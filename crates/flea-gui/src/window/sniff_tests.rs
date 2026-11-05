@@ -41,12 +41,12 @@ fn only_a_local_regular_file_with_a_text_head_reads_as_text() {
         .arg(at("pipe"))
         .status()
         .is_ok_and(|status| status.success());
-    assert!(looks_text(&at("notes")));
-    assert!(!looks_text(&at("blob")));
-    assert!(!looks_text(&at("empty")));
+    assert_eq!(looks_text(&at("notes")), Some(true));
+    assert_eq!(looks_text(&at("blob")), Some(false));
+    assert_eq!(looks_text(&at("empty")), Some(false));
     // A fifo with no writer returns at once, refused, rather than holding the reader.
     if fifo {
-        assert!(!looks_text(&at("pipe")));
+        assert_eq!(looks_text(&at("pipe")), Some(false));
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -75,5 +75,23 @@ fn one_read_runs_and_a_newer_ask_replaces_the_one_waiting(cx: &mut gpui::TestApp
         (answer(&a), answer(&b), answer(&c)),
         (Some(true), None, Some(true))
     );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_file_that_cannot_be_read_yet_keeps_no_answer() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = std::env::temp_dir().join(format!("flea-sniff-locked-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("notes");
+    std::fs::write(&path, "plain words\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let at = path.to_string_lossy().into_owned();
+    // Root reads it anyway; anyone else gets no answer, and the same file reads as text once it may be read.
+    if std::fs::File::open(&path).is_err() {
+        assert_eq!(looks_text(&at), None);
+    }
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert_eq!(looks_text(&at), Some(true));
     let _ = std::fs::remove_dir_all(&dir);
 }
