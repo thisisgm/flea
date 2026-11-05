@@ -1,7 +1,7 @@
 //! The settled List's visible folder sizes, using the existing backend walker and bounded planner.
 use super::{columns::Column, pane::Held};
 use crate::{
-    navigation::sort::{wants_sizes, DirSizes, Size},
+    navigation::sort::{DirSizes, Size, wants_sizes},
     pane::requests::RowAction,
     state::Shell,
     window::startup::View,
@@ -366,6 +366,9 @@ impl super::ListView {
         if listing != self.walked_listing {
             self.walked.clear();
             self.walked_listing = listing;
+        }
+        if self.walked.get(&row) == Some(&size) {
+            return;
         }
         self.walked.insert(row, size);
         self.walked_revision += 1;

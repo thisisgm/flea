@@ -1,7 +1,7 @@
 use super::bench::fixture;
 use crate::columns::{cache, sets};
 use crate::navigation::sort::Size;
-use crate::row::format::{size_text, Words};
+use crate::row::format::{Words, size_text};
 use flea::i18n::{I18n, Paths};
 use std::path::PathBuf;
 
@@ -88,4 +88,28 @@ fn bfx_172_2_partial_zero_size_cells_are_unknown() {
             expected
         );
     }
+}
+
+#[test]
+fn repeated_folder_sizes_do_not_invalidate_list_rows() {
+    let mut list = crate::list::ListView::default();
+    let size = Size {
+        bytes: 22_100,
+        partial: false,
+    };
+    list.folder_size(1, 4, size);
+    let first = list.mark_revision(1);
+
+    list.folder_size(1, 4, size);
+    assert_eq!(list.mark_revision(1), first);
+
+    list.folder_size(
+        1,
+        4,
+        Size {
+            bytes: 22_101,
+            partial: false,
+        },
+    );
+    assert_ne!(list.mark_revision(1), first);
 }
