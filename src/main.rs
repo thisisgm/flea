@@ -98,6 +98,7 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 mod copysrc_tests;
 
 mod stl_thumbnail;
+/// Dispatch internal worker modes and ordinary Flea commands.
 fn main() {
     if std::env::args_os().nth(1).is_some_and(|arg| arg == "--stl-thumbnail-worker") {
         if let Err(error) = stl_thumbnail::run(std::env::args_os().skip(2)) {

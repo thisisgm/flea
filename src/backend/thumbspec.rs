@@ -31,6 +31,7 @@ impl Thumbnailers {
 
     // The small shared thumbnails have a native STL route. Sized raster previews
     // use the usual desktop providers and keep their own size limits.
+    /// Load listing thumbnailers with the optional native STL route.
     pub(crate) fn load_for_listing(aliases: &Aliases) -> Thumbnailers {
         let stl = std::env::current_exe()
             .ok()
@@ -43,6 +44,7 @@ impl Thumbnailers {
         Self::load_with(aliases, stl)
     }
 
+    /// Read thumbnailers in user and system precedence order.
     fn load_with(aliases: &Aliases, stl: Option<Spec>) -> Thumbnailers {
         let (user_dir, system_dirs) = search_path();
         let user = user_dir.as_deref().map(read_specs).unwrap_or_default();
@@ -66,7 +68,8 @@ impl Thumbnailers {
         Self::from_layers(entries, &[], aliases, None)
     }
 
-    fn from_layers(
+    /// Keep user overrides ahead of the native STL route and retain its system fallback.
+    pub(super) fn from_layers(
         user: &[(String, String)],
         system: &[(String, String)],
         aliases: &Aliases,
@@ -100,6 +103,7 @@ impl Thumbnailers {
         Thumbnailers { by_mime, stl_fallbacks, fingerprint }
     }
 
+    /// Find the configured system decoder for a native STL route.
     pub(crate) fn stl_fallback(&self, mime: &str, aliases: &Aliases) -> Option<&Spec> {
         self.stl_fallbacks.get(aliases.canonical(mime))
     }
@@ -123,6 +127,7 @@ impl Thumbnailers {
     }
 }
 
+/// Load usable specs while keeping the first entry for each MIME type.
 fn add_entries(
     by_mime: &mut HashMap<String, Spec>,
     entries: &[(String, String)],
@@ -148,6 +153,7 @@ fn add_entries(
     }
 }
 
+/// Read and sort a directory's thumbnailer files for deterministic precedence.
 fn read_specs(dir: &std::path::Path) -> Vec<(String, String)> {
     let Ok(read) = std::fs::read_dir(dir) else { return Vec::new() };
     let entries = read.flatten().filter_map(|item| {
@@ -162,6 +168,7 @@ fn read_specs(dir: &std::path::Path) -> Vec<(String, String)> {
 }
 
 // Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
+/// Hash the provider table and its fallbacks for cached failure records.
 fn fingerprint_of(by_mime: &HashMap<String, Spec>, stl_fallbacks: &HashMap<String, Spec>) -> String {
     let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
     entries.extend(stl_fallbacks.iter().map(|(mime, spec)| format!("stl-fallback\0{}\0{}", mime, spec.exec.join("\0"))));
@@ -177,6 +184,7 @@ fn sorted_by_path(mut entries: Vec<(String, String)>) -> Vec<(String, String)> {
 }
 
 // XDG_DATA_HOME comes first, so a user's own thumbnailer overrides a system one, as the freedesktop spec orders it.
+/// Return the user thumbnailer directory and the ordered system directories.
 fn search_path() -> (Option<PathBuf>, Vec<PathBuf>) {
     let mut dirs: Vec<PathBuf> = Vec::new();
     let home = std::env::var_os("XDG_DATA_HOME")

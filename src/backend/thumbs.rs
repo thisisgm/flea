@@ -206,6 +206,7 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 }
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
+/// Generate and publish a thumbnail, with a shared deadline for any STL fallback.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
     if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) { return super::model3dreq::thumbnail(tables,job) }
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
@@ -252,7 +253,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
-    let started = Instant::now();
+    let deadline = Instant::now() + JOB_TIMEOUT;
     // The video worker handles only compatible .thumbnailer specs.
     let by_worker = match (&tables.worker, worker_shape(spec)) {
         (Some(worker), Some(film_strip)) => worker.generate(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT),
@@ -262,8 +263,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     let mut ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
     if !ready && !matches!(ran, Ran::TimedOut) {
         if let Some(fallback) = tables.specs.stl_fallback(&job.mime, &tables.aliases) {
-            let left = JOB_TIMEOUT.saturating_sub(started.elapsed());
-            ran = retry_stl(fallback, &input, &temp, left);
+            ran = retry_stl(fallback, &input, &temp, deadline);
             ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
         }
     }
@@ -282,8 +282,9 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
 }
 
-fn retry_stl(spec: &super::thumbspec::Spec, input: &Path, temp: &Path, left: Duration) -> Ran {
-    if left.is_zero() {
+/// Retry with the system thumbnailer using the original job's deadline.
+fn retry_stl(spec: &super::thumbspec::Spec, input: &Path, temp: &Path, deadline: Instant) -> Ran {
+    if Instant::now() >= deadline {
         return Ran::TimedOut;
     }
     let Some((input, inner)) = argv(spec, input, temp, THUMB_SIZE) else { return Ran::NotStarted };
@@ -291,6 +292,10 @@ fn retry_stl(spec: &super::thumbspec::Spec, input: &Path, temp: &Path, left: Dur
     // The previous child can leave a partial image even though it failed.
     if std::fs::OpenOptions::new().write(true).truncate(true).open(temp).is_err() {
         return Ran::NotStarted;
+    }
+    let left = deadline.saturating_duration_since(Instant::now());
+    if left.is_zero() {
+        return Ran::TimedOut;
     }
     run_with_timeout(&full, left)
 }
@@ -357,3 +362,7 @@ pub(crate) fn record_failure_for(cache: &Cache, uri: &str, mtime: i64, table: &s
 #[cfg(test)]
 #[path = "thumbs_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "thumbs_stl_tests.rs"]
+mod stl_tests;

@@ -371,6 +371,7 @@ fn the_fingerprint_carries_the_embedded_field_codes_version() {
     assert_ne!(empty, untagged);
 }
 
+/// Check provider precedence, aliases and the saved system fallback.
 #[test]
 fn native_stl_sits_between_user_and_system_providers() {
     let aliases = Aliases::from_str("application/sla model/stl\n");
