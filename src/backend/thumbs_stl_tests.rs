@@ -5,6 +5,18 @@ use crate::backend::thumbspec::Spec;
 /// A declined native render leaves the system thumbnailer free to publish its PNG.
 #[test]
 fn a_declined_native_stl_publishes_the_system_thumbnail() {
+    assert_system_thumbnail(|dir| {
+        dir.script("native-stl", "#!/bin/sh\nprintf partial > \"$2\"\nexit 1\n")
+    });
+}
+
+/// A removed native executable still leaves a usable system provider.
+#[test]
+fn an_unbindable_native_stl_publishes_the_system_thumbnail() {
+    assert_system_thumbnail(|dir| dir.join("removed-native-stl"));
+}
+
+fn assert_system_thumbnail(native: impl FnOnce(&TestDir) -> PathBuf) {
     if !sandbox::available() {
         return;
     }
@@ -16,7 +28,7 @@ fn a_declined_native_stl_publishes_the_system_thumbnail() {
         .iter()
         .map(|byte| format!("\\{byte:03o}"))
         .collect();
-    let native = dir.script("native-stl", "#!/bin/sh\nprintf partial > \"$2\"\nexit 1\n");
+    let native = native(&dir);
     let system = dir.script(
         "system-stl",
         &format!("#!/bin/sh\n[ ! -s \"$2\" ] || exit 1\nprintf '{octal}' > \"$2\"\n"),
@@ -55,7 +67,7 @@ fn a_declined_native_stl_publishes_the_system_thumbnail() {
         trace: None,
     };
     let Outcome::Ready(file) = run_one_in(&tables, &mut job, &dir.join("raw")) else {
-        panic!("the system thumbnailer did not publish after the native decline");
+        panic!("the system thumbnailer did not publish after the native attempt failed");
     };
     assert_eq!(file, tables.cache.large_path(&uri));
     let bytes = std::fs::read(file).unwrap();
