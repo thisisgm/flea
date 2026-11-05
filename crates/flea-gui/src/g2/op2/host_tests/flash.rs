@@ -190,6 +190,59 @@ fn m9_integ_a_chooser_that_cannot_start_says_so() {
 }
 
 #[test]
+fn a_chooser_that_fails_says_why() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.chooser = || {
+            let mut command = std::process::Command::new("/bin/sh");
+            command.args(["-c", "echo noise >&2; echo 'the chooser broke' >&2; exit 2"]);
+            command
+        };
+    });
+    choose(&mut cx, handle, 47, "flashDrive", "", &["/files/disk.img"]);
+    drain(&mut requests);
+    edit(&mut cx, handle, |shell, window, cx| {
+        let effects = shell.operations.archive.flash.choose_image();
+        shell.archive_effects(0, effects, window, cx);
+    });
+    cx.run_until_parked();
+    frame(&mut cx, handle);
+    let said = footer(&mut cx, handle);
+    assert!(
+        said.contains("the chooser broke"),
+        "a chooser that failed names its last line of stderr: {said:?}"
+    );
+    assert!(
+        drain(&mut requests).is_empty(),
+        "no image is asked after a failed chooser"
+    );
+}
+
+#[test]
+fn a_cancelled_chooser_stays_silent() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.chooser = || std::process::Command::new("/bin/true");
+    });
+    choose(&mut cx, handle, 48, "flashDrive", "", &["/files/disk.img"]);
+    drain(&mut requests);
+    let before = footer(&mut cx, handle);
+    edit(&mut cx, handle, |shell, window, cx| {
+        let effects = shell.operations.archive.flash.choose_image();
+        shell.archive_effects(0, effects, window, cx);
+    });
+    cx.run_until_parked();
+    frame(&mut cx, handle);
+    assert_eq!(footer(&mut cx, handle), before, "a cancel says nothing");
+    assert!(
+        drain(&mut requests).is_empty(),
+        "a cancel asks for no image"
+    );
+}
+
+#[test]
 fn m9_integ_a_drained_backend_ends_the_handed_flash() {
     let mut cx = crate::list::bench::real_cx();
     let (handle, mut requests, _) = start(&mut cx);
