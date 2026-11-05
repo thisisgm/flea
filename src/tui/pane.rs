@@ -238,6 +238,7 @@ fn header(kind: &str, size: &str, date: &str, width: usize, i18n: &crate::i18n::
     out
 }
 pub fn metadata_visible(m: &Model, index: usize, _line: &str) -> bool {
+    if m.custom_preview.enabled && m.quicklook && m.custom_preview.info { return true; }
     m.preview_state.facts.get(index).map_or(true, |fact| fact.key != "preview.fact.modified")
 }
 

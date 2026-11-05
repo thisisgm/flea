@@ -7,6 +7,7 @@ impl QuickLook {
         if self.subject.is_none() {
             return;
         }
+        if self.custom.is_some() { self.custom_reveal(cx); }
         let Hand {
             pointer,
             at,

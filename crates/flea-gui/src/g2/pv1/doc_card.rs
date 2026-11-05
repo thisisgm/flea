@@ -150,7 +150,8 @@ impl QuickLook {
                 ink: MediaInk::inherited(&window.text_style(), theme),
                 typeface: media.typeface.clone(),
                 caches: &media.caches,
-                strip_shown: self.strip_shown || paused,
+                strip_shown: (self.strip_shown || paused)
+                    && self.custom.as_ref().is_none_or(|c| c.options.media_controls),
                 touched: Some(std::rc::Rc::new(move |_, cx| {
                     let _ = weak.update(cx, |look, cx| look.reveal_strip(cx));
                 })),

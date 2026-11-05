@@ -30,6 +30,7 @@ pub struct Media {
     pub audio_codec: String,
     // The container's overall bits per second, zero when the file does not say.
     pub bit_rate: u64,
+    pub frame_rate: f64,
 }
 
 impl Media {
@@ -48,7 +49,7 @@ fn argv(path: &Path) -> Vec<String> {
         "-show_entries",
         "format=duration,bit_rate",
         "-show_entries",
-        "stream=width,height,sample_rate,codec_name,codec_type:stream_side_data=rotation",
+        "stream=width,height,sample_rate,codec_name,codec_type,r_frame_rate:stream_side_data=rotation",
         "-of",
         "default=noprint_wrappers=1",
     ]
@@ -178,6 +179,11 @@ pub fn parse(text: &str) -> Media {
             "rotation" if !in_audio => turned = quarter_turn(value),
             "sample_rate" => m.sample_rate = value.parse().unwrap_or(0),
             "duration" => m.duration_ms = seconds_to_ms(value),
+            "r_frame_rate" if !in_audio => {
+                let rate = value.split_once('/').and_then(|(n,d)| Some(n.parse::<f64>().ok()? / d.parse::<f64>().ok()?))
+                    .or_else(|| value.parse::<f64>().ok()).unwrap_or(0.);
+                m.frame_rate = if rate.is_finite() && rate > 0. { rate } else { 0. };
+            }
             "bit_rate" => m.bit_rate = value.parse().unwrap_or(0),
             _ => {}
         }
@@ -204,6 +210,14 @@ fn seconds_to_ms(value: &str) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn custom_port_media_frame_rate_ignores_invalid_and_audio_rates() {
+        let media = parse("codec_type=video\nr_frame_rate=30000/1001\ncodec_type=audio\nr_frame_rate=0/0\nbit_rate=8000000\n");
+        assert!((media.frame_rate - 29.97002997).abs() < 0.00001);
+        assert_eq!(media.bit_rate, 8000000);
+        assert_eq!(parse("codec_type=video\nr_frame_rate=0/0\n").frame_rate, 0.);
+    }
 
     #[test]
     fn a_video_stream_reports_pixels_and_the_format_reports_duration() {
