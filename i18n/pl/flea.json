@@ -1856,7 +1856,6 @@
   "prompt.path": "Przejdź do",
   "prompt.rename": "Zmień nazwę",
   "prompt.renameHint": "enter zapisuje · esc anuluje · ctrl-a zaznacza całą nazwę",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Zmienianie nazwy…",
   "prompt.scope": "w %1 · tab zmienia zakres",
   "prompt.working": "Przetwarzanie…",

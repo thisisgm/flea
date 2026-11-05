@@ -1759,7 +1759,6 @@
   "prompt.path": "යන ස්ථානය",
   "prompt.rename": "නැවත නම් කරන්න",
   "prompt.renameHint": "enter සුරකියි · esc අවලංගු කරයි · ctrl-a මුළු නමම තෝරයි",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "නැවත නම් කරමින්…",
   "prompt.scope": "%1 තුළ · tab සෙවුම් පරාසය වෙනස් කරයි",
   "prompt.working": "ක්‍රියා කරමින්…",

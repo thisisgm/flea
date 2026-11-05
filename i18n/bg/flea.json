@@ -1759,7 +1759,6 @@
   "prompt.path": "Отиди до",
   "prompt.rename": "Преименувай",
   "prompt.renameHint": "enter запазва · esc отменя · ctrl-a избира цялото име",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Преименуване…",
   "prompt.scope": "в %1 · tab сменя обхвата",
   "prompt.working": "Изпълнява се…",

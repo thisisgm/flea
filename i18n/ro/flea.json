@@ -1788,7 +1788,6 @@
   "prompt.path": "Mergi la",
   "prompt.rename": "Redenumește",
   "prompt.renameHint": "enter salvează · esc anulează · ctrl-a selectează întregul nume",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Se redenumește…",
   "prompt.scope": "în %1 · tab schimbă domeniul",
   "prompt.working": "Se lucrează…",

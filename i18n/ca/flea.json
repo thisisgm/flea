@@ -1788,7 +1788,6 @@
   "prompt.path": "Ves a",
   "prompt.rename": "Canvia el nom",
   "prompt.renameHint": "enter desa · esc cancel·la · ctrl-a selecciona tot el nom",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "S'està canviant el nom…",
   "prompt.scope": "a %1 · tab canvia l'àmbit",
   "prompt.working": "S'està treballant…",

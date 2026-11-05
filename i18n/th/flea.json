@@ -1690,7 +1690,6 @@
   "prompt.path": "ไปยัง",
   "prompt.rename": "เปลี่ยนชื่อ",
   "prompt.renameHint": "enter บันทึก · esc ยกเลิก · ctrl-a เลือกชื่อทั้งหมด",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "กำลังเปลี่ยนชื่อ…",
   "prompt.scope": "ใน %1 · tab เปลี่ยนขอบเขต",
   "prompt.working": "กำลังทำงาน…",

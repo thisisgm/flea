@@ -1629,7 +1629,6 @@
   "prompt.path": "移動先",
   "prompt.rename": "名前を変更",
   "prompt.renameHint": "enter 保存 · esc キャンセル · ctrl-a 名前全体を選択",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "名前を変更中…",
   "prompt.scope": "%1 内 · tab 範囲を変更",
   "prompt.working": "処理中…",

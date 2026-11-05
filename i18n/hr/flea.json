@@ -1788,7 +1788,6 @@
   "prompt.path": "Idi na",
   "prompt.rename": "Preimenuj",
   "prompt.renameHint": "enter sprema · esc odustaje · ctrl-a odabire cijeli naziv",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Preimenovanje…",
   "prompt.scope": "u %1 · tab mijenja područje",
   "prompt.working": "Obrada…",

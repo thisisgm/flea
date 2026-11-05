@@ -1788,7 +1788,6 @@
   "prompt.path": "Přejít na",
   "prompt.rename": "Přejmenovat",
   "prompt.renameHint": "enter uloží · esc zruší · ctrl-a vybere celý název",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Přejmenovávání…",
   "prompt.scope": "v %1 · tab změní rozsah",
   "prompt.working": "Zpracování…",

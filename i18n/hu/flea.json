@@ -1709,7 +1709,6 @@
   "prompt.renaming": "Átnevezés…",
   "prompt.working": "Feldolgozás…",
   "prompt.renameHint": "enter: mentés · esc: mégse · ctrl-a: teljes név kijelölése",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "itt: %1 · tab: keresési kör módosítása",
   "prompt.home": "Saját mappa",
   "prompt.newFolder": "Új mappa",

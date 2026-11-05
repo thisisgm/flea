@@ -1709,7 +1709,6 @@
   "prompt.renaming": "Wird umbenannt…",
   "prompt.working": "Wird ausgeführt…",
   "prompt.renameHint": "enter speichert · esc bricht ab · ctrl-a wählt den ganzen Namen aus",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "in %1 · tab wechselt den Suchbereich",
   "prompt.home": "Benutzerordner",
   "prompt.newFolder": "Neuer Ordner",

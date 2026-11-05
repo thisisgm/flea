@@ -1720,7 +1720,6 @@
   "prompt.path": "यहाँ जाएँ",
   "prompt.rename": "नाम बदलें",
   "prompt.renameHint": "enter सहेजता है · esc रद्द करता है · ctrl-a पूरा नाम चुनता है",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "नाम बदल रहा है…",
   "prompt.scope": "%1 में · tab दायरा बदलता है",
   "prompt.working": "काम चल रहा है…",

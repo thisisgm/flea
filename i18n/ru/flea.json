@@ -1897,7 +1897,6 @@
   "prompt.path": "Перейти к",
   "prompt.rename": "Переименовать",
   "prompt.renameHint": "enter сохраняет · esc отменяет · ctrl-a выделяет всё имя",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Переименование…",
   "prompt.scope": "в %1 · tab меняет область",
   "prompt.working": "Обработка…",

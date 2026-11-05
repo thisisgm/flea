@@ -2035,7 +2035,6 @@
   "prompt.path": "انتقال إلى",
   "prompt.rename": "إعادة تسمية",
   "prompt.renameHint": "⁦enter⁩ للحفظ · ⁦esc⁩ للإلغاء · ⁦ctrl-a⁩ لاختيار الاسم كاملًا",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "جارٍ إعادة التسمية…",
   "prompt.scope": "في ⁨%1⁩ · ⁦tab⁩ لتغيير النطاق",
   "prompt.working": "جارٍ العمل…",

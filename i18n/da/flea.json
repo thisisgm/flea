@@ -1720,7 +1720,6 @@
   "prompt.path": "Gå til",
   "prompt.rename": "Omdøb",
   "prompt.renameHint": "enter gemmer · esc annullerer · ctrl-a markerer hele navnet",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Omdøber…",
   "prompt.scope": "i %1 · tab ændrer søgeområde",
   "prompt.working": "Arbejder…",

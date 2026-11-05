@@ -1788,7 +1788,6 @@
   "prompt.path": "Eiti į",
   "prompt.rename": "Pervadinti",
   "prompt.renameHint": "enter įrašo · esc atšaukia · ctrl-a pasirenka visą pavadinimą",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Pervadinama…",
   "prompt.scope": "vietoje %1 · tab keičia sritį",
   "prompt.working": "Vykdoma…",

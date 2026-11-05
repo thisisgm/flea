@@ -1776,7 +1776,6 @@
   "prompt.renaming": "A mudar o nome…",
   "prompt.working": "A trabalhar…",
   "prompt.renameHint": "enter guarda · esc cancela · ctrl-a seleciona o nome completo",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "em %1 · tab muda o âmbito",
   "prompt.home": "Pasta pessoal",
   "prompt.newFolder": "Nova pasta",

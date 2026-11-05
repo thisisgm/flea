@@ -1788,7 +1788,6 @@
   "prompt.path": "מעבר אל",
   "prompt.rename": "שינוי שם",
   "prompt.renameHint": "⁨enter⁩ לשמירה · ⁨esc⁩ לביטול · ⁨ctrl-a⁩ לבחירת השם כולו",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "משנה שם…",
   "prompt.scope": "ב-⁨%1⁩ · ⁨tab⁩ לשינוי התחום",
   "prompt.working": "מבצע…",

@@ -1828,7 +1828,6 @@
   "prompt.path": "Иди на",
   "prompt.rename": "Преименуј",
   "prompt.renameHint": "enter чува · esc отказује · ctrl-a бира цео назив",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Преименовање…",
   "prompt.scope": "у %1 · tab мења обухват",
   "prompt.working": "Обрада…",

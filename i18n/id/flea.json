@@ -1772,7 +1772,6 @@
   "prompt.path": "Pergi ke",
   "prompt.renaming": "Mengubah nama…",
   "prompt.renameHint": "enter menyimpan · esc membatalkan · ctrl-a memilih seluruh nama",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "di %1 · tab mengubah cakupan",
   "filter.shown": "%1 dari %2 ditampilkan",
   "filter.nothing": "TIDAK ADA YANG COCOK DENGAN %1",

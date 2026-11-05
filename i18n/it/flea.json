@@ -1788,7 +1788,6 @@
   "prompt.path": "Vai a",
   "prompt.rename": "Rinomina",
   "prompt.renameHint": "enter salva · esc annulla · ctrl-a seleziona l'intero nome",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Rinomina…",
   "prompt.scope": "in %1 · tab cambia ambito",
   "prompt.working": "Operazione in corso…",

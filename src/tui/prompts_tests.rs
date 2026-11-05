@@ -91,19 +91,20 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     press(&mut m, &mut w, Key::character('N', "shift"));
     assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens the one create prompt");
     let (cells, _caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Name").0, theme.muted);
+    assert_eq!(span(&cells, 0, "New folder").0, theme.muted);
     // The suggested name carries the slash that makes Enter a folder, and the whole draft is
     // selected, so it draws in the stem ink until something is typed over it.
-    assert_eq!(span(&cells, 5, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
-    assert_eq!(span(&cells, 16, " ").1, theme.field);
-    // The field cannot say it makes either entry, so the rule trails the row in muted ink.
-    let create = "a plain name creates a file · ending with / creates a folder";
-    assert_eq!(span(&cells, 128 - create.chars().count(), create).0, theme.muted, "the create rule ends at the row's last cell");
-    // The yazi preset's own file prompt carries the same rule.
-    m.editor = Some(Editor::named("newfile", "New File".into(), m.path.clone()));
+    assert_eq!(span(&cells, 11, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
+    // The label names the entry the draft spells, so dropping the slash turns the row into a file
+    // prompt without touching the suggestion's words (yazi flips "Create:" / "Create (dir):").
+    m.editor.as_mut().unwrap().replace("New Folder".into());
     let (cells, _caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Name").0, theme.muted);
-    assert_eq!(span(&cells, 128 - create.chars().count(), create).0, theme.muted, "the rule follows the file prompt too");
+    assert_eq!(span(&cells, 0, "New file").0, theme.muted, "no trailing slash names a file");
+    assert_eq!(span(&cells, 9, "New Folder"), (theme.foreground.clone(), theme.field.clone()), "a typed draft draws in the field ink");
+    // And the yazi preset's own file prompt flips the same way.
+    m.editor = Some(Editor::named("newfile", "photos/".into(), m.path.clone()));
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "New folder").0, theme.muted, "a trailing slash names a folder");
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);

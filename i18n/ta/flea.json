@@ -1759,7 +1759,6 @@
   "prompt.path": "செல்லும் இடம்",
   "prompt.rename": "பெயர்மாற்று",
   "prompt.renameHint": "enter சேமிக்கும் · esc ரத்து செய்யும் · ctrl-a முழுப் பெயரையும் தேர்ந்தெடுக்கும்",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "பெயர்மாற்றுகிறது…",
   "prompt.scope": "%1 இல் · tab தேடும் பகுதியை மாற்றும்",
   "prompt.working": "செயல்படுகிறது…",

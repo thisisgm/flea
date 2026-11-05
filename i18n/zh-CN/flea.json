@@ -1621,7 +1621,6 @@
   "prompt.renaming": "正在重命名…",
   "prompt.working": "正在处理…",
   "prompt.renameHint": "enter 保存 · esc 取消 · ctrl-a 选中整个名称",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "在 %1 中 · tab 切换范围",
   "prompt.home": "主文件夹",
   "prompt.newFolder": "新建文件夹",

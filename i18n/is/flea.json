@@ -1720,7 +1720,6 @@
   "prompt.path": "Fara í",
   "prompt.rename": "Endurnefna",
   "prompt.renameHint": "enter vistar · esc hættir við · ctrl-a velur allt nafnið",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Endurnefni…",
   "prompt.scope": "í %1 · tab breytir umfangi",
   "prompt.working": "Vinn…",

@@ -1642,7 +1642,6 @@
   "prompt.renaming": "Menamakan semula…",
   "prompt.working": "Memproses…",
   "prompt.renameHint": "enter simpan · esc batal · ctrl-a pilih seluruh nama",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "dalam %1 · tab menukar skop",
   "prompt.home": "Utama",
   "prompt.newFolder": "Folder baharu",

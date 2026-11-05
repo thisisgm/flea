@@ -1690,7 +1690,6 @@
   "prompt.path": "前往",
   "prompt.rename": "重新命名",
   "prompt.renameHint": "enter 儲存 · esc 取消 · ctrl-a 選取整個名稱",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "正在重新命名…",
   "prompt.scope": "在 %1 中 · tab 切換範圍",
   "prompt.working": "正在處理…",

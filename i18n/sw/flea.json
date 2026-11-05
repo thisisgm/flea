@@ -1759,7 +1759,6 @@
   "prompt.path": "Nenda",
   "prompt.rename": "Badili jina",
   "prompt.renameHint": "enter huhifadhi · esc hughairi · ctrl-a huchagua jina lote",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Inabadili jina…",
   "prompt.scope": "katika %1 · tab hubadili mawanda",
   "prompt.working": "Inafanya kazi…",

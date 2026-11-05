@@ -1759,7 +1759,6 @@
   "prompt.path": "Oʻtish",
   "prompt.rename": "Qayta nomlash",
   "prompt.renameHint": "enter saqlaydi · esc bekor qiladi · ctrl-a butun nomni tanlaydi",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Qayta nomlanmoqda…",
   "prompt.scope": "%1 ichida · tab qamrovni oʻzgartiradi",
   "prompt.working": "Bajarilmoqda…",

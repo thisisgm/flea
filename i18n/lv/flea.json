@@ -1788,7 +1788,6 @@
   "prompt.path": "Doties uz",
   "prompt.rename": "Pārdēvēt",
   "prompt.renameHint": "enter saglabā · esc atceļ · ctrl-a atlasa visu nosaukumu",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Pārdēvē…",
   "prompt.scope": "mapē %1 · tab maina tvērumu",
   "prompt.working": "Apstrādā…",

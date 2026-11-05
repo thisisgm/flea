@@ -1897,7 +1897,6 @@
   "prompt.path": "Pojdi na",
   "prompt.rename": "Preimenuj",
   "prompt.renameHint": "enter shrani · esc prekliče · ctrl-a izbere celotno ime",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Preimenovanje…",
   "prompt.scope": "v %1 · tab spremeni obseg",
   "prompt.working": "Obdelava…",

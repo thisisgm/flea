@@ -1922,7 +1922,6 @@
   "prompt.folder": "Mapnaam",
   "prompt.path": "Ga naar",
   "prompt.renameHint": "enter slaat op · esc annuleert · ctrl-a selecteert de hele naam",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Naam wijzigen…",
   "prompt.scope": "in %1 · tab wijzigt zoekbereik",
   "properties.bytes": {

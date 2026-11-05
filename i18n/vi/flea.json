@@ -1690,7 +1690,6 @@
   "prompt.path": "Đi đến",
   "prompt.rename": "Đổi tên",
   "prompt.renameHint": "enter lưu · esc hủy · ctrl-a chọn toàn bộ tên",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Đang đổi tên…",
   "prompt.scope": "trong %1 · tab đổi phạm vi",
   "prompt.working": "Đang xử lý…",

@@ -1910,7 +1910,6 @@
   "prompt.renaming": "Á athainmniú…",
   "prompt.working": "Ag obair…",
   "prompt.renameHint": "sábhálann enter · cealaíonn esc · roghnaíonn ctrl-a an t-ainm iomlán",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "in %1 · athraíonn tab an raon",
   "prompt.home": "Baile",
   "prompt.newFolder": "Fillteán nua",

@@ -1749,7 +1749,6 @@
   "prompt.path": "이동할 위치",
   "prompt.renaming": "이름 바꾸는 중…",
   "prompt.renameHint": "enter 저장 · esc 취소 · ctrl-a 전체 이름 선택",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.scope": "%1에서 · tab으로 범위 변경",
   "filter.shown": "%2개 중 %1개 표시됨",
   "filter.nothing": "%1에 일치하는 항목이 없습니다",

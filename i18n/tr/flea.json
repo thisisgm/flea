@@ -1759,7 +1759,6 @@
   "prompt.path": "Şuraya git",
   "prompt.rename": "Yeniden adlandır",
   "prompt.renameHint": "enter kaydeder · esc iptal eder · ctrl-a adın tamamını seçer",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Yeniden adlandırılıyor…",
   "prompt.scope": "%1 içinde · tab kapsamı değiştirir",
   "prompt.working": "Çalışıyor…",

@@ -1720,7 +1720,6 @@
   "prompt.path": "Gå til",
   "prompt.rename": "Gi nytt navn",
   "prompt.renameHint": "enter lagrer · esc avbryter · ctrl-a velger hele navnet",
-  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Endrer navn…",
   "prompt.scope": "i %1 · tab endrer søkeområde",
   "prompt.working": "Arbeider…",
