@@ -53,7 +53,7 @@ impl QuickLook {
                     self.hold(axis, cx);
                 }
             }
-            Pointer::Pinch if self.revealed && inside => {
+            Pointer::Pinch if inside => {
                 if let Some(delta) = pinch_delta {
                     let doc = self.subject.as_ref().and_then(|s| s.body.doc()).cloned();
                     if !doc.is_some_and(|doc| doc.pinch(delta, cx)) {

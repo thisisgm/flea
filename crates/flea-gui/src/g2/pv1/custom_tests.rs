@@ -37,7 +37,8 @@ fn custom_port_toolbar_hiding_cannot_shift_fullscreen_content() {
     let before = custom.card(size(px(1000.), px(700.)));
     custom.navbar = false;
     assert_eq!(custom.card(size(px(1000.), px(700.))), before);
-    assert!(!custom.filmstrip_visible());
+    assert!(custom.filmstrip_visible());
+    assert_eq!(custom.card(size(px(1000.), px(700.))).size.height, px(608.));
 }
 #[test]
 fn custom_port_settings_restore_the_saved_choices() {

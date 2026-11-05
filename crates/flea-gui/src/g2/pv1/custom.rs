@@ -1,11 +1,11 @@
 //! Shared state for the custom preview window. Content stays in the native preview views.
-use super::{doc::View, Event, QuickLook};
+use super::{Event, QuickLook};
 use flea::{
     jsondoc::Json,
     protocol::RowFacts,
     ui_logic_pv1::{kinds::State, meta::Meta},
 };
-use gpui::{point, px, size, Bounds, Context, Pixels, Size};
+use gpui::{Bounds, Context, Pixels, Size, point, px, size};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -83,18 +83,14 @@ impl Custom {
         self.items.get(self.current).map(|i| i.path.as_str())
     }
     pub fn filmstrip_visible(&self) -> bool {
-        self.filmstrip && !self.fullscreen && self.items.len() > 1
+        self.filmstrip && self.items.len() > 1
     }
     pub fn card(&self, viewport: Size<Pixels>) -> Bounds<Pixels> {
         let width = f32::from(viewport.width);
         let height = f32::from(viewport.height);
         // Chrome overlays a fixed top lane. Hiding it cannot move the content.
         let top = if self.fullscreen { 0. } else { 36. };
-        let bottom = if self.filmstrip && !self.fullscreen && self.items.len() > 1 {
-            92.
-        } else {
-            0.
-        };
+        let bottom = if self.filmstrip_visible() { 92. } else { 0. };
         let info = if self.info {
             (width * 0.3).clamp(180., 300.)
         } else {
@@ -111,18 +107,6 @@ impl Custom {
 }
 
 impl QuickLook {
-    pub(crate) fn custom_playing(&self, cx: &gpui::App) -> bool {
-        self.subject
-            .as_ref()
-            .and_then(|s| s.body.doc())
-            .is_some_and(|doc| match &doc.view {
-                View::Media(media) => {
-                    media.player.read(cx).state.playback
-                        == flea::ui_logic_pv3::player::Playback::Playing
-                }
-                _ => false,
-            })
-    }
     pub(crate) fn custom_reveal(&mut self, cx: &mut Context<Self>) {
         let Some(custom) = &mut self.custom else {
             return;

@@ -1,5 +1,5 @@
 //! Thumbnail reads are limited to the visible filmstrip and the two adjacent files.
-use super::{custom_chrome::band, QuickLook};
+use super::{QuickLook, custom_chrome::band};
 use gpui::{Context, Window};
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ impl QuickLook {
         let Some(custom) = &mut self.custom else {
             return;
         };
-        let shown = custom.filmstrip && !custom.fullscreen;
+        let shown = custom.filmstrip_visible();
         let range = if shown {
             band(
                 custom.items.len(),

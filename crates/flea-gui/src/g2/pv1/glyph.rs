@@ -14,6 +14,8 @@ pub enum Glyph {
     Maximize,
     ChevronLeft,
     ChevronRight,
+    Info,
+    Filmstrip,
     Lock,
 }
 
@@ -83,6 +85,14 @@ impl Glyph {
             ),
             Self::ChevronLeft => ("pv1-mark:chevron-left", svg!("m15 18-6-6 6-6")),
             Self::ChevronRight => ("pv1-mark:chevron-right", svg!("m9 18 6-6-6-6")),
+            Self::Info => (
+                "pv1-mark:info",
+                svg!("M12 16v-4 M12 8h.01 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z"),
+            ),
+            Self::Filmstrip => (
+                "pv1-mark:filmstrip",
+                svg!("M4 4h16v16H4z M4 8h16 M4 16h16 M8 4v4 M16 4v4 M8 16v4 M16 16v4"),
+            ),
             Self::Lock => (
                 "pv1-mark:lock",
                 svg!("M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4 M12 16L12.01 16"),

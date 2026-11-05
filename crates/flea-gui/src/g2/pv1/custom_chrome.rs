@@ -1,7 +1,9 @@
 //! Window chrome and a bounded filmstrip. All strokes remain inside their cards.
 use super::{Event, QuickLook, custom::Custom};
+use super::{bar, glyph::Glyph};
 use gpui::{
-    AnyElement, Context, MouseButton, ObjectFit, SharedString, Window, div, img, prelude::*, px,
+    AnyElement, Context, Hsla, MouseButton, ObjectFit, SharedString, Window, div, img, prelude::*,
+    px,
 };
 
 fn button(label: &str, action: &'static str, cx: &mut Context<QuickLook>) -> AnyElement {
@@ -18,11 +20,35 @@ fn button(label: &str, action: &'static str, cx: &mut Context<QuickLook>) -> Any
             MouseButton::Left,
             cx.listener(move |view, _, _, cx| {
                 cx.stop_propagation();
-                if action == "close" {
-                    view.close(cx);
-                } else {
-                    view.custom_action(action, cx);
-                }
+                view.custom_action(action, cx);
+            }),
+        )
+        .into_any_element()
+}
+
+fn icon_button(
+    glyph: Glyph,
+    label: &'static str,
+    action: &'static str,
+    ink: Hsla,
+    cx: &mut Context<QuickLook>,
+) -> AnyElement {
+    div()
+        .id(SharedString::from(format!("preview-{action}")))
+        .w(px(34.))
+        .h(px(30.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .cursor_pointer()
+        .debug_selector(|| format!("preview-{action}"))
+        .aria_label(label)
+        .child(bar::mark(glyph, 16., ink))
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(move |view, _, _, cx| {
+                cx.stop_propagation();
+                view.custom_action(action, cx);
             }),
         )
         .into_any_element()
@@ -82,10 +108,27 @@ impl QuickLook {
                             .text_ellipsis()
                             .child(name),
                     )
-                    .child(button("Info", "toggleInfo", cx))
-                    .child(button("Filmstrip", "toggleFilmstrip", cx))
-                    .child(button("Fullscreen", "fullscreen", cx))
-                    .child(button("×", "close", cx))
+                    .child(icon_button(
+                        Glyph::Info,
+                        "Info",
+                        "toggleInfo",
+                        theme.foreground,
+                        cx,
+                    ))
+                    .child(icon_button(
+                        Glyph::Filmstrip,
+                        "Filmstrip",
+                        "toggleFilmstrip",
+                        theme.foreground,
+                        cx,
+                    ))
+                    .child(icon_button(
+                        Glyph::Maximize,
+                        "Fullscreen",
+                        "fullscreen",
+                        theme.foreground,
+                        cx,
+                    ))
                     .into_any_element(),
             );
         }

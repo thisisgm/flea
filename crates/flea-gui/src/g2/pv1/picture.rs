@@ -30,8 +30,7 @@ impl QuickLook {
             return false;
         }
         let next = pinch_zoom(self.zoom, delta);
-        if next != self.zoom && (next <= 1. || self.svg.as_ref().is_some_and(|s| s.image.is_some()))
-        {
+        if next != self.zoom {
             self.scroll.anchor = (next > 1.).then(|| self.scroll.centre());
             if next <= 1. {
                 self.scroll.x = 0.;
