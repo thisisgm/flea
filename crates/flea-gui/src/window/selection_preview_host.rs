@@ -146,7 +146,12 @@ impl Shell {
                     view.follow(None, false, false, window, cx);
                     return;
                 }
-                // The folder's storage class, asked before a folder row hides the view: the list's folder peek reads it.
+                // Beside the List view a folder row draws its own entries, which read the folder's storage class.
+                let peeks = subject.is_none() && mode == View::List;
+                if subject.is_none() && !folder_wait && !peeks {
+                    view.hide(window, cx);
+                    return;
+                }
                 if view
                     .class
                     .as_ref()
@@ -155,7 +160,7 @@ impl Shell {
                     view.class = Some((path.clone(), "?".into()));
                     view.outbox.borrow_mut().push(r#"{"c":"fsinfo"}"#.into());
                 }
-                if subject.is_none() && !folder_wait {
+                if peeks {
                     view.hide(window, cx);
                     return;
                 }
