@@ -85,7 +85,7 @@ mod tests {
             st.asked.push((path.clone(), row));
             st.thumb_mtimes.insert(path.clone(), 0);
             st.outstanding += 1;
-            let job = Job { replies: None, path, mtime: 0, trash_identity: None, mime: "image/jpeg".to_string(), trace: None };
+            let job = Job { replies: None, path, mtime: 0, source_size: None, trash_identity: None, mime: "image/jpeg".to_string(), trace: None };
             if row < MAX_QUEUE {
                 assert!(pool.submit(job).is_empty());
             } else {

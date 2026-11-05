@@ -53,7 +53,7 @@ pub struct State {
     // Rows the pool has no room for yet, in request order; each is also in asked, so its answer still follows its row.
     pub deferred: crate::backend::thumbdefer::Deferred,
     // The last window's mode, mtime and link-dir flag per row, so a thumb request reuses them with no stat.
-    pub window_meta: HashMap<usize, (u32, i64, bool)>,
+    pub window_meta: HashMap<usize, (u32, i64, bool, u64)>,
     // Answered directory rows, kept until the next list or sort reassigns what a row index names.
     pub dirsizes: HashMap<usize, (u64, bool)>,
     // Rows still to walk, one at a time; dirsizecancel empties this without touching dirsizes.

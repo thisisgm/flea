@@ -166,7 +166,7 @@ fn jpeg_only_thumbnailer(png: &[u8]) -> Thumbnailers {
 }
 
 fn job(path: &Path, mime: &str) -> Job {
-    Job { replies: None, path: path.to_path_buf(), mtime: 1_700_000_000, trash_identity: None, mime: mime.to_string(), trace: None }
+    Job { replies: None, path: path.to_path_buf(), mtime: 1_700_000_000, source_size: None, trash_identity: None, mime: mime.to_string(), trace: None }
 }
 
 fn tables(d: &TestDir, png: &[u8]) -> Tables {

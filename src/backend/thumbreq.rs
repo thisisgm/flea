@@ -47,7 +47,7 @@ pub(crate) fn thumb_rows(
         if options.identity.is_some() && reply.is_none() { continue; }
         let answer = |file: &str, ms| reply.as_ref().map_or_else(|| thumbed_line(row, file, ms), |reply| reply.line(file, ms));
         // The window's lstat mode and mtime stand in for a stat, except a symlink whose target the path below gates.
-        if let Some((mode, mtime, target_dir)) = st.window_meta.get(&row).copied() {
+        if let Some((mode, mtime, target_dir, size)) = st.window_meta.get(&row).copied() {
             if mode & S_IFMT != S_IFLNK {
                 if target_dir {
                     writeln!(out, "{}", answer("", since(t))).ok();
@@ -75,7 +75,7 @@ pub(crate) fn thumb_rows(
                     Hit::Miss if cache_only => {
                         writeln!(out, "{}", answer("", since(t))).ok();
                     }
-                    Hit::Miss => queue_row(out, st, pool, row, path, mtime, (mime, reply)),
+                    Hit::Miss => queue_row(out, st, pool, row, path, (mtime, size), (mime, reply)),
                 }
                 continue;
             }
@@ -112,7 +112,7 @@ pub(crate) fn thumb_rows(
             }
             Some(m) => m,
         };
-        let mtime = meta.map(|m| m.mtime()).unwrap_or(0);
+        let (mtime, size) = meta.map(|m| (m.mtime(), m.len())).unwrap_or_default();
         let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
         match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
@@ -125,7 +125,7 @@ pub(crate) fn thumb_rows(
             Hit::Miss if cache_only => {
                 writeln!(out, "{}", answer("", since(t))).ok();
             }
-            Hit::Miss => queue_row(out, st, pool, row, path, mtime, (mime, reply)),
+            Hit::Miss => queue_row(out, st, pool, row, path, (mtime, size), (mime, reply)),
         }
     }
 }
@@ -137,7 +137,7 @@ fn queue_row(
     pool: &Pool,
     row: usize,
     path: PathBuf,
-    mtime: i64,
+    (mtime, size): (i64, u64),
     request: (String, Option<identity::Reply>),
 ) {
     let (mime, reply) = request;
@@ -162,7 +162,7 @@ fn queue_row(
     st.thumb_mtimes.insert(path.clone(), mtime);
     st.outstanding += 1;
     let replies = Some(identity::start(st, path.clone(), mtime, reply));
-    st.deferred.enqueue(Job { replies, path, mtime, trash_identity: None, mime, trace: trace(row) });
+    st.deferred.enqueue(Job { replies, path, mtime, source_size: Some(size), trash_identity: None, mime, trace: trace(row) });
     super::thumbdefer::pump(out, st, pool);
 }
 

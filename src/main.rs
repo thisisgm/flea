@@ -97,6 +97,7 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 #[path = "copysrc_tests.rs"]
 mod copysrc_tests;
 
+/// Dispatch internal worker modes and ordinary Flea commands.
 fn main() {
     // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so refuse instead.
     let args: Vec<String> = match std::env::args_os().map(|a| a.into_string()).collect() {
@@ -128,6 +129,10 @@ fn main() {
     // Anywhere in argv, because this mode is read before the others and must refuse rather than win over one.
     if args.iter().any(|a| a == "--version") {
         usage("--version takes nothing");
+    }
+
+    if args.get(1).map(String::as_str) == Some(backend::jpegthumb::CHILD_MODE) {
+        exit(backend::jpegthumb::run_child(&args[2..]));
     }
 
     if args.iter().any(|a| a == "--backend") {

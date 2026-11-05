@@ -45,7 +45,7 @@ fn listed(dir: &TestDir, st: &mut State, count: usize) {
         let name = format!("img-{row:03}.jpg");
         let path = dir.file(&name, "not a picture, and nothing here decodes it");
         let m = std::fs::symlink_metadata(&path).unwrap();
-        st.window_meta.insert(row, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(row, (m.mode(), m.mtime(), false, 0));
         listing.push(&name, false);
     }
     st.listing = listing;

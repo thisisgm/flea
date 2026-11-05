@@ -117,6 +117,7 @@ pub(crate) fn request(
             replies: None,
             path,
             mtime,
+            source_size: None,
             trash_identity: Some(identity),
             mime,
             trace: None,

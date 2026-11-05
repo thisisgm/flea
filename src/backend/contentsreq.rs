@@ -252,7 +252,7 @@ fn rows(out: &mut impl Write, st: &mut State, tb: &Tables, start: usize, count: 
     st.window_meta.clear();
     for (offset, meta) in metas.iter().enumerate() {
         st.window_meta
-            .insert(start + offset, (meta.mode, meta.mtime, meta.target_is_dir));
+            .insert(start + offset, (meta.mode, meta.mtime, meta.target_is_dir, meta.size));
     }
     let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
     super::run::say(out, &super::rowguard::stamped_gen(line, st.generation, gen));

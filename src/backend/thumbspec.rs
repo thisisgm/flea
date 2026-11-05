@@ -26,6 +26,7 @@ const GLYCIN_JPEG_EXEC: [&str; 7] = ["/usr/bin/glycin-thumbnailer", "--input", "
 pub(crate) const IIQ_MIME: &str = "image/x-phaseone-iiq";
 
 impl Thumbnailers {
+    /// Load thumbnailers with user precedence and detect optional JPEG acceleration.
     pub fn load(aliases: &Aliases) -> Thumbnailers {
         let mut entries: Vec<(String, String)> = Vec::new();
         for dir in search_path() {
@@ -47,7 +48,7 @@ impl Thumbnailers {
             entries.append(&mut sorted_by_path(in_dir));
         }
         let vips = is_runnable(super::jpegthumb::PROGRAM);
-        Thumbnailers::from_entries_with_vips(&entries, aliases, vips).with_appimage_route(aliases, appicon::available())
+        Thumbnailers::from_entries_with_vips(&entries, aliases, vips, resolve).with_appimage_route(aliases, appicon::available())
     }
 
     // An internal spec so rows.rs sets t for an AppImage; a thumbnailer file that declares the type keeps it, and without 7z there is no route.
@@ -62,10 +63,16 @@ impl Thumbnailers {
 
     #[cfg(test)]
     pub fn from_entries(entries: &[(String, String)], aliases: &Aliases) -> Thumbnailers {
-        Self::from_entries_with_vips(entries, aliases, false)
+        Self::from_entries_with_vips(entries, aliases, false, resolve)
     }
 
-    fn from_entries_with_vips(entries: &[(String, String)], aliases: &Aliases, vips: bool) -> Thumbnailers {
+    /// Build the effective provider table and detect the shipped Glycin JPEG entry.
+    fn from_entries_with_vips(
+        entries: &[(String, String)],
+        aliases: &Aliases,
+        vips: bool,
+        resolve: impl Fn(&str) -> Option<String>,
+    ) -> Thumbnailers {
         let mut by_mime: HashMap<String, Spec> = HashMap::new();
         let mut fast_jpeg = false;
         for (name, text) in entries {
@@ -99,7 +106,7 @@ impl Thumbnailers {
         Thumbnailers { by_mime, fast_jpeg, fingerprint }
     }
 
-    // RAW previews and an operator's own thumbnailer keep the route they already have.
+    /// Report whether the configured JPEG thumbnailer may use the optional accelerator.
     pub(super) fn can_speed_up_jpeg(&self, mime: &str, aliases: &Aliases) -> bool {
         self.fast_jpeg && aliases.canonical(mime) == JPEG_MIME
     }
@@ -123,7 +130,7 @@ impl Thumbnailers {
     }
 }
 
-// Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
+/// Hash the effective thumbnailer table so cached failures can be retried after routing changes.
 fn fingerprint_of(by_mime: &HashMap<String, Spec>, fast_jpeg: bool) -> String {
     let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
     entries.sort();

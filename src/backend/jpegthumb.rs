@@ -1,32 +1,50 @@
 use super::child::{run_with_timeout, Ran};
-use super::{extclass, imagesize, regfile, thumbbind, thumbs};
+use super::{extclass, imagesize, iomount, mountinfo, netfs, regfile, thumbbind, thumbs};
 use std::fs::OpenOptions;
 use std::io::{BufReader, Read};
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::{fs::OpenOptionsExt, process::CommandExt};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
 pub(super) const PROGRAM: &str = "/usr/bin/vips";
+pub(crate) const CHILD_MODE: &str = "--jpeg-thumbnail";
 const FAST_TIMEOUT: Duration = Duration::from_secs(2);
 const MIN_BYTES: u64 = 768 * 1024;
 
-// Both decoders share the usual thumbnail deadline.
-pub(super) fn run(input: &Path, output: &Path, size: u32, fallback: &[String]) -> Ran {
-    let started = Instant::now();
+/// Run the optional JPEG child and the existing decoder within the same job budget.
+pub(super) fn run(input: &Path, output: &Path, size: u32, source_size: Option<u64>, fallback: &[String]) -> Ran {
+    if source_size.is_some_and(|bytes| bytes < MIN_BYTES) {
+        return run_with_timeout(fallback, thumbs::JOB_TIMEOUT);
+    }
+    let deadline = Instant::now() + thumbs::JOB_TIMEOUT;
     generate(input, output, size).unwrap_or_else(|| {
-        run_with_timeout(
-            fallback,
-            thumbs::JOB_TIMEOUT.saturating_sub(started.elapsed()),
-        )
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            Ran::NotStarted
+        } else {
+            run_with_timeout(fallback, remaining)
+        }
     })
 }
 
-// Try shrink-on-load in the normal thumbnail jail. None gives the original decoder the job.
+/// Start the jailed JPEG attempt without opening or probing the source on the pool thread.
 fn generate(input: &Path, output: &Path, size: u32) -> Option<Ran> {
-    let args = command(input, output, size)?;
-    if !extclass::classify(input).is_empty() || !is_large_rgb_jpeg(input) {
+    let (input_arg, output_arg) = path_arguments(input, output)?;
+    if !eligible_mount(input) {
         return None;
     }
+    let executable = std::env::current_exe()
+        .ok()?
+        .into_os_string()
+        .into_string()
+        .ok()?;
+    let args = vec![
+        executable,
+        CHILD_MODE.into(),
+        input_arg.into(),
+        output_arg.into(),
+        size.to_string(),
+    ];
     let jailed = thumbbind::wrap(&args, input, output)?;
     let ran = run_with_timeout(&jailed, FAST_TIMEOUT);
     if matches!(ran, Ran::Succeeded) && thumbs::wrote_something(output) {
@@ -45,6 +63,36 @@ fn generate(input: &Path, output: &Path, size: u32) -> Option<Ran> {
     None
 }
 
+/// Filter mounts using kernel metadata without making a filesystem call on the source.
+fn eligible_mount(input: &Path) -> bool {
+    let body = iomount::mount_body();
+    let Some(entry) = mountinfo::mount_entry_in(input, &body) else {
+        return false;
+    };
+    !netfs::can_wedge(&entry.fstype)
+        && extclass::classify_entry_with_magic(input, Some(&entry), None).is_empty()
+}
+
+/// Probe the JPEG and replace this process with vips inside the same thumbnail jail.
+pub(crate) fn run_child(args: &[String]) -> i32 {
+    let [input, output, size] = args else {
+        return 1;
+    };
+    let (input, output) = (Path::new(input), Path::new(output));
+    let Ok(size) = size.parse::<u32>() else {
+        return 1;
+    };
+    let Some(args) = command(input, output, size) else {
+        return 1;
+    };
+    if !is_large_rgb_jpeg(input) {
+        return 1;
+    }
+    let _ = std::process::Command::new(PROGRAM).args(&args[1..]).exec();
+    1
+}
+
+/// Admit large regular JPEGs with the three-component color layout the fast decoder supports.
 fn is_large_rgb_jpeg(input: &Path) -> bool {
     let Ok((file, metadata)) = regfile::open_if_regular_with_meta(input, crate::oflags::O_NOFOLLOW)
     else {
@@ -61,11 +109,23 @@ fn is_large_rgb_jpeg(input: &Path) -> bool {
         && imagesize::jpeg_frame(&mut file).is_some_and(|(_, components)| components == 3)
 }
 
-fn command(input: &Path, output: &Path, size: u32) -> Option<Vec<String>> {
+/// Refuse paths that vips would interpret as loader or saver options.
+fn path_arguments<'a>(input: &'a Path, output: &'a Path) -> Option<(&'a str, &'a str)> {
+    if !input.is_absolute() || !output.is_absolute() {
+        return None;
+    }
     let input = input.to_str()?;
     let output = output.to_str()?;
-    // libvips reads brackets in filenames as loader or saver options.
     if input.contains(['[', ']']) || output.contains(['[', ']']) {
+        return None;
+    }
+    Some((input, output))
+}
+
+/// Build the fixed vips command for one bounded thumbnail.
+fn command(input: &Path, output: &Path, size: u32) -> Option<Vec<String>> {
+    let (input, output) = path_arguments(input, output)?;
+    if size == 0 || size > thumbs::THUMB_SIZE {
         return None;
     }
     Some(vec![

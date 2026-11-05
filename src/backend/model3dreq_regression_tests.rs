@@ -64,7 +64,7 @@ fn embedded_png_requires_decoder_before_publication() {
     let aliases = std::sync::Arc::new(crate::backend::aliases::Aliases::from_str(""));
     let specs = std::sync::Arc::new(crate::backend::thumbspec::Thumbnailers::from_entries(&[], &aliases));
     let tables = thumbs::Tables { aliases, specs, cache: thumbcache::Cache::at(root.to_path_buf()), worker: None };
-    let job = thumbs::Job { replies: None, path: input, mtime: 7, mime: "model/x-flea-3d".into(), trash_identity: None, trace: None };
+    let job = thumbs::Job { replies: None, path: input, mtime: 7, source_size: None, mime: "model/x-flea-3d".into(), trash_identity: None, trace: None };
     assert!(matches!(thumbnail(&tables, &job), thumbs::Outcome::Failed), "an embedded PNG must require a sandboxed decoder");
     // The cache hit extracted the picture and recorded no failure, so the refusal is the missing decoder's.
     assert_eq!(std::fs::read(cache_root.join(format!("{key}-all.png"))).ok().as_deref(), Some(&testdata::PNG[..]));
@@ -86,7 +86,7 @@ fn a_model_without_an_embedded_image_records_a_versioned_failure() {
     let aliases = std::sync::Arc::new(crate::backend::aliases::Aliases::from_str(""));
     let specs = std::sync::Arc::new(crate::backend::thumbspec::Thumbnailers::from_entries(&[],&aliases));
     let tables = thumbs::Tables { aliases, specs, cache: thumbcache::Cache::at(root.to_path_buf()), worker: None };
-    let job = thumbs::Job { replies: None, path: input, mtime: 7, mime: "model/x-flea-3d".into(), trash_identity: None, trace: None };
+    let job = thumbs::Job { replies: None, path: input, mtime: 7, source_size: None, mime: "model/x-flea-3d".into(), trash_identity: None, trace: None };
     assert!(matches!(thumbnail(&tables,&job),thumbs::Outcome::Failed));
     assert!(matches!(tables.cache.lookup(&job.path,7,THUMB_TABLE),thumbcache::Hit::Failed));
     assert!(matches!(tables.cache.lookup(&job.path,7,"flea-3d-v1"),thumbcache::Hit::Miss));

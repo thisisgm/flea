@@ -147,7 +147,7 @@ pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::O
     if std::fs::create_dir_all(&dir).is_err() { return thumbs::Outcome::Failed }
     let Some(temp) = thumbwrite::exclusive_temp(&dir) else { return thumbs::Outcome::Failed };
     let mime = match image.extension().and_then(|e| e.to_str()) { Some("png") => "image/png", Some("jpg") => "image/jpeg", _ => "image/qoi" };
-    let mut child_job = thumbs::Job { replies: None, path: image, mime: mime.into(), mtime: job.mtime, trash_identity: None, trace: None };
+    let mut child_job = thumbs::Job { replies: None, path: image, mime: mime.into(), mtime: job.mtime, source_size: None, trash_identity: None, trace: None };
     let source = match thumbs::run_one_in(tables,&mut child_job,&root) { thumbs::Outcome::Ready(p) => p, _ => return thumbs::discard(&temp) };
     if std::fs::copy(source,&temp).is_err() { return thumbs::discard(&temp) }
     let uri = thumbcache::uri_for(&job.path);
