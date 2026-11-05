@@ -50,6 +50,7 @@ fn inspect(line: &str, tb: &Tables) -> Option<(Reviewed, PathBuf, i64, String)> 
     Some((reviewed, path, mtime, mime.into()))
 }
 
+/// Answer or queue a thumbnail for a verified Trash entry.
 pub(crate) fn request(
     out: &mut impl Write,
     st: &mut State,

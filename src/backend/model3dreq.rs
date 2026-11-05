@@ -132,6 +132,7 @@ pub(super) fn worker_entry() -> Option<i32> {
     Some(match result { Ok(()) => 0, Err(reason) => { eprintln!("flea: {reason}"); 1 } })
 }
 
+/// Pass the embedded image to the ordinary thumbnail pipeline before publishing it.
 pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::Outcome {
     let root = tables.cache.large_dir().parent().unwrap_or(Path::new("/")).join("flea-3d");
     let ticket = codereq::begin(&format!("model3d-thumb:{}",thumbcache::uri_for(&job.path)));

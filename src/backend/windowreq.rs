@@ -9,7 +9,7 @@ pub fn write_window(out: &mut impl Write, st: &mut State, start: usize, count: u
     write_window_gen(out, st, start, count, tb, None);
 }
 
-// A session answer's window, stamped with the query gen beside the listing stamp.
+/// A session answer's window, stamped with the query gen beside the listing stamp.
 pub fn write_window_gen(
     out: &mut impl Write,
     st: &mut State,

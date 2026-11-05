@@ -55,6 +55,7 @@ fn trash_thumb_uses_shared_pool_once_and_the_backing_uri_cache_key() {
     assert_eq!(st.outstanding, 0);
 }
 
+/// Verify that replacing an entry schedules new work even while its predecessor is running.
 #[test]
 fn trashthumb_replacement_while_the_predecessor_runs_queues_and_delivers_its_own_job() {
     use std::os::unix::fs::MetadataExt;
@@ -185,6 +186,7 @@ fn trash_thumb_cancellation_and_replacement_drop_late_images() {
     }
 }
 
+/// Verify that listing and Trash cancellations affect only their own jobs.
 #[test]
 fn ordinary_listing_cancellation_keeps_trash_jobs_and_trash_cancel_keeps_listing_jobs() {
     let d = TestDir::new("trash-thumb-shared");
@@ -319,7 +321,7 @@ fn trashthumb_producer_ready_publications_do_not_overwrite_the_current_picture()
     }
 }
 
-// The helper supplies captured decoder pixels, including an old job's bytes after replacement; publication is always production run_one_in.
+/// The helper supplies captured decoder pixels, including an old job's bytes after replacement; publication is always production run_one_in.
 fn producer_publication(d: &TestDir, tb: &mut Tables, path: &Path, mtime: i64, identity: Option<&str>, png: Option<&[u8]>) {
     let body = png.map_or_else(|| "#!/bin/sh\nexit 1\n".into(), |png| {
         let octal: String = png.iter().map(|byte| format!("\\{byte:03o}")).collect();

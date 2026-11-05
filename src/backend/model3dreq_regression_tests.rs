@@ -47,6 +47,7 @@ fn sweep_work_name_and_young_dead_control() {
     drop(work);
 }
 
+/// Verify that an embedded PNG passes through the image decoder before publication.
 #[test]
 fn embedded_png_requires_decoder_before_publication() {
     let dir = TestDir::new("model3d-embedded-png");
@@ -72,6 +73,7 @@ fn embedded_png_requires_decoder_before_publication() {
     assert!(!tables.cache.large_path_for(&thumbcache::uri_for(&job.path),None).exists());
 }
 
+/// Verify that missing embedded data is cached under the model provider version.
 #[test]
 fn a_model_without_an_embedded_image_records_a_versioned_failure() {
     let dir = TestDir::new("model3d-no-image");

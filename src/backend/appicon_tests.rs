@@ -71,6 +71,7 @@ pub(super) struct Fixture {
     pub(super) job: Job,
 }
 
+/// Build an isolated AppImage job and its provider table.
 pub(super) fn fixture(tag: &str, text: &str) -> Fixture {
     let dir = TestDir::new(tag);
     dir.file("app.AppImage", text);

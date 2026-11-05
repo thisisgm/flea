@@ -23,7 +23,7 @@ pub(crate) fn forget_one(st: &mut State, path: &Path) {
 const S_IFMT: u32 = 0o170000;
 const S_IFLNK: u32 = 0o120000;
 
-// corner: generation happens only for the rows a client named, and nothing here walks the listing; see AGENTS.md "Thumbnail requests".
+/// corner: generation happens only for the rows a client named, and nothing here walks the listing; see AGENTS.md "Thumbnail requests".
 pub(crate) fn thumb_rows(
     out: &mut impl Write,
     rows: &[usize],
@@ -130,7 +130,7 @@ pub(crate) fn thumb_rows(
     }
 }
 
-// One entry per queued, waiting or running job, so MAX_QUEUE, MAX_DEFERRED and the worker count bound this map too.
+/// One entry per queued, waiting or running job, so MAX_QUEUE, MAX_DEFERRED and the worker count bound this map too.
 fn queue_row(
     out: &mut impl Write,
     st: &mut State,

@@ -30,6 +30,7 @@ pub fn command(rest: &[String]) -> i32 {
 
 // The cache is the answer whenever it holds one; a miss is produced through the writer every other
 // part of Flea produces one with, so the shelf and the pane share one cache and one failure record.
+/// Look up or create a Shelf thumbnail, reusing the metadata needed for the cache key.
 fn thumb_of(
     file: &Path,
     mime: &Db,

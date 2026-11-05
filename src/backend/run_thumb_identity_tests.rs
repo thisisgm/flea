@@ -183,6 +183,7 @@ fn policy_identity_same_path_new_listing_cannot_authenticate_from_predecessor_jo
     );
 }
 
+/// Check the replies for cache hits, empty results and failures with or without an identity.
 #[test]
 fn policy_identity_cache_hit_empty_failure_and_legacy_reply_values_are_truthful() {
     use std::os::unix::fs::MetadataExt;
