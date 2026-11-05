@@ -38,6 +38,9 @@ pub struct Geometry {
     pub rail_overlay: bool,
     pub panes: [Rect; 2],
     pub status: Rect,
+    /// How far a cover's rows start right of its own left edge: under "Window bar" Across the window a cover such as
+    /// Trash draws its strip from the window's left edge, with its rows beside the places as before.
+    pub cover_inset: f32,
 }
 
 impl Geometry {
@@ -134,6 +137,7 @@ impl Geometry {
                 ),
             ],
             status: Rect::at(0., (height - header).max(0.), width, header),
+            cover_inset: 0.,
         }
     }
 
@@ -274,16 +278,25 @@ pub(crate) fn render(
                 .child(view.clone()),
         );
     }
-    if let Some(view) = slots.rail.as_ref().filter(|_| !geometry.rail_overlay) {
-        root = root.child(
+    let docked = slots
+        .rail
+        .as_ref()
+        .filter(|_| !geometry.rail_overlay)
+        .map(|view| {
             geometry
                 .rail
                 .element()
                 .track_focus(&focus.rail)
                 .on_any_mouse_down(keep_the_keys)
-                .child(view.clone()),
-        );
-    }
+                .child(view.clone())
+        });
+    // A cover drawn from the window's left edge leaves the places to draw over it, after the panes.
+    let (docked, rail_late) = if geometry.cover_inset > 0. {
+        (None, docked)
+    } else {
+        (docked, None)
+    };
+    root = root.children(docked);
     for (side, content) in panes.into_iter().enumerate() {
         if side == 1 && !dual {
             continue;
@@ -370,6 +383,7 @@ pub(crate) fn render(
         root = root.child(pane.child(div().flex_1().min_h_0().overflow_hidden().child(content)));
     }
     root = root.children(pane_edge);
+    root = root.children(rail_late);
     if let Some(view) = slots.rail.as_ref().filter(|_| geometry.rail_overlay) {
         // PaneRail.qml: the overlay owns only its edge and body (the host hears those presses), so its stop hangs on a zero-size node.
         root = root.child(

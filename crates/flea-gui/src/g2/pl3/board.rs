@@ -30,6 +30,10 @@ pub struct Board {
     /// The column header, the strip's height again, a mark slot, then Original Location and Deleted.
     pub header_h: f32,
     pub slot: f32,
+    /// The list's own icon slot, wider than the mark it centres; the rows take it under a unified look.
+    pub list_slot: f32,
+    /// The list header's padding above its titles; a unified header sets its titles below it as the list does.
+    pub header_top: f32,
     pub location_w: f32,
     pub deleted_w: f32,
     /// `.trashv .row`: the list's row and mark, a two-hairline accent edge, body type.
@@ -59,6 +63,8 @@ impl Board {
             button_pad: metrics.gap,
             header_h: metrics.header,
             slot: mark,
+            list_slot: metrics.slot.round(),
+            header_top: metrics.header_top,
             location_w: (LOCATION_W * f32::from(face.body_small) / BOARD_BODY_SMALL).round(),
             deleted_w: board(DELETED_W),
             row_h: metrics.row,

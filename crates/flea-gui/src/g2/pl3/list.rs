@@ -31,6 +31,8 @@ struct Shaped {
 pub struct ListPaint {
     pub font: Font,
     pub board: Board,
+    /// "Window bar" Over the list or Across the window: names start in the list's icon slot, as every folder's do.
+    pub unified: bool,
     pub ink: Ink,
     pub first: usize,
     pub total: usize,
@@ -77,6 +79,7 @@ impl ListPaint {
             committed: 0,
             laid_out: 0,
             surface_drawn: false,
+            unified: false,
             scroll_y: 0.,
             cursor: 0,
             hover: None,
@@ -126,6 +129,15 @@ impl ListPaint {
         } else {
             None
         }
+    }
+
+    /// The board the rows draw by: the list's icon slot under a unified look, the Trash board's own otherwise.
+    pub fn drawn_board(&self) -> Board {
+        let mut board = self.board;
+        if self.unified {
+            board.slot = board.list_slot;
+        }
+        board
     }
 
     /// The window's system font and text size; a change reshapes every row and measures the digit advance again.
@@ -242,7 +254,7 @@ impl Element for TrashList {
         }
         state.laid_out = state.committed;
         let advance = state.advance(window);
-        let board = state.board;
+        let board = state.drawn_board();
         let (_, name_w, _, _) = columns(&board, f32::from(bounds.size.width));
         let name_cells = (px(name_w) / advance).floor().max(0.) as usize;
         if state.shaped_for != (state.revision, name_cells) {
@@ -328,9 +340,13 @@ impl Element for TrashList {
         cx: &mut App,
     ) {
         let state = self.0.borrow();
-        let ink = state.ink;
+        let mut ink = state.ink;
+        // Unified, the rows' text takes the glass lift every folder's rows take, so it reads with the same weight.
+        if state.unified {
+            ink.foreground = crate::window::glass::producers::text_ink(ink.foreground, window, cx);
+        }
         let (left, width) = (bounds.origin.x, f32::from(bounds.size.width));
-        let board = state.board;
+        let board = state.drawn_board();
         let (name_x, name_w, location_x, deleted_x) = columns(&board, width);
         window.paint_quad(fill(bounds, ink.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
