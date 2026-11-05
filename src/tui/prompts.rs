@@ -84,6 +84,9 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
     if editor.pending { return (i18n.tr(if editor.kind == "rename" { "prompt.renaming" } else { "prompt.working" }), &theme.muted, false); }
     match editor.kind {
         "rename" => (i18n.tr("prompt.renameHint"), &theme.muted, true),
+        // The one create prompt makes either entry, and the field alone cannot say so: the
+        // suggestion's slash reads as "folder only" until the rule is written beside it.
+        "mkdir" | "newfile" => (i18n.tr("prompt.createHint"), &theme.muted, true),
         "filter" => (shown(m), &theme.muted, false),
         "search" => (i18n.tr_args("tui.find.scope_hint", &[&scope(m, m.find.mode)]), &theme.muted, false),
         _ => (String::new(), &theme.muted, false),

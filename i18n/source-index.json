@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "254537fb21cb05ec4b5c72a791584ed816f30c3b672308ea0f6bfd832cf43d37",
-  "catalog_sha256": "2c56a670c7b8b6f9498cb7777e8eeebb955e096794e8d5310928b71d10391d02",
+  "catalog_file_sha256": "511c8c7c62c5a14b96cf111906fa7d6994eaa83479ebe7bb756a7dcef3c7ca0a",
+  "catalog_sha256": "3d4087516902c52e532deb17b51f3007ac55520224702cd6f6e3a78f2123b40d",
   "counts": {
     "direct_references": 0,
-    "keys": 2227,
+    "keys": 2229,
     "plurals": 106
   },
   "direct_references": {},
@@ -2499,7 +2499,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }",
-      "line": 139,
+      "line": 142,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2509,7 +2509,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undid\" } else { \"receipt.redid\" }",
-      "line": 184,
+      "line": 187,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2519,7 +2519,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "step",
-      "line": 184,
+      "line": 187,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2529,7 +2529,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }",
-      "line": 185,
+      "line": 188,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2539,7 +2539,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }",
-      "line": 214,
+      "line": 217,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -21839,14 +21839,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 142,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 233,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -21886,14 +21886,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 142,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 233,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22103,14 +22103,14 @@
       "call_sites": [
         {
           "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 337,
+          "line": 340,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 341,
+          "line": 344,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22132,7 +22132,7 @@
       "call_sites": [
         {
           "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 335,
+          "line": 338,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22166,7 +22166,7 @@
       "call_sites": [
         {
           "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&question.name, &folder]) }",
-          "line": 334,
+          "line": 337,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60350,7 +60350,7 @@
         },
         {
           "excerpt": "m.prompts.i18n.tr_args(\"filter.shown\", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])",
-          "line": 93,
+          "line": 96,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60472,7 +60472,7 @@
       "call_sites": [
         {
           "excerpt": "else { m.prompts.i18n.tr_args(\"find.found\", &[&m.i18n.locale().format_count(m.total as i64)]) }",
-          "line": 116,
+          "line": 119,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60496,7 +60496,7 @@
       "call_sites": [
         {
           "excerpt": "if m.searching { m.prompts.i18n.tr_args(\"find.scanning\", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }",
-          "line": 115,
+          "line": 118,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -71102,6 +71102,20 @@
       "resolved_source_hash": "99af6606ff9d",
       "source_hash": "99af6606ff9d"
     },
+    "keys.newFolder": {
+      "call_sites": [],
+      "context": "keys.newFolder: caller missing; source owner must identify the surface",
+      "coverage": "missing-callsite",
+      "english": "New folder",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "New folder",
+      "resolved_sha256": "fe22a14ebafb6a2236ca1ef15a02f1733e3bb7a91e908491cbb380387feab76d",
+      "resolved_source_hash": "cf28f49ec597",
+      "source_hash": "cf28f49ec597"
+    },
     "keys.open": {
       "call_sites": [
         {
@@ -79133,7 +79147,7 @@
         },
         {
           "excerpt": "self.fail_key(\"pane.locked\");",
-          "line": 1245,
+          "line": 1251,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79436,7 +79450,7 @@
         },
         {
           "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 262,
+          "line": 265,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79458,7 +79472,7 @@
       "call_sites": [
         {
           "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 263,
+          "line": 266,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -90466,6 +90480,28 @@
       "resolved_source_hash": "5c4329429794",
       "source_hash": "5c4329429794"
     },
+    "prompt.createHint": {
+      "call_sites": [
+        {
+          "excerpt": "\"mkdir\" | \"newfile\" => (i18n.tr(\"prompt.createHint\"), &theme.muted, true),",
+          "line": 89,
+          "path": "src/tui/prompts.rs",
+          "surface": "tui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "prompt.createHint: src/tui/prompts.rs:89",
+      "coverage": "existing-translated-call",
+      "english": "a plain name creates a file · ending with / creates a folder",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "a plain name creates a file · ending with / creates a folder",
+      "resolved_sha256": "9bc2d8692622d65158ec58320aae3e715c17101e5abbd9ec448cd19e10419891",
+      "resolved_source_hash": "769d605131b9",
+      "source_hash": "769d605131b9"
+    },
     "prompt.file": {
       "call_sites": [
         {
@@ -90499,7 +90535,7 @@
         },
         {
           "excerpt": "return vec![(theme.muted.as_str(), format!(\"{} {}\", i18n.tr(\"prompt.filter\"), m.filter), 0), (theme.foreground.as_str(), shown(m), 2)];",
-          "line": 105,
+          "line": 108,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91204,14 +91240,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-          "line": 217,
+          "line": 220,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-          "line": 253,
+          "line": 256,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91233,14 +91269,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 217,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 252,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91273,14 +91309,14 @@
       "call_sites": [
         {
           "excerpt": "\"duplicated\" => { record(m, \"duplicate\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.duplicated\")) }",
-          "line": 180,
+          "line": 183,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"duplicated\" => Text::Key(\"receipt.duplicated\"),",
-          "line": 238,
+          "line": 241,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91302,14 +91338,14 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.failed\", &[&i18n.locale().format_count(failed as i64)]))); }",
-          "line": 216,
+          "line": 219,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 253,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91355,14 +91391,14 @@
       "call_sites": [
         {
           "excerpt": "\"made\" => { record(m, \"mkdir\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.made\")) }",
-          "line": 179,
+          "line": 182,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"made\" => Text::Key(\"receipt.made\"),",
-          "line": 237,
+          "line": 240,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91384,14 +91420,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 217,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 252,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91424,14 +91460,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 246,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91455,14 +91491,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 247,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91484,14 +91520,14 @@
       "call_sites": [
         {
           "excerpt": "\"renamed\" => { record(m, \"rename\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.renamed\")) }",
-          "line": 178,
+          "line": 181,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"renamed\" => Text::Key(\"receipt.renamed\"),",
-          "line": 236,
+          "line": 239,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91513,14 +91549,14 @@
       "call_sites": [
         {
           "excerpt": "if skipped > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.skipped\", &[&i18n.locale().format_count(skipped as i64)]))); }",
-          "line": 215,
+          "line": 218,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 253,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91544,14 +91580,14 @@
       "call_sites": [
         {
           "excerpt": "let line = m.prompts.i18n.trn(\"receipt.trashed\", ok as i64);",
-          "line": 209,
+          "line": 212,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"trashed\" => Text::Plural(\"receipt.trashed\", ok, vec![]),",
-          "line": 239,
+          "line": 242,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91584,14 +91620,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 246,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91615,14 +91651,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 247,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91644,14 +91680,14 @@
       "call_sites": [
         {
           "excerpt": "if m.hints.undo.is_empty() { String::new() } else { format!(\" {}\", m.prompts.i18n.tr_args(\"receipt.undoes\", &[&m.hints.undo])) }",
-          "line": 119,
+          "line": 122,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(\" \"), args(\"receipt.undoes\", vec![Text::from(m.hints.undo.clone())])]) }",
-          "line": 227,
+          "line": 230,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100143,7 +100179,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 166,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100165,7 +100201,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100194,7 +100230,7 @@
         },
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 166,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100216,7 +100252,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 166,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100238,7 +100274,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100260,7 +100296,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 166,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100282,7 +100318,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 166,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100304,7 +100340,7 @@
       "call_sites": [
         {
           "excerpt": "\"permissions\" => \"step.permissions\", _ => return None,",
-          "line": 164,
+          "line": 167,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100326,7 +100362,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100348,7 +100384,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100665,7 +100701,7 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { m.fail_text(super::words::Text::Plural(\"transfer.failed\", failed, vec![])); }",
-          "line": 218,
+          "line": 221,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100845,7 +100881,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 150,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100870,7 +100906,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 150,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100894,7 +100930,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 150,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -100919,7 +100955,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 150,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101415,14 +101451,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 205,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "line": 207,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101455,14 +101491,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 205,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "line": 207,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103434,7 +103470,7 @@
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 268,
+          "line": 271,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103573,7 +103609,7 @@
       "call_sites": [
         {
           "excerpt": "\"search\" => (i18n.tr_args(\"tui.find.scope_hint\", &[&scope(m, m.find.mode)]), &theme.muted, false),",
-          "line": 88,
+          "line": 91,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -103597,7 +103633,7 @@
       "call_sites": [
         {
           "excerpt": "parts.push((&theme.muted, i18n.tr_args(\"tui.find.status\", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));",
-          "line": 110,
+          "line": 113,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -173920,7 +173956,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"path\" {",
-      "line": 87,
+      "line": 89,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -173929,7 +173965,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"search\" {",
-      "line": 93,
+      "line": 95,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -175081,7 +175117,7 @@
     },
     {
       "excerpt": "if text(&value, \"where\") == \"scan\" && text(&value, \"msg\") == \"permission denied\" {",
-      "line": 1244,
+      "line": 1250,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -175702,7 +175738,7 @@
     },
     {
       "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-      "line": 163,
+      "line": 166,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175711,7 +175747,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-      "line": 217,
+      "line": 220,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175720,7 +175756,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-      "line": 253,
+      "line": 256,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175729,7 +175765,7 @@
     },
     {
       "excerpt": "let mut fields = vec![(\"c\", word(if linked { \"link\" } else { \"transfer\" })), (\"op\", word(paste.op)), (\"paths\", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),",
-      "line": 311,
+      "line": 314,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175738,7 +175774,7 @@
     },
     {
       "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 319,
+      "line": 322,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175747,7 +175783,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 325,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -175756,7 +175792,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 325,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -248127,7 +248163,7 @@
     "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
     "src/tui/editor.rs": "68587dfbb76b856b509ddb5f5fd5999f28cab1f52d01e3cc2892feed9105a0e0",
-    "src/tui/editor_input.rs": "81dda98831b99311be73bee8e442c5a7bb8b9b305cfe9a910e89a569705cf1e1",
+    "src/tui/editor_input.rs": "2c2d572b357b553a86de65e2e9f53e5239655a7f5209a77f3ad134611eec58d9",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
     "src/tui/external_editor.rs": "65eb226f506519506ddc26a40ab9eea742a2e449a3ed77ce021f5d460843480a",
@@ -248150,7 +248186,7 @@
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "64d336b4cb5e4614702f6d13e3f290a02241cb7ca9d91387b7200f1da8ba7fbb",
     "src/tui/mod.rs": "0c2339b4ba8e3ac9dee702d291120c2c392c27a9f2cdb76b1378afcb45e7b020",
-    "src/tui/model.rs": "cdd83f7888cc5bc27b154f31af79c90158603ff4a99b6f882a5291e3a3e4670d",
+    "src/tui/model.rs": "de944a62196260f4bfa495a1963e9f240b2ae474ef9707fb06915973fc4113f8",
     "src/tui/model3d.rs": "411b95b4851090efd363fefecf527ee042c0239e2c14a51604c50abf5a738573",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -248168,7 +248204,7 @@
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
-    "src/tui/prompts.rs": "73ec6423ef4c341075b1e7e1627d506c2333a405cc525caeb002452b411671b8",
+    "src/tui/prompts.rs": "b2f74d4b194e56704207d1dd545a319af1fe7a7142c15fccfaed2887a0c92d2c",
     "src/tui/render.rs": "7e686a909f5934896a6978970f3cb995844068a4efdb23593fe73b6302f93307",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "0f1265d38041eb3ae29357f69c8bd1808f0d512d119f4173c64c127f9351449b",
@@ -249106,8 +249142,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "73f3c23971106f6d47f78bd758f783af3e5b5c78",
-  "source_sha": "73f3c23971106f6d47f78bd758f783af3e5b5c78",
+  "source_ref_sha": "c13083a49a0be4aee820974d9efbeddbbb54e7ae",
+  "source_sha": "c13083a49a0be4aee820974d9efbeddbbb54e7ae",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1294,
@@ -249130,7 +249166,7 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 483,
+      "keys_with_occurrences": 484,
       "missing_literal_candidates": 379,
       "source_files": 88
     }
@@ -249173,6 +249209,7 @@
     "keys.action.tag7",
     "keys.action.toggleWrap",
     "keys.action.zoomFit",
+    "keys.newFolder",
     "menu.state.filesOnly",
     "network.bridge_failed",
     "network.bridge_timeout",

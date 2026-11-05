@@ -1193,7 +1193,8 @@
   "keys.action.mute": "omarchy:keybindings.Mute",
   "keys.label.8dd6857baf02": "omarchy:keybindings.Mute",
   "keys.action.newFolder": "Nieuwe map",
-  "keys.create": "Nieuwe map",
+  "keys.newFolder": "Nieuwe map",
+  "keys.create": "New file or folder",
   "keys.action.openAgent": "Agent hier openen",
   "keys.openAgent": "Agent hier openen",
   "keys.action.openTab": "Openen in nieuw tabblad",
@@ -1921,6 +1922,7 @@
   "prompt.folder": "Mapnaam",
   "prompt.path": "Ga naar",
   "prompt.renameHint": "enter slaat op · esc annuleert · ctrl-a selecteert de hele naam",
+  "prompt.createHint": "a plain name creates a file · ending with / creates a folder",
   "prompt.renaming": "Naam wijzigen…",
   "prompt.scope": "in %1 · tab wijzigt zoekbereik",
   "properties.bytes": {

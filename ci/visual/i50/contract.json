@@ -174,7 +174,7 @@
   ],
   "source_index": {
     "path": "i18n/source-index.json",
-    "sha256": "2643c52a1da73db5858e4cb4821203944145756cc135c364a5f2c49b11ecfc40",
+    "sha256": "63415f0b81814cbb3f8478e69377891a66a3b8864b814a3c94f43c731f890686",
     "source": "COMPOSE-I50 stage index; re-pinned after the TUI create prompt's English changed (keys.create, prompt.folder/file)"
   },
   "rtl_policy": {

@@ -96,6 +96,14 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     // selected, so it draws in the stem ink until something is typed over it.
     assert_eq!(span(&cells, 5, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
     assert_eq!(span(&cells, 16, " ").1, theme.field);
+    // The field cannot say it makes either entry, so the rule trails the row in muted ink.
+    let create = "a plain name creates a file · ending with / creates a folder";
+    assert_eq!(span(&cells, 128 - create.chars().count(), create).0, theme.muted, "the create rule ends at the row's last cell");
+    // The yazi preset's own file prompt carries the same rule.
+    m.editor = Some(Editor::named("newfile", "New File".into(), m.path.clone()));
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, "Name").0, theme.muted);
+    assert_eq!(span(&cells, 128 - create.chars().count(), create).0, theme.muted, "the rule follows the file prompt too");
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);
