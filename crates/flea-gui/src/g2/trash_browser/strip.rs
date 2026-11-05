@@ -187,7 +187,7 @@ impl TrashPane {
             .text_color(ink.foreground)
             .border_b_1()
             .border_color(ink.hair())
-            .child(div().w(px(board.slot)).flex_none())
+            // Name stands above the marks, as every folder's header sets it.
             .child(
                 div()
                     .flex_1()
