@@ -275,12 +275,14 @@ impl PdfView {
     /// One renderer reply, applied on the foreground outside any window's update, so what it releases leaves every atlas now.
     pub fn apply(&mut self, reply: Reply, cx: &mut Context<Self>) {
         let now = self.now(cx);
-        self.surface.reply(reply, now);
+        let visible = self.surface.reply(reply, now);
         for image in self.surface.cache.take_released() {
             cx.drop_image(image, None);
         }
         self.flush(cx);
-        cx.notify();
+        if visible {
+            cx.notify();
+        }
     }
 
     /// The host's copy reply for a slow document.

@@ -54,6 +54,80 @@ fn icon_button(
         .into_any_element()
 }
 
+fn sheet_tab(
+    index: usize,
+    name: &str,
+    active: bool,
+    theme: crate::palette::Theme,
+    cx: &mut Context<QuickLook>,
+) -> AnyElement {
+    div()
+        .id(SharedString::from(format!("preview-sheet-{index}")))
+        .max_w(px(88.))
+        .h(px(26.))
+        .px(px(7.))
+        .flex_none()
+        .flex()
+        .items_center()
+        .overflow_hidden()
+        .cursor_pointer()
+        .border_b_2()
+        .border_color(if active {
+            theme.foreground
+        } else {
+            theme.foreground.opacity(0.15)
+        })
+        .text_color(if active {
+            theme.foreground
+        } else {
+            theme.foreground.opacity(0.7)
+        })
+        .text_size(px(12.))
+        .child(SharedString::from(name.to_owned()))
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(move |view, _, _, cx| {
+                cx.stop_propagation();
+                if let Some(doc) = view.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
+                    doc.word(index, cx);
+                    cx.notify();
+                }
+            }),
+        )
+        .into_any_element()
+}
+
+fn sheet_strip(
+    sheets: &[(String, bool)],
+    theme: crate::palette::Theme,
+    cx: &mut Context<QuickLook>,
+) -> AnyElement {
+    let active = sheets.iter().position(|(_, on)| *on).unwrap_or(0);
+    let count = sheets.len().min(3);
+    let start = active
+        .saturating_sub(1)
+        .min(sheets.len().saturating_sub(count));
+    let end = (start + count).min(sheets.len());
+    let mut strip = div()
+        .id("preview-sheet-strip")
+        .max_w(px(300.))
+        .flex_none()
+        .flex()
+        .items_center()
+        .gap(px(2.))
+        .overflow_hidden();
+    if start > 0 {
+        strip = strip.child(button("‹", "previousSheet", cx));
+    }
+    for (index, (name, on)) in sheets.iter().enumerate().take(end).skip(start) {
+        strip = strip.child(sheet_tab(index, name, *on, theme, cx));
+    }
+    if end < sheets.len() {
+        strip = strip.child(button("›", "nextSheet", cx));
+    }
+    strip.into_any_element()
+}
+
 /// Whole cards only, centered on the selection and clamped at both ends.
 pub(super) fn band(total: usize, current: usize, width: f32) -> std::ops::Range<usize> {
     let count = (((width - 24.) / 92.).floor() as usize).max(1).min(total);
@@ -94,6 +168,16 @@ impl QuickLook {
                     )
                 })
             });
+        let office_sheets = self
+            .subject
+            .as_ref()
+            .and_then(|subject| subject.body.doc())
+            .and_then(|doc| match &doc.view {
+                super::doc::View::Office(office) => {
+                    Some(office.read(cx).bar(&self.i18n, cx).sheets)
+                }
+                _ => None,
+            });
         let Some(custom) = &self.custom else {
             return result;
         };
@@ -125,6 +209,10 @@ impl QuickLook {
                             .overflow_hidden()
                             .text_ellipsis()
                             .child(name),
+                    )
+                    .when_some(
+                        office_sheets.filter(|sheets| !sheets.is_empty()),
+                        |bar, sheets| bar.child(sheet_strip(&sheets, theme, cx)),
                     )
                     .when_some(page_counter, |bar, counter| {
                         bar.child(icon_button(
@@ -174,7 +262,12 @@ impl QuickLook {
             );
         }
         if custom.filmstrip_visible() {
-            let room = f32::from(window.viewport_size().width);
+            let info_width = if custom.info {
+                (f32::from(window.viewport_size().width) * 0.3).clamp(180., 300.)
+            } else {
+                0.
+            };
+            let room = f32::from(window.viewport_size().width) - info_width;
             let range = band(custom.items.len(), custom.current, room);
             let cards = range
                 .map(|index| {
@@ -206,6 +299,8 @@ impl QuickLook {
                                 .w(px(76.))
                                 .object_fit(ObjectFit::Contain),
                         );
+                    } else if custom.thumbnails.contains_key(&item.path) {
+                        card = card.child(div().h(px(56.)));
                     } else {
                         card = card.child(
                             div()
@@ -234,7 +329,7 @@ impl QuickLook {
                 div()
                     .absolute()
                     .left_0()
-                    .right_0()
+                    .right(px(info_width))
                     .bottom_0()
                     .h(px(92.))
                     .bg(theme.background)
@@ -265,7 +360,7 @@ fn info(custom: &Custom, window: &Window, theme: crate::palette::Theme) -> impl 
         .absolute()
         .right_0()
         .top(px(36.))
-        .bottom(px(if custom.fullscreen { 0. } else { 92. }))
+        .bottom(px(if custom.filmstrip_visible() { 92. } else { 0. }))
         .w(px(width))
         .p(px(14.))
         .bg(theme.background)

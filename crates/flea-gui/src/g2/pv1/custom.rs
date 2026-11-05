@@ -151,6 +151,13 @@ impl QuickLook {
             }
             return true;
         }
+        if matches!(action, "previousSheet" | "nextSheet") {
+            if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
+                doc.action(action, cx);
+                cx.notify();
+            }
+            return true;
+        }
         if action == "preview" && media {
             if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
                 doc.action("playPause", cx);

@@ -222,6 +222,10 @@ impl QuickLook {
             self,
             cx,
         );
-        vec![bar, body]
+        if self.custom.is_some() && matches!(&doc.view, View::Pdf(_) | View::Office(_)) {
+            vec![body]
+        } else {
+            vec![bar, body]
+        }
     }
 }
