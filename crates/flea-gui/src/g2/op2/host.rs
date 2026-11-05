@@ -292,6 +292,12 @@ impl Shell {
             let output = run.await;
             let _ = this.update_in(cx, |shell, window, cx| {
                 shell.operations.archive.picking = None;
+                // An answer the pane no longer waits for is dropped, whichever way the chooser ended.
+                let flash = &shell.operations.archive.flash;
+                if !flash.shown() || flash.running() || shell.operations.archive.flash_side != side
+                {
+                    return;
+                }
                 // A chooser that never started or failed says so; only a cancel, a clean exit naming nothing, stays silent.
                 let reason = match &output {
                     Ok(output) if output.status.success() => None,
@@ -309,15 +315,10 @@ impl Shell {
                 let chosen = output
                     .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
                     .unwrap_or_default();
-                let flash = &mut shell.operations.archive.flash;
-                if chosen.is_empty()
-                    || !flash.shown()
-                    || flash.running()
-                    || shell.operations.archive.flash_side != side
-                {
+                if chosen.is_empty() {
                     return;
                 }
-                let effects = flash.open_with_image(&chosen);
+                let effects = shell.operations.archive.flash.open_with_image(&chosen);
                 shell.archive_effects(side, effects, window, cx);
             });
         }));

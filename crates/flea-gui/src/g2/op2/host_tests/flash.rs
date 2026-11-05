@@ -214,8 +214,66 @@ fn a_chooser_that_fails_says_why() {
         "a chooser that failed names its last line of stderr: {said:?}"
     );
     assert!(
+        !said.contains("noise"),
+        "only the last line of stderr is named: {said:?}"
+    );
+    assert!(
         drain(&mut requests).is_empty(),
         "no image is asked after a failed chooser"
+    );
+}
+
+#[test]
+fn a_chooser_that_fails_silently_names_its_exit_status() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.chooser = || {
+            let mut command = std::process::Command::new("/bin/sh");
+            command.args(["-c", "exit 3"]);
+            command
+        };
+    });
+    choose(&mut cx, handle, 49, "flashDrive", "", &["/files/disk.img"]);
+    drain(&mut requests);
+    edit(&mut cx, handle, |shell, window, cx| {
+        let effects = shell.operations.archive.flash.choose_image();
+        shell.archive_effects(0, effects, window, cx);
+    });
+    cx.run_until_parked();
+    frame(&mut cx, handle);
+    let said = footer(&mut cx, handle);
+    assert!(
+        said.contains("exit status: 3"),
+        "a chooser with an empty stderr names its exit status: {said:?}"
+    );
+}
+
+#[test]
+fn a_chooser_failure_after_the_pane_closed_stays_silent() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.operations.archive.chooser = || {
+            let mut command = std::process::Command::new("/bin/sh");
+            command.args(["-c", "echo 'the chooser broke' >&2; exit 2"]);
+            command
+        };
+    });
+    choose(&mut cx, handle, 50, "flashDrive", "", &["/files/disk.img"]);
+    drain(&mut requests);
+    // One update, so the chooser's answer can only arrive after the pane has closed.
+    edit(&mut cx, handle, |shell, window, cx| {
+        let effects = shell.operations.archive.flash.choose_image();
+        shell.archive_effects(0, effects, window, cx);
+        let _ = shell.operations.archive.flash.close();
+    });
+    cx.run_until_parked();
+    frame(&mut cx, handle);
+    let said = footer(&mut cx, handle);
+    assert!(
+        !said.contains("the chooser broke"),
+        "a failure the pane no longer waits for says nothing: {said:?}"
     );
 }
 
