@@ -385,6 +385,10 @@ impl crate::state::Shell {
             // Columns keeps its own cursor rule, so its row-drag scroll still pulls the cursor along.
             && self.shown_view() != crate::window::startup::View::Columns;
         for host in self.panes.iter_mut().flatten() {
+            // A pull left by a scroll before the switch would start the next Shift+move from the old cursor.
+            if keep && !host.input.keep_cursor_on_scroll {
+                host.input.pulled = None;
+            }
             host.input.keep_cursor_on_scroll = keep;
         }
     }

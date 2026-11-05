@@ -22,9 +22,16 @@ fn a_settings_change_hands_the_choice_to_the_list_pane_but_not_to_columns() {
                 fields.retain(|(key, _)| key != "scrollKeepsCursor");
                 fields.push(("scrollKeepsCursor".into(), flea::jsondoc::Json::Bool(true)));
             }
-            // No frame in between: the change alone hands it to the pane.
+            // A scroll with the setting off left a pull from row 0 to row 9.
+            shell.panes[0].as_mut().unwrap().input.pulled = Some(super::Pull {
+                from: 0,
+                to: 9,
+                listing: 1,
+            });
+            // No frame in between: the change alone hands it to the pane, and drops the old pull.
             shell.apply_settings(data, window, cx);
             assert!(keeps(shell));
+            assert!(shell.panes[0].as_ref().unwrap().input.pulled.is_none());
             shell.set_view(View::Columns, window, cx);
             shell.sync_scroll_keeps_cursor();
             assert!(!keeps(shell), "Columns keeps pulling the cursor along");
