@@ -89,7 +89,7 @@ impl Tables {
     pub fn load() -> Tables {
         let aliases = Lazy::new(|| Arc::new(Aliases::load()));
         let shared = aliases.clone();
-        let thumbs = Lazy::new(move || Arc::new(Thumbnailers::load(&shared)));
+        let thumbs = Lazy::new(move || Arc::new(Thumbnailers::load_for_listing(&shared)));
         let mime = Lazy::new(|| Arc::new(Db::load()));
         let icons = Lazy::new(|| Arc::new(Names::load()));
         let formats = Lazy::new(|| Arc::new(Formats::probe()));

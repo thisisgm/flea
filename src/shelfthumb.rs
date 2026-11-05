@@ -17,7 +17,7 @@ pub fn command(rest: &[String]) -> i32 {
     }
     let mime = Db::load();
     let aliases = Arc::new(Aliases::load());
-    let specs = Arc::new(Thumbnailers::load(&aliases));
+    let specs = Arc::new(Thumbnailers::load_for_listing(&aliases));
     let root = crate::backend::thumbcache::default_root();
     let cache = Cache::at(root.clone());
     for path in rest {
