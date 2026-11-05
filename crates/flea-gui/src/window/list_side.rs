@@ -98,8 +98,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<AnyElement> {
-        let rect = geometry.side?;
-        let host = self.panes[0].as_ref()?;
+        // Any frame that draws no folder peek leaves the one it drew: its release and its read in flight go.
+        let (Some(rect), Some(host)) = (geometry.side, self.panes[0].as_ref()) else {
+            super::list_peek::leave();
+            return None;
+        };
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
         let typeface = host.list.borrow().typeface.clone();
@@ -118,6 +121,7 @@ impl Shell {
             .filter(|row| row.dir && !row.name.is_empty() && host.selected.len() <= 1)
             .map(|row| super::list_peek::join(host.pane.path(), &row.name));
         let Some(path) = folder else {
+            super::list_peek::leave();
             let preview = host.preview.clone().filter(|view| view.read(cx).visible);
             return Some(
                 frame
@@ -142,25 +146,33 @@ impl Shell {
             .map_or_else(|| "?".to_owned(), |(_, class)| class);
         let data = &self.launch.settings.data;
         let automatic = super::selection_preview::host::settings(data).automatic;
-        let released = super::list_peek::released(&path);
+        let released = super::list_peek::released(&path, host.pane.held.listing);
         let preview = data.get("preview").unwrap_or(&Json::Null);
-        let loads = released
-            || (class != "?" && super::selection_preview::host::loads(preview, automatic, &class));
+        let rule = |class: &str| super::selection_preview::host::loads(preview, automatic, class);
+        let loads = released || (class != "?" && rule(&class));
         if loads {
-            self.peek(&path, hidden, cx);
+            // Unreleased, the folder's own storage is checked too: a mount point under a local parent may be held.
+            let gate = (!released).then(|| super::list_peek::Gate {
+                parent: host.pane.path().to_owned(),
+                loads: super::list_mount::CLASSES.map(rule),
+            });
+            self.peek(&path, hidden, gate, cx);
+        } else {
+            super::list_peek::leave();
         }
         let name = row.map(|row| row.name.clone()).unwrap_or_default();
-        let shown = super::list_peek::shown(&path, hidden);
+        let shown = super::list_peek::shown(&path, hidden, released);
+        let hint = || {
+            self.locale
+                .catalog
+                .tr_args("preview.loadHint", &["Ctrl+Space"])
+        };
         let (summary, entries) = match shown.filter(|_| loads) {
-            None if !loads && (class != "?" || !automatic) => (
-                self.locale
-                    .catalog
-                    .tr_args("preview.loadHint", &["Ctrl+Space"]),
-                Vec::new(),
-            ),
+            None if !loads && (class != "?" || !automatic) => (hint(), Vec::new()),
             None => ("…".to_owned(), Vec::new()),
-            Some(Err(error)) => (error, Vec::new()),
-            Some(Ok((entries, total))) => (
+            Some(super::list_peek::Answer::Held) => (hint(), Vec::new()),
+            Some(super::list_peek::Answer::Failed(error)) => (error, Vec::new()),
+            Some(super::list_peek::Answer::Listed(entries, total)) => (
                 match total {
                     0 => self.locale.catalog.tr("folder.empty"),
                     n => self.locale.catalog.trn("items.count", n as i64),

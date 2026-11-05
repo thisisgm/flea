@@ -12,7 +12,9 @@ fn a_folder_read_keeps_the_first_entries_and_stops_once_another_is_wanted() {
     std::fs::write(dir.join(".hidden"), "").unwrap();
     let path = dir.to_string_lossy().into_owned();
     WANTED.store(7, Ordering::Relaxed);
-    let (entries, total) = read(&path, false, 7).unwrap().unwrap();
+    let Some(Answer::Listed(entries, total)) = read(&path, false, 7, None) else {
+        panic!("the folder lists");
+    };
     // Every entry counts, but only the first MAX_ENTRIES are held: folders first, then by name without case.
     assert_eq!(total, MAX_ENTRIES + 22);
     assert_eq!(entries.len(), MAX_ENTRIES);
@@ -25,6 +27,33 @@ fn a_folder_read_keeps_the_first_entries_and_stops_once_another_is_wanted() {
     );
     // A newer folder wanted: the read gives up rather than finish for nobody.
     WANTED.store(8, Ordering::Relaxed);
-    assert!(read(&path, false, 7).is_none());
+    assert!(read(&path, false, 7, None).is_none());
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_release_lasts_only_its_listing_and_leaving_stops_the_read() {
+    PEEK.with(|peek| peek.borrow_mut().released = Some(("/f/a".into(), 3)));
+    assert!(released("/f/a", 3));
+    // Another listing (a tab switch, a reload) forgets it, and it does not come back.
+    assert!(!released("/f/a", 4));
+    assert!(!released("/f/a", 3));
+    PEEK.with(|peek| {
+        let mut peek = peek.borrow_mut();
+        peek.shown = Some(Peek {
+            path: "/f/a".into(),
+            hidden: false,
+            released: false,
+            generation: 9,
+            read_at: std::time::Instant::now(),
+            entries: None,
+        });
+        peek.released = Some(("/f/a".into(), 3));
+        peek.next = 9;
+    });
+    WANTED.store(9, Ordering::Relaxed);
+    // A frame with no folder peek: the read for generation 9 is no longer wanted, and the release is gone.
+    leave();
+    assert_ne!(WANTED.load(Ordering::Relaxed), 9);
+    assert!(PEEK.with(|peek| peek.borrow().shown.is_none() && peek.borrow().released.is_none()));
 }

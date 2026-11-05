@@ -8,6 +8,7 @@ use gpui::Context;
 use std::{
     cell::RefCell,
     collections::BinaryHeap,
+    path::Path,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -17,15 +18,30 @@ const MAX_ENTRIES: usize = 500;
 /// A folder preview older than this is read again, so a folder that changed under it catches up.
 const PEEK_FRESH: std::time::Duration = std::time::Duration::from_secs(2);
 
-type Entries = Result<(Vec<(String, bool)>, usize), String>;
+/// What a folder read gave: its first entries and whole count, why it could not be listed, or that its own
+/// storage holds it until Load.
+#[derive(Clone)]
+pub(super) enum Answer {
+    Listed(Vec<(String, bool)>, usize),
+    Failed(String),
+    Held,
+}
+
+/// The load rules a read checks the folder's own storage against, by class (CLASSES' order); none once Load
+/// released the folder.
+pub(super) struct Gate {
+    pub parent: String,
+    pub loads: [bool; 4],
+}
 
 struct Peek {
     path: String,
     hidden: bool,
+    released: bool,
     /// The read this peek waits for; only that read's answer lands here.
     generation: u64,
     read_at: std::time::Instant,
-    entries: Option<Entries>,
+    entries: Option<Answer>,
 }
 
 #[derive(Default)]
@@ -34,8 +50,9 @@ struct Peeks {
     /// The one read in flight, by generation; a newer folder waits for it and then reads by itself.
     running: Option<u64>,
     next: u64,
-    /// The folder Load released under Load: manual or a held storage class, until the cursor leaves it.
-    released: Option<String>,
+    /// The folder Load released under Load: manual or a held storage class, with the listing it was released
+    /// in, until the cursor leaves it, the listing changes or the preview stops drawing it.
+    released: Option<(String, usize)>,
 }
 
 thread_local! {
@@ -57,7 +74,7 @@ pub(crate) fn release(host: &super::pane::PaneHost) -> bool {
         return false;
     };
     let path = join(host.pane.path(), &row.name);
-    PEEK.with(|peek| peek.borrow_mut().released = Some(path));
+    PEEK.with(|peek| peek.borrow_mut().released = Some((path, host.pane.held.listing)));
     true
 }
 
@@ -87,10 +104,23 @@ impl PartialOrd for Ranked {
 
 /// The first MAX_ENTRIES entries in listing order and the whole count, holding no more than those entries
 /// at once; it gives up as soon as a newer folder is wanted.
-fn read(path: &str, hidden: bool, generation: u64) -> Option<Entries> {
+fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option<Answer> {
+    // The folder's own storage: a mount point or a link onto a held class waits for Load, as a file there would.
+    if let Some(gate) = gate {
+        let table = std::fs::read_to_string("/proc/self/mounts").unwrap_or_default();
+        let class = super::list_mount::crossing(&table, Path::new(&gate.parent), Path::new(path));
+        let at = |class| {
+            super::list_mount::CLASSES
+                .iter()
+                .position(|known| *known == class)
+        };
+        if class.is_some_and(|class| at(class).is_none_or(|at| !gate.loads[at])) {
+            return Some(Answer::Held);
+        }
+    }
     let entries = match std::fs::read_dir(path) {
         Ok(entries) => entries,
-        Err(error) => return Some(Err(error.to_string())),
+        Err(error) => return Some(Answer::Failed(error.to_string())),
     };
     let mut kept = BinaryHeap::with_capacity(MAX_ENTRIES + 1);
     let mut total = 0;
@@ -121,7 +151,7 @@ fn read(path: &str, hidden: bool, generation: u64) -> Option<Entries> {
         .into_iter()
         .map(|ranked| ranked.entry)
         .collect();
-    Some(Ok((entries, total)))
+    Some(Answer::Listed(entries, total))
 }
 
 pub(super) fn join(directory: &str, name: &str) -> String {
@@ -134,36 +164,61 @@ pub(super) fn join(directory: &str, name: &str) -> String {
     }
 }
 
-/// The entries the preview lists for this folder, once a read for it has answered.
-pub(super) fn shown(path: &str, hidden: bool) -> Option<Entries> {
+/// What the preview lists for this folder, once a read for it has answered.
+pub(super) fn shown(path: &str, hidden: bool, released: bool) -> Option<Answer> {
     PEEK.with(|peek| {
         peek.borrow()
             .shown
             .as_ref()
-            .filter(|peek| peek.path == path && peek.hidden == hidden)
+            .filter(|peek| peek.path == path && peek.hidden == hidden && peek.released == released)
             .and_then(|peek| peek.entries.clone())
     })
 }
 
-/// Whether Load released this folder, forgetting a release for any other.
-pub(super) fn released(path: &str) -> bool {
+/// Whether Load released this folder in this listing, forgetting a release for anything else.
+pub(super) fn released(path: &str, listing: usize) -> bool {
     PEEK.with(|peek| {
         let mut peek = peek.borrow_mut();
-        peek.released = peek.released.take().filter(|released| released == path);
+        peek.released = peek
+            .released
+            .take()
+            .filter(|(released, at)| released == path && *at == listing);
         peek.released.is_some()
+    })
+}
+
+/// The preview draws no folder this frame (a file row, a folder it may not read, the preview hidden or another
+/// view): the release is gone, and the read in flight stops at its next entry. It stays the one read in flight
+/// until it really returns.
+pub(super) fn leave() {
+    PEEK.with(|peek| {
+        let mut peek = peek.borrow_mut();
+        if peek.shown.is_none() && peek.released.is_none() {
+            return;
+        }
+        peek.shown = None;
+        peek.released = None;
+        peek.next += 1;
+        WANTED.store(peek.next, Ordering::Relaxed);
     })
 }
 
 impl Shell {
     /// Reads the folder unless its answer is fresh. One read runs at a time: a folder wanted meanwhile is
     /// read once that read lands, and an answer lands only on the peek of the read that asked it.
-    pub(super) fn peek(&self, path: &str, hidden: bool, cx: &mut Context<Self>) {
+    pub(super) fn peek(
+        &self,
+        path: &str,
+        hidden: bool,
+        gate: Option<Gate>,
+        cx: &mut Context<Self>,
+    ) {
+        let released = gate.is_none();
         let start = PEEK.with(|peek| {
             let mut peek = peek.borrow_mut();
-            let current = peek
-                .shown
-                .as_ref()
-                .is_some_and(|shown| shown.path == path && shown.hidden == hidden);
+            let current = peek.shown.as_ref().is_some_and(|shown| {
+                shown.path == path && shown.hidden == hidden && shown.released == released
+            });
             let fresh = current
                 && peek.shown.as_ref().is_some_and(|shown| {
                     shown.entries.is_none() || shown.read_at.elapsed() < PEEK_FRESH
@@ -176,6 +231,7 @@ impl Shell {
                 peek.shown = Some(Peek {
                     path: path.to_owned(),
                     hidden,
+                    released,
                     generation,
                     read_at: std::time::Instant::now(),
                     entries: None,
@@ -199,7 +255,7 @@ impl Shell {
         let wanted = path.to_owned();
         let task = cx
             .background_executor()
-            .spawn(async move { read(&wanted, hidden, generation) });
+            .spawn(async move { read(&wanted, hidden, generation, gate) });
         cx.spawn(async move |this, cx| {
             let read = task.await;
             PEEK.with(|peek| {
