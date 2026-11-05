@@ -2,7 +2,7 @@
 use super::*;
 use crate::{backend::Backend, pane::requests::WindowRequest, state::tests::shell_with};
 use flea::protocol::{Reply, RowFacts};
-use gpui::{px, size, AppContext, TestAppContext};
+use gpui::{AppContext, TestAppContext, px, size};
 
 const PATH: &str = "/fx/window";
 
@@ -79,7 +79,7 @@ fn pb_rest_window_answer_inline_size_reaches_its_row(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn ey391_a_relist_of_the_same_folder_walks_its_folders_again(cx: &mut TestAppContext) {
+fn ey391_a_relist_keeps_only_unchanged_folder_sizes(cx: &mut TestAppContext) {
     let (backend, _receiver) = Backend::test_channel();
     let cx = cx.add_empty_window();
     let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
@@ -96,11 +96,14 @@ fn ey391_a_relist_of_the_same_folder_walks_its_folders_again(cx: &mut TestAppCon
                         total: 2,
                     })
                     .unwrap();
+                let mut rows = vec![row("empty", None), row("full", None)];
+                rows[0].mtime = 100;
+                rows[1].mtime = if listing == 3 { 200 } else { 201 };
                 host.pane
                     .receive(Reply::Rows {
                         start: 0,
                         listing,
-                        rows: vec![row("empty", None), row("full", None)],
+                        rows,
                     })
                     .unwrap();
                 host.changed(&shell.locale);
@@ -116,6 +119,14 @@ fn ey391_a_relist_of_the_same_folder_walks_its_folders_again(cx: &mut TestAppCon
                 if listing == 3 {
                     // The walk answered before a move landed alpha.txt in full.
                     host.sizes.sizes.remember(
+                        0,
+                        Size {
+                            bytes: 90,
+                            partial: false,
+                        },
+                        CAP,
+                    );
+                    host.sizes.sizes.remember(
                         1,
                         Size {
                             bytes: 120,
@@ -126,11 +137,8 @@ fn ey391_a_relist_of_the_same_folder_walks_its_folders_again(cx: &mut TestAppCon
                 }
             }
             let host = shell.panes[0].as_ref().unwrap();
-            assert_eq!(
-                host.sizes.sizes.size_for(1),
-                None,
-                "v0.3.12 PaneSwap.applyListed empties DirSizes, so a re-list walks full again"
-            );
+            assert_eq!(host.sizes.sizes.size_for(0).unwrap().bytes, 90);
+            assert_eq!(host.sizes.sizes.size_for(1), None);
         })
     });
 }

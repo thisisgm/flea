@@ -1,5 +1,5 @@
 //! Header and s/S sort decisions, and the folder sizes that follow their rows by name.
-use super::folder_state::{Order, ORDERS};
+use super::folder_state::{ORDERS, Order};
 use flea::protocol::RowFacts;
 use std::collections::{HashMap, VecDeque};
 
@@ -104,11 +104,11 @@ impl DirSizes {
         new_rows: &[RowFacts],
         new_held: usize,
     ) -> Self {
-        let at: HashMap<&str, usize> = new_rows
+        let at: HashMap<&str, (usize, &RowFacts)> = new_rows
             .iter()
             .enumerate()
             .filter(|(_, row)| row.dir)
-            .map(|(index, row)| (row.name.as_str(), new_held + index))
+            .map(|(index, row)| (row.name.as_str(), (new_held + index, row)))
             .collect();
         let mut next = Self::default();
         for row in &self.order {
@@ -118,7 +118,10 @@ impl DirSizes {
             ) else {
                 continue;
             };
-            if let Some(&index) = at.get(old.name.as_str()) {
+            if let Some(&(index, new)) = at.get(old.name.as_str()) {
+                if (old.size, old.mtime, old.mode) != (new.size, new.mtime, new.mode) {
+                    continue;
+                }
                 if next.file.insert(index, Some(*answer)).is_none() {
                     next.order.push_back(index);
                 }
