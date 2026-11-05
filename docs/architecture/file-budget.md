@@ -1,3 +1,6 @@
+The optional JPEG thumbnail route shares the existing frame parser in
+`src/backend/imagesize.rs` (560 lines) so it can check the component count.
+
 The COMPOSE-I50 join records four exact composed ceilings from `wc -l`: `src/backend/mod.rs` 407 and `crates/flea-gui/src/window/dispatch/fileops.rs` 411 (rustfmt) carry the localized New Folder base beside M3's creation request, `crates/flea-gui/src/g2/st1/panel.rs` 421 holds the Settings text input session, and `crates/flea-gui/src/window/dispatch/openwith_tests.rs` 447 declares the Open With input-method tests. Global limits remain unchanged; no code or comments were compressed.
 
 The final PLUGIN-ACTIONS join records exact composed ceilings: `crates/flea-gui/src/g2/mn1/delivery.rs` 403, `crates/flea-gui/src/g2/mn1/join.rs` 453, `crates/flea-gui/src/window/events_ipc.rs` 419. The additions retain root menu retirement and IPC behavior beside reviewed external-action dispatch. Global limits remain unchanged.

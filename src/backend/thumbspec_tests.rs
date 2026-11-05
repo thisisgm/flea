@@ -357,6 +357,13 @@ fn the_fingerprint_changes_when_a_program_path_changes() {
 }
 
 #[test]
+fn the_fingerprint_changes_when_the_optional_jpeg_route_changes() {
+    let mut specs = HashMap::new();
+    specs.insert(JPEG_MIME.to_string(), Spec { exec: GLYCIN_JPEG_EXEC.map(String::from).to_vec() });
+    assert_ne!(fingerprint_of(&specs, false), fingerprint_of(&specs, true));
+}
+
+#[test]
 fn the_fingerprint_carries_the_embedded_field_codes_version() {
     // Failures recorded before embedded argv expansion hashed the entries alone, so the tag keeps them from matching.
     let empty = Thumbnailers::from_entries(&[], &al())
