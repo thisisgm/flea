@@ -4,7 +4,7 @@
 //! rather than at the edge a plain reveal leaves it. Each pane's navigator keeps its own, and only while
 //! ui.json "keepScreenLine" is on for its window.
 use crate::pane::Pane;
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 const KEPT: usize = 512;
 
@@ -12,6 +12,8 @@ const KEPT: usize = 512;
 pub struct Lines {
     /// Folder path to the cursor row's name and its line on screen, in rows from the top.
     seen: HashMap<String, (String, f32)>,
+    /// The listing rows a standing filter draws, in view order; the scroll counts these, not the listing.
+    pub(crate) shown: Option<Rc<[usize]>>,
 }
 
 impl Lines {
@@ -23,7 +25,15 @@ impl Lines {
         let Some(row) = pane.held.row(pane.cursor) else {
             return;
         };
-        let line = pane.cursor as f32 - pane.scroll_y / pane.row_height();
+        // Under a filter the scroll is in drawn rows, so the cursor's line is its place among them.
+        let view = match &self.shown {
+            Some(rows) => match rows.iter().position(|&row| row == pane.cursor) {
+                Some(view) => view,
+                None => return,
+            },
+            None => pane.cursor,
+        };
+        let line = view as f32 - pane.scroll_y / pane.row_height();
         if self.seen.len() >= KEPT && !self.seen.contains_key(pane.path()) {
             self.seen.clear();
         }
@@ -48,6 +58,22 @@ impl Lines {
     }
 }
 
+impl crate::state::Shell {
+    /// Settings > View "Keep the row's place when coming back", per window, read before any landing.
+    pub(crate) fn sync_keep_screen_line(&mut self) {
+        let keep = self
+            .launch
+            .settings
+            .data
+            .get("keepScreenLine")
+            .and_then(flea::jsondoc::Json::as_bool)
+            == Some(true);
+        for host in self.panes.iter_mut().flatten() {
+            host.nav.keep_screen_line = keep;
+        }
+    }
+}
+
 /// The last path component a pending select names.
 pub fn leaf(target: &str) -> &str {
     target
@@ -56,3 +82,7 @@ pub fn leaf(target: &str) -> &str {
         .next()
         .unwrap_or(target)
 }
+
+#[cfg(test)]
+#[path = "position_tests.rs"]
+mod tests;

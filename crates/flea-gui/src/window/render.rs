@@ -76,17 +76,7 @@ impl Render for Shell {
         }
         self.sync_footer_height(window, cx);
         self.sync_tabs(window, cx);
-        // Settings > View "Keep the row's place when coming back", per window, read before any landing.
-        let keep_screen_line = self
-            .launch
-            .settings
-            .data
-            .get("keepScreenLine")
-            .and_then(flea::jsondoc::Json::as_bool)
-            == Some(true);
-        for host in self.panes.iter_mut().flatten() {
-            host.nav.keep_screen_line = keep_screen_line;
-        }
+        self.sync_keep_screen_line();
         let geometry = self.geometry(window);
         self.size_trash(&geometry, cx);
         self.trash_frame(window, cx);
