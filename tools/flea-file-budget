@@ -175,7 +175,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1292
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 622
+src/uischema.rs 626
 src/uistate.rs 856
 src/uistore.rs 568
 src/vulkan.rs 751
