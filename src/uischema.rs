@@ -50,6 +50,7 @@ pub const DEFAULTS: &str = r#"{
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
+    "prefetchOnHover": false,
     "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false,
     "preloadAdjacent": true, "mediaControls": true,
     "infoPanel": false, "hideNavbarFullscreen": true, "navbarHideMs": 4000

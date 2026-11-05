@@ -13,6 +13,7 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("thumbNetwork", Rule::Bool),
     ("thumbPhone", Rule::Bool),
     ("thumbUsb", Rule::Bool),
+    ("prefetchOnHover", Rule::Bool),
     ("ctrlZoom", Rule::Bool),
     ("hideFilmstrip", Rule::Bool),
     ("preloadAdjacent", Rule::Bool),

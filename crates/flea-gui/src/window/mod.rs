@@ -13,6 +13,7 @@ mod events;
 pub(crate) mod external_action;
 pub(crate) mod external_action_ipc;
 pub(crate) mod filter;
+mod folder_prefetch;
 pub(crate) mod frame_feedback;
 mod frame_style;
 pub(crate) mod glass;

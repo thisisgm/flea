@@ -98,6 +98,17 @@ pub fn preview_rows(state: &State<'_>) -> Vec<Row> {
         // Grid zoom never greys with thumbnails: the tiles still size from it.
         Row::check("preview.ctrlZoom", "settings.row.ctrl_zoom", "move-horizontal", not_false(data, &p("ctrlZoom"))),
     ]);
+    let mut prefetch = Row::check(
+        "preview.prefetchOnHover",
+        "",
+        "",
+        is_true(data, &p("prefetchOnHover")),
+    );
+    prefetch.label = Text::Data("Prefetch folder contents on hover".into());
+    out.push(prefetch);
+    out.push(Row::hint(Text::Data(
+        "Waits 350 ms. Skips folders over 256 items. Warms up to 32 thumbnails and 8 folder sizes.".into(),
+    )));
     if std::env::var_os("FLEA_CUSTOM_PREVIEW").is_some_and(|v| v == "1") {
         let mut group = Row::group("");
         group.label = Text::Data("Quick Look".into());
