@@ -22,6 +22,11 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         Row::action("columns", "settings.row.columns", "columns", Text::List(shown)),
         choice("addressBar", "settings.row.address_bar", "", &["path", "breadcrumb"],
             &["settings.choice.path", "settings.choice.breadcrumb"], word(data, &["addressBar"], "breadcrumb")),
+        // The window's bar across the whole window above the places, or only above the list beside them as Trash draws
+        // it; mixed keeps each as it ships.
+        choice("windowBar", "settings.row.window_bar", "", &["mixed", "list", "window"],
+            &["settings.choice.bar_mixed", "settings.choice.bar_list", "settings.choice.bar_window"],
+            word(data, &["windowBar"], "mixed")),
         choice("columnsLimit", "settings.row.columns_limit", "columns", &["2", "3", "4", "5"],
             &["settings.choice.n2", "settings.choice.n3", "settings.choice.n4", "settings.choice.n5"], &limit),
         // 0.4.0: Git status sits before Highlight today's dates and ships off.

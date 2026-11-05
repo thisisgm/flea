@@ -32,8 +32,20 @@ impl Shell {
         for pane in &mut geometry.panes {
             pane.height = (pane.height - detail).max(0.);
         }
+        // Settings > View "Window bar": mixed keeps the bar across the window and lets a cover such as Trash take the
+        // full height beside the places; list draws every folder that way, window keeps the places below the bar's
+        // band under a cover too.
+        let bar =
+            flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["windowBar"], "mixed");
         if view != View::Dual && (self.slots.covers[0].is_some() || self.flash_covers(0)) {
-            geometry.cover_single();
+            // Only Trash reads the inset that keeps its body beside the places; the flasher takes its whole rectangle.
+            if bar == "window" && !self.flash_covers(0) {
+                geometry.cover_below_bar();
+            } else {
+                geometry.cover_single();
+            }
+        } else if bar == "list" {
+            geometry.bar_over_list();
         }
         geometry
     }

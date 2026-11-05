@@ -10,6 +10,7 @@ pub const DEFAULTS: &str = r#"{
   "columnsLimit": 3,
   "columnWidths": {},
   "addressBar": "breadcrumb",
+  "windowBar": "mixed",
   "sort": { "key": "name", "reverse": false },
   "rememberSort": true,
   "folderSorts": {},
@@ -196,6 +197,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("columnsLimit", Rule::Count(2.0, 5.0)),
     ("columnWidths", Rule::ColumnWidths),
     ("addressBar", Rule::Word(&["path", "breadcrumb"])),
+    ("windowBar", Rule::Word(&["mixed", "list", "window"])),
     ("sort", Rule::Group(SORT)),
     ("rememberSort", Rule::Bool),
     ("folderSorts", Rule::FolderSorts),
@@ -296,7 +298,7 @@ mod tests {
         assert_eq!(
             keys,
             [
-                "view", "pickerView", "density", "columns", "columnsLimit", "columnWidths", "addressBar", "sort", "rememberSort", "folderSorts", "rememberViewPerFolder", "folderViews",
+                "view", "pickerView", "density", "columns", "columnsLimit", "columnWidths", "addressBar", "windowBar", "sort", "rememberSort", "folderSorts", "rememberViewPerFolder", "folderViews",
                 "dual",
                 "foldersFirst",
                 "groupByKind",
@@ -323,6 +325,7 @@ mod tests {
         assert_eq!(d.get("pickerView").and_then(Json::as_str), Some("list"));
         assert_eq!(d.get("density").and_then(Json::as_str), Some("compact"));
         assert_eq!(d.get("addressBar").and_then(Json::as_str), Some("breadcrumb"));
+        assert_eq!(d.get("windowBar").and_then(Json::as_str), Some("mixed"));
         assert_eq!(d.get("keys").and_then(Json::as_str), Some("default"));
         assert_eq!(d.get("foldersFirst").and_then(Json::as_bool), Some(true));
         assert_eq!(d.get("groupByKind").and_then(Json::as_bool), Some(false));

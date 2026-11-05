@@ -1,4 +1,4 @@
-//! The Trash strip, the column header and the empty-state line, laid out by the boards' numbers.
+//! The Trash strip and the empty-state line, laid out by the boards' numbers; the column header is in header.rs.
 use super::board::{Glyph, DISABLED, HOVER, PRESS};
 use super::controls::track;
 use super::glyph::GlyphBox;
@@ -81,8 +81,14 @@ impl TrashPane {
         }
     }
 
-    fn strip(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn strip(&self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
         let ink = self.paint.borrow().ink;
+        // Unified, the strip's words take the bar's glass lift, as the path and buttons over every folder do.
+        let words_ink = if self.unified {
+            crate::window::glass::producers::text_ink(ink.foreground, window, cx)
+        } else {
+            ink.foreground
+        };
         let catalog = &self.catalog;
         let look = self.button_look();
         let board = self.board();
@@ -140,11 +146,27 @@ impl TrashPane {
             .items_center()
             .px(px(board.pad_x))
             .gap(px(board.gap))
-            .bg(ink.surface)
+            .relative()
+            .when(!self.unified, |strip| strip.bg(ink.surface))
+            // Unified, the window bar's own ground, so the strip reads as the bar does over every other folder;
+            // pinned to the corner, so the padding leaves no band of the ground uncovered.
+            .when(self.unified, |strip| {
+                strip.child(
+                    div().absolute().top_0().left_0().size_full().child(
+                        crate::window::glass::producers::backdrop(
+                            crate::window::glass::producers::Producer::Chrome,
+                            cx.try_global::<crate::palette::Theme>()
+                                .copied()
+                                .unwrap_or_default()
+                                .chrome(),
+                        ),
+                    ),
+                )
+            })
             .border_b_1()
             .border_color(ink.hair())
             .text_size(board.caption)
-            .text_color(ink.foreground)
+            .text_color(words_ink)
             .child(self.chrome_button(Glyph::Back, true, "trash-back", cx))
             .child(self.chrome_button(Glyph::Up, false, "trash-up", cx))
             .child(
@@ -154,53 +176,6 @@ impl TrashPane {
             )
             .child(div().flex_1().min_w(px(0.)).overflow_hidden().child(count))
             .child(button)
-            .into_any_element()
-    }
-
-    fn header(&self) -> AnyElement {
-        let ink = self.paint.borrow().ink;
-        let board = self.board();
-        let tr = |key: &str| SharedString::from(self.catalog.tr(key));
-        let deleted = SharedString::from(crate::navigation::sort::title(
-            &self.catalog.tr("trash.header.deleted"),
-            true,
-        ));
-        div()
-            .debug_selector(|| "trash-header".into())
-            .h(px(board.header_h))
-            .flex_none()
-            .flex()
-            .items_center()
-            .gap(px(board.gap))
-            .px(px(board.pad_x))
-            .text_size(board.caption)
-            .text_color(ink.foreground)
-            .border_b_1()
-            .border_color(ink.hair())
-            .child(div().w(px(board.slot)).flex_none())
-            .child(
-                div()
-                    .flex_1()
-                    .min_w(px(0.))
-                    .overflow_hidden()
-                    .child(tr("trash.header.name")),
-            )
-            .child(
-                div()
-                    .w(px(board.location_w))
-                    .flex_none()
-                    .flex()
-                    .justify_end()
-                    .child(tr("trash.header.location")),
-            )
-            .child(
-                div()
-                    .w(px(board.deleted_w))
-                    .flex_none()
-                    .flex()
-                    .justify_end()
-                    .child(deleted),
-            )
             .into_any_element()
     }
 
@@ -261,10 +236,16 @@ impl Render for TrashPane {
         let face = crate::list::Typeface::for_window(window, cx);
         self.set_face(&face, cx);
         let ink = self.paint.borrow().ink;
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let glassy = crate::window::glass::producers::requested(window, cx) < 1.;
         if self.presentation_loading {
             self.loading_at
                 .get_or_insert(cx.background_executor().now());
         }
+        let inset = self.inset;
         let empty = if self.presentation_loading {
             Some((self.catalog.tr("trash.reading"), false))
         } else {
@@ -275,8 +256,10 @@ impl Render for TrashPane {
                 .debug_selector(|| "trash-empty-line".into())
                 .absolute()
                 .top_0()
-                .left_0()
-                .size_full()
+                .bottom_0()
+                .right_0()
+                // Centred in the whole view, less the places a window-wide strip runs over.
+                .left(px(inset))
                 .flex()
                 .items_center()
                 .justify_center()
@@ -357,12 +340,28 @@ impl Render for TrashPane {
             .size_full()
             .flex()
             .flex_col()
-            .bg(ink.background)
             .font_family(self.paint.borrow().font.family.clone())
             .track_focus(&self.focus)
-            .child(self.strip(cx))
-            .child(self.header())
-            .child(list)
+            .child(self.strip(window, cx))
+            .child(
+                // The list's ground starts below the strip, which wears the bar's own; the inset keeps the header and
+                // rows beside the places when the strip spans the window.
+                div()
+                    .relative()
+                    .flex_1()
+                    .min_h(px(0.))
+                    .ml(px(self.inset))
+                    .flex()
+                    .flex_col()
+                    .bg(ink.background)
+                    .child(self.header(
+                        glassy,
+                        theme.background,
+                        // The list header's titles: its metadata ink, Name above the marks as every folder draws it.
+                        crate::window::glass::producers::text_ink(ink.metadata, window, cx),
+                    ))
+                    .child(list),
+            )
             .children(empty)
             .into_any_element()
     }

@@ -9,6 +9,7 @@ mod fix_tests;
 #[cfg(test)]
 mod flow_tests;
 pub(crate) mod glyph;
+mod header;
 #[cfg(test)]
 mod hover_tests;
 pub mod ink;

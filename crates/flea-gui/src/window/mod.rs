@@ -4,6 +4,7 @@ pub(crate) mod chrome_move;
 mod chrome_move_tests;
 pub mod columns;
 pub mod composition;
+mod composition_bar;
 pub(crate) mod devices;
 pub(crate) mod dispatch;
 mod dual_edge;
