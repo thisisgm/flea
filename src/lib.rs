@@ -63,9 +63,11 @@ pub mod backend {
     pub mod fifotest;
     // Quick Look reads a picture's header beside its meta ask, so the picture draws before the reply.
     pub mod imagesize;
+    pub mod md5;
     pub mod rastertemp;
     pub mod regfile;
     #[cfg(test)]
     pub mod testdir;
+    pub mod thumbcache;
     pub mod trashdate;
 }

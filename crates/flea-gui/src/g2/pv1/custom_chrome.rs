@@ -1,9 +1,9 @@
 //! Window chrome and a bounded filmstrip. All strokes remain inside their cards.
-use super::{Event, QuickLook, custom::Custom};
 use super::{bar, glyph::Glyph};
+use super::{custom::Custom, Event, QuickLook};
 use gpui::{
-    AnyElement, Context, Hsla, MouseButton, ObjectFit, SharedString, Window, div, img, prelude::*,
-    px,
+    div, img, prelude::*, px, AnyElement, Context, Hsla, MouseButton, ObjectFit, SharedString,
+    Window,
 };
 
 fn button(label: &str, action: &'static str, cx: &mut Context<QuickLook>) -> AnyElement {
@@ -166,13 +166,18 @@ impl QuickLook {
                                 .object_fit(ObjectFit::Contain),
                         );
                     } else {
-                        card = card.child(div().h(px(56.)).flex().items_center().child(
-                            if item.row.icon.contains("video") {
-                                "▶"
-                            } else {
-                                "◇"
-                            },
-                        ));
+                        card = card.child(
+                            div()
+                                .h(px(56.))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .child(bar::mark(
+                                    Glyph::kind(&item.row.icon, item.row.mode),
+                                    28.,
+                                    theme.foreground,
+                                )),
+                        );
                     }
                     card.on_mouse_down(
                         MouseButton::Left,

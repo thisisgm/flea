@@ -28,7 +28,9 @@ pub(crate) fn enabled() -> bool {
     std::env::var_os("FLEA_CUSTOM_PREVIEW").is_some_and(|v| v == "1")
 }
 fn previewable(row: &RowFacts) -> bool {
-    !row.dir && kinds::quick_look_kind(&row.icon, &row.name, false) != State::Unsupported
+    !row.dir
+        && (kinds::quick_look_kind(&row.icon, &row.name, false) != State::Unsupported
+            || super::mount::Mount::of(row).is_some())
 }
 
 impl Shell {
