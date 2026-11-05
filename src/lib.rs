@@ -55,6 +55,7 @@ pub mod ui_logic_st2;
 
 // The catalog and locale API shares the backend's regular-file and wall-clock primitives.
 pub mod backend {
+    pub mod blockdev;
     pub mod netfs;
     pub mod networkaddress;
     #[cfg(test)]

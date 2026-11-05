@@ -38,6 +38,8 @@ struct Peek {
     path: String,
     hidden: bool,
     released: bool,
+    /// The storage rules the read checks against, by class; a change of rules asks a new read.
+    rules: Option<[bool; 4]>,
     /// The read this peek waits for; only that read's answer lands here.
     generation: u64,
     read_at: std::time::Instant,
@@ -107,7 +109,7 @@ impl PartialOrd for Ranked {
 fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option<Answer> {
     // The folder's own storage: a mount point or a link onto a held class waits for Load, as a file there would.
     if let Some(gate) = gate {
-        let table = std::fs::read_to_string("/proc/self/mounts").unwrap_or_default();
+        let table = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
         let class = super::list_mount::crossing(&table, Path::new(&gate.parent), Path::new(path));
         let at = |class| {
             super::list_mount::CLASSES
@@ -214,10 +216,14 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let released = gate.is_none();
+        let rules = gate.as_ref().map(|gate| gate.loads);
         let start = PEEK.with(|peek| {
             let mut peek = peek.borrow_mut();
             let current = peek.shown.as_ref().is_some_and(|shown| {
-                shown.path == path && shown.hidden == hidden && shown.released == released
+                shown.path == path
+                    && shown.hidden == hidden
+                    && shown.released == released
+                    && shown.rules == rules
             });
             let fresh = current
                 && peek.shown.as_ref().is_some_and(|shown| {
@@ -232,6 +238,7 @@ impl Shell {
                     path: path.to_owned(),
                     hidden,
                     released,
+                    rules,
                     generation,
                     read_at: std::time::Instant::now(),
                     entries: None,

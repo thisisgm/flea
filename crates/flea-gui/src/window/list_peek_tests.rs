@@ -1,7 +1,13 @@
 use super::*;
 
+/// WANTED is one per process: tests that set it hold this, so one never cancels another's read.
+static WANTED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[test]
 fn a_folder_read_keeps_the_first_entries_and_stops_once_another_is_wanted() {
+    let _wanted = WANTED_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let dir = std::env::temp_dir().join(format!("flea-list-side-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("Zeta")).unwrap();
@@ -33,6 +39,9 @@ fn a_folder_read_keeps_the_first_entries_and_stops_once_another_is_wanted() {
 
 #[test]
 fn a_release_lasts_only_its_listing_and_leaving_stops_the_read() {
+    let _wanted = WANTED_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     PEEK.with(|peek| peek.borrow_mut().released = Some(("/f/a".into(), 3)));
     assert!(released("/f/a", 3));
     // Another listing (a tab switch, a reload) forgets it, and it does not come back.
@@ -44,6 +53,7 @@ fn a_release_lasts_only_its_listing_and_leaving_stops_the_read() {
             path: "/f/a".into(),
             hidden: false,
             released: false,
+            rules: None,
             generation: 9,
             read_at: std::time::Instant::now(),
             entries: None,

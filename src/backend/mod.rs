@@ -55,6 +55,7 @@ mod gitreq_process_tests;
 pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
+pub mod blockdev;
 pub mod networkaddress;
 pub mod nearby;
 pub mod nearbyrows;

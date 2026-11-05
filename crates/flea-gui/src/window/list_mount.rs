@@ -1,4 +1,4 @@
-//! The storage class of a folder a List view preview would read, from the mount table alone.
+//! The storage class of a folder a List view preview would read, from the mount table and sysfs alone.
 //!
 //! The folder's own mount decides, not its parent's: a mount point or a link onto another mount answers that
 //! mount's class. Links are followed one component at a time, and a component on a mount that may stall is
@@ -11,6 +11,8 @@ pub(super) const CLASSES: [&str; 4] = ["", "network", "phone", "usb"];
 struct Mount {
     point: PathBuf,
     kind: String,
+    /// The block device's major:minor, empty for a mount that names none.
+    device: String,
 }
 
 /// The mount table's octal escapes (space, tab, newline, backslash) decoded.
@@ -40,17 +42,20 @@ fn unescape(field: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-/// The mount holding a path: the deepest mount point it lies under.
+/// The mount holding a path, from /proc/self/mountinfo: the deepest mount point it lies under.
 fn holding(table: &str, path: &Path) -> Option<Mount> {
     table
         .lines()
         .filter_map(|line| {
-            let mut fields = line.split_whitespace();
-            let (_, point, kind) = (fields.next()?, fields.next()?, fields.next()?);
+            let (head, tail) = line.split_once(" - ")?;
+            let mut fields = head.split_whitespace();
+            let (device, point) = (fields.nth(2)?, fields.nth(1)?);
             let point = PathBuf::from(unescape(point));
+            let kind = tail.split_whitespace().next()?.to_owned();
             path.starts_with(&point).then(|| Mount {
                 point,
-                kind: kind.to_owned(),
+                kind,
+                device: device.to_owned(),
             })
         })
         .max_by_key(|mount| mount.point.components().count())
@@ -69,7 +74,8 @@ fn class_of(mount: &Mount, path: &Path) -> &'static str {
         } else {
             "network"
         }
-    } else if mount.point.starts_with("/run/media") || mount.point.starts_with("/media") {
+    } else if flea::backend::blockdev::usb_for(Some(&mount.device)) {
+        // The device decides, wherever it is mounted: sysfs is read, never the mount.
         "usb"
     } else {
         ""
@@ -145,13 +151,16 @@ mod tests {
         let link = |name: &str, to: String| std::os::unix::fs::symlink(to, dir.join(name)).unwrap();
         link("nas", at("share/docs"));
         link("phone", at("gvfs/mtp:host=Pixel/DCIM"));
-        let table = format!(
-            "/dev/root / btrfs rw 0 0\nrc: {} fuse.rclone rw 0 0\n\
-             gvfsd-fuse {} fuse.gvfsd-fuse rw 0 0\n/dev/sdb1 {} vfat rw 0 0\n",
-            at("share"),
-            at("gvfs"),
-            at("disk")
-        );
+        let line = |id: u32, device: &str, point: String, kind: &str| {
+            format!("{id} 1 {device} / {point} rw - {kind} src rw\n")
+        };
+        let table = [
+            line(21, "0:20", "/".into(), "btrfs"),
+            line(57, "0:50", at("share"), "fuse.rclone"),
+            line(58, "0:51", at("gvfs"), "fuse.gvfsd-fuse"),
+            line(59, "0:999", at("disk"), "vfat"),
+        ]
+        .concat();
         let class = |name: &str| crossing(&table, &dir, &dir.join(name));
         // A folder on its parent's mount answers nothing; the read follows the parent's own rules.
         assert_eq!(class("plain"), None);
@@ -159,16 +168,13 @@ mod tests {
         assert_eq!(class("nas"), Some("network"));
         assert_eq!(class("phone"), Some("phone"));
         assert_eq!(class("disk"), Some(""));
-        assert_eq!(
-            class_of(
-                &Mount {
-                    point: "/run/media/me/USB".into(),
-                    kind: "vfat".into()
-                },
-                Path::new("/run/media/me/USB/photos")
-            ),
-            "usb"
-        );
+        // Under /media or not, a disk sysfs does not call USB or removable is local.
+        let internal = Mount {
+            point: "/media/data".into(),
+            kind: "ext4".into(),
+            device: "0:999".into(),
+        };
+        assert_eq!(class_of(&internal, Path::new("/media/data/photos")), "");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
