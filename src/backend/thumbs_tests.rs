@@ -291,7 +291,7 @@ fn a_real_file_round_trips_to_a_stamped_cache_entry() {
         .expect("no result");
     let out = match done.result {
         Outcome::Ready(p) => p,
-        Outcome::Failed => panic!("a real thumbnailer failed on a valid png"),
+        Outcome::Failed | Outcome::Cancelled => panic!("a real thumbnailer failed on a valid png"),
     };
     let bytes = std::fs::read(&out).unwrap();
     let published = std::fs::read_dir(fixture.sandbox.join("large"))

@@ -6,6 +6,7 @@ use crate::{
 };
 use std::{
     io::Write,
+    os::fd::OwnedFd,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -100,6 +101,8 @@ pub struct Replies {
     replies: Vec<Reply>,
     refused: Vec<Reply>,
     finished: bool,
+    video_control: Option<OwnedFd>,
+    video_cancelled: bool,
 }
 pub type Shared = Arc<Mutex<Replies>>;
 pub type Registry = Vec<std::sync::Weak<Mutex<Replies>>>;
@@ -114,7 +117,7 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
         .filter_map(std::sync::Weak::upgrade)
     {
         let mut replies = shared.lock().unwrap();
-        if replies.finished || replies.path != path {
+        if replies.finished || replies.video_cancelled || replies.path != path {
             continue;
         }
         // Already answered refusals are terminal, so a retry cannot publish or subscribe again.
@@ -147,9 +150,40 @@ pub fn start(st: &mut State, path: PathBuf, mtime: i64, reply: Option<Reply>) ->
         replies: reply.into_iter().collect(),
         refused: Vec::new(),
         finished: false,
+        video_control: None,
+        video_cancelled: false,
     }));
     st.thumb_replies.push(Arc::downgrade(&shared));
     shared
+}
+
+pub(in crate::backend) fn arm_video(shared: &Shared, reply: &OwnedFd) {
+    shared.lock().unwrap().video_control = reply.try_clone().ok();
+}
+
+pub(in crate::backend) fn finish_video(shared: &Shared) -> bool {
+    let mut context = shared.lock().unwrap();
+    context.video_control = None;
+    context.video_cancelled
+}
+
+pub(super) fn cancel_video(st: &State, path: &Path) -> bool {
+    let Some(mtime) = st.thumb_mtimes.get(path) else { return false };
+    for shared in st.thumb_replies.iter().rev().filter_map(std::sync::Weak::upgrade) {
+        let mut context = shared.lock().unwrap();
+        if context.path != path || context.listing != st.generation || context.mtime != *mtime
+            || context.finished || !context.replies.is_empty() || context.video_cancelled
+        {
+            continue;
+        }
+        let Some(reply) = context.video_control.as_ref() else { return false };
+        if crate::backend::fdpass::send_byte(reply, crate::backend::thumbworker::CANCEL_VIDEO).is_err() {
+            return false;
+        }
+        context.video_cancelled = true;
+        return true;
+    }
+    false
 }
 
 pub fn retire_row(st: &State, row: usize) {

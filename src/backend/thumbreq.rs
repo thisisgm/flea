@@ -174,7 +174,7 @@ pub(crate) fn cancel_all(st: &mut State, pool: &Pool) {
     }
 }
 
-// A job already inside a worker cannot be cancelled, so its row stays mapped until it reports.
+// Cancel queued work or an active job owned by the shared video worker.
 pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row: usize) {
     identity::retire_row(st, row);
     let at = match st.asked.iter().position(|(_, r)| *r == row) {
@@ -186,9 +186,10 @@ pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row:
     if dropped.is_empty() {
         dropped = pool.cancel(&st.asked[at].0, None);
     }
-    if dropped.is_empty() {
+    if dropped.is_empty() && !identity::cancel_video(st, &st.asked[at].0) {
         return;
     }
+    // An active cancellation leaves its slot charged until its worker reports.
     st.outstanding = st.outstanding.saturating_sub(dropped.len());
     st.thumb_mtimes.remove(&st.asked[at].0);
     st.asked.remove(at);
@@ -204,6 +205,14 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
     let file = match done.result {
         Outcome::Ready(p) => p.to_string_lossy().into_owned(),
         Outcome::Failed => String::new(),
+        Outcome::Cancelled => {
+            if let Some(t) = &done.trace {
+                eprintln!("flea: cancelled active video row={}", t.row);
+            }
+            identity::complete(out, st, &done.replies, "", done.ms);
+            out.flush().ok();
+            return;
+        }
     };
     super::trashthumb::answer(out, st, &done.path, done.mtime, done.trash_identity.as_deref(), &file);
     if let Some(at) = st.asked.iter().position(|(p, _)| done.trash_identity.is_none() && *p == done.path && st.thumb_mtimes.get(p) == Some(&done.mtime)) {

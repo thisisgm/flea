@@ -54,6 +54,7 @@ pub fn trace(row: usize) -> Option<Trace> {
 pub enum Outcome {
     Ready(PathBuf),
     Failed,
+    Cancelled,
 }
 
 pub struct Done {
@@ -254,7 +255,13 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
     // A video the pre-linked worker can take goes there first; anything it does not finish runs the exec path as before.
     let by_worker = match (&tables.worker, worker_shape(spec)) {
-        (Some(worker), Some(film_strip)) => worker.generate(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT),
+        (Some(worker), Some(film_strip)) => match worker.generate_for(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT, job.replies.as_ref()) {
+            Ok(result) => result,
+            Err(_) => {
+                discard(&temp);
+                return Outcome::Cancelled;
+            }
+        },
         _ => None,
     };
     let ran = match by_worker {

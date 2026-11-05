@@ -99,7 +99,7 @@ or with one before ABI 3, which cannot deny a truncation, gets no worker at all:
 worker is also not dumpable, which children inherit, so no process of the same user can ptrace it or
 read its descriptors.
 
-**The worker's only final verdict is a thumbnail.** It reaps each child through a pidfd, kills one
+**The worker reports how each job ended.** It reaps each child through a pidfd, kills one
 still running at `JOB_TIMEOUT`, and writes one byte on that job's reply socket: `S` for exit 0, `F`
 for a refusal, a signal or the deadline, and `N` for exit 2, a failure of this machine inside the
 child such as a confinement step refused or a write that failed. `S` publishes the thumbnail. `F`
@@ -112,15 +112,20 @@ off-local, where a timeout records no marker. `workerlink::tests::
 only_a_thumbnail_is_final_and_a_machine_failure_retires_the_worker` answers one request each way
 from a stand-in worker and pins that only `S` publishes, that `F` keeps the worker and that `N`
 retires it, and `gone_because` is what names an `N` apart from a worker that stopped answering.
-`thumbworker::tests::a_verdict_is_read_from_how_the_child_ended` forks a real child for each ending,
-exit 0, 1 and 2, a signal, and exit 0 or a hang past the deadline, and pins the byte `finish`
-answers. The child never holds its reply socket, so a reply that closes with no byte can only mean
-the worker died.
+`thumbworker::jobs::tests::a_verdict_is_read_from_how_the_child_ended` pins the verdict for
+exits 0, 1 and 2, a signal, a deadline and a cancellation. The child never holds its reply
+socket, so a reply that closes with no byte can only mean the worker died.
+
+**An explicit row cancellation can stop a running video job.** Once the backend has
+registered the job's reply socket, it sends `C` on that socket to cancel. The worker signals
+that decoder and polls its pidfd alongside other jobs. It replies with `X` after reaping the
+child. Cancellation discards the temporary image and skips the exec retry and failure marker.
 
 **Every failure of the worker falls back, and none judges a file.** No worker, a library that will
 not load, no Landlock that can deny a truncation, a request that cannot be sent, an `N`, a reply that closes with no byte, or
 no word within `JOB_TIMEOUT` plus 5 s all retire the worker for the rest of the process and send
-that job, and every later one, down the exec path. One stderr line names the cause, such as `flea:
+that job and later jobs down the exec path. A job the backend has already cancelled stays cancelled.
+One stderr line names the cause, such as `flea:
 the thumbnail worker did not start (libffmpegthumbnailer.so.4 did not load), so videos use the
 thumbnailer program`, or no Landlock, no answer within 5 s, an exit before any answer or `bwrap` not
 starting, and once it ran, `failed a job on this machine`, `stopped answering` or `stopped taking
