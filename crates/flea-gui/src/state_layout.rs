@@ -32,8 +32,10 @@ impl Shell {
         for pane in &mut geometry.panes {
             pane.height = (pane.height - detail).max(0.);
         }
+        // No preview beside a cover: Trash or the flasher takes the pane's whole slot.
         if view == View::List
             && self.slots.covers[0].is_none()
+            && !self.flash_covers(0)
             && crate::window::list_side::enabled(&self.launch.settings.data)
         {
             geometry.side = crate::window::list_side::split(
