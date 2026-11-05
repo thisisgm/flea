@@ -28,6 +28,7 @@ pub const DEFAULTS: &str = r#"{
   "openMode": "double",
   "clickRename": true,
   "openFoldersWhileDragging": false,
+  "scrollKeepsCursor": false,
   "keyHints": false,
   "startIn": "home",
   "startFolder": "",
@@ -216,6 +217,8 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("openMode", Rule::Word(&["double", "single"])),
     ("clickRename", Rule::Bool),
     ("openFoldersWhileDragging", Rule::Bool),
+    // A wheel, touchpad or scrollbar scroll moves only the viewport and leaves the cursor on its row; off until chosen.
+    ("scrollKeepsCursor", Rule::Bool),
     // The Menus section's "Show keyboard hints" row: every menu's key column and the empty
     // directory's own tip, off until it is switched on.
     ("keyHints", Rule::Bool),
@@ -310,6 +313,7 @@ mod tests {
                 "openMode",
                 "clickRename",
                 "openFoldersWhileDragging",
+                "scrollKeepsCursor",
                 "keyHints",
                 "startIn",
                 "startFolder",
