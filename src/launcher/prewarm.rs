@@ -31,6 +31,7 @@ pub fn write_prewarm(path: &str, first: usize, dest: &Path) -> Result<(), FleaEr
     wrote
 }
 
+/// Write a prewarmed listing to its temporary cache file.
 fn write_to_tmp(path: &str, first: usize, dest: &Path, tmp: &Path) -> Result<(), FleaError> {
     // Prewarm never asks for dotfiles: it mirrors list's own default, see docs/protocol.md.
     let (mut listing, read_ms) = scan(path, false)?;

@@ -19,6 +19,7 @@ const PALETTE: Palette = Palette {
     frame: [0.5, 0.5, 0.52],
 };
 
+/// Render a supported STL input to the sandbox-provided thumbnail file.
 pub fn run(args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = args.collect();
     let [input, output, size] = args.as_slice() else {
