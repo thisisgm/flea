@@ -5,6 +5,7 @@ use gpui::{
     Pixels, Window,
 };
 
+/// Captures filename selection drags and retires them on release, a menu, or an inactive editor.
 pub(super) fn register(
     entity: Entity<Shell>,
     frame: Bounds<Pixels>,
@@ -64,6 +65,7 @@ pub(super) fn register(
                 return;
             }
             if event.pressed_button != Some(MouseButton::Left)
+                || shell.menu.text.is_some()
                 || edit.pending.is_some()
                 || !edit.entry.editing
             {

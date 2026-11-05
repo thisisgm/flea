@@ -1,11 +1,17 @@
 //! Pointer selection must edit only the dragged part of an inline filename.
-use super::{close, draw, editing, ready, sent};
+use super::{close, draw, editing, ready, ready_root, sent};
 use crate::{state::Shell, window::startup::View};
 use gpui::{Entity, EntityInputHandler, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 use std::time::Duration;
 
-fn drag(shell: &Entity<Shell>, cx: &mut VisualTestContext, from: usize, to: usize) {
-    let (start, end) = cx.update(|window, cx| {
+/// Finds two byte offsets through the field's shaped UTF-16 platform geometry.
+fn points(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    from: usize,
+    to: usize,
+) -> (gpui::Point<gpui::Pixels>, gpui::Point<gpui::Pixels>) {
+    cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let edit = shell.rename.edit.as_ref().unwrap();
             let frame = edit.line.frame.unwrap();
@@ -21,7 +27,12 @@ fn drag(shell: &Entity<Shell>, cx: &mut VisualTestContext, from: usize, to: usiz
             };
             (at(from), at(to))
         })
-    });
+    })
+}
+
+/// Delivers a complete selection gesture and verifies mouse-up releases its anchor.
+fn drag(shell: &Entity<Shell>, cx: &mut VisualTestContext, from: usize, to: usize) {
+    let (start, end) = points(shell, cx, from, to);
     cx.simulate_mouse_move(start, None, Modifiers::default());
     cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
     draw(cx);
@@ -36,6 +47,7 @@ fn drag(shell: &Entity<Shell>, cx: &mut VisualTestContext, from: usize, to: usiz
     assert_eq!(editing(shell, cx).unwrap().2, selected);
 }
 
+/// Backspace removes only the dragged range without submitting a rename.
 #[gpui::test]
 fn dragging_in_the_rename_field_selects_only_that_text(cx: &mut TestAppContext) {
     let (shell, cx, mut lines) = ready(cx, "default");
@@ -52,6 +64,7 @@ fn dragging_in_the_rename_field_selects_only_that_text(cx: &mut TestAppContext) 
     close(&shell, cx);
 }
 
+/// Each listing layout keeps the same selection anchor in either drag direction.
 #[gpui::test]
 fn rename_mouse_selection_works_in_both_directions_in_every_view(cx: &mut TestAppContext) {
     for view in [View::List, View::Columns, View::Grid, View::Dual] {
@@ -77,6 +90,7 @@ fn rename_mouse_selection_works_in_both_directions_in_every_view(cx: &mut TestAp
     }
 }
 
+/// Pointer offsets preserve UTF-8 filenames when the selected word is replaced.
 #[gpui::test]
 fn rename_mouse_selection_preserves_unicode_and_replaces_the_selected_word(
     cx: &mut TestAppContext,
@@ -89,5 +103,42 @@ fn rename_mouse_selection_preserves_unicode_and_replaces_the_selected_word(
     assert_eq!(editing(&shell, cx).unwrap().2, "деталь");
     cx.simulate_input("модель");
     assert_eq!(editing(&shell, cx).unwrap().1, "моя модель.txt");
+    close(&shell, cx);
+}
+
+/// A context menu must freeze the selection even if the original left button stays down.
+#[gpui::test]
+fn rename_menu_retires_a_held_filename_selection(cx: &mut TestAppContext) {
+    let (shell, cx, mut lines) = ready_root(cx, "default");
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    let (start, end) = points(&shell, cx, 1, 4);
+    cx.simulate_mouse_move(start, None, Modifiers::default());
+    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+    draw(cx);
+    cx.simulate_mouse_move(end, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(editing(&shell, cx).unwrap().2, "ote");
+    cx.simulate_mouse_down(end, MouseButton::Right, Modifiers::default());
+    draw(cx);
+    assert!(shell.read_with(cx, |shell, _| shell.menu.text.is_some()));
+    cx.simulate_mouse_move(start, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx).unwrap().2,
+        "ote",
+        "the menu freezes its Cut/Copy selection"
+    );
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.retire_menu(window, cx)));
+    draw(cx);
+    cx.simulate_mouse_move(start, Some(MouseButton::Left), Modifiers::default());
+    draw(cx);
+    assert_eq!(
+        editing(&shell, cx).unwrap().2,
+        "ote",
+        "closing the menu must not revive the gesture"
+    );
+    cx.simulate_mouse_up(start, MouseButton::Left, Modifiers::default());
+    assert!(sent(&mut lines).is_empty());
     close(&shell, cx);
 }
