@@ -20,7 +20,7 @@ The Stage13 landing correction retains exact scoped composition ceilings for the
 
 ## File budget
 
-Scrolling that leaves the cursor in place records `src/uischema.rs` 622 to 626 from `wc -l`, for the scrollKeepsCursor default, its rule and the key list. Its window sync lives with the pane input, so `render.rs` stays under the cap. Global limits remain unchanged.
+Scrolling that leaves the cursor in place records `src/uischema.rs` 622 to 626 from `wc -l`, for the scrollKeepsCursor default, its rule and the key list. `crates/flea-gui/src/window/settings/apply.rs` moves from 402 to 404 so a settings change hands the choice to the panes before the next frame. Its window sync lives with the pane input, so `render.rs` stays under the cap. Global limits remain unchanged.
 
 The OPR sandbox-capability guards add three lines to each of ten contents review tests. The exact scoped ceiling for `src/backend/contents_review_tests.rs` is 476 lines, measured with `wc -l`. Every test still runs in full on namespace-capable hosts, and the global 400-line cap stays unchanged.
 

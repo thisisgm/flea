@@ -367,10 +367,13 @@ impl PaneInput {
 #[cfg(test)]
 mod band_delta_tests;
 #[cfg(test)]
+mod scroll_sync_tests;
+#[cfg(test)]
 mod scrolled_tests;
 
 impl crate::state::Shell {
-    /// Settings > View "Scrolling leaves the cursor in place", per window, read before any wheel or scrollbar move.
+    /// Settings > View "Scrolling leaves the cursor in place", per window, read before any wheel or scrollbar move:
+    /// on every frame and as soon as the settings change. The List and Grid panes take it, never Columns.
     pub(crate) fn sync_scroll_keeps_cursor(&mut self) {
         let keep = self
             .launch
@@ -378,7 +381,9 @@ impl crate::state::Shell {
             .data
             .get("scrollKeepsCursor")
             .and_then(flea::jsondoc::Json::as_bool)
-            == Some(true);
+            == Some(true)
+            // Columns keeps its own cursor rule, so its row-drag scroll still pulls the cursor along.
+            && self.shown_view() != crate::window::startup::View::Columns;
         for host in self.panes.iter_mut().flatten() {
             host.input.keep_cursor_on_scroll = keep;
         }
