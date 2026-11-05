@@ -76,6 +76,24 @@ impl QuickLook {
         let mut result = Vec::new();
         self.custom_thumbnails(window, cx);
         self.custom_preload(window, cx);
+        let page_counter = self
+            .subject
+            .as_ref()
+            .and_then(|subject| subject.body.doc())
+            .and_then(|doc| doc.pages(cx))
+            .and_then(|pdf| {
+                let pdf = pdf.read(cx);
+                let count = pdf.surface.page_count();
+                (count > 0).then(|| {
+                    self.i18n.tr_args(
+                        "document.pdf_page_count",
+                        &[
+                            &(pdf.surface.drawn_page() + 1).to_string(),
+                            &count.to_string(),
+                        ],
+                    )
+                })
+            });
         let Some(custom) = &self.custom else {
             return result;
         };
@@ -108,6 +126,29 @@ impl QuickLook {
                             .text_ellipsis()
                             .child(name),
                     )
+                    .when_some(page_counter, |bar, counter| {
+                        bar.child(icon_button(
+                            Glyph::ChevronLeft,
+                            "Previous page",
+                            "previousPage",
+                            theme.foreground,
+                            cx,
+                        ))
+                        .child(
+                            div()
+                                .id("preview-page-counter")
+                                .flex_none()
+                                .text_color(theme.foreground)
+                                .child(counter),
+                        )
+                        .child(icon_button(
+                            Glyph::ChevronRight,
+                            "Next page",
+                            "nextPage",
+                            theme.foreground,
+                            cx,
+                        ))
+                    })
                     .child(icon_button(
                         Glyph::Info,
                         "Info",

@@ -5,7 +5,7 @@ use flea::{
     protocol::RowFacts,
     ui_logic_pv1::{kinds::State, meta::Meta},
 };
-use gpui::{Bounds, Context, Pixels, Size, point, px, size};
+use gpui::{point, px, size, Bounds, Context, Pixels, Size};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -139,6 +139,18 @@ impl QuickLook {
             .subject
             .as_ref()
             .is_some_and(|s| matches!(s.state, State::Audio | State::Video));
+        if matches!(action, "previousPage" | "nextPage") {
+            if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
+                let name = if action == "nextPage" {
+                    "previewPageForward"
+                } else {
+                    "previewPageBack"
+                };
+                doc.action(name, cx);
+                cx.notify();
+            }
+            return true;
+        }
         if action == "preview" && media {
             if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
                 doc.action("playPause", cx);
