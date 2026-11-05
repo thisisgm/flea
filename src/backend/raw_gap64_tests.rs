@@ -114,6 +114,7 @@ fn sol_gap64_iiq_thumbnailer_gets_the_original_tiff_input_instead_of_a_jpeg_copy
         mtime: 0,
         replies: None,
         mime: "image/x-phaseone-iiq".into(),
+        source_size: None,
         trash_identity: None,
         trace: None,
     };

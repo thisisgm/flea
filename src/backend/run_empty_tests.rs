@@ -66,7 +66,7 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
     assert!(tb.aliases.get().is_none() && tb.thumbs.get().is_none());
     for name in ["first-not-decoded", "second-not-decoded"] {
         let path = d.join(name);
-        pool.submit(super::super::thumbs::Job { replies: None, path: path.clone(), mtime: 0, mime: "application/x-flea-no-thumbnailer".into(), trace: None, trash_identity: None });
+        pool.submit(super::super::thumbs::Job { replies: None, path: path.clone(), mtime: 0, source_size: None, mime: "application/x-flea-no-thumbnailer".into(), trace: None, trash_identity: None });
         let reply = replies.recv_timeout(Duration::from_secs(5)).expect("each lazy job reaches the loop");
         assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
     }

@@ -1,5 +1,4 @@
-// Pixel dimensions read from a file header, because the preview column names them and the wire does
-// not carry them. Only the first bytes are read: no image is ever decoded to answer this.
+//! Read image dimensions from headers for the preview column without decoding images.
 use crate::backend::regfile::open_regular;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
@@ -22,13 +21,13 @@ pub struct Header {
     pub orientation: u8,
 }
 
+/// Read image dimensions and orientation from the file header.
 pub fn header(path: &Path) -> Option<Header> {
     let mut buf = vec![0u8; PROBE];
     let mut f = open_regular(path)?;
     let n = f.read(&mut buf).ok()?;
     buf.truncate(n);
-    // Issue 90, nixfred: a camera writes an EXIF segment of tens of kilobytes carrying its preview,
-    // and the frame header sits behind it, so a JPEG's chain is walked over the file and not the probe.
+    // Issue 90: a camera's EXIF segment can carry a preview that pushes the frame past the probe.
     if buf.starts_with(&[0xFF, 0xD8]) {
         f.seek(SeekFrom::Start(2)).ok()?;
         // Buffered, because the walk resyncs a byte at a time and a raw File makes that a syscall each.
@@ -99,11 +98,12 @@ fn step<R: Read>(r: &mut R, walked: &mut u64) -> Option<u8> {
     Some(byte[0])
 }
 
+/// Read JPEG dimensions from the marker stream.
 fn jpeg<R: Read + Seek>(r: &mut R) -> Option<(u32, u32)> {
     jpeg_frame(r).map(|(header, _)| (header.width, header.height))
 }
 
-// Read after SOI. A frame gives its dimensions and component count (0 when the count is missing).
+/// Read dimensions, orientation and the component count (0 if missing) after the JPEG SOI marker.
 pub fn jpeg_frame<R: Read + Seek>(r: &mut R) -> Option<(Header, u8)> {
     let mut walked: u64 = 0;
     let mut orientation: Option<u8> = None;

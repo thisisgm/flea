@@ -189,7 +189,7 @@ fn policy_identity_cache_hit_empty_failure_and_legacy_reply_values_are_truthful(
     let mut l = fixture("thumb-owner-cache");
     let path = l.dir.join("old.jpg");
     let mtime = path.metadata().unwrap().mtime();
-    l.st.window_meta.insert(0, (0o100644, mtime, false));
+    l.st.window_meta.insert(0, (0o100644, mtime, false, 0));
     let uri = crate::backend::thumbcache::uri_for(&path);
     let cached = l.cache.large_path(&uri);
     std::fs::create_dir_all(cached.parent().unwrap()).unwrap();

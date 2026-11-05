@@ -66,7 +66,7 @@ fn trashthumb_replacement_while_the_predecessor_runs_queues_and_delivers_its_own
             if listing {
                 st.base = d.join("files");
                 st.listing.push("photo (1).jpg", false);
-                st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), mtime, false));
+                st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), mtime, false, 0));
                 crate::backend::thumbreq::thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
             } else { request(&mut out, &mut st, &tb, &pool, &cache, &line); }
             let running = pool.cancel_all().pop().unwrap();
@@ -77,7 +77,7 @@ fn trashthumb_replacement_while_the_predecessor_runs_queues_and_delivers_its_own
             std::fs::File::options().write(true).open(&path).unwrap().set_modified(modified).unwrap();
             let replacement_mtime = path.symlink_metadata().unwrap().mtime();
             assert_ne!(replacement_mtime, mtime);
-            if listing { st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), replacement_mtime, false)); }
+            if listing { st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), replacement_mtime, false, 0)); }
             request(&mut out, &mut st, &tb, &pool, &cache, &request_line(&path, 2));
             assert_eq!((pool.pending(), st.outstanding), (1, 2), "replacement queues its own job while predecessor runs, listing={listing}");
             let queued = pool.cancel_all().pop().unwrap();
@@ -192,7 +192,7 @@ fn ordinary_listing_cancellation_keeps_trash_jobs_and_trash_cancel_keeps_listing
     use std::os::unix::fs::MetadataExt;
     st.base = d.join("files");
     st.listing.push("photo (1).jpg", false);
-    st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), mtime, false));
+    st.window_meta.insert(0, (path.symlink_metadata().unwrap().mode(), mtime, false, 0));
     let mut out = Vec::new();
     request(&mut out, &mut st, &tb, &pool, &cache, &line);
     cancel_all(&mut st, &pool);
@@ -329,7 +329,7 @@ fn producer_publication(d: &TestDir, tb: &mut Tables, path: &Path, mtime: i64, i
     let entry = format!("[Thumbnailer Entry]\nExec={} %i %o\nMimeType=image/jpeg;\n", decoder.display());
     tb.thumbs = Arc::new(Thumbnailers::from_entries(&[("producer.thumbnailer".into(), entry)], &tb.aliases)).into();
     let tables = crate::backend::thumbs::Tables { aliases: Arc::clone(&tb.aliases), specs: Arc::clone(&tb.thumbs), cache: Cache::at(d.join("cache")), worker: None };
-    let mut job = Job { replies: None, path: path.into(), mtime, trash_identity: identity.map(str::to_owned), mime: "image/jpeg".into(), trace: None };
+    let mut job = Job { replies: None, path: path.into(), mtime, source_size: None, trash_identity: identity.map(str::to_owned), mime: "image/jpeg".into(), trace: None };
     let result = crate::backend::thumbs::run_one_in(&tables, &mut job, &d.join("raw"));
     assert_eq!(job.trash_identity.as_deref(), identity);
     let uri = crate::backend::thumbcache::uri_for(path);
