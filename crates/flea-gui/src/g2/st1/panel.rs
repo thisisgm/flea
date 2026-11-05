@@ -143,11 +143,16 @@ impl Panel {
 
     /// Rows come from the document, so every write or catalog change rebuilds the pane and any standing search.
     pub fn rebuild(&mut self) {
+        let held = self.rows.get(self.cursor).map(|row| row.id.clone());
         self.rows = self.section_rows(self.section);
         self.view_height = geometry::heights(&self.section_rows("view"), &[], self.scale)
             .iter()
             .sum();
-        self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
+        // A write can reorder the rows, as a toggled column moves between shown and hidden: the cursor keeps its row.
+        self.cursor = held
+            .filter(|id| !id.is_empty())
+            .and_then(|id| self.rows.iter().position(|row| row.id == id))
+            .unwrap_or_else(|| self.cursor.min(self.rows.len().saturating_sub(1)));
         if self.query.is_some() {
             self.everything = SECTIONS
                 .iter()
@@ -277,13 +282,9 @@ impl Panel {
                 }
             }
             Press::Drag(rows) if self.rows[index].id.starts_with("column:") => {
-                let id = self.rows[index].id.clone();
                 let change = edit::move_column(&self.rows[index], self.store.document(), rows);
+                // The rows are rebuilt in the new order, and the cursor keeps the column it moved.
                 self.apply(change);
-                // The rows were rebuilt in the new order: the cursor follows the column it moved.
-                if let Some(at) = self.rows.iter().position(|row| row.id == id) {
-                    self.cursor = at;
-                }
             }
             Press::Drag(rows) => {
                 let Some(from) = self.rows[index].favourite else {

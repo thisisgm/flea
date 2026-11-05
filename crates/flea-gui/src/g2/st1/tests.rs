@@ -27,7 +27,7 @@ pub(super) fn panel(document: &str) -> Panel {
     Panel::new(Box::new(store), Facts::default(), english())
 }
 
-fn press(panel: &mut Panel, keys: &[&str]) {
+pub(super) fn press(panel: &mut Panel, keys: &[&str]) {
     for key in keys {
         let text = if key.chars().count() == 1 { *key } else { "" };
         panel.key(key, text, false);
@@ -152,28 +152,6 @@ fn columns_opens_its_page_and_back_returns_to_view() {
     }
     press(&mut panel, &["enter"]);
     assert_eq!(panel.section, "view");
-}
-
-#[test]
-fn a_shown_column_dragged_by_its_grip_changes_the_draw_order() {
-    let mut panel = panel(r#"{"columns":["name","mode","size","date"]}"#);
-    panel.show_section("columns");
-    let at = |panel: &Panel, id: &str| panel.rows.iter().position(|row| row.id == id).unwrap();
-    let shown = |panel: &Panel| {
-        render(panel.document().get("columns").unwrap())
-            .split_whitespace()
-            .collect::<String>()
-    };
-    // Mode dragged two rows down lands after Modified; the cursor follows it to its new row.
-    panel.press(at(&panel, "column:mode"), Press::Drag(2));
-    assert_eq!(shown(&panel), r#"["name","size","date","mode"]"#);
-    assert_eq!(panel.rows[panel.cursor].id, "column:mode");
-    // Past the top it stops first, and the name keeps its place ahead of every column.
-    panel.press(at(&panel, "column:mode"), Press::Drag(-9));
-    assert_eq!(shown(&panel), r#"["name","mode","size","date"]"#);
-    // A hidden column has no place in the order to move from.
-    panel.press(at(&panel, "column:kind"), Press::Drag(-1));
-    assert_eq!(shown(&panel), r#"["name","mode","size","date"]"#);
 }
 
 #[test]
