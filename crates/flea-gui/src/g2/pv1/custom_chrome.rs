@@ -48,7 +48,6 @@ impl QuickLook {
             .copied()
             .unwrap_or_default();
         let mut result = Vec::new();
-        let playing = self.custom_playing(cx);
         self.custom_thumbnails(window, cx);
         self.custom_preload(window, cx);
         let Some(custom) = &self.custom else {
@@ -90,7 +89,7 @@ impl QuickLook {
                     .into_any_element(),
             );
         }
-        if custom.filmstrip_visible(playing) {
+        if custom.filmstrip_visible() {
             let room = f32::from(window.viewport_size().width);
             let range = band(custom.items.len(), custom.current, room);
             let cards = range

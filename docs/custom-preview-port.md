@@ -45,7 +45,6 @@ The TUI uses a text strip. It retains the native terminal image and media suppor
 Settings > Preview includes the custom Quick Look switches.
 The saved `preview` fields are shared with the TUI:
 
-- `hideFilmstrip`: hide the strip during playback.
 - `preloadAdjacent`: prepare the two adjacent GUI images for first paint.
 - `mediaControls`: show media controls.
 - `infoPanel`: open file info with the preview.

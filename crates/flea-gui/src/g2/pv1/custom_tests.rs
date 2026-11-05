@@ -36,19 +36,19 @@ fn custom_port_toolbar_hiding_cannot_shift_fullscreen_content() {
     let before = custom.card(size(px(1000.), px(700.)));
     custom.navbar = false;
     assert_eq!(custom.card(size(px(1000.), px(700.))), before);
-    assert!(!custom.filmstrip_visible(false));
+    assert!(!custom.filmstrip_visible());
 }
 #[test]
 fn custom_port_settings_restore_the_saved_choices() {
-    let doc = jsondoc::parse(r#"{"preview":{"hideFilmstrip":false,"infoPanel":true,"preloadAdjacent":false,"mediaControls":false,"navbarHideMs":6000}}"#).unwrap();
+    let doc = jsondoc::parse(r#"{"preview":{"hideFilmstrip":true,"infoPanel":true,"preloadAdjacent":false,"mediaControls":false,"navbarHideMs":6000}}"#).unwrap();
     let options = Options::read(&doc);
-    assert!(!options.hide_filmstrip && !options.preload && !options.media_controls);
+    assert!(!options.preload && !options.media_controls);
     assert!(options.info);
     assert_eq!(options.delay, 6000);
     let items = custom().items;
     let mut custom = Custom::new(options);
     custom.items = items;
-    assert!(custom.filmstrip_visible(true));
+    assert!(custom.filmstrip_visible());
 }
 #[test]
 fn custom_port_info_cannot_remove_the_content_viewport() {

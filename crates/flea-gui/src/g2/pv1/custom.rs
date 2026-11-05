@@ -16,7 +16,6 @@ pub(crate) struct Item {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Options {
-    pub hide_filmstrip: bool,
     pub preload: bool,
     pub media_controls: bool,
     pub info: bool,
@@ -28,7 +27,6 @@ impl Options {
         let p = data.get("preview");
         let on = |key| p.and_then(|p| p.get(key)).and_then(Json::as_bool) != Some(false);
         Self {
-            hide_filmstrip: on("hideFilmstrip"),
             preload: on("preloadAdjacent"),
             media_controls: on("mediaControls"),
             info: p.and_then(|p| p.get("infoPanel")).and_then(Json::as_bool) == Some(true),
@@ -84,11 +82,8 @@ impl Custom {
     pub fn path(&self) -> Option<&str> {
         self.items.get(self.current).map(|i| i.path.as_str())
     }
-    pub fn filmstrip_visible(&self, playing: bool) -> bool {
-        self.filmstrip
-            && !self.fullscreen
-            && !(playing && self.options.hide_filmstrip)
-            && self.items.len() > 1
+    pub fn filmstrip_visible(&self) -> bool {
+        self.filmstrip && !self.fullscreen && self.items.len() > 1
     }
     pub fn card(&self, viewport: Size<Pixels>) -> Bounds<Pixels> {
         let width = f32::from(viewport.width);

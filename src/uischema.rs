@@ -51,7 +51,7 @@ pub const DEFAULTS: &str = r#"{
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
     "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false,
-    "hideFilmstrip": true, "preloadAdjacent": true, "mediaControls": true,
+    "preloadAdjacent": true, "mediaControls": true,
     "infoPanel": false, "hideNavbarFullscreen": true, "navbarHideMs": 4000
   },
   "previewFacts": "compact",

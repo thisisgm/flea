@@ -7,7 +7,6 @@ pub struct State {
     pub enabled: bool,
     pub info: bool,
     pub strip: bool,
-    pub hide_playing: bool,
     pub media_controls: bool,
     cursor: Option<usize>,
     muted: bool,
@@ -25,7 +24,6 @@ impl State {
             enabled: std::env::var_os("FLEA_CUSTOM_PREVIEW").is_some_and(|v| v == "1"),
             info: flag("infoPanel") == Some(true),
             strip: true,
-            hide_playing: flag("hideFilmstrip") != Some(false),
             media_controls: flag("mediaControls") != Some(false),
             cursor: None,
             muted: false,
@@ -220,10 +218,7 @@ pub fn strip(m: &Model, width: usize, theme: &super::theme::Theme) -> String {
             super::cells::fit(&super::cells::clean(&info), width)
         );
     }
-    if !m.custom_preview.enabled
-        || !m.custom_preview.strip
-        || (m.custom_preview.hide_playing && m.player.as_ref().is_some_and(|p| !p.paused))
-    {
+    if !m.custom_preview.enabled || !m.custom_preview.strip {
         return super::cells::fit("", width);
     }
     let files: Vec<_> = m.rows.iter().filter(|(_, r)| !r.directory).collect();

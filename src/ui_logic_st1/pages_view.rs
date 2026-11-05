@@ -103,7 +103,6 @@ pub fn preview_rows(state: &State<'_>) -> Vec<Row> {
         group.label = Text::Data("Quick Look".into());
         out.push(group);
         for (key, label) in [
-            ("hideFilmstrip", "Hide filmstrip during playback"),
             ("preloadAdjacent", "Preload adjacent files"),
             ("mediaControls", "Show media controls"),
             ("infoPanel", "Open file info with preview"),
