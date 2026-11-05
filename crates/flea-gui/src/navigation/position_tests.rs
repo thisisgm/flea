@@ -47,3 +47,23 @@ fn an_unfiltered_row_keeps_its_line_on_screen() {
     lines.restore(&mut pane, "000100");
     assert_eq!(pane.scroll_y, 95. * ROW_HEIGHT);
 }
+
+#[test]
+fn a_row_landed_on_under_a_standing_filter_takes_its_line_among_the_drawn_rows() {
+    let mut pane = listed(320);
+    pane.cursor = 100;
+    let mut lines = Lines {
+        shown: Some([5, 50, 100, 200].into()),
+        ..Lines::default()
+    };
+    lines.remember(&pane);
+    // Same folder, filter still standing: row 100 is the third drawn row, so the scroll stays at the top.
+    pane.scroll_to(40. * ROW_HEIGHT);
+    lines.restore(&mut pane, "000100");
+    assert_eq!(pane.scroll_y, 0.);
+    // A row the filter hides is left where it is.
+    lines.shown = Some([5, 50].into());
+    pane.scroll_to(40. * ROW_HEIGHT);
+    lines.restore(&mut pane, "000100");
+    assert_eq!(pane.scroll_y, 40. * ROW_HEIGHT);
+}

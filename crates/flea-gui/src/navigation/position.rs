@@ -17,6 +17,15 @@ pub struct Lines {
 }
 
 impl Lines {
+    /// The cursor's place among the drawn rows: under a filter the scroll counts only those, and a row the filter
+    /// hides has none.
+    fn view(&self, cursor: usize) -> Option<usize> {
+        match &self.shown {
+            Some(rows) => rows.iter().position(|&row| row == cursor),
+            None => Some(cursor),
+        }
+    }
+
     /// The folder being left: its cursor row's name and its line on screen.
     pub fn remember(&mut self, pane: &Pane) {
         if pane.busy() || pane.state.search || pane.path().is_empty() || pane.row_height() <= 0. {
@@ -25,13 +34,8 @@ impl Lines {
         let Some(row) = pane.held.row(pane.cursor) else {
             return;
         };
-        // Under a filter the scroll is in drawn rows, so the cursor's line is its place among them.
-        let view = match &self.shown {
-            Some(rows) => match rows.iter().position(|&row| row == pane.cursor) {
-                Some(view) => view,
-                None => return,
-            },
-            None => pane.cursor,
+        let Some(view) = self.view(pane.cursor) else {
+            return;
         };
         let line = view as f32 - pane.scroll_y / pane.row_height();
         if self.seen.len() >= KEPT && !self.seen.contains_key(pane.path()) {
@@ -51,9 +55,12 @@ impl Lines {
         else {
             return;
         };
+        let Some(view) = self.view(pane.cursor) else {
+            return;
+        };
         let visible = pane.viewport_height() / pane.row_height();
         let line = line.clamp(0., (visible - 1.).max(0.));
-        pane.scroll_to((pane.cursor as f32 - line) * pane.row_height());
+        pane.scroll_to((view as f32 - line) * pane.row_height());
         pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
     }
 }
