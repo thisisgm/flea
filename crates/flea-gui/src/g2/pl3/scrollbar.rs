@@ -65,7 +65,7 @@ impl TrashPane {
             return false;
         }
         let y = self.scrollbar.model.y as f32;
-        self.note_scroll();
+        self.note_scroll(cx);
         self.host.view.set_viewport(y, self.host.view.height);
         self.reveal_scrollbar(cx);
         self.pump(cx);
@@ -84,7 +84,7 @@ impl TrashPane {
         if self.interaction_held() {
             self.scrollbar.model.release();
         } else if moved.is_some() {
-            self.note_scroll();
+            self.note_scroll(cx);
             self.host
                 .view
                 .set_viewport(self.scrollbar.model.y as f32, self.host.view.height);
