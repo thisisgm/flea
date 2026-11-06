@@ -173,22 +173,39 @@ Loader {
             if (root.item) root.item.receive(message)
         }
     }
-    // GIO's trash watch also fires while we page Trash during scroll. Re-list only when
-    // a delete card needs re-review, or when the rail count actually moved.
+    // GIO's trash watch can also fire while we page Trash during scroll. Immediate re-list
+    // only when a delete card needs re-review, or when the rail count differs from the
+    // listed total (same rule as Rust should_relist). Same-count membership swaps get a
+    // soft debounced re-list that coalesces with further watch noise.
     property int lastTrashCount: -1
+    Timer {
+        id: softRelist
+        interval: 500
+        onTriggered: {
+            if (root.opened && root.item && !root.item.confirming)
+                root.item.sourceChanged()
+        }
+    }
+    Connections {
+        target: root.item
+        enabled: root.item !== null
+        function onOpenedChanged() {
+            softRelist.stop()
+            if (root.item && root.item.opened && root.pane.sidebar)
+                root.lastTrashCount = root.pane.sidebar.trashCount
+        }
+    }
     Connections {
         target: root.pane.sidebar
         function onTrashChanged() {
             if (!root.opened || !root.item) return
             if (root.item.confirming) root.item.sourceChanged()
+            else softRelist.restart()
         }
-    }
-    Connections {
-        target: root.pane.sidebar
         function onTrashCountChanged() {
             var count = root.pane.sidebar.trashCount
             if (!root.opened || !root.item) { root.lastTrashCount = count; return }
-            if (root.lastTrashCount >= 0 && count !== root.lastTrashCount && !root.item.confirming)
+            if (root.item.total !== count)
                 root.item.sourceChanged()
             root.lastTrashCount = count
         }

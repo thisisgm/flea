@@ -356,7 +356,7 @@ fn a_press_released_outside_empty_trash_leaves_no_press_wash() {
 }
 
 #[test]
-fn same_count_changed_does_not_relist_an_open_trash() {
+fn same_count_changed_does_not_immediately_relist_an_open_trash() {
     let mut cx = real_cx();
     let (window, calls) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
     let before = sent(&calls).len();
@@ -371,7 +371,31 @@ fn same_count_changed_does_not_relist_an_open_trash() {
         after[before..]
             .iter()
             .all(|line| !line.contains(r#""op":"list""#)),
-        "same-count watch noise must not re-list while scrolling: {:?}",
+        "same-count watch noise must not re-list immediately (soft debounce only): {:?}",
+        &after[before..]
+    );
+}
+
+#[test]
+fn scroll_cancels_a_pending_soft_relist() {
+    let mut cx = real_cx();
+    let (window, calls) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    let before = sent(&calls).len();
+    window
+        .update(&mut cx, |pane, _, cx| {
+            pane.heard(Heard::Changed, cx);
+            pane.note_scroll();
+            pane.wheel(40., cx);
+        })
+        .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(600));
+    cx.run_until_parked();
+    let after = sent(&calls);
+    assert!(
+        after[before..]
+            .iter()
+            .all(|line| !line.contains(r#""op":"list""#)),
+        "a soft re-list armed by Changed must not fire after scroll: {:?}",
         &after[before..]
     );
 }

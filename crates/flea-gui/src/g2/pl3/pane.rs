@@ -60,6 +60,10 @@ pub struct TrashPane {
     // TrashView's 2500 ms check, armed while a card is open and nothing is in flight, so it restarts after each reply.
     checker: Option<Task<()>>,
     monitor: Option<Task<()>>,
+    /// Soft re-list after same-count `Changed`; replaced by a newer schedule, cleared on scroll.
+    soft_relist: Option<Task<()>>,
+    /// Bumped on user scroll so a pending soft re-list does not fire mid-page.
+    scroll_epoch: u64,
     decoded: HashSet<Resource>,
     pub(super) retired: Vec<Resource>,
     epoch: Instant,
@@ -106,6 +110,8 @@ impl TrashPane {
             timer: None,
             checker: None,
             monitor: None,
+            soft_relist: None,
+            scroll_epoch: 0,
             decoded: HashSet::new(),
             retired: Vec::new(),
             epoch: Instant::now(),
@@ -182,31 +188,58 @@ impl TrashPane {
 
     /// What the Trash watch heard: the rail's count, a failure, or a settled burst.
     ///
-    /// An open delete card still re-reviews on `Changed`. A plain listing does not: GIO's
-    /// trash watch also fires while we page the Trash window during scroll, and a full
-    /// re-list there looks like Trash keeps re-reading. A real content change shows up as
-    /// a different item count, which re-lists below.
+    /// An open delete card re-reviews on `Changed` immediately. A plain listing does not:
+    /// GIO's trash watch can also fire while we page the Trash window during scroll, and a
+    /// full re-list there looks like Trash keeps re-reading. A different item count
+    /// re-lists immediately. Same-count membership swaps schedule a soft debounced
+    /// re-list that scroll cancels.
     pub fn heard(&mut self, heard: Heard, cx: &mut Context<Self>) {
-        use flea::ui_logic_pl3::monitor::{should_relist, Relist};
+        use flea::ui_logic_pl3::monitor::{should_relist, Relist, SOFT_RELIST_MS};
         let view = &self.host.view;
         let event = match &heard {
             Heard::Changed => Some(Relist::Changed),
             Heard::Count(total) => Some(Relist::Count(*total as usize)),
             Heard::Failed(_) => None,
         };
-        let relist = event.is_some_and(|event| {
-            should_relist(view.opened, view.confirming, view.total, event)
-        });
+        let relist = event
+            .is_some_and(|event| should_relist(view.opened, view.confirming, view.total, event));
+        let soft = matches!(heard, Heard::Changed) && view.opened && !view.confirming && !relist;
         match heard {
             Heard::Count(total) => self.outside.count(total as usize),
             Heard::Failed(key) => self.outside.monitor_failed(self.catalog.tr(key)),
             Heard::Changed => {}
         }
         if relist {
+            self.soft_relist = None;
             self.host.view.source_changed();
             self.pump(cx);
+        } else if soft {
+            let epoch = self.scroll_epoch;
+            self.soft_relist = Some(cx.spawn(async move |this, cx| {
+                cx.background_executor()
+                    .timer(Duration::from_millis(SOFT_RELIST_MS))
+                    .await;
+                let _ = this.update(cx, |pane, cx| {
+                    if pane.scroll_epoch != epoch {
+                        return;
+                    }
+                    if !pane.host.view.opened || pane.host.view.confirming {
+                        return;
+                    }
+                    pane.soft_relist = None;
+                    pane.host.view.source_changed();
+                    pane.pump(cx);
+                    cx.notify();
+                });
+            }));
         }
         cx.notify();
+    }
+
+    /// User scrolled the Trash listing: cancel a pending soft re-list.
+    pub(super) fn note_scroll(&mut self) {
+        self.scroll_epoch = self.scroll_epoch.wrapping_add(1);
+        self.soft_relist = None;
     }
 
     /// The strip's back button: TrashView's root.close(), live through a review as the oracle's is.
@@ -266,6 +299,7 @@ impl TrashPane {
         if self.interaction_held() {
             return;
         }
+        self.note_scroll();
         let (y, h) = (self.host.view.scroll_y + dy, self.host.view.height);
         self.host.view.set_viewport(y, h);
         self.pump(cx);
