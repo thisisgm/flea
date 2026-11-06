@@ -180,15 +180,31 @@ impl TrashPane {
         }
     }
 
-    /// What the Trash watch heard: the rail's count, a failure, or a settled burst an open Trash re-reads.
+    /// What the Trash watch heard: the rail's count, a failure, or a settled burst.
+    ///
+    /// An open delete card still re-reviews on `Changed`. A plain listing does not: GIO's
+    /// trash watch also fires while we page the Trash window during scroll, and a full
+    /// re-list there looks like Trash keeps re-reading. A real content change shows up as
+    /// a different item count, which re-lists below.
     pub fn heard(&mut self, heard: Heard, cx: &mut Context<Self>) {
+        use flea::ui_logic_pl3::monitor::{should_relist, Relist};
+        let view = &self.host.view;
+        let event = match &heard {
+            Heard::Changed => Some(Relist::Changed),
+            Heard::Count(total) => Some(Relist::Count(*total as usize)),
+            Heard::Failed(_) => None,
+        };
+        let relist = event.is_some_and(|event| {
+            should_relist(view.opened, view.confirming, view.total, event)
+        });
         match heard {
             Heard::Count(total) => self.outside.count(total as usize),
             Heard::Failed(key) => self.outside.monitor_failed(self.catalog.tr(key)),
-            Heard::Changed => {
-                self.host.view.source_changed();
-                self.pump(cx);
-            }
+            Heard::Changed => {}
+        }
+        if relist {
+            self.host.view.source_changed();
+            self.pump(cx);
         }
         cx.notify();
     }

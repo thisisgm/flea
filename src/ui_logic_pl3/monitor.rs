@@ -74,3 +74,48 @@ impl Count {
         self.pending = false;
     }
 }
+
+
+/// A GIO trash-watch event that may refresh an open Trash view.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Relist {
+    /// Settled burst; only an open delete card re-reviews.
+    Changed,
+    /// Fresh item count from GIO.
+    Count(usize),
+}
+
+/// Whether an open Trash listing should re-list for this watch event.
+///
+/// GIO's trash watch also fires while we page the Trash window during scroll. A full
+/// re-list on every `Changed` looks like Trash keeps re-reading. Real content changes
+/// move the item count; an open delete card still re-reviews on `Changed`.
+pub fn should_relist(opened: bool, confirming: bool, listed_total: usize, event: Relist) -> bool {
+    match event {
+        Relist::Changed => confirming,
+        Relist::Count(total) => opened && !confirming && listed_total != total,
+    }
+}
+
+#[cfg(test)]
+mod should_relist_tests {
+    use super::{should_relist, Relist};
+
+    #[test]
+    fn scroll_noise_does_not_relist() {
+        assert!(!should_relist(true, false, 51, Relist::Changed));
+        assert!(!should_relist(true, false, 51, Relist::Count(51)));
+    }
+
+    #[test]
+    fn a_new_count_relists() {
+        assert!(should_relist(true, false, 51, Relist::Count(50)));
+        assert!(!should_relist(false, false, 0, Relist::Count(50)));
+    }
+
+    #[test]
+    fn an_open_card_rereviews_on_changed() {
+        assert!(should_relist(true, true, 51, Relist::Changed));
+        assert!(!should_relist(true, true, 51, Relist::Count(50)));
+    }
+}

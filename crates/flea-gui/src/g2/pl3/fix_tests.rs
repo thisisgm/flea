@@ -354,3 +354,42 @@ fn a_press_released_outside_empty_trash_leaves_no_press_wash() {
         "a release outside is no click"
     );
 }
+
+#[test]
+fn same_count_changed_does_not_relist_an_open_trash() {
+    let mut cx = real_cx();
+    let (window, calls) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    let before = sent(&calls).len();
+    window
+        .update(&mut cx, |pane, _, cx| {
+            pane.heard(Heard::Changed, cx);
+            pane.heard(Heard::Count(2), cx);
+        })
+        .unwrap();
+    let after = sent(&calls);
+    assert!(
+        after[before..]
+            .iter()
+            .all(|line| !line.contains(r#""op":"list""#)),
+        "same-count watch noise must not re-list while scrolling: {:?}",
+        &after[before..]
+    );
+}
+
+#[test]
+fn a_new_count_relists_an_open_trash() {
+    let mut cx = real_cx();
+    let (window, calls) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    let before = sent(&calls).len();
+    window
+        .update(&mut cx, |pane, _, cx| pane.heard(Heard::Count(3), cx))
+        .unwrap();
+    let after = sent(&calls);
+    assert!(
+        after[before..]
+            .iter()
+            .any(|line| line.contains(r#""op":"list""#)),
+        "a different GIO count re-lists Trash: {:?}",
+        &after[before..]
+    );
+}

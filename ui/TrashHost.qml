@@ -173,9 +173,25 @@ Loader {
             if (root.item) root.item.receive(message)
         }
     }
+    // GIO's trash watch also fires while we page Trash during scroll. Re-list only when
+    // a delete card needs re-review, or when the rail count actually moved.
+    property int lastTrashCount: -1
     Connections {
         target: root.pane.sidebar
-        function onTrashChanged() { if (root.opened) root.item.sourceChanged() }
+        function onTrashChanged() {
+            if (!root.opened || !root.item) return
+            if (root.item.confirming) root.item.sourceChanged()
+        }
+    }
+    Connections {
+        target: root.pane.sidebar
+        function onTrashCountChanged() {
+            var count = root.pane.sidebar.trashCount
+            if (!root.opened || !root.item) { root.lastTrashCount = count; return }
+            if (root.lastTrashCount >= 0 && count !== root.lastTrashCount && !root.item.confirming)
+                root.item.sourceChanged()
+            root.lastTrashCount = count
+        }
     }
     Connections {
         target: root.pane.contextMenu()

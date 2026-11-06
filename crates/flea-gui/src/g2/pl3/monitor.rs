@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Heard {
     Count(u64),
-    /// A burst of changes settled: an open Trash re-reads, as TrashMonitor.changed drives TrashView.sourceChanged.
+    /// A burst of changes settled. An open delete card re-reviews; a plain listing waits for a Count change.
     Changed,
     /// A catalog key under trash.monitor; the count keeps its last value.
     Failed(&'static str),
