@@ -73,7 +73,7 @@ FocusScope {
     // The dd prompt, said apart from a status line so the bar starts its arm from the signal and never by reading the sentence.
     signal armReported(string text)
     signal operationResult(string headline, string detail, bool error)
-    signal countChanged(int count)
+    signal countChanged(int count); signal scrolled(); readonly property bool scrolling: listing.moving || listing.flicking || trashScrollBar.dragging
     anchors.fill: parent
     visible: opened
     onActiveFocusChanged: if (!activeFocus) root.trashArmedAt = 0
@@ -420,7 +420,7 @@ FocusScope {
             clip: true
             reuseItems: true
             boundsBehavior: Flickable.StopAtBounds
-            onContentYChanged: root.ensureWindow()
+            onContentYChanged: { root.ensureWindow(); root.scrolled() }
             onHeightChanged: root.ensureWindow()
             TapHandler {
                 acceptedButtons: Qt.RightButton
@@ -431,7 +431,7 @@ FocusScope {
                 }
             }
             Flea.FastScrollHandler { flickable: listing }
-            Flea.ViewportScrollBar { parent: listing; anchors.top: parent.top; anchors.right: parent.right; flickable: listing }
+            Flea.ViewportScrollBar { id: trashScrollBar; parent: listing; anchors.top: parent.top; anchors.right: parent.right; flickable: listing }
             delegate: Rectangle {
                 id: itemRow
                 required property int index

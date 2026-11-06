@@ -9,6 +9,8 @@ mod connection;
 mod input;
 #[path = "paint_sync.rs"]
 mod paint_sync;
+#[path = "soft_relist.rs"]
+mod soft_relist;
 use super::seams::{At, Card, Outside};
 use flea::i18n::I18n;
 use flea::jsondoc::{self, Json};
@@ -60,6 +62,12 @@ pub struct TrashPane {
     // TrashView's 2500 ms check, armed while a card is open and nothing is in flight, so it restarts after each reply.
     checker: Option<Task<()>>,
     monitor: Option<Task<()>>,
+    /// Soft re-list after same-count `Changed`; replaced by a newer schedule.
+    soft_relist: Option<Task<()>>,
+    /// Kept across scroll so a same-count refresh still runs once scrolling is idle.
+    soft_pending: bool,
+    /// Bumped on user scroll so a soft re-list waits for idle instead of firing mid-page.
+    scroll_epoch: u64,
     decoded: HashSet<Resource>,
     pub(super) retired: Vec<Resource>,
     epoch: Instant,
@@ -106,6 +114,9 @@ impl TrashPane {
             timer: None,
             checker: None,
             monitor: None,
+            soft_relist: None,
+            soft_pending: false,
+            scroll_epoch: 0,
             decoded: HashSet::new(),
             retired: Vec::new(),
             epoch: Instant::now(),
@@ -160,12 +171,14 @@ impl TrashPane {
     }
 
     pub fn open(&mut self, action: &str, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         self.watch(cx);
         self.host.open(action);
         self.pump(cx);
     }
 
     pub fn close(&mut self, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         self.host.close();
         self.pump(cx);
     }
@@ -180,21 +193,9 @@ impl TrashPane {
         }
     }
 
-    /// What the Trash watch heard: the rail's count, a failure, or a settled burst an open Trash re-reads.
-    pub fn heard(&mut self, heard: Heard, cx: &mut Context<Self>) {
-        match heard {
-            Heard::Count(total) => self.outside.count(total as usize),
-            Heard::Failed(key) => self.outside.monitor_failed(self.catalog.tr(key)),
-            Heard::Changed => {
-                self.host.view.source_changed();
-                self.pump(cx);
-            }
-        }
-        cx.notify();
-    }
-
     /// The strip's back button: TrashView's root.close(), live through a review as the oracle's is.
     pub fn back_pressed(&mut self, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         if self.host.view.opened {
             self.host.view.close();
         }
@@ -250,6 +251,7 @@ impl TrashPane {
         if self.interaction_held() {
             return;
         }
+        self.note_scroll(cx);
         let (y, h) = (self.host.view.scroll_y + dy, self.host.view.height);
         self.host.view.set_viewport(y, h);
         self.pump(cx);
@@ -330,7 +332,10 @@ impl TrashPane {
                     error,
                 } => self.outside.result(headline, detail, error),
                 Signal::Count(total) => self.outside.count(total),
-                Signal::Back => self.outside.back(),
+                Signal::Back => {
+                    self.cancel_soft_relist();
+                    self.outside.back()
+                }
                 Signal::FocusRail => self.outside.focus_rail(),
                 // TrashHost.onActionRequested drops forwarded actions for the whole review.
                 Signal::Action(name) if !self.host.view.confirming => self.outside.action(name),

@@ -167,7 +167,8 @@ fn u32_refresh_freezes_row_actions_until_rows_and_summary_commit_together() {
     super::join_tests::opened(&mut cx, window);
     shell(&mut cx, window, |shell, window, cx| {
         shell.trash.as_ref().unwrap().pane.update(cx, |pane, cx| {
-            pane.heard(super::monitor::Heard::Changed, cx);
+            // A different GIO count is a real Trash change; same-count Changed is scroll noise.
+            pane.heard(super::monitor::Heard::Count(3), cx);
         });
         shell.flush_trash(window, cx);
     });
@@ -288,7 +289,7 @@ fn u32_fractional_scroll_fetches_the_partly_visible_row_before_publishing_its_vi
         let count = pane.read(cx).view().window_rows();
         let height = pane.read(cx).view().height;
         pane.update(cx, |pane, cx| {
-            pane.heard(super::monitor::Heard::Changed, cx)
+            pane.action("reload", false, cx);
         });
         shell.flush_trash(window, cx);
         (count, height)

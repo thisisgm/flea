@@ -74,3 +74,56 @@ impl Count {
         self.pending = false;
     }
 }
+
+/// Debounce for a same-count `Changed` soft re-list while Trash is open and idle.
+/// Longer than [`SETTLE_MS`] so a settled monitor burst coalesces; cancelled on scroll.
+pub const SOFT_RELIST_MS: u64 = 500;
+
+/// A GIO trash-watch event that may refresh an open Trash view.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Relist {
+    /// Settled burst; an open delete card re-reviews immediately.
+    /// A plain open listing may soft-debounce a re-list outside this helper.
+    Changed,
+    /// Fresh item count from GIO.
+    Count(usize),
+}
+
+/// Whether an open Trash listing should re-list *immediately* for this watch event.
+///
+/// GIO's trash watch can also fire while we page the Trash window during scroll. A full
+/// re-list on every `Changed` looks like Trash keeps re-reading. Real content changes
+/// usually move the item count; an open delete card still re-reviews on `Changed`.
+/// Same-count membership swaps are not caught here — the host schedules a soft
+/// debounced re-list on `Changed` when not confirming and not scrolling.
+pub fn should_relist(opened: bool, confirming: bool, listed_total: usize, event: Relist) -> bool {
+    match event {
+        Relist::Changed => confirming,
+        // Count delta re-lists even while confirming so an open card re-reviews.
+        Relist::Count(total) => opened && listed_total != total,
+    }
+}
+
+#[cfg(test)]
+mod should_relist_tests {
+    use super::{should_relist, Relist};
+
+    #[test]
+    fn scroll_noise_does_not_relist() {
+        assert!(!should_relist(true, false, 51, Relist::Changed));
+        assert!(!should_relist(true, false, 51, Relist::Count(51)));
+    }
+
+    #[test]
+    fn a_new_count_relists() {
+        assert!(should_relist(true, false, 51, Relist::Count(50)));
+        assert!(!should_relist(false, false, 0, Relist::Count(50)));
+    }
+
+    #[test]
+    fn an_open_card_rereviews_on_changed() {
+        assert!(should_relist(true, true, 51, Relist::Changed));
+        assert!(should_relist(true, true, 51, Relist::Count(50)));
+        assert!(!should_relist(true, true, 51, Relist::Count(51)));
+    }
+}
