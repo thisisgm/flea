@@ -177,6 +177,7 @@ impl TrashPane {
     }
 
     pub fn close(&mut self, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         self.host.close();
         self.pump(cx);
     }
@@ -193,6 +194,7 @@ impl TrashPane {
 
     /// The strip's back button: TrashView's root.close(), live through a review as the oracle's is.
     pub fn back_pressed(&mut self, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         if self.host.view.opened {
             self.host.view.close();
         }

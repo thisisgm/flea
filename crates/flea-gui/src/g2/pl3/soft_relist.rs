@@ -3,6 +3,11 @@ use super::*;
 use std::time::Duration;
 
 impl TrashPane {
+    pub(super) fn cancel_soft_relist(&mut self) {
+        self.soft_pending = false;
+        self.soft_relist = None;
+    }
+
     /// What the Trash watch heard: the rail's count, a failure, or a settled burst.
     ///
     /// An open delete card re-reviews on `Changed` immediately. A plain listing does not:
