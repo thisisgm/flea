@@ -59,6 +59,7 @@ impl View {
         self.prepare_review(all);
     }
 
+    /// Send the deletion review request for the entire Trash or the current selection.
     pub(super) fn prepare_review(&mut self, all: bool) {
         self.confirming = true;
         self.refresh_pending = false;

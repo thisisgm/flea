@@ -24,6 +24,7 @@ impl Shell {
         self.trash_say_detail(text, "", error, cx);
     }
 
+    /// Show Trash feedback in its pane or in the current folder's footer when Trash is closed.
     pub(super) fn trash_say_detail(
         &mut self,
         text: &str,

@@ -22,6 +22,7 @@ impl Target {
     }
 }
 
+/// Open the Trash sidebar menu after the current frame has finished drawing.
 pub(super) fn run(
     _: &mut Shell,
     order: &Order,
@@ -122,6 +123,7 @@ impl Shell {
         }
     }
 
+    /// Dispatch a Trash sidebar choice while keeping Empty Trash in the current folder.
     pub(crate) fn rail_menu_outcome(
         &mut self,
         outcome: &Outcome,
