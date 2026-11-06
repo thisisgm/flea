@@ -171,6 +171,7 @@ impl TrashPane {
     }
 
     pub fn open(&mut self, action: &str, cx: &mut Context<Self>) {
+        self.cancel_soft_relist();
         self.watch(cx);
         self.host.open(action);
         self.pump(cx);
@@ -331,7 +332,10 @@ impl TrashPane {
                     error,
                 } => self.outside.result(headline, detail, error),
                 Signal::Count(total) => self.outside.count(total),
-                Signal::Back => self.outside.back(),
+                Signal::Back => {
+                    self.cancel_soft_relist();
+                    self.outside.back()
+                }
                 Signal::FocusRail => self.outside.focus_rail(),
                 // TrashHost.onActionRequested drops forwarded actions for the whole review.
                 Signal::Action(name) if !self.host.view.confirming => self.outside.action(name),
