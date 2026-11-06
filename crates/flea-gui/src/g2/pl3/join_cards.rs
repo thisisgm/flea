@@ -9,6 +9,38 @@ use flea::ui_logic_op1::trash::{Review, Scope};
 use gpui::{AppContext, Context, Window};
 
 impl Shell {
+    /// Review Empty Trash without replacing the current folder with the Trash pane.
+    pub(crate) fn empty_trash_from_rail(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.mount_trash(window, cx);
+        let Some(host) = self.trash.as_mut() else {
+            return;
+        };
+        let pane = host.pane.read(cx);
+        let view = pane.view();
+        if view.confirming || view.operation_active {
+            return;
+        }
+        if !view.opened {
+            host.side = side;
+            // Cancel a running sweep on the same backend session that started it.
+            if !pane.host.sweeping() {
+                host.backend_side = side;
+            }
+        }
+        host.sweep_timer = None;
+        host.pane.update(cx, |pane, cx| {
+            pane.watch(cx);
+            pane.host.empty_from_rail();
+            pane.pump(cx);
+        });
+        self.flush_trash(window, cx);
+    }
+
     pub(super) fn trash_card(
         &mut self,
         card: Option<Card>,
