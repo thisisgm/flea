@@ -8,6 +8,9 @@ use gpui::{
     VisualTestContext,
 };
 
+#[path = "trash_rail_menu_tests.rs"]
+mod trash;
+
 pub(super) fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = open_root_with(
         cx,

@@ -289,7 +289,7 @@ impl View {
 
     /// The Trash changed under the view: re-review an open card, or re-read the listing.
     pub fn source_changed(&mut self) {
-        if !self.opened {
+        if !self.opened && !self.confirming {
             return;
         }
         self.arm.clear();
