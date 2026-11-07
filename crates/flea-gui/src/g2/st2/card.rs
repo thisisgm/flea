@@ -1,15 +1,28 @@
 //! The Add and Remove cards' bodies, drawn inside op1's dialog shell once it joins.
 use super::mark::{metrics as m, tracked};
-use super::page::Card;
+use super::page::{Card, Key};
 use super::view::PluginsPane;
 use crate::g2::st1::input::Field;
-use gpui::{div, prelude::*, px, Div, FontWeight, SharedString};
+use gpui::{div, prelude::*, px, Div, Entity, FontWeight, SharedString, Stateful};
 
 impl PluginsPane {
-    fn button(&self, label: &str, primary: bool, available: bool, destructive: bool) -> Div {
+    /// A click presses the button as its key would: Cancel as Escape, the card's action as Enter.
+    fn button(
+        &self,
+        label: &str,
+        (primary, available, destructive): (bool, bool, bool),
+        (pane, key): (Entity<Self>, Key),
+    ) -> Stateful<Div> {
         let t = self.tokens;
         let lit = primary && available;
+        let id = if key == Key::Escape {
+            "plugins-card-cancel"
+        } else {
+            "plugins-card-action"
+        };
         div()
+            .id(id)
+            .debug_selector(move || id.into())
             .h(px(m::FIELD))
             .px(px(m::FIELD_PAD))
             .flex()
@@ -22,6 +35,7 @@ impl PluginsPane {
             .when(lit, |b| b.bg(t.wash14()))
             .when(!available, |b| b.opacity(m::DISABLED))
             .child(SharedString::from(label.to_string()))
+            .on_click(move |_, _, cx| pane.update(cx, |pane, cx| pane.key(key.clone(), cx)))
     }
 
     // The card body inside op1's dialog shell: title row, hairline, its parts, then the buttons.
@@ -42,7 +56,7 @@ impl PluginsPane {
                     .border_1()
                     .border_color(t.accent_frame)
                     .rounded(px(self.radius))
-                    .child(Field::mount(pane, &self.input_typeface, true));
+                    .child(Field::mount(pane.clone(), &self.input_typeface, true));
                 let label = tracked(
                     &i18n.tr("plugins.add.field").to_uppercase(),
                     m::FIELD_TRACKING,
@@ -74,12 +88,15 @@ impl PluginsPane {
                     .items_center()
                     .gap(px(m::GAP))
                     .mt(px(m::BUTTONS_ABOVE))
-                    .child(self.button(&i18n.tr("plugins.add.cancel"), false, true, false))
+                    .child(self.button(
+                        &i18n.tr("plugins.add.cancel"),
+                        (false, true, false),
+                        (pane.clone(), Key::Escape),
+                    ))
                     .child(self.button(
                         &i18n.tr("plugins.add.confirm"),
-                        true,
-                        card.can_add(),
-                        false,
+                        (true, card.can_add(), false),
+                        (pane.clone(), Key::Enter),
                     ));
                 (i18n.tr("plugins.add.title"), parts, buttons)
             }
@@ -106,8 +123,16 @@ impl PluginsPane {
                     .items_center()
                     .gap(px(m::GAP))
                     .mt(px(m::BUTTONS_ABOVE))
-                    .child(self.button(&i18n.tr("plugins.add.cancel"), false, true, false))
-                    .child(self.button(&i18n.tr("plugins.remove.confirm"), true, !busy, true));
+                    .child(self.button(
+                        &i18n.tr("plugins.add.cancel"),
+                        (false, true, false),
+                        (pane.clone(), Key::Escape),
+                    ))
+                    .child(self.button(
+                        &i18n.tr("plugins.remove.confirm"),
+                        (true, !busy, true),
+                        (pane.clone(), Key::Enter),
+                    ));
                 (
                     i18n.tr_args("plugins.remove.title", &[name]),
                     parts,

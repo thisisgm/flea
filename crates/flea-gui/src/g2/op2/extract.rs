@@ -196,6 +196,14 @@ impl Extract {
         }
     }
 
+    /// A click on the button card() draws at this index presses it, as Enter on it would.
+    pub fn press_at(&mut self, i18n: &I18n, at: usize) -> Vec<Effect> {
+        match [Stop::Cancel, Stop::Extract].get(at) {
+            Some(&button) => self.press(i18n, button),
+            None => Vec::new(),
+        }
+    }
+
     /// The pointer's entry, so the join can move focus without the key walk.
     pub fn focus(&mut self, stop: Stop) {
         if self.opened {

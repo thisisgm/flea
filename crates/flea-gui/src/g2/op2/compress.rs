@@ -274,6 +274,14 @@ impl Compress {
         }
     }
 
+    /// A click on the button card() draws at this index presses it, as Enter on it would.
+    pub fn press_at(&mut self, i18n: &I18n, at: usize) -> Vec<Effect> {
+        match [Stop::Cancel, Stop::Compress].get(at) {
+            Some(&button) => self.press(i18n, button),
+            None => Vec::new(),
+        }
+    }
+
     /// The pointer's entries, so the join can wire taps without the key walk.
     pub fn pick_format(&mut self, index: usize) {
         if self.opened && index < self.formats.len() {
