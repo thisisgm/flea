@@ -6,12 +6,14 @@ use super::{
 use crate::path::{field::Line, paint::paint_run};
 use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle,
-    DispatchPhase, Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun,
-    Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton,
-    MouseDownEvent, Pixels, Position, Style, Window,
+    Element, ElementId, ElementInputHandler, Entity, GlobalElementId, GlyphRun, Hitbox,
+    HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Position, Style,
+    Window,
 };
 use std::rc::Rc;
 
+#[path = "rename_field_pointer.rs"]
+mod pointer;
 #[path = "rename_field_shaping.rs"]
 mod shaping;
 pub(crate) use shaping::caption_line;
@@ -33,9 +35,15 @@ pub(crate) struct Shaped {
     /// The ground the refusal paints under itself, where no grown row covers its band (Grid never grows).
     pub error_ground: Option<Bounds<Pixels>>,
     inset: Pixels,
+    selecting: bool,
 }
 
 impl Shaped {
+    /// Ends the pointer gesture while keeping the text selection for the next action.
+    pub(crate) fn end_selection_drag(&mut self) {
+        self.selecting = false;
+    }
+
     pub(super) fn origin(&self) -> Pixels {
         self.frame
             .map_or(px(0.), |frame| frame.origin.x + self.inset)
@@ -342,45 +350,7 @@ impl Element for FieldElement {
                 edit.line.line.registered = if active { edit.entry.session() } else { None };
             }
         });
-        // Tap.js: a press anywhere else commits the open rename first and then does its own work.
-        window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
-            if phase != DispatchPhase::Capture
-                || !matches!(event.button, MouseButton::Left | MouseButton::Right)
-            {
-                return;
-            }
-            entity.update(cx, |shell, cx| {
-                if shell.menu.text.is_some() {
-                    return;
-                }
-                if event.button == MouseButton::Right {
-                    if frame.intersect(&clip).contains(&event.position) {
-                        shell.rename_menu_open(event, window, cx);
-                        cx.stop_propagation();
-                    }
-                    return;
-                }
-                let Some(edit) = shell.rename.edit.as_mut().filter(|edit| edit.entry.editing)
-                else {
-                    return;
-                };
-                if !frame.intersect(&clip).contains(&event.position) {
-                    shell.rename_press_away(event.position, window, cx);
-                    return;
-                }
-                let at = edit
-                    .line
-                    .line
-                    .index_for(event.position.x - edit.line.origin());
-                match event.click_count {
-                    1 if event.modifiers.shift => edit.entry.select_to(at),
-                    1 => edit.entry.move_to(at),
-                    _ => edit.entry.select_all(),
-                }
-                cx.stop_propagation();
-                cx.notify();
-            });
-        });
+        pointer::register(entity, frame, clip, window);
     }
 }
 

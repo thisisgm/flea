@@ -94,6 +94,9 @@ impl Shell {
         self.dual_blur = Some(cx.observe_window_activation(window, |shell, window, cx| {
             if !window.is_window_active() {
                 crate::g2::pv2::selection::blur(window, cx);
+                if let Some(edit) = shell.rename.edit.as_mut() {
+                    edit.line.end_selection_drag();
+                }
                 shell.dual_cancel(cx);
                 for side in 0..2 {
                     shell.cancel_pointer(side, window, cx);
