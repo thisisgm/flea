@@ -181,15 +181,13 @@ take one to name which program and here the program is Flea. The files it writes
 3. **Omarchy's two file-manager keys.** `SUPER + SHIFT + F` and `SUPER + ALT + SHIFT + F` are bound
    to Nautilus in `/usr/share/omarchy/default/hypr/bindings/applications.lua`, which
    `omarchy update` overwrites, so the override goes where the Omarchy manual says an override
-   goes: appended to `~/.config/hypr/bindings.lua`, between two marker lines, in the manual's own
-   `hl.unbind` then `o.bind` shape:
+   goes: appended to `~/.config/hypr/bindings.lua`, between two marker lines, using `o.rebind`,
+   which replaces the existing binding so no `hl.unbind` is needed:
 
    ```lua
    -- flea --default: begin. Written by `flea --default`; `flea --default off` removes the block whole.
-   hl.unbind("SUPER + SHIFT + F")
-   o.bind("SUPER + SHIFT + F", "File manager", { launch = 'flea --gui' })
-   hl.unbind("SUPER + ALT + SHIFT + F")
-   o.bind("SUPER + ALT + SHIFT + F", "File manager (cwd)", { launch = 'flea --gui "$(omarchy-cmd-terminal-cwd)"' })
+   o.rebind("SUPER + SHIFT + F", "File manager", { launch = 'flea --gui' })
+   o.rebind("SUPER + ALT + SHIFT + F", "File manager (cwd)", { launch = 'flea --gui "$(omarchy-cmd-terminal-cwd)"' })
    -- flea --default: end.
    ```
 

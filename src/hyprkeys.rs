@@ -126,12 +126,11 @@ fn block_broke(errors: &str) -> String {
     format!("The new block caused a Hyprland config error, so it was removed. Hyprland said: {}", errors)
 }
 
-// The unbind comes first, or both bindings fire: the override shape the Omarchy manual documents.
+// o.rebind replaces the chord's existing binding in place, so no hl.unbind is written before it.
 pub fn block() -> String {
     let mut out = format!("\n{}\n", BEGIN);
     for (key, description, command) in BINDS {
-        out.push_str(&format!("hl.unbind(\"{}\")\n", key));
-        out.push_str(&format!("o.bind(\"{}\", \"{}\", {{ launch = '{}' }})\n", key, description, command));
+        out.push_str(&format!("o.rebind(\"{}\", \"{}\", {{ launch = '{}' }})\n", key, description, command));
     }
     out.push_str(END);
     out.push('\n');
@@ -272,15 +271,13 @@ mod tests {
     }
 
     #[test]
-    fn the_block_unbinds_each_key_before_it_binds_it_and_touches_no_other() {
+    fn the_block_rebinds_each_key_without_unbinding_and_touches_no_other() {
         let b = block();
         for key in KEYS {
-            let unbind = b.find(&format!("hl.unbind(\"{}\")", key)).expect("unbind");
-            let bind = b.find(&format!("o.bind(\"{}\", ", key)).expect("bind");
-            assert!(unbind < bind, "{} is bound before it is unbound", key);
+            assert!(b.contains(&format!("o.rebind(\"{}\", ", key)), "{} is not rebound", key);
         }
-        assert_eq!(b.matches("hl.unbind(").count(), 2);
-        assert_eq!(b.matches("o.bind(").count(), 2);
+        assert_eq!(b.matches("o.rebind(").count(), 2);
+        assert!(!b.contains("hl.unbind(") && !b.contains("o.bind("));
         // The same launcher Omarchy's own { launch = } bindings use, and the cwd one reads the terminal's directory.
         assert!(b.contains("{ launch = 'flea --gui' }"));
         assert!(b.contains("{ launch = 'flea --gui \"$(omarchy-cmd-terminal-cwd)\"' }"));
@@ -315,7 +312,7 @@ mod tests {
     #[test]
     fn a_begin_marker_with_no_end_marker_is_refused() {
         let begin = block().lines().nth(1).expect("begin").to_string();
-        assert!(without_block(&format!("a\n{}\nhl.unbind(\"SUPER + SHIFT + F\")\n", begin)).is_err());
+        assert!(without_block(&format!("a\n{}\no.rebind(\"SUPER + SHIFT + F\", \"File manager\", {{ launch = 'flea --gui' }})\n", begin)).is_err());
     }
 
     // Read off this box's hyprctl binds, with SUPER + F's fullscreen record as the distractor.
