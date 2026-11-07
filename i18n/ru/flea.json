@@ -1076,7 +1076,7 @@
   "keys.action.textSizeUp": "Увеличить текст",
   "keys.action.toggleHidden": "Показать скрытые файлы",
   "keys.action.togglePreview": "Колонка просмотра",
-  "keys.action.toggleSelect": "Выделить",
+  "keys.action.toggleSelect": "Отметить",
   "keys.action.toggleWrap": "Перенос строк",
   "keys.action.trash": "Переместить в корзину",
   "keys.action.undo": "Отменить",
