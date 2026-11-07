@@ -475,11 +475,11 @@ impl Session {
     }
     fn window(&mut self, start: usize, count: usize) -> Result<String, String> {
         let start = start.min(self.items.len().saturating_sub(1));
-        let mut rows = Vec::new();
-        for item in self.items.iter().skip(start).take(count.min(350)) {
-            self.cancellation.check()?;
-            rows.push(detail(item)?);
-        }
+        self.cancellation.check()?;
+        // One gio call reads the whole window, in order; any item it cannot read fails the window as before.
+        let window = &self.items[start..self.items.len().min(start + count.min(350))];
+        let rows = if window.is_empty() { Vec::new() } else { details::many(window)? };
+        self.cancellation.check()?;
         let visible: HashMap<_, _> = rows.iter().map(|item| (&item.item.uri, item)).collect();
         let mut members = HashSet::new();
         let mut selected_count = 0;
