@@ -135,7 +135,7 @@ pub(crate) fn stages(magic: Option<i64>) -> bool {
 // The first create on each filesystem is its probe, and a refusal is remembered for this process.
 fn unnamed(parent: &Path, magic: Option<i64>, mode: u32) -> io::Result<Option<File>> {
     let magic = magic.unwrap_or_default();
-    if NO_UNNAMED.lock().unwrap().contains(&magic) {
+    if NO_UNNAMED.lock().unwrap_or_else(|e| e.into_inner()).contains(&magic) {
         return Ok(None);
     }
     #[cfg(test)]
@@ -151,7 +151,7 @@ fn unnamed(parent: &Path, magic: Option<i64>, mode: u32) -> io::Result<Option<Fi
     match opened {
         Ok(file) => Ok(Some(file)),
         Err(e) if e.raw_os_error().is_some_and(|code| NO_TMPFILE.contains(&code)) => {
-            NO_UNNAMED.lock().unwrap().push(magic);
+            NO_UNNAMED.lock().unwrap_or_else(|e| e.into_inner()).push(magic);
             Ok(None)
         }
         Err(e) => Err(e),

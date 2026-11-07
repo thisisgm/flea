@@ -120,7 +120,7 @@ tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
 shelf/ShelfService.qml 481
-src/backend/copyfile.rs 799
+src/backend/copyfile.rs 797
 src/backend/archivequit_tests.rs 401
 src/backend/codereq.rs 425
 src/backend/tags.rs 410

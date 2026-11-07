@@ -207,14 +207,7 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             }
             publish(p, src, dst, &stage)?;
             // The bytes count when written, at most one batch ahead of the drive's own syncfs.
-            let (reported, against) = match p.tree {
-                Some(carried) => (carried + done, 0),
-                None => (done, total),
-            };
-            (p.on_bytes)(reported, against);
-            if let Some(parent) = dst.named.parent() {
-                touch(p, parent);
-            }
+            report_landed(p, dst, done, total);
             if let Some(carried) = p.tree.as_mut() {
                 *carried += done;
             }
@@ -232,20 +225,25 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             return Err(left_half_written(p, dst, &stage, &w, from_io("copy", &dst.named.to_string_lossy(), &e)));
         }
         publish(p, src, dst, &stage)?;
-        let (reported, against) = match p.tree {
-            Some(carried) => (carried + done, 0),
-            None => (done, total),
-        };
-        (p.on_bytes)(reported, against);
-        if let Some(parent) = dst.named.parent() {
-            touch(p, parent);
-        }
+        report_landed(p, dst, done, total);
     }
     if let Some(carried) = p.tree.as_mut() {
         *carried += done;
     }
     record_open(p, dst.named, &w);
     Ok(())
+}
+
+// A tree copy reports its running total and no file size, so the bar tracks the whole tree.
+fn report_landed(p: &mut Progress, dst: At, done: u64, total: u64) {
+    let (reported, against) = match p.tree {
+        Some(carried) => (carried + done, 0),
+        None => (done, total),
+    };
+    (p.on_bytes)(reported, against);
+    if let Some(parent) = dst.named.parent() {
+        touch(p, parent);
+    }
 }
 
 #[cfg(test)]
