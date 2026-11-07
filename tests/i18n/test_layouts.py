@@ -271,8 +271,7 @@ class LayoutTests(unittest.TestCase):
                           ("preset", "all", "U", "ctrl", "pageUp", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageDown", "none", "pageDown", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageUp", "none", "pageUp", ["preview", "pdf"], "gui")])
-        # Open in place adds Ctrl+Right and Ctrl+Left to the GUI listing, to expand and collapse a folder as tree rows,
-        # and > and < do the same for every marked folder.
+        # Ctrl+Right and Ctrl+Left open and close one folder in place as tree rows; > and < do so for every marked folder.
         in_place = [r for r in common if r["action"] in ("openInPlace", "closeInPlace")]
         self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
                           for r in in_place], [("preset", "all", "Right", "ctrl", "openInPlace", ["listing"], "gui"),
