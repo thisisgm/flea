@@ -13,4 +13,4 @@
 - Keep navigation responsive when leaving Network or Trash confirmations.
 - Retain adjacent columns when selecting files.
 
-Thanks @gjouret, @felixzsh, @root1945 and @AksharP5.
+Thanks to @aholbreich, @akitaonrails, @AksharP5, @avillagran, @axelfontaine, @AyushKr2003, @chrispository, @dyedfox, @eachann1024, @EmilsValdmanis, @felixzsh, @FortyTwoFifty, @gdeyoung, @gjouret, @group6digital, @hegjon, @itsmunzir, @jakovius, @jesedv, @jessekalil, @jesusalcaladev, @joebaus, @johnkattenhorn, @jotapesse, @k-kostin, @letsfkccp, @marvreichmann, @MiguelDebruyne, @MISTERNEGATIVE21, @mubshrx, @muellan, @murilocb, @nerdislb, @nixfred, @NjengaFelix, @not-that-nda, @OldJobobo, @passport0819, @paulnunezm, @pvpmartins, @razmikb, @root1945, @tko76, @vitonique and @wmfeht.
