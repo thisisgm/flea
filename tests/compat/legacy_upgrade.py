@@ -168,6 +168,13 @@ try:
     if "--helpers" in sys.argv:
         helper_requests()
     assert all(helper.poll() is None for helper in old_helpers), "handoff replaced a surviving helper"
+    # A session started before the Lua dispatch keeps the classic close, so an update alone cannot strand it.
+    (root / "classic-compositor").touch()
+    old = start("b-classic")
+    result = launch()
+    assert result.returncode == 0, result.stderr
+    old.wait(timeout=2)
+    (root / "classic-compositor").unlink()
     old = start("c-explicit", cursor=selected, selection=[selected])
     gui_binary = root / "bin/flea-gui"
     parked_binary = root / "bin/flea-gui.parked"
