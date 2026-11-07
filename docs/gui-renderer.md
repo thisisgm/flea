@@ -7,9 +7,18 @@ The pinned GPUI fork implements this device and surface check and the GL retry.
 
 The launcher clears Qt renderer settings and drops a legacy `FLEA_VK_PIN` and its
 `VK_DRIVER_FILES` and `VK_ICD_FILENAMES` list inherited from an older window.
-It applies the absent-vendor ICD filter, but adds no display GPU pin, Lavapipe pin
+It applies the ICD filter for absent vendors and an idle NVIDIA GPU, but adds no display GPU pin, Lavapipe pin
 or Vulkan probe cache; GPUI selects adapters using compositor feedback and the real window surface.
 A nonempty operator ICD override remains authoritative.
+
+On a hybrid laptop the filter also disables NVIDIA's Vulkan drivers while the NVIDIA GPU
+drives no display: no NVIDIA connector is connected, another GPU's connector is, that GPU has
+its own Vulkan driver installed, and the compositor's first `AQ_DRM_DEVICES` or `WLR_DRM_DEVICES` entry, when set, is that other GPU.
+Loading those drivers would wake the dGPU from runtime suspend for a window that never
+renders on it. `FLEA_VK_KEEP_NVIDIA=1`, or a PRIME offload request
+(`__NV_PRIME_RENDER_OFFLOAD=1`, `__VK_LAYER_NV_optimus=NVIDIA_only`, or a `DRI_PRIME` other
+than `0`), keeps them.
+Programs Flea opens never inherit the filter.
 
 `QSG_RHI_BACKEND`, `FLEA_RENDERER_AUTOMATIC` and `QT_VK_PHYSICAL_DEVICE_INDEX` are removed
 from the GPUI child's environment.

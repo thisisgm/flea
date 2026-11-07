@@ -133,7 +133,8 @@ def decode(stderr):
                 excluded = None
             names = ",".join(icd_name(name) for name in excluded.split(",")) if excluded else "none" if excluded == "" else "names withheld"
             operator = "yes" if "operator_icd=true" in raw else "no"
-            policy = f"excluded={names}; operator ICD override={operator}; preference=compositor GPU"
+            idle = "yes" if "nvidia_idle_disabled=true" in raw else "no" if "nvidia_idle_disabled=false" in raw else "unknown"
+            policy = f"excluded={names}; operator ICD override={operator}; idle NVIDIA drivers disabled={idle}; preference=compositor GPU"
     if not isinstance(adapter, dict) or not isinstance(frames, dict):
         raise ValueError("candidate diagnostics are not objects")
     if not isinstance(frames.get("intervals_ms", []), list):

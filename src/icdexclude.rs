@@ -8,6 +8,9 @@ use std::process::Command;
 #[path = "icdmanifests.rs"]
 pub(crate) mod manifests;
 use manifests::{manifests_in, Manifest};
+// Whether no NVIDIA card drives a display while another card does, so an NVIDIA driver would only wake its GPU.
+#[path = "icdidle.rs"]
+mod idle;
 
 // The loader's own filter: comma-separated, case-insensitive globs over manifest file names, read at vkCreateInstance.
 const DISABLE: &str = "VK_LOADER_DRIVERS_DISABLE";
@@ -24,10 +27,10 @@ pub(crate) const PCI_CLASS_SHIFT: u32 = 16;
 // The loader reads only the first 16 entries of its filter (MAX_ADDITIONAL_FILTERS) and drops the rest silently.
 const LOADER_FILTERS: usize = 16;
 
-// Before the probe and qs in every arm; the launcher is single threaded until exec, so these writes are sound.
-pub fn exclude_absent_vendors() {
+// Before the probe and qs in every arm, single threaded until exec so these writes are sound; true when it disabled an idle NVIDIA GPU's drivers.
+pub fn exclude_absent_vendors() -> bool {
     let roots = xdg_roots(|name| std::env::var_os(name));
-    let filter = decide_exclusion(|name| std::env::var_os(name), Path::new("/sys/bus/pci/devices"), Path::new("/sys/class/drm"), &roots);
+    let (filter, idle) = decide_exclusion(|name| std::env::var_os(name), Path::new("/sys/bus/pci/devices"), Path::new("/sys/class/drm"), &roots);
     // A filter its marker names is a parent Flea's, so it goes with its marker before this launch writes its own.
     if owned(std::env::var_os(DISABLE).as_deref(), std::env::var_os(MARKER).as_deref()) {
         std::env::remove_var(DISABLE);
@@ -40,20 +43,21 @@ pub fn exclude_absent_vendors() {
         std::env::set_var(DISABLE, &filter);
         std::env::set_var(MARKER, &filter);
     }
+    idle
 }
 
-// The filter to write, or None: a stale marker is re-decided, an operator choice or settings file wins, else absent vendors.
-pub(crate) fn decide_exclusion(var: impl Fn(&str) -> Option<OsString>, pci: &Path, drm: &Path, roots: &[PathBuf]) -> Option<String> {
+// The filter to write, or None, and whether the idle NVIDIA rule added to it: a stale marker is re-decided, an operator choice or settings file wins.
+pub(crate) fn decide_exclusion(var: impl Fn(&str) -> Option<OsString>, pci: &Path, drm: &Path, roots: &[PathBuf]) -> (Option<String>, bool) {
     let stale = owned(var(DISABLE).as_deref(), var(MARKER).as_deref());
     if operator_chose_drivers(|name| if stale && name == DISABLE { None } else { var(name) }) {
-        return None;
+        return (None, false);
     }
     if roots.iter().any(|root| root.join(SETTINGS_FILE).exists()) {
-        return None;
+        return (None, false);
     }
     let dirs: Vec<PathBuf> = roots.iter().map(|root| root.join("vulkan/icd.d")).collect();
-    let names = absent_vendor_manifests(pci, drm, &dirs);
-    (!names.is_empty()).then(|| names.join(","))
+    let (names, idle) = unused_manifests(pci, drm, &dirs, idle::nvidia_idle(&var, drm));
+    ((!names.is_empty()).then(|| names.join(",")), idle)
 }
 
 // Undo this launcher's exclusion for a child, leaving an operator's own filter untouched.
@@ -99,15 +103,35 @@ pub(crate) fn xdg_roots(var: impl Fn(&str) -> Option<OsString>) -> Vec<PathBuf> 
     unique
 }
 
-// Split from exclude_absent_vendors so a test can drive it against a fake sysfs and fake manifest directories.
+// The absent-vendor rule alone, so a test can drive it against a fake sysfs and fake manifest directories.
+#[cfg(test)]
 fn absent_vendor_manifests(pci: &Path, drm: &Path, dirs: &[PathBuf]) -> Vec<String> {
-    let Some(present) = present_devices(pci, drm) else {
-        return Vec::new();
+    unused_manifests(pci, drm, dirs, false).0
+}
+
+// The absent vendors' manifests, and NVIDIA's too when its GPU is here but idle, with whether that idle rule applied.
+fn unused_manifests(pci: &Path, drm: &Path, dirs: &[PathBuf], nvidia_idle: bool) -> (Vec<String>, bool) {
+    let Some(mut present) = present_devices(pci, drm) else {
+        return (Vec::new(), false);
     };
     let Some(manifests) = manifests_in(dirs) else {
-        return Vec::new();
+        return (Vec::new(), false);
     };
-    excluded(&manifests, &present)
+    let nvidia_here = present.iter().any(|(vendor, _)| *vendor == PCI_VENDOR_NVIDIA);
+    let idle = nvidia_idle && nvidia_here && other_driver_here(&manifests, &present);
+    if idle {
+        present.retain(|(vendor, _)| *vendor != PCI_VENDOR_NVIDIA);
+    }
+    (excluded(&manifests, &present), idle)
+}
+
+// A present non-NVIDIA GPU has a hardware driver of its own, so disabling NVIDIA's never leaves GPUI only Lavapipe.
+fn other_driver_here(manifests: &[Manifest], present: &[(u32, u32)]) -> bool {
+    let drives = |gpu: (u32, u32), entry: &Manifest| if is_hasvk_intel(gpu) { entry.2 } else { entry.1 == Some(gpu.0) };
+    present
+        .iter()
+        .filter(|(vendor, _)| *vendor != PCI_VENDOR_NVIDIA)
+        .any(|gpu| manifests.iter().any(|entry| drives(*gpu, entry)))
 }
 
 // Every display device as (vendor, device), or None when the box holds a GPU this cannot name, so nothing is excluded.

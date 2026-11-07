@@ -13,7 +13,7 @@ pub(super) fn configure(cmd: &mut Command) {
         std::env::remove_var("VK_ICD_FILENAMES");
         std::env::remove_var(vulkan::PIN_MARKER);
     }
-    crate::icdexclude::exclude_absent_vendors();
+    let idle = crate::icdexclude::exclude_absent_vendors();
     // GPUI reads compositor dmabuf/DRI3 feedback and tests adapters against its real surface.
     // A Qt connector pin would hide adapters from that selection and its GL fallback.
     if std::env::var_os("FLEA_GPU_REPORT").as_deref() == Some(OsStr::new("1")) {
@@ -22,7 +22,7 @@ pub(super) fn configure(cmd: &mut Command) {
             .iter()
             .any(|key| std::env::var_os(key).is_some_and(|value| !value.is_empty()));
         eprintln!(
-            "flea-gpu-policy: excluded={filter:?} operator_icd={operator} selection=compositor-feedback"
+            "flea-gpu-policy: excluded={filter:?} operator_icd={operator} nvidia_idle_disabled={idle} selection=compositor-feedback"
         );
     }
 }
