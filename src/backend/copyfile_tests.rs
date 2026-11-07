@@ -34,7 +34,7 @@ fn a_child_swapped_to_a_symlink_is_refused_by_the_file_open_itself() {
     let flag = AtomicBool::new(false);
     let mut sink = |_: u64, _: u64| {};
     let mut p = quiet(&flag, &mut sink);
-    let e = copy_file_at(here(&src), here(&dst), 0, &mut p)
+    let e = copy_file_at(here(&src), here(&dst), 0, &mut p, false)
         .expect_err("a symlinked child must not be followed");
     assert_eq!(e.where_, "copy");
     assert!(!dst.exists(), "and nothing of the target reached the destination");
@@ -292,6 +292,8 @@ fn a_cancelled_copy_leaves_no_partial_file_behind() {
 
 #[test]
 fn a_cancelled_directory_copy_removes_the_part_it_already_wrote() {
+    // In place, as a FUSE destination writes a tree; a staged folder is covered in copyfolder_tests.
+    let _seams = crate::backend::copystage_tests::in_place();
     let d = TestDir::new("copydircancel");
     let src = d.dir("tree");
     std::fs::write(src.join("a.bin"), "x".repeat(8)).unwrap();
@@ -326,9 +328,11 @@ fn a_cancelled_directory_copy_removes_the_part_it_already_wrote() {
 }
 
 // The second entry's destination is taken from under it while the first is still streaming, so
-// the failure is a create that collides and not a cancel, whichever order read_dir yields.
+// the failure is a name that collides and not a cancel, whichever order read_dir yields.
 #[test]
 fn a_directory_copy_that_fails_short_of_a_cancel_keeps_the_tree_and_reports_it() {
+    // In place, as a FUSE destination writes a tree; a staged folder goes whole instead (copyfolder_tests).
+    let _seams = crate::backend::copystage_tests::in_place();
     let d = TestDir::new("copydirfail");
     let src = d.dir("tree");
     std::fs::write(src.join("a.bin"), "x".repeat(8)).unwrap();
@@ -336,12 +340,13 @@ fn a_directory_copy_that_fails_short_of_a_cancel_keeps_the_tree_and_reports_it()
     let clone = d.join("clone");
     let flag = AtomicBool::new(false);
     let mut planted = false;
-    let mut sink = |_done: u64, _total: u64| {
+    let mut sink = |done: u64, _total: u64| {
         if planted {
             return;
         }
         planted = true;
-        let other = if clone.join("a.bin").exists() { "b.bin" } else { "a.bin" };
+        // The streaming file is still under its hidden name, so its first report's size says which one it is.
+        let other = if done == 8 { "b.bin" } else { "a.bin" };
         std::fs::write(clone.join(other), "stray").unwrap();
     };
     let mut p = quiet(&flag, &mut sink);
@@ -356,22 +361,6 @@ fn a_directory_copy_that_fails_short_of_a_cancel_keeps_the_tree_and_reports_it()
         a,
         b
     );
-}
-
-// /proc/self/mem is S_IFREG and opens fine, and its first read at offset 0 answers EIO, so the
-// failure lands after the destination was created rather than before.
-#[test]
-fn a_file_copy_that_fails_after_creating_its_destination_reports_the_partial() {
-    let d = TestDir::new("copyfilefail");
-    let src = std::path::PathBuf::from("/proc/self/mem");
-    let dst = d.join("partial.bin");
-    let flag = AtomicBool::new(false);
-    let mut sink = |_: u64, _: u64| {};
-    let mut p = quiet(&flag, &mut sink);
-    let e = copy_file(&src, &dst, 0, &mut p).expect_err("offset 0 of a mem file is not mapped");
-    assert_ne!(e.msg, "cancelled");
-    assert!(dst.exists(), "the partial stays: removing it on an error is the cancel path's job only");
-    assert_eq!(p.partial, Some(dst));
 }
 
 // Nothing was created, so nothing is reported: a step here would let undo delete what the user had.

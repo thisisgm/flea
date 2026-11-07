@@ -309,6 +309,8 @@ mod tests {
     // suite runs as root, so it forces the failure a real permission error would.
     #[test]
     fn duplicating_a_tree_that_fails_short_of_the_end_still_records_the_partial_copy() {
+        // In place, as a FUSE destination writes a tree; a staged folder goes whole instead (copyfolder_tests).
+        let _seams = crate::backend::copystage_tests::in_place();
         let d = TestDir::new("duppartial");
         let src = d.dir("tree");
         std::fs::write(src.join("inside.txt"), "body").unwrap();

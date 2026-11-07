@@ -6,7 +6,6 @@ use std::sync::{mpsc::channel, Arc};
 const FILES: usize = 1_000;
 const FILE_BYTES: usize = 4_096;
 const ENOSPC: i32 = 28;
-const PARTIAL_DIVISOR: usize = 2;
 // One vfat flush body over the destination, so every confirm test mounts the same stick.
 fn vfat_body(out: &std::path::Path) -> String {
     format!("21 1 8:1 / {} rw,flush - vfat /dev/test rw,flush\n", out.display())
@@ -192,13 +191,13 @@ fn short_copy(errno: i32, reported: &str) {
     copyfile::test_fail_write(None);
     f.source_survives(0);
     f.source_survives(1);
-    assert_eq!(std::fs::metadata(f.destination(1)).unwrap().len(), (FILE_BYTES / PARTIAL_DIVISOR) as u64);
+    assert!(!f.destination(1).exists(), "the half-written copy went with its hidden name, so no name holds it");
     let closed = f.close();
     assert_eq!((closed.ok, closed.failed), (1, 0));
     assert!(!f.source(0).exists(), "the landed copy still finishes after confirmation");
     f.source_survives(1);
     assert_eq!(f.durability.held_len(), 0);
-    assert!(matches!(&f.steps[..], [Step::Copied { .. }, Step::Moved { .. }]));
+    assert!(matches!(&f.steps[..], [Step::Moved { .. }]), "nothing of the failed copy is left to journal");
 }
 
 #[test]

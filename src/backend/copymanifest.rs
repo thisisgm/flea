@@ -109,6 +109,10 @@ pub(crate) fn test_unverified(root: &std::path::Path) -> Handle {
 }
 
 impl Writer {
+    pub(crate) fn root(&self) -> &Path {
+        &self.root
+    }
+
     fn create_for(src: &Path, root: &Path) -> Result<Self, String> {
         use crate::backend::manifestdir::{candidate_dirs, current_uid, forbid_for, qualifying_dirs};
         if !root.is_absolute() {

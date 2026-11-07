@@ -966,6 +966,20 @@ fn tick_walkers(out: &mut BufWriter<io::Stdout>, st: &mut State, pool: &Pool) {
     }
 }
 
+// A thread stuck in a dead mount's call holds the exit and the pipes with it, so the client is let go of first.
+pub fn let_go_of_client() {
+    use std::os::unix::io::AsRawFd;
+    extern "C" {
+        fn dup2(old: i32, new: i32) -> i32;
+    }
+    let _ = io::stdout().flush();
+    if let Ok(null) = std::fs::OpenOptions::new().read(true).write(true).open("/dev/null") {
+        for fd in [0, 1] {
+            unsafe { dup2(null.as_raw_fd(), fd) };
+        }
+    }
+}
+
 // A worker inside a child owns a temp file in the shared cache that only its own return publishes or removes; see AGENTS.md "Thumbnail requests".
 pub(crate) fn drain(
     out: &mut impl Write,

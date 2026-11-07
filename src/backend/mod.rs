@@ -261,6 +261,8 @@ pub mod copymanifest;
 pub mod manifestdir;
 pub mod copynode;
 mod copyread;
+mod copystage;
+mod copysweep;
 pub mod unheld;
 mod newfolder;
 pub mod ops;
@@ -334,6 +336,9 @@ mod copyexec_tests;
 // Test-only: the closing progress line a paced transfer sends after its last item.
 #[cfg(test)]
 mod transferclose_tests;
+// Test-only: a copied file or new folder takes its name only whole, a quit cancels at the door, and dead siblings are swept.
+#[cfg(test)]
+mod copystage_tests;
 pub mod redo;
 pub mod link;
 // The open listing's directory, watched so an outside change reaches the client; see docs/protocol.md "changed".
