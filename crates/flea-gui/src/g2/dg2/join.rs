@@ -18,7 +18,7 @@ mod peek_lift;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
 #[path = "spring.rs"]
-mod spring;
+pub(super) mod spring;
 #[path = "tab_drop.rs"]
 mod tab_drop;
 use owned::Owned;

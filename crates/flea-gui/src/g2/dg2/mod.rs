@@ -328,3 +328,6 @@ mod u_drag_drop_spring_tests;
 
 #[cfg(test)]
 mod u_drag_drop_recent_tests;
+
+#[cfg(test)]
+mod native_start_tests;

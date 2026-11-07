@@ -8,7 +8,11 @@ use gpui::{
 };
 use std::{path::PathBuf, time::Duration};
 
-fn hit(cx: &mut TestAppContext, handle: WindowHandle<Shell>, row: usize) -> Point<Pixels> {
+pub(super) fn hit(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<Shell>,
+    row: usize,
+) -> Point<Pixels> {
     handle
         .read_with(cx, |shell, _| {
             let host = shell.panes[0].as_ref().unwrap();

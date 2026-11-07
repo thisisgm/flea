@@ -83,6 +83,7 @@ pub(super) fn draggable(
         .external_drag_payload::<Seed>(move |_, window, cx| {
             payload.upgrade()?.read(cx).file_drag_payload(window, cx)
         })
+        .external_drag_at_start()
         .on_drop::<Seed>(
             cx.listener(move |shell, _: &Seed, window, cx| shell.land_own_drag(side, window, cx)),
         )
