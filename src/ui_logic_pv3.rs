@@ -4,6 +4,7 @@ pub mod picture;
 pub mod player;
 pub mod session;
 pub mod strip;
+pub mod tonemap;
 pub mod transport;
 
 #[cfg(test)]
@@ -18,6 +19,9 @@ mod sound_tests;
 #[cfg(test)]
 #[path = "ui_logic_pv3/strip_tests.rs"]
 mod strip_tests;
+#[cfg(test)]
+#[path = "ui_logic_pv3/tonemap_tests.rs"]
+mod tonemap_tests;
 #[cfg(test)]
 mod transport_seek_tests;
 #[cfg(test)]
