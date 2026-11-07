@@ -727,6 +727,29 @@ label = "Close in place"
 context = "listing"
 frontend = "gui"
 
+# #412: > and < act on every marked folder in all four presets; the sheet board draws the Ctrl pair alone.
+[[preset]]
+name = "all"
+mods = "text"
+key = ">"
+keys = ">"
+action = "openInPlace"
+label = "Open in place"
+context = "listing"
+frontend = "gui"
+sheet = false
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "<"
+keys = "<"
+action = "closeInPlace"
+label = "Close in place"
+context = "listing"
+frontend = "gui"
+sheet = false
+
 # KeymapSheet.html rule 1: a binding gets a group and the sheet reads it. The group is named by
 # action rather than written on every binding, because one action is spelled four different ways
 # across the presets and its group is the same in all four; the generator fails the build if an
@@ -1320,6 +1343,7 @@ label = "Keyboard Shortcuts"
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
 # why the listing's two-tap rule stops at the rail's edge.
+# Not a row here: the GPUI List mark tap (open or close in place, cursor kept) has no row kind or QML Tap.js driver; > and < are keys in [[preset]].
 
 [[pointer]]
 where = "listing"

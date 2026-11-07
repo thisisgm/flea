@@ -445,12 +445,12 @@ fn handle_line(
         Request::TrashBrowse { line } => {
             super::trashbrowse::request(out, ops, line);
         }
-        Request::Outline { row, open, enabled, first } => {
+        Request::Outline { rows, anchor, open, enabled, first } => {
             if let Some(enabled) = enabled.filter(|_| st.held != Held::List) {
                 st.outline.disabled = !enabled;
                 return Control::Continue;
             }
-            match super::outline::request(st, row, open, enabled, first) {
+            match super::outline::request(st, &rows, anchor, open, enabled, first) {
                 Ok(line) => return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate),
                 Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: st.base.to_string_lossy().into_owned(), msg })),
             }

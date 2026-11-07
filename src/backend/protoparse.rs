@@ -6,7 +6,9 @@ use crate::json::{field_bool, field_str, field_str_array, field_usize, field_usi
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
         Some("outline") => Request::Outline {
-            row: field_usize(line, "row"), open: field_bool(line, "open"),
+            // Sample input: {"c":"outline","rows":[0,4],"open":true,"anchor":7,"listing":3,"first":320}; a lone "row" still names one folder.
+            rows: match field_usize_array(line, "rows") { rows if rows.is_empty() => field_usize(line, "row").into_iter().collect(), rows => rows },
+            anchor: field_usize(line, "anchor"), open: field_bool(line, "open"),
             enabled: crate::jsondoc::parse(line).ok().and_then(|doc| doc.get("enabled").and_then(crate::jsondoc::Json::as_bool)), first: field_usize(line, "first").unwrap_or(crate::backend::searchsession::FIRST_WINDOW_DEFAULT),
         },
         Some("nearby") => Request::Nearby {

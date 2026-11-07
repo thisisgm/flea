@@ -224,7 +224,8 @@ fn watched_reread_frames_keep_the_settled_listing(cx: &mut TestAppContext) {
 fn outline_frames_land_a_bounded_window_at_a_deep_cursor(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     let mut rows: Vec<_> = (0..1000)
-        .map(|at| row(&format!("F{at:04}"), true))
+        // The two marked rows are files, so Ctrl+Right opens the cursor's folder.
+        .map(|at| row(&format!("F{at:04}"), at != 499 && at != 510))
         .collect();
     let count = shell.read_with(cx, |shell, _| {
         shell.panes[0].as_ref().unwrap().pane.first_count()
@@ -248,7 +249,7 @@ fn outline_frames_land_a_bounded_window_at_a_deep_cursor(cx: &mut TestAppContext
     let commands = sent();
     assert!(commands
         .iter()
-        .any(|line| line.contains("\"c\":\"outline\",\"row\":500")));
+        .any(|line| line.contains("\"c\":\"outline\",\"rows\":[500]")));
     for _ in 0..10 {
         assert_eq!(frame(&shell, cx), before);
     }
