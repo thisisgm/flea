@@ -48,7 +48,7 @@ impl Render for QuickLook {
             );
         }
         let motion = self.motion.sample(
-            active && self.revealed && (!picture || self.content_ready(cx)),
+            active && (self.kept_shown || self.revealed && (!picture || self.content_ready(cx))),
             cx.background_executor().now(),
             cx.reduce_motion(),
         );
@@ -102,10 +102,15 @@ impl Render for QuickLook {
                     Body::Image { .. } | Body::Link { .. } | Body::Raw { .. }
                 )
             });
-        if self.revealed || laying || !active {
-            let shown = motion.opacity;
-            let surface = self.surface(card, &look, window, cx);
+        // A move draws the held card over the new subject until it reveals, then swaps in one frame.
+        let holding = self.held.is_some() && !self.revealed;
+        if self.revealed || laying || !active || (self.kept_shown && !holding) {
+            let shown = if holding { 0. } else { motion.opacity };
+            let surface = self.surface(card, None, &look, window, cx);
             overlay = overlay.child(div().absolute().size_full().opacity(shown).child(surface));
+        }
+        if holding {
+            overlay = overlay.children(self.held_layer(motion, &look, window, cx));
         }
         if !active {
             self.closing = self.subject.take();
@@ -158,9 +163,11 @@ pub(super) fn text(content: &str, size: f32, ink: Hsla) -> gpui::Div {
 }
 
 impl QuickLook {
-    fn surface(
+    /// A held card passes its last raster, so drawing it asks for no new decode.
+    pub(super) fn surface(
         &mut self,
         card: Bounds<Pixels>,
+        raster: Option<super::RasterState>,
         look: &Look,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -169,7 +176,7 @@ impl QuickLook {
             f64::from(f32::from(card.size.width)),
             f64::from(f32::from(card.size.height)),
         );
-        let raster = self.picture_raster(w, h, window, cx);
+        let raster = raster.unwrap_or_else(|| self.picture_raster(w, h, window, cx));
         let subject = self.subject.as_ref().expect("an open card has a subject");
         // A refused or unreadable host-decoded picture shows the kind's can't-show card, never img(path).
         let shown: Cow<'_, Body> = match (&subject.body, raster.refusal) {

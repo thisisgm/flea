@@ -14,6 +14,8 @@ impl QuickLook {
         self.strip_shown = false;
         self.ground.reset();
         self.revealed = false;
+        // A held card is what shows, so it fades out in the new subject's place.
+        self.kept_shown = false;
         self.focused = None;
         self.hovered = None;
         self.pressed = None;
@@ -52,6 +54,7 @@ impl QuickLook {
             doc.close(cx);
         }
         self.ground.reset();
+        self.release_held(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
         self.revealed = false;

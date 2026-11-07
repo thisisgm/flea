@@ -233,7 +233,6 @@ impl super::QuickLook {
 
     pub(crate) fn reveal_cap(&mut self, cx: &mut gpui::Context<Self>) {
         self.observe_reveal(true, cx);
-        self.revealed = true;
-        cx.notify();
+        self.mark_revealed(cx);
     }
 }

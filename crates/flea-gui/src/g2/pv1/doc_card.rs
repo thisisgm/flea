@@ -114,7 +114,7 @@ impl QuickLook {
         subject.shape = doc.shape(subject.state, cx);
         if doc.ready(cx) {
             self.observe_reveal(false, cx);
-            self.revealed = true;
+            self.mark_revealed(cx);
         }
         cx.notify();
     }
