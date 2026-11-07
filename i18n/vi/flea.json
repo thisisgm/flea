@@ -1360,6 +1360,7 @@
   "picker.browser.filename": "Tên tệp",
   "picker.browser.filter": "Lọc",
   "picker.browser.hints_filtered": "enter mở · esc xóa",
+  "picker.browser.hints_folder": "enter tạo · esc đóng",
   "picker.browser.hints_open_dir": "enter mở · space đánh dấu thư mục · esc hủy",
   "picker.browser.hints_open_many": "space chọn · enter mở/gửi · esc hủy",
   "picker.browser.hints_open_one": "enter mở · esc hủy",

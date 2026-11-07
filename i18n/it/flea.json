@@ -1426,6 +1426,7 @@
   "picker.browser.filename": "Nome file",
   "picker.browser.filter": "Filtro",
   "picker.browser.hints_filtered": "enter apre · esc cancella",
+  "picker.browser.hints_folder": "enter crea · esc chiude",
   "picker.browser.hints_open_dir": "enter apre · space seleziona cartella · esc annulla",
   "picker.browser.hints_open_many": "space seleziona · enter apre/invia · esc annulla",
   "picker.browser.hints_open_one": "enter apre · esc annulla",

@@ -10,9 +10,10 @@ impl Picker {
     }
 
     pub(super) fn submission_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // A create out with its card closed holds the chooser on Cancel, as it did before the card; an open card keeps its own focus.
         let busy = self.accept_state().submitting()
             || !self.browse.route.asked.is_empty()
-            || self.chrome.folder_request.is_some();
+            || (self.chrome.folder_request.is_some() && self.chrome.folder.is_none());
         if busy && !self.chrome.was_submitting {
             if self.chrome.restore.is_none() {
                 self.chrome.restore = window.focused(cx);

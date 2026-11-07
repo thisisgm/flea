@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "Име на файл",
   "picker.browser.filter": "Филтър",
   "picker.browser.hints_filtered": "enter отвори · esc изчисти",
+  "picker.browser.hints_folder": "enter създай · esc затвори",
   "picker.browser.hints_open_dir": "enter отвори · space маркирай папка · esc отмени",
   "picker.browser.hints_open_many": "space избери · enter отвори/изпрати · esc отмени",
   "picker.browser.hints_open_one": "enter отвори · esc отмени",

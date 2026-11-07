@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "Dosya adı",
   "picker.browser.filter": "Filtrele",
   "picker.browser.hints_filtered": "enter açar · esc temizler",
+  "picker.browser.hints_folder": "enter oluşturur · esc kapatır",
   "picker.browser.hints_open_dir": "enter açar · space klasörü işaretler · esc iptal eder",
   "picker.browser.hints_open_many": "space seçer · enter açar/gönderir · esc iptal eder",
   "picker.browser.hints_open_one": "enter açar · esc iptal eder",

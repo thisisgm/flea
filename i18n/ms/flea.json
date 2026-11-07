@@ -1612,6 +1612,7 @@
   "picker.browser.hints_open_many": "space pilih · enter buka/hantar · esc batal",
   "picker.browser.hints_open_dir": "enter buka · space tandakan folder · esc batal",
   "picker.browser.hints_filtered": "enter buka · esc kosongkan",
+  "picker.browser.hints_folder": "enter cipta · esc tutup",
   "picker.browser.collision_short": "%1 sudah wujud di sini.",
   "picker.browser.collision_review": "%1 sudah wujud di sini. Semak sebelum meneruskan.",
   "picker.browser.save_refused": "%1 tidak boleh digunakan: %2",

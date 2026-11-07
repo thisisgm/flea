@@ -1426,6 +1426,7 @@
   "picker.browser.filename": "Failo pavadinimas",
   "picker.browser.filter": "Filtras",
   "picker.browser.hints_filtered": "enter atidaro · esc išvalo",
+  "picker.browser.hints_folder": "enter sukuria · esc uždaro",
   "picker.browser.hints_open_dir": "enter atidaro · space pažymi aplanką · esc atšaukia",
   "picker.browser.hints_open_many": "space pasirenka · enter atidaro / siunčia · esc atšaukia",
   "picker.browser.hints_open_one": "enter atidaro · esc atšaukia",

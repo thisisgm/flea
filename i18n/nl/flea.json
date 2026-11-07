@@ -1621,6 +1621,7 @@
   "picker.browser.collision_short": "%1 bestaat hier al.",
   "picker.browser.filename": "Bestandsnaam",
   "picker.browser.hints_filtered": "enter opent · esc wist",
+  "picker.browser.hints_folder": "enter maakt · esc sluit",
   "picker.browser.hints_open_dir": "enter opent · space markeert map · esc annuleert",
   "picker.portal.hints.mark_folders": "enter opent · space markeert map · esc annuleert",
   "picker.browser.hints_open_many": "space selecteert · enter opent/verzendt · esc annuleert",

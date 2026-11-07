@@ -256,20 +256,20 @@ impl Picker {
             if let Some(filename) = &self.browse.filename {
                 let folder = self.listing.location.clone();
                 filename.update(cx, |field, cx| {
-                    field
-                        .save
-                        .update(cx, |save, _| save.field().set_folder(&folder))
+                    if let Some(save) = &field.save {
+                        save.update(cx, |save, _| save.field().set_folder(&folder));
+                    }
                 });
             }
             if logic::saving(&self.req) {
                 self.invalidate_save(cx);
             }
         } else if logic::saving(&self.req)
-            && self.listing.state == "ready"
+            && matches!(self.listing.state, "ready" | "empty")
             && self.review.is_none()
             && self.save_error.is_empty()
         {
-            // The start folder lands without a move, so the supplied name is probed here, as v0.3.12 probes on seeding it.
+            // The start folder lands without a move, so the supplied name is probed here, even with no rows (#428).
             self.probe_save();
         }
         cx.notify();

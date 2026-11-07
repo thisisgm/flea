@@ -101,6 +101,11 @@ impl Picker {
             return;
         }
         self.browse.window = Some(window.window_handle());
+        // New Folder's card holds the keyboard while it is open (0401-picker-new-folder).
+        if self.chrome.folder.is_some() {
+            self.folder_key(event, window, cx);
+            return;
+        }
         // The shared path entry answers its own keys; what it lets through is typed into it, never into the chooser.
         let path = self.browse.path_view(cx);
         if path.read(cx).holds_keyboard(window) {
@@ -357,6 +362,7 @@ impl Render for Picker {
                 )),
             );
         let footer = self.footer(&palette, theme, rule, window, cx);
+        let folder_card = self.folder_card(window, cx);
         div()
             .relative()
             .size_full()
@@ -383,6 +389,7 @@ impl Render for Picker {
             .children(save_line)
             .child(answers)
             .child(footer)
+            .children(folder_card)
             .children(
                 self.chrome
                     .menu_closing

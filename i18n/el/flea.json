@@ -1377,6 +1377,7 @@
   "picker.browser.filename": "Όνομα αρχείου",
   "picker.browser.filter": "Φίλτρο",
   "picker.browser.hints_filtered": "enter για άνοιγμα · esc για εκκαθάριση",
+  "picker.browser.hints_folder": "enter για δημιουργία · esc για κλείσιμο",
   "picker.browser.hints_open_dir": "enter για άνοιγμα · space για επισήμανση φακέλου · esc για ακύρωση",
   "picker.browser.hints_open_many": "space για επιλογή · enter για άνοιγμα/αποστολή · esc για ακύρωση",
   "picker.browser.hints_open_one": "enter για άνοιγμα · esc για ακύρωση",

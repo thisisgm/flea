@@ -1377,6 +1377,7 @@
   "picker.browser.filename": "نام فایل",
   "picker.browser.filter": "پالایه",
   "picker.browser.hints_filtered": "enter باز می‌کند · esc پاک می‌کند",
+  "picker.browser.hints_folder": "enter ایجاد می‌کند · esc بسته می‌کند",
   "picker.browser.hints_open_dir": "enter باز می‌کند · space پوشه را علامت می‌زند · esc لغو می‌کند",
   "picker.browser.hints_open_many": "space انتخاب می‌کند · enter باز/ارسال می‌کند · esc لغو می‌کند",
   "picker.browser.hints_open_one": "enter باز می‌کند · esc لغو می‌کند",

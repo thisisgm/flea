@@ -1705,6 +1705,7 @@
   "picker.browser.hints_open_many": "space select · enter open/send · esc cancel",
   "picker.browser.hints_open_dir": "enter open · space mark folder · esc cancel",
   "picker.browser.hints_filtered": "enter open · esc clears",
+  "picker.browser.hints_folder": "enter create · esc close",
   "picker.browser.collision_short": "%1 already exists here.",
   "picker.browser.collision_review": "%1 already exists here. Review it before you continue.",
   "picker.browser.save_refused": "%1 cannot be used: %2",

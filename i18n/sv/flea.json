@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "Filnamn",
   "picker.browser.filter": "Filter",
   "picker.browser.hints_filtered": "enter öppnar · esc rensar",
+  "picker.browser.hints_folder": "enter skapar · esc stänger",
   "picker.browser.hints_open_dir": "enter öppnar · space markerar mapp · esc avbryter",
   "picker.browser.hints_open_many": "space markerar · enter öppnar/skickar · esc avbryter",
   "picker.browser.hints_open_one": "enter öppnar · esc avbryter",

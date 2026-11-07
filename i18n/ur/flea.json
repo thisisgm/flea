@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "فائل کا نام",
   "picker.browser.filter": "فلٹر",
   "picker.browser.hints_filtered": "enter کھولتا ہے · esc صاف کرتا ہے",
+  "picker.browser.hints_folder": "enter بناتا ہے · esc بند کرتا ہے",
   "picker.browser.hints_open_dir": "enter کھولتا ہے · space فولڈر نشان زد کرتا ہے · esc منسوخ کرتا ہے",
   "picker.browser.hints_open_many": "space منتخب کرتا ہے · enter کھولتا/بھیجتا ہے · esc منسوخ کرتا ہے",
   "picker.browser.hints_open_one": "enter کھولتا ہے · esc منسوخ کرتا ہے",

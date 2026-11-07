@@ -1307,6 +1307,7 @@
   "picker.browser.filename": "ファイル名",
   "picker.browser.filter": "フィルター",
   "picker.browser.hints_filtered": "enter 開く · esc 消去",
+  "picker.browser.hints_folder": "enter 作成 · esc 閉じる",
   "picker.browser.hints_open_dir": "enter 開く · space フォルダーをマーク · esc キャンセル",
   "picker.browser.hints_open_many": "space 選択 · enter 開く/送信 · esc キャンセル",
   "picker.browser.hints_open_one": "enter 開く · esc キャンセル",

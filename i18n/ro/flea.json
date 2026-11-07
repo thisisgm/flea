@@ -1426,6 +1426,7 @@
   "picker.browser.filename": "Nume de fișier",
   "picker.browser.filter": "Filtrează",
   "picker.browser.hints_filtered": "enter deschide · esc golește",
+  "picker.browser.hints_folder": "enter creează · esc închide",
   "picker.browser.hints_open_dir": "enter deschide · space marchează dosarul · esc anulează",
   "picker.browser.hints_open_many": "space selectează · enter deschide/trimite · esc anulează",
   "picker.browser.hints_open_one": "enter deschide · esc anulează",

@@ -1426,6 +1426,7 @@
   "picker.browser.filename": "Faila nosaukums",
   "picker.browser.filter": "Filtrēt",
   "picker.browser.hints_filtered": "enter atver · esc notīra",
+  "picker.browser.hints_folder": "enter izveido · esc aizver",
   "picker.browser.hints_open_dir": "enter atver · space atzīmē mapi · esc atceļ",
   "picker.browser.hints_open_many": "space atlasa · enter atver/nosūta · esc atceļ",
   "picker.browser.hints_open_one": "enter atver · esc atceļ",

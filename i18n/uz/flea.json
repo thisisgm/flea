@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "Fayl nomi",
   "picker.browser.filter": "Filtr",
   "picker.browser.hints_filtered": "enter ochadi · esc tozalaydi",
+  "picker.browser.hints_folder": "enter yaratadi · esc yopadi",
   "picker.browser.hints_open_dir": "enter ochadi · space jildni belgilaydi · esc bekor qiladi",
   "picker.browser.hints_open_many": "space tanlaydi · enter ochadi/yuboradi · esc bekor qiladi",
   "picker.browser.hints_open_one": "enter ochadi · esc bekor qiladi",

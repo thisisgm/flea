@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "Jina la faili",
   "picker.browser.filter": "Chuja",
   "picker.browser.hints_filtered": "enter kufungua · esc kufuta",
+  "picker.browser.hints_folder": "enter kuunda · esc kufunga",
   "picker.browser.hints_open_dir": "enter kufungua · space kutia alama folda · esc kughairi",
   "picker.browser.hints_open_many": "space kuchagua · enter kufungua/kutuma · esc kughairi",
   "picker.browser.hints_open_one": "enter kufungua · esc kughairi",

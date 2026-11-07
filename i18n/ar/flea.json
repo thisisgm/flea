@@ -1605,6 +1605,7 @@
   "picker.browser.filename": "اسم الملف",
   "picker.browser.filter": "الترشيح",
   "picker.browser.hints_filtered": "⁦enter⁩ للفتح · ⁦esc⁩ للمسح",
+  "picker.browser.hints_folder": "⁦enter⁩ للإنشاء · ⁦esc⁩ للإغلاق",
   "picker.browser.hints_open_dir": "⁦enter⁩ للفتح · ⁦space⁩ لتحديد مجلد · ⁦esc⁩ للإلغاء",
   "picker.browser.hints_open_many": "⁦space⁩ للاختيار · ⁦enter⁩ للفتح/الإرسال · ⁦esc⁩ للإلغاء",
   "picker.browser.hints_open_one": "⁦enter⁩ للفتح · ⁦esc⁩ للإلغاء",

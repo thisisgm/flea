@@ -4,6 +4,7 @@ use crate::g2::fb1::caption::Tracked;
 use crate::g2::pk2::view::SaveView;
 use crate::list::Palette;
 use crate::path::entry::Entry;
+use flea::ui_logic_op1::card;
 use flea::ui_logic_pk2::stem_end;
 use gpui::{
     div, prelude::*, px, App, ClickEvent, Context, Entity, EventEmitter, FocusHandle, IntoElement,
@@ -32,13 +33,17 @@ pub enum FieldKey {
 pub struct Filename {
     pub entry: Entry,
     pub focus: FocusHandle,
-    pub save: Entity<SaveView>,
+    // The Save line's words, which only Save As carries; New Folder's card field has none.
+    pub save: Option<Entity<SaveView>>,
     label: SharedString,
     // The board's caption tracking, 1.2 px, none for a caseless script.
     tracking: f32,
     drawn: RefCell<Drawn>,
     pub(super) probe: crate::g2::st1::probe::Probe,
     pub(super) focused: bool,
+    // 0401-picker-new-folder: the card's field, its name above it and the card's width; a refusal frames it in the error role.
+    stacked: bool,
+    pub(super) refused: bool,
 }
 
 impl Filename {
@@ -47,6 +52,26 @@ impl Filename {
         label: String,
         tracking: f32,
         save: Entity<SaveView>,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let mut field = Self::field(seed, label, tracking, Some(save), cx);
+        field.select_stem();
+        field
+    }
+
+    // New Folder's name field: the seed opens selected whole, as the window's new folder name does.
+    pub fn folder_name(seed: &str, label: String, tracking: f32, cx: &mut Context<Self>) -> Self {
+        let mut field = Self::field(seed, label, tracking, None, cx);
+        field.stacked = true;
+        field.entry.select_all();
+        field
+    }
+
+    fn field(
+        seed: &str,
+        label: String,
+        tracking: f32,
+        save: Option<Entity<SaveView>>,
         cx: &mut Context<Self>,
     ) -> Self {
         let mut field = Self {
@@ -58,9 +83,10 @@ impl Filename {
             tracking,
             probe: Default::default(),
             focused: false,
+            stacked: false,
+            refused: false,
         };
         field.entry.begin(seed);
-        field.select_stem();
         field
     }
 
@@ -72,7 +98,9 @@ impl Filename {
     pub fn set(&mut self, name: &str, cx: &mut Context<Self>) {
         self.entry.begin(name);
         self.select_stem();
-        self.save.update(cx, |save, _| save.field().edit(name));
+        if let Some(save) = &self.save {
+            save.update(cx, |save, _| save.field().edit(name));
+        }
         cx.notify();
     }
 
@@ -168,13 +196,31 @@ impl Render for Filename {
             .cloned()
             .unwrap_or_else(crate::list::Typeface::omarchy_default);
         let size = super::size::Size::of(window, cx);
+        let stacked = self.stacked;
         let field = self
             .probe
             .attach(div().relative(), "field")
-            .id("picker-filename")
-            .debug_selector(|| "pk1-filename".into())
-            // picker-save's 300 px, giving way only where a narrow chooser leaves less.
-            .w(px(WIDTH))
+            .id(if stacked {
+                "picker-folder-name"
+            } else {
+                "picker-filename"
+            })
+            .debug_selector(move || {
+                if stacked {
+                    "pk1-folder-name"
+                } else {
+                    "pk1-filename"
+                }
+                .into()
+            })
+            // picker-save's 300 px, giving way only where a narrow chooser leaves less; the card's field spans the card.
+            .map(|field| {
+                if stacked {
+                    field.w_full().bg(palette.background)
+                } else {
+                    field.w(px(WIDTH))
+                }
+            })
             .flex_shrink_1()
             .min_w_0()
             .flex()
@@ -187,7 +233,9 @@ impl Render for Filename {
             .text_color(palette.foreground)
             .rounded(px(crate::compositor::corner(cx)))
             .border_1()
-            .border_color(if focused {
+            .border_color(if self.refused {
+                palette.error_on_surface
+            } else if focused {
                 palette.accent_frame
             } else {
                 crate::presentation::frames::Frames::from_palette(&palette, 0.).ink
@@ -197,6 +245,24 @@ impl Render for Filename {
                 cx.listener(|field, _: &ClickEvent, window, cx| window.focus(&field.focus, cx)),
             )
             .child(Input::new(cx.entity(), face.clone()));
+        if stacked {
+            // DialogField: the name in muted capitals above the field, as the window's cards draw it.
+            return div()
+                .flex()
+                .flex_col()
+                .gap(size.px(card::FIELD_LABEL_GAP))
+                .w_full()
+                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                .child(div().flex().child(Tracked {
+                    text: self.label.clone(),
+                    font: face.font,
+                    size: px(size.caption),
+                    line: size.px(card::FIELD_LABEL_LINE),
+                    tracking: px(self.tracking),
+                    color: palette.muted,
+                }))
+                .child(field);
+        }
         div()
             .flex()
             .flex_row()
@@ -238,7 +304,9 @@ impl EntryHost for Filename {
     }
     fn changed(&mut self, cx: &mut Context<Self>) {
         let text = self.entry.text.clone();
-        self.save.update(cx, |save, _| save.field().edit(&text));
+        if let Some(save) = &self.save {
+            save.update(cx, |save, _| save.field().edit(&text));
+        }
         cx.emit(FieldKey::Edited(text));
         cx.notify();
     }

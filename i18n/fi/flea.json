@@ -1377,6 +1377,7 @@
   "picker.browser.filename": "Tiedostonimi",
   "picker.browser.filter": "Suodata",
   "picker.browser.hints_filtered": "enter avaa · esc tyhjentää",
+  "picker.browser.hints_folder": "enter luo · esc sulkee",
   "picker.browser.hints_open_dir": "enter avaa · space merkitsee kansion · esc peruuttaa",
   "picker.browser.hints_open_many": "space valitsee · enter avaa/lähettää · esc peruuttaa",
   "picker.browser.hints_open_one": "enter avaa · esc peruuttaa",

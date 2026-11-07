@@ -1360,6 +1360,7 @@
   "picker.browser.filename": "ชื่อไฟล์",
   "picker.browser.filter": "กรอง",
   "picker.browser.hints_filtered": "enter เปิด · esc ล้าง",
+  "picker.browser.hints_folder": "enter สร้าง · esc ปิด",
   "picker.browser.hints_open_dir": "enter เปิด · space ทำเครื่องหมายโฟลเดอร์ · esc ยกเลิก",
   "picker.browser.hints_open_many": "space เลือก · enter เปิด/ส่ง · esc ยกเลิก",
   "picker.browser.hints_open_one": "enter เปิด · esc ยกเลิก",

@@ -1360,6 +1360,7 @@
   "picker.browser.filename": "檔名",
   "picker.browser.filter": "篩選",
   "picker.browser.hints_filtered": "enter 開啟 · esc 清除",
+  "picker.browser.hints_folder": "enter 建立 · esc 關閉",
   "picker.browser.hints_open_dir": "enter 開啟 · space 標記資料夾 · esc 取消",
   "picker.browser.hints_open_many": "space 選取 · enter 開啟／傳送 · esc 取消",
   "picker.browser.hints_open_one": "enter 開啟 · esc 取消",

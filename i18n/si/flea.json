@@ -1409,6 +1409,7 @@
   "picker.browser.filename": "ගොනු නම",
   "picker.browser.filter": "පෙරහන",
   "picker.browser.hints_filtered": "enter විවෘත කරයි · esc හිස් කරයි",
+  "picker.browser.hints_folder": "enter සාදයි · esc වසයි",
   "picker.browser.hints_open_dir": "enter විවෘත කරයි · space ෆෝල්ඩරය සලකුණු කරයි · esc අවලංගු කරයි",
   "picker.browser.hints_open_many": "space තෝරයි · enter විවෘත කරයි/යවයි · esc අවලංගු කරයි",
   "picker.browser.hints_open_one": "enter විවෘත කරයි · esc අවලංගු කරයි",

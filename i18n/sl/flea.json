@@ -1507,6 +1507,7 @@
   "picker.browser.filename": "Ime datoteke",
   "picker.browser.filter": "Filter",
   "picker.browser.hints_filtered": "enter odpre · esc počisti",
+  "picker.browser.hints_folder": "enter ustvari · esc zapre",
   "picker.browser.hints_open_dir": "enter odpre · space označi mapo · esc prekliče",
   "picker.browser.hints_open_many": "space izbere · enter odpre/pošlje · esc prekliče",
   "picker.browser.hints_open_one": "enter odpre · esc prekliče",

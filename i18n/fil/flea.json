@@ -1377,6 +1377,7 @@
   "picker.browser.filename": "Pangalan ng file",
   "picker.browser.filter": "Salain",
   "picker.browser.hints_filtered": "enter upang buksan · esc upang linisin",
+  "picker.browser.hints_folder": "enter upang lumikha · esc upang isara",
   "picker.browser.hints_open_dir": "enter upang buksan · space upang markahan ang folder · esc upang kanselahin",
   "picker.browser.hints_open_many": "space upang piliin · enter upang buksan/ipadala · esc upang kanselahin",
   "picker.browser.hints_open_one": "enter upang buksan · esc upang kanselahin",

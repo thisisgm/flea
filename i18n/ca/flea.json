@@ -1426,6 +1426,7 @@
   "picker.browser.filename": "Nom del fitxer",
   "picker.browser.filter": "Filtra",
   "picker.browser.hints_filtered": "enter obre · esc esborra",
+  "picker.browser.hints_folder": "enter crea · esc tanca",
   "picker.browser.hints_open_dir": "enter obre · space marca la carpeta · esc cancel·la",
   "picker.browser.hints_open_many": "space selecciona · enter obre/envia · esc cancel·la",
   "picker.browser.hints_open_one": "enter obre · esc cancel·la",

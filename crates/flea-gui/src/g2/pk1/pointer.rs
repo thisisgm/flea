@@ -12,7 +12,7 @@ impl Picker {
         self.answered()
             || self.backend_unavailable()
             || self.accept_state().submitting()
-            || self.chrome.folder_request.is_some()
+            || self.folder_busy()
             || self.chrome.menu.is_some()
             || !self.browse.route.asked.is_empty()
     }

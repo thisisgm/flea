@@ -1377,6 +1377,7 @@
   "picker.browser.filename": "Skráarnafn",
   "picker.browser.filter": "Sía",
   "picker.browser.hints_filtered": "enter opnar · esc hreinsar",
+  "picker.browser.hints_folder": "enter býr til · esc lokar",
   "picker.browser.hints_open_dir": "enter opnar · space merkir möppu · esc hættir við",
   "picker.browser.hints_open_many": "space velur · enter opnar/sendir · esc hættir við",
   "picker.browser.hints_open_one": "enter opnar · esc hættir við",

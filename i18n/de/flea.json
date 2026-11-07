@@ -1677,6 +1677,7 @@
   "picker.browser.hints_open_many": "space wählt aus · enter öffnet/sendet · esc bricht ab",
   "picker.browser.hints_open_dir": "enter öffnet · space markiert Ordner · esc bricht ab",
   "picker.browser.hints_filtered": "enter öffnet · esc leert",
+  "picker.browser.hints_folder": "enter erstellt · esc schließt",
   "picker.browser.collision_short": "%1 ist hier bereits vorhanden.",
   "picker.browser.collision_review": "%1 ist hier bereits vorhanden. Prüfe das Element, bevor du fortfährst.",
   "picker.browser.save_refused": "%1 kann nicht verwendet werden: %2",
