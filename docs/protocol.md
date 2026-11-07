@@ -1264,7 +1264,9 @@ there without a partial tree. When the archive tool has not exited ten seconds a
 folder is left in place rather than deleted under a live writer, and the `err` names that folder.
 
 A `quit`, or stdin closing, cancels a running operation the same way and waits for its terminal line
-before the process exits, so shutting down mid-copy also leaves nothing half-written behind. A
+before the process exits, so shutting down mid-copy also leaves nothing half-written behind. The cancel
+lands as the line or the end of input is read, as `transfercancel`'s does, so a listing still out cannot
+hold the copy running behind it. A
 quit sets each detached compress and convert flag too and drains them under the one 25 s shutdown
 budget, so each job's `Work` cleanup runs before the process exits and no `.flea-work-*` folder is
 left beside the destination. A job whose tool has not exited ten seconds after the cancel keeps its folder in place
@@ -2111,6 +2113,8 @@ Stops the read loop, then answers the thumbnail work already asked for: every qu
 running job is drained and reported before the process exits, because a worker inside a
 child owns a temp file in the shared cache that only its own return publishes or removes.
 Draining is bounded; see `thumbed` below. Apart from those `thumbed` lines, no response.
+Once it is done the backend points its stdin and stdout at `/dev/null` and then exits, so a client
+reads the end of output even while the kernel still holds a thread of it in a dead mount's call.
 
 **A queued `dirsize` row is not drained.** It answers nothing that outlives this process, unlike
 a thumbnail's shared on-disk cache, so a row still waiting when `quit` arrives is simply dropped;

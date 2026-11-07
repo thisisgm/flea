@@ -118,7 +118,7 @@ pub fn test_force_fallback(force: bool) {
 
 // The injected link failure: the next fallback link answers this errno instead of linking.
 #[cfg(test)]
-fn test_fail_hard_link(errno: Option<i32>) {
+pub(crate) fn test_fail_hard_link(errno: Option<i32>) {
     FAIL_HARD_LINK.with(|fail| fail.set(errno));
 }
 
@@ -482,6 +482,7 @@ mod tests {
     }
     #[test]
     fn a_partial_copy_that_will_not_go_is_named_in_the_error() {
+        let _in_place = crate::backend::copystage_tests::in_place();
         let d = TestDir::new("copyrenamepartialkept");
         let source = d.dir("source");
         let child = source.join("unreadable");

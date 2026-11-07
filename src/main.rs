@@ -133,6 +133,7 @@ fn main() {
     if args.iter().any(|a| a == "--backend") {
         let code = backend::run::run();
         backend::pluginruntime::shutdown();
+        backend::run::let_go_of_client();
         exit(code);
     }
 

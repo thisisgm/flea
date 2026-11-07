@@ -270,6 +270,8 @@ pub(crate) fn run_transfer_checked(
     spawn_total(&paths, &dest, policy.skipping(), &cancel, &settled, &sweep.flag);
     let mut durability = crate::backend::durable::Durability::begin(&dest);
     durability.rename_fat = policy.renames_inside();
+    // The hidden files of copies that died into this folder go before this one lands there; see copystage.rs.
+    crate::backend::copysweep::sweep(&dest, &cancel);
     let pace = Pace::new();
     let mut steps: Vec<Step> = Vec::new();
     // One deferred trash session for every Replace in the batch, begun only by the first one.

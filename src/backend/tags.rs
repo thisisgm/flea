@@ -20,6 +20,7 @@ extern "C" {
     fn lsetxattr(path: *const c_char, name: *const c_char, value: *const c_void, size: usize, flags: c_int)
         -> c_int;
     fn lremovexattr(path: *const c_char, name: *const c_char) -> c_int;
+    fn fsetxattr(fd: c_int, name: *const c_char, value: *const c_void, size: usize, flags: c_int) -> c_int;
 }
 
 // Sample input: "red" answers Some("Red"), "Custom" answers None.
@@ -229,6 +230,17 @@ pub fn copy_tags(src: &Path, dst: &Path) {
     COPIES.with(|calls| calls.set(calls.get() + 1));
     if let Ok(Some(bytes)) = read_raw(src) {
         let _ = write_raw(dst, &bytes);
+    }
+}
+
+// The same through the destination's descriptor, which reaches an O_TMPFILE inode that has no name yet.
+pub fn copy_tags_onto(src: &Path, dst: &std::fs::File) {
+    use std::os::unix::io::AsRawFd;
+    #[cfg(test)]
+    COPIES.with(|calls| calls.set(calls.get() + 1));
+    if let Ok(Some(bytes)) = read_raw(src) {
+        let name = attr();
+        unsafe { fsetxattr(dst.as_raw_fd(), name.as_ptr(), bytes.as_ptr() as *const c_void, bytes.len(), 0) };
     }
 }
 

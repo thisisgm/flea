@@ -175,8 +175,11 @@ redo, as a replaced move source does. That check judges a `Tags` step by its dev
 write itself moves the file's ctime: a retagged file passes it and is skipped by the replay's tag compare. A partial `permissions` undo captures the restored steps for redo, so redo replays
 the undone half before anything older. A hard link is removed only while its source still holds the same
 dev and inode, so undo leaves the last name in place when the source is gone or replaced. A copy that fails short of a
-cancel (ENOSPC, EPERM, a socket deeper in the tree) leaves the partial destination it created on disk,
-because removing it on a transient error would destroy data, and `copyfile.rs` reports that path in
+cancel (ENOSPC, EPERM, a pulled device) leaves nothing under a name it created: a new folder was built under a hidden
+sibling and a file was unnamed or under one (see "A copied file or folder takes its name only once it is whole" below), and
+that goes with the failure, so there is nothing to journal. What a copy wrote in place stays, because removing it on a
+transient error would destroy the files that landed whole: a tree on a FUSE destination, the entries a merge landed in a
+folder that already existed, and a sibling whose removal itself failed. `copyfile.rs` reports that path in
 `Progress.partial` so `transfer` and `duplicate` journal it as a `Copied` step. A failed tree copy records every path it creates in `copymanifest.rs` as it runs, each identity captured at create from the copy's own descriptor (fstat) or its at-path pin and buffered to an anonymous file on the runtime filesystem in 64 KiB batches, never on the destination, so a full destination cannot fail the manifest and the journal holds no descriptor on the mount being ejected; every directory move is manifested, since EXDEV through a symlinked parent defeats a device check and a rename drops it unread. A failed append latches and the transfer reports it loud beside the copy error. Finish stats nothing, so a failed or cancelled copy answers at once. Each `Copied` manifest stays in the recording backend keyed by a per-entry nonce stored in the file, so a claim by that backend reattaches it and walks it deepest first, removing each recorded path only while it still holds the recorded identity and keeping a file edited after the copy, a path replaced by another inode, and a directory left non-empty by a stray, reporting each kept path with its cause; a claim elsewhere finds no key and takes the whole-tree fallback, and a manifest that never verified a record falls back the same way, while a success journals the plain step with no manifest. A destination that already existed is never reported, because nothing was created there.
 corner: a copy is not snapshot-isolated, so a concurrent write into a recorded path that keeps its identity goes with the tree; only identity mismatch keeps a path.
 
@@ -304,7 +307,42 @@ whole batch. A path still present afterwards is counted `failed`.
 cancel flag between chunks and unlinks what it had written. The operations design says the in-flight
 item finishes; it does not here, because a cancel that waits out a multi-gigabyte copy is not a cancel
 and a half-written file is not a result anyone asked for. A `quit` or a closed stdin cancels the same
-way and waits for the terminal line, so shutting down mid-copy leaves nothing half-written either.
+way and waits for the terminal line, so shutting down mid-copy leaves nothing half-written either. Both cancel at the
+door, as `transfercancel` does: `events.rs` sets the slot operation's flag and every detached job's (a copy is one) as the line or the end of input is read,
+because a `quit` behind a listing still out on a busy device (a phone's MTP mount serves one request at a time) waited
+for that scan, up to its mount deadline, while the copy ran on, and a device pulled meanwhile failed the read short of a
+cancel. After the shutdown the backend points stdin and stdout at `/dev/null` (`run::let_go_of_client`) before it
+exits, because a scan worker the kernel still holds in a dead mount's `readdir` keeps the process, and with it the pipe,
+alive until that call returns; the window takes the end of output as the drain and reaps the process off its own thread
+(`crates/flea-gui/src/backend/worker.rs`).
+
+**A copied file or folder takes its name only once it is whole.** A copy that creates a new folder (a folder
+copied or moved across filesystems, or a subfolder a merge adds) builds it under a hidden sibling in the destination folder,
+`.flea-part-<boot>-<pid>-<n>` (the first eight hex digits of the boot id, the backend's pid and a per-process count), writes
+every entry inside it in place, gives it the source's mode and mtime last, and then one `rename_noreplace` gives it the
+name, so a tree of ten thousand files pays one rename. A file copied into a folder that already exists (a loose selection,
+or a merge) is created exclusively with the source's mode as an `O_TMPFILE` inode with no name, and `linkat` through its
+`/proc/self/fd` entry names it once whole; a filesystem whose first `O_TMPFILE` create is refused (vfat, exfat, nfs, cifs)
+is remembered by its magic for the life of the backend, and its files go to a hidden sibling of the same shape and a
+`rename_noreplace`. Either way the mtime and tags (through the descriptor) go on first, a durable destination confirms the
+bytes, and only then does the name appear (a `batch_syncfs` stick names a file at once and confirms it at its next batch
+`syncfs`, still before any move removes a source), so a name another writer took meanwhile answers `EEXIST` through the same
+`unheld::refused` the exclusive create used, the staged copy goes, and the other file or folder stays. Mid-copy the
+destination shows nothing under the name, so a kill or a crash leaves at most a hidden sibling, and an unnamed file leaves
+nothing at all; a power loss can still leave a name short while its bytes are unconfirmed (on a destination the copy does
+not confirm, or on a `batch_syncfs` stick before its batch `syncfs`), as before. The next `transfer` into the folder removes
+this user's regular files and folders whose whole name has that shape and whose copy cannot finish: same boot and its
+process gone, or another boot (on a kernel network share, `nfs`, `cifs`, `smb2`, `9p` or `ceph`, only once unchanged for an
+hour by its ctime, since another machine may still be writing it, and never another boot's folder there, whose ctime
+does not move for writes deeper in it); `copysweep.rs` does this. A name with anything around
+that shape and a link are never matched.
+corner: a FUSE destination (rclone, gvfs MTP, WebDAV and SMB, any other daemon), or one whose `statfs` failed, writes in place as before, because its
+rename may be refused, done as a copy on the device or start a second upload, so a kill there still leaves a partial under
+the name; a cancel and a quit still remove it. corner: a kernel without `RENAME_NOREPLACE` (nfs) lands the sibling through
+`noreplace_fallback`: a file by a hard link, which refuses a taken name, and a folder, or a file where links are refused,
+by a checked plain rename, whose window between the check and the rename can replace a name created in it (for a folder,
+only an empty one).
+corner: with hidden files shown, a copy's sibling is listed while it fills, under its own hidden name.
 A `transfercancel` naming a compress or convert id still does nothing, there is no UI cancel for
 either, but a quit or a closed stdin sets each detached flag and drains them under the one 25 s
 shutdown budget, so each compress and convert `Work` cleanup runs before the process exits and

@@ -120,7 +120,7 @@ tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
 shelf/ShelfService.qml 481
-src/backend/copyfile.rs 739
+src/backend/copyfile.rs 799
 src/backend/archivequit_tests.rs 401
 src/backend/codereq.rs 425
 src/backend/tags.rs 410
@@ -133,7 +133,7 @@ src/backend/durable.rs 809
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
-src/backend/renamecompat.rs 738
+src/backend/renamecompat.rs 739
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
@@ -157,7 +157,7 @@ src/backend/dirsizeworker.rs 577
 src/backend/watch.rs 556
 src/backend/thumbreq.rs 476
 src/backend/undo.rs 802
-src/backend/undo_tests.rs 439
+src/backend/undo_tests.rs 440
 src/backend/undoshare.rs 468
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492

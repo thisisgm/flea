@@ -199,3 +199,6 @@ fn a_failed_batch_confirm_keeps_deferred_items_out_of_the_merge_count() {
 
 #[path = "mergereplace_tests.rs"]
 mod replace;
+
+#[path = "mergestage_tests.rs"]
+mod staged;
