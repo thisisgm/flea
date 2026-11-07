@@ -271,11 +271,14 @@ class LayoutTests(unittest.TestCase):
                           ("preset", "all", "U", "ctrl", "pageUp", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageDown", "none", "pageDown", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageUp", "none", "pageUp", ["preview", "pdf"], "gui")])
-        # Open in place adds Ctrl+Right and Ctrl+Left to the GUI listing, to expand and collapse a folder as tree rows.
+        # Open in place adds Ctrl+Right and Ctrl+Left to the GUI listing, to expand and collapse a folder as tree rows,
+        # and > and < do the same for every marked folder.
         in_place = [r for r in common if r["action"] in ("openInPlace", "closeInPlace")]
         self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
                           for r in in_place], [("preset", "all", "Right", "ctrl", "openInPlace", ["listing"], "gui"),
-                                               ("preset", "all", "Left", "ctrl", "closeInPlace", ["listing"], "gui")])
+                                               ("preset", "all", "Left", "ctrl", "closeInPlace", ["listing"], "gui"),
+                                               ("preset", "all", ">", "text", "openInPlace", ["listing"], "gui"),
+                                               ("preset", "all", "<", "text", "closeInPlace", ["listing"], "gui")])
         frozen = [{k: v for k, v in r.items() if k != "id"} for r in baseline]
         widened = [r for r in frozen if r["action"] in ("previewPageForward", "previewPageBack")]
         self.assertEqual([(r["key"], r["contexts"]) for r in widened], [("F", ["listing"]), ("B", ["listing"])])
