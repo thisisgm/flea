@@ -19,6 +19,8 @@ fn label_key(role: &str, label: &str) -> &'static str {
         ("VIDEOS", "Videos") => "places.row.videos",
         ("TEMPLATES", "Templates") => "places.row.templates",
         ("PUBLICSHARE", "Public") => "places.row.public",
+        // xdg-user-dirs 0.20's user-dirs.defaults lists PROJECTS beside the eight older roles.
+        ("PROJECTS", "Projects") => "places.row.projects",
         _ => "",
     }
 }

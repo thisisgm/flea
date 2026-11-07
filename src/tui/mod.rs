@@ -90,6 +90,8 @@ mod terminal;
 mod launch;
 mod wait;
 mod words;
+#[cfg(test)]
+mod live_language_tests;
 mod hold;
 #[cfg(test)]
 #[path = "hold_tests.rs"]

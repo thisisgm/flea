@@ -1459,6 +1459,7 @@
   "places.row.videos": "Videot",
   "places.row.templates": "Mallit",
   "places.row.public": "Julkinen",
+  "places.row.projects": "Projektit",
   "places.shelf.pin_failed": "Hylly ei voinut kiinnittää kohdetta.",
   "places.shelf.unpin_failed": "Hylly ei voinut irrottaa kohteen kiinnitystä.",
   "places.tag.blue": "Sininen",

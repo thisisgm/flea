@@ -33,3 +33,45 @@ fn only_standard_xdg_role_names_use_catalog_keys() {
         );
     }
 }
+
+#[test]
+fn every_xdg_user_dirs_default_role_uses_a_catalog_key() {
+    // xdg-user-dirs 0.20's user-dirs.defaults: DESKTOP to VIDEOS, then PROJECTS.
+    let dirs = concat!(
+        "XDG_DESKTOP_DIR=\"$HOME/Desktop\"\n",
+        "XDG_DOWNLOAD_DIR=\"$HOME/Downloads\"\n",
+        "XDG_TEMPLATES_DIR=\"$HOME/Templates\"\n",
+        "XDG_PUBLICSHARE_DIR=\"$HOME/Public\"\n",
+        "XDG_DOCUMENTS_DIR=\"$HOME/Documents\"\n",
+        "XDG_MUSIC_DIR=\"$HOME/Music\"\n",
+        "XDG_PICTURES_DIR=\"$HOME/Pictures\"\n",
+        "XDG_VIDEOS_DIR=\"$HOME/Videos\"\n",
+        "XDG_PROJECTS_DIR=\"$HOME/Projects\"\n",
+        "XDG_UNKNOWN_DIR=\"$HOME/Projects 2\"\n",
+    );
+    let keys: Vec<&str> = user_dirs(dirs, "/fixture")
+        .iter()
+        .map(|row| row.label_key)
+        .collect();
+    assert_eq!(
+        keys,
+        [
+            "places.row.desktop",
+            "places.row.downloads",
+            "places.row.templates",
+            "places.row.public",
+            "places.row.documents",
+            "places.row.music",
+            "places.row.pictures",
+            "places.row.videos",
+            "places.row.projects",
+            "",
+        ]
+    );
+    let renamed = user_dirs("XDG_PROJECTS_DIR=\"$HOME/Work\"\n", "/fixture");
+    assert_eq!(
+        (renamed[0].label.as_str(), renamed[0].label_key),
+        ("Work", ""),
+        "a renamed Projects folder keeps its name"
+    );
+}

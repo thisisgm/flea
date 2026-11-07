@@ -1510,6 +1510,7 @@
   "places.row.videos": "Video",
   "places.row.templates": "Modelli",
   "places.row.public": "Pubblici",
+  "places.row.projects": "Progetti",
   "places.shelf.pin_failed": "Lo Scaffale non ha potuto fissare l'elemento.",
   "places.shelf.unpin_failed": "Lo Scaffale non ha potuto rimuovere l'elemento fissato.",
   "places.tag.blue": "Blu",
