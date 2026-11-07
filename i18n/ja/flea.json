@@ -1392,6 +1392,7 @@
   "places.row.videos": "ビデオ",
   "places.row.templates": "テンプレート",
   "places.row.public": "公開",
+  "places.row.projects": "プロジェクト",
   "places.shelf.pin_failed": "シェルフにその項目を固定できませんでした。",
   "places.shelf.unpin_failed": "シェルフからその項目の固定を解除できませんでした。",
   "places.tag.blue": "青",

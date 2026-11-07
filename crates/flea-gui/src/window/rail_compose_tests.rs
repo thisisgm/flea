@@ -176,3 +176,6 @@ mod fixcards_flash;
 
 #[path = "rail_language_tests.rs"]
 mod rail_language;
+
+#[path = "rail_language_every_tests.rs"]
+mod rail_language_every;
