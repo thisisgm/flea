@@ -1423,6 +1423,7 @@
   "picker.browser.filename": "Naziv datoteke",
   "picker.browser.filter": "Filtar",
   "picker.browser.hints_filtered": "enter otvara · esc čisti",
+  "picker.browser.hints_folder": "enter stvara · esc zatvara",
   "picker.browser.hints_open_dir": "enter otvara · space označava mapu · esc odustaje",
   "picker.browser.hints_open_many": "space odabire · enter otvara/šalje · esc odustaje",
   "picker.browser.hints_open_one": "enter otvara · esc odustaje",

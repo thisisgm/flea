@@ -12,6 +12,8 @@ impl Picker {
             ("picker-cancel", &self.chrome.cancel),
             ("picker-answer", &self.chrome.answer),
             ("picker-new-folder", &self.chrome.new_folder),
+            ("picker-folder-cancel", &self.chrome.folder_cancel),
+            ("picker-folder-create", &self.chrome.folder_create),
             ("picker-rail", &self.rail.focus),
         ]
         .into_iter()
@@ -20,7 +22,7 @@ impl Picker {
     }
 
     fn focus_stops(&self, cx: &gpui::App) -> Vec<FocusHandle> {
-        if self.accept_state().submitting() || self.chrome.folder_request.is_some() {
+        if self.accept_state().submitting() || self.folder_busy() {
             return vec![self.chrome.cancel.clone()];
         }
         let mut stops = Vec::new();
@@ -115,6 +117,9 @@ impl Picker {
     // Focus and stem selection are applied with the window: a name that arrived, a review that asked, the default field.
     pub(super) fn place_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.browse.window = Some(window.window_handle());
+        if self.place_folder_focus(window, cx) {
+            return;
+        }
         // A closed location field keeps no keyboard: Escape hands it back, so ":" and Ctrl+L reach the chooser again (EY-543).
         let path = self.browse.path_view(cx);
         if !path.read(cx).editing() && path.read(cx).focus.is_focused(window) {

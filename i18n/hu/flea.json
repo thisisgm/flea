@@ -1676,6 +1676,7 @@
   "picker.browser.hints_open_many": "space: kijelölés · enter: megnyitás/küldés · esc: mégse",
   "picker.browser.hints_open_dir": "enter: megnyitás · space: mappa megjelölése · esc: mégse",
   "picker.browser.hints_filtered": "enter: megnyitás · esc: törlés",
+  "picker.browser.hints_folder": "enter: létrehozás · esc: bezárás",
   "picker.browser.collision_short": "%1 már létezik itt.",
   "picker.browser.collision_review": "%1 már létezik itt. Folytatás előtt ellenőrizd.",
   "picker.browser.save_refused": "%1 nem használható: %2",

@@ -1423,6 +1423,7 @@
   "picker.browser.filename": "שם קובץ",
   "picker.browser.filter": "סינון",
   "picker.browser.hints_filtered": "⁨enter⁩ לפתיחה · ⁨esc⁩ לניקוי",
+  "picker.browser.hints_folder": "⁨enter⁩ ליצירה · ⁨esc⁩ לסגירה",
   "picker.browser.hints_open_dir": "⁨enter⁩ לפתיחה · ⁨space⁩ לסימון תיקייה · ⁨esc⁩ לביטול",
   "picker.browser.hints_open_many": "⁨space⁩ לבחירה · ⁨enter⁩ לפתיחה/שליחה · ⁨esc⁩ לביטול",
   "picker.browser.hints_open_one": "⁨enter⁩ לפתיחה · ⁨esc⁩ לביטול",

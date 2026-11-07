@@ -1455,6 +1455,7 @@
   "picker.browser.filename": "Назив датотеке",
   "picker.browser.filter": "Филтер",
   "picker.browser.hints_filtered": "enter отвара · esc брише",
+  "picker.browser.hints_folder": "enter прави · esc затвара",
   "picker.browser.hints_open_dir": "enter отвара · space означава фасциклу · esc отказује",
   "picker.browser.hints_open_many": "space бира · enter отвара/шаље · esc отказује",
   "picker.browser.hints_open_one": "enter отвара · esc отказује",

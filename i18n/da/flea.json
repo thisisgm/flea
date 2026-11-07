@@ -1374,6 +1374,7 @@
   "picker.browser.filename": "Filnavn",
   "picker.browser.filter": "Filter",
   "picker.browser.hints_filtered": "enter åbner · esc rydder",
+  "picker.browser.hints_folder": "enter opretter · esc lukker",
   "picker.browser.hints_open_dir": "enter åbner · space markerer mappe · esc annullerer",
   "picker.browser.hints_open_many": "space markerer · enter åbner/sender · esc annullerer",
   "picker.browser.hints_open_one": "enter åbner · esc annullerer",

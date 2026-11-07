@@ -1871,6 +1871,7 @@
   "picker.browser.hints_open_many": "space roghnaigh · enter oscail/seol · esc cealaigh",
   "picker.browser.hints_open_dir": "enter oscail · space marcáil fillteán · esc cealaigh",
   "picker.browser.hints_filtered": "enter oscail · esc glan",
+  "picker.browser.hints_folder": "enter cruthaigh · esc dún",
   "picker.browser.collision_short": "Tá %1 anseo cheana.",
   "picker.browser.collision_review": "Tá %1 anseo cheana. Athbhreithnigh é sula leanfaidh tú ar aghaidh.",
   "picker.browser.save_refused": "Ní féidir %1 a úsáid: %2",

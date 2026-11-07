@@ -1752,6 +1752,7 @@
   "picker.browser.selected_none": "0 dipilih",
   "picker.browser.selected_some": "%1 dipilih · %2",
   "picker.browser.hints_filtered": "enter buka · esc hapus",
+  "picker.browser.hints_folder": "enter buat · esc tutup",
   "picker.browser.collision_short": "%1 sudah ada di sini.",
   "picker.browser.collision_review": "%1 sudah ada di sini. Tinjau sebelum melanjutkan.",
   "picker.browser.save_refused": "%1 tidak dapat digunakan: %2",

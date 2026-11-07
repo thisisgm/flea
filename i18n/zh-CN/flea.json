@@ -1590,6 +1590,7 @@
   "picker.browser.hints_open_many": "space 选择 · enter 打开/发送 · esc 取消",
   "picker.browser.hints_open_dir": "enter 打开 · space 标记文件夹 · esc 取消",
   "picker.browser.hints_filtered": "enter 打开 · esc 清除",
+  "picker.browser.hints_folder": "enter 创建 · esc 关闭",
   "picker.browser.collision_short": "%1 已存在于此处。",
   "picker.browser.collision_review": "%1 已存在于此处。请先确认后再继续。",
   "picker.browser.save_refused": "无法使用 %1：%2",

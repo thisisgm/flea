@@ -1406,6 +1406,7 @@
   "picker.browser.filename": "கோப்புப்பெயர்",
   "picker.browser.filter": "வடிகட்டு",
   "picker.browser.hints_filtered": "enter திறக்கும் · esc அழிக்கும்",
+  "picker.browser.hints_folder": "enter உருவாக்கும் · esc மூடும்",
   "picker.browser.hints_open_dir": "enter திறக்கும் · space கோப்புறையைக் குறிக்கும் · esc ரத்து செய்யும்",
   "picker.browser.hints_open_many": "space தேர்ந்தெடுக்கும் · enter திறக்கும்/அனுப்பும் · esc ரத்து செய்யும்",
   "picker.browser.hints_open_one": "enter திறக்கும் · esc ரத்து செய்யும்",

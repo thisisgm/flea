@@ -10,6 +10,9 @@ impl Picker {
     pub fn hints(&self) -> SharedString {
         if self.backend_unavailable() {
             self.labels.hints_unavailable.clone()
+        } else if self.chrome.folder.is_some() {
+            // New Folder's card holds the keyboard, so enter and esc act on it (0401-picker-new-folder).
+            self.labels.hints_folder.clone()
         } else if self.find.holds_query() {
             // While a query stands, esc clears it, so the hint says so (picker-filter board).
             self.labels.hints_filtered.clone()

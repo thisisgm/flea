@@ -1741,6 +1741,7 @@
   "picker.browser.hints_open_many": "space seleciona · enter abre/envia · esc cancela",
   "picker.browser.hints_open_dir": "enter abre · space marca pasta · esc cancela",
   "picker.browser.hints_filtered": "enter abre · esc limpa",
+  "picker.browser.hints_folder": "enter cria · esc fecha",
   "picker.browser.collision_short": "%1 já existe aqui.",
   "picker.browser.collision_review": "%1 já existe aqui. Revê-o antes de continuares.",
   "picker.browser.save_refused": "Não é possível utilizar %1: %2",

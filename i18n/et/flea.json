@@ -1676,6 +1676,7 @@
   "picker.browser.hints_open_many": "space valib · enter avab/saadab · esc tühistab",
   "picker.browser.hints_open_dir": "enter avab · space märgib kausta · esc tühistab",
   "picker.browser.hints_filtered": "enter avab · esc tühjendab",
+  "picker.browser.hints_folder": "enter loob · esc sulgeb",
   "picker.browser.collision_short": "%1 on siin juba olemas.",
   "picker.browser.collision_review": "%1 on siin juba olemas. Enne jätkamist vaata see üle.",
   "picker.browser.save_refused": "%1 ei saa kasutada: %2",

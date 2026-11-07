@@ -1455,6 +1455,7 @@
   "picker.browser.filename": "Názov súboru",
   "picker.browser.filter": "Filtrovať",
   "picker.browser.hints_filtered": "enter otvorí · esc vymaže",
+  "picker.browser.hints_folder": "enter vytvorí · esc zavrie",
   "picker.browser.hints_open_dir": "enter otvorí · space označí priečinok · esc zruší",
   "picker.browser.hints_open_many": "space vyberie · enter otvorí/odošle · esc zruší",
   "picker.browser.hints_open_one": "enter otvorí · esc zruší",

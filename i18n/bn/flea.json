@@ -1406,6 +1406,7 @@
   "picker.browser.filename": "ফাইলের নাম",
   "picker.browser.filter": "ফিল্টার",
   "picker.browser.hints_filtered": "enter খোলে · esc খালি করে",
+  "picker.browser.hints_folder": "enter তৈরি করে · esc বন্ধ করে",
   "picker.browser.hints_open_dir": "enter খোলে · space ফোল্ডার চিহ্নিত করে · esc বাতিল করে",
   "picker.browser.hints_open_many": "space নির্বাচন করে · enter খোলে/পাঠায় · esc বাতিল করে",
   "picker.browser.hints_open_one": "enter খোলে · esc বাতিল করে",

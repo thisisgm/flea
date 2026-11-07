@@ -1504,6 +1504,7 @@
   "picker.browser.filename": "Имя файла",
   "picker.browser.filter": "Фильтр",
   "picker.browser.hints_filtered": "enter открыть · esc очищает",
+  "picker.browser.hints_folder": "enter создать · esc закрыть",
   "picker.browser.hints_open_dir": "enter открыть · space отметить папку · esc отмена",
   "picker.browser.hints_open_many": "space выделить · enter открыть/отправить · esc отмена",
   "picker.browser.hints_open_one": "enter открыть · esc отмена",

@@ -1423,6 +1423,7 @@
   "picker.browser.filename": "Nome do arquivo",
   "picker.browser.filter": "Filtrar",
   "picker.browser.hints_filtered": "enter abre · esc limpa",
+  "picker.browser.hints_folder": "enter cria · esc fecha",
   "picker.browser.hints_open_dir": "enter abre · space marca pasta · esc cancela",
   "picker.browser.hints_open_many": "space seleciona · enter abre/envia · esc cancela",
   "picker.browser.hints_open_one": "enter abre · esc cancela",

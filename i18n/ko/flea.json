@@ -1729,6 +1729,7 @@
   "picker.browser.selected_none": "선택된 항목 없음",
   "picker.browser.selected_some": "%1개 선택됨 · %2",
   "picker.browser.hints_filtered": "enter 열기 · esc 지우기",
+  "picker.browser.hints_folder": "enter 만들기 · esc 닫기",
   "picker.browser.collision_short": "%1이(가) 여기에 이미 있습니다.",
   "picker.browser.collision_review": "%1이(가) 여기에 이미 있습니다. 계속하기 전에 확인하세요.",
   "picker.browser.save_refused": "%1을(를) 사용할 수 없습니다: %2",
