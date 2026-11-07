@@ -6,12 +6,16 @@ use crate::g2::fb1::caption::Tracked;
 use crate::g2::op3::shell::{card_heading, glyph};
 use crate::list::{Palette, Typeface};
 use gpui::{
-    canvas, div, prelude::*, px, relative, AnyElement, Bounds, Div, FontWeight, Hsla, Pixels,
+    canvas, div, prelude::*, px, relative, AnyElement, App, Bounds, Div, FontWeight, Hsla,
+    MouseButton, Pixels, Window,
 };
 use std::{cell::Cell, rc::Rc};
 
 /// Where a secret field's eye painted, for the pointer and archiveCardsState's eye centre.
 pub type EyeProbe = Rc<Cell<Option<Bounds<Pixels>>>>;
+
+/// A click on an enabled button reports its index, as Enter on it would press it.
+pub type ButtonPress = Rc<dyn Fn(&usize, &mut Window, &mut App)>;
 
 /// The open card's eye probes, handed to its secret fields in body order.
 pub(super) struct Eyes<'a> {
@@ -314,12 +318,13 @@ impl super::cards::DialogShell for StandIn {
         room: f32,
         radius: f32,
     ) -> AnyElement {
-        self.present_probed(card, palette, typeface, room, radius, &[])
+        self.present_probed(card, palette, typeface, room, radius, &[], None)
     }
 }
 
 impl StandIn {
-    /// The card with each secret field's eye bounds recorded into its probe, in body order.
+    /// The card with each secret field's eye bounds recorded into its probe, in body order, and live buttons when pressable.
+    #[allow(clippy::too_many_arguments)]
     pub fn present_probed(
         &self,
         card: &Card,
@@ -328,6 +333,7 @@ impl StandIn {
         room: f32,
         radius: f32,
         probes: &[EyeProbe],
+        press: Option<ButtonPress>,
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
@@ -363,6 +369,8 @@ impl StandIn {
             .font_family(draw.typeface.font.family.clone())
             .text_size(draw.px(BOARD_BODY))
             .line_height(relative(1.2))
+            // A press on the card is the card's; only a press on the scrim around it answers as Cancel.
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .child(head)
             .child(draw.hairline());
         frame = draw.body(card, frame, &mut Eyes { probes, at: 0 });
@@ -373,7 +381,14 @@ impl StandIn {
             .items_center()
             .gap(draw.px(ROW_GAP));
         for (at, button) in card.buttons.iter().enumerate() {
-            buttons = buttons.child(draw.button(button, at));
+            let press = press.clone().filter(|_| button.enabled);
+            buttons = buttons.child(
+                draw.button(button, at)
+                    .id(("op2-button", at))
+                    .when_some(press, |drawn, press| {
+                        drawn.on_click(move |_, window, cx| press(&at, window, cx))
+                    }),
+            );
         }
         div()
             .debug_selector(|| format!("op2-radius-{}", draw.r))
