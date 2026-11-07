@@ -1,4 +1,6 @@
 //! Pointer selection must edit only the dragged part of an inline filename.
+#[path = "rename_mouse_more_tests.rs"]
+mod more;
 use super::{close, draw, editing, ready, ready_root, receive, sent};
 use crate::{backend::Event as BackendEvent, state::Shell, window::startup::View};
 use gpui::{Entity, EntityInputHandler, Modifiers, MouseButton, TestAppContext, VisualTestContext};

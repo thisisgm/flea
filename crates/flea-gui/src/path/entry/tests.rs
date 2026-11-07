@@ -345,3 +345,51 @@ fn i50_ime_bidi_levels_follow_overrides_and_clear_on_reshape() {
     line.set_text_direction("");
     assert!(line.bidi_levels.is_empty() && !line.right_to_left);
 }
+
+// A press on the last glyph's left half lands before it, as on every other glyph; past its middle it lands at the end.
+#[test]
+fn r396_index_for_takes_the_nearer_edge_of_the_last_glyph() {
+    use crate::path::field::Line;
+    use gpui::{point, px, FontId, GlyphId, GlyphRun, LineLayout, ShapedGlyph, ShapedRun};
+    use std::{rc::Rc, sync::Arc};
+
+    // Three 10 px glyphs on a 30 px line, given as (byte index, left x) in drawing order.
+    let run = |len, glyphs: [(usize, f32); 3]| {
+        let glyphs = glyphs.map(|(index, x)| ShapedGlyph {
+            id: GlyphId(0),
+            position: point(px(x), px(0.)),
+            index,
+            is_emoji: false,
+        });
+        let runs = vec![ShapedRun {
+            font_id: FontId(0),
+            glyphs: glyphs.to_vec(),
+        }];
+        let layout = LineLayout {
+            width: px(30.),
+            len,
+            runs,
+            ..LineLayout::default()
+        };
+        Some(Rc::new(GlyphRun::new(Arc::new(layout))))
+    };
+    let mut line = Line {
+        run: run(9, [(0, 0.), (3, 10.), (6, 20.)]),
+        ..Line::default()
+    };
+    line.set_text_direction("文件名");
+    for (x, index) in [
+        (4., 0),
+        (9., 3),
+        (20.001, 6),
+        (24.9, 6),
+        (25.1, 9),
+        (40., 9),
+    ] {
+        assert_eq!(line.index_for(px(x)), index, "x {x}");
+    }
+    // A right-to-left paragraph draws its first letter rightmost, and keeps closest_index_for_x's answer there.
+    line.run = run(6, [(4, 0.), (2, 10.), (0, 20.)]);
+    line.set_text_direction("\u{5e9}\u{5dc}\u{5dd}");
+    assert_eq!(line.index_for(px(21.)), 6);
+}
