@@ -8,8 +8,22 @@ import subprocess
 import sys
 import time
 from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
 
-Backend = SourceFileLoader("rename_timing", str(Path(__file__).with_name("rename-timing.py"))).load_module().Backend
+
+# Python 3.15 dropped SourceFileLoader.load_module; a spec and exec_module load the same file.
+def load_source(name, path):
+    loader = SourceFileLoader(name, path)
+    spec = spec_from_loader(name, loader)
+    if spec is None:
+        raise ImportError("%s has no spec to load from %s" % (name, path))
+    module = module_from_spec(spec)
+    loader.exec_module(module)
+    sys.modules[name] = module
+    return module
+
+
+Backend = load_source("rename_timing", str(Path(__file__).with_name("rename-timing.py"))).Backend
 
 # A distinct child status proves the kernel refused its nonblocking lock attempt.
 CONTENDED_EXIT = 75
