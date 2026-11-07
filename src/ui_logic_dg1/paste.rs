@@ -124,18 +124,18 @@ pub enum CopyAsOut {
     Quiet,
 }
 
-// Copy As names absolute paths, one per line, through the text clipboard; nothing reaches the file clipboard.
-pub fn copy_as_text(paths: &[String], format: Format) -> Option<String> {
+// Copy As names absolute paths, one per line, through the text clipboard, except Relative, read from base, the listed folder; nothing reaches the file clipboard.
+pub fn copy_as_text(paths: &[String], format: Format, base: &str) -> Option<String> {
     if paths.is_empty() {
         return None;
     }
     let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-    Some(copyas::lines(&refs, format))
+    Some(copyas::lines(&refs, format, base))
 }
 
-// The answer to the rows request above; an empty resolution stays quiet.
-pub fn copy_as_resolved(list: &[String], format: Format) -> CopyAsOut {
-    match copy_as_text(list, format) {
+// The answer to the rows request above, read from the base the request kept; an empty resolution stays quiet.
+pub fn copy_as_resolved(list: &[String], format: Format, base: &str) -> CopyAsOut {
+    match copy_as_text(list, format, base) {
         Some(text) => CopyAsOut::Text(text),
         None => CopyAsOut::Quiet,
     }

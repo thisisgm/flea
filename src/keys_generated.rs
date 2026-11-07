@@ -106,6 +106,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "text", "7", "7", "tag7", "menu", "all", 0, 4, "keys.label.50d674b6f900", true),
     Binding::new("all", "text", "h", "h", "parent", "menu", "all", 0, 4, "keys.label.5f7953f7c9b6", true),
     Binding::new("all", "text", "p", "p", "copyPath", "menu", "all", 0, 4, "keys.label.720ff4160412", true),
+    Binding::new("all", "text", "r", "r", "copyRelative", "menu", "all", 0, 4, "keys.label.d6fac84c4dc9", true),
     Binding::new("all", "text", "n", "n", "copyName", "menu", "all", 0, 4, "keys.label.a037e5315ec8", true),
     Binding::new("all", "text", "e", "e", "copyStem", "menu", "all", 0, 4, "keys.label.5aa8858e8635", true),
     Binding::new("all", "text", "f", "f", "copydirpath", "menu", "all", 0, 4, "keys.label.a6064fd8c0b2", true),

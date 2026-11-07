@@ -31,6 +31,8 @@ mod m9_g2rows_25_target_rig;
 #[cfg(test)]
 mod m9_g2rows_25_target_tests;
 #[cfg(test)]
+mod relative_tests;
+#[cfg(test)]
 mod review_r4_tests;
 #[cfg(test)]
 mod rig;
@@ -75,7 +77,8 @@ fn view(take: Take<'_>) -> core::View<'_> {
 pub struct Clipboard {
     session: core::Session,
     queues: HashMap<u64, core::Queue>,
-    copy_as: HashMap<u64, Format>,
+    // A pending Copy As per backend, with the folder Relative Path reads from, kept so a later listing cannot change it.
+    copy_as: HashMap<u64, (Format, String)>,
     marks: core::Marks,
     /// The buffer a row's path joins into, reused so a row probe allocates nothing once warm.
     probe: String,
@@ -263,8 +266,8 @@ impl Clipboard {
         sink: &mut dyn Sink,
         owner: &mut dyn Owner,
     ) -> Vec<core::Said> {
-        if let Some(format) = self.copy_as.remove(&backend) {
-            return match core::copy_as_resolved(&list, format) {
+        if let Some((format, base)) = self.copy_as.remove(&backend) {
+            return match core::copy_as_resolved(&list, format, &base) {
                 core::CopyAsOut::Text(text) => {
                     self.drain(vec![core::Out::Text(text)], wire, sink, owner)
                 }

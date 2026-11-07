@@ -425,12 +425,7 @@ function clipFailed(pane) {
     ClipSelection.failed(pane)
 }
 
-// MenuAdditions040: Copy as Path stays absolute, because a paste happens in
-// a different directory from the listing. Relative path is from pane.path,
-// stored on the claim so a later listing cannot change it. With paths the
-// text goes out at once; without, the backend resolves the indices while it
-// still can, the same rule clip follows. Recent stands on "/", so a relative
-// path there would read as relative to the terminal and is refused.
+// MenuAdditions040: Path stays absolute; Relative reads pane.path, kept on the claim, and Recent (no folder) refuses it.
 var RECENT_RELATIVE = "This listing is a history, and has no folder to copy a relative path from."
 function copyAs(pane, kind, paths) {
     if (kind === "relative" && pane.recentMode && pane.recentMode.length > 0) { pane.message(RECENT_RELATIVE, false); return }

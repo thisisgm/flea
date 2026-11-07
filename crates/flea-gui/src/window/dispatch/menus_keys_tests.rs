@@ -24,7 +24,7 @@ fn c_opens_the_copy_as_flyout_and_p_with_an_empty_clipboard_says_nothing_to_past
     assert_eq!(taken, None, "the standing card took the waiting flyout");
     assert_eq!(
         read(&shell, cx, "contextMenuSubmenuEntries", &[]),
-        "Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted",
+        "Path|Relative Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted",
         "c opens the Copy As flyout"
     );
     cx.simulate_keystrokes("escape");

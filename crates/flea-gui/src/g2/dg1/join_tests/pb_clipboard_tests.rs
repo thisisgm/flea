@@ -9,8 +9,9 @@ mod sol_clipboard_tests;
 #[path = "image_paste_tests.rs"]
 mod image_paste_tests;
 
-const FORMS: [(&str, &str); 6] = [
+const FORMS: [(&str, &str); 7] = [
     ("copyPath", "/files/a.txt\n/files/b.txt"),
+    ("copyRelative", "a.txt\nb.txt"),
     ("copyName", "a.txt\nb.txt"),
     ("copyStem", "a\nb"),
     ("copydirpath", "/files\n/files"),

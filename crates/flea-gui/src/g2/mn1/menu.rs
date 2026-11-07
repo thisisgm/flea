@@ -67,6 +67,8 @@ pub struct Menu {
     // The handle a rail or Places menu acts on, such as place:2:/home/gm/Work.
     pub handle: String,
     pub work: Rect,
+    // The listing is a history such as Recent, so a lone Copy As flyout hides Relative Path as the drawn row's does.
+    pub history: bool,
     // Where the menu was asked to open, which every later fit places it from again.
     at: (f32, f32),
 }
@@ -242,7 +244,13 @@ impl Menu {
                 if let Some(card) = &mut self.card {
                     card.cursor = None;
                 }
-                self.open_flyout(None, action, rows::flyout_entries(action), env, window);
+                self.open_flyout(
+                    None,
+                    action,
+                    rows::flyout_leaves(action, self.history),
+                    env,
+                    window,
+                );
                 Outcome::Redraw
             }
         }
@@ -367,7 +375,13 @@ impl Menu {
         self.card = Some(next);
         match (lone, kept.submenu_row) {
             (Some((action, cursor)), _) => {
-                self.open_flyout(None, &action, rows::flyout_entries(&action), env, window);
+                self.open_flyout(
+                    None,
+                    &action,
+                    rows::flyout_leaves(&action, self.history),
+                    env,
+                    window,
+                );
                 if let Some(flyout) = &mut self.flyout {
                     flyout.card.cursor = cursor;
                     flyout.card.settle();

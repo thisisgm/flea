@@ -138,6 +138,8 @@ pub struct Context {
     pub place_favourite: bool,
     pub trash_total: i64,
     pub busy: bool,
+    // The listing is a history such as Recent, with no folder of its own to read a relative path from.
+    pub recent: bool,
     pub rail: Option<RailEntry>,
 }
 
@@ -276,7 +278,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             e.action = Id::Borrowed("copypath");
             e.label = Some(Text::Key("menu.row.copy_path"));
         } else {
-            e.submenu = Some(rows::copy_as_entries());
+            e.submenu = Some(rows::flyout_leaves("copyAs", p.recent));
         }
     }
     if (action == "run" || action == "openAsText") && (count != 1 || is_dir) {

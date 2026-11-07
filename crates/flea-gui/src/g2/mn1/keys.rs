@@ -1,5 +1,5 @@
 //! The open menu's keys, and what each menu outcome does to the window.
-use super::menu::Outcome;
+use super::{lines::Env, menu::Outcome};
 use crate::{state::Shell, window::input::Dispatch};
 use flea::jsondoc::Json;
 use gpui::{Context, KeyDownEvent, Window};
@@ -53,12 +53,7 @@ impl Shell {
                 let env = self.menu_env(&list.typeface);
                 let live = self.menu_entries();
                 let outcome = if matches!(action, "copyAs" | "pasteAs" | "tags") {
-                    self.menu.menu.borrow_mut().open_submenu_for(
-                        action,
-                        self.menu.context.clipboard_available,
-                        &env,
-                        window,
-                    )
+                    self.menu_submenu(action, &env, window)
                 } else {
                     self.menu.menu.borrow_mut().act(
                         action,
@@ -75,6 +70,13 @@ impl Shell {
             return true;
         }
         false
+    }
+
+    /// c, P or T over the open menu: the drawn row's flyout, a lone one over a hidden row, or a refusal, read against the captured listing.
+    pub(crate) fn menu_submenu(&self, action: &str, env: &Env, window: &Window) -> Outcome {
+        let mut menu = self.menu.menu.borrow_mut();
+        menu.history = self.menu.context.recent;
+        menu.open_submenu_for(action, self.menu.context.clipboard_available, env, window)
     }
 
     pub(crate) fn menu_outcome(

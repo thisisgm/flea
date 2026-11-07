@@ -8,6 +8,8 @@ mod build_tests;
 #[cfg(test)]
 mod convert_gate_tests;
 pub mod copyas;
+#[cfg(test)]
+mod copyas_tests;
 pub mod entry;
 #[cfg(test)]
 mod entry_hint_tests;

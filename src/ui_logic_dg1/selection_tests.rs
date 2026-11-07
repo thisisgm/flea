@@ -45,7 +45,7 @@ fn a_resolved_cut_lands_locally_and_ends_its_claim() {
 fn a_paths_request_refuses_while_another_asker_is_out() {
     let en = english();
     let mut pane = Pane::new();
-    pane.copy_as_pending = Some(crate::ui_logic_mn1::copyas::Format::Path);
+    pane.copy_as_pending = Some((crate::ui_logic_mn1::copyas::Format::Path, "/dest".into()));
     pane.clip(&en, false, None, vec![0]);
     assert_eq!(pane.said.last().unwrap().text, "Still resolving the last selection; try again.");
     assert!(pane.rows_asked.is_empty());
