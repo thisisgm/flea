@@ -542,12 +542,12 @@ fn optional_rows_and_counts() {
     );
     let copy = entry(&all, "copyAs").unwrap().submenu.clone().unwrap();
     check(
-        "Copy as holds Path, Name, Stem, Folder path, URI and Shell-quoted",
+        "Copy as holds Path, Relative Path, Name, Stem, Folder path, URI and Shell-quoted",
         copy.iter()
             .map(|r| r.id.to_string())
             .collect::<Vec<_>>()
             .join(","),
-        "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
+        "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
     );
     check(
         "and each leaf wears the board's mark",
@@ -555,12 +555,12 @@ fn optional_rows_and_counts() {
             .map(|r| r.glyph.unwrap())
             .collect::<Vec<_>>()
             .join(","),
-        "file-text,type,type,folder,globe,terminal".into(),
+        "file-text,file,type,type,folder,globe,terminal".into(),
     );
     check(
-        "Copy As rows read Path, Name, Name Without Extension, Folder Path, File URI, Shell-Quoted",
+        "Copy As rows read Path, Relative Path, Name, Name Without Extension, Folder Path, File URI, Shell-Quoted",
         labels(&i18n, &copy),
-        "Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted".into(),
+        "Path|Relative Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted".into(),
     );
     let paste = entry(&all, "pasteAs").unwrap().submenu.clone().unwrap();
     check(

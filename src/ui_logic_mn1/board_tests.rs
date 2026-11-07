@@ -1,4 +1,4 @@
-//! Every menu card the 0.4.0 menu boards draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
+//! Every menu card the 0.4.0 menu boards and the 0.4.1 Copy As board draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
 use super::build::{build_entries, App, Context, Kind};
 use super::entry::{Brand, Entry, Text};
 use super::fit::{self, Rect, RowParts, PAD};
@@ -258,7 +258,7 @@ fn walked(board: &str, rows: &[Entry], view: i32, keep: usize) -> (i32, i32) {
 fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll() {
     let i18n = english();
     let all = cards();
-    assert_eq!(all.len(), 27, "every card the 19 boards draw");
+    assert_eq!(all.len(), 29, "every card the 20 boards draw");
     for card in all.iter().filter(|c| c.card == 0) {
         let (rows, hints, work, inset) = entries(card.board);
         let name = card.board;
@@ -332,7 +332,19 @@ fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll(
         )
         .h as i32
             - 2 * PAD;
-        let (y, h) = fit::menu_cut(&leaves, 0, full, fly.cursor);
+        // As Menu::open_flyout: open on the first leaf, keep the trimmed view's foot where the work area put it, then walk the cursor inside the room under that top.
+        let mut at = super::rows::step_row(&leaves, -1, 1);
+        let (mut y, mut h) = fit::scroll_for(&leaves, at as usize, 0, full);
+        let placed = fit::place_flyout(frame, fly_w, h, row_top, work, inset);
+        let room = full.min((work.y + work.h - inset - placed.y) as i32 - 2 * PAD);
+        let want = fly.cursor.map_or(at, |cursor| cursor as isize);
+        while at < want {
+            let next = super::rows::step_row(&leaves, at, 1);
+            assert!(next > at, "{name}: the flyout cursor cannot reach {want}");
+            at = next;
+            (y, h) = fit::scroll_for(&leaves, at as usize, y, room);
+        }
+        assert_eq!(at, want, "{name}: the flyout cursor names a leaf the keys can reach");
         if let Some(fly_view) = fly.view {
             assert_eq!(
                 (y, h),
@@ -340,8 +352,6 @@ fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll(
                 "{name}: flyout scroll and view"
             );
         }
-        // A trimmed view keeps its foot where the work area put it, as Menu::open_flyout places it.
-        let placed = fit::place_flyout(frame, fly_w, h, row_top, work, inset);
         assert!(
             placed.x == fly.left && placed.y == fly.top,
             "{name}: flyout place {:?} against the board's {:?}",

@@ -344,10 +344,11 @@ function canCompare(kinds) {
     return kinds.every(function (kind) { return ((Number(kind) || 0) & Format.S_IFMT) === Format.S_IFREG })
 }
 
-// The Copy as flyout: six leaves in board order, letters on keyHint.
+// The Copy as flyout: seven leaves in board order, letters on keyHint.
 function copyAsEntries() {
     return [
         { id: "copyPath", label: "Path", glyph: "file-text", keyHint: "p" },
+        { id: "copyRelative", label: "Relative path", glyph: "file", keyHint: "r" },
         { id: "copyName", label: "Name", glyph: "type", keyHint: "n" },
         { id: "copyStem", label: "Name without extension", glyph: "type", keyHint: "e" },
         { id: "copydirpath", label: "Folder path", glyph: "folder", keyHint: "f" },

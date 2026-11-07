@@ -29,7 +29,7 @@ pub struct Pane {
     pub asked: Vec<PasteAsk>,
     pub texts: Vec<String>,
     pub rows_asked: Vec<Vec<usize>>,
-    pub copy_as_pending: Option<Format>,
+    pub copy_as_pending: Option<(Format, String)>,
 }
 
 impl Pane {
@@ -189,7 +189,7 @@ impl Pane {
     pub fn copy_as(&mut self, format: Format, paths: Option<Vec<String>>, rows: Vec<usize>) {
         match paths {
             Some(paths) => {
-                if let Some(text) = copy_as_text(&paths, format) {
+                if let Some(text) = copy_as_text(&paths, format, &self.path) {
                     self.texts.push(text);
                 }
             }
@@ -198,15 +198,15 @@ impl Pane {
                     self.said.push(Said { text: words::resolving(&english()), error: false, paste_hint: false });
                     return;
                 }
-                self.copy_as_pending = Some(format);
+                self.copy_as_pending = Some((format, self.path.clone()));
                 self.rows_asked.push(rows);
             }
         }
     }
 
     pub fn copy_as_resolved(&mut self, list: Vec<String>) {
-        if let Some(format) = self.copy_as_pending.take() {
-            if let CopyAsOut::Text(text) = copy_as_resolved(&list, format) {
+        if let Some((format, base)) = self.copy_as_pending.take() {
+            if let CopyAsOut::Text(text) = copy_as_resolved(&list, format, &base) {
                 self.texts.push(text);
             }
         }

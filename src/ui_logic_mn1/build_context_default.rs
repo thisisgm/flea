@@ -58,6 +58,7 @@ impl Default for Context {
             place_favourite: false,
             trash_total: 0,
             busy: false,
+            recent: false,
             rail: None,
         }
     }

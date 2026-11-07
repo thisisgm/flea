@@ -190,6 +190,6 @@ function failedClipboard(check, pathsPane) {
     var sentBeforeAsk = sent.length
     Ops.copyAs(pane, "path", null)
     check("the next ask after a stale Permissions refusal is not busy", pane.said.length, saidBefore + 1)
-    check("the next ask after a stale Permissions refusal claims the paths", JSON.stringify(pane.pathsPending), JSON.stringify({kind: "copyAs", format: "path"}))
+    check("the next ask after a stale Permissions refusal claims the paths", JSON.stringify(pane.pathsPending), JSON.stringify({kind: "copyAs", format: "path", base: "/d"}))
     check("the next ask after a stale Permissions refusal is sent", sent.length, sentBeforeAsk + 1)
 }

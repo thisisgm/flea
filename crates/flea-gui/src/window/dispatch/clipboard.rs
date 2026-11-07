@@ -139,12 +139,7 @@ impl Shell {
         };
         let list = host.list.borrow();
         let env = self.menu_env(&list.typeface);
-        let available = self.menu.context.clipboard_available;
-        let outcome = self
-            .menu
-            .menu
-            .borrow_mut()
-            .open_submenu_for(action, available, &env, window);
+        let outcome = self.menu_submenu(action, &env, window);
         drop(list);
         self.menu_outcome(outcome, window, cx);
     }

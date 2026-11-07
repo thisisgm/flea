@@ -144,12 +144,15 @@ pub fn can_compare(kinds: Option<&[u32]>) -> bool {
     kinds.is_some_and(|kinds| kinds.len() == 2 && kinds.iter().all(|kind| kind & S_IFMT == S_IFREG))
 }
 
-// The Copy As flyout: six leaves in board order, letters on the key hint slot.
+// The Copy As flyout: seven leaves in board order, letters on the key hint slot.
 pub fn copy_as_entries() -> Vec<Entry> {
     vec![
         Entry::leaf("copyPath", Text::Key("menu.copy_as.path"))
             .with_glyph("file-text")
             .with_key_hint("p"),
+        Entry::leaf("copyRelative", Text::Key("menu.copy_as.relative"))
+            .with_glyph("file")
+            .with_key_hint("r"),
         Entry::leaf("copyName", Text::Key("menu.copy_as.name"))
             .with_glyph("type")
             .with_key_hint("n"),
@@ -190,6 +193,15 @@ pub fn flyout_entries(action: &str) -> Vec<Entry> {
         "pasteAs" => paste_as_entries(),
         _ => Vec::new(),
     }
+}
+
+// A history listing such as Recent has no folder of its own, so Relative Path hides there as a row that cannot act does.
+pub fn flyout_leaves(action: &str, history: bool) -> Vec<Entry> {
+    let mut leaves = flyout_entries(action);
+    if history {
+        leaves.retain(|leaf| leaf.id != "copyRelative");
+    }
+    leaves
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

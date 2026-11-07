@@ -27,4 +27,20 @@ function run(check) {
         CopyAs.lines(["/home/gm/a�b"], "quoted"), "'/home/gm/a�b'")
     check("every variant covers the whole selection one per line",
         CopyAs.lines(["/a/one.txt", "/a/two.txt"], "path"), "/a/one.txt\n/a/two.txt")
+    check("path stays absolute when a listing base is given",
+        CopyAs.lines(["/home/gm/proj/a.txt"], "path", "/home/gm/proj"), "/home/gm/proj/a.txt")
+    check("relative takes the folders under the listed directory",
+        CopyAs.lines(["/home/gm/proj/src/a.rs"], "relative", "/home/gm/proj"), "src/a.rs")
+    check("relative of a file in the listing is the name",
+        CopyAs.lines(["/home/gm/proj/a.txt"], "relative", "/home/gm/proj"), "a.txt")
+    check("relative of the listed directory itself is a dot",
+        CopyAs.lines(["/home/gm/proj"], "relative", "/home/gm/proj"), ".")
+    check("relative from root drops the leading slash",
+        CopyAs.lines(["/etc/hostname"], "relative", "/"), "etc/hostname")
+    check("relative walks up when the file sits outside the listing",
+        CopyAs.lines(["/home/gm/other/a.txt"], "relative", "/home/gm/proj"), "../other/a.txt")
+    check("relative without a listing keeps the absolute path",
+        CopyAs.lines(["/home/gm/a.txt"], "relative"), "/home/gm/a.txt")
+    check("relative covers the whole selection one per line",
+        CopyAs.lines(["/d/one.txt", "/d/sub/two.txt"], "relative", "/d"), "one.txt\nsub/two.txt")
 }

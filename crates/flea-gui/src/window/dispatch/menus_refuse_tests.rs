@@ -94,13 +94,13 @@ fn open_with_an_application_launches_it(cx: &mut gpui::TestAppContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// EY-164: c opens Copy As on the cursor row; Down and Return choose Name, which lands on the clipboard.
+// EY-164: c opens Copy As on the cursor row; Down twice past Relative Path and Return choose Name, which lands on the clipboard.
 #[gpui::test]
 fn copy_as_name_with_return_copies_it(cx: &mut gpui::TestAppContext) {
     let (shell, cx) = on_notes(cx);
     cx.simulate_keystrokes("c");
     answer(&shell, cx, &[FILE]);
-    cx.simulate_keystrokes("down enter");
+    cx.simulate_keystrokes("down down enter");
     settle(cx);
     validated(&shell, cx, "copyAs:copyName", &["/files/notes.txt"]);
     assert_ne!(status(&shell, cx), UNAVAILABLE);

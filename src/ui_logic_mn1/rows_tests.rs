@@ -572,7 +572,7 @@ fn clamp_flyouts_and_steps() {
             .map(|l| l.id.to_string())
             .collect::<Vec<_>>()
             .join(","),
-        "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
+        "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
     );
     check(
         "and Paste as builds its own",

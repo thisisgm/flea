@@ -100,6 +100,7 @@ impl Shell {
                 .backend
                 .as_ref()
                 .is_none_or(|backend| backend.dir_writable(host.pane.path())),
+            recent: host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place()),
             ..MenuContext::default()
         }
     }

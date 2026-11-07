@@ -425,19 +425,18 @@ function clipFailed(pane) {
     ClipSelection.failed(pane)
 }
 
-// MenuAdditions040: Copy as names absolute paths, because like the clipboard
-// a copy happens in a different directory from the listing it was started
-// from. With paths the text goes out at once; without, the backend resolves
-// the indices while it still can, the same rule clip follows.
+// MenuAdditions040: Path stays absolute; Relative reads pane.path, kept on the claim, and Recent (no folder) refuses it.
+var RECENT_RELATIVE = "This listing is a history, and has no folder to copy a relative path from."
 function copyAs(pane, kind, paths) {
+    if (kind === "relative" && pane.recentMode && pane.recentMode.length > 0) { pane.message(RECENT_RELATIVE, false); return }
     if (paths && paths.length > 0) {
-        pane.opener.copyText(CopyAs.lines(paths, kind))
+        pane.opener.copyText(CopyAs.lines(paths, kind, pane.path))
         return
     }
     if (refuseWhileBusy(pane)) return
     var idx = targetIndices(pane)
     if (idx.length === 0) return sayNoTarget(pane)
-    pane.pathsPending = { kind: "copyAs", format: kind }
+    pane.pathsPending = { kind: "copyAs", format: kind, base: pane.path }
     pane.backend.askPaths(idx)
 }
 
@@ -522,7 +521,7 @@ function pathsResolved(pane, list) {
     // path per line, through wl-copy; nothing reaches the file clipboard.
     if (pending && pending.kind === "copyAs") {
         if (list.length > 0)
-            pane.opener.copyText(CopyAs.lines(list, pending.format))
+            pane.opener.copyText(CopyAs.lines(list, pending.format, pending.base))
         return
     }
     // MenuAdditions040: Permissions takes the whole selection, so the dialog
