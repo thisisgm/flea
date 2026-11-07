@@ -46,6 +46,8 @@ fn main() {
     if backend_log_tests::emit_if_requested() {
         return;
     }
+    // Vulkan instance creation is the slowest step of opening a window; overlap it with the startup below.
+    gpui_platform::prewarm_gpu();
     let (service, locale) = Service::launch(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
