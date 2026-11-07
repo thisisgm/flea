@@ -61,6 +61,29 @@ fn raildrive_shift_f10_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestAp
 }
 
 #[gpui::test]
+fn raildrive_flash_image_takes_the_keys_and_up_reaches_the_image_row(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_reduce_motion(true));
+    let (shell, _service, cx) = root_at(cx);
+    walk_to_stick(&shell, cx);
+    let rows = open_painted(&shell, "menu", cx);
+    let at = rows.iter().position(|id| id == "flashImage").unwrap();
+    choose(&shell, &format!("{}enter", "down ".repeat(at)), cx);
+    assert!(shell.read_with(cx, |shell, _| shell.operations.archive.flash.shown()));
+    assert!(
+        cx.update(|window, cx| shell.read(cx).flash_has_keys(window, cx)),
+        "Flash image from the rail gives the flash pane the keys"
+    );
+    cx.simulate_keystrokes("up");
+    frame(cx);
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.operations.archive.flash.park()),
+        crate::g2::op2::flash::Seat::Image,
+        "Up from the drive reaches Choose an image… before an image is chosen"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn raildrive_device_menu_unmount_runs_on_the_stick(cx: &mut TestAppContext) {
     let (shell, service, cx) = root_at(cx);
     walk_to_stick(&shell, cx);

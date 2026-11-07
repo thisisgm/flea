@@ -79,6 +79,101 @@ fn action_pairs_reach_the_same_handlers_and_tab_focus_returns_to_listing() {
 }
 
 #[test]
+fn an_empty_folder_keeps_tab_in_the_listing_so_q_still_quits() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = Model::new(PathBuf::from("/empty"), &Json::Null);
+    m.open(m.path.clone(), &mut wire).unwrap();
+    drain(&mut wire);
+    m.receive(
+        jsondoc::parse(r#"{"t":"listed","n":0}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    assert!(m.preview_visible);
+    for key in [Key::named("Tab", ""), Key::named("Tab", "ctrl")] {
+        press(&mut m, &mut wire, key);
+        assert!(
+            !m.preview_focus,
+            "nothing to preview, so the listing keeps its keys"
+        );
+    }
+    (m.columns, m.height) = (130, 27);
+    let (left, middle, _) = super::render::panes(m.columns, m.preview_visible);
+    let mut click = Key::named("", "");
+    let (x, y) = (left + middle + 10, super::render::BODY_ROW + 3);
+    click.pointer = Some(super::input::Pointer {
+        button: 0,
+        x,
+        y,
+        released: false,
+        motion: false,
+    });
+    press(&mut m, &mut wire, click);
+    assert!(
+        !m.preview_focus,
+        "a press on the empty preview leaves the keys with the listing"
+    );
+    m.preview_focus = true;
+    press(&mut m, &mut wire, Key::character('q', ""));
+    assert!(
+        m.quit && !m.preview_focus,
+        "a focus left on the empty preview by any other path hands q back"
+    );
+    wire::finish(wire, reader);
+}
+
+#[test]
+fn a_folder_that_empties_under_the_preview_hands_q_back_to_the_listing() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = listing(&mut wire, "default");
+    m.receive(
+        jsondoc::parse(r#"{"t":"listed","n":5}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    m.cursor = 4;
+    press(&mut m, &mut wire, Key::named("Tab", ""));
+    assert!(
+        m.preview_focus,
+        "a row still being fetched keeps Tab's preview stop"
+    );
+    m.receive(
+        jsondoc::parse(r#"{"t":"listed","n":0}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    assert!(
+        !m.preview_focus,
+        "the re-list itself stops drawing the empty preview as focused"
+    );
+    m.receive(
+        jsondoc::parse(r#"{"t":"listed","n":5}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    press(&mut m, &mut wire, Key::named("Tab", ""));
+    assert!(m.preview_focus);
+    m.search = "Search: none".into();
+    m.receive(
+        jsondoc::parse(r#"{"t":"searched","n":0,"scanned":5}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    assert!(
+        !m.preview_focus,
+        "a search with no results stops drawing the empty preview as focused"
+    );
+    press(&mut m, &mut wire, Key::character('q', ""));
+    assert!(m.quit);
+    wire::finish(wire, reader);
+}
+
+#[test]
 fn mac_move_and_duplicate_have_plain_keys_and_windows_ctrl_d_still_trashes() {
     let (mut wire, reader) = wire::echo_wire();
     let mut m = listing(&mut wire, "mac");

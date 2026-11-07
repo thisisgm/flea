@@ -104,6 +104,14 @@ impl Archive {
     }
 }
 
+/// The last line of a failed chooser's stderr, since the renderer banner can come first, or its exit status.
+fn failure_reason(output: &std::process::Output) -> String {
+    String::from_utf8_lossy(&output.stderr)
+        .lines()
+        .rfind(|line| !line.trim().is_empty())
+        .map_or_else(|| output.status.to_string(), str::to_owned)
+}
+
 fn join(base: &str, leaf: &str) -> String {
     if base.ends_with('/') {
         format!("{base}{leaf}")
@@ -284,31 +292,33 @@ impl Shell {
             let output = run.await;
             let _ = this.update_in(cx, |shell, window, cx| {
                 shell.operations.archive.picking = None;
-                // A chooser that never started says so; a cancel or a non-zero exit stays silent, as v0.3.12 did.
-                let output = match output {
-                    Ok(output) => output,
-                    Err(err) => {
-                        let line = shell
-                            .locale
-                            .catalog
-                            .tr_args("archive.flash.chooser_failed", &[&binary, &err.to_string()]);
-                        shell.archive_say(&line, true, cx);
-                        return;
-                    }
-                };
-                let chosen = Some(output)
-                    .filter(|output| output.status.success())
-                    .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
-                    .unwrap_or_default();
-                let flash = &mut shell.operations.archive.flash;
-                if chosen.is_empty()
-                    || !flash.shown()
-                    || flash.running()
-                    || shell.operations.archive.flash_side != side
+                // An answer the pane no longer waits for is dropped, whichever way the chooser ended.
+                let flash = &shell.operations.archive.flash;
+                if !flash.shown() || flash.running() || shell.operations.archive.flash_side != side
                 {
                     return;
                 }
-                let effects = flash.open_with_image(&chosen);
+                // A chooser that never started or failed says so; only a cancel, a clean exit naming nothing, stays silent.
+                let reason = match &output {
+                    Ok(output) if output.status.success() => None,
+                    Ok(output) => Some(failure_reason(output)),
+                    Err(err) => Some(err.to_string()),
+                };
+                if let Some(reason) = reason {
+                    let line = shell
+                        .locale
+                        .catalog
+                        .tr_args("archive.flash.chooser_failed", &[&binary, &reason]);
+                    shell.archive_say(&line, true, cx);
+                    return;
+                }
+                let chosen = output
+                    .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+                    .unwrap_or_default();
+                if chosen.is_empty() {
+                    return;
+                }
+                let effects = shell.operations.archive.flash.open_with_image(&chosen);
                 shell.archive_effects(side, effects, window, cx);
             });
         }));

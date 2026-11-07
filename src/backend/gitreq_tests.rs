@@ -132,6 +132,46 @@ fn cached_snapshot_projects_visible_rows_and_pages_without_any_tool() {
 }
 
 #[test]
+fn rows_inside_a_folder_opened_in_place_get_their_marks_and_none_climb_out() {
+    let d = Fixture::new();
+    d.write(".git/HEAD", b"ref: refs/heads/main\n");
+    d.write("nested/deeper/file", b"body\n");
+    let directory = d.path("nested");
+    let snapshot = super::super::gitstatus::parse(
+        b"# branch.head main\x00? nested/deeper/file\0? other/child\0",
+    )
+    .unwrap();
+    let mut session = Session {
+        path: directory.to_string_lossy().into_owned(),
+        enabled: true,
+        repo: gitprobe::discover(&directory).unwrap(),
+        snapshot: Some(snapshot),
+        error: None,
+    };
+    let rows = |session: &mut Session, names: &[&str]| {
+        let paths: Vec<_> = names
+            .iter()
+            .map(|name| quote(&format!("{}/{name}", directory.to_string_lossy())))
+            .collect();
+        session.answer(&request(
+            "gitrows",
+            &directory,
+            &format!(",\"paths\":[{}]", paths.join(",")),
+        ))
+    };
+    let opened = rows(&mut session, &["deeper", "deeper/file"]);
+    assert!(field_bool(&opened, "ok"), "{opened}");
+    let marks = crate::jsondoc::parse(&opened).unwrap();
+    let marks = marks.get("marks").unwrap().as_array().unwrap();
+    assert_eq!(marks[0].get("folder").unwrap().as_bool(), Some(true));
+    assert_eq!(marks[1].get("status").unwrap().as_str(), Some("?"));
+    for escape in ["../other/child", "deeper/../../other/child", ""] {
+        let reply = rows(&mut session, &[escape]);
+        assert!(!field_bool(&reply, "ok"), "{escape:?} left the directory: {reply}");
+    }
+}
+
+#[test]
 fn real_git_status_cache_refresh_windows_and_changes_include_deleted_and_renamed() {
     if !Fixture::available() || super::super::sandboxprobe::skipped() {
         return;

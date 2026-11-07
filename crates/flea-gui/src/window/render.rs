@@ -52,6 +52,7 @@ impl Render for Shell {
             cx,
         );
         self.sync_font_settings(cx);
+        self.keep_midnight_wake(cx);
         self.sync_search_text();
         self.route_rail(window, cx);
         self.sync_rail(window, cx);
