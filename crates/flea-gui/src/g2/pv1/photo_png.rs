@@ -4,6 +4,9 @@ use gpui::RenderImage;
 use image::metadata::Orientation;
 use std::{fs::File, io::BufReader, ops::Range, sync::Arc};
 
+/// One scanline handler: (x0, dx, y) and the line's pixels.
+type Scanline<'a> = dyn FnMut((u32, usize, u32), &[u8]) -> Result<(), ()> + 'a;
+
 // At most this many band threads, beside the inflating one; a small target reduces on the inflating thread.
 const BANDS: usize = 4;
 const BAND_ROWS: u32 = 64;
@@ -153,7 +156,7 @@ pub(super) fn reduce(
         .collect();
     // Each scanline in file order: (x0, dx, y) and its pixels, checked against the pass's own width.
     let scan = |reader: &mut png::Reader<BufReader<File>>,
-                each: &mut dyn FnMut((u32, usize, u32), &[u8]) -> Result<(), ()>|
+                each: &mut Scanline<'_>|
      -> Result<(), ()> {
         for &(x0, y0, dx, dy) in passes {
             if x0 >= sw || y0 >= sh {
