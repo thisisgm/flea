@@ -2348,6 +2348,8 @@
   "window.loading": "لوڈ ہو رہا ہے",
   "window.one_directory": "صرف ایک ابتدائی فولڈر قبول ہوتا ہے",
   "window.open_failed": "ونڈو کھل نہیں سکی: ⁨%1⁩",
+  "window.no_driver": "کوئی بھی گرافکس ڈرائیور Flea نہیں کھول سکا",
+  "window.no_driver_hint": "⁨%1⁩ اور ⁨%2⁩ انسٹال یا درست کریں، یا ٹرمینل میں ⁨%3⁩ چلائیں۔",
   "window.select_required": "--select کے لیے منزل درکار ہے",
   "window.settings_failed": "ترتیبات پڑھی نہیں جا سکیں: ⁨%1⁩",
   "window.unknown_flag": "نامعلوم فلیگ ⁨%1⁩",

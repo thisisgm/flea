@@ -1,4 +1,4 @@
-//! One renderer-selection sentence, using GPUI's actual adapter and any rejected Vulkan attempt.
+//! One renderer-selection sentence, using GPUI's actual adapter and any rejected Vulkan attempt, and each refused adapter for a failed start.
 use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 use std::cell::RefCell;
 
@@ -9,6 +9,12 @@ static LOGGER: BackendLog = BackendLog;
 thread_local! {
     // GPUI tries both backends synchronously on the window-opening thread.
     static VULKAN_REJECTION: RefCell<Option<String>> = const { RefCell::new(None) };
+    static REFUSALS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+}
+
+// The adapters GPUI tested and refused since the last selection, for the report when no window opens.
+pub fn take_refusals() -> Vec<String> {
+    REFUSALS.with(|held| held.take())
 }
 
 pub fn install() -> Result<(), SetLoggerError> {
@@ -41,7 +47,12 @@ impl Log for BackendLog {
             }
             return;
         }
+        if let Some(refusal) = refused(&message) {
+            REFUSALS.with(|held| held.borrow_mut().push(refusal));
+            return;
+        }
         if let Some((adapter, backend)) = selected(&message) {
+            REFUSALS.with(|held| held.borrow_mut().clear());
             let rejection = VULKAN_REJECTION.with(|held| held.borrow_mut().take());
             if let Some(reason) = rejection.filter(|_| backend == "Gl") {
                 eprintln!("flea: Vulkan is unusable, {reason}, so the window starts on OpenGL ({adapter})");
@@ -60,6 +71,19 @@ fn selected(message: &str) -> Option<(String, &str)> {
     let selected = message.strip_prefix("Selected GPU adapter: ")?;
     let (adapter, backend) = selected.rsplit_once(" (")?;
     Some((one_line(adapter), backend.strip_suffix(')')?))
+}
+
+// Sample input: "  Adapter llvmpipe (Gl) failed: Failed to create wgpu device: Limit 'max_storage_buffer_binding_size' value 134217728 is better than allowed 0, trying next...".
+fn refused(message: &str) -> Option<String> {
+    let tested = message.trim_start().strip_prefix("Adapter ")?;
+    let (adapter, reason) = tested
+        .strip_suffix(", trying next...")?
+        .split_once(" failed: ")?;
+    Some(format!(
+        "{} was refused: {}",
+        one_line(adapter),
+        one_line(reason)
+    ))
 }
 
 fn one_line(message: &str) -> String {

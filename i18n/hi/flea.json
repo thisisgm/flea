@@ -2297,6 +2297,8 @@
   "window.loading": "लोड हो रहा है",
   "window.one_directory": "केवल एक शुरुआती डायरेक्टरी स्वीकार की जाती है",
   "window.open_failed": "विंडो खुल नहीं सकी: %1",
+  "window.no_driver": "कोई भी ग्राफ़िक्स ड्राइवर Flea नहीं खोल सका",
+  "window.no_driver_hint": "%1 और %2 इंस्टॉल या ठीक करें, या टर्मिनल में %3 चलाएँ।",
   "window.select_required": "--select के लिए लक्ष्य चाहिए",
   "window.settings_failed": "सेटिंग पढ़ी नहीं जा सकीं: %1",
   "window.unknown_flag": "अज्ञात फ़्लैग %1",

@@ -12,7 +12,16 @@ import threading
 import time
 
 MESSAGE = "flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui"
-CASES = ("vulkan", "no-vulkan-icd", "device-create-failure", "gl-only", "neither")
+NOTICE = ["--app-name=Flea", "--urgency=critical", "--icon=com.thisisgm.flea", "No graphics driver could open Flea",
+          "Install or repair vulkan-swrast and mesa, or run flea --tui in a terminal."]
+# What an Intel Gen6 (Sandy Bridge) GPU's GL offers: OpenGL 3.3, OpenGL ES 3.0 and no storage buffers.
+GEN6_GL = {"MESA_GL_VERSION_OVERRIDE": "3.3", "MESA_GLSL_VERSION_OVERRIDE": "330", "MESA_GLES_VERSION_OVERRIDE": "3.0",
+           "MESA_EXTENSION_OVERRIDE": "-GL_ARB_shader_storage_buffer_object"}
+CASES = ("vulkan", "no-vulkan-icd", "device-create-failure", "gl-only", "neither", "gen6-lavapipe", "gen6-only")
+# GPUI's reason per failing case, then each refused adapter: with no EGL no adapter is tried; Gen6 GL lacks storage buffers.
+FAILING = {"neither": ("Failed to create surface:", []),
+           "gen6-only": ("No GPU adapter found that can configure the display surface",
+                         ["(Gl) was refused: Failed to create wgpu device: Limit 'max_storage_buffer_binding_size'"])}
 ROOT = Path(sys.argv[1])
 assert ROOT.is_absolute() and (ROOT / ".flea-test-sandbox").is_file()
 REPO = Path.cwd()
@@ -142,15 +151,20 @@ def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
                __EGL_VENDOR_LIBRARY_FILENAMES=str(egl_vendor))
     # Window IPC requires the real owner-only directory; only the compositor needs the short descriptor path.
     env["XDG_RUNTIME_DIR"] = str(ROOT / "runtime")
+    # A stand-in notify-send records the desktop notice, so no real notification is shown.
+    notice = directory / "notice.log"
+    env.update(PATH=f"{ROOT / 'bin'}:{env.get('PATH', '/usr/bin')}", FLEA_TEST_NOTICE=str(notice))
     selected_icd = ROOT / "empty"
-    if case == "vulkan":
+    if case.startswith("gen6"):
+        env.update(GEN6_GL)
+    if case in ("vulkan", "gen6-lavapipe"):
         selected_icd = lavapipe
     elif case == "device-create-failure":
         faulty = json.loads(json.dumps(document))
         faulty["ICD"]["library_path"] = str(ROOT / "fail-device.so")
         selected_icd = directory / "fault.json"
         selected_icd.write_text(json.dumps(faulty))
-    elif case == "no-vulkan-icd":
+    elif case in ("no-vulkan-icd", "gen6-only"):
         env["QSG_RHI_BACKEND"] = ""
     elif case == "gl-only":
         env["MESA_LOADER_DRIVER_OVERRIDE"] = "swrast"
@@ -214,24 +228,41 @@ def run_case(case, run, document, journal, entry, lavapipe, egl_vendor):
     adapter = next((row.strip() for row in rows if row.startswith("flea-render:")), "none")
     if "so the shell starts on OpenGL" in text:
         fail(f"{case}: Qt downgrade ran on the GPUI path")
-    if case == "neither":
+    notices = notice.read_text().split("\n")[:-1] if notice.is_file() else []
+    # The line report() writes after the sentence is GPUI's own reason for the failure.
+    cause = next((row.strip() for before, row in zip(rows, rows[1:]) if before.strip() == MESSAGE), "")
+    refusals = [row.strip() for row in rows if " was refused: " in row]
+    if case in FAILING:
         if mapped or frame.is_set() or process.returncode != 1 or text.count(MESSAGE) != 1:
-            fail(f"neither: mapped={mapped}, exit={process.returncode}, sentences={text.count(MESSAGE)}")
+            fail(f"{case}: mapped={mapped}, exit={process.returncode}, sentences={text.count(MESSAGE)}")
+        reason, refused = FAILING[case]
+        if not cause.startswith(reason):
+            fail(f"{case}: GPUI's reason was {cause!r}, not one starting {reason!r}")
+        if len(refusals) != len(refused) or not all(want in got for want, got in zip(refused, refusals)):
+            fail(f"{case}: the refused adapters were {refusals}, not {refused}")
         packets = journal_packets(journal)
         if sum(packet.count(MESSAGE) for packet in packets) != 1:
-            fail("neither: journal did not receive the driver sentence exactly once")
+            fail(f"{case}: journal did not receive the driver sentence exactly once")
+        if notices != NOTICE:
+            fail(f"{case}: the desktop notice was {notices}, not {NOTICE}")
     else:
         if not mapped or not frame.is_set() or adapter == "none" or pre_stop_exit is not None:
             fail(f"{case}: mapped={mapped}, exit={process.returncode}, adapter={adapter}")
+        if notices:
+            fail(f"{case}: a window that opened sent a desktop notice: {notices}")
+        if refusals:
+            fail(f"{case}: a window that opened reported refused adapters: {refusals}")
         driver = re.search(r'driver="([^"]*)"', adapter)
-        if case == "vulkan" and (not driver or "llvmpipe" not in driver[1].lower()):
+        lavapipe_case = case in ("vulkan", "gen6-lavapipe")
+        if lavapipe_case and (not driver or "llvmpipe" not in driver[1].lower()):
             fail(f"{case}: Lavapipe was not selected: {adapter}")
-        if case != "vulkan" and driver and driver[1]:
+        if not lavapipe_case and driver and driver[1]:
             fail(f"{case}: GL was not selected: {adapter}")
         if case == "device-create-failure" and "render-test: vkCreateDevice refused" not in text:
             fail("device-create-failure: the injected device failure was never reached")
     milliseconds = f"{timing[0]:.2f}" if timing else "none"
-    print(f"CASE {case} entry={entry} run={run} adapter={adapter} first_buffer_ms={milliseconds} mapped={int(mapped)} exit={process.returncode}", flush=True)
+    detail = f" cause={cause!r} refused={refusals!r}" if case in FAILING else ""
+    print(f"CASE {case} entry={entry} run={run} adapter={adapter} first_buffer_ms={milliseconds} mapped={int(mapped)} exit={process.returncode}{detail}", flush=True)
     return timing
 
 
@@ -240,6 +271,10 @@ def main():
     for directory in ("empty", "runtime", "tmp"):
         (ROOT / directory).mkdir(mode=0o700)
     (ROOT / "empty/.flea-test-sandbox").touch()
+    (ROOT / "bin").mkdir(mode=0o700)
+    stand_in = ROOT / "bin/notify-send"
+    stand_in.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\" >> \"$FLEA_TEST_NOTICE\"\n")
+    stand_in.chmod(0o700)
     document, library, lavapipe = manifest()
     egl_vendor = Path("/usr/share/glvnd/egl_vendor.d/50_mesa.json")
     if not egl_vendor.is_file():

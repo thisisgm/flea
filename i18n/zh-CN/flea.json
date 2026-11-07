@@ -415,6 +415,8 @@
   "window.unknown_flag": "未知参数 %1",
   "window.settings_failed": "无法读取设置：%1",
   "window.open_failed": "窗口无法打开：%1",
+  "window.no_driver": "没有图形驱动能打开 Flea",
+  "window.no_driver_hint": "请安装或修复 %1 和 %2，或在终端中运行 %3。",
   "window.backend_start": "后端无法启动：%1",
   "window.backend_wait": "无法回收后端进程：%1",
   "window.backend_timeout": "后端未在 30 秒内完成关闭",

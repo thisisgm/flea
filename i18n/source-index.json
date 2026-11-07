@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "cb3a6d4b659c7fb5d16d957cc5782960593b0d8475a10b89405ebad001232884",
-  "catalog_sha256": "86dcd503a81275d024ab757240075285eb1437a91d20653b1f45be8fb9364808",
+  "catalog_file_sha256": "009c19882a3b7cae40399d1efeb05563b1daa06523737304edf58116f4b3d851",
+  "catalog_sha256": "7e0f918098ea0238a5ad5a71429fd843c33666189be3de814f6cfa11d1cd2f5e",
   "counts": {
     "direct_references": 0,
-    "keys": 2227,
+    "keys": 2229,
     "plurals": 106
   },
   "direct_references": {},
@@ -636,7 +636,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 204,
+      "line": 205,
       "path": "crates/flea-gui/src/g2/pk1/launch.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1165,7 +1165,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "error.key",
-      "line": 65,
+      "line": 66,
       "path": "crates/flea-gui/src/main.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1175,7 +1175,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 104,
+      "line": 105,
       "path": "crates/flea-gui/src/main.rs",
       "pattern": null,
       "possible_keys": [],
@@ -60736,14 +60736,14 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"ipc.start_failed\", &[&error.to_string()])",
-          "line": 233,
+          "line": 234,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".map_err(|error| (\"ipc.start_failed\", error.to_string()))?;",
-          "line": 85,
+          "line": 86,
           "path": "crates/flea-gui/src/main.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -80840,7 +80840,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(\"picker.portal.no_reply\");",
-          "line": 56,
+          "line": 57,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -80862,7 +80862,7 @@
       "call_sites": [
         {
           "excerpt": ".ok_or(\"picker.portal.no_request\")?;",
-          "line": 54,
+          "line": 55,
           "path": "crates/flea-gui/src/g2/pk1/launch.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -106512,6 +106512,54 @@
       "resolved_source_hash": "dc380888c4e2",
       "source_hash": "dc380888c4e2"
     },
+    "window.no_driver": {
+      "call_sites": [
+        {
+          "excerpt": "summary: catalog.tr(\"window.no_driver\"),",
+          "line": 27,
+          "path": "crates/flea-gui/src/driver_notice.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "window.no_driver: crates/flea-gui/src/driver_notice.rs:12",
+      "coverage": "existing-translated-call",
+      "english": "No graphics driver could open Flea",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "No graphics driver could open Flea",
+      "resolved_sha256": "f8b583386c855f72aa2b8ebd9a8d40c85e350c58cbc61c276646c482433533fc",
+      "resolved_source_hash": "b8775dc5bbdf",
+      "source_hash": "b8775dc5bbdf"
+    },
+    "window.no_driver_hint": {
+      "call_sites": [
+        {
+          "excerpt": "body: catalog.tr_args(\"window.no_driver_hint\", &BODY_ARGUMENTS),",
+          "line": 28,
+          "path": "crates/flea-gui/src/driver_notice.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "window.no_driver_hint: crates/flea-gui/src/driver_notice.rs:13",
+      "coverage": "existing-translated-call",
+      "english": "Install or repair %1 and %2, or run %3 in a terminal.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2",
+        "%3"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Install or repair %1 and %2, or run %3 in a terminal.",
+      "resolved_sha256": "d5f86579520abe231ff5dddc01790586721365f2dd4ecac820db4bfafd2c6d73",
+      "resolved_source_hash": "61b8fbd7d0b2",
+      "source_hash": "61b8fbd7d0b2"
+    },
     "window.one_directory": {
       "call_sites": [
         {
@@ -106612,21 +106660,21 @@
       "call_sites": [
         {
           "excerpt": "startup::load_settings().map_err(|error| (\"window.settings_failed\", error))?;",
-          "line": 75,
+          "line": 76,
           "path": "crates/flea-gui/src/main.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".map_err(|error| (\"window.settings_failed\", error.to_string()))?;",
-          "line": 77,
+          "line": 78,
           "path": "crates/flea-gui/src/main.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".tr_args(\"window.settings_failed\", &[&error.to_string()])",
-          "line": 96,
+          "line": 97,
           "path": "crates/flea-gui/src/main.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -107230,7 +107278,7 @@
     },
     {
       "excerpt": "message.strip_prefix(\"No usable Backends(VULKAN) adapter for this window: \")",
-      "line": 38,
+      "line": 44,
       "literal": "No usable Backends(VULKAN) adapter for this window: ",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend_log.rs",
@@ -107239,7 +107287,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: Vulkan is unusable, {reason}, so the window starts on OpenGL ({adapter})\");",
-      "line": 47,
+      "line": 58,
       "literal": "flea: Vulkan is unusable, {reason}, so the window starts on OpenGL ({adapter})",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend_log.rs",
@@ -107248,7 +107296,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the window starts on {backend} ({adapter})\");",
-      "line": 50,
+      "line": 61,
       "literal": "flea: the window starts on {backend} ({adapter})",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend_log.rs",
@@ -107257,8 +107305,26 @@
     },
     {
       "excerpt": "let selected = message.strip_prefix(\"Selected GPU adapter: \")?;",
-      "line": 60,
+      "line": 71,
       "literal": "Selected GPU adapter: ",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/backend_log.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".strip_suffix(\", trying next...\")?",
+      "line": 80,
+      "literal": ", trying next...",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/backend_log.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"{} was refused: {}\",",
+      "line": 83,
+      "literal": "{} was refused: {}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend_log.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -111046,7 +111112,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the chooser's rounding reader for {shown} did not start: {error}\")",
-      "line": 118,
+      "line": 119,
       "literal": "flea: the chooser's rounding reader for {shown} did not start: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pk1/launch.rs",
@@ -122080,7 +122146,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: graphics backend reporting could not start: {error}\");",
-      "line": 43,
+      "line": 44,
       "literal": "flea: graphics backend reporting could not start: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/main.rs",
@@ -123142,7 +123208,7 @@
     },
     {
       "excerpt": "pub const MESSAGE: &str = \"flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui\";",
-      "line": 4,
+      "line": 5,
       "literal": "flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123151,7 +123217,7 @@
     },
     {
       "excerpt": ".ok_or(\"missing field newline\")?;",
-      "line": 52,
+      "line": 58,
       "literal": "missing field newline",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123160,7 +123226,7 @@
     },
     {
       "excerpt": ".ok_or(\"missing binary length\")?",
-      "line": 60,
+      "line": 66,
       "literal": "missing binary length",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123169,7 +123235,7 @@
     },
     {
       "excerpt": "usize::try_from(u64::from_le_bytes(length)).map_err(|_| \"length overflow\")?;",
-      "line": 64,
+      "line": 70,
       "literal": "length overflow",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123178,7 +123244,7 @@
     },
     {
       "excerpt": ".ok_or(\"binary length exceeds payload\")?;",
-      "line": 68,
+      "line": 74,
       "literal": "binary length exceeds payload",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123187,7 +123253,7 @@
     },
     {
       "excerpt": "return Err(\"missing binary value terminator\");",
-      "line": 70,
+      "line": 76,
       "literal": "missing binary value terminator",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123196,7 +123262,7 @@
     },
     {
       "excerpt": "(b\"PRIORITY\".as_slice(), b\"3\".as_slice()),",
-      "line": 83,
+      "line": 89,
       "literal": "3",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123205,7 +123271,7 @@
     },
     {
       "excerpt": "return Err(\"expected exactly priority, identifier and complete MESSAGE\");",
-      "line": 88,
+      "line": 94,
       "literal": "expected exactly priority, identifier and complete MESSAGE",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123214,7 +123280,7 @@
     },
     {
       "excerpt": "native_payload(\"adapter rejected\"),",
-      "line": 96,
+      "line": 102,
       "literal": "adapter rejected",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123223,7 +123289,7 @@
     },
     {
       "excerpt": "b\"PRIORITY=3\\nSYSLOG_IDENTIFIER=flea\\nMESSAGE=adapter rejected\\n\"",
-      "line": 97,
+      "line": 103,
       "literal": "PRIORITY=3\nSYSLOG_IDENTIFIER=flea\nMESSAGE=adapter rejected\n",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123232,7 +123298,7 @@
     },
     {
       "excerpt": "println!(\"native protocol control: single-line, empty and UTF-8 bytes unchanged\");",
-      "line": 107,
+      "line": 113,
       "literal": "native protocol control: single-line, empty and UTF-8 bytes unchanged",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123241,7 +123307,7 @@
     },
     {
       "excerpt": "println!(\"native protocol control: single-line embedded NUL preserved\");",
-      "line": 119,
+      "line": 125,
       "literal": "native protocol control: single-line embedded NUL preserved",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123250,7 +123316,7 @@
     },
     {
       "excerpt": "\"Failed to open window\\nadapter rejected\",",
-      "line": 128,
+      "line": 134,
       "literal": "Failed to open window\nadapter rejected",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123259,7 +123325,7 @@
     },
     {
       "excerpt": "println!(\"native protocol observation: {case} payload={payload:02x?}\");",
-      "line": 137,
+      "line": 143,
       "literal": "native protocol observation: {case} payload={payload:02x?}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123268,7 +123334,7 @@
     },
     {
       "excerpt": "\"native MESSAGE protocol assertion failed: {case}\"",
-      "line": 141,
+      "line": 147,
       "literal": "native MESSAGE protocol assertion failed: {case}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -123277,7 +123343,7 @@
     },
     {
       "excerpt": "println!(\"native protocol control: all multiline values decoded as one complete MESSAGE\");",
-      "line": 148,
+      "line": 154,
       "literal": "native protocol control: all multiline values decoded as one complete MESSAGE",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/renderer.rs",
@@ -246464,8 +246530,8 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "7e81ead12cc3b948af659e983a6d644fcc3a0d293d8cfeb99d9686f3b7ac76b7",
-    "crates/flea-gui/Cargo.toml": "20e4f202dfe48d26488eaf2a21a3ed62de0e3d9c66451dcea81f45a6abcaab2c",
+    "Cargo.toml": "a9fdd2a0dcb8a24aa5e6a3c96781a141de98c0e2681a796e75f982492f5e9b1f",
+    "crates/flea-gui/Cargo.toml": "589a73f511211a013e57f2761a6e8592336a4110df0e8abfb2068cdfa68c8c31",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
@@ -246478,7 +246544,7 @@
     "crates/flea-gui/src/backend/status.rs": "c5245c1deb92cb1a48015615092cae40474891c12578d1c207f49e09c1133228",
     "crates/flea-gui/src/backend/transport.rs": "bdfbc9780952303854f8aecbd879712809a9fc96b7840a65c4eb409def223a55",
     "crates/flea-gui/src/backend/worker.rs": "e24fbcb7b9a5a6bd0fa8cfc06354dadf99c0f629ad91be30629101afae199537",
-    "crates/flea-gui/src/backend_log.rs": "d53389a84c8e22f6f9d9277130ef2b0b5019c59b1142cda3d694b264e910571d",
+    "crates/flea-gui/src/backend_log.rs": "bb6d5a8396c6ec2a0794c728f59b5fc42dc9604de210d322f5bc31b887a60faf",
     "crates/flea-gui/src/bench_thumbs.rs": "efaa91fa440a35d4bde7ec2e368298f8638c597f64c2b265bc4631be50664ed9",
     "crates/flea-gui/src/capture.rs": "5ff7556c1494ff60d67288a1d706eb4303e7af9720f03f8ff94cc538f1430643",
     "crates/flea-gui/src/columns/cache.rs": "3bffd10f33afefcdc5e363e35a3c5b927d2bb94e66014dcef695fa4b88a65183",
@@ -246508,6 +246574,7 @@
     "crates/flea-gui/src/compositor_surface_tests/operations.rs": "24e4c1baba71cea1c8a762d56e5389fe720b36d389d1d7ccd3ab92b186b52f07",
     "crates/flea-gui/src/compositor_surface_tests/pictures.rs": "67977e246389ff324bbe8b6e54416fd917dab205e9d01acf0aa42916726f7bbc",
     "crates/flea-gui/src/compositor_surface_tests/settings.rs": "c417ac86251c7b41e019124a51e5ef71923f440044cdb1ee57a976c188219cc7",
+    "crates/flea-gui/src/driver_notice.rs": "8714b4a2d74f5f3d4004355ba36baf34ace1dd31d704cab66ec43505e97b8557",
     "crates/flea-gui/src/dual/activation.rs": "705f426b4fa88e845bcba7918c1332cbc232ee474d2ce57f2d587b4fa39458ee",
     "crates/flea-gui/src/dual/element.rs": "d98523e6ed9a19b562fd8c282f0302e6ea2e30085fcde07b0b32cac1409946cc",
     "crates/flea-gui/src/dual/focus.rs": "aaa3f39efa3fc02effe6816a6b00c50ac2ecf273fdd035e8cd5383fb1b4fb890",
@@ -246762,7 +246829,7 @@
     "crates/flea-gui/src/g2/pk1/jump.rs": "8c007ab74d9b52a3ce557bdc7fbf011e4ff08f5b6e18bfee35274ee3afcb4a82",
     "crates/flea-gui/src/g2/pk1/keys.rs": "9ce830bea65e1a42d2b523012f93bd477f462a4bb871b85e08995adc7c35ef62",
     "crates/flea-gui/src/g2/pk1/labels.rs": "9900b3885dbb462e355d142ef43265b44c6e0c1ad373f3f9eb843f263964d0d3",
-    "crates/flea-gui/src/g2/pk1/launch.rs": "ab149b68e0cc0ab8e4153464da364f0d1673fb33f62525260bf69eb383c475d0",
+    "crates/flea-gui/src/g2/pk1/launch.rs": "189b77bf7d9b9ccd441898e3fae773d122a621af66078ea7515f47e639d1ed7b",
     "crates/flea-gui/src/g2/pk1/mod.rs": "bbca94672137d89d08a67dc8e2f45f4d84a030d5d8c848ce8bbf29210116ef3e",
     "crates/flea-gui/src/g2/pk1/navigation.rs": "e7f70afa026ba6250034d9a07541aebd1403349d220b9ff7b91994d1bef43f2a",
     "crates/flea-gui/src/g2/pk1/network.rs": "66d092134d2cbcff09ff58f5f3d2b96b4f92cfa2a8cdd544689e43d88afd7c2a",
@@ -247215,7 +247282,7 @@
     "crates/flea-gui/src/ipc/thumbnails/policy.rs": "7d70df6ecab35fbd699ff8f84076516b8c17e7ba65b28632c82ad036b64d34f8",
     "crates/flea-gui/src/ipc/view.rs": "e9caaa4f48f4e7492e8ca1220433922159f9d8196816df2a5b9e9608e32f0238",
     "crates/flea-gui/src/ipc/window_feedback.rs": "fc79d233e6ae817cec2f09e493ac53cc8a6742c24586d6c122320ebd4a67d869",
-    "crates/flea-gui/src/lib.rs": "a65dba7381663d32859a84dae192308b9c573db96363317c8898d79d01838175",
+    "crates/flea-gui/src/lib.rs": "e6d7dea852e3b103d5d590e4c85dcecb21c5de2d3daeaa6f482646da7e6390a7",
     "crates/flea-gui/src/list.rs": "01f1145e82bd15761d2317e4b2a7bcd018a4b4472dbd6748b631cb2d0ced91cf",
     "crates/flea-gui/src/list/bench.rs": "4b01aaada6e926743d581756304f522971093e3ee22dc0953a8c552739aeab7c",
     "crates/flea-gui/src/list/columns.rs": "77a28f1288ea8273f3648f7c99dc141d17426bd3171f5e4fcab8e7431e1937b9",
@@ -247254,7 +247321,7 @@
     "crates/flea-gui/src/list/text_revision.rs": "ffe2f422d576e7885af853480351c919a30ce02842bb86eb33451620c31e7cd8",
     "crates/flea-gui/src/list/typeface.rs": "538397375522dfd539c90cd508d117cd18079efe10b0f10a5b226fef2a63a4b0",
     "crates/flea-gui/src/locale_geometry.rs": "07bc4aa5d4179cdfe7d991d8235f305e45bd83c63f3f24f404439a64277e9225",
-    "crates/flea-gui/src/main.rs": "6ea94dff4319b2df0f8766589f88b98b7a32f9d022f810eb50c15d8fc349b95f",
+    "crates/flea-gui/src/main.rs": "11f0e01699f86f53f22d473a1d7c7065a65dd68f57285b674419a38ee12c66e6",
     "crates/flea-gui/src/navigation/anchor.rs": "06bc831536cc3aceb11e347a81150732ad897b48c70f0e218b98d5b19956ff59",
     "crates/flea-gui/src/navigation/folder_state.rs": "f2d28137b015dc410dd9878384df631e11824619c0330534cb014b149d970891",
     "crates/flea-gui/src/navigation/folder_state/writer.rs": "6b7a4ee78922b601a2aa83256cbe6cfc7b2b7fe6a4b81d018b90c5dfa0ea7cfa",
@@ -247338,7 +247405,7 @@
     "crates/flea-gui/src/rail/rename.rs": "96c11ab8a166a26b84de01cf0f51c0d3f2667aea1a4dcfb63cfd517d7cd3030e",
     "crates/flea-gui/src/rail/rows.rs": "69b4a50a934fa40627a564348647eec6632f0f98b0b8d1f803be53081fec6646",
     "crates/flea-gui/src/rail/text.rs": "64cd3741f2ad4db194d6a3bf74f32b2093b8e1dfd78e71a013ec29774845a880",
-    "crates/flea-gui/src/renderer.rs": "9c61f1a5b58663b9422234c7931ae20d41833297935b95820d14890de7aa1c7c",
+    "crates/flea-gui/src/renderer.rs": "eff3d0ba93b59843619b91b803c0444a22381974c4d2ecdaf043e4fbbe8a2a69",
     "crates/flea-gui/src/reveal.rs": "f0255849bed3667ce28b6f30dad44d21fba62e207c7d85e23a938a6eca10c6b7",
     "crates/flea-gui/src/row.rs": "1e19e7d99a7020b9a9bdd59f654405022eb4686c56da51f94eeff8354999bb36",
     "crates/flea-gui/src/row/cache.rs": "adec27a1a508e992b2915d1335d6616c23e80ede17acb17e586768a32ceb9272",
@@ -249105,9 +249172,9 @@
     "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
-  "source_ref": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_ref_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
-  "source_sha": "390c15976361cff2820e6260bc30baabf2ab649a",
+  "source_ref": "0f4ff9b5e194399085b5e1a04b232f3c69d4582c",
+  "source_ref_sha": "0f4ff9b5e194399085b5e1a04b232f3c69d4582c",
+  "source_sha": "0f4ff9b5e194399085b5e1a04b232f3c69d4582c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1294,
@@ -249120,9 +249187,9 @@
       "source_files": 159
     },
     "gui": {
-      "keys_with_occurrences": 533,
-      "missing_literal_candidates": 2130,
-      "source_files": 1145
+      "keys_with_occurrences": 535,
+      "missing_literal_candidates": 2132,
+      "source_files": 1146
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

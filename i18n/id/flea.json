@@ -547,6 +547,8 @@
   "window.unknown_flag": "Opsi tidak dikenal %1",
   "window.settings_failed": "Pengaturan tidak dapat dibaca: %1",
   "window.open_failed": "Jendela tidak dapat dibuka: %1",
+  "window.no_driver": "Tidak ada driver grafis yang dapat membuka Flea",
+  "window.no_driver_hint": "Instal atau perbaiki %1 dan %2, atau jalankan %3 di terminal.",
   "window.backend_start": "Backend tidak dapat dimulai: %1",
   "window.backend_wait": "Proses backend tidak dapat dituntaskan: %1",
   "window.backend_timeout": "Backend tidak selesai ditutup dalam 30 detik",

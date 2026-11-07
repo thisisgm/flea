@@ -2493,6 +2493,8 @@
   "window.loading": "Wczytywanie",
   "window.one_directory": "Można podać tylko jeden katalog początkowy",
   "window.open_failed": "Nie udało się otworzyć okna: %1",
+  "window.no_driver": "Żaden sterownik grafiki nie mógł otworzyć Flea",
+  "window.no_driver_hint": "Zainstaluj lub napraw %1 i %2 albo uruchom %3 w terminalu.",
   "window.select_required": "--select wymaga elementu docelowego",
   "window.settings_failed": "Nie udało się odczytać ustawień: %1",
   "window.unknown_flag": "Nieznana flaga %1",

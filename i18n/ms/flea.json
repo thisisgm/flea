@@ -425,6 +425,8 @@
   "window.unknown_flag": "Bendera tidak diketahui %1",
   "window.settings_failed": "Tetapan tidak dapat dibaca: %1",
   "window.open_failed": "Tetingkap tidak dapat dibuka: %1",
+  "window.no_driver": "Tiada pemacu grafik yang dapat membuka Flea",
+  "window.no_driver_hint": "Pasang atau baiki %1 dan %2, atau jalankan %3 dalam terminal.",
   "window.backend_start": "Proses sokongan tidak dapat dimulakan: %1",
   "window.backend_wait": "Status tamat proses sokongan tidak dapat dikutip: %1",
   "window.backend_timeout": "Proses sokongan tidak selesai ditutup dalam masa 30 saat",

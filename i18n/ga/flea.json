@@ -473,6 +473,8 @@
   "window.unknown_flag": "Bratach anaithnid %1",
   "window.settings_failed": "Níorbh fhéidir socruithe a léamh: %1",
   "window.open_failed": "Níorbh fhéidir an fhuinneog a oscailt: %1",
+  "window.no_driver": "Níorbh fhéidir le haon tiománaí grafaice Flea a oscailt",
+  "window.no_driver_hint": "Suiteáil nó deisigh %1 agus %2, nó rith %3 i dteirminéal.",
   "window.backend_start": "Níorbh fhéidir an t-inneall a thosú: %1",
   "window.backend_wait": "Níorbh fhéidir próiseas an innill a bhailiú: %1",
   "window.backend_timeout": "Níor chríochnaigh an t-inneall ag dúnadh laistigh de 30 soicind",

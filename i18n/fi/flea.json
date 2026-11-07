@@ -2297,6 +2297,8 @@
   "window.loading": "Ladataan",
   "window.one_directory": "Vain yksi aloituskansio hyväksytään",
   "window.open_failed": "Ikkunaa ei voitu avata: %1",
+  "window.no_driver": "Mikään grafiikka-ajuri ei pystynyt avaamaan Flea-ikkunaa",
+  "window.no_driver_hint": "Asenna tai korjaa %1 ja %2, tai suorita %3 päätteessä.",
   "window.select_required": "--select tarvitsee kohteen",
   "window.settings_failed": "Asetuksia ei voitu lukea: %1",
   "window.unknown_flag": "Tuntematon valitsin %1",

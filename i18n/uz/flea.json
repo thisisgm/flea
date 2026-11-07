@@ -2348,6 +2348,8 @@
   "window.loading": "Yuklanmoqda",
   "window.one_directory": "Faqat bitta boshlangʻich jild qabul qilinadi",
   "window.open_failed": "Oyna ochilmadi: %1",
+  "window.no_driver": "Hech bir grafik drayveri Flea ilovasini ocha olmadi",
+  "window.no_driver_hint": "%1 va %2 ni oʻrnating yoki tuzating, yoki terminalda %3 ni ishga tushiring.",
   "window.select_required": "--select uchun nishon kerak",
   "window.settings_failed": "Sozlamalarni oʻqib boʻlmadi: %1",
   "window.unknown_flag": "Nomaʼlum parametr: %1",

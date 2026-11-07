@@ -2348,6 +2348,8 @@
   "window.loading": "Yükleniyor",
   "window.one_directory": "Yalnızca bir başlangıç dizini kabul edilir",
   "window.open_failed": "Pencere açılamadı: %1",
+  "window.no_driver": "Hiçbir grafik sürücüsü Flea uygulamasını açamadı",
+  "window.no_driver_hint": "%1 ve %2 paketlerini kurun veya onarın ya da bir terminalde %3 komutunu çalıştırın.",
   "window.select_required": "--select için hedef gerekir",
   "window.settings_failed": "Ayarlar okunamadı: %1",
   "window.unknown_flag": "Bilinmeyen bayrak %1",

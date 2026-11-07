@@ -2247,6 +2247,8 @@
   "window.loading": "กำลังโหลด",
   "window.one_directory": "ระบุไดเรกทอรีเริ่มต้นได้เพียงหนึ่งแห่ง",
   "window.open_failed": "เปิดหน้าต่างไม่ได้: %1",
+  "window.no_driver": "ไม่มีไดรเวอร์กราฟิกใดเปิด Flea ได้",
+  "window.no_driver_hint": "ติดตั้งหรือซ่อมแซม %1 และ %2 หรือเรียกใช้ %3 ในเทอร์มินัล",
   "window.select_required": "--select ต้องมีเป้าหมาย",
   "window.settings_failed": "อ่านการตั้งค่าไม่ได้: %1",
   "window.unknown_flag": "แฟล็ก %1 ที่ไม่รู้จัก",

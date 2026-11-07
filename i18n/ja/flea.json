@@ -2168,6 +2168,8 @@
   "window.loading": "読み込み中",
   "window.one_directory": "開始ディレクトリは 1 個だけ指定できます",
   "window.open_failed": "ウィンドウを開けませんでした: %1",
+  "window.no_driver": "Flea を開けるグラフィックスドライバーがありません",
+  "window.no_driver_hint": "%1 と %2 をインストールまたは修復するか、ターミナルで %3 を実行してください。",
   "window.select_required": "--select には対象の指定が必要です",
   "window.settings_failed": "設定を読み取れませんでした: %1",
   "window.unknown_flag": "不明なフラグ %1",

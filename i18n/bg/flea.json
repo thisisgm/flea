@@ -2348,6 +2348,8 @@
   "window.loading": "Зареждане",
   "window.one_directory": "Приема се само една начална директория",
   "window.open_failed": "Прозорецът не може да се отвори: %1",
+  "window.no_driver": "Никой графичен драйвер не успя да отвори Flea",
+  "window.no_driver_hint": "Инсталирай или поправи %1 и %2, или изпълни %3 в терминал.",
   "window.select_required": "--select изисква цел",
   "window.settings_failed": "Настройките не могат да бъдат прочетени: %1",
   "window.unknown_flag": "Непознат флаг %1",

@@ -2247,6 +2247,8 @@
   "window.loading": "正在載入",
   "window.one_directory": "僅接受一個起始資料夾",
   "window.open_failed": "無法開啟視窗：%1",
+  "window.no_driver": "沒有圖形驅動程式能開啟 Flea",
+  "window.no_driver_hint": "請安裝或修復 %1 與 %2，或在終端機中執行 %3。",
   "window.select_required": "--select 需要指定目標",
   "window.settings_failed": "無法讀取設定：%1",
   "window.unknown_flag": "未知的旗標 %1",

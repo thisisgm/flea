@@ -2348,6 +2348,8 @@
   "window.loading": "Laddar",
   "window.one_directory": "Bara en startkatalog godtas",
   "window.open_failed": "Fönstret kunde inte öppnas: %1",
+  "window.no_driver": "Ingen grafikdrivrutin kunde öppna Flea",
+  "window.no_driver_hint": "Installera eller reparera %1 och %2, eller kör %3 i en terminal.",
   "window.select_required": "--select kräver ett mål",
   "window.settings_failed": "Inställningarna kunde inte läsas: %1",
   "window.unknown_flag": "Okänd flagga %1",

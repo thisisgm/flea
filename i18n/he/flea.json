@@ -2395,6 +2395,8 @@
   "window.loading": "טוען",
   "window.one_directory": "ניתן לציין תיקיית התחלה אחת בלבד",
   "window.open_failed": "לא ניתן היה לפתוח את החלון: ⁨%1⁩",
+  "window.no_driver": "אף מנהל התקן גרפי לא הצליח לפתוח את ⁨Flea⁩",
+  "window.no_driver_hint": "התקינו או תקנו את ⁨%1⁩ ואת ⁨%2⁩, או הריצו את ⁨%3⁩ במסוף.",
   "window.select_required": "⁨--select⁩ דורש יעד",
   "window.settings_failed": "לא ניתן היה לקרוא הגדרות: ⁨%1⁩",
   "window.unknown_flag": "דגל לא מוכר ⁨%1⁩",

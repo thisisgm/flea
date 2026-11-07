@@ -2395,6 +2395,8 @@
   "window.loading": "Ielādē",
   "window.one_directory": "Tiek pieņemta tikai viena sākuma mape",
   "window.open_failed": "Logu nevarēja atvērt: %1",
+  "window.no_driver": "Neviens grafikas draiveris nevarēja atvērt Flea",
+  "window.no_driver_hint": "Instalējiet vai salabojiet %1 un %2 vai palaidiet %3 terminālī.",
   "window.select_required": "--select ir vajadzīgs mērķis",
   "window.settings_failed": "Iestatījumus nevarēja nolasīt: %1",
   "window.unknown_flag": "Nezināms karodziņš %1",

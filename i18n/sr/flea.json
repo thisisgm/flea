@@ -2449,6 +2449,8 @@
   "window.loading": "Учитавање",
   "window.one_directory": "Прихвата се само једна почетна фасцикла",
   "window.open_failed": "Није могуће отворити прозор: %1",
+  "window.no_driver": "Ниједан графички управљачки програм није могао да отвори Flea",
+  "window.no_driver_hint": "Инсталирајте или поправите %1 и %2 или покрените %3 у терминалу.",
   "window.select_required": "--select захтева циљ",
   "window.settings_failed": "Није могуће прочитати подешавања: %1",
   "window.unknown_flag": "Непозната опција %1",

@@ -2297,6 +2297,8 @@
   "window.loading": "Indlæser",
   "window.one_directory": "Kun én startmappe accepteres",
   "window.open_failed": "Vinduet kunne ikke åbnes: %1",
+  "window.no_driver": "Ingen grafikdriver kunne åbne Flea",
+  "window.no_driver_hint": "Installer eller reparer %1 og %2, eller kør %3 i en terminal.",
   "window.select_required": "--select kræver et mål",
   "window.settings_failed": "Indstillingerne kunne ikke læses: %1",
   "window.unknown_flag": "Ukendt flag %1",

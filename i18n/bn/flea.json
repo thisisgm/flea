@@ -2348,6 +2348,8 @@
   "window.loading": "লোড হচ্ছে",
   "window.one_directory": "শুরুতে শুধু একটি ফোল্ডার গ্রহণ করা হয়",
   "window.open_failed": "উইন্ডো খোলা যায়নি: %1",
+  "window.no_driver": "কোনো গ্রাফিক্স ড্রাইভার Flea খুলতে পারেনি",
+  "window.no_driver_hint": "%1 ও %2 ইনস্টল বা মেরামত করুন, অথবা টার্মিনালে %3 চালান।",
   "window.select_required": "--select-এর জন্য আইটেমের পাথ প্রয়োজন",
   "window.settings_failed": "সেটিং পড়া যায়নি: %1",
   "window.unknown_flag": "অজানা ফ্ল্যাগ %1",

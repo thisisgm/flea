@@ -28,6 +28,7 @@ fn finish_opening<T>(
             "flea-gui: {}",
             catalog.tr_args("window.open_failed", &[&error])
         );
+        crate::driver_notice::DriverNotice::new(catalog).send();
         cx.spawn(async move |cx| {
             cx.update(|cx| cx.quit());
         })

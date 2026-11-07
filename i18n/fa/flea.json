@@ -2297,6 +2297,8 @@
   "window.loading": "در حال بارگذاری",
   "window.one_directory": "فقط یک پوشهٔ آغاز پذیرفته می‌شود",
   "window.open_failed": "باز کردن پنجره ممکن نشد: ⁨%1⁩",
+  "window.no_driver": "هیچ درایور گرافیکی نتوانست Flea را باز کند",
+  "window.no_driver_hint": "⁨%1⁩ و ⁨%2⁩ را نصب یا تعمیر کنید، یا ⁨%3⁩ را در ترمینال اجرا کنید.",
   "window.select_required": "گزینهٔ --select به مقصد نیاز دارد",
   "window.settings_failed": "خواندن تنظیمات ممکن نشد: ⁨%1⁩",
   "window.unknown_flag": "پرچم ⁨%1⁩ ناشناخته است",
