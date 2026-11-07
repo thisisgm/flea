@@ -2,12 +2,15 @@
 // takes arrow keys and Enter. Directive 71 is that Flea drives that CLI rather than opening the app,
 // so this opens a pty of its own and drives it there. No shell is involved at any point, which is
 // what keeps a file name with a quote or a space in it an argument rather than somebody else's word.
-use super::localsendtext::{parse_peers, refusal, strip_ansi, Peer};
+use super::localsendscreen::Screen;
+use super::localsendtext::{could_not, parse_peers, progress, refusal, said, Peer};
 use std::io::{Read, Write};
 use std::os::fd::{FromRawFd, OwnedFd};
 use std::os::raw::c_ulong;
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -20,11 +23,21 @@ const COLS: u16 = 120;
 // Keys the panel answers to: its own footer says up and down navigate, Enter sends, and D is the
 // global hotkey that opens the panel on a run that carries no files.
 const KEY_SHOW_DEVICES: &[u8] = b"D";
+const KEY_UP: &[u8] = b"\x1b[A";
 const KEY_DOWN: &[u8] = b"\x1b[B";
 const KEY_ENTER: &[u8] = b"\r";
 // A device answers a discovery announcement in well under a second on this LAN; measured at 1.2 s
 // from process start to the first row, most of which is the CLI's own start.
 const POLL: Duration = Duration::from_millis(100);
+// A slower device answers after the first, so discovery waits this long after the last new row.
+const SETTLE: Duration = Duration::from_millis(600);
+// The CLI drops a transfer itself about 30 s after its bytes stop; this is the backstop past that.
+const STALL: Duration = Duration::from_secs(60);
+// The panel redraws a moved row well inside this; past it the key is taken as lost and the screen read again.
+const REDRAW: Duration = Duration::from_secs(1);
+// How often a wait on the screen looks again, a fraction of one redraw.
+const GLANCE: Duration = Duration::from_millis(25);
+const BUSY: &str = "LocalSend is busy with another transfer.";
 
 // Linux ioctl numbers. TIOCSWINSZ gives the pty its size, TIOCSCTTY makes it the child's terminal.
 const TIOCSWINSZ: usize = 0x5414;
@@ -113,29 +126,59 @@ fn spawn(program: &str, args: &[String], slave: &std::fs::File) -> Result<Child,
     })
 }
 
-// The reader owns the master for the length of the run: the CLI repaints constantly, so its output is
-// drained on a thread of its own and the panel is read from what has arrived so far.
-fn read_into(master: OwnedFd) -> Arc<Mutex<String>> {
-    let seen = Arc::new(Mutex::new(String::new()));
+// The CLI repaints constantly, so a thread drains the master onto a screen; it ends when the pty closes.
+fn read_into(master: OwnedFd) -> (Arc<Mutex<Screen>>, std::thread::JoinHandle<()>) {
+    let seen = Arc::new(Mutex::new(Screen::new(ROWS as usize, COLS as usize)));
     let sink = Arc::clone(&seen);
-    std::thread::spawn(move || {
+    let reader = std::thread::spawn(move || {
         let mut file = std::fs::File::from(master);
         let mut buf = [0u8; 4096];
         while let Ok(n) = file.read(&mut buf) {
             if n == 0 { break }
-            if let Ok(mut held) = sink.lock() {
-                held.push_str(&String::from_utf8_lossy(&buf[..n]));
-            }
+            if let Ok(mut screen) = sink.lock() { screen.feed(&buf[..n]) }
         }
     });
-    seen
+    (seen, reader)
 }
 
-fn text_of(seen: &Arc<Mutex<String>>) -> String {
-    match seen.lock() {
-        Ok(held) => strip_ansi(&held),
-        Err(_) => String::new(),
+fn look<T: Default>(seen: &Arc<Mutex<Screen>>, read: impl FnOnce(&Screen) -> T) -> T {
+    seen.lock().map(|screen| read(&screen)).unwrap_or_default()
+}
+
+// Every run binds 53317, so Flea's own runs take turns on a flock; no runtime directory runs unlocked, as 0.4.0 did.
+enum Turn { Held(Option<std::fs::File>), Busy, Cancelled }
+
+fn take_turn(cancel: &AtomicBool, limit: Option<Duration>) -> Turn {
+    let uid = super::manifestdir::current_uid();
+    let file = super::manifestdir::qualifying_dirs(&super::manifestdir::candidate_dirs(uid), &[], uid).iter()
+        .find_map(|dir| std::fs::OpenOptions::new().create(true).truncate(false).read(true).write(true).mode(0o600).open(dir.join("localsend.lock")).ok());
+    match file { Some(file) => wait_turn(file, cancel, limit), None => Turn::Held(None) }
+}
+
+fn wait_turn(file: std::fs::File, cancel: &AtomicBool, limit: Option<Duration>) -> Turn {
+    let start = Instant::now();
+    loop {
+        match crate::uistore::try_lock_exclusive(&file) {
+            Ok(true) => return Turn::Held(Some(file)),
+            Ok(false) => {}
+            Err(_) => return Turn::Held(None),
+        }
+        if cancel.load(Ordering::Relaxed) { return Turn::Cancelled }
+        if limit.is_some_and(|limit| start.elapsed() >= limit) { return Turn::Busy }
+        std::thread::sleep(POLL);
     }
+}
+
+// The devices last listed, so a menu opened while a send holds the CLI need not wait out the transfer.
+static LAST_SEEN: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
+
+fn remember(found: &[Peer]) {
+    if let Ok(mut last) = LAST_SEEN.lock() { *last = found.iter().map(|p| (p.name.clone(), p.address.clone())).collect() }
+}
+
+fn remembered() -> Vec<Peer> {
+    let last = LAST_SEEN.lock().map(|last| last.clone()).unwrap_or_default();
+    last.into_iter().enumerate().map(|(i, (name, address))| Peer { index: i + 1, name, address }).collect()
 }
 
 // Keys go to the master, which is the terminal's input side. Writing them to the slave instead is a
@@ -147,18 +190,17 @@ fn press(master: &OwnedFd, keys: &[u8]) -> Result<(), String> {
     writer.flush().map_err(|e| format!("LocalSend stopped answering: {}.", crate::error::io_message(&e)))
 }
 
-// Sample event lines, exactly as the CLI prints them under its panel:
-// "S Clean Lemon: Sent 1 file (61 B, took 0s)" and "D [1] Clean Lemon (192.168.21.23)".
-// The prefix is the whole test, never a substring: a device named "Sent Phone" would otherwise be
-// read as a completed transfer the moment it was discovered, and "Failed Phone" as a refusal.
+// Sample: "S Clean Lemon: Sent 1 file (61 B, took 0s)", "S Clean Lemon: Declined".
+// The prefix is the whole test, never a substring, so a device named "Sent Phone" is not a finished transfer.
 pub fn sent(text: &str, name: &str) -> Option<Result<(), String>> {
-    let head = format!("S {}: ", name);
-    let line = text.lines().map(str::trim).rev().find(|l| l.starts_with(&head))?;
-    let said = line[head.len()..].trim();
+    let said = said(text, name)?;
     if said.starts_with("Sent ") { return Some(Ok(())) }
-    if said.starts_with("Failed") {
-        return Some(Err(format!("LocalSend could not send to {}: {}.", name, said.trim_end_matches('.'))))
+    if said.starts_with("Declined") { return Some(Err(format!("{} declined the transfer.", name))) }
+    // The receiver still holds an earlier transfer, typically one the network cut off under it.
+    if said.starts_with("Blocked by another session") {
+        return Some(Err(format!("{} is busy with another transfer. Try again when it ends.", name)))
     }
+    if said.starts_with("Failed") { return Some(Err(could_not(name, said))) }
     None
 }
 
@@ -168,132 +210,198 @@ fn stop(child: &mut Child) {
     let _ = child.wait();
 }
 
-// The devices this box can see right now. A run that carries no files starts in receive mode, so the
-// panel is asked for by its own D and the run ends as soon as the answer is in.
+// A run with no files opens the device panel by its D, and ends once no new device has answered for SETTLE.
 pub fn peers(limit: Duration) -> Result<Vec<Peer>, String> {
+    let never = AtomicBool::new(false);
+    let _turn = match take_turn(&never, Some(Duration::ZERO)) {
+        Turn::Held(file) => file,
+        _ => {
+            let last = remembered();
+            if !last.is_empty() { return Ok(last) }
+            match take_turn(&never, Some(limit)) {
+                // The run just ahead is most often a discovery of its own, and its answer is this one's.
+                Turn::Held(_) if !remembered().is_empty() => return Ok(remembered()),
+                Turn::Held(file) => file,
+                _ => return Err(BUSY.into()),
+            }
+        }
+    };
     let (master, slave) = open_pty()?;
     let mut child = spawn(COMMAND, &[], &slave)?;
     let keys = master.try_clone()
         .map_err(|e| format!("LocalSend could not start: {}.", crate::error::io_message(&e)))?;
-    let seen = read_into(master);
+    let (seen, _reader) = read_into(master);
+    // The clock starts once the CLI is held, so a turn taken late is never read as no devices.
     let deadline = Instant::now() + limit;
     // The CLI has to be up before it has a key reader, so the panel is asked for after one poll.
     std::thread::sleep(POLL * 3);
     let _ = press(&keys, KEY_SHOW_DEVICES);
+    let (mut found, mut quiet) = (Vec::new(), deadline);
     loop {
-        let found = parse_peers(&text_of(&seen));
-        if !found.is_empty() {
-            stop(&mut child);
-            return Ok(found)
-        }
-        if let Some(refusal) = refusal(&text_of(&seen)) {
+        let (now, refused) = look(&seen, |s| (parse_peers(&s.visible()), refusal(s.log())));
+        if let Some(refusal) = refused {
             stop(&mut child);
             return Err(refusal)
         }
-        if Instant::now() >= deadline {
+        if now.len() > found.len() {
+            found = now;
+            quiet = Instant::now() + SETTLE;
+        }
+        if Instant::now() >= quiet.min(deadline) {
             stop(&mut child);
-            return Ok(Vec::new())
+            if !found.is_empty() { remember(&found) }
+            return Ok(found)
         }
         std::thread::sleep(POLL);
     }
 }
 
-// One send, to the device the front end named, driven on the CLI's own terminal. Two things were
-// measured here the hard way, both by driving it: keys go to the MASTER side of the pty, because the
-// slave is the app's own output and a key written there is never read, and the device the CLI found
-// arrives as an incremental screen update, so the stream is read whole rather than frame by frame.
-// The row is reached with the arrows the CLI's own footer names, Enter sends, and the CLI says so.
-pub(crate) fn send_cancelled(
-    name: &str,
-    paths: &[String],
-    cancel: &std::sync::atomic::AtomicBool,
-) -> Result<(), String> {
-    send_with_cancel(name, paths, SEND_LIMIT, cancel)
+// A job may queue behind another transfer for as long as that takes, because its cancel ends the wait.
+pub(crate) fn send_cancelled(name: &str, paths: &[String], cancel: &AtomicBool) -> Result<(), String> {
+    send_with_cancel(name, paths, SEND_LIMIT, cancel, None)
 }
 
 pub fn send(name: &str, paths: &[String], limit: Duration) -> Result<(), String> {
-    send_with_cancel(
-        name,
-        paths,
-        limit,
-        &std::sync::atomic::AtomicBool::new(false),
-    )
+    send_with_cancel(name, paths, limit, &AtomicBool::new(false), Some(limit))
 }
 
-fn send_with_cancel(
-    name: &str,
-    paths: &[String],
-    limit: Duration,
-    cancel: &std::sync::atomic::AtomicBool,
-) -> Result<(), String> {
+fn gone(name: &str) -> String {
+    format!("{} is not answering on this network any more.", name)
+}
+
+// Enter waits until the panel shows the wanted row lit, so a list that changed under the keys never sends elsewhere.
+fn choose(keys: &OwnedFd, seen: &Arc<Mutex<Screen>>, name: &str, deadline: Instant) -> Result<(), String> {
+    let mut pressed = false;
+    while Instant::now() < deadline {
+        let (lit, listed) = look(seen, |s| (s.chosen(), parse_peers(&s.visible())));
+        let at = lit.as_deref().map(parse_peers).and_then(|row| row.into_iter().next());
+        let Some(want) = listed.iter().find(|p| p.name == name).map(|p| p.index) else { return Err(gone(name)) };
+        let key = match at {
+            Some(at) if at.name == name => return Ok(()),
+            Some(at) if want > at.index => KEY_DOWN,
+            Some(_) => KEY_UP,
+            // A read between a redraw's two rows: the old one plain, the new one not lit yet.
+            None if pressed => {
+                std::thread::sleep(GLANCE);
+                continue
+            }
+            // No row drawn lit at all: the count from the top is all there is to go on.
+            None => {
+                for _ in 1..want {
+                    press(keys, KEY_DOWN)?;
+                    std::thread::sleep(POLL);
+                }
+                return Ok(())
+            }
+        };
+        press(keys, key)?;
+        pressed = true;
+        // One key per redraw, so a slow repaint is never mistaken for a key that was lost.
+        let redrawn = Instant::now() + REDRAW;
+        while look(seen, |s| s.chosen()).map_or(true, |row| lit.as_deref() == Some(row.as_str())) && Instant::now() < redrawn {
+            std::thread::sleep(GLANCE);
+        }
+    }
+    Err(gone(name))
+}
+
+fn send_with_cancel(name: &str, paths: &[String], limit: Duration, cancel: &AtomicBool, wait: Option<Duration>) -> Result<(), String> {
     if paths.is_empty() {
         return Err("LocalSend was given nothing to send.".into());
+    }
+    // localsend-cli takes files only and refuses a folder with "Not a file", so the folder is named here.
+    if let Some(folder) = paths.iter().find(|p| std::path::Path::new(p).is_dir()) {
+        let leaf = std::path::Path::new(folder).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| folder.clone());
+        return Err(format!("{} is a folder, and LocalSend sends only files.", leaf));
     }
     let mut args: Vec<String> = Vec::new();
     for path in paths {
         args.push("-f".into());
         args.push(path.clone());
     }
+    let _turn = match take_turn(cancel, wait) {
+        Turn::Held(file) => file,
+        Turn::Busy => return Err(BUSY.into()),
+        Turn::Cancelled => return Err("Send cancelled.".into()),
+    };
     let (master, slave) = open_pty()?;
     let mut child = spawn(COMMAND, &args, &slave)?;
+    // The CLI holds the only slave end from here, so the pty closes, and the reader ends, when it exits.
+    drop(slave);
     let keys = master.try_clone()
         .map_err(|e| format!("LocalSend could not start: {}.", crate::error::io_message(&e)))?;
-    let seen = read_into(master);
+    let (seen, reader) = read_into(master);
+    // The clock starts once the CLI is held, so a send queued late still gets a whole search and accept.
     let deadline = Instant::now() + limit;
-    let mut index = None;
-    while Instant::now() < deadline {
-        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+    let mut found = false;
+    while Instant::now() < deadline && !found {
+        if cancel.load(Ordering::Relaxed) {
             stop(&mut child);
             return Err("Send cancelled.".into());
         }
-        let text = text_of(&seen);
-        if let Some(refusal) = refusal(&text) {
+        let (listed, refused) = look(&seen, |s| (parse_peers(&s.visible()), refusal(s.log())));
+        if let Some(refusal) = refused {
             stop(&mut child);
             return Err(refusal)
         }
-        if let Some(peer) = parse_peers(&text).into_iter().find(|p| p.name == name) {
-            index = Some(peer.index);
-            break
-        }
-        std::thread::sleep(POLL);
+        found = listed.iter().any(|p| p.name == name);
+        if found { remember(&listed) } else { std::thread::sleep(POLL) }
     }
-    let index = match index {
-        Some(index) => index,
-        None => {
-            stop(&mut child);
-            return Err(format!("{} is not answering on this network any more.", name))
-        }
-    };
-    // The list opens on its first device, so the row wanted is that many presses further down.
-    for _ in 1..index {
-        press(&keys, KEY_DOWN)?;
-        std::thread::sleep(POLL);
+    let chosen = if found { choose(&keys, &seen, name, deadline) } else { Err(gone(name)) };
+    if let Err(error) = chosen.and_then(|()| press(&keys, KEY_ENTER)) {
+        stop(&mut child);
+        return Err(error)
     }
-    press(&keys, KEY_ENTER)?;
-    // The CLI reports the transfer on its own event line, "S <device>: Sent 1 file (61 B, took 0s)",
-    // and that line is the only success this side can honestly report.
-    while Instant::now() < deadline {
-        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+    // Only the CLI's own Sent line is a success; the accept has the rest of `limit`, and moving bytes only a STALL.
+    let mut watch = Watch::default();
+    loop {
+        if cancel.load(Ordering::Relaxed) {
             stop(&mut child);
             return Err("Send cancelled.".into());
         }
-        let text = text_of(&seen);
-        if let Some(verdict) = sent(&text, name) {
+        let (verdict, now) = look(&seen, |s| (sent(s.log(), name), progress(s.log(), name)));
+        if let Some(verdict) = verdict {
             stop(&mut child);
             return verdict
         }
-        // The CLI ending is not a transfer. Only its own Sent line is one, so a run that ended
-        // without printing one sent nothing, whatever its exit code was.
+        watch.see(now);
+        // A CLI that ended without its Sent line sent nothing, whatever its exit code; its last words say why.
         if let Ok(Some(_)) = child.try_wait() {
-            return match sent(&text_of(&seen), name) {
-                Some(verdict) => verdict,
-                None => Err(format!("LocalSend stopped before sending to {}.", name)),
-            }
+            let drained = Instant::now() + REDRAW;
+            while !reader.is_finished() && Instant::now() < drained { std::thread::sleep(GLANCE) }
+            return look(&seen, |s| sent(s.log(), name).or_else(|| said(s.log(), name).map(|said| Err(could_not(name, said)))))
+                .unwrap_or_else(|| Err(format!("LocalSend stopped before sending to {}.", name)))
+        }
+        if let Some(late) = watch.late(name, deadline) {
+            stop(&mut child);
+            return Err(late)
         }
         std::thread::sleep(POLL);
     }
-    stop(&mut child);
-    Err(format!("{} did not accept the transfer.", name))
+}
+
+// The first progress line is drawn while the accept is awaited; a later change is movement and restarts the stall.
+// Samples: "0 B / 209.7 MB" while awaited, "12.5 MB / 209.7 MB" once moving.
+#[derive(Default)]
+struct Watch { waiting: Option<String>, moved: Option<(String, Instant)> }
+
+impl Watch {
+    fn see(&mut self, now: Option<String>) {
+        let Some(now) = now else { return };
+        if self.waiting.is_none() {
+            self.waiting = Some(now);
+        } else if self.waiting.as_ref() != Some(&now) && self.moved.as_ref().map_or(true, |(last, _)| *last != now) {
+            self.moved = Some((now, Instant::now()));
+        }
+    }
+
+    fn late(&self, name: &str, deadline: Instant) -> Option<String> {
+        match &self.moved {
+            None if Instant::now() >= deadline => Some(format!("{} did not accept the transfer.", name)),
+            Some((_, at)) if at.elapsed() >= STALL => Some(format!("{} stopped receiving the transfer.", name)),
+            _ => None,
+        }
+    }
 }
 
 // How long each leg may take. Discovery is a CLI start plus one announcement round trip, measured at
@@ -330,136 +438,8 @@ pub fn answer(op: &str, peer: &str, paths: &[String], id: usize) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    // A review finding on the first drive that worked: a substring test reads a device named after
-    // the event as the event itself, and a CLI that ended is not a CLI that sent.
-    #[test]
-    fn only_the_transfer_s_own_event_line_is_a_transfer() {
-        let discovered = "D [1] Sent Phone (10.0.0.4)\nD [2] Failed Phone (10.0.0.5)";
-        assert!(sent(discovered, "Sent Phone").is_none());
-        assert!(sent(discovered, "Failed Phone").is_none());
-        assert!(sent("S Sent Phone: Sent 1 file (61 B, took 0s)", "Sent Phone").expect("a verdict").is_ok());
-        let refused = sent("S Clean Lemon: Failed to send: connection refused", "Clean Lemon").expect("a verdict");
-        assert!(refused.unwrap_err().contains("connection refused"));
-        // The peer's own name is what anchors it, so another device's line is not this one's.
-        assert!(sent("S Other Box: Sent 1 file (61 B, took 0s)", "Clean Lemon").is_none());
-    }
-
-    #[test]
-    fn nothing_to_send_is_refused_before_a_terminal_is_opened() {
-        assert!(send("Clean Lemon", &[], Duration::from_millis(1)).is_err());
-    }
-
-    // A child that inherited the pty master kept the terminal alive after the backend died.
-    #[test]
-    fn the_cli_does_not_inherit_the_terminal_master() {
-        let (master, slave) = open_pty().expect("a pty");
-        let mut child = spawn("/usr/bin/sleep", &["600".to_string()], &slave).expect("a stand-in CLI");
-        // O_CLOEXEC closes the descriptor at exec, so the scan waits until the stand-in is itself.
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while std::fs::read_to_string(format!("/proc/{}/comm", child.id())).map(|c| c.trim() != "sleep").unwrap_or(true) {
-            assert!(Instant::now() < deadline, "the stand-in CLI never exec'd");
-            std::thread::sleep(Duration::from_millis(10));
-        }
-        assert!(child.try_wait().expect("try_wait").is_none(), "the stand-in CLI exited before the scan");
-        let mut inherited = Vec::new();
-        for fd in std::fs::read_dir(format!("/proc/{}/fd", child.id())).expect("the child's descriptor table") {
-            let fd = fd.expect("a descriptor entry");
-            // sleep closes its locale files right after exec, so a listed descriptor can vanish; an inherited master never would.
-            let target = match std::fs::read_link(fd.path()) {
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
-                other => other.expect("a descriptor target"),
-            };
-            if target.to_string_lossy().contains("ptmx") { inherited.push(fd.path()) }
-        }
-        stop(&mut child);
-        drop(master);
-        assert!(inherited.is_empty(), "the CLI holds the terminal master at {:?}", inherited);
-    }
-    const LIFECYCLE_MARKER: &str = "FLEA_LOCALSEND_LIFECYCLE_PROBE";
-    const LIFECYCLE_TEST: &str = "backend::localsend::tests::a_child_cli_does_not_outlive_its_parent";
-
-    // Field 3 (state) and field 22 (start time) of /proc/pid/stat, split after the last ')' so a comm cannot shift them.
-    // Sample input: "4242 (localsend) S 4100 4242 4100 0 -1 4194560 812 0 0 0 3 1 0 0 20 0 4 0 9876543 ..." -> ("S", 9876543).
-    fn proc_stat(pid: i32) -> Option<(String, u64)> {
-        let stat = match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.raw_os_error() == Some(ESRCH) => return None,
-            other => other.unwrap_or_else(|e| panic!("pid {pid} exists but its stat is unreadable: {e}")),
-        };
-        let mut fields = stat.rsplit(')').next().expect("a stat tail").split_whitespace();
-        let state = fields.next().expect("a stat state").to_string();
-        Some((state, fields.nth(18).expect("a stat start time").parse().expect("a numeric start time")))
-    }
-
-    // A reused pid has another start time and a zombie waits to be reaped, so neither is a CLI that survived.
-    fn child_running(pid: i32, start: u64) -> bool {
-        proc_stat(pid).is_some_and(|(state, began)| state != "Z" && began == start)
-    }
-
-    #[test]
-    fn a_live_pid_with_another_start_time_is_not_the_child() {
-        let mut sleeper = std::process::Command::new("sleep").arg("5").spawn().expect("a sleep");
-        let pid = sleeper.id() as i32;
-        let start = proc_stat(pid).expect("the sleep's stat").1;
-        let (other, own) = (child_running(pid, start + 1), child_running(pid, start));
-        let _ = sleeper.kill();
-        let _ = sleeper.wait();
-        assert!(!other, "a live pid with another start time was read as the child");
-        assert!(own, "a live pid with its own start time was not read as the child");
-    }
-
-    // The probe ends with a stand-in behind, like a killed backend; only PDEATHSIG can end the HUP-ignoring child.
-    #[test]
-    fn a_child_cli_does_not_outlive_its_parent() {
-        if let Some(marker) = std::env::var_os(LIFECYCLE_MARKER) {
-            let marker = std::path::PathBuf::from(marker);
-            let ready = marker.with_extension("ready");
-            let (_master, slave) = open_pty().expect("a pty");
-            let child = spawn("/bin/sh", &["-c".to_string(), "trap '' HUP; : > \"$1\"; exec sleep 600".to_string(),
-                "localsend-life".to_string(), ready.to_string_lossy().into_owned()], &slave)
-                .expect("the probe starts a stand-in CLI");
-            let deadline = Instant::now() + Duration::from_secs(5);
-            while !ready.exists() {
-                assert!(Instant::now() < deadline, "the stand-in never armed its HUP ignore");
-                std::thread::sleep(Duration::from_millis(10));
-            }
-            let start = proc_stat(child.id() as i32).expect("the stand-in's stat").1;
-            std::fs::write(&marker, format!("{} {}", child.id(), start)).expect("the probe writes its child's identity");
-            // The stand-in must outlive this probe, so its handle is relinquished rather than reaped.
-            std::mem::forget(child);
-            return;
-        }
-        let dir = crate::backend::testdir::TestDir::new("localsend-life");
-        let marker = dir.path().join("child.id");
-        let out = std::process::Command::new(std::env::current_exe().expect("a test binary knows its own path"))
-            .args(["--exact", "--test-threads=1", "--nocapture", LIFECYCLE_TEST])
-            .env(LIFECYCLE_MARKER, &marker)
-            .output()
-            .expect("the test binary re-executes");
-        let report = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
-        assert!(out.status.success(), "the probe child failed: {}", report);
-        // Renaming the test would filter the child to nothing and exit 0, so it has to say it ran one.
-        assert!(report.contains("1 passed"), "the probe child ran no test: {}", report);
-        let identity = std::fs::read_to_string(&marker).expect("the probe wrote its child's identity");
-        let (pid, start) = identity.split_once(' ').expect("a pid and a start time");
-        let (pid, start): (i32, u64) = (pid.parse().expect("a pid"), start.trim().parse().expect("a start time"));
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while child_running(pid, start) && Instant::now() < deadline {
-            std::thread::sleep(Duration::from_millis(25));
-        }
-        // Only the pid that started at `start` is killed, so a reused pid is never touched.
-        if child_running(pid, start) {
-            let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).status();
-            let killed = Instant::now() + Duration::from_secs(5);
-            while child_running(pid, start) && Instant::now() < killed {
-                std::thread::sleep(Duration::from_millis(25));
-            }
-            panic!("a CLI survived the backend's death: pid {pid}");
-        }
-    }
-}
+#[path = "localsend_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "localsend_wording_tests.rs"]

@@ -21,12 +21,15 @@ pub fn parse_peers(text: &str) -> Vec<Peer> {
     let bytes: Vec<char> = text.chars().collect();
     let mut i = 0;
     while i + 3 < bytes.len() {
-        if bytes[i] != '[' || !bytes[i + 1].is_ascii_digit() || bytes[i + 2] != ']' || bytes[i + 3] != ' ' {
+        // The number can run past one digit: a tenth device is "[10] ".
+        let digits = bytes[i + 1..].iter().take_while(|c| c.is_ascii_digit()).count();
+        let close = i + 1 + digits;
+        if bytes[i] != '[' || digits == 0 || close + 1 >= bytes.len() || bytes[close] != ']' || bytes[close + 1] != ' ' {
             i += 1;
             continue;
         }
-        let index = bytes[i + 1].to_digit(10).unwrap_or(0) as usize;
-        let rest: String = bytes[i + 4..].iter().collect();
+        let index = bytes[i + 1..close].iter().collect::<String>().parse().unwrap_or(0);
+        let rest: String = bytes[close + 2..].iter().collect();
         // A device name can hold anything but a newline, so the address is taken from the last " ("
         // of the row and the name is everything before it.
         let row = match rest.find(|c| c == '\n' || c == '│') {
@@ -42,14 +45,15 @@ pub fn parse_peers(text: &str) -> Vec<Peer> {
                 }
             }
         }
-        i += 4;
+        i = close + 2;
     }
     out.sort_by_key(|p| p.index);
     out
 }
 
-// The panel repaints in place, so its bytes arrive as one long stream of escape sequences and text.
-// Only the text is wanted here, and a sequence is ESC [ , any parameter bytes, one final letter.
+// Sample: "ESC[7;4H[2]ESC[7;8HPeer" gives "[2]Peer", which is why the bridge reads localsendscreen.rs.
+// A sequence is ESC [ , any parameter bytes, one final letter; this stays only as the tests' contrast.
+#[cfg(test)]
 pub fn strip_ansi(raw: &str) -> String {
     let mut out = String::with_capacity(raw.len());
     let mut chars = raw.chars().peekable();
@@ -86,6 +90,30 @@ pub fn refusal(text: &str) -> Option<String> {
     Some(format!("LocalSend could not start: {}.", said.trim_end_matches('.')))
 }
 
+// The words of the device's last event line. Sample: "S Clean Lemon: Declined" gives "Declined".
+pub fn said<'a>(text: &'a str, name: &str) -> Option<&'a str> {
+    let head = format!("S {}: ", name);
+    let line = text.lines().map(str::trim).rev().find(|l| l.starts_with(&head))?;
+    Some(line[head.len()..].trim())
+}
+
+// A failed upload names its request URL, session token included, which is no help to a person.
+// Sample: "Failed to upload x.bin: error sending request for url (https://...&token=...)".
+pub fn could_not(name: &str, said: &str) -> String {
+    let said = said.split(" for url (").next().unwrap_or(said);
+    let said = said.split(" (http").next().unwrap_or(said);
+    format!("LocalSend could not send to {}: {}.", name, said.trim_end_matches('.'))
+}
+
+// What a running transfer has moved, from its progress line. Sample line, the bar shortened:
+// "S Clean Lemon [####----] 241.2 MB / 307.2 MB [12.5 MB/s] [ETA: 5s]" gives "241.2 MB / 307.2 MB".
+pub fn progress(text: &str, name: &str) -> Option<String> {
+    let head = format!("S {} [", name);
+    let line = text.lines().map(str::trim).rev().find(|l| l.starts_with(&head))?;
+    let moved = line[head.len()..].split_once("] ")?.1;
+    Some(moved.split(" [").next().unwrap_or(moved).to_string())
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -114,6 +142,13 @@ mod tests {
         assert_eq!(peers[0].name, "GM (work) laptop");
         assert_eq!(peers[0].address, "192.168.21.7");
         assert_eq!(peers[0].index, 3);
+    }
+
+    #[test]
+    fn a_tenth_device_keeps_its_two_digit_number() {
+        let peers = parse_peers("[9] Ninth (10.0.0.9)\n[10] Tenth (10.0.0.10)\n[11] Eleventh (10.0.0.11)");
+        assert_eq!(peers.iter().map(|p| (p.index, p.name.as_str())).collect::<Vec<_>>(),
+                   vec![(9, "Ninth"), (10, "Tenth"), (11, "Eleventh")]);
     }
 
     #[test]
