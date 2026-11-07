@@ -60,6 +60,8 @@ mod mount_process;
 
 mod mount_lifetime;
 
+mod mount_peek;
+
 mod session;
 #[cfg(test)]
 #[path = "session_tests.rs"]
