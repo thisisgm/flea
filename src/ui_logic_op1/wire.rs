@@ -75,6 +75,8 @@ pub struct Reply {
     pub paths: Vec<String>,
     // The new file's path, from a newFile reply.
     pub path: String,
+    // A creation receipt's own word: "made" or "duplicated". Empty on every other reply.
+    pub kind: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -249,6 +251,7 @@ fn reply(doc: &Json) -> Option<Reply> {
         dest: text(doc, "dest"),
         paths: strings(doc, "paths"),
         path: text(doc, "path"),
+        kind: text(doc, "kind"),
     })
 }
 

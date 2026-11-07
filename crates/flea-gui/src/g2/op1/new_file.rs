@@ -90,6 +90,11 @@ pub(super) fn card(
             ),
         ),
     ];
-    let title = catalog.tr("jobs.newfile.title");
+    // The title names what Create will make, as the TUI's create row does: one trailing slash is a folder.
+    let title = if name.ends_with('/') {
+        catalog.tr("prompt.folder")
+    } else {
+        catalog.tr("jobs.newfile.title")
+    };
     super::view::shell(scene, Kind::NewFile, window, title, body, buttons)
 }

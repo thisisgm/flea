@@ -131,7 +131,8 @@ impl Operations {
         }
     }
 
-    // Create sends v0.3.12's newfile request once the name is a plain filename; a bad name says so in the card.
+    // Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash
+    // asks the same mkdir the TUI's create prompt does; a bad name says so in the card.
     pub(super) fn confirm_new_file(&mut self, catalog: &I18n) {
         let Some(Dialog::NewFile {
             id,
@@ -146,8 +147,11 @@ impl Operations {
         if name.is_empty() {
             return;
         }
-        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too.
-        let slash = name == "." || name == ".." || name.contains('/');
+        // The slash that decides the request is the last one, never part of a name.
+        let folder_request = name.ends_with('/');
+        let bare = name.strip_suffix('/').unwrap_or(&name);
+        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too, and a lone slash names nothing.
+        let slash = bare.is_empty() || bare == "." || bare == ".." || bare.contains('/');
         if let Some(Dialog::NewFile { busy, error, .. }) = &mut self.dialog {
             if slash {
                 *error = catalog.tr("jobs.newfile.slash");
@@ -157,14 +161,24 @@ impl Operations {
             error.clear();
         }
         self.changed = true;
-        self.outbox.push(format!(
-            "{{\"c\":\"newfile\",\"op\":\"newFile\",\"id\":{id},\"path\":{},\"name\":{}}}",
-            collide::text(&folder),
-            collide::text(&name)
-        ));
+        let line = if folder_request {
+            // The card's own request id correlates the receipt back to this card, not to a menu creation.
+            format!(
+                "{{\"c\":\"mkdir\",\"path\":{},\"name\":{},\"request\":{id}}}",
+                collide::text(&folder),
+                collide::text(bare)
+            )
+        } else {
+            format!(
+                "{{\"c\":\"newfile\",\"op\":\"newFile\",\"id\":{id},\"path\":{},\"name\":{}}}",
+                collide::text(&folder),
+                collide::text(&name)
+            )
+        };
+        self.outbox.push(line);
     }
 
-    // The create's reply: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
+    // The create's reply, from either request it sent: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
     fn new_file_reply(&mut self, catalog: &I18n, reply: &Reply) {
         let Some(Dialog::NewFile { id, busy: true, .. }) = self.dialog else {
             return;
@@ -205,7 +219,7 @@ impl Operations {
             self.validated(catalog, reply);
             return false;
         }
-        if !trash_reply && reply.op == "newFile" {
+        if !trash_reply && (reply.op == "newFile" || reply.op == "creation" && reply.kind == "made") {
             self.new_file_reply(catalog, reply);
             return false;
         }

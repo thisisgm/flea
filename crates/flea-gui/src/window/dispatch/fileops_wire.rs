@@ -68,6 +68,11 @@ impl Shell {
             // PaneWire.qml onMade and onDuplicated: the line, then a re-read with the new item under the cursor.
             kind @ ("made" | "duplicated") => {
                 let path = text("path").to_owned();
+                let request = flea::json::field_usize(line, "request").unwrap_or(0) as u64;
+                // Not this pane's creation: the New File card's folder draft answers its own receipt.
+                if request > 0 && !self.operations.fileops.creations.owns(side, kind, request) {
+                    return false;
+                }
                 if document.get("ok").and_then(Json::as_bool) != Some(true) || path.is_empty() {
                     return true;
                 }
@@ -105,6 +110,10 @@ impl Shell {
                 let kind = text("kind");
                 if request == 0 || !matches!(kind, "made" | "duplicated") {
                     return true;
+                }
+                // A receipt this pane did not ask for is the New File card's, which closes on it.
+                if !self.operations.fileops.creations.owns(side, kind, request) {
+                    return false;
                 }
                 if document.get("ok").and_then(Json::as_bool) != Some(true) {
                     self.operations

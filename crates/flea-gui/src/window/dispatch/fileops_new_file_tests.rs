@@ -313,3 +313,120 @@ fn new_file_name_with_a_slash_is_refused_in_the_card(cx: &mut TestAppContext) {
     }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// The TUI's create rule in the card: one trailing slash asks mkdir for the folder it names.
+#[gpui::test]
+fn new_file_trailing_slash_makes_a_folder_through_mkdir(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    // A mkdir carries its correlation as request, never the newFile reply's id.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    assert_eq!(
+        requests,
+        [format!(
+            r#"{{"c":"mkdir","path":"/files","name":"photos","request":{id}}}"#
+        )],
+        "the slash decides the request and never reaches the name"
+    );
+    assert!(matches!(
+        card(&shell, cx),
+        Some(Dialog::NewFile { busy: true, .. })
+    ));
+    let before = lists(&shell, cx);
+    // A correlated made line is the card's: the pane says nothing and re-reads nothing for it.
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"made","ok":true,"path":"/files/photos","request":{id}}}"#),
+    );
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
+        "the made line alone keeps the card waiting for its receipt"
+    );
+    assert_eq!(lists(&shell, cx), before, "the pane leaves it to the card");
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert!(card(&shell, cx).is_none(), "the receipt closes the card");
+    let catalog = shell.read_with(cx, |shell, _| shell.locale.catalog.clone());
+    assert_eq!(
+        notice(&shell, cx),
+        lines::made(&catalog, "default", "/files/photos")
+    );
+    assert_eq!(lists(&shell, cx), before + 1, "the folder is read again");
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/photos"),
+        "the new folder lands under the cursor"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn new_file_folder_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    let sentence = "a folder or file with that name already exists";
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":false,"error":"{sentence}"}}"#
+        ),
+    );
+    match card(&shell, cx) {
+        Some(Dialog::NewFile {
+            busy: false, error, ..
+        }) => assert_eq!(error, sentence),
+        other => panic!("a refused folder keeps its card open: {other:?}"),
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A second slash and a lone one still name nothing the rule can file.
+#[gpui::test]
+fn new_file_folder_drafts_refuse_a_second_or_a_lone_slash(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    for draft in ["photos//", "/"] {
+        open_card(&shell, cx);
+        cx.simulate_input(draft);
+        cx.simulate_keystrokes("enter");
+        assert!(sent().is_empty(), "{draft} never reaches the backend");
+        match card(&shell, cx) {
+            Some(Dialog::NewFile {
+                busy: false,
+                name,
+                error,
+                ..
+            }) => {
+                assert_eq!(name, draft);
+                assert_eq!(error, "Enter a name without a /.");
+            }
+            other => panic!("{draft} stays in the card: {other:?}"),
+        }
+        cx.simulate_keystrokes("escape");
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
