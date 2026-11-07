@@ -146,8 +146,17 @@ pub fn bar(
     }
     row = row.child(div().flex_1());
     let mut group = div().flex().flex_none().items_center().gap(px(look::GAP));
-    for (index, (text, on)) in chrome.words.iter().enumerate() {
-        group = group.child(word(index, text, *on, look, state, cx));
+    if !chrome.words.is_empty() {
+        // The view words keep their own wider gap; the tools and close follow at the bar's gap.
+        let mut words = div()
+            .flex()
+            .flex_none()
+            .items_center()
+            .gap(px(look::WORD_GAP));
+        for (index, (text, on)) in chrome.words.iter().enumerate() {
+            words = words.child(word(index, text, *on, look, state, cx));
+        }
+        group = group.child(words);
     }
     let tools = shown
         .iter()

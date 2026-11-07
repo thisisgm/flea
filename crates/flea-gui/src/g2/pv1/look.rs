@@ -82,10 +82,11 @@ pub const DISABLED: f32 = 0.55;
 /// Buttons.js PRESS_SCALE.
 pub const PRESS_SCALE: f32 = 0.96;
 
-/// Quick Look's bar: 27 px, 14 px padding, 9 px gaps, 12 px caption, 16 px marks.
+/// Quick Look's bar: 27 px, 14 px padding, 9 px gaps, 14 px between view words, 12 px caption, 16 px marks.
 pub const BAR: f32 = 27.;
 pub const PAD: f32 = 14.;
 pub const GAP: f32 = 9.;
+pub const WORD_GAP: f32 = 14.;
 pub const CAPTION: f32 = 12.;
 pub const BODY: f32 = 14.;
 pub const CHROME_MARK: f32 = 16.;
