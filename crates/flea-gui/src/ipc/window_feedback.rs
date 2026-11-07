@@ -2,17 +2,32 @@
 use super::{rows::list_area_rect, Adapter};
 use crate::state::Shell;
 use flea::ipc::wire::Reply;
-use gpui::App;
+use gpui::{App, Window};
+
+/// The focus contextMenuFocusState reports.
+pub(crate) struct MenuFocus<'a> {
+    /// The focus view the window reports, "" when nothing holds focus.
+    pub view: &'a str,
+    /// The window's own focus, Pane.qml's activeFocus.
+    pub pane: bool,
+    /// The list's keyboard focus, Pane.qml's listArea.activeFocus.
+    pub list: bool,
+}
+
+impl<'a> MenuFocus<'a> {
+    pub(crate) fn read(shell: &Shell, view: &'a str, list: bool, window: &Window) -> Self {
+        Self {
+            view,
+            pane: shell.focus.is_focused(window),
+            list,
+        }
+    }
+}
 
 pub(crate) struct FeedbackAdapter<'a> {
     pub shell: &'a Shell,
     pub cx: &'a App,
-    /// The focus view the window reports, "" when nothing holds focus.
-    pub view: &'a str,
-    /// The window's own focus, Pane.qml's activeFocus.
-    pub pane_focused: bool,
-    /// The list's keyboard focus, Pane.qml's listArea.activeFocus.
-    pub list_focused: bool,
+    pub focus: MenuFocus<'a>,
     pub share_focused: bool,
     /// IpcPreviewState.listingDropActive: a drag is over the listing's floor, past or between folder rows, landing in the shown folder.
     pub drop_active: bool,
@@ -112,9 +127,9 @@ impl Adapter for FeedbackAdapter<'_> {
                 let opened = self.shell.menu.menu.borrow().opened();
                 format!(
                     "{{\"opened\":{opened},\"view\":\"{}\",\"menu\":{opened},\"pane\":{},\"list\":{},\"origin\":false,\"activeItem\":\"\"}}",
-                    flea::json::escape(self.view),
-                    self.pane_focused,
-                    self.list_focused,
+                    flea::json::escape(self.focus.view),
+                    self.focus.pane,
+                    self.focus.list,
                 )
             }
             _ => return None,

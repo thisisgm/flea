@@ -35,7 +35,7 @@ pub struct View {
     focus: FocusHandle,
     editor: crate::path::entry::Entry,
     drawn: RefCell<Drawn>,
-    palette: Option<CardPalette>,
+    palette: CardPalette,
     clock: Clock,
     progress: Progress<Option<Card>>,
     pending: Vec<Effect>,
@@ -61,7 +61,11 @@ impl View {
             focus: cx.focus_handle(),
             editor: crate::path::entry::Entry::default(),
             drawn: RefCell::default(),
-            palette: None,
+            // Every render replaces it before the octal field can mount.
+            palette: CardPalette::from_list(
+                &Palette::inherited(&gpui::TextStyle::default(), Theme::default()),
+                corner,
+            ),
             clock: Clock::default(),
             progress: Progress::default(),
             pending: Vec::new(),
@@ -213,7 +217,7 @@ impl Render for View {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
         let typeface = Typeface::for_window(window, cx);
-        self.palette = Some(CardPalette::from_list(&palette, self.corner));
+        self.palette = CardPalette::from_list(&palette, self.corner);
         let (entity, face) = (cx.entity(), typeface.clone());
         let mount = move |slot: gpui::Div| {
             crate::g2::op1::field::mount(entity.clone(), slot, &face).into_any_element()

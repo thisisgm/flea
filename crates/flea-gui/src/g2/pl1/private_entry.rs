@@ -1,6 +1,6 @@
 //! Private entries carry width-equivalent metadata while secret buffers retain and wipe every real byte.
 use super::secret::Secret;
-use crate::path::entry::Entry;
+use crate::path::entry::{Entry, Kind};
 use std::ops::Range;
 
 pub(crate) fn shadow(text: &str) -> String {
@@ -15,8 +15,7 @@ pub(crate) fn shadow(text: &str) -> String {
 }
 
 pub(crate) fn begin(entry: &mut Entry, secret: &Secret) {
-    entry.private = true;
-    entry.digits = false;
+    entry.kind = Kind::Private;
     entry.begin(&shadow(std::str::from_utf8(secret.expose()).unwrap_or("")));
 }
 

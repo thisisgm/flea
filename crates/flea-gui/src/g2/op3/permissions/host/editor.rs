@@ -21,7 +21,7 @@ impl View {
         };
         if !self.editor.editing || self.editor.text != value {
             let value = value.to_owned();
-            self.editor.digits = true;
+            self.editor.kind = crate::path::entry::Kind::Digits;
             self.editor.begin(&value);
             self.drawn.borrow_mut().line = Default::default();
         }

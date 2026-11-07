@@ -30,6 +30,9 @@ fn near(control: &Json, centre: &str) -> bool {
 #[gpui::test]
 fn fixreaders_ey150_main_window_cohesion_controls_and_focus_stop(cx: &mut gpui::TestAppContext) {
     let (shell, cx) = open_root(cx, "");
+    // The list holds the keyboard only in the active window; a TestWindow starts inactive.
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
     let file = |name: &str| RowFacts {
         name: name.into(),
         ..RowFacts::default()

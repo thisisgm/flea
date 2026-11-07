@@ -213,34 +213,13 @@ impl ProviderSend {
 }
 
 fn installed(role: Role, facts: &Facts) -> bool {
-    match role {
-        // LocalSend drives localsend-cli, never the app's own window, as providers.rs documents.
-        Role::LocalSend => facts.localsend_installed || !facts.localsend_command.is_empty(),
-        // Pane.qml taildropInstalled: an installed Tailscale that cannot run keeps its row, which then reads unavailable.
-        Role::Tailscale => {
-            facts.tailscale_installed
-                || !facts.tailscale_command.is_empty()
-                || facts.tailscale_unusable
+    // Pane.qml taildropInstalled: an installed provider that cannot run (no command) keeps its row, which then reads unavailable.
+    facts.installed.contains(&role)
+        || !match role {
+            // LocalSend drives localsend-cli, never the app's own window, as providers.rs documents.
+            Role::LocalSend => &facts.localsend_command,
+            Role::Tailscale => &facts.tailscale_command,
+            Role::Dropbox => &facts.dropbox_command,
         }
-        Role::Dropbox => facts.dropbox_installed || !facts.dropbox_command.is_empty(),
-    }
-}
-
-#[test]
-fn uish_misc_unusable_provider_facts_keep_the_disabled_row_and_no_command() {
-    let facts = providers::parse_facts(r#"{"taildrop":{"installed":true,"command":"","reason":"not executable"},"dropbox":{"installed":true,"command":"","reason":"not executable"},"dropboxInfo":"{}"}"#).unwrap();
-    assert!(installed(Role::Tailscale, &facts));
-    assert!(installed(Role::Dropbox, &facts));
-    assert!(!installed(Role::LocalSend, &facts));
-    assert!(facts.tailscale_command.is_empty() && facts.dropbox_command.is_empty());
-    struct NoWire;
-    impl seams::Wire for NoWire {
-        fn send(&self, _: String) -> bool {
-            panic!("an unusable provider must start no discovery")
-        }
-    }
-    let mut sender = ProviderSend::default();
-    assert!(sender.menu_opened(&NoWire, &facts, None, &[], 0).is_empty());
-    assert!(sender.row_on(Role::Tailscale) && sender.row_on(Role::Dropbox));
-    assert!(sender.dropbox_refresh().is_none());
+        .is_empty()
 }

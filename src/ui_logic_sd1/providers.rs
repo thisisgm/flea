@@ -66,12 +66,9 @@ pub fn provider(providers: &[Provider], role: Role) -> Option<&Provider> {
 // The backend's providers facts as one GPUI snapshot; malformed input never panics, it errs.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Facts {
-    pub tailscale_installed: bool,
-    pub localsend_installed: bool,
-    pub dropbox_installed: bool,
+    /// The providers whose facts say installed, a command found or not.
+    pub installed: Vec<Role>,
     pub tailscale_command: String,
-    // Tailscale is on PATH but cannot run (not executable, a dangling link); v0.3.12 keeps its row, unavailable.
-    pub tailscale_unusable: bool,
     pub send_command: String,
     pub localsend_command: String,
     // The provider's own reason when the CLI is missing; the caller words the sentence when it is empty.
@@ -90,17 +87,14 @@ pub fn parse_facts(raw: &str) -> Result<Facts, String> {
             .unwrap_or_default()
             .to_string()
     };
+    let installed = [("taildrop", Role::Tailscale), ("localsend", Role::LocalSend), ("dropbox", Role::Dropbox)]
+        .into_iter()
+        .filter(|(key, _)| data.get(key).and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true))
+        .map(|(_, role)| role)
+        .collect();
     Ok(Facts {
-        tailscale_installed: data.get("taildrop").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
-        localsend_installed: data.get("localsend").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
-        dropbox_installed: data.get("dropbox").and_then(|facts| facts.get("installed")).and_then(Json::as_bool) == Some(true),
+        installed,
         tailscale_command: command("taildrop"),
-        tailscale_unusable: data
-            .get("taildrop")
-            .and_then(|facts| facts.get("installed"))
-            .and_then(Json::as_bool)
-            == Some(true)
-            && command("taildrop").is_empty(),
         send_command: command("taildropSend"),
         localsend_command: command("localsend"),
         localsend_reason: data

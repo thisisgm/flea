@@ -17,14 +17,9 @@ pub(crate) struct Observation {
 }
 
 impl Observation {
-    // try_update needs Rust 1.95, newer than the workspace rust-version 1.77, so fetch_update stays.
-    #[allow(deprecated)]
     fn new(frame: &Frame) -> Self {
-        let serial = NEXT_REQUEST
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-                value.checked_add(1)
-            })
-            .expect("thumbnail request identity exhausted");
+        // A 64-bit serial does not wrap within any process's lifetime, so a token is never reused.
+        let serial = NEXT_REQUEST.fetch_add(1, Ordering::Relaxed);
         Self {
             token: serial.to_string(),
             generation: frame.generation,

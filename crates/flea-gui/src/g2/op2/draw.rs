@@ -161,22 +161,7 @@ impl Draw<'_> {
         if let Some(input) = &field.input {
             line = line.child(crate::g2::op1::field::mount(
                 input.clone(),
-                div().relative().flex_1().min_w_0().h_full().when(
-                    field.value.is_empty() && !field.placeholder.is_empty(),
-                    |slot| {
-                        slot.child(
-                            div()
-                                .absolute()
-                                .left(px(1.))
-                                .top_0()
-                                .h_full()
-                                .flex()
-                                .items_center()
-                                .text_color(t.muted)
-                                .child(field.placeholder.clone()),
-                        )
-                    },
-                ),
+                crate::g2::op1::field::slot(&field.value, &field.placeholder, t.muted),
                 self.typeface,
             ));
             if field.eye {

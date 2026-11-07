@@ -15,47 +15,26 @@ impl MenuActions {
         let completed = Arc::clone(&restoration);
         std::thread::spawn(move || {
             let _close = CloseOnExit(Arc::clone(&queued));
+            // A poisoned lock ends the worker; CloseOnExit then refuses every later request.
             while let Some((line, paths, cursor, cancel)) = queued.take() {
-                let mut state = published.lock().unwrap().clone();
-                if field_str(&line, "op").as_deref() == Some("properties") && state.items.len() != 1
-                {
-                    if super::super::menuproperties::serve(
-                        &line,
-                        state.id,
-                        &state.items,
-                        &output,
-                        &cancel,
-                    ) {
-                        continue;
-                    } else {
-                        break;
+                let Ok(mut state) = published.lock().map(|state| state.clone()) else {
+                    break;
+                };
+                // These answer on their own, streaming; false means the reply channel closed.
+                type Serve = fn(&str, usize, &[Selected], &Sender<OpMsg>, &Cancellation) -> bool;
+                let serve: Option<Serve> = match field_str(&line, "op").as_deref() {
+                    Some("properties") if state.items.len() != 1 => {
+                        Some(super::super::menuproperties::serve)
                     }
-                }
-                if field_str(&line, "op").as_deref() == Some("contents") {
-                    if super::super::menucontents::serve(
-                        &line,
-                        state.id,
-                        &state.items,
-                        &output,
-                        &cancel,
-                    ) {
+                    Some("contents") => Some(super::super::menucontents::serve),
+                    Some("facts") => Some(super::super::menufacts::serve),
+                    _ => None,
+                };
+                if let Some(serve) = serve {
+                    if serve(&line, state.id, &state.items, &output, &cancel) {
                         continue;
-                    } else {
-                        break;
                     }
-                }
-                if field_str(&line, "op").as_deref() == Some("facts") {
-                    if super::super::menufacts::serve(
-                        &line,
-                        state.id,
-                        &state.items,
-                        &output,
-                        &cancel,
-                    ) {
-                        continue;
-                    } else {
-                        break;
-                    }
+                    break;
                 }
                 let mut reply = if cancel.check().is_ok() {
                     state.handle_request(&line, paths, cursor.as_deref(), &queries, &cancel)
@@ -67,7 +46,10 @@ impl MenuActions {
                 }
                 if field_str(&line, "op").as_deref() == Some("delete") {
                     // Close expires mutation immediately; the completed operation still identifies survivors for reselection.
-                    *completed.lock().unwrap() = (state.id, state.items.clone());
+                    let Ok(mut done) = completed.lock() else {
+                        break;
+                    };
+                    *done = (state.id, state.items.clone());
                 }
                 if matches!(
                     field_str(&line, "op").as_deref(),
@@ -81,7 +63,10 @@ impl MenuActions {
                             | "activate"
                     )
                 ) {
-                    publish_snapshot(published.lock().unwrap(), state, &cancel);
+                    let Ok(guard) = published.lock() else {
+                        break;
+                    };
+                    publish_snapshot(guard, state, &cancel);
                 }
                 let message = if field_str(&line, "op").as_deref() == Some("delete") {
                     OpMsg::MenuDeleteDone { line: reply }
@@ -124,7 +109,9 @@ fn catalogue(
     std::thread::spawn(move || {
         let _close = CloseOnExit(Arc::clone(&queued));
         while let Some((line, paths, cursor, cancel)) = queued.take() {
-            let mut state = snapshot.lock().unwrap().clone();
+            let Ok(mut state) = snapshot.lock().map(|state| state.clone()) else {
+                break;
+            };
             let mut reply = if cancel.check().is_ok() {
                 state.handle_request(&line, paths, cursor.as_deref(), &registry, &cancel)
             } else {

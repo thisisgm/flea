@@ -1,6 +1,6 @@
 //! Dispatch the composed window's readers to their actual mounted producer.
 use crate::{
-    ipc::{server::Event, Surface},
+    ipc::{server::Event, window_feedback::MenuFocus, Surface},
     state::Shell,
 };
 use gpui::{Context, Window};
@@ -291,9 +291,7 @@ impl Shell {
                 let feedback = crate::ipc::window_feedback::FeedbackAdapter {
                     shell: self,
                     cx,
-                    view: focus.view.unwrap_or(""),
-                    pane_focused: self.focus.is_focused(window),
-                    list_focused: states.focused,
+                    focus: MenuFocus::read(self, focus.view.unwrap_or(""), states.focused, window),
                     share_focused: self
                         .rail
                         .as_ref()

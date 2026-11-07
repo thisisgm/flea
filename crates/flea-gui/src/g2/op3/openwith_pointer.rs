@@ -2,18 +2,17 @@
 use super::*;
 use shell::Control;
 
-impl OpenWith {
-    /// A moving pointer chooses its visible row without moving keyboard focus.
-    pub fn hover(&mut self, at: usize) -> bool {
-        if self.opening || at >= self.applications() || at == self.cursor {
-            return false;
-        }
-        self.cursor = at;
-        true
-    }
+/// The wheel's and the touchpad's leftover travel, and whether a touch stroke is live.
+#[derive(Clone, Debug, Default)]
+pub(super) struct Wheel {
+    notch: i32,
+    touch: f32,
+    stroke: bool,
+}
 
-    /// The shipped menu list folds raw notches or gained touchpad travel, with no momentum tail.
-    pub fn scroll(&mut self, event: &gpui::ScrollWheelEvent, row_height: f32) {
+impl Wheel {
+    /// Rows the event moves; an event the list cannot take still ends or starts its stroke.
+    fn steps(&mut self, event: &gpui::ScrollWheelEvent, row_height: f32, takes: bool) -> i32 {
         use crate::input::{scroll, wheel_delivery};
         use flea::ui_logic_mn1::fit;
         use gpui::TouchPhase;
@@ -25,12 +24,12 @@ impl OpenWith {
         };
         let Some(wheel) = wheel_delivery(event, in_stroke) else {
             self.touch = 0.;
-            return;
+            return 0;
         };
-        if self.opening || self.applications() == 0 {
-            return;
+        if !takes {
+            return 0;
         }
-        let steps = if scroll::is_touchpad(wheel.phase) {
+        if scroll::is_touchpad(wheel.phase) {
             let held = if wheel.phase == scroll::Phase::Begin {
                 0.
             } else {
@@ -44,7 +43,24 @@ impl OpenWith {
             let (steps, rest) = fit::notch_steps(self.notch, wheel.angle.round() as i32);
             self.notch = rest;
             steps
-        };
+        }
+    }
+}
+
+impl OpenWith {
+    /// A moving pointer chooses its visible row without moving keyboard focus.
+    pub fn hover(&mut self, at: usize) -> bool {
+        if self.opening || at >= self.applications() || at == self.cursor {
+            return false;
+        }
+        self.cursor = at;
+        true
+    }
+
+    /// The shipped menu list folds raw notches or gained touchpad travel, with no momentum tail.
+    pub fn scroll(&mut self, event: &gpui::ScrollWheelEvent, row_height: f32) {
+        let takes = !self.opening && self.applications() > 0;
+        let steps = self.wheel.steps(event, row_height, takes);
         if steps != 0 {
             self.cursor = self
                 .cursor

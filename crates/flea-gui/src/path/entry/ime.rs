@@ -1,5 +1,5 @@
 //! The platform text contract every mounted field shares: UTF-16 ranges, composition and the keys it owns.
-use super::Entry;
+use super::{Entry, Kind};
 use gpui::UTF16Selection;
 use std::borrow::Cow;
 use std::ops::Range;
@@ -46,7 +46,7 @@ impl Entry {
         range: &Range<usize>,
         adjusted: &mut Option<Range<usize>>,
     ) -> Option<String> {
-        if self.private {
+        if self.kind == Kind::Private {
             return None;
         }
         let range = self.ime_range(range);
@@ -56,7 +56,7 @@ impl Entry {
 
     /// Whether the input method may serve this line: a password or a number keeps it off, as v0.3.12 does.
     pub fn composes(&self) -> bool {
-        !self.private && !self.digits
+        self.kind == Kind::Text
     }
 
     /// The line without its composition, the text a consumer acts on; the field still paints the preedit.
@@ -72,7 +72,7 @@ impl Entry {
     /// Commits platform text; control characters never enter the line, and a number takes only digits.
     pub fn ime_replace(&mut self, range: Option<Range<usize>>, text: &str) -> bool {
         if text.chars().any(char::is_control)
-            || (self.digits && !text.chars().all(|ch| ch.is_ascii_digit()))
+            || (self.kind == Kind::Digits && !text.chars().all(|ch| ch.is_ascii_digit()))
         {
             return false;
         }
@@ -131,7 +131,7 @@ impl Entry {
 
     /// What paint shapes: the line, or one bullet per character when private.
     pub fn display(&self) -> Cow<'_, str> {
-        if self.private {
+        if self.kind == Kind::Private {
             BULLET.repeat(self.text.chars().count()).into()
         } else {
             Cow::Borrowed(&self.text)
@@ -141,7 +141,7 @@ impl Entry {
     /// A byte offset of the line as an offset into display().
     pub fn display_offset(&self, offset: usize) -> usize {
         let offset = floor(&self.text, offset);
-        if self.private {
+        if self.kind == Kind::Private {
             self.text[..offset].chars().count() * BULLET.len()
         } else {
             offset
@@ -150,7 +150,7 @@ impl Entry {
 
     /// A byte offset into display() as an offset of the line.
     pub fn from_display(&self, index: usize) -> usize {
-        if self.private {
+        if self.kind == Kind::Private {
             let count = index / BULLET.len();
             let text = &self.text;
             text.char_indices()

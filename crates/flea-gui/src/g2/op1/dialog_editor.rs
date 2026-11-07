@@ -1,6 +1,9 @@
 //! Operation hosts share one focused entry session while keeping their existing dispatch and card models.
 use super::{editor::Drawn, field_view::FieldView, palette::CardPalette};
-use crate::{path::entry::Entry, state::Shell};
+use crate::{
+    path::entry::{Entry, Kind},
+    state::Shell,
+};
 use gpui::{App, Context, FocusHandle, KeyDownEvent, MouseDownEvent, MouseMoveEvent, Window};
 use std::cell::RefCell;
 
@@ -80,10 +83,14 @@ impl Shell {
         {
             let value = value.to_owned();
             let editor = &mut self.rename.ime;
-            editor.entry.private = matches!(
+            editor.entry.kind = if matches!(
                 slot,
                 Slot::ArchivePassword | Slot::ArchiveConfirm | Slot::ExtractPassword
-            );
+            ) {
+                Kind::Private
+            } else {
+                Kind::Text
+            };
             editor.entry.begin(&value);
             editor.drawn.borrow_mut().line = Default::default();
             editor.owner = Some(slot);

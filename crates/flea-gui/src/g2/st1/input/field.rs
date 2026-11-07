@@ -1,11 +1,12 @@
 //! A shaped text leaf in the existing field chrome, also mounted invisibly while the key sheet awaits its first query.
 use super::{session::SessionInput, Host};
+use crate::leaf::{fill_parent, Leaf, Painted};
 use crate::list::Typeface;
 use crate::path::paint::paint_run;
 use gpui::{
-    div, fill, point, prelude::*, px, relative, size, App, Bounds, ContentMask, CursorStyle, Div,
-    Element, ElementId, Entity, EntityInputHandler, GlobalElementId, GlyphRun, Hitbox,
-    HitboxBehavior, InspectorElementId, LayoutId, MouseButton, Pixels, Stateful, Style, Window,
+    div, fill, point, prelude::*, px, size, App, Bounds, ContentMask, CursorStyle, Div, Entity,
+    EntityInputHandler, GlyphRun, Hitbox, HitboxBehavior, LayoutId, MouseButton, Pixels, Stateful,
+    Window,
 };
 use std::rc::Rc;
 
@@ -20,7 +21,7 @@ impl<T: Host + EntityInputHandler> Field<T> {
             .flex_1()
             .min_w_0()
             .h_full()
-            .child(Self(view, typeface.clone(), visible));
+            .child(Painted(Self(view, typeface.clone(), visible)));
         if !visible {
             return field;
         }
@@ -65,44 +66,16 @@ fn index<T: Host>(view: &T, x: Pixels) -> usize {
     editor.entry.offset_from_utf16(units)
 }
 
-impl<T: Host + EntityInputHandler> IntoElement for Field<T> {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
+impl<T: Host + EntityInputHandler> Leaf for Field<T> {
+    type Prepaint = Option<Hitbox>;
 
-impl<T: Host + EntityInputHandler> Element for Field<T> {
-    type RequestLayoutState = ();
-    type PrepaintState = Option<Hitbox>;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let style = Style {
-            size: size(relative(1.).into(), relative(1.).into()),
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
+    fn layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
+        fill_parent(window, cx)
     }
 
     fn prepaint(
         &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
-        _: &mut (),
         window: &mut Window,
         cx: &mut App,
     ) -> Option<Hitbox> {
@@ -150,10 +123,7 @@ impl<T: Host + EntityInputHandler> Element for Field<T> {
 
     fn paint(
         &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
-        _: &mut (),
         hitbox: &mut Option<Hitbox>,
         window: &mut Window,
         cx: &mut App,

@@ -116,9 +116,9 @@ impl Shell {
         drags.serial += 1;
         let serial = FILE_SERIALS | drags.serial;
         if let Some((lifted, picture)) = self.peek_lift(side, window, serial) {
-            let host = self.panes[side]
-                .as_ref()
-                .expect("the source pane remains mounted");
+            let Some(host) = self.panes[side].as_ref() else {
+                return false;
+            };
             let flock = image::pictured(host, picture, window, cx);
             cx.default_global::<Drags>().flocks.insert(key, flock);
             cx.default_global::<Drags>().put(key, lifted);
@@ -161,9 +161,9 @@ impl Shell {
             self.say_drop(side, text, cx);
             return false;
         }
-        let host = self.panes[side]
-            .as_ref()
-            .expect("the source pane remains mounted");
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
         let flock = image::captured(host, &lifted.rows, window, cx);
         cx.default_global::<Drags>().flocks.insert(key, flock);
         cx.default_global::<Drags>().put(key, lifted);

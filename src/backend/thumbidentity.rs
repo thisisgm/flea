@@ -7,7 +7,7 @@ use crate::{
 use std::{
     io::Write,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard, PoisonError},
 };
 
 #[derive(Debug)]
@@ -104,6 +104,11 @@ pub struct Replies {
 pub type Shared = Arc<Mutex<Replies>>;
 pub type Registry = Vec<std::sync::Weak<Mutex<Replies>>>;
 
+// The lists hold plain values with no invariant a panic can break mid-update, so a poisoned lock still yields them.
+fn lock(shared: &Mutex<Replies>) -> MutexGuard<'_, Replies> {
+    shared.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
     // Subscription eligibility uses the original work's version, never a later row mapping.
     let mut refusal = None;
@@ -113,7 +118,7 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
         .rev()
         .filter_map(std::sync::Weak::upgrade)
     {
-        let mut replies = shared.lock().unwrap();
+        let mut replies = lock(&shared);
         if replies.finished || replies.path != path {
             continue;
         }
@@ -133,7 +138,7 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
         refusal.get_or_insert_with(|| shared.clone());
     }
     if let Some(shared) = refusal {
-        shared.lock().unwrap().refused.push(reply.clone());
+        lock(&shared).refused.push(reply.clone());
     }
     false
 }
@@ -154,18 +159,14 @@ pub fn start(st: &mut State, path: PathBuf, mtime: i64, reply: Option<Reply>) ->
 
 pub fn retire_row(st: &State, row: usize) {
     for shared in st.thumb_replies.iter().filter_map(std::sync::Weak::upgrade) {
-        shared
-            .lock()
-            .unwrap()
-            .replies
-            .retain(|reply| reply.row != row);
+        lock(&shared).replies.retain(|reply| reply.row != row);
     }
 }
 
 pub fn retire_all(st: &mut State) {
     st.thumb_replies.retain(|weak| {
         if let Some(shared) = weak.upgrade() {
-            shared.lock().unwrap().replies.clear();
+            lock(&shared).replies.clear();
             true
         } else {
             false
@@ -182,7 +183,7 @@ pub fn complete(
 ) -> bool {
     let Some(shared) = shared else { return false };
     let replies = {
-        let mut context = shared.lock().unwrap();
+        let mut context = lock(shared);
         context.finished = true;
         std::mem::take(&mut context.replies)
     };

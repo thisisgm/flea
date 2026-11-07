@@ -77,15 +77,11 @@ fn order(text: &str) -> Vec<(usize, char, bool)> {
         let mut clusters: Vec<Vec<(usize, char)>> = Vec::new();
         for (offset, c) in text[paragraph.range.clone()].char_indices() {
             let offset = paragraph.range.start + offset;
-            if width(c) == 0
-                && !control(c)
-                && clusters
-                    .last()
-                    .is_some_and(|cluster| !control(cluster[0].1))
-            {
-                clusters.last_mut().unwrap().push((offset, c));
-            } else {
-                clusters.push(vec![(offset, c)]);
+            match clusters.last_mut() {
+                Some(cluster) if width(c) == 0 && !control(c) && !control(cluster[0].1) => {
+                    cluster.push((offset, c));
+                }
+                _ => clusters.push(vec![(offset, c)]),
             }
         }
         let cluster_levels: Vec<_> = clusters
@@ -156,13 +152,12 @@ fn segment(raw: &str, style: &mut Arc<str>, output: &mut String) {
     let mut plain = String::new();
     let mut styles = Vec::new();
     let mut rest = raw;
-    while !rest.is_empty() {
-        if rest.starts_with('\x1b') {
+    while let Some(c) = rest.chars().next() {
+        if c == '\x1b' {
             let end = escape_end(rest);
             sgr(style, &rest[..end]);
             rest = &rest[end..];
         } else {
-            let c = rest.chars().next().unwrap();
             styles.push((plain.len(), Arc::clone(style)));
             plain.push(c);
             rest = &rest[c.len_utf8()..];
@@ -170,8 +165,10 @@ fn segment(raw: &str, style: &mut Arc<str>, output: &mut String) {
     }
     let mut active: Option<&str> = None;
     for (offset, c, rtl) in order(&plain) {
-        let index = styles.binary_search_by_key(&offset, |(at, _)| *at).unwrap();
-        let ink = styles[index].1.as_ref();
+        // Every offset order() yields starts a character pushed above, so the search always finds its style.
+        let ink = styles
+            .binary_search_by_key(&offset, |(at, _)| *at)
+            .map_or(&**style, |index| styles[index].1.as_ref());
         if active != Some(ink) {
             output.push_str("\x1b[0m");
             output.push_str(ink);
@@ -223,8 +220,7 @@ pub fn frame(text: &str) -> String {
     let mut output = String::with_capacity(text.len());
     let mut style: Arc<str> = Arc::from("");
     let (mut start, mut at) = (0, 0);
-    while at < text.len() {
-        let c = text[at..].chars().next().unwrap();
+    while let Some(c) = text[at..].chars().next() {
         let end = if c == '\x1b' {
             at + escape_end(&text[at..])
         } else {

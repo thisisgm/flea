@@ -210,8 +210,11 @@ impl NetworkView {
                 return;
             }
         };
-        self.input.private = false;
-        self.input.digits = self.model.focus == Focus::Port;
+        self.input.kind = if self.model.focus == Focus::Port {
+            crate::path::entry::Kind::Digits
+        } else {
+            crate::path::entry::Kind::Text
+        };
         self.input.begin(text);
         self.input.move_to(text.len());
         self.input_owner = Some(self.model.focus);

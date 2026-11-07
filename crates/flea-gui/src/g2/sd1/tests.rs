@@ -42,7 +42,6 @@ fn english() -> I18n {
 fn facts() -> Facts {
     Facts {
         tailscale_command: "/usr/bin/tailscale".into(),
-        tailscale_unusable: false,
         send_command: "/usr/bin/omarchy-tailscale-send".into(),
         localsend_command: "/usr/bin/localsend-cli".into(),
         localsend_reason: String::new(),
@@ -94,4 +93,23 @@ fn status_runs(actions: &[Action]) -> usize {
         .iter()
         .filter(|action| matches!(action, Action::Run(RunKind::TaildropStatus(_), _)))
         .count()
+}
+
+#[test]
+fn uish_misc_unusable_provider_facts_keep_the_disabled_row_and_no_command() {
+    let facts = flea::ui_logic_sd1::providers::parse_facts(r#"{"taildrop":{"installed":true,"command":"","reason":"not executable"},"dropbox":{"installed":true,"command":"","reason":"not executable"},"dropboxInfo":"{}"}"#).unwrap();
+    assert!(super::installed(Role::Tailscale, &facts));
+    assert!(super::installed(Role::Dropbox, &facts));
+    assert!(!super::installed(Role::LocalSend, &facts));
+    assert!(facts.tailscale_command.is_empty() && facts.dropbox_command.is_empty());
+    struct NoWire;
+    impl Wire for NoWire {
+        fn send(&self, _: String) -> bool {
+            panic!("an unusable provider must start no discovery")
+        }
+    }
+    let mut sender = ProviderSend::default();
+    assert!(sender.menu_opened(&NoWire, &facts, None, &[], 0).is_empty());
+    assert!(sender.row_on(Role::Tailscale) && sender.row_on(Role::Dropbox));
+    assert!(sender.dropbox_refresh().is_none());
 }

@@ -98,12 +98,9 @@ impl Shell {
             return;
         }
         if !a.fresh_requested {
-            self.menu
-                .providers
-                .activation
-                .as_mut()
-                .unwrap()
-                .fresh_requested = true;
+            if let Some(live) = self.menu.providers.activation.as_mut() {
+                live.fresh_requested = true;
+            }
             self.provider_query(a.side, a.id, cx);
             return;
         }
@@ -119,7 +116,9 @@ impl Shell {
                 return;
             }
         }
-        self.menu.providers.activation.as_mut().unwrap().ready = true;
+        if let Some(live) = self.menu.providers.activation.as_mut() {
+            live.ready = true;
+        }
         self.activate_menu(window, cx);
     }
 }

@@ -91,7 +91,10 @@ fn focus_handoffs(view: View) {
         shell.mount_rail(cx);
         shell.set_view(view, window, cx);
         window.focus(&shell.focus, cx);
+        // The cursor draws the accent only in the active window; a TestWindow starts inactive.
+        window.activate_window();
     });
+    cx.run_until_parked();
     cursor_paint(&mut cx, handle, view, true);
     for stroke in ["m", ",", "tab"] {
         {

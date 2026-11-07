@@ -61,8 +61,12 @@ impl OutputView {
             || self.editor.entry.text != value
         {
             let value = value.to_owned();
-            self.editor.entry.digits =
-                matches!(self.model.focus, Some(Focus::Copies | Focus::Columns));
+            self.editor.entry.kind =
+                if matches!(self.model.focus, Some(Focus::Copies | Focus::Columns)) {
+                    crate::path::entry::Kind::Digits
+                } else {
+                    crate::path::entry::Kind::Text
+                };
             self.editor.entry.begin(&value);
             self.editor.drawn.borrow_mut().line = Default::default();
             self.editor.owner = self.model.focus;
