@@ -16,6 +16,8 @@ pub(super) struct Orders {
 pub(super) struct RequestedOrder {
     pub order: Order,
     pub sort: bool,
+    // A user's sort, which the window's fallback takes when it lands; a tab restoring its own order is not one.
+    pub chosen: bool,
 }
 
 impl super::Navigator {
