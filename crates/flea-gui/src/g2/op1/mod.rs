@@ -73,6 +73,9 @@ mod atomic_tests;
 mod draw_fixture;
 
 #[cfg(test)]
+mod spin_tests;
+
+#[cfg(test)]
 mod field_fix4_tests;
 
 #[cfg(test)]

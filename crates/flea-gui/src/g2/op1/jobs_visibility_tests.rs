@@ -7,14 +7,15 @@ fn agrees(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> bool {
     handle
         .update(cx, |root, window, cx| {
             let view = root.shell.read(cx).operation_view(0).unwrap();
-            let accent = view.read(cx).palette.accent;
+            let frame = view.read(cx).palette.muted_frame;
             let painted = mark.is_some_and(|mark| {
                 let square = mark.scale(window.scale_factor());
                 window.painted_quads().iter().any(|quad| {
                     quad.bounds.is_contained_within(&square)
-                        && quad.background.as_solid().is_some_and(|ink| {
-                            (ink.h, ink.s, ink.l) == (accent.h, accent.s, accent.l)
-                        })
+                        && quad
+                            .background
+                            .as_solid()
+                            .is_some_and(|ink| (ink.h, ink.s, ink.l) == (frame.h, frame.s, frame.l))
                 })
             });
             let (answer, receive) = std::sync::mpsc::sync_channel(1);

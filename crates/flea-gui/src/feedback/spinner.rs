@@ -59,9 +59,19 @@ pub struct Crawl {
     pub counters: Counters,
 }
 
+// Spinner.qml's crawl clock, in seconds and stroke units; spiral_seconds inverts spiral_phase on it.
+const SPIRAL_STILL_S: f32 = 1.;
+const SPIRAL_PERIOD: f32 = 57.;
+const SPIRAL_CYCLE_S: f32 = 1.6;
+
 /// Spinner.qml holds still for its first second, then walks one 57 unit dash period per 1.6 s.
 pub fn spiral_phase(seconds: f32) -> f32 {
-    ((seconds - 1.).max(0.) / 1.6 * 57.).rem_euclid(57.)
+    ((seconds - SPIRAL_STILL_S).max(0.) / SPIRAL_CYCLE_S * SPIRAL_PERIOD).rem_euclid(SPIRAL_PERIOD)
+}
+
+/// The time into the crawl at which `spiral_phase` reads `phase`, for a mark held still on one frame.
+pub fn spiral_seconds(phase: f32) -> f32 {
+    SPIRAL_STILL_S + phase.rem_euclid(SPIRAL_PERIOD) / SPIRAL_PERIOD * SPIRAL_CYCLE_S
 }
 
 impl Crawl {

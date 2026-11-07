@@ -223,7 +223,7 @@ fn a_hidden_window_samples_paints_and_requests_nothing(cx: &mut TestAppContext) 
 }
 
 #[gpui::test]
-fn operation_omi_uses_the_accent_role_when_frame_ink_differs(cx: &mut TestAppContext) {
+fn operation_spiral_uses_the_muted_frame_role_when_accent_inks_differ(cx: &mut TestAppContext) {
     let (overlay, vcx) = cx.add_window_view(|window, _| {
         let list =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
@@ -240,7 +240,11 @@ fn operation_omi_uses_the_accent_role_when_frame_ink_differs(cx: &mut TestAppCon
     });
     reveal_jobs(vcx);
     let bounds = vcx.debug_bounds("op1-job-1-mark").unwrap();
-    let accent = overlay.read_with(vcx, |overlay, _| overlay.palette.accent);
+    // TransferCard.qml's spiral takes the muted frame, as the jobs board draws it.
+    let (frame, accent) = overlay.read_with(vcx, |overlay, _| {
+        (overlay.palette.muted_frame, overlay.palette.accent)
+    });
+    assert_ne!((frame.h, frame.s, frame.l), (accent.h, accent.s, accent.l));
     vcx.update(|window, _| {
         let square = bounds.scale(window.scale_factor());
         let quads = window.painted_quads();
@@ -254,7 +258,7 @@ fn operation_omi_uses_the_accent_role_when_frame_ink_differs(cx: &mut TestAppCon
             .all(|quad| quad
                 .background
                 .as_solid()
-                .is_some_and(|ink| (ink.h, ink.s, ink.l) == (accent.h, accent.s, accent.l))));
+                .is_some_and(|ink| (ink.h, ink.s, ink.l) == (frame.h, frame.s, frame.l))));
     });
 }
 
