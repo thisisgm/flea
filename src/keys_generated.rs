@@ -27,6 +27,8 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "ctrlshift", "4", "ctrl-shift-4", "viewDual", "listing", "all", 3, 1, "keys.action.viewDual", true),
     Binding::new("all", "ctrl", "Right", "ctrl-right", "openInPlace", "listing", "gui", 1, 1, "keys.action.openInPlace", true),
     Binding::new("all", "ctrl", "Left", "ctrl-left", "closeInPlace", "listing", "gui", 1, 1, "keys.action.closeInPlace", true),
+    Binding::new("all", "text", ">", ">", "openInPlace", "listing", "gui", 0, 1, "keys.action.openInPlace", false),
+    Binding::new("all", "text", "<", "<", "closeInPlace", "listing", "gui", 0, 1, "keys.action.closeInPlace", false),
     Binding::new("default", "ctrl", "N", "ctrl-n", "windowNew", "listing,rail", "gui", 1, 3, "keys.action.windowNew", true),
     Binding::new("vim", "ctrl", "N", "ctrl-n", "windowNew", "listing,rail", "gui", 1, 3, "keys.action.windowNew", true),
     Binding::new("windows", "ctrl", "N", "ctrl-n", "windowNew", "listing,rail", "gui", 1, 3, "keys.action.windowNew", true),

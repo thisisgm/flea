@@ -45,7 +45,7 @@ fn tree_outline_keys_open_once_and_enter_keeps_navigating(cx: &mut TestAppContex
     assert_eq!(read(&shell, cx, "rowExpanded", &["0"]), "true");
     assert_eq!(read(&shell, cx, "rowDepth", &["1"]), "1");
     assert_eq!(read(&shell, cx, "rowNameText", &["1"]), "child.txt");
-    assert_eq!(read(&shell, cx, "rowGlyph", &["0"]), "chevron-down");
+    assert_eq!(read(&shell, cx, "rowGlyph", &["0"]), "folder-open");
     // The 19:08 native capture drew chooser checkboxes beside nested files: depth is never a check slot.
     cx.run_until_parked();
     let checks = shell.read_with(cx, |shell, _| {
@@ -311,9 +311,7 @@ fn tree_outline_drag_payload_uses_the_nested_file_path(cx: &mut TestAppContext) 
 }
 
 #[gpui::test]
-fn tree_outline_nested_chevron_keeps_its_pressed_mark_and_toggles_on_release(
-    cx: &mut TestAppContext,
-) {
+fn tree_outline_nested_mark_keeps_its_mark_and_toggles_on_release(cx: &mut TestAppContext) {
     let (shell, cx) = super::test_shell::open_root(cx, "default");
     let mut folder = row("A", true);
     folder.open = true;
@@ -328,28 +326,38 @@ fn tree_outline_nested_chevron_keeps_its_pressed_mark_and_toggles_on_release(
         gpui::px(values[0] + 14. + 32. + 11.),
         gpui::px(values[1] + values[3] / 2.),
     );
+    let rest = read(&shell, cx, "rowGlyph", &["1"]);
     sent();
     cx.simulate_mouse_move(at, None, gpui::Modifiers::default());
     cx.run_until_parked();
-    assert_eq!(read(&shell, cx, "rowGlyph", &["1"]), "chevron-right");
+    assert_eq!(
+        read(&shell, cx, "rowGlyph", &["1"]),
+        rest,
+        "nothing changes under the pointer"
+    );
     cx.simulate_mouse_down(at, gpui::MouseButton::Left, gpui::Modifiers::default());
     cx.run_until_parked();
-    assert_eq!(read(&shell, cx, "rowGlyph", &["1"]), "chevron-right");
+    assert_eq!(read(&shell, cx, "rowGlyph", &["1"]), rest);
     assert!(!sent().iter().any(|line| line.contains("\"c\":\"outline\"")));
     cx.simulate_mouse_up(at, gpui::MouseButton::Left, gpui::Modifiers::default());
     cx.run_until_parked();
     assert!(sent()
         .iter()
-        .any(|line| line.contains("\"c\":\"outline\",\"row\":1,\"open\":true")));
+        .any(|line| line.contains("\"c\":\"outline\",\"rows\":[1],\"open\":true,\"anchor\":0")));
     child.open = true;
     land(&shell, cx, "/files", vec![folder, child], 2);
-    assert_eq!(read(&shell, cx, "rowGlyph", &["1"]), "chevron-down");
+    assert_eq!(read(&shell, cx, "rowGlyph", &["1"]), "folder-open");
+    assert_eq!(
+        read(&shell, cx, "cursor", &[]),
+        "0",
+        "a mark click leaves the cursor where it was"
+    );
     cx.simulate_mouse_down(at, gpui::MouseButton::Left, gpui::Modifiers::default());
     cx.simulate_mouse_up(at, gpui::MouseButton::Left, gpui::Modifiers::default());
     cx.run_until_parked();
     assert!(sent()
         .iter()
-        .any(|line| line.contains("\"c\":\"outline\",\"row\":1,\"open\":false")));
+        .any(|line| line.contains("\"c\":\"outline\",\"rows\":[1],\"open\":false")));
 }
 
 #[gpui::test]

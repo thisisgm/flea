@@ -3,8 +3,10 @@ use crate::{state::Shell, window::startup::View};
 use gpui::{Context, Pixels, Window};
 
 pub(crate) enum Input {
+    /// Every marked folder, or the cursor's folder when no marked row is one.
     Key,
-    Chevron,
+    /// A click on this row's mark: that folder alone, and the cursor stays where it was.
+    Mark(usize),
 }
 
 /// An outline line waits for the re-list of the folder it was made for, and only that one.
@@ -37,24 +39,44 @@ impl Shell {
         {
             return;
         }
-        let Some(row) = host.pane.held.row(host.pane.cursor) else {
-            return;
-        };
         let mut gate = host.nav.gate;
-        if matches!(input, Input::Chevron) {
-            gate.pointer_held = false;
+        let held = &host.pane.held;
+        // A marked row outside the held window goes to the backend unchecked, which falls back to the anchor if none is a folder.
+        let folder = |index: &usize| {
+            held.row(*index)
+                .is_none_or(|row| row.dir && row.link.is_none())
+        };
+        let changes = |index: &usize| held.row(*index).is_none_or(|row| row.open != open);
+        let mut rows: Vec<usize> = match input {
+            Input::Mark(row) => {
+                gate.pointer_held = false;
+                vec![row]
+            }
+            Input::Key => host.selected.clone(),
+        };
+        rows.retain(folder);
+        if matches!(input, Input::Key) && rows.is_empty() {
+            rows = vec![host.pane.cursor];
+            rows.retain(folder);
         }
-        if gate.owned() || !row.dir || row.link.is_some() || row.open == open {
+        rows.sort_unstable();
+        rows.dedup();
+        if gate.owned() || !rows.iter().any(changes) {
             return;
         }
+        let anchor = host.pane.cursor;
+        let list = rows
+            .iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
         host.outline_used = true;
         host.outline_lone = (host.input.selection.is_lone() && host.selected.len() == 1)
             .then_some(host.pane.held.listing);
         host.outline_request = Some(Request {
             folder: host.pane.path().to_owned(),
             line: format!(
-                "{{\"c\":\"outline\",\"row\":{},\"open\":{open},\"listing\":{},\"first\":{}}}",
-                host.pane.cursor,
+                "{{\"c\":\"outline\",\"rows\":[{list}],\"open\":{open},\"anchor\":{anchor},\"listing\":{},\"first\":{}}}",
                 host.pane.held.listing,
                 host.pane.first_count()
             ),
@@ -84,15 +106,15 @@ impl Shell {
         }
         let list = host.list.borrow();
         let metrics = list.drawn.metrics;
-        let Some(slot) = list
+        let Some(right) = list
             .drawn_rows
             .row(row)
-            .and_then(|facts| crate::list::outline::chevron_left(&list.view, facts, &metrics))
+            .and_then(|facts| crate::list::outline::mark_target(&list.view, facts, &metrics))
         else {
             return false;
         };
-        let left = list.drawn.bounds.origin.x + gpui::px(slot);
-        x >= left && x < left + gpui::px(metrics.slot)
+        let left = list.drawn.bounds.origin.x;
+        x >= left && x < left + gpui::px(right)
     }
 
     pub(crate) fn outline_mode(&mut self, view: View, window: &mut Window, cx: &mut Context<Self>) {

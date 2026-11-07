@@ -219,11 +219,10 @@ impl Shell {
             }
             if event.button == MouseButton::Left && outline == Some(press.row) {
                 let open = !host.pane.held.row(press.row).is_some_and(|row| row.open);
-                host.pane.cursor = press.row;
                 self.outline_action(
                     side,
                     open,
-                    crate::window::outline::Input::Chevron,
+                    crate::window::outline::Input::Mark(press.row),
                     window,
                     cx,
                 );

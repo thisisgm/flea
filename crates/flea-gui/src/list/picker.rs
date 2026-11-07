@@ -149,16 +149,10 @@ pub(super) fn paint_icon(
         left + px(metrics.pad + offset + (metrics.slot - metrics.mark) / 2.),
         top + px((metrics.row - metrics.mark) / 2.),
     );
-    if let Some((_, key, data)) = row.and_then(|row| {
-        super::outline::chevron(view, row, shown.state.hovered, window.layout_mirrored())
-    }) {
-        paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
-        return (1, 0);
-    }
-    let mark = shown
-        .prepared
-        .as_ref()
-        .map_or(Mark::File, |prepared| prepared.mark);
+    let mark = row
+        .and_then(|row| super::outline::mark(view, row))
+        .or_else(|| shown.prepared.as_ref().map(|prepared| prepared.mark))
+        .unwrap_or(Mark::File);
     let (key, data) = mark.svg();
     paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
     (1, 0)
