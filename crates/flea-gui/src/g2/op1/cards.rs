@@ -131,7 +131,7 @@ impl Operations {
         }
     }
 
-    // Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash
+    /// Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash
     // asks the same mkdir the TUI's create prompt does; a bad name says so in the card.
     pub(super) fn confirm_new_file(&mut self, catalog: &I18n) {
         let Some(Dialog::NewFile {
@@ -178,7 +178,7 @@ impl Operations {
         self.outbox.push(line);
     }
 
-    // The create's reply, from either request it sent: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
+    /// The create's reply, from either request it sent: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
     fn new_file_reply(&mut self, catalog: &I18n, reply: &Reply) {
         let Some(Dialog::NewFile { id, busy: true, .. }) = self.dialog else {
             return;
@@ -206,7 +206,7 @@ impl Operations {
         }
     }
 
-    // A Trash or menu reply: the Copy To card's validate, or the permanent card's delete, check or fresh review.
+    /// A Trash or menu reply: the Copy To card's validate, or the permanent card's delete, check or fresh review.
     pub(super) fn card_reply(
         &mut self,
         catalog: &I18n,
