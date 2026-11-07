@@ -123,7 +123,9 @@ impl Render for Surfaces {
 }
 
 #[gpui::test]
-fn omi_fit_real_menu_and_job_slots_take_hero_and_card_floor_sizes(cx: &mut TestAppContext) {
+fn omi_fit_real_menu_slot_takes_hero_sizes_and_the_job_spiral_its_card_size(
+    cx: &mut TestAppContext,
+) {
     for mode in [
         spinner::Mode::Thinking,
         spinner::Mode::Working,
@@ -135,9 +137,10 @@ fn omi_fit_real_menu_and_job_slots_take_hero_and_card_floor_sizes(cx: &mut TestA
             cx.simulate_window_scale_factor_change(handle.into(), scale);
             frame(cx, handle);
             let mut visual = gpui::VisualTestContext::from_window(handle.into(), cx);
+            // A job lays out its 16 px card slot, never floored to Omi's 22 px grid; spin_tests checks its paint.
             for (selector, side, drawn) in [
-                ("fit-menu", spinner::HERO, hero),
-                ("fit-job", f32::max(16., 22. / scale), 22.),
+                ("fit-menu", spinner::HERO, Some(hero)),
+                ("fit-job", 16., None),
             ] {
                 let slot = visual.debug_bounds(selector).unwrap();
                 // Layout snaps the slot to device pixels, so 66 px at 1.25 lays out as 82 device px.
@@ -150,6 +153,9 @@ fn omi_fit_real_menu_and_job_slots_take_hero_and_card_floor_sizes(cx: &mut TestA
                     slot.size.width, slot.size.height,
                     "{selector} {mode:?} {scale}"
                 );
+                let Some(drawn) = drawn else {
+                    continue;
+                };
                 let painted = view_rect(slot, scale).scale(scale).size.width.0;
                 assert!(
                     near(painted, drawn),
