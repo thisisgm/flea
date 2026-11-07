@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "הסתרת קבצים מוסתרים",
   "menu.loading": "טוען…",
   "menu.locked.refusal": "פתיחה במסוף, הרשאות והעתקה בתור מוסתרים בהגדרות > תפריטים.",
+  "menu.locked.terminal_copy_hidden": "פתיחה במסוף והעתקה בתור מוסתרים בהגדרות > תפריטים.",
   "menu.make_executable.failed": "לא ניתן היה להפוך את הקובץ לבר-הרצה.",
   "menu.make_executable.made": "הקובץ הוגדר כבר-הרצה.",
   "menu.make_executable.refused": "הגדרה כבר-הרצה פועלת על סקריפט שטרם ניתן להריץ",

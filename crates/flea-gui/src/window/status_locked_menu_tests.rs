@@ -3,6 +3,9 @@ use super::*;
 #[path = "status_notice_layout_tests.rs"]
 mod layout;
 
+// v0.4.0's shipped Menus switches, which hide all three rows a locked folder can offer (locked-menu board).
+pub(super) const HIDDEN_0_4_0: &str = r#"["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]"#;
+
 // EY-48: m over a folder Flea cannot read, the Locked state's pane.
 fn locked(cx: &mut TestAppContext, hidden: Option<&str>) -> WindowHandle<Shell> {
     locked_at(cx, hidden, "/files")
@@ -52,8 +55,7 @@ fn locked_at(cx: &mut TestAppContext, hidden: Option<&str>, folder: &str) -> Win
 
 #[gpui::test]
 fn ey48_locked_folder_with_its_rows_hidden_opens_no_menu_and_says_why(cx: &mut TestAppContext) {
-    // The shipped Menus switches hide all three rows a locked folder can offer (locked-menu board).
-    let handle = locked(cx, None);
+    let handle = locked(cx, Some(HIDDEN_0_4_0));
     handle
         .update(cx, |shell, _, _| {
             assert!(!shell.menu_opened(), "no menu opens over the locked hero");
@@ -82,6 +84,31 @@ fn ey48_locked_folder_with_its_rows_hidden_opens_no_menu_and_says_why(cx: &mut T
         lane.contains("esc dismisses"),
         "esc dismisses follows it, muted: {lane}"
     );
+}
+
+// Permissions ships shown, so at the shipped defaults a locked folder's menu opens on that row alone, and 0.4.0's notice still names what stays hidden.
+#[gpui::test]
+fn ey48_locked_folder_at_the_shipped_defaults_offers_permissions_and_names_the_hidden_two(
+    cx: &mut TestAppContext,
+) {
+    let handle = locked(cx, None);
+    handle
+        .update(cx, |shell, _, _| {
+            assert!(shell.menu_opened(), "the locked menu opens");
+            let ids: Vec<String> = shell
+                .menu_entries()
+                .iter()
+                .filter(|e| !e.separator)
+                .map(|e| e.action.to_string())
+                .collect();
+            assert_eq!(ids, ["permissions"]);
+        })
+        .unwrap();
+    assert_eq!(
+        read(cx, handle, "lastMessage"),
+        Reply::value("Open in Terminal and Copy As are hidden in Settings > Menus.")
+    );
+    assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
 }
 
 #[gpui::test]

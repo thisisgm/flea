@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Masquer les fichiers cachés",
   "menu.loading": "Chargement…",
   "menu.locked.refusal": "Ouvrir dans le terminal, Permissions et Copier en tant que sont masqués dans Paramètres > Menus.",
+  "menu.locked.terminal_copy_hidden": "Ouvrir dans le terminal et Copier en tant que sont masqués dans Paramètres > Menus.",
   "menu.make_executable.failed": "Impossible de rendre ce fichier exécutable.",
   "menu.make_executable.made": "Fichier rendu exécutable.",
   "menu.make_executable.refused": "Rendre exécutable s’applique à un script qui ne peut pas encore être exécuté",

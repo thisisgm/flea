@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "Piilota piilotiedostot",
   "menu.loading": "Ladataan…",
   "menu.locked.refusal": "Avaa päätteessä, Käyttöoikeudet ja Kopioi muodossa on piilotettu kohdassa Asetukset > Valikot.",
+  "menu.locked.terminal_copy_hidden": "Avaa päätteessä ja Kopioi muodossa on piilotettu kohdassa Asetukset > Valikot.",
   "menu.make_executable.failed": "Tiedostoa ei voitu tehdä suoritettavaksi.",
   "menu.make_executable.made": "Tehty suoritettavaksi.",
   "menu.make_executable.refused": "Suoritettavaksi tekeminen toimii komentosarjalle, jota ei vielä voi suorittaa",

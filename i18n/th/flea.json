@@ -1119,6 +1119,7 @@
   "menu.hideHidden": "ซ่อนไฟล์ที่ซ่อน",
   "menu.loading": "กำลังโหลด…",
   "menu.locked.refusal": "เปิดในเทอร์มินัล สิทธิ์ และคัดลอกเป็น ถูกซ่อนใน ตั้งค่า > เมนู",
+  "menu.locked.terminal_copy_hidden": "เปิดในเทอร์มินัล และคัดลอกเป็น ถูกซ่อนใน ตั้งค่า > เมนู",
   "menu.make_executable.failed": "ทำให้ไฟล์นั้นเรียกใช้ได้ไม่สำเร็จ",
   "menu.make_executable.made": "ทำให้เรียกใช้ได้แล้ว",
   "menu.make_executable.refused": "ทำให้เรียกใช้ได้ ใช้กับสคริปต์ที่ยังเรียกใช้ไม่ได้",

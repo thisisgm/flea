@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "Ficha faili zilizofichwa",
   "menu.loading": "Inapakia…",
   "menu.locked.refusal": "Fungua katika terminali, Ruhusa na Nakili kama zimefichwa katika Mipangilio > Menyu.",
+  "menu.locked.terminal_copy_hidden": "Fungua katika terminali na Nakili kama zimefichwa katika Mipangilio > Menyu.",
   "menu.make_executable.failed": "Faili hiyo haikuweza kuwezeshwa kutekelezwa.",
   "menu.make_executable.made": "Imeiwezesha kutekelezwa.",
   "menu.make_executable.refused": "Wezesha kutekelezwa hufanya kazi kwa hati ambayo bado haiwezi kuendeshwa",

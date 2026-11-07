@@ -187,6 +187,7 @@ impl Shell {
             if operation == "applications" {
                 self.menu.reading = false;
                 self.menu.context.open_with_loaded = true;
+                self.menu.context.open_with_late = false;
                 self.menu.context.open_with_apps.clear();
                 self.refresh_menu(window, cx);
                 self.activate_menu(window, cx);
@@ -227,6 +228,7 @@ impl Shell {
             "applications" => {
                 self.menu.reading = false;
                 self.menu.context.open_with_loaded = true;
+                let late = std::mem::replace(&mut self.menu.context.open_with_late, false);
                 self.menu.context.open_with_apps = reply
                     .get("applications")
                     .and_then(Json::as_array)
@@ -239,6 +241,20 @@ impl Shell {
                         default: app.get("default").and_then(Json::as_bool) == Some(true),
                     })
                     .collect();
+                // refresh_menu leaves a card it already opened alone, so the card the deadline opened takes the answer here.
+                if late {
+                    let fresh = self
+                        .menu_entries()
+                        .into_iter()
+                        .find(|e| e.action == "openWith");
+                    if let Some(entry) = fresh {
+                        self.menu
+                            .menu
+                            .borrow_mut()
+                            .replace_leaves("openWith", entry.submenu);
+                        cx.notify();
+                    }
+                }
                 self.refresh_menu(window, cx);
                 self.activate_menu(window, cx);
             }

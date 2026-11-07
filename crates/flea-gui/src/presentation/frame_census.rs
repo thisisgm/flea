@@ -53,7 +53,7 @@ pub(crate) const CENSUS: &[(&str, States)] = &[
     ("settings-card-chips-checkboxes", row(4, 0, 0, 0, 0)),
     ("settings-display", row(4, 0, 0, 0, 0)),
     ("settings-keys", row(4, 0, 0, 0, 0)),
-    ("settings-menus", row(60, 0, 0, 0, 0)),
+    ("settings-menus", row(68, 0, 0, 0, 0)),
     ("settings-places", row(28, 0, 0, 0, 0)),
     ("settings-preview", row(20, 0, 0, 0, 0)),
     ("settings-search-field", row(0, 4, 0, 0, 0)),

@@ -1500,6 +1500,7 @@
   "menu.refusal.empty_clipboard": "Tidak ada yang dapat ditempelkan; y menyalin dan x memotong.",
   "menu.refusal.favourite_unread": "Folder yang dipilih tidak dapat dibaca.",
   "menu.locked.refusal": "Buka di terminal, Izin dan Salin sebagai disembunyikan di Pengaturan > Menu.",
+  "menu.locked.terminal_copy_hidden": "Buka di terminal dan Salin sebagai disembunyikan di Pengaturan > Menu.",
   "trash.up_unavailable": "Ke atas tidak tersedia di Sampah",
   "trash.header.location": "Lokasi asal",
   "trash.unknown": "Tidak diketahui",

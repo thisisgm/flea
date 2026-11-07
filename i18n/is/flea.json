@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "Fela faldar skrár",
   "menu.loading": "Hleður…",
   "menu.locked.refusal": "Opna í útstöð, Heimildir og Afrita sem eru falin í Stillingar > Valmyndir.",
+  "menu.locked.terminal_copy_hidden": "Opna í útstöð og Afrita sem eru falin í Stillingar > Valmyndir.",
   "menu.make_executable.failed": "Ekki tókst að gera þessa skrá keyranlega.",
   "menu.make_executable.made": "Gerði hana keyranlega.",
   "menu.make_executable.refused": "Gera keyranlega virkar á skriftu sem ekki er hægt að keyra enn",

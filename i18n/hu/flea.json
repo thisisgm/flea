@@ -1316,6 +1316,7 @@
   "menu.refusal.empty_clipboard": "Nincs mit beilleszteni. y: másolás, x: kivágás.",
   "menu.refusal.favourite_unread": "A kijelölt mappa nem olvasható.",
   "menu.locked.refusal": "A Megnyitás terminálban, a Jogosultságok és a Másolás másként rejtve vannak a Beállítások > Menük alatt.",
+  "menu.locked.terminal_copy_hidden": "A Megnyitás terminálban és a Másolás másként rejtve vannak a Beállítások > Menük alatt.",
   "menu.favourites_changed": "A Kedvencek megváltoztak. Nyisd meg újra a menüt a sor eltávolítása előtt.",
   "menu.place.opens_here": "%1 csak ezen a lapon nyílik meg",
   "trash.title": "Kuka",

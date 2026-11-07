@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Ascunde fișierele ascunse",
   "menu.loading": "Se încarcă…",
   "menu.locked.refusal": "Deschide în terminal, Permisiuni și Copiază ca sunt ascunse în Setări > Meniuri.",
+  "menu.locked.terminal_copy_hidden": "Deschide în terminal și Copiază ca sunt ascunse în Setări > Meniuri.",
   "menu.make_executable.failed": "Acel fișier nu a putut fi făcut executabil.",
   "menu.make_executable.made": "Fișierul a fost făcut executabil.",
   "menu.make_executable.refused": "Fă executabil se aplică unui script care nu poate fi încă rulat",

@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "Skjul skjulte filer",
   "menu.loading": "Laster inn…",
   "menu.locked.refusal": "Åpne i terminal, Rettigheter og Kopier som er skjult i Innstillinger > Menyer.",
+  "menu.locked.terminal_copy_hidden": "Åpne i terminal og Kopier som er skjult i Innstillinger > Menyer.",
   "menu.make_executable.failed": "Kunne ikke gjøre filen kjørbar.",
   "menu.make_executable.made": "Gjorde filen kjørbar.",
   "menu.make_executable.refused": "Gjør kjørbar virker på et skript som ennå ikke kan kjøres",

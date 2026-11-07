@@ -1354,6 +1354,7 @@
   "menu.refusal.empty_clipboard": "Não há nada para colar; y copia e x corta.",
   "menu.refusal.favourite_unread": "Não foi possível ler a pasta selecionada.",
   "menu.locked.refusal": "Abrir no terminal, Permissões e Copiar como estão ocultos em Definições > Menus.",
+  "menu.locked.terminal_copy_hidden": "Abrir no terminal e Copiar como estão ocultos em Definições > Menus.",
   "menu.favourites_changed": "Os Favoritos mudaram; volta a abrir o menu antes de removeres esta linha.",
   "menu.place.opens_here": "%1 abre apenas neste separador",
   "trash.title": "Lixo",

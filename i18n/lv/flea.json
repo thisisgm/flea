@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Slēpt slēptos failus",
   "menu.loading": "Ielādē…",
   "menu.locked.refusal": "Atvērt terminālī, Atļaujas un Kopēt kā ir paslēpti sadaļā Iestatījumi > Izvēlnes.",
+  "menu.locked.terminal_copy_hidden": "Atvērt terminālī un Kopēt kā ir paslēpti sadaļā Iestatījumi > Izvēlnes.",
   "menu.make_executable.failed": "Šo failu nevarēja padarīt izpildāmu.",
   "menu.make_executable.made": "Fails padarīts izpildāms.",
   "menu.make_executable.refused": "Padarīt izpildāmu darbojas skriptiem, kurus vēl nevar izpildīt",

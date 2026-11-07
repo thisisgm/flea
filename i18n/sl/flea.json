@@ -1254,6 +1254,7 @@
   "menu.hideHidden": "Skrij skrite datoteke",
   "menu.loading": "Nalaganje…",
   "menu.locked.refusal": "Odpri v terminalu, Dovoljenja in Kopiraj kot so skriti v Nastavitve > Meniji.",
+  "menu.locked.terminal_copy_hidden": "Odpri v terminalu in Kopiraj kot sta skrita v Nastavitve > Meniji.",
   "menu.make_executable.failed": "Te datoteke ni bilo mogoče narediti izvedljive.",
   "menu.make_executable.made": "Datoteka je zdaj izvedljiva.",
   "menu.make_executable.refused": "Naredi izvedljivo deluje na skriptu, ki ga še ni mogoče zagnati",

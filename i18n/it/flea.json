@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Nascondi file nascosti",
   "menu.loading": "Caricamento…",
   "menu.locked.refusal": "Apri nel terminale, Permessi e Copia come sono nascosti in Impostazioni > Menu.",
+  "menu.locked.terminal_copy_hidden": "Apri nel terminale e Copia come sono nascosti in Impostazioni > Menu.",
   "menu.make_executable.failed": "Impossibile rendere eseguibile il file.",
   "menu.make_executable.made": "Reso eseguibile.",
   "menu.make_executable.refused": "Rendi eseguibile si applica a uno script che non può ancora essere eseguito",

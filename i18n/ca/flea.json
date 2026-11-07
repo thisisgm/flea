@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Amaga els fitxers ocults",
   "menu.loading": "S'està carregant…",
   "menu.locked.refusal": "Obre al terminal, Permisos i Copia com a estan amagats a Configuració > Menús.",
+  "menu.locked.terminal_copy_hidden": "Obre al terminal i Copia com a estan amagats a Configuració > Menús.",
   "menu.make_executable.failed": "No s'ha pogut fer executable aquest fitxer.",
   "menu.make_executable.made": "Ara és executable.",
   "menu.make_executable.refused": "Fes executable funciona amb un script que encara no es pot executar",

@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Ocultar arquivos ocultos",
   "menu.loading": "Carregando…",
   "menu.locked.refusal": "Abrir no terminal, Permissões e Copiar como estão ocultos em Configurações > Menus.",
+  "menu.locked.terminal_copy_hidden": "Abrir no terminal e Copiar como estão ocultos em Configurações > Menus.",
   "menu.make_executable.failed": "Não foi possível tornar esse arquivo executável.",
   "menu.make_executable.made": "Arquivo tornado executável.",
   "menu.make_executable.refused": "Tornar executável funciona em um script que ainda não pode ser executado",

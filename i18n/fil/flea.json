@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "Itago ang mga nakatagong file",
   "menu.loading": "Naglo-load…",
   "menu.locked.refusal": "Nakatago ang Buksan sa Terminal, Mga Pahintulot at Kopyahin bilang sa Mga Setting > Mga Menu.",
+  "menu.locked.terminal_copy_hidden": "Nakatago ang Buksan sa Terminal at Kopyahin bilang sa Mga Setting > Mga Menu.",
   "menu.make_executable.failed": "Hindi magawang executable ang file na iyon.",
   "menu.make_executable.made": "Nagawa nang executable.",
   "menu.make_executable.refused": "Gumagana ang Gawing executable sa script na hindi pa mapatakbo",

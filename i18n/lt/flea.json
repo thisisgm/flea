@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Slėpti paslėptus failus",
   "menu.loading": "Įkeliama…",
   "menu.locked.refusal": "„Atidaryti terminale“, „Leidimai“ ir „Kopijuoti kaip“ paslėpti nuostatų skiltyje „Meniu“.",
+  "menu.locked.terminal_copy_hidden": "„Atidaryti terminale“ ir „Kopijuoti kaip“ paslėpti nuostatų skiltyje „Meniu“.",
   "menu.make_executable.failed": "Nepavyko padaryti šio failo vykdomojo.",
   "menu.make_executable.made": "Failas padarytas vykdomuoju.",
   "menu.make_executable.refused": "Vykdomuoju galima padaryti scenarijų, kurio dar negalima paleisti",

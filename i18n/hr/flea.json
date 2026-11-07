@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Sakrij skrivene datoteke",
   "menu.loading": "Učitavanje…",
   "menu.locked.refusal": "Otvori u terminalu, Dopuštenja i Kopiraj kao skriveni su u Postavke > Izbornici.",
+  "menu.locked.terminal_copy_hidden": "Otvori u terminalu i Kopiraj kao skriveni su u Postavke > Izbornici.",
   "menu.make_executable.failed": "Nije moguće učiniti tu datoteku izvršnom.",
   "menu.make_executable.made": "Datoteka je učinjena izvršnom.",
   "menu.make_executable.refused": "Učini izvršnom djeluje na skriptu koja se još ne može pokrenuti",

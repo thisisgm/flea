@@ -144,6 +144,16 @@ impl Menu {
         outcome
     }
 
+    // The card's rows keep their places, so the cursor under the operator does not move.
+    pub fn replace_leaves(&mut self, action: &str, leaves: Option<Vec<Entry>>) {
+        let card = self.card.as_mut();
+        if let Some(entry) =
+            card.and_then(|card| card.entries.iter_mut().find(|e| e.action == action))
+        {
+            entry.submenu = leaves;
+        }
+    }
+
     pub fn close(&mut self) -> Outcome {
         let was = self.opened();
         self.fades.closing = self.card.take().or(self.fades.closing.take());

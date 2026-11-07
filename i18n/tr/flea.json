@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "Gizli dosyaları gizle",
   "menu.loading": "Yükleniyor…",
   "menu.locked.refusal": "Terminalde aç, İzinler ve Farklı kopyala, Ayarlar > Menüler bölümünde gizlenmiş.",
+  "menu.locked.terminal_copy_hidden": "Terminalde aç ve Farklı kopyala, Ayarlar > Menüler bölümünde gizlenmiş.",
   "menu.make_executable.failed": "Bu dosya çalıştırılabilir yapılamadı.",
   "menu.make_executable.made": "Çalıştırılabilir yapıldı.",
   "menu.make_executable.refused": "Çalıştırılabilir yap, henüz çalıştırılamayan bir betik üzerinde çalışır",

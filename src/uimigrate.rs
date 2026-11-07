@@ -1,6 +1,6 @@
-// The one-time changes a stored ui.json is owed, applied on read and recorded by its stateVersion stamp.
+// The one-time changes a stored ui.json is owed, applied on read and recorded by its stateVersion and menuVersion stamps.
 use crate::jsondoc::Json;
-use crate::uischema::STATE_VERSION;
+use crate::uischema::{MENU_VERSION, STATE_VERSION};
 
 // Each change by the stateVersion it arrived in, oldest first; a file stamped below one has not had it.
 type Step = fn(Json) -> Json;
@@ -9,6 +9,19 @@ const STEPS: &[(f64, Step)] = &[
     (2.0, hide_new_menu_rows),
     (3.0, hide_run_rows),
     (4.0, hide_0_4_0_rows),
+];
+
+// The menuVersion 0.4.1 leaves once its menu rows were swapped; DEFAULTS in src/uischema.rs carries the same.
+const MENU_0_4_1: f64 = 1.0;
+
+// What an untouched Settings > Menus list holds after steps 2 to 4: shipped by 0.4.0, by 0.3.6 to 0.3.12, by 0.3.0 to 0.3.5.
+const UNTOUCHED_0_4_0: &[&[&str]] = &[
+    &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs",
+      "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"],
+    &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs",
+      "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "actions"],
+    &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs",
+      "pasteAs", "invertSelection", "run", "openAsText", "openAgent", "actions"],
 ];
 
 // Automatic settlement must leave a newer schema for the version that understands it.
@@ -29,6 +42,13 @@ pub fn migrated(found: &Json, merged: Json) -> Json {
             let next = if *version >= 2.0 && !stored_menu { state } else { step(state) };
             state = with_key(next, STATE_VERSION, Json::Num(format!("{}", version)));
         }
+    }
+    // 0.4.0 keeps an unknown key as it was read, so this stamp survives a downgrade and the upgrade back.
+    if found.get(MENU_VERSION).and_then(Json::as_f64).unwrap_or(0.0) < MENU_0_4_1 {
+        if stored_menu {
+            state = swap_0_4_1_rows(state);
+        }
+        state = with_key(state, MENU_VERSION, Json::Num(format!("{}", MENU_0_4_1)));
     }
     state
 }
@@ -116,6 +136,34 @@ fn hide_0_4_0_rows(state: Json) -> Json {
     with_key(state, "menu", with_key(menu, "hidden", hidden))
 }
 
+// 0.4.1 shows Properties and Permissions and takes the two view rows off the file menu, once, on a list equal to one an untouched file holds; any other list is kept exactly as saved.
+fn swap_0_4_1_rows(state: Json) -> Json {
+    let menu = state.get("menu").cloned().unwrap_or(Json::Obj(Vec::new()));
+    let items = match menu.get("hidden").and_then(Json::as_array) {
+        Some(items) => items.to_vec(),
+        None => return state,
+    };
+    if items.iter().any(|item| !matches!(item, Json::Str(_))) {
+        return state;
+    }
+    let mut held: Vec<&str> = items.iter().filter_map(Json::as_str).collect();
+    held.sort_unstable();
+    let untouched = UNTOUCHED_0_4_0.iter().any(|list| {
+        let mut shipped = list.to_vec();
+        shipped.sort_unstable();
+        shipped == held
+    });
+    if !untouched {
+        return state;
+    }
+    let mut kept: Vec<Json> = items
+        .into_iter()
+        .filter(|item| !matches!(item.as_str(), Some("properties" | "permissions")))
+        .collect();
+    kept.extend(["toggleHidden", "toggleLangMarks"].map(|id| Json::Str(id.into())));
+    with_key(state, "menu", with_key(menu, "hidden", Json::Arr(kept)))
+}
+
 // Replaced where it stands, so the key order a rewrite renders is the merge's and not this file's.
 fn with_key(object: Json, key: &str, value: Json) -> Json {
     let Json::Obj(mut pairs) = object else { return object };
@@ -130,7 +178,7 @@ fn with_key(object: Json, key: &str, value: Json) -> Json {
 mod tests {
     use crate::backend::testdir::TestDir;
     use crate::jsondoc::{self, Json};
-    use crate::uischema::STATE_VERSION;
+    use crate::uischema::{MENU_VERSION, STATE_VERSION};
     use crate::uistate::{from_file, patched};
     use crate::uistore::Store;
     use std::fs;
@@ -261,8 +309,8 @@ mod tests {
         );
         assert_eq!(
             hidden(&read),
-            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions", "copyAs", "extThumbs", "pasteAs", "invertSelection", "run", "openAsText", "openAgent", "actions"],
-            "copypath becomes copyAs where it stood, the other two are appended, then the run rows, then the agent row, then Actions where Run Script was hidden"
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "copyAs", "extThumbs", "pasteAs", "invertSelection", "run", "openAsText", "openAgent", "actions", "toggleHidden", "toggleLangMarks"],
+            "copypath becomes copyAs where it stood, the other two are appended, then the run rows, then the agent row, then Actions where Run Script was hidden, and the untouched list shows Properties and Permissions and drops the view rows"
         );
         assert_eq!(stamp(&read), Some(LATEST));
         assert_eq!(shown(&read), Some(true), "the 1.0 step does not run again for a stamped file");
@@ -303,7 +351,7 @@ mod tests {
             r#"{"stateVersion":2,"places":{"showUnmounted":true},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs"]}}"#,
         );
         let got = hidden(&read);
-        assert_eq!(got[got.len() - 4..], ["run".to_string(), "openAsText".to_string(), "openAgent".to_string(), "actions".to_string()]);
+        assert_eq!(got[got.len() - 6..], ["run", "openAsText", "openAgent", "actions", "toggleHidden", "toggleLangMarks"].map(String::from));
         assert_eq!(stamp(&read), Some(LATEST));
         let again = from_file(r#"{"stateVersion":3,"menu":{"hidden":["delete"]}}"#);
         assert_eq!(hidden(&again), ["delete", "openAgent"], "a stamped file keeps its shown run rows and still hides the agent row");
@@ -316,7 +364,7 @@ mod tests {
             r#"{"stateVersion":3,"places":{"showUnmounted":true},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText"]}}"#,
         );
         let got = hidden(&read);
-        assert_eq!(got[got.len() - 2..], ["openAgent".to_string(), "actions".to_string()]);
+        assert_eq!(got[got.len() - 4..], ["openAgent", "actions", "toggleHidden", "toggleLangMarks"].map(String::from));
         assert_eq!(stamp(&read), Some(LATEST));
         let again = from_file(r#"{"stateVersion":4,"menu":{"hidden":["delete"]}}"#);
         assert_eq!(hidden(&again), ["delete"], "a stamped file that shows the agent row keeps it shown");
@@ -376,5 +424,130 @@ mod tests {
         assert_eq!(stored.get("keys").and_then(Json::as_str), Some("mac"));
         assert_eq!(stored.get("view").and_then(Json::as_str), Some("columns"));
         assert_eq!(stored.get("density").and_then(Json::as_str), Some("comfortable"));
+    }
+
+    fn menu_stamp(state: &Json) -> Option<f64> {
+        state.get(MENU_VERSION).and_then(Json::as_f64)
+    }
+
+    fn holds_view_rows(state: &Json) -> (bool, bool) {
+        let got = hidden(state);
+        (got.iter().any(|id| id == "toggleHidden"), got.iter().any(|id| id == "toggleLangMarks"))
+    }
+
+    fn holds_inspect_rows(state: &Json) -> (bool, bool) {
+        let got = hidden(state);
+        (got.iter().any(|id| id == "properties"), got.iter().any(|id| id == "permissions"))
+    }
+
+    // Each release's shipped list with the stamp it wrote: a file that never changed Settings > Menus.
+    const SHIPPED_BY_RELEASE: &[(&str, &str)] = &[
+        ("0.3.2", r#"{"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copypath"]}}"#),
+        ("0.3.5", r#"{"stateVersion":1,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copypath"]}}"#),
+        ("0.3.7", r#"{"stateVersion":1,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copypath","extThumbs"]}}"#),
+        ("0.3.9", r#"{"stateVersion":2,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs"]}}"#),
+        ("0.3.12", r#"{"stateVersion":3,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText"]}}"#),
+        ("0.4.0", r#"{"stateVersion":4,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]}}"#),
+    ];
+
+    // A fresh install and every untouched shipped list show Properties and Permissions and keep the view rows off the file menu.
+    #[test]
+    fn a_fresh_install_and_every_untouched_shipped_list_show_properties_and_permissions() {
+        let d = TestDir::new("uimigrate-inspect-fresh");
+        let fresh = Store::at(&d.dir("state"), &d.dir("config")).read();
+        assert_eq!(holds_inspect_rows(&fresh), (false, false), "{}", hidden(&fresh).join(","));
+        assert_eq!(holds_view_rows(&fresh), (true, true));
+        assert_eq!((stamp(&fresh), menu_stamp(&fresh)), (Some(LATEST), Some(1.0)));
+        for (release, text) in SHIPPED_BY_RELEASE {
+            let before = from_file(text);
+            assert_eq!(holds_inspect_rows(&before), (false, false), "{release}: {}", hidden(&before).join(","));
+            assert_eq!(holds_view_rows(&before), (true, true), "{release}");
+            assert_eq!((stamp(&before), menu_stamp(&before)), (Some(LATEST), Some(1.0)), "{release}");
+        }
+        // The rest of 0.4.0's own list stays hidden and in its order, and the two view rows follow it.
+        assert_eq!(
+            hidden(&from_file(SHIPPED_BY_RELEASE[5].1)),
+            ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "toggleHidden", "toggleLangMarks"]
+        );
+    }
+
+    // A list the operator changed is theirs: the step leaves every id where it stood.
+    #[test]
+    fn a_customised_list_keeps_its_rows_exactly() {
+        let lists = [
+            // 0.4.0's list with Show Thumbnails switched on.
+            r#"["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText","openAgent"]"#,
+            // 0.4.0's list with Compress switched off.
+            r#"["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","compress"]"#,
+            // Permissions switched on, Properties left off.
+            r#"["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]"#,
+            r#"["properties","permissions"]"#,
+            "[]",
+        ];
+        for list in lists {
+            let text = format!(r#"{{"stateVersion":4,"menu":{{"hidden":{list}}}}}"#);
+            let want = hidden(&patch(&text));
+            assert_eq!(hidden(&from_file(&text)), want, "{list}");
+        }
+    }
+
+    // After the one migration, hiding both rows again is the operator's choice and outlives every later launch.
+    #[test]
+    fn the_migration_writes_once_and_a_later_hide_stays_hidden() {
+        let d = TestDir::new("uimigrate-inspect-settle");
+        let s = store_with(&d, SHIPPED_BY_RELEASE[5].1);
+        s.settle().expect("the first 0.4.1 launch");
+        let stored = on_disk(&d);
+        assert_eq!((holds_inspect_rows(&stored), stamp(&stored), menu_stamp(&stored)), ((false, false), Some(4.0), Some(1.0)));
+        let mut again: Vec<Json> = hidden(&stored).into_iter().map(Json::Str).collect();
+        again.extend([Json::Str("properties".into()), Json::Str("permissions".into())]);
+        let rehide = Json::Obj(vec![("menu".into(), Json::Obj(vec![("hidden".into(), Json::Arr(again))]))]);
+        s.update(&rehide).expect("hidden again in Settings > Menus");
+        s.settle().expect("the next launch");
+        assert_eq!(holds_inspect_rows(&s.read()), (true, true), "a list carrying menuVersion 1 is the operator's");
+    }
+
+    // 0.4.0 refuses a stateVersion above 4 and reads such a file as defaults, so 0.4.1 leaves the stamp at 4.
+    #[test]
+    fn a_0_4_1_file_stays_one_0_4_0_reads_and_writes() {
+        let d = TestDir::new("uimigrate-inspect-downgrade");
+        let s = store_with(&d, SHIPPED_BY_RELEASE[5].1);
+        s.update(&patch(r#"{"view":"grid"}"#)).expect("a 0.4.1 write");
+        let stored = on_disk(&d);
+        assert_eq!((stamp(&stored), menu_stamp(&stored)), (Some(4.0), Some(1.0)));
+        assert!(!super::newer_than_known(&stored), "the stamp 0.4.0 checks is one it knows");
+        assert!(crate::persistdoc::ui(&stored), "the file passes the check 0.4.0 runs before a read or a write");
+    }
+
+    // What 0.4.0 writes back carries menuVersion as an unknown key, so the next 0.4.1 launch runs no step.
+    #[test]
+    fn a_file_back_from_0_4_0_with_both_rows_hidden_again_keeps_them_hidden() {
+        let back = r#"{"stateVersion":4,"menuVersion":1,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]}}"#;
+        assert_eq!(holds_inspect_rows(&from_file(back)), (true, true));
+    }
+
+    // A stamp below 1 has not had the step; the step runs and the stamp it leaves is 1, so it runs once.
+    #[test]
+    fn a_menu_stamp_below_one_runs_the_step_and_is_raised_to_one() {
+        let text = r#"{"stateVersion":4,"menuVersion":0,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent"]}}"#;
+        let read = from_file(text);
+        assert_eq!((holds_inspect_rows(&read), menu_stamp(&read)), ((false, false), Some(1.0)));
+    }
+
+    // 0.4.0's whole list plus a number: without the string check its strings alone would read as untouched.
+    #[test]
+    fn a_hidden_list_with_a_non_string_passes_the_inspect_step_untouched() {
+        let state = patch(r#"{"stateVersion":4,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent",7]}}"#);
+        assert_eq!(super::swap_0_4_1_rows(state.clone()), state);
+    }
+
+    // A file cannot say how its list got there, so a changed list equal to an untouched one reads as untouched.
+    #[test]
+    fn a_changed_list_equal_to_an_untouched_one_shows_the_rows() {
+        // 0.3.12's list with Show Thumbnails switched on, which steps 3 and 4 turn into 0.3.0 to 0.3.5's untouched list.
+        let read = from_file(
+            r#"{"stateVersion":3,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","invertSelection","run","openAsText"]}}"#,
+        );
+        assert_eq!(holds_inspect_rows(&read), (false, false), "{}", hidden(&read).join(","));
     }
 }

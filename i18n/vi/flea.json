@@ -1119,6 +1119,7 @@
   "menu.hideHidden": "Ẩn tệp ẩn",
   "menu.loading": "Đang tải…",
   "menu.locked.refusal": "Mở trong Terminal, Quyền và Sao chép dưới dạng đang bị ẩn trong Cài đặt > Trình đơn.",
+  "menu.locked.terminal_copy_hidden": "Mở trong Terminal và Sao chép dưới dạng đang bị ẩn trong Cài đặt > Trình đơn.",
   "menu.make_executable.failed": "Không thể cấp quyền thực thi cho tệp đó.",
   "menu.make_executable.made": "Đã cấp quyền thực thi.",
   "menu.make_executable.refused": "Cấp quyền thực thi áp dụng cho tập lệnh chưa thể chạy",

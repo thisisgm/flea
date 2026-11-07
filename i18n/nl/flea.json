@@ -1397,6 +1397,7 @@
   "menu.loading": "Laden…",
   "preview.loading": "Laden…",
   "menu.locked.refusal": "Openen in terminal, Rechten en Kopiëren als zijn verborgen in Instellingen > Menu's.",
+  "menu.locked.terminal_copy_hidden": "Openen in terminal en Kopiëren als zijn verborgen in Instellingen > Menu's.",
   "menu.make_executable.failed": "Dat bestand kon niet uitvoerbaar worden gemaakt.",
   "menu.make_executable.made": "Uitvoerbaar gemaakt.",
   "menu.make_executable.refused": "Uitvoerbaar maken werkt op een script dat nog niet kan worden uitgevoerd",
