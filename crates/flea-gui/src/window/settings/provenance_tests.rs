@@ -98,6 +98,8 @@ fn probed(owner: &str, answer: &str, cx: &mut gpui::TestAppContext) -> (Drawn, D
             let blank = about::Facts::default();
             view.panel.facts.about.source = blank.source;
             view.panel.facts.about.package = blank.package;
+            // The host's own package answers live in the opened panel too: a blank card must not inherit them.
+            view.panel.facts.about.built = blank.built;
             view.panel.rebuild();
         });
         let read = |shell: &crate::state::Shell, cx: &mut gpui::Context<crate::state::Shell>| {
