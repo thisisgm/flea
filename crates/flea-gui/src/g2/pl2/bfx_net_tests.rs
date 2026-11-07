@@ -210,7 +210,7 @@ fn bfx_net_quiet_share_list_cannot_reopen_previous_shares() {
                 effect,
                 Effect::Completed {
                     id: 2,
-                    error: Some("network.no_folder"),
+                    error: Some(super::mount::GUEST_EMPTY),
                     ..
                 }
             )));

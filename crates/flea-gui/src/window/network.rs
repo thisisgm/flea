@@ -46,6 +46,9 @@ pub struct Network {
     pub mountinfo_ready: bool,
     pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
     pub menu_row: Option<(RailEntry, u64)>,
+    /// The NETWORK plus's hosts menu while it holds the shared menu, and the last request id it used.
+    pub(crate) nearby: Option<nearby::Nearby>,
+    pub(crate) nearby_serial: usize,
     pub(crate) runner: Rc<dyn Runner>,
     pub(crate) bookmarks: PathBuf,
     origins: Vec<Origin>,
@@ -180,6 +183,8 @@ impl Shell {
                 mountinfo_ready: false,
                 menu: Rc::default(),
                 menu_row: None,
+                nearby: None,
+                nearby_serial: 0,
                 runner,
                 bookmarks: bookmarks_path(),
                 origins: Vec::new(),
@@ -384,6 +389,8 @@ mod effects;
 mod focus;
 #[path = "network_menu.rs"]
 mod menu;
+#[path = "network_nearby.rs"]
+pub(crate) mod nearby;
 #[path = "network_path.rs"]
 mod path;
 #[path = "network_rows.rs"]

@@ -71,11 +71,27 @@ pub struct Menu {
     pub history: bool,
     // Where the menu was asked to open, which every later fit places it from again.
     at: (f32, f32),
+    // A width floor in nominal pixels, scaled like every other menu metric; 0 keeps the shared menu width.
+    pub minimum: f32,
 }
 
 impl Menu {
     pub fn opened(&self) -> bool {
         self.card.is_some()
+    }
+
+    /// Moves the keyboard cursor to a live row of the open card, as an answer that lands under the menu may ask.
+    pub fn land(&mut self, index: usize) {
+        if let Some(card) = &mut self.card {
+            if card.entries.get(index).is_some_and(Entry::steppable) {
+                card.cursor = Some(index);
+                card.settle();
+            }
+        }
+    }
+
+    fn floor(&self, env: &Env) -> f32 {
+        flea::ui_logic_mn1::fit::Metrics::at(f32::from(env.typeface.body)).of(self.minimum)
     }
 
     /// Where the menu was asked to open, before the fit moves its frame.
@@ -100,9 +116,10 @@ impl Menu {
         if entries.is_empty() {
             return Outcome::Nothing;
         }
-        let built = lines::build(&entries, env, window, 0., work.w);
+        let floor = self.floor(env);
+        let built = lines::build(&entries, env, window, floor, work.w);
         let metrics = built.metrics;
-        let width = metrics.fit_width(built.widest, work.w);
+        let width = metrics.flyout_width(floor, built.widest, work.w);
         let frame = metrics.place(at, width, metrics.content_height(&entries), work, env.inset);
         // Every open lands on the first live row, the pointer's included, as v0.3.12 place() does.
         let cursor = Card::first(&entries);
@@ -367,9 +384,10 @@ impl Menu {
             sub_cursor,
         );
         let pointer = card.cursor.is_none();
-        let built = lines::build(&entries, env, window, 0., self.work.w);
+        let floor = self.floor(env);
+        let built = lines::build(&entries, env, window, floor, self.work.w);
         let metrics = built.metrics;
-        let width = metrics.fit_width(built.widest, self.work.w);
+        let width = metrics.flyout_width(floor, built.widest, self.work.w);
         // A new width or height places the card again from its opening point, as v0.3.12 clampFrame does.
         let frame = metrics.place(
             self.at,
@@ -379,8 +397,10 @@ impl Menu {
             env.inset,
         );
         let content_y = card.content_y;
+        let busy = std::rc::Rc::clone(&card.busy);
         let mut next = Card::new(entries, built, frame, (!pointer).then_some(kept.cursor));
         next.content_y = content_y;
+        next.busy = busy;
         next.settle();
         self.card = Some(next);
         match (lone, kept.submenu_row) {

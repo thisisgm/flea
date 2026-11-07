@@ -18,6 +18,8 @@ mod vf3_tests;
 mod handoff_tests;
 #[path = "network_native11_tests.rs"]
 mod native11_tests;
+#[path = "network_nearby_tests.rs"]
+mod nearby_tests;
 
 #[derive(Default)]
 struct Recorder {

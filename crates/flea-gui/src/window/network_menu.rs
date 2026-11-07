@@ -27,6 +27,7 @@ impl Shell {
         let Some(row) = self.network_row(entry) else {
             return;
         };
+        self.nearby_stop();
         let origin = self.network_origin(side);
         let Some(join) = &self.rail else {
             return;
@@ -51,6 +52,7 @@ impl Shell {
         let Some(network) = self.rail.as_ref().and_then(|join| join.network.as_ref()) else {
             return;
         };
+        network.menu.borrow_mut().minimum = 0.;
         network.menu.borrow_mut().open(
             Face::Place,
             entries,
@@ -77,6 +79,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self
+            .network()
+            .is_some_and(|network| network.nearby.is_some())
+        {
+            self.nearby_outcome(outcome, window, cx);
+            return;
+        }
         let action = match outcome {
             Outcome::Fire { action, .. } => action,
             Outcome::Closed | Outcome::Refused(_) => {
@@ -200,6 +209,7 @@ impl Shell {
         let menu = network.menu.clone();
         let shares = network.shares.clone();
         if menu.borrow().opened() {
+            self.nearby_touch();
             let typeface = self.active_typeface();
             let env = self.menu_env(&typeface);
             let outcome = menu.borrow_mut().act(action, None, "", &env, window);
@@ -303,14 +313,21 @@ impl Shell {
                     .on_mouse_move(cx.listener(|shell, event: &MouseMoveEvent, window, cx| {
                         let typeface = shell.active_typeface();
                         let env = shell.menu_env(&typeface);
+                        let mut moved = false;
                         if let Some(network) = shell.rail.as_ref().and_then(|j| j.network.as_ref())
                         {
-                            network.menu.borrow_mut().hover(
+                            let mut menu = network.menu.borrow_mut();
+                            let before = menu.card.as_ref().map(|card| card.cursor);
+                            menu.hover(
                                 event.position.x.into(),
                                 event.position.y.into(),
                                 &env,
                                 window,
                             );
+                            moved = menu.card.as_ref().map(|card| card.cursor) != before;
+                        }
+                        if moved {
+                            shell.nearby_touch();
                         }
                         cx.notify();
                         cx.stop_propagation();
@@ -338,6 +355,7 @@ impl Shell {
         else {
             return;
         };
+        self.nearby_touch();
         let typeface = self.active_typeface();
         let env = self.menu_env(&typeface);
         let outcome = menu.borrow_mut().click(

@@ -273,6 +273,13 @@ impl Mounts {
                     .filter(|s| !s.is_empty())
                     .map(str::to_string)
                     .collect();
+                // A server that mounts for a guest and lists nothing is asking who is asking, so sign-in is offered, not refused.
+                if out.code == 0
+                    && names.is_empty()
+                    && self.flight.as_ref().is_some_and(|f| guest(&f.request))
+                {
+                    return self.invite();
+                }
                 if out.code != 0 || names.is_empty() {
                     return self.fail("network.no_folder");
                 }
@@ -380,6 +387,17 @@ impl Mounts {
         });
         effects
     }
+}
+
+/// The card's sign-in invitation: a reason in muted ink, never an error, with the caret in Username.
+pub const GUEST_EMPTY: &str = "network.guest_empty";
+
+/// An SMB request that carries no credential of any kind, which is what a guest listing is.
+fn guest(request: &Request) -> bool {
+    flea::ui_logic_pl2::protocols::scheme_of(&request.uri) == "smb"
+        && !request.authenticated
+        && request.password.is_empty()
+        && !logic::credentialed(&request.uri)
 }
 
 impl Mounts {

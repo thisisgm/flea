@@ -65,8 +65,13 @@ fn rail_switches_read_their_shipped_defaults() {
     let recent = find(&rows, "places.showRecent");
     assert_eq!(format!("{}|{}", say(&recent.label), recent.on), "Recent|false");
     assert!(find(&places(r#"{"places":{"showRecent":true}}"#, ""), "places.showRecent").on);
-    let tail: Vec<String> = rows[rows.len() - 7..rows.len() - 2].iter().map(|r| say(&r.label)).collect();
-    assert_eq!(tail, ["Show unmounted drives", "Show tags", "Auto-hide sidebar", "Show sidebar", "Sidebar width"]);
+    let tail: Vec<String> = rows[rows.len() - 8..rows.len() - 2].iter().map(|r| say(&r.label)).collect();
+    assert_eq!(tail, ["Show unmounted drives", "List nearby hosts when adding a share", "Show tags", "Auto-hide sidebar", "Show sidebar", "Sidebar width"]);
+    // 0401-settings-nearby: the option ships off and greys in place while Network is unticked.
+    let nearby = find(&rows, "places.nearbyHosts");
+    assert!(!nearby.on && nearby.available && nearby.glyph == "network");
+    assert!(find(&places(r#"{"places":{"nearbyHosts":true}}"#, ""), "places.nearbyHosts").on);
+    assert!(!find(&places(r#"{"places":{"showNetwork":false}}"#, ""), "places.nearbyHosts").available);
     assert!(find(&rows, "places.rail").on);
     assert!(!find(&rows, "places.autoHide").on);
     assert!(!find(&places(r#"{"places":{"rail":"hidden"}}"#, ""), "places.rail").on);

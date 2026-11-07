@@ -13,6 +13,8 @@ pub struct Card {
     // The wheel's and the touchpad's leftover travel, one each per card, as each v0.3.12 CardScroll keeps its own.
     pub(super) notch: i32,
     pub(super) touch: f32,
+    // The busy row's Omi, kept across a refresh so its crawl does not restart.
+    pub busy: std::rc::Rc<crate::feedback::spinner::Crawl>,
 }
 
 impl Card {
@@ -33,6 +35,7 @@ impl Card {
             cursor,
             notch: 0,
             touch: 0.,
+            busy: Default::default(),
         };
         card.settle();
         card

@@ -739,6 +739,7 @@
   "settings.places.drive_size": "显示驱动器容量",
   "settings.places.trash_count": "显示回收站项目数",
   "settings.places.show_unmounted": "显示未挂载的驱动器",
+  "settings.places.nearby_hosts": "添加共享时列出附近的主机",
   "settings.places.show_tags": "显示标签",
   "settings.places.auto_hide": "自动隐藏侧边栏",
   "settings.places.show_sidebar": "显示侧边栏",
@@ -1811,6 +1812,9 @@
   "network.retry_title": "连接到网络共享",
   "network.failed_title": "无法连接到网络共享",
   "network.tailscale": "Tailscale",
+  "network.add_share": "添加网络共享…",
+  "network.looking_hosts": "正在查找主机…",
+  "network.guest_empty": "此服务器不向访客显示任何内容。请登录以查看其共享。",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "安装 Dropbox",
   "document.markdown_lines": {

@@ -781,6 +781,7 @@
   "settings.places.drive_size": "Mostrar tamanho da unidade",
   "settings.places.trash_count": "Mostrar contagem do Lixo",
   "settings.places.show_unmounted": "Mostrar unidades desmontadas",
+  "settings.places.nearby_hosts": "Listar anfitriões próximos ao adicionar uma partilha",
   "settings.places.show_tags": "Mostrar etiquetas",
   "settings.places.auto_hide": "Ocultar automaticamente a barra lateral",
   "settings.places.show_sidebar": "Mostrar barra lateral",
@@ -2001,6 +2002,9 @@
   "network.retry_title": "Ligar a uma partilha de rede",
   "network.failed_title": "Não foi possível ligar à partilha de rede",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Adicionar uma partilha de rede…",
+  "network.looking_hosts": "A procurar anfitriões…",
+  "network.guest_empty": "Este servidor não mostra nada a um convidado. Inicia sessão para ver as partilhas.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Instalar o Dropbox",
   "document.markdown_lines": {

@@ -460,7 +460,7 @@ pub fn ext_thumbs_entry(entry: &mut Entry, storage_class: &str, thumbs: ThumbPre
     true
 }
 
-// A separator or a disabled row is never the cursor; a step skips one and an end keeps the cursor.
+// A separator, a disabled row or a busy row is never the cursor; a step skips one and an end keeps the cursor.
 pub fn step_row(rows: &[Entry], from: isize, delta: isize) -> isize {
     let mut at = from + delta;
     while at >= 0 && (at as usize) < rows.len() {

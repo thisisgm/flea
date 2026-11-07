@@ -10,6 +10,7 @@ mod geometry;
 mod marks;
 pub mod menus;
 pub mod mount;
+pub mod nearby;
 mod pointer;
 mod present;
 pub mod provider;
@@ -33,6 +34,8 @@ mod child_tests;
 mod dialog_tests;
 #[cfg(test)]
 mod extra_tests;
+#[cfg(test)]
+mod guest_tests;
 #[cfg(test)]
 mod input_tests;
 #[cfg(test)]

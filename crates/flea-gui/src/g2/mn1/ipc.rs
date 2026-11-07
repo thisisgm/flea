@@ -39,6 +39,7 @@ pub(super) fn lead_name(lead: &Lead) -> &str {
         Lead::Tag(_) => "tag",
         Lead::Check(true) => "checkmark",
         Lead::Icon(name) => name,
+        Lead::Busy => "omi",
         Lead::None | Lead::Check(false) => "",
     }
 }

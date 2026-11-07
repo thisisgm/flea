@@ -17,6 +17,7 @@ impl Shell {
             || self.grid_pictures_event(side, event, window, cx)
             || self.provider_event(side, event, window, cx)
             || self.clipboard_receive(side, event, window, cx)
+            || self.nearby_event(side, event, window, cx)
     }
 
     // A Trash line goes to the operation view first when one is open, then to the Trash pane.

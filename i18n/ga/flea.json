@@ -813,6 +813,7 @@
   "settings.places.drive_size": "Taispeáin méid an tiomántáin",
   "settings.places.trash_count": "Taispeáin líon míreanna sa Bhruscar",
   "settings.places.show_unmounted": "Taispeáin tiomántáin dhífheistithe",
+  "settings.places.nearby_hosts": "Liostaigh óstaigh in aice láimhe agus comhroinnt á cur leis",
   "settings.places.show_tags": "Taispeáin clibeanna",
   "settings.places.auto_hide": "Uathfholaigh an barra taoibh",
   "settings.places.show_sidebar": "Taispeáin an barra taoibh",
@@ -2167,6 +2168,9 @@
   "network.retry_title": "Ceangail le comhroinnt líonra",
   "network.failed_title": "Níorbh fhéidir ceangal leis an gcomhroinnt líonra",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Cuir comhroinnt líonra leis…",
+  "network.looking_hosts": "Óstaigh á lorg…",
+  "network.guest_empty": "Ní thaispeánann an freastalaí seo aon rud d'aoi. Sínigh isteach chun a chomhroinntí a fheiceáil.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Suiteáil Dropbox",
   "document.markdown_lines": {
