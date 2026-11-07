@@ -1,5 +1,7 @@
 //! Native property changes feed the existing transport and metadata state.
 use super::*;
+use flea::ui_logic_pv3::tonemap;
+use std::ffi::{c_char, CStr};
 
 pub(super) fn property(
     api: &Api,
@@ -59,13 +61,21 @@ pub(super) fn property(
         }
         WIDTH => state.clip.0 = int(),
         HEIGHT => state.clip.1 = int(),
+        GAMMA => {
+            // SAFETY: a string property's data points at one NUL-terminated string mpv owns for this event.
+            let gamma = unsafe { CStr::from_ptr(*(changed.data as *const *const c_char)) };
+            state.tonemap.source.pq = tonemap::pq(&gamma.to_string_lossy());
+        }
+        SOURCE_WIDTH => state.tonemap.source.width = int().clamp(0, MAX_SIDE) as u32,
+        SOURCE_HEIGHT => state.tonemap.source.height = int().clamp(0, MAX_SIDE) as u32,
+        ROTATE => state.tonemap.source.rotated = int() % 360 != 0,
         _ => {}
     }
     if matches!(event.userdata, WIDTH | HEIGHT) {
         let (w, h) = state.clip;
         state.size = decode_size(
-            w.clamp(0, 1 << 16) as u32,
-            h.clamp(0, 1 << 16) as u32,
+            w.clamp(0, MAX_SIDE) as u32,
+            h.clamp(0, MAX_SIDE) as u32,
             state.box_size.0,
             state.box_size.1,
         );

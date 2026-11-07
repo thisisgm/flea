@@ -3,10 +3,11 @@ use super::mpv_api::{Event as MpvEvent, *};
 use super::{opaque, Options, Output, INPUT};
 use flea::ui_logic_pv3::frame::{Command, Event, Failure};
 use flea::ui_logic_pv3::picture::decode_size;
+use flea::ui_logic_pv3::tonemap::stall_due;
 use std::ffi::{c_int, c_void};
 use std::ptr;
 use std::sync::mpsc::{self, Receiver, SyncSender};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[path = "mpv_state.rs"]
 mod state;
@@ -28,11 +29,17 @@ const EOF: u64 = 4;
 const WIDTH: u64 = 5;
 const HEIGHT: u64 = 6;
 const VIDEO: u64 = 7;
+const GAMMA: u64 = 8;
+const SOURCE_WIDTH: u64 = 9;
+const SOURCE_HEIGHT: u64 = 10;
+const ROTATE: u64 = 11;
 // The clock the strip draws moves in steps no finer than this.
 const POSITION_STEP_MS: i64 = 100;
 // A frame released before the clip's size is known renders into a 2x2 RGBA scrap nobody shows.
 const SCRAP_SIDE: u32 = 2;
 const SCRAP_STRIDE: usize = SCRAP_SIDE as usize * 4;
+// A size mpv reports is clamped to this side before it can size a frame buffer.
+const MAX_SIDE: i64 = 1 << 16;
 
 unsafe extern "C" fn wake(data: *mut c_void) {
     // SAFETY: data is the SyncSender `run` keeps alive until both callbacks are cleared.
@@ -119,6 +126,11 @@ pub fn run(
             (WIDTH, "dwidth", FORMAT_INT64),
             (HEIGHT, "dheight", FORMAT_INT64),
             (VIDEO, "vid", FORMAT_INT64),
+            // The decoder's own output, which the tone-map filter never changes.
+            (GAMMA, "video-dec-params/gamma", FORMAT_STRING),
+            (SOURCE_WIDTH, "video-dec-params/dw", FORMAT_INT64),
+            (SOURCE_HEIGHT, "video-dec-params/dh", FORMAT_INT64),
+            (ROTATE, "video-dec-params/rotate", FORMAT_INT64),
         ] {
             let name = text(name);
             // SAFETY: a live handle and a NUL-terminated name.
@@ -158,9 +170,12 @@ fn play(
     let mut owed = false;
     state.box_size = (options.box_w, options.box_h);
     let mut redraw = false;
+    // The last frame, command, load, restart or pause change: frames are owed only after it.
+    let mut progress = Instant::now();
     let io = |result: std::io::Result<()>| result.map_err(|error| error.to_string());
     loop {
         for command in commands.try_iter() {
+            progress = Instant::now();
             match command {
                 Command::Play => {
                     if state.transport.play() {
@@ -188,8 +203,8 @@ fn play(
                 Command::Resize(w, h) => {
                     state.box_size = (w, h);
                     state.size = decode_size(
-                        state.clip.0.clamp(0, 1 << 16) as u32,
-                        state.clip.1.clamp(0, 1 << 16) as u32,
+                        state.clip.0.clamp(0, MAX_SIDE) as u32,
+                        state.clip.1.clamp(0, MAX_SIDE) as u32,
                         w,
                         h,
                     );
@@ -210,6 +225,10 @@ fn play(
                             state.seeking = None;
                             eprintln!("flea-media: seek dropped: {error}");
                         }
+                    } else if event.userdata == FILTER_REPLY {
+                        if let Err(error) = check(event.error, "vf") {
+                            drop_filter(api, handle, &mut state, &error);
+                        }
                     } else {
                         check(event.error, "command reply")?;
                     }
@@ -223,6 +242,7 @@ fn play(
                     }
                 }
                 EVENT_FILE_LOADED => {
+                    progress = Instant::now();
                     // Observers supply metadata without a synchronous core call on the render thread.
                     state.loaded = true;
                     io(out.event(state.facts()))?;
@@ -232,6 +252,7 @@ fn play(
                     }
                 }
                 EVENT_PLAYBACK_RESTART => {
+                    progress = Instant::now();
                     if let Some(target) = state.seeking {
                         if let Some((paused, eof, at_end)) = completed_seek(api, handle, target) {
                             state.seeking = None;
@@ -243,14 +264,32 @@ fn play(
                         }
                     }
                 }
-                EVENT_PROPERTY_CHANGE => property(api, handle, event, &mut state, out)?,
+                EVENT_PROPERTY_CHANGE => {
+                    if event.userdata == PAUSE {
+                        progress = Instant::now();
+                    }
+                    property(api, handle, event, &mut state, out)?
+                }
                 _ => {}
+            }
+        }
+        if let Some(filter) = state.tonemap.update(state.box_size.0, state.box_size.1) {
+            progress = Instant::now();
+            set_filter(api, handle, &mut state, &filter);
+        }
+        if stall_due(state.tonemap.on(), progress.elapsed()) {
+            progress = Instant::now();
+            if moving(api, handle) {
+                drop_filter(api, handle, &mut state, "no frame came");
             }
         }
         // SAFETY: a live render context.
         let update = unsafe { (api.render_update)(context) };
         let pending = update & RENDER_UPDATE_FRAME != 0;
         let draw = super::draw(pending, state.size.0 > 0, owed || redraw);
+        if draw != super::Draw::Nothing {
+            progress = Instant::now();
+        }
         if draw == super::Draw::Release {
             let mut scrap = [0_u8; SCRAP_STRIDE * SCRAP_SIDE as usize];
             render(
@@ -291,6 +330,30 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
         }
         Err(error) => eprintln!("flea-media: seek dropped: {error}"),
     }
+}
+
+/// Sets the tone-map filter; one mpv refuses at once is given up for the run, never the end of the helper.
+fn set_filter(api: &Api, handle: Handle, state: &mut State, filter: &str) {
+    let shown = if filter.is_empty() { "off" } else { filter };
+    eprintln!("flea-media: tone_map={shown}");
+    if let Err(error) = set(api, handle, "vf", filter) {
+        drop_filter(api, handle, state, &error);
+    }
+}
+
+/// The filter was refused or stalled the picture: the renderer converts again, as it did before the filter.
+fn drop_filter(api: &Api, handle: Handle, state: &mut State, why: &str) {
+    eprintln!("flea-media: tone map dropped: {why}");
+    if let Some(off) = state.tonemap.fail() {
+        set_filter(api, handle, state, &off);
+    }
+}
+
+/// Play should be producing frames: not paused, seeking, waiting on the cache or parked at the end.
+fn moving(api: &Api, handle: Handle) -> bool {
+    ["pause", "seeking", "paused-for-cache", "eof-reached"]
+        .into_iter()
+        .all(|name| get_flag(api, handle, name) == Some(false))
 }
 
 fn frame_due(api: &Api, context: Handle) -> Result<bool, String> {

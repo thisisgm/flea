@@ -13,6 +13,7 @@ pub const EVENT_END_FILE: c_int = 7;
 pub const EVENT_FILE_LOADED: c_int = 8;
 pub const EVENT_PLAYBACK_RESTART: c_int = 21;
 pub const EVENT_PROPERTY_CHANGE: c_int = 22;
+pub const FORMAT_STRING: c_int = 1;
 pub const FORMAT_FLAG: c_int = 3;
 pub const FORMAT_INT64: c_int = 4;
 pub const FORMAT_DOUBLE: c_int = 5;
@@ -28,6 +29,7 @@ pub const RENDER_SW_POINTER: c_int = 20;
 pub const RENDER_UPDATE_FRAME: u64 = 1;
 pub const FRAME_INFO_PRESENT: u64 = 1;
 pub const SEEK_REPLY: u64 = 1;
+pub const FILTER_REPLY: u64 = 2;
 
 #[repr(C)]
 pub struct Event {
@@ -120,7 +122,11 @@ pub fn command(api: &Api, handle: Handle, words: &[&str]) -> Result<(), String> 
     let owned: Vec<CString> = words.iter().map(|word| text(word)).collect();
     let mut list: Vec<*const c_char> = owned.iter().map(|word| word.as_ptr()).collect();
     list.push(ptr::null());
-    let reply = if words[0] == "seek" { SEEK_REPLY } else { 0 };
+    let reply = match words {
+        ["seek", ..] => SEEK_REPLY,
+        ["set", "vf", _] => FILTER_REPLY,
+        _ => 0,
+    };
     // SAFETY: mpv_command_async copies the null-terminated list of live strings before returning.
     check(
         unsafe { (api.command)(handle, reply, list.as_ptr()) },
