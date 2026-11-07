@@ -55,7 +55,11 @@ pub(super) fn paint(
         if view.model.form.tls && view.model.form.protocol.tls_control() {
             mark("check", 19., 489. - view.scroll, 14., p.surface);
         }
-        if view.model.status.is_some() {
+        if view
+            .model
+            .status
+            .is_some_and(|key| key != super::mount::GUEST_EMPTY)
+        {
             mark("alert", 17., 547. - view.scroll, 12., p.error_on_surface);
         }
     });

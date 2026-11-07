@@ -762,6 +762,7 @@
   "settings.places.drive_size": "Meghajtóméret megjelenítése",
   "settings.places.trash_count": "Kuka elemszámának megjelenítése",
   "settings.places.show_unmounted": "Leválasztott meghajtók megjelenítése",
+  "settings.places.nearby_hosts": "Közeli gépek listázása megosztás hozzáadásakor",
   "settings.places.show_tags": "Címkék megjelenítése",
   "settings.places.auto_hide": "Oldalsáv automatikus elrejtése",
   "settings.places.show_sidebar": "Oldalsáv megjelenítése",
@@ -1912,6 +1913,9 @@
   "network.retry_title": "Csatlakozás hálózati megosztáshoz",
   "network.failed_title": "Nem sikerült csatlakozni a hálózati megosztáshoz",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Hálózati megosztás hozzáadása…",
+  "network.looking_hosts": "Gépek keresése…",
+  "network.guest_empty": "Ez a kiszolgáló vendégnek semmit sem mutat. Jelentkezz be a megosztásai megtekintéséhez.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Dropbox telepítése",
   "document.markdown_lines": {

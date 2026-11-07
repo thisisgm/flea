@@ -14,19 +14,26 @@ impl Drawn {
             return;
         };
         let text = view.catalog.tr_args(key, &[&view.model.detail]);
-        let width = self.card.map_or(499., |r| r.w) - 55.;
+        // The sign-in invitation is not a failure: muted, with no alert mark, from the fields' own left edge.
+        let invited = key == super::mount::GUEST_EMPTY;
+        let (x, ink) = if invited {
+            (17., view.palette.muted)
+        } else {
+            (38., view.palette.error_on_surface)
+        };
+        let width = self.card.map_or(499., |r| r.w) - 17. - x;
         let mut remaining = text.as_str();
         for line in 0..2 {
             let start = self.text.len();
             self.label(
                 remaining,
                 Rect {
-                    x: 38.,
+                    x,
                     y: 544. + line as f32 * 18.,
                     w: width.max(0.),
                     h: 18.,
                 },
-                view.palette.error_on_surface,
+                ink,
                 12.,
                 false,
                 window,

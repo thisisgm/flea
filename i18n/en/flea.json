@@ -772,6 +772,7 @@
   "settings.places.drive_size": "Show drive size",
   "settings.places.trash_count": "Show Trash count",
   "settings.places.show_unmounted": "Show unmounted drives",
+  "settings.places.nearby_hosts": "List nearby hosts when adding a share",
   "settings.places.show_tags": "Show tags",
   "settings.places.auto_hide": "Auto-hide sidebar",
   "settings.places.show_sidebar": "Show sidebar",
@@ -1945,6 +1946,9 @@
   "network.retry_title": "Connect to a network share",
   "network.failed_title": "Could not connect to the network share",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Add a Network Share…",
+  "network.looking_hosts": "Looking for hosts…",
+  "network.guest_empty": "This server shows a guest nothing. Sign in to see its shares.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Install Dropbox",
   "document.markdown_lines": {

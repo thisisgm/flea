@@ -43,7 +43,8 @@ fn followup_network_result_tracks_idle_mount_resolve_and_success(cx: &mut TestAp
 
 #[gpui::test]
 fn uish_misc_bare_server_result_finishes_when_share_listing_arrives(cx: &mut TestAppContext) {
-    for (names, expected) in [("old-share\n", "mounted"), ("", "failed")] {
+    // A guest listing nothing is an invitation to sign in (#343), so it settles as a missing credential, not a failure.
+    for (names, expected) in [("old-share\n", "mounted"), ("", "missing-credential")] {
         let recorder = Rc::new(Recorder::default());
         let (shell, cx, _) = open(recorder.clone(), cx);
         let producer = cx.update(|_, cx| shell.read(cx).rail.as_ref().unwrap().places.clone());

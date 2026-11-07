@@ -28,6 +28,26 @@ impl Mounts {
         }
         effects
     }
+    /// A guest-empty server hands its request to the card's sign-in fields; the pane says nothing, since nothing failed.
+    pub(super) fn invite(&mut self) -> Vec<Effect> {
+        let Some(f) = self.flight.take() else {
+            return Vec::new();
+        };
+        let key = super::mount::GUEST_EMPTY;
+        let mut effects = completion(&f.request, Some(key));
+        if f.request.id == 0 {
+            effects.push(Effect::Retry {
+                uri: f.request.uri,
+                label: f.request.label,
+                origin: f.request.origin,
+                error: key,
+                args: Vec::new(),
+                connect_failed: false,
+                password: crate::g2::pl1::secret::Secret::new(),
+            });
+        }
+        effects
+    }
     pub fn deadline(&self) -> Option<u64> {
         self.flight.as_ref().map(|f| f.due)
     }
@@ -64,7 +84,9 @@ pub(super) fn completion(request: &Request, error: Option<&'static str>) -> Vec<
             uri: request.uri.clone(),
             error,
             args: Vec::new(),
-            connect_failed: error.is_some_and(|key| key != "network.password_needed"),
+            connect_failed: error.is_some_and(|key| {
+                key != "network.password_needed" && key != super::mount::GUEST_EMPTY
+            }),
         }]
     }
 }

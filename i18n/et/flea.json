@@ -762,6 +762,7 @@
   "settings.places.drive_size": "Näita ketta suurust",
   "settings.places.trash_count": "Näita prügikasti üksuste arvu",
   "settings.places.show_unmounted": "Näita haakimata kettaid",
+  "settings.places.nearby_hosts": "Näita võrgukausta lisamisel lähedalasuvaid hoste",
   "settings.places.show_tags": "Näita silte",
   "settings.places.auto_hide": "Peida külgriba automaatselt",
   "settings.places.show_sidebar": "Näita külgriba",
@@ -1912,6 +1913,9 @@
   "network.retry_title": "Ühenda võrgukaustaga",
   "network.failed_title": "Võrgukaustaga ühendamine ebaõnnestus",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Lisa võrgukaust…",
+  "network.looking_hosts": "Hostide otsimine…",
+  "network.guest_empty": "See server ei näita külalisele midagi. Logi sisse, et näha selle võrgukaustu.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Paigalda Dropbox",
   "document.markdown_lines": {

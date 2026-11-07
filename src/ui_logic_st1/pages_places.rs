@@ -90,7 +90,8 @@ pub fn places_rows(state: &State<'_>) -> Vec<Row> {
         ("showNetwork", "settings.places.network", "network", true), ("showDevices", "settings.places.devices", "drive", true),
         ("showTrash", "settings.places.trash", "trash", true)];
     let rail = [("driveSize", "settings.places.drive_size", "drive", false), ("trashCount", "settings.places.trash_count", "trash", false),
-        ("showUnmounted", "settings.places.show_unmounted", "drive", true), ("showTags", "settings.places.show_tags", "tag", false),
+        ("showUnmounted", "settings.places.show_unmounted", "drive", true)];
+    let rail_tail = [("showTags", "settings.places.show_tags", "tag", false),
         ("autoHide", "settings.places.auto_hide", "maximize", false)];
     let switch = |(key, label, glyph, shipped): (&'static str, &'static str, &'static str, bool)| {
         let on = if shipped { not_false(data, &places(key)) } else { is_true(data, &places(key)) };
@@ -99,6 +100,10 @@ pub fn places_rows(state: &State<'_>) -> Vec<Row> {
     out.extend(builtins.into_iter().map(switch));
     out.push(Row::group("settings.group.sidebar"));
     out.extend(rail.into_iter().map(switch));
+    // Hosts list only from the NETWORK heading's plus, so the option greys in place while Network is unticked.
+    out.push(Row { available: not_false(data, &places("showNetwork")),
+        ..switch(("nearbyHosts", "settings.places.nearby_hosts", "network", false)) });
+    out.extend(rail_tail.into_iter().map(switch));
     // The rail is remembered as a word; auto-hide answers the pointer instead, so the choice greys while it is on.
     let shown = at(data, &places("rail")).and_then(Json::as_str) != Some("hidden");
     out.push(Row { available: !is_true(data, &places("autoHide")), ..Row::check("places.rail", "settings.places.show_sidebar", "columns", shown) });

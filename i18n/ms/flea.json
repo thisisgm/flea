@@ -746,6 +746,7 @@
   "settings.places.drive_size": "Tunjukkan saiz pemacu",
   "settings.places.trash_count": "Tunjukkan bilangan dalam tong sampah",
   "settings.places.show_unmounted": "Tunjukkan pemacu tidak dilekapkan",
+  "settings.places.nearby_hosts": "Senaraikan hos berdekatan apabila menambah perkongsian",
   "settings.places.show_tags": "Tunjukkan tag",
   "settings.places.auto_hide": "Sembunyikan bar sisi secara automatik",
   "settings.places.show_sidebar": "Tunjukkan bar sisi",
@@ -1829,6 +1830,9 @@
   "network.retry_title": "Sambung ke perkongsian rangkaian",
   "network.failed_title": "Tidak dapat menyambung ke perkongsian rangkaian",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Tambah perkongsian rangkaian…",
+  "network.looking_hosts": "Mencari hos…",
+  "network.guest_empty": "Pelayan ini tidak menunjukkan apa-apa kepada tetamu. Daftar masuk untuk melihat perkongsiannya.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Pasang Dropbox",
   "document.markdown_lines": {

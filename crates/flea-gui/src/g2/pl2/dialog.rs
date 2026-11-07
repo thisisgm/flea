@@ -124,6 +124,14 @@ impl Dialog {
         }
         effects
     }
+    /// A nearby host fills the protocol, Host, Port and any path it names, and the caret waits on Connect; nothing connects until then.
+    pub fn suggest(&mut self, address: &flea::ui_logic_pl2::networkaddress::Address) {
+        if !self.opened || self.busy() {
+            return;
+        }
+        self.form.suggest(address);
+        self.focus = Focus::Connect;
+    }
     pub fn busy(&self) -> bool {
         self.connecting || self.saving
     }
@@ -257,7 +265,12 @@ impl Dialog {
         self.status = Some(key);
         self.failed_connect = connect;
         self.retry = true;
-        self.focus = Focus::Host;
+        // The sign-in invitation puts the caret where the missing name goes.
+        self.focus = if key == super::mount::GUEST_EMPTY && self.form.protocol.credentials() {
+            Focus::User
+        } else {
+            Focus::Host
+        };
         if connect {
             self.unacknowledged = Some((self.pending_uri.clone(), key, self.detail.clone()));
         }

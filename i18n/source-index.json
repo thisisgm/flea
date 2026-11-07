@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "cb3a6d4b659c7fb5d16d957cc5782960593b0d8475a10b89405ebad001232884",
-  "catalog_sha256": "86dcd503a81275d024ab757240075285eb1437a91d20653b1f45be8fb9364808",
+  "catalog_file_sha256": "f68e1f58c98e01ab49be66c4be29330b074ce578b193b4940f1cdb96bebc3ee0",
+  "catalog_sha256": "1920f4cc7b15ef97f869f57b27d8862c8ae0eb97ffd36af33888552d97bc6587",
   "counts": {
     "direct_references": 0,
-    "keys": 2227,
+    "keys": 2231,
     "plurals": 106
   },
   "direct_references": {},
@@ -77219,6 +77219,28 @@
       "resolved_source_hash": "91ca1043261b",
       "source_hash": "91ca1043261b"
     },
+    "network.add_share": {
+      "call_sites": [
+        {
+          "excerpt": "out.push(Entry::row(ADD_SHARE, Text::Key(\"network.add_share\"), \"plus\"));",
+          "line": 130,
+          "path": "crates/flea-gui/src/g2/pl2/nearby.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "network.add_share: crates/flea-gui/src/g2/pl2/nearby.rs:130",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Add a Network Share…",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Add a Network Share…",
+      "resolved_sha256": "75bbb828fa275b9e8511b0143a75ed6d513a8eb1664db6a3a9ad7058e249da71",
+      "resolved_source_hash": "3a1caada3a93",
+      "source_hash": "3a1caada3a93"
+    },
     "network.another_opening": {
       "call_sites": [
         {
@@ -77724,6 +77746,28 @@
       "resolved_source_hash": "e4e929a79a30",
       "source_hash": "e4e929a79a30"
     },
+    "network.guest_empty": {
+      "call_sites": [
+        {
+          "excerpt": "pub const GUEST_EMPTY: &str = \"network.guest_empty\";",
+          "line": 393,
+          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "network.guest_empty: crates/flea-gui/src/g2/pl2/mount.rs:393",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This server shows a guest nothing. Sign in to see its shares.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This server shows a guest nothing. Sign in to see its shares.",
+      "resolved_sha256": "509d4f85d2d17fd4646627a4a717b62ac4333d6a1b4779b15f2b54e93f0e2f7c",
+      "resolved_source_hash": "9a3f7de11071",
+      "source_hash": "9a3f7de11071"
+    },
     "network.host": {
       "call_sites": [
         {
@@ -77900,6 +77944,28 @@
       "resolved_sha256": "6e740e51f8ad2d957df745b667c20dde85d6bbcdcc405f03b155774b1ba5a4c7",
       "resolved_source_hash": "0e66373f45dc",
       "source_hash": "0e66373f45dc"
+    },
+    "network.looking_hosts": {
+      "call_sites": [
+        {
+          "excerpt": "..Entry::leaf(\"nearbyLooking\", Text::Key(\"network.looking_hosts\"))",
+          "line": 107,
+          "path": "crates/flea-gui/src/g2/pl2/nearby.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "network.looking_hosts: crates/flea-gui/src/g2/pl2/nearby.rs:107",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Looking for hosts…",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Looking for hosts…",
+      "resolved_sha256": "30c09c727cd4edb25577389dc0520c3f52a5c8397de52277fcffbbea4389d440",
+      "resolved_source_hash": "7c654f92cc0c",
+      "source_hash": "7c654f92cc0c"
     },
     "network.mounted_as": {
       "call_sites": [
@@ -97970,6 +98036,28 @@
       "resolved_sha256": "d2187d527809f5324ca15ce87ab5b2f1364f08638da56782c4111c4a89c2cf43",
       "resolved_source_hash": "3a78695388b3",
       "source_hash": "3a78695388b3"
+    },
+    "settings.places.nearby_hosts": {
+      "call_sites": [
+        {
+          "excerpt": "..switch((\"nearbyHosts\", \"settings.places.nearby_hosts\", \"network\", false)) });",
+          "line": 105,
+          "path": "src/ui_logic_st1/pages_places.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "settings.places.nearby_hosts: src/ui_logic_st1/pages_places.rs:105",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "List nearby hosts when adding a share",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "List nearby hosts when adding a share",
+      "resolved_sha256": "26a6deab8a60508086a9b111b385edc946438b46b9533c68ced5a119747dbbce",
+      "resolved_source_hash": "a84a4956a71e",
+      "source_hash": "a84a4956a71e"
     },
     "settings.places.network": {
       "call_sites": [

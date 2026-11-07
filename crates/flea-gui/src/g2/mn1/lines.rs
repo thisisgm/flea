@@ -28,6 +28,8 @@ pub enum Lead {
     Check(bool),
     // An application's own icon name, which the icon theme unit resolves.
     Icon(String),
+    // The busy row's 22px Omi in its thinking mode, centred on the slot.
+    Busy,
 }
 
 /// How a row's label and mark are inked.
@@ -72,6 +74,8 @@ pub struct Line {
     pub tag_state: Option<flea::ui_logic_pl4::tags::State>,
     pub ink: Ink,
     pub disabled: bool,
+    // A muted row that says the menu is still asking; its label takes the muted ink, undimmed.
+    pub busy: bool,
     // The width this row needs whole, the parts summed once at build.
     pub wanted: f32,
 }
@@ -228,6 +232,9 @@ pub(super) fn shape(text: String, size: Pixels, typeface: &Typeface, window: &Wi
 }
 
 pub(super) fn lead(entry: &Entry) -> Lead {
+    if entry.busy {
+        return Lead::Busy;
+    }
     // A tag row leads with its colour square even while it carries the mark in effect.
     if let Some(tag) = entry.tag {
         return Lead::Tag(tag);
@@ -276,6 +283,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                     tag_state: None,
                     ink: Ink::Plain,
                     disabled: false,
+                    busy: false,
                     wanted: 0.,
                 };
             }
@@ -346,6 +354,7 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 tag_state: entry.tag_state,
                 ink,
                 disabled: entry.disabled,
+                busy: entry.busy,
                 wanted,
             }
         })

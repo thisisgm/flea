@@ -762,6 +762,7 @@
   "settings.places.drive_size": "Laufwerksgröße anzeigen",
   "settings.places.trash_count": "Anzahl im Papierkorb anzeigen",
   "settings.places.show_unmounted": "Nicht eingebundene Laufwerke anzeigen",
+  "settings.places.nearby_hosts": "Geräte in der Nähe beim Hinzufügen einer Freigabe anzeigen",
   "settings.places.show_tags": "Tags anzeigen",
   "settings.places.auto_hide": "Seitenleiste automatisch ausblenden",
   "settings.places.show_sidebar": "Seitenleiste anzeigen",
@@ -1912,6 +1913,9 @@
   "network.retry_title": "Mit einer Netzwerkfreigabe verbinden",
   "network.failed_title": "Verbindung zur Netzwerkfreigabe fehlgeschlagen",
   "network.tailscale": "Tailscale",
+  "network.add_share": "Netzwerkfreigabe hinzufügen…",
+  "network.looking_hosts": "Suche nach Geräten…",
+  "network.guest_empty": "Dieser Server zeigt Gästen nichts. Melde dich an, um seine Freigaben zu sehen.",
   "network.dropbox": "DROPBOX",
   "network.install_dropbox": "Dropbox installieren",
   "document.markdown_lines": {
