@@ -13,7 +13,8 @@ impl Service {
             .create(&self.store.dir)
             .map_err(local)?;
         let mut work = Work::new(&self.store.dir, "office").map_err(|e| Fail::Local(e.msg))?;
-        let argv = (self.build)(&job.program, &job.input, &work.dir);
+        let target = job.head.map_or_else(|| "pdf".to_string(), head_target);
+        let argv = (self.build)(&job.program, &target, &job.input, &work.dir);
         self.jailed(job, argv, &mut work, Instant::now() + self.timeout)?;
         let produced = produced_pdf(&work.dir).ok_or_else(|| {
             Fail::Converter(format!("{PROGRAM} wrote no PDF of {}", job.input.display()))

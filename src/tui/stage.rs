@@ -102,6 +102,7 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
             let still = model.preview_state.colors.is_some() && super::chafa::installed();
             let mut page = pdf::Pdf::new(drawn, graphics.protocol, place.room.0, place.room.1, page_pixels.unwrap_or((0, 0)), &model.preview_state.ground, still);
             page.source = path.clone();
+            page.first = if is_office { model.preview_state.office.doc.first } else { None };
             model.pdf = Some(page);
         }
         // The converted page replaces the embedded thumbnail, and the thumbnail is no longer asked for.

@@ -27,7 +27,7 @@ impl Service {
             Hit::Miss => {},
         }
         let (tx, rx) = std::sync::mpsc::channel();
-        self.enqueue(Job { key, program, input, mtime, seq: 0, waiters: vec![Waiter { wire: 0, reg: 0, tx }], required: true, sheets: false, cancel: Some(Arc::clone(&cancel)) });
+        self.enqueue(Job { key, program, input, mtime, seq: 0, waiters: vec![Waiter { wire: 0, reg: 0, tx }], required: true, sheets: false, head: None, cancel: Some(Arc::clone(&cancel)) });
         let reply = loop {
             if cancel.load(Ordering::Relaxed) || self.quit.load(Ordering::Relaxed) {
                 self.cancel_fetch(&cancel);

@@ -65,3 +65,26 @@ pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> 
     }
 }
 
+// fontconfig's complaint when the jail has no writable cache: the head line, then one tab-indented line per directory.
+const FONTCONFIG: &str = "Fontconfig ";
+// SIGKILL is never the converter's own doing (the cancel or the kernel), so what it last printed is not why it stopped.
+const SIGKILL: i32 = 9;
+
+// Sample: status 137 with stderr "Fontconfig error: No writable cache directories\n\t/var/cache/fontconfig\n\t/.cache/fontconfig\n" gives the SIGKILL sentence.
+// A SIGKILL is named by its signal; otherwise fontconfig's lines are no diagnosis and the rest is read as failure_message reads it.
+pub(crate) fn office_failure_message(status: &ExitStatus, stderr: &str) -> String {
+    let what = "office";
+    let signal = status.signal().or_else(|| status.code().map(|code| code - BWRAP_SIGNAL_BASE));
+    if signal == Some(SIGKILL) {
+        return failure_message(what, status, "");
+    }
+    let mut in_fontconfig = false;
+    let kept: Vec<&str> = stderr
+        .lines()
+        .filter(|line| {
+            in_fontconfig = line.starts_with(FONTCONFIG) || (in_fontconfig && line.starts_with('\t'));
+            !in_fontconfig
+        })
+        .collect();
+    failure_message(what, status, &kept.join("\n"))
+}

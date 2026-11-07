@@ -162,6 +162,7 @@ impl OfficeView {
             Applied::Pdf(path) => self.pdf.update(cx, |pdf, cx| {
                 pdf.set_active(true, window, cx);
                 pdf.set_path(&path, window, cx);
+                pdf.first = self.office.first;
             }),
             Applied::Sheet(path) => self.table.update(cx, |table, cx| table.set_path(&path, cx)),
             Applied::Sniff => self.sniff(cx),
@@ -272,7 +273,7 @@ impl OfficeView {
         let pages = self.pdf.read(cx).surface.page_count();
         let mut out = Vec::new();
         if let Some((key, count)) = self.office.count(pages) {
-            out.push((i18n.tr(key), count.to_string()));
+            out.push((i18n.tr(key), viewer::count_text(count, self.office.first)));
         }
         let (title, author) = &self.meta;
         for (key, value) in [

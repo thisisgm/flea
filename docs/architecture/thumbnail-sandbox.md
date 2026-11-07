@@ -79,9 +79,15 @@ the decoder's wrapper. `sandbox::wrap_archive` is the one `run_boxed_cancellable
 both archive jobs, the same flags and the same 2 GiB address-space cap with the `--cpu`
 argument left out, and `prlimit` stays outermost so that cap still arrives. Convert runs
 on the capped cancellable runner now and keeps the decoder's `--cpu=30`, because convert decodes
-untrusted input and has no UI cancel. The office conversion runs on that runner with its own
-`--as=8589934592`, `officepdf::ADDRESS_SPACE_BYTES`: LibreOffice 26.8.1.1 converted nothing at 2 GiB
-(`std::bad_alloc` or status 139), not every file below 3.5 GiB, and every file at 4 GiB. A legitimate compress past 30 CPU
+untrusted input and has no UI cancel. The office conversion runs in its own jail, `sandbox::wrap_office`,
+with `--as=8589934592`, `sandbox::OFFICE_ADDRESS_SPACE_BYTES`: LibreOffice 26.8.1.1 converted nothing at 2 GiB
+(`std::bad_alloc` or status 139), not every file below 3.5 GiB, and every file at 4 GiB. It has no CPU cap:
+LibreOffice runs several threads, so a 200,000-row workbook spent 30 CPU seconds in 28 s of wall clock and
+was killed (status 137), and the same file converts in 43 s with no cap. The office service's 60 s wall clock
+and its cancel bound the run instead. The jail binds the system font cache, `/var/cache/fontconfig`, read-only:
+without it every conversion rescanned the fonts, 1.3 to 1.6 s for a short document against 0.7 s with it, and
+it holds nothing a user cannot already read. A converter killed by SIGKILL is reported by its signal, never by
+its last stderr line, which for that workbook was fontconfig's list of unwritable cache directories; any other failure skips fontconfig's lines and reads the rest. A legitimate compress past 30 CPU
 seconds is work rather than a runaway, the ticket's own finding for extract. Extract carries
 the operator's cancel, which kills and reaps the child and discards the staging directory.
 When the archive tool has not exited ten seconds after the cancel, its work

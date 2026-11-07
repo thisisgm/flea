@@ -46,6 +46,7 @@ impl Rig {
             self.svc.seq.fetch_add(1, Ordering::Relaxed),
             path,
             true,
+            None,
             &self.tx,
         );
         match self

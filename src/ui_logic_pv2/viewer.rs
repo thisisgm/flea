@@ -248,6 +248,20 @@ pub fn counter(drawn: usize, count: usize) -> Option<(usize, usize)> {
     (count > 0).then_some((drawn + 1, count))
 }
 
+/// Whether an office preview cut at `first` pages may run past them, so its count reads "30+" in the bar and the facts.
+pub fn cut(count: usize, first: Option<usize>) -> bool {
+    first.is_some_and(|n| count >= n)
+}
+
+/// The page count as drawn: "12", or "30+" for a cut office preview.
+pub fn count_text(count: usize, first: Option<usize>) -> String {
+    if cut(count, first) {
+        format!("{count}+")
+    } else {
+        count.to_string()
+    }
+}
+
 /// The column's PDF has no strip: pages scroll, and Space, Return or e opens Quick Look at the page in view.
 pub fn column_action(action: Action) -> Effect {
     match action {

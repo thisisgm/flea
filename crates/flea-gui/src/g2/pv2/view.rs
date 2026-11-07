@@ -64,6 +64,8 @@ pub struct PdfView {
     _pump: Task<()>,
     /// Frames painted, for the native run's idle count.
     pub painted: Cell<usize>,
+    /// An office preview's cut, set by the office view; the counter reads "30+" once the pages reach it.
+    pub first: Option<usize>,
 }
 
 impl Surface {
@@ -135,6 +137,7 @@ impl PdfView {
             frame_asked: false,
             _pump: pump,
             painted: Cell::new(0),
+            first: None,
         }
     }
 
@@ -283,7 +286,7 @@ impl PdfView {
         let counter = viewer::counter(self.surface.drawn_page(), count).map(|(drawn, count)| {
             i18n.tr_args(
                 "document.pdf_page_count",
-                &[&drawn.to_string(), &count.to_string()],
+                &[&drawn.to_string(), &viewer::count_text(count, self.first)],
             )
         });
         let items = viewer
