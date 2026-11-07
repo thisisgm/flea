@@ -178,6 +178,8 @@ mod providers;
 pub mod localsend;
 // The same CLI's own drawing, read back into rows and sentences.
 pub mod localsendtext;
+// What that terminal shows, replayed as a screen: the panel as drawn and every printed line in order.
+pub mod localsendscreen;
 pub mod permissions;
 pub mod picker;
 pub mod menu_actions;
