@@ -13,6 +13,8 @@ pub struct Pdf {
     pub author: String,
     pub page: usize,
     pub pages: usize,
+    // An office preview's cut: a count that reaches it reads "30+" (viewer::cut).
+    pub first: Option<usize>,
     pub zoom: usize,
     pub scroll: usize,
     pub control: usize,
@@ -56,6 +58,7 @@ impl Pdf {
             path,
             page: 1,
             pages: 0,
+            first: None,
             zoom: 100,
             scroll: 0,
             control: 0,
@@ -186,9 +189,14 @@ impl Pdf {
     fn extent(&self) -> (usize, usize) {
         if self.still && self.pixels.0 * self.pixels.1 == 0 { (self.columns * FALLBACK_CELL.0, self.rows * FALLBACK_CELL.1) } else { self.pixels }
     }
+    // A page count in the locale's digits, "30+" for an office preview that reaches its cut.
+    pub fn count_words(&self, i18n: &crate::i18n::I18n, count: usize) -> String {
+        let plus = if flea::ui_logic_pv2::viewer::cut(count, self.first) { "+" } else { "" };
+        format!("{}{plus}", i18n.locale().format_count(count as i64))
+    }
     // Page 1 of 12 · 100%, the page line over the controls.
     pub fn page_line(&self, i18n: &crate::i18n::I18n) -> String {
-        let pages = if self.pages == 0 { "?".into() } else { i18n.locale().format_count(self.pages as i64) };
+        let pages = if self.pages == 0 { "?".into() } else { self.count_words(i18n, self.pages) };
         i18n.tr_args("pdf.page", &[&i18n.locale().format_count(self.page as i64), &pages, &i18n.locale().format_count(self.zoom as i64)])
     }
     pub fn control_at(&self, cell: usize, quicklook: bool, columns: usize) -> Option<(usize, bool)> {
@@ -269,6 +277,19 @@ mod tests {
     fn page_count_uses_named_fact() {
         assert_eq!(pages("Title: 99\nPages: 12\n"), 12);
         assert_eq!(pages("Pages: unknown"), 0);
+    }
+    // An office preview cut at 30 pages reads "30+" on the page line once its PDF reaches the cut.
+    #[test]
+    fn a_cut_office_preview_counts_its_pages_with_a_plus() {
+        let i18n = crate::i18n::test_catalogs::english();
+        let mut pdf = Pdf::new(PathBuf::from("/c/x.pdf"), Protocol::None, 48, 21, (0, 0), "#101315", false);
+        let line = |pdf: &Pdf| pdf.page_line(&i18n);
+        pdf.pages = 30;
+        assert!(!line(&pdf).contains("30+"), "a whole PDF counts exactly");
+        pdf.first = Some(30);
+        assert!(line(&pdf).contains("30+"), "{}", line(&pdf));
+        pdf.pages = 12;
+        assert!(!line(&pdf).contains('+'), "a preview short of the cut is the whole document");
     }
     #[test]
     fn narrow_toolbar_keeps_focus_and_pointer_targets_visible() {

@@ -1714,7 +1714,11 @@ Example: `{"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}`
 Converts one DOCX, ODT, XLSX, ODS, PPTX or RTF file to a cached PDF with LibreOffice and answers
 `officepdf` lines carrying the request `id`: `{"t":"officepdf","id":4,"state":"ready","path":"<cached pdf>"}`
 when the PDF exists, `{"t":"officepdf","id":4,"state":"converting"}` when a conversion started, and
-`{"t":"officepdf","id":4,"state":"failed","err":"<string>"}` when it cannot be had. A `converting`
+`{"t":"officepdf","id":4,"state":"failed","err":"<string>"}` when it cannot be had. The preview's
+PDF holds only the document's first 30 pages, and its `ready` line says so with `"first":30`:
+`{"t":"officepdf","id":4,"state":"ready","path":"<cached pdf>","first":30}`. A client that reads
+it shows a PDF of 30 pages as "30+", because the document may run past them; Print and Convert
+convert the whole document under their own cache entry. A `converting`
 line is always followed by one `ready` or `failed` line for the same `id` once the job ends, so
 a client waits for that second line and treats `converting` as progress only. A request that
 needs no conversion answers `ready` or `failed` at once and sends no follow-up.

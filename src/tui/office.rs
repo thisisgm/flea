@@ -372,7 +372,7 @@ pub fn append_facts(m: &mut Model) {
     let i18n = &m.preview_state.i18n;
     let mut rows = Vec::new();
     if let Some((key, count)) = m.preview_state.office.doc.count(pdf.pages) {
-        rows.push((key, i18n.locale().format_count(count as i64), true));
+        rows.push((key, pdf.count_words(i18n, count), true));
     }
     if !pdf.title.is_empty() {
         rows.push((TITLE, pdf.title.clone(), false));

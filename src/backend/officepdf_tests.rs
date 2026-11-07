@@ -51,7 +51,7 @@ fn rig_in(d: &TestDir, script: &'static str, timeout: Duration, runner: Runner) 
     let cache = d.dir("cache");
     let jobs = Arc::new(AtomicUsize::new(0));
     let seen = Arc::clone(&jobs);
-    let build: Build = Box::new(move |_, input, out| {
+    let build: Build = Box::new(move |_, _, input, out| {
         seen.fetch_add(1, Ordering::SeqCst);
         ["/usr/bin/sh", "-c", script, "sh", &input.to_string_lossy(), &out.to_string_lossy()].iter().map(|s| s.to_string()).collect()
     });
@@ -64,7 +64,7 @@ impl Rig {
     // The first line the request leaves: converting on a miss, otherwise the terminal line that frees its registry id.
     fn ask(&self, wire: usize, path: &Path) -> String {
         let reg = self.claims.fetch_add(1, Ordering::SeqCst) + 1;
-        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, false, &self.tx);
+        self.svc.request(wire, reg, self.svc.seq.fetch_add(1, Ordering::Relaxed), path, false, None, &self.tx);
         match self.rx.recv_timeout(BOUND).expect("a request always answers") {
             OpMsg::Meta { line } => line,
             OpMsg::DetachedDone { id, line } => {
@@ -267,7 +267,7 @@ fn a_convert_that_finds_a_hit_runs_nothing() {
     let key = Store::key(&src);
     let pdf = r.svc.store.pdf_path(&key);
     Store::publish(&pdf, mtime_of(&src), &mut "other window".as_bytes()).unwrap();
-    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, sheets: false, cancel: None };
+    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, sheets: false, head: None, cancel: None };
     assert_eq!(r.svc.convert(&job), Ok(Done::Pdf(pdf)));
     assert_eq!(r.jobs(), 0);
 }
@@ -277,7 +277,7 @@ fn without_soffice_no_request_is_served() {
     let d = TestDir::new("officepdf-absent");
     let mut r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
     let none: Resolve = Box::new(|| None);
-    let build: Build = Box::new(|_, _, _| panic!("no job may start"));
+    let build: Build = Box::new(|_, _, _, _| panic!("no job may start"));
     r.svc = Arc::new(Service::new(Store::new(&r.cache), none, build, Box::new(unjailed), CONVERT_TIMEOUT));
     let src = d.file("a.docx", "doc");
     let line = r.ask(1, &src);
@@ -307,7 +307,7 @@ fn start_returns_before_the_worker_has_looked_at_the_file() {
         Some("/usr/bin/sh".to_string())
     });
     let src = d.file("a.docx", "doc");
-    r.svc.start(1, 1, src.clone(), false, r.tx.clone());
+    r.svc.start(1, 1, src.clone(), false, None, r.tx.clone());
     assert!(r.rx.try_recv().is_err(), "start returned while the worker still waited, so the caller's thread did no path work");
     open_tx.send(()).unwrap();
     assert!(matches!(r.rx.recv_timeout(BOUND), Ok(OpMsg::Meta { line }) if line == converting_line(1)));
@@ -364,3 +364,4 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
 #[path = "officepdf_limits_tests.rs"] mod limits;
 #[path = "officepdf_preserve_tests.rs"] mod preserve;
 #[path = "officesheets_tests.rs"] mod sheets;
+#[path = "officehead_tests.rs"] mod head_cut;

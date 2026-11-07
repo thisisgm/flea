@@ -97,8 +97,11 @@ impl Reason {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Wire {
     Converting,
-    /// The cached PDF.
-    Pdf(String),
+    /// The cached PDF; first is the cut of a preview that holds only the first pages.
+    Pdf {
+        path: String,
+        first: Option<usize>,
+    },
     /// The workbook's sheet names and each sheet's cached CSV, in the workbook's order.
     Sheets {
         names: Vec<String>,
@@ -136,7 +139,10 @@ pub fn parse(line: &str) -> Option<Line> {
             names: field_str_array(line, "names"),
             paths: field_str_array(line, "paths"),
         },
-        "ready" => Wire::Pdf(field_str(line, "path")?),
+        "ready" => Wire::Pdf {
+            path: field_str(line, "path")?,
+            first: field_usize(line, "first"),
+        },
         "failed" => Wire::Failed {
             err: field_str(line, "err").unwrap_or_default(),
             unavailable: field_bool(line, "unavailable"),
@@ -196,6 +202,8 @@ pub struct Office {
     pub id: u64,
     pub state: State,
     pub pdf: Option<String>,
+    /// The preview PDF's cut, None for a whole document (viewer::cut).
+    pub first: Option<usize>,
     pub sheet_names: Vec<String>,
     pub sheet_paths: Vec<String>,
     pub sheet: usize,
@@ -215,6 +223,7 @@ impl Default for Office {
             id: 0,
             state: State::Idle,
             pdf: None,
+            first: None,
             sheet_names: Vec::new(),
             sheet_paths: Vec::new(),
             sheet: 0,
@@ -261,10 +270,11 @@ impl Office {
                 self.state = State::Converting;
                 Applied::Converting
             }
-            Wire::Pdf(path) => {
+            Wire::Pdf { path, first } => {
                 self.id = 0;
                 self.state = State::Ready;
                 self.pdf = Some(path.clone());
+                self.first = *first;
                 Applied::Pdf(path.clone())
             }
             Wire::Sheets { names, paths } => {
@@ -362,6 +372,9 @@ impl Office {
 
 #[path = "office_container.rs"]
 mod container;
+#[cfg(test)]
+#[path = "office_cut_tests.rs"]
+mod cut_tests;
 #[path = "office_sheets.rs"]
 mod sheets;
 #[cfg(test)]

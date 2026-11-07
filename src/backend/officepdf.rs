@@ -35,7 +35,7 @@ const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
 // Bump this version when the conversion argv or jail profile changes; cached PDFs stay reusable.
-const FAILURE_PROFILE: &str = "flea-office-profile-v3\n";
+const FAILURE_PROFILE: &str = "flea-office-profile-v4\n";
 const PROGRAM: &str = "soffice";
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
@@ -61,20 +61,6 @@ fn find_program(name: &str, path: &str) -> Option<String> {
     path.split(':').filter(|d| !d.is_empty()).map(|d| Path::new(d).join(name)).find(|c| runs(c)).map(|c| c.to_string_lossy().into_owned())
 }
 
-// Sample output: soffice --headless --norestore --nolockcheck -env:UserInstallation=file:///tmp/flea-office-profile --convert-to pdf --outdir /out /in.docx
-pub fn argv(program: &str, input: &Path, outdir: &Path) -> Vec<String> {
-    convert_argv(program, "pdf", input, outdir)
-}
-
-fn convert_argv(program: &str, target: &str, input: &Path, outdir: &Path) -> Vec<String> {
-    let profile = format!("-env:UserInstallation={PROFILE_URL}");
-    let fixed = [program, "--headless", "--norestore", "--nolockcheck", &profile, "--convert-to", target, "--outdir"];
-    let mut a: Vec<String> = fixed.iter().map(|s| s.to_string()).collect();
-    a.push(outdir.to_string_lossy().into_owned());
-    a.push(input.to_string_lossy().into_owned());
-    a
-}
-
 #[path = "officepublish.rs"]
 mod publication;
 #[path = "officepdf_run.rs"]
@@ -85,6 +71,11 @@ use running::produced_pdf;
 #[path = "officesheets.rs"]
 mod sheets;
 pub use sheets::{is_sheet, sheets_argv, sheets_line, Sheets, SHEETS_SUFFIX};
+#[path = "officehead.rs"]
+mod head;
+#[cfg(test)]
+pub use head::argv;
+use head::{convert_argv, head_extension, head_target, HEAD_SUFFIX};
 
 pub enum Hit<T = PathBuf> {
     Ready(T),
@@ -149,7 +140,7 @@ impl Store {
 
     // The figure store's bound over one leaf, oldest conversion first: ctime is the publish time, the mtime being the source's.
     fn prune(&self, dir: &Path) {
-        let ours = |ext: &str| matches!(ext, "pdf" | "txt" | "sheets.txt") || ext.strip_prefix("sheets.").and_then(|e| e.strip_suffix(".csv")).is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+        let ours = |ext: &str| matches!(ext, "pdf" | "txt" | "sheets.txt") || head_extension(ext) || ext.strip_prefix("sheets.").and_then(|e| e.strip_suffix(".csv")).is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
         let cached = |n: &str| n.split_once('.').is_some_and(|(stem, ext)| stem.len() == KEY_HEX_CHARS && stem.bytes().all(|b| b.is_ascii_hexdigit()) && ours(ext));
         let age = |m: &std::fs::Metadata| SystemTime::UNIX_EPOCH + Duration::new(m.ctime().max(0) as u64, m.ctime_nsec() as u32);
         evict_leaf(dir, self.entries, self.bytes, &Names { entry: &|name| cached(name) && crate::cachewrite::allowed(&dir.join(name)), scratch: &|_| false, age: &age });
@@ -173,6 +164,8 @@ struct Job {
     required: bool,
     // The workbook's sheets as CSVs instead of a PDF; its key carries SHEETS_SUFFIX.
     sheets: bool,
+    // A preview's export filter: the first PREVIEW_PAGES pages only, under a key that carries HEAD_SUFFIX.
+    head: Option<&'static str>,
     cancel: Option<Arc<AtomicBool>>,
 }
 
@@ -186,7 +179,8 @@ struct Queue {
 }
 
 type Resolve = Box<dyn Fn() -> Option<String> + Send + Sync>;
-type Build = Box<dyn Fn(&str, &Path, &Path) -> Vec<String> + Send + Sync>;
+// The program, the --convert-to target, the input and the output folder.
+type Build = Box<dyn Fn(&str, &str, &Path, &Path) -> Vec<String> + Send + Sync>;
 type SheetBuild = Box<dyn Fn(&str, &Path, &Path, i32) -> Vec<String> + Send + Sync>;
 // The jail the argv runs in, a seam so a test can stand in a converter without bwrap.
 type Runner = Box<dyn Fn(Vec<String>, &Path, &mut Work, &AtomicBool) -> Result<(), FleaError> + Send + Sync>;
@@ -215,13 +209,14 @@ impl Service {
     }
 
     // Off the loop: the stat, the cache lookup and the conversion wait on a worker; reg is the quit registry id claimed on the loop.
-    pub fn start(self: &Arc<Self>, wire: usize, reg: usize, path: PathBuf, sheets: bool, tx: Sender<OpMsg>) {
+    pub fn start(self: &Arc<Self>, wire: usize, reg: usize, path: PathBuf, sheets: bool, head: Option<&'static str>, tx: Sender<OpMsg>) {
         let (me, seq) = (Arc::clone(self), self.seq.fetch_add(1, Ordering::Relaxed));
-        std::thread::spawn(move || me.request(wire, reg, seq, &path, sheets, &tx));
+        std::thread::spawn(move || me.request(wire, reg, seq, &path, sheets, head, &tx));
     }
 
     // Every terminal line leaves as DetachedDone, which frees reg; a miss first says converting and the end line follows.
-    fn request(self: &Arc<Self>, wire: usize, reg: usize, seq: u64, path: &Path, sheets: bool, tx: &Sender<OpMsg>) {
+    #[allow(clippy::too_many_arguments)]
+    fn request(self: &Arc<Self>, wire: usize, reg: usize, seq: u64, path: &Path, sheets: bool, head: Option<&'static str>, tx: &Sender<OpMsg>) {
         let end = |line: String| drop(tx.send(OpMsg::DetachedDone { id: reg, line }));
         let Some(program) = (self.resolve)() else {
             return end(failed_line_of(sheets, wire, "LibreOffice is not installed on this box.", true));
@@ -231,7 +226,8 @@ impl Service {
             let io = |e: std::io::Error| crate::error::io_message(&e);
             let input = std::fs::canonicalize(&source).map_err(io)?;
             let mtime = std::fs::metadata(&input).and_then(|m| m.modified()).map_err(io)?;
-            let key = if sheets { format!("{}{SHEETS_SUFFIX}", Store::key(&source)) } else { Store::key(&source) };
+            let suffix = if sheets { SHEETS_SUFFIX } else if head.is_some() { HEAD_SUFFIX } else { "" };
+            let key = format!("{}{suffix}", Store::key(&source));
             let hit = store.find(&key, mtime, sheets);
             Ok::<_, String>((mtime, key, hit, input))
         });
@@ -246,7 +242,7 @@ impl Service {
             Hit::Miss => {}
         }
         let _ = tx.send(OpMsg::Meta { line: converting_line_of(sheets, wire) });
-        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }], required: false, sheets, cancel: None });
+        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }], required: false, sheets, head, cancel: None });
     }
 
     // The running job is never replaced; a request older than the newest started is answered replaced, as is the lower sequence of two queued, and the same file shares one job.
@@ -356,7 +352,7 @@ fn service(cache: &Path) -> Arc<Service> {
     let resolve: Resolve = Box::new(|| {
         if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
     });
-    Arc::new(Service::new(Store::new(cache), resolve, Box::new(argv), Box::new(jail), CONVERT_TIMEOUT))
+    Arc::new(Service::new(Store::new(cache), resolve, Box::new(convert_argv), Box::new(jail), CONVERT_TIMEOUT))
 }
 
 fn production() -> &'static Arc<Service> {
@@ -375,7 +371,8 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, mime: &Db, aliases: &Aliases, 
     let service = production();
     let reg = ops.claim_id();
     ops.detached.insert(reg, &service.quit);
-    service.start(id, reg, PathBuf::from(path), sheets, ops.tx.clone());
+    let head = (!sheets).then(|| head::export_filter(path, mime, aliases));
+    service.start(id, reg, PathBuf::from(path), sheets, head, ops.tx.clone());
 }
 
 #[cfg(test)]

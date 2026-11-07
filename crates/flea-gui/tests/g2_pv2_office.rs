@@ -254,6 +254,12 @@ mod container;
 mod csv_table;
 #[path = "g2_pv2_office/fix_qlsheet.rs"]
 mod fix_qlsheet;
+// The PDF writer the pv2 suite owns; this suite takes only its letter page.
+#[allow(dead_code)]
+#[path = "g2_pv2/fixture.rs"]
+mod fixture;
+#[path = "g2_pv2_office/office_cut.rs"]
+mod office_cut;
 #[path = "g2_pv2_office/office_doc.rs"]
 mod office_doc;
 #[path = "g2_pv2_office/office_sheets.rs"]
