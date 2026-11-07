@@ -79,6 +79,8 @@ pub fn parse_request(line: &str) -> Request {
             hidden: field_bool(line, "hidden"),
             // Absent is today's silent re-read, so an older client never pays the count.
             want_changed: field_bool(line, "wantChanged"),
+            // Absent keeps only the listed folder's own sizes, so an older client still gets same-folder reuse.
+            keep: field_str_array(line, "keep"),
         },
         Some("listpaths") => Request::ListPaths {
             paths: field_str_array(line, "paths"),

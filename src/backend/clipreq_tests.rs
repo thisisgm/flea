@@ -141,6 +141,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
         dirsizes: Default::default(),
         dirsize_queue: Vec::new(),
         dirsize_worker: Worker::new(events),
+        settled: Default::default(),
         search: None,
         search_session: None,
         search_reported: std::time::Instant::now(),

@@ -59,6 +59,8 @@ pub struct State {
     // Rows still to walk, one at a time; dirsizecancel empties this without touching dirsizes.
     pub dirsize_queue: Vec<usize>,
     pub dirsize_worker: super::dirsizeworker::Worker,
+    // Settled sizes by path, kept across listings while their trees stay watched and unchanged; see src/backend/dirsizewatch.rs.
+    pub settled: super::dirsizewatch::Settled,
     // The subtree walk the loop ticks; None means no search is running.
     pub search: Option<Search>,
     // The live search session; a list, sort or close drops it and frees its arena.
@@ -113,6 +115,7 @@ impl State {
             thumb_replies: Default::default(),
             window_meta: HashMap::new(),
             dirsizes: HashMap::new(), dirsize_queue: Vec::new(), dirsize_worker,
+            settled: Default::default(),
             search: None, search_reported: Instant::now(), generation: FIRST_LISTING - 1, held: Held::List,
             search_session: None,
             clip_watching: false,
