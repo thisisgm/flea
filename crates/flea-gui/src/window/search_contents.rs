@@ -19,6 +19,21 @@ impl Shell {
         list.view.set_query(query);
         list.view.set_searching(host.pane.state.search);
         list.view.set_lang_marks(crate::list::lang_marks(data));
+        // A midnight under 23 h old (the shortest local day) is still today's; past that the list re-reads it.
+        const SHORTEST_DAY_SECS: i64 = 23 * 3600;
+        let highlight = data
+            .get("highlightToday")
+            .and_then(flea::jsondoc::Json::as_bool)
+            == Some(true);
+        list.view.today = highlight.then(|| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |since| since.as_secs() as i64);
+            match list.view.today {
+                Some(start) if now - start < SHORTEST_DAY_SECS => start,
+                _ => crate::row::format::day_start(now),
+            }
+        });
         let switched = Switched::from_settings(data).for_dual(dual);
         list.view.switched = if host.pane.state.search {
             switched
@@ -29,6 +44,36 @@ impl Shell {
         } else {
             switched
         };
+    }
+
+    /// ViewState.qml's midnight timer: an idle list repaints once at local midnight, so today's highlight moves on.
+    pub(crate) fn keep_midnight_wake(&mut self, cx: &mut gpui::Context<Self>) {
+        let data = &self.launch.settings.data;
+        if data
+            .get("highlightToday")
+            .and_then(flea::jsondoc::Json::as_bool)
+            != Some(true)
+        {
+            self.midnight = None;
+            return;
+        }
+        if self.midnight.is_some() {
+            return;
+        }
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs() as i64);
+        // One second past midnight, so the repaint lands on the new day.
+        let wait = crate::row::format::seconds_until_midnight(now).max(0) as u64 + 1;
+        self.midnight = Some(cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_secs(wait))
+                .await;
+            let _ = this.update(cx, |shell, cx| {
+                shell.midnight = None;
+                cx.notify();
+            });
+        }));
     }
 
     /// Before the lists' frames are prepared: a contents snapshot takes the block height, any other the list's own.

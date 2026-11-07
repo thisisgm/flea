@@ -73,6 +73,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         font_key: None,
         _app_quit: None,
         deadlines: [None, None],
+        midnight: None,
         opener: Default::default(),
         dual_focus: crate::dual::focus::Focus::new(cx),
         dual_pending: false,

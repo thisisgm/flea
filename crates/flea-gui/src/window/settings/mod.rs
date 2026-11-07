@@ -30,6 +30,8 @@ mod sheet;
 pub(crate) mod store;
 #[cfg(test)]
 mod textsize_tests;
+#[cfg(test)]
+mod today_tests;
 mod update;
 #[cfg(test)]
 mod update_poll_tests;

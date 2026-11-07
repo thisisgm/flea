@@ -193,11 +193,19 @@ impl Session {
             .map_err(|_| "Git status directory left the repository.")?;
         let mut marks = Vec::with_capacity(paths.len());
         for path in paths {
+            // A row inside a folder opened in place is a descendant; nothing may climb out of the directory.
             let file = Path::new(&path);
-            if !file.is_absolute() || file.parent() != Some(Path::new(&self.path)) {
-                return Err("Git status rows must belong to the current directory.".into());
-            }
-            let name = file.file_name().ok_or("Git status row has no name.")?;
+            let name = file
+                .strip_prefix(&self.path)
+                .ok()
+                .filter(|name| {
+                    file.is_absolute()
+                        && !name.as_os_str().is_empty()
+                        && name
+                            .components()
+                            .all(|part| matches!(part, std::path::Component::Normal(_)))
+                })
+                .ok_or("Git status rows must belong to the current directory.")?;
             let (status, folder) = self.snapshot.as_ref().unwrap().mark(&prefix.join(name));
             marks.push(format!(
                 "{{\"path\":{},\"status\":{},\"folder\":{folder}}}",

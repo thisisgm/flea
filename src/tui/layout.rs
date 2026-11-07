@@ -117,6 +117,15 @@ pub fn focused(m: &Model) -> bool {
     m.combining.card.is_none() && m.converting.card.is_none() && m.printing.card.is_none() && !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
         && m.editor.as_ref().map_or(m.prompts.question.is_none(), |editor| matches!(editor.kind, "filter" | "search"))
 }
+// An empty listing leaves the preview nothing to take keys unless a player or document is still drawn; an unfetched row counts.
+pub fn preview_focusable(m: &Model) -> bool {
+    m.preview_visible && (m.total > 0 || m.player.is_some() || m.pdf.is_some())
+}
+pub fn release_preview_focus(m: &mut Model) {
+    if m.preview_focus && !m.quicklook && !preview_focusable(m) {
+        m.preview_focus = false;
+    }
+}
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let (first, total) = super::filter::lane(m);
     let first = first.saturating_mul(super::contents::row_height(m));

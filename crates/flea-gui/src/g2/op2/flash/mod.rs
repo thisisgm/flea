@@ -290,9 +290,8 @@ impl Flash {
             }
             return;
         }
-        let has_image = self.image.is_some();
         // FlashView.qml moveCursor: the step row is a stop even while Flash is greyed; press_step refuses it there.
-        self.cursor = flash::step(self.cursor, delta, &self.drives, has_image, true);
+        self.cursor = flash::step(self.cursor, delta, &self.drives, true);
         self.chosen = flashpane::choose_kept(self.cursor, &self.drives, self.chosen.clone());
     }
 

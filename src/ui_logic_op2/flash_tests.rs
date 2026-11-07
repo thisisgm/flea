@@ -110,12 +110,18 @@ fn one_fitting_drive_is_preselected() {
 #[test]
 fn cursor_walk_skips_refused_rows() {
     let rows = drives();
-    assert_eq!(step(0, 1, &rows, true, true), 1);
-    assert_eq!(step(1, 1, &rows, true, true), 3);
-    assert_eq!(step(3, -1, &rows, true, true), 1);
-    assert_eq!(step(3, 1, &rows, true, true), 3);
-    assert_eq!(step(0, 1, &rows, false, true), 1);
+    assert_eq!(step(0, 1, &rows, true), 1);
+    assert_eq!(step(1, 1, &rows, true), 3);
+    assert_eq!(step(3, -1, &rows, true), 1);
+    assert_eq!(step(3, 1, &rows, true), 3);
     assert_eq!(flash_pos(2), 3);
+}
+
+#[test]
+fn the_image_row_is_a_stop_before_an_image_is_chosen() {
+    let rows = drives();
+    // Enter on row 0 opens the chooser, so Up from the drive reaches it with no image chosen yet.
+    assert_eq!(step(1, -1, &rows, true), 0);
 }
 
 #[test]

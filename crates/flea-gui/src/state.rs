@@ -79,6 +79,8 @@ pub struct Shell {
     pub(crate) sidebar: crate::window::sidebar_edge::SidebarEdge,
     pub(crate) dual_blur: Option<gpui::Subscription>,
     pub(crate) deadlines: [Option<Task<()>>; 2],
+    /// The one wake at local midnight while Highlight today's dates is on.
+    pub(crate) midnight: Option<Task<()>>,
     pub(crate) opener: [crate::window::dispatch::opener::Lane; 2],
     pub(crate) run_card: Option<crate::window::run_card::Open>,
     pub(crate) open_with: Option<crate::window::open_with::Open>,
@@ -162,6 +164,7 @@ impl Shell {
             font_key: None,
             _app_quit: None,
             deadlines: [None, None],
+            midnight: None,
             opener: Default::default(),
             run_card: None,
             open_with: None,

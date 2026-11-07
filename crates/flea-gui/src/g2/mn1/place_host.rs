@@ -320,6 +320,10 @@ impl Shell {
         archive.flash_side = side;
         let effects = archive.flash.open_with_drive(device);
         self.archive_effects(side, effects, window, cx);
+        // FlashView.qml open(): the view takes the keys, so the rail the menu came from no longer holds them.
+        if self.operations.archive.flash.shown() {
+            self.flash_take_keys(window, cx);
+        }
         cx.notify();
     }
 

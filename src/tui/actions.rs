@@ -79,6 +79,8 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         super::preview::load(model, true);
         return Ok(());
     }
+    // Leaving Trash empties the listing before its re-list arrives, so a key in between hands the keys back too.
+    super::layout::release_preview_focus(model);
     if model.preview_focus || model.quicklook {
         let context = if model.pdf.is_some() {
             "pdf"
@@ -672,7 +674,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             save_preview_column(m);
         }
         "loadPreview" => super::preview::load(m, true),
-        "focusPreview" | "focusNext" => m.preview_focus = m.preview_visible,
+        "focusPreview" | "focusNext" => m.preview_focus = super::layout::preview_focusable(m),
         "tabNext" => return tab(m, (m.tab + 1) % m.tabs.len(), w),
         "tabPrevious" => return tab(m, (m.tab + m.tabs.len() - 1) % m.tabs.len(), w),
         // { and } move the current tab one place, clamping at either end; it stays current and nothing re-lists.

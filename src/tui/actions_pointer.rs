@@ -45,7 +45,12 @@ pub(super) fn pointer_key(
     {
         return Ok(());
     }
-    if m.quicklook || (m.preview_visible && pointer.x > left + middle + 2) {
+    let in_preview = m.preview_visible && pointer.x > left + middle + 2;
+    // An empty preview column takes no press, so the listing keeps its keys.
+    if in_preview && !m.quicklook && !super::super::layout::preview_focusable(m) {
+        return Ok(());
+    }
+    if m.quicklook || in_preview {
         m.preview_focus = true;
         if scroll != 0 {
             return super::key(

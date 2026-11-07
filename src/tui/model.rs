@@ -773,6 +773,12 @@ impl Model {
         }
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
+        let replied = self.receive_reply(value, wire);
+        // Any reply that empties the listing (a re-list, a search with no results) stops drawing the preview as focused.
+        super::layout::release_preview_focus(self);
+        replied
+    }
+    fn receive_reply(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         if super::parity17::receive(self, &value, wire)? { return Ok(()); }
         if super::combine::receive(self, &value, wire)? { return Ok(()); }
         if super::convert::receive(self, &value, wire)? { return Ok(()); }
