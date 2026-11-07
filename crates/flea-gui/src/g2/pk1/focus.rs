@@ -34,8 +34,10 @@ impl Picker {
             stops.push(rail.clone());
         }
         stops.push(self.focus.clone());
-        if flea::ui_logic_pk1::saving(&self.req) {
+        if flea::ui_logic_pk1::can_create_folder(&self.req) {
             stops.push(self.chrome.new_folder.clone());
+        }
+        if flea::ui_logic_pk1::saving(&self.req) {
             if let Some(filename) = &self.browse.filename {
                 stops.push(filename.read(cx).focus.clone());
             }

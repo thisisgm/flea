@@ -1,4 +1,4 @@
-//! Save's New Folder action uses the existing backend's exclusive mkdir and journal.
+//! New Folder for the modes that may make one, through the existing backend's exclusive mkdir and journal.
 use super::Picker;
 use flea::{
     json::escape,
@@ -9,7 +9,7 @@ use gpui::{Context, Window};
 
 impl Picker {
     pub(super) fn open_new_folder(&mut self, _: &mut Window, cx: &mut Context<Self>) {
-        if !logic::saving(&self.req)
+        if !logic::can_create_folder(&self.req)
             || !self.listing.location.starts_with('/')
             || self.backend_unavailable()
             || self.accept_state().submitting()

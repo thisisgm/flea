@@ -33,6 +33,11 @@ pub fn folder_mode(req: &Request) -> bool {
     req.directory || req.mode == Mode::SaveFiles
 }
 
+// The modes whose listing may make a folder: Save, and every chooser whose answer can be a directory.
+pub fn can_create_folder(req: &Request) -> bool {
+    saving(req) || folder_mode(req)
+}
+
 // Marks belong to several-file requests that are not saves.
 pub fn marks_allowed(req: &Request) -> bool {
     req.multiple && !saving(req)

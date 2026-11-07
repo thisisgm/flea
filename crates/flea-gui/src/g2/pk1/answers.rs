@@ -35,7 +35,7 @@ impl Picker {
             .items_center()
             .gap(size.px(GAP))
             .text_size(px(size.body));
-        if flea::ui_logic_pk1::saving(&self.req) {
+        if flea::ui_logic_pk1::can_create_folder(&self.req) {
             let focused = self.chrome.new_folder.is_focused(window);
             row = row.child(
                 self.chrome
