@@ -77933,7 +77933,7 @@
       "call_sites": [
         {
           "excerpt": "pub const GUEST_EMPTY: &str = \"network.guest_empty\";",
-          "line": 393,
+          "line": 303,
           "path": "crates/flea-gui/src/g2/pl2/mount.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -78162,22 +78162,22 @@
       "call_sites": [
         {
           "excerpt": "\"network.mounted_as\"",
-          "line": 361,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 68,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "if key == \"network.mounted_as\" =>",
-          "line": 367,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 74,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "Effect::Say { note, .. } if key == \"network.mounted_as\" => {",
-          "line": 371,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 78,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -78325,15 +78325,15 @@
         },
         {
           "excerpt": "return self.fail(\"network.no_folder\");",
-          "line": 321,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 28,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "\"network.no_folder\"",
-          "line": 358,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 65,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -78588,8 +78588,8 @@
         },
         {
           "excerpt": "\"network.refused\"",
-          "line": 356,
-          "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+          "line": 63,
+          "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -106452,8 +106452,8 @@
         },
         {
           "excerpt": "key: \"window.backend_protocol\",",
-          "line": 388,
-          "path": "crates/flea-gui/src/window/search.rs",
+          "line": 51,
+          "path": "crates/flea-gui/src/window/search_lines.rs",
           "surface": "gui",
           "usage": "key-declaration"
         }
@@ -112261,19 +112261,19 @@
     },
     {
       "excerpt": "args.push(picked.users.join(\", \"))",
-      "line": 369,
+      "line": 76,
       "literal": ", ",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+      "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
       "excerpt": "note.args.push(picked.users.join(\", \"))",
-      "line": 372,
+      "line": 79,
       "literal": ", ",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/pl2/mount.rs",
+      "path": "crates/flea-gui/src/g2/pl2/mount_peek.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -113791,7 +113791,7 @@
     },
     {
       "excerpt": "return Err(\"mpv_create failed\".into());",
-      "line": 70,
+      "line": 74,
       "literal": "mpv_create failed",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113800,7 +113800,7 @@
     },
     {
       "excerpt": "let pause = if options.autoplay { \"no\" } else { \"yes\" };",
-      "line": 72,
+      "line": 76,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113809,7 +113809,7 @@
     },
     {
       "excerpt": "(\"keep-open\", \"yes\"),",
-      "line": 86,
+      "line": 90,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113818,7 +113818,7 @@
     },
     {
       "excerpt": "let result = check(created, \"render create\").and_then(|()| {",
-      "line": 114,
+      "line": 118,
       "literal": "render create",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113827,7 +113827,7 @@
     },
     {
       "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
-      "line": 188,
+      "line": 192,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113836,7 +113836,7 @@
     },
     {
       "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
-      "line": 191,
+      "line": 195,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113845,7 +113845,7 @@
     },
     {
       "excerpt": "Command::Mute(muted) => set(api, handle, \"mute\", if muted { \"yes\" } else { \"no\" })?,",
-      "line": 198,
+      "line": 202,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113854,7 +113854,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea-media: seek dropped: {error}\");",
-      "line": 226,
+      "line": 230,
       "literal": "flea-media: seek dropped: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113863,7 +113863,7 @@
     },
     {
       "excerpt": "check(event.error, \"command reply\")?;",
-      "line": 233,
+      "line": 237,
       "literal": "command reply",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113872,7 +113872,7 @@
     },
     {
       "excerpt": "drop_filter(api, handle, &mut state, \"no frame came\");",
-      "line": 283,
+      "line": 287,
       "literal": "no frame came",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113881,7 +113881,7 @@
     },
     {
       "excerpt": "Err(error) => eprintln!(\"flea-media: seek dropped: {error}\"),",
-      "line": 331,
+      "line": 335,
       "literal": "flea-media: seek dropped: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113889,26 +113889,8 @@
       "surface": "gui"
     },
     {
-      "excerpt": "let shown = if filter.is_empty() { \"off\" } else { filter };",
-      "line": 337,
-      "literal": "off",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "eprintln!(\"flea-media: tone map dropped: {why}\");",
-      "line": 346,
-      "literal": "flea-media: tone map dropped: {why}",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
       "excerpt": "\"frame info\",",
-      "line": 371,
+      "line": 351,
       "literal": "frame info",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv.rs",
@@ -113921,6 +113903,24 @@
       "literal": "{what}: mpv error {status}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv3/helper/mpv_api.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "let shown = if filter.is_empty() { \"off\" } else { filter };",
+      "line": 6,
+      "literal": "off",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pv3/helper/mpv_filter.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea-media: tone map dropped: {why}\");",
+      "line": 15,
+      "literal": "flea-media: tone map dropped: {why}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/pv3/helper/mpv_filter.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -123016,19 +123016,19 @@
     },
     {
       "excerpt": "&& !matches!(class, \"network\" | \"phone\")",
-      "line": 174,
+      "line": 125,
       "literal": "network",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/navigation/sort.rs",
+      "path": "crates/flea-gui/src/navigation/sort_sizes.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
       "excerpt": "&& !matches!(class, \"network\" | \"phone\")",
-      "line": 174,
+      "line": 125,
       "literal": "phone",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/navigation/sort.rs",
+      "path": "crates/flea-gui/src/navigation/sort_sizes.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -126364,7 +126364,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 261,
+      "line": 263,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/search.rs",
@@ -184953,384 +184953,6 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "jsondoc::parse(text).expect(\"the patch parses\")",
-      "line": 211,
-      "literal": "the patch parses",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "fs::write(d.join(\"state/flea/ui.json\"), text).expect(\"seed the state file\");",
-      "line": 217,
-      "literal": "seed the state file",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "jsondoc::parse(&fs::read_to_string(d.join(\"state/flea/ui.json\")).expect(\"state file\")).expect(\"valid JSON on disk\")",
-      "line": 222,
-      "literal": "state file",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "jsondoc::parse(&fs::read_to_string(d.join(\"state/flea/ui.json\")).expect(\"state file\")).expect(\"valid JSON on disk\")",
-      "line": 222,
-      "literal": "valid JSON on disk",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(read.get(\"density\").and_then(Json::as_str), Some(\"comfortable\"), \"the migration touches one leaf\");",
-      "line": 230,
-      "literal": "the migration touches one leaf",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.update(&patch(r#\"{\"hidden\":true}\"#)).expect(\"an unrelated write\");",
-      "line": 234,
-      "literal": "an unrelated write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!((shown(&stored), stamp(&stored)), (Some(true), Some(LATEST)), \"the write carries the migration down\");",
-      "line": 236,
-      "literal": "the write carries the migration down",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.update(&patch(r#\"{\"places\":{\"showUnmounted\":false}}\"#)).expect(\"switched off after the migration\");",
-      "line": 245,
-      "literal": "switched off after the migration",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.update(&patch(r#\"{\"view\":\"list\"}\"#)).expect(\"a later write\");",
-      "line": 246,
-      "literal": "a later write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(shown(&s.read()), Some(false), \"the operator's own off outlives the next write\");",
-      "line": 247,
-      "literal": "the operator's own off outlives the next write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.settle().expect(\"the next launch\");",
-      "line": 249,
-      "literal": "the next launch",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(fs::metadata(d.join(\"state/flea/ui.json\")).expect(\"meta\").ino(), ino, \"a stamped file is not rewritten\");",
-      "line": 250,
-      "literal": "a stamped file is not rewritten",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.settle().expect(\"the first 0.3.3 launch\");",
-      "line": 259,
-      "literal": "the first 0.3.3 launch",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.settle().expect(\"the second launch\");",
-      "line": 263,
-      "literal": "the second launch",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(fs::metadata(d.join(\"state/flea/ui.json\")).expect(\"meta\").ino(), ino, \"one migration is one write\");",
-      "line": 264,
-      "literal": "one migration is one write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.update(&patch(r#\"{\"places\":{\"showUnmounted\":false}}\"#)).expect(\"switched off on a fresh install\");",
-      "line": 273,
-      "literal": "switched off on a fresh install",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(stamp(&on_disk(&d)), Some(LATEST), \"the first write is stamped\");",
-      "line": 274,
-      "literal": "the first write is stamped",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(jsondoc::render(read.get(\"fromANewerFlea\").expect(\"top-level unknown\")), \"{\\n  \\\"a\\\": [\\n    1,\\n    \\\"two\\\"\\n  ]\\n}\\n\");",
-      "line": 282,
-      "literal": "top-level unknown",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(on_disk(&d).get(\"fromANewerFlea\"), read.get(\"fromANewerFlea\"), \"and it is written back as it was read\");",
-      "line": 288,
-      "literal": "and it is written back as it was read",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!((shown(&newer), stamp(&newer)), (Some(false), Some(7.0)), \"a newer Flea's stamp is not rewound\");",
-      "line": 290,
-      "literal": "a newer Flea's stamp is not rewound",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let next = patched(&from_file(OLD), &patch(r#\"{\"view\":\"list\"}\"#)).expect(\"patch applies\");",
-      "line": 295,
-      "literal": "patch applies",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let off = patched(&from_file(OLD), &patch(r#\"{\"places\":{\"showUnmounted\":false}}\"#)).expect(\"patch applies\");",
-      "line": 297,
-      "literal": "patch applies",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!((shown(&off), stamp(&off)), (Some(false), Some(LATEST)), \"the patch is the operator's and lands last\");",
-      "line": 298,
-      "literal": "the patch is the operator's and lands last",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let refused = patched(&from_file(OLD), &patch(r#\"{\"stateVersion\":0}\"#)).expect_err(\"the stamp is not a setting\");",
-      "line": 299,
-      "literal": "the stamp is not a setting",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "\"copypath becomes copyAs where it stood, the other two are appended, then the run rows, then the agent row, then Actions where Run Script was hidden, and the untouched list shows Properties and Permissions and drops the view rows\"",
-      "line": 313,
-      "literal": "copypath becomes copyAs where it stood, the other two are appended, then the run rows, then the agent row, then Actions where Run Script was hidden, and the untouched list shows Properties and Permissions and drops the view rows",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(shown(&read), Some(true), \"the 1.0 step does not run again for a stamped file\");",
-      "line": 316,
-      "literal": "the 1.0 step does not run again for a stamped file",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!got.iter().any(|id| id == \"copyAs\" || id == \"copypath\"), \"Copy as replaces that row: {}\", got.join(\",\"));",
-      "line": 325,
-      "literal": "Copy as replaces that row: {}",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(hidden(&read), [\"delete\", \"copyAs\", \"invertSelection\", \"run\", \"openAsText\", \"openAgent\"], \"pasteAs stays shown\");",
-      "line": 336,
-      "literal": "pasteAs stays shown",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(hidden(&again), [\"delete\", \"openAgent\"], \"a stamped file keeps its shown run rows and still hides the agent row\");",
-      "line": 357,
-      "literal": "a stamped file keeps its shown run rows and still hides the agent row",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(hidden(&again), [\"delete\"], \"a stamped file that shows the agent row keeps it shown\");",
-      "line": 370,
-      "literal": "a stamped file that shows the agent row keeps it shown",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "\"a held id is not added twice\"",
-      "line": 381,
-      "literal": "a held id is not added twice",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "\"the steps append their own ids in order, and Actions joins once\"",
-      "line": 392,
-      "literal": "the steps append their own ids in order, and Actions joins once",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(hidden(&again), [\"delete\", \"runScript\"], \"a file stamped 4 is left alone\");",
-      "line": 396,
-      "literal": "a file stamped 4 is left alone",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(got.iter().any(|id| id == \"openAgent\"), \"the agent row still joins the hidden list\");",
-      "line": 404,
-      "literal": "the agent row still joins the hidden list",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!got.iter().any(|id| id == \"actions\"), \"Run Script was shown, so Actions stays shown: {}\", got.join(\",\"));",
-      "line": 405,
-      "literal": "Run Script was shown, so Actions stays shown: {}",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "scope.spawn(move || s.update(&patch(text)).expect(\"concurrent write\"));",
-      "line": 419,
-      "literal": "concurrent write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.settle().expect(\"the first 0.4.1 launch\");",
-      "line": 499,
-      "literal": "the first 0.4.1 launch",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.update(&rehide).expect(\"hidden again in Settings > Menus\");",
-      "line": 505,
-      "literal": "hidden again in Settings > Menus",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "s.settle().expect(\"the next launch\");",
-      "line": 506,
-      "literal": "the next launch",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(holds_inspect_rows(&s.read()), (true, true), \"a list carrying menuVersion 1 is the operator's\");",
-      "line": 507,
-      "literal": "a list carrying menuVersion 1 is the operator's",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!super::newer_than_known(&stored), \"the stamp 0.4.0 checks is one it knows\");",
-      "line": 518,
-      "literal": "the stamp 0.4.0 checks is one it knows",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(crate::persistdoc::ui(&stored), \"the file passes the check 0.4.0 runs before a read or a write\");",
-      "line": 519,
-      "literal": "the file passes the check 0.4.0 runs before a read or a write",
-      "owner": "controller",
-      "path": "src/uimigrate.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "assert!(!fits(&parse(r#\"{\"Checksums\":{\"enabled\":true}}\"#).unwrap()), \"an id is lowercase and namespaced\");",
       "line": 98,
       "literal": "an id is lowercase and namespaced",
@@ -208939,7 +208561,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 345,
+      "line": 344,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208948,7 +208570,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 368,
+      "line": 367,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208957,7 +208579,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 380,
+      "line": 379,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208966,7 +208588,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 385,
+      "line": 384,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208975,7 +208597,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 388,
+      "line": 387,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208984,7 +208606,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 392,
+      "line": 391,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -208993,7 +208615,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 395,
+      "line": 394,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -248259,10 +247881,11 @@
     "crates/flea-gui/src/g2/pl2/layout.rs": "139b7fe6c5bbc092706dc56d2a3467acbc6a02045c60f4ae1e75058a65bc1404",
     "crates/flea-gui/src/g2/pl2/marks.rs": "3f6c050e195d5da91603fbddeb783d5e071536b0fce290cb4b5233ef56e5eb6f",
     "crates/flea-gui/src/g2/pl2/menus.rs": "1fd0856b3edf1c117dff5a8ac446610405cca9f365fe7d82bda58f37dc482fc0",
-    "crates/flea-gui/src/g2/pl2/mod.rs": "f0be89f363139e372f08895212637c99f92c8fbdbd6ede4d2e1b14350b4fe11f",
-    "crates/flea-gui/src/g2/pl2/mount.rs": "3daa746206dedd579e2fcb37f570a561493e1aa3bda2494a142288a204eb24f0",
+    "crates/flea-gui/src/g2/pl2/mod.rs": "18a1b7bfab5ae38f4f8ec25e7d73a555eca67a8dd2125465c5c9028c97805592",
+    "crates/flea-gui/src/g2/pl2/mount.rs": "63a4f34aac8aff39260df4966b0cc3d3fab6cf2b547425396d6ae8802a40d7c8",
     "crates/flea-gui/src/g2/pl2/mount_bridge.rs": "f7b33e230a7aa50ba79678abd0796d815a578b408c9f16f22d715f10c4f58dc1",
     "crates/flea-gui/src/g2/pl2/mount_lifetime.rs": "a3273e216d867cebb5cc7e7bcb3d36bb46f81db3055d21e7ba3d585be146c35b",
+    "crates/flea-gui/src/g2/pl2/mount_peek.rs": "38ba7da7e4a5eb251ca1d02695cbbb55c4aa9c8c8444b191a279a31395abec76",
     "crates/flea-gui/src/g2/pl2/mount_process.rs": "20b6729f0fcad33952901a479727ec81a11c38c2df45ac14aee2646ce675c110",
     "crates/flea-gui/src/g2/pl2/nearby.rs": "116e716bb51f544fb427d96d997263afef0249000bda06cf3e4bcacda26b882c",
     "crates/flea-gui/src/g2/pl2/pointer.rs": "483475a7d2753bdad9c96d4de7680622479f82cf8a911c003a9ae9b566f6e102",
@@ -248438,8 +248061,9 @@
     "crates/flea-gui/src/g2/pv3/glyphs.rs": "2ec013de1b46b6205f467687250f092ba33517b40c99f290a5a330344c473223",
     "crates/flea-gui/src/g2/pv3/helper/dl.rs": "ef99b9dc258671076c2bdbda6edf9dad4576084c6e5545e85af6c562d7b841bc",
     "crates/flea-gui/src/g2/pv3/helper/mod.rs": "1d7c7596ad82b61c4ecb386e3e097500000062fdab6cb42b7cb6cc401705af09",
-    "crates/flea-gui/src/g2/pv3/helper/mpv.rs": "9a361012b266fbdb922e53ce6ade6ecef5d40c45e3376aa30a0af4e6e7ae92dc",
+    "crates/flea-gui/src/g2/pv3/helper/mpv.rs": "975722c59d7312376e0c66fd1254f044f5a6c3e67912025195a15c1c5b0f7cfa",
     "crates/flea-gui/src/g2/pv3/helper/mpv_api.rs": "65506325a7bc7884ee866c782c2de4aadf9de07321ca70f9269f262e17bd34f6",
+    "crates/flea-gui/src/g2/pv3/helper/mpv_filter.rs": "829ee11ad9f91cdf09b5aa7020dbe056d7fa5baff02fbd8b0aa1d777eb9ab93c",
     "crates/flea-gui/src/g2/pv3/helper/mpv_property.rs": "587b8b014e4b47f0b590bb56172d1f39177d8decec4e7dc68b696feacdd338a1",
     "crates/flea-gui/src/g2/pv3/helper/mpv_state.rs": "00cf9b68c71062cb9c7665567807ab4ce49719a788fe254f36ca4130cdecf6fe",
     "crates/flea-gui/src/g2/pv3/ink.rs": "fc5d70deb8541c3add416b40c4d9cb12354d475983d762671019144c28e974a5",
@@ -248692,8 +248316,9 @@
     "crates/flea-gui/src/navigation/orders.rs": "e2df492a8e698a378db9778919ad1ea097209e984c14b57795f94e088fab087b",
     "crates/flea-gui/src/navigation/retry.rs": "85bc1780c65b4b91012434b648bbd578d3472fcc1acd40647d10885572bf0cea",
     "crates/flea-gui/src/navigation/selected.rs": "e280087a6bc4947c16581e67adf893ca32ea73b3d43c410c5bdda68df38cdd51",
-    "crates/flea-gui/src/navigation/sort.rs": "596695f1304d5f5df94860f7c7e5df6fcbd59041596e44cbbe3d16971ada9689",
+    "crates/flea-gui/src/navigation/sort.rs": "52f90d2c746dbe41e9ed7fe9029b190b96419dbb06926a8002ff7f330da55744",
     "crates/flea-gui/src/navigation/sort_json.rs": "9f64d8d173c9d021a755accea5bcbeb51aedc5142c0185e3c299e019b1340de2",
+    "crates/flea-gui/src/navigation/sort_sizes.rs": "77023918c72d1d3140dd5d573c0ec19cbab8fe916be01fe64f0f7162fad03899",
     "crates/flea-gui/src/navigation/steps.rs": "3731b90b69ffa0df2d008fc30ddc132f0815b14a27e540abf2fa2f19fc18ac2b",
     "crates/flea-gui/src/navigation/watch.rs": "0c994c4d99c6810e3d47215708ed10f1e9b88a26ab1274cc09a159f7b4e1d885",
     "crates/flea-gui/src/palette.rs": "a13881e37397400904c64c84243d05f822a104f3f36379d35c5822657ec5ffb0",
@@ -248982,13 +248607,14 @@
     "crates/flea-gui/src/window/retry.rs": "bcfd9b57c8b6b497e83a9bb9d2119f0638ebc16638b4e08ce301cfb2551d758e",
     "crates/flea-gui/src/window/root.rs": "2ecf5d9f70837ac39d5235f1879c4ec49d1a09e18f45d0e3092649b6f8e42b79",
     "crates/flea-gui/src/window/run_card.rs": "fd9c1db65ecee157953da3d7003ea4488bbfe0acb56201620966ba091c17c093",
-    "crates/flea-gui/src/window/search.rs": "579b49897dcf04d35aff0d898beea7440a4f1e64e7866ba0af36e72305131906",
+    "crates/flea-gui/src/window/search.rs": "9b94ab960d9b626f4165c2eeb75a97a2d3983a95dad42e630bc81ce542e85056",
     "crates/flea-gui/src/window/search_contents.rs": "065bbd38cac2d82f940b02cd7ec34e282ac1ebb1e0cbcb14d90488caba65951b",
     "crates/flea-gui/src/window/search_density_guards.rs": "2a92f408ae1cc3a4a4319d2717c2464fa00e8df2f99bdcf2c65ec42722f2f473",
     "crates/flea-gui/src/window/search_empty.rs": "d08a234d81b68579a56b439ee1e6d0b01c626f059350673bee6b777aaa9ff499",
     "crates/flea-gui/src/window/search_header.rs": "d1fdd92126cb9306804d857aa5b8e143d8d7306c9492e2864796239779cce903",
     "crates/flea-gui/src/window/search_host.rs": "700a06f2a1645995cf98a7ccf3eac8174abdb724c6aa967a41cbf791e9749f25",
     "crates/flea-gui/src/window/search_keys.rs": "a47df62f8872b06e242c10a156369a07746ff6475da73f8e678efb6909db7d29",
+    "crates/flea-gui/src/window/search_lines.rs": "dcb3f613a0373cf58029fe8a113d3b1f8a99b7d51e324565042d5c0acfa52908",
     "crates/flea-gui/src/window/search_observe.rs": "2a55a58eae0b8147c9768471f585dbea185d219186aad1aaad7f90bb6fa6b3d3",
     "crates/flea-gui/src/window/search_tag.rs": "398f8f5b5e51ddea4c200525019473f3463d3971d57a622be6ebeefa23e327c4",
     "crates/flea-gui/src/window/selection_preview.rs": "cfe393086e38d9e4cac9fb7de1a70af62eed5bea324042acca60e0267524f7f1",
@@ -249646,7 +249272,7 @@
     "src/ui_logic_fb1/messages/arm.rs": "b5c857ccb06b19c4a22658fa3ce39b376f1a7a010e2f20085dff55228313d1a3",
     "src/ui_logic_fb1/messages/line.rs": "11303e5e39ada12484bac33e5396610d0fb783a4829e70ae473f1a7807b78ea3",
     "src/ui_logic_fb1/status.rs": "a1b9536b76f3aa02df822f70b84f4ea5307ff1e8338eb98771da17af437848af",
-    "src/ui_logic_mn1.rs": "0af6ed321bf7b0c81da13f1602fb1697bc001ae3b07cc37e9c58aaac80556320",
+    "src/ui_logic_mn1.rs": "afafb2d5b35e7eedab0a2c2b9f316357bcc4f4ecf309012efadd82b16e50ac29",
     "src/ui_logic_mn1/archive.rs": "7d5f990c6fd7a593104e727190f806a7b6b7cbf00607042c967aeda3eb669a0e",
     "src/ui_logic_mn1/build.rs": "1ee72a3ba44f6163395f66452d5a235cc3e2c7e70b0b0b7c1199f450b6f826eb",
     "src/ui_logic_mn1/build_context_default.rs": "b045ead1d9a683e07dfa23f7448adfbed91f690d1c1893633eaeab30dc14b6e2",
@@ -249962,7 +249588,7 @@
     "src/ui_logic_st2/shelf.rs": "a23edd66fc6a9c082414d7791431612551e17855f8b3fd39ae962e16b782e7dd",
     "src/ui_logic_st2/store.rs": "e7c1ca25ecaae948b4377cebedea28dc249b5650caca049b6773dff374f7fb17",
     "src/ui_logic_st2/wire.rs": "4c34e85f164684e1b017b3e65cc3ac080798c9cac26f18c43d44905002dc0761",
-    "src/uimigrate.rs": "31daf7716efea2f835147f30c07c6cad7bb858eb5161a8ad05ed9d0bd30a24f6",
+    "src/uimigrate.rs": "b9058d067dc758d77f67a5204621c21863178071a3701d01b0874c0e72888203",
     "src/uiplugins.rs": "e86b9758f50bf44e9ce71df7c6278062eb49b020754581c352055a2d53fc8935",
     "src/uischema.rs": "72f9f02332712ebd1478dceba4b251dea71885b85cb3c9436254c28392ea713c",
     "src/uistate.rs": "802b6a2dff1c3f68378dc279a8b8f554abb3834c3b15bae44673481ce1b7ef24",
@@ -250009,7 +249635,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "c061084caf833386c4b278ba4be8e4b5682efbca21c90a070f7852b3097a5a49",
+    "tools/flea-file-budget": "2d576fc9cd2c3b6fd6aa8cdf683d9bb9641f9b48559f37a2eab3572660e7807a",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -250545,12 +250171,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "e7c77d99043e9628e884aa3ec16e85cb1322ccfa",
-  "source_sha": "e7c77d99043e9628e884aa3ec16e85cb1322ccfa",
+  "source_ref_sha": "537d7a004f002d3743a62f4bb57fbc8162d850c5",
+  "source_sha": "537d7a004f002d3743a62f4bb57fbc8162d850c5",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1298,
-      "missing_literal_candidates": 5680,
+      "missing_literal_candidates": 5638,
       "source_files": 844
     },
     "generated/tooling": {
@@ -250561,7 +250187,7 @@
     "gui": {
       "keys_with_occurrences": 549,
       "missing_literal_candidates": 2164,
-      "source_files": 1153
+      "source_files": 1157
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

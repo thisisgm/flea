@@ -4,6 +4,8 @@ pub mod archive;
 mod board_tests;
 pub mod build;
 #[cfg(test)]
+mod build_catalogue_tests;
+#[cfg(test)]
 mod build_tests;
 #[cfg(test)]
 mod convert_gate_tests;
@@ -25,6 +27,8 @@ pub mod flyouts;
 mod flyouts_tests;
 pub mod inventory;
 pub mod places;
+#[cfg(test)]
+mod places_locked_tests;
 #[cfg(test)]
 mod places_tests;
 #[cfg(test)]

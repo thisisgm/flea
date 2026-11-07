@@ -17,6 +17,10 @@ use state::State;
 mod properties;
 use properties::property;
 
+#[path = "mpv_filter.rs"]
+mod filter;
+use filter::{drop_filter, moving, set_filter};
+
 #[cfg(test)]
 #[path = "mpv_tests.rs"]
 mod tests;
@@ -330,30 +334,6 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
         }
         Err(error) => eprintln!("flea-media: seek dropped: {error}"),
     }
-}
-
-/// Sets the tone-map filter; one mpv refuses at once is given up for the run, never the end of the helper.
-fn set_filter(api: &Api, handle: Handle, state: &mut State, filter: &str) {
-    let shown = if filter.is_empty() { "off" } else { filter };
-    eprintln!("flea-media: tone_map={shown}");
-    if let Err(error) = set(api, handle, "vf", filter) {
-        drop_filter(api, handle, state, &error);
-    }
-}
-
-/// The filter was refused or stalled the picture: the renderer converts again, as it did before the filter.
-fn drop_filter(api: &Api, handle: Handle, state: &mut State, why: &str) {
-    eprintln!("flea-media: tone map dropped: {why}");
-    if let Some(off) = state.tonemap.fail() {
-        set_filter(api, handle, state, &off);
-    }
-}
-
-/// Play should be producing frames: not paused, seeking, waiting on the cache or parked at the end.
-fn moving(api: &Api, handle: Handle) -> bool {
-    ["pause", "seeking", "paused-for-cache", "eof-reached"]
-        .into_iter()
-        .all(|name| get_flag(api, handle, name) == Some(false))
 }
 
 fn frame_due(api: &Api, context: Handle) -> Result<bool, String> {

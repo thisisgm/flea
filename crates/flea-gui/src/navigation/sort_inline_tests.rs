@@ -1,4 +1,5 @@
 use super::*;
+use flea::protocol::RowFacts;
 
 #[test]
 fn pb_rest_inline_sizes_answer_their_absolute_rows_only() {
