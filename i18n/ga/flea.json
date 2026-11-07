@@ -1430,6 +1430,7 @@
   "menu.refusal.empty_clipboard": "Níl aon rud le greamú; cóipeálann y agus gearrann x.",
   "menu.refusal.favourite_unread": "Níorbh fhéidir an fillteán roghnaithe a léamh.",
   "menu.locked.refusal": "Tá Oscail sa chríochfort, Ceadanna agus Cóipeáil mar folaithe in Socruithe > Roghchláir.",
+  "menu.locked.terminal_copy_hidden": "Tá Oscail sa chríochfort agus Cóipeáil mar folaithe in Socruithe > Roghchláir.",
   "menu.favourites_changed": "D'athraigh na ceanáin; oscail an roghchlár arís sula mbainfidh tú an ró seo.",
   "menu.place.opens_here": "Ní osclaítear %1 ach sa chluaisín seo",
   "trash.title": "Bruscar",

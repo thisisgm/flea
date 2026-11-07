@@ -107,6 +107,36 @@ fn locked_tile() {
         None,
     );
     check(
+        "nor names a hidden pair, since Permissions is not the row left",
+        locked_notice(&strings(&["openTerminal", "permissions"])),
+        None,
+    );
+    let shipped: Vec<String> = strings(&SHIPPED_HIDDEN)
+        .into_iter()
+        .filter(|id| id != "properties" && id != "permissions")
+        .collect();
+    check(
+        "Properties and Permissions shown leave the tile Permissions alone",
+        actions(&locked_entries(0o040000, &shipped)),
+        "permissions".into(),
+    );
+    check(
+        "so the menu opens without refusing",
+        locked_refusal(0o040000, &shipped),
+        None,
+    );
+    check(
+        "and the status line names the two still hidden",
+        locked_notice(&shipped).map(|k| i18n.tr(k)),
+        Some("Open in Terminal and Copy As are hidden in Settings > Menus.".into()),
+    );
+    check(
+        "every row hidden keeps the refusal and no second sentence",
+        locked_notice(&strings(&SHIPPED_HIDDEN)),
+        None,
+    );
+    check("every row shown names nothing", locked_notice(&[]), None);
+    check(
         "its Copy Path row reads Copy Path",
         label(&i18n, entry(&locked, "copypath")),
         "Copy Path".into(),

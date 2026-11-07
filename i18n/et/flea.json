@@ -1316,6 +1316,7 @@
   "menu.refusal.empty_clipboard": "Pole midagi kleepida. y kopeerib ja x lõikab.",
   "menu.refusal.favourite_unread": "Valitud kausta ei õnnestunud lugeda.",
   "menu.locked.refusal": "Ava terminalis, Õigused ja Kopeeri kujul on peidetud jaotises Sätted > Menüüd.",
+  "menu.locked.terminal_copy_hidden": "Ava terminalis ja Kopeeri kujul on peidetud jaotises Sätted > Menüüd.",
   "menu.favourites_changed": "Lemmikud muutusid. Enne selle rea eemaldamist ava menüü uuesti.",
   "menu.place.opens_here": "%1 avaneb ainult sellel vahekaardil",
   "trash.title": "Prügikast",

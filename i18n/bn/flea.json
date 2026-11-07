@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "লুকানো ফাইল লুকান",
   "menu.loading": "লোড হচ্ছে…",
   "menu.locked.refusal": "টার্মিনালে খুলুন, অনুমতি ও অন্যভাবে কপি করুন সেটিংস > মেনুতে লুকানো আছে।",
+  "menu.locked.terminal_copy_hidden": "টার্মিনালে খুলুন ও অন্যভাবে কপি করুন সেটিংস > মেনুতে লুকানো আছে।",
   "menu.make_executable.failed": "ওই ফাইল চালানোর উপযোগী করা যায়নি।",
   "menu.make_executable.made": "চালানোর উপযোগী করা হয়েছে।",
   "menu.make_executable.refused": "শুধু এখনো চালানো যায় না এমন স্ক্রিপ্ট চালানোর উপযোগী করা যায়",

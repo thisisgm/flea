@@ -1262,6 +1262,7 @@
   "menu.refusal.unavailable": "该操作已不可用；请重新打开菜单。",
   "menu.refusal.empty_clipboard": "没有可粘贴的内容；按 y 复制，按 x 剪切。",
   "menu.locked.refusal": "“在终端中打开”“权限”和“复制为”已在“设置 > 菜单”中隐藏。",
+  "menu.locked.terminal_copy_hidden": "“在终端中打开”和“复制为”已在“设置 > 菜单”中隐藏。",
   "menu.favourites_changed": "收藏夹已更改；请重新打开菜单后再移除此行。",
   "menu.place.opens_here": "%1 只在此标签页中打开",
   "trash.title": "回收站",

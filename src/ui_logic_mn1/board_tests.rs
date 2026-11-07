@@ -1,4 +1,4 @@
-//! Every menu card the 0.4.0 menu boards and the 0.4.1 Copy As board draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
+//! Every menu card the 0.4.0 menu boards and the 0.4.1 Copy As and menu-inspect boards draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
 use super::build::{build_entries, App, Context, Kind};
 use super::entry::{Brand, Entry, Text};
 use super::fit::{self, Rect, RowParts, PAD};
@@ -62,6 +62,25 @@ fn cards() -> Vec<Card<'static>> {
         .collect()
 }
 
+// The 0.4.0 boards draw v0.4.0's shipped hidden list; 0401-menu-inspect-c draws the current default.
+const HIDDEN_0_4_0: [&str; 15] = [
+    "delete",
+    "openTerminal",
+    "placeMenu",
+    "runScript",
+    "moveto",
+    "copyto",
+    "properties",
+    "permissions",
+    "copyAs",
+    "pasteAs",
+    "invertSelection",
+    "extThumbs",
+    "run",
+    "openAsText",
+    "openAgent",
+];
+
 // notes.txt, a plain-text file that prints, with nothing copied, Taildrop offline and Dropbox signed out.
 fn notes(all_on: bool) -> Context {
     let tags = TAGS.iter().enumerate().map(|(i, name)| {
@@ -83,7 +102,7 @@ fn notes(all_on: bool) -> Context {
         hidden: if all_on {
             effective_hidden(Some(&strings(&["run", "openAsText"])), false)
         } else {
-            effective_hidden(None, false)
+            effective_hidden(Some(&strings(&HIDDEN_0_4_0)), false)
         },
         archive_formats: strings(&["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "7z"]),
         tag_submenu: Some(tags.collect()),
@@ -108,6 +127,16 @@ fn entries(board: &str) -> (Vec<Entry>, bool, Rect, f32) {
             (build_entries(Kind::File, &notes(false)), false)
         }
         "file-menu-print" => (build_entries(Kind::File, &notes(false)), true),
+        "0401-menu-inspect-c" => (
+            build_entries(
+                Kind::File,
+                &Context {
+                    hidden: effective_hidden(None, false),
+                    ..notes(false)
+                },
+            ),
+            false,
+        ),
         "pasteas-menu" => (
             build_entries(
                 Kind::File,
@@ -258,7 +287,7 @@ fn walked(board: &str, rows: &[Entry], view: i32, keep: usize) -> (i32, i32) {
 fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll() {
     let i18n = english();
     let all = cards();
-    assert_eq!(all.len(), 29, "every card the 20 boards draw");
+    assert_eq!(all.len(), 30, "every card the 21 boards draw");
     for card in all.iter().filter(|c| c.card == 0) {
         let (rows, hints, work, inset) = entries(card.board);
         let name = card.board;

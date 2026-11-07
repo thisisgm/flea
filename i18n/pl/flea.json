@@ -1229,6 +1229,7 @@
   "menu.hideHidden": "Ukryj ukryte pliki",
   "menu.loading": "Wczytywanie…",
   "menu.locked.refusal": "Otwórz w terminalu, Uprawnienia i Kopiuj jako są ukryte w Ustawienia > Menu.",
+  "menu.locked.terminal_copy_hidden": "Otwórz w terminalu i Kopiuj jako są ukryte w Ustawienia > Menu.",
   "menu.make_executable.failed": "Nie udało się nadać temu plikowi uprawnień do wykonywania.",
   "menu.make_executable.made": "Nadano uprawnienia do wykonywania.",
   "menu.make_executable.refused": "Zezwól na wykonywanie dotyczy skryptu, którego jeszcze nie można uruchomić",

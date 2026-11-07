@@ -1119,6 +1119,7 @@
   "menu.hideHidden": "隱藏隱藏檔案",
   "menu.loading": "正在載入…",
   "menu.locked.refusal": "「在終端機中開啟」、「權限」和「複製為」已在「設定 > 選單」中隱藏。",
+  "menu.locked.terminal_copy_hidden": "「在終端機中開啟」和「複製為」已在「設定 > 選單」中隱藏。",
   "menu.make_executable.failed": "無法讓該檔案可執行。",
   "menu.make_executable.made": "已設為可執行。",
   "menu.make_executable.refused": "「設為可執行」適用於尚無法執行的指令碼",

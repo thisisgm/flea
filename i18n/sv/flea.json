@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "Dölj dolda filer",
   "menu.loading": "Laddar…",
   "menu.locked.refusal": "Öppna i terminal, Behörigheter och Kopiera som är dolda i Inställningar > Menyer.",
+  "menu.locked.terminal_copy_hidden": "Öppna i terminal och Kopiera som är dolda i Inställningar > Menyer.",
   "menu.make_executable.failed": "Filen kunde inte göras körbar.",
   "menu.make_executable.made": "Gjorde filen körbar.",
   "menu.make_executable.refused": "Gör körbar fungerar på ett skript som ännu inte kan köras",

@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "پنهان کردن فایل‌های پنهان",
   "menu.loading": "در حال بارگذاری…",
   "menu.locked.refusal": "«باز کردن در ترمینال»، «دسترسی‌ها» و «کپی به‌صورت» در تنظیمات > منوها پنهان هستند.",
+  "menu.locked.terminal_copy_hidden": "«باز کردن در ترمینال» و «کپی به‌صورت» در تنظیمات > منوها پنهان هستند.",
   "menu.make_executable.failed": "اجرایی کردن آن فایل ممکن نشد.",
   "menu.make_executable.made": "اجرایی شد.",
   "menu.make_executable.refused": "اجرایی کردن فقط روی اسکریپتی کار می‌کند که هنوز قابل اجرا نیست",

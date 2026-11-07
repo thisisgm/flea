@@ -8,7 +8,7 @@ fn number(value: &Json, key: &str) -> f64 {
 
 #[gpui::test]
 fn notice_layout_hidden_rows_keep_the_complete_hig_sentence(cx: &mut TestAppContext) {
-    let handle = locked(cx, None);
+    let handle = locked(cx, Some(super::HIDDEN_0_4_0));
     cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(1100.), gpui::px(700.)));
     frame(cx, handle);
     let footer = json(cx, handle, "statusFooterState");

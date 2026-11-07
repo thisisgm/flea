@@ -1209,6 +1209,7 @@
   "menu.hideHidden": "Skryť skryté súbory",
   "menu.loading": "Načítava sa…",
   "menu.locked.refusal": "Otvoriť v termináli, Oprávnenia a Kopírovať ako sú skryté v Nastavenia > Ponuky.",
+  "menu.locked.terminal_copy_hidden": "Otvoriť v termináli a Kopírovať ako sú skryté v Nastavenia > Ponuky.",
   "menu.make_executable.failed": "Tento súbor sa nepodarilo nastaviť ako spustiteľný.",
   "menu.make_executable.made": "Súbor je teraz spustiteľný.",
   "menu.make_executable.refused": "Nastaviť ako spustiteľný možno skript, ktorý sa ešte nedá spustiť",

@@ -1278,6 +1278,7 @@
   "menu.refusal.empty_clipboard": "Tiada apa-apa untuk ditampal; y menyalin dan x memotong.",
   "menu.refusal.favourite_unread": "Folder yang dipilih tidak dapat dibaca.",
   "menu.locked.refusal": "Buka dalam Terminal, Kebenaran dan Salin sebagai disembunyikan dalam Tetapan > Menu.",
+  "menu.locked.terminal_copy_hidden": "Buka dalam Terminal dan Salin sebagai disembunyikan dalam Tetapan > Menu.",
   "menu.favourites_changed": "Kegemaran berubah; buka menu semula sebelum mengalih keluar baris ini.",
   "menu.place.opens_here": "%1 dibuka dalam tab ini sahaja",
   "trash.title": "Tong sampah",

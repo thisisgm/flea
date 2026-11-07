@@ -1341,6 +1341,7 @@
   "menu.refusal.recent_new_file": "Recent cannot hold a new file. Open a folder first",
   "menu.refusal.favourite_unread": "The selected folder could not be read.",
   "menu.locked.refusal": "Open in Terminal, Permissions and Copy As are hidden in Settings > Menus.",
+  "menu.locked.terminal_copy_hidden": "Open in Terminal and Copy As are hidden in Settings > Menus.",
   "menu.favourites_changed": "Favorites changed; reopen the menu before removing this row.",
   "menu.place.opens_here": "%1 opens in this tab only",
   "trash.title": "Trash",

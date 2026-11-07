@@ -411,6 +411,7 @@ pub(super) const MENUS_EXTRAS: &[&str] = &[
     "Actions",
     "Places row menu",
     "Update Flea",
+    "Show Hidden Files",
     "Show Code Icons",
     "Show Thumbnails",
     "Paste As",
@@ -420,7 +421,6 @@ pub(super) const MENUS_EXTRAS: &[&str] = &[
     "Every key stays bound either way.",
     "Always Shown",
     "Open",
-    "Show Hidden Files",
 ];
 
 pub(super) const ABOUT: &[&str] = &[

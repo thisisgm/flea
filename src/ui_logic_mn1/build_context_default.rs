@@ -33,6 +33,7 @@ impl Default for Context {
             tag_submenu: None,
             open_with_apps: Vec::new(),
             open_with_loaded: false,
+            open_with_late: false,
             taildrop_installed: false,
             taildrop_peers: Vec::new(),
             taildrop_refreshing: false,

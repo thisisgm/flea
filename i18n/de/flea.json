@@ -1316,6 +1316,7 @@
   "menu.refusal.empty_clipboard": "Es gibt nichts einzufügen. y kopiert und x schneidet aus.",
   "menu.refusal.favourite_unread": "Der ausgewählte Ordner konnte nicht gelesen werden.",
   "menu.locked.refusal": "Im Terminal öffnen, Zugriffsrechte und Kopieren als sind unter Einstellungen > Menüs ausgeblendet.",
+  "menu.locked.terminal_copy_hidden": "Im Terminal öffnen und Kopieren als sind unter Einstellungen > Menüs ausgeblendet.",
   "menu.favourites_changed": "Die Favoriten haben sich geändert. Öffne das Menü erneut, bevor du diese Zeile entfernst.",
   "menu.place.opens_here": "%1 wird nur in diesem Tab geöffnet",
   "trash.title": "Papierkorb",

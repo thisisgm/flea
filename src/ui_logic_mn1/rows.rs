@@ -16,9 +16,9 @@ pub const SORT_ORDERS: [(&str, &str); 4] = [
     ("kind", "menu.sort.kind"),
 ];
 
-// Open and the hidden-files toggle are never in the stored set, so a hand-edited state file cannot empty a menu.
+// Open is never in the stored set, so a hand-edited state file cannot empty a menu.
 pub fn is_hidden(hidden: &[String], action: &str) -> bool {
-    if action == "open" || action == "toggleHidden" {
+    if action == "open" {
         return false;
     }
     hidden.iter().any(|id| id == action)

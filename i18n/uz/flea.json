@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "Yashirin fayllarni yashirish",
   "menu.loading": "Yuklanmoqda…",
   "menu.locked.refusal": "Terminalda ochish, Ruxsatlar va Boshqa shaklda nusxalash amallari Sozlamalar > Menyular ichida yashirilgan.",
+  "menu.locked.terminal_copy_hidden": "Terminalda ochish va Boshqa shaklda nusxalash amallari Sozlamalar > Menyular ichida yashirilgan.",
   "menu.make_executable.failed": "Bu faylni bajariladigan qilib boʻlmadi.",
   "menu.make_executable.made": "Bajariladigan qilindi.",
   "menu.make_executable.refused": "Bajariladigan qilish amali hali ishga tushmaydigan skript uchun ishlaydi",

@@ -1184,6 +1184,7 @@
   "menu.hideHidden": "Skrýt skryté soubory",
   "menu.loading": "Načítání…",
   "menu.locked.refusal": "Otevřít v terminálu, Oprávnění a Kopírovat jako jsou skryty v Nastavení > Nabídky.",
+  "menu.locked.terminal_copy_hidden": "Otevřít v terminálu a Kopírovat jako jsou skryty v Nastavení > Nabídky.",
   "menu.make_executable.failed": "Soubor nelze nastavit jako spustitelný.",
   "menu.make_executable.made": "Soubor byl nastaven jako spustitelný.",
   "menu.make_executable.refused": "Nastavit jako spustitelný lze skript, který zatím nelze spustit",

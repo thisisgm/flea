@@ -271,7 +271,15 @@ not run it twice. **The window reads an absent `showUnmounted` as on**: `ui/Side
 rows of `ui/js/Settings.js` read `!== false`, because the window applies no schema of its own and a
 first launch has no file to read. A later migration appends one `(version, step)` pair to `STEPS`,
 raises `"stateVersion"` in `src/uischema.rs` DEFAULTS to that version, and changes only the leaves it
-names. `src/uimigrate.rs`'s own tests drive a 0.3.2 file through a read, a write and two settles, a
+names. **0.4.1's step has its own stamp instead, `menuVersion`.** 0.4.0 refuses a file whose
+`stateVersion` is above 4: it reads every key as its default and writes nothing, so a raised stamp would
+cost a downgraded user their settings. `menuVersion` 1 shows Properties and Permissions and hides
+Show Hidden Files and Hide Code Icons from the file menu once, when the stored `menu.hidden` equals a
+list an untouched file holds after steps 2 to 4; the background menu keeps both view rows whatever the
+list says. 0.4.0 keeps the key as an unknown one, so a downgrade and an upgrade again do not run the
+step twice. 0.4.0 reads a listed Hide Code Icons as hidden from both its menus, so after a downgrade
+that row is back only through its Settings > Menus switch.
+`src/uimigrate.rs`'s own tests drive a 0.3.2 file through a read, a write and two settles, a
 stamped file switched off, a fresh install switched off, unknown keys, a patch onto an old file, and
 six threads writing one old file under the lock; `tests/uistate.sh` drives the same through the binary,
 `tests/ui-rail.sh` case `unmounted` opens a raw 0.3.2 file in the window and reads the rail and the

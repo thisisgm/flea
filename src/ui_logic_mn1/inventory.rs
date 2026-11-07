@@ -277,8 +277,6 @@ pub const SHIPPED_HIDDEN: &[&str] = &[
     "runScript",
     "moveto",
     "copyto",
-    "properties",
-    "permissions",
     "copyAs",
     "pasteAs",
     "invertSelection",
@@ -286,6 +284,8 @@ pub const SHIPPED_HIDDEN: &[&str] = &[
     "run",
     "openAsText",
     "openAgent",
+    "toggleHidden",
+    "toggleLangMarks",
 ];
 
 /// The set a menu hides: the stored list, or the shipped one when none is stored, with Add to Shelf under the shelf's own switch.

@@ -705,10 +705,19 @@ fn optional_rows_and_counts() {
         is_hidden(&strings(&["open"]), "open"),
         false,
     );
+    let view = strings(&["toggleHidden", "toggleLangMarks", "openTerminal"]);
     check(
-        "hidden toggle cannot be hidden",
-        is_hidden(&strings(&["toggleHidden"]), "toggleHidden"),
+        "Settings > Menus takes the view rows off the file menu",
+        actions(&listing_entries(&st(|p| p.hidden = view.clone()))).contains("toggle"),
         false,
+    );
+    check(
+        "and the background keeps them with Open in Terminal",
+        actions(&listing_entries(&st(|p| {
+            p.hidden = view.clone();
+            p.has_row = false;
+        }))),
+        "newFolder,newFile,paste,selectAll,invertSelection,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings".into(),
     );
     check(
         "stored lower-case id hides corresponding action",
@@ -837,5 +846,32 @@ fn a_folder_row_offers_no_taildrop_peers() {
         "folder Taildrop row is red and says no word",
         (taildrop.errored, taildrop.hint.is_none()),
         (true, true),
+    );
+}
+
+// An empty application list takes Open With away only once the catalogue answered; one past the deadline keeps it.
+#[test]
+fn open_with_leaves_only_on_an_answered_empty_catalogue() {
+    let answered = st(|p| p.open_with_loaded = true);
+    check(
+        "an answered empty catalogue takes Open With away",
+        entry(&listing_entries(&answered), "openWith").is_none(),
+        true,
+    );
+    let late = listing_entries(&st(|p| {
+        p.open_with_loaded = true;
+        p.open_with_late = true;
+    }));
+    check(
+        "a catalogue past the deadline keeps it, with Another Application alone",
+        entry(&late, "openWith")
+            .and_then(|e| e.submenu.as_deref())
+            .map(|leaves| {
+                leaves
+                    .iter()
+                    .map(|leaf| leaf.id.to_string())
+                    .collect::<Vec<_>>()
+            }),
+        Some(vec![super::rows::OPEN_WITH_OTHER.to_string()]),
     );
 }

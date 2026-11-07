@@ -7,6 +7,7 @@ use super::rows;
 // Rows that act on a locked folder without listing it, in inventory order.
 pub const LOCKED_IDS: [&str; 3] = ["openTerminal", "permissions", "copyAs"];
 pub const LOCKED_REFUSAL: &str = "menu.locked.refusal";
+pub const LOCKED_NOTICE: &str = "menu.locked.terminal_copy_hidden";
 // An owner who can read and search the folder was not the one refused, so the denial proves another owner.
 const OWNER_CAN_LIST: u32 = 0o500;
 
@@ -55,6 +56,15 @@ pub fn locked_refusal(mode: u32, hidden: &[String]) -> Option<&'static str> {
     locked_entries(mode, hidden)
         .is_empty()
         .then_some(LOCKED_REFUSAL)
+}
+
+// The shipped default shows Permissions alone, so the status line still names the two Settings > Menus hides, as 0.4.0 named all three.
+pub fn locked_notice(hidden: &[String]) -> Option<&'static str> {
+    let shown: Vec<&str> = LOCKED_IDS
+        .into_iter()
+        .filter(|id| !rows::is_hidden(hidden, id))
+        .collect();
+    (shown == ["permissions"]).then_some(LOCKED_NOTICE)
 }
 
 // Only the owner can chmod it back, so a folder that proves another owner reads red and says so.

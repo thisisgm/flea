@@ -24,16 +24,18 @@ pub const GROUPS: &[Group] = &[
     Group {
         id: "extras", label: "settings.menus.group_extras", features: &["placeMenu"],
         ids: &["shelf", "compress", "extract", "convert", "flashDrive", "taildrop", "localsend", "rclone", "dropbox",
-            "sharelink", "actions", "placeMenu", "updateFlea", "toggleLangMarks", "extThumbs", "pasteAs", "invertSelection"],
+            "sharelink", "actions", "placeMenu", "updateFlea", "toggleHidden", "toggleLangMarks", "extThumbs", "pasteAs",
+            "invertSelection"],
     },
 ];
 
 // src/uischema.rs DEFAULTS menu.hidden, which ViewState.defaultMenuHidden copies for a document that stores none.
-pub const SHIPPED_HIDDEN: &[&str] = &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties",
-    "permissions", "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"];
+pub const SHIPPED_HIDDEN: &[&str] = &["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "copyAs",
+    "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent",
+    "toggleHidden", "toggleLangMarks"];
 
-// Open and Show Hidden Files draw the lock mark instead of a box: no switch governs them.
-pub const LOCKED: &[&str] = &["open", "toggleHidden"];
+// Open draws the lock mark instead of a box: no switch governs it.
+pub const LOCKED: &[&str] = &["open"];
 
 const LABELS: &[(&str, &str)] = &[
     ("cut", "settings.menus.cut"), ("copy", "settings.menus.copy"), ("paste", "settings.menus.paste"),

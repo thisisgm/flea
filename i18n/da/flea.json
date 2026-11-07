@@ -1139,6 +1139,7 @@
   "menu.hideHidden": "Skjul skjulte filer",
   "menu.loading": "Indlæser…",
   "menu.locked.refusal": "Åbn i terminal, Tilladelser og Kopier som er skjult i Indstillinger > Menuer.",
+  "menu.locked.terminal_copy_hidden": "Åbn i terminal og Kopier som er skjult i Indstillinger > Menuer.",
   "menu.make_executable.failed": "Filen kunne ikke gøres eksekverbar.",
   "menu.make_executable.made": "Gjorde filen eksekverbar.",
   "menu.make_executable.refused": "Gør eksekverbar virker på et script, der endnu ikke kan køres",

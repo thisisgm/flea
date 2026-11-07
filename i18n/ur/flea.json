@@ -1164,6 +1164,7 @@
   "menu.hideHidden": "چھپی فائلیں چھپائیں",
   "menu.loading": "لوڈ ہو رہا ہے…",
   "menu.locked.refusal": "ترتیبات > مینو میں ٹرمینل میں کھولیں، اجازتیں اور اس طرح کاپی کریں چھپے ہوئے ہیں۔",
+  "menu.locked.terminal_copy_hidden": "ترتیبات > مینو میں ٹرمینل میں کھولیں اور اس طرح کاپی کریں چھپے ہوئے ہیں۔",
   "menu.make_executable.failed": "وہ فائل قابل اجرا نہیں بن سکی۔",
   "menu.make_executable.made": "قابل اجرا بنا دیا گیا۔",
   "menu.make_executable.refused": "قابل اجرا بنانا ایسی اسکرپٹ پر کام کرتا ہے جو ابھی چل نہیں سکتی",
