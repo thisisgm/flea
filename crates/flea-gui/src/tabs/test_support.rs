@@ -137,7 +137,7 @@ impl Live for Pane {
         }
     }
     fn selection_changed(&mut self) {}
-    fn resort(&mut self, order: Order) {
+    fn restore_order(&mut self, order: Order) {
         self.order = order;
     }
     fn sort(&mut self, order: Order) {

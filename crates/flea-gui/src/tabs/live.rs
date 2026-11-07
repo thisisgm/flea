@@ -232,13 +232,11 @@ impl Live for Pane<'_> {
     fn selection_changed(&mut self) {
         self.host.selected.sort_unstable();
     }
-    fn resort(&mut self, order: Order) {
-        let _ = self.host.nav.resort(
-            &mut self.host.pane,
-            order,
-            &mut self.host.selected,
-            self.catalog.tr("navigation.save_failed"),
-        );
+    fn restore_order(&mut self, order: Order) {
+        let _ = self
+            .host
+            .nav
+            .restore_order(&mut self.host.pane, order, &mut self.host.selected);
     }
     fn sort(&mut self, order: Order) {
         self.host.nav.order = order;

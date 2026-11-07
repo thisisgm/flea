@@ -392,7 +392,7 @@ impl Live for Fake {
     fn selection_changed(&mut self) {
         self.announced += 1;
     }
-    fn resort(&mut self, order: Order) {
+    fn restore_order(&mut self, order: Order) {
         self.sorted.push(format!("{}:{}", order.key, order.desc));
         self.order = order;
         self.selection.clear();

@@ -189,7 +189,7 @@ impl Navigator {
                 .requests
                 .pop_front()
                 .map(|request| {
-                    if request.sort {
+                    if request.chosen {
                         self.committed_sort = Some(request.order);
                     }
                     request.order
@@ -207,15 +207,17 @@ impl Navigator {
         }
     }
 
-    fn start_sort(&mut self, pane: &Pane, order: Order) {
+    fn start_sort(&mut self, pane: &Pane, order: Order, chosen: bool) {
         self.sync_orders(pane);
         self.orders.path = pane.path().into();
         self.orders.explicit = true;
         let folders = self.folders.borrow();
         self.orders.preferences = Some((folders.global, folders.remember_sort));
-        self.orders
-            .requests
-            .push_back(RequestedOrder { order, sort: true });
+        self.orders.requests.push_back(RequestedOrder {
+            order,
+            sort: true,
+            chosen,
+        });
     }
 
     // The listing every navigation and re-read submits, in the folder's own order.
@@ -240,6 +242,7 @@ impl Navigator {
         self.orders.requests.push_back(RequestedOrder {
             order: self.order,
             sort: false,
+            chosen: false,
         });
         Listing {
             path: path.into(),

@@ -105,8 +105,8 @@ pub trait Live {
     fn select_only(&mut self, index: usize);
     fn toggle(&mut self, index: usize);
     fn selection_changed(&mut self);
-    // The one reset a reorder takes: the order, a cleared selection, the cursor on top and the first window.
-    fn resort(&mut self, order: Order);
+    // The reset a tab's own order takes (cleared selection, cursor on top, first window), remembering nothing for the folder.
+    fn restore_order(&mut self, order: Order);
     // A bare sort and its first window, which remembers nothing for the folder.
     fn sort(&mut self, order: Order);
     fn window(&mut self, start: usize, count: usize);
@@ -481,7 +481,7 @@ impl TabState {
         pane.set_hidden(item.hidden);
         if same {
             if pane.order() != item.order {
-                pane.resort(item.order);
+                pane.restore_order(item.order);
                 if let Some(pending) = self.pending_mut() {
                     pending.cursor = Some(item.cursor);
                 }

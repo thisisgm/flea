@@ -6,6 +6,7 @@ use std::collections::{HashMap, VecDeque};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Request {
     Order(Order),
+    Restore(Order),
     Forget,
 }
 
@@ -264,7 +265,7 @@ impl super::Navigator {
         self.gate.editing || self.gate.rename_pending
     }
 
-    // Only an order the backend produces moves the mark; the same order is not asked for at all.
+    // A user's sort: the folder remembers it, or with memory off the window's fallback takes it once it lands.
     pub fn resort(
         &mut self,
         pane: &mut crate::pane::Pane,
@@ -272,8 +273,34 @@ impl super::Navigator {
         selected: &mut Vec<usize>,
         failure: String,
     ) -> Result<bool, super::Refusal> {
+        self.reorder(pane, order, selected, failure, true)
+    }
+
+    // A tab coming back on the same folder shows its own order without replacing what the folder remembers.
+    pub fn restore_order(
+        &mut self,
+        pane: &mut crate::pane::Pane,
+        order: Order,
+        selected: &mut Vec<usize>,
+    ) -> Result<bool, super::Refusal> {
+        self.reorder(pane, order, selected, String::new(), false)
+    }
+
+    // Only an order the backend produces moves the mark; the same order is not asked for at all.
+    fn reorder(
+        &mut self,
+        pane: &mut crate::pane::Pane,
+        order: Order,
+        selected: &mut Vec<usize>,
+        failure: String,
+        chosen: bool,
+    ) -> Result<bool, super::Refusal> {
         if self.holds_sort() {
-            self.pending_sort = Some(Request::Order(order));
+            self.pending_sort = Some(if chosen {
+                Request::Order(order)
+            } else {
+                Request::Restore(order)
+            });
             return Ok(false);
         }
         if pane.busy() {
@@ -283,7 +310,7 @@ impl super::Navigator {
             return Ok(false);
         }
         let folders = self.folders.borrow().clone();
-        self.start_sort(pane, order);
+        self.start_sort(pane, order, chosen);
         self.emit(super::Command::Sort {
             order,
             folders_first: folders.folders_first,
@@ -291,7 +318,7 @@ impl super::Navigator {
             hidden_last: folders.hidden_last,
         });
         self.order = order;
-        if self.is_folder(pane) {
+        if chosen && self.is_folder(pane) {
             let patch = self.folders.borrow_mut().remember(pane.path(), order);
             if let Some(patch) = patch {
                 self.persist(patch, failure);
@@ -386,6 +413,7 @@ impl super::Navigator {
         }
         match self.pending_sort.take() {
             Some(Request::Order(order)) => self.resort(pane, order, selected, failure),
+            Some(Request::Restore(order)) => self.restore_order(pane, order, selected),
             Some(Request::Forget) => self.forget_sort(pane, failure),
             None => Ok(false),
         }
