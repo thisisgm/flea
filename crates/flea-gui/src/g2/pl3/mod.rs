@@ -67,3 +67,5 @@ mod parity_sweep_tests;
 mod status_line_tests;
 #[cfg(test)]
 mod trashview_tests;
+#[cfg(test)]
+mod window_tests;

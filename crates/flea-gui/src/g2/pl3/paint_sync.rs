@@ -5,18 +5,24 @@ use crate::row::marks::Mark;
 
 impl TrashPane {
     pub fn interaction_held(&self) -> bool {
-        self.presentation_loading
-            || matches!(
-                self.host.view.pending_op.as_str(),
-                "list" | "summary" | "window"
-            )
+        self.presentation_loading || self.snapshot_held()
+    }
+
+    // A window read holds the drawn snapshot only while the viewport shows rows it does not hold yet.
+    fn snapshot_held(&self) -> bool {
+        let view = &self.host.view;
+        match view.pending_op.as_str() {
+            "list" | "summary" => true,
+            "window" => !view.covers_viewport(),
+            _ => false,
+        }
     }
 
     pub(super) fn sync_paint(&mut self) {
-        let view = &self.host.view;
-        if matches!(view.pending_op.as_str(), "list" | "summary" | "window") {
+        if self.snapshot_held() {
             return;
         }
+        let view = &self.host.view;
         let mut paint = self.paint.borrow_mut();
         let face = self.pending_face.take();
         let face_changed = face

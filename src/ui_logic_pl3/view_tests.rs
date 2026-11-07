@@ -229,3 +229,22 @@ fn trash_view_keeps_listing_keys_and_forwards_window_keys() {
     view.press(Press::Backspace, false, 0, &i18n, Keys::default());
     assert!(!view.opened, "Backspace closes the view once the card is gone");
 }
+
+#[test]
+fn trash_view_reads_the_next_window_before_a_wheel_notch_reaches_unheld_rows() {
+    let mut backend = Backend::with((0..200).map(|i| row(&format!("f{i:03}"), "2026-10-05T09:00:00")).collect());
+    let mut host = Host::new(View::new(ROW));
+    host.view.set_viewport(0., 20. * ROW);
+    host.open("");
+    backend.pump(&mut host);
+    // Every wheel notch moves three rows; each must land on rows held before the backend answers anything.
+    for notch in 1..=60 {
+        host.view.set_viewport(notch as f32 * 3. * ROW, 20. * ROW);
+        let top = (host.view.scroll_y / ROW).floor() as usize;
+        let end = ((host.view.scroll_y + 20. * ROW) / ROW).ceil() as usize;
+        assert!((top..end.min(200)).all(|index| host.view.row_at(index).is_some()), "notch {notch} shows unheld rows");
+        backend.pump(&mut host);
+    }
+    let windows = backend.ops("window").len();
+    assert!((1..=10).contains(&windows), "60 notches over 180 rows read {windows} windows");
+}

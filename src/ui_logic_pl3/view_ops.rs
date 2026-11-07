@@ -136,7 +136,7 @@ impl View {
         if action != "trashArm" {
             self.arm.clear();
         }
-        let page = self.window_rows().saturating_sub(2).max(1) as isize;
+        let page = self.page().min(super::view::WINDOW_CAP).saturating_sub(2).max(1) as isize;
         let cursor = self.cursor as isize;
         match action {
             "escape" => self.close(),

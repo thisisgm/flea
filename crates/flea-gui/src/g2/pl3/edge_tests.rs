@@ -129,7 +129,7 @@ fn adv_trash_text_size_keeps_the_full_pane_height_when_the_headers_grow() {
 }
 
 #[test]
-fn adv_trash_text_size_keeps_a_complete_old_viewport_until_the_new_rows_arrive() {
+fn adv_trash_text_size_draws_only_a_complete_viewport() {
     use super::tests::{answer, open, sent};
     let mut cx = real_cx();
     let (window, calls) = open(&mut cx);
@@ -150,6 +150,17 @@ fn adv_trash_text_size_keeps_a_complete_old_viewport_until_the_new_rows_arrive()
             rows.join(",")
         )
     };
+    // The backend answers a window with exactly the rows it was asked for.
+    let requested = |calls: &_| {
+        let request = sent(calls)
+            .into_iter()
+            .rev()
+            .find(|s| s.contains(r#""op":"window""#))
+            .unwrap();
+        let request = flea::jsondoc::parse(&request).unwrap();
+        let number = |key| request.get(key).unwrap().as_f64().unwrap() as usize;
+        (number("start"), number("count"))
+    };
     let count = window
         .update(&mut cx, |pane, _, _| pane.view().window_rows())
         .unwrap();
@@ -164,37 +175,23 @@ fn adv_trash_text_size_keeps_a_complete_old_viewport_until_the_new_rows_arrive()
     window
         .update(&mut cx, |pane, _, cx| pane.wheel(4200., cx))
         .unwrap();
-    answer(&mut cx, window, &calls, "window", &fields(100, count));
+    let (start, count) = requested(&calls);
+    answer(&mut cx, window, &calls, "window", &fields(start, count));
     window
         .update(&mut cx, |pane, window, cx| {
             window.set_rem_size(gpui::px(14.));
             pane.set_face(&crate::list::Typeface::omarchy_default(), cx);
-            assert_eq!(pane.view().pending_op, "window");
-            let paint = pane.paint.borrow();
-            assert_eq!(
-                paint.board.row_h, 42.,
-                "new row pitch waits for the matching viewport"
-            );
-            assert_eq!(paint.scroll_y, 4200.);
-            assert!(paint.line(100).is_some());
         })
         .unwrap();
-    let request = sent(&calls)
-        .into_iter()
-        .rev()
-        .find(|s| s.contains(r#""op":"window""#))
-        .unwrap();
-    let request = flea::jsondoc::parse(&request).unwrap();
-    let start = request.get("start").unwrap().as_f64().unwrap() as usize;
-    let count = request.get("count").unwrap().as_f64().unwrap() as usize;
-    answer(&mut cx, window, &calls, "window", &fields(start, count));
     cx.update_window(window.into(), |_, window, cx| {
         window.refresh();
         window.draw(cx).clear(cx);
     })
     .unwrap();
+    // The held margin covers the smaller pitch's viewport, so the new pitch draws at once and whole.
     window
         .update(&mut cx, |pane, _, _| {
+            assert!(pane.view().covers_viewport());
             let paint = pane.paint.borrow();
             assert_eq!((paint.board.row_h, paint.scroll_y), (31., 3100.));
             let end = ((paint.scroll_y + pane.view().height) / paint.board.row_h).ceil() as usize;
