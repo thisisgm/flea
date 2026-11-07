@@ -165,8 +165,8 @@ impl Screen {
 
     fn put(&mut self, ch: char) {
         self.log.push(ch);
-        // Widths come from the TUI table, glibc C.UTF-8, so an emoji in a name keeps the columns the CLI used.
-        let wide = crate::tui::cells::width(ch);
+        // Widths come from the shared glibc C.UTF-8 table, so an emoji in a name keeps the columns the CLI used.
+        let wide = crate::cellwidth::width(ch);
         if wide == 0 {
             return;
         }
