@@ -456,7 +456,9 @@ fn handle_line(
             }
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
-        Request::List { path, first, hidden, want_changed } => {
+        Request::List { path, first, hidden, want_changed, keep } => {
+            let tabs = keep.into_iter().map(PathBuf::from).collect();
+            st.settled.keep(tabs);
             #[cfg(test)]
             super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
@@ -934,6 +936,7 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     let same = st.held == Held::List && Path::new(path) == st.base.as_path();
     let changed = if same && want_changed { crate::backend::listing::changed_count(&st.listing, &done.listing) } else { 0 };
     st.base = PathBuf::from(path);
+    st.settled.listed(&st.base);
     st.listing = done.listing;
     // A list holds a directory now, so only its own re-read counts.
     st.held = Held::List;

@@ -126,3 +126,35 @@ fn reorder_keys_move_the_current_tab_and_send_nothing() {
     assert_eq!(model.tab, 2, "and stays current");
     finish(wire, reader);
 }
+
+// Issue 390: a switch's list names every other tab's folder, so the backend keeps their settled sizes.
+#[test]
+fn a_tab_switch_names_the_other_tabs_folders_in_its_list() {
+    let (mut wire, reader) = echo_wire();
+    let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+    press(&mut model, &mut wire, &Key::character('t', ""));
+    settle_open(&mut model, &mut wire);
+    model.tabs[0].path = PathBuf::from("/elsewhere");
+    press(&mut model, &mut wire, &Key::character('1', ""));
+    let sent = drain(&mut wire);
+    let list = super::sort_tests::requests(&sent, "list");
+    assert_eq!(list.len(), 1, "one switch lists once");
+    assert_eq!(
+        text(list[0], "path"),
+        "/elsewhere",
+        "the switch lists the first tab's folder"
+    );
+    let keep: Vec<&str> = list[0]
+        .get("keep")
+        .and_then(Json::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(Json::as_str)
+        .collect();
+    assert_eq!(
+        keep,
+        vec!["/listing"],
+        "and keeps the folder the second tab shows, never its own"
+    );
+    finish(wire, reader);
+}

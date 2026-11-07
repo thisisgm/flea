@@ -839,6 +839,15 @@ fn push_tab(m: &mut Model, path: std::path::PathBuf, w: &mut Wire) -> io::Result
     let index = m.tabs.len() - 1;
     tab(m, index, w)
 }
+// The folders the other tabs show, so the backend keeps their settled sizes across this listing.
+pub(super) fn other_tabs(m: &Model) -> Json {
+    let paths = m.tabs.iter().enumerate().filter(|&(i, _)| i != m.tab);
+    Json::Arr(
+        paths
+            .map(|(_, tab)| word(&tab.path.to_string_lossy()))
+            .collect(),
+    )
+}
 fn tab(m: &mut Model, index: usize, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() || index >= m.tabs.len() || index == m.tab {
         return Ok(());

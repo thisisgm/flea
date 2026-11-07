@@ -387,6 +387,7 @@ pub mod reaphold;
 #[cfg(test)]
 pub mod renametiming;
 
+pub mod dirsizewatch;
 pub mod dirsizeworker;
 // The decode-free RAW container walker: the largest embedded JPEG preview plus EXIF facts.
 pub mod rawembed;

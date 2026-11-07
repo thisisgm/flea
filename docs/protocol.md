@@ -84,6 +84,13 @@ Optional `wantChanged`, `false` unless `true`: with it on, a `list` that re-read
 directory already listed names added plus removed rows in `changed`. Absent is off, so
 every navigation and watched re-read stays silent and pays no count.
 
+Optional `keep`, an array of full folder paths such as `["/home/gm/Music"]`: the folders the
+client's other tabs show. Settled folder sizes (see `dirsize`) for rows of those folders, and of
+the folder this `list` lands on, outlive the new listing; every other settled size is dropped
+when it lands. Absent keeps only the listed folder's own, so an older client still reuses sizes
+across a re-read, a sort or a `hidden` change of the same folder. The TUI names every tab but the
+current one.
+
 Optional `select`, a full path such as `"/home/gm/notes.txt"`: when it names a row of the new
 listing at index `first` or past it, the `rows` line covers the `first` rows that hold that row
 near their middle, starting at `index - first / 2` and clamped so the window ends at the last
@@ -919,6 +926,19 @@ filesystem calls; a blocked filesystem call may delay further sizes but never ho
 navigation event loop. No replacement worker is spawned while the old one is still busy.
 A row already answered for the current listing answers again from its cache; a row already
 queued or running costs nothing extra.
+
+**Settled sizes outlive the listing.** A whole (not partial) walk that ran on a local
+filesystem is also kept by the folder's full path, so a `dirsize` for the same folder under a
+later listing answers at once with no walk, as when a tab switch returns to it. Such a size is
+trusted only while every folder the walk read stays watched: the walk arms one inotify watch per
+folder before reading it, and any write, truncate, create, delete or rename in any of them, or
+the folder itself moving or going, retires the size, so the next `dirsize` walks again. So does
+the path coming to name another folder, as when a folder above it is renamed, which no watch
+below sees. A directory's mtime alone would miss a write several levels down, which is why every
+level is watched. A walk that would take the backend past 8192 watched folders, counting every
+kept size's, a FUSE or network tree, or a box with no inotify is answered as before and never
+kept. Which settled sizes survive a new listing is the `list`
+request's `keep` field.
 
 **What the shipped client sends.** `ui/List.qml` sends `dirsize` only when the list settles, the
 same 120&nbsp;ms timer `thumb` already waits on, so a fling issues nothing at all. One request

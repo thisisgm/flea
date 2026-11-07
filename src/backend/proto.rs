@@ -35,6 +35,8 @@ pub enum Request {
         first: usize,
         hidden: bool,
         want_changed: bool,
+        // The folders the client's other tabs show, whose settled sizes outlive this listing.
+        keep: Vec<String>,
     },
     // A listing built from paths the client names, in the order it named them; the picker's Recent.
     ListPaths { paths: Vec<String>, first: usize },

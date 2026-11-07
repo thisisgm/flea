@@ -461,6 +461,7 @@ impl Model {
             ("desc", Json::Bool(self.reverse)),
             ("foldersFirst", Json::Bool(self.folders_first)),
             ("groupByKind", Json::Bool(self.group_by_kind)),
+            ("keep", super::actions::other_tabs(self)),
         ]);
         if result.is_err() {
             self.pending = None;
