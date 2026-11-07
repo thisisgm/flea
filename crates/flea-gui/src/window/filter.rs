@@ -48,6 +48,8 @@ pub(crate) struct Runtime {
     /// Filter.js filterKeyAt and filterNarrowedAt: wall-clock ms of the last query change and of its answer landing.
     pub key_at: u64,
     pub narrowed_at: u64,
+    /// The query an Enter committed while its answer was still out; the row acts when that answer lands.
+    pub enter_after: Option<String>,
 }
 
 fn wall_ms() -> u64 {
@@ -67,6 +69,7 @@ impl Runtime {
             shown: None,
             key_at: 0,
             narrowed_at: 0,
+            enter_after: None,
         }
     }
 
@@ -360,3 +363,4 @@ impl Shell {
 
 #[path = "filter_input.rs"]
 mod input;
+pub(crate) use input::plain_enter;

@@ -22,6 +22,9 @@ pub(crate) use observe::{Draw, QueryReader};
 #[path = "search_contents_tests.rs"]
 mod contents_tests;
 #[cfg(test)]
+#[path = "enter_once_tests.rs"]
+mod enter_once_tests;
+#[cfg(test)]
 #[path = "search_grid_tests.rs"]
 mod grid_tests;
 #[cfg(test)]
@@ -265,6 +268,11 @@ impl Shell {
         let clipboard = matches!(key, StripKey::Paste)
             .then(|| cx.read_from_clipboard().and_then(|item| item.text()))
             .flatten();
+        // Enter on the line commits and acts on the highlighted result in the same press; rows still out act when they land.
+        let enter = host.search.owner.typing()
+            && matches!(key, StripKey::Enter)
+            && crate::window::input::modifiers(event.keystroke.modifiers) == 0
+            && host.search.owner.entry.borrow().marked.is_none();
         self.search_update(
             side,
             clipboard,
@@ -272,7 +280,63 @@ impl Shell {
             window,
             cx,
         );
+        if enter {
+            self.search_enter_row(side, event, window, cx);
+        }
         true
+    }
+
+    /// The newest generation's rows landed: an Enter that came before them acts on the highlighted result now.
+    pub(crate) fn search_rows_landed(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let Some(generation) = host.search.enter_after else {
+            return;
+        };
+        if host
+            .search_scene()
+            .is_some_and(|(drawn, _)| drawn == generation)
+        {
+            host.search.enter_after = None;
+            if side == self.focus_side && self.enter_replay_open(window, cx) {
+                self.search_enter_row(side, &crate::window::filter::plain_enter(), window, cx);
+            }
+        }
+    }
+
+    // The committed line's Enter, run again through the listing so a file reveals and a folder opens as they always do.
+    fn search_enter_row(
+        &mut self,
+        side: usize,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let owner = &host.search.owner;
+        if !owner.active()
+            || owner.typing()
+            || owner.session.leaving
+            || owner.session.query.is_empty()
+        {
+            return;
+        }
+        if host.search_scene().is_none() {
+            host.search.enter_after = Some(owner.session.stamps.gen);
+            return;
+        }
+        if host.pane.held.row(host.pane.cursor).is_none() {
+            return;
+        }
+        self.key(event, window, cx);
     }
 
     pub(crate) fn search_line(

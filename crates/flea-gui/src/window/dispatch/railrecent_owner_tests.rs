@@ -181,12 +181,23 @@ fn railrecent_o_on_a_search_result_reveals_that_result_and_leaves_recent(cx: &mu
     open_recent(&shell, cx);
     cx.simulate_keystrokes("f s");
     answer(&shell, cx, "/", 1, vec![row("tmp/alpha.txt", false)]);
-    cx.simulate_keystrokes("enter");
+    // The committed results a tag place opens; Enter on the line now goes to its row.
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.search_update(
+                0,
+                None,
+                |search, host| search.key(crate::g2::sr1::StripKey::Enter, host),
+                window,
+                cx,
+            )
+        })
+    });
     frame(cx);
     assert_eq!(
         owners(&shell, cx),
         (false, true),
-        "Enter hands the keys to the results"
+        "the committed results hold the keys"
     );
     sent();
     cx.simulate_keystrokes("o");

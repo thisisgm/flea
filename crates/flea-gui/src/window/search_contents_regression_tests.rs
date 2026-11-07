@@ -51,7 +51,7 @@ fn g12_vfix_marked_blocks_paint_above_the_opaque_contents_ground() {
         shell.view = crate::window::startup::View::List;
     });
     snapshot_n(&mut cx, handle, 6, 16, &paths("src/main.rs", 4), true);
-    key(&mut cx, handle, "enter", None);
+    results(&mut cx, handle);
     for text in ["v", "j", "v", "j", "v"] {
         key(&mut cx, handle, text, Some(text));
     }

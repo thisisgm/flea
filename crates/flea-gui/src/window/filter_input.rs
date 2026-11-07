@@ -1,6 +1,18 @@
 //! Keyboard and wire routing for the live filter owner.
 use super::*;
 
+/// The unmodified Enter a waited-on answer or search rows replay once they land.
+pub(crate) fn plain_enter() -> KeyDownEvent {
+    KeyDownEvent {
+        keystroke: gpui::Keystroke {
+            key: "enter".into(),
+            ..Default::default()
+        },
+        is_held: false,
+        prefer_character_input: false,
+    }
+}
+
 impl Shell {
     /// The query line's keys while it has the caret, and Escape while a filter stands, ahead of search and marks.
     pub(crate) fn filter_key(
@@ -66,13 +78,11 @@ impl Shell {
             }
             Classified::Key(key) => key,
         };
-        // Enter on the line activates a single exact match; files reveal and folders enter.
-        let single = matches!(key, LineKey::Enter)
-            && owner.entry.borrow().marked.is_none()
-            && owner.asked().is_none()
-            && owner
-                .drawn(host.pane.held.listing)
-                .is_some_and(|drawn| drawn.narrowed.exact.len() == 1);
+        // Enter on the line commits and acts on the highlighted row in the same press; an answer still out acts when it lands.
+        let enter = matches!(key, LineKey::Enter) && owner.entry.borrow().marked.is_none();
+        let waiting = enter
+            .then(|| owner.asked().map(|asked| asked.query.clone()))
+            .flatten();
         let mut consumed = true;
         self.filter_update(
             side,
@@ -83,10 +93,70 @@ impl Shell {
             },
             cx,
         );
-        if single && !self.filter_reveal_enter(window, cx) {
-            self.input_action("open", window, cx);
+        if let Some(query) = waiting {
+            if let Some(host) = self.panes[side].as_mut() {
+                host.filter.enter_after = Some(query);
+            }
+        } else if enter {
+            self.filter_enter_row(event, window, cx);
         }
         consumed
+    }
+
+    /// The answer an Enter waited on landed: the row it highlights acts as if Enter came now.
+    pub(crate) fn filter_answered(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        if host.filter.owner.asked().is_some() {
+            return;
+        }
+        let Some(query) = host.filter.enter_after.take() else {
+            return;
+        };
+        if side == self.focus_side
+            && host.filter.owner.query() == query
+            && self.enter_replay_open(window, cx)
+        {
+            self.filter_enter_row(&plain_enter(), window, cx);
+        }
+    }
+
+    /// A waiting Enter acts only while the listing still holds the keyboard; a menu, card or other owner since then drops it.
+    pub(crate) fn enter_replay_open(&self, window: &Window, cx: &Context<Self>) -> bool {
+        !self.input_blocked(cx)
+            && self.focus.is_focused(window)
+            && self.keyboard.context == flea::keys::Context::Listing
+    }
+
+    // The committed line's Enter, run again through the listing so a file reveals and a folder enters as they always do.
+    fn filter_enter_row(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[self.focus_side].as_ref() else {
+            return;
+        };
+        let owner = &host.filter.owner;
+        if !owner.up()
+            || owner.typing()
+            || owner.drawn(host.pane.held.listing).is_none()
+            || !flea::ui_logic_sr2::cursor_shown(
+                host.filter.shown.as_deref(),
+                Some(host.pane.cursor),
+            )
+            || host.pane.held.row(host.pane.cursor).is_none()
+        {
+            return;
+        }
+        self.key(event, window, cx);
     }
 
     fn filter_reveal_enter(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
