@@ -3,7 +3,7 @@ use super::*;
 
 #[gpui::test]
 fn an_unfed_fifo_named_svg_is_refused_without_blocking(cx: &mut TestAppContext) {
-    watchdog(100);
+    let _watchdog = watchdog(100);
     let root = sandbox("unfed-fifo");
     let path = root.join("pipe.svg");
     mkfifo(&path);
@@ -39,7 +39,7 @@ fn an_unfed_fifo_named_svg_is_refused_without_blocking(cx: &mut TestAppContext) 
 
 #[gpui::test]
 fn the_parse_reads_no_file_past_the_byte_bound(cx: &mut TestAppContext) {
-    watchdog(120);
+    let _watchdog = watchdog(120);
     let root = sandbox("feed");
     let feed = root.join("feed");
     mkfifo(&feed);
@@ -125,7 +125,7 @@ fn the_parse_reads_no_file_past_the_byte_bound(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn an_svgz_inflates_and_draws_its_picture(cx: &mut TestAppContext) {
-    watchdog(100);
+    let _watchdog = watchdog(100);
     let root = sandbox("svgz");
     let path = root.join("mark.svgz");
     let out = std::fs::File::create(&path).expect("a svgz fixture");
@@ -164,7 +164,7 @@ fn an_svgz_inflates_and_draws_its_picture(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn an_oversize_svgz_shows_the_too_large_card_and_loads_no_file(cx: &mut TestAppContext) {
-    watchdog(100);
+    let _watchdog = watchdog(100);
     let root = sandbox("svgz-over");
     let plain = root.join("over.svg");
     std::fs::write(&plain, oversize_svg()).expect("an oversize fixture");
@@ -224,7 +224,7 @@ fn an_oversize_svgz_shows_the_too_large_card_and_loads_no_file(cx: &mut TestAppC
 #[gpui::test]
 fn a_svgz_bomb_is_refused_without_inflating_it_whole(cx: &mut TestAppContext) {
     // 3 GiB of zeros compress below the file bound to reach inflation; the take refuses in milliseconds, so the suite's one-second UI bound catches whole inflation.
-    watchdog(300);
+    let _watchdog = watchdog(300);
     let root = sandbox("svgz-bomb");
     let path = root.join("bomb.svgz");
     {

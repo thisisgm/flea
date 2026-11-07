@@ -45,7 +45,7 @@ fn wanted(cx: &mut VisualTestContext, w: f64, h: f64) -> gpui::Size<DevicePixels
 }
 
 fn drawn(cx: &mut TestAppContext, name: &str, w: f64, h: f64) {
-    watchdog(120);
+    let _watchdog = watchdog(120);
     let path = fixture(name);
     let (cx, _, look, _) = host(cx, picture(name, w, h), Arm::Fix);
     let image = wait_for_raster(cx, &look, None);
@@ -88,7 +88,7 @@ fn an_avif_draws_through_libheif_at_the_drawn_size(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_missing_libheif_shows_the_unreadable_card(cx: &mut TestAppContext) {
-    watchdog(120);
+    let _watchdog = watchdog(120);
     let path = fixture("image-avif.avif");
     let (cx, _, look, _) = host(cx, scenes::ql_svg(), Arm::Fix);
     let _ = wait_for_raster(cx, &look, None);
@@ -118,7 +118,7 @@ fn a_missing_libheif_shows_the_unreadable_card(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_host_decoded_picture_decodes_off_the_ui_thread(cx: &mut TestAppContext) {
-    watchdog(120);
+    let _watchdog = watchdog(120);
     let (cx, _, look, _) = host(cx, picture("image-tiff.tiff", 320., 240.), Arm::Fix);
     let drawn = wait_for_raster(cx, &look, None);
     let calls = Arc::new(AtomicUsize::new(0));
