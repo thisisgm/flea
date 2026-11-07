@@ -69,7 +69,11 @@ impl Shell {
             return;
         }
         if let BackendEvent::Producer(line) = &event {
-            if self.filter_line(side, line, cx) || self.search_line(side, line, window, cx) {
+            if self.filter_line(side, line, cx) {
+                self.filter_answered(side, window, cx);
+                return;
+            }
+            if self.search_line(side, line, window, cx) {
                 return;
             }
         }
@@ -191,6 +195,7 @@ impl Shell {
                 }
                 self.opener_archive_ready(side, window, cx);
                 self.ipc_listing_answered(side, window, cx);
+                self.search_rows_landed(side, window, cx);
                 return;
             }
             event => event,

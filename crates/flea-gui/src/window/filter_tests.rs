@@ -191,13 +191,13 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
         );
         shell.view = View::List;
     });
-    // Ctrl+A on the typed line stays on it (EY-115); after Enter the list's Ctrl+A marks every exact row.
+    // Ctrl+A on the typed line stays on it (EY-115); after a cursor key the list's Ctrl+A marks every exact row.
     press(cx, handle, "a", None, true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(host.selected.is_empty() && host.filter.owner.typing());
     });
-    press(cx, handle, "enter", None, false);
+    press(cx, handle, "home", None, false);
     press(cx, handle, "a", None, true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -240,7 +240,7 @@ fn m9_integ_filter_protocol_drives_all_view_rows(cx: &mut TestAppContext) {
         r#"{"t":"filtered","id":2,"query":"x","n":1000,"rows":[],"close":[9,4],"ms":0.010,"listing":2}"#,
     );
     assert_eq!(shown(cx, handle), Some(vec![9, 4]));
-    press(cx, handle, "enter", None, false);
+    press(cx, handle, "home", None, false);
     press(cx, handle, "a", None, true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

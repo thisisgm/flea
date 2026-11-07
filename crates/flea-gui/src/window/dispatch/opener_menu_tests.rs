@@ -85,7 +85,7 @@ fn search_enter_reveal_menu_open_still_opens_the_audio_result(cx: &mut TestAppCo
             row("Music/Album/track.flac", false),
         ],
     );
-    cx.simulate_keystrokes("enter down");
+    cx.simulate_keystrokes("down");
     assert!(menu_open(&shell, cx, 1, &["/files/Music/Album/track.flac"]));
     assert_eq!(launched(), ["/files/Music/Album/track.flac"]);
     quit(&shell, cx);

@@ -285,7 +285,7 @@ fn explicit_open_on_a_search_result_file_opens_that_result(cx: &mut TestAppConte
         1,
         vec![row("sub/deep", true), row("sub/found.txt", false)],
     );
-    cx.simulate_keystrokes("enter down");
+    cx.simulate_keystrokes("down");
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let host = shell.panes[0].as_ref().unwrap();

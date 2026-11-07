@@ -69,8 +69,8 @@ fn enter_on_a_result_row_opens_that_result_and_not_the_folder_row_at_its_index(
         1,
         vec![row("notes.txt", false), row("sub/deep", true)],
     );
-    // Enter keeps the query and hands the keys to the results, then Down reaches result 1, the folder's beta row by index.
-    cx.simulate_keystrokes("enter down");
+    // Down leaves the query line for result 1, the folder's beta row by index; Enter then opens it.
+    cx.simulate_keystrokes("down");
     let (cursor, held) = shell.read_with(cx, |shell, _| {
         let pane = &shell.panes[0].as_ref().unwrap().pane;
         (pane.cursor, pane.held.row(1).map(|row| row.name.clone()))

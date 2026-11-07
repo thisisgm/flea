@@ -23,7 +23,7 @@ fn pb_columns2_ey173_search_rows_report_the_drawn_basename_and_location(cx: &mut
             host::file("Docs/notes.txt", "text-plain", "Text", 0),
         ],
     );
-    cx.simulate_keystrokes("enter");
+    cx.simulate_keystrokes("home");
     host::pump(cx);
     cx.update(|window, cx| {
         shell.read_with(cx, |shell, _| {
@@ -94,7 +94,7 @@ fn search_rows_wash_the_typed_run_inside_the_drawn_basename(cx: &mut TestAppCont
             host::file("Docs/notes.txt", "text-plain", "Text", 0),
         ],
     );
-    cx.simulate_keystrokes("enter");
+    cx.simulate_keystrokes("home");
     host::pump(cx);
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();

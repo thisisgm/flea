@@ -93,7 +93,7 @@ fn search(cx: &mut TestAppContext, view: &str) {
     let mut track = row("Music/Album/track-60.flac", false);
     track.icon = "audio-x-generic".into();
     answer(&shell, cx, 1, vec![row("Music/Album", true), track]);
-    cx.simulate_keystrokes("enter end");
+    cx.simulate_keystrokes("end");
     shell.read_with(cx, |shell, _| {
         let pane = &shell.panes[0].as_ref().unwrap().pane;
         assert_eq!(pane.cursor, 1, "Enter must target the file result");
@@ -158,7 +158,7 @@ fn filter(cx: &mut TestAppContext, view: &str, multiple: bool) {
         );
     });
     if multiple {
-        cx.simulate_keystrokes("enter end");
+        cx.simulate_keystrokes("end");
     }
     shell.read_with(cx, |shell, _| {
         let pane = &shell.panes[0].as_ref().unwrap().pane;
