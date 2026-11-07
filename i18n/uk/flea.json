@@ -2555,6 +2555,8 @@
   "window.loading": "Завантаження",
   "window.one_directory": "Дозволено лише один початковий каталог",
   "window.open_failed": "Не вдалося відкрити вікно: %1",
+  "window.no_driver": "Жоден графічний драйвер не зміг відкрити Flea",
+  "window.no_driver_hint": "Установіть або відновіть %1 і %2 чи запустіть %3 у терміналі.",
   "window.select_required": "Для --select потрібна ціль",
   "window.settings_failed": "Не вдалося прочитати налаштування: %1",
   "window.unknown_flag": "Невідомий прапорець %1",

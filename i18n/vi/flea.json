@@ -2252,6 +2252,8 @@
   "window.loading": "Đang tải",
   "window.one_directory": "Chỉ chấp nhận một thư mục khởi đầu",
   "window.open_failed": "Không thể mở cửa sổ: %1",
+  "window.no_driver": "Không trình điều khiển đồ họa nào mở được Flea",
+  "window.no_driver_hint": "Hãy cài đặt hoặc sửa %1 và %2, hoặc chạy %3 trong terminal.",
   "window.select_required": "--select cần một đích",
   "window.settings_failed": "Không thể đọc cài đặt: %1",
   "window.unknown_flag": "Cờ không xác định %1",

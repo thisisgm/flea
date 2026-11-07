@@ -2353,6 +2353,8 @@
   "window.loading": "පූරණය වෙමින්",
   "window.one_directory": "භාරගන්නේ එක් ආරම්භක ෆෝල්ඩරයක් පමණි",
   "window.open_failed": "කවුළුව විවෘත කළ නොහැකි විය: %1",
+  "window.no_driver": "කිසිදු ග්‍රැෆික්ස් ධාවකයකට Flea විවෘත කළ නොහැකි විය",
+  "window.no_driver_hint": "%1 සහ %2 ස්ථාපනය කරන්න හෝ අලුත්වැඩියා කරන්න, නැතහොත් පර්යන්තයක %3 ධාවනය කරන්න.",
   "window.select_required": "--select සඳහා ඉලක්කයක් අවශ්‍යයි",
   "window.settings_failed": "සැකසුම් කියවිය නොහැකි විය: %1",
   "window.unknown_flag": "නොදන්නා ධජය %1",

@@ -449,6 +449,8 @@
   "window.unknown_flag": "Opção desconhecida %1",
   "window.settings_failed": "Não foi possível ler as definições: %1",
   "window.open_failed": "Não foi possível abrir a janela: %1",
+  "window.no_driver": "Nenhum controlador gráfico conseguiu abrir o Flea",
+  "window.no_driver_hint": "Instala ou repara %1 e %2, ou executa %3 num terminal.",
   "window.backend_start": "Não foi possível iniciar o processo de serviço: %1",
   "window.backend_wait": "Não foi possível recolher o estado de saída do processo de serviço: %1",
   "window.backend_timeout": "O processo de serviço não terminou de fechar em 30 segundos",

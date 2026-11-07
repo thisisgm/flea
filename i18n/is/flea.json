@@ -2302,6 +2302,8 @@
   "window.loading": "Hleð",
   "window.one_directory": "Aðeins ein upphafsmappa er leyfð",
   "window.open_failed": "Ekki tókst að opna gluggann: %1",
+  "window.no_driver": "Enginn skjárekill gat opnað Flea",
+  "window.no_driver_hint": "Settu upp eða lagaðu %1 og %2, eða keyrðu %3 í útstöð.",
   "window.select_required": "--select þarf áfangastað",
   "window.settings_failed": "Ekki tókst að lesa stillingar: %1",
   "window.unknown_flag": "Óþekkt flagg %1",

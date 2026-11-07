@@ -2454,6 +2454,8 @@
   "window.loading": "Načítava sa",
   "window.one_directory": "Povolený je len jeden úvodný priečinok",
   "window.open_failed": "Okno sa nepodarilo otvoriť: %1",
+  "window.no_driver": "Žiadny grafický ovládač nedokázal otvoriť Flea",
+  "window.no_driver_hint": "Nainštalujte alebo opravte %1 a %2, alebo spustite %3 v termináli.",
   "window.select_required": "--select vyžaduje cieľ",
   "window.settings_failed": "Nastavenia sa nepodarilo prečítať: %1",
   "window.unknown_flag": "Neznámy prepínač %1",

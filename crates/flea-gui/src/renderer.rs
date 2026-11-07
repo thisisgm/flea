@@ -1,11 +1,17 @@
+use flea_gui::driver_notice::DriverNotice;
 use std::os::unix::net::UnixDatagram;
 
 pub const UNAVAILABLE: i32 = 1;
 pub const MESSAGE: &str = "flea: no graphics driver could open a window; install or repair vulkan-swrast and mesa, or run flea --tui";
 
-pub fn unavailable(error: &str) {
+// stderr and the journal stay English log lines; the desktop notice is in the user's language.
+pub fn unavailable(error: &str, refusals: &[String], notice: &DriverNotice) {
     report(MESSAGE);
     report(error);
+    for refusal in refusals {
+        report(refusal);
+    }
+    notice.send();
 }
 
 fn report(message: &str) {

@@ -2555,6 +2555,8 @@
   "window.loading": "Загрузка",
   "window.one_directory": "Допускается только одна начальная папка",
   "window.open_failed": "Не удалось открыть окно: %1",
+  "window.no_driver": "Ни один графический драйвер не смог открыть Flea",
+  "window.no_driver_hint": "Установите или восстановите %1 и %2 либо запустите %3 в терминале.",
   "window.select_required": "Для --select нужна цель",
   "window.settings_failed": "Не удалось прочитать настройки: %1",
   "window.unknown_flag": "Неизвестный флаг %1",

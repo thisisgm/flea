@@ -2400,6 +2400,8 @@
   "window.loading": "Učitavanje",
   "window.one_directory": "Prihvaća se samo jedna početna mapa",
   "window.open_failed": "Nije moguće otvoriti prozor: %1",
+  "window.no_driver": "Nijedan grafički upravljački program nije mogao otvoriti Flea",
+  "window.no_driver_hint": "Instalirajte ili popravite %1 i %2 ili pokrenite %3 u terminalu.",
   "window.select_required": "--select zahtijeva cilj",
   "window.settings_failed": "Nije moguće pročitati postavke: %1",
   "window.unknown_flag": "Nepoznata zastavica %1",

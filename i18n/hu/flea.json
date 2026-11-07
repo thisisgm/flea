@@ -437,6 +437,8 @@
   "window.unknown_flag": "Ismeretlen kapcsoló: %1",
   "window.settings_failed": "A beállítások nem olvashatók: %1",
   "window.open_failed": "Az ablak nem nyitható meg: %1",
+  "window.no_driver": "Egyik grafikus illesztőprogram sem tudta megnyitni a Fleát",
+  "window.no_driver_hint": "Telepítsd vagy javítsd a(z) %1 és %2 csomagot, vagy futtasd a(z) %3 parancsot egy terminálban.",
   "window.backend_start": "A háttérfolyamat nem indítható el: %1",
   "window.backend_wait": "A háttérfolyamat kilépési állapota nem kérhető le: %1",
   "window.backend_timeout": "A háttérfolyamat 30 másodpercen belül nem állt le",

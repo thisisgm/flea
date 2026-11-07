@@ -2400,6 +2400,8 @@
   "window.loading": "Carregando",
   "window.one_directory": "Apenas uma pasta inicial é aceita",
   "window.open_failed": "Não foi possível abrir a janela: %1",
+  "window.no_driver": "Nenhum driver gráfico conseguiu abrir o Flea",
+  "window.no_driver_hint": "Instale ou repare %1 e %2, ou execute %3 em um terminal.",
   "window.select_required": "--select precisa de um destino",
   "window.settings_failed": "Não foi possível ler as configurações: %1",
   "window.unknown_flag": "Opção desconhecida %1",

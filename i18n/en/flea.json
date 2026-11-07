@@ -437,6 +437,8 @@
   "window.unknown_flag": "Unknown flag %1",
   "window.settings_failed": "Settings could not be read: %1",
   "window.open_failed": "The window could not open: %1",
+  "window.no_driver": "No graphics driver could open Flea",
+  "window.no_driver_hint": "Install or repair %1 and %2, or run %3 in a terminal.",
   "window.backend_start": "The backend could not start: %1",
   "window.backend_wait": "The backend could not be reaped: %1",
   "window.backend_timeout": "The backend did not finish closing within 30 seconds",

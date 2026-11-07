@@ -2400,6 +2400,8 @@
   "window.loading": "Se încarcă",
   "window.one_directory": "Este acceptat un singur dosar de pornire",
   "window.open_failed": "Fereastra nu s-a putut deschide: %1",
+  "window.no_driver": "Niciun driver grafic nu a putut deschide Flea",
+  "window.no_driver_hint": "Instalează sau repară %1 și %2 ori rulează %3 într-un terminal.",
   "window.select_required": "--select necesită o țintă",
   "window.settings_failed": "Setările nu au putut fi citite: %1",
   "window.unknown_flag": "Opțiune necunoscută %1",

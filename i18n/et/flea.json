@@ -437,6 +437,8 @@
   "window.unknown_flag": "Tundmatu lipp %1",
   "window.settings_failed": "Sätteid ei õnnestunud lugeda: %1",
   "window.open_failed": "Akent ei õnnestunud avada: %1",
+  "window.no_driver": "Ükski graafikadraiver ei saanud Flea akent avada",
+  "window.no_driver_hint": "Paigalda või paranda %1 ja %2 või käivita terminalis %3.",
   "window.backend_start": "Taustaprotsessi ei õnnestunud käivitada: %1",
   "window.backend_wait": "Taustaprotsessi lõppu ei õnnestunud oodata: %1",
   "window.backend_timeout": "Taustaprotsess ei sulgunud 30 sekundi jooksul",

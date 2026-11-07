@@ -2400,6 +2400,8 @@
   "window.loading": "Chargement",
   "window.one_directory": "Un seul dossier de démarrage est accepté",
   "window.open_failed": "Impossible d’ouvrir la fenêtre : %1",
+  "window.no_driver": "Aucun pilote graphique n’a pu ouvrir Flea",
+  "window.no_driver_hint": "Installez ou réparez %1 et %2, ou lancez %3 dans un terminal.",
   "window.select_required": "--select nécessite une cible",
   "window.settings_failed": "Impossible de lire les réglages : %1",
   "window.unknown_flag": "Option inconnue %1",

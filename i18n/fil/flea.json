@@ -2302,6 +2302,8 @@
   "window.loading": "Naglo-load",
   "window.one_directory": "Isang panimulang directory lang ang tinatanggap",
   "window.open_failed": "Hindi mabuksan ang window: %1",
+  "window.no_driver": "Walang graphics driver na nakapagbukas sa Flea",
+  "window.no_driver_hint": "I-install o ayusin ang %1 at %2, o patakbuhin ang %3 sa isang terminal.",
   "window.select_required": "Kailangan ng --select ng patutunguhan",
   "window.settings_failed": "Hindi mabasa ang mga setting: %1",
   "window.unknown_flag": "Hindi kilalang flag na %1",

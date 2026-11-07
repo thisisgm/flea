@@ -2555,6 +2555,8 @@
   "window.loading": "Nalaganje",
   "window.one_directory": "Sprejet je le en začetni imenik",
   "window.open_failed": "Okna ni bilo mogoče odpreti: %1",
+  "window.no_driver": "Noben grafični gonilnik ni mogel odpreti programa Flea",
+  "window.no_driver_hint": "Namestite ali popravite %1 in %2 ali zaženite %3 v terminalu.",
   "window.select_required": "--select potrebuje cilj",
   "window.settings_failed": "Nastavitev ni bilo mogoče prebrati: %1",
   "window.unknown_flag": "Neznana zastavica %1",

@@ -2353,6 +2353,8 @@
   "window.loading": "Inapakia",
   "window.one_directory": "Saraka moja tu ya kuanzia inakubaliwa",
   "window.open_failed": "Dirisha halikuweza kufunguka: %1",
+  "window.no_driver": "Hakuna kiendeshi cha michoro kilichoweza kufungua Flea",
+  "window.no_driver_hint": "Sakinisha au rekebisha %1 na %2, au endesha %3 kwenye terminal.",
   "window.select_required": "--select inahitaji lengo",
   "window.settings_failed": "Mipangilio haikuweza kusomwa: %1",
   "window.unknown_flag": "Chaguo la amri %1 halijulikani",

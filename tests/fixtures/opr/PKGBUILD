@@ -64,6 +64,7 @@ optdepends=(
   'libarchive: archive listing and extraction'
   'libreoffice: office document previews'
   'tailscale: Taildrop sharing'
+  'vulkan-swrast: software rendering on a GPU without a Vulkan driver'
   'zoxide: frecent folders in the folder jump of the path bar'
 )
 conflicts=('flea-bin' 'flea-git')

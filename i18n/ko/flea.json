@@ -536,6 +536,8 @@
   "window.unknown_flag": "알 수 없는 플래그 %1",
   "window.settings_failed": "설정을 읽을 수 없습니다: %1",
   "window.open_failed": "창을 열 수 없습니다: %1",
+  "window.no_driver": "Flea를 열 수 있는 그래픽 드라이버가 없습니다",
+  "window.no_driver_hint": "%1 및 %2을(를) 설치하거나 복구하거나, 터미널에서 %3을(를) 실행하세요.",
   "window.backend_start": "백엔드를 시작할 수 없습니다: %1",
   "window.backend_wait": "백엔드 프로세스의 종료 상태를 회수할 수 없습니다: %1",
   "window.backend_timeout": "백엔드가 30초 안에 종료되지 않았습니다",

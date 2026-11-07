@@ -2757,6 +2757,8 @@
   "window.loading": "جارٍ التحميل",
   "window.one_directory": "يُقبل مجلد بدء واحد فقط",
   "window.open_failed": "تعذّر فتح النافذة: ⁨%1⁩",
+  "window.no_driver": "لم يتمكن أي برنامج تشغيل رسوميات من فتح ⁦Flea⁩",
+  "window.no_driver_hint": "ثبّت ⁨%1⁩ و⁨%2⁩ أو أصلحهما، أو شغّل ⁨%3⁩ في طرفية.",
   "window.select_required": "يحتاج ⁦--select⁩ إلى هدف",
   "window.settings_failed": "تعذّرت قراءة الإعدادات: ⁨%1⁩",
   "window.unknown_flag": "خيار غير معروف ⁨%1⁩",

@@ -2302,6 +2302,8 @@
   "window.loading": "Laster inn",
   "window.one_directory": "Bare én startmappe godtas",
   "window.open_failed": "Kunne ikke åpne vinduet: %1",
+  "window.no_driver": "Ingen grafikkdriver kunne åpne Flea",
+  "window.no_driver_hint": "Installer eller reparer %1 og %2, eller kjør %3 i en terminal.",
   "window.select_required": "--select krever et mål",
   "window.settings_failed": "Kunne ikke lese innstillinger: %1",
   "window.unknown_flag": "Ukjent flagg %1",

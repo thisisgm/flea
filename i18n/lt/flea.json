@@ -2400,6 +2400,8 @@
   "window.loading": "Įkeliama",
   "window.one_directory": "Priimamas tik vienas pradinis katalogas",
   "window.open_failed": "Nepavyko atidaryti lango: %1",
+  "window.no_driver": "Jokia grafikos tvarkyklė negalėjo atidaryti Flea",
+  "window.no_driver_hint": "Įdiekite arba pataisykite %1 ir %2 arba paleiskite %3 terminale.",
   "window.select_required": "--select reikia elemento",
   "window.settings_failed": "Nepavyko perskaityti nuostatų: %1",
   "window.unknown_flag": "Nežinoma vėliavėlė %1",

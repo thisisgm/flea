@@ -2400,6 +2400,8 @@
   "window.loading": "S'està carregant",
   "window.one_directory": "Només s'accepta un directori inicial",
   "window.open_failed": "No s'ha pogut obrir la finestra: %1",
+  "window.no_driver": "Cap controlador gràfic ha pogut obrir Flea",
+  "window.no_driver_hint": "Instal·la o repara %1 i %2, o executa %3 en un terminal.",
   "window.select_required": "--select necessita una destinació",
   "window.settings_failed": "No s'ha pogut llegir la configuració: %1",
   "window.unknown_flag": "Opció desconeguda %1",
