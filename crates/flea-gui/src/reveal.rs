@@ -29,6 +29,12 @@ impl Reveal {
         self.shown || self.frame.opacity > 0. || self.transition.is_some()
     }
 
+    /// The frame the last sample drew.
+    #[cfg(test)]
+    pub fn drawn(&self) -> Frame {
+        self.frame
+    }
+
     fn at(&self, now: Instant) -> Frame {
         let Some(t) = &self.transition else {
             return self.frame;

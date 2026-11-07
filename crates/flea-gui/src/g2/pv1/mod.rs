@@ -12,6 +12,7 @@ pub mod doc;
 mod doc_card;
 mod doc_keys;
 pub mod glyph;
+mod hold;
 mod lifetime;
 pub mod look;
 mod media_strip;
@@ -116,6 +117,9 @@ impl SvgPicture {
 pub struct QuickLook {
     pub(crate) motion: crate::reveal::Reveal,
     pub(crate) closing: Option<Subject>,
+    held: Option<hold::Held>,
+    /// A move from a shown card keeps the reveal clock at shown, so only open and close fade.
+    pub(crate) kept_shown: bool,
     close_task: Option<gpui::Task<()>>,
     pub(crate) observations: observations::Shared,
     observation_origin: Option<std::time::Instant>,
@@ -165,6 +169,8 @@ impl QuickLook {
         Self {
             motion: Default::default(),
             closing: None,
+            held: None,
+            kept_shown: false,
             kept: None,
             close_task: None,
             observations: Default::default(),
@@ -291,8 +297,22 @@ impl QuickLook {
                 old.close(cx);
             }
         }
+        // A move from a shown card stays shown; the old card draws until the new subject reveals.
+        let moving = self.subject.is_some() && (self.revealed || self.held.is_some());
+        self.kept_shown = moving;
+        // A view drawn twice in one frame is not held: the same mounted view simply redraws.
+        let same_view = self
+            .subject
+            .as_ref()
+            .and_then(|old| old.body.doc())
+            .zip(subject.body.doc())
+            .is_some_and(|(old, new)| old.id() == new.id());
+        if moving && !revealed && self.held.is_none() && !same_view {
+            self.hold_card(cx);
+        }
         let now = self.observation_time(cx);
         self.observations.borrow_mut().opened(now, revealed);
+        // A held subject is gone from here; its view closes when the hold lets go.
         let moved = self
             .subject
             .as_ref()
@@ -304,6 +324,10 @@ impl QuickLook {
         self.doc_watch = subject.body.doc().map(|doc| doc.observe(cx));
         self.trace = crate::preview_trace::Trace::begin("look", &subject.name);
         self.subject = Some(subject);
+        // Let go only after the new subject is in place, so a held view it reuses stays open.
+        if !moving || revealed {
+            self.release_held(cx);
+        }
         self.strip_hide_task = None;
         self.strip_shown = false;
         self.reveal_strip(cx);
@@ -321,7 +345,13 @@ impl QuickLook {
     /// The swap's first whole frame: the card draws.
     pub fn reveal(&mut self, cx: &mut Context<Self>) {
         self.observe_reveal(false, cx);
+        self.mark_revealed(cx);
+    }
+
+    /// The new subject draws from this frame on, and the card a move held is let go in the same frame.
+    pub(crate) fn mark_revealed(&mut self, cx: &mut Context<Self>) {
         self.revealed = true;
+        self.release_held(cx);
         cx.notify();
     }
 

@@ -160,9 +160,9 @@ impl QuickLook {
             return;
         };
         let (path, size) = (svg.path.clone(), svg.size);
-        // The column already supplies first paint; decode the original directly for its replacement.
-        let sharp = svg.interim
-            && self.raster.is_none()
+        // One sharp decode serves first paint too, after a column interim or for a streamed PNG; a JPEG keeps its bounded first frame.
+        let interim = svg.interim;
+        let sharp = self.raster.is_none()
             && !path
                 .file_name()
                 .and_then(|name| name.to_str())
@@ -182,7 +182,7 @@ impl QuickLook {
             raster,
         };
         let work = cx.background_executor().spawn(async move {
-            if !sharp {
+            if !sharp || !(interim || photo::is_png(&job.path)) {
                 return (raster::run(&job), false);
             }
             let identity = crate::preview_quality::reuse::file_identity(&job.path);
@@ -267,7 +267,11 @@ impl QuickLook {
     }
 
     /// The column may still paint a borrowed interim, so only its last owner frees the tile.
-    fn retire_interim(&mut self, image: Option<Arc<RenderImage>>, cx: &mut Context<Self>) {
+    pub(super) fn retire_interim(
+        &mut self,
+        image: Option<Arc<RenderImage>>,
+        cx: &mut Context<Self>,
+    ) {
         self.retire(image.filter(|image| Arc::strong_count(image) == 1), cx);
     }
 
