@@ -191,7 +191,7 @@
     {
       "id": "I50-02",
       "provides": "per-surface catalog key lists from the frozen source index",
-      "missing": "i18n/source-index.json is absent or is not the accepted I50-01 schema 1 index (pinned: the I50 stage index, sha256 cbf351a8...)"
+      "missing": "i18n/source-index.json is absent or is not the accepted I50-01 schema 1 index (pinned: the I50 stage index, source_index.sha256 below)"
     },
     {
       "id": "I50-04",
