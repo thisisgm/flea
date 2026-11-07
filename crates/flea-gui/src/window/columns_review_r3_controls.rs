@@ -8,7 +8,6 @@ use crate::{
 
 #[test]
 fn entry_retargets_without_restarting_its_original_cap() {
-    review_r3_space_guard();
     let mut cx = context();
     let (window, _requests) = open(&mut cx, "/srv/a/b/c");
     frame(&mut cx, window);
@@ -96,7 +95,6 @@ fn entry_retargets_without_restarting_its_original_cap() {
 
 #[test]
 fn entry_cap_preserves_file_and_absent_child_slots() {
-    review_r3_space_guard();
     for absent in [false, true] {
         let mut cx = context();
         let (window, _requests) = open(&mut cx, "/srv/a/b/c");
@@ -159,7 +157,6 @@ fn entry_cap_preserves_file_and_absent_child_slots() {
 
 #[test]
 fn minimum_release_rebuilds_for_both_dispatch_orders_without_another_reply() {
-    review_r3_space_guard();
     for timer_first in [true, false] {
         let mut cx = context();
         let (window, _requests) = open(&mut cx, "/srv/a/b/c");

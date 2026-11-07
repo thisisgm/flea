@@ -211,7 +211,6 @@ fn review_r2_loading_minimum_starts_at_the_first_drawn_tile() {
 
 #[test]
 fn review_r3_render_expiry_does_not_cancel_the_only_release() {
-    review_r3_space_guard();
     let mut cx = context();
     let (window, _requests) = open(&mut cx, "/srv/a/b/c");
     let mut asked_first = 0;
@@ -319,7 +318,6 @@ fn review_r3_render_expiry_does_not_cancel_the_only_release() {
 
 #[test]
 fn review_r3_entry_cap_follows_the_current_requested_child() {
-    review_r3_space_guard();
     let mut cx = context();
     let (window, _requests) = open(&mut cx, "/srv/a/b/c");
     frame(&mut cx, window);
@@ -382,27 +380,6 @@ fn review_r3_entry_cap_follows_the_current_requested_child() {
         assert_eq!((child.path.as_str(), child.state), ("/srv/a/b/c/d02", TrackState::Loading),
             "the entry cap must publish the cursor's current requested child and its loading tile together");
     });
-}
-
-fn review_r3_space_guard() {
-    let output = std::process::Command::new("df")
-        .args(["--output=avail", "-B1", "/"])
-        .output()
-        .expect("read broker host free space");
-    assert!(output.status.success());
-    let free: u64 = std::str::from_utf8(&output.stdout)
-        .unwrap()
-        .split_whitespace()
-        .last()
-        .unwrap()
-        .parse()
-        .unwrap();
-    let floor = 40_u64 * 1024 * 1024 * 1024;
-    assert!(
-        free >= floor,
-        "40 GiB guard refuses proof: {free} bytes available"
-    );
-    eprintln!("40 GiB guard PASS: {free} bytes available");
 }
 
 #[path = "columns_review_r3_controls.rs"]

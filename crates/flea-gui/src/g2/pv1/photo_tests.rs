@@ -220,14 +220,32 @@ fn gh336_fallback_scaling_preserves_transparent_edge_colour() {
     pixels.put_pixel(0, 0, image::Rgba([255, 0, 0, 255]));
     pixels.put_pixel(1, 0, image::Rgba([0, 0, 0, 0]));
     let root = Root::new();
-    for extension in ["gif", "qoi"] {
+    for (extension, format) in [
+        ("gif", image::ImageFormat::Gif),
+        ("qoi", image::ImageFormat::Qoi),
+    ] {
         let path = root.0.join(format!("edge.{extension}"));
         pixels.save(&path).unwrap();
-        let decoded = decode(&path, (1, 1), &|| true).unwrap();
+        // The image fallback is called directly, so GdkPixbuf's own QOI loader on a glycin stack cannot stand in for it.
+        let fallback = super::photo_frames::static_image(
+            &path,
+            std::fs::File::open(&path).unwrap(),
+            format,
+            (1, 1),
+            &|| true,
+        )
+        .unwrap();
         assert_eq!(
-            decoded.as_bytes(0).unwrap(),
+            fallback.as_bytes(0).unwrap(),
             &[0, 0, 255, 128],
             "{extension} retains straight colour at half coverage"
+        );
+        let shown = decode(&path, (1, 1), &|| true).unwrap();
+        let pixel = shown.as_bytes(0).unwrap();
+        // Coverage is exactly 127.5, which GdkPixbuf on a glycin stack rounds down.
+        assert!(
+            pixel[..3] == [0, 0, 255] && (127..=128).contains(&pixel[3]),
+            "{extension} as shown keeps straight colour at half coverage: {pixel:?}"
         );
     }
 }
