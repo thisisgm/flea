@@ -155,30 +155,29 @@ pub(super) fn reduce(
         })
         .collect();
     // Each scanline in file order: (x0, dx, y) and its pixels, checked against the pass's own width.
-    let scan = |reader: &mut png::Reader<BufReader<File>>,
-                each: &mut Scanline<'_>|
-     -> Result<(), ()> {
-        for &(x0, y0, dx, dy) in passes {
-            if x0 >= sw || y0 >= sh {
-                continue;
-            }
-            for y in (y0..sh).step_by(dy) {
-                if !current() {
-                    return Err(());
+    let scan =
+        |reader: &mut png::Reader<BufReader<File>>, each: &mut Scanline<'_>| -> Result<(), ()> {
+            for &(x0, y0, dx, dy) in passes {
+                if x0 >= sw || y0 >= sh {
+                    continue;
                 }
-                let row = reader.next_row().map_err(|_| ())?.ok_or(())?;
-                let count = (sw - x0).div_ceil(dx as u32) as usize;
-                if row.data().len() != count * channels {
-                    return Err(());
+                for y in (y0..sh).step_by(dy) {
+                    if !current() {
+                        return Err(());
+                    }
+                    let row = reader.next_row().map_err(|_| ())?.ok_or(())?;
+                    let count = (sw - x0).div_ceil(dx as u32) as usize;
+                    if row.data().len() != count * channels {
+                        return Err(());
+                    }
+                    each((x0, dx, y), row.data())?;
                 }
-                each((x0, dx, y), row.data())?;
             }
-        }
-        if reader.next_row().map_err(|_| ())?.is_some() {
-            return Err(());
-        }
-        Ok(())
-    };
+            if reader.next_row().map_err(|_| ())?.is_some() {
+                return Err(());
+            }
+            Ok(())
+        };
     if count == 1 {
         let band = &mut bands[0];
         scan(&mut reader, &mut |at, data| band.add(at, data))?;
