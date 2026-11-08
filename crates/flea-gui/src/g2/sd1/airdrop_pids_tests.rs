@@ -31,7 +31,7 @@ fn ended_by(child: &mut std::process::Child) -> Option<i32> {
 fn an_exit_from_a_run_already_replaced_keeps_the_current_runs_pid() {
     let mut child = sleeper();
     let mut pids = Pids::default();
-    pids.hold(Proc::Radio, 2, child.id());
+    started(&pids.claim(Proc::Radio, 2), child.id());
     pids.ended(Proc::Radio, 1);
     pids.stop(Proc::Radio);
     assert_eq!(
@@ -45,7 +45,7 @@ fn an_exit_from_a_run_already_replaced_keeps_the_current_runs_pid() {
 fn a_run_whose_exit_was_heard_is_never_signalled() {
     let mut child = sleeper();
     let mut pids = Pids::default();
-    pids.hold(Proc::Receive, 3, child.id());
+    started(&pids.claim(Proc::Receive, 3), child.id());
     pids.ended(Proc::Receive, 3);
     pids.stop(Proc::Receive);
     std::thread::sleep(Duration::from_millis(300));
@@ -62,9 +62,29 @@ fn a_run_whose_exit_was_heard_is_never_signalled() {
 fn a_window_closing_with_airdrop_on_terminates_every_held_run() {
     let (mut radio, mut receive) = (sleeper(), sleeper());
     let mut pids = Pids::default();
-    pids.hold(Proc::Radio, 1, radio.id());
-    pids.hold(Proc::Receive, 1, receive.id());
+    started(&pids.claim(Proc::Radio, 1), radio.id());
+    started(&pids.claim(Proc::Receive, 1), receive.id());
     drop(pids);
     assert_eq!(ended_by(&mut radio), Some(SIGTERM));
     assert_eq!(ended_by(&mut receive), Some(SIGTERM));
+}
+
+#[test]
+fn a_run_stopped_before_its_thread_spawned_it_is_terminated_once_it_starts() {
+    let mut pids = Pids::default();
+    let run = pids.claim(Proc::Radio, 4);
+    pids.stop(Proc::Radio);
+    let mut child = sleeper();
+    started(&run, child.id());
+    assert_eq!(ended_by(&mut child), Some(SIGTERM));
+}
+
+#[test]
+fn a_window_closing_before_a_run_started_still_terminates_it() {
+    let mut pids = Pids::default();
+    let run = pids.claim(Proc::Browse, 1);
+    drop(pids);
+    let mut child = sleeper();
+    started(&run, child.id());
+    assert_eq!(ended_by(&mut child), Some(SIGTERM));
 }

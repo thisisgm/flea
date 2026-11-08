@@ -10,7 +10,7 @@ use gpui::{Context, Window};
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
 
-// The name Apple devices see, owly's default: this computer's host name.
+// The name Apple devices see, owly's default: this computer's host name, read beside doctor off the window's thread.
 fn host_name() -> String {
     std::fs::read_to_string("/proc/sys/kernel/hostname")
         .map(|s| s.trim().to_string())
@@ -121,13 +121,15 @@ impl Shell {
             let output = cx
                 .background_executor()
                 .spawn(async move {
-                    Command::new(&argv[0])
+                    let output = Command::new(&argv[0])
                         .args(&argv[1..])
                         .stdin(Stdio::null())
                         .stderr(Stdio::null())
-                        .output()
+                        .output();
+                    (output, host_name())
                 })
                 .await;
+            let (output, host) = output;
             let (code, stdout) = match &output {
                 Ok(out) => (
                     out.status.code().unwrap_or(-1),
@@ -139,6 +141,8 @@ impl Shell {
                 }
             };
             let _ = this.update_in(cx, |shell, window, cx| {
+                let host_changed = shell.menu.providers.airdrop_host != host;
+                shell.menu.providers.airdrop_host = host;
                 let acts =
                     shell
                         .menu
@@ -146,6 +150,9 @@ impl Shell {
                         .airdrop
                         .doctor_done(generation, code, &stdout, now_ms());
                 shell.airdrop_acts(side, acts, window, cx);
+                if host_changed {
+                    shell.airdrop_page(cx);
+                }
             });
         })
         .detach();
@@ -174,54 +181,51 @@ impl Shell {
         };
         // Ok carries one line of the run's output and Err its exit code, -1 when it never started or died on a signal.
         let (lines, heard) = async_channel::unbounded::<Result<String, i32>>();
-        match command.spawn() {
-            Ok(mut child) => {
-                self.menu
-                    .providers
-                    .airdrop_pids
-                    .hold(proc, generation, child.id());
-                let stream: Option<Box<dyn Read + Send>> = match proc {
-                    Proc::Radio => child
-                        .stderr
-                        .take()
-                        .map(|s| Box::new(s) as Box<dyn Read + Send>),
-                    Proc::Browse => child
-                        .stdout
-                        .take()
-                        .map(|s| Box::new(s) as Box<dyn Read + Send>),
-                    Proc::Receive => None,
-                };
-                let asks = matches!(proc, Proc::Receive)
-                    .then(|| child.stderr.take().zip(child.stdin.take()))
-                    .flatten();
-                let catalog = self.locale.catalog.clone();
-                std::thread::spawn(move || {
-                    if let Some((stderr, stdin)) = asks {
-                        let said = airdrop_ask::serve(stderr, stdin, |ask| {
-                            airdrop_ask::ask(&catalog, ask)
-                        });
-                        for line in said.lines() {
-                            let _ = lines.send_blocking(Ok(line.to_string()));
-                        }
-                    }
-                    for line in stream
-                        .into_iter()
-                        .flat_map(|s| BufReader::new(s).lines().map_while(Result::ok))
-                    {
-                        let _ = lines.send_blocking(Ok(line));
-                    }
-                    let code = child.wait().ok().and_then(|status| status.code());
-                    let _ = lines.send_blocking(Err(code.unwrap_or(-1)));
-                });
+        let run = self.menu.providers.airdrop_pids.claim(proc, generation);
+        let catalog = self.locale.catalog.clone();
+        // The spawn and every read and wait run on this thread, never the window's.
+        std::thread::spawn(move || {
+            let mut child = match command.spawn() {
+                Ok(child) => child,
+                Err(error) => {
+                    // Said like owly's own error line, so a radio or receiver that cannot start names the program and why.
+                    let said = format!("owly: {}: {error}", argv[0]);
+                    eprintln!("flea: AirDrop {said}");
+                    let _ = lines.send_blocking(Ok(said));
+                    let _ = lines.send_blocking(Err(-1));
+                    return;
+                }
+            };
+            super::airdrop_pids::started(&run, child.id());
+            let stream: Option<Box<dyn Read + Send>> = match proc {
+                Proc::Radio => child
+                    .stderr
+                    .take()
+                    .map(|s| Box::new(s) as Box<dyn Read + Send>),
+                Proc::Browse => child
+                    .stdout
+                    .take()
+                    .map(|s| Box::new(s) as Box<dyn Read + Send>),
+                Proc::Receive => None,
+            };
+            let asks = matches!(proc, Proc::Receive)
+                .then(|| child.stderr.take().zip(child.stdin.take()))
+                .flatten();
+            if let Some((stderr, stdin)) = asks {
+                let said = airdrop_ask::serve(stderr, stdin, |ask| airdrop_ask::ask(&catalog, ask));
+                for line in said.lines() {
+                    let _ = lines.send_blocking(Ok(line.to_string()));
+                }
             }
-            Err(error) => {
-                // Said like owly's own error line, so a radio or receiver that cannot start names the program and why.
-                let said = format!("owly: {}: {error}", argv[0]);
-                eprintln!("flea: AirDrop {said}");
-                let _ = lines.send_blocking(Ok(said));
-                let _ = lines.send_blocking(Err(-1));
+            for line in stream
+                .into_iter()
+                .flat_map(|s| BufReader::new(s).lines().map_while(Result::ok))
+            {
+                let _ = lines.send_blocking(Ok(line));
             }
-        }
+            let code = child.wait().ok().and_then(|status| status.code());
+            let _ = lines.send_blocking(Err(code.unwrap_or(-1)));
+        });
         cx.spawn_in(window, async move |this, cx| {
             while let Ok(message) = heard.recv().await {
                 let done = message.is_err();
@@ -339,7 +343,7 @@ impl Shell {
             .menu
             .providers
             .airdrop
-            .page(&self.airdrop_folder(), &host_name());
+            .page(&self.airdrop_folder(), &self.menu.providers.airdrop_host);
         if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.set_airdrop(page, cx));
         }
