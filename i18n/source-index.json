@@ -247679,7 +247679,7 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "7f05233d399e98327def933d208100b57a923644c86cc36391dbc548f3f049f6",
+    "Cargo.toml": "5653c9fa01c3bb0911b631498ec7b3645b76d42faf5135f50863b907dbe1066e",
     "crates/flea-gui/Cargo.toml": "589a73f511211a013e57f2761a6e8592336a4110df0e8abfb2068cdfa68c8c31",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
@@ -249913,7 +249913,7 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "32b0d9109cde20e6629c2ae5d156b381de678158e8e6066ea206df196795c09d",
     "tools/flea_ipc.py": "d088ef240adc6fce6fbe5ea848e59adcb99e5075dfcf809fae9c1905fa474871",
-    "tools/gpui-lint.json": "19526c402e2cd40f0395a911aab1919f622a3e0807ad1018a569e3f0411f5e12",
+    "tools/gpui-lint.json": "d5336c282837da018a33cd056d8b77bd7914e04552c36bea2b0061d4a7f02d93",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "d696a197480762215ae69e81a723c7993c1ecd5c0fad4cfa14c0abed0278dfbd",
@@ -250344,8 +250344,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "53e9b7f3caa1c63142fad01412dedcc7879cd11e",
-  "source_sha": "53e9b7f3caa1c63142fad01412dedcc7879cd11e",
+  "source_ref_sha": "b8664ab09ab8f7f490c01e6aee44dcc3ed740946",
+  "source_sha": "b8664ab09ab8f7f490c01e6aee44dcc3ed740946",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1298,
