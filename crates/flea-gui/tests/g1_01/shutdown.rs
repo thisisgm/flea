@@ -29,12 +29,14 @@ fn wait_drained(
     }
 }
 
+// A killed child is reaped off the worker thread, so Drained can come first; a zombie keeps its /proc entry until then.
 fn assert_reaped(root: &std::path::Path) {
     let pid = std::fs::read_to_string(root.join("ready")).unwrap();
-    assert!(
-        !PathBuf::from(format!("/proc/{pid}")).exists(),
-        "backend {pid} was not reaped"
-    );
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while PathBuf::from(format!("/proc/{pid}")).exists() {
+        assert!(Instant::now() < deadline, "backend {pid} was not reaped");
+        std::thread::sleep(Duration::from_millis(5));
+    }
 }
 
 #[test]
