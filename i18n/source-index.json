@@ -163849,7 +163849,7 @@
     },
     {
       "excerpt": "pub(crate) const LINKS: &str = \"this drive cannot hold links\";",
-      "line": 9,
+      "line": 10,
       "literal": "this drive cannot hold links",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163858,7 +163858,7 @@
     },
     {
       "excerpt": "pub(crate) const NODES: &str = \"this drive cannot hold special files\";",
-      "line": 10,
+      "line": 11,
       "literal": "this drive cannot hold special files",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163867,7 +163867,7 @@
     },
     {
       "excerpt": "const NAME: &str = \"this drive does not allow that name\";",
-      "line": 11,
+      "line": 12,
       "literal": "this drive does not allow that name",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163876,7 +163876,7 @@
     },
     {
       "excerpt": "const LONG: &str = \"that name is too long for this drive\";",
-      "line": 12,
+      "line": 13,
       "literal": "that name is too long for this drive",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163885,7 +163885,7 @@
     },
     {
       "excerpt": "const TAKEN: &str = \"this drive treats that name as the same as another in the folder\";",
-      "line": 13,
+      "line": 14,
       "literal": "this drive treats that name as the same as another in the folder",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163894,7 +163894,7 @@
     },
     {
       "excerpt": "(1, true) => format!(\"{inside} could not be moved: {why}\"),",
-      "line": 146,
+      "line": 154,
       "literal": "{inside} could not be moved: {why}",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163903,7 +163903,7 @@
     },
     {
       "excerpt": "(1, false) => format!(\"{inside} could not be copied: {why}\"),",
-      "line": 147,
+      "line": 155,
       "literal": "{inside} could not be copied: {why}",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163912,7 +163912,7 @@
     },
     {
       "excerpt": "(n, true) => format!(\"{n} items inside could not be moved; the first is {inside}: {why}\"),",
-      "line": 148,
+      "line": 156,
       "literal": "{n} items inside could not be moved; the first is {inside}: {why}",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
@@ -163921,8 +163921,17 @@
     },
     {
       "excerpt": "(n, false) => format!(\"{n} items inside could not be copied; the first is {inside}: {why}\"),",
-      "line": 149,
+      "line": 157,
       "literal": "{n} items inside could not be copied; the first is {inside}: {why}",
+      "owner": "controller",
+      "path": "src/backend/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "FAT_ROOT.with(|r| *r.borrow_mut() = root.map(|root| std::fs::canonicalize(root).expect(\"the vfat root exists\")));",
+      "line": 197,
+      "literal": "the vfat root exists",
       "owner": "controller",
       "path": "src/backend/unheld.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -248877,9 +248886,9 @@
     "src/backend/contentsworker.rs": "ec578e2da07adbaa033fdc7cb51ed3f4a9308a116d11d77e9287023753083f52",
     "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
     "src/backend/convertbatch.rs": "e950fde424b374595336d7a6d70e45e8645f6a7df9298786c60e7e8f83dbcd5d",
-    "src/backend/copyfile.rs": "6baaac64fca8281469b93765e4f979cdf9b96944e6c6074b2c7491ee597f1c3f",
+    "src/backend/copyfile.rs": "8268ded64c9cbebc63053530912f730a99b511a2d18de318caf882e30279a1ba",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
-    "src/backend/copynode.rs": "3752eb48eac93e0bb12ee767de5c60826d4aff18e28d6ae0e65fb0fc3e05ae4c",
+    "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
     "src/backend/copystage.rs": "5a7d3e118b4382a420359060c29d9051ff9a860fb18b9f970c9480076123fd47",
     "src/backend/copysweep.rs": "9118749bb84c9f16ef137d92c4dcb9202831fa43c06256abf7adbcc5d3ab5599",
@@ -249210,7 +249219,7 @@
     "src/backend/undoshare.rs": "aa489e91369a6913e34d751b8db42d357a8d869dc29875002c79df5e7c5058cf",
     "src/backend/undosharelock.rs": "355a43e774eeeadebc3a341fe6c56d72c75b9c215bce3ec70cf763892a0096ae",
     "src/backend/undostage.rs": "e915c06e0e62fdf44e2198826fe51ba9578182b2842720709817a94dfdd05bc8",
-    "src/backend/unheld.rs": "edd8f6f36d818f8cb9d49b95660787db76dadcb9f8d8d8fd5c95ffca4197d859",
+    "src/backend/unheld.rs": "1759d4a524d8f3ee6f4fc02075e28b1a11caa718773f98f5315caa03570ff6f5",
     "src/backend/unmount.rs": "577b47594df5c6cbdd05e881de9ca4870b4830ea5720b4d8a384b274598faa3c",
     "src/backend/viewerpaths.rs": "9caf40ed0bf56841751dc17fb001e1f4941eeae7a9bc2f1de3f3fe3d9c94338a",
     "src/backend/wake.rs": "ede3c96cafe5280f74feda37103f4bf65d9e564b4f2166b5242ad10fc4146348",
@@ -250344,12 +250353,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "01cb7cedbeb850f31669cf1fc6178f304e5578b5",
-  "source_sha": "01cb7cedbeb850f31669cf1fc6178f304e5578b5",
+  "source_ref_sha": "2564f221c2521311e425a2cad6f5f66bb668fc36",
+  "source_sha": "2564f221c2521311e425a2cad6f5f66bb668fc36",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1298,
-      "missing_literal_candidates": 5638,
+      "missing_literal_candidates": 5639,
       "source_files": 844
     },
     "generated/tooling": {
