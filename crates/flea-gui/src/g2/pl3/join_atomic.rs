@@ -92,9 +92,10 @@ impl Shell {
         if host.presentation.stage == Stage::Closed {
             host.presentation.ready(now);
         }
-        // A window read keeps the drawn rows, so only a listing opens the hold that can fall back to Reading Trash…
+        // A window read or a relist keeps the drawn rows, so only an open or an empty Trash can fall back to Reading Trash…
         if host.presentation.stage == Stage::Ready
             && matches!(view.pending_op.as_str(), "list" | "summary")
+            && !view.relist
         {
             host.presentation.begin(true, now);
             host.presentation.held_trash = true;
