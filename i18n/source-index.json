@@ -228928,7 +228928,7 @@
     },
     {
       "excerpt": "root.refused(kind === \"moved\" ? \"Selected items changed; reopen the menu.\"",
-      "line": 455,
+      "line": 458,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "ui/ContextMenu.qml",
@@ -228937,7 +228937,7 @@
     },
     {
       "excerpt": ": \"That action is no longer available; reopen the menu.\")",
-      "line": 456,
+      "line": 459,
       "literal": "That action is no longer available; reopen the menu.",
       "owner": "controller",
       "path": "ui/ContextMenu.qml",
@@ -230161,15 +230161,6 @@
     },
     {
       "excerpt": "root[name + \"Changed\"].connect(function () { root.copyState(name, root, root.item) })",
-      "line": 121,
-      "literal": "Changed",
-      "owner": "controller",
-      "path": "ui/MenuHost.qml",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "qml-reference"
-    },
-    {
-      "excerpt": "root.item[name + \"Changed\"].connect(function () { root.copyState(name, root.item, root) })",
       "line": 122,
       "literal": "Changed",
       "owner": "controller",
@@ -230178,8 +230169,17 @@
       "surface": "qml-reference"
     },
     {
+      "excerpt": "root.item[name + \"Changed\"].connect(function () { root.copyState(name, root.item, root) })",
+      "line": 123,
+      "literal": "Changed",
+      "owner": "controller",
+      "path": "ui/MenuHost.qml",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "qml-reference"
+    },
+    {
       "excerpt": "if (!root.item) throw new Error(\"ContextMenu.qml did not load: Loader status \" + visual.status)",
-      "line": 153,
+      "line": 155,
       "literal": "ContextMenu.qml did not load: Loader status ",
       "owner": "controller",
       "path": "ui/MenuHost.qml",
@@ -230188,7 +230188,7 @@
     },
     {
       "excerpt": "onStatusChanged: if (status === Loader.Error) throw new Error(\"ContextMenu.qml did not load: Loader status \" + status)",
-      "line": 162,
+      "line": 164,
       "literal": "ContextMenu.qml did not load: Loader status ",
       "owner": "controller",
       "path": "ui/MenuHost.qml",
@@ -230197,7 +230197,7 @@
     },
     {
       "excerpt": "root.refused(kind === \"moved\" ? \"Selected items changed; reopen the menu.\"",
-      "line": 198,
+      "line": 200,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "ui/MenuHost.qml",
@@ -230206,7 +230206,7 @@
     },
     {
       "excerpt": ": \"That action is no longer available; reopen the menu.\")",
-      "line": 199,
+      "line": 201,
       "literal": "That action is no longer available; reopen the menu.",
       "owner": "controller",
       "path": "ui/MenuHost.qml",
@@ -231070,7 +231070,7 @@
     },
     {
       "excerpt": "dropboxReason: root.dropboxService ? root.dropboxService.dropboxReason : \"Dropbox is not available\"",
-      "line": 1116,
+      "line": 1117,
       "literal": "Dropbox is not available",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -231079,7 +231079,7 @@
     },
     {
       "excerpt": "if (made && made.status !== Component.Ready) throw new Error(\"CollideHost.qml did not load: \" + made.errorString())",
-      "line": 1159,
+      "line": 1160,
       "literal": "CollideHost.qml did not load: ",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -231088,7 +231088,7 @@
     },
     {
       "excerpt": "readonly property string noWindowSentence: \"This pane has no window, so nothing was done.\"",
-      "line": 1165,
+      "line": 1166,
       "literal": "This pane has no window, so nothing was done.",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -231097,7 +231097,7 @@
     },
     {
       "excerpt": "if (at < 0) { root.message(\"That file is no longer listed.\", true); return }",
-      "line": 1178,
+      "line": 1179,
       "literal": "That file is no longer listed.",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -231106,7 +231106,7 @@
     },
     {
       "excerpt": "if (!path) { root.message(\"That menu is out of date. Reopen it.\", true); return }",
-      "line": 1197,
+      "line": 1198,
       "literal": "That menu is out of date. Reopen it.",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -231115,7 +231115,7 @@
     },
     {
       "excerpt": "root.message(\"That action is not available yet\", false)",
-      "line": 1219,
+      "line": 1220,
       "literal": "That action is not available yet",
       "owner": "controller",
       "path": "ui/Pane.qml",
@@ -239664,8 +239664,17 @@
       "surface": "qml-reference"
     },
     {
+      "excerpt": "var LOCKED_NOTICE = \"Open in terminal and Copy as are hidden in Settings > Menus.\"",
+      "line": 19,
+      "literal": "Open in terminal and Copy as are hidden in Settings > Menus.",
+      "owner": "controller",
+      "path": "ui/js/LockedMenu.js",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "qml-reference"
+    },
+    {
       "excerpt": "var entry = { id: id, action: id, label: spec[0] === \"copyAs\" ? \"Copy path\" : spec[1], glyph: spec[2] }",
-      "line": 29,
+      "line": 31,
       "literal": "Copy path",
       "owner": "controller",
       "path": "ui/js/LockedMenu.js",
@@ -241555,7 +241564,7 @@
     },
     {
       "excerpt": "if (kind === \"P\") { e.id = e.action = \"copypath\"; e.label = \"Copy path\" }",
-      "line": 166,
+      "line": 167,
       "literal": "Copy path",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241564,7 +241573,7 @@
     },
     {
       "excerpt": "hint: app.default === true ? \"default\" : \"\" }",
-      "line": 219,
+      "line": 220,
       "literal": "default",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241573,7 +241582,7 @@
     },
     {
       "excerpt": "rows.push({ id: OPEN_WITH_OTHER, label: \"Another application\\u2026\", glyph: \"app-window\" })",
-      "line": 222,
+      "line": 223,
       "literal": "Another application…",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241582,7 +241591,7 @@
     },
     {
       "excerpt": "var device = entry.group === \"device\", network = entry.group === \"network\"",
-      "line": 280,
+      "line": 281,
       "literal": "network",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241591,7 +241600,7 @@
     },
     {
       "excerpt": "var volume = device && entry.kind === \"volume\", phone = device && entry.kind === \"phone\"",
-      "line": 281,
+      "line": 282,
       "literal": "phone",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241600,7 +241609,7 @@
     },
     {
       "excerpt": "var bad = { label: \"Permissions\", action: \"permissions\", glyph: \"lock\", disabled: true, errored: true }",
-      "line": 313,
+      "line": 314,
       "literal": "Permissions",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241609,7 +241618,7 @@
     },
     {
       "excerpt": "return { label: \"Permissions\", action: \"permissions\", glyph: \"lock\", disabled: false, errored: false }",
-      "line": 319,
+      "line": 320,
       "literal": "Permissions",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241618,7 +241627,7 @@
     },
     {
       "excerpt": "var entry = { label: \"Permissions\", action: \"permissions\", glyph: \"lock\", disabled: !allowed, errored: !allowed }",
-      "line": 323,
+      "line": 324,
       "literal": "Permissions",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241627,7 +241636,7 @@
     },
     {
       "excerpt": "{ id: \"copyPath\", label: \"Path\", glyph: \"file-text\", keyHint: \"p\" },",
-      "line": 350,
+      "line": 351,
       "literal": "Path",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241636,7 +241645,7 @@
     },
     {
       "excerpt": "{ id: \"copyRelative\", label: \"Relative path\", glyph: \"file\", keyHint: \"r\" },",
-      "line": 351,
+      "line": 352,
       "literal": "Relative path",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241645,7 +241654,7 @@
     },
     {
       "excerpt": "{ id: \"copyName\", label: \"Name\", glyph: \"type\", keyHint: \"n\" },",
-      "line": 352,
+      "line": 353,
       "literal": "Name",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241654,7 +241663,7 @@
     },
     {
       "excerpt": "{ id: \"copyStem\", label: \"Name without extension\", glyph: \"type\", keyHint: \"e\" },",
-      "line": 353,
+      "line": 354,
       "literal": "Name without extension",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241663,7 +241672,7 @@
     },
     {
       "excerpt": "{ id: \"copydirpath\", label: \"Folder path\", glyph: \"folder\", keyHint: \"f\" },",
-      "line": 354,
+      "line": 355,
       "literal": "Folder path",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241672,7 +241681,7 @@
     },
     {
       "excerpt": "{ id: \"copyUri\", label: \"File URI\", glyph: \"globe\", keyHint: \"u\" },",
-      "line": 355,
+      "line": 356,
       "literal": "File URI",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241681,7 +241690,7 @@
     },
     {
       "excerpt": "{ id: \"pasteLink\", label: \"Link\", glyph: \"symlink\", keyHint: \"L\" },",
-      "line": 365,
+      "line": 366,
       "literal": "Link",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241690,7 +241699,7 @@
     },
     {
       "excerpt": "{ id: \"pasteLink\", label: \"Link\", glyph: \"symlink\", keyHint: \"L\" },",
-      "line": 365,
+      "line": 366,
       "literal": "symlink",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241699,7 +241708,7 @@
     },
     {
       "excerpt": "{ id: \"pasteAbsoluteLink\", label: \"Absolute link\", glyph: \"symlink\", keyHint: \"a\" },",
-      "line": 366,
+      "line": 367,
       "literal": "Absolute link",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241708,7 +241717,7 @@
     },
     {
       "excerpt": "{ id: \"pasteAbsoluteLink\", label: \"Absolute link\", glyph: \"symlink\", keyHint: \"a\" },",
-      "line": 366,
+      "line": 367,
       "literal": "symlink",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241717,7 +241726,7 @@
     },
     {
       "excerpt": "{ id: \"pasteHardLink\", label: \"Hard link\", glyph: \"copy\", keyHint: \"H\" }",
-      "line": 367,
+      "line": 368,
       "literal": "Hard link",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241726,7 +241735,7 @@
     },
     {
       "excerpt": "var EMPTY_CLIPBOARD = \"There is nothing to paste; y copies and x cuts.\"",
-      "line": 380,
+      "line": 381,
       "literal": "There is nothing to paste; y copies and x cuts.",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241735,7 +241744,7 @@
     },
     {
       "excerpt": "if (!known) return { kind: \"unknown\" }",
-      "line": 404,
+      "line": 405,
       "literal": "unknown",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241744,7 +241753,7 @@
     },
     {
       "excerpt": "var SORT_LABELS = { name: \"Name\", size: \"Size\", mtime: \"Modified\", kind: \"Kind\" }",
-      "line": 411,
+      "line": 412,
       "literal": "Name",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241753,7 +241762,7 @@
     },
     {
       "excerpt": "var SORT_LABELS = { name: \"Name\", size: \"Size\", mtime: \"Modified\", kind: \"Kind\" }",
-      "line": 411,
+      "line": 412,
       "literal": "Size",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241762,7 +241771,7 @@
     },
     {
       "excerpt": "var SORT_LABELS = { name: \"Name\", size: \"Size\", mtime: \"Modified\", kind: \"Kind\" }",
-      "line": 411,
+      "line": 412,
       "literal": "Modified",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241771,7 +241780,7 @@
     },
     {
       "excerpt": "var SORT_LABELS = { name: \"Name\", size: \"Size\", mtime: \"Modified\", kind: \"Kind\" }",
-      "line": 411,
+      "line": 412,
       "literal": "Kind",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -241780,7 +241789,7 @@
     },
     {
       "excerpt": "if (hasOwn === true) { out.push({ separator: true }); out.push({ id: \"__default__\", label: \"Use the default sort\" }) }",
-      "line": 418,
+      "line": 419,
       "literal": "Use the default sort",
       "owner": "controller",
       "path": "ui/js/Menu.js",
@@ -249817,7 +249826,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "2d576fc9cd2c3b6fd6aa8cdf683d9bb9641f9b48559f37a2eab3572660e7807a",
+    "tools/flea-file-budget": "b976c63f18ea131f5e7b7a70d906e3773a725b74352e6df48ef4e82931b8f867",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -249961,7 +249970,7 @@
     "ui/ColumnsArea.qml": "82751b03bf4cc5e63fb118a5b95af5e221d2c1e7e1a0d052fc11cadeadaa4c31",
     "ui/ColumnsLanding.qml": "a4c44bcdcac2e09247ed97b330cf3e0ca3049ba2694d28b9aaa41653c1561ad0",
     "ui/CompareView.qml": "1d6e41d9af813b5dbf41f88f09f83942e080439147b76ada5b19c0334156c692",
-    "ui/ContextMenu.qml": "e6580d770cdee011c9cdec284ec2bf399adb13590855c202678294a57596c855",
+    "ui/ContextMenu.qml": "15e9713aa3ec73fea26746dc7c7dd80cf954ca7d4d3769d0e99ac2c632241d3c",
     "ui/ConvertDialog.qml": "a71ae1d7b3fa22db79b6043fbfb8650f9a16385cbdd8902f61494197e5cd23af",
     "ui/CountedWorker.qml": "60fa2d6d3ee15fa57b2720252aad2e4ba5f1333de784e5695e9c04d6fb814584",
     "ui/Crumb.qml": "d2c1eb5eb1aa20563d2be2624e3365a025bd372410d885636a30ffadcb9a3220",
@@ -250051,7 +250060,7 @@
     "ui/MediaVolume.qml": "68c9935c8e62dc47ae88217a044f17026dc85e49a4366f70ad328d10cbda4421",
     "ui/MenuActionDialog.qml": "c2f5d1f0eeff0c17b5774085bb83c27c82894483a4c63e5edde170cb46bb136b",
     "ui/MenuEdgeFade.qml": "e401d802322c83580a0df14df2b510fa93930fa327c0cd0578859235f97487bd",
-    "ui/MenuHost.qml": "43083a59f36493415e10d1bfc7994512a0abae1976d387c5d2e78567056d6a28",
+    "ui/MenuHost.qml": "689cdd40de6b91191b2402e0e40982b8c6eb98e22da9b7ca16856f332dba2694",
     "ui/MenuRow.qml": "46567cf22a5acd8a43b658a00c822f584562b9046639194a5e3754f78606157d",
     "ui/MountListing.qml": "9a0af39f542b6fba4286dcd8461c56965422c28e4a464126df1b8ac84f47550e",
     "ui/NetworkDialog.qml": "559bc3a13be05840ce4fd9389741d98c96e2bbf3cb62f49cd44072a6cb99b60b",
@@ -250060,7 +250069,7 @@
     "ui/NetworkPlaces.qml": "4dc57a8735b3ea30d14290e5ccb011009eada109fb5b0ae9f7352b6dbcb36e1c",
     "ui/OpenWithDialog.qml": "4189c712eb144e9127e2161f88f81e109bace64de16aaeb8d8eca03383f920ab",
     "ui/Opener.qml": "33b3f3e683a1224948eab82b60ad9f52766fca004879b56cc7dc88e1e48892a3",
-    "ui/Pane.qml": "051f25b42c436ae7a554ebe3270932ad7a5fb6e9295b53b6fa60ef046a68510b",
+    "ui/Pane.qml": "fcce8343360f042ec0da68c8e8cd5102f16dd8b07c871bf17cecba1ae5686de5",
     "ui/PaneMenuActions.qml": "5c1f6edb8fa9765b505fe12a4abebdc8ad31141d58254122e38334e0e44e3e51",
     "ui/PanePath.qml": "affbe0b8cc6a158e1a009fc395c64a59c9339f7257f33ec4fe72d51cc0752410",
     "ui/PaneRail.qml": "a2539377d1a58637e9a6065cd8ece8e7a927acfb8a1e5d408ca207d847659044",
@@ -250244,7 +250253,7 @@
     "ui/js/LangMarks.js": "fcad64db8c406546743e0241bed01d2a255ae7b2ffafd3ebd12224a220acadf0",
     "ui/js/Lists.js": "68ea7da9397006253e66e63dbe37196f0ddf37259483a41baf7f70b2a3495c4a",
     "ui/js/LocalSend.js": "9bb7e620742bb222a9d69c913a6973d75de5633e6205c43592c3739c2c5c6c11",
-    "ui/js/LockedMenu.js": "6f1dc6c60e40cedfff9c5eccaaf5b23a3694687fd89b983b578b4c23831fa71c",
+    "ui/js/LockedMenu.js": "dcde101568d9dd037951b8f888653d82a88d4b869e2d0766d950e0a42791aa51",
     "ui/js/MakeDefault.js": "b9401b08288966bac481f374d936d37a8cd6c541e9b780b642276ab03c5cea28",
     "ui/js/MarkBox.js": "704658ebd5a2a80d970a17a73bf946a927bdac52b8cdc7ec34d180be67ef493b",
     "ui/js/Markdown.js": "84e5af0ea600d514b7afe8f1e2583059e5a6c4be8e50fd6a7e8326b8222fd4be",
@@ -250282,7 +250291,7 @@
     "ui/js/MdResolve.js": "b8e2c996677cd18423df6058375f64816c1caeb2da53aba683ef4a145b497e6a",
     "ui/js/MdRun.js": "966a1653eb41c4441fc9447e40b29fb0e4ef878b780a233f7e7bca3c8467a101",
     "ui/js/MdUrl.js": "8e0258377dd04e598ee6d3f51b40914153b68c0ee0463e11e8f1f2d3f688277a",
-    "ui/js/Menu.js": "b119a13fd498de44526ab5f0d42d6f0fa7c6668c446136d04003c97f74b84281",
+    "ui/js/Menu.js": "6a377d6632ee34beaa052bbf810667f4d21bcd7af1d2848947bc0d99d0ad3095",
     "ui/js/MenuContext.js": "368372a92f1816c28ff97247369ecb507e997151f05bea8c7a60eb0621a9bcea",
     "ui/js/MenuFit.js": "7d0c3a60ae4c69d5004eaabe7f8da57233582a326c034d7fafc0273d1284a99e",
     "ui/js/MenuRefresh.js": "574de0fa37189359ce86168bc82351c324cb6e45fd932a1cd16f9639bd458eae",
@@ -250323,7 +250332,7 @@
     "ui/js/ScrollOff.js": "f84a0ebd4f87f5e7d0c47f33ed6e56d68037f3102904422c1119851d9b51a7f0",
     "ui/js/Search.js": "6a7d7bca60fe4386c10bb2913c583050d1b3050445f27d346ed56cc37350845f",
     "ui/js/Selection.js": "adccbc00e173383fd4d1373303514612681b9bc2e588880a0065cc1d0d0001fc",
-    "ui/js/Settings.js": "90bc09df01131822bc1cf62109d90d8a982de74596090b0b4ec58d7c8aa7be50",
+    "ui/js/Settings.js": "d758e9ea61863482b122dea1d844c622bfaf919268b30b314f336d80d6a8e4b5",
     "ui/js/SettingsAbout.js": "be725682ecd1f431fe0b8c64017e38590db35fcee82a52380404ddbdc38a421a",
     "ui/js/SettingsShelf.js": "2eae51fbc0bf3fffeb7ed3baf15fb793a3b1e33238da23064b23ef3174ae7eee",
     "ui/js/SheetKeys.js": "ae38ddc6a24fb666c8eef7bc09cd8269a0c6bb321cc33a3525dc8e994abca903",
@@ -250353,8 +250362,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "2564f221c2521311e425a2cad6f5f66bb668fc36",
-  "source_sha": "2564f221c2521311e425a2cad6f5f66bb668fc36",
+  "source_ref_sha": "d1c09090331bae4c694113153788cb9fda072cd1",
+  "source_sha": "d1c09090331bae4c694113153788cb9fda072cd1",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1298,
@@ -250373,7 +250382,7 @@
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
-      "missing_literal_candidates": 2133,
+      "missing_literal_candidates": 2134,
       "source_files": 412
     },
     "tui": {
