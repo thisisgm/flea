@@ -239,9 +239,6 @@ pub(super) fn lead(entry: &Entry) -> Lead {
     if let Some(tag) = entry.tag {
         return Lead::Tag(tag);
     }
-    if entry.busy {
-        return Lead::Busy;
-    }
     if let Some(check) = entry.check {
         return Lead::Check(check);
     }
