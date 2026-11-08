@@ -54,7 +54,6 @@ pub(super) fn draggable(
 ) -> gpui::Stateful<gpui::Div> {
     use crate::g2::dg2::join::{flock, Seed};
     let lifter = cx.entity().downgrade();
-    let payload = cx.entity().downgrade();
     div()
         .id(("columns-file-drag", side))
         .size_full()
@@ -80,13 +79,7 @@ pub(super) fn draggable(
             let _ = lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
             flock(cx)
         })
-        .external_drag_payload::<Seed>(move |_, window, cx| {
-            payload.upgrade()?.read(cx).file_drag_payload(window, cx)
-        })
-        .external_drag_at_start()
-        .on_drop::<Seed>(
-            cx.listener(move |shell, _: &Seed, window, cx| shell.land_own_drag(side, window, cx)),
-        )
+        .map(|div| Shell::own_file_drag(div, side, cx))
 }
 
 impl Shell {

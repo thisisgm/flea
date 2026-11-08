@@ -177,6 +177,24 @@ impl Shell {
         cx.try_global::<Drags>()?.lifts.get(&window_key(window))
     }
 
+    /// A pane's file drag goes to the compositor at the threshold, so a workspace switch cannot end it, and lands back on that pane.
+    pub(crate) fn own_file_drag(
+        div: gpui::Stateful<gpui::Div>,
+        side: usize,
+        cx: &mut Context<Self>,
+    ) -> gpui::Stateful<gpui::Div> {
+        // Imported here, not at module level, because spring.rs and its siblings glob this module.
+        use gpui::{InteractiveElement, StatefulInteractiveElement};
+        let payload = cx.entity().downgrade();
+        div.external_drag_payload::<Seed>(move |_, window, cx| {
+            payload.upgrade()?.read(cx).file_drag_payload(window, cx)
+        })
+        .external_drag_at_start()
+        .on_drop::<Seed>(
+            cx.listener(move |shell, _: &Seed, window, cx| shell.land_own_drag(side, window, cx)),
+        )
+    }
+
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.
     pub fn land_own_drag(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.clear_file_cue(window, cx);
