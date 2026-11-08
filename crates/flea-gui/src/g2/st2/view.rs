@@ -22,7 +22,7 @@ pub struct PluginsPane {
     pub(super) input_enabled: bool,
     pub(super) input_typeface: crate::list::Typeface,
     pub(super) page: PluginsPage,
-    wire: Rc<dyn PluginsWire>,
+    pub(super) wire: Rc<dyn PluginsWire>,
     pub(super) tokens: Tokens,
     pub(super) radius: f32,
     pub(super) marks: HashMap<String, Option<Arc<[u8]>>>,
@@ -115,6 +115,10 @@ impl PluginsPane {
     }
 
     fn after(&mut self, effect: Effect, cx: &mut Context<Self>) {
+        let effect = match effect {
+            Effect::None => self.page.take_effect(),
+            effect => effect,
+        };
         if effect != Effect::None {
             cx.emit(effect);
         }
@@ -323,7 +327,7 @@ impl PluginsPane {
                         .on_click(cx.listener(move |pane, _, _, cx| {
                             cx.stop_propagation();
                             pane.page.pick(index, &value, pane.wire.as_ref());
-                            cx.notify();
+                            pane.after(Effect::None, cx);
                         }))
                 }),
         )
@@ -461,6 +465,7 @@ impl PluginsPane {
                         row_value(value, t.muted)
                             .flex_1()
                             .min_w_0()
+                            .when(self.page.facts_right(), |value| value.text_right())
                             .text_ellipsis_middle(),
                     )
                 }),

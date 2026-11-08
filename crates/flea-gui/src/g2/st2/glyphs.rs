@@ -49,6 +49,14 @@ const DROPBOX: &[u8] = concat!(
 )
 .as_bytes();
 
+// The AirDrop mark board 0401-airdrop-menu draws: a dot under two open arcs.
+const AIRDROP: &[u8] = concat!(
+    r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none">"#,
+    r#"<circle cx="9" cy="9" r="1.8" fill="currentColor"/><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">"#,
+    r#"<path d="M 5.74 11.73 A 4.25 4.25 0 1 1 12.26 11.73"/><path d="M 4.74 14.87 A 7.25 7.25 0 1 1 13.26 14.87"/></g></svg>"#
+)
+.as_bytes();
+
 /// Dropbox's own mark is wider than tall, so it sits in its box at the board's 24 by 20.34 aspect.
 pub const DROPBOX_ASPECT: f32 = 20.34 / 24.;
 
@@ -63,6 +71,7 @@ pub fn glyph(name: &str) -> Option<(SharedString, &'static [u8])> {
         "localsend" => ("flea-st2:localsend", LOCALSEND),
         "tailscale" => ("flea-st2:tailscale", TAILSCALE),
         "dropbox" => ("flea-st2:dropbox", DROPBOX),
+        "airdrop" => ("flea-st2:airdrop", AIRDROP),
         "maximize" => (
             "flea-st2:maximize",
             cut!("M8 3H3v5 M16 3h5v5 M8 21H3v-5 M16 21h5v-5"),

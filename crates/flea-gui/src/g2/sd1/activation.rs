@@ -113,7 +113,7 @@ impl Shell {
             let busy = match a.role {
                 Role::Tailscale => sender.td_checking,
                 Role::Dropbox => sender.db.checking,
-                Role::LocalSend => false,
+                Role::LocalSend | Role::AirDrop => false,
             };
             if busy {
                 return;

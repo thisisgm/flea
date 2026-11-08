@@ -1,5 +1,8 @@
 //! LocalSend discovery and the Taildrop/provider send picker; every process runs through the host as an Action.
 mod activation;
+pub(crate) mod airdrop;
+pub(crate) mod airdrop_join;
+pub(crate) mod airdrop_pids;
 mod dropbox_status;
 pub mod ipc;
 pub(crate) mod join;
@@ -77,28 +80,36 @@ impl ProviderSend {
 
     // One row per provider, suppressed while disabled or failed once the st2 join lands.
     fn derive_providers(&mut self, states: Option<&[ProviderState]>) {
-        self.providers = [Role::Tailscale, Role::LocalSend, Role::Dropbox]
-            .iter()
-            .map(|role| Provider {
-                plugin: role.plugin_id().into(),
-                installed: installed(*role, &self.facts),
-                enabled: states
-                    .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
-                    .map(|s| s.enabled)
-                    .unwrap_or(true),
-                failed: states
-                    .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
-                    .map(|s| s.failed)
-                    .unwrap_or(false),
-            })
-            .collect();
+        self.providers = [
+            Role::Tailscale,
+            Role::LocalSend,
+            Role::Dropbox,
+            Role::AirDrop,
+        ]
+        .iter()
+        .map(|role| Provider {
+            plugin: role.plugin_id().into(),
+            installed: installed(*role, &self.facts),
+            enabled: states
+                .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
+                .map(|s| s.enabled)
+                .unwrap_or(true),
+            failed: states
+                .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
+                .map(|s| s.failed)
+                .unwrap_or(false),
+        })
+        .collect();
     }
 
     pub fn row_on(&self, role: Role) -> bool {
         if self.gated {
             self.provider(role).row_on(&self.hidden, role.menu_id())
         } else {
-            self.provider(role).installed && !self.hidden.iter().any(|id| id == role.menu_id())
+            // AirDrop ships off, so until the plugin listing lands its row stays out.
+            role != Role::AirDrop
+                && self.provider(role).installed
+                && !self.hidden.iter().any(|id| id == role.menu_id())
         }
     }
 
@@ -107,7 +118,7 @@ impl ProviderSend {
         match role {
             Role::LocalSend => self.ls_peers.clone(),
             Role::Tailscale => self.td_peers.clone(),
-            Role::Dropbox => Vec::new(),
+            Role::Dropbox | Role::AirDrop => Vec::new(),
         }
     }
 
@@ -223,6 +234,7 @@ fn installed(role: Role, facts: &Facts) -> bool {
                 || facts.tailscale_unusable
         }
         Role::Dropbox => facts.dropbox_installed || !facts.dropbox_command.is_empty(),
+        Role::AirDrop => !facts.owly_command.is_empty(),
     }
 }
 

@@ -434,6 +434,7 @@ fn handle_line(
                         paths,
                         request: id,
                         selection: None,
+                        airdrop: false,
                     },
                     &ops.detached,
                     &ops.tx,
@@ -444,6 +445,15 @@ fn handle_line(
         }
         Request::TrashBrowse { line } => {
             super::trashbrowse::request(out, ops, line);
+        }
+        // An AirDrop send is a job like LocalSend's, so it shows in the jobs list with its progress and its Cancel.
+        Request::AirDrop { peer, paths, id } => {
+            let job = ops.claim_id();
+            let (spec, work) = (
+                super::jobwork::Spec { kind: "send", label: "Sending", target: None },
+                super::jobwork::Work::Send { peer, paths, request: id, selection: None, airdrop: true },
+            );
+            ops.jobs.submit(out, job, spec, work, &ops.detached, &ops.tx);
         }
         Request::Outline { rows, anchor, open, enabled, first } => {
             if let Some(enabled) = enabled.filter(|_| st.held != Held::List) {

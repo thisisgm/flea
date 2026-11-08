@@ -1998,7 +1998,7 @@ the `plugins` listing they left, both carrying the request's `id`. Management ch
 request instead answers one terminal `pluginruntime` line, optionally preceded by `pluginprogress` lines; it does
 not append a `pluginop` line or a `plugins` listing.
 
-The listing names the four built-ins first (Shelf, LocalSend, Tailscale, Dropbox), then every folder under
+The listing names the five built-ins first (Shelf, LocalSend, Tailscale, Dropbox, AirDrop), then every folder under
 `$XDG_CONFIG_HOME/flea/plugins/` whose name does not start with a dot, in name order. Each plugin carries its
 manifest's facts, `enabled`, `source` (`builtin`, `git` with the origin in the plugin's own `.git` folder, `folder`
 with the folder it was added from, or empty), its `schema` in the manifest's own shape and its `settings` clamped to that schema. The Shelf also carries
@@ -3266,6 +3266,24 @@ MIME patterns match the entire MIME string and accept literal characters, `*`, a
 `{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. The invocation owns its entire process group: cancellation and leader exit, successful or unsuccessful, kill remaining descendants with SIGKILL before reaping the leader, including children that ignore SIGTERM.
 
 Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.
+
+## AirDrop sends (0.4.1)
+
+`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","paths":["/home/u/a.png"]}` sends the files to one
+AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name, as a
+`send` job: the backend runs
+`owly send --to=<peer> -- <paths>`, turns its `<sent> / <total> bytes` progress into job progress, and kills it on
+`{"c":"jobs","op":"cancel","id":<job>}`. It answers one line when the job ends:
+
+`{"t":"airdropsent","id":1,"ok":true,"code":"delivered","reason":""}`
+
+`code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
+(owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
+`owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
+backend's `providers` facts name `owly`'s path. When the receiver or the radio exits, the window takes both down and
+says owly's reason unless the ten minutes ran out. The receiver asks `accept? [y/N]` for each incoming request; the window
+answers it from a notification with Accept and Decline buttons, and anything but Accept within 12 s declines; the
+window then closes that notification by its id. [owly](https://github.com/t4t5/owly) is MIT, by Tristan (t4t5).
 
 ## Checked rclone sends (0.4.0)
 

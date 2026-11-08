@@ -40,6 +40,7 @@ pub enum Brand {
     Tailscale,
     Dropbox,
     LocalSend,
+    AirDrop,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -59,6 +60,8 @@ pub struct Entry {
     // A flyout row that says what is in effect: Some(true) draws the checkmark, Some(false) its empty slot.
     pub check: Option<bool>,
     pub disabled: bool,
+    // A flyout row still waiting on its answer draws the 22px Omi in its mark slot.
+    pub busy: bool,
     pub errored: bool,
     pub danger: bool,
     pub hint: Option<Text>,
@@ -187,4 +190,6 @@ pub const MARK_NAMES: &[&str] = &[
     "cloud-upload",
     "x",
     "copy-x",
+    "smartphone",
+    "laptop",
 ];

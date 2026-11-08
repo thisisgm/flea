@@ -69,11 +69,11 @@ pub(crate) fn facts() -> String {
     let paths: Vec<PathBuf> = std::env::var_os("PATH").map(|value| std::env::split_paths(&value).collect()).unwrap_or_default();
     let info = account_info(std::env::var_os("HOME"));
     let (text, error) = match info { Ok(text) => (text, String::new()), Err(error) => (String::new(), error) };
-    format!(r#"{{"taildrop":{},"taildropSend":{},"localsend":{},"rclone":{},"dropbox":{},"dropboxInfo":"{}","dropboxError":"{}"}}"#,
+    format!(r#"{{"taildrop":{},"taildropSend":{},"localsend":{},"rclone":{},"dropbox":{},"owly":{},"dropboxInfo":"{}","dropboxError":"{}"}}"#,
         command_json("tailscale", &paths), command_json("omarchy-tailscale-send", &paths),
         command_json_any(&["localsend-cli"], &paths),
         command_json("rclone", &paths),
-        command_json("dropbox-cli", &paths), escape(&text), escape(&error))
+        command_json("dropbox-cli", &paths), command_json("owly", &paths), escape(&text), escape(&error))
 }
 
 #[cfg(test)]

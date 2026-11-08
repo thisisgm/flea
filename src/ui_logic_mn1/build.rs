@@ -130,6 +130,10 @@ pub struct Context {
     pub dropbox_refreshing: bool,
     pub dropbox_code: String,
     pub row_in_dropbox: bool,
+    // The AirDrop row: owly there, its plugin on and the Wi-Fi able; on once the radio is up; each device with its phone mark.
+    pub airdrop_installed: bool,
+    pub airdrop_on: bool,
+    pub airdrop_devices: Vec<(Peer, bool)>,
     pub scripts: Vec<Peer>,
     pub hidden: Vec<String>,
     pub show_hidden: bool,
@@ -409,6 +413,14 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         for leaf in e.submenu.iter_mut().flatten() {
             leaf.glyph = Some(rows::submenu_glyph(action));
         }
+    }
+    if action == "airdrop" {
+        if !p.airdrop_installed {
+            return false;
+        }
+        e.brand = Some(Brand::AirDrop);
+        e.glyph = None;
+        e.submenu = Some(super::airdrop::flyout(p.airdrop_on, &p.airdrop_devices));
     }
     if action == "localsend" {
         if !p.localsend_installed {

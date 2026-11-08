@@ -167,6 +167,7 @@ impl Shell {
                         .map(|((id, _), answer)| (id.clone(), answer.clone()))
                         .collect();
                     shell.plugin_provider_states();
+                    shell.airdrop_plugin_off(window, cx);
                     shell.ask_plugin_targets(cx);
                     shell.provider_refresh(window, cx);
                 },

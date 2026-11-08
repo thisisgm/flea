@@ -105,6 +105,17 @@ pub fn refreshed_cursor(
             .position(|leaf| leaf.id == old_target.id && !leaf.disabled),
         _ => None,
     };
+    // A flyout that held only a waiting row (AirDrop's Looking for devices…) stays open on the leaves that replace it.
+    let waiting = old
+        .and_then(|old| old.submenu.as_deref())
+        .is_some_and(|leaves| leaves.iter().all(|leaf| leaf.disabled));
+    let target = target.or_else(|| {
+        let sub = sub_row
+            .map(|row| &next[row])
+            .filter(|sub| waiting && !sub.disabled)?;
+        let leaves = sub.submenu.as_deref().filter(|leaves| !leaves.is_empty())?;
+        Some(leaves.iter().position(|leaf| !leaf.disabled).unwrap_or(0))
+    });
     Cursor {
         cursor: selected,
         submenu_row: target.and(sub_row),

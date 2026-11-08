@@ -92,7 +92,8 @@ fn st2_every_stored_value_is_clamped_on_read() {
 fn st2_the_shelf_switch_is_shelf_enabled_and_the_rest_ship_as_drawn() {
     let fresh = jsondoc::parse("{}").unwrap();
     let states: Vec<(String, bool)> = builtins(&fresh).iter().map(|p| (p.manifest.name.clone(), p.enabled)).collect();
-    assert_eq!(states, [("Shelf".into(), false), ("LocalSend".into(), true), ("Tailscale".into(), true), ("Dropbox".into(), true)]);
+    assert_eq!(states, [("Shelf".into(), false), ("LocalSend".into(), true), ("Tailscale".into(), true), ("Dropbox".into(), true),
+                        ("AirDrop".into(), false)]);
     let on = jsondoc::parse(r#"{"shelf":{"enabled":true},"plugins":{"flea.dropbox":{"enabled":false}}}"#).unwrap();
     assert!(store::enabled(&on, builtin::SHELF, false));
     assert!(!store::enabled(&on, "flea.dropbox", true));
@@ -114,9 +115,10 @@ fn st2_a_listing_and_an_outcome_survive_the_wire() {
     assert!(!line.contains('\n'), "one wire line");
     let Ok(Reply::Listing(back)) = wire::parse(&line) else { panic!("{line}") };
     assert_eq!(back.id, 7);
-    assert_eq!(back.plugins.len(), 5);
+    assert_eq!(back.plugins.len(), 6);
     assert_eq!(back.plugins[4].manifest.schema, listing.plugins[4].manifest.schema);
-    assert_eq!(back.plugins[4].failure, Some(Invalid::new("start", "bin/flea-checksums")));
+    assert_eq!(back.plugins[5].manifest.schema, listing.plugins[5].manifest.schema);
+    assert_eq!(back.plugins[5].failure, Some(Invalid::new("start", "bin/flea-checksums")));
     assert_eq!(back.plugins[0].shelf, listing.plugins[0].shelf);
     let outcome = Outcome { id: 8, op: "add".into(), plugin: "a.b".into(), error: Some(Invalid::new("exists", "a.b")), version: String::new() };
     let Ok(Reply::Outcome(o)) = wire::parse(&wire::outcome_line(&outcome)) else { panic!() };
@@ -141,7 +143,8 @@ fn st2_the_installed_list_is_the_board_rows_with_a_failure_in_its_own_word() {
         other => panic!("{other:?}"),
     }).collect();
     assert_eq!(drawn, [("Shelf".into(), false, None), ("LocalSend".into(), true, None), ("Tailscale".into(), true, None),
-                       ("Dropbox".into(), true, None), ("Checksums".into(), true, Some("failed to start".into()))]);
+                       ("Dropbox".into(), true, None), ("AirDrop".into(), false, None),
+                       ("Checksums".into(), true, Some("failed to start".into()))]);
     assert!(rows[1..].iter().all(Row::focusable));
 }
 

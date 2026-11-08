@@ -2,6 +2,7 @@
 use super::page::{Card, PluginsPage};
 use super::seam::{Effect, PluginsWire};
 use flea::jsondoc::Json;
+use flea::ui_logic_st2::airdrop;
 use flea::ui_logic_st2::builtin::SHELF;
 use flea::ui_logic_st2::pages::{
     self, AddCard, Row, Update, ADD_ID, BACK_ID, REMOVE_ID, UPDATE_ID,
@@ -60,6 +61,9 @@ impl PluginsPage {
 
     // A row id names its plugin and key: shelf.<key> for the Shelf, <plugin>:<key> for a schema field.
     fn set(&mut self, row: &str, value: Value, wire: &dyn PluginsWire) {
+        if let (airdrop::RECEIVING_ID, Value::Choice(value)) = (row, &value) {
+            return self.airdrop_receiving(value);
+        }
         let (plugin, key) = match row.strip_prefix("shelf.") {
             Some(key) => (SHELF.to_string(), key.to_string()),
             None => match row.rsplit_once(':') {
@@ -125,6 +129,9 @@ impl PluginsPage {
                 }
             }
             Row::Action { id, .. } if id == BACK_ID => self.back(),
+            Row::Action { id, .. } if id == airdrop::FOLDER_ID => {
+                return Effect::AirdropFolder(self.airdrop_page().folder)
+            }
             Row::Favourite { path, .. } => return Effect::Open(path),
             _ => {}
         }

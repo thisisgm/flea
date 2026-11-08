@@ -19,6 +19,10 @@ pub enum Effect {
     Open(String),
     /// The Pinned heading's Pin This Folder: the host pins the focused pane's folder.
     PinFolder,
+    /// AirDrop's Receiving: on turns the radio on for ten minutes, receiving into the folder named.
+    AirdropReceiving(bool, String),
+    /// AirDrop's Save received files to: the host opens Flea's folder chooser at the folder named.
+    AirdropFolder(String),
 }
 
 /// The palette roles the boards name; filled from Omarchy's theme by the host.

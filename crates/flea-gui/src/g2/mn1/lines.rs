@@ -28,6 +28,8 @@ pub enum Lead {
     Check(bool),
     // An application's own icon name, which the icon theme unit resolves.
     Icon(String),
+    // A row still waiting on its answer: Omi in a 22px slot.
+    Busy,
 }
 
 /// How a row's label and mark are inked.
@@ -231,6 +233,9 @@ pub(super) fn lead(entry: &Entry) -> Lead {
     // A tag row leads with its colour square even while it carries the mark in effect.
     if let Some(tag) = entry.tag {
         return Lead::Tag(tag);
+    }
+    if entry.busy {
+        return Lead::Busy;
     }
     if let Some(check) = entry.check {
         return Lead::Check(check);
