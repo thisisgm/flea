@@ -1,5 +1,5 @@
 // A copy onto a drive that cannot hold some items lands every other item and names each one it could not hold.
-use crate::backend::copyfile::{copy_any, move_cross_device, test_set_precheck, Progress};
+use crate::backend::copyfile::{copy_any, move_cross_device, test_set_precheck, At, Progress};
 use crate::backend::opsreq::{run_transfer, OpMsg};
 use crate::backend::testdir::TestDir;
 use crate::backend::undo::{Entry, Journal, Step};
@@ -183,10 +183,10 @@ fn eperm_means_cannot_hold_only_on_a_drive_with_no_operation_for_the_kind() {
     let d = TestDir::new("unheldreason");
     let named = d.join("l");
     let eperm = std::io::Error::from_raw_os_error(EPERM);
-    assert_eq!(super::refused(super::Kind::Link, &eperm, &named, None).where_, "copy", "EPERM on a drive that holds links is not skipped");
+    assert_eq!(super::refused(super::Kind::Link, &eperm, At { at: &named, named: &named }, None).where_, "copy", "EPERM on a drive that holds links is not skipped");
     fat(true);
-    let link = super::refused(super::Kind::Link, &eperm, &named, None);
-    let node = super::refused(super::Kind::Node, &eperm, &named, None);
+    let link = super::refused(super::Kind::Link, &eperm, At { at: &named, named: &named }, None);
+    let node = super::refused(super::Kind::Node, &eperm, At { at: &named, named: &named }, None);
     fat(false);
     assert_eq!((link.where_.as_str(), link.msg.as_str()), (super::UNHELD, super::LINKS));
     assert_eq!((node.where_.as_str(), node.msg.as_str()), (super::UNHELD, super::NODES));
@@ -200,7 +200,7 @@ fn einval_names_a_refusal_only_on_a_drive_that_restricts_names() {
     let refused = |options: Option<&str>| {
         let body = |options: &str| format!("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / {} rw - ntfs3 /dev/b {options}\n", d.path().display());
         let _held = options.map(|options| crate::backend::iomount::test_hold_body(body(options)));
-        super::refused(super::Kind::Entry, &invalid, &named, None)
+        super::refused(super::Kind::Entry, &invalid, At { at: &named, named: &named }, None)
     };
     fat(false);
     let (own, plain, restricted) = (refused(None), refused(Some("rw")), refused(Some("rw,windows_names")));
@@ -216,15 +216,15 @@ fn a_taken_name_is_the_drive_folding_only_on_vfat_or_exfat_beside_a_folding_sibl
     let named = d.join("l");
     let taken = std::io::Error::from_raw_os_error(EEXIST);
     let source = d.file("README", "u");
-    assert_eq!(super::refused(super::Kind::Entry, &taken, &named, None).msg, "already exists", "a taken name at the top is the collide card's");
+    assert_eq!(super::refused(super::Kind::Entry, &taken, At { at: &named, named: &named }, None).msg, "already exists", "a taken name at the top is the collide card's");
     fat(true);
-    let lone = super::refused(super::Kind::Entry, &taken, &named, Some(&source));
+    let lone = super::refused(super::Kind::Entry, &taken, At { at: &named, named: &named }, Some(&source));
     fat(false);
     assert_eq!(lone.where_, "copy", "with no folding sibling it is another writer's");
     d.file("readme.", "l");
-    assert_eq!(super::refused(super::Kind::Entry, &taken, &named, Some(&source)).where_, "copy", "a drive that keeps both names folds neither, so it is another writer's");
+    assert_eq!(super::refused(super::Kind::Entry, &taken, At { at: &named, named: &named }, Some(&source)).where_, "copy", "a drive that keeps both names folds neither, so it is another writer's");
     fat(true);
-    let folded = super::refused(super::Kind::Entry, &taken, &named, Some(&source));
+    let folded = super::refused(super::Kind::Entry, &taken, At { at: &named, named: &named }, Some(&source));
     fat(false);
     assert_eq!((folded.where_.as_str(), folded.msg.as_str()), (super::UNHELD, super::TAKEN), "on vfat or exfat beside a folding sibling it is the drive's");
 }

@@ -113,8 +113,10 @@ fn search_fb5_probe_worker_scale_pressure() {
         let mut gate = Gate::default();
         let mut out = Vec::new();
         let mut buffered = VecDeque::new();
-        gate.route(Event::Request(r#"{"c":"searchquery","query":"rep","gen":7,"count":350}"#.into()),
+        // Broader than the standing "rep", so it is never answered inline and the close below waits on the worker.
+        gate.route(Event::Request(r#"{"c":"searchquery","query":"re","gen":7,"count":350}"#.into()),
             &mut st, &mut out, &tb, &pool, &loop_events, &mut buffered, false);
+        assert!(gate.busy(), "the gen 7 query runs on the worker, so this probe measures its close");
         let close = std::time::Instant::now();
         gate.route(Event::Request(r#"{"c":"searchclose"}"#.into()), &mut st, &mut out, &tb, &pool, &loop_events, &mut buffered, false);
         loop {
