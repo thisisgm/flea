@@ -5,6 +5,8 @@ use gpui::{AppContext, TestAppContext};
 
 #[path = "columns_capture_tests.rs"]
 mod capture;
+#[path = "columns_density_tests.rs"]
+mod density;
 #[path = "columns_empty_middle_tests.rs"]
 mod empty_middle;
 #[path = "columns_finder_tests.rs"]

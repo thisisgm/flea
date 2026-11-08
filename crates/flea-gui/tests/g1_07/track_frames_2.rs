@@ -102,7 +102,7 @@ fn the_clipboard_is_asked_per_row_only_while_it_holds_something() {
         marks.asked.get() - asked,
         0,
     );
-    let scroll = contain_y(9, 10, 0., 185.);
+    let scroll = contain_y(9, 10, 0., 185., 31.);
     set(&mut cx, window, |view| view.active_scroll = scroll);
     frame(&mut cx, window);
     c.eq(

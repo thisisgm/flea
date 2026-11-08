@@ -148,7 +148,7 @@ fn a_row_keeps_the_board_cells_in_every_track() {
         "14 left padding, 23 glyph box, an 18.85 mark"
     );
     assert_eq!(
-        mark_box(),
+        mark_box(31.),
         (
             14. + (23. - mark_size) / 2.,
             (31. - mark_size) / 2.,

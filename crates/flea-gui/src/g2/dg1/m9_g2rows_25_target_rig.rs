@@ -147,9 +147,10 @@ pub(super) fn target(
                 drawn.bounds.origin
                     + point(
                         drawn.bounds.size.width / 2.,
-                        px(row.map_or(300., |row| {
-                            (row as f32 + 0.5) * crate::list::pane::ROW_HEIGHT
-                        }) - drawn.scroll),
+                        px(
+                            row.map_or(300., |row| (row as f32 + 0.5) * drawn.row_height)
+                                - drawn.scroll,
+                        ),
                     )
             }
             _ => {

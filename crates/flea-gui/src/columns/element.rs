@@ -41,6 +41,7 @@ pub struct TrackElement {
     locating: bool,
     query: Rc<str>,
     row_height: f32,
+    band: f32,
 }
 
 impl TrackElement {
@@ -73,6 +74,7 @@ impl TrackElement {
             locating: false,
             query: "".into(),
             row_height: ROW_HEIGHT,
+            band: ROW_HEIGHT,
         }
     }
 
@@ -154,6 +156,7 @@ impl Element for TrackElement {
             shown: self.shown.clone(),
             grow,
             row_height: self.row_height,
+            band: self.band,
             lane,
         });
         let width = f32::from(bounds.size.width);
@@ -216,7 +219,7 @@ impl Element for TrackElement {
             .as_deref()
             .filter(|_| view.slot == Slot::Active);
         // A thumbnail is filtered to the mark slot's device pixels, the side paint draws it at.
-        let slot_pixels = (picture_box().2 * window.scale_factor()).ceil() as u32;
+        let slot_pixels = (picture_box(self.band).2 * window.scale_factor()).ceil() as u32;
         *start = first;
         for position in first..last.max(first) {
             let index = self.shown.as_ref().map_or(position, |rows| rows[position]);

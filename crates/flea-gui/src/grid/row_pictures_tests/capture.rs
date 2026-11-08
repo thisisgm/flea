@@ -29,7 +29,10 @@ fn columns_capture_ink_is_the_slot_the_thumbnail_painted_in(cx: &mut TestAppCont
             shell.visual_view_geometry(&probe, window);
             let data = probe.json(&Json::Null);
             let roles = data.get("roles").and_then(Json::as_array).unwrap();
-            for (index, (x, y, side)) in [(0, geometry::mark_box()), (1, geometry::picture_box())] {
+            for (index, (x, y, side)) in [
+                (0, geometry::mark_box(crate::list::pane::ROW_HEIGHT)),
+                (1, geometry::picture_box(crate::list::pane::ROW_HEIGHT)),
+            ] {
                 let row = rect(roles, &format!("columns-0-3-row-{index}"));
                 let ink = rect(roles, &format!("columns-0-3-row-{index}-ink"));
                 let offsets = [ink[0] - row[0], ink[1] - row[1], ink[2], ink[3]];

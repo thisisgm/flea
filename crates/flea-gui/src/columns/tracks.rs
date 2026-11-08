@@ -62,6 +62,8 @@ pub(super) struct Shown<'a> {
 pub(super) struct Tracks {
     views: Rc<[TrackView]>,
     pub height: f32,
+    /// Row density's row, which every peek track draws at.
+    row: f32,
     pub constructed: usize,
     pub dropped: usize,
     /// Each peek slot's scroll and the path and lifted row it was last contained for.
@@ -73,6 +75,7 @@ impl Tracks {
         Self {
             views: Rc::from([]),
             height,
+            row: ROW_HEIGHT,
             constructed: 0,
             dropped: 0,
             scrolls: Default::default(),
@@ -270,7 +273,7 @@ impl Tracks {
         if held.1 != view.lifted_at {
             held.1 = view.lifted_at;
             if let Some(at) = view.lifted_at {
-                held.2 = contain_y(at, total, held.2, self.height);
+                held.2 = contain_y(at, total, held.2, self.height, self.row);
             }
         }
     }
@@ -289,10 +292,24 @@ impl Tracks {
                 TrackRows::Peek(rows) => rows.len(),
                 _ => 0,
             });
-        let end = (total as f32 * ROW_HEIGHT + super::geometry::FOOTER - self.height).max(0.);
+        let end = (total as f32 * self.row + super::geometry::FOOTER - self.height).max(0.);
         let held = &mut self.scrolls[slot.index()];
         held.2 = (held.2 + dy).clamp(0., end);
         held.2
+    }
+
+    /// A density change keeps each peek track's lifted row whole and its scroll inside its rows.
+    fn set_row(&mut self, row: f32) {
+        if self.row == row {
+            return;
+        }
+        self.row = row;
+        let views = Rc::clone(&self.views);
+        for view in views.iter().filter(|view| view.slot != Slot::Active) {
+            self.scrolls[view.slot.index()].1 = None;
+            self.contain(view);
+            self.scroll_by(view.slot, 0.);
+        }
     }
 }
 
@@ -303,7 +320,8 @@ impl super::Area {
         if !self.visible {
             return Vec::new();
         }
-        let shown = (self.tracks.height / ROW_HEIGHT).ceil().max(1.);
+        let pitch = self.tracks.row;
+        let shown = (self.tracks.height / pitch).ceil().max(1.);
         let mut asks = Vec::new();
         for view in self
             .tracks()
@@ -314,8 +332,8 @@ impl super::Area {
                 continue;
             };
             let scroll = self.scroll(view.slot);
-            let first = (scroll / ROW_HEIGHT).floor() as usize;
-            let end = ((scroll / ROW_HEIGHT) + shown).ceil() as usize;
+            let first = (scroll / pitch).floor() as usize;
+            let end = ((scroll / pitch) + shown).ceil() as usize;
             let folders = rows.iter().take(end).skip(first).filter(|row| row.dir);
             asks.extend(folders.map(|row| join(&view.path, &row.name)));
         }
@@ -328,6 +346,20 @@ impl super::Area {
 
     pub fn scroll_by(&mut self, slot: Slot, dy: f32) -> f32 {
         self.tracks.scroll_by(slot, dy)
+    }
+
+    /// Row density's row, the pitch every peek track scrolls and asks by.
+    pub fn row(&self) -> f32 {
+        self.tracks.row
+    }
+
+    pub fn set_row(&mut self, row: f32) {
+        self.tracks.set_row(row);
+    }
+
+    #[cfg(test)]
+    pub fn height(&self) -> f32 {
+        self.tracks.height
     }
 }
 

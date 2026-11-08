@@ -4,10 +4,19 @@ use crate::columns::geometry::Slot;
 
 impl PaneHost {
     pub(crate) fn columns_row_height(&self) -> f32 {
-        if self.list.borrow().view.contents {
-            crate::g2::sr1::contents::BLOCK_H
+        self.columns_rows().0
+    }
+
+    /// The active track's pitch and the band its row centres in: Row density's row, or a contents block over its result row.
+    pub(crate) fn columns_rows(&self) -> (f32, f32) {
+        let list = self.list.borrow();
+        if list.view.contents {
+            (
+                crate::g2::sr1::contents::BLOCK_H,
+                crate::g2::sr1::contents::ROW_H,
+            )
         } else {
-            crate::pane::ROW_HEIGHT
+            (list.columns_row(), list.columns_row())
         }
     }
 

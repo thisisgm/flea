@@ -26,10 +26,10 @@ const MARK_LIFT: f32 = 1.;
 const DRAG: f32 = 35.;
 
 #[derive(Clone, Debug)]
-struct Painted {
-    run: usize,
-    mark: String,
-    bounds: Bounds<Pixels>,
+pub(crate) struct Painted {
+    pub(crate) run: usize,
+    pub(crate) mark: String,
+    pub(crate) bounds: Bounds<Pixels>,
 }
 
 thread_local! {
@@ -64,7 +64,7 @@ pub(crate) fn record_mark(mark: &str, bounds: Bounds<Pixels>) {
     });
 }
 
-fn frame(cx: &mut TestAppContext, handle: WindowHandle<Shell>) -> Vec<Painted> {
+pub(crate) fn frame(cx: &mut TestAppContext, handle: WindowHandle<Shell>) -> Vec<Painted> {
     PAINTED.with_borrow_mut(|painted| *painted = Some(Vec::new()));
     cx.update_window(handle.into(), |_, window, cx| {
         window.refresh();
