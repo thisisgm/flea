@@ -98,7 +98,7 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
     // The bytes go to a hidden sibling, which takes the name only once they are whole; see copystage.rs.
     let (stage, mut w) = super::unheld::fault(dst.named, Kind::Entry)
         .and_then(|()| Stage::create(dst.at, dest_magic, mode, inside))
-        .map_err(|e| super::unheld::refused(Kind::Entry, &e, dst.named, p.tree.is_some().then_some(src.at)))?;
+        .map_err(|e| super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at)))?;
     #[cfg(test)]
     super::durable::test_log("open-dest");
     // From here the file exists: a cancel discards it, and every other failure goes through left_half_written or publish.
@@ -443,7 +443,7 @@ fn drop_folder(p: &mut Progress, dst: At, folder: &Folder, into: &std::fs::File,
 fn publish(p: &Progress, src: At, dst: At, stage: &Stage) -> Result<(), FleaError> {
     stage.publish(dst.at).map_err(|e| {
         let _ = stage.discard();
-        super::unheld::refused(Kind::Entry, &e, dst.named, p.tree.is_some().then_some(src.at))
+        super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at))
     })
 }
 
@@ -462,7 +462,7 @@ fn copy_symlink_at(src: At, dst: At, p: &mut Progress) -> Result<(), FleaError> 
     let target = std::fs::read_link(src.at).map_err(|e| from_io("copy", &src.named.to_string_lossy(), &e))?;
     super::unheld::fault(dst.named, Kind::Link)
         .and_then(|()| std::os::unix::fs::symlink(&target, dst.at))
-        .map_err(|e| super::unheld::refused(Kind::Link, &e, dst.named, p.tree.is_some().then_some(src.at)))?;
+        .map_err(|e| super::unheld::refused(Kind::Link, &e, dst, p.tree.is_some().then_some(src.at)))?;
     super::tags::copy_tags(src.at, dst.at);
     if let Some(writer) = p.manifest.as_mut() {
         writer.record_stat(dst.at, dst.named);
@@ -532,7 +532,7 @@ fn copy_dir_at(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), F
     // A new folder is built under a hidden sibling and takes its name in one rename; see copystage.rs.
     let folder = super::unheld::fault(dst.named, Kind::Entry)
         .and_then(|()| Folder::create(dst.at, keep.unwrap_or(0o700) | 0o700, inside))
-        .map_err(|e| super::unheld::refused(Kind::Entry, &e, dst.named, p.tree.is_some().then_some(src.at)))?;
+        .map_err(|e| super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at)))?;
     // A staged folder is still empty here, so it goes at once rather than wait for a sweep after this backend.
     let into = open_dir(folder.at()).inspect_err(|_| if folder.staged() { let _ = std::fs::remove_dir(folder.at()); })
         .map_err(|e| from_io("copy", &dst.named.to_string_lossy(), &e))?;
@@ -589,7 +589,7 @@ fn copy_dir_at(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), F
         keep_mtime(&into, &meta);
     }
     if let Err(e) = folder.publish(dst.at) {
-        let refused = super::unheld::refused(Kind::Entry, &e, dst.named, p.tree.is_some().then_some(src.at));
+        let refused = super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at));
         return Err(drop_folder(p, dst, &folder, &into, refused));
     }
     touch(p, dst.named);
