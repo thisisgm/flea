@@ -15,6 +15,8 @@ var LOCKED_IDS = ["openTerminal", "permissions", "copyAs"]
 
 // The bar's sentence when every locked id is hidden, naming the switch that brings them back.
 var LOCKED_REFUSAL = "Open in terminal, Permissions and Copy as are hidden in Settings > Menus."
+// The shipped default shows Permissions alone, so the bar still names the two hidden rows, as the refusal names all three.
+var LOCKED_NOTICE = "Open in terminal and Copy as are hidden in Settings > Menus."
 
 // Sample input: { lockedMode: 0o040700, hiddenActions: [] }
 function lockedEntries(p) {
@@ -44,6 +46,12 @@ function lockedEntries(p) {
 // Sample input: { lockedMode: 0o040700, hiddenActions: ["openTerminal", "permissions", "copyAs"] }
 function lockedRefusal(p) {
     return lockedEntries(p).length === 0 ? LOCKED_REFUSAL : ""
+}
+
+// Sample input: { hiddenActions: ["openTerminal", "copyAs"] }
+function lockedNotice(p) {
+    var shown = LOCKED_IDS.filter(function (id) { return !Menu.isHidden(p.hiddenActions, id) })
+    return shown.length === 1 && shown[0] === "permissions" ? LOCKED_NOTICE : ""
 }
 
 // The mode is the locked directory's own, so ownership decides: a denial on owner-readable

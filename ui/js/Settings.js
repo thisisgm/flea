@@ -46,11 +46,11 @@ var MENU_GROUPS = [
     { id: "openInspect", label: "Open and inspect",
       ids: ["openwith", "run", "openAsText", "openTerminal", "moveto", "copyto", "properties", "permissions", "makeExecutable", "copyAs", "showOriginal", "tags"] },
     { id: "extras", label: "Extras", features: ["placeMenu"],  // features gate a surface, not a row
-      ids: ["shelf", "compress", "extract", "convert", "flashDrive", "taildrop", "localsend", "dropbox", "sharelink", "runScript", "placeMenu", "updateFlea", "toggleLangMarks", "extThumbs", "pasteAs", "invertSelection"] }
+      ids: ["shelf", "compress", "extract", "convert", "flashDrive", "taildrop", "localsend", "dropbox", "sharelink", "runScript", "placeMenu", "updateFlea", "toggleHidden", "toggleLangMarks", "extThumbs", "pasteAs", "invertSelection"] }
 ]
 
-// Open and Show hidden files draw the lock mark instead of a box, and the board says why: a menu that cannot open the row under the cursor is not a menu, and the hidden toggle is the one background row with no keyboard-independent alternative.
-var LOCKED = ["open", "toggleHidden"]
+// Open draws the lock mark instead of a box, and the board says why: a menu that cannot open the row under the cursor is not a menu. Show hidden files has a switch, because the background menu keeps it whatever the switch says (ui/js/Menu.js BACKGROUND_KEEPS).
+var LOCKED = ["open"]
 
 var LABELS = {
     cut: "Cut", copy: "Copy", paste: "Paste", duplicate: "Duplicate", rename: "Rename",

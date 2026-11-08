@@ -128,7 +128,9 @@ ShellRoot {
         return indices.hidden >= 0 && indices.code === indices.hidden + 1
     }
     function menuControls(host) {
-        var held = host.entries, code = held[menuIndices(host).code]
+        var held = host.entries, at = menuIndices(host).code
+        if (at < 0) { check(false, "missing-anchor control has no code-icons row to move"); return }
+        var code = held[at]
         host.entries = [code].concat(held.filter(function(row) { return row.action !== "toggleHidden" && row.action !== "toggleLangMarks" }))
         var indices = menuIndices(host)
         check(indices.hidden === -1 && indices.code === 0 && indices.code === indices.hidden + 1,
@@ -147,10 +149,16 @@ ShellRoot {
         if (readers.length === 1) console.log("LANGTOGGLE BACKGROUND_IPC entries=" + readers[0].seam.contextMenuEntries()
             + " glyphs=" + readers[0].seam.contextMenuGlyphs())
     }
+    // The shipped list takes both view rows off the file menu, and the background keeps them, so every toggle goes through the background.
     function menu(on, selected, activate) {
         var host = panes[1].contextMenu()
-        if (selected) host.openAt(Qt.point(100, 100))
-        else host.openBackground(Qt.point(100, 100))
+        if (selected) {
+            host.openAt(Qt.point(100, 100))
+            var filed = menuIndices(host)
+            check(host.opened && filed.hidden === -1 && filed.code === -1, "file menu shows hidden files or code icons by default")
+            host.close()
+        }
+        host.openBackground(Qt.point(100, 100))
         var rows = host.entries, code = menuIndices(host).code
         check(menuOrder(host), "menu position immediately after hidden files")
         if (code >= 0) check(rows[code].label === (on ? "Hide code icons" : "Show code icons")
