@@ -1,9 +1,8 @@
 //! What a track paints with: the palette rungs, the focus snapshot, the clip marks and each slot's retained paint state.
 use super::cache::{Prepared, TrackCache};
-use super::geometry::{Slot, MARK_SLOT, PAD_X};
+use super::geometry::Slot;
 use super::tracks::TrackView;
 use crate::grid::element::Thumbnail;
-use crate::list::pane::ROW_HEIGHT;
 use crate::list::Typeface;
 use crate::navigation::sort::{DirSizes, Size};
 use crate::palette::Theme;
@@ -226,11 +225,8 @@ impl TrackPaint {
         let at = self.visible.iter().position(|(row, _, _)| *row == index)?;
         let top = f32::from(drawn.bounds.origin.y) + (self.first + at) as f32 * drawn.row_height
             - drawn.scroll.max(0.);
-        Some((
-            f32::from(drawn.bounds.origin.x) + PAD_X,
-            top + (ROW_HEIGHT - MARK_SLOT) / 2.,
-            MARK_SLOT,
-        ))
+        let (x, y, side) = super::geometry::picture_box(drawn.band);
+        Some((f32::from(drawn.bounds.origin.x) + x, top + y, side))
     }
 
     pub fn visible(&self) -> impl Iterator<Item = usize> + '_ {
@@ -302,6 +298,8 @@ pub struct Drawn {
     /// The refused rename's band this track drew with; only the active track ever grows.
     pub grow: crate::list::pane::Grow,
     pub row_height: f32,
+    /// The band a row centres its marks and lines in: the row, or a contents block's result row.
+    pub band: f32,
     /// The scroll lane this frame kept clear at the track's right edge.
     pub lane: f32,
 }

@@ -1,5 +1,5 @@
 //! ColumnRow's reserved slot and the solid swatches that hug the painted name.
-use super::{Clip, Theme, GAP, ROW_HEIGHT};
+use super::{Clip, Theme, GAP};
 use flea::{
     protocol::RowFacts,
     ui_logic_pl4::tags::{ROW_SLOT, SWATCH_SIZE},
@@ -14,9 +14,10 @@ pub(super) fn reserved_cells(shown: bool, advance: f32) -> usize {
     }
 }
 
+/// The swatches centre on `mid`, the row's left edge at its centre line.
 pub(super) fn paint(
     facts: &RowFacts,
-    at: Point<Pixels>,
+    mid: Point<Pixels>,
     name_width: f32,
     geometry: super::super::geometry::Cells,
     clip: Clip,
@@ -32,7 +33,7 @@ pub(super) fn paint(
     };
     crate::row::tags::paint(
         names,
-        point(at.x + px(start), at.y + px((ROW_HEIGHT - SWATCH_SIZE) / 2.)),
+        point(mid.x + px(start), mid.y - px(SWATCH_SIZE / 2.)),
         (right - start).min(ROW_SLOT),
         &theme.tag_listing_inks,
         theme.foreground,

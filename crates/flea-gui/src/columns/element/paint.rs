@@ -61,7 +61,7 @@ impl TrackElement {
                     if let Some((from, to)) = prepared.wash_span(chevron, cursor) {
                         let line = prepared.name(chevron).line();
                         let x = left + px(cells_in(width, lane, active, chevron).name_x);
-                        let y = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2.;
+                        let y = top + (px(self.band) - line.ascent - line.descent) / 2.;
                         window.paint_quad(fill(
                             Bounds::new(
                                 point(x + from, y),
@@ -112,7 +112,7 @@ impl TrackElement {
                             let geometry = cells_in(width, lane, active, chevron);
                             // ColumnRow.qml: a thumbnail fills the whole mark slot, fitted whole, in place of the glyph.
                             if let Some(picture) = picture {
-                                let (slot_x, slot_y, side) = picture_box();
+                                let (slot_x, slot_y, side) = picture_box(self.band);
                                 let slot = Bounds::new(
                                     point(left + px(slot_x), top + px(slot_y)),
                                     size(px(side), px(side)),
@@ -120,13 +120,16 @@ impl TrackElement {
                                 paint_in_slot(picture, slot, window);
                                 pictures_painted += 1;
                             } else {
-                                let (mark_x, mark_y, mark) = mark_box();
+                                let (mark_x, mark_y, mark) = mark_box(self.band);
                                 let (key, data) = prepared.mark.svg();
+                                let at = Bounds::new(
+                                    point(left + px(mark_x), top + px(mark_y)),
+                                    size(px(mark), px(mark)),
+                                );
+                                #[cfg(test)]
+                                crate::bfx_cols_tests::record_mark(&key, at);
                                 let _ = window.paint_svg(
-                                    Bounds::new(
-                                        point(left + px(mark_x), top + px(mark_y)),
-                                        size(px(mark), px(mark)),
-                                    ),
+                                    at,
                                     key,
                                     Some(data),
                                     TransformationMatrix::unit(),
@@ -138,7 +141,7 @@ impl TrackElement {
                             let name_x = left + px(geometry.name_x);
                             inks.name =
                                 crate::window::glass::producers::text_ink(inks.name, window, cx);
-                            paint_line(name, name_x, top, inks.name, window);
+                            paint_line(name, name_x, top, self.band, inks.name, window);
                             let mut name_width = f32::from(name.line().width);
                             if let Some(location) = prepared.location.as_ref() {
                                 let gap = GAP;
@@ -150,6 +153,7 @@ impl TrackElement {
                                     location,
                                     name_x + name.line().width + px(gap),
                                     top,
+                                    self.band,
                                     if bright {
                                         inks.name
                                     } else {
@@ -166,7 +170,7 @@ impl TrackElement {
                             if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
                                 tags::paint(
                                     facts,
-                                    point(left, top),
+                                    point(left, top + px(self.band / 2.)),
                                     name_width,
                                     geometry,
                                     *clip,
@@ -181,13 +185,14 @@ impl TrackElement {
                                     size_run,
                                     left + px(right) - size_run.line().width,
                                     top,
+                                    self.band,
                                     inks.name,
                                     window,
                                 );
                             }
                             if let Some(x) = geometry.chevron_x {
                                 let at = Bounds::new(
-                                    point(left + px(x), top + px((ROW_HEIGHT - CHEVRON) / 2.)),
+                                    point(left + px(x), top + px((self.band - CHEVRON) / 2.)),
                                     size(px(CHEVRON), px(CHEVRON)),
                                 );
                                 let chevron = if window.layout_mirrored() {
@@ -200,7 +205,7 @@ impl TrackElement {
                             if *clip != Clip::None {
                                 let x = geometry.clip_x();
                                 let at = Bounds::new(
-                                    point(left + px(x), top + px((ROW_HEIGHT - CLIP) / 2. - 1.)),
+                                    point(left + px(x), top + px((self.band - CLIP) / 2. - 1.)),
                                     size(px(CLIP), px(CLIP)),
                                 );
                                 let glyph = if *clip == Clip::Cut {
@@ -217,6 +222,7 @@ impl TrackElement {
                             caption,
                             bounds.right() - px(PAD_X) - caption.line().width,
                             top,
+                            self.band,
                             palette.accent,
                             window,
                         );

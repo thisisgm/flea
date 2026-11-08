@@ -1,13 +1,19 @@
 //! The Columns track's glyph runs and its Lucide marks, painted from prepared runs and static SVG paths.
-use crate::list::pane::ROW_HEIGHT;
 use gpui::{
     point, px, App, Bounds, GlyphRun, Hsla, Pixels, SharedString, TransformationMatrix, Window,
 };
 
-/// Paints a prepared line from the tiles its glyph run kept, its baseline centred on the row.
-pub(super) fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+/// Paints a prepared line from the tiles its glyph run kept, its baseline centred on a row `band` high.
+pub(super) fn paint_line(
+    run: &GlyphRun,
+    x: Pixels,
+    top: Pixels,
+    band: f32,
+    color: Hsla,
+    window: &mut Window,
+) {
     let line = run.line();
-    let baseline = top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent;
+    let baseline = top + (px(band) - line.ascent - line.descent) / 2. + line.ascent;
     let scale = window.scale_factor();
     let baseline = px((f32::from(baseline) * scale).floor() / scale);
     #[cfg(test)]

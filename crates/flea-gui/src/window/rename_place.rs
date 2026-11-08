@@ -1,7 +1,7 @@
 //! Where the rename field stands over the name each view drew: the list's label column, the active column's name cell or a tile's caption.
 use crate::{
     columns::geometry::{cells_in, Slot},
-    list::{pane::ROW_HEIGHT, ListState, Metrics},
+    list::{ListState, Metrics},
     state::Shell,
     window::{pane::PaneHost, startup::View},
 };
@@ -120,9 +120,9 @@ fn columns_place(
         return Spot::Out;
     };
     let metrics = Metrics::for_typeface(&list.typeface);
-    let field_height = metrics.slot.min(ROW_HEIGHT);
-    let top =
-        drawn.bounds.origin.y + px(drawn.grow.top(position, ROW_HEIGHT) - drawn.scroll.max(0.));
+    let field_height = metrics.slot.min(drawn.band);
+    let top = drawn.bounds.origin.y
+        + px(drawn.grow.top(position, drawn.row_height) - drawn.scroll.max(0.));
     // The track draws a folder cursor row with its chevron, which narrows the name cell.
     let name = cells_in(
         f32::from(drawn.bounds.size.width),
@@ -133,7 +133,7 @@ fn columns_place(
     let frame = Bounds::new(
         point(
             drawn.bounds.origin.x + px(name.name_x),
-            top + px((ROW_HEIGHT - field_height) / 2.),
+            top + px((drawn.band - field_height) / 2.),
         ),
         size(
             px((name.name_right - name.name_x).max(0.)),
@@ -150,7 +150,7 @@ fn columns_place(
         point(drawn.bounds.origin.x, top),
         size(
             drawn.bounds.size.width,
-            px(drawn.grow.height(position, ROW_HEIGHT)),
+            px(drawn.grow.height(position, drawn.row_height)),
         ),
     );
     Spot::of(place, reach)

@@ -129,9 +129,9 @@ impl Shell {
                                 window,
                             );
                             let (x, y, mark) = if paint.picture(index).is_some() {
-                                geometry::picture_box()
+                                geometry::picture_box(drawn.band)
                             } else {
-                                geometry::mark_box()
+                                geometry::mark_box(drawn.band)
                             };
                             probe.push(
                                 &format!("{id}-ink"),
@@ -149,7 +149,7 @@ impl Shell {
                                 name,
                                 drawn.bounds.origin.x + px(cells.name_x),
                                 top,
-                                crate::list::pane::ROW_HEIGHT,
+                                drawn.band,
                                 window,
                             );
                             probe.push(
@@ -165,7 +165,7 @@ impl Shell {
                                     run,
                                     drawn.bounds.origin.x + px(right) - run.line().width,
                                     top,
-                                    crate::list::pane::ROW_HEIGHT,
+                                    drawn.band,
                                     window,
                                 );
                                 probe.push(

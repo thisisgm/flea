@@ -51,7 +51,8 @@ impl Shell {
         let contents_scroll = active.scroll[Slot::Active.index()]
             .input
             .drawn(host.pane.scroll_y);
-        let row_height = host.columns_row_height();
+        let (row_height, band) = host.columns_rows();
+        let peek_row = host.list.borrow().columns_row();
         let grey = !rows.focused;
         let mut blocks = Self::contents_element(
             host,
@@ -63,6 +64,7 @@ impl Shell {
             cx,
         );
         let columns = host.columns.as_mut()?;
+        columns.area.set_row(peek_row);
         let tracks = Rc::clone(columns.area.tracks());
         columns.painters.retain(&tracks);
         for slot in 0..columns.heroes.len() {
@@ -148,10 +150,12 @@ impl Shell {
                 Rc::clone(&words),
             )
             .with_languages(languages);
-            element = element.with_tag_slot(view.slot == Slot::Active && tag_slot);
+            element = element
+                .with_tag_slot(view.slot == Slot::Active && tag_slot)
+                .with_rows(peek_row, peek_row);
             if view.slot == Slot::Active {
                 element = element
-                    .with_row_height(row_height)
+                    .with_rows(row_height, band)
                     .with_sizes(Rc::new(crate::columns::walks::Walked {
                         list: Rc::clone(&host.list),
                         listing: host.pane.held.listing,

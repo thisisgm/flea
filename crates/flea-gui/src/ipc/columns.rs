@@ -6,7 +6,6 @@ use crate::columns::{
     preview_host::PreviewProducer,
     Area, TrackRows, TrackView,
 };
-use crate::list::pane::ROW_HEIGHT;
 use flea::ipc::wire::Reply;
 
 /// What the shell knows about the drawn area beyond the model: where it sits, its height and the stored widths.
@@ -54,12 +53,13 @@ impl ColumnsAdapter<'_> {
             return String::new();
         };
         let scroll = self.area.scroll(slot);
-        let top = index as f32 * ROW_HEIGHT - scroll;
-        if index >= rows.len() || top + ROW_HEIGHT <= 0. || top >= self.height {
+        let row = self.area.row();
+        let top = index as f32 * row - scroll;
+        if index >= rows.len() || top + row <= 0. || top >= self.height {
             return String::new();
         }
         let x = self.origin.0 + view.x + view.width / 2.;
-        let y = self.origin.1 + top + ROW_HEIGHT / 2.;
+        let y = self.origin.1 + top + row / 2.;
         format!("{} {}", x.round(), y.round())
     }
 
