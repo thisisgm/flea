@@ -168,6 +168,7 @@ impl Shell {
         let query = host.filter.owner.query().to_owned();
         let listing = host.pane.held.listing;
         let before = host.filter.owner.drawn(listing).cloned();
+        let filtered = host.filter.shown.clone();
         let asked = change(
             &mut host.filter.owner,
             &mut Seam {
@@ -175,6 +176,12 @@ impl Shell {
                 selected: &mut host.selected,
             },
         );
+        // Seam::refill reveals the list's cursor; the Grid keeps its own scroll, so a clear hands it over here.
+        if let Some(filtered) =
+            filtered.filter(|_| before.is_some() && host.filter.owner.drawn(listing).is_none())
+        {
+            host.grid_filter_cleared(&filtered);
+        }
         // The seam marks and prunes host.selected directly, so the plate's snapshot follows it here.
         host.input.selection.sync(&host.selected);
         let owner = &host.filter.owner;
