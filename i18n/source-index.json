@@ -201091,7 +201091,7 @@
     },
     {
       "excerpt": "case ${TUI_CONF:-} in \"\") ;; *) safe_rm_tmpdir \"$TUI_CONF\" \"TUI config\" || cleanup_rc=1 ;; esac",
-      "line": 1763,
+      "line": 1773,
       "literal": "TUI config",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201100,7 +201100,7 @@
     },
     {
       "excerpt": "case ${FLEA_STATE:-} in \"${BENCH_TMP_ROOT:-/tmp}\"/flea-bench-state.*) safe_rm_tmpdir \"$FLEA_STATE\" \"Flea state\" || cleanup_rc=1 ;; \"\") ;; *) printf 'WARNING: not removing Flea state path %s, it is not the mktemp directory this run made\\n' \"$FLEA_STATE\" >&2; cleanup_rc=1 ;; esac",
-      "line": 1764,
+      "line": 1774,
       "literal": "Flea state",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201109,7 +201109,7 @@
     },
     {
       "excerpt": "case ${ANCHOR_STATE:-} in \"${BENCH_TMP_ROOT:-/tmp}\"/flea-bench-state.*) safe_rm_tmpdir \"$ANCHOR_STATE\" \"anchor state\" || cleanup_rc=1 ;; \"\") ;; *) printf 'WARNING: not removing anchor state path %s, it is not the mktemp directory this run made\\n' \"$ANCHOR_STATE\" >&2; cleanup_rc=1 ;; esac",
-      "line": 1765,
+      "line": 1775,
       "literal": "anchor state",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201118,7 +201118,7 @@
     },
     {
       "excerpt": "*) fail \"STRATA_BIN=$STRATA_BIN is not in a cargo target/release, so the tree it was built from is unknown: set STRATA_SRC\" ;;",
-      "line": 1974,
+      "line": 1984,
       "literal": "STRATA_BIN=$STRATA_BIN is not in a cargo target/release, so the tree it was built from is unknown: set STRATA_SRC",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201127,7 +201127,7 @@
     },
     {
       "excerpt": "[ -f \"$STRATA_SRC/Cargo.toml\" ] || fail \"STRATA_SRC=$STRATA_SRC has no Cargo.toml, so it is not the tree that built $STRATA_BIN\"",
-      "line": 1977,
+      "line": 1987,
       "literal": "STRATA_SRC=$STRATA_SRC has no Cargo.toml, so it is not the tree that built $STRATA_BIN",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201136,7 +201136,7 @@
     },
     {
       "excerpt": "[ -n \"$ver\" ] || fail \"$STRATA_SRC/Cargo.toml names no version, so STRATA_SRC cannot be checked against $STRATA_BIN\"",
-      "line": 1979,
+      "line": 1989,
       "literal": "$STRATA_SRC/Cargo.toml names no version, so STRATA_SRC cannot be checked against $STRATA_BIN",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201145,7 +201145,7 @@
     },
     {
       "excerpt": "|| fail \"$STRATA_BIN reports '${out:-nothing}', not version $ver of STRATA_SRC=$STRATA_SRC, so the manifest would name the wrong source\"",
-      "line": 1982,
+      "line": 1992,
       "literal": "$STRATA_BIN reports '${out:-nothing}', not version $ver of STRATA_SRC=$STRATA_SRC, so the manifest would name the wrong source",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201154,7 +201154,7 @@
     },
     {
       "excerpt": "|| fail \"archive provenance refused for $archive_id\"",
-      "line": 1999,
+      "line": 2009,
       "literal": "archive provenance refused for $archive_id",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201163,7 +201163,7 @@
     },
     {
       "excerpt": "|| fail \"the manifest did not write, so this run would produce numbers nobody can cite\"",
-      "line": 2034,
+      "line": 2044,
       "literal": "the manifest did not write, so this run would produce numbers nobody can cite",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201172,7 +201172,7 @@
     },
     {
       "excerpt": "mkdir -p \"$KEYS_DIR\" || fail \"could not make the key directory at $KEYS_DIR\"",
-      "line": 2039,
+      "line": 2049,
       "literal": "could not make the key directory at $KEYS_DIR",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201181,7 +201181,7 @@
     },
     {
       "excerpt": "|| { KEY_MAP_OK=no; [ -n \"$FIXTURE_KIND\" ]; } || fail \"the fixture key map did not build, so no thumbnail count in this run could be classified\"",
-      "line": 2043,
+      "line": 2053,
       "literal": "the fixture key map did not build, so no thumbnail count in this run could be classified",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201190,7 +201190,7 @@
     },
     {
       "excerpt": "echo \"key map: $KEY_MAP, $(wc -l < \"$KEY_MAP\") keys\"",
-      "line": 2044,
+      "line": 2054,
       "literal": "key map: $KEY_MAP, $(wc -l < ",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201199,7 +201199,7 @@
     },
     {
       "excerpt": "for row in \"${ENTRANTS[@]}\"; do IFS='|' read -r _ row_kind _ <<< \"$row\"; case $row_kind in gui|tui) ;; *) fail \"an entrant row has a kind other than gui or tui, so it would never launch\";; esac; done",
-      "line": 2080,
+      "line": 2090,
       "literal": "an entrant row has a kind other than gui or tui, so it would never launch",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201208,7 +201208,7 @@
     },
     {
       "excerpt": "[ -x \"${FLEA_BIN%/*}/flea-gui\" ] || fail \"flea-gui is missing\"",
-      "line": 2089,
+      "line": 2099,
       "literal": "flea-gui is missing",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201217,7 +201217,7 @@
     },
     {
       "excerpt": "[ -x \"${FLEA_BIN:-}\" ] || fail \"required entrant executable is absent: $id\"",
-      "line": 2091,
+      "line": 2101,
       "literal": "required entrant executable is absent: $id",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201226,7 +201226,7 @@
     },
     {
       "excerpt": "[ -x \"${ANCHOR_BIN:-}\" ] || fail \"required entrant executable is absent: $id\"",
-      "line": 2093,
+      "line": 2103,
       "literal": "required entrant executable is absent: $id",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201235,7 +201235,7 @@
     },
     {
       "excerpt": "[ -x \"$STRATA_BIN\" ] || { fail \"Strata stable is missing: $STRATA_BIN\"; }",
-      "line": 2099,
+      "line": 2109,
       "literal": "Strata stable is missing: $STRATA_BIN",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201244,7 +201244,7 @@
     },
     {
       "excerpt": "command -v \"$comm\" >/dev/null 2>&1 || { fail \"required entrant is absent: $id\"; }",
-      "line": 2101,
+      "line": 2111,
       "literal": "required entrant is absent: $id",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201253,7 +201253,7 @@
     },
     {
       "excerpt": "|| fail \"manifest did not close; results remain unaccepted\"",
-      "line": 2119,
+      "line": 2129,
       "literal": "manifest did not close; results remain unaccepted",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -201262,7 +201262,7 @@
     },
     {
       "excerpt": "echo \"done, results in $OUT\"",
-      "line": 2120,
+      "line": 2130,
       "literal": "done, results in $OUT",
       "owner": "controller",
       "path": "tools/flea-field-bench",
@@ -249803,7 +249803,7 @@
     "tools/flea-clippy": "47f960c3bb29bb67858e50d66add12e96640665c5c43fb43658606ae7d4e855a",
     "tools/flea-commit-msg": "730f04fe39bcfd815f1ee3ed92845976e2d44c8ed680e8f5f396a5ef7a273d73",
     "tools/flea-commit-rules": "e376873facbe1955b3ac31eec5a387af46da79f7b5a65bdd3019fbb579fda9e8",
-    "tools/flea-field-bench": "03d16bc5c0fbdc7376b4f9dbb00e71a5919b28c20b6b047ab42fc50b4d0bc76b",
+    "tools/flea-field-bench": "464f6ba9913aef532bca118d7e54b5dc1666b766425640681585ff918a50a2ac",
     "tools/flea-field-instant": "d0310f103a264618a7997cce7675755e35ff0c7bba6de05add1cf9a897713b52",
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
@@ -250344,8 +250344,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "b8664ab09ab8f7f490c01e6aee44dcc3ed740946",
-  "source_sha": "b8664ab09ab8f7f490c01e6aee44dcc3ed740946",
+  "source_ref_sha": "01cb7cedbeb850f31669cf1fc6178f304e5578b5",
+  "source_sha": "01cb7cedbeb850f31669cf1fc6178f304e5578b5",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1298,
