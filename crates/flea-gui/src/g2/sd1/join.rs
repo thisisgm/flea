@@ -31,7 +31,7 @@ pub(crate) struct Senders {
     pub(super) activation: Option<super::activation::Activation>,
     pub(crate) airdrop: super::airdrop::AirDrop,
     pub(crate) airdrop_pids: super::airdrop_pids::Pids,
-    // The host name the AirDrop page shows, read beside each doctor run.
+    // The host name the AirDrop page shows, read each time Settings shows the page.
     pub(crate) airdrop_host: String,
     chosen: Option<Subscription>,
 }

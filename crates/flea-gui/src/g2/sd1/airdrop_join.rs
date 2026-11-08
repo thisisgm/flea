@@ -10,7 +10,7 @@ use gpui::{Context, Window};
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
 
-// The name Apple devices see, owly's default: this computer's host name, read beside doctor off the window's thread.
+// The name Apple devices see, owly's default: this computer's host name.
 fn host_name() -> String {
     std::fs::read_to_string("/proc/sys/kernel/hostname")
         .map(|s| s.trim().to_string())
@@ -121,15 +121,13 @@ impl Shell {
             let output = cx
                 .background_executor()
                 .spawn(async move {
-                    let output = Command::new(&argv[0])
+                    Command::new(&argv[0])
                         .args(&argv[1..])
                         .stdin(Stdio::null())
                         .stderr(Stdio::null())
-                        .output();
-                    (output, host_name())
+                        .output()
                 })
                 .await;
-            let (output, host) = output;
             let (code, stdout) = match &output {
                 Ok(out) => (
                     out.status.code().unwrap_or(-1),
@@ -141,8 +139,6 @@ impl Shell {
                 }
             };
             let _ = this.update_in(cx, |shell, window, cx| {
-                let host_changed = shell.menu.providers.airdrop_host != host;
-                shell.menu.providers.airdrop_host = host;
                 let acts =
                     shell
                         .menu
@@ -150,9 +146,6 @@ impl Shell {
                         .airdrop
                         .doctor_done(generation, code, &stdout, now_ms());
                 shell.airdrop_acts(side, acts, window, cx);
-                if host_changed {
-                    shell.airdrop_page(cx);
-                }
             });
         })
         .detach();
@@ -336,6 +329,17 @@ impl Shell {
         let side = self.focus_side;
         self.airdrop_acts(side, acts, window, cx);
         self.airdrop_page(cx);
+        // The host name is read off the window's thread; the page redraws once it is known.
+        cx.spawn_in(window, async move |this, cx| {
+            let host = cx.background_executor().spawn(async { host_name() }).await;
+            let _ = this.update_in(cx, |shell, _, cx| {
+                if shell.menu.providers.airdrop_host != host {
+                    shell.menu.providers.airdrop_host = host;
+                    shell.airdrop_page(cx);
+                }
+            });
+        })
+        .detach();
     }
 
     pub(crate) fn airdrop_page(&mut self, cx: &mut Context<Self>) {
