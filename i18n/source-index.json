@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "44552cf16d4202475f9d86c6a8fd1903f614eec6d5595bebe984cef8905dc1fb",
-  "catalog_sha256": "18820aa0b1815b660cd4fa9b0feaa8f8232456c22b198cbbbcf8f260ed4ed21d",
+  "catalog_file_sha256": "bbd4424e8ae76d318ab9f772198648b9be60cc81d7135ae1c19cd51556f0c5e6",
+  "catalog_sha256": "6088e663a756a95c831cd23e457d94ad733bcce4a0fc898cb4ff8808041d1122",
   "counts": {
     "direct_references": 0,
-    "keys": 2239,
+    "keys": 2274,
     "plurals": 106
   },
   "direct_references": {},
@@ -1125,7 +1125,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&sentence_key(error.code)",
-      "line": 141,
+      "line": 146,
       "path": "crates/flea-gui/src/g2/st2/page.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1135,7 +1135,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if on {\n                \"plugins.switch.on\"\n            } else {\n                \"plugins.switch.off\"\n            }",
-      "line": 203,
+      "line": 207,
       "path": "crates/flea-gui/src/g2/st2/view.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1185,7 +1185,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "s.label",
-      "line": 283,
+      "line": 289,
       "path": "crates/flea-gui/src/ipc/settings.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3429,6 +3429,16 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
+      "line": 134,
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
       "line": 139,
       "path": "src/ui_logic_sd1/share.rs",
       "pattern": null,
@@ -3588,7 +3598,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "format!(\"plugins.error.{code}\")",
-      "line": 19,
+      "line": 20,
       "path": "src/ui_logic_st2.rs",
       "pattern": "plugins.error.{code}",
       "possible_keys": [
@@ -3608,7 +3618,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "format!(\"plugins.invalid.{code}\")",
-      "line": 21,
+      "line": 22,
       "path": "src/ui_logic_st2.rs",
       "pattern": "plugins.invalid.{code}",
       "possible_keys": [
@@ -3631,6 +3641,28 @@
     },
     {
       "coverage": "dynamic-needs-owner-verification",
+      "excerpt": ".map(|v| i18n.tr(&format!(\"plugins.airdrop.receiving.{v}\")))",
+      "line": 48,
+      "path": "src/ui_logic_st2/airdrop.rs",
+      "pattern": "plugins.airdrop.receiving.{v}",
+      "possible_keys": [
+        "plugins.airdrop.receiving.off",
+        "plugins.airdrop.receiving.everyone"
+      ],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "&format!(\"plugins.airdrop.receiving.{v}\")",
+      "line": 48,
+      "path": "src/ui_logic_st2/airdrop.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "coverage": "dynamic-needs-owner-verification",
       "excerpt": "Source::Builtin => i18n.tr(&format!(\"plugins.builtin.{}.name\", suffix(&plugin.manifest.id))),",
       "line": 73,
       "path": "src/ui_logic_st2/pages.rs",
@@ -3639,7 +3671,8 @@
         "plugins.builtin.shelf.name",
         "plugins.builtin.localsend.name",
         "plugins.builtin.tailscale.name",
-        "plugins.builtin.dropbox.name"
+        "plugins.builtin.dropbox.name",
+        "plugins.builtin.airdrop.name"
       ],
       "surface": "core/backend"
     },
@@ -3653,7 +3686,8 @@
         "plugins.builtin.shelf.description",
         "plugins.builtin.localsend.description",
         "plugins.builtin.tailscale.description",
-        "plugins.builtin.dropbox.description"
+        "plugins.builtin.dropbox.description",
+        "plugins.builtin.airdrop.description"
       ],
       "surface": "core/backend"
     },
@@ -3681,7 +3715,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 139,
+      "line": 142,
       "path": "src/ui_logic_st2/pages.rs",
       "pattern": null,
       "possible_keys": [],
@@ -58737,7 +58771,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"feedback.error.backend\", &[&said])",
-          "line": 249,
+          "line": 250,
           "path": "crates/flea-gui/src/g2/plugins/menu.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -58814,7 +58848,7 @@
       "call_sites": [
         {
           "excerpt": "shell.locale.catalog.tr(\"feedback.error.generic\")",
-          "line": 244,
+          "line": 245,
           "path": "crates/flea-gui/src/g2/plugins/menu.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -60943,6 +60977,20 @@
           "excerpt": "let items = i18n.trn(\"items.count\", w.items as i64);",
           "line": 58,
           "path": "src/ui_logic_pv1/property.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "_ => i18n.trn(\"items.count\", paths.len() as i64),",
+          "line": 250,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "files => i18n.trn(\"items.count\", files.len() as i64),",
+          "line": 94,
+          "path": "src/ui_logic_sd1/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
@@ -72737,6 +72785,64 @@
       "resolved_source_hash": "2ab12ae59091",
       "source_hash": "2ab12ae59091"
     },
+    "menu.airdrop.looking": {
+      "call_sites": [
+        {
+          "excerpt": "let mut looking = Entry::leaf(\"\", Text::Key(\"menu.airdrop.looking\"));",
+          "line": 15,
+          "path": "src/ui_logic_mn1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "assert_eq!(looking[0].label, Some(Text::Key(\"menu.airdrop.looking\")));",
+          "line": 55,
+          "path": "src/ui_logic_mn1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "menu.airdrop.looking: src/ui_logic_mn1/airdrop.rs:15",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Looking for devices…",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Looking for devices…",
+      "resolved_sha256": "746a979b064a1703f8b5f5ce6d8282710959ba70ee0931d0c1967387076ba269",
+      "resolved_source_hash": "2d756dbc6118",
+      "source_hash": "2d756dbc6118"
+    },
+    "menu.airdrop.turn_on": {
+      "call_sites": [
+        {
+          "excerpt": "return vec![Entry::leaf(TURN_ON, Text::Key(\"menu.airdrop.turn_on\"))];",
+          "line": 12,
+          "path": "src/ui_logic_mn1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "assert_eq!(off[0].label, Some(Text::Key(\"menu.airdrop.turn_on\")));",
+          "line": 51,
+          "path": "src/ui_logic_mn1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "menu.airdrop.turn_on: src/ui_logic_mn1/airdrop.rs:12",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Turn On AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Turn On AirDrop",
+      "resolved_sha256": "acb49397b682f4bb25b21e8747fcc5fec5a53f5c6b8c40a88d884e593887a692",
+      "resolved_source_hash": "167d30eb6d3c",
+      "source_hash": "167d30eb6d3c"
+    },
     "menu.class.network": {
       "call_sites": [
         {
@@ -73795,7 +73901,7 @@
         },
         {
           "excerpt": "pub const EMPTY_CLIPBOARD: &str = \"menu.refusal.empty_clipboard\";",
-          "line": 131,
+          "line": 142,
           "path": "src/ui_logic_mn1/refresh.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -73909,7 +74015,7 @@
         },
         {
           "excerpt": "Self::Moved => \"menu.refusal.moved\",",
-          "line": 125,
+          "line": 136,
           "path": "src/ui_logic_mn1/refresh.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74059,7 +74165,7 @@
         },
         {
           "excerpt": "self.locale.catalog.tr(\"menu.refusal.unavailable\"),",
-          "line": 250,
+          "line": 261,
           "path": "crates/flea-gui/src/g2/plugins/menu_send.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -74108,7 +74214,7 @@
         },
         {
           "excerpt": "Self::Unavailable => \"menu.refusal.unavailable\",",
-          "line": 126,
+          "line": 137,
           "path": "src/ui_logic_mn1/refresh.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74130,7 +74236,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.add_favourite\",",
-          "line": 221,
+          "line": 222,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74170,6 +74276,35 @@
       "resolved_source_hash": "e7d38be512bc",
       "source_hash": "e7d38be512bc"
     },
+    "menu.row.airdrop": {
+      "call_sites": [
+        {
+          "excerpt": "let mut row = Entry::row(\"airdrop\", Text::Key(\"menu.row.airdrop\"), \"\");",
+          "line": 80,
+          "path": "src/ui_logic_mn1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "spec(\"airdrop\", \"menu.row.airdrop\", \"airdrop\", \"F\", \"share\"),",
+          "line": 162,
+          "path": "src/ui_logic_mn1/inventory.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "menu.row.airdrop: src/ui_logic_mn1/airdrop.rs:80",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Send with AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Send with AirDrop",
+      "resolved_sha256": "8bacdb253bc559f8269d0d431a66bc640207ef5b358cdb9a863b7e3502a8e808",
+      "resolved_source_hash": "ce8e890ef6bf",
+      "source_hash": "ce8e890ef6bf"
+    },
     "menu.row.combine_images": {
       "call_sites": [
         {
@@ -74203,7 +74338,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"compare\", \"menu.row.compare\", \"columns\", \"F\", \"inspect\"),",
-          "line": 218,
+          "line": 219,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74305,7 +74440,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.copy_as\",",
-          "line": 205,
+          "line": 206,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74327,7 +74462,7 @@
       "call_sites": [
         {
           "excerpt": "e.label = Some(Text::Key(\"menu.row.copy_path\"));",
-          "line": 283,
+          "line": 287,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74356,7 +74491,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.copy_to\",",
-          "line": 189,
+          "line": 190,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74407,7 +74542,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.delete\",",
-          "line": 247,
+          "line": 248,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74429,7 +74564,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"dropbox\", \"menu.row.dropbox\", \"dropbox\", \"F\", \"share\"),",
-          "line": 170,
+          "line": 171,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74517,7 +74652,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"emptyTrash\", \"menu.row.empty_trash\", \"trash\", \"T\", \"empty\"),",
-          "line": 269,
+          "line": 270,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74695,7 +74830,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"localsend\", \"menu.row.localsend\", \"localsend\", \"F\", \"share\"),",
-          "line": 162,
+          "line": 163,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74768,7 +74903,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.move_to\",",
-          "line": 181,
+          "line": 182,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74907,7 +75042,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.open_terminal\",",
-          "line": 174,
+          "line": 175,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75009,7 +75144,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.permissions\",",
-          "line": 198,
+          "line": 199,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75060,7 +75195,7 @@
         },
         {
           "excerpt": "count_label(e, count, \"menu.row.print_many\");",
-          "line": 295,
+          "line": 299,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75093,7 +75228,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"properties\", \"menu.row.properties\", \"info\", \"F\", \"inspect\"),",
-          "line": 195,
+          "line": 196,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75115,7 +75250,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.remove_favourite\",",
-          "line": 229,
+          "line": 230,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75181,7 +75316,7 @@
       "call_sites": [
         {
           "excerpt": "count_label(e, count, \"menu.row.rename_many\");",
-          "line": 306,
+          "line": 310,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75214,7 +75349,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"restoreAll\", \"menu.row.restore_all\", \"undo\", \"T\", \"restore\"),",
-          "line": 268,
+          "line": 269,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75258,7 +75393,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.run_script\",",
-          "line": 213,
+          "line": 214,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75309,7 +75444,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"settings\", \"menu.row.settings\", \"sliders\", \"B\", \"settings\"),",
-          "line": 260,
+          "line": 261,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75331,7 +75466,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"sharelink\", \"menu.row.share_link\", \"network\", \"F\", \"share\"),",
-          "line": 171,
+          "line": 172,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75353,7 +75488,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.show_code_icons\",",
-          "line": 238,
+          "line": 239,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75382,7 +75517,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"toggleHidden\", \"menu.row.show_hidden\", \"eye\", \"FB\", \"view\"),",
-          "line": 235,
+          "line": 236,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75433,7 +75568,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.show_thumbnails\",",
-          "line": 255,
+          "line": 256,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75464,7 +75599,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"sort\", \"menu.row.sort\", \"sort\", \"B\", \"view\"),",
-          "line": 234,
+          "line": 235,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75486,7 +75621,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"tags\", \"menu.row.tags\", \"tag\", \"F\", \"inspect\"),",
-          "line": 226,
+          "line": 227,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75530,7 +75665,7 @@
       "call_sites": [
         {
           "excerpt": "spec(\"trash\", \"menu.row.trash\", \"trash\", \"F\", \"trash\"),",
-          "line": 244,
+          "line": 245,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75610,7 +75745,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.update_flea\",",
-          "line": 263,
+          "line": 264,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -84237,7 +84372,7 @@
       "call_sites": [
         {
           "excerpt": "shell.settings_error(\"places.shelf.pin_failed\", cx);",
-          "line": 150,
+          "line": 161,
           "path": "crates/flea-gui/src/window/settings/plugins.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -85709,11 +85844,77 @@
       "resolved_source_hash": "19dd83f11752",
       "source_hash": "19dd83f11752"
     },
+    "plugins.access.airdrop_receive": {
+      "call_sites": [
+        {
+          "excerpt": "\"airdrop:receive\" => \"plugins.access.airdrop_receive\",",
+          "line": 128,
+          "path": "src/ui_logic_st2/pages.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.access.airdrop_receive: src/ui_logic_st2/pages.rs:128",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Saves the files you accept to the folder above",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Saves the files you accept to the folder above",
+      "resolved_sha256": "79ffdabadff4b5a3977495ca4e4930c30339cc6ab7931978d06c564bb0af345c",
+      "resolved_source_hash": "1bfa13e1fbf7",
+      "source_hash": "1bfa13e1fbf7"
+    },
+    "plugins.access.airdrop_send": {
+      "call_sites": [
+        {
+          "excerpt": "\"airdrop:send\" => \"plugins.access.airdrop_send\",",
+          "line": 126,
+          "path": "src/ui_logic_st2/pages.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.access.airdrop_send: src/ui_logic_st2/pages.rs:126",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Reads the files you send",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Reads the files you send",
+      "resolved_sha256": "b9165ac331e4ea5b30cd9fa88137dc49eaf712a33b76500765288ae7da393328",
+      "resolved_source_hash": "1562fb7fae3a",
+      "source_hash": "1562fb7fae3a"
+    },
+    "plugins.access.airdrop_wifi": {
+      "call_sites": [
+        {
+          "excerpt": "\"airdrop:wifi\" => \"plugins.access.airdrop_wifi\",",
+          "line": 127,
+          "path": "src/ui_logic_st2/pages.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.access.airdrop_wifi: src/ui_logic_st2/pages.rs:127",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Uses Wi-Fi to reach Apple devices nearby",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Uses Wi-Fi to reach Apple devices nearby",
+      "resolved_sha256": "db1ce2065d5a7d4806d42c5f723c625dfe1eb5737aaa22f26dc598bc92eb9f6b",
+      "resolved_source_hash": "301afa3d39e5",
+      "source_hash": "301afa3d39e5"
+    },
     "plugins.access.exec": {
       "call_sites": [
         {
           "excerpt": "lines.push(i18n.tr_args(\"plugins.access.exec\", &[&joined(&programs, i18n)]));",
-          "line": 128,
+          "line": 131,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -85759,7 +85960,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Group { id: \"plugins.access\".into(), label: i18n.tr(\"plugins.access.heading\"), switch: None, action: None });",
-          "line": 194,
+          "line": 204,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -85825,7 +86026,7 @@
       "call_sites": [
         {
           "excerpt": "lines.push(i18n.tr_args(\"plugins.access.other\", &[other]));",
-          "line": 135,
+          "line": 138,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -86094,11 +86295,424 @@
       "resolved_source_hash": "a71620147e75",
       "source_hash": "a71620147e75"
     },
+    "plugins.airdrop.adapter": {
+      "call_sites": [
+        {
+          "excerpt": "text: i18n.tr(\"plugins.airdrop.adapter\"),",
+          "line": 84,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.adapter: src/ui_logic_st2/airdrop.rs:84",
+      "coverage": "existing-translated-call",
+      "english": "Wi-Fi adapter",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Wi-Fi adapter",
+      "resolved_sha256": "c9745adcd4670eff72bcf13ab35b11b79279d447ab8196dddd71b50b1554ea1f",
+      "resolved_source_hash": "cc2a984419f3",
+      "source_hash": "cc2a984419f3"
+    },
+    "plugins.airdrop.adapter.broken": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::Broken => \"plugins.airdrop.adapter.broken\",",
+          "line": 129,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.broken: src/ui_logic_sd1/airdrop.rs:129",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1, cannot do AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1, cannot do AirDrop",
+      "resolved_sha256": "6b5c58d9ea4d2986a595ecc0f6c307175ee95a0821e383806fb92e23b8986b38",
+      "resolved_source_hash": "a4aef6cf0650",
+      "source_hash": "a4aef6cf0650"
+    },
+    "plugins.airdrop.adapter.checking": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::Checking => return i18n.tr(\"plugins.airdrop.adapter.checking\"),",
+          "line": 125,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.checking: src/ui_logic_sd1/airdrop.rs:125",
+      "coverage": "existing-translated-call",
+      "english": "Checking…",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Checking…",
+      "resolved_sha256": "fa798a178c7c3128d114236af87348ea2e5541bc667fc4df5141bbf3423fd257",
+      "resolved_source_hash": "ec963ffc911b",
+      "source_hash": "ec963ffc911b"
+    },
+    "plugins.airdrop.adapter.missing": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::Missing => return i18n.tr(\"plugins.airdrop.adapter.missing\"),",
+          "line": 126,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "&[&i18n.tr(\"plugins.airdrop.adapter.missing\")],",
+          "line": 314,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.missing: src/ui_logic_sd1/airdrop.rs:126",
+      "coverage": "existing-translated-call",
+      "english": "Needs the owly package",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Needs the owly package",
+      "resolved_sha256": "0d28415cda9655650797adfae6b714e35dc7dad1aec4a46953e071af5c2ec55a",
+      "resolved_source_hash": "4cb472e24d10",
+      "source_hash": "4cb472e24d10"
+    },
+    "plugins.airdrop.adapter.no_card": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::NoCard => return i18n.tr(\"plugins.airdrop.adapter.no_card\"),",
+          "line": 127,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.no_card: src/ui_logic_sd1/airdrop.rs:127",
+      "coverage": "existing-translated-call",
+      "english": "No Wi-Fi adapter owly can use",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "No Wi-Fi adapter owly can use",
+      "resolved_sha256": "69822332c75f11961bc76484d560c5b3b9607c897d23e760e699f58ed2d44162",
+      "resolved_source_hash": "c03884833946",
+      "source_hash": "c03884833946"
+    },
+    "plugins.airdrop.adapter.no_service": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::NoService => \"plugins.airdrop.adapter.no_service\",",
+          "line": 131,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.no_service: src/ui_logic_sd1/airdrop.rs:131",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1, needs owlyd",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1, needs owlyd",
+      "resolved_sha256": "3597bd1ba64c451b51f2d2d9e4836354b4553918b9bb33c770a171a21ef5d30b",
+      "resolved_source_hash": "7982f01af0f5",
+      "source_hash": "7982f01af0f5"
+    },
+    "plugins.airdrop.adapter.not_ready": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::NotReady => \"plugins.airdrop.adapter.not_ready\",",
+          "line": 132,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.not_ready: src/ui_logic_sd1/airdrop.rs:132",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1, not ready",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1, not ready",
+      "resolved_sha256": "0902baa87ae0c794771725b9e84c92f39bfa5428c22958c838c2bbde42b5ac5e",
+      "resolved_source_hash": "103aa0fdc24c",
+      "source_hash": "103aa0fdc24c"
+    },
+    "plugins.airdrop.adapter.untested": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::Untested => \"plugins.airdrop.adapter.untested\",",
+          "line": 130,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.untested: src/ui_logic_sd1/airdrop.rs:130",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1, not tested",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1, not tested",
+      "resolved_sha256": "10802dbc9400fe0d050103e66120528cf59f8852929e75d7e0805446b978a420",
+      "resolved_source_hash": "9cabf5a2c396",
+      "source_hash": "9cabf5a2c396"
+    },
+    "plugins.airdrop.adapter.works": {
+      "call_sites": [
+        {
+          "excerpt": "Readiness::Ready => \"plugins.airdrop.adapter.works\",",
+          "line": 128,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "plugins.airdrop.adapter.works: src/ui_logic_sd1/airdrop.rs:128",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1, works with AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1, works with AirDrop",
+      "resolved_sha256": "bb948798e66b81823f8040396bdf0aa75309bb8bd77206e19d598deb40639be6",
+      "resolved_source_hash": "0652ed2a1419",
+      "source_hash": "0652ed2a1419"
+    },
+    "plugins.airdrop.computer": {
+      "call_sites": [
+        {
+          "excerpt": "label: i18n.tr(\"plugins.airdrop.computer\"),",
+          "line": 75,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.computer: src/ui_logic_st2/airdrop.rs:75",
+      "coverage": "existing-translated-call",
+      "english": "This Computer",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This Computer",
+      "resolved_sha256": "bc83074577891332db890ab4a45e61e06477cdc0a19f42312407697315967519",
+      "resolved_source_hash": "cfd0ba3a1a14",
+      "source_hash": "cfd0ba3a1a14"
+    },
+    "plugins.airdrop.credit": {
+      "call_sites": [
+        {
+          "excerpt": "text: i18n.tr_args(\"plugins.airdrop.credit\", &[\"owly\", \"Tristan (@t4t5)\"]),",
+          "line": 100,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.credit: src/ui_logic_st2/airdrop.rs:100",
+      "coverage": "existing-translated-call",
+      "english": "Built on %1 by %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Built on %1 by %2",
+      "resolved_sha256": "3e7ba19dbc27f69494a689363f173d4d062986ae96db232bc01cc2a25dc79a94",
+      "resolved_source_hash": "bf973d0ce803",
+      "source_hash": "bf973d0ce803"
+    },
+    "plugins.airdrop.credits": {
+      "call_sites": [
+        {
+          "excerpt": "label: i18n.tr(\"plugins.airdrop.credits\"),",
+          "line": 95,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.credits: src/ui_logic_st2/airdrop.rs:95",
+      "coverage": "existing-translated-call",
+      "english": "Credits",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Credits",
+      "resolved_sha256": "954263a905fa5ef6b0b776a40968acf6d8cbc28e0f8ab84bb133d6db3d86e7da",
+      "resolved_source_hash": "2a6b24ad2872",
+      "source_hash": "2a6b24ad2872"
+    },
+    "plugins.airdrop.folder": {
+      "call_sites": [
+        {
+          "excerpt": "self.locale.catalog.tr(\"plugins.airdrop.folder\"),",
+          "line": 357,
+          "path": "crates/flea-gui/src/g2/sd1/airdrop_join.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "label: i18n.tr(\"plugins.airdrop.folder\"),",
+          "line": 68,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.folder: crates/flea-gui/src/g2/sd1/airdrop_join.rs:357",
+      "coverage": "existing-translated-call",
+      "english": "Save received files to",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Save received files to",
+      "resolved_sha256": "8779cd5415cdd3b88cd203ae02e6a94c98caf1166fd9d65e2b2bedaf7d8bd6d8",
+      "resolved_source_hash": "cc58cbf97217",
+      "source_hash": "cc58cbf97217"
+    },
+    "plugins.airdrop.receiving": {
+      "call_sites": [
+        {
+          "excerpt": "label: i18n.tr(\"plugins.airdrop.receiving\"),",
+          "line": 59,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.receiving: src/ui_logic_st2/airdrop.rs:59",
+      "coverage": "existing-translated-call",
+      "english": "Receiving",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Receiving",
+      "resolved_sha256": "e9b6793572fe054d05f2440cec8e7cbd7ccf894e12a29b0e381438a70dcaa797",
+      "resolved_source_hash": "fa8162869da5",
+      "source_hash": "fa8162869da5"
+    },
+    "plugins.airdrop.receiving.everyone": {
+      "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": ".map(|v| i18n.tr(&format!(\"plugins.airdrop.receiving.{v}\")))",
+          "line": 48,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "pattern": "plugins.airdrop.receiving.{v}",
+          "possible_keys": [
+            "plugins.airdrop.receiving.off",
+            "plugins.airdrop.receiving.everyone"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "plugins.airdrop.receiving.everyone: src/ui_logic_st2/airdrop.rs:48",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Everyone for 10 Minutes",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Everyone for 10 Minutes",
+      "resolved_sha256": "6431b3a6f2248ac52c0581caefea59d57aa07f3770eadefb9908902117482bf4",
+      "resolved_source_hash": "7b9c45802d29",
+      "source_hash": "7b9c45802d29"
+    },
+    "plugins.airdrop.receiving.off": {
+      "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": ".map(|v| i18n.tr(&format!(\"plugins.airdrop.receiving.{v}\")))",
+          "line": 48,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "pattern": "plugins.airdrop.receiving.{v}",
+          "possible_keys": [
+            "plugins.airdrop.receiving.off",
+            "plugins.airdrop.receiving.everyone"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "plugins.airdrop.receiving.off: src/ui_logic_st2/airdrop.rs:48",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Off",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Off",
+      "resolved_sha256": "50accd740fa2e73672bf5a001c51fa3ae563dd2f6bea130a310ebef0abb93de3",
+      "resolved_source_hash": "ca7981b46ecf",
+      "source_hash": "ca7981b46ecf"
+    },
+    "plugins.airdrop.shown_as": {
+      "call_sites": [
+        {
+          "excerpt": "text: i18n.tr(\"plugins.airdrop.shown_as\"),",
+          "line": 80,
+          "path": "src/ui_logic_st2/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "plugins.airdrop.shown_as: src/ui_logic_st2/airdrop.rs:80",
+      "coverage": "existing-translated-call",
+      "english": "Shown as",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Shown as",
+      "resolved_sha256": "c9875da407d39efcd8ac621499ea910597dfbcbd996406097f6ee9b2d74f3bda",
+      "resolved_source_hash": "763623d7c2ed",
+      "source_hash": "763623d7c2ed"
+    },
     "plugins.back.label": {
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Action { id: BACK_ID.into(), label: i18n.tr(\"plugins.back.label\"), glyph: String::new(), value: i18n.tr(\"plugins.back.value\"), chevron: true });",
-          "line": 214,
+          "line": 227,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -86120,7 +86734,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Action { id: BACK_ID.into(), label: i18n.tr(\"plugins.back.label\"), glyph: String::new(), value: i18n.tr(\"plugins.back.value\"), chevron: true });",
-          "line": 214,
+          "line": 227,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -86138,6 +86752,68 @@
       "resolved_source_hash": "76900f1bfd16",
       "source_hash": "76900f1bfd16"
     },
+    "plugins.builtin.airdrop.description": {
+      "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "Source::Builtin => i18n.tr(&format!(\"plugins.builtin.{}.description\", suffix(&plugin.manifest.id))),",
+          "line": 80,
+          "path": "src/ui_logic_st2/pages.rs",
+          "pattern": "plugins.builtin.{}.description",
+          "possible_keys": [
+            "plugins.builtin.shelf.description",
+            "plugins.builtin.localsend.description",
+            "plugins.builtin.tailscale.description",
+            "plugins.builtin.dropbox.description",
+            "plugins.builtin.airdrop.description"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "plugins.builtin.airdrop.description: src/ui_logic_st2/pages.rs:80",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Share files with iPhones, iPads and Macs nearby.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Share files with iPhones, iPads and Macs nearby.",
+      "resolved_sha256": "c2e32c0995ded7b151fb9ea149e4a6f0e51566225f298a48c1c74425140c8d59",
+      "resolved_source_hash": "e5d4ace6d046",
+      "source_hash": "e5d4ace6d046"
+    },
+    "plugins.builtin.airdrop.name": {
+      "call_sites": [
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "Source::Builtin => i18n.tr(&format!(\"plugins.builtin.{}.name\", suffix(&plugin.manifest.id))),",
+          "line": 73,
+          "path": "src/ui_logic_st2/pages.rs",
+          "pattern": "plugins.builtin.{}.name",
+          "possible_keys": [
+            "plugins.builtin.shelf.name",
+            "plugins.builtin.localsend.name",
+            "plugins.builtin.tailscale.name",
+            "plugins.builtin.dropbox.name",
+            "plugins.builtin.airdrop.name"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "plugins.builtin.airdrop.name: src/ui_logic_st2/pages.rs:73",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "AirDrop",
+      "resolved_sha256": "a6b7796d5c5171982c0d2f5ecd13eb7d80e2b811d08943749f7d76c4c73f98ce",
+      "resolved_source_hash": "9ccc01839580",
+      "source_hash": "9ccc01839580"
+    },
     "plugins.builtin.dropbox.description": {
       "call_sites": [
         {
@@ -86150,7 +86826,8 @@
             "plugins.builtin.shelf.description",
             "plugins.builtin.localsend.description",
             "plugins.builtin.tailscale.description",
-            "plugins.builtin.dropbox.description"
+            "plugins.builtin.dropbox.description",
+            "plugins.builtin.airdrop.description"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86187,7 +86864,8 @@
             "plugins.builtin.shelf.name",
             "plugins.builtin.localsend.name",
             "plugins.builtin.tailscale.name",
-            "plugins.builtin.dropbox.name"
+            "plugins.builtin.dropbox.name",
+            "plugins.builtin.airdrop.name"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86217,7 +86895,8 @@
             "plugins.builtin.shelf.description",
             "plugins.builtin.localsend.description",
             "plugins.builtin.tailscale.description",
-            "plugins.builtin.dropbox.description"
+            "plugins.builtin.dropbox.description",
+            "plugins.builtin.airdrop.description"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86247,7 +86926,8 @@
             "plugins.builtin.shelf.name",
             "plugins.builtin.localsend.name",
             "plugins.builtin.tailscale.name",
-            "plugins.builtin.dropbox.name"
+            "plugins.builtin.dropbox.name",
+            "plugins.builtin.airdrop.name"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86277,7 +86957,8 @@
             "plugins.builtin.shelf.description",
             "plugins.builtin.localsend.description",
             "plugins.builtin.tailscale.description",
-            "plugins.builtin.dropbox.description"
+            "plugins.builtin.dropbox.description",
+            "plugins.builtin.airdrop.description"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86314,7 +86995,8 @@
             "plugins.builtin.shelf.name",
             "plugins.builtin.localsend.name",
             "plugins.builtin.tailscale.name",
-            "plugins.builtin.dropbox.name"
+            "plugins.builtin.dropbox.name",
+            "plugins.builtin.airdrop.name"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86344,7 +87026,8 @@
             "plugins.builtin.shelf.description",
             "plugins.builtin.localsend.description",
             "plugins.builtin.tailscale.description",
-            "plugins.builtin.dropbox.description"
+            "plugins.builtin.dropbox.description",
+            "plugins.builtin.airdrop.description"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86374,7 +87057,8 @@
             "plugins.builtin.shelf.name",
             "plugins.builtin.localsend.name",
             "plugins.builtin.tailscale.name",
-            "plugins.builtin.dropbox.name"
+            "plugins.builtin.dropbox.name",
+            "plugins.builtin.airdrop.name"
           ],
           "surface": "core/backend",
           "usage": "dynamic-candidate"
@@ -86419,7 +87103,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86457,7 +87141,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86495,7 +87179,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86533,7 +87217,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86571,7 +87255,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86609,7 +87293,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86647,7 +87331,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86685,7 +87369,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86721,7 +87405,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86759,7 +87443,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.error.{code}\")",
-          "line": 19,
+          "line": 20,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.error.{code}",
           "possible_keys": [
@@ -86826,7 +87510,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -86868,7 +87552,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -86910,7 +87594,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -86952,7 +87636,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -86994,7 +87678,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87036,7 +87720,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87078,7 +87762,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87120,7 +87804,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87162,7 +87846,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87204,7 +87888,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87246,7 +87930,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87288,7 +87972,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87330,7 +88014,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87372,7 +88056,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "format!(\"plugins.invalid.{code}\")",
-          "line": 21,
+          "line": 22,
           "path": "src/ui_logic_st2.rs",
           "pattern": "plugins.invalid.{code}",
           "possible_keys": [
@@ -87504,7 +88188,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Action { id: REMOVE_ID.into(), label: i18n.tr(\"plugins.remove.label\"), glyph: String::new(), value: String::new(), chevron: false });",
-          "line": 211,
+          "line": 224,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -87890,7 +88574,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Fact { text: i18n.tr(\"plugins.source.from\"), value: shown_origin(origin) });",
-          "line": 205,
+          "line": 218,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -87912,7 +88596,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Group { id: \"plugins.source\".into(), label: i18n.tr(\"plugins.source.heading\"), switch: None, action: None });",
-          "line": 203,
+          "line": 216,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -87956,7 +88640,7 @@
       "call_sites": [
         {
           "excerpt": "\"plugins.switch.off\"",
-          "line": 206,
+          "line": 210,
           "path": "crates/flea-gui/src/g2/st2/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -87978,7 +88662,7 @@
       "call_sites": [
         {
           "excerpt": "\"plugins.switch.on\"",
-          "line": 204,
+          "line": 208,
           "path": "crates/flea-gui/src/g2/st2/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -88000,7 +88684,7 @@
       "call_sites": [
         {
           "excerpt": "None => self.i18n.tr(\"plugins.title\"),",
-          "line": 112,
+          "line": 117,
           "path": "crates/flea-gui/src/g2/st2/page.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -88029,7 +88713,7 @@
       "call_sites": [
         {
           "excerpt": "Update::Idle => (i18n.tr(\"plugins.update.check\"), true),",
-          "line": 174,
+          "line": 177,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -88051,7 +88735,7 @@
       "call_sites": [
         {
           "excerpt": "Update::Checking => (i18n.tr(\"plugins.update.checking\"), false),",
-          "line": 175,
+          "line": 178,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -88073,7 +88757,7 @@
       "call_sites": [
         {
           "excerpt": "Update::Current(version) => (i18n.tr_args(\"plugins.update.current\", &[version]), true),",
-          "line": 176,
+          "line": 179,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -88097,7 +88781,7 @@
       "call_sites": [
         {
           "excerpt": "Update::Failed => (i18n.tr(\"plugins.update.failed\"), true),",
-          "line": 177,
+          "line": 180,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -88119,7 +88803,7 @@
       "call_sites": [
         {
           "excerpt": "rows.push(Row::Action { id: UPDATE_ID.into(), label: i18n.tr(\"plugins.update.label\"), glyph: \"download\".into(), value, chevron });",
-          "line": 209,
+          "line": 222,
           "path": "src/ui_logic_st2/pages.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -88141,7 +88825,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"plugins.value.unit\", &[&count, unit])",
-          "line": 423,
+          "line": 427,
           "path": "crates/flea-gui/src/g2/st2/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -92672,6 +93356,250 @@
       "resolved_source_hash": "68f607d6d336",
       "source_hash": "68f607d6d336"
     },
+    "send.providers.airdrop_accept": {
+      "call_sites": [
+        {
+          "excerpt": "&i18n.tr(\"send.providers.airdrop_accept\"),",
+          "line": 144,
+          "path": "src/ui_logic_sd1/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_accept: src/ui_logic_sd1/airdrop_ask.rs:144",
+      "coverage": "existing-translated-call",
+      "english": "Accept",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Accept",
+      "resolved_sha256": "64506f940582f4b3dc4aa84800b39e2fc6c7c4cdc2c30aa7fcb6909e91f50073",
+      "resolved_source_hash": "89713b9c9c1b",
+      "source_hash": "89713b9c9c1b"
+    },
+    "send.providers.airdrop_asks": {
+      "call_sites": [
+        {
+          "excerpt": "i18n.tr_args(\"send.providers.airdrop_asks\", &[&who, &what])",
+          "line": 96,
+          "path": "src/ui_logic_sd1/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_asks: src/ui_logic_sd1/airdrop_ask.rs:96",
+      "coverage": "existing-translated-call",
+      "english": "%1 wants to send %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1 wants to send %2",
+      "resolved_sha256": "84c35b1aa29852d78606ff4c3b4ea8c342f69972bb8b217cb8b478cd584438a5",
+      "resolved_source_hash": "a8a9ef126c02",
+      "source_hash": "a8a9ef126c02"
+    },
+    "send.providers.airdrop_decline": {
+      "call_sites": [
+        {
+          "excerpt": "&i18n.tr(\"send.providers.airdrop_decline\"),",
+          "line": 145,
+          "path": "src/ui_logic_sd1/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_decline: src/ui_logic_sd1/airdrop_ask.rs:145",
+      "coverage": "existing-translated-call",
+      "english": "Decline",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Decline",
+      "resolved_sha256": "b88e576d659a82d203343c93c4f32064d4e13ad2b32901bded2e6b2244a22576",
+      "resolved_source_hash": "a2d285b35287",
+      "source_hash": "a2d285b35287"
+    },
+    "send.providers.airdrop_declined": {
+      "call_sites": [
+        {
+          "excerpt": "Verdict::Declined => i18n.tr_args(\"send.providers.airdrop_declined\", &[peer]),",
+          "line": 259,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_declined: src/ui_logic_sd1/airdrop.rs:259",
+      "coverage": "existing-translated-call",
+      "english": "%1 declined the files.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1 declined the files.",
+      "resolved_sha256": "b5372b3836da042fa9fdb456c3d5796cd88b44deb4422f4dcb3a2726f688a43c",
+      "resolved_source_hash": "b1ebc71052ce",
+      "source_hash": "b1ebc71052ce"
+    },
+    "send.providers.airdrop_delivered": {
+      "call_sites": [
+        {
+          "excerpt": "Verdict::Delivered => i18n.tr(\"send.providers.airdrop_delivered\"),",
+          "line": 258,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_delivered: src/ui_logic_sd1/airdrop.rs:258",
+      "coverage": "existing-translated-call",
+      "english": "AirDrop finished the transfer.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "AirDrop finished the transfer.",
+      "resolved_sha256": "c422e5d411eefa5a260233262d9e540578bf38dc3435f7ec0e4a96e254510d1a",
+      "resolved_source_hash": "f84964a46340",
+      "source_hash": "f84964a46340"
+    },
+    "send.providers.airdrop_radio_failed": {
+      "call_sites": [
+        {
+          "excerpt": "why if why.is_empty() => i18n.tr(\"send.providers.airdrop_radio_failed\"),",
+          "line": 270,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_radio_failed: src/ui_logic_sd1/airdrop.rs:270",
+      "coverage": "existing-translated-call",
+      "english": "AirDrop could not turn on.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "AirDrop could not turn on.",
+      "resolved_sha256": "3c87215f015da3ae0bac7c515f557f9e88c49a5ff3fc01f9318954c0c517b375",
+      "resolved_source_hash": "c71bff12ccf8",
+      "source_hash": "c71bff12ccf8"
+    },
+    "send.providers.airdrop_reason": {
+      "call_sites": [
+        {
+          "excerpt": "Verdict::Failed(reason) => i18n.tr_args(\"send.providers.airdrop_reason\", &[reason]),",
+          "line": 263,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "why => i18n.tr_args(\"send.providers.airdrop_reason\", &[&why]),",
+          "line": 271,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"send.providers.airdrop_reason\",",
+          "line": 313,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_reason: src/ui_logic_sd1/airdrop.rs:263",
+      "coverage": "existing-translated-call",
+      "english": "AirDrop · %1",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "AirDrop · %1",
+      "resolved_sha256": "93e5aca71691fa0ce7a27f0ae5700fffb3f389c0c39ed876ebf98bc5119a5ed4",
+      "resolved_source_hash": "e2c8b8d1f97b",
+      "source_hash": "e2c8b8d1f97b"
+    },
+    "send.providers.airdrop_sending": {
+      "call_sites": [
+        {
+          "excerpt": "i18n.tr_args(\"send.providers.airdrop_sending\", &[&what, peer])",
+          "line": 252,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_sending: src/ui_logic_sd1/airdrop.rs:252",
+      "coverage": "existing-translated-call",
+      "english": "Sending %1 to %2 with AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Sending %1 to %2 with AirDrop",
+      "resolved_sha256": "09b9c5c2ca2c660160eb40fcfffc58a37c9f0a192b7a987bdefcf637a6951232",
+      "resolved_source_hash": "400709d4fe1d",
+      "source_hash": "400709d4fe1d"
+    },
+    "send.providers.airdrop_someone": {
+      "call_sites": [
+        {
+          "excerpt": "\"\" => i18n.tr(\"send.providers.airdrop_someone\"),",
+          "line": 89,
+          "path": "src/ui_logic_sd1/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_someone: src/ui_logic_sd1/airdrop_ask.rs:89",
+      "coverage": "existing-translated-call",
+      "english": "A nearby device",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "A nearby device",
+      "resolved_sha256": "6123dc6d01a486e228a5745b930af0ffcf0dfd2c4d277da03b171a9c95d43c17",
+      "resolved_source_hash": "5580d73c9351",
+      "source_hash": "5580d73c9351"
+    },
+    "send.providers.airdrop_unfinished": {
+      "call_sites": [
+        {
+          "excerpt": "i18n.tr(\"send.providers.airdrop_unfinished\")",
+          "line": 261,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "send.providers.airdrop_unfinished: src/ui_logic_sd1/airdrop.rs:261",
+      "coverage": "existing-translated-call",
+      "english": "AirDrop could not finish the transfer.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "AirDrop could not finish the transfer.",
+      "resolved_sha256": "323dccdbd6ac7366f35abc08634054ce1665541ae7e47c5438a63f1fc9ca2901",
+      "resolved_source_hash": "fd27c6a70879",
+      "source_hash": "fd27c6a70879"
+    },
     "send.providers.dropbox_checking": {
       "call_sites": [
         {
@@ -92763,8 +93691,22 @@
     "send.providers.menu_stale": {
       "call_sites": [
         {
+          "excerpt": "Act::Say(i18n.tr(\"send.providers.menu_stale\"), true),",
+          "line": 156,
+          "path": "crates/flea-gui/src/g2/sd1/airdrop.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "let stale = vec![Act::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
+          "line": 259,
+          "path": "crates/flea-gui/src/g2/sd1/airdrop.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "vec![Action::Say(catalog.tr(\"send.providers.menu_stale\"), true)]",
-          "line": 355,
+          "line": 367,
           "path": "crates/flea-gui/src/g2/sd1/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -92802,6 +93744,13 @@
           "line": 298,
           "path": "crates/flea-gui/src/g2/sd1/picker.rs",
           "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "\"stale\" => i18n.tr(\"send.providers.menu_stale\"),",
+          "line": 311,
+          "path": "src/ui_logic_sd1/airdrop.rs",
+          "surface": "core/backend",
           "usage": "translated-call"
         }
       ],
@@ -93775,7 +94724,7 @@
       "call_sites": [
         {
           "excerpt": "\"send.rclone.row\",",
-          "line": 165,
+          "line": 166,
           "path": "src/ui_logic_mn1/inventory.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -108787,7 +109736,7 @@
     },
     {
       "excerpt": ".flat_map(|plugin| [\"Back to Plugins\", plugin.manifest.description.as_str()])",
-      "line": 92,
+      "line": 93,
       "literal": "Back to Plugins",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/settings.rs",
@@ -109678,7 +110627,7 @@
     },
     {
       "excerpt": ".map(|(id, d)| (*id, format!(\"flea-menu:{id}\"), format!(r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"{d}\"/></svg>\"#)))",
-      "line": 81,
+      "line": 84,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"{d}\"/></svg>",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/mn1/glyphs.rs",
@@ -109686,8 +110635,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": "const AIRDROP: &str = r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 18 18\" fill=\"none\"><circle cx=\"9\" cy=\"9\" r=\"1.8\" fill=\"currentColor\"/><g stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><path d=\"M 5.74 11.73 A 4.25 4.25 0 1 1 12.26 11.73\"/><path d=\"M 4.74 14.87 A 7.25 7.25 0 1 1 13.26 14.87\"/></g></svg>\"#;",
+      "line": 122,
+      "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 18 18\" fill=\"none\"><circle cx=\"9\" cy=\"9\" r=\"1.8\" fill=\"currentColor\"/><g stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><path d=\"M 5.74 11.73 A 4.25 4.25 0 1 1 12.26 11.73\"/><path d=\"M 4.74 14.87 A 7.25 7.25 0 1 1 13.26 14.87\"/></g></svg>",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/mn1/glyphs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "const TAILSCALE: &str = r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 169 169\" fill=\"currentColor\"><circle cx=\"30.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"84.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"138.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"30.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"84.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"138.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"30.5\" cy=\"138.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"84.5\" cy=\"138.5\" r=\"18\"/><circle cx=\"138.5\" cy=\"138.5\" r=\"18\" opacity=\"0.4\"/></svg>\"#;",
-      "line": 117,
+      "line": 123,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 169 169\" fill=\"currentColor\"><circle cx=\"30.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"84.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"138.5\" cy=\"30.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"30.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"84.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"138.5\" cy=\"84.5\" r=\"18\"/><circle cx=\"30.5\" cy=\"138.5\" r=\"18\" opacity=\"0.4\"/><circle cx=\"84.5\" cy=\"138.5\" r=\"18\"/><circle cx=\"138.5\" cy=\"138.5\" r=\"18\" opacity=\"0.4\"/></svg>",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/mn1/glyphs.rs",
@@ -109696,7 +110654,7 @@
     },
     {
       "excerpt": "const DROPBOX: &str = r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 118 100\" fill=\"currentColor\"><path d=\"M29.5 0L59 18.8L29.5 37.6L0 18.8ZM88.5 0L118 18.8L88.5 37.6L59 18.8ZM29.5 37.6L59 56.4L29.5 75.2L0 56.4ZM88.5 37.6L118 56.4L88.5 75.2L59 56.4ZM59 62.4L88.5 81.2L59 100L29.5 81.2Z\"/></svg>\"#;",
-      "line": 118,
+      "line": 124,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 118 100\" fill=\"currentColor\"><path d=\"M29.5 0L59 18.8L29.5 37.6L0 18.8ZM88.5 0L118 18.8L88.5 37.6L59 18.8ZM29.5 37.6L59 56.4L29.5 75.2L0 56.4ZM88.5 37.6L118 56.4L88.5 75.2L59 56.4ZM59 62.4L88.5 81.2L59 100L29.5 81.2Z\"/></svg>",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/mn1/glyphs.rs",
@@ -109705,7 +110663,7 @@
     },
     {
       "excerpt": "const LOCALSEND: &str = r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"27.6\" fill=\"currentColor\"/><path d=\"M95.7 40.91A46.6 46.6 0 0 1 95.7 59.09M88.75 75.89A46.6 46.6 0 0 1 75.89 88.75M59.09 95.7A46.6 46.6 0 0 1 40.91 95.7M24.11 88.75A46.6 46.6 0 0 1 11.25 75.89M4.3 59.09A46.6 46.6 0 0 1 4.3 40.91M11.25 24.11A46.6 46.6 0 0 1 24.11 11.25M40.91 4.3A46.6 46.6 0 0 1 59.09 4.3M75.89 11.25A46.6 46.6 0 0 1 88.75 24.11\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6.9\" stroke-linecap=\"round\"/></svg>\"#;",
-      "line": 119,
+      "line": 125,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"27.6\" fill=\"currentColor\"/><path d=\"M95.7 40.91A46.6 46.6 0 0 1 95.7 59.09M88.75 75.89A46.6 46.6 0 0 1 75.89 88.75M59.09 95.7A46.6 46.6 0 0 1 40.91 95.7M24.11 88.75A46.6 46.6 0 0 1 11.25 75.89M4.3 59.09A46.6 46.6 0 0 1 4.3 40.91M11.25 24.11A46.6 46.6 0 0 1 24.11 11.25M40.91 4.3A46.6 46.6 0 0 1 59.09 4.3M75.89 11.25A46.6 46.6 0 0 1 88.75 24.11\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6.9\" stroke-linecap=\"round\"/></svg>",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/mn1/glyphs.rs",
@@ -112873,7 +113831,7 @@
     },
     {
       "excerpt": "let block = p.manifest.block(\"send-target\").expect(\"declared target\");",
-      "line": 93,
+      "line": 104,
       "literal": "declared target",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/menu_send.rs",
@@ -112882,7 +113840,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"network\"),",
-      "line": 110,
+      "line": 121,
       "literal": "network",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/plugins/menu_send.rs",
@@ -114236,6 +115194,24 @@
       "literal": "backend gone",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/pv4/view.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea: AirDrop could not run {program} doctor: {error}\");",
+      "line": 137,
+      "literal": "flea: AirDrop could not run {program} doctor: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/sd1/airdrop_join.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea: the folder chooser {binary:?} did not start: {error}\")",
+      "line": 369,
+      "literal": "flea: the folder chooser {binary:?} did not start: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/sd1/airdrop_join.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -121494,6 +122470,24 @@
       "surface": "gui"
     },
     {
+      "excerpt": "r#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 18 18\" fill=\"none\">\"#,",
+      "line": 54,
+      "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 18 18\" fill=\"none\">",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/st2/glyphs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "r#\"<circle cx=\"9\" cy=\"9\" r=\"1.8\" fill=\"currentColor\"/><g stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\">\"#,",
+      "line": 55,
+      "literal": "<circle cx=\"9\" cy=\"9\" r=\"1.8\" fill=\"currentColor\"/><g stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\">",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/st2/glyphs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "Self::new(font(\"JetBrainsMono Nerd Font\"))",
       "line": 257,
       "literal": "JetBrainsMono Nerd Font",
@@ -122539,7 +123533,7 @@
     },
     {
       "excerpt": "\"default\",",
-      "line": 374,
+      "line": 380,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/settings.rs",
@@ -126769,7 +127763,7 @@
     },
     {
       "excerpt": "let view = self.settings.panel.clone().expect(\"settings built\");",
-      "line": 290,
+      "line": 301,
       "literal": "settings built",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/mod.rs",
@@ -132353,6 +133347,78 @@
       "literal": "Preview actions run only for the cursor row.",
       "owner": "controller",
       "path": "src/backend/actions.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return (\"missing\".into(), String::new());",
+      "line": 93,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return (\"cancelled\".into(), String::new());",
+      "line": 123,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"declined\" => \"The device declined the files.\".into(),",
+      "line": 158,
+      "literal": "The device declined the files.",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"cancelled\" => \"Send cancelled.\".into(),",
+      "line": 159,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"cancelled\" => \"Send cancelled.\".into(),",
+      "line": 159,
+      "literal": "Send cancelled.",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"missing\" => \"AirDrop needs the owly package.\".into(),",
+      "line": 160,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"missing\" => \"AirDrop needs the owly package.\".into(),",
+      "line": 160,
+      "literal": "AirDrop needs the owly package.",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => \"AirDrop could not finish the transfer.\".into(),",
+      "line": 161,
+      "literal": "AirDrop could not finish the transfer.",
+      "owner": "controller",
+      "path": "src/backend/airdropsend.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -139693,7 +140759,7 @@
     },
     {
       "excerpt": "return Err(\"A failed item changed; it was not retried.\".into());",
-      "line": 110,
+      "line": 114,
       "literal": "A failed item changed; it was not retried.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -139702,7 +140768,7 @@
     },
     {
       "excerpt": "return Err(\"No unchanged failed items can be retried.\".into());",
-      "line": 115,
+      "line": 119,
       "literal": "No unchanged failed items can be retried.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -139711,7 +140777,7 @@
     },
     {
       "excerpt": "return Err(\"The archive must be retried as one operation.\".into());",
-      "line": 148,
+      "line": 152,
       "literal": "The archive must be retried as one operation.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -139720,7 +140786,7 @@
     },
     {
       "excerpt": "\"operation cancelled\"",
-      "line": 180,
+      "line": 184,
       "literal": "operation cancelled",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -139729,7 +140795,16 @@
     },
     {
       "excerpt": "\"cancelled\"",
-      "line": 182,
+      "line": 186,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/jobwork.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Self::Send { request, airdrop: true, .. } => airdropsend::sent_line(*request, \"cancelled\", \"\"),",
+      "line": 189,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -139738,7 +140813,7 @@
     },
     {
       "excerpt": "r#\"{{\"t\":\"localsendsent\",\"id\":{},\"ok\":false,\"reason\":\"Send cancelled.\"}}\"#,",
-      "line": 186,
+      "line": 191,
       "literal": "{{\"t\":\"localsendsent\",\"id\":{},\"ok\":false,\"reason\":\"Send cancelled.\"}}",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -156207,8 +157282,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
+      "line": 453,
+      "literal": "Sending",
+      "owner": "controller",
+      "path": "src/backend/run.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 825,
+      "line": 835,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156217,7 +157301,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 831,
+      "line": 841,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156226,7 +157310,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1095,
+      "line": 1105,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156235,7 +157319,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1096,
+      "line": 1106,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156244,7 +157328,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1098,
+      "line": 1108,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156253,7 +157337,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1099,
+      "line": 1109,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156262,7 +157346,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1100,
+      "line": 1110,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156271,7 +157355,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1107,
+      "line": 1117,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156280,7 +157364,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1108,
+      "line": 1118,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156289,7 +157373,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1110,
+      "line": 1120,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156298,7 +157382,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1112,
+      "line": 1122,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156307,7 +157391,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1113,
+      "line": 1123,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156316,7 +157400,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1114,
+      "line": 1124,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156325,7 +157409,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1115,
+      "line": 1125,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156334,7 +157418,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1115,
+      "line": 1125,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156343,7 +157427,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1116,
+      "line": 1126,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156352,7 +157436,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1154,
+      "line": 1164,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156361,7 +157445,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1155,
+      "line": 1165,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156370,7 +157454,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1158,
+      "line": 1168,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156379,7 +157463,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1159,
+      "line": 1169,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156388,7 +157472,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1163,
+      "line": 1173,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156397,7 +157481,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1166,
+      "line": 1176,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156406,7 +157490,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1167,
+      "line": 1177,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156415,7 +157499,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1171,
+      "line": 1181,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156424,7 +157508,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1172,
+      "line": 1182,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156433,7 +157517,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1173,
+      "line": 1183,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156442,7 +157526,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1174,
+      "line": 1184,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156451,7 +157535,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1175,
+      "line": 1185,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156460,7 +157544,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1176,
+      "line": 1186,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156469,7 +157553,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1177,
+      "line": 1187,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156478,7 +157562,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1192,
+      "line": 1202,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156487,7 +157571,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1193,
+      "line": 1203,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156496,7 +157580,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1194,
+      "line": 1204,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156505,7 +157589,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1202,
+      "line": 1212,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156514,7 +157598,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1203,
+      "line": 1213,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156523,7 +157607,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1204,
+      "line": 1214,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -156532,7 +157616,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1205,
+      "line": 1215,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -177294,8 +178378,53 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "pub const TURN_ON: &str = \"on\";",
+      "line": 6,
+      "literal": "on",
+      "owner": "controller",
+      "path": "src/ui_logic_mn1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(peer(\"MacBook Air\"), false),",
+      "line": 65,
+      "literal": "MacBook Air",
+      "owner": "controller",
+      "path": "src/ui_logic_mn1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(peer(\"on\"), false),",
+      "line": 66,
+      "literal": "on",
+      "owner": "controller",
+      "path": "src/ui_logic_mn1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "&[(peer(\"iPhone\"), true), (peer(\"MacBook Air\"), false)],",
+      "line": 90,
+      "literal": "MacBook Air",
+      "owner": "controller",
+      "path": "src/ui_logic_mn1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "&[row(true, &[(peer(\"MacBook Air\"), false)])],",
+      "line": 100,
+      "literal": "MacBook Air",
+      "owner": "controller",
+      "path": "src/ui_logic_mn1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "\"network\",",
-      "line": 170,
+      "line": 171,
       "literal": "network",
       "owner": "controller",
       "path": "src/ui_logic_mn1/entry.rs",
@@ -177304,7 +178433,7 @@
     },
     {
       "excerpt": "\"symlink\",",
-      "line": 181,
+      "line": 182,
       "literal": "symlink",
       "owner": "controller",
       "path": "src/ui_logic_mn1/entry.rs",
@@ -177331,7 +178460,7 @@
     },
     {
       "excerpt": "spec(\"sharelink\", \"menu.row.share_link\", \"network\", \"F\", \"share\"),",
-      "line": 171,
+      "line": 172,
       "literal": "network",
       "owner": "controller",
       "path": "src/ui_logic_mn1/inventory.rs",
@@ -177340,7 +178469,7 @@
     },
     {
       "excerpt": "spec(\"emptyTrash\", \"menu.row.empty_trash\", \"trash\", \"T\", \"empty\"),",
-      "line": 269,
+      "line": 270,
       "literal": "empty",
       "owner": "controller",
       "path": "src/ui_logic_mn1/inventory.rs",
@@ -181641,6 +182770,294 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "pub const RADIO_EXPIRED: &str = \"owly: the radio went down: expired\";",
+      "line": 14,
+      "literal": "owly: the radio went down: expired",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:2725\", \"Intel AX210\"),",
+      "line": 51,
+      "literal": "Intel AX210",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:2723\", \"Intel AX200\"),",
+      "line": 52,
+      "literal": "Intel AX200",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:02f0\", \"Intel AX201\"),",
+      "line": 53,
+      "literal": "Intel AX201",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:51f0\", \"Intel AX211\"),",
+      "line": 54,
+      "literal": "Intel AX211",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:51f1\", \"Intel AX211\"),",
+      "line": 55,
+      "literal": "Intel AX211",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:7a70\", \"Intel AX211\"),",
+      "line": 56,
+      "literal": "Intel AX211",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:7740\", \"Intel AX211\"),",
+      "line": 57,
+      "literal": "Intel AX211",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:272b\", \"Intel BE200\"),",
+      "line": 60,
+      "literal": "Intel BE200",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"8086:e440\", \"Intel BE\"),",
+      "line": 61,
+      "literal": "Intel BE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"14c3:0717\", \"MediaTek MT7925\"),",
+      "line": 65,
+      "literal": "MediaTek MT7925",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"14c3:7961\", \"MediaTek MT7921\"),",
+      "line": 66,
+      "literal": "MediaTek MT7921",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"14c3:0616\", \"MediaTek MT7922\"),",
+      "line": 67,
+      "literal": "MediaTek MT7922",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"14c3:7927\", \"MediaTek MT7927\"),",
+      "line": 68,
+      "literal": "MediaTek MT7927",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"0e8d:7612\", \"MediaTek MT7612U\"),",
+      "line": 69,
+      "literal": "MediaTek MT7612U",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:b822\", \"Realtek RTL8822BE\"),",
+      "line": 70,
+      "literal": "Realtek RTL8822BE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:b851\", \"Realtek RTL8851BE\"),",
+      "line": 71,
+      "literal": "Realtek RTL8851BE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:8852\", \"Realtek RTL8852AE\"),",
+      "line": 72,
+      "literal": "Realtek RTL8852AE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:b852\", \"Realtek RTL8852BE\"),",
+      "line": 73,
+      "literal": "Realtek RTL8852BE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:c852\", \"Realtek RTL8852CE\"),",
+      "line": 74,
+      "literal": "Realtek RTL8852CE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:8922\", \"Realtek RTL8922AE\"),",
+      "line": 75,
+      "literal": "Realtek RTL8922AE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"35bc:0108\", \"Realtek RTL8852BU\"),",
+      "line": 76,
+      "literal": "Realtek RTL8852BU",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"10ec:c821\", \"Realtek RTL8821CE\"),",
+      "line": 77,
+      "literal": "Realtek RTL8821CE",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"2357:0120\", \"Realtek RTL8821AU\"),",
+      "line": 78,
+      "literal": "Realtek RTL8821AU",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"168c:002e\", \"Atheros AR9287\"),",
+      "line": 79,
+      "literal": "Atheros AR9287",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"17cb:1103\", \"Qualcomm WCN6855\"),",
+      "line": 80,
+      "literal": "Qualcomm WCN6855",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".get(\"missing\")",
+      "line": 102,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "line.split_once(\" is up: \")",
+      "line": 233,
+      "literal": " is up: ",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"cancelled\" => return None,",
+      "line": 310,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"missing\" => i18n.tr_args(",
+      "line": 312,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let head = line.trim_end().strip_suffix(\" wants to send:\")?;",
+      "line": 22,
+      "literal": " wants to send:",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop_ask.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"AirDrop\".into(),",
+      "line": 111,
+      "literal": "AirDrop",
+      "owner": "controller",
+      "path": "src/ui_logic_sd1/airdrop_ask.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "return Account { path: String::new(), reason: \"Dropbox is signed out\".into(), code: \"signedOut\".into() };",
       "line": 25,
       "literal": "Dropbox is signed out",
@@ -182146,7 +183563,7 @@
     },
     {
       "excerpt": "let data = jsondoc::parse(raw).map_err(|problem| format!(\"providers facts do not parse: {problem}\"))?;",
-      "line": 82,
+      "line": 89,
       "literal": "providers facts do not parse: {problem}",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182155,7 +183572,7 @@
     },
     {
       "excerpt": "\"mn1 lost the {menu} row this unit gates\"",
-      "line": 153,
+      "line": 163,
       "literal": "mn1 lost the {menu} row this unit gates",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182164,7 +183581,7 @@
     },
     {
       "excerpt": "\"st2 has no builtin manifest {plugin}\"",
-      "line": 157,
+      "line": 167,
       "literal": "st2 has no builtin manifest {plugin}",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182173,7 +183590,7 @@
     },
     {
       "excerpt": "\"mn1 lost the sharelink row\"",
-      "line": 162,
+      "line": 172,
       "literal": "mn1 lost the sharelink row",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182182,7 +183599,7 @@
     },
     {
       "excerpt": ".expect(\"facts parse\");",
-      "line": 175,
+      "line": 186,
       "literal": "facts parse",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182191,7 +183608,7 @@
     },
     {
       "excerpt": "assert!(parse_facts(\"not json\").is_err());",
-      "line": 182,
+      "line": 194,
       "literal": "not json",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -182200,7 +183617,7 @@
     },
     {
       "excerpt": "assert!(parse_facts(\"{}\").expect(\"empty facts\").tailscale_command.is_empty());",
-      "line": 183,
+      "line": 195,
       "literal": "empty facts",
       "owner": "controller",
       "path": "src/ui_logic_sd1/providers.rs",
@@ -184855,7 +186272,7 @@
     },
     {
       "excerpt": "\"not_found\", \"no_manifest\", \"exists\", \"git\", \"write\", \"unknown\", \"builtin\", \"setting\", \"busy\", \"request\",",
-      "line": 13,
+      "line": 14,
       "literal": "unknown",
       "owner": "controller",
       "path": "src/ui_logic_st2.rs",
@@ -184863,8 +186280,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "pub const RECEIVING: [&str; 2] = [\"off\", \"everyone\"];",
+      "line": 9,
+      "literal": "off",
+      "owner": "controller",
+      "path": "src/ui_logic_st2/airdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "(r#\"{\"schemaVersion\":1,\"id\":\"flea.shelf\",\"name\":\"Shelf\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Collect files from anywhere into one pile on the bar.\",\"kinds\":[\"shelf\"],\n\"shelf\":{\"omarchyPlugin\":\"io.github.thisisgm.flea-shelf\",\"glyph\":\"shelf\"},\n\"access\":[\"shelf:pile\",\"shelf:bar\",\"shelf:captures\"]}\"#, false),",
-      "line": 8,
+      "line": 9,
       "literal": "{\"schemaVersion\":1,\"id\":\"flea.shelf\",\"name\":\"Shelf\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Collect files from anywhere into one pile on the bar.\",\"kinds\":[\"shelf\"],\n\"shelf\":{\"omarchyPlugin\":\"io.github.thisisgm.flea-shelf\",\"glyph\":\"shelf\"},\n\"access\":[\"shelf:pile\",\"shelf:bar\",\"shelf:captures\"]}",
       "owner": "controller",
       "path": "src/ui_logic_st2/builtin.rs",
@@ -184873,7 +186299,7 @@
     },
     {
       "excerpt": "(r#\"{\"schemaVersion\":1,\"id\":\"flea.localsend\",\"name\":\"LocalSend\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Send files to nearby devices with LocalSend.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"LocalSend\",\"glyph\":\"localsend\"},\"access\":[\"selection\",\"network\",\"exec:localsend\"]}\"#, true),",
-      "line": 12,
+      "line": 13,
       "literal": "{\"schemaVersion\":1,\"id\":\"flea.localsend\",\"name\":\"LocalSend\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Send files to nearby devices with LocalSend.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"LocalSend\",\"glyph\":\"localsend\"},\"access\":[\"selection\",\"network\",\"exec:localsend\"]}",
       "owner": "controller",
       "path": "src/ui_logic_st2/builtin.rs",
@@ -184882,7 +186308,7 @@
     },
     {
       "excerpt": "(r#\"{\"schemaVersion\":1,\"id\":\"flea.tailscale\",\"name\":\"Tailscale\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Send files to your devices with Taildrop.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"Taildrop\",\"glyph\":\"tailscale\"},\"access\":[\"selection\",\"network\",\"exec:tailscale\"]}\"#, true),",
-      "line": 15,
+      "line": 16,
       "literal": "{\"schemaVersion\":1,\"id\":\"flea.tailscale\",\"name\":\"Tailscale\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Send files to your devices with Taildrop.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"Taildrop\",\"glyph\":\"tailscale\"},\"access\":[\"selection\",\"network\",\"exec:tailscale\"]}",
       "owner": "controller",
       "path": "src/ui_logic_st2/builtin.rs",
@@ -184891,7 +186317,7 @@
     },
     {
       "excerpt": "(r#\"{\"schemaVersion\":1,\"id\":\"flea.dropbox\",\"name\":\"Dropbox\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Move files into your Dropbox folder.\",\"kinds\":[\"send-target\",\"place\"],\n\"sendTargets\":{\"label\":\"Dropbox\",\"glyph\":\"dropbox\"},\"place\":{\"label\":\"Dropbox\",\"glyph\":\"dropbox\"},\n\"access\":[\"write:selection\",\"folder\"]}\"#, true),",
-      "line": 18,
+      "line": 19,
       "literal": "{\"schemaVersion\":1,\"id\":\"flea.dropbox\",\"name\":\"Dropbox\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Move files into your Dropbox folder.\",\"kinds\":[\"send-target\",\"place\"],\n\"sendTargets\":{\"label\":\"Dropbox\",\"glyph\":\"dropbox\"},\"place\":{\"label\":\"Dropbox\",\"glyph\":\"dropbox\"},\n\"access\":[\"write:selection\",\"folder\"]}",
       "owner": "controller",
       "path": "src/ui_logic_st2/builtin.rs",
@@ -184899,8 +186325,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "(r#\"{\"schemaVersion\":1,\"id\":\"flea.airdrop\",\"name\":\"AirDrop\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Share files with iPhones, iPads and Macs nearby.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"AirDrop\",\"glyph\":\"airdrop\"},\"access\":[\"airdrop:send\",\"airdrop:wifi\",\"airdrop:receive\"],\n\"schema\":[{\"key\":\"folder\",\"type\":\"string\",\"label\":\"Save received files to\",\"defaultValue\":\"\"}]}\"#, false),",
+      "line": 24,
+      "literal": "{\"schemaVersion\":1,\"id\":\"flea.airdrop\",\"name\":\"AirDrop\",\"version\":\"0.4.0\",\"author\":\"Flea\",\"license\":\"MIT\",\n\"description\":\"Share files with iPhones, iPads and Macs nearby.\",\"kinds\":[\"send-target\"],\n\"sendTargets\":{\"label\":\"AirDrop\",\"glyph\":\"airdrop\"},\"access\":[\"airdrop:send\",\"airdrop:wifi\",\"airdrop:receive\"],\n\"schema\":[{\"key\":\"folder\",\"type\":\"string\",\"label\":\"Save received files to\",\"defaultValue\":\"\"}]}",
+      "owner": "controller",
+      "path": "src/ui_logic_st2/builtin.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let mut found = manifest::parse(text, true).expect(\"a built-in manifest is valid\");",
-      "line": 28,
+      "line": 34,
       "literal": "a built-in manifest is valid",
       "owner": "controller",
       "path": "src/ui_logic_st2/builtin.rs",
@@ -247740,7 +249175,7 @@
     "crates/flea-gui/src/compositor_surface_tests/network.rs": "1c65e060ceecd3fba2f1808d5fbcd2322a61a8bf675f3f8aeec986c52d0833bd",
     "crates/flea-gui/src/compositor_surface_tests/operations.rs": "24e4c1baba71cea1c8a762d56e5389fe720b36d389d1d7ccd3ab92b186b52f07",
     "crates/flea-gui/src/compositor_surface_tests/pictures.rs": "67977e246389ff324bbe8b6e54416fd917dab205e9d01acf0aa42916726f7bbc",
-    "crates/flea-gui/src/compositor_surface_tests/settings.rs": "c417ac86251c7b41e019124a51e5ef71923f440044cdb1ee57a976c188219cc7",
+    "crates/flea-gui/src/compositor_surface_tests/settings.rs": "9ccc1a50fa55ebf257ecfcf3cd9e5bef358cd0713c667f31cd166baa9d2fa2bf",
     "crates/flea-gui/src/driver_notice.rs": "8714b4a2d74f5f3d4004355ba36baf34ace1dd31d704cab66ec43505e97b8557",
     "crates/flea-gui/src/dual/activation.rs": "705f426b4fa88e845bcba7918c1332cbc232ee474d2ce57f2d587b4fa39458ee",
     "crates/flea-gui/src/dual/element.rs": "d98523e6ed9a19b562fd8c282f0302e6ea2e30085fcde07b0b32cac1409946cc",
@@ -247760,7 +249195,7 @@
     "crates/flea-gui/src/font_gate/readers.rs": "2e0903b3f6c8f5684f48ff77361d7b29f3ada0967aa41ae5ff3fe46cf054667a",
     "crates/flea-gui/src/font_gate/receipt.rs": "c1bd793f85c42b7957da5a94dee5b6875b2144c4bdd313424a05d9f9f7d0bb74",
     "crates/flea-gui/src/font_gate/service.rs": "51bd2d02afbb0242d0db7603430d51e2f85ab490fef6daa9abe6416ddc195029",
-    "crates/flea-gui/src/font_gate/settings.rs": "abd4110e18304f787426ac70670ca3e96d605f5b2c9cb227deb475af7c161259",
+    "crates/flea-gui/src/font_gate/settings.rs": "6c1ca878f72bd3f69ef1ad267bfcb0115344e1dabf4d09b6ae2569181e8c8c27",
     "crates/flea-gui/src/font_gate/surfaces.rs": "477eba47617859126d5425352255fa5ed7036faabcd10a1af7f47e59acf4a620",
     "crates/flea-gui/src/g2/dg1/carry.rs": "f26220925814e77e61d2ceb05b7675828bfa93df51437f061558f9404ae417c7",
     "crates/flea-gui/src/g2/dg1/carry_landing.rs": "9dabb526e4fcaea4406afe4104a34e82263466c4fa7feaf1b687ecf7d93d0fa0",
@@ -247822,11 +249257,11 @@
     "crates/flea-gui/src/g2/mn1/facts.rs": "6044e6411cfc4fefc743f458ddeaeea6850b182a08eeef37dd38231726ae29ae",
     "crates/flea-gui/src/g2/mn1/fix2_prior_proofs.rs": "81d7c499281a1a818bb6b8c08a31a932562f3e75898b61db1e0299e9ec13d937",
     "crates/flea-gui/src/g2/mn1/fix2_width_proof.rs": "d541621b1c99e6a66ab3b090cbcd0657e864e2adfe462a5827094f9fc3938b4f",
-    "crates/flea-gui/src/g2/mn1/glyphs.rs": "6c843bbaf8440f4ab2bd2c8fb69e603e0c6f11e8fd2c3c46bbe5a7f3fbc4574f",
+    "crates/flea-gui/src/g2/mn1/glyphs.rs": "3e8c06c20ec75b9c7ead15c96e56e6179e2e7fadd81a722655f88ede2401d100",
     "crates/flea-gui/src/g2/mn1/header.rs": "ce154791c8e3fbc24a0dd8f2c93ca62b55bd02454141939783d643e4fcfcff96",
     "crates/flea-gui/src/g2/mn1/host_input.rs": "79bb92296418175b334a9dae2b4e4bdc3ccca7707e8cd38061ea9f0c189c2008",
-    "crates/flea-gui/src/g2/mn1/ipc.rs": "ae6e774018be8fc929cddefa4af08d022fb519427a1d03cf799d7ab00371c3f1",
-    "crates/flea-gui/src/g2/mn1/ipc/joined.rs": "960e696e5923fa2e25e3fb256df40757f61c73efb78fa63990c46ff5ebacf416",
+    "crates/flea-gui/src/g2/mn1/ipc.rs": "02ef49ca4d626dd3ae2e2490077fb18afd1f29df76de25d8372df2410b1ab6ff",
+    "crates/flea-gui/src/g2/mn1/ipc/joined.rs": "762192709d9f9923464bc581ac2a2f715bb66aec4dc77c6bd72ba8b5783ee35c",
     "crates/flea-gui/src/g2/mn1/join.rs": "bfb2b4d3bb924d581fb8467af72a7d8f276fdb1d0c333333e175868178e90dab",
     "crates/flea-gui/src/g2/mn1/join_target.rs": "e162e3e101eac9aea84293e270ba362923b672b239fb5a2b1b3ba65bac97f15b",
     "crates/flea-gui/src/g2/mn1/keycaps.rs": "b1640917fd128787e69dc780af8de79cca23c5e463c8cd0e7d92bf27f8851823",
@@ -248137,16 +249572,16 @@
     "crates/flea-gui/src/g2/pl4/service.rs": "f48be1d804cf0d8b67b21e42df731cb031ffa6adaeb50f2aae1e5492ae2d69bb",
     "crates/flea-gui/src/g2/plugins/host.rs": "c9d09c469ab58a823982299cc66c06368998cd5a92a93a95efdd5e6fadb42a97",
     "crates/flea-gui/src/g2/plugins/input.rs": "122054f53a392bfce9ea1899eeb239f2370e6457ffdee032790b18c130cc876a",
-    "crates/flea-gui/src/g2/plugins/join.rs": "b7657905d52b03581d506d6849b8fd4bbb8217ca6ec45988e6c3ad1351600bce",
+    "crates/flea-gui/src/g2/plugins/join.rs": "56587e38b1497d43188fde1e9d99344820cdc906546c08c6a1a8205c53775273",
     "crates/flea-gui/src/g2/plugins/limits.rs": "3e98938d8b4f68dd5d2fd8fe600f896b2dcccb5b4ccab5741713277fce4961f3",
-    "crates/flea-gui/src/g2/plugins/menu.rs": "c80608fbed85f1f372819c5cd301fbedb613eed49d388da76d770a904ab0f623",
+    "crates/flea-gui/src/g2/plugins/menu.rs": "7f16f9bd625d4baf241b10d274bc73420b65bdd3d122eebd708df484bfdcbca2",
     "crates/flea-gui/src/g2/plugins/menu_action.rs": "740596aa677f49c6db004a60ea07cdce556fdb2fe5baf0e0e4798f6de58882e4",
     "crates/flea-gui/src/g2/plugins/menu_backend.rs": "976758c494792cb6480575db7b283a03ffd69dda9208fdf52e1fd07e74f81941",
     "crates/flea-gui/src/g2/plugins/menu_cases.rs": "bfe7f2d027c5a2004509ea4e5da44e9e7257dd62fae3210a6a4b26467ca8a35a",
     "crates/flea-gui/src/g2/plugins/menu_input.rs": "36566c287fdc860aa046fd3dd4e9074f2f9febf3d528c379ef0665aea8132147",
     "crates/flea-gui/src/g2/plugins/menu_layout.rs": "850fefae1abf5a506de120f016886c4904343837ed8e24e1a7a0b3c45ba5cdcd",
     "crates/flea-gui/src/g2/plugins/menu_selection.rs": "f39e386944cd3e51eb26b62a7efcddbc718fbf2a847701f0476605a363b215b0",
-    "crates/flea-gui/src/g2/plugins/menu_send.rs": "2762eeb8444d78a17360899f0d0ed19b1e0aab8d9e992296fc35115408943db6",
+    "crates/flea-gui/src/g2/plugins/menu_send.rs": "f98d8d6d566acceb30ea40540510ac9e582df53479188a71a5350f1884f015ed",
     "crates/flea-gui/src/g2/plugins/menu_verdict.rs": "edc7c90bd5410c1a0a18bf7b87ac24b246e3a4bfa03c9a2df0f633993303dc83",
     "crates/flea-gui/src/g2/plugins/mod.rs": "4313e8e90692661f1c7b5d558af8dab275a862640943b7eccc0dea16db256c62",
     "crates/flea-gui/src/g2/plugins/place.rs": "d8f130daef83f520f230433c7511b5b89e4cfd0cc21ec3ee96a3c23911b45536",
@@ -248280,12 +249715,15 @@
     "crates/flea-gui/src/g2/pv4/seam.rs": "694600f1cfc7605a8a097090a9c127247813cefcb163e5325b62399ada006676",
     "crates/flea-gui/src/g2/pv4/session.rs": "a685718a3e3aea5f917f2f430ec4422559321388c8fe6535aef141450e34e99f",
     "crates/flea-gui/src/g2/pv4/view.rs": "5b24aa75cd8c56409ea8c3063b0c41ce61516e4cdd4c7ad82e13d7491be313e9",
-    "crates/flea-gui/src/g2/sd1/activation.rs": "c1ea2f01affdc80cbecd2bca831529d1b8f0547f98eece9d9bc85e334308d03b",
+    "crates/flea-gui/src/g2/sd1/activation.rs": "c35b1d675dd629754d400ea5c32471deaebb75a2a2eb276e72864dfb7d2da460",
+    "crates/flea-gui/src/g2/sd1/airdrop.rs": "2e120f86c2b4a072eac40c990fdbc6892ee2809d81f4538f82afb165db002625",
+    "crates/flea-gui/src/g2/sd1/airdrop_join.rs": "306160ba730f7e18f4eb63814d4d33789d1c6f90a076f8561b353b36ee340875",
+    "crates/flea-gui/src/g2/sd1/airdrop_pids.rs": "1b7094031e25f7ff1feb261367fe74eeaa4cf6cfd0c425ab686bc75c07846785",
     "crates/flea-gui/src/g2/sd1/dropbox_status.rs": "8625c08876371d699a909cdc31905ffb29b42f261e15159cd718f4892561665d",
     "crates/flea-gui/src/g2/sd1/ipc.rs": "5376f908d0afc07829b9b72a6df5d475cb71e5547620231604f4199f43ab1bac",
-    "crates/flea-gui/src/g2/sd1/join.rs": "b9acd6c53bcaca0042c4bf891fb9c34a095820288dffb65313a7d1da111c1bc7",
+    "crates/flea-gui/src/g2/sd1/join.rs": "0f3cb00d45d2a141879bf5a2045d590970f9ec0c9f42636e262ee222fe3550c2",
     "crates/flea-gui/src/g2/sd1/join_process.rs": "3d088faf40f7ed68c1975acf98fc4cd186b99826aa8ade1544e8cfa33ee71e5f",
-    "crates/flea-gui/src/g2/sd1/mod.rs": "ffe00dccaa100733d1bcca37633b06c786796a3740f858fc6c4fb15d8000a5db",
+    "crates/flea-gui/src/g2/sd1/mod.rs": "ebed0660035767cc54c6c9e407c86694b40f1d685ac398a5ca56421c092f04ab",
     "crates/flea-gui/src/g2/sd1/picker.rs": "f2d7a9f05606e701bfc4901721cd81300fa56ca9fcca77c82647595eecdf9053",
     "crates/flea-gui/src/g2/sd1/reader.rs": "77a05b882c4be0f87d474e9aece6b578cdb58638fe21551ba1aafd3a256c8345",
     "crates/flea-gui/src/g2/sd1/seams.rs": "e7d67b07bb536ce5bc0808ac4f90feb14be9fc59a6be6dfbaa8ac757441a8786",
@@ -248345,17 +249783,18 @@
     "crates/flea-gui/src/g2/st1/view_head.rs": "4cbd31fa77eb21851820abcaedc5e6963bc37d84ed07f983676fbd71eb1ab8a4",
     "crates/flea-gui/src/g2/st1/wheel.rs": "f87bf87c2c33d7348a5d1aa13c1349837ea20c8fd7f2673f841d37f75eccd041",
     "crates/flea-gui/src/g2/st1/wrap.rs": "6f1cfc287d48cc19552ec55c0cbc7d1e4b166c4a20ec0e00677f7f962def26d1",
-    "crates/flea-gui/src/g2/st2/act.rs": "f3aa657f90b6482da1fff23a19671ca9cdbee333c5c6402b79ee3472859b1eb1",
+    "crates/flea-gui/src/g2/st2/act.rs": "fd53b268191f7d401c699d2bbf461ec34a26e9afcda7db9ab229cf5424f45b1f",
+    "crates/flea-gui/src/g2/st2/airdrop.rs": "64cf6d1824457584ef5220455689b70ecb6cfccc00b49af0c97499b5e88693ff",
     "crates/flea-gui/src/g2/st2/card.rs": "a537b59ef21c863c680a2f31eb03ec3f7bfe7bd77a3d6a90eadcf171b9283a98",
-    "crates/flea-gui/src/g2/st2/glyphs.rs": "d00ccce3458298c92b87648dda2e36b0ac40283c72896b8eea8e7f3c0da1747b",
+    "crates/flea-gui/src/g2/st2/glyphs.rs": "f8bf306aeeba72fd85a91166cc558fff9bac6a5564cd2fc818d9d0b6535264de",
     "crates/flea-gui/src/g2/st2/input.rs": "2d96aa8aba9ddebd4b77e081b871ce228f9162c558581fc776ee7a9c1ee312ba",
     "crates/flea-gui/src/g2/st2/load.rs": "499fbec76d4124cc3af237a05090d730d371a7abaccb8351fdf36f7dfc250ebf",
     "crates/flea-gui/src/g2/st2/mark.rs": "246558a8a169268779d6a7416883594f0b76e1ff240bbe952ec87e4098f9caeb",
-    "crates/flea-gui/src/g2/st2/mod.rs": "2bf2feb3173a6ff0d245bef39243277c1f33e6b5f055db8bfb74564f708d2137",
-    "crates/flea-gui/src/g2/st2/page.rs": "4c6388210504aa325a1fc665c6b3f68a13fb76b0d784cb870ae27b377b4bc0e1",
+    "crates/flea-gui/src/g2/st2/mod.rs": "f68ac291d4572db546e9a8357a866d3d60d19bcadf46374ba99e321f98851a53",
+    "crates/flea-gui/src/g2/st2/page.rs": "35332eaf37c7c16db20882f6ebd690671d790e64b6cb5d88c42dd48567f6a430",
     "crates/flea-gui/src/g2/st2/scroll.rs": "ec886f31b0010fad47bb8512363c26021a3ce3fd83bc63c2763ccb1f9c7c8b45",
-    "crates/flea-gui/src/g2/st2/seam.rs": "dcf3b804d119e494771c98739f5541ea684b36b24475ea6edc00618aeffbcf12",
-    "crates/flea-gui/src/g2/st2/view.rs": "06689b0215ab420d0c83ce0ab92eab175b64cc628404ab9483924f1f2d4bf6ee",
+    "crates/flea-gui/src/g2/st2/seam.rs": "a9bc851bfa8f74ae7f49211e8b53f1f09263d4a44e34df5835c0ffbdce22ffeb",
+    "crates/flea-gui/src/g2/st2/view.rs": "edaf4fc22211f12348ad8f36290ee2a010f0384f34b288c587dea1ddadd42ea2",
     "crates/flea-gui/src/grid/anchor.rs": "e56e853e7e52acdada15332d3d20f9e38a34f3b091fa38d1472c0670779e31a0",
     "crates/flea-gui/src/grid/captions.rs": "9f1dc8715d806c0998d53f0e1f376a94eeac47636fa909171416324f6a4d6671",
     "crates/flea-gui/src/grid/element.rs": "079c6d5f3a189f6c65fe71d1921eb6abfd723923dfb63e3bb6afa143c56c9213",
@@ -248443,7 +249882,7 @@
     "crates/flea-gui/src/ipc/rows.rs": "cd40717eda5e7b52b1b061b96ae7f3aeeb4ccbcb4359c331c13df36671525410",
     "crates/flea-gui/src/ipc/rows_format.rs": "be2d1142672d03da21873dc8938002b534fb5c81e243380e779f0e40a081516a",
     "crates/flea-gui/src/ipc/server.rs": "a5f4697d1c86c0ab69c58f280515413b547beb7b602f1a7d7803ea2a5d069c60",
-    "crates/flea-gui/src/ipc/settings.rs": "d472161b9548b5f4e09fe29e82948551aec33dbff0219f04b19788b1c6a86f23",
+    "crates/flea-gui/src/ipc/settings.rs": "56564f81b211dc7ba49d8f89167d519455b008b898e9d7b662ca407755143317",
     "crates/flea-gui/src/ipc/settings_cohesion.rs": "1049f39d79c8278f47b515e748bf92ce55027a1e8240c3ba51263be06f39ce69",
     "crates/flea-gui/src/ipc/settings_plugins.rs": "df6fb24330ca71e6fad3fa9550e5b9e5e98d1e4e8beae38fc894b83ed16c2697",
     "crates/flea-gui/src/ipc/status.rs": "c5e69bfcee5969eaaa5ddda6a006c6fede8541ef159b37c9832ab66243a3f58c",
@@ -248498,7 +249937,7 @@
     "crates/flea-gui/src/locale_geometry.rs": "fc3f1bc91397b097a8307f5cb05fab0f3575204604652f4e8b7addc167abd521",
     "crates/flea-gui/src/main.rs": "ce31b22cef92e900571e1eed76124edf0bb39a9767e4a26d53cafbcfbdf2c224",
     "crates/flea-gui/src/navigation/anchor.rs": "06bc831536cc3aceb11e347a81150732ad897b48c70f0e218b98d5b19956ff59",
-    "crates/flea-gui/src/navigation/folder_state.rs": "f2d28137b015dc410dd9878384df631e11824619c0330534cb014b149d970891",
+    "crates/flea-gui/src/navigation/folder_state.rs": "4409d4d2757c86f5c7647fdd3b3619132f0a36bf62dc4593d55d5ea1e7bffbe1",
     "crates/flea-gui/src/navigation/folder_state/writer.rs": "6b7a4ee78922b601a2aa83256cbe6cfc7b2b7fe6a4b81d018b90c5dfa0ea7cfa",
     "crates/flea-gui/src/navigation/fresh.rs": "3f79528a9160982d8b7cc4eef6e06b031eb301f2a9e0b70fb43be9ae4ffaed8c",
     "crates/flea-gui/src/navigation/history.rs": "f122e640d04ce0dbec82bd5f92d2383c0a675c9c4123abcbe02043386f4451fd",
@@ -248833,11 +250272,11 @@
     "crates/flea-gui/src/window/settings/actions.rs": "920524f1674cfc0ef1b8ec17d9712cbfc21adff1671dc6bb386c0f45e1dc8fdc",
     "crates/flea-gui/src/window/settings/apply.rs": "580d0ddca82a039c9f14015b17e5a4877462b25b03391a40c86168e15f130d74",
     "crates/flea-gui/src/window/settings/claim.rs": "e013d7f16799d3c68c1ab07882340a45249ad67b36d3a7c5fee4a7800010fa9a",
-    "crates/flea-gui/src/window/settings/locale.rs": "68f3504658bf87a3b3f01b5a37b44ffbf0c9c924af421f90bdf882f4085e2fe9",
+    "crates/flea-gui/src/window/settings/locale.rs": "52b7f75e3408ce22b7b535695e6ded8f3bd565f33d6b2caaafc1bf8d22bffce7",
     "crates/flea-gui/src/window/settings/messages.rs": "c157fc30188dace20d1fead0f2ff4de78fc92b07d64064bbea2d60bd3c027680",
-    "crates/flea-gui/src/window/settings/mod.rs": "e05b389ca90da0fa4002d7da3638ada9b2bba2833bb84d5e65678819d7a8e68e",
+    "crates/flea-gui/src/window/settings/mod.rs": "1e12f21c91cb8fc936a28c1d62778da57c0d1c4aa050991530878010930cfc4d",
     "crates/flea-gui/src/window/settings/network.rs": "93d4fbdb363a40f989419674d440d911aca945294279da414d2f00b048032569",
-    "crates/flea-gui/src/window/settings/plugins.rs": "b0356c9b720c157510b976a8c6522f1b91644d63f52ca1641d73eaf4c673d6f6",
+    "crates/flea-gui/src/window/settings/plugins.rs": "e4243ee8aa8293e731c109bbed17c4c6223f543358f87b90ad14fb4a193a6d80",
     "crates/flea-gui/src/window/settings/provenance.rs": "47144d58f157659f51788486dba84fbab1b623ade30646c9d03b33393449e18e",
     "crates/flea-gui/src/window/settings/relist.rs": "ccb3511b01cc88b03ad5bea9a1df11dfd9cebd6feac66725aa0c8d0765df3d22",
     "crates/flea-gui/src/window/settings/sheet.rs": "9d967f54bd3b315c7b9bdb4064e8a489f88fbc596cf3ee9e3796e6753424c9d2",
@@ -248862,6 +250301,7 @@
     "src/backend/actionpreview.rs": "8df7559a4b1a0af88d520e46fe75cb708dbbb1204934296560f43447726592e7",
     "src/backend/actionrun.rs": "aaf0e4a17dd748fb85ddc18b212dc6e86a0c4aac6bf828fc2935d3d13a7d8006",
     "src/backend/actions.rs": "e9e3befc6f330ed74e040ce0f02ce5ec6b87cb1fbea1200f79be75fb41d9a3be",
+    "src/backend/airdropsend.rs": "efb7c216e5164a9e6f6a7df652f84f0a53aa3cabafac25a4c14556beb2a30702",
     "src/backend/aliases.rs": "93c0da23b3a1748c58a66c1ca0704a30eb9f1385b49c2fea76944def0fe2e92b",
     "src/backend/answersizes.rs": "c04f235077d66e3010a470f71e0a05f84cb805538207a2715253cbbc7c02b1fc",
     "src/backend/appicon.rs": "5dc64b3d92b2f46a2f7ab01deec122bf525f20b7c749ea886a86cee161374cf1",
@@ -248977,7 +250417,7 @@
     "src/backend/jobs.rs": "d084cfbf3d490456efe54b4adbb023b4210d37403e0ef4ef3f39da5f02dd0c2a",
     "src/backend/jobstart.rs": "6f7220386f3fb0616b52ed1b16c957ecdc79f0acb3ae51eb006ea1eec104ce63",
     "src/backend/jobview.rs": "b6d3bd70b2f6bcef1f345858e48b68e802fc70c4d89da569a9d9f8bb4d33bf27",
-    "src/backend/jobwork.rs": "3505783a5e0f6f6f891f2e1f78eb82e71309886f9783ccb16dcb9a3191039dc1",
+    "src/backend/jobwork.rs": "32a19f1a6f3b376b207a03cc5b7842f8ac8f2b372d3b8b12f820ff0a9e6b56b3",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "baa36b5f1736cb4ba132be7ec864eb9c248cbecad5e66620a1d25d24d45d6320",
     "src/backend/kind.rs": "29cc369380abd40ae283efe5221ce3c7d6cbddc06779bb1d7dbccecb770b1322",
@@ -249104,10 +250544,10 @@
     "src/backend/printreq.rs": "4b0e7b3959343347428ec30ebf36ba8a4148863e8f0310ac6bac1610c4e05c6d",
     "src/backend/printtool.rs": "7a75e8a93275f871c3ad3d80eeb76b23cee224c869a95c4f991aa000ce7c0a61",
     "src/backend/procwatch.rs": "02e48f8c21955f84b80ab07314f7d2fd33102cfbcf4f9b615ef20569eef01b20",
-    "src/backend/proto.rs": "0385d11132830d0eb2139e2cad0c54b595059c40ed13736ab721c22b1a0f7069",
-    "src/backend/protoparse.rs": "b2dfc36671213c5ee5463824fe0231e8dea6a564a70836e0bc2b114409f12f2b",
+    "src/backend/proto.rs": "1a577def8ec0918c1838ec3ad1a2a2eeca4031174a52d9ec5e71f1eb1762bc00",
+    "src/backend/protoparse.rs": "9979642bcf328bb77fb38af5fcea4e1ec749500e68134cbca3482323fe967650",
     "src/backend/protoreply.rs": "870d85417fe7313323c4f40050bcde855bb2831595b9dd05909a3380ef009db4",
-    "src/backend/providers.rs": "5778e9aea8c03b57e23961b104088ca346f951df293a8434d9ef5456ad3342c5",
+    "src/backend/providers.rs": "acdd54a6422efca9ec769858b3a49c99207889d45b64c638afe27881583e6fe1",
     "src/backend/quietpanic.rs": "edb0b36a2d1902dcfcd8f7edf18f84539f9167032e232938bc392389cedd374a",
     "src/backend/rastertemp.rs": "755614facadf1a2830bb6614652e0121c73a81a0fba92e45c01fa60920a642b0",
     "src/backend/rawbmff.rs": "d4f4768fd225f0ec1712145bb4631ccff85098387c62cd0186314450aa031a10",
@@ -249132,8 +250572,8 @@
     "src/backend/replacedefer.rs": "ca0427614294f9773cdacd54c616c57c7de5df021788801be8b852f3ecde9bd0",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
     "src/backend/rows.rs": "80cc0ea5dadb4a14e49853dfe6bf6fff4e04544a8b3e016e2ac1afb743a77324",
-    "src/backend/run.rs": "ccefe1e07c1abc5588eadff2a0bf7a262dafc0c7b723325809b564ad8974bb1a",
-    "src/backend/run_rows.rs": "d7b6649eab51679d0f5f8c2c3592267e40f9875699cf216f9f08b869e2e7c9b8",
+    "src/backend/run.rs": "d2edd7cf129b283dabf210755d3168f90b517979fed3e5d721d482ae71f5788b",
+    "src/backend/run_rows.rs": "658281a171360ea26e46db5adf61c854f21e001ed2150ba9fe43293fb3dac696",
     "src/backend/sandbox.rs": "dff395b4721cece105d87e7ea69e5811c4a7f33d467d1fbf50763720b6a16d3d",
     "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
     "src/backend/scan.rs": "9c34ffd2f0a1d710dea6be5cdab78c6d06ae2afaa022193becac8deb8996867b",
@@ -249463,18 +250903,19 @@
     "src/ui_logic_fb1/messages/arm.rs": "b5c857ccb06b19c4a22658fa3ce39b376f1a7a010e2f20085dff55228313d1a3",
     "src/ui_logic_fb1/messages/line.rs": "11303e5e39ada12484bac33e5396610d0fb783a4829e70ae473f1a7807b78ea3",
     "src/ui_logic_fb1/status.rs": "a1b9536b76f3aa02df822f70b84f4ea5307ff1e8338eb98771da17af437848af",
-    "src/ui_logic_mn1.rs": "afafb2d5b35e7eedab0a2c2b9f316357bcc4f4ecf309012efadd82b16e50ac29",
+    "src/ui_logic_mn1.rs": "80ef9b0bc9e460cde3263ed52b301dda4a04e7c941d2852c11220df253910dc6",
+    "src/ui_logic_mn1/airdrop.rs": "45e4cce87dc0a33e61621440df250bdf79578f407f88c6295588598ffc42fe42",
     "src/ui_logic_mn1/archive.rs": "7d5f990c6fd7a593104e727190f806a7b6b7cbf00607042c967aeda3eb669a0e",
-    "src/ui_logic_mn1/build.rs": "1ee72a3ba44f6163395f66452d5a235cc3e2c7e70b0b0b7c1199f450b6f826eb",
-    "src/ui_logic_mn1/build_context_default.rs": "b045ead1d9a683e07dfa23f7448adfbed91f690d1c1893633eaeab30dc14b6e2",
+    "src/ui_logic_mn1/build.rs": "f4dc824d1dc4b3bc04a0c7c05090b11085d3d43047be51ab5d03964615d57e27",
+    "src/ui_logic_mn1/build_context_default.rs": "987fe4c26c89a6011b7d1f06804ee2e7a9d1ddf2cdcb6b2b23e844aac0cc0c9b",
     "src/ui_logic_mn1/copyas.rs": "ea154c12fe0c3e18baaabc9c865e0c2c9090966c2949e6bcc6773ad7992e6f2d",
-    "src/ui_logic_mn1/entry.rs": "a3149b10b2c8fc0827cb862b3f8693e118a37f3ad3cf128b7b1fe19c30712b86",
+    "src/ui_logic_mn1/entry.rs": "64474c208113d26ec13a22be3c52b175adba6b7e438ecc726792be5b985df378",
     "src/ui_logic_mn1/fit.rs": "7a66e079e875462ebcc9dfb1360b76624601a3f18ac3bdb497936c6a3b2ee32c",
     "src/ui_logic_mn1/fit/metrics.rs": "3cba6857e2fa8da3f466ec7bd4b6d3e950f1e1d9af3c4770196a676ab36fdb13",
     "src/ui_logic_mn1/flyouts.rs": "a9fdc3ae02617c990132bc5b11a2a7275b1bcf56adbea8563e9974339ef63b57",
-    "src/ui_logic_mn1/inventory.rs": "96027f89c2d4796b1d769bbcdd11d903e43194f7156c916466dcd0dbcd1b7e5d",
+    "src/ui_logic_mn1/inventory.rs": "9445145e0f026784b975dff4f989ea3815d0950a076b8ef05192408a8cf4ee75",
     "src/ui_logic_mn1/places.rs": "8982623fad0ad7910cbd05bd42bfef4a6663a1c565192859af6d1b1004dbc452",
-    "src/ui_logic_mn1/refresh.rs": "51a6009280db973b2dde5bce10ebfe00aacf6a896cd84e4e7e41c37c91efc4db",
+    "src/ui_logic_mn1/refresh.rs": "03f67a530ecbaebfa9378af54fdfbf836f41a5df7ae09d716728442870554922",
     "src/ui_logic_mn1/rows.rs": "988c38b6dd9a0b2d630a36f3b05982f56443756227923283f4ebf2211edd951a",
     "src/ui_logic_mn1/testkit.rs": "73539bb94d067043810d2c1869d2459c480235b0a62f4ad0d029c05158fea811",
     "src/ui_logic_mn2.rs": "12ba38653978000aa7bf63852f4230a3efaddac4ea0eced09cda347a838c7dda",
@@ -249712,10 +251153,12 @@
     "src/ui_logic_pv4/scene.rs": "c65fc442be86e0d315f2c4f9e473fcc4504173f180b5e0f376f4bd7287ebfcec",
     "src/ui_logic_pv4/vec.rs": "3efe9457655e04a54000c70179cb0384f603ff59c8599f964349924f5856ea07",
     "src/ui_logic_pv4/wire.rs": "7a0713cfc9c9600cd04e55e6f011a2ce010f00083aa3c9705a48a344cb84cd93",
-    "src/ui_logic_sd1.rs": "0f7e5957cba355fceb317e092ecb3361f16f3733d83eb3b34adcd00998ab71df",
+    "src/ui_logic_sd1.rs": "6b88e42aea2b3860511108c2995d92d27a6561d279ed601b052dc500701b7383",
+    "src/ui_logic_sd1/airdrop.rs": "80a621927e2b9d130bab4beb05a2ef8751c239447454047b7dc297615000845a",
+    "src/ui_logic_sd1/airdrop_ask.rs": "2c5f058fcf84de4472c161c6a343d4e84edb88734c2db51cbdf612865a27861a",
     "src/ui_logic_sd1/dropbox.rs": "3c490ae288b6ad1f9b2fcb1b62097a8a8837623a2279e268c5524c56d5123759",
     "src/ui_logic_sd1/localsend.rs": "07c4e6ef659e9f21856b6b84267b7bfa34b46986bc0d2cad313660b19fca5a4a",
-    "src/ui_logic_sd1/providers.rs": "b76f8a7243a9973927ec2a4335d6c0ff20bd973dfaa9d3e217a3192a99d1e679",
+    "src/ui_logic_sd1/providers.rs": "696dc10cbe379fde6fd0f57f850b4376b590d2a331e8d4cb25f2e71c87968f4a",
     "src/ui_logic_sd1/send.rs": "0e9291cfc33a46487ecca11158cadd5eb0fcc90080c6f67fe2f3062bc2814f00",
     "src/ui_logic_sd1/share.rs": "365f4b797d5a3da4eec40138503b1aaf6217d49ec5ce4d7e2205412c5e8576e9",
     "src/ui_logic_sd1/taildrop.rs": "590e81cebbcf4cd29db5f1ffd98e14842d3d3f4ff9373abc0252df739f46dc7f",
@@ -249770,11 +251213,12 @@
     "src/ui_logic_st1/update.rs": "b234f32456be9529f5146584e0331927d4bfe84f5d78ba24e940cc080fb89b5c",
     "src/ui_logic_st1/visible.rs": "40e686a53fd5b4793b3044feaae6893d814f60acbe430431628f5406363da71f",
     "src/ui_logic_st1/words.rs": "6823f05a037166d8b64d4c379acd757e5db95988e24a7b8be98a835463afa28a",
-    "src/ui_logic_st2.rs": "673e5e97fc037fd5f493a8f55926b99b277c2fc5f821e6a4e3695619c55441f6",
-    "src/ui_logic_st2/builtin.rs": "10f2301d18becf5c17a52fe0a6820090d95e8d34d3e21638221dcee1ba820c6a",
+    "src/ui_logic_st2.rs": "f551b4c76d2948f174082898efcee8ba6e05591d4965e57e3d5039d3637ace47",
+    "src/ui_logic_st2/airdrop.rs": "7657564e7bcb175aa76074cb5a110bc1ff5dd19a888c05dcc75efc737c1fd3b4",
+    "src/ui_logic_st2/builtin.rs": "54c057de416501fd9c296d88b0e4cfb439a1256d704c78f65fa8d06950b2e4a5",
     "src/ui_logic_st2/contributions.rs": "255f2e3af0560082c85f02bd8ea1d87fa4c41f51ba70bf67795a7fc49d135f6b",
     "src/ui_logic_st2/manifest.rs": "5229434bbac6da8d95979810c644fcf9dfd0999b470fdd7b639b7837bd3d6a88",
-    "src/ui_logic_st2/pages.rs": "d1f396466ddcb205472df99ee9384d757cb3d7fa521b66517620b4880165b309",
+    "src/ui_logic_st2/pages.rs": "c0fd7279271048eea601532907ac49e4b03ecbed47742e22e0409dc74129db7b",
     "src/ui_logic_st2/schema.rs": "5c4ed5f5b2fee4a75606f94389b52f78db90310a7753a7e75e3403f9ee822b56",
     "src/ui_logic_st2/shelf.rs": "a23edd66fc6a9c082414d7791431612551e17855f8b3fd39ae962e16b782e7dd",
     "src/ui_logic_st2/store.rs": "e7c1ca25ecaae948b4377cebedea28dc249b5650caca049b6773dff374f7fb17",
@@ -250362,13 +251806,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "d1c09090331bae4c694113153788cb9fda072cd1",
-  "source_sha": "d1c09090331bae4c694113153788cb9fda072cd1",
+  "source_ref_sha": "6e250d3b9b2fccd799c728aab507b2da95372542",
+  "source_sha": "6e250d3b9b2fccd799c728aab507b2da95372542",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1298,
-      "missing_literal_candidates": 5639,
-      "source_files": 844
+      "keys_with_occurrences": 1334,
+      "missing_literal_candidates": 5688,
+      "source_files": 849
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,
@@ -250376,9 +251820,9 @@
       "source_files": 160
     },
     "gui": {
-      "keys_with_occurrences": 549,
-      "missing_literal_candidates": 2183,
-      "source_files": 1159
+      "keys_with_occurrences": 550,
+      "missing_literal_candidates": 2188,
+      "source_files": 1163
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
