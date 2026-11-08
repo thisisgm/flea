@@ -1,4 +1,5 @@
 //! Menu bodies shared by the GUI and the TUI: the one inventory, row eligibility, flyouts, fit and scroll rules.
+pub mod airdrop;
 pub mod archive;
 #[cfg(test)]
 mod board_tests;

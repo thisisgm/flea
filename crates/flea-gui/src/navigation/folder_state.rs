@@ -203,7 +203,7 @@ impl Folders {
     }
 }
 
-fn user_dir(line: &str, home: &str) -> Option<(String, Option<String>)> {
+pub(crate) fn user_dir(line: &str, home: &str) -> Option<(String, Option<String>)> {
     let line = line.trim_start_matches([' ', '\t']);
     let rest = line.strip_prefix("XDG_")?;
     let cut = rest.find("_DIR")?;

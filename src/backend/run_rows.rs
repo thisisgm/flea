@@ -81,6 +81,7 @@ pub(super) fn rows_needed(request: &Request) -> usize {
         | Request::Permissions { .. }
         | Request::Picker { .. }
         | Request::LocalSend { .. }
+        | Request::AirDrop { .. }
         | Request::Nearby { .. }
         | Request::NetworkAddress { .. }
         | Request::Plugins { .. }

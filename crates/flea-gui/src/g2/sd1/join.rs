@@ -29,11 +29,13 @@ pub(crate) struct Senders {
     pub(super) account: [dropbox::Account; 2],
     pub(super) destination: [Option<bool>; 2],
     pub(super) activation: Option<super::activation::Activation>,
+    pub(crate) airdrop: super::airdrop::AirDrop,
+    pub(crate) airdrop_pids: super::airdrop_pids::Pids,
     chosen: Option<Subscription>,
 }
 
 // The pane backend's ordered pipe; false when that backend is gone.
-struct Pipe<'a>(Option<&'a Backend>);
+pub(super) struct Pipe<'a>(pub(super) Option<&'a Backend>);
 
 impl Wire for Pipe<'_> {
     fn send(&self, line: String) -> bool {
@@ -41,7 +43,7 @@ impl Wire for Pipe<'_> {
     }
 }
 
-fn now_ms() -> u64 {
+pub(super) fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| since.as_millis() as u64)
@@ -63,6 +65,7 @@ impl Shell {
 
     pub(crate) fn providers_menu_closed(&mut self) {
         self.menu.providers.activation = None;
+        self.airdrop_menu_closed();
         for sender in &self.menu.rclone {
             sender.borrow_mut().menu_closed();
         }
@@ -105,6 +108,9 @@ impl Shell {
             _ => 0,
         };
         let kind = reply.get("t").and_then(Json::as_str).unwrap_or("");
+        if kind == "airdropsent" {
+            self.airdrop_sent(side, line, window, cx);
+        }
         if self.plugin_selection_reply(side, &reply) {
             self.provider_refresh(window, cx);
         }
@@ -189,6 +195,7 @@ impl Shell {
             only,
         );
         self.provider_actions(side, actions, window, cx);
+        self.airdrop_facts(side, &facts.owly_command, window, cx);
         let path = self.menu.providers.account[side].path.clone();
         let capture = self
             .menu
@@ -243,6 +250,7 @@ impl Shell {
         };
         let row = format!("{}/{}", folder.trim_end_matches('/'), context.row_name);
         context.row_in_dropbox = dropbox::contains(&account.path, &row);
+        self.airdrop_context(side, context);
     }
 
     // The Dropbox root a dropbox or sharelink validate names, so the backend checks the same folder.
@@ -298,7 +306,7 @@ impl Shell {
         let side = chosen.captured.side;
         if !matches!(
             chosen.action.as_str(),
-            "localsend" | "taildrop" | "sharelink" | "dropbox"
+            "localsend" | "taildrop" | "sharelink" | "dropbox" | "airdrop"
         ) || chosen.captured.background
             || self.panes.get(side).and_then(Option::as_ref).is_none()
             || !chosen.claim()
@@ -318,6 +326,10 @@ impl Shell {
                     &chosen.paths,
                     &catalog,
                 )
+            }
+            "airdrop" => {
+                self.airdrop_chosen(side, &chosen.leaf, &chosen.paths, window, cx);
+                Vec::new()
             }
             "taildrop" => chosen
                 .paths

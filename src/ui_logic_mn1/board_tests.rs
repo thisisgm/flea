@@ -200,6 +200,7 @@ fn glyph(e: &Entry) -> String {
         (Some(Brand::Tailscale), _) => "brand:tailscale".into(),
         (Some(Brand::Dropbox), _) => "brand:dropbox".into(),
         (Some(Brand::LocalSend), _) => "brand:localsend".into(),
+        (Some(Brand::AirDrop), _) => "brand:airdrop".into(),
         (None, Some(_)) => "icon".into(),
         (None, None) => e.glyph.unwrap_or("").into(),
     }

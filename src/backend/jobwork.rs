@@ -8,6 +8,8 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
+#[path = "airdropsend.rs"]
+pub(crate) mod airdropsend;
 
 pub(crate) struct Spec<'a> {
     pub kind: &'a str,
@@ -41,11 +43,13 @@ pub(crate) enum Work {
         paths: Vec<String>,
         selection: Option<Vec<Selected>>,
     },
+    // A LocalSend send, or an AirDrop one through owly when airdrop is set.
     Send {
         peer: String,
         paths: Vec<String>,
         request: usize,
         selection: Option<Vec<Selected>>,
+        airdrop: bool,
     },
 }
 
@@ -182,6 +186,7 @@ impl Work {
                     "cancelled"
                 },
             ),
+            Self::Send { request, airdrop: true, .. } => airdropsend::sent_line(*request, "cancelled", ""),
             Self::Send { request, .. } => format!(
                 r#"{{"t":"localsendsent","id":{},"ok":false,"reason":"Send cancelled."}}"#,
                 request
@@ -292,6 +297,22 @@ impl Work {
                 paths,
                 request,
                 selection,
+                airdrop: true,
+            } => {
+                let send = airdropsend::Send {
+                    peer: peer.clone(),
+                    paths: paths.clone(),
+                    request: *request,
+                    items: selection.clone().unwrap_or_else(|| capture(paths)),
+                };
+                std::thread::spawn(move || airdropsend::background(id, send, cancel, tx));
+            }
+            Self::Send {
+                peer,
+                paths,
+                request,
+                selection,
+                airdrop: false,
             } => {
                 let (peer, paths, request, selection) =
                     (peer.clone(), paths.clone(), *request, selection.clone());

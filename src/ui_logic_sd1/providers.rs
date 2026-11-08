@@ -5,12 +5,14 @@ use crate::jsondoc::{self, Json};
 pub const PLUGIN_TAILSCALE: &str = "flea.tailscale";
 pub const PLUGIN_LOCALSEND: &str = "flea.localsend";
 pub const PLUGIN_DROPBOX: &str = "flea.dropbox";
+pub const PLUGIN_AIRDROP: &str = "flea.airdrop";
 
 // The menu rows this unit gates, as mn1 inventory.rs spells their stored ids.
 pub const MENU_TAILDROP: &str = "taildrop";
 pub const MENU_LOCALSEND: &str = "localsend";
 pub const MENU_DROPBOX: &str = "dropbox";
 pub const MENU_SHARELINK: &str = "sharelink";
+pub const MENU_AIRDROP: &str = "airdrop";
 
 // Which provider a menu row or peer list asks about.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18,6 +20,7 @@ pub enum Role {
     Tailscale,
     LocalSend,
     Dropbox,
+    AirDrop,
 }
 
 impl Role {
@@ -26,6 +29,7 @@ impl Role {
             Self::Tailscale => PLUGIN_TAILSCALE,
             Self::LocalSend => PLUGIN_LOCALSEND,
             Self::Dropbox => PLUGIN_DROPBOX,
+            Self::AirDrop => PLUGIN_AIRDROP,
         }
     }
 
@@ -34,6 +38,7 @@ impl Role {
             Self::Tailscale => MENU_TAILDROP,
             Self::LocalSend => MENU_LOCALSEND,
             Self::Dropbox => MENU_DROPBOX,
+            Self::AirDrop => MENU_AIRDROP,
         }
     }
 }
@@ -75,9 +80,11 @@ pub struct Facts {
     pub localsend_reason: String,
     pub dropbox_command: String,
     pub dropbox_ready: bool,
+    // owly, the AirDrop stack the AirDrop plugin runs; empty while it is not on PATH.
+    pub owly_command: String,
 }
 
-// Sample input: {"taildrop":{"installed":true,"command":"/usr/bin/tailscale","reason":""},"taildropSend":{...},"localsend":{"installed":false,"command":"","reason":"localsend-cli is not installed."},"rclone":{...},"dropbox":{...},"dropboxInfo":"{...}","dropboxError":""}
+// Sample input: {"taildrop":{"installed":true,"command":"/usr/bin/tailscale","reason":""},"taildropSend":{...},"localsend":{"installed":false,"command":"","reason":"localsend-cli is not installed."},"rclone":{...},"dropbox":{...},"owly":{...},"dropboxInfo":"{...}","dropboxError":""}
 pub fn parse_facts(raw: &str) -> Result<Facts, String> {
     let data = jsondoc::parse(raw).map_err(|problem| format!("providers facts do not parse: {problem}"))?;
     let command = |key: &str| {
@@ -109,6 +116,7 @@ pub fn parse_facts(raw: &str) -> Result<Facts, String> {
             .and_then(Json::as_str)
             .unwrap_or_default()
             .is_empty(),
+        owly_command: command("owly"),
     })
 }
 
@@ -143,11 +151,13 @@ mod tests {
         assert_eq!(Role::Tailscale.menu_id(), "taildrop");
         assert_eq!(Role::LocalSend.menu_id(), "localsend");
         assert_eq!(Role::Dropbox.menu_id(), "dropbox");
+        assert_eq!(Role::AirDrop.plugin_id(), "flea.airdrop");
+        assert_eq!(Role::AirDrop.menu_id(), "airdrop");
     }
 
     #[test]
     fn menu_ids_match_mn1_inventory_and_plugin_ids_match_st2_builtins() {
-        for (menu, plugin) in [(MENU_TAILDROP, PLUGIN_TAILSCALE), (MENU_LOCALSEND, PLUGIN_LOCALSEND), (MENU_DROPBOX, PLUGIN_DROPBOX)] {
+        for (menu, plugin) in [(MENU_TAILDROP, PLUGIN_TAILSCALE), (MENU_LOCALSEND, PLUGIN_LOCALSEND), (MENU_DROPBOX, PLUGIN_DROPBOX), (MENU_AIRDROP, PLUGIN_AIRDROP)] {
             assert!(
                 crate::ui_logic_mn1::inventory::INVENTORY.iter().any(|spec| spec.id == menu),
                 "mn1 lost the {menu} row this unit gates"
@@ -170,6 +180,7 @@ mod tests {
 "taildropSend":{"installed":true,"command":"/usr/bin/omarchy-tailscale-send","reason":""},
 "localsend":{"installed":true,"command":"/usr/bin/localsend-cli","reason":""},
 "dropbox":{"installed":true,"command":"/usr/bin/dropbox-cli","reason":""},
+"owly":{"installed":true,"command":"/usr/bin/owly","reason":""},
 "dropboxInfo":"{\"personal\":{\"path\":\"/d\"}}","dropboxError":""}"#,
         )
         .expect("facts parse");
@@ -179,6 +190,7 @@ mod tests {
         assert_eq!(facts.localsend_reason, "");
         assert_eq!(facts.dropbox_command, "/usr/bin/dropbox-cli");
         assert!(facts.dropbox_ready);
+        assert_eq!(facts.owly_command, "/usr/bin/owly");
         assert!(parse_facts("not json").is_err());
         assert!(parse_facts("{}").expect("empty facts").tailscale_command.is_empty());
     }

@@ -72,6 +72,11 @@ pub fn parse_request(line: &str) -> Request {
             paths: field_str_array(line, "paths"),
             id: field_usize(line, "id").unwrap_or(0),
         },
+        Some("airdrop") => Request::AirDrop {
+            peer: field_str(line, "peer").unwrap_or_default(),
+            paths: field_str_array(line, "paths"),
+            id: field_usize(line, "id").unwrap_or(0),
+        },
         Some("list") => Request::List {
             path: field_str(line, "path").unwrap_or_default(),
             first: field_usize(line, "first").unwrap_or(0),

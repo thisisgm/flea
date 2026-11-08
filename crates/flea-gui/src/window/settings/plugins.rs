@@ -30,6 +30,9 @@ impl Shell {
         if showing {
             self.follow_plugins(window, cx);
         }
+        // Plugins coming into view, which a kept view does again after every close.
+        let shown = showing && !self.settings.plugins_shown;
+        self.settings.plugins_shown = showing;
         if showing && self.settings.plugins.is_none() {
             let theme = cx
                 .try_global::<crate::palette::Theme>()
@@ -67,6 +70,10 @@ impl Shell {
                         );
                     }
                     Effect::PinFolder => shell.pin_settings_folder(window, cx),
+                    Effect::AirdropReceiving(on, folder) => {
+                        shell.airdrop_receiving(*on, folder, window, cx)
+                    }
+                    Effect::AirdropFolder(start) => shell.airdrop_choose_folder(start, window, cx),
                     Effect::None => {}
                 },
             ));
@@ -78,6 +85,9 @@ impl Shell {
                 });
             }
             self.settings.plugins = Some(view);
+        }
+        if shown {
+            self.airdrop_settings_shown(window, cx);
         }
         if self.settings.opened {
             if let (Some(panel), Some(plugin)) = (&self.settings.panel, &self.settings.plugins) {

@@ -162,6 +162,10 @@ fn paint_lead(
                 window,
                 cx,
             ) => {}
+        Lead::Busy => {
+            let side = metrics.of(super::busy::SIDE);
+            super::busy::paint(slot(at, side, side, metrics), ink.accent, window, cx);
+        }
         Lead::Icon(_) => {
             let (key, data) = glyphs::mark("app-window");
             paint_mark(

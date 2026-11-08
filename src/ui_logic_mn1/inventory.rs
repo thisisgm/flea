@@ -159,6 +159,7 @@ pub const INVENTORY: &[Spec] = &[
         "addToShelf",
     ),
     spec("taildrop", "menu.row.taildrop", "tailscale", "F", "share"),
+    spec("airdrop", "menu.row.airdrop", "airdrop", "F", "share"),
     spec("localsend", "menu.row.localsend", "localsend", "F", "share"),
     spec(
         "sendRclone",

@@ -36,6 +36,8 @@ pub(super) fn lead_name(lead: &Lead) -> &str {
         Lead::Brand(Brand::Tailscale) => "tailscale",
         Lead::Brand(Brand::Dropbox) => "dropbox",
         Lead::Brand(Brand::LocalSend) => "localsend",
+        Lead::Brand(Brand::AirDrop) => "airdrop",
+        Lead::Busy => "omi",
         Lead::Tag(_) => "tag",
         Lead::Check(true) => "checkmark",
         Lead::Icon(name) => name,

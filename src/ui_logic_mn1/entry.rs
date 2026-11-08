@@ -40,6 +40,7 @@ pub enum Brand {
     Tailscale,
     Dropbox,
     LocalSend,
+    AirDrop,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -189,4 +190,6 @@ pub const MARK_NAMES: &[&str] = &[
     "cloud-upload",
     "x",
     "copy-x",
+    "smartphone",
+    "laptop",
 ];

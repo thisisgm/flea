@@ -64,6 +64,7 @@ fn brand_name(brand: flea::ui_logic_mn1::Brand) -> &'static str {
         flea::ui_logic_mn1::Brand::Tailscale => "tailscale",
         flea::ui_logic_mn1::Brand::Dropbox => "dropbox",
         flea::ui_logic_mn1::Brand::LocalSend => "localsend",
+        flea::ui_logic_mn1::Brand::AirDrop => "airdrop",
     }
 }
 

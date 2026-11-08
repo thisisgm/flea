@@ -1,10 +1,11 @@
-//! The four features that ship as plugins inside Flea's package, in the order and states 0.3.12 ships them.
+//! The features that ship as plugins inside Flea's package: 0.3.12's four in its order and states, then AirDrop.
 use super::manifest::{self, Manifest};
 
 pub const SHELF: &str = "flea.shelf";
+pub const AIRDROP: &str = "flea.airdrop";
 
-// The Shelf ships off as shelf.enabled does; the other three ship on and still show their rows only where their app is.
-pub const BUILTINS: [(&str, bool); 4] = [
+// The Shelf and AirDrop ship off; the other three ship on and still show their rows only where their app is.
+pub const BUILTINS: [(&str, bool); 5] = [
     (r#"{"schemaVersion":1,"id":"flea.shelf","name":"Shelf","version":"0.4.0","author":"Flea","license":"MIT",
 "description":"Collect files from anywhere into one pile on the bar.","kinds":["shelf"],
 "shelf":{"omarchyPlugin":"io.github.thisisgm.flea-shelf","glyph":"shelf"},
@@ -19,6 +20,11 @@ pub const BUILTINS: [(&str, bool); 4] = [
 "description":"Move files into your Dropbox folder.","kinds":["send-target","place"],
 "sendTargets":{"label":"Dropbox","glyph":"dropbox"},"place":{"label":"Dropbox","glyph":"dropbox"},
 "access":["write:selection","folder"]}"#, true),
+    // AirDrop runs the owly the user installed (https://github.com/t4t5/owly, MIT, by Tristan, @t4t5).
+    (r#"{"schemaVersion":1,"id":"flea.airdrop","name":"AirDrop","version":"0.4.0","author":"Flea","license":"MIT",
+"description":"Share files with iPhones, iPads and Macs nearby.","kinds":["send-target"],
+"sendTargets":{"label":"AirDrop","glyph":"airdrop"},"access":["airdrop:send","airdrop:wifi","airdrop:receive"],
+"schema":[{"key":"folder","type":"string","label":"Save received files to","defaultValue":""}]}"#, false),
 ];
 
 pub fn manifests() -> Vec<(Manifest, bool)> {

@@ -1,5 +1,7 @@
 //! The lazy Settings and keyboard-sheet mounts, shared settings writer, and per-window state.
 mod actions;
+#[cfg(test)]
+mod airdrop_tests;
 mod apply;
 mod claim;
 #[cfg(test)]
@@ -50,6 +52,7 @@ pub(crate) struct Host {
     pub sheet: Option<Entity<SheetView>>,
     pub opened: bool,
     pub plugins: Option<Entity<crate::g2::st2::view::PluginsPane>>,
+    pub plugins_shown: bool,
     pub plugin_queue: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
     pub plugin_backends: [bool; 2],
     pub patches: store::Patches,
@@ -287,6 +290,8 @@ impl Shell {
             self.sync_settings_user_keys(cx);
         }
         self.settings.opened = true;
+        // Every opening is a new showing, since a close runs its last sync while Settings still shows.
+        self.settings.plugins_shown = false;
         let view = self.settings.panel.clone().expect("settings built");
         view.update(cx, |view, cx| {
             view.panel.facts.pane_path = pane_path;

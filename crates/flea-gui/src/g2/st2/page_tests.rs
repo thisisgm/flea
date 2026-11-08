@@ -100,7 +100,7 @@ fn outcome(id: u64, op: &str, plugin: &str, error: Option<Invalid>, version: &st
     })
 }
 
-fn labels(page: &PluginsPage) -> Vec<String> {
+pub(super) fn labels(page: &PluginsPage) -> Vec<String> {
     page.rows()
         .iter()
         .map(|r| match r {
@@ -127,14 +127,14 @@ fn cursor_id(page: &PluginsPage) -> String {
     page.rows()[page.cursor().unwrap()].id().to_string()
 }
 
-fn opened(wire: &Recorder, plugins: Vec<Plugin>) -> PluginsPage {
+pub(super) fn opened(wire: &Recorder, plugins: Vec<Plugin>) -> PluginsPage {
     let mut page = PluginsPage::new(english());
     page.start(wire);
     assert!(page.receive(&listing(wire.last_id(), plugins)));
     page
 }
 
-fn go(page: &mut PluginsPage, wire: &Recorder, id: &str) {
+pub(super) fn go(page: &mut PluginsPage, wire: &Recorder, id: &str) {
     let index = page
         .rows()
         .iter()
@@ -166,8 +166,8 @@ fn st2_gui_the_installed_list_is_the_board_and_ships_the_shelf_off() {
     );
     assert!(page.receive(&listing(1, builtins("{}"))));
     assert_eq!(
-        labels(&page),
-        ["#Installed", "Shelf", "LocalSend", "Tailscale", "Dropbox"]
+        labels(&page).join(" "),
+        "#Installed Shelf LocalSend Tailscale Dropbox AirDrop"
     );
     assert_eq!(page.title(), "Plugins");
     let on: Vec<bool> = page
@@ -180,8 +180,8 @@ fn st2_gui_the_installed_list_is_the_board_and_ships_the_shelf_off() {
         .collect();
     assert_eq!(
         on,
-        [false, true, true, true],
-        "LocalSend, Tailscale and Dropbox on, the Shelf off"
+        [false, true, true, true, false],
+        "LocalSend, Tailscale and Dropbox on, the Shelf and AirDrop off"
     );
     assert!(matches!(&page.rows()[0], Row::Group { action: Some(a), .. } if a == "Add Plugin…"));
     assert_eq!(
@@ -260,7 +260,7 @@ fn st2_gui_stale_malformed_and_unasked_replies_change_nothing() {
         !page.receive(&outcome(77, "add", "a.b", None, "")),
         "an outcome nobody asked for is dropped"
     );
-    assert_eq!(labels(&page).len(), 5);
+    assert_eq!(labels(&page).len(), 6);
 }
 
 #[test]
@@ -485,7 +485,7 @@ fn st2_gui_remove_asks_first_then_returns_to_the_list() {
     assert!(page.receive(&listing(3, builtins("{}"))));
     assert_eq!(
         (page.title().as_str(), labels(&page).len(), page.card()),
-        ("Plugins", 5, &Card::None)
+        ("Plugins", 6, &Card::None)
     );
 }
 
@@ -498,7 +498,7 @@ fn st2_gui_a_failed_plugin_keeps_its_row_word_and_page() {
         Some(Invalid::new("start", "bin/flea-checksums")),
     ));
     let mut page = opened(&wire, plugins);
-    assert_eq!(labels(&page)[5], "Checksums (failed to start)");
+    assert_eq!(labels(&page)[6], "Checksums (failed to start)");
     go(&mut page, &wire, "mtorvik.checksums");
     page.key(Key::Enter, &wire);
     assert_eq!(
