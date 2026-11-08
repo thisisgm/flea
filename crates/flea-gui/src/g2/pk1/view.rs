@@ -265,7 +265,7 @@ impl Render for Picker {
                     )
                     .children(requester),
             );
-        // Where the Save As field would be cut, the caller's filter takes its own row above the answers.
+        // Where the leading controls would crowd the answers, the filter takes its own row above them.
         let filter_row = if self.filter_stacks(window, cx) {
             self.filter_trigger(&palette, window, cx).map(|trigger| {
                 div()

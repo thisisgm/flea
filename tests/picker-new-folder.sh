@@ -22,6 +22,6 @@ rc=$?
 set -e
 [ "$rc" -eq 0 ] || { tail -60 "$log" >&2; printf 'picker-new-folder: FAIL tests exited %s\n' "$rc"; exit 1; }
 count=$(sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$log" | head -1)
-expected=16
+expected=18
 [ "${count:-0}" -eq "$expected" ] || { tail -40 "$log" >&2; printf 'picker-new-folder: FAIL only %s of %s checks ran\n' "${count:-0}" "$expected"; exit 1; }
 printf 'PICKER-NEW-FOLDER PASS %s checks\n' "$count"
