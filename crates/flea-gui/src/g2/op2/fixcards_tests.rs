@@ -1,6 +1,6 @@
 //! EY-483: the Compress card's unselected Format chip reads in Theme.color.muted, lighter than the chosen one on Latte.
 use super::cards::Tokens;
-use super::draw::chip_ink;
+use super::draw_controls::chip_ink;
 use crate::list::Palette;
 use crate::palette::Theme;
 use gpui::{Hsla, Rgba};

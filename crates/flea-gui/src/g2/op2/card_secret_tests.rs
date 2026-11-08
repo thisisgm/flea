@@ -128,7 +128,7 @@ fn secret_field_debug_never_prints_the_value() {
 
 #[test]
 fn focused_chip_frames_in_the_accent() {
-    use super::super::draw::chip_frame;
+    use super::super::draw_controls::chip_frame;
     let theme = crate::palette::Theme::from_text(
         "background='#1a1b26'\nforeground='#a9b1d6'\naccent='#7aa2f7'",
     );
