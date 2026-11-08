@@ -89,6 +89,12 @@ A GUI run that never asks for thumbnails (the scale fixture) does not touch this
 - **`drm_kb`**: GPU-resident system memory from `/proc/<pid>/fdinfo/*` (`drm-resident-system0`),
   de-duplicated by DRM client id since several file descriptors can share one client. This is
   memory PSS cannot see at all, so it is read once after settle rather than polled.
+  NVIDIA's proprietary driver publishes no `drm-resident` key, so a process holding an NVIDIA GPU
+  node (`/dev/nvidiaN`) also adds the driver's own per-process `used_memory` from
+  `nvidia-smi --query-compute-apps`, which is video memory rather than system memory. Without
+  that, a GPUI entrant rendering on NVIDIA reads as the `0` of the idle iGPU client it opened while
+  enumerating adapters. When the driver does not list the process, the column is `unmeasurable`,
+  never a total that leaves the NVIDIA device out.
   **A quickshell process resident on the bench box shares its Qt libraries with any Qt entrant
   launched afterward**, so a Qt entrant's PSS is charged roughly half of what those libraries
   would cost in isolation, while a GTK entrant's libraries are shared with nothing and charged in
