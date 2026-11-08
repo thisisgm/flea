@@ -102,6 +102,8 @@ mod save_enabled_tests;
 #[cfg(test)]
 mod save_field_pointer_tests;
 #[cfg(test)]
+mod side_button_tests;
+#[cfg(test)]
 mod word_click_tests;
 
 #[cfg(test)]

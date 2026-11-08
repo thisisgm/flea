@@ -1753,3 +1753,7 @@ Joining the mount Trash contribution with FX-SEARCHKEEP records `src/backend/mod
 ## Search scope initialization
 
 Opening search in the current folder adds one scope assignment and its comment at the existing fresh-open boundary in `crates/flea-gui/src/window/search.rs`. Registering the separate regression module brings the file to 369 lines, measured with `wc -l`, so its recorded composition ceiling moves from 368 to 369, below the 400-line Rust hard cap. The navigation, scope-history and dual-pane regression bodies remain in separate test files. This ceiling covers only this initialization and test wiring.
+
+## Chooser mouse side buttons
+
+The chooser's root takes the mouse side buttons with one `capture_any_mouse_down` line beside its existing pointer handlers, so `crates/flea-gui/src/g2/picker_portal/view.rs` moves from 408 to 409 lines, measured with `wc -l`. The handler, its refusals and the forward history live in `pointer.rs` and `navigation.rs`, both under the soft budget, and the tests in their own `side_button_tests.rs`. Global limits are unchanged.

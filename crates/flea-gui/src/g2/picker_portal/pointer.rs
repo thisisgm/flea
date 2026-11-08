@@ -97,6 +97,33 @@ impl Picker {
         cx.stop_propagation();
     }
 
+    // The mouse side buttons follow the main window's pointer rows in keys.toml: Back goes back or up, Forward retraces a Back.
+    pub(super) fn side_button(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !matches!(event.button, MouseButton::Navigate(_))
+            || self.pointer_blocked()
+            || self.accept_state().collision_review()
+            || self.browse.path_view(cx).read(cx).holds_keyboard(window)
+        {
+            return;
+        }
+        let Some(binding) = crate::window::input::pointer("window", "any", event) else {
+            return;
+        };
+        match binding.effect {
+            "backOrParent" if self.chrome.history.is_empty() => self.go_up(cx),
+            "backOrParent" => self.go_back(cx),
+            "forward" => self.go_forward(cx),
+            _ => return,
+        }
+        // The press is the window's, so a row under it never takes it for a click.
+        cx.stop_propagation();
+    }
+
     pub(super) fn listing_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {
         if self.pointer_blocked() || event.touch_phase == TouchPhase::Cancelled {
             return;

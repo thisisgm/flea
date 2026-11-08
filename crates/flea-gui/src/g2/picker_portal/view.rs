@@ -374,6 +374,7 @@ impl Render for Picker {
             .track_focus(&self.focus)
             .key_context("Picker")
             .on_key_down(cx.listener(Self::key))
+            .capture_any_mouse_down(cx.listener(Self::side_button))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::row_pointer))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::header_release))
             .child(title)

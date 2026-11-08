@@ -16,7 +16,9 @@ pub struct Chrome {
     pub answer: FocusHandle,
     pub new_folder: FocusHandle,
     pub history: Vec<String>,
-    pub backing: bool,
+    // The folders a Back left, which the mouse forward button retraces; any other folder change clears them.
+    pub ahead: Vec<String>,
+    pub travel: super::navigation::Travel,
     pub menu: Option<usize>,
     pub menu_view: Option<Entity<crate::g2::picker_listing::chrome::ChipMenu>>,
     // The last chip menu, kept drawn through its 140 ms close fade.
@@ -56,7 +58,8 @@ impl Chrome {
             answer: cx.focus_handle(),
             new_folder: cx.focus_handle(),
             history: Vec::new(),
-            backing: false,
+            ahead: Vec::new(),
+            travel: Default::default(),
             menu: None,
             menu_view: None,
             menu_closing: None,
