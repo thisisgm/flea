@@ -63,6 +63,7 @@ optdepends=(
   'imagemagick: image conversion'
   'libarchive: archive listing and extraction'
   'libreoffice: office document previews'
+  'owly: AirDrop sending and receiving'
   'tailscale: Taildrop sharing'
   'vulkan-swrast: software rendering on a GPU without a Vulkan driver'
   'zoxide: frecent folders in the folder jump of the path bar'
