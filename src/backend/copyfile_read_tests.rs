@@ -113,11 +113,12 @@ struct LiveRead {
 
 impl Read for LiveRead {
     fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        // The end of the source is held too, so the copy cannot take its name between checks.
+        self.entered.send((self.step, buffer.as_ptr() as usize, buffer.len())).unwrap();
+        self.release.recv().unwrap();
         if self.step == 3 {
             return Ok(0);
         }
-        self.entered.send((self.step, buffer.as_ptr() as usize, buffer.len())).unwrap();
-        self.release.recv().unwrap();
         buffer[..4].fill(b'a' + self.step);
         self.step += 1;
         Ok(4)
@@ -154,6 +155,10 @@ fn a_slow_live_source_reports_each_chunk_before_its_next_read_finishes() {
         assert!(!dst.exists(), "the name stays absent until the copy is whole");
         assert_eq!(std::fs::metadata(staged_in(d.path()).unwrap()).unwrap().len(), u64::from(step + 1) * 4);
     }
+    let (reading, _, _) = waiting.recv_timeout(SETUP_BOUND).expect("the copy asks for the end of the source");
+    assert_eq!(reading, 3);
+    assert!(!dst.exists(), "the name stays absent until the source has ended");
+    release.send(()).unwrap();
     worker.join().unwrap().expect("the slow source finishes normally");
     assert_eq!(std::fs::read_to_string(&dst).unwrap(), "aaaabbbbcccc");
 }
