@@ -1099,6 +1099,7 @@ FocusScope {
         // Scripts, send peers and the shebang are requested only when a row menu opens.
         onSnapshotRequested: { menuActions.snapshot(); Flea.Scripts.refresh(); menuActions.localSend.refresh(menu.localSend.installed); root.checkShebang(); if (root.canTag) root.tags().ask() }
         onRefused: function(reason) { root.message(reason, true) }
+        onNoticed: function(text) { root.message(text, false) }
         rowIsArchive: root.menuValuesLive && root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
         // Flash to drive reads the name, not the icon: only the name carries the ledger's suffixes.

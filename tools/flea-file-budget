@@ -243,7 +243,7 @@ ui/MenuActionDialog.qml 396
 ui/ChromeBar.qml 352
 ui/ColumnsArea.qml 594
 ui/ColumnPane.qml 463
-ui/ContextMenu.qml 740
+ui/ContextMenu.qml 743
 ui/ConvertDialog.qml 456
 ui/GridArea.qml 667
 ui/Ipc.qml 1005
@@ -266,7 +266,7 @@ ui/NetworkDialog.qml 435
 ui/NetworkForm.qml 426
 ui/NetworkMounts.qml 913
 ui/OpenWithDialog.qml 613
-ui/Pane.qml 1235
+ui/Pane.qml 1236
 ui/PaneMenuActions.qml 526
 ui/PaneWire.qml 602
 ui/PermissionsDialog.qml 658

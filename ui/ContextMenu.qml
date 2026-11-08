@@ -15,6 +15,7 @@ Item {
     // Row actions, provider leaves and header choices share this signal, routed by Pane.
     signal chosen(string action)
     signal refused(string reason)
+    signal noticed(string text)
     signal snapshotRequested()
 
     property bool opened: false
@@ -265,6 +266,8 @@ Item {
         root.lockedPath = path
         root.lockedMode = mode
         root.place(scenePoint)
+        var notice = LockedMenu.lockedNotice({ hiddenActions: ViewState.menuHidden })
+        if (notice.length > 0) root.noticed(notice)
     }
 
     // ui/Sidebar.qml's own entrance to this same menu: the rail hands in its rows and the key that

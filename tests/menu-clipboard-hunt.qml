@@ -223,7 +223,8 @@ ShellRoot {
             pane.searchHere = true
             Search.start(pane)
             pane.searchQuery = "txt"
-            Search.run(pane)
+            Search.sendQuery(pane)
+            Search.commit(pane)
             stage = 22
             ticks = 0
         } else if (stage === 22 && !pane.searchRunning && pane.searchMode === "results"

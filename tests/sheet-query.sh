@@ -72,8 +72,9 @@ pane_root="$test_root/pane"
 mkdir -p "$pane_root"/{home,config,state,data,cache,runtime} "$pane_root/home/fixture" || exit 1
 chmod 700 "$pane_root/runtime" || exit 1
 for name in a-special.txt b.txt c.txt d.txt; do printf 'sheet query fixture\n' > "$pane_root/home/fixture/$name"; done
+# The shipped list shows Permissions, so the profile hides it on top of that list for the hidden-row checks.
 env HOME="$pane_root/home" XDG_STATE_HOME="$pane_root/state" "$bin" --ui-state \
-    '{"view":"list","keys":"default","preview":{"column":false,"thumbnails":"off"},"updates":{"autoCheck":false},"display":{"textSize":{"mode":14}}}' >/dev/null || exit 1
+    '{"view":"list","keys":"default","preview":{"column":false,"thumbnails":"off"},"updates":{"autoCheck":false},"display":{"textSize":{"mode":14}},"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","permissions","copyAs","pasteAs","invertSelection","extThumbs","run","openAsText","openAgent","toggleHidden","toggleLangMarks"]}}' >/dev/null || exit 1
 ln -s "$PWD/ui" "$pane_root/config/flea" || exit 1
 headless_commons "$pane_root" || exit 1
 ln -s "$(readlink -f ui/boot/Ui)" "$pane_root/config/Ui" || exit 1

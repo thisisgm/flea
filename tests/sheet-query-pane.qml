@@ -114,7 +114,7 @@ ShellRoot {
         } else if (stage === "open") {
             if (!idle() && !timedOut) return
             if (caseIndex === 0)
-                check("the profile hides " + hiddenAction + " as shipped", pane.contextMenu().listingContext().hiddenActions.indexOf(hiddenAction) >= 0, true)
+                check("the profile hides " + hiddenAction, pane.contextMenu().listingContext().hiddenActions.indexOf(hiddenAction) >= 0, true)
             pane.setCursor(cursorRow)
             pane.listArea.forceActiveFocus()
             lastMessage = ""
