@@ -1,0 +1,43 @@
+# Flea 0.4.1
+
+- Send files to nearby Apple devices with the AirDrop plugin, off by default, built on [owly](https://github.com/t4t5/owly/releases/tag/v0.4.0) by @t4t5, and accept incoming files from a notification; it needs a supported Wi-Fi card and the owly package (#369, @netmojo).
+- Show Properties and Permissions in the file menu, with Show Hidden Files and Hide Code Icons moved to the background menu; a customized menu list is kept, and Settings > Menus brings either row back.
+- Copy paths relative to the listed folder with Relative Path in the Copy As flyout (#296, @root1945).
+- List nearby hosts on Network's + when Settings > Places > List nearby hosts when adding a share is on, off by default (#343, @gdeyoung; #32, @nixfred).
+- Select filename text by dragging while renaming, and select a word with a double-click in every text field (#396, @k-kostin).
+- Open or close every marked folder in place with > and <, and toggle a folder from its mark without moving the cursor or a flicker (#412, @muellan).
+- Name a new folder in the Save chooser before it is made (#417, @MrVoicer; #304, @OldJobobo).
+- Enable Save for the caller's file name when the Save chooser starts in an empty folder (#428, @vitonique).
+- Open the first window faster (#381, @chrispository).
+- Play 4K HDR video previews at full frame rate.
+- Stop waking an idle NVIDIA GPU on hybrid laptops while it drives no display, unless FLEA_VK_KEEP_NVIDIA=1 is set (#376, @neuromante).
+- Keep Trash rows drawn while scrolling, on a refresh and when Trash changes (#422, #423, @Loafer19).
+- Draw Columns rows at the chosen Row density (#388, @brianblakely).
+- Keep TUI folder sizes across tab switches, and walk a folder again only after it changes (#390, @brianblakely).
+- Stop Tab and clicks from focusing an empty TUI preview, so q still quits (#389, @brianblakely).
+- Show Git marks on rows inside folders opened in place (#411, @muellan).
+- Make Highlight today's dates take effect, and refresh it at midnight (#427, @muellan; #408, @filip-spaldon).
+- Reach the Flash image row from the keyboard when Flash opens from a drive, and say why the image chooser failed (#416, #415, @simonhull).
+- Close 0.3.12 windows on their own when updating under a Lua-configured Hyprland session (#414, @simonhull).
+- Act on the highlighted row with one Enter in the Find and Filter lines.
+- Give a copied file or folder its final name only once it is whole, so quitting mid-copy leaves no partial file.
+- Find LocalSend peers, send and cancel reliably, including large sends and many files.
+- Finish office document previews, large spreadsheets included, by converting the first 30 pages for the preview.
+- Keep the item count and bytes in step on the extraction card, and show a time left only when it can be estimated.
+- Close the Compress and Extract password cards and the Settings > Plugins Add and Remove cards with a Cancel click.
+- Answer clicks on the Compress format chips, the Encrypt checkbox and the Compress and Extract fields.
+- Decode large PNGs faster in Quick Look, and keep the shown item until the next one is ready instead of fading.
+- Keep a file drag alive across a workspace switch in List, Columns and Grid.
+- Keep the remembered sort direction when switching back to a tab.
+- Draw a grey list cursor in inactive windows.
+- Keep each tag's own hue on every theme, so red, orange and yellow tags no longer draw green on Hackerman.
+- Translate sidebar place names on a live language switch, the Projects row included.
+- Name vulkan-swrast in the user's language when no graphics driver can open a window, and list each refused adapter on stderr.
+- Restore the copy card's spinner, held still and dimmed while a job waits.
+- Open the sign-in fields when an SMB share lists nothing without credentials.
+- Place the Grid cursor the same way every time a filter clears.
+- Show the half-row cue in a small Copy As menu, and restore the word spacing in the HTML Source header.
+- Use one Russian word for Select in the key sheet and the TUI.
+- Read NVIDIA GPU memory from the driver in the field benchmark (#380, @nchudleigh).
+
+Thanks to @brianblakely, @chrispository, @filip-spaldon, @gdeyoung, @k-kostin, @Loafer19, @MrVoicer, @muellan, @nchudleigh, @netmojo, @neuromante, @nixfred, @OldJobobo, @root1945, @simonhull, @t4t5 and @vitonique.

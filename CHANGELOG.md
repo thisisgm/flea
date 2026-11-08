@@ -1,3 +1,47 @@
+# Flea 0.4.1
+
+- The AirDrop plugin, off by default, sends files to nearby Apple devices and accepts incoming files from a notification; it is built on [owly](https://github.com/t4t5/owly/releases/tag/v0.4.0) by @t4t5 and needs a supported Wi-Fi card and the owly package (#369, @netmojo).
+- The file menu shows Properties and Permissions, Show Hidden Files and Hide Code Icons move to the background menu, a customized menu list is kept, and Settings > Menus brings either row back.
+- Relative Path in the Copy As flyout copies paths relative to the listed folder (#296, @root1945).
+- Network's + lists nearby hosts when Settings > Places > List nearby hosts when adding a share is on, off by default (#343, @gdeyoung; #32, @nixfred).
+- Dragging while renaming selects filename text, and a double-click selects a word in every text field (#396, @k-kostin).
+- The > and < keys open or close every marked folder in place, and a folder toggles from its mark without moving the cursor or a flicker (#412, @muellan).
+- The Save chooser names a new folder before it is made (#417, @MrVoicer; #304, @OldJobobo).
+- Save is enabled for the caller's file name when the Save chooser starts in an empty folder (#428, @vitonique).
+- The first window opens faster (#381, @chrispository).
+- 4K HDR video previews play at full frame rate.
+- An idle NVIDIA GPU on a hybrid laptop stays suspended while it drives no display, unless FLEA_VK_KEEP_NVIDIA=1 is set (#376, @neuromante).
+- Trash rows stay drawn while scrolling, on a refresh and when Trash changes (#422, #423, @Loafer19).
+- Columns rows draw at the chosen Row density (#388, @brianblakely).
+- TUI folder sizes survive tab switches, and a folder is walked again only after it changes (#390, @brianblakely).
+- Tab and clicks stay off an empty TUI preview, so q still quits (#389, @brianblakely).
+- Git marks show on rows inside folders opened in place (#411, @muellan).
+- Highlight today's dates takes effect and refreshes at midnight (#427, @muellan; #408, @filip-spaldon).
+- The Flash image row is reachable from the keyboard when Flash opens from a drive, and the image chooser says why it failed (#416, #415, @simonhull).
+- Updating under a Lua-configured Hyprland session closes 0.3.12 windows (#414, @simonhull).
+- One Enter in the Find and Filter lines acts on the highlighted row.
+- A copied file or folder takes its final name only once it is whole, so quitting mid-copy leaves no partial file.
+- LocalSend finds peers, sends and cancels reliably, including large sends and many files.
+- Office document previews finish, large spreadsheets included, by converting the first 30 pages for the preview.
+- The extraction card keeps the item count and bytes in step and shows a time left only when it can be estimated.
+- A Cancel click closes the Compress and Extract password cards and the Settings > Plugins Add and Remove cards.
+- The Compress format chips, the Encrypt checkbox and the Compress and Extract fields answer clicks.
+- Quick Look decodes large PNGs faster and keeps the shown item until the next one is ready instead of fading.
+- A file drag survives a workspace switch in List, Columns and Grid.
+- Switching back to a tab keeps its remembered sort direction.
+- Inactive windows draw a grey list cursor.
+- Each tag keeps its own hue on every theme, so red, orange and yellow tags no longer draw green on Hackerman.
+- A live language switch translates sidebar place names, the Projects row included.
+- When no graphics driver can open a window, Flea names vulkan-swrast in the user's language and lists each refused adapter on stderr.
+- The copy card's spinner is back, held still and dimmed while a job waits.
+- The sign-in fields open when an SMB share lists nothing without credentials.
+- The Grid cursor lands in the same place every time a filter clears.
+- A small Copy As menu shows the half-row cue, and the HTML Source header has its word spacing back.
+- The key sheet and the TUI use one Russian word for Select.
+- The field benchmark reads NVIDIA GPU memory from the driver (#380, @nchudleigh).
+
+Thanks to @brianblakely, @chrispository, @filip-spaldon, @gdeyoung, @k-kostin, @Loafer19, @MrVoicer, @muellan, @nchudleigh, @netmojo, @neuromante, @nixfred, @OldJobobo, @root1945, @simonhull, @t4t5 and @vitonique.
+
 # Flea 0.4.0
 
 - Flea's window is drawn by a new GPU renderer built on GPUI, with every view, card, menu, preview and dialog of 0.3.12 carried over. Machines without a working Vulkan driver fall back to software Vulkan and then OpenGL, and when no renderer can open a window Flea says so and points to flea --tui.
