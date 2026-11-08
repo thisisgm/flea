@@ -29,13 +29,26 @@ fn wait_drained(
     }
 }
 
-// A killed child is reaped off the worker thread, so Drained can come first; a zombie keeps its /proc entry until then.
+// Below the EOF test child's 20 s sleep, so a child that was never killed still fails.
+const REAP_DEADLINE: Duration = Duration::from_secs(5);
+const REAP_POLL: Duration = Duration::from_millis(5);
+
+// After a stdin close the worker waits for the child, so it is gone before Drained.
 fn assert_reaped(root: &std::path::Path) {
     let pid = std::fs::read_to_string(root.join("ready")).unwrap();
-    let deadline = Instant::now() + Duration::from_secs(5);
+    assert!(
+        !PathBuf::from(format!("/proc/{pid}")).exists(),
+        "backend {pid} was not reaped"
+    );
+}
+
+// Any other end may reap off the worker thread after Drained; a zombie keeps its /proc entry until then.
+fn wait_reaped(root: &std::path::Path) {
+    let pid = std::fs::read_to_string(root.join("ready")).unwrap();
+    let deadline = Instant::now() + REAP_DEADLINE;
     while PathBuf::from(format!("/proc/{pid}")).exists() {
         assert!(Instant::now() < deadline, "backend {pid} was not reaped");
-        std::thread::sleep(Duration::from_millis(5));
+        std::thread::sleep(REAP_POLL);
     }
 }
 
@@ -63,7 +76,7 @@ fn quit_deadline_covers_a_backend_that_stops_reading_requests() {
         bounded.is_some()
     );
     assert!(cleaned, "fixture backend did not finish after release");
-    assert_reaped(&root);
+    wait_reaped(&root);
     assert!(
         bounded.is_some(),
         "quit never reached its 30-second deadline while the writer was blocked"
@@ -110,7 +123,7 @@ fn quit_prioritizes_queued_windows_and_drains_every_reply() {
         .parse()
         .unwrap();
     assert!(windows < 20_000, "quit followed all queued windows");
-    assert_reaped(&root);
+    wait_reaped(&root);
     eprintln!("readable child: windows before quit={windows}/20000, replies drained={received}");
 }
 
@@ -162,7 +175,7 @@ fn unexpected_eof_reaps_a_child_that_has_not_exited() {
         wait_drained(&backend.replies, Duration::from_secs(5)).unwrap(),
         ["window.backend_eof"]
     );
-    assert_reaped(&root);
+    wait_reaped(&root);
 }
 
 #[test]
@@ -199,7 +212,7 @@ fn quit_cancels_a_reader_when_an_inherited_stdout_remains_open() {
         bounded.is_some() || wait_drained(&backend.replies, Duration::from_secs(5)).is_some();
     wait_file(&root.join("released"));
     assert!(cleaned, "fixture did not finish after stdout release");
-    assert_reaped(&root);
+    wait_reaped(&root);
     assert_eq!(bounded.unwrap(), ["window.backend_timeout"]);
     eprintln!("inherited stdout: worker released after {elapsed:?}, child reaped");
 }
