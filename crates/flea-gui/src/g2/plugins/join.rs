@@ -35,7 +35,7 @@ impl Shell {
             &host,
             window,
             |shell, _, _: &super::Closed, _, cx| {
-                if let Some(view) = &shell.settings.plugins {
+                if let Some(view) = &shell.settings.plugins.pane {
                     view.update(cx, |view, cx| view.backend_failed(cx));
                 }
             },
@@ -75,7 +75,7 @@ impl Shell {
         if let Some(host) = &self.plugins.host {
             host.read(cx).refresh();
         }
-        if let Some(view) = &self.settings.plugins {
+        if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.refresh(cx));
         }
     }

@@ -12,7 +12,12 @@ fn settings_reopened_on_plugins_refreshes_airdrops_page(cx: &mut TestAppContext)
         let panel = shell.settings.panel.clone().expect("Settings is built");
         panel.update(cx, |view, _| view.panel.show_section("plugins"));
         shell.sync_settings(window, cx);
-        let view = shell.settings.plugins.clone().expect("Plugins is showing");
+        let view = shell
+            .settings
+            .plugins
+            .pane
+            .clone()
+            .expect("Plugins is showing");
         let stale = Page {
             shown_as: "stale".into(),
             ..Default::default()

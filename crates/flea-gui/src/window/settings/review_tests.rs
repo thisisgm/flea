@@ -201,7 +201,7 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
             });
         shell.sync_settings_plugins(window, cx);
         shell.settings_plugins_reply(r#"{"t":"plugins","id":1,"plugins":[]}"#, cx);
-        let plugin = shell.settings.plugins.as_ref().unwrap();
+        let plugin = shell.settings.plugins.pane.as_ref().unwrap();
         assert!(plugin.read(cx).focus_handle().is_focused(window));
     });
     cx.simulate_keystrokes("tab");
@@ -216,6 +216,7 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
             shell
                 .settings
                 .plugins
+                .pane
                 .as_ref()
                 .unwrap()
                 .read(cx)
@@ -232,7 +233,7 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
     });
     cx.simulate_keystrokes("a b c enter");
     entity.update_in(cx, |shell, window, cx| {
-        let plugin = shell.settings.plugins.as_ref().unwrap().clone();
+        let plugin = shell.settings.plugins.pane.as_ref().unwrap().clone();
         assert!(matches!(plugin.read(cx).page().card(), Card::Add(card) if card.busy));
         // A pane backend's end is not the plugin owner's, so the card stays busy.
         shell.receive(0, Event::Drained, window, cx);
@@ -241,7 +242,7 @@ fn u11_plugins_focus_card_keys_and_backend_eof_follow_the_mounted_producer(
     owner_output.try_send(Event::Drained).unwrap();
     cx.run_until_parked();
     entity.read_with(cx, |shell, cx| {
-        let plugin = shell.settings.plugins.as_ref().unwrap();
+        let plugin = shell.settings.plugins.pane.as_ref().unwrap();
         assert!(matches!(plugin.read(cx).page().card(), Card::Add(card) if !card.busy));
     });
 }

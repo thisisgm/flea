@@ -14,7 +14,7 @@ fn m9_g2rows_02_search_from_plugins_owns_the_keyboard_and_pane(cx: &mut TestAppC
     cx.simulate_keystrokes(", tab down down enter");
     shell.update_in(cx, |shell, window, cx| {
         shell.sync_settings(window, cx);
-        assert!(shell.settings.plugins.is_some());
+        assert!(shell.settings.plugins.pane.is_some());
         assert_eq!(
             shell
                 .settings

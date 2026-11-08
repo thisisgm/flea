@@ -105,7 +105,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             panel.plugins = Some(view.clone());
             cx.notify();
         });
-        shell.settings.plugins = Some(view);
+        shell.settings.plugins.pane = Some(view);
         panel
     });
     let view = panel.read_with(vcx, |panel, _| panel.plugins.clone().unwrap());

@@ -340,7 +340,7 @@ impl Shell {
             .providers
             .airdrop
             .page(&self.airdrop_folder(), &host_name());
-        if let Some(view) = &self.settings.plugins {
+        if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.set_airdrop(page, cx));
         }
     }
@@ -375,7 +375,7 @@ impl Shell {
                 .await;
             if let Some(path) = chosen {
                 let _ = this.update(cx, |shell, cx| {
-                    if let Some(view) = &shell.settings.plugins {
+                    if let Some(view) = &shell.settings.plugins.pane {
                         view.update(cx, |view, cx| view.set_airdrop_folder(&path, cx));
                     }
                 });

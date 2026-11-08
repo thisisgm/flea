@@ -46,15 +46,21 @@ use crate::{
 use flea::jsondoc::Json;
 use gpui::{AppContext, Context, Entity, Subscription, Task, Window};
 
+// The Plugins page's lazy pane, the showing it last synced in, its queued backend requests and the two backends' readiness.
+#[derive(Default)]
+pub(crate) struct Plugins {
+    pub pane: Option<Entity<crate::g2::st2::view::PluginsPane>>,
+    pub shown: bool,
+    pub queue: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
+    pub backends: [bool; 2],
+}
+
 #[derive(Default)]
 pub(crate) struct Host {
     pub panel: Option<Entity<SettingsView>>,
     pub sheet: Option<Entity<SheetView>>,
     pub opened: bool,
-    pub plugins: Option<Entity<crate::g2::st2::view::PluginsPane>>,
-    pub plugins_shown: bool,
-    pub plugin_queue: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
-    pub plugin_backends: [bool; 2],
+    pub plugins: Plugins,
     pub patches: store::Patches,
     pub pending: Vec<(u64, Json)>,
     // Revisions of Favorites operations the writer has not answered yet.
@@ -191,7 +197,7 @@ impl Shell {
                 cx.notify();
             });
         }
-        if let Some(view) = &self.settings.plugins {
+        if let Some(view) = &self.settings.plugins.pane {
             let theme = cx
                 .try_global::<crate::palette::Theme>()
                 .copied()
@@ -291,7 +297,7 @@ impl Shell {
         }
         self.settings.opened = true;
         // Every opening is a new showing, since a close runs its last sync while Settings still shows.
-        self.settings.plugins_shown = false;
+        self.settings.plugins.shown = false;
         let view = self.settings.panel.clone().expect("settings built");
         view.update(cx, |view, cx| {
             view.panel.facts.pane_path = pane_path;

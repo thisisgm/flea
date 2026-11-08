@@ -2,7 +2,6 @@
 #[cfg(test)]
 mod app_icon_tests;
 pub(crate) mod app_icons;
-mod busy;
 mod delivery;
 mod discovery;
 pub mod element;
