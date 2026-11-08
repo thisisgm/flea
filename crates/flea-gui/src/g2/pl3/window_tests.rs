@@ -8,9 +8,9 @@ use crate::{list::bench::real_cx, window::root::Root};
 use gpui::{TestAppContext, VisualTestContext, WindowHandle};
 use std::time::Duration;
 
-const TOTAL: usize = 200;
+pub(super) const TOTAL: usize = 200;
 
-fn fields(start: usize, count: usize) -> String {
+pub(super) fn fields(start: usize, count: usize) -> String {
     let rows = (start..(start + count).min(TOTAL))
         .map(|index| {
             format!(
@@ -23,7 +23,7 @@ fn fields(start: usize, count: usize) -> String {
 }
 
 // Opens Trash, re-lists it with TOTAL items and returns the held window's row count and the view height.
-fn listed(cx: &mut TestAppContext, window: WindowHandle<Root>) -> (usize, f32) {
+pub(super) fn listed(cx: &mut TestAppContext, window: WindowHandle<Root>) -> (usize, f32) {
     super::join_tests::opened(cx, window);
     let (count, height) = shell(cx, window, |shell, window, cx| {
         let pane = shell.trash.as_ref().unwrap().pane.clone();
@@ -40,7 +40,7 @@ fn listed(cx: &mut TestAppContext, window: WindowHandle<Root>) -> (usize, f32) {
     (count, height)
 }
 
-fn names(cx: &mut TestAppContext, window: WindowHandle<Root>) -> Vec<String> {
+pub(super) fn names(cx: &mut TestAppContext, window: WindowHandle<Root>) -> Vec<String> {
     shell(cx, window, |shell, _, cx| {
         let pane = shell.trash.as_ref().unwrap().pane.read(cx);
         let paint = pane.paint.borrow();

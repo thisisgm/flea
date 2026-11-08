@@ -70,6 +70,8 @@ pub struct View {
     pub initial_action: String,
     pub(super) pending_selection: Option<(usize, Extend)>,
     pub landing: bool,
+    /// The last list went out over held rows, so it and its summary keep those rows drawn; an open clears them first.
+    pub relist: bool,
     pub error_text: Option<String>,
     pub(super) review: Review,
     /// The open delete card, filled by the backend's prepare reply.
@@ -183,6 +185,9 @@ impl View {
         self.pending_op = op.into();
         if op == "restore" || op == "delete" {
             self.operation_active = true;
+        }
+        if op == "list" {
+            self.relist = !self.rows.is_empty();
         }
         if op == "list" || op == "restore" || op == "delete" {
             self.thumbs.reset();
