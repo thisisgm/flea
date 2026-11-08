@@ -51,7 +51,7 @@ extracted top-level sections lead to their section routes.
 - [Thumbnail trace](thumbnail-trace.md#thumbnail-trace)
 - [Thumbnail requests](thumbnail-requests.md#thumbnail-requests)
   - [Thumbnail requests in the GUI](thumbnail-requests.md#thumbnail-requests-in-the-gui)
-- [A drag does not survive a workspace switch](a-drag-does-not-survive-a-workspace-switch.md#a-drag-does-not-survive-a-workspace-switch)
+- [A drag survives a workspace switch](a-drag-survives-a-workspace-switch.md#a-drag-survives-a-workspace-switch)
 - [Drag to Trash](drag-to-trash.md#drag-to-trash)
 - [Backend memory levers that were measured and dropped](backend-memory-levers-that-were-measured-and-dropped.md#backend-memory-levers-that-were-measured-and-dropped)
 - [Write operations and the undo journal](write-operations-and-the-undo-journal.md#write-operations-and-the-undo-journal)

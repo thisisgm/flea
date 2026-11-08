@@ -71,7 +71,6 @@ impl PaneHost {
             ))
         });
         let lifter = cx.entity().downgrade();
-        let payload = cx.entity().downgrade();
         // GridArea.qml shares List's FileDrag: a tile press lifts on travel, and the pane takes its own drop.
         div()
             .id(("pane", side))
@@ -80,12 +79,7 @@ impl PaneHost {
                 let _ = lifter.update(cx, |shell, cx| shell.begin_grid_drag(side, window, cx));
                 flock(cx)
             })
-            .external_drag_payload::<Seed>(move |_, window, cx| {
-                payload.upgrade()?.read(cx).file_drag_payload(window, cx)
-            })
-            .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
-                shell.land_own_drag(side, window, cx);
-            }))
+            .map(|div| Shell::own_file_drag(div, side, cx))
             .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
             .on_mouse_down(
                 MouseButton::Left,

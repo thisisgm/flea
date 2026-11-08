@@ -249,9 +249,9 @@ Each link names the destination of the original top-level section. The
 
 - [Thumbnail requests](docs/architecture/thumbnail-requests.md)
 
-<a id="a-drag-does-not-survive-a-workspace-switch"></a>
+<a id="a-drag-survives-a-workspace-switch"></a>
 
-- [A drag does not survive a workspace switch](docs/architecture/a-drag-does-not-survive-a-workspace-switch.md)
+- [A drag survives a workspace switch](docs/architecture/a-drag-survives-a-workspace-switch.md)
 
 <a id="drag-to-trash"></a>
 
