@@ -80,6 +80,12 @@ mod header_tests;
 #[cfg(test)]
 mod i50_fit_tests;
 #[cfg(test)]
+mod new_folder_layout_tests;
+#[cfg(test)]
+mod new_folder_refusal_tests;
+#[cfg(test)]
+mod new_folder_tests;
+#[cfg(test)]
 mod parity_tests;
 #[cfg(test)]
 mod pointer_row_tests;

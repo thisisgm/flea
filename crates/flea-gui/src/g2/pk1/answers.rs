@@ -35,7 +35,7 @@ impl Picker {
             .items_center()
             .gap(size.px(GAP))
             .text_size(px(size.body));
-        if flea::ui_logic_pk1::saving(&self.req) {
+        if flea::ui_logic_pk1::can_create_folder(&self.req) {
             let focused = self.chrome.new_folder.is_focused(window);
             row = row.child(
                 self.chrome
@@ -144,9 +144,9 @@ impl Picker {
         )
     }
 
-    // A save row too narrow for the whole 300 px field, the trigger and the answers moves the trigger up, as v0.3.12 does.
+    // A filter that would crowd the answers takes its own row; only Save reserves Filename's width.
     pub(super) fn filter_stacks(&self, window: &Window, cx: &gpui::App) -> bool {
-        if !flea::ui_logic_pk1::saving(&self.req) || self.req.filters.is_empty() {
+        if !flea::ui_logic_pk1::can_create_folder(&self.req) || self.req.filters.is_empty() {
             return false;
         }
         // The buttons and label draw in the root's live typeface, never the window's default text style.
@@ -156,25 +156,27 @@ impl Picker {
             shaped_width(window, &font, text, size.body) + 2. * (size.len(BUTTON_SIDE) + FRAME)
         };
         let catalog = &self.locale.catalog;
-        let label: SharedString = catalog.tr("picker.browser.save_as").to_uppercase().into();
-        let tracking = crate::g2::fb1::caption::tracking_for(catalog.language());
-        let label = crate::g2::fb1::caption::measure(
-            label,
-            font.clone(),
-            px(size.caption),
-            px(tracking),
-            window,
-        );
         let gap = size.len(GAP);
+        let filename = if flea::ui_logic_pk1::saving(&self.req) {
+            let label: SharedString = catalog.tr("picker.browser.save_as").to_uppercase().into();
+            let tracking = crate::g2::fb1::caption::tracking_for(catalog.language());
+            let label = crate::g2::fb1::caption::measure(
+                label,
+                font.clone(),
+                px(size.caption),
+                px(tracking),
+                window,
+            );
+            label + gap + FIELD + gap
+        } else {
+            0.
+        };
         let need = 2. * size.len(SIDE)
             + button(catalog.tr("picker.browser.new_folder").into())
             + gap
             + size.len(SPACER)
             + gap
-            + label
-            + gap
-            + FIELD
-            + gap
+            + filename
             + FILTER_WIDTH
             + gap
             + button(self.labels.cancel.clone())

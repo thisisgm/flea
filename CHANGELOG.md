@@ -1,3 +1,7 @@
+# Unreleased
+
+- Directory-selection dialogs move their filter to a separate row when New Folder and the answer buttons would otherwise overlap.
+
 # Flea 0.4.0
 
 - Flea's window is drawn by a new GPU renderer built on GPUI, with every view, card, menu, preview and dialog of 0.3.12 carried over. Machines without a working Vulkan driver fall back to software Vulkan and then OpenGL, and when no renderer can open a window Flea says so and points to flea --tui.

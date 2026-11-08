@@ -159,6 +159,9 @@ impl Picker {
             self.go_up(cx);
         } else if action == "historyBack" {
             self.go_back(cx);
+        } else if action == "newFolder" {
+            // The request's own capability decides; a plain Open-file request creates nothing.
+            self.open_new_folder(window, cx);
         } else if action == "pathBar" {
             // The shared entry opens in key(), before a Grid l can move the cursor.
             return false;

@@ -130,6 +130,7 @@ startup-objects|^startup-objects: 1 passed, 0 failed$|1
 hyprdispatch|^hyprdispatch: 2 checks passed, 0 failed$|1
 hyprdispatch|^hypr-dispatch-proof: [1-9][0-9]* passed, 0 failed$|1
 picker-hunt|^picker-hunt: [1-9][0-9]* phases, 0 failed$|1
+picker-new-folder|^PICKER-NEW-FOLDER PASS 18 checks$|1
 picker-selection|picker-selection QML: [1-9][0-9]* checks, 0 failed$|1
 picker-selection|^picker-runner-check: [1-9][0-9]* checks, 0 failed$|1
 preview-layout-loop|^preview-layout-loop: [1-9][0-9]* cases, 0 binding loops$|1
