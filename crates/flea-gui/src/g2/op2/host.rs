@@ -1,5 +1,6 @@
 //! The window's archive and flash host: menu choices open the cards, every effect reaches the origin backend, replies return by request.
 use super::{
+    cards::Hit,
     compress::{self, Compress},
     draw::StandIn,
     draw_flash::{CancelTap, ClickTap, DownTap, FlashFrame, FlashTaps, HoverTap, StepTap, UpTap},

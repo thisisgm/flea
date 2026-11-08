@@ -114,6 +114,7 @@ impl StandIn {
             s,
             typeface,
             r: radius,
+            press: None,
         };
         let t = draw.t;
         let ink = RowInk {

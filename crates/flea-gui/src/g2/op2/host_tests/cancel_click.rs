@@ -2,7 +2,7 @@
 use super::*;
 use gpui::{point, px, Bounds, Modifiers, MouseButton, Pixels, Point};
 
-fn click(cx: &mut TestAppContext, handle: Handle, at: Point<Pixels>) {
+pub(super) fn click(cx: &mut TestAppContext, handle: Handle, at: Point<Pixels>) {
     let mut visual = VisualTestContext::from_window(handle.into(), cx);
     visual.simulate_mouse_move(at, None, Modifiers::none());
     visual.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
@@ -10,13 +10,17 @@ fn click(cx: &mut TestAppContext, handle: Handle, at: Point<Pixels>) {
     frame(cx, handle);
 }
 
-fn drawn(cx: &mut TestAppContext, handle: Handle, selector: &'static str) -> Bounds<Pixels> {
+pub(super) fn drawn(
+    cx: &mut TestAppContext,
+    handle: Handle,
+    selector: &'static str,
+) -> Bounds<Pixels> {
     VisualTestContext::from_window(handle.into(), cx)
         .debug_bounds(selector)
         .unwrap_or_else(|| panic!("{selector} is drawn"))
 }
 
-fn card_open(cx: &mut TestAppContext, handle: Handle) -> bool {
+pub(super) fn card_open(cx: &mut TestAppContext, handle: Handle) -> bool {
     edit(cx, handle, |shell, _, _| {
         shell.operations.archive.card_open()
     })
@@ -53,7 +57,7 @@ fn archive_lines(requests: &mut impl FnMut() -> Option<String>) -> Vec<String> {
         .collect()
 }
 
-fn compress_card(
+pub(super) fn compress_card(
     cx: &mut TestAppContext,
 ) -> (
     Handle,
@@ -77,7 +81,7 @@ fn compress_card(
     (handle, requests, other)
 }
 
-fn extract_card(
+pub(super) fn extract_card(
     cx: &mut TestAppContext,
 ) -> (
     Handle,

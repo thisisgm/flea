@@ -83,13 +83,13 @@ impl Shell {
                 }
             }
             let eyes = [archive.eye.clone(), archive.confirm_eye.clone()];
-            let press = cx.listener(|shell: &mut Shell, at: &usize, window, cx| {
+            let press = cx.listener(|shell: &mut Shell, hit: &Hit, window, cx| {
                 let catalog = shell.locale.catalog.clone();
                 let archive = &mut shell.operations.archive;
                 let side = archive.card_side;
                 let effects = match archive.compress.as_mut().filter(|card| card.opened()) {
-                    Some(card) => card.press_at(&catalog, *at),
-                    None => archive.extract.press_at(&catalog, *at),
+                    Some(card) => card.click(&catalog, *hit),
+                    None => archive.extract.click(&catalog, *hit),
                 };
                 shell.archive_effects(side, effects, window, cx);
             });
