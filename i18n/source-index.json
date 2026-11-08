@@ -250339,7 +250339,7 @@
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
-    "src/backend/copystage.rs": "5a7d3e118b4382a420359060c29d9051ff9a860fb18b9f970c9480076123fd47",
+    "src/backend/copystage.rs": "47ec253d9f92060c4a7e88ae69e11a31f8ec4188ad55bf3aae363f3578f6313f",
     "src/backend/copysweep.rs": "9118749bb84c9f16ef137d92c4dcb9202831fa43c06256abf7adbcc5d3ab5599",
     "src/backend/created_request.rs": "c1e3983bef2bff19fab1d0a646b8e29c7d5dd1dd74e2bca898630aae9705ef41",
     "src/backend/csvrange.rs": "1b00338fd1b22d9407e2b11cc5cc497bf7b411d072a7c556297d879eb4fb566c",
@@ -251806,8 +251806,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fefcf267ecbae02a27920e2d7f173d35a4e36e06",
-  "source_sha": "fefcf267ecbae02a27920e2d7f173d35a4e36e06",
+  "source_ref_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
+  "source_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,
