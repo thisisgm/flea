@@ -70,6 +70,9 @@ pub(super) fn card(
         body.push(
             caption(scene, catalog.tr("jobs.newfile.working"), palette.muted).into_any_element(),
         );
+    } else {
+        // The rule the TUI's prompt states, in the card's own line under the field.
+        body.push(caption(scene, catalog.tr("prompt.create"), palette.muted).into_any_element());
     }
     let buttons = vec![
         button(
@@ -90,11 +93,6 @@ pub(super) fn card(
             ),
         ),
     ];
-    // The title names what Create will make, as the TUI's create row does: one trailing slash is a folder.
-    let title = if name.ends_with('/') {
-        catalog.tr("prompt.folder")
-    } else {
-        catalog.tr("jobs.newfile.title")
-    };
+    let title = catalog.tr("jobs.newfile.title");
     super::view::shell(scene, Kind::NewFile, window, title, body, buttons)
 }

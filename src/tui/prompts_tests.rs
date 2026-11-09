@@ -91,20 +91,22 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     press(&mut m, &mut w, Key::character('N', "shift"));
     assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens the one create prompt");
     let (cells, _caret) = row(&m);
-    assert_eq!(span(&cells, 0, "New folder").0, theme.muted);
+    // The line states the rule once, as neo-tree's prompt does; the draft never retitles it.
+    const RULE: &str = "Enter name for a new file or directory (dirs end with a \"/\"):";
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted);
+    let field_at = RULE.chars().count() + 1;
     // The suggested name carries the slash that makes Enter a folder, and the whole draft is
     // selected, so it draws in the stem ink until something is typed over it.
-    assert_eq!(span(&cells, 11, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
-    // The label names the entry the draft spells, so dropping the slash turns the row into a file
-    // prompt without touching the suggestion's words (yazi flips "Create:" / "Create (dir):").
+    assert_eq!(span(&cells, field_at, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
+    // Dropping the slash asks for a file without touching the suggestion's words or the line.
     m.editor.as_mut().unwrap().replace("New Folder".into());
     let (cells, _caret) = row(&m);
-    assert_eq!(span(&cells, 0, "New file").0, theme.muted, "no trailing slash names a file");
-    assert_eq!(span(&cells, 9, "New Folder"), (theme.foreground.clone(), theme.field.clone()), "a typed draft draws in the field ink");
-    // And the yazi preset's own file prompt flips the same way.
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted, "no trailing slash keeps the same line");
+    assert_eq!(span(&cells, field_at, "New Folder"), (theme.foreground.clone(), theme.field.clone()), "a typed draft draws in the field ink");
+    // And the yazi preset's own file prompt reads the same line.
     m.editor = Some(Editor::named("newfile", "photos/".into(), m.path.clone()));
     let (cells, _caret) = row(&m);
-    assert_eq!(span(&cells, 0, "New folder").0, theme.muted, "a trailing slash names a folder");
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted, "a trailing slash keeps the same line");
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);
