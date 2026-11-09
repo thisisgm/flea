@@ -186397,7 +186397,7 @@
     },
     {
       "excerpt": "if *name != \"Gray\" && parse(&hex).is_some_and(is_grey) {",
-      "line": 210,
+      "line": 223,
       "literal": "Gray",
       "owner": "controller",
       "path": "src/ui_logic_rail_places/tagtheme.rs",
@@ -253893,7 +253893,7 @@
     "src/ui_logic_rail_places/recentmode.rs": "ce331414d2558a073669adb4ced2109c6b119377cc736f7bd1a7876877a21563",
     "src/ui_logic_rail_places/shelfpile.rs": "388e47ebe8b3afeb37ad59572a1e3cdbae06dd060cb6e02e80e96c6bd0f6c8b7",
     "src/ui_logic_rail_places/tags.rs": "d8121b0ecc3a7fa2ebbf08877cc394b1eb11d544e14f3396b44b17b05a1d3288",
-    "src/ui_logic_rail_places/tagtheme.rs": "e03872bcce40a24bad98b16fbdc7473503ba5cd346a4f749d4c84a7a979f3d13",
+    "src/ui_logic_rail_places/tagtheme.rs": "cdc71c342bb8b0dd31c6fb0ad33cf0fabda364f0aca9820b5039f44b71b786e9",
     "src/ui_logic_rail_places/testing.rs": "a8126f12cb1434e2d2a3381afbd55cd876d698e665fff648fa8d3cc9b8ab960d",
     "src/ui_logic_rail_places/today.rs": "a0ecd5c8d17e9e54d64f1747279b777a2d9fe7003b45c43efa2e836b1b26a8ef",
     "src/ui_logic_rail_places/userdirs.rs": "eeeb3d965840ef51991315be8b7c5f24a099aba77f176425023e69e9a80233cd",
@@ -254538,8 +254538,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "6c116b54407d5bded3089e86dd6bac1f183313c0",
-  "source_sha": "6c116b54407d5bded3089e86dd6bac1f183313c0",
+  "source_ref_sha": "4976cc679a5ca4ee7c51027ebb98640c948058f6",
+  "source_sha": "4976cc679a5ca4ee7c51027ebb98640c948058f6",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1360,
