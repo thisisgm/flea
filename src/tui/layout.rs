@@ -176,7 +176,13 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         }
         if !suffix.is_empty() { parts.push((&theme.muted, suffix.trim_start().into(), 2)); }
     }
-    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.extend(super::prompts::message(m, theme)); }
+    if m.error.is_empty() && m.transfer.is_empty() && !m.message.is_empty() {
+        // A receipt or refusal during Find takes the query's place until it clears, so the results never hide it.
+        if !m.search.is_empty() && m.filter.is_empty() {
+            parts.pop();
+        }
+        parts.extend(super::prompts::message(m, theme));
+    }
     let left_width = parts.iter().map(|(_, s, gap)| text_width(s) + gap).sum::<usize>();
     let mut right = String::new();
     let mut right_width = 0;

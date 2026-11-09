@@ -300,8 +300,8 @@ pub fn draw_properties(out: &mut String, m: &Model, theme: &Theme) {
     }
     buttons(out, theme, &card, &[Button { label: m.i18n.tr("card.close"), default: true, focused: true, enabled: true }]);
 }
-// Keys for the Properties card and the keys sheet: Escape, Enter and ? close, the arrows scroll, a click outside closes.
-pub fn sheet_key(m: &mut Model, key: &Key, map: &Map) -> io::Result<()> {
+// Keys for the Properties card and the keys sheet: Escape, Enter, ? and q close, the listing's motion keys scroll, a click outside closes.
+pub fn sheet_key(m: &mut Model, key: &Key, map: &Map, armed: &str) -> io::Result<()> {
     let card = if m.properties.is_some() { properties_card(m) } else { super::key_sheet::card(m, map) };
     let limit = if m.properties.is_some() { property_rows(m).1.len().saturating_sub(card.shown) } else { super::key_sheet::limit(m, map) };
     let mut close = false;
@@ -310,10 +310,31 @@ pub fn sheet_key(m: &mut Model, key: &Key, map: &Map) -> io::Result<()> {
         if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { m.sheet_top = if pointer.button == WHEEL_UP { m.sheet_top.saturating_sub(1) } else { (m.sheet_top + 1).min(limit) }; }
         else if pointer.button == 0 && !pointer.motion { close = !card.contains(pointer.x, pointer.y) || card.button(pointer.x, pointer.y).is_some(); }
     } else {
-        let action = map.in_context(key, &m.preset, "panel");
-        if matches!(action.as_str(), "escape" | "open") || (key.mods.is_empty() && key.text == "?") { close = true; }
-        else if action == "cursorDown" { m.sheet_top = (m.sheet_top + 1).min(limit); }
-        else if action == "cursorUp" { m.sheet_top = m.sheet_top.saturating_sub(1); }
+        let panel = map.in_context(key, &m.preset, "panel");
+        let action = crate::tui::preview_keys::listing_action(m, key, map, armed, &panel);
+        let page = card.shown.max(1);
+        // The panel's own Escape and Enter close it, and so does the listing's quit key; a listing key that opens or moves elsewhere is consumed.
+        if matches!(panel.as_str(), "escape" | "open")
+            || matches!(action.as_str(), "quit" | "quitNoCwd")
+            || (key.mods.is_empty() && key.text == "?")
+        {
+            close = true;
+        } else if action == "prefix:g" || action == "cursorFirstArm" && armed != action {
+            m.key_arm = action;
+        } else {
+            m.sheet_top = match action.as_str() {
+                "cursorDown" => m.sheet_top + 1,
+                "cursorUp" => m.sheet_top.saturating_sub(1),
+                "pageDown" => m.sheet_top + page,
+                "pageUp" => m.sheet_top.saturating_sub(page),
+                "halfPageDown" => m.sheet_top + (page / 2).max(1),
+                "halfPageUp" => m.sheet_top.saturating_sub((page / 2).max(1)),
+                "first" | "cursorFirst" | "cursorFirstArm" => 0,
+                "last" | "cursorLast" => limit,
+                _ => m.sheet_top,
+            }
+            .min(limit);
+        }
     }
     if close {
         m.sheet = false;

@@ -23,7 +23,8 @@ pub(super) fn names(m: &mut Model, wire: &mut wire::Wire) {
         press(m, wire, key);
     }
     m.editor.as_mut().unwrap().replace("needle-".into());
-    press(m, wire, Key::named("Enter", ""));
+    // Down commits the line and only shows the results; one Enter would also open the first of them.
+    press(m, wire, Key::named("Down", ""));
 }
 fn settled(m: &mut Model, wire: &mut wire::Wire) {
     loop {
@@ -186,13 +187,18 @@ fn tui_contents_fix1_scope_matches_shared_cycle_and_words() {
         shared.scope = Scope::Folder;
         shared.wire.everywhere = everywhere;
         for _ in 0..4 {
+            let home = std::env::var("HOME").unwrap();
+            // Tab takes the shared cycle but skips a scope that searches this folder again: Home outside Home.
+            let here = Session::scope_root("/listing", &home, shared.scope);
             shared.scope = shared.next_scope();
+            if Session::scope_root("/listing", &home, shared.scope) == here {
+                shared.scope = shared.next_scope();
+            }
             press(&mut m, &mut wire, Key::named("Tab", ""));
             assert_eq!(
                 m.find.session.scope, shared.scope,
                 "TUI must use the shared cycle"
             );
-            let home = std::env::var("HOME").unwrap();
             let root = Session::scope_root("/listing", &home, shared.scope);
             let words = scope_label(
                 &m.prompts.i18n,

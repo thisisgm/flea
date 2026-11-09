@@ -1956,7 +1956,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 338,
+      "line": 359,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2540,7 +2540,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }",
-      "line": 139,
+      "line": 167,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2550,7 +2550,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undid\" } else { \"receipt.redid\" }",
-      "line": 184,
+      "line": 212,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2560,7 +2560,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "step",
-      "line": 184,
+      "line": 212,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2570,7 +2570,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }",
-      "line": 185,
+      "line": 213,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2580,7 +2580,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }",
-      "line": 214,
+      "line": 242,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -22340,7 +22340,7 @@
         },
         {
           "excerpt": "let need = total(&sheet.columns).max(text_width(&m.i18n.tr(\"keys.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 238,
+          "line": 243,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22455,14 +22455,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 167,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 258,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22502,14 +22502,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 139,
+          "line": 167,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 258,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22719,14 +22719,14 @@
       "call_sites": [
         {
           "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 337,
+          "line": 365,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 341,
+          "line": 369,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22748,7 +22748,7 @@
       "call_sites": [
         {
           "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 335,
+          "line": 363,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22782,7 +22782,7 @@
       "call_sites": [
         {
           "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&question.name, &folder]) }",
-          "line": 334,
+          "line": 362,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -25602,6 +25602,13 @@
           "path": "crates/flea-gui/src/window/dispatch/original.rs",
           "surface": "gui",
           "usage": "translated-call"
+        },
+        {
+          "excerpt": "m.fail_key(\"dialogs.file.original.missing\");",
+          "line": 110,
+          "path": "src/tui/parity17.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
         }
       ],
       "context": "dialogs.file.original.missing: crates/flea-gui/src/window/dispatch/original.rs:91",
@@ -60990,7 +60997,7 @@
         },
         {
           "excerpt": "m.prompts.i18n.tr_args(\"filter.shown\", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])",
-          "line": 93,
+          "line": 100,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -61112,7 +61119,7 @@
       "call_sites": [
         {
           "excerpt": "else { m.prompts.i18n.tr_args(\"find.found\", &[&m.i18n.locale().format_count(m.total as i64)]) }",
-          "line": 116,
+          "line": 144,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -61136,7 +61143,7 @@
       "call_sites": [
         {
           "excerpt": "if m.searching { m.prompts.i18n.tr_args(\"find.scanning\", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }",
-          "line": 115,
+          "line": 143,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -61161,7 +61168,7 @@
       "call_sites": [
         {
           "excerpt": "m.search = m.prompts.i18n.tr(\"find.starting\");",
-          "line": 113,
+          "line": 115,
           "path": "src/tui/contents.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -72396,14 +72403,14 @@
       "call_sites": [
         {
           "excerpt": "let need = total(&sheet.columns).max(text_width(&m.i18n.tr(\"keys.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 238,
+          "line": 243,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "cards::frame(out, m, theme, &card, &m.i18n.tr(\"keys.title\"));",
-          "line": 252,
+          "line": 257,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -80409,7 +80416,7 @@
         },
         {
           "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 262,
+          "line": 290,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -80431,7 +80438,7 @@
       "call_sites": [
         {
           "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 263,
+          "line": 291,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92182,7 +92189,7 @@
         },
         {
           "excerpt": "return vec![(theme.muted.as_str(), format!(\"{} {}\", i18n.tr(\"prompt.filter\"), m.filter), 0), (theme.foreground.as_str(), shown(m), 2)];",
-          "line": 105,
+          "line": 133,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -92901,14 +92908,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-          "line": 217,
+          "line": 245,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-          "line": 253,
+          "line": 281,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92930,14 +92937,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 242,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 277,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92970,14 +92977,14 @@
       "call_sites": [
         {
           "excerpt": "\"duplicated\" => { record(m, \"duplicate\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.duplicated\")) }",
-          "line": 180,
+          "line": 208,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"duplicated\" => Text::Key(\"receipt.duplicated\"),",
-          "line": 238,
+          "line": 266,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92999,14 +93006,14 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.failed\", &[&i18n.locale().format_count(failed as i64)]))); }",
-          "line": 216,
+          "line": 244,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 278,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93052,14 +93059,14 @@
       "call_sites": [
         {
           "excerpt": "\"made\" => { record(m, \"mkdir\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.made\")) }",
-          "line": 179,
+          "line": 207,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"made\" => Text::Key(\"receipt.made\"),",
-          "line": 237,
+          "line": 265,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93081,14 +93088,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 242,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 277,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93121,14 +93128,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 212,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 271,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93152,14 +93159,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 213,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 272,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93181,14 +93188,14 @@
       "call_sites": [
         {
           "excerpt": "\"renamed\" => { record(m, \"rename\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.renamed\")) }",
-          "line": 178,
+          "line": 206,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"renamed\" => Text::Key(\"receipt.renamed\"),",
-          "line": 236,
+          "line": 264,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93210,14 +93217,14 @@
       "call_sites": [
         {
           "excerpt": "if skipped > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.skipped\", &[&i18n.locale().format_count(skipped as i64)]))); }",
-          "line": 215,
+          "line": 243,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 278,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93241,14 +93248,14 @@
       "call_sites": [
         {
           "excerpt": "let line = m.prompts.i18n.trn(\"receipt.trashed\", ok as i64);",
-          "line": 209,
+          "line": 237,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"trashed\" => Text::Plural(\"receipt.trashed\", ok, vec![]),",
-          "line": 239,
+          "line": 267,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93281,14 +93288,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 184,
+          "line": 212,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 271,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93312,14 +93319,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 185,
+          "line": 213,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 272,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93341,14 +93348,14 @@
       "call_sites": [
         {
           "excerpt": "if m.hints.undo.is_empty() { String::new() } else { format!(\" {}\", m.prompts.i18n.tr_args(\"receipt.undoes\", &[&m.hints.undo])) }",
-          "line": 119,
+          "line": 147,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(\" \"), args(\"receipt.undoes\", vec![Text::from(m.hints.undo.clone())])]) }",
-          "line": 227,
+          "line": 255,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93403,7 +93410,7 @@
         },
         {
           "excerpt": "m.fail_key(\"search.contents.identity\");",
-          "line": 310,
+          "line": 311,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -97579,7 +97586,7 @@
       "call_sites": [
         {
           "excerpt": "\"settings.error.favourites_unread\"",
-          "line": 206,
+          "line": 214,
           "path": "crates/flea-gui/src/window/settings/store.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -97671,7 +97678,7 @@
         },
         {
           "excerpt": ".map_err(|_| Text::Key(\"settings.error.not_saved\"))?;",
-          "line": 21,
+          "line": 19,
           "path": "crates/flea-gui/src/window/settings/store.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -97690,9 +97697,24 @@
       "source_hash": "5a0890b04a14"
     },
     "settings.error.save_session": {
-      "call_sites": [],
+      "call_sites": [
+        {
+          "excerpt": ".send_blocking(Update::Notice(\"settings.error.save_session\"))",
+          "line": 130,
+          "path": "crates/flea-gui/src/window/settings/store.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Ok(()) if held => Some(words::Text::Key(\"settings.error.save_session\")),",
+          "line": 357,
+          "path": "src/tui/mod.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        }
+      ],
       "context": "settings.error.save_session: caller missing; source owner must identify the surface",
-      "coverage": "missing-callsite",
+      "coverage": "occurrence-needs-owner-verification",
       "english": "Could not save settings · changes apply to this session only",
       "kind": "text",
       "omarchy_reference": null,
@@ -97707,9 +97729,16 @@
       "call_sites": [
         {
           "excerpt": "\"settings.error.unreadable\"",
-          "line": 204,
+          "line": 212,
           "path": "crates/flea-gui/src/window/settings/store.rs",
           "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Ok(()) if unreadable => Some(words::Text::Key(\"settings.error.unreadable\")),",
+          "line": 356,
+          "path": "src/tui/mod.rs",
+          "surface": "tui",
           "usage": "key-declaration"
         }
       ],
@@ -102135,7 +102164,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102157,7 +102186,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 190,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102179,14 +102208,14 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Key(\"step.link\"),",
-          "line": 197,
+          "line": 202,
           "path": "src/tui/parity17.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102208,7 +102237,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102230,7 +102259,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 190,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102252,7 +102281,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102274,7 +102303,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 163,
+          "line": 191,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102296,7 +102325,7 @@
       "call_sites": [
         {
           "excerpt": "\"permissions\" => \"step.permissions\", _ => return None,",
-          "line": 164,
+          "line": 192,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102318,7 +102347,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 190,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102340,7 +102369,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 162,
+          "line": 190,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102657,7 +102686,7 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { m.fail_text(super::words::Text::Plural(\"transfer.failed\", failed, vec![])); }",
-          "line": 218,
+          "line": 246,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102837,7 +102866,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 175,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102862,7 +102891,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 175,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102886,7 +102915,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 175,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102911,7 +102940,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 147,
+          "line": 175,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103407,14 +103436,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 230,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![super::words::Text::Cause(why.into())] }));",
-          "line": 204,
+          "line": 232,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103447,14 +103476,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 202,
+          "line": 230,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![super::words::Text::Cause(why.into())] }));",
-          "line": 204,
+          "line": 232,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104215,7 +104244,7 @@
       "call_sites": [
         {
           "excerpt": "model.fail_key(\"tui.actions.no_action_for_that_key_sequence\");",
-          "line": 187,
+          "line": 188,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104305,6 +104334,13 @@
           "excerpt": "\"tui.actions.save_settings\",",
           "line": 882,
           "path": "src/tui/actions.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Err(why) => Some(words::args(\"tui.actions.save_settings\", vec![why.into()])),",
+          "line": 355,
+          "path": "src/tui/mod.rs",
           "surface": "tui",
           "usage": "key-declaration"
         }
@@ -105451,7 +105487,7 @@
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 268,
+          "line": 296,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105480,7 +105516,7 @@
         },
         {
           "excerpt": "if !path.is_absolute() || !meta.is_file() { return Err(super::words::error(\"tui.external_editor.only_a_regular_file_can_be_edited\")); }",
-          "line": 23,
+          "line": 48,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105502,7 +105538,7 @@
       "call_sites": [
         {
           "excerpt": "let selected = selected.ok_or_else(|| super::words::error(\"tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal\"))?;",
-          "line": 20,
+          "line": 45,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105524,7 +105560,7 @@
       "call_sites": [
         {
           "excerpt": "if quote.is_some() || escaped { return Err(super::words::error(\"tui.external_editor.the_editor_command_has_an_unfinished_quote_or_escape\")); }",
-          "line": 52,
+          "line": 77,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105546,7 +105582,7 @@
       "call_sites": [
         {
           "excerpt": "if args.first().map_or(true, String::is_empty) { return Err(super::words::error(\"tui.external_editor.the_editor_command_needs_a_program\")); }",
-          "line": 54,
+          "line": 79,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105568,7 +105604,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail(m.prompts.i18n.tr(\"tui.find.invalid_response\"));",
-          "line": 158,
+          "line": 160,
           "path": "src/tui/contents.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -105589,8 +105625,8 @@
     "tui.find.scope_hint": {
       "call_sites": [
         {
-          "excerpt": "\"search\" => (i18n.tr_args(\"tui.find.scope_hint\", &[&scope(m, m.find.mode)]), &theme.muted, false),",
-          "line": 88,
+          "excerpt": "i18n.tr_args(\"tui.find.scope_hint\", &[&scope(m, m.find.mode)]),",
+          "line": 92,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -105614,7 +105650,7 @@
       "call_sites": [
         {
           "excerpt": "parts.push((&theme.muted, i18n.tr_args(\"tui.find.status\", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));",
-          "line": 110,
+          "line": 138,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -105839,6 +105875,13 @@
     },
     "tui.launch.program_not_found": {
       "call_sites": [
+        {
+          "excerpt": "\"tui.launch.program_not_found\",",
+          "line": 38,
+          "path": "src/tui/external_editor.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        },
         {
           "excerpt": "io::Error::other(super::words::args(\"tui.launch.program_not_found\", vec![program.into()]))",
           "line": 34,
@@ -106474,7 +106517,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.operation.search_busy\");",
-          "line": 339,
+          "line": 340,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -108598,14 +108641,14 @@
       "call_sites": [
         {
           "excerpt": "return Err(error(\"window.one_directory\", String::new()));",
-          "line": 36,
+          "line": 38,
           "path": "crates/flea-gui/src/window/startup.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "_ => return Err(error(\"window.one_directory\", String::new())),",
-          "line": 45,
+          "line": 47,
           "path": "crates/flea-gui/src/window/startup.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -108672,7 +108715,7 @@
       "call_sites": [
         {
           "excerpt": ".ok_or_else(|| error(\"window.select_required\", String::new()))?,",
-          "line": 30,
+          "line": 32,
           "path": "crates/flea-gui/src/window/startup.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -108732,7 +108775,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(error(\"window.unknown_flag\", argument))",
-          "line": 42,
+          "line": 44,
           "path": "crates/flea-gui/src/window/startup.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -128068,7 +128111,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: could not read {}: {error}\", file.display());",
-      "line": 22,
+      "line": 26,
       "literal": "flea: could not read {}: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/path_host.rs",
@@ -128581,7 +128624,7 @@
     },
     {
       "excerpt": "let view = self.settings.panel.clone().expect(\"settings built\");",
-      "line": 303,
+      "line": 305,
       "literal": "settings built",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/settings/mod.rs",
@@ -156148,7 +156191,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| Invalid::new(\"unknown\", plugin))",
-      "line": 361,
+      "line": 364,
       "literal": "unknown",
       "owner": "controller",
       "path": "src/backend/plugins.rs",
@@ -157299,8 +157342,26 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let row = text.lines().find(|l| l.starts_with(\"flags:\")).expect(\"a flags row\");",
+      "excerpt": "return Err(Error::new(ErrorKind::InvalidInput, \"not a regular file\"));",
+      "line": 39,
+      "literal": "not a regular file",
+      "owner": "controller",
+      "path": "src/backend/regfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(Error::new(ErrorKind::InvalidData, format!(\"larger than {limit} bytes\")));",
       "line": 44,
+      "literal": "larger than {limit} bytes",
+      "owner": "controller",
+      "path": "src/backend/regfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let row = text.lines().find(|l| l.starts_with(\"flags:\")).expect(\"a flags row\");",
+      "line": 61,
       "literal": "a flags row",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157309,7 +157370,7 @@
     },
     {
       "excerpt": "let octal = row.split_whitespace().nth(1).expect(\"a flags value\");",
-      "line": 45,
+      "line": 62,
       "literal": "a flags value",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157318,7 +157379,7 @@
     },
     {
       "excerpt": "i32::from_str_radix(octal, 8).expect(\"octal flags\")",
-      "line": 46,
+      "line": 63,
       "literal": "octal flags",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157327,7 +157388,7 @@
     },
     {
       "excerpt": "let f = open_regular(&d.file(\"real.txt\", \"body\\n\")).expect(\"a regular file is what this opens\");",
-      "line": 52,
+      "line": 69,
       "literal": "a regular file is what this opens",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157336,7 +157397,7 @@
     },
     {
       "excerpt": "assert_eq!(open_flags(&f) & O_NONBLOCK, O_NONBLOCK, \"without O_NONBLOCK the racy open is the hang this exists to stop\");",
-      "line": 53,
+      "line": 70,
       "literal": "without O_NONBLOCK the racy open is the hang this exists to stop",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157345,7 +157406,7 @@
     },
     {
       "excerpt": "assert!(within(\"open_regular\", move || open_regular(&fifo)).is_none(), \"a fifo is refused, and before the open rather than inside it\");",
-      "line": 61,
+      "line": 78,
       "literal": "a fifo is refused, and before the open rather than inside it",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157354,7 +157415,7 @@
     },
     {
       "excerpt": "assert!(open_regular(&d.dir(\"sub\")).is_none(), \"a directory opens fine and reads EISDIR\");",
-      "line": 62,
+      "line": 79,
       "literal": "a directory opens fine and reads EISDIR",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157363,7 +157424,7 @@
     },
     {
       "excerpt": "assert!(open_regular(&d.join(\"never-existed\")).is_none(), \"a row that vanished has nothing to open\");",
-      "line": 63,
+      "line": 80,
       "literal": "a row that vanished has nothing to open",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
@@ -157372,8 +157433,17 @@
     },
     {
       "excerpt": "assert!(open_regular(&d.join(\"toreal\")).is_some(), \"the open follows a link, so the check has to as well\");",
-      "line": 66,
+      "line": 83,
       "literal": "the open follows a link, so the check has to as well",
+      "owner": "controller",
+      "path": "src/backend/regfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(kind(read_text(Path::new(\"/dev/zero\"), 64)), Err(ErrorKind::InvalidInput), \"a device is never opened\");",
+      "line": 94,
+      "literal": "a device is never opened",
       "owner": "controller",
       "path": "src/backend/regfile.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -171088,7 +171158,7 @@
     },
     {
       "excerpt": "return Err(format!(\"trailing text at byte {}\", at));",
-      "line": 72,
+      "line": 73,
       "literal": "trailing text at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171097,7 +171167,7 @@
     },
     {
       "excerpt": "return Err(format!(\"nested past {} levels at byte {}\", MAX_DEPTH, at));",
-      "line": 141,
+      "line": 142,
       "literal": "nested past {} levels at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171106,7 +171176,7 @@
     },
     {
       "excerpt": "None => Err(format!(\"the document ended before a value at byte {}\", at)),",
-      "line": 144,
+      "line": 145,
       "literal": "the document ended before a value at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171115,7 +171185,7 @@
     },
     {
       "excerpt": "Err(format!(\"{} expected at byte {}\", word, at))",
-      "line": 160,
+      "line": 161,
       "literal": "{} expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171124,7 +171194,7 @@
     },
     {
       "excerpt": "return Err(format!(\"a colon was expected at byte {}\", at));",
-      "line": 176,
+      "line": 179,
       "literal": "a colon was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171133,7 +171203,7 @@
     },
     {
       "excerpt": "_ => return Err(format!(\"a comma or a closing brace was expected at byte {}\", at)),",
-      "line": 191,
+      "line": 196,
       "literal": "a comma or a closing brace was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171142,7 +171212,7 @@
     },
     {
       "excerpt": "_ => return Err(format!(\"a comma or a closing bracket was expected at byte {}\", at)),",
-      "line": 214,
+      "line": 219,
       "literal": "a comma or a closing bracket was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171151,7 +171221,7 @@
     },
     {
       "excerpt": "let text = std::str::from_utf8(&bytes[start..*at]).map_err(|_| format!(\"a number that is not UTF-8 at byte {}\", start))?;",
-      "line": 230,
+      "line": 235,
       "literal": "a number that is not UTF-8 at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171160,15 +171230,6 @@
     },
     {
       "excerpt": "return Err(format!(\"a value that is not JSON at byte {}\", start));",
-      "line": 235,
-      "literal": "a value that is not JSON at byte {}",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "_ => Err(format!(\"a value that is not JSON at byte {}\", start)),",
       "line": 240,
       "literal": "a value that is not JSON at byte {}",
       "owner": "controller",
@@ -171177,8 +171238,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "_ => Err(format!(\"a value that is not JSON at byte {}\", start)),",
+      "line": 245,
+      "literal": "a value that is not JSON at byte {}",
+      "owner": "controller",
+      "path": "src/jsondoc.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "assert!(written_back.is_empty(), \"written back verbatim: {:?}\", written_back);",
-      "line": 315,
+      "line": 320,
       "literal": "written back verbatim: {:?}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171187,7 +171257,7 @@
     },
     {
       "excerpt": "let v = parse(&format!(\"{{\\\"a\\\":{}}}\", good)).unwrap_or_else(|e| panic!(\"{} must parse: {}\", good, e));",
-      "line": 317,
+      "line": 322,
       "literal": "{} must parse: {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171196,7 +171266,7 @@
     },
     {
       "excerpt": "assert_eq!(render(&v), format!(\"{{\\n  \\\"a\\\": {}\\n}}\\n\", good), \"the literal is written back as it was read\");",
-      "line": 318,
+      "line": 323,
       "literal": "the literal is written back as it was read",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171205,7 +171275,7 @@
     },
     {
       "excerpt": "(\"\", \"the document ended before a value at byte 0\"),",
-      "line": 334,
+      "line": 339,
       "literal": "the document ended before a value at byte 0",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171214,7 +171284,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\", \"the document ended before a value at byte 5\"),",
-      "line": 337,
+      "line": 342,
       "literal": "the document ended before a value at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171223,7 +171293,7 @@
     },
     {
       "excerpt": "(\"{\", \"a string was expected at byte 1\"),",
-      "line": 338,
+      "line": 343,
       "literal": "a string was expected at byte 1",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171232,7 +171302,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\"}\", \"a colon was expected at byte 4\"),",
-      "line": 339,
+      "line": 344,
       "literal": "a colon was expected at byte 4",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171241,7 +171311,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":}\", \"a value that is not JSON at byte 5\"),",
-      "line": 340,
+      "line": 345,
       "literal": "a value that is not JSON at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171250,7 +171320,7 @@
     },
     {
       "excerpt": "(\"[1,]\", \"a value that is not JSON at byte 3\"),",
-      "line": 341,
+      "line": 346,
       "literal": "a value that is not JSON at byte 3",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171259,7 +171329,7 @@
     },
     {
       "excerpt": "(\"tru\", \"true expected at byte 0\"),",
-      "line": 342,
+      "line": 347,
       "literal": "true expected at byte 0",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171268,7 +171338,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":1}x\", \"trailing text at byte 7\"),",
-      "line": 343,
+      "line": 348,
       "literal": "trailing text at byte 7",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171277,7 +171347,7 @@
     },
     {
       "excerpt": "(\"\\\"unterminated\", \"a string opened at byte 0 ran to the end of the document\"),",
-      "line": 344,
+      "line": 349,
       "literal": "a string opened at byte 0 ran to the end of the document",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171286,7 +171356,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"unterminated\", \"a string opened at byte 5 ran to the end of the document\"),",
-      "line": 345,
+      "line": 350,
       "literal": "a string opened at byte 5 ran to the end of the document",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171295,7 +171365,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":+5}\", \"a value that is not JSON at byte 5\"),",
-      "line": 346,
+      "line": 351,
       "literal": "a value that is not JSON at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171304,7 +171374,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":.5}\", \"a value that is not JSON at byte 5\"),",
-      "line": 347,
+      "line": 352,
       "literal": "a value that is not JSON at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171313,7 +171383,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":1.2.3}\", \"a value that is not JSON at byte 5\"),",
-      "line": 348,
+      "line": 353,
       "literal": "a value that is not JSON at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171322,7 +171392,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":inf}\", \"a value that is not JSON at byte 5\"),",
-      "line": 349,
+      "line": 354,
       "literal": "a value that is not JSON at byte 5",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171331,7 +171401,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\q\\\"}\", \"an unknown escape at byte 7\"),",
-      "line": 350,
+      "line": 355,
       "literal": "an unknown escape at byte 7",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171340,7 +171410,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\u12\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 351,
+      "line": 356,
       "literal": "a \\u escape that is not hex at byte 8",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171349,7 +171419,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\u+041\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 354,
+      "line": 359,
       "literal": "a \\u escape that is not hex at byte 8",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171358,7 +171428,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\u\\u{20ac}\\u{20ac}\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 355,
+      "line": 360,
       "literal": "a \\u escape that is not hex at byte 8",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171367,7 +171437,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\u12\", \"a short \\\\u escape at byte 8\"),",
-      "line": 356,
+      "line": 361,
       "literal": "a short \\u escape at byte 8",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171376,7 +171446,7 @@
     },
     {
       "excerpt": "(\"{\\\"a\\\":\\\"\\\\\", \"an escape ran off the end at byte 7\"),",
-      "line": 357,
+      "line": 362,
       "literal": "an escape ran off the end at byte 7",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171385,7 +171455,7 @@
     },
     {
       "excerpt": "assert_eq!(parse(bad).expect_err(\"should not parse\"), message, \"{} stopped elsewhere\", bad);",
-      "line": 359,
+      "line": 364,
       "literal": "should not parse",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -171394,7 +171464,7 @@
     },
     {
       "excerpt": "assert_eq!(parse(bad).expect_err(\"should not parse\"), message, \"{} stopped elsewhere\", bad);",
-      "line": 359,
+      "line": 364,
       "literal": "{} stopped elsewhere",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174994,7 +175064,7 @@
     },
     {
       "excerpt": "std::fs::create_dir_all(dest).map_err(|e| format!(\"{} could not be created ({})\", dest.display(), e))?;",
-      "line": 64,
+      "line": 68,
       "literal": "{} could not be created ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175003,7 +175073,7 @@
     },
     {
       "excerpt": "for entry in std::fs::read_dir(source).map_err(|e| format!(\"{} could not be read ({})\", source.display(), e))? {",
-      "line": 65,
+      "line": 69,
       "literal": "{} could not be read ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175012,7 +175082,7 @@
     },
     {
       "excerpt": "let entry = entry.map_err(|e| format!(\"{} could not be read ({})\", source.display(), e))?;",
-      "line": 66,
+      "line": 70,
       "literal": "{} could not be read ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175021,7 +175091,7 @@
     },
     {
       "excerpt": "return Err(format!(\"the shelf plugin holds a folder, {}, and this installer copies a flat one\", from.display()));",
-      "line": 69,
+      "line": 73,
       "literal": "the shelf plugin holds a folder, {}, and this installer copies a flat one",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175030,7 +175100,7 @@
     },
     {
       "excerpt": "std::fs::copy(&from, &to).map_err(|e| format!(\"{} could not be copied ({})\", from.display(), e))?;",
-      "line": 72,
+      "line": 76,
       "literal": "{} could not be copied ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175039,7 +175109,7 @@
     },
     {
       "excerpt": "for entry in std::fs::read_dir(dest).map_err(|e| format!(\"{} could not be read ({})\", dest.display(), e))? {",
-      "line": 75,
+      "line": 79,
       "literal": "{} could not be read ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175048,7 +175118,7 @@
     },
     {
       "excerpt": "let entry = entry.map_err(|e| format!(\"{} could not be read ({})\", dest.display(), e))?;",
-      "line": 76,
+      "line": 80,
       "literal": "{} could not be read ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175057,7 +175127,7 @@
     },
     {
       "excerpt": "let out = command.output().map_err(|e| format!(\"omarchy {} could not run ({})\", args.join(\" \"), e))?;",
-      "line": 99,
+      "line": 103,
       "literal": "omarchy {} could not run ({})",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175066,7 +175136,7 @@
     },
     {
       "excerpt": "let first = said.lines().find(|l| !l.trim().is_empty()).unwrap_or(\"it said nothing\").trim().to_string();",
-      "line": 104,
+      "line": 108,
       "literal": "it said nothing",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175075,7 +175145,7 @@
     },
     {
       "excerpt": "let source = source().ok_or_else(|| \"the shelf plugin is not installed, look for /usr/share/flea/shelf\".to_string())?;",
-      "line": 125,
+      "line": 129,
       "literal": "the shelf plugin is not installed, look for /usr/share/flea/shelf",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175084,7 +175154,7 @@
     },
     {
       "excerpt": "std::fs::create_dir_all(&dir).expect(\"the fixture root\");",
-      "line": 157,
+      "line": 161,
       "literal": "the fixture root",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175093,7 +175163,7 @@
     },
     {
       "excerpt": "\"shelf/manifest.json must say Cargo.toml's version\");",
-      "line": 177,
+      "line": 181,
       "literal": "shelf/manifest.json must say Cargo.toml's version",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175102,7 +175172,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest.matches(line.as_str()).count(), 1, \"the PKGBUILD stamp rewrites one top-level version line\");",
-      "line": 179,
+      "line": 183,
       "literal": "the PKGBUILD stamp rewrites one top-level version line",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175111,7 +175181,7 @@
     },
     {
       "excerpt": "assert!(!current(&dest, &tree), \"the copy an older Flea left reads as current\");",
-      "line": 187,
+      "line": 191,
       "literal": "the copy an older Flea left reads as current",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175120,7 +175190,7 @@
     },
     {
       "excerpt": "install(&tree, &dest).expect(\"the copy\");",
-      "line": 188,
+      "line": 192,
       "literal": "the copy",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175129,7 +175199,7 @@
     },
     {
       "excerpt": "std::fs::write(dest.join(\"Gone.qml\"), \"Item {}\\n\").expect(\"a file from the older plugin\");",
-      "line": 198,
+      "line": 202,
       "literal": "a file from the older plugin",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175138,24 +175208,6 @@
     },
     {
       "excerpt": "install(&source, &dest).expect(\"the copy\");",
-      "line": 199,
-      "literal": "the copy",
-      "owner": "controller",
-      "path": "src/shelfplugin.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!dest.join(\"Gone.qml\").exists(), \"the older plugin's file outlived the upgrade\");",
-      "line": 202,
-      "literal": "the older plugin's file outlived the upgrade",
-      "owner": "controller",
-      "path": "src/shelfplugin.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!dest.join(\"Panel.qml\").symlink_metadata().expect(\"the copy\").file_type().is_symlink());",
       "line": 203,
       "literal": "the copy",
       "owner": "controller",
@@ -175164,8 +175216,26 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "assert!(!dest.join(\"Gone.qml\").exists(), \"the older plugin's file outlived the upgrade\");",
+      "line": 206,
+      "literal": "the older plugin's file outlived the upgrade",
+      "owner": "controller",
+      "path": "src/shelfplugin.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!dest.join(\"Panel.qml\").symlink_metadata().expect(\"the copy\").file_type().is_symlink());",
+      "line": 207,
+      "literal": "the copy",
+      "owner": "controller",
+      "path": "src/shelfplugin.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let said = install(&source, &dest).expect_err(\"a flat installer must say so\");",
-      "line": 213,
+      "line": 217,
       "literal": "a flat installer must say so",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175174,7 +175244,7 @@
     },
     {
       "excerpt": "assert!(said.contains(\"flat one\"), \"{}\", said);",
-      "line": 214,
+      "line": 218,
       "literal": "flat one",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175183,7 +175253,7 @@
     },
     {
       "excerpt": "let path = installed().expect(\"a config directory\");",
-      "line": 221,
+      "line": 225,
       "literal": "a config directory",
       "owner": "controller",
       "path": "src/shelfplugin.rs",
@@ -175615,7 +175685,7 @@
     },
     {
       "excerpt": "if key.name == \"Space\" && key.mods == \"ctrl\" {",
-      "line": 78,
+      "line": 79,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175624,7 +175694,7 @@
     },
     {
       "excerpt": "if key.name == \"Paste\" {",
-      "line": 170,
+      "line": 171,
       "literal": "Paste",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175633,7 +175703,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 174,
+      "line": 175,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175642,7 +175712,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 174,
+      "line": 175,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175651,7 +175721,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" {",
-      "line": 186,
+      "line": 187,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175660,7 +175730,7 @@
     },
     {
       "excerpt": "\"H\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 244,
+      "line": 245,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175669,7 +175739,7 @@
     },
     {
       "excerpt": "\"L\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 247,
+      "line": 248,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -176280,7 +176350,7 @@
       "surface": "tui"
     },
     {
-      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\") || key.name == \"Space\" && f.focus != 6",
+      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\")",
       "line": 70,
       "literal": "Return",
       "owner": "t11",
@@ -176289,7 +176359,7 @@
       "surface": "tui"
     },
     {
-      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\") || key.name == \"Space\" && f.focus != 6",
+      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\")",
       "line": 70,
       "literal": "Enter",
       "owner": "t11",
@@ -176298,8 +176368,8 @@
       "surface": "tui"
     },
     {
-      "excerpt": "} else if matches!(key.name.as_str(), \"Return\" | \"Enter\") || key.name == \"Space\" && f.focus != 6",
-      "line": 70,
+      "excerpt": "|| key.name == \"Space\" && key.mods.is_empty() && f.focus != 6",
+      "line": 71,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/combine/input.rs",
@@ -176308,7 +176378,7 @@
     },
     {
       "excerpt": "if key.name == \"Backspace\" {",
-      "line": 83,
+      "line": 84,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/combine/input.rs",
@@ -176317,7 +176387,7 @@
     },
     {
       "excerpt": "let horizontal = if key.name == \"Left\" || key.text == \"h\" {",
-      "line": 111,
+      "line": 112,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/combine/input.rs",
@@ -176326,7 +176396,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Right\" || key.text == \"l\" {",
-      "line": 113,
+      "line": 114,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/combine/input.rs",
@@ -176335,7 +176405,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Down\" || key.text == \"j\" {",
-      "line": 121,
+      "line": 122,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/combine/input.rs",
@@ -176362,7 +176432,7 @@
     },
     {
       "excerpt": "let mut places = vec![(\"Home\".into(), home.to_string_lossy().into_owned())];",
-      "line": 105,
+      "line": 122,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176370,8 +176440,17 @@
       "surface": "tui"
     },
     {
+      "excerpt": "\"an empty Go to reopens the folder as it is spelled\"",
+      "line": 236,
+      "literal": "an empty Go to reopens the folder as it is spelled",
+      "owner": "t11",
+      "path": "src/tui/completion.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
       "excerpt": "std::fs::create_dir(root.join(\"Documents\")).unwrap();",
-      "line": 204,
+      "line": 243,
       "literal": "Documents",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176380,7 +176459,7 @@
     },
     {
       "excerpt": "std::fs::create_dir(root.join(\"Downloads\")).unwrap();",
-      "line": 205,
+      "line": 244,
       "literal": "Downloads",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176389,7 +176468,7 @@
     },
     {
       "excerpt": "directory(\"Dow\", root.path(), root.path(), &cancel),",
-      "line": 213,
+      "line": 252,
       "literal": "Dow",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176398,7 +176477,7 @@
     },
     {
       "excerpt": "root.join(\"Documents\")",
-      "line": 219,
+      "line": 258,
       "literal": "Documents",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176407,7 +176486,7 @@
     },
     {
       "excerpt": "place(\"w\", &[(\"Work\".into(), \"/data/work\".into())]),",
-      "line": 222,
+      "line": 261,
       "literal": "Work",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176416,7 +176495,7 @@
     },
     {
       "excerpt": "places: vec![(\"Home\".into(), \"/home/test\".into())],",
-      "line": 233,
+      "line": 272,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176425,7 +176504,7 @@
     },
     {
       "excerpt": "completion.request(\"Home\", Path::new(\"/fixture\")),",
-      "line": 239,
+      "line": 278,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/completion.rs",
@@ -176434,7 +176513,7 @@
     },
     {
       "excerpt": ".expect(\"search generation exhausted\");",
-      "line": 100,
+      "line": 102,
       "literal": "search generation exhausted",
       "owner": "t11",
       "path": "src/tui/contents.rs",
@@ -176487,7 +176566,7 @@
       "surface": "tui"
     },
     {
-      "excerpt": "|| key.name == \"Space\" && !(f.kind == Kind::Pdf && f.focus == 1)",
+      "excerpt": "|| key.name == \"Space\" && key.mods.is_empty() && !(f.kind == Kind::Pdf && f.focus == 1)",
       "line": 80,
       "literal": "Space",
       "owner": "t11",
@@ -176721,8 +176800,8 @@
       "surface": "tui"
     },
     {
-      "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 31,
+      "excerpt": "if matches!(key.name.as_str(), \"Return\" | \"Enter\") && !key.mods.is_empty() {",
+      "line": 32,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -176730,8 +176809,35 @@
       "surface": "tui"
     },
     {
-      "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 31,
+      "excerpt": "if matches!(key.name.as_str(), \"Return\" | \"Enter\") && !key.mods.is_empty() {",
+      "line": 32,
+      "literal": "Enter",
+      "owner": "t11",
+      "path": "src/tui/editor_input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "let browse = matches!(kind, \"search\" | \"filter\") && key.name == \"Down\" && key.mods.is_empty();",
+      "line": 37,
+      "literal": "Down",
+      "owner": "t11",
+      "path": "src/tui/editor_input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" || browse {",
+      "line": 38,
+      "literal": "Return",
+      "owner": "t11",
+      "path": "src/tui/editor_input.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" || browse {",
+      "line": 38,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -176740,7 +176846,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"path\" {",
-      "line": 89,
+      "line": 104,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -176749,7 +176855,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"search\" {",
-      "line": 95,
+      "line": 110,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -177271,7 +177377,7 @@
     },
     {
       "excerpt": "'Z' => return Some(Key::named(\"Tab\", \"shift\")),",
-      "line": 368,
+      "line": 371,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/input.rs",
@@ -177280,7 +177386,7 @@
     },
     {
       "excerpt": "1 | 7 => \"Home\",",
-      "line": 370,
+      "line": 373,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/input.rs",
@@ -177289,7 +177395,7 @@
     },
     {
       "excerpt": "2 => \"Insert\",",
-      "line": 371,
+      "line": 374,
       "literal": "Insert",
       "owner": "t11",
       "path": "src/tui/input.rs",
@@ -177298,7 +177404,7 @@
     },
     {
       "excerpt": "3 => \"Delete\",",
-      "line": 372,
+      "line": 375,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/input.rs",
@@ -177307,7 +177413,7 @@
     },
     {
       "excerpt": "4 | 8 => \"End\",",
-      "line": 373,
+      "line": 376,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/input.rs",
@@ -177856,7 +177962,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 338,
+      "line": 346,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -178054,7 +178160,7 @@
     },
     {
       "excerpt": "super::prompts::record(m, \"link\", Vec::new());",
-      "line": 194,
+      "line": 199,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/parity17.rs",
@@ -178540,7 +178646,7 @@
     },
     {
       "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-      "line": 163,
+      "line": 191,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178549,7 +178655,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-      "line": 217,
+      "line": 245,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178558,7 +178664,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-      "line": 253,
+      "line": 281,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178567,7 +178673,7 @@
     },
     {
       "excerpt": "let mut fields = vec![(\"c\", word(if linked { \"link\" } else { \"transfer\" })), (\"op\", word(paste.op)), (\"paths\", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),",
-      "line": 311,
+      "line": 339,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178576,7 +178682,7 @@
     },
     {
       "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 319,
+      "line": 347,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178585,7 +178691,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 350,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178594,7 +178700,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 350,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -178747,7 +178853,7 @@
     },
     {
       "excerpt": "if self.trace { let _ = writeln!(io::stderr().lock(), \"flea: terminal capabilities {:?}\", self.decoder.negotiation.detected); }",
-      "line": 169,
+      "line": 180,
       "literal": "flea: terminal capabilities {:?}",
       "owner": "t11",
       "path": "src/tui/terminal.rs",
@@ -189178,7 +189284,7 @@
     },
     {
       "excerpt": "const STATE_NOT_WRITTEN: &str = \"the state file was not written\";",
-      "line": 17,
+      "line": 18,
       "literal": "the state file was not written",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189187,7 +189293,7 @@
     },
     {
       "excerpt": "let dir = self.file.parent().ok_or_else(|| format!(\"{} has no directory to write in\", self.file.display()))?;",
-      "line": 83,
+      "line": 102,
       "literal": "{} has no directory to write in",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189196,7 +189302,7 @@
     },
     {
       "excerpt": "unlock(&lock).map_err(|e| format!(\"{} could not be unlocked ({:?})\", self.lock.display(), e.kind()))?;",
-      "line": 88,
+      "line": 107,
       "literal": "{} could not be unlocked ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189205,7 +189311,7 @@
     },
     {
       "excerpt": ".map_err(|why| format!(\"{}: {}; file was left unchanged, so {STATE_NOT_WRITTEN}\", self.file.display(), why))?;",
-      "line": 130,
+      "line": 150,
       "literal": "{}: {}; file was left unchanged, so {STATE_NOT_WRITTEN}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189213,8 +189319,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "Ok(meta) if meta.is_symlink() => return Err(format!(\"{} is a symbolic link, so {STATE_NOT_WRITTEN}\", backup.display())),",
+      "line": 163,
+      "literal": "{} is a symbolic link, so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Ok(meta) if meta.is_dir() => return Err(format!(\"{} is not a regular file, so {STATE_NOT_WRITTEN}\", backup.display())),",
+      "line": 164,
+      "literal": "{} is not a regular file, so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "kept.map_err(|e| format!(\"{} could not be kept as {} through {} ({:?}), so {STATE_NOT_WRITTEN}\", self.file.display(), backup.display(), link.display(), e.kind()))?;",
+      "line": 176,
+      "literal": "{} could not be kept as {} through {} ({:?}), so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let dir = backup.parent().ok_or(\"ui.json.broken has no directory\")?;",
-      "line": 137,
+      "line": 178,
       "literal": "ui.json.broken has no directory",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189222,8 +189355,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": ".map_err(|e| format!(\"{} backup could not be synced ({:?}); {STATE_NOT_WRITTEN}\", backup.display(), e.kind()))?;",
-      "line": 139,
+      "excerpt": ".map_err(|e| format!(\"{} backup could not be synced ({:?}); {STATE_NOT_WRITTEN}\", backup.display(), e.kind()))",
+      "line": 180,
       "literal": "{} backup could not be synced ({:?}); {STATE_NOT_WRITTEN}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189231,8 +189364,44 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "Ok(meta) if meta.is_symlink() => Err(format!(\"{} is a symbolic link, so {STATE_NOT_WRITTEN}\", path.display())),",
+      "line": 204,
+      "literal": "{} is a symbolic link, so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Ok(meta) if meta.is_dir() => Err(format!(\"{} is not a regular file, so {STATE_NOT_WRITTEN}\", path.display())),",
+      "line": 205,
+      "literal": "{} is not a regular file, so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Err(_) => Err(format!(\"{} could not be read, so {STATE_NOT_WRITTEN}\", path.display())),",
+      "line": 210,
+      "literal": "{} could not be read, so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Err(error) => Err(format!(\"{} could not be inspected ({:?}), so {STATE_NOT_WRITTEN}\", path.display(), error.kind())),",
+      "line": 213,
+      "literal": "{} could not be inspected ({:?}), so {STATE_NOT_WRITTEN}",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": ".map_err(|e| format!(\"{} could not be created ({:?})\", dir.display(), e.kind()))",
-      "line": 162,
+      "line": 237,
       "literal": "{} could not be created ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189241,7 +189410,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"{} could not be opened as the ui.json lock ({:?})\", path.display(), e.kind()))?;",
-      "line": 185,
+      "line": 260,
       "literal": "{} could not be opened as the ui.json lock ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189249,8 +189418,17 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": ".map_err(|e| format!(\"{} could not be locked ({:?})\", path.display(), e.kind()))?;",
-      "line": 187,
+      "excerpt": "Ok(false) => Err(format!(\"{} stayed locked by another process for {} s\", path.display(), LOCK_WAIT.as_secs())),",
+      "line": 263,
+      "literal": "{} stayed locked by another process for {} s",
+      "owner": "controller",
+      "path": "src/uistore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Err(e) => Err(format!(\"{} could not be locked ({:?})\", path.display(), e.kind())),",
+      "line": 264,
       "literal": "{} could not be locked ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189259,7 +189437,7 @@
     },
     {
       "excerpt": "Err(format!(\"{} is a symbolic link, so {outcome}\", path.display()))",
-      "line": 228,
+      "line": 323,
       "literal": "{} is a symbolic link, so {outcome}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189268,7 +189446,7 @@
     },
     {
       "excerpt": "Err(format!(\"{} is not a regular file, so {outcome}\", path.display()))",
-      "line": 231,
+      "line": 326,
       "literal": "{} is not a regular file, so {outcome}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189277,7 +189455,7 @@
     },
     {
       "excerpt": ".map_err(|_| format!(\"{} could not be read, so {outcome}\", path.display())),",
-      "line": 235,
+      "line": 330,
       "literal": "{} could not be read, so {outcome}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189286,7 +189464,7 @@
     },
     {
       "excerpt": "Err(error) => Err(format!(\"{} could not be inspected ({:?}), so {outcome}\", path.display(), error.kind())),",
-      "line": 237,
+      "line": 332,
       "literal": "{} could not be inspected ({:?}), so {outcome}",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189295,7 +189473,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"{} could not replace {} ({:?})\", tmp.display(), path.display(), e.kind()))",
-      "line": 247,
+      "line": 348,
       "literal": "{} could not replace {} ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189304,7 +189482,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"{} could not be created ({:?})\", tmp.display(), e.kind()))?;",
-      "line": 261,
+      "line": 362,
       "literal": "{} could not be created ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -189313,7 +189491,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"{} could not be written ({:?})\", tmp.display(), e.kind()))",
-      "line": 264,
+      "line": 365,
       "literal": "{} could not be written ({:?})",
       "owner": "controller",
       "path": "src/uistore.rs",
@@ -251434,7 +251612,7 @@
     "crates/flea-gui/src/window/output_thumbnails.rs": "e1d2dc21d8ca6f37fd42c97fab63ad3a78004230796aa503a5e2780bbe87fe8a",
     "crates/flea-gui/src/window/overlay.rs": "4ce5eb1fb84f4f468d40d55ef55e1a45edff0ffd34d3b193afd184355d70eb16",
     "crates/flea-gui/src/window/pane.rs": "31d451e24d652012186c1a62899838f3df17415068510e025103dcff014267a5",
-    "crates/flea-gui/src/window/path_host.rs": "d50062fb0ee8daf8ceb8b77c509df505d2b19e809a036e2226c49a0a2116e0e1",
+    "crates/flea-gui/src/window/path_host.rs": "b651016569806ff44ab8b1ef6c88d5f3b0cf224c09336b4a1bc1dd27cddb82ff",
     "crates/flea-gui/src/window/permissions.rs": "e3374eff71e3dee7a494d7f4ac53a8bc5da0a08fbeb254515f4ae5e00462a3ae",
     "crates/flea-gui/src/window/presentation.rs": "244bc1cbe031554edcd38404b35f5a6dea0aa35903983208ec700e09d248970b",
     "crates/flea-gui/src/window/preview_facts.rs": "53b8be7935e585783f70303c592047451a0ce40bbe97fa37f4d4b3e821c4a7c8",
@@ -251512,20 +251690,20 @@
     "crates/flea-gui/src/window/selection_preview_thumbnail_observer.rs": "63dbd85cf9b194b4529e08198af5aac4e8bcd96807992b2cdf708477ad15b31a",
     "crates/flea-gui/src/window/selection_preview_wire.rs": "926af86c8395df92d88008208cb6af330f5837c5ec483e1d866b9e8905f94f60",
     "crates/flea-gui/src/window/settings/actions.rs": "67639a166d50bf05f110c185cdb17441d0be45b6ad6fba1bd929b5abcffa4936",
-    "crates/flea-gui/src/window/settings/apply.rs": "c83ce019c49ff3ad72ab59d3d7a7c8c0b2ef1348d18dd5ef059db5d0f058319f",
+    "crates/flea-gui/src/window/settings/apply.rs": "d67a40e9a0272dc69417461a553ee996a715964bce876b82ae836ed5a54f1df4",
     "crates/flea-gui/src/window/settings/claim.rs": "c76e4bb0d49ae9bd0133e591f4f7e031229d4e90d32e24e2335374c96b6e1798",
     "crates/flea-gui/src/window/settings/locale.rs": "52b7f75e3408ce22b7b535695e6ded8f3bd565f33d6b2caaafc1bf8d22bffce7",
     "crates/flea-gui/src/window/settings/messages.rs": "665d8ef9ca40f7b10eb9d0abab0b682c4f8e0f02bbb147408901db35b6be5850",
-    "crates/flea-gui/src/window/settings/mod.rs": "d3357b140b9792a886c06b7b3c145a6e01e2a56245cbbedebc16d8f7d8ff0c30",
+    "crates/flea-gui/src/window/settings/mod.rs": "e60ecf2943f0fce15f360d481ee2ef26a4217c72758b6ca03abbe34a2b6dcaa1",
     "crates/flea-gui/src/window/settings/network.rs": "93d4fbdb363a40f989419674d440d911aca945294279da414d2f00b048032569",
     "crates/flea-gui/src/window/settings/plugins.rs": "d9835d55e180de0cfdc9dda3c98193468e11090227821533c52e48fc63e77c4b",
     "crates/flea-gui/src/window/settings/provenance.rs": "480089cfa4bdb6ac1ef452718ae66385c29f3051dcc0cd7ddac66ac215a4e756",
     "crates/flea-gui/src/window/settings/relist.rs": "ccb3511b01cc88b03ad5bea9a1df11dfd9cebd6feac66725aa0c8d0765df3d22",
     "crates/flea-gui/src/window/settings/sheet.rs": "c6248ef5a544a262b80392d9ce864c683c7120a85115f158ad3f088a1e6266e5",
-    "crates/flea-gui/src/window/settings/store.rs": "67d6ec0ec6406ab45edbb5b189e01056cb2977b2bea6d690368c055baa9b529d",
+    "crates/flea-gui/src/window/settings/store.rs": "f9fae3bb67c1e433e6908d48644852a722fdfda9bbcf3bdce933873d28a07a84",
     "crates/flea-gui/src/window/settings/update.rs": "5bc2c66a4044ac2baf80ac3666b749f9fe17a877efc0e0b60b3a6267de8d8713",
     "crates/flea-gui/src/window/sidebar_edge.rs": "e0139d3c27a8a35164a803b86f5d19a117930160992a29a7e1a459e129e67d09",
-    "crates/flea-gui/src/window/startup.rs": "b95900b82e492ba00b0f35618e667e1e7b7cd41910cce94b67e2435f0e82b86d",
+    "crates/flea-gui/src/window/startup.rs": "c3ee8a3a59a4feac11016b48c09985e2ed274f9fa5dc9f2593919f4ec20f64b4",
     "crates/flea-gui/src/window/status.rs": "3abb6dfc18282b644713b6582875d3b12cbe08891a07e578001c76ed9ba537a1",
     "crates/flea-gui/src/window/status_counts.rs": "cce3917bffeea1e6afcfe620dd64e263a4b5837ca359e19d44a40e10e8a1b632",
     "crates/flea-gui/src/window/status_detail.rs": "a51d0a9d4bd25430472a2064927f0847b967f88df164c3fdef6507281ec3a732",
@@ -251781,7 +251959,7 @@
     "src/backend/pluginpreview_retention.rs": "75cde7daed33485acaca84b91588140a0d7295b6537721a5cc429d9bdb677b51",
     "src/backend/pluginpreview_sandbox.rs": "c5fac89b7611ae148e721c2ccc26fcf6bff9dfc3c3ecec75c42f89bbf79b4b7a",
     "src/backend/pluginruntime.rs": "08bcadfa62c4c79286d5657e1db321028fc0601863ff33b038e2bd2b376d24cd",
-    "src/backend/plugins.rs": "ed02521139f042bdc7ab9edbac67c578fc64807adee741074f0fff259e7ae6f5",
+    "src/backend/plugins.rs": "d271389a9f65a4558ecef35bb6eaab05e991684b3b24983efd8350534cbd42c6",
     "src/backend/pluginshelf.rs": "73fbac4fbca6a445262d391dad411461e070ce3f8beb33171bbbd2431f32e1f9",
     "src/backend/previewraster.rs": "48ba6f71f4add675c4f0afe75b121cd8c84e3094016db97189c6814781097130",
     "src/backend/printconvert.rs": "fbf15b13e40aeb23ad81032c327c01544c5c30620fcf4dad8745999a1baa0ba7",
@@ -251810,7 +251988,7 @@
     "src/backend/rclonerun.rs": "921410698157c09ee4577b9eb1d11e8411bec44bb769fe1c4bcad19c2f457dd9",
     "src/backend/reaphold.rs": "edbe93a4b6a8e716f0f7a7684db570d6fa53af551495fa7179c1cbfdaf860617",
     "src/backend/redo.rs": "a291913a55bc946781d7c2dea82258f1b308f2de05537df44ca1fbff11b99f80",
-    "src/backend/regfile.rs": "1cc23c50036df8e8163fe5118a5c3ef79281cc66cd0f45d146ffedccf2507ca7",
+    "src/backend/regfile.rs": "32b63549d15ecf649c4625e65eb060d4c06d8659cf978ffdfa1f2adc4d2ff024",
     "src/backend/renamecompat.rs": "f966c42ee17d5d6114f6260e7d5db101716d3894dfd0ebe91c1a60003ecd755e",
     "src/backend/renametiming.rs": "a5ce89173e838ebe8ab2852c26573233b45a0f7276a4bfbba8a30bdd5171c658",
     "src/backend/renamework.rs": "cb16b4a41c542058ddf2bb33d9dc0ce972a2c95bfdc58f5c3b7b4d296c5f6064",
@@ -251980,7 +252158,7 @@
     "src/ipc/registry.rs": "7d54435d4f32bbeca7f3c63111b39d5345c1ff26360ca9620f8c794a31047625",
     "src/ipc/wire.rs": "04144f8e7c308db8994d675d75df08d407abf0da928ce943a9b8a642b8166af0",
     "src/json.rs": "95fb006e55b47bedd14d6b39e90f51a941a2848737fca43fa74a0f5cdcd96ad9",
-    "src/jsondoc.rs": "fdee16d3be2398c3dfab6263b5725d73fa4457d3fb639f82626980b7bf7234ce",
+    "src/jsondoc.rs": "42654f870d99ac770836534624c114130d97de8802aaa7ad25f0f6862218190b",
     "src/jsonmembers.rs": "de69386bca9dcd9f5970f6dedd71a69d64e8b6cf8adbdaf7965a5bd744136aff",
     "src/jsonstring.rs": "853a1de0a355febf60894f4a59a89c906f5cce18edead1dfdbd8995803fbf97d",
     "src/keys.rs": "ba8bf2e5d33b589dc888177964c7db1dfa2da8122761a9cf33b7459e2f699238",
@@ -252007,7 +252185,7 @@
     "src/plugin_runtime/protocol.rs": "37f946b8f381eb81bbf2c2428901d9e909fa60c4cf03c4265276ff13130780a3",
     "src/plugin_runtime/session.rs": "34bdb3decbb7c3fca43fb6ccf5ae86e81725b533a8dcf8e165bd1f5fbc985180",
     "src/plugincli.rs": "ffdcf7173af4ea08f6cd284ad0b533884a4e1b26b39dcdc3a803ff18519b03eb",
-    "src/prefetch.rs": "11421a7915332c3fc4d908d6b15593aa4d2ff9c27c8a97ad57f1613b018642a7",
+    "src/prefetch.rs": "497d1fc2d6bff2fa92f15848584a08354b21e8a7c28f25e02fc5c4c6d594c60f",
     "src/preview_model.rs": "99d56098ec38e24b94b9e1ae0027e795ab647664bc45eb6ce1f081af83256a02",
     "src/procsignal.rs": "b8e84f378c153d0a6fbc2fc421f4a5f06c94d01ddedfa495fb7f36d3cfc4d069",
     "src/protocol.rs": "6a544c617ee87a68685ce36bfa2fab9281d2465158f97d152ce05c6988be8e86",
@@ -252022,7 +252200,7 @@
     "src/shelfdrag.rs": "4acafc97866b3f9bdef8851f97b4cecd61d22b3e895e23c6e9ec8c1f1ea5f763",
     "src/shelfops.rs": "2ee1e9f6064673173f5e73ec2f0f3b22178ff365c02ee9f184bc478fb4c5a3ee",
     "src/shelfplaces.rs": "0f6e0eaff9a3381a50facf0c2c34a92a6ef72ca274f76606d776b5752bf9f66a",
-    "src/shelfplugin.rs": "04dc02d7c7d8714b5f425907ef546bd346b706a37d1289e9d7c91df62da116d4",
+    "src/shelfplugin.rs": "e85d8c30796968974b27be8266451b3ba39f8149fd787dbfeb0c700c0d61eacd",
     "src/shelfthumb.rs": "b37db14bd05c54e29e32911b87cd46650b7a09f44f141957e6e32e607bd1cae4",
     "src/shelfundo.rs": "c299964f7802e4c2ffd0b083dde14a545c984bbb243b0a9f86f5d05c0dce6fc8",
     "src/shelfzip.rs": "8a46b13932f170f820701148549656d264a20e226a61c51576c8c76366f7e53f",
@@ -252038,12 +252216,12 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "e585703d333eb4a6632f644590400dafd4858e2af5b762001e3b622aceab076a",
-    "src/tui/actions_pointer.rs": "816962529d34f16401fd802c478afd3af94eaf37761783eaa450e05b0da2ebcf",
+    "src/tui/actions.rs": "72b5c0160c69edb54d27a09e83119e4cf49d560067c25094053aebb2ae532d24",
+    "src/tui/actions_pointer.rs": "d92bc4d4640f0c01c2be9a041b9331469a6e91d79faf5b7127402dc0308454eb",
     "src/tui/batch.rs": "64093aac6556341b6f67598ad4047cb11e3ba3d7b7ec0997ac9586291416874e",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
-    "src/tui/cards.rs": "9d3cb410a93a63a1ae119f683346c99cded2804bd11ece01a6a93c5d980b7115",
+    "src/tui/cards.rs": "7de7866caf7a08f3c0aec4f4ce9055529b2ec0a2baada1f2291c10f8d74c603b",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
     "src/tui/cells.rs": "5e625f04560d58775b577565fac6ae2a05e1465d7aa242f9579b1a5fa15c6f5b",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
@@ -252052,44 +252230,45 @@
     "src/tui/combine/card.rs": "ef6b5eee96b6e67fbe2860413c69d191af2efd9f4d6032b90ee8ab2d6480ff96",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
     "src/tui/combine/font.rs": "d84d2e462c3b5d7ae5c791683fd0f29d14594d21f679929a76d27ea6f812ac3a",
-    "src/tui/combine/input.rs": "168a5b326e639253885901c0be4ecd819894b9f1e37dbf7fab3b4d23720a4ed0",
+    "src/tui/combine/input.rs": "bd8eba002f636d8dec17755deb6bba04047b806b0f745ea0ff48c90829a77c0e",
     "src/tui/combine/preview.rs": "c691d09c6c3713507020bde392c059ca283047b91da4fd1dfd5dd3ed0600b3ab",
     "src/tui/combine/replies.rs": "eccc222bdef3fa41bbae8d9a6d801c1561eff2ba332d03a1b8c95f4dacd28ef0",
     "src/tui/combine/source.rs": "3771c8e54c6e6d7d1dfffc5e0453e6468fd35d528ef55dc5a6c825fa850d0432",
-    "src/tui/completion.rs": "e0ee7b5b1f3e935735c63c913b1edee5f657c48b58b3000e9a7aa2fcd62b08b8",
-    "src/tui/contents.rs": "0330b7a1b0dae2f8dbb27d23848586b73791b98a526a08ed3c7fb20cb1fd75e6",
+    "src/tui/completion.rs": "58dffb9479dcb1853d5fc56675d2ce49a313114b8ea847c13a8b65f5cf60056f",
+    "src/tui/contents.rs": "55deb45236d869f0268f5686fd1abe9fc50c33e4e1750f75e03173c4b3d090a5",
     "src/tui/contents/failure.rs": "7bff3518c6d58500217f7f7a01bb99f70a67962a6b2ad16eb4b5af1347cd2808",
     "src/tui/convert.rs": "55db49b48b829095caf5402989a475c13dda032f77042e6941c766085ed39794",
     "src/tui/convert/card.rs": "484a014133b67f068d06f3a7d5ae5abeb38bc6eda234b0e3585b34da9b7cd3b1",
-    "src/tui/convert/input.rs": "a55ddd360aec19b9ccd00150f0ef3f30de36675ac748c55ed066ac4f9daca35b",
+    "src/tui/convert/input.rs": "5c58f1f6dbca09cd9397275976d1af0e8192548f341e47b1aadfc4b7b6f57dab",
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
     "src/tui/cwd.rs": "352a2d5790d0b99ff25c16a024f48c9c6ce5394d4b9dc5f43dbd6ea4786fc994",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
     "src/tui/editor.rs": "333560149682d8368cef52425f92938bb16e03ae0094a319d88ac49ee5774547",
-    "src/tui/editor_input.rs": "b1428f2db23a6e4b86d7a13cf136294706fe2a7908403d86247cadfda9d3ef99",
+    "src/tui/editor_input.rs": "731ea4d7bf67bfa595a212fae18424a936fd7c21115bd857783abb7c07aa6926",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
-    "src/tui/external_editor.rs": "2d8b1d9fba5cf52c2fd7b56ad2d3eb22c80773bec28a4b0f51975797c9872bbe",
-    "src/tui/filter.rs": "1cc78a25046f7ade23fc40be9670f174222135a8e227ffc491aee6a0aa18db4d",
+    "src/tui/enter_once.rs": "3650b35169c55cc3c1325afb1f580e7cefa646d6fa2c409a536cf0f469a73c69",
+    "src/tui/external_editor.rs": "d44d3ea39723ee54d03eb2fe517a626e7d6603a2687a7fa629b0aa86daad1342",
+    "src/tui/filter.rs": "616bedf4de78af072c7e297eec87c9cafef1cbee8cc51f6a6316ea98382630be",
     "src/tui/finder.rs": "8385b46bca074fb0b78f37337e1495799af68364e0e982842efdd750c526fdf1",
     "src/tui/footer_errors.rs": "82ee24155f81f20adb9643c0e72e2c583e482cd665f9120878c45e329d337994",
     "src/tui/graphics.rs": "340f6b50e3f9bb8cc63d0696598918d7e2fe3b210728924d73fc44e072341bfa",
     "src/tui/hold.rs": "9aadaa765d5e5d81d4bbfb2923988966ed65ad96bf89e0eab46ec3e996e11868",
     "src/tui/icons.rs": "085c14d17aecd28c7caf4de44c36405d01d7318512b1b33a412cabe2945c9b90",
-    "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
+    "src/tui/input.rs": "180b665df160b72d6c1227dc7b13ee11cbe0d451df9099349193612f48b40b2a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
     "src/tui/jobstatus.rs": "07311e2bf9b5b6bb87933555fba63c8bca26c2dffcf966f8e12fc972dd5c3398",
-    "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
+    "src/tui/key_sheet.rs": "bb653b18f554fae491e936c4b1cdb5081d2dc180e63fa7d8b6956f54aed33ab7",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "e5a15589d0e3b79c498587b104711b288de229705e0b887bd0574de04ae83518",
     "src/tui/launch.rs": "6056ce1745d8ad7c47f6c365573250c887a040205ae179538bcb553b395b542b",
-    "src/tui/layout.rs": "629387e0fc64c3ad13448bb668ea49f724b08e876dcf939ae8b94f26babae23a",
+    "src/tui/layout.rs": "e3e060fc8c325138a3cd02619c9975c818f32a68b6e168b49f41481db5392e8d",
     "src/tui/look.rs": "d07450bd6b9dba147547ce1672bcc040dc85bd7dd322ed26071c2846a399539d",
     "src/tui/media.rs": "5af57bdb96142f0f88beda14937e69a60aec50f552147176785c0c5f4f19fa73",
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "6fae3bc33d2c4dbfe03220a67b6692a83fb08a62c9715c584cc31119649aae6a",
-    "src/tui/mod.rs": "d3d79e55c7977653ffda804cefa5010d7c0b37013162cf1a461b1ecd4e9c7f56",
-    "src/tui/model.rs": "2dcf39ff4ed5c4c25ba210feb4768d06fa4dc49c14df20ce8356a70f9160eb91",
+    "src/tui/mod.rs": "2449d081097c1dd4240859707d74d811316708828bfd11182e98a4a4bf031b1a",
+    "src/tui/model.rs": "54e6ffd22cd6cfabfec40d24374a476738c1a1a9df1447463fc3bc560f8b0984",
     "src/tui/model3d.rs": "63cffc5f3971a0a9007d8b9da00c91b049d48b1bdbd5b1c12b718ff6423264eb",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -252098,24 +252277,24 @@
     "src/tui/pane.rs": "00732d81354545e1c0a312539dba18338850a0f25e85f77dd5a6e4e99165a4d8",
     "src/tui/pane_state.rs": "6543421e1a59b208c13fd87fa10b4d0de6f0fea1a42f4f48faab2ecb4535a0cc",
     "src/tui/parity.rs": "3a6c2832a39444a83453764ec501282095826a3c201c8a9b95184060ff8ccaa0",
-    "src/tui/parity17.rs": "d3c28a3fbda7041de637941e0daccd091e1f26e370a9c0bcc0ad559d3b229e19",
+    "src/tui/parity17.rs": "195eadb4cdae08e140060ab611f6e4520f2735adb658c24a63b78ee521212cef",
     "src/tui/pdf.rs": "690dabda00fc1e44a827907ead55e368f4bc7d7ea7161b7aed99f1b710ba4223",
     "src/tui/picture.rs": "2d46d805b131a3cff2087b6600f0baf51bd724291cd507e30c941bd9e465ac12",
     "src/tui/preview.rs": "ce0a21643fde644fc475cee6601edd5b116945d4b97f44821b2596896d040e05",
     "src/tui/preview/words.rs": "f7173cf365031ee196b4694bcfe7dd558ad8853e1ca46fd04a3d140dfe742794",
-    "src/tui/preview_keys.rs": "3d71cf8ac8384adbfe285db761b5b26740e93f949463186cd24ab628a7451ed5",
+    "src/tui/preview_keys.rs": "f168da485b74a5d92b6c8a06015dd7f849f4fe91faddd2030c0f086aecdcaff4",
     "src/tui/print.rs": "618388f6858e8fa858f33c92a50b39642e70a0a49d28f0c613dd9f9f4410cd57",
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
-    "src/tui/prompts.rs": "433e5a5882848699bfb297abbf6f9c41861eb902239d2c3c90eed39551eda827",
+    "src/tui/prompts.rs": "ad33835f245960dae14261a76309d2ea3a3447d2806682780baad117a7f81d19",
     "src/tui/render.rs": "fb84016269338e2c3ca6c5d08ee66b182269593bf51c5deb5538e83db7bc55ca",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
     "src/tui/still.rs": "89ebaa9d4ac24915cfef8be0fc65c47f0131b60d06630a73f24b9a66d360efaa",
     "src/tui/syntax.rs": "3cb79da2ee7849c2eceafec9fe22a0f162ab7de7f3d2bae9bd7760034e2c6fb4",
     "src/tui/taildrop.rs": "367ec4adcc23435993a87c1ed63306ac1ed1f1e16fef40886d3c91ffe1a79600",
-    "src/tui/terminal.rs": "d888c57b56adbbb580a9f87a400584aa0505cfd2c879c2fc96cbb8cb4106bdbc",
+    "src/tui/terminal.rs": "b855eda8fc1ab45104e380b3aae2d94d535cb0097cca491cdead241029531c89",
     "src/tui/terminal_editor.rs": "a533dd080b71b4ed18103101e140eb499b9a6b0541271949f8227028989b9e47",
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
     "src/tui/theme.rs": "76adc30629062fa41519f2bad1cf04ea43d82be990b9771eeeed4089e3fb755c",
@@ -252474,7 +252653,7 @@
     "src/uischema.rs": "72f9f02332712ebd1478dceba4b251dea71885b85cb3c9436254c28392ea713c",
     "src/uistate.rs": "802b6a2dff1c3f68378dc279a8b8f554abb3834c3b15bae44673481ce1b7ef24",
     "src/uistatecli.rs": "c629c0f34474bbe67edb0276457b295e8ed33bfd028e2c73779dfd05ab7cc30e",
-    "src/uistore.rs": "8df2c75485947e0b6495ab3846a38cb17c48b1eace425a406e7b23af24cc4474",
+    "src/uistore.rs": "9e5250c68aea336101faeadeb7754a3c24e49fecfa2d93e1487420801b1de394",
     "src/unlock.rs": "4eee4e2d6ead20e15e87b67c7a3c40384ca7e02103a9a0a0f6f5b6f877d38d8a",
     "src/update.rs": "51deae597a60a2fb334c3e4d6e586aad68f8ca499bcdc774c25055ed035ba921",
     "src/usage.rs": "d9c00d121d8658433a6196ffa369bbefdb2377e65cd5633f0c553cff88868ba1",
@@ -253052,12 +253231,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7e7f2782f961bb8caef7960922cc2a30884ca38e",
-  "source_sha": "7e7f2782f961bb8caef7960922cc2a30884ca38e",
+  "source_ref_sha": "7b7aa6e9db60f795f47090ede7e2098e9592a9d7",
+  "source_sha": "7b7aa6e9db60f795f47090ede7e2098e9592a9d7",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1337,
-      "missing_literal_candidates": 5735,
+      "missing_literal_candidates": 5746,
       "source_files": 852
     },
     "generated/tooling": {
@@ -253066,7 +253245,7 @@
       "source_files": 160
     },
     "gui": {
-      "keys_with_occurrences": 552,
+      "keys_with_occurrences": 553,
       "missing_literal_candidates": 2212,
       "source_files": 1164
     },
@@ -253076,9 +253255,9 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 486,
-      "missing_literal_candidates": 381,
-      "source_files": 89
+      "keys_with_occurrences": 489,
+      "missing_literal_candidates": 385,
+      "source_files": 90
     }
   },
   "unlocated_keys": [
@@ -253129,7 +253308,6 @@
     "prompt.home",
     "prompt.scope",
     "selection.count",
-    "settings.error.save_session",
     "settings.words.permissions_not_yours",
     "trash.up_unavailable",
     "tui.parity.content_search_is_unavailable_in_this_build",

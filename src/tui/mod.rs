@@ -132,6 +132,8 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         } else {
             std::env::current_dir()?.join(path)
         };
+        // A start folder spelled with .. or a trailing slash opens under its own name, as Go to does.
+        let path = completion::lexical(&path);
         // The gvfs head start, before the state settle: gio runs beside settle, spawn and the UI build.
         let gvfs = warm::start(&path.to_string_lossy());
         let store = crate::uistore::Store::user().map_err(io::Error::other)?;

@@ -222,7 +222,19 @@ fn review_positive_lifecycle_child() {
     }
     terminal.decode(b"\x1b[?0u", false).unwrap();
     if mode == "panic" { panic!("controlled review panic"); }
-    let result = terminal.run_editor(root.join("editor").to_str().unwrap(), &root.join("editor-mode"));
+    let editor = root.join(if mode == "editor-missing" {
+        "no-such-editor"
+    } else {
+        "editor"
+    });
+    let result = terminal.run_editor(editor.to_str().unwrap(), &root.join("editor-mode"));
+    // sh exits 127 for a program that is not there, and the rename names that program.
+    if mode == "editor-missing" {
+        assert_eq!(
+            result.as_ref().unwrap_err().to_string(),
+            format!("Could not find the program {}", editor.display())
+        );
+    }
     if mode == "editor" { assert!(result.is_ok(), "{result:?}"); }
     if mode == "editor-failed" { assert!(result.as_ref().unwrap_err().to_string().contains("exit status: 7")); }
     if mode == "editor-suspended" { assert!(result.as_ref().unwrap_err().to_string().contains("suspended")); }
@@ -243,7 +255,14 @@ fn review_positive_panic_editor_handoff_and_silent_terminal_cleanup() {
         assert!(output.status.success());
         output.stdout
     }
-    for name in ["panic", "editor", "editor-failed", "editor-suspended", "silent"] {
+    for name in [
+        "panic",
+        "editor",
+        "editor-failed",
+        "editor-missing",
+        "editor-suspended",
+        "silent",
+    ] {
         let dir = TestDir::new("review-positive");
         let editor_tail = match name { "editor-failed" => "exit 7", "editor-suspended" => "kill -TSTP $$", _ => "exit 0" };
         dir.script("editor", &format!("#!/bin/sh\nstty -g > \"$1\"\nprintf 'EDITOR_READY\\n'\n{editor_tail}\n"));
@@ -288,7 +307,7 @@ fn review_positive_panic_editor_handoff_and_silent_terminal_cleanup() {
         let pops = transcript.windows(super::super::capabilities::KEYBOARD_DISABLE.len()).filter(|p| *p == super::super::capabilities::KEYBOARD_DISABLE).count();
         let expected = if name == "silent" { 0 } else if name == "panic" { 1 } else { 2 };
         assert_eq!((pushes, pops), (expected, expected), "PTY {name} keyboard stack imbalance: {}", String::from_utf8_lossy(&transcript));
-        if name.starts_with("editor") {
+        if name.starts_with("editor") && name != "editor-missing" {
             assert_eq!(std::fs::read(dir.join("editor-mode")).unwrap(), saved, "editor inherited raw mode");
             let first_pop = transcript.windows(4).position(|p| p == b"\x1b[<u").unwrap();
             let editor_ready = transcript.windows(12).position(|p| p == b"EDITOR_READY").unwrap();

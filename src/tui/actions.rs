@@ -14,6 +14,7 @@ use pointer::pointer_key;
 
 pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Result<()> {
     let armed = std::mem::take(&mut model.key_arm);
+    super::editor_input::enter_once::cancel(model, key);
     if model.choose_pending {
         if matches!(
             map.action(key, &model.preset).as_str(),
@@ -52,7 +53,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         return super::render::menu_run::key(model, key, map, wire);
     }
     if model.sheet {
-        return super::render::cards::sheet_key(model, key, map);
+        return super::render::cards::sheet_key(model, key, map, &armed);
     }
     if super::trashview::refuses(model, key, map, &armed, wire)? {
         return Ok(());
@@ -423,10 +424,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "historyBack" => history(m, false, w)?,
         "historyForward" => history(m, true, w)?,
         "open" | "pageForward" => {
-            if m.choosing
-                && (action == "open")
-                && (!m.selected.is_empty() || m.rows.get(&m.cursor).is_some_and(|r| !r.folder()))
-            {
+            // A chooser hands no file to another application: Right and l on a file choose it, as Return does.
+            let file = m.rows.get(&m.cursor).is_some_and(|r| !r.folder());
+            if m.choosing && (file || action == "open" && !m.selected.is_empty()) {
                 if m.pending_clipboard || m.searching {
                     m.fail_key("tui.actions.wait_for_the_selection_to_settle_before_choosing");
                     return Ok(());

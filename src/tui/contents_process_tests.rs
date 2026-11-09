@@ -160,7 +160,8 @@ pub(super) fn find(m: &mut Model, wire: &mut Wire, value: &str) -> io::Result<()
         .as_mut()
         .expect("real Ctrl+G Find")
         .replace(value.into());
-    actions::key(m, &Key::named("Enter", ""), &map, wire)
+    // Down commits the line and only shows the results; one Enter would also open the first of them.
+    actions::key(m, &Key::named("Down", ""), &map, wire)
 }
 #[test]
 fn tui_contents_real_process_finds_text_and_pages() {

@@ -50,6 +50,9 @@ fn tui_contents_replacement_is_coherent_and_scope_switch_is_generation_safe() {
         &format!(r#"{{"t":"searched","gen":{second},"n":1,"scanned":1,"ms":1.0}}"#),
     );
     press(&mut m, &mut w, Key::character('g', "ctrl"));
+    // Tab offers Home only where Home searches another folder, so this Find runs from a folder inside Home.
+    let home = std::env::var("HOME").unwrap();
+    m.editor.as_mut().unwrap().path = std::path::Path::new(&home).join("listing");
     press(&mut m, &mut w, Key::named("Tab", ""));
     assert_eq!(
         m.find.session.scope,
@@ -62,7 +65,7 @@ fn tui_contents_replacement_is_coherent_and_scope_switch_is_generation_safe() {
         .iter()
         .find(|v| text(v, "c") == "searchcontents")
         .unwrap();
-    assert_eq!(text(ask, "path"), "/listing");
+    assert_eq!(text(ask, "path"), home);
     assert!(count(ask, "gen") > second);
     receive(
         &mut m,
@@ -160,7 +163,7 @@ fn tui_contents_toggle_to_names_uses_shared_ranked_session() {
     press(&mut m, &mut w, Key::character('g', "ctrl"));
     press(&mut m, &mut w, Key::character('g', "ctrl"));
     m.editor.as_mut().unwrap().replace("notes".into());
-    press(&mut m, &mut w, Key::named("Enter", ""));
+    press(&mut m, &mut w, Key::named("Down", ""));
     let sent = super::action_key_tests::drain(&mut w);
     assert!(sent.iter().any(|v| text(v, "c") == "searchopen"));
     let ask = sent.iter().find(|v| text(v, "c") == "searchquery").unwrap();
@@ -247,8 +250,11 @@ fn tui_contents_prompt_strings_use_the_catalog_delta_overlay() {
     let mut m = listing(&mut w, "default");
     m.prompts.i18n = flea::i18n::I18n::load(paths);
     press(&mut m, &mut w, Key::character('g', "ctrl"));
+    // /listing is outside Home, so only a wired Everywhere gives Tab another scope to offer.
+    m.find.session.wire.everywhere = true;
     let prompt = super::prompts::status(&m, &Theme::from_text(""), 120, Duration::ZERO).0;
     assert!(plain(&prompt).contains("contents in /listing · tab changes scope"));
+    m.find.session.wire.everywhere = false;
     m.editor.as_mut().unwrap().replace("needle".into());
     press(&mut m, &mut w, Key::named("Enter", ""));
     let ask = super::action_key_tests::drain(&mut w);
@@ -385,3 +391,6 @@ fn tui_contents_odd_height_keeps_the_full_names_page_after_toggle() {
     assert_eq!(count(query, "count"), 5);
     wire::finish(w, reader);
 }
+
+#[path = "contents_message_tests.rs"]
+mod message;

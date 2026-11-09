@@ -96,6 +96,23 @@ pub fn expand(value: &str, home: &Path, current: &Path) -> PathBuf {
     }
 }
 
+// Go to opens the folder its words name: . and .. resolve against the typed path and a trailing slash goes, so Parent then goes up.
+// Sample input: "/w/a/.." is "/w", "/w/a/./b/" is "/w/a/b", "/.." is "/".
+pub fn lexical(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    out
+}
+
 fn places(settings: &Json, home: &Path) -> Vec<(String, String)> {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
@@ -197,6 +214,28 @@ fn directory(value: &str, current: &Path, home: &Path, cancel: &AtomicBool) -> S
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+
+    #[test]
+    fn go_to_resolves_dot_dot_and_drops_a_trailing_slash() {
+        for (typed, opened) in [
+            ("/w/a/..", "/w"),
+            ("/w/a/./b/", "/w/a/b"),
+            ("/..", "/"),
+            ("/w/a/", "/w/a"),
+            ("/w/../../x", "/x"),
+        ] {
+            assert_eq!(lexical(Path::new(typed)), PathBuf::from(opened), "{typed}");
+        }
+        assert_eq!(
+            lexical(&expand("..", Path::new("/home"), Path::new("/w/a"))),
+            PathBuf::from("/w")
+        );
+        assert_eq!(
+            lexical(&expand("", Path::new("/home"), Path::new("/w/a"))),
+            PathBuf::from("/w/a"),
+            "an empty Go to reopens the folder as it is spelled"
+        );
+    }
 
     #[test]
     fn completion_follows_prefix_without_importing_or_rewriting_places() {

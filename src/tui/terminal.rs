@@ -120,9 +120,20 @@ impl Terminal {
         // The bulk editor is shell syntax; keep filename bytes in $1, outside the shell program.
         let mut command = Command::new("/bin/sh");
         command.args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"]).arg(path);
-        self.run_command(command)
+        // A program sh could not find is named, as E names it.
+        self.run(command, |status| {
+            super::external_editor::missing(editor, status)
+                .map_or_else(|| editor_result(status), Err)
+        })
     }
     pub fn run_command(&mut self, command: Command) -> io::Result<()> {
+        self.run(command, editor_result)
+    }
+    fn run(
+        &mut self,
+        command: Command,
+        finished: impl Fn(std::process::ExitStatus) -> io::Result<()>,
+    ) -> io::Result<()> {
         // A stop that lands while either stty runs ends the edit as interrupted, and Drop restores the terminal.
         if let Err(error) = self.restore(PREPARE_FOR_EDITOR_FAILED) {
             return Err(if self.stopped() { super::words::error(EDITOR_INTERRUPTED) } else { error });
@@ -132,7 +143,7 @@ impl Terminal {
             let result = loop {
                 if self.stopped() { break Err(super::words::error(EDITOR_INTERRUPTED)); }
                 match editor.status() {
-                    Ok(Some(status)) => break editor_result(status),
+                    Ok(Some(status)) => break finished(status),
                     Err(error) => break Err(error),
                     Ok(None) => {}
                 }

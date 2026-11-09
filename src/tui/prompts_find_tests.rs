@@ -54,3 +54,25 @@ fn search_results_print_their_folder_and_the_status_names_the_search() {
     assert_eq!(span(&cells, 10, "Find “item” in /fx/v/work").0, theme.muted);
     finish(w, reader);
 }
+
+// Outside Home both scopes search this folder, so the line offers no Tab and Tab changes nothing on it.
+#[test]
+fn find_outside_home_offers_no_scope_change() {
+    let catalog = crate::tui::contents_process_tests::Root::new();
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    m.path = std::path::PathBuf::from("/fx-outside-home");
+    assert!(!m.path.starts_with(std::env::var_os("HOME").unwrap()));
+    m.prompts.i18n = crate::tui::contents_tests::catalog(&catalog);
+    m.editor = Some(Editor::new("search", "item".into(), m.path.clone()));
+    let (cells, _) = row(&m);
+    span(&cells, 11, "in /fx-outside-home");
+    let text: String = cells.iter().map(|cell| cell.0).collect();
+    assert!(!text.contains("tab changes scope"), "{text}");
+    press(&mut m, &mut w, Key::named("Tab", ""));
+    let (after, _) = row(&m);
+    assert_eq!(after, cells, "Tab has no other folder to search");
+    m.find.session.wire.everywhere = true;
+    span(&row(&m).0, 11, "in /fx-outside-home · tab changes scope");
+    finish(w, reader);
+}

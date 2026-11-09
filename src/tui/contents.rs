@@ -26,7 +26,9 @@ struct Block {
 pub(super) struct State {
     pub mode: bool,
     pub session: flea::ui_logic_file_search::Session,
-    next: usize,
+    pub next: usize,
+    // The generation a committed line's Enter acts on once its rows land (enter_once.rs).
+    pub enter_after: Option<usize>,
     pub waiting: bool,
     pub cancelling: bool,
     asked: Option<Query>,
