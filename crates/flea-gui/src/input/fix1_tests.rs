@@ -55,9 +55,9 @@ fn review_track_press_pulls_the_cursor_into_the_view(cx: &mut TestAppContext) {
     );
 }
 
-// List.qml:220-231 with Pane.qml:281: first is floor(contentY / row), so a cut top row keeps the cursor.
+// S2-5 (FX-KEYS) replaced List.qml's floor(contentY / row): a cut top row passes the cursor to the first whole row.
 #[gpui::test]
-fn review_wheel_clamp_keeps_the_cut_top_row(cx: &mut TestAppContext) {
+fn review_wheel_clamp_moves_the_cursor_below_the_cut_top_row(cx: &mut TestAppContext) {
     let (shell, cx) = mounted(cx);
     let frame = shell.read_with(cx, |shell, _| {
         shell.panes[0].as_ref().unwrap().input.frame.unwrap()
@@ -77,13 +77,17 @@ fn review_wheel_clamp_keeps_the_cut_top_row(cx: &mut TestAppContext) {
         let host = shell.panes[0].as_ref().unwrap();
         (host.pane.scroll_y, host.pane.cursor)
     });
-    let qml_first = (scroll / frame.row).floor() as usize;
+    let cut = (scroll / frame.row).floor() as usize;
     eprintln!(
-        "REVIEW wheel scroll={scroll} row={} cursor={cursor} qml_first={qml_first}",
+        "REVIEW wheel scroll={scroll} row={} cursor={cursor} cut_top={cut}",
         frame.row
     );
     assert_eq!(scroll, 288.);
-    assert_eq!(cursor, qml_first, "List.qml clamps to the cut top row");
+    assert!(
+        scroll > cut as f32 * frame.row,
+        "the wheel must leave the top row cut for this test to prove S2-5"
+    );
+    assert_eq!(cursor, cut + 1, "S2-5 clamps to the first wholly drawn row");
 }
 
 // Focus.js:168 pages floor(visibleRows / 2), and Pane.qml:281 has visibleRows = ceil(list.height / row).
