@@ -756,6 +756,26 @@
   "jobs.failed.compress": "壓縮失敗",
   "jobs.failed.copy": "複製失敗",
   "jobs.failed.emptyTrash": "清空垃圾桶失敗",
+  "jobs.head.send_waiting": "正在傳送",
+  "jobs.head.copying": "正在複製到 %3：第 %1 個，共 %2 個",
+  "jobs.head.moving": "正在移動到 %3：第 %1 個，共 %2 個",
+  "jobs.head.sending": "正在傳送至 %3：第 %1 個，共 %2 個",
+  "jobs.head.action": "%1 · 第 %2 個，共 %3 個",
+  "jobs.head.checking": {
+    "other": "正在檢查 %2 上的 %1 個項目"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "將 %1 個項目複製到 %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "將 %1 個項目移動到 %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "將 %1 個項目壓縮為 %2"
+  },
+  "jobs.head.compressing": {
+    "other": "正在壓縮 %1 個項目"
+  },
   "jobs.failed.extract": "解壓縮失敗",
   "jobs.failed.move": "移動失敗",
   "jobs.failed.send": "傳送失敗",
@@ -2000,6 +2020,7 @@
   "settings.hint.thumbs_kept": "關閉後仍會顯示已產生的縮圖。",
   "settings.keys.move_cursor": "移動游標",
   "settings.keys.move_open_up": "移動、開啟、前往上層",
+  "settings.keys.arrows": "方向鍵",
   "settings.list.separator": "、",
   "settings.menus.compress": "壓縮",
   "settings.menus.convert": "轉換",

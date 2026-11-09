@@ -23,6 +23,9 @@ pub use fit::card_rect;
 #[cfg(test)]
 #[path = "i18n_fit_tests.rs"]
 mod i18n_fit_tests;
+#[cfg(test)]
+#[path = "sheet_size_tests.rs"]
+mod sheet_size_tests;
 
 // Board keymap: a 628 by 684 card padded 16, the key column 117 plus a 5px margin, columns 14 apart, 19px headings over 25px rows.
 pub const SHEET_W: f32 = 628.;
@@ -47,6 +50,7 @@ pub struct SheetView {
     pub corner: f32,
     /// The scrolled body and its content as the latest frame laid them out.
     pub probe: Probe,
+    key_col: f32,
     // A keyboard group switch while the sheet is open relabels its keys at once.
     _layout: gpui::Subscription,
 }
@@ -64,13 +68,16 @@ impl SheetView {
             typeface: Typeface::omarchy_default(),
             corner: super::seams::COMPOSITOR_CORNER_DEFAULT,
             probe: Probe::default(),
+            key_col: KEY_COL,
         }
     }
 
     /// The key column: alternatives split by a muted slash, the typed run washed when only the keys match.
     fn keys(&self, keys: &str, run: Option<(usize, usize)>, lifted: bool, ink: &Ink) -> Div {
         let mut column = div()
-            .w(px(KEY_COL))
+            .debug_selector(|| format!("sheet-keys-{keys}"))
+            .on_children_prepainted(self.probe.children(format!("keys:{keys}")))
+            .w(px(self.key_col))
             .flex_none()
             .mr(px(5.))
             .flex()
@@ -280,8 +287,10 @@ impl Render for SheetView {
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty() || !self.editor.entry.text.is_empty();
+        self.key_col = fit::key_column(&self.sheet, &self.typeface, window);
         let measured = self.laid_out(window, cx);
-        let (left, top, card_w, card_h) = fit::for_sheet(&self.sheet, &self.typeface, window);
+        let (left, top, card_w, card_h) =
+            fit::for_sheet(&self.sheet, &self.typeface, self.key_col, window);
         let title = self.sheet.catalog.tr("keys.action.keymapSheet");
         let mut card = div()
             .id("sheet-card")

@@ -825,6 +825,36 @@
   "jobs.failed.compress": "La compresión falló",
   "jobs.failed.copy": "No se pudo copiar",
   "jobs.failed.emptyTrash": "No se pudo vaciar la Papelera",
+  "jobs.head.send_waiting": "Enviando",
+  "jobs.head.copying": "Copiando %1 de %2 a %3",
+  "jobs.head.moving": "Moviendo %1 de %2 a %3",
+  "jobs.head.sending": "Enviando %1 de %2 a %3",
+  "jobs.head.action": "%1 · %2 de %3",
+  "jobs.head.checking": {
+    "one": "Revisando %1 elemento en %2",
+    "many": "Revisando %1 elementos en %2",
+    "other": "Revisando %1 elementos en %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copiar %1 elemento a %2",
+    "many": "Copiar %1 elementos a %2",
+    "other": "Copiar %1 elementos a %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Mover %1 elemento a %2",
+    "many": "Mover %1 elementos a %2",
+    "other": "Mover %1 elementos a %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comprimir %1 elemento en %2",
+    "many": "Comprimir %1 elementos en %2",
+    "other": "Comprimir %1 elementos en %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Comprimiendo %1 elemento",
+    "many": "Comprimiendo %1 elementos",
+    "other": "Comprimiendo %1 elementos"
+  },
   "jobs.failed.extract": "La extracción falló",
   "jobs.failed.move": "No se pudo mover",
   "jobs.failed.send": "El envío falló",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Al desactivar, se siguen mostrando las miniaturas ya generadas.",
   "settings.keys.move_cursor": "Mover cursor",
   "settings.keys.move_open_up": "Mover, abrir, subir",
+  "settings.keys.arrows": "flechas",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Comprimir",
   "settings.menus.convert": "Convertir",

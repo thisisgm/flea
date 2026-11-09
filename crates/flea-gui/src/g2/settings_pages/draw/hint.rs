@@ -1,5 +1,6 @@
 //! Hint rows preserve the producer's wrapping or one-line elision policy.
 use super::{g, Line, Rows, PAD_X};
+use crate::g2::settings_pages::hint_bidi::spaced;
 use gpui::{div, prelude::*, px, Div, SharedString};
 
 impl Rows<'_> {
@@ -16,16 +17,24 @@ impl Rows<'_> {
                 }
             })
         } else {
+            // Right to left, each unit's space is its own text, so the shaper never moves it to the unit's far side.
+            let rtl = self.view.panel.catalog.locale().right_to_left;
             div()
                 .flex()
                 .flex_wrap()
-                .children(g::hint_units(&self.text(row)).into_iter().map(|unit| {
+                .children(line.units.iter().map(|unit| {
                     let name = format!("st1-hint-unit-{}", unit.trim_end());
-                    div()
+                    let cell = div()
                         .debug_selector(move || name)
                         .flex_none()
-                        .whitespace_nowrap()
-                        .child(SharedString::from(unit))
+                        .whitespace_nowrap();
+                    if !rtl {
+                        return cell.child(SharedString::from(unit.clone()));
+                    }
+                    let (word, space) = spaced(unit);
+                    cell.flex()
+                        .child(SharedString::from(word.to_owned()))
+                        .when(space, |cell| cell.child(" "))
                 }))
         };
         let base = base.text_size(self.view.typeface.caption).text_color(ink);

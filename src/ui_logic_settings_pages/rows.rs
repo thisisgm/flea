@@ -38,10 +38,11 @@ pub enum Master {
     None,
 }
 
-// One example on the Keys pane: keys as keys.toml spells them, and what they do.
+// One example on the Keys pane: keys as keys.toml spells them, a catalog word for prose keys (the arrows), and what they do.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyItem {
     pub keys: String,
+    pub word: Text,
     pub label: Text,
     pub glyph: &'static str,
 }

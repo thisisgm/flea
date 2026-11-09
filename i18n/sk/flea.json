@@ -836,6 +836,36 @@
   "jobs.failed.compress": "Komprimovanie zlyhalo",
   "jobs.failed.copy": "Kopírovanie zlyhalo",
   "jobs.failed.emptyTrash": "Vyprázdnenie koša zlyhalo",
+  "jobs.head.send_waiting": "Odosiela sa",
+  "jobs.head.copying": "Kopíruje sa %1 z %2 do %3",
+  "jobs.head.moving": "Presúva sa %1 z %2 do %3",
+  "jobs.head.sending": "Odosiela sa %1 z %2 do %3",
+  "jobs.head.action": "%1 · %2 z %3",
+  "jobs.head.checking": {
+    "one": "Kontroluje sa %1 položka na %2",
+    "few": "Kontrolujú sa %1 položky na %2",
+    "other": "Kontroluje sa %1 položiek na %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopírovať %1 položku do %2",
+    "few": "Kopírovať %1 položky do %2",
+    "other": "Kopírovať %1 položiek do %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Presunúť %1 položku do %2",
+    "few": "Presunúť %1 položky do %2",
+    "other": "Presunúť %1 položiek do %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Komprimovať %1 položku do %2",
+    "few": "Komprimovať %1 položky do %2",
+    "other": "Komprimovať %1 položiek do %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Komprimuje sa %1 položka",
+    "few": "Komprimujú sa %1 položky",
+    "other": "Komprimuje sa %1 položiek"
+  },
   "jobs.failed.extract": "Rozbaľovanie zlyhalo",
   "jobs.failed.move": "Presun zlyhal",
   "jobs.failed.send": "Odosielanie zlyhalo",
@@ -2172,6 +2202,7 @@
   "settings.hint.thumbs_kept": "Aj pri vypnutí sa zobrazujú už vytvorené miniatúry.",
   "settings.keys.move_cursor": "Pohyb kurzora",
   "settings.keys.move_open_up": "Pohyb, otvorenie, nahor",
+  "settings.keys.arrows": "šípky",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Komprimovať",
   "settings.menus.convert": "Previesť",

@@ -796,6 +796,31 @@
   "jobs.failed.compress": "کمپریشن ناکام رہی",
   "jobs.failed.copy": "کاپی ناکام رہی",
   "jobs.failed.emptyTrash": "کوڑے دان خالی کرنا ناکام رہا",
+  "jobs.head.send_waiting": "بھیجا جا رہا ہے",
+  "jobs.head.copying": "⁨%2⁩ میں سے ⁨%1⁩ ⁨%3⁩ میں کاپی ہو رہا ہے",
+  "jobs.head.moving": "⁨%2⁩ میں سے ⁨%1⁩ ⁨%3⁩ میں منتقل ہو رہا ہے",
+  "jobs.head.sending": "⁨%2⁩ میں سے ⁨%1⁩ ⁨%3⁩ پر بھیجا جا رہا ہے",
+  "jobs.head.action": "⁨%1⁩ · ⁨%3⁩ میں سے ⁨%2⁩",
+  "jobs.head.checking": {
+    "one": "⁨%2⁩ پر ⁨%1⁩ آئٹم کی جانچ ہو رہی ہے",
+    "other": "⁨%2⁩ پر ⁨%1⁩ آئٹمز کی جانچ ہو رہی ہے"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "⁨%1⁩ آئٹم ⁨%2⁩ میں کاپی کریں",
+    "other": "⁨%1⁩ آئٹمز ⁨%2⁩ میں کاپی کریں"
+  },
+  "jobs.head.move_waiting": {
+    "one": "⁨%1⁩ آئٹم ⁨%2⁩ میں منتقل کریں",
+    "other": "⁨%1⁩ آئٹمز ⁨%2⁩ میں منتقل کریں"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "⁨%1⁩ آئٹم ⁨%2⁩ میں کمپریس کریں",
+    "other": "⁨%1⁩ آئٹمز ⁨%2⁩ میں کمپریس کریں"
+  },
+  "jobs.head.compressing": {
+    "one": "⁨%1⁩ آئٹم کمپریس ہو رہا ہے",
+    "other": "⁨%1⁩ آئٹمز کمپریس ہو رہے ہیں"
+  },
   "jobs.failed.extract": "نکالنا ناکام رہا",
   "jobs.failed.move": "منتقلی ناکام رہی",
   "jobs.failed.send": "بھیجنا ناکام رہا",
@@ -2086,6 +2111,7 @@
   "settings.hint.thumbs_kept": "بند ہونے پر بھی پہلے سے بنے تھمب نیلز دکھتے ہیں۔",
   "settings.keys.move_cursor": "کرسر حرکت دیں",
   "settings.keys.move_open_up": "حرکت، کھولنا، اوپر",
+  "settings.keys.arrows": "تیر",
   "settings.list.separator": "، ",
   "settings.menus.compress": "کمپریس کریں",
   "settings.menus.convert": "تبدیل کریں",

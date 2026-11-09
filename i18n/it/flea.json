@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Compressione non riuscita",
   "jobs.failed.copy": "Copia non riuscita",
   "jobs.failed.emptyTrash": "Svuotamento del Cestino non riuscito",
+  "jobs.head.send_waiting": "Invio",
+  "jobs.head.copying": "Copia di %1 di %2 in %3",
+  "jobs.head.moving": "Spostamento di %1 di %2 in %3",
+  "jobs.head.sending": "Invio di %1 di %2 a %3",
+  "jobs.head.action": "%1 · %2 di %3",
+  "jobs.head.checking": {
+    "one": "Verifica di %1 elemento su %2",
+    "many": "Verifica di %1 elementi su %2",
+    "other": "Verifica di %1 elementi su %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copia %1 elemento in %2",
+    "many": "Copia %1 elementi in %2",
+    "other": "Copia %1 elementi in %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Sposta %1 elemento in %2",
+    "many": "Sposta %1 elementi in %2",
+    "other": "Sposta %1 elementi in %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comprimi %1 elemento in %2",
+    "many": "Comprimi %1 elementi in %2",
+    "other": "Comprimi %1 elementi in %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Compressione di %1 elemento",
+    "many": "Compressione di %1 elementi",
+    "other": "Compressione di %1 elementi"
+  },
   "jobs.failed.extract": "Estrazione non riuscita",
   "jobs.failed.move": "Spostamento non riuscito",
   "jobs.failed.send": "Invio non riuscito",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Anche se disattivate, le miniature già create restano visibili.",
   "settings.keys.move_cursor": "Sposta cursore",
   "settings.keys.move_open_up": "Sposta, apri, risali",
+  "settings.keys.arrows": "frecce",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Comprimi",
   "settings.menus.convert": "Converti",

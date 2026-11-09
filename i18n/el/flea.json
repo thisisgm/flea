@@ -785,6 +785,31 @@
   "jobs.failed.compress": "Η συμπίεση απέτυχε",
   "jobs.failed.copy": "Η αντιγραφή απέτυχε",
   "jobs.failed.emptyTrash": "Το άδειασμα των Απορριμμάτων απέτυχε",
+  "jobs.head.send_waiting": "Αποστολή",
+  "jobs.head.copying": "Αντιγραφή %1 από %2 στο %3",
+  "jobs.head.moving": "Μετακίνηση %1 από %2 στο %3",
+  "jobs.head.sending": "Αποστολή %1 από %2 στο %3",
+  "jobs.head.action": "%1 · %2 από %3",
+  "jobs.head.checking": {
+    "one": "Έλεγχος %1 στοιχείου στο %2",
+    "other": "Έλεγχος %1 στοιχείων στο %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Αντιγραφή %1 στοιχείου στο %2",
+    "other": "Αντιγραφή %1 στοιχείων στο %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Μετακίνηση %1 στοιχείου στο %2",
+    "other": "Μετακίνηση %1 στοιχείων στο %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Συμπίεση %1 στοιχείου στο %2",
+    "other": "Συμπίεση %1 στοιχείων στο %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Συμπίεση %1 στοιχείου",
+    "other": "Συμπίεση %1 στοιχείων"
+  },
   "jobs.failed.extract": "Η αποσυμπίεση απέτυχε",
   "jobs.failed.move": "Η μετακίνηση απέτυχε",
   "jobs.failed.send": "Η αποστολή απέτυχε",
@@ -2047,6 +2072,7 @@
   "settings.hint.thumbs_kept": "Το Ανενεργό συνεχίζει να εμφανίζει μικρογραφίες που έχουν ήδη δημιουργηθεί.",
   "settings.keys.move_cursor": "Μετακίνηση δρομέα",
   "settings.keys.move_open_up": "Μετακίνηση, άνοιγμα, πάνω",
+  "settings.keys.arrows": "βέλη",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Συμπίεση",
   "settings.menus.convert": "Μετατροπή",

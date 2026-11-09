@@ -11,9 +11,10 @@ pub struct Crumb {
 }
 
 impl Crumb {
+    // The drawn text drops a name's bidi controls as rows do; the path stays as the folder spells it.
     fn new(text: String, path: String) -> Self {
         Self {
-            text,
+            text: crate::row::shown_name(&text).into_owned(),
             path,
             last: false,
             elided: false,
@@ -299,4 +300,18 @@ pub fn fit_start(list: Vec<Crumb>, budget: usize) -> Vec<Crumb> {
     kept.reverse();
     kept.push(leaf);
     elide_leaf(kept, budget)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::crumbs;
+
+    #[test]
+    fn a_crumb_draws_a_folder_name_without_its_bidi_controls_and_keeps_its_path() {
+        let path = "/home/u/\u{202e}fdp.exe/x";
+        let list = crumbs(path, "/home/u", None);
+        let texts: Vec<&str> = list.iter().map(|crumb| crumb.text.as_str()).collect();
+        assert_eq!(texts, ["~/", "fdp.exe/", "x"]);
+        assert_eq!(list[1].path, "/home/u/\u{202e}fdp.exe");
+    }
 }

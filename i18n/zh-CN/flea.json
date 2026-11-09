@@ -752,6 +752,7 @@
   "settings.display.not_reported": "未报告",
   "settings.keys.move_cursor": "移动光标",
   "settings.keys.move_open_up": "移动、打开、上一级",
+  "settings.keys.arrows": "方向键",
   "settings.places.add_folder": "添加此文件夹",
   "settings.places.home": "主文件夹",
   "settings.places.recent": "最近",
@@ -1080,6 +1081,26 @@
   "jobs.failed.extract": "解压失败",
   "jobs.failed.send": "发送失败",
   "jobs.failed.emptyTrash": "清空回收站失败",
+  "jobs.head.send_waiting": "正在发送",
+  "jobs.head.copying": "正在复制到 %3：第 %1 项，共 %2 项",
+  "jobs.head.moving": "正在移动到 %3：第 %1 项，共 %2 项",
+  "jobs.head.sending": "正在发送到 %3：第 %1 项，共 %2 项",
+  "jobs.head.action": "%1 · 第 %2 项，共 %3 项",
+  "jobs.head.checking": {
+    "other": "正在检查 %2 上的 %1 个项目"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "将 %1 个项目复制到 %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "将 %1 个项目移动到 %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "将 %1 个项目压缩为 %2"
+  },
+  "jobs.head.compressing": {
+    "other": "正在压缩 %1 个项目"
+  },
   "jobs.error.retry": "只能重试失败的任务。",
   "jobs.error.dismiss": "只能关闭已完成或失败的任务。",
   "jobs.error.undo": "该任务已无法撤销。",

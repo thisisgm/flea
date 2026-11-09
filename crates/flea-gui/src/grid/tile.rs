@@ -121,7 +121,8 @@ pub fn prepare(
     } else {
         per_line as f64
     };
-    let caption = captions::grid_caption(&row.name, budget, count as f64).into_owned();
+    let caption = captions::grid_caption(&crate::row::shown_name(&row.name), budget, count as f64)
+        .into_owned();
     let mut lines = Vec::with_capacity(count);
     let mut at = 0;
     for text in caption.split('\n') {

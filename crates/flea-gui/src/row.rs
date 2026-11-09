@@ -62,11 +62,24 @@ pub fn name_ink(row: &RowFacts) -> NameInk {
     }
 }
 
-/// Row.qml decoratedName: the name, then a link's target.
+/// Row.qml decoratedName: the name, then a link's target, each as shown_name draws it.
 pub fn decorated_name(row: &RowFacts) -> String {
     match &row.link {
-        Some(target) => format!("{} -> {target}", row.name),
-        None => row.name.clone(),
+        Some(target) => format!("{} -> {}", shown_name(&row.name), shown_name(target)),
+        None => shown_name(&row.name).into_owned(),
+    }
+}
+
+/// A name as drawn: bidi embedding, override and isolate controls are dropped, so it never reorders later text.
+pub fn shown_name(name: &str) -> Cow<'_, str> {
+    let control = |c: char| matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}');
+    if name.contains(control) {
+        name.chars()
+            .filter(|&c| !control(c))
+            .collect::<String>()
+            .into()
+    } else {
+        name.into()
     }
 }
 
@@ -252,6 +265,11 @@ mod tests {
             ..row("shell", 0o120777)
         };
         assert_eq!(decorated_name(&link), "shell -> /usr/share/omarchy");
+        let spoof = RowFacts {
+            link: Some("/tmp/\u{2067}evil".into()),
+            ..row("\u{202e}txt.exe", 0o120777)
+        };
+        assert_eq!(decorated_name(&spoof), "txt.exe -> /tmp/evil");
     }
 
     #[test]

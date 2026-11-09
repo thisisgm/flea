@@ -865,6 +865,41 @@
   "jobs.failed.compress": "Kompresja nie powiodła się",
   "jobs.failed.copy": "Kopiowanie nie powiodło się",
   "jobs.failed.emptyTrash": "Opróżnianie Kosza nie powiodło się",
+  "jobs.head.send_waiting": "Wysyłanie",
+  "jobs.head.copying": "Kopiowanie %1 z %2 do %3",
+  "jobs.head.moving": "Przenoszenie %1 z %2 do %3",
+  "jobs.head.sending": "Wysyłanie %1 z %2 do %3",
+  "jobs.head.action": "%1 · %2 z %3",
+  "jobs.head.checking": {
+    "one": "Sprawdzanie %1 elementu na %2",
+    "few": "Sprawdzanie %1 elementów na %2",
+    "many": "Sprawdzanie %1 elementów na %2",
+    "other": "Sprawdzanie %1 elementu na %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopiuj %1 element do %2",
+    "few": "Kopiuj %1 elementy do %2",
+    "many": "Kopiuj %1 elementów do %2",
+    "other": "Kopiuj %1 elementu do %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Przenieś %1 element do %2",
+    "few": "Przenieś %1 elementy do %2",
+    "many": "Przenieś %1 elementów do %2",
+    "other": "Przenieś %1 elementu do %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Kompresuj %1 element do %2",
+    "few": "Kompresuj %1 elementy do %2",
+    "many": "Kompresuj %1 elementów do %2",
+    "other": "Kompresuj %1 elementu do %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Kompresowanie %1 elementu",
+    "few": "Kompresowanie %1 elementów",
+    "many": "Kompresowanie %1 elementów",
+    "other": "Kompresowanie %1 elementu"
+  },
   "jobs.failed.extract": "Rozpakowywanie nie powiodło się",
   "jobs.failed.move": "Przenoszenie nie powiodło się",
   "jobs.failed.send": "Wysyłanie nie powiodło się",
@@ -1689,7 +1724,7 @@
   "plugins.airdrop.adapter.missing": "Wymaga pakietu owly",
   "plugins.airdrop.adapter.no_card": "Brak adaptera Wi-Fi, którego może użyć owly",
   "plugins.airdrop.adapter.works": "%1, działa z AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, nie działa z AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, nie obsługuje AirDrop",
   "plugins.airdrop.adapter.untested": "%1, nietestowany",
   "plugins.airdrop.adapter.no_service": "%1, wymaga owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, niegotowy",
@@ -2217,6 +2252,7 @@
   "settings.hint.thumbs_kept": "Wyłączenie nadal pokazuje miniatury, które już utworzono.",
   "settings.keys.move_cursor": "Przesuń kursor",
   "settings.keys.move_open_up": "Ruch, otwieranie, w górę",
+  "settings.keys.arrows": "strzałki",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Kompresuj",
   "settings.menus.convert": "Konwertuj",

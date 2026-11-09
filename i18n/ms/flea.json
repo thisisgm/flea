@@ -762,6 +762,7 @@
   "settings.display.not_reported": "tidak dilaporkan",
   "settings.keys.move_cursor": "Gerakkan kursor",
   "settings.keys.move_open_up": "Gerak, buka, naik",
+  "settings.keys.arrows": "anak panah",
   "settings.places.add_folder": "Tambah folder ini",
   "settings.places.home": "Utama",
   "settings.places.recent": "Terkini",
@@ -1095,6 +1096,26 @@
   "jobs.failed.extract": "Pengekstrakan gagal",
   "jobs.failed.send": "Penghantaran gagal",
   "jobs.failed.emptyTrash": "Pengosongan tong sampah gagal",
+  "jobs.head.send_waiting": "Menghantar",
+  "jobs.head.copying": "Menyalin %1 daripada %2 ke %3",
+  "jobs.head.moving": "Mengalih %1 daripada %2 ke %3",
+  "jobs.head.sending": "Menghantar %1 daripada %2 ke %3",
+  "jobs.head.action": "%1 · %2 daripada %3",
+  "jobs.head.checking": {
+    "other": "Menyemak %1 item pada %2"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "Salin %1 item ke %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "Alih %1 item ke %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "Mampatkan %1 item ke %2"
+  },
+  "jobs.head.compressing": {
+    "other": "Memampatkan %1 item"
+  },
   "jobs.error.retry": "Hanya tugas yang gagal boleh dicuba semula.",
   "jobs.error.dismiss": "Hanya tugas yang selesai atau gagal boleh ditutup.",
   "jobs.error.undo": "Tugas itu tidak lagi boleh dibuat asal.",

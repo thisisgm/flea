@@ -796,6 +796,31 @@
   "jobs.failed.compress": "Неуспешно компресиране",
   "jobs.failed.copy": "Неуспешно копиране",
   "jobs.failed.emptyTrash": "Неуспешно изпразване на кошчето",
+  "jobs.head.send_waiting": "Изпращане",
+  "jobs.head.copying": "Копиране на %1 от %2 в %3",
+  "jobs.head.moving": "Преместване на %1 от %2 в %3",
+  "jobs.head.sending": "Изпращане на %1 от %2 към %3",
+  "jobs.head.action": "%1 · %2 от %3",
+  "jobs.head.checking": {
+    "one": "Проверка на %1 елемент в %2",
+    "other": "Проверка на %1 елемента в %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Копирай %1 елемент в %2",
+    "other": "Копирай %1 елемента в %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Премести %1 елемент в %2",
+    "other": "Премести %1 елемента в %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Компресирай %1 елемент в %2",
+    "other": "Компресирай %1 елемента в %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Компресиране на %1 елемент",
+    "other": "Компресиране на %1 елемента"
+  },
   "jobs.failed.extract": "Неуспешно извличане",
   "jobs.failed.move": "Неуспешно преместване",
   "jobs.failed.send": "Неуспешно изпращане",
@@ -1618,7 +1643,7 @@
   "plugins.airdrop.adapter.missing": "Изисква пакета owly",
   "plugins.airdrop.adapter.no_card": "Няма Wi-Fi адаптер, който owly може да ползва",
   "plugins.airdrop.adapter.works": "%1, работи с AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, не работи с AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, не поддържа AirDrop",
   "plugins.airdrop.adapter.untested": "%1, не е тестван",
   "plugins.airdrop.adapter.no_service": "%1, нужен е owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, не е готов",
@@ -2086,6 +2111,7 @@
   "settings.hint.thumbs_kept": "„Изкл.“ пак показва вече създадените миниатюри.",
   "settings.keys.move_cursor": "Премести курсора",
   "settings.keys.move_open_up": "Движение, отваряне, нагоре",
+  "settings.keys.arrows": "стрелки",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Компресирай",
   "settings.menus.convert": "Преобразувай",

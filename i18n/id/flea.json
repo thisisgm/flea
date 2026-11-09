@@ -937,6 +937,7 @@
   "settings.display.not_reported": "tidak dilaporkan",
   "settings.keys.move_cursor": "Gerakkan kursor",
   "settings.keys.move_open_up": "Bergerak, buka, naik",
+  "settings.keys.arrows": "panah",
   "settings.places.add_folder": "Tambahkan folder ini",
   "settings.places.network": "Jaringan",
   "settings.sheet.where_network": "Jaringan",
@@ -1377,6 +1378,26 @@
   "jobs.failed.send": "Pengiriman gagal",
   "send.rclone.failed": "Pengiriman gagal",
   "jobs.failed.emptyTrash": "Pengosongan Sampah gagal",
+  "jobs.head.send_waiting": "Mengirim",
+  "jobs.head.copying": "Menyalin %1 dari %2 ke %3",
+  "jobs.head.moving": "Memindahkan %1 dari %2 ke %3",
+  "jobs.head.sending": "Mengirim %1 dari %2 ke %3",
+  "jobs.head.action": "%1 · %2 dari %3",
+  "jobs.head.checking": {
+    "other": "Memeriksa %1 item di %2"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "Salin %1 item ke %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "Pindahkan %1 item ke %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "Kompres %1 item ke %2"
+  },
+  "jobs.head.compressing": {
+    "other": "Mengompres %1 item"
+  },
   "jobs.error.retry": "Hanya tugas yang gagal yang dapat dicoba lagi.",
   "jobs.error.dismiss": "Hanya tugas yang selesai atau gagal yang dapat ditutup.",
   "jobs.error.undo": "Tugas tersebut tidak lagi dapat diurungkan.",

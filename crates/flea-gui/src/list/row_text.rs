@@ -40,7 +40,7 @@ pub fn drawn_name(
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let run = format::match_run(&display.name, query);
+    let run = format::match_run(&row::shown_name(&display.name), query);
     let elide = |cells: usize| match run {
         None => (row::middle_elide(&name, cells), None),
         Some(run) => {

@@ -143,7 +143,10 @@ impl SettingsView {
                 ))
                 .child(
                     div()
+                        .debug_selector(move || format!("settings-rail-label-{id}"))
                         .flex_1()
+                        .min_w_0()
+                        .overflow_hidden()
                         .whitespace_nowrap()
                         .text_ellipsis()
                         .child(SharedString::from(self.panel.catalog.tr(section.label))),
@@ -227,7 +230,6 @@ impl SettingsView {
         width: f32,
         window: &Window,
     ) -> Vec<usize> {
-        let font = self.typeface.font.clone();
         rows.into_iter()
             .map(|(row, bold)| {
                 if matches!(
@@ -240,37 +242,56 @@ impl SettingsView {
                 if row.kind != Kind::Hint || row.elide_right {
                     return 1;
                 }
-                let s = self.panel.scale;
-                let inset = if row.footer {
-                    2. * s.of(PAD_X)
-                } else {
-                    s.label_x() + s.of(PAD_X)
-                };
                 // Each unit is shaped whole, as the pane places it, and packed into lines.
-                let text = row.label.resolve(&self.panel.catalog);
-                g::hint_lines(&text, (width - inset).max(0.), |unit| {
-                    let run = TextRun {
-                        len: unit.len(),
-                        font: font.clone(),
-                        color: Default::default(),
-                        background_color: None,
-                        underline: None,
-                        strikethrough: None,
-                    };
-                    f32::from(
-                        window
-                            .text_system()
-                            .shape_line(
-                                SharedString::from(unit.to_owned()),
-                                self.typeface.caption,
-                                &[run],
-                                None,
-                            )
-                            .width,
-                    )
-                })
+                let units = self.hint_units(row, width, window);
+                let widths: Vec<f32> = units
+                    .iter()
+                    .map(|unit| self.unit_width(unit, window))
+                    .collect();
+                g::hint_line_count(&widths, self.hint_room(row, width))
             })
             .collect()
+    }
+
+    /// A wrapping hint's units packed at the pane's width: the units measure() counts are the ones the pane draws.
+    fn hint_units(&self, row: &Row, width: f32, window: &Window) -> Vec<String> {
+        let text = row.label.resolve(&self.panel.catalog);
+        let rtl = self.panel.catalog.locale().right_to_left;
+        let room = self.hint_room(row, width);
+        super::hint_bidi::hint_units_in(&text, rtl, room, |unit| self.unit_width(unit, window))
+    }
+
+    /// The width a wrapping hint's units pack into: the pane less the hint's own inset.
+    fn hint_room(&self, row: &Row, width: f32) -> f32 {
+        let s = self.panel.scale;
+        let inset = if row.footer {
+            2. * s.of(PAD_X)
+        } else {
+            s.label_x() + s.of(PAD_X)
+        };
+        (width - inset).max(0.)
+    }
+
+    fn unit_width(&self, unit: &str, window: &Window) -> f32 {
+        let run = TextRun {
+            len: unit.len(),
+            font: self.typeface.font.clone(),
+            color: Default::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        f32::from(
+            window
+                .text_system()
+                .shape_line(
+                    SharedString::from(unit.to_owned()),
+                    self.typeface.caption,
+                    &[run],
+                    None,
+                )
+                .width,
+        )
     }
 
     fn pane(&mut self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -297,7 +318,10 @@ impl SettingsView {
         for line in &mut lines {
             line.segment = line.row.kind == Kind::Choice && self.fits(line.row, width, window);
             line.room = Some(self.room(line.row, line.segment, width, window));
-            super::draw::user_keys::measure(line, &self.typeface, window);
+            super::draw::user_keys::measure(line, &self.typeface, &self.panel.catalog, window);
+            if line.row.kind == Kind::Hint && !line.row.elide_right {
+                line.units = self.hint_units(line.row, width, window);
+            }
         }
         let heights = if searching {
             let rows: Vec<Row> = lines.iter().map(|line| line.row.clone()).collect();

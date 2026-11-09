@@ -66,6 +66,20 @@ impl Probe {
         }
     }
 
+    /// The box an element's children span, so a child drawn past its parent shows.
+    pub fn children(
+        &self,
+        id: String,
+    ) -> impl Fn(Vec<Bounds<Pixels>>, &mut gpui::Window, &mut gpui::App) {
+        let probe = self.clone();
+        move |bounds, _, _| {
+            if let Some(first) = bounds.first() {
+                let span = bounds.iter().fold(*first, |span, child| span.union(child));
+                probe.0.borrow_mut().insert(id.clone(), span);
+            }
+        }
+    }
+
     /// The box an id was laid out in on the latest frame.
     pub fn bounds(&self, id: &str) -> Option<Bounds<Pixels>> {
         self.0.borrow().get(id).copied()

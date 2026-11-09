@@ -876,6 +876,41 @@
   "jobs.failed.compress": "Не вдалося стиснути",
   "jobs.failed.copy": "Не вдалося скопіювати",
   "jobs.failed.emptyTrash": "Не вдалося спорожнити смітник",
+  "jobs.head.send_waiting": "Надсилання",
+  "jobs.head.copying": "Копіювання %1 з %2 до %3",
+  "jobs.head.moving": "Переміщення %1 з %2 до %3",
+  "jobs.head.sending": "Надсилання %1 з %2 на %3",
+  "jobs.head.action": "%1 · %2 з %3",
+  "jobs.head.checking": {
+    "one": "Перевірка %1 об’єкта на %2",
+    "few": "Перевірка %1 об’єктів на %2",
+    "many": "Перевірка %1 об’єктів на %2",
+    "other": "Перевірка %1 об’єкта на %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Копіювати %1 об’єкт до %2",
+    "few": "Копіювати %1 об’єкти до %2",
+    "many": "Копіювати %1 об’єктів до %2",
+    "other": "Копіювати %1 об’єкта до %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Перемістити %1 об’єкт до %2",
+    "few": "Перемістити %1 об’єкти до %2",
+    "many": "Перемістити %1 об’єктів до %2",
+    "other": "Перемістити %1 об’єкта до %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Стиснути %1 об’єкт у %2",
+    "few": "Стиснути %1 об’єкти у %2",
+    "many": "Стиснути %1 об’єктів у %2",
+    "other": "Стиснути %1 об’єкта у %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Стиснення %1 об’єкта",
+    "few": "Стиснення %1 об’єктів",
+    "many": "Стиснення %1 об’єктів",
+    "other": "Стиснення %1 об’єкта"
+  },
   "jobs.failed.extract": "Не вдалося видобути",
   "jobs.failed.move": "Не вдалося перемістити",
   "jobs.failed.send": "Не вдалося надіслати",
@@ -1730,7 +1765,7 @@
   "plugins.airdrop.adapter.missing": "Потрібен пакет owly",
   "plugins.airdrop.adapter.no_card": "Немає адаптера Wi-Fi, який може використовувати owly",
   "plugins.airdrop.adapter.works": "%1, працює з AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, не працює з AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, не підтримує AirDrop",
   "plugins.airdrop.adapter.untested": "%1, не перевірено",
   "plugins.airdrop.adapter.no_service": "%1, потрібен owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, не готовий",
@@ -2258,6 +2293,7 @@
   "settings.hint.thumbs_kept": "Коли вимкнено, уже створені мініатюри залишаються видимими.",
   "settings.keys.move_cursor": "Рух курсора",
   "settings.keys.move_open_up": "Рух, відкриття, угору",
+  "settings.keys.arrows": "стрілки",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Стиснути",
   "settings.menus.convert": "Перетворити",

@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Falha na compactação",
   "jobs.failed.copy": "Falha na cópia",
   "jobs.failed.emptyTrash": "Falha ao esvaziar a Lixeira",
+  "jobs.head.send_waiting": "Enviando",
+  "jobs.head.copying": "Copiando %1 de %2 para %3",
+  "jobs.head.moving": "Movendo %1 de %2 para %3",
+  "jobs.head.sending": "Enviando %1 de %2 para %3",
+  "jobs.head.action": "%1 · %2 de %3",
+  "jobs.head.checking": {
+    "one": "Verificando %1 item em %2",
+    "many": "Verificando %1 itens em %2",
+    "other": "Verificando %1 itens em %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copiar %1 item para %2",
+    "many": "Copiar %1 itens para %2",
+    "other": "Copiar %1 itens para %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Mover %1 item para %2",
+    "many": "Mover %1 itens para %2",
+    "other": "Mover %1 itens para %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Compactar %1 item para %2",
+    "many": "Compactar %1 itens para %2",
+    "other": "Compactar %1 itens para %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Compactando %1 item",
+    "many": "Compactando %1 itens",
+    "other": "Compactando %1 itens"
+  },
   "jobs.failed.extract": "Falha na extração",
   "jobs.failed.move": "Falha ao mover",
   "jobs.failed.send": "Falha no envio",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Desativado ainda mostra miniaturas que já foram geradas.",
   "settings.keys.move_cursor": "Mover cursor",
   "settings.keys.move_open_up": "Mover, abrir, subir",
+  "settings.keys.arrows": "setas",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Compactar",
   "settings.menus.convert": "Converter",

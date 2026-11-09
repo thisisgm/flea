@@ -166,7 +166,8 @@ pub fn control_room(
         value: 0.,
         caption: 0.,
     };
-    let word = word + LAYOUT_SLACK;
+    // A clamped value or caption leaves the word plus the slack the label keeps in hand, so its box still holds the word.
+    let word = word + 2. * LAYOUT_SLACK;
     if matches!(row.kind, Kind::Fact | Kind::Action)
         || steps
         || (row.kind == Kind::Check && !row.value.is_empty())
@@ -348,12 +349,6 @@ pub fn hint_line_count(widths: &[f32], width: f32) -> usize {
         }
     }
     lines
-}
-
-/// A hint's line count in a width, each unit measured whole by the caller's face.
-pub fn hint_lines(text: &str, width: f32, measure: impl Fn(&str) -> f32) -> usize {
-    let widths: Vec<f32> = hint_units(text).iter().map(|unit| measure(unit)).collect();
-    hint_line_count(&widths, width)
 }
 
 /// Hint lines in a monospace face, a stand-in until the window has shaped the text: wide characters take two cells.

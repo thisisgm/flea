@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Échec de la compression",
   "jobs.failed.copy": "Échec de la copie",
   "jobs.failed.emptyTrash": "Échec du vidage de la corbeille",
+  "jobs.head.send_waiting": "Envoi",
+  "jobs.head.copying": "Copie de %1 sur %2 vers %3",
+  "jobs.head.moving": "Déplacement de %1 sur %2 vers %3",
+  "jobs.head.sending": "Envoi de %1 sur %2 à %3",
+  "jobs.head.action": "%1 · %2 sur %3",
+  "jobs.head.checking": {
+    "one": "Vérification de %1 élément sur %2",
+    "many": "Vérification de %1 éléments sur %2",
+    "other": "Vérification de %1 éléments sur %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copier %1 élément vers %2",
+    "many": "Copier %1 éléments vers %2",
+    "other": "Copier %1 éléments vers %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Déplacer %1 élément vers %2",
+    "many": "Déplacer %1 éléments vers %2",
+    "other": "Déplacer %1 éléments vers %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Compresser %1 élément dans %2",
+    "many": "Compresser %1 éléments dans %2",
+    "other": "Compresser %1 éléments dans %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Compression de %1 élément",
+    "many": "Compression de %1 éléments",
+    "other": "Compression de %1 éléments"
+  },
   "jobs.failed.extract": "Échec de l’extraction",
   "jobs.failed.move": "Échec du déplacement",
   "jobs.failed.send": "Échec de l’envoi",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Désactivé affiche encore les miniatures déjà créées.",
   "settings.keys.move_cursor": "Déplacer le curseur",
   "settings.keys.move_open_up": "Déplacer, ouvrir, remonter",
+  "settings.keys.arrows": "flèches",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Compresser",
   "settings.menus.convert": "Convertir",

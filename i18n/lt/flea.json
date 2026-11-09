@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Glaudinti nepavyko",
   "jobs.failed.copy": "Kopijuoti nepavyko",
   "jobs.failed.emptyTrash": "Ištuštinti šiukšlinės nepavyko",
+  "jobs.head.send_waiting": "Siunčiama",
+  "jobs.head.copying": "Kopijuojama %1 iš %2 į %3",
+  "jobs.head.moving": "Perkeliama %1 iš %2 į %3",
+  "jobs.head.sending": "Siunčiama %1 iš %2 į %3",
+  "jobs.head.action": "%1 · %2 iš %3",
+  "jobs.head.checking": {
+    "one": "Tikrinamas %1 elementas %2",
+    "few": "Tikrinami %1 elementai %2",
+    "other": "Tikrinama %1 elementų %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopijuoti %1 elementą į %2",
+    "few": "Kopijuoti %1 elementus į %2",
+    "other": "Kopijuoti %1 elementų į %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Perkelti %1 elementą į %2",
+    "few": "Perkelti %1 elementus į %2",
+    "other": "Perkelti %1 elementų į %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Glaudinti %1 elementą į %2",
+    "few": "Glaudinti %1 elementus į %2",
+    "other": "Glaudinti %1 elementų į %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Glaudinamas %1 elementas",
+    "few": "Glaudinami %1 elementai",
+    "other": "Glaudinama %1 elementų"
+  },
   "jobs.failed.extract": "Išskleisti nepavyko",
   "jobs.failed.move": "Perkelti nepavyko",
   "jobs.failed.send": "Siųsti nepavyko",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Išjungus vis tiek rodomos jau sukurtos miniatiūros.",
   "settings.keys.move_cursor": "Perkelti žymeklį",
   "settings.keys.move_open_up": "Judėti, atidaryti, aukštyn",
+  "settings.keys.arrows": "rodyklės",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Glaudinti",
   "settings.menus.convert": "Konvertuoti",

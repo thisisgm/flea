@@ -1042,6 +1042,31 @@
   "jobs.failed.compress": "Comprimeren mislukt",
   "jobs.failed.copy": "Kopiëren mislukt",
   "jobs.failed.emptyTrash": "Prullenbak legen mislukt",
+  "jobs.head.send_waiting": "Verzenden",
+  "jobs.head.copying": "%1 van %2 kopiëren naar %3",
+  "jobs.head.moving": "%1 van %2 verplaatsen naar %3",
+  "jobs.head.sending": "%1 van %2 verzenden naar %3",
+  "jobs.head.action": "%1 · %2 van %3",
+  "jobs.head.checking": {
+    "one": "%1 item op %2 controleren",
+    "other": "%1 items op %2 controleren"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 item kopiëren naar %2",
+    "other": "%1 items kopiëren naar %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 item verplaatsen naar %2",
+    "other": "%1 items verplaatsen naar %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 item comprimeren naar %2",
+    "other": "%1 items comprimeren naar %2"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 item comprimeren",
+    "other": "%1 items comprimeren"
+  },
   "jobs.failed.extract": "Uitpakken mislukt",
   "jobs.failed.move": "Verplaatsen mislukt",
   "jobs.failed.send": "Verzenden mislukt",
@@ -1832,7 +1857,7 @@
   "plugins.airdrop.adapter.missing": "Heeft het pakket owly nodig",
   "plugins.airdrop.adapter.no_card": "Geen Wi-Fi-adapter die owly kan gebruiken",
   "plugins.airdrop.adapter.works": "%1, werkt met AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, werkt niet met AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, ondersteunt geen AirDrop",
   "plugins.airdrop.adapter.untested": "%1, niet getest",
   "plugins.airdrop.adapter.no_service": "%1, vereist owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, niet klaar",
@@ -2188,6 +2213,7 @@
   "settings.hint.thumbs_kept": "Uit toont nog steeds miniaturen die al zijn gemaakt.",
   "settings.keys.move_cursor": "Cursor verplaatsen",
   "settings.keys.move_open_up": "Navigeren, openen, omhoog",
+  "settings.keys.arrows": "pijlen",
   "settings.menus.count": "%1 van %2",
   "settings.menus.ext_thumbs": "Miniaturen tonen",
   "settings.menus.group_always_shown": "Altijd getoond",

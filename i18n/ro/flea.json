@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Comprimarea a eșuat",
   "jobs.failed.copy": "Copierea a eșuat",
   "jobs.failed.emptyTrash": "Golirea Coșului a eșuat",
+  "jobs.head.send_waiting": "Se trimite",
+  "jobs.head.copying": "Se copiază %1 din %2 în %3",
+  "jobs.head.moving": "Se mută %1 din %2 în %3",
+  "jobs.head.sending": "Se trimite %1 din %2 către %3",
+  "jobs.head.action": "%1 · %2 din %3",
+  "jobs.head.checking": {
+    "one": "Se verifică %1 element pe %2",
+    "few": "Se verifică %1 elemente pe %2",
+    "other": "Se verifică %1 de elemente pe %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copiază %1 element în %2",
+    "few": "Copiază %1 elemente în %2",
+    "other": "Copiază %1 de elemente în %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Mută %1 element în %2",
+    "few": "Mută %1 elemente în %2",
+    "other": "Mută %1 de elemente în %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comprimă %1 element în %2",
+    "few": "Comprimă %1 elemente în %2",
+    "other": "Comprimă %1 de elemente în %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Se comprimă %1 element",
+    "few": "Se comprimă %1 elemente",
+    "other": "Se comprimă %1 de elemente"
+  },
   "jobs.failed.extract": "Extragerea a eșuat",
   "jobs.failed.move": "Mutarea a eșuat",
   "jobs.failed.send": "Trimiterea a eșuat",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Chiar și dezactivate, se afișează miniaturile deja create.",
   "settings.keys.move_cursor": "Deplasează cursorul",
   "settings.keys.move_open_up": "Deplasare, deschidere, urcare",
+  "settings.keys.arrows": "săgeți",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Comprimă",
   "settings.menus.convert": "Convertește",

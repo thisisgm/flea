@@ -123,6 +123,7 @@ impl Window {
         }
         let shown = &self.shown;
         row.head.clone_from(&shown.head);
+        row.at = shown.at;
         row.file.clone_from(&shown.file);
         row.done = shown.done;
         row.total = shown.total;

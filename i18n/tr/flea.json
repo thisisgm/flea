@@ -796,6 +796,31 @@
   "jobs.failed.compress": "Sıkıştırma başarısız oldu",
   "jobs.failed.copy": "Kopyalama başarısız oldu",
   "jobs.failed.emptyTrash": "Çöp kutusu boşaltılamadı",
+  "jobs.head.send_waiting": "Gönderiliyor",
+  "jobs.head.copying": "%3 hedefine kopyalanıyor: %1 / %2",
+  "jobs.head.moving": "%3 hedefine taşınıyor: %1 / %2",
+  "jobs.head.sending": "%3 hedefine gönderiliyor: %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "one": "%2 üzerinde %1 öge kontrol ediliyor",
+    "other": "%2 üzerinde %1 öge kontrol ediliyor"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 ögeyi %2 hedefine kopyala",
+    "other": "%1 ögeyi %2 hedefine kopyala"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 ögeyi %2 hedefine taşı",
+    "other": "%1 ögeyi %2 hedefine taşı"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 ögeyi %2 olarak sıkıştır",
+    "other": "%1 ögeyi %2 olarak sıkıştır"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 öge sıkıştırılıyor",
+    "other": "%1 öge sıkıştırılıyor"
+  },
   "jobs.failed.extract": "Arşivden çıkarma başarısız oldu",
   "jobs.failed.move": "Taşıma başarısız oldu",
   "jobs.failed.send": "Gönderme başarısız oldu",
@@ -2086,6 +2111,7 @@
   "settings.hint.thumbs_kept": "Kapalı seçiliyken bile önceden oluşturulmuş küçük resimler gösterilir.",
   "settings.keys.move_cursor": "İmleci taşı",
   "settings.keys.move_open_up": "Taşı, aç, yukarı",
+  "settings.keys.arrows": "oklar",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Sıkıştır",
   "settings.menus.convert": "Dönüştür",

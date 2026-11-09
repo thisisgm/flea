@@ -796,6 +796,31 @@
   "jobs.failed.compress": "Kufinyaza kumeshindwa",
   "jobs.failed.copy": "Kunakili kumeshindwa",
   "jobs.failed.emptyTrash": "Kuondoa taka zote kumeshindwa",
+  "jobs.head.send_waiting": "Inatuma",
+  "jobs.head.copying": "Inanakili %1 kati ya %2 kwenda %3",
+  "jobs.head.moving": "Inahamisha %1 kati ya %2 kwenda %3",
+  "jobs.head.sending": "Inatuma %1 kati ya %2 kwa %3",
+  "jobs.head.action": "%1 · %2 kati ya %3",
+  "jobs.head.checking": {
+    "one": "Inakagua kipengee %1 kwenye %2",
+    "other": "Inakagua vipengee %1 kwenye %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Nakili kipengee %1 kwenda %2",
+    "other": "Nakili vipengee %1 kwenda %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Hamisha kipengee %1 kwenda %2",
+    "other": "Hamisha vipengee %1 kwenda %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Finyaza kipengee %1 kuwa %2",
+    "other": "Finyaza vipengee %1 kuwa %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Inafinyaza kipengee %1",
+    "other": "Inafinyaza vipengee %1"
+  },
   "jobs.failed.extract": "Kutoa kumeshindwa",
   "jobs.failed.move": "Kuhamisha kumeshindwa",
   "jobs.failed.send": "Kutuma kumeshindwa",
@@ -2086,6 +2111,7 @@
   "settings.hint.thumbs_kept": "Imezimwa bado huonyesha vijipicha vilivyotengenezwa tayari.",
   "settings.keys.move_cursor": "Hamisha kishale",
   "settings.keys.move_open_up": "Hamisha, fungua, juu",
+  "settings.keys.arrows": "mishale",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Finyaza",
   "settings.menus.convert": "Geuza",

@@ -92,13 +92,15 @@ impl Operations {
         }
         if !jobs::unfinished(&job) {
             self.pending_transfer_job = Some(job.clone());
-            job.head = self
-                .jobs
-                .rows
-                .iter()
-                .find(|row| row.id == job.id)
+            let previous = self.jobs.rows.iter().find(|row| row.id == job.id);
+            job.head = previous
                 .map(|row| row.head.clone())
                 .unwrap_or_else(|| transfer.head(catalog));
+            // The held head keeps the fields it was built from, never the finished line's receipt, so its language holds.
+            job.at = previous.and_then(|row| row.at);
+            (job.phase, job.receipt) = previous
+                .map(|row| (row.phase.clone(), row.receipt.clone()))
+                .unwrap_or_default();
             job.state = "running".into();
             job.undo = false;
         }

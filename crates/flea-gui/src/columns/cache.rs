@@ -205,7 +205,8 @@ fn prepare(
     } else {
         shaping.plain_cells
     };
-    let path = row.name();
+    let shown = row::shown_name(row.name());
+    let path = shown.as_ref();
     let name = if shaping.locating {
         flea::ui_logic_file_search::base(path)
     } else {

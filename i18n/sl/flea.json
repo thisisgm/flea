@@ -876,6 +876,41 @@
   "jobs.failed.compress": "Stiskanje ni uspelo",
   "jobs.failed.copy": "Kopiranje ni uspelo",
   "jobs.failed.emptyTrash": "Praznjenje Koša ni uspelo",
+  "jobs.head.send_waiting": "Pošiljanje",
+  "jobs.head.copying": "Kopiranje %1 od %2 v %3",
+  "jobs.head.moving": "Premikanje %1 od %2 v %3",
+  "jobs.head.sending": "Pošiljanje %1 od %2 v %3",
+  "jobs.head.action": "%1 · %2 od %3",
+  "jobs.head.checking": {
+    "one": "Preverjanje %1 elementa na %2",
+    "two": "Preverjanje %1 elementov na %2",
+    "few": "Preverjanje %1 elementov na %2",
+    "other": "Preverjanje %1 elementov na %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopiraj %1 element v %2",
+    "two": "Kopiraj %1 elementa v %2",
+    "few": "Kopiraj %1 elemente v %2",
+    "other": "Kopiraj %1 elementov v %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Premakni %1 element v %2",
+    "two": "Premakni %1 elementa v %2",
+    "few": "Premakni %1 elemente v %2",
+    "other": "Premakni %1 elementov v %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Stisni %1 element v %2",
+    "two": "Stisni %1 elementa v %2",
+    "few": "Stisni %1 elemente v %2",
+    "other": "Stisni %1 elementov v %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Stiskanje %1 elementa",
+    "two": "Stiskanje %1 elementov",
+    "few": "Stiskanje %1 elementov",
+    "other": "Stiskanje %1 elementov"
+  },
   "jobs.failed.extract": "Razširjanje ni uspelo",
   "jobs.failed.move": "Premik ni uspel",
   "jobs.failed.send": "Pošiljanje ni uspelo",
@@ -2258,6 +2293,7 @@
   "settings.hint.thumbs_kept": "Izklopljeno še vedno prikazuje že ustvarjene sličice.",
   "settings.keys.move_cursor": "Premik kazalca",
   "settings.keys.move_open_up": "Premik, odpiranje, gor",
+  "settings.keys.arrows": "puščice",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Stisni",
   "settings.menus.convert": "Pretvori",

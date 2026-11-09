@@ -825,6 +825,36 @@
   "jobs.failed.compress": "הדחיסה נכשלה",
   "jobs.failed.copy": "ההעתקה נכשלה",
   "jobs.failed.emptyTrash": "ריקון סל האשפה נכשל",
+  "jobs.head.send_waiting": "שולח",
+  "jobs.head.copying": "מעתיק ⁨%1⁩ מתוך ⁨%2⁩ אל ⁨%3⁩",
+  "jobs.head.moving": "מעביר ⁨%1⁩ מתוך ⁨%2⁩ אל ⁨%3⁩",
+  "jobs.head.sending": "שולח ⁨%1⁩ מתוך ⁨%2⁩ אל ⁨%3⁩",
+  "jobs.head.action": "⁨%1⁩ · ⁨%2⁩ מתוך ⁨%3⁩",
+  "jobs.head.checking": {
+    "one": "בודק ⁨%1⁩ פריט ב-⁨%2⁩",
+    "two": "בודק ⁨%1⁩ פריטים ב-⁨%2⁩",
+    "other": "בודק ⁨%1⁩ פריטים ב-⁨%2⁩"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "העתקת ⁨%1⁩ פריט אל ⁨%2⁩",
+    "two": "העתקת ⁨%1⁩ פריטים אל ⁨%2⁩",
+    "other": "העתקת ⁨%1⁩ פריטים אל ⁨%2⁩"
+  },
+  "jobs.head.move_waiting": {
+    "one": "העברת ⁨%1⁩ פריט אל ⁨%2⁩",
+    "two": "העברת ⁨%1⁩ פריטים אל ⁨%2⁩",
+    "other": "העברת ⁨%1⁩ פריטים אל ⁨%2⁩"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "דחיסת ⁨%1⁩ פריט אל ⁨%2⁩",
+    "two": "דחיסת ⁨%1⁩ פריטים אל ⁨%2⁩",
+    "other": "דחיסת ⁨%1⁩ פריטים אל ⁨%2⁩"
+  },
+  "jobs.head.compressing": {
+    "one": "דוחס ⁨%1⁩ פריט",
+    "two": "דוחס ⁨%1⁩ פריטים",
+    "other": "דוחס ⁨%1⁩ פריטים"
+  },
   "jobs.failed.extract": "החילוץ נכשל",
   "jobs.failed.move": "ההעברה נכשלה",
   "jobs.failed.send": "השליחה נכשלה",
@@ -1634,7 +1664,7 @@
   "plugins.airdrop.adapter.missing": "דורש את החבילה ⁨owly⁩",
   "plugins.airdrop.adapter.no_card": "אין מתאם ⁨Wi-Fi⁩ ש-⁨owly⁩ יכול להשתמש בו",
   "plugins.airdrop.adapter.works": "⁨%1⁩, פועל עם ⁨AirDrop⁩",
-  "plugins.airdrop.adapter.broken": "⁨%1⁩, לא פועל עם ⁨AirDrop⁩",
+  "plugins.airdrop.adapter.broken": "⁨%1⁩, לא תומך ב־⁨AirDrop⁩",
   "plugins.airdrop.adapter.untested": "⁨%1⁩, לא נבדק",
   "plugins.airdrop.adapter.no_service": "⁨%1⁩, דורש ⁨owlyd⁩",
   "plugins.airdrop.adapter.not_ready": "⁨%1⁩, לא מוכן",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "גם במצב כבוי מוצגות תמונות ממוזערות שכבר נוצרו.",
   "settings.keys.move_cursor": "הזזת הסמן",
   "settings.keys.move_open_up": "ניווט, פתיחה, עלייה",
+  "settings.keys.arrows": "חיצים",
   "settings.list.separator": ", ",
   "settings.menus.compress": "דחיסה",
   "settings.menus.convert": "המרה",

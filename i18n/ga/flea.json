@@ -646,7 +646,7 @@
   "plugins.airdrop.adapter.missing": "Teastaíonn an pacáiste owly",
   "plugins.airdrop.adapter.no_card": "Gan cuibheoir Wi-Fi is féidir le owly a úsáid",
   "plugins.airdrop.adapter.works": "%1, oibríonn sé le AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, ní oibríonn le AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, ní thacaíonn sé le AirDrop",
   "plugins.airdrop.adapter.untested": "%1, gan tástáil",
   "plugins.airdrop.adapter.no_service": "%1, teastaíonn owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, níl sé réidh",
@@ -826,6 +826,7 @@
   "settings.display.not_reported": "gan tuairisciú",
   "settings.keys.move_cursor": "Bog an cúrsóir",
   "settings.keys.move_open_up": "Bog, oscail, suas",
+  "settings.keys.arrows": "saigheada",
   "settings.places.add_folder": "Cuir an fillteán seo leis",
   "settings.places.home": "Baile",
   "settings.places.recent": "Is déanaí",
@@ -1219,6 +1220,46 @@
   "jobs.failed.extract": "Theip ar eastóscadh",
   "jobs.failed.send": "Theip ar sheoladh",
   "jobs.failed.emptyTrash": "Theip ar fholmhú an Bhruscair",
+  "jobs.head.send_waiting": "Á sheoladh",
+  "jobs.head.copying": "%1 as %2 á gcóipeáil go %3",
+  "jobs.head.moving": "%1 as %2 á mbogadh go %3",
+  "jobs.head.sending": "%1 as %2 á sheoladh chuig %3",
+  "jobs.head.action": "%1 · %2 as %3",
+  "jobs.head.checking": {
+    "one": "%1 mhír á seiceáil ar %2",
+    "two": "%1 mhír á seiceáil ar %2",
+    "few": "%1 mhír á seiceáil ar %2",
+    "many": "%1 mír á seiceáil ar %2",
+    "other": "%1 mír á seiceáil ar %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Cóipeáil %1 mhír go %2",
+    "two": "Cóipeáil %1 mhír go %2",
+    "few": "Cóipeáil %1 mhír go %2",
+    "many": "Cóipeáil %1 mír go %2",
+    "other": "Cóipeáil %1 mír go %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Bog %1 mhír go %2",
+    "two": "Bog %1 mhír go %2",
+    "few": "Bog %1 mhír go %2",
+    "many": "Bog %1 mír go %2",
+    "other": "Bog %1 mír go %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comhbhrúigh %1 mhír go %2",
+    "two": "Comhbhrúigh %1 mhír go %2",
+    "few": "Comhbhrúigh %1 mhír go %2",
+    "many": "Comhbhrúigh %1 mír go %2",
+    "other": "Comhbhrúigh %1 mír go %2"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 mhír á chomhbhrú",
+    "two": "%1 mhír á gcomhbhrú",
+    "few": "%1 mhír á gcomhbhrú",
+    "many": "%1 mír á gcomhbhrú",
+    "other": "%1 mír á gcomhbhrú"
+  },
   "jobs.error.retry": "Ní féidir atriail a dhéanamh ach ar jab ar theip air.",
   "jobs.error.dismiss": "Ní féidir dúnadh ach jab críochnaithe nó jab ar theip air.",
   "jobs.error.undo": "Ní féidir an jab sin a chealú a thuilleadh.",

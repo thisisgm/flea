@@ -123,7 +123,53 @@ pub fn head_line(catalog: &I18n, row: &JobRow) -> String {
     if row.kind == "emptyTrash" {
         return catalog.tr("jobs.empty.head");
     }
-    row.head.clone()
+    built_head(catalog, row).unwrap_or_else(|| row.head.clone())
+}
+
+// The backend's head rebuilt from the row's fields in the catalog's language; None keeps the backend's sentence.
+fn built_head(catalog: &I18n, row: &JobRow) -> Option<String> {
+    let at = row.at?;
+    // A failed extract that asks for a password reads as done, yet its head is still the backend's failure sentence.
+    if row.state == "failed" {
+        return None;
+    }
+    let (total, target) = (super::n(row.total), row.target.as_str());
+    if row.phase == "checking" {
+        return Some(catalog.trn_args("jobs.head.checking", total, &[target]));
+    }
+    if !row.receipt.is_empty() {
+        return None;
+    }
+    if row.kind == "extract" && row.total == 0 {
+        return Some(if row.done == 0 {
+            catalog.tr("archive.extracting.head_unknown")
+        } else {
+            catalog.trn("archive.extracting.head_unknown_count", super::n(row.done))
+        });
+    }
+    if state(row) == State::Waiting {
+        return match row.kind.as_str() {
+            "copy" => Some(catalog.trn_args("jobs.head.copy_waiting", total, &[target])),
+            "move" => Some(catalog.trn_args("jobs.head.move_waiting", total, &[target])),
+            "compress" => Some(catalog.trn_args("jobs.head.compress_waiting", total, &[target])),
+            "extract" => Some(catalog.tr("archive.extracting.head_unknown")),
+            "send" => Some(catalog.tr("jobs.head.send_waiting")),
+            "action" if !row.label.is_empty() => Some(row.label.clone()),
+            _ => None,
+        };
+    }
+    let (at, of) = (count(catalog, at), count(catalog, row.total));
+    match row.kind.as_str() {
+        "copy" => Some(catalog.tr_args("jobs.head.copying", &[&at, &of, target])),
+        "move" => Some(catalog.tr_args("jobs.head.moving", &[&at, &of, target])),
+        "send" => Some(catalog.tr_args("jobs.head.sending", &[&at, &of, target])),
+        "extract" => Some(catalog.tr_args("archive.extracting.head", &[&at, &of])),
+        "compress" => Some(catalog.trn("jobs.head.compressing", total)),
+        "action" if !row.label.is_empty() => {
+            Some(catalog.tr_args("jobs.head.action", &[&row.label, &at, &of]))
+        }
+        _ => None,
+    }
 }
 
 fn failed_key(kind: &str) -> Option<&'static str> {

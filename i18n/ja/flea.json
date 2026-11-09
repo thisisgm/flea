@@ -728,6 +728,26 @@
   "jobs.failed.compress": "圧縮に失敗",
   "jobs.failed.copy": "コピーに失敗",
   "jobs.failed.emptyTrash": "ゴミ箱を空にできませんでした",
+  "jobs.head.send_waiting": "送信中",
+  "jobs.head.copying": "%3 にコピー中: %1 / %2",
+  "jobs.head.moving": "%3 に移動中: %1 / %2",
+  "jobs.head.sending": "%3 に送信中: %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "other": "%2 の %1 項目を確認中"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "%1 項目を %2 にコピー"
+  },
+  "jobs.head.move_waiting": {
+    "other": "%1 項目を %2 に移動"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "%1 項目を %2 に圧縮"
+  },
+  "jobs.head.compressing": {
+    "other": "%1 項目を圧縮中"
+  },
   "jobs.failed.extract": "展開に失敗",
   "jobs.failed.move": "移動に失敗",
   "jobs.failed.send": "送信に失敗",
@@ -1931,6 +1951,7 @@
   "settings.hint.thumbs_kept": "オフでも、作成済みのサムネイルは表示されます。",
   "settings.keys.move_cursor": "カーソル移動",
   "settings.keys.move_open_up": "移動、開く、親へ",
+  "settings.keys.arrows": "矢印",
   "settings.list.separator": "、",
   "settings.menus.compress": "圧縮",
   "settings.menus.convert": "変換",

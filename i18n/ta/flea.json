@@ -796,6 +796,31 @@
   "jobs.failed.compress": "சுருக்குதல் தோல்வியடைந்தது",
   "jobs.failed.copy": "நகலெடுத்தல் தோல்வியடைந்தது",
   "jobs.failed.emptyTrash": "குப்பையைக் காலிசெய்தல் தோல்வியடைந்தது",
+  "jobs.head.send_waiting": "அனுப்புகிறது",
+  "jobs.head.copying": "%2 இல் %1 ஐ %3 க்கு நகலெடுக்கிறது",
+  "jobs.head.moving": "%2 இல் %1 ஐ %3 க்கு நகர்த்துகிறது",
+  "jobs.head.sending": "%2 இல் %1 ஐ %3 க்கு அனுப்புகிறது",
+  "jobs.head.action": "%1 · %3 இல் %2",
+  "jobs.head.checking": {
+    "one": "%2 இல் %1 உருப்படியைச் சரிபார்க்கிறது",
+    "other": "%2 இல் %1 உருப்படிகளைச் சரிபார்க்கிறது"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 உருப்படியை %2 க்கு நகலெடு",
+    "other": "%1 உருப்படிகளை %2 க்கு நகலெடு"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 உருப்படியை %2 க்கு நகர்த்து",
+    "other": "%1 உருப்படிகளை %2 க்கு நகர்த்து"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 உருப்படியை %2 ஆகச் சுருக்கு",
+    "other": "%1 உருப்படிகளை %2 ஆகச் சுருக்கு"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 உருப்படியைச் சுருக்குகிறது",
+    "other": "%1 உருப்படிகளைச் சுருக்குகிறது"
+  },
   "jobs.failed.extract": "பிரித்தெடுத்தல் தோல்வியடைந்தது",
   "jobs.failed.move": "நகர்த்துதல் தோல்வியடைந்தது",
   "jobs.failed.send": "அனுப்புதல் தோல்வியடைந்தது",
@@ -2086,6 +2111,7 @@
   "settings.hint.thumbs_kept": "முடக்கினாலும் ஏற்கனவே உருவாக்கிய சிறுபடங்கள் காட்டப்படும்.",
   "settings.keys.move_cursor": "சுட்டியை நகர்த்து",
   "settings.keys.move_open_up": "நகர்த்து, திற, மேலே செல்",
+  "settings.keys.arrows": "அம்புகள்",
   "settings.list.separator": ", ",
   "settings.menus.compress": "சுருக்கு",
   "settings.menus.convert": "வடிவமாற்று",

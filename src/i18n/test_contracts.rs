@@ -25,6 +25,14 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "I50-26 measures that the shipped translations fit their rows",
         ),
         (
+            "crates/flea-gui/src/g2/settings_pages/rail_fit_tests.rs",
+            "S3-5 measures every shipped catalog's Settings rail labels inside the rail",
+        ),
+        (
+            "src/ui_logic_file_ops/tests/heads.rs",
+            "S7C-5 builds running job heads from the shipped German catalog",
+        ),
+        (
             "src/backend/kind_polish_tests.rs",
             "LANG polish verifies PNG fallback completeness and provider precedence in all 50 shipped catalogs",
         ),

@@ -11,6 +11,7 @@ pub mod geometry;
 #[cfg(test)]
 mod geometry_tests;
 pub(crate) mod glyphs;
+pub(crate) mod hint_bidi;
 #[cfg(test)]
 mod ime_tests;
 pub(crate) mod input;
@@ -27,6 +28,8 @@ mod overlay_tests;
 pub mod panel;
 mod plugins;
 pub mod probe;
+#[cfg(test)]
+mod rail_fit_tests;
 #[cfg(test)]
 mod room_tests;
 #[cfg(test)]

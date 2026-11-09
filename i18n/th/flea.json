@@ -756,6 +756,26 @@
   "jobs.failed.compress": "บีบอัดล้มเหลว",
   "jobs.failed.copy": "คัดลอกล้มเหลว",
   "jobs.failed.emptyTrash": "ล้างถังขยะล้มเหลว",
+  "jobs.head.send_waiting": "กำลังส่ง",
+  "jobs.head.copying": "กำลังคัดลอก %1 จาก %2 ไปยัง %3",
+  "jobs.head.moving": "กำลังย้าย %1 จาก %2 ไปยัง %3",
+  "jobs.head.sending": "กำลังส่ง %1 จาก %2 ไปยัง %3",
+  "jobs.head.action": "%1 · %2 จาก %3",
+  "jobs.head.checking": {
+    "other": "กำลังตรวจสอบ %1 รายการบน %2"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "คัดลอก %1 รายการไปยัง %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "ย้าย %1 รายการไปยัง %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "บีบอัด %1 รายการเป็น %2"
+  },
+  "jobs.head.compressing": {
+    "other": "กำลังบีบอัด %1 รายการ"
+  },
   "jobs.failed.extract": "แตกไฟล์ล้มเหลว",
   "jobs.failed.move": "ย้ายล้มเหลว",
   "jobs.failed.send": "ส่งล้มเหลว",
@@ -2000,6 +2020,7 @@
   "settings.hint.thumbs_kept": "ปิดแล้วยังแสดงภาพขนาดย่อที่สร้างไว้ก่อนหน้า",
   "settings.keys.move_cursor": "เลื่อนเคอร์เซอร์",
   "settings.keys.move_open_up": "เลื่อน เปิด ขึ้น",
+  "settings.keys.arrows": "ลูกศร",
   "settings.list.separator": ", ",
   "settings.menus.compress": "บีบอัด",
   "settings.menus.convert": "แปลง",

@@ -825,6 +825,36 @@
   "jobs.failed.compress": "Sažimanje nije uspjelo",
   "jobs.failed.copy": "Kopiranje nije uspjelo",
   "jobs.failed.emptyTrash": "Pražnjenje Smeća nije uspjelo",
+  "jobs.head.send_waiting": "Slanje",
+  "jobs.head.copying": "Kopiranje %1 od %2 u %3",
+  "jobs.head.moving": "Premještanje %1 od %2 u %3",
+  "jobs.head.sending": "Slanje %1 od %2 na %3",
+  "jobs.head.action": "%1 · %2 od %3",
+  "jobs.head.checking": {
+    "one": "Provjeravanje %1 stavke na %2",
+    "few": "Provjeravanje %1 stavke na %2",
+    "other": "Provjeravanje %1 stavki na %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopiraj %1 stavku u %2",
+    "few": "Kopiraj %1 stavke u %2",
+    "other": "Kopiraj %1 stavki u %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Premjesti %1 stavku u %2",
+    "few": "Premjesti %1 stavke u %2",
+    "other": "Premjesti %1 stavki u %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Sažmi %1 stavku u %2",
+    "few": "Sažmi %1 stavke u %2",
+    "other": "Sažmi %1 stavki u %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Sažimanje %1 stavke",
+    "few": "Sažimanje %1 stavke",
+    "other": "Sažimanje %1 stavki"
+  },
   "jobs.failed.extract": "Raspakiravanje nije uspjelo",
   "jobs.failed.move": "Premještanje nije uspjelo",
   "jobs.failed.send": "Slanje nije uspjelo",
@@ -2132,6 +2162,7 @@
   "settings.hint.thumbs_kept": "Isključeno i dalje prikazuje već izrađene minijature.",
   "settings.keys.move_cursor": "Pomakni pokazivač",
   "settings.keys.move_open_up": "Kretanje, otvaranje, gore",
+  "settings.keys.arrows": "strelice",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Sažmi",
   "settings.menus.convert": "Pretvori",

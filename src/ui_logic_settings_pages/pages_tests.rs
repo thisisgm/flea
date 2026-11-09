@@ -118,6 +118,14 @@ fn every_preset_previews_six_bound_examples() {
     let default = key_preview("default");
     let words: Vec<String> = default.iter().map(|i| say(&i.label)).collect();
     assert_eq!(words, ["Move cursor", "Open", "Quick Look", "Copy", "Paste", "Move to Trash"]);
+    // The arrows are prose, so the cell draws a catalog word in place of the key name (S3-2).
+    for preset in PRESETS {
+        for item in key_preview(preset) {
+            let word = (item.keys == "arrows").then_some(Text::Key("settings.keys.arrows"));
+            assert_eq!(item.word, word.unwrap_or(Text::Empty), "{preset} {}", item.keys);
+        }
+    }
+    assert_eq!(say(&default[0].word), "arrows");
 }
 
 #[test]
