@@ -30,7 +30,7 @@ fn toggle_digit(cx: &mut TestAppContext, digit: usize) {
         &["/files/notes.txt"],
     );
     let change = request("settags");
-    let name = flea::ui_logic_pl4::tags::NAMES[digit - 1];
+    let name = flea::ui_logic_rail_places::tags::NAMES[digit - 1];
     assert_eq!(change.get("tag").and_then(Json::as_str), Some(name));
     assert_eq!(change.get("op").and_then(Json::as_str), Some("toggle"));
     assert_eq!(change.get("listing"), Some(&Json::Num("1".into())));

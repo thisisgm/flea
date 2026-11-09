@@ -1,7 +1,7 @@
 //! The rename readers Ipc.qml served: renamingIndex, renameEditorLive, renameEditorText, renameState and bulkRenameState.
 use super::Shell;
 use crate::{
-    g2::op3::shell::Block,
+    g2::open_with_properties::shell::Block,
     ipc::{rows::centre_of, Adapter},
 };
 use flea::{ipc::wire::Reply, json::escape};

@@ -33,7 +33,7 @@ pub(super) fn toggle_ext_thumbs(
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) {
-    use flea::{jsondoc::Json, ui_logic_st1::edit};
+    use flea::{jsondoc::Json, ui_logic_settings_pages::edit};
     let class = shell.panes[side]
         .as_ref()
         .and_then(|host| host.sizes.class())
@@ -59,7 +59,7 @@ pub(super) fn toggle_ext_thumbs(
     });
     shell.change_settings(edit::setting(path, Json::Bool(on)), window, cx);
     if let Some(sentence) =
-        flea::ui_logic_pv1::property::thumbs_status(&class, on, &shell.locale.catalog)
+        flea::ui_logic_preview_core::property::thumbs_status(&class, on, &shell.locale.catalog)
     {
         if let Some(host) = &mut shell.panes[side] {
             host.status = sentence.clone().into();
@@ -69,7 +69,7 @@ pub(super) fn toggle_ext_thumbs(
                 &sentence,
                 false,
                 "",
-                flea::ui_logic_fb1::status::Hint::None,
+                flea::ui_logic_status_feedback::status::Hint::None,
                 now,
             );
         });

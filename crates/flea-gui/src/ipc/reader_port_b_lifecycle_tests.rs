@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn loading_interval_restarts_after_a_hidden_replacement() {
-    let mut observed = crate::g2::pv1::observations::Observations::default();
+    let mut observed = crate::g2::quick_look_overlay::observations::Observations::default();
     observed.opened(0, false);
     observed.revealed(100, false, true);
     observed.opened(200, false);
@@ -158,7 +158,7 @@ fn focus_owner_rename_blur_has_no_pane_keyboard_focus(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (handle, _read) = open(cx);
         edit(cx, handle, |shell, window, cx| {
             shell.view = crate::window::startup::View::Columns;
@@ -253,7 +253,7 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
 // EY-438: PdfViewer.qml at v0.3.12 keeps the cursor keys from the listing and closes on focusPreview.
 #[gpui::test]
 fn quick_look_pdf_takes_cursor_keys_and_closes_on_focus_preview(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (handle, _read) = open(cx);
         edit(cx, handle, |shell, window, cx| {
             shell.view = crate::window::startup::View::Columns;

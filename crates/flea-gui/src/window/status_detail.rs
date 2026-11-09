@@ -4,7 +4,7 @@ use gpui::{px, Context, Window};
 
 impl Shell {
     pub(crate) fn sync_footer_height(&mut self, window: &Window, cx: &mut Context<Self>) {
-        use crate::g2::fb1::line::{DETAIL_LINE, DETAIL_PAD_X, DETAIL_PAD_Y};
+        use crate::g2::status_feedback::line::{DETAIL_LINE, DETAIL_PAD_X, DETAIL_PAD_Y};
         let detail = self.surfaces[0]
             .footer
             .as_ref()

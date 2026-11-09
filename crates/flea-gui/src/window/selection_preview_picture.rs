@@ -1,6 +1,6 @@
 //! An animated GIF's moving layer, fitted inside the frame's border; the still is fitted::fitted.
 use super::{Frame, Kind, SelectionPreview};
-use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
+use flea::ui_logic_preview_core::{pixels::is_vector_name, thumbs};
 use gpui::{
     canvas, div, prelude::*, px, AnyElement, Context, Corners, IntoElement, RenderImage, Task,
 };

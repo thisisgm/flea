@@ -2,8 +2,8 @@
 use super::{answer, deliver, opened, quit, sent};
 use crate::{
     g2::{
-        op1::dialog_editor::Slot,
-        op3::{
+        file_ops::dialog_editor::Slot,
+        open_with_properties::{
             openwith::Stop,
             shell::{AppRow, Block},
         },
@@ -40,7 +40,7 @@ fn mark(shell: &Entity<Shell>, cx: &mut VisualTestContext, text: &str) {
 
 // The search line as the card holds it, and the application labels its list shows.
 fn listed(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (String, Vec<String>) {
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     shell.read_with(cx, |shell, _| {
         let open = shell.open_with.as_ref().expect("an open card");
         let labels = open

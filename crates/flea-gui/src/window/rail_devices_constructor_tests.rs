@@ -25,7 +25,7 @@ fn rail_devices_real_constructor_draws_completed_devices_before_native_capture(
             },
             monitor: None,
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner,
             hostname: "minipc\n".into(),
         });
@@ -126,7 +126,7 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
             },
             monitor: None,
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner,
             hostname: "minipc\n".into(),
         });
@@ -175,11 +175,11 @@ fn rail_devices_survive_the_network_listing_through_the_real_constructor(cx: &mu
         rows_after, rows,
         "the drawn rows survive the network publish"
     );
-    let share = flea::ui_logic_pl1::RailEntry {
+    let share = flea::ui_logic_device_rail::RailEntry {
         uri: "sftp://user@host/folder".into(),
         label: "NAS".into(),
-        group: flea::ui_logic_pl1::Group::Network,
-        kind: flea::ui_logic_pl1::Kind::Share,
+        group: flea::ui_logic_device_rail::Group::Network,
+        kind: flea::ui_logic_device_rail::Kind::Share,
         glyph: "server".into(),
         ..Default::default()
     };

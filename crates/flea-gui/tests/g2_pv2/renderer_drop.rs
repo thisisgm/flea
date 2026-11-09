@@ -2,7 +2,7 @@
 use super::fixture::LETTER;
 use super::renderer::next;
 use super::{document, reaper_lock, root};
-use flea_gui::g2::pv2::render::{reap, reaper_len, Renderer, Reply};
+use flea_gui::g2::doc_preview::render::{reap, reaper_len, Renderer, Reply};
 use std::time::{Duration, Instant};
 
 #[test]

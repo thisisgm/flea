@@ -23,7 +23,7 @@ pub(super) fn parse(line: &str) -> Result<Event, String> {
             mode,
         }),
         Reply::Other => Ok(other(line)?.unwrap_or_else(|| {
-            if flea::ui_logic_op1::parse(line).is_some()
+            if flea::ui_logic_file_ops::parse(line).is_some()
                 && flea::jsondoc::parse(line)
                     .ok()
                     .and_then(|doc| {

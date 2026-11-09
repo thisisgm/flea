@@ -1,11 +1,11 @@
 //! The file operations family: duplicate, Move to Trash, the dd pair, Delete permanently and New Folder, from keys and menu rows.
 use super::Order;
-use crate::{g2::mn1::join::Chosen, state::Shell, window::input::Dispatch};
-use flea::ui_logic_fb1::status::Hint;
+use crate::{g2::context_menus::join::Chosen, state::Shell, window::input::Dispatch};
+use flea::ui_logic_status_feedback::status::Hint;
 use flea::{
     json::escape,
     keys::{sequence::Seat, Context as Keys},
-    ui_logic_op1::trash,
+    ui_logic_file_ops::trash,
 };
 use gpui::{Context, Window};
 
@@ -296,14 +296,14 @@ impl Shell {
         };
         let held = &host.pane.held;
         let cursor = (held.total > 0).then_some(host.pane.cursor);
-        flea::ui_logic_sr2::targets(
+        flea::ui_logic_listing_filter::targets(
             &host.selected,
             host.filter.shown.as_deref(),
             cursor,
             |row| held.row(row).is_some(),
         )
         .map(|rows| (held.listing, rows))
-        .map_err(|refusal| crate::g2::sr2::present::refusal(refusal, catalog))
+        .map_err(|refusal| crate::g2::listing_filter::present::refusal(refusal, catalog))
     }
 
     pub(super) fn fileops_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
@@ -358,7 +358,7 @@ impl Shell {
             return (text.to_owned(), Hint::None);
         }
         let preset = self.fileops_preset();
-        flea::ui_logic_fb1::status::split_undo(text, &self.locale.catalog, &preset)
+        flea::ui_logic_status_feedback::status::split_undo(text, &self.locale.catalog, &preset)
     }
 
     pub(super) fn fileops_preset(&self) -> String {

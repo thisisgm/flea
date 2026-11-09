@@ -1,4 +1,4 @@
-use flea::{jsondoc::Json, ui_logic_st2::pages::Row};
+use flea::{jsondoc::Json, ui_logic_plugin_settings::pages::Row};
 
 pub(super) fn model(row: &Row, catalog: &flea::i18n::I18n) -> Json {
     let (kind, label, value) = match row {

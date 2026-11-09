@@ -62,9 +62,11 @@ fn keys(shell: &Entity<Shell>, cx: &mut VisualTestContext, strokes: &[&str]) {
 
 fn stored(shell: &Entity<Shell>, cx: &mut VisualTestContext, path: &[&str]) -> Option<String> {
     shell.read_with(cx, |shell, _| {
-        flea::ui_logic_st1::pages::at(&shell.launch.settings.data, path).map(|value| match value {
-            flea::jsondoc::Json::Str(word) => word.clone(),
-            other => format!("{other:?}"),
+        flea::ui_logic_settings_pages::pages::at(&shell.launch.settings.data, path).map(|value| {
+            match value {
+                flea::jsondoc::Json::Str(word) => word.clone(),
+                other => format!("{other:?}"),
+            }
         })
     })
 }

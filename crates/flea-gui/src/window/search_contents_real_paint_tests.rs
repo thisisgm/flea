@@ -1,6 +1,6 @@
 //! A real backend query reaches the mounted result painter and its viewport.
 use super::*;
-use crate::g2::sr1::contents::PAINTED_LINES;
+use crate::g2::file_search::contents::PAINTED_LINES;
 use crate::window::startup::View;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -188,7 +188,7 @@ fn real_query_paints(view: View) {
             (1, "needle on first line")
         );
         let input = host.input.frame.expect("mounted input viewport");
-        assert_eq!(input.row, crate::g2::sr1::contents::BLOCK_H);
+        assert_eq!(input.row, crate::g2::file_search::contents::BLOCK_H);
         let point = gpui::point(
             input.bounds.left() + gpui::px(40.),
             input.bounds.top() + gpui::px(input.cell_origin.1 + input.row + 40.),

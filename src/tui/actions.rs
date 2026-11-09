@@ -481,7 +481,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "search" | "searchContents" => {
             m.find.mode = action == "searchContents";
             if m.find.mode {
-                m.find.session.scope = flea::ui_logic_sr1::Scope::Folder;
+                m.find.session.scope = flea::ui_logic_file_search::Scope::Folder;
             }
             let folder = m.search_from.clone().unwrap_or_else(|| m.path.clone());
             m.editor = Some(Editor::new("search", String::new(), folder));
@@ -912,7 +912,7 @@ pub(super) fn send_find(
     count: usize,
     wire: &mut Wire,
 ) -> io::Result<()> {
-    use flea::ui_logic_sr1::Request;
+    use flea::ui_logic_file_search::Request;
     if ask.contents {
         super::contents::send(
             wire,

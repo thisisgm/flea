@@ -9,7 +9,7 @@ use crate::{
     state::Shell,
     window::{dispatch::Order, input::ActionEvent, navigate::Step, startup::View},
 };
-use flea::ui_logic_fb1::status::Hint;
+use flea::ui_logic_status_feedback::status::Hint;
 use gpui::{AppContext, Context, Entity, Subscription, Window};
 
 #[derive(Default)]

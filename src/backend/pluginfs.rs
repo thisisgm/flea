@@ -1,7 +1,7 @@
 // The plugins folder's disk and process work: a folder copied in, a folder removed, a start answered.
 use super::regfile;
 use crate::oflags::O_NOFOLLOW;
-use flea::ui_logic_st2::manifest::Invalid;
+use flea::ui_logic_plugin_settings::manifest::Invalid;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::os::unix::ffi::OsStrExt;

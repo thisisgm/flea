@@ -2,7 +2,7 @@
 use super::*;
 use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
-use flea::ui_logic_pv2::refusal::Refusal;
+use flea::ui_logic_doc_preview::refusal::Refusal;
 use gpui::{App, Bounds, Pixels};
 
 #[path = "selection_preview_animation_reader.rs"]
@@ -65,7 +65,9 @@ impl Reader<'_> {
                 .to_string(),
             "columnPlayerLoaded" | "previewMediaLoaded" => player.is_some().to_string(),
             "columnMediaPlaying" => player
-                .is_some_and(|p| p.state.playback == flea::ui_logic_pv3::player::Playback::Playing)
+                .is_some_and(|p| {
+                    p.state.playback == flea::ui_logic_media_preview::player::Playback::Playing
+                })
                 .to_string(),
             // PreviewColumn.qml mediaPosition answers 0 while no player is mounted; -1 is only no column at all.
             "columnMediaPosition" => view
@@ -95,7 +97,7 @@ impl Reader<'_> {
                         }
                         // PreviewColumn.qml previewState: Error only where Facts.js draws it, never for a failed picture.
                         if self.view.is_some_and(|v| {
-                            v.state(f, self.cx) == flea::ui_logic_pv1::kinds::State::Error
+                            v.state(f, self.cx) == flea::ui_logic_preview_core::kinds::State::Error
                         }) {
                             "error".into()
                         } else {
@@ -295,7 +297,12 @@ fn picture_rect(
         );
         [(room_w - width) / 2., (room_h - height) / 2., width, height]
     } else {
-        flea::ui_logic_pv3::picture::fit(size.width.0 as f32, size.height.0 as f32, room_w, room_h)
+        flea::ui_logic_media_preview::picture::fit(
+            size.width.0 as f32,
+            size.height.0 as f32,
+            room_w,
+            room_h,
+        )
     };
     Some(Bounds::new(
         bounds.origin + gpui::point(gpui::px(1. + x), gpui::px(1. + y)),

@@ -1,8 +1,10 @@
 //! The in-process renderer on real documents: sizes, rotation, the white ground, refusals and the render thread's replies.
 use super::fixture::{pixel, LANDSCAPE, LETTER, TURNED};
 use super::{document, reaper_lock, root};
-use flea_gui::g2::pv2::poppler::{self, raster_size, Document, Failure, MAX_EDGE, MAX_PIXELS};
-use flea_gui::g2::pv2::render::{reap, Renderer, Reply};
+use flea_gui::g2::doc_preview::poppler::{
+    self, raster_size, Document, Failure, MAX_EDGE, MAX_PIXELS,
+};
+use flea_gui::g2::doc_preview::render::{reap, Renderer, Reply};
 use std::time::{Duration, Instant};
 
 /// A renderer whose thread is reaped when the test ends, as main reaps it before the process exits.

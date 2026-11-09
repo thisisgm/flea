@@ -1,10 +1,10 @@
 //! Resolve a marked selection or an image gallery against the backend's own numbering.
 use super::*;
-use crate::{backend::Event, g2::mn1::join::Chosen};
+use crate::{backend::Event, g2::context_menus::join::Chosen};
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_fb1::OpenRefusal,
-    ui_logic_op3::viewerorder,
+    ui_logic_open_with_properties::viewerorder,
+    ui_logic_status_feedback::OpenRefusal,
 };
 
 // The core handoff's imageopen::MAX_IMAGES count bound also caps the snapshot request.
@@ -270,8 +270,10 @@ impl Shell {
                 && host.pane.held.listing == *listing
                 && host.pane.path() == path
                 && {
-                    let mut now =
-                        flea::ui_logic_sr2::keep(&host.selected, host.filter.shown.as_deref());
+                    let mut now = flea::ui_logic_listing_filter::keep(
+                        &host.selected,
+                        host.filter.shown.as_deref(),
+                    );
                     now.sort_unstable();
                     now.dedup();
                     now == *rows

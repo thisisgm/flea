@@ -186,7 +186,7 @@ fn the_windows_send_line_parses_as_an_airdrop_request_and_the_facts_carry_owly()
         _ => panic!("{line} did not parse as an AirDrop send"),
     }
     let facts = crate::backend::providers::facts();
-    let parsed = flea::ui_logic_sd1::providers::parse_facts(&facts).expect("facts parse");
+    let parsed = flea::ui_logic_send_share::providers::parse_facts(&facts).expect("facts parse");
     assert!(facts.contains(r#""owly":{"installed":"#), "{facts}");
     assert_eq!(
         parsed.owly_command.is_empty(),

@@ -1,10 +1,10 @@
 //! Quick Look asks an enabled previewer plugin for a file it cannot show and draws only its plain answer.
 use super::preview_tests::{body, draw, file, opened, press};
 use super::test_shell::{land, set_cursor};
-use crate::{backend::Backend, backend::Event as BackendEvent, g2::pv1::Body};
+use crate::{backend::Backend, backend::Event as BackendEvent, g2::quick_look_overlay::Body};
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{self, Listing, Plugin, Source},
     },
@@ -81,7 +81,7 @@ fn quick_look_shows_a_previewer_plugin_text_for_an_unsupported_file(cx: &mut Tes
     let Some(Body::Doc(doc)) = body(&shell, cx) else {
         panic!("the plugin text replaces the refusal")
     };
-    let crate::g2::pv1::doc::View::Code(code) = &doc.view else {
+    let crate::g2::quick_look_overlay::doc::View::Code(code) = &doc.view else {
         panic!("plain text view")
     };
     let shown = code.read_with(cx, |code, _| code.lines.plain_lines());

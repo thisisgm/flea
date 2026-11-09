@@ -28,7 +28,7 @@ fn rail_devices_draw_with_lsblk_and_phones_join_when_gio_answers(cx: &mut TestAp
 
 #[gpui::test]
 fn rail_devices_draw_in_the_first_frame_from_the_launch_seed(cx: &mut TestAppContext) {
-    let seed = crate::g2::pl1::source::seed::Seed {
+    let seed = crate::g2::device_rail::source::seed::Seed {
         listing: BLOCKS.into(),
         hostname: "testhost\n".into(),
     };
@@ -51,7 +51,7 @@ fn rail_devices_draw_in_the_first_frame_from_the_launch_seed(cx: &mut TestAppCon
 
 #[gpui::test]
 fn rail_devices_hidden_rail_ignores_the_launch_seed(cx: &mut TestAppContext) {
-    let seed = crate::g2::pl1::source::seed::Seed {
+    let seed = crate::g2::device_rail::source::seed::Seed {
         listing: BLOCKS.into(),
         hostname: "testhost\n".into(),
     };
@@ -72,7 +72,7 @@ fn rail_heading_line_box_preserves_the_board_group_pitch(cx: &mut TestAppContext
     cx.update(|window, cx| {
         let producer = producer.read(cx);
         let laid = producer.laid.borrow();
-        let mut cache = crate::g2::pl4::rows::text::Cache::default();
+        let mut cache = crate::g2::rail_places::rows::text::Cache::default();
         assert!(
             laid.headers.len() >= 2,
             "PLACES, FAVORITES and DEVICES draw"

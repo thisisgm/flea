@@ -1,6 +1,6 @@
 //! A previewer plugin answers for a file no built-in preview draws, through the shared plugin host.
 use super::*;
-use flea::ui_logic_st2::wire::Source;
+use flea::ui_logic_plugin_settings::wire::Source;
 use gpui::{AppContext, Window};
 
 /// Enabled, unfailed third-party plugins that declare a previewer, in listing order.

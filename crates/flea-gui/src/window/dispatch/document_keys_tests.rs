@@ -24,7 +24,11 @@ fn preset(shell: &Entity<Shell>, preset: &str, cx: &mut VisualTestContext) {
 }
 
 #[track_caller]
-fn exercise(shell: &Entity<Shell>, view: &crate::g2::pv1::doc::View, cx: &mut VisualTestContext) {
+fn exercise(
+    shell: &Entity<Shell>,
+    view: &crate::g2::quick_look_overlay::doc::View,
+    cx: &mut VisualTestContext,
+) {
     for preset in flea::keys::PRESETS {
         self::preset(shell, preset, cx);
         let expected = fixture::step(view, cx);
@@ -107,7 +111,7 @@ const HOST: f32 = 600.;
 
 // `laid` is false where this harness never lays the reader out inside the card; the fixture gives it layout's geometry.
 fn document(cx: &mut TestAppContext, name: &str, icon: &str, source: bool, laid: bool) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         cx.executor().allow_parking();
         let root = fixture::Root::new();
         let dir = root.0.to_string_lossy().into_owned();

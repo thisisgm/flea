@@ -1,8 +1,8 @@
 //! The NETWORK heading's readers: networkBuilt, the plus ink, its hit target and the first row's indicator dot.
 use super::super::rows::{centre_of, round};
 use super::RailAdapter;
-use crate::g2::pl4::rows::{add_hit, LaidRow};
-use flea::ui_logic_pl4::rail::Group;
+use crate::g2::rail_places::rows::{add_hit, LaidRow};
+use flea::ui_logic_rail_places::rail::Group;
 
 /// What networkBuilt answers: the places setting, the built service and its two reads.
 #[derive(Clone, Copy, Default)]

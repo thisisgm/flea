@@ -134,7 +134,7 @@ fn ey48_locked_folder_offers_only_the_rows_that_act_on_it(cx: &mut TestAppContex
 static LAUNCHED: std::sync::Mutex<Vec<Vec<String>>> = std::sync::Mutex::new(Vec::new());
 
 // Stands in for the opener lane's process launch and records each argv.
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     LAUNCHED.lock().unwrap().push(argv.to_vec());
     (Some(0), String::new())
 }
@@ -152,7 +152,7 @@ fn ey48_a_locked_child_folder_is_what_its_rows_act_on(cx: &mut TestAppContext) {
             assert!(shell.menu_opened(), "the locked menu opens");
             shell.opener[0].launch = record;
             shell.menu_outcome(
-                crate::g2::mn1::menu::Outcome::Fire {
+                crate::g2::context_menus::menu::Outcome::Fire {
                     action: "openTerminal".into(),
                     leaf: String::new(),
                 },
@@ -186,7 +186,7 @@ fn ey48_keyboard_sheet_finds_the_locked_menus_rows_even_when_menus_hides_them(
                 .collect();
             let mode = shell.panes[0].as_ref().unwrap().pane.state.mode;
             let rows = |hidden: &[String]| -> Vec<String> {
-                flea::ui_logic_mn1::places::locked_entries(mode, hidden)
+                flea::ui_logic_context_menus::places::locked_entries(mode, hidden)
                     .into_iter()
                     .filter(|entry| !entry.separator)
                     .map(|entry| entry.action.to_string())

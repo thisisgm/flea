@@ -3,13 +3,13 @@ pub(crate) use super::fitted::column_media;
 #[cfg(test)]
 pub(crate) use super::fitted::column_picture;
 use super::*;
-use crate::g2::pv2::html::capture;
-use crate::g2::pv3::{
+use crate::g2::doc_preview::html::capture;
+use crate::g2::media_preview::{
     self,
     strip::StripElement,
     view::{MediaElement, Picture},
 };
-use crate::{g2::pv1::glyph::Glyph, row::marks::Mark};
+use crate::{g2::quick_look_overlay::glyph::Glyph, row::marks::Mark};
 use gpui::{div, prelude::*, px, IntoElement, Render, Window};
 
 /// The frame's border, which a view laid out inside it insets by on each side.
@@ -49,7 +49,7 @@ impl Render for SelectionPreview {
             self.visible && (loading || self.drawn.is_none()),
             theme.accent,
         );
-        let ink = pv3::ink::MediaInk::inherited(&window.text_style(), theme);
+        let ink = media_preview::ink::MediaInk::inherited(&window.text_style(), theme);
         let metrics = crate::list::Metrics::for_typeface(&self.face);
         let trace = self.drawn.as_ref().and_then(|frame| frame.trace.clone());
         if let Some(trace) = &trace {
@@ -165,7 +165,9 @@ impl Render for SelectionPreview {
                 .items_center()
                 .justify_center()
                 .gap(px(metrics.gap))
-                .child(crate::g2::pv1::bar::mark(glyph, mark_size, ink))
+                .child(crate::g2::quick_look_overlay::bar::mark(
+                    glyph, mark_size, ink,
+                ))
                 .children(note.map(|note| div().text_color(roles.metadata).child(note)))
         };
         let failure = self.failure(frame, cx);
@@ -218,7 +220,7 @@ impl Render for SelectionPreview {
                 self.frames.clone(),
             );
             let player_failed = matches!(&frame.mounted, Mounted::Media(Some(player))
-                if player.read(cx).status() == flea::ui_logic_pv3::player::Status::Failed);
+                if player.read(cx).status() == flea::ui_logic_media_preview::player::Status::Failed);
             media = match &frame.mounted {
                 Mounted::Pdf(pdf) => media.child(pdf.clone()),
                 Mounted::Model(model) => media.child(model.clone()),
@@ -314,9 +316,9 @@ impl Render for SelectionPreview {
                 div()
                     .relative()
                     .w_full()
-                    .h(px(pv3::ink::size::STRIP))
+                    .h(px(media_preview::ink::size::STRIP))
                     .child(StripElement {
-                        view: pv3::surface::column_view(
+                        view: media_preview::surface::column_view(
                             player.as_ref().map(|p| p.read(cx)),
                             number(frame.meta.as_ref(), "ms"),
                             cx,

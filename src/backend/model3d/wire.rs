@@ -2,7 +2,7 @@
 use super::*;
 use std::io::Write;
 
-#[path = "../../ui_logic_pv4/model_wire.rs"]
+#[path = "../../ui_logic_model_preview/model_wire.rs"]
 mod reader;
 #[cfg(test)]
 pub use reader::read;

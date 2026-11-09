@@ -1,7 +1,7 @@
 //! The Markdown view as a real GPUI entity in a test window, its parse, layout and picture threads real, its figure helper a script in the root.
 use super::Root;
 use flea::i18n::{I18n, Paths};
-use flea_gui::g2::pv2::markdown::{figures, Faces, MarkdownView, Palette, Tokens};
+use flea_gui::g2::doc_preview::markdown::{figures, Faces, MarkdownView, Palette, Tokens};
 use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::{
     os::unix::fs::PermissionsExt,

@@ -1,6 +1,6 @@
 // SVG and SVGZ sizes as usvg reads the root element; SVGZ inflates under the card's own 4 MB vector bound.
 use crate::backend::model3d::codecs::{crc32, inflate};
-use flea::ui_logic_pv1::pixels::MAX_SVG_BYTES;
+use flea::ui_logic_preview_core::pixels::MAX_SVG_BYTES;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 

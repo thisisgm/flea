@@ -1,16 +1,16 @@
 //! Backend work and renderer lifetime for a single generation.
 use super::*;
 use crate::g2::{
-    pv2::{
+    doc_preview::{
         self,
         view::{Metrics, Palette},
     },
-    pv4::{
+    model_preview::{
         self,
         seam::{CacheReader, Wire},
     },
 };
-use flea::{json::escape, ui_logic_pv4::control::Surface};
+use flea::{json::escape, ui_logic_model_preview::control::Surface};
 use gpui::{AppContext, ImageAssetLoader, Window};
 
 struct ModelWire(Outbox);
@@ -21,7 +21,7 @@ impl Wire for ModelWire {
     }
 }
 struct CopyWire(Outbox);
-impl pv2::view::CopyHost for CopyWire {
+impl doc_preview::view::CopyHost for CopyWire {
     fn pdf_copy(&self, path: &str, slot: &str) -> u64 {
         let id = token();
         self.0.borrow_mut().push(format!(
@@ -214,13 +214,17 @@ impl SelectionPreview {
             .unwrap_or_default();
         let storage = self.class.as_ref().map_or("", |(_, class)| class.as_str());
         docs::Look {
-            text_limit: flea::ui_logic_pv1::ask::text_limit(storage),
+            text_limit: flea::ui_logic_preview_core::ask::text_limit(storage),
             remote: matches!(storage, "network" | "phone"),
             theme,
             face: self.face.clone(),
             metrics: crate::list::Metrics::for_typeface(&self.face),
             muted: crate::list::Palette::inherited(&window.text_style(), theme).caption(false),
-            mark: crate::g2::pv1::glyph::Glyph::kind(&subject.row.icon, subject.row.mode).svg(),
+            mark: crate::g2::quick_look_overlay::glyph::Glyph::kind(
+                &subject.row.icon,
+                subject.row.mode,
+            )
+            .svg(),
         }
     }
 
@@ -251,7 +255,7 @@ impl SelectionPreview {
         match text("t") {
             "meta" if number("token") == frame.generation => {
                 frame.meta = Some(doc.clone());
-                frame.facts = flea::ui_logic_pv1::meta::parse(line);
+                frame.facts = flea::ui_logic_preview_core::meta::parse(line);
             }
             "thumbed" if number("row") as usize == frame.subject.index => {
                 if !frame.accept_thumbnail(doc) {
@@ -365,9 +369,9 @@ impl SelectionPreview {
                     )
                 });
                 let model = model.read(cx);
-                frame.failed |= matches!(model.phase, pv4::view::Phase::Failed(_));
-                matches!(model.phase, pv4::view::Phase::Failed(_))
-                    || (model.phase == pv4::view::Phase::Ready
+                frame.failed |= matches!(model.phase, model_preview::view::Phase::Failed(_));
+                matches!(model.phase, model_preview::view::Phase::Failed(_))
+                    || (model.phase == model_preview::view::Phase::Ready
                         && ((model.live.borrow().thumbnail && frame.image.is_some())
                             || model.presented.borrow().image.is_some()))
             }

@@ -20,9 +20,9 @@ run() {
 # A filter that matches nothing passes with zero, so each count is required and read from cargo's "test result: ok. N passed" line.
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | head -1; }
 set +e
-run "$unit_root/core.log" -p flea --lib ui_logic_dg1
+run "$unit_root/core.log" -p flea --lib ui_logic_file_clipboard
 core_rc=$?
-run "$unit_root/gui.log" -p flea-gui --lib g2::dg1
+run "$unit_root/gui.log" -p flea-gui --lib g2::file_clipboard
 gui_rc=$?
 set -e
 [ "$core_rc" -eq 0 ] || { tail -40 "$unit_root/core.log" >&2; printf 'g2-dg1: FAIL core tests exited %s\n' "$core_rc"; exit 1; }

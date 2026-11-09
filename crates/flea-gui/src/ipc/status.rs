@@ -4,7 +4,7 @@ use super::{
     Adapter,
 };
 use crate::{
-    g2::fb1::observe::Text,
+    g2::status_feedback::observe::Text,
     ipc::rows::{colour, rect_of},
     pane::states::Kind,
     state::Shell,
@@ -51,7 +51,7 @@ pub(super) fn text_state(text: Option<Text>, origin: f32) -> Json {
     ])
 }
 
-fn secondary(paint: &crate::g2::fb1::observe::Paint) -> Option<Text> {
+fn secondary(paint: &crate::g2::status_feedback::observe::Paint) -> Option<Text> {
     match (paint.get("hint"), paint.get("extra")) {
         (Some(mut hint), Some(extra)) => {
             hint.bounds = hint.bounds.union(&extra.bounds);
@@ -153,7 +153,10 @@ impl StatusAdapter<'_> {
             ("foreground", Json::Str(colour(ink.foreground))),
             ("muted", Json::Str(colour(ink.muted))),
             ("reducedMotion", Json::Bool(hero.reduced())),
-            ("rotateMs", number(flea::ui_logic_fb1::empty::ROTATE_MS)),
+            (
+                "rotateMs",
+                number(flea::ui_logic_status_feedback::empty::ROTATE_MS),
+            ),
             (
                 "omi",
                 object([
@@ -313,7 +316,7 @@ impl Adapter for StatusAdapter<'_> {
                 if line.drawn().undo.is_empty() {
                     ""
                 } else {
-                    flea::ui_logic_fb1::status::SEP
+                    flea::ui_logic_status_feedback::status::SEP
                 },
                 line.drawn().undo,
                 line.drawn().extra

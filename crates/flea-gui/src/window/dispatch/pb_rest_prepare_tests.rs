@@ -2,7 +2,7 @@
 use super::search_open_tests::line;
 use super::test_shell::{land, open_root_at};
 use crate::{
-    g2::pv1::{doc::View, Body},
+    g2::quick_look_overlay::{doc::View, Body},
     state::Shell,
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};

@@ -81,7 +81,7 @@ fn key(cx: &mut TestAppContext, handle: Handle, value: &str) {
 fn search(
     cx: &mut TestAppContext,
     handle: Handle,
-    change: impl FnOnce(&mut crate::g2::sr1::Search, &mut dyn crate::g2::sr1::Host),
+    change: impl FnOnce(&mut crate::g2::file_search::Search, &mut dyn crate::g2::file_search::Host),
 ) {
     edit(cx, handle, |shell, window, cx| {
         shell.search_update(0, None, change, window, cx)
@@ -264,7 +264,7 @@ fn key_delivery_state_reads_search_and_its_focus(cx: &mut TestAppContext) {
     assert_eq!(field(&typing, "searchMode"), &Json::Str("typing".into()));
     assert_eq!(field(&typing, "searchQuery"), &Json::Str(String::new()));
     search(cx, handle, |search, host| {
-        search.key(crate::g2::sr1::StripKey::Text("n".into()), host)
+        search.key(crate::g2::file_search::StripKey::Text("n".into()), host)
     });
     let typed = state(cx, handle);
     assert_eq!(field(&typed, "searchQuery"), &Json::Str("n".into()));
@@ -288,7 +288,7 @@ fn key_delivery_state_reads_search_and_its_focus(cx: &mut TestAppContext) {
         session.running = true;
         session.scanned = 100010;
         session.cancelled = true;
-        session.mode = flea::ui_logic_sr1::Mode::Results;
+        session.mode = flea::ui_logic_file_search::Mode::Results;
     });
     let results = state(cx, handle);
     assert_eq!(field(&results, "searchMode"), &Json::Str("results".into()));

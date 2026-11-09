@@ -99,7 +99,7 @@ fn a_code_preview_keeps_its_name_and_facts_inside_the_column_at_every_height(
 /// cols-preview-video.html at text 14: 18 px rows 21 px apart, values at the 71 px label column, no play mark on the frame.
 #[gpui::test]
 fn video_facts_take_the_board_pitch_and_the_frame_draws_no_play_mark(cx: &mut TestAppContext) {
-    use crate::g2::pv3::view::Picture;
+    use crate::g2::media_preview::view::Picture;
     let (shell, cx) = open_at(cx, "/files", Some(14.));
     let rows = vec![file("clip.webm", "video-webm", "WebM video", 0o100644)];
     super::test_shell::land(&shell, cx, "/files", rows, 1);
@@ -205,7 +205,7 @@ fn a_label_wider_than_the_board_column_widens_it_to_hold_that_label(cx: &mut Tes
     let widest = cx.update(|window, _| {
         let measure = |label: &String| {
             let font = face.font.clone();
-            crate::g2::fb1::caption::measure(
+            crate::g2::status_feedback::caption::measure(
                 label.clone().into(),
                 font,
                 face.caption,

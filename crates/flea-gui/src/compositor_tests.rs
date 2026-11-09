@@ -127,9 +127,15 @@ fn m9_corner_eight_is_rounded() {
 
 #[test]
 fn m9_corner_defaults_are_square() {
-    assert_eq!(crate::g2::st1::Facts::default().corner, 0.);
-    assert_eq!(crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT, 0.);
-    assert_eq!(crate::g2::pl4::rows::RowsModel::default().corner, 0.);
+    assert_eq!(crate::g2::settings_pages::Facts::default().corner, 0.);
+    assert_eq!(
+        crate::g2::settings_pages::seams::COMPOSITOR_CORNER_DEFAULT,
+        0.
+    );
+    assert_eq!(
+        crate::g2::rail_places::rows::RowsModel::default().corner,
+        0.
+    );
 }
 
 #[test]

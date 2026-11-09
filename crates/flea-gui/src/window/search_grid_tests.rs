@@ -203,7 +203,7 @@ fn ey20_keystroke_cost_by_origin_view() {
             assert!(
                 names
                     .iter()
-                    .all(|name| crate::g2::sr1::run::run_in(name, &query).is_some()),
+                    .all(|name| crate::g2::file_search::run::run_in(name, &query).is_some()),
                 "timed answers must match the actual query {query:?}"
             );
         }

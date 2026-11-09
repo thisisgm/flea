@@ -6,14 +6,14 @@ use crate::{
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest::Manifest,
         wire::{compact, Plugin},
     },
 };
 use gpui::{Context, Window};
 
-pub(super) fn rail_row(plugin: &Plugin) -> Option<flea::ui_logic_pl4::rail::RailEntry> {
+pub(super) fn rail_row(plugin: &Plugin) -> Option<flea::ui_logic_rail_places::rail::RailEntry> {
     let block = plugin.manifest.block("place")?;
     let opens = block
         .get("path")
@@ -33,7 +33,7 @@ pub(super) fn rail_row(plugin: &Plugin) -> Option<flea::ui_logic_pl4::rail::Rail
             ])]),
         ),
     ]);
-    flea::ui_logic_pl4::plugin::parse_section(&plugin.manifest.id, &compact(&message))?
+    flea::ui_logic_rail_places::plugin::parse_section(&plugin.manifest.id, &compact(&message))?
         .into_iter()
         .next()
 }

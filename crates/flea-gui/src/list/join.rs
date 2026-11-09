@@ -297,7 +297,11 @@ impl Shell {
         if self.view != View::List {
             let text = self.locale.catalog.tr("feedback.autofit.list_required");
             self.status_messages(cx, |messages, now| {
-                messages.explain(&text, flea::ui_logic_fb1::status::Hint::None, now);
+                messages.explain(
+                    &text,
+                    flea::ui_logic_status_feedback::status::Hint::None,
+                    now,
+                );
             });
             return;
         }

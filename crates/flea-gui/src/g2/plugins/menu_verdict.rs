@@ -1,5 +1,5 @@
 use crate::state::Shell;
-use flea::{jsondoc::Json, ui_logic_fb1::status::Hint};
+use flea::{jsondoc::Json, ui_logic_status_feedback::status::Hint};
 use gpui::Context;
 use std::collections::{HashMap, HashSet};
 

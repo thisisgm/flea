@@ -83,7 +83,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         settings: Default::default(),
         trash: None,
         rail: None,
-        corner: crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
+        corner: crate::g2::settings_pages::seams::COMPOSITOR_CORNER_DEFAULT,
         focus: cx.focus_handle(),
         seam: Seam::new(),
         ipc_events: None,

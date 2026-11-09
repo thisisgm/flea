@@ -1,7 +1,9 @@
 //! Source and fences: lines asked a screen at a time from the code engine or drawn plain, CRLF ends dropped, and fences that hold the first screen until coloured.
 use super::harness::{draw, first_screen, open, open_with, show, until, with, Helper, TOKENS};
 use super::{file, root};
-use flea_gui::g2::pv2::markdown::{CodeAnswer, CodeHost, CodeSource, CodeState, Tokens, View};
+use flea_gui::g2::doc_preview::markdown::{
+    CodeAnswer, CodeHost, CodeSource, CodeState, Tokens, View,
+};
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc};
 
@@ -157,7 +159,7 @@ fn md_source_asks_the_engine_a_screen_at_a_time_and_shows_its_refusal(cx: &mut T
     draw(cx, view);
     assert_eq!(
         with(cx, view, |v| v.source_refused()),
-        Some(flea_gui::g2::pv2::markdown::Answer::Binary)
+        Some(flea_gui::g2::doc_preview::markdown::Answer::Binary)
     );
     assert_eq!(
         with(cx, view, |v| v.status_sentence().map(str::to_string)),

@@ -6,11 +6,11 @@ use super::{
 };
 use crate::{
     backend::Backend,
-    g2::op1::model::{CopyFocus, Dialog},
+    g2::file_ops::model::{CopyFocus, Dialog},
     state::Shell,
     window::{navigate::Step, u07_tests::read},
 };
-use flea::ui_logic_op1::lines;
+use flea::ui_logic_file_ops::lines;
 use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 // Every line the pane's backend is asked for, in the order it was asked.
@@ -186,7 +186,7 @@ fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
     let cx = &mut cx;
     let mut sent = asked(&shell, cx);
-    let recent = flea::ui_logic_pk1::RECENT;
+    let recent = flea::ui_logic_picker_portal::RECENT;
     let done = cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.step(0, Step::Open(recent.into()), window, cx)

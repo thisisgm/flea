@@ -1,6 +1,6 @@
 use super::{frames, mounted};
-use crate::g2::st2;
-use flea::ui_logic_st2::{
+use crate::g2::plugin_settings;
+use flea::ui_logic_plugin_settings::{
     builtin, schema, store,
     wire::{self, Listing, Plugin, Source},
 };
@@ -8,7 +8,7 @@ use gpui::{px, size, AppContext, TestAppContext};
 use std::{rc::Rc, sync::Arc};
 
 struct Wire;
-impl st2::seam::PluginsWire for Wire {
+impl plugin_settings::seam::PluginsWire for Wire {
     fn send(&self, _: String) -> Result<(), String> {
         Ok(())
     }
@@ -29,7 +29,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         corner,
         &[18.],
     );
-    for section in flea::ui_logic_st1::pages::SECTIONS {
+    for section in flea::ui_logic_settings_pages::pages::SECTIONS {
         let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
             shell.open_settings(window, cx);
             shell.settings.panel.clone().unwrap()
@@ -73,7 +73,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             manifest: m,
         })
         .collect();
-    let manifest = flea::ui_logic_st2::manifest::parse(r#"{"schemaVersion":1,"id":"test.corners","name":"Corners","version":"0.1.0","author":"Test","license":"MIT","description":"Corner controls","kinds":["menu-action"],"entryPoints":{"run":"bin/test"},"menuActions":[{"id":"run","label":"Run","glyph":"file","when":{"minItems":1}}],"access":["selection"],"schema":[{"key":"choice","type":"choice","label":"Choice","options":[{"value":"one","label":"One"},{"value":"two","label":"Two"}],"defaultValue":"one"}]}"#, false).unwrap();
+    let manifest = flea::ui_logic_plugin_settings::manifest::parse(r#"{"schemaVersion":1,"id":"test.corners","name":"Corners","version":"0.1.0","author":"Test","license":"MIT","description":"Corner controls","kinds":["menu-action"],"entryPoints":{"run":"bin/test"},"menuActions":[{"id":"run","label":"Run","glyph":"file","when":{"minItems":1}}],"access":["selection"],"schema":[{"key":"choice","type":"choice","label":"Choice","options":[{"value":"one","label":"One"},{"value":"two","label":"Two"}],"defaultValue":"one"}]}"#, false).unwrap();
     plugins.push(Plugin {
         settings: schema::settings(&manifest.schema, None),
         manifest,
@@ -88,10 +88,10 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         let theme = super::theme();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let view = cx.new(|cx| {
-            st2::view::PluginsPane::new(
+            plugin_settings::view::PluginsPane::new(
                 Arc::default(),
                 Rc::new(Wire),
-                st2::seam::Tokens::interim(&palette),
+                plugin_settings::seam::Tokens::interim(&palette),
                 shell.corner,
                 cx,
             )
@@ -113,42 +113,47 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     view.update(vcx, |view, cx| view.receive(&listing, cx));
     frames("plugins-checkboxes", &shell, vcx, corner, &[18.]);
     view.update(vcx, |view, cx| {
-        view.key(st2::page::Key::Enter, cx);
-        assert!(matches!(view.page().card(), st2::page::Card::Add(_)));
+        view.key(plugin_settings::page::Key::Enter, cx);
+        assert!(matches!(
+            view.page().card(),
+            plugin_settings::page::Card::Add(_)
+        ));
     });
     frames("plugins-add-card-field-buttons", &shell, vcx, corner, &[]);
     view.update(vcx, |view, cx| {
-        view.key(st2::page::Key::Escape, cx);
+        view.key(plugin_settings::page::Key::Escape, cx);
         for _ in 0..view.page().rows().len() {
-            view.key(st2::page::Key::Down, cx);
+            view.key(plugin_settings::page::Key::Down, cx);
         }
-        view.key(st2::page::Key::Enter, cx);
+        view.key(plugin_settings::page::Key::Enter, cx);
         assert_eq!(
             view.page().open_plugin().unwrap().manifest.id,
             "test.corners"
         );
-        assert!(view
-            .page()
-            .rows()
-            .iter()
-            .any(|row| matches!(row, flea::ui_logic_st2::pages::Row::Choice { .. })));
+        assert!(view.page().rows().iter().any(|row| matches!(
+            row,
+            flea::ui_logic_plugin_settings::pages::Row::Choice { .. }
+        )));
     });
     frames("plugins-choice-chips", &shell, vcx, corner, &[18.]);
     view.update(vcx, |view, cx| {
         for _ in 0..view.page().rows().len() {
             if view.page().cursor().is_some_and(|at| {
-                view.page().rows()[at].id() == flea::ui_logic_st2::pages::REMOVE_ID
+                view.page().rows()[at].id() == flea::ui_logic_plugin_settings::pages::REMOVE_ID
             }) {
                 break;
             }
-            view.key(st2::page::Key::Down, cx);
+            view.key(plugin_settings::page::Key::Down, cx);
         }
         assert_eq!(
             view.page().rows()[view.page().cursor().unwrap()].id(),
-            flea::ui_logic_st2::pages::REMOVE_ID
+            flea::ui_logic_plugin_settings::pages::REMOVE_ID
         );
-        view.key(st2::page::Key::Enter, cx);
-        assert!(matches!(view.page().card(), st2::page::Card::Remove { .. }));
+        view.key(plugin_settings::page::Key::Enter, cx);
+        assert!(matches!(
+            view.page().card(),
+            plugin_settings::page::Card::Remove { .. }
+        ));
     });
     frames("plugins-remove-card-buttons", &shell, vcx, corner, &[]);
 }

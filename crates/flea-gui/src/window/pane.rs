@@ -14,7 +14,7 @@ pub(crate) struct PaneHost {
     /// The listing an in-place open or close left while its one mark was a lone mark the cursor carries.
     pub outline_lone: Option<usize>,
     pub git: super::git_status::Runtime,
-    pub recent: flea::ui_logic_pl4::recentmode::RecentMode,
+    pub recent: flea::ui_logic_rail_places::recentmode::RecentMode,
     pub search: super::search::Runtime,
     pub look_warm: super::quick_look::warm::Warm,
     pub filter: super::filter::Runtime,

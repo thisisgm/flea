@@ -2,7 +2,7 @@
 use super::test_shell::{keystroke, land, open_root, row, set_cursor};
 use crate::{
     backend::{Backend, Event as BackendEvent},
-    g2::pv1::Body,
+    g2::quick_look_overlay::Body,
     state::Shell,
     window::u07_tests::read,
 };
@@ -169,7 +169,7 @@ fn space_opens_quick_look_on_the_cursor_file_and_space_or_escape_closes_it(
         let host = shell.quick_look.as_ref()?;
         match &host.view.read(cx).subject()?.body {
             Body::Doc(doc) => match &doc.view {
-                crate::g2::pv1::doc::View::Code(code) => {
+                crate::g2::quick_look_overlay::doc::View::Code(code) => {
                     let code = code.read(cx);
                     Some((code.numbered, code.lines.plain_lines()))
                 }

@@ -23,7 +23,8 @@ impl Shell {
             self.opener_say(side, text, false, cx);
             return true;
         }
-        let mut rows = flea::ui_logic_sr2::keep(&host.selected, host.filter.shown.as_deref());
+        let mut rows =
+            flea::ui_logic_listing_filter::keep(&host.selected, host.filter.shown.as_deref());
         rows.sort_unstable();
         rows.dedup();
         if rows.is_empty() {

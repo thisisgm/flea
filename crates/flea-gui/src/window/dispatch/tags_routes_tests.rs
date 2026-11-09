@@ -2,7 +2,7 @@
 use super::menus_tests::{home, settle, validated};
 use super::tags_tests::{complete, request, status};
 use super::test_shell::{land, open_root, sent, set_cursor};
-use crate::{backend::Backend, g2::mn1::join::Chosen, window::u07_tests::read};
+use crate::{backend::Backend, g2::context_menus::join::Chosen, window::u07_tests::read};
 use flea::jsondoc::Json;
 use gpui::TestAppContext;
 use std::{cell::Cell, rc::Rc};

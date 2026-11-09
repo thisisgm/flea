@@ -357,7 +357,7 @@ impl Shell {
             self.new_window();
         } else if action == "eject" {
             self.release_device(false, cx);
-        } else if action == flea::ui_logic_mn2::agent::ID {
+        } else if action == flea::ui_logic_custom_actions::agent::ID {
             self.agent_key(cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),

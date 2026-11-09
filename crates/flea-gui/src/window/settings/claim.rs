@@ -1,5 +1,5 @@
-use crate::{g2::st1::claim::Claim, state::Shell};
-use flea::ui_logic_st1::{rows::Role, Text};
+use crate::{g2::settings_pages::claim::Claim, state::Shell};
+use flea::ui_logic_settings_pages::{rows::Role, Text};
 use gpui::{Context, Window};
 use std::{path::PathBuf, process::Command, sync::Mutex};
 
@@ -34,7 +34,7 @@ fn packaged() -> bool {
         .chain(std::env::split_paths(&dirs))
         .any(|dir| {
             dir.join("applications")
-                .join(crate::g2::st1::claim::DESKTOP)
+                .join(crate::g2::settings_pages::claim::DESKTOP)
                 .is_file()
         })
 }

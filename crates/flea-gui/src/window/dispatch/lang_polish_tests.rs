@@ -47,7 +47,7 @@ fn long_kind(cx: &mut TestAppContext, code: &str, kind: &str) {
         shell.selection_preview(0).unwrap().read(cx).face.clone()
     });
     let width = cx.update(|window, _| {
-        crate::g2::fb1::caption::measure(
+        crate::g2::status_feedback::caption::measure(
             kind.to_owned().into(),
             face.font,
             face.caption,

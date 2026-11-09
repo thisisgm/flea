@@ -38,7 +38,7 @@ fn answered(
         std::thread::sleep(std::time::Duration::from_millis(5));
         cx.executor()
             .advance_clock(std::time::Duration::from_millis(
-                flea::ui_logic_pv2::pdf::DOCUMENT_SETTLE_MS,
+                flea::ui_logic_doc_preview::pdf::DOCUMENT_SETTLE_MS,
             ));
         draw(cx, view);
     }

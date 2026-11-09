@@ -148,7 +148,7 @@ impl Shell {
         if !owner.up()
             || owner.typing()
             || owner.drawn(host.pane.held.listing).is_none()
-            || !flea::ui_logic_sr2::cursor_shown(
+            || !flea::ui_logic_listing_filter::cursor_shown(
                 host.filter.shown.as_deref(),
                 Some(host.pane.cursor),
             )
@@ -167,13 +167,12 @@ impl Shell {
         if host.pane.busy() || host.stopped || host.filter.owner.asked().is_some() {
             return true;
         }
-        if !flea::ui_logic_sr2::cursor_shown(host.filter.shown.as_deref(), Some(host.pane.cursor))
-            || !host
-                .pane
-                .held
-                .row(host.pane.cursor)
-                .is_some_and(|row| !flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon))
-        {
+        if !flea::ui_logic_listing_filter::cursor_shown(
+            host.filter.shown.as_deref(),
+            Some(host.pane.cursor),
+        ) || !host.pane.held.row(host.pane.cursor).is_some_and(|row| {
+            !flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon)
+        }) {
             return false;
         }
         self.filter_update(

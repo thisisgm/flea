@@ -1,7 +1,7 @@
 //! The path bar's Enter classifies a user@host:/path line as a network address before any local resolution.
 use super::entry::{Commit, Entry};
 use super::{completion_dir, is_network_uri};
-use crate::g2::pl2::routing::{address, AddressRoute};
+use crate::g2::network_shares::routing::{address, AddressRoute};
 
 const CURRENT: &str = "/fixture/current";
 const HOME: &str = "/fixture/home";

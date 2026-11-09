@@ -1,11 +1,13 @@
 //! The previewtypes family: the keys the preview column runs on the kind it shows (SelectionPreview.qml Keys.onPressed).
 use super::Order;
 use crate::{
-    g2::pv3::{sound::MediaSound, strip::StripInput},
+    g2::media_preview::{sound::MediaSound, strip::StripInput},
     state::Shell,
     window::selection_preview::{Mounted, SelectionPreview},
 };
-use flea::{keys::Context as Keys, ui_logic_pv2::viewer, ui_logic_pv3::player::MediaKey};
+use flea::{
+    keys::Context as Keys, ui_logic_doc_preview::viewer, ui_logic_media_preview::player::MediaKey,
+};
 use gpui::{Context, Entity, Window};
 
 pub(super) fn run(
@@ -92,7 +94,10 @@ impl SelectionPreview {
             return false;
         };
         let player = player.clone();
-        match (flea::ui_logic_pv3::player::media_key(action, true), player) {
+        match (
+            flea::ui_logic_media_preview::player::media_key(action, true),
+            player,
+        ) {
             (Some(MediaKey::TogglePlay), _) => self.play(StripInput::Toggle, window, cx),
             (Some(MediaKey::Mute), None) => {
                 MediaSound::update(cx, |sound| {

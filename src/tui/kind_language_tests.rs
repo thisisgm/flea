@@ -123,7 +123,7 @@ fn surfaces(code: &str) {
     {
         let expected = expected(mime, code);
         let row = crate::tui::model::Row::parse(&rows[index], dictionary);
-        let gui_row = flea::ui_logic_pv1::facts::Row {
+        let gui_row = flea::ui_logic_preview_core::facts::Row {
             name: row.name.clone(),
             is_dir: false,
             size: 48,
@@ -131,17 +131,19 @@ fn surfaces(code: &str) {
             mode: 0o100644,
             icon: row.icon.clone(),
         };
-        let state = flea::ui_logic_pv1::facts::state(Some(&gui_row), 1, false, "", &row.kind);
-        let extra = flea::ui_logic_pv1::facts::Extra::default();
-        let facts =
-            flea::ui_logic_pv1::facts::facts(state, &gui_row, None, &row.kind, &extra, &catalog);
+        let state =
+            flea::ui_logic_preview_core::facts::state(Some(&gui_row), 1, false, "", &row.kind);
+        let extra = flea::ui_logic_preview_core::facts::Extra::default();
+        let facts = flea::ui_logic_preview_core::facts::facts(
+            state, &gui_row, None, &row.kind, &extra, &catalog,
+        );
         if facts[0].value != expected {
             failures.push(format!(
                 "GUI {code} {mime}: {:?} != {expected:?}",
                 facts[0].value
             ));
         }
-        let compact = flea::ui_logic_pv1::facts::compact_line(
+        let compact = flea::ui_logic_preview_core::facts::compact_line(
             state,
             Some(&gui_row),
             None,

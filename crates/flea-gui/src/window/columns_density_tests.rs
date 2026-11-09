@@ -2,7 +2,7 @@
 use super::host;
 use crate::bfx_cols_tests::Painted;
 use crate::columns::geometry::{Slot, FOOTER};
-use crate::g2::sr1::contents::{BLOCK_H, ROW_H};
+use crate::g2::file_search::contents::{BLOCK_H, ROW_H};
 use crate::list::{Density, Typeface};
 use crate::row::tags::SWATCH_MARK;
 use crate::state::Shell;

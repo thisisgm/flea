@@ -11,7 +11,7 @@ type Kept = (
     (u64, i64),
     (u32, u32),
     Arc<RenderImage>,
-    Option<crate::g2::pv1::photo_source::Identity>,
+    Option<crate::g2::quick_look_overlay::photo_source::Identity>,
 );
 static KEPT: Mutex<VecDeque<Kept>> = Mutex::new(VecDeque::new());
 const KEPT_PICTURES: usize = 8;
@@ -19,10 +19,12 @@ const KEPT_BYTES: usize = 16 << 20;
 static DECODES: Mutex<VecDeque<PathBuf>> = Mutex::new(VecDeque::new());
 const LEDGER: usize = 64;
 
-pub(crate) fn file_identity(path: &Path) -> Option<crate::g2::pv1::photo_source::Identity> {
+pub(crate) fn file_identity(
+    path: &Path,
+) -> Option<crate::g2::quick_look_overlay::photo_source::Identity> {
     path.metadata()
         .ok()
-        .map(|meta| crate::g2::pv1::photo_source::identity(&meta))
+        .map(|meta| crate::g2::quick_look_overlay::photo_source::identity(&meta))
 }
 
 fn bytes(image: &RenderImage) -> usize {
@@ -37,7 +39,7 @@ pub(crate) fn keep(
     version: (u64, i64),
     size: (u32, u32),
     image: &Arc<RenderImage>,
-    identity: Option<crate::g2::pv1::photo_source::Identity>,
+    identity: Option<crate::g2::quick_look_overlay::photo_source::Identity>,
 ) {
     if bytes(image) > KEPT_BYTES / 2 || file_identity(path) != identity {
         return;

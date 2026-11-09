@@ -8,8 +8,8 @@ use crate::{
 use flea::{
     ipc::wire::Reply,
     keys::actions::{self, Id, UNAVAILABLE, UNKNOWN},
-    ui_logic_mn2::plugins::{self, Menu},
-    ui_logic_st2::{contributions, store, wire::Plugin},
+    ui_logic_custom_actions::plugins::{self, Menu},
+    ui_logic_plugin_settings::{contributions, store, wire::Plugin},
 };
 use gpui::{Context, Window};
 use std::sync::mpsc::SyncSender;
@@ -249,7 +249,7 @@ impl Shell {
         let side = self.focus_side;
         let Some(target) = self.panes[side]
             .as_ref()
-            .map(|pane| crate::g2::mn1::join::identity(pane, side, false))
+            .map(|pane| crate::g2::context_menus::join::identity(pane, side, false))
         else {
             return waiting.answer(self.action_refused("menu.refusal.unavailable"));
         };
@@ -280,7 +280,7 @@ impl Shell {
                 // The same menu identity must survive startup; a moved target is refused before capture.
                 if shell.focus_side != side
                     || !shell.panes[side].as_ref().is_some_and(|pane| {
-                        crate::g2::mn1::join::identity(pane, side, false) == target
+                        crate::g2::context_menus::join::identity(pane, side, false) == target
                     })
                 {
                     return waiting.answer(shell.action_refused("menu.refusal.moved"));

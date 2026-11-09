@@ -9,7 +9,7 @@ use super::{
     wire::{self, count, text},
 };
 use crate::jsondoc::{self, Json};
-use flea::ui_logic_sr1::{ContentsMatch, ContentsMatches};
+use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches};
 use std::time::Duration;
 
 pub(super) fn press(m: &mut Model, w: &mut wire::Wire, key: Key) {

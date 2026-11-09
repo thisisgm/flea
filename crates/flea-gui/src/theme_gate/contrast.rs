@@ -1,4 +1,4 @@
-use crate::{g2::op1::palette::CardPalette, list::Palette, palette::Theme};
+use crate::{g2::file_ops::palette::CardPalette, list::Palette, palette::Theme};
 use gpui::{Hsla, Rgba, TextStyle};
 use std::collections::BTreeMap;
 
@@ -102,7 +102,7 @@ fn theme_gate_stock_contrast_floors() {
             floor("metadata_glyph", list.metadata_frame, ground, 3.);
             floor(
                 "footer_caption",
-                crate::g2::fb1::Ink::interim(&list).muted,
+                crate::g2::status_feedback::Ink::interim(&list).muted,
                 ground,
                 4.5,
             );
@@ -111,14 +111,14 @@ fn theme_gate_stock_contrast_floors() {
             }
         }
         floor("muted_frame", list.muted_frame, theme.background, 3.);
-        let footer = crate::g2::fb1::Ink::interim(&list);
+        let footer = crate::g2::status_feedback::Ink::interim(&list);
         floor(
             "footer_error",
             footer.error,
             theme.background,
             4.5_f64.max(contrast(footer.muted, theme.background)),
         );
-        let status = crate::g2::fb1::Ink::on_surface(&list);
+        let status = crate::g2::status_feedback::Ink::on_surface(&list);
         floor(
             "status_bar_error",
             status.error,
@@ -146,7 +146,7 @@ fn theme_gate_stock_contrast_floors() {
         );
         floor("copy_progress", card.accent_frame, card.surface, 3.);
         // The rail stands on the surface (Sidebar.qml, the HIG boards), so its text and edge floor there.
-        let rail = crate::g2::pl4::rows::rail_palette(&TextStyle::default(), theme);
+        let rail = crate::g2::rail_places::rows::rail_palette(&TextStyle::default(), theme);
         assert_eq!(rail.background, theme.surface, "{name}: rail ground");
         floor("rail_label", rail.foreground, rail.background, 4.5);
         floor("rail_caption", rail.metadata, rail.background, 4.5);
@@ -154,7 +154,7 @@ fn theme_gate_stock_contrast_floors() {
         // palette.rs uses 3:1 for graphic ink; OMI-SPINNER.md prescribes the raw accent.
         floor("omi_accent", theme.accent, theme.background, 3.);
         floor("rail_plus", rail.muted_frame, rail.background, 3.);
-        // The printer menu inherits the card surface and lifts the theme's own red on it (g2/op4/printer_menu.rs:232).
+        // The printer menu inherits the card surface and lifts the theme's own red on it (g2/print_convert/printer_menu.rs:232).
         let inherited = TextStyle {
             color: theme.foreground,
             background_color: Some(theme.surface),
@@ -163,7 +163,7 @@ fn theme_gate_stock_contrast_floors() {
         let printer = Palette::inherited(&inherited, theme);
         floor("printer_menu_error", printer.error, theme.surface, 4.5);
         // HIG jobs board: the copy track is --muted-frame at opacity 0.25.
-        assert_eq!(flea::ui_logic_op1::card::JOBS_TRACK_ALPHA, 0.25);
+        assert_eq!(flea::ui_logic_file_ops::card::JOBS_TRACK_ALPHA, 0.25);
         minima.insert("rail_square_on", contrast(rail.executable, rail.background));
         minima.insert(
             "rail_hairline",
@@ -176,7 +176,7 @@ fn theme_gate_stock_contrast_floors() {
         assert_eq!(crate::list::HAIRLINE, 0.12);
         // The cursor wash keeps the resting ink, QML cursorRecipe and MenuRow's foreground at 8%.
         assert_eq!(crate::list::HOVER, 0.08);
-        let menu = crate::g2::mn1::element::MenuInk::from_palette(&list);
+        let menu = crate::g2::context_menus::element::MenuInk::from_palette(&list);
         assert_eq!(menu.wash, theme.foreground.opacity(0.08));
         assert_eq!(menu.rule, list.muted_frame.opacity(0.4));
         assert_eq!(menu.muted, list.muted);

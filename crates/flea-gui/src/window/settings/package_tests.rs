@@ -1,5 +1,5 @@
 use super::*;
-use flea::ui_logic_st1::Text;
+use flea::ui_logic_settings_pages::Text;
 
 // The captured signed and local package fields from src/update_tests.rs.
 pub(super) const OPR_INFO: &str = "Name            : flea

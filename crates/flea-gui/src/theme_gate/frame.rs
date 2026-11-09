@@ -1,5 +1,5 @@
 //! Opt-in test-only receipt after the deferred cards, recording inks used by actual paints.
-use crate::g2::op1::palette::CardPalette;
+use crate::g2::file_ops::palette::CardPalette;
 use crate::{list::Palette, palette::Theme, state::Shell};
 use gpui::{canvas, deferred, prelude::*, App, Entity, Hsla};
 use std::cell::{Cell, RefCell};

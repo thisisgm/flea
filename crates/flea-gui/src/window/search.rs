@@ -1,11 +1,11 @@
 //! The production pane owns SR1; its effects join the existing navigation and backend queues.
 use super::startup::View;
 use crate::{
-    g2::sr1::{Host, HostPane, Search, StripKey},
+    g2::file_search::{Host, HostPane, Search, StripKey},
     pane::swap::Options,
     state::Shell,
 };
-use flea::ui_logic_sr1::Kind;
+use flea::ui_logic_file_search::Kind;
 use gpui::{Context, KeyDownEvent, Window};
 
 #[path = "search_header.rs"]
@@ -28,7 +28,7 @@ mod enter_once_tests;
 #[path = "search_grid_tests.rs"]
 mod grid_tests;
 #[cfg(test)]
-#[path = "../g2/sr1/i50_query_host_tests.rs"]
+#[path = "../g2/file_search/i50_query_host_tests.rs"]
 mod i50_query_host_tests;
 #[cfg(test)]
 #[path = "search_presented_tests.rs"]
@@ -242,11 +242,9 @@ impl Shell {
             && crate::window::input::modifiers(event.keystroke.modifiers) == 0
             && !host.pane.busy()
             && !host.search.owner.session.leaving
-            && host
-                .pane
-                .held
-                .row(host.pane.cursor)
-                .is_some_and(|row| !flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon))
+            && host.pane.held.row(host.pane.cursor).is_some_and(|row| {
+                !flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon)
+            })
         {
             return self.search_action("reveal", window, cx);
         }

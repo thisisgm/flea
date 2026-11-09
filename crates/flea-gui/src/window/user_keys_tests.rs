@@ -4,7 +4,7 @@ use crate::{backend::Backend, ipc::server::Event, state::Shell};
 use flea::{
     ipc::wire::{Reply, Request},
     keys::user::Verdict,
-    ui_logic_st2::wire::{Plugin, Source},
+    ui_logic_plugin_settings::wire::{Plugin, Source},
 };
 use gpui::{TestAppContext, VisualTestContext};
 use std::{path::PathBuf, process::Command, time::Duration};
@@ -31,7 +31,7 @@ fn cleanup(root: &PathBuf) {
 fn checksums() -> Plugin {
     let text = include_str!("../../../../examples/plugins/checksums/manifest.json");
     Plugin {
-        manifest: flea::ui_logic_st2::manifest::parse(text, false).unwrap(),
+        manifest: flea::ui_logic_plugin_settings::manifest::parse(text, false).unwrap(),
         source: Source::Builtin,
         enabled: true,
         failure: None,
@@ -165,7 +165,8 @@ fn a_plugin_binding_lives_only_while_its_plugin_contributes(cx: &mut TestAppCont
                 "example.checksums:sha256".into()
             ))
         );
-        let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+        let rows =
+            flea::ui_logic_settings_pages::pages::user_key_rows(&shell.user_keys.facts, "default");
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[1].items[0].keys, "ctrl-shift-k");
         // Disabling the plugin in settings drops the row and the binding.
@@ -174,12 +175,14 @@ fn a_plugin_binding_lives_only_while_its_plugin_contributes(cx: &mut TestAppCont
         shell.user_keys.facts.plugins = plugin_actions(&installed, &off);
         shell.user_keys.resolve("default");
         assert_eq!(pressed(shell), None);
-        assert!(
-            flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default").is_empty()
-        );
+        assert!(flea::ui_logic_settings_pages::pages::user_key_rows(
+            &shell.user_keys.facts,
+            "default"
+        )
+        .is_empty());
         // A failed plugin offers nothing either.
         let mut failed = checksums();
-        failed.failure = Some(flea::ui_logic_st2::manifest::Invalid::new(
+        failed.failure = Some(flea::ui_logic_plugin_settings::manifest::Invalid::new(
             "startup", "test",
         ));
         shell.user_keys.facts.plugins = plugin_actions(&[failed], &shell.launch.settings.data);
@@ -231,7 +234,7 @@ fn settings_keys_lists_the_binding_and_states_each_refusal(cx: &mut TestAppConte
                 .panel
                 .rows
                 .iter()
-                .position(|row| row.id == flea::ui_logic_st1::pages::USER_KEYS)
+                .position(|row| row.id == flea::ui_logic_settings_pages::pages::USER_KEYS)
                 .expect("Your Keys row");
             let item = &view.panel.rows[at].items[0];
             assert_eq!(
@@ -376,7 +379,8 @@ fn user_keys_existing_idle_host_bootstraps_after_file_load(cx: &mut TestAppConte
                 "example.checksums:sha256".into()
             ))
         );
-        let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+        let rows =
+            flea::ui_logic_settings_pages::pages::user_key_rows(&shell.user_keys.facts, "default");
         assert_eq!(rows[1].items.len(), 1, "Settings shares the live verdict");
     });
     cleanup(&root);

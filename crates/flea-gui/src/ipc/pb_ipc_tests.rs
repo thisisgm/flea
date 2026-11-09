@@ -56,13 +56,13 @@ fn pb_ipc_share_browser_cursor_follows_the_live_browser(cx: &mut TestAppContext)
 fn publish_docs_mark(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (Point<Pixels>, String) {
     shell.update(cx, |shell, cx| {
         shell.network_publish(
-            Some(vec![flea::ui_logic_pl1::RailEntry {
+            Some(vec![flea::ui_logic_device_rail::RailEntry {
                 uri: "smb://server/docs".into(),
                 path: "/media/docs".into(),
                 label: "Docs".into(),
                 mounted: true,
-                group: flea::ui_logic_pl1::Group::Network,
-                kind: flea::ui_logic_pl1::Kind::Share,
+                group: flea::ui_logic_device_rail::Group::Network,
+                kind: flea::ui_logic_device_rail::Kind::Share,
                 ..Default::default()
             }]),
             cx,

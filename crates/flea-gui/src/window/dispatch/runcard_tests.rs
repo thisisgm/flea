@@ -16,12 +16,12 @@ thread_local! {
 }
 
 // The test launchers: record the argv and answer what the test set, never starting a process.
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     LAUNCHED.with(|launched| launched.borrow_mut().push(argv.to_vec()));
     ANSWER.with(|answer| answer.borrow().clone())
 }
 
-fn record_run(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record_run(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     RUN_LAUNCHED.with(|launched| launched.borrow_mut().push(argv.to_vec()));
     RUN_ANSWER.with(|answer| answer.borrow().clone())
 }
@@ -57,8 +57,8 @@ fn rows() -> Vec<RowFacts> {
 fn program_glyph(
     shell: &Entity<crate::state::Shell>,
     cx: &mut VisualTestContext,
-) -> Option<crate::g2::op3::shell::Glyph> {
-    let catalog = crate::g2::op3::tests::english();
+) -> Option<crate::g2::open_with_properties::shell::Glyph> {
+    let catalog = crate::g2::open_with_properties::tests::english();
     shell.read_with(cx, |shell, _| {
         shell.run_card.as_ref().and_then(|open| {
             open.card
@@ -66,7 +66,9 @@ fn program_glyph(
                 .body
                 .iter()
                 .find_map(|block| match block {
-                    crate::g2::op3::shell::Block::Program { glyph, .. } => Some(*glyph),
+                    crate::g2::open_with_properties::shell::Block::Program { glyph, .. } => {
+                        Some(*glyph)
+                    }
                     _ => None,
                 })
         })
@@ -90,7 +92,7 @@ fn shell(cx: &mut TestAppContext) -> (Entity<crate::state::Shell>, &mut VisualTe
 }
 
 fn card_title(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> Option<String> {
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     shell.read_with(cx, |shell, _| {
         shell
             .run_card
@@ -103,7 +105,7 @@ fn card_buttons(
     shell: &Entity<crate::state::Shell>,
     cx: &mut VisualTestContext,
 ) -> Option<Vec<String>> {
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     shell.read_with(cx, |shell, _| {
         shell.run_card.as_ref().map(|open| {
             open.card
@@ -154,7 +156,7 @@ fn return_on_an_executable_opens_the_run_card(cx: &mut TestAppContext) {
     );
     assert_eq!(
         program_glyph(&shell, cx),
-        Some(crate::g2::op3::shell::Glyph::Code),
+        Some(crate::g2::open_with_properties::shell::Glyph::Code),
         "a script draws the board's code mark"
     );
     quit(&shell, cx);
@@ -174,7 +176,7 @@ fn a_binary_opens_with_its_listed_rows_mark(cx: &mut TestAppContext) {
     // v0.3.12 RunFile.listedGlyph: a binary keeps the mark its listed row draws, the terminal for an executable.
     assert_eq!(
         program_glyph(&shell, cx),
-        Some(crate::g2::op3::shell::Glyph::Terminal)
+        Some(crate::g2::open_with_properties::shell::Glyph::Terminal)
     );
     quit(&shell, cx);
 }

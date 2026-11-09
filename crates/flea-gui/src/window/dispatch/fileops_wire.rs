@@ -8,13 +8,13 @@ use crate::{
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_fb1::status::Hint,
-    ui_logic_op1::{
+    ui_logic_file_ops::{
         confirm::Source,
         lines,
         trash::{Review, Scope},
         Event, Reply,
     },
+    ui_logic_status_feedback::status::Hint,
 };
 use gpui::{Context, Window};
 
@@ -76,7 +76,7 @@ impl Shell {
                 let said = if kind == "made" {
                     lines::made(&catalog, &preset, &path)
                 } else {
-                    let leaf = flea::ui_logic_op1::leaf(&path);
+                    let leaf = flea::ui_logic_file_ops::leaf(&path);
                     let line = catalog.tr_args("jobs.done.duplicated", &[leaf]);
                     lines::with_undo(&catalog, &preset, line)
                 };
@@ -194,7 +194,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        let Some(Event::MenuAction(reply)) = flea::ui_logic_op1::parse(line) else {
+        let Some(Event::MenuAction(reply)) = flea::ui_logic_file_ops::parse(line) else {
             return false;
         };
         if self

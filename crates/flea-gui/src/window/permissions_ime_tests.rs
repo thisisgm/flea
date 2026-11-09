@@ -1,7 +1,7 @@
 //! The octal field keeps the input method off and takes digits only, and late callbacks miss.
 use super::fixture::{choose, click, edit, inspect, model, next, setup};
 use crate::{
-    g2::op3::permissions::{host::View, Stop},
+    g2::open_with_properties::permissions::{host::View, Stop},
     window::root::Root,
 };
 use gpui::{Context, EntityInputHandler, TestAppContext, VisualTestContext, Window, WindowHandle};

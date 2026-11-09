@@ -8,7 +8,7 @@ fn vf3_share_browser_service_effect_paints_and_reports_its_owner(cx: &mut TestAp
     shell.update_in(cx, |shell, window, cx| {
         let origin = shell.network_origin(0);
         shell.network_service(
-            &crate::g2::pl2::mount::Effect::Shares {
+            &crate::g2::network_shares::mount::Effect::Shares {
                 uri: "smb://nas/".into(),
                 label: "NAS".into(),
                 names: vec!["Docs".into(), "Media".into()],

@@ -7,7 +7,7 @@ use crate::{
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_st1::{pages, Text},
+    ui_logic_settings_pages::{pages, Text},
 };
 use gpui::{Context, Window};
 
@@ -57,12 +57,12 @@ impl Shell {
         let revision = self.settings.revision;
         let mut saving = Json::Obj(Vec::new());
         for (_, failed) in &self.settings.failed {
-            crate::g2::st1::seams::merge(&mut saving, failed);
+            crate::g2::settings_pages::seams::merge(&mut saving, failed);
         }
         for (_, pending) in &self.settings.pending {
             store::overlay_retry(&mut saving, pending);
         }
-        crate::g2::st1::seams::merge(&mut saving, &patch);
+        crate::g2::settings_pages::seams::merge(&mut saving, &patch);
         if let Some(worker) = &self.settings.worker {
             if operation.is_none() {
                 let through = self

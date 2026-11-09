@@ -1,10 +1,10 @@
 use crate::{
     columns::geometry::Slot,
-    g2::pv1::{glyph::Glyph, Body, Subject},
+    g2::quick_look_overlay::{glyph::Glyph, Body, Subject},
     row::marks::{Language, Mark},
     window::{columns_tests::host, startup::View},
 };
-use flea::ui_logic_pv1::{kinds::State, rect::Shape};
+use flea::ui_logic_preview_core::{kinds::State, rect::Shape};
 
 fn rust_mark() -> Mark {
     Mark::Language(Language::for_file("main.rs").unwrap())

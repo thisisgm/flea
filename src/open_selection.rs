@@ -1,7 +1,7 @@
 //! Preflight a marked selection completely, then hand each default application every file it opens.
 use super::{prepare, resolved, FAILED};
 use crate::{backend::menu_registry, runfile, runid};
-use flea::ui_logic_fb1::OpenRefusal;
+use flea::ui_logic_status_feedback::OpenRefusal;
 use std::os::unix::process::CommandExt;
 use std::{
     path::{Path, PathBuf},
@@ -52,14 +52,17 @@ fn plan(paths: &[String]) -> Result<Plan, Option<OpenRefusal>> {
             _ => return Err(Some(OpenRefusal::Programs)),
         }
         let name = target.to_string_lossy();
-        if flea::ui_logic_pv1::kinds::quick_look_kind("", &name, false)
-            == flea::ui_logic_pv1::kinds::State::Archive
+        if flea::ui_logic_preview_core::kinds::quick_look_kind("", &name, false)
+            == flea::ui_logic_preview_core::kinds::State::Archive
         {
             return Err(Some(OpenRefusal::Archives));
         }
         let mime = menu_registry::content_type(&registry, &target, &cancel).map_err(|_| None)?;
-        if flea::ui_logic_pv1::kinds::kind_state(icons.icon_for(Some(&mime), false, opened.mode))
-            == flea::ui_logic_pv1::kinds::State::Archive
+        if flea::ui_logic_preview_core::kinds::kind_state(icons.icon_for(
+            Some(&mime),
+            false,
+            opened.mode,
+        )) == flea::ui_logic_preview_core::kinds::State::Archive
         {
             return Err(Some(OpenRefusal::Archives));
         }

@@ -2,7 +2,7 @@
 use super::{Edit, Shell};
 use crate::{
     columns::{geometry::Slot, TrackRows},
-    g2::mn1::join::Captured,
+    g2::context_menus::join::Captured,
     path::entry::Entry,
 };
 use gpui::{Context, Window};

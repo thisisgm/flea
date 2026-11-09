@@ -1,7 +1,7 @@
 //! Modal paint order and keyboard ownership through the composed window.
 use crate::{
     backend::Backend,
-    g2::op1::{
+    g2::file_ops::{
         join::OperationUpdate,
         model::{CopyFocus, Dialog, Said},
         press::Press,
@@ -130,7 +130,7 @@ fn a_modal_paints_after_a_deferred_menu(cx: &mut TestAppContext) {
         scrim,
         palette
             .background
-            .opacity(flea::ui_logic_op1::card::scrim_alpha(0)),
+            .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)),
         scale,
     );
     let card_order = order(&quads, card, palette.surface, scale);

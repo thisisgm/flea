@@ -2,13 +2,13 @@
 use super::Network;
 use crate::{
     backend::Event,
-    g2::mn1::menu::{Face, Outcome},
-    g2::pl2::nearby::{self, Host, State},
+    g2::context_menus::menu::{Face, Outcome},
+    g2::network_shares::nearby::{self, Host, State},
     state::Shell,
 };
 use flea::jsondoc::Json;
-use flea::ui_logic_mn1::fit::Rect;
-use flea::ui_logic_pl4::rail::Group;
+use flea::ui_logic_context_menus::fit::Rect;
+use flea::ui_logic_rail_places::rail::Group;
 use gpui::{Context, Window};
 
 /// One open hosts menu: the pane that asked, its request id and the answer the rows were drawn from.
@@ -189,8 +189,8 @@ impl Shell {
 
     fn nearby_refresh(
         &self,
-        menu: &std::rc::Rc<std::cell::RefCell<crate::g2::mn1::menu::Menu>>,
-        entries: Vec<flea::ui_logic_mn1::Entry>,
+        menu: &std::rc::Rc<std::cell::RefCell<crate::g2::context_menus::menu::Menu>>,
+        entries: Vec<flea::ui_logic_context_menus::Entry>,
         untouched: bool,
         window: &mut Window,
         cx: &mut Context<Self>,

@@ -1,7 +1,7 @@
 //! HTML capture reads the production Root's painted frame and the viewport's live lane.
 use super::{previewtypes_tests::file, test_shell};
 use crate::{
-    g2::{pv1::doc::View as LookDoc, pv2::html::HtmlView},
+    g2::{doc_preview::html::HtmlView, quick_look_overlay::doc::View as LookDoc},
     ipc::rows::colour,
     state::Shell,
     window::{
@@ -52,7 +52,7 @@ fn picture(view: &Entity<HtmlView>, cx: &mut VisualTestContext, height: u32) {
                 ),
                 (100, height),
             ));
-            view.doc.picture = flea::ui_logic_pv2::html::Picture::Ready;
+            view.doc.picture = flea::ui_logic_doc_preview::html::Picture::Ready;
             view.doc.has_drawn = true;
             view.doc.pending = false;
             cx.notify();
@@ -275,7 +275,7 @@ fn pc2_reader_html_column_source_and_quick_look_choice(cx: &mut TestAppContext) 
         view.update(cx, |view, cx| {
             let generation = view.set_path("/files/page.html", 600, true, cx);
             view.set_source_text(generation, Some("line\n".repeat(300)), false, cx);
-            view.set_view(flea::ui_logic_pv2::html::View::Source, cx);
+            view.set_view(flea::ui_logic_doc_preview::html::View::Source, cx);
         })
     });
     settle(cx);

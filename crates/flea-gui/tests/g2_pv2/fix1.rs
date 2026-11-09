@@ -3,9 +3,9 @@ use super::fixture::{self, LETTER};
 use super::view::finish;
 use super::view::{draw, next_frame, open, palette, show, until, with, METRICS};
 use super::{document, reaper_lock, root};
-use flea::ui_logic_pv2::viewer;
-use flea_gui::g2::pv2::reap;
-use flea_gui::g2::pv2::PdfView;
+use flea::ui_logic_doc_preview::viewer;
+use flea_gui::g2::doc_preview::reap;
+use flea_gui::g2::doc_preview::PdfView;
 use gpui::{div, prelude::*, Context, Entity, TestAppContext, Window};
 use std::time::{Duration, Instant};
 

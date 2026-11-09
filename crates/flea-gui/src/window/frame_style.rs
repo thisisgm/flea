@@ -1,6 +1,6 @@
 //! Refresh every retained card palette from the same presentation roles.
 use crate::{
-    g2::{op1::palette::CardPalette, pv1::Look},
+    g2::{file_ops::palette::CardPalette, quick_look_overlay::Look},
     palette::Theme,
     state::Shell,
 };

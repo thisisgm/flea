@@ -1,6 +1,6 @@
 //! The active pane's Recent readers, mounted even while the history is closed.
 use super::Adapter;
-use flea::{ipc::wire::Reply, ui_logic_pl4::recentmode::RecentMode};
+use flea::{ipc::wire::Reply, ui_logic_rail_places::recentmode::RecentMode};
 
 pub(crate) struct RecentAdapter<'a>(pub &'a RecentMode);
 

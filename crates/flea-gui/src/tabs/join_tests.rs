@@ -381,7 +381,7 @@ fn u25_native_drop_zone_tracks_the_drawn_strip_and_full_capacity_own_return(
 #[gpui::test]
 fn ey469_a_tab_entering_below_a_shown_strip_drops_on_it(cx: &mut TestAppContext) {
     use super::transfer;
-    use crate::g2::dg2::router::{self, Native, Offered};
+    use crate::g2::drag_drop::router::{self, Native, Offered};
     use gpui::{point, px};
     let (backend, _requests) = Backend::test_channel();
     let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));

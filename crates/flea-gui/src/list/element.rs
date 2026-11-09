@@ -457,7 +457,7 @@ impl Element for ListElement {
                     let height = line.ascent + line.descent;
                     let y = top + (px(row) - height) / 2.;
                     let Some((run_start, run_end)) =
-                        crate::g2::sr1::run::wash_span(line, Some((start, end)), false)
+                        crate::g2::file_search::run::wash_span(line, Some((start, end)), false)
                     else {
                         continue;
                     };

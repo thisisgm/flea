@@ -4,7 +4,7 @@ use gpui::{Modifiers, MouseButton, VisualTestContext};
 
 #[test]
 fn frame_counters_credit_only_the_presented_stamp() {
-    use crate::g2::pv1::{
+    use crate::g2::quick_look_overlay::{
         observations::Shared,
         observed_frames::{Frames, Stamp},
     };

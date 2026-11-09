@@ -1,6 +1,6 @@
 //! Text-input ownership at the window root: the field the platform's text input reaches holds the keyboard while it composes, and lets go of its composition when focus leaves it.
 use crate::{
-    g2::{sr1::input::FindRoute, sr2::input::FilterRoute},
+    g2::{file_search::input::FindRoute, listing_filter::input::FilterRoute},
     state::Shell,
     strips::query_input::Route,
 };

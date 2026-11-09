@@ -1,7 +1,7 @@
 //! The clipboard keys the verbs do not cover: Copy path, the folder path, and the Copy as and Paste as flyouts.
 use super::Order;
 use crate::state::Shell;
-use flea::{keys::Context as Keys, ui_logic_fb1::status::Hint};
+use flea::{keys::Context as Keys, ui_logic_status_feedback::status::Hint};
 use gpui::{ClipboardItem, Context, Window};
 
 pub(super) fn run(
@@ -56,10 +56,10 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
         // Focus.js pasteAs: Recent is a history, so P refuses there before any menu.
         "pasteAs"
             if shell.panes[side].as_ref().is_some_and(|host| {
-                host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place())
+                host.recent.on || flea::ui_logic_picker_portal::is_recent(host.pane.place())
             }) =>
         {
-            say(shell, side, flea::ui_logic_dg1::RECENT_PASTE, cx);
+            say(shell, side, flea::ui_logic_file_clipboard::RECENT_PASTE, cx);
         }
         // Pane.qml openPasteAs: an empty clipboard says so instead of opening a greyed flyout.
         "pasteAs" if !shell.clipboard.board.available() => {

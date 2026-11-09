@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 // Ready pictures stay within what CAP thumbnails at the shared cache's own edge would hold.
 const PIXELS: u64 = super::CAP as u64 * EDGE * EDGE;
-const EDGE: u64 = flea::ui_logic_pv1::thumbs::CACHE_SIZE as u64;
+const EDGE: u64 = flea::ui_logic_preview_core::thumbs::CACHE_SIZE as u64;
 
 pub(super) fn refine(
     map: &mut Map,

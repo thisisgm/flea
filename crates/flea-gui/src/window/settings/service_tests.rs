@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     backend::Backend,
-    g2::st1::{claim::Claim, seams::Store},
+    g2::settings_pages::{claim::Claim, seams::Store},
 };
 use flea::jsondoc::{self, Json};
 use gpui::{AppContext, TestAppContext};
@@ -252,7 +252,7 @@ fn u11_a_default_command_that_never_starts_draws_its_error_without_saving_a_sett
         assert!(!panel.rows[index].on && !panel.rows[index].inert);
         assert_eq!(
             panel.rows[index + 1].role,
-            flea::ui_logic_st1::rows::Role::Error
+            flea::ui_logic_settings_pages::rows::Role::Error
         );
         assert_eq!(
             panel.rows[index + 1].label.resolve(&panel.catalog),

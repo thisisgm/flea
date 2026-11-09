@@ -114,20 +114,21 @@ fn properties_kind_is_the_mime_word_the_listing_holds(cx: &mut TestAppContext) {
     // FIX-PROPS-2: Kind prints the MIME database's word, as the preview column does (HIG properties.png).
     let (shell, cx) = properties_on(cx, "Plain text document", "/files/notes.txt", "");
     let catalog = shell.read_with(cx, |shell, _| shell.locale.catalog.clone());
-    let kind = shell.read_with(cx, |shell, _| {
-        let card = shell.properties.as_ref().unwrap().card().card(&catalog);
-        card.body.iter().find_map(|block| match block {
-            crate::g2::op3::shell::Block::Facts(facts) => {
-                facts.iter().find_map(|fact| match fact {
-                    crate::g2::op3::shell::Fact::Text { name, value, .. } if name == "Kind" => {
-                        Some(value.clone())
-                    }
-                    _ => None,
-                })
-            }
-            _ => None,
-        })
-    });
+    let kind =
+        shell.read_with(cx, |shell, _| {
+            let card = shell.properties.as_ref().unwrap().card().card(&catalog);
+            card.body.iter().find_map(|block| match block {
+                crate::g2::open_with_properties::shell::Block::Facts(facts) => {
+                    facts.iter().find_map(|fact| match fact {
+                        crate::g2::open_with_properties::shell::Fact::Text {
+                            name, value, ..
+                        } if name == "Kind" => Some(value.clone()),
+                        _ => None,
+                    })
+                }
+                _ => None,
+            })
+        });
     assert_eq!(kind.as_deref(), Some("Plain text document"));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

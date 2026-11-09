@@ -80,7 +80,7 @@ impl Shell {
             return false;
         }
         let carrying = cx
-            .try_global::<crate::g2::dg1::carry::Carrying>()
+            .try_global::<crate::g2::file_clipboard::carry::Carrying>()
             .is_some_and(|carrying| carrying.carry.active());
         let Some(host) = self.panes[side].as_mut() else {
             return false;

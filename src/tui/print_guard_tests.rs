@@ -8,7 +8,7 @@ use super::{
     render::frame_tests::model,
     wire::{self, count, text, Wire},
 };
-use flea::ui_logic_sr1::{ContentsMatch, ContentsMatches};
+use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches};
 
 fn press(m: &mut Model, w: &mut Wire, key: Key) {
     actions::key(m, &key, &Map::load(), w).unwrap();

@@ -2,19 +2,19 @@
 use super::Adapter;
 use crate::{
     g2::{
-        pv1::{doc::View, observations::Observations, Hit, QuickLook},
-        pv2::{
+        doc_preview::{
             code::CodeView,
             markdown::{MarkdownView, View as Shown},
             PdfView,
         },
-        pv3::sound::MediaSound,
+        media_preview::sound::MediaSound,
+        quick_look_overlay::{doc::View, observations::Observations, Hit, QuickLook},
     },
     window::selection_preview::readers::{centre, rect},
 };
 use flea::{
     ipc::wire::Reply,
-    ui_logic_pv2::markdown::{markdown_layout::FigureState, Block},
+    ui_logic_doc_preview::markdown::{markdown_layout::FigureState, Block},
 };
 use gpui::{App, Bounds, Entity, Pixels};
 
@@ -109,7 +109,7 @@ impl PreviewLook<'_> {
 
     /// IpcPreviewState pdfState(true): the card's page, zoom and scroll, and each strip control as it draws.
     fn pdf_state(&self) -> String {
-        use flea::{jsondoc::Json, ui_logic_pv2::viewer::CONTROLS};
+        use flea::{jsondoc::Json, ui_logic_doc_preview::viewer::CONTROLS};
         let (Some(look), Some(pdf)) = (self.look, self.pdf()) else {
             return "null".into();
         };
@@ -127,7 +127,7 @@ impl PreviewLook<'_> {
             .enumerate()
             .map(|(index, (item, control))| {
                 // The strip's close is the card's own close control; the rest are strip slots.
-                let hit = if control == flea::ui_logic_pv2::viewer::Control::Close {
+                let hit = if control == flea::ui_logic_doc_preview::viewer::Control::Close {
                     Hit::Close
                 } else {
                     Hit::Strip(index)
@@ -258,7 +258,9 @@ impl Adapter for PreviewLook<'_> {
 #[cfg(test)]
 mod tests {
     use super::{figure_line, figure_word};
-    use flea::ui_logic_pv2::markdown::{markdown_layout::FigureState, Block, Figure, FigureKind};
+    use flea::ui_logic_doc_preview::markdown::{
+        markdown_layout::FigureState, Block, Figure, FigureKind,
+    };
 
     // EY-238: the figure entries name each top-level figure block by index, with the word figureInfo gives.
     #[test]

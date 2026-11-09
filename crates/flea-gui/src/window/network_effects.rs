@@ -135,14 +135,14 @@ impl Shell {
                     self.network_connect_error(side, &text);
                 }
                 // The sign-in invitation lives on the card alone; the pane has no failure to report.
-                if *error != crate::g2::pl2::mount::GUEST_EMPTY {
+                if *error != crate::g2::network_shares::mount::GUEST_EMPTY {
                     self.network_say(side, text, *connect_failed, cx);
                 }
                 self.network_remember_focus();
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }
             Effect::Say { note, origin } => {
-                use crate::g2::pl2::result::{say_role, SayRole};
+                use crate::g2::network_shares::result::{say_role, SayRole};
                 let role = say_role(note.key);
                 // An opening note precedes the landing, so only a final note ends the rail's open claim.
                 if role != SayRole::Opening {
@@ -152,7 +152,7 @@ impl Shell {
                     self.network_opening(*origin, "", cx);
                 }
                 if let Some(side) = self.network_side(*origin) {
-                    let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
+                    let text = crate::g2::device_rail::words::say(&self.locale.catalog, note);
                     self.network_say(side, text, role == SayRole::Error, cx);
                 }
             }
@@ -162,7 +162,7 @@ impl Shell {
                 count,
             } => self.network_peek(*generation, path.clone(), *count, cx),
             Effect::Starting { note, origin } if self.network_side(*origin).is_some() => {
-                let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
+                let text = crate::g2::device_rail::words::say(&self.locale.catalog, note);
                 self.network_opening(*origin, &text, cx);
             }
             Effect::Starting { .. } => {}
@@ -272,10 +272,10 @@ impl Shell {
                 }
             }
             dialog::Effect::InstallDropbox => {
-                let argv = flea::ui_logic_pl2::DROPBOX_INSTALL
+                let argv = flea::ui_logic_network_shares::DROPBOX_INSTALL
                     .map(str::to_owned)
                     .to_vec();
-                drop(runner.start(crate::g2::pl1::process::Job::plain(
+                drop(runner.start(crate::g2::device_rail::process::Job::plain(
                     &argv.iter().map(String::as_str).collect::<Vec<_>>(),
                 )));
             }

@@ -98,7 +98,7 @@ pub(super) fn folder(host: &PaneHost, catalog: &I18n) -> Snapshot {
         .up()
         .then(|| host.filter.owner.counts(held.listing))
         .flatten()
-        .map(|counts| crate::g2::sr2::present::status(&counts, catalog));
+        .map(|counts| crate::g2::listing_filter::present::status(&counts, catalog));
     Snapshot {
         kind,
         total,

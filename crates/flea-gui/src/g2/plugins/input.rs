@@ -1,5 +1,5 @@
-use crate::{g2::op3::shell, state::Shell};
-use flea::ui_logic_st2::contributions::ActionInput;
+use crate::{g2::open_with_properties::shell, state::Shell};
+use flea::ui_logic_plugin_settings::contributions::ActionInput;
 use gpui::{
     div, AnyElement, Context, InteractiveElement, IntoElement, KeyDownEvent, MouseButton,
     ParentElement, Styled, Window,
@@ -123,7 +123,7 @@ impl Shell {
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_theme(
+        self.rename.ime.palette = Some(crate::g2::file_ops::palette::CardPalette::from_theme(
             &window.text_style(),
             theme,
             self.corner,
@@ -204,7 +204,7 @@ impl Shell {
                 .occlude()
                 .bg(palette
                     .background
-                    .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(
                     MouseButton::Left,
                     cx.listener(|shell, _: &gpui::MouseDownEvent, window, cx| {

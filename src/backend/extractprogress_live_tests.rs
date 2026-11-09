@@ -61,12 +61,12 @@ fn live_member_samples(protected: bool) {
         let text = String::from_utf8(wire).unwrap();
         let row = text
             .lines()
-            .find_map(|line| match flea::ui_logic_op1::parse(line) {
-                Some(flea::ui_logic_op1::Event::Job { job, .. }) => Some(job),
+            .find_map(|line| match flea::ui_logic_file_ops::parse(line) {
+                Some(flea::ui_logic_file_ops::Event::Job { job, .. }) => Some(job),
                 _ => None,
             })
             .expect("the production job reporter publishes the sample");
-        let card = flea::ui_logic_op1::jobs::block(&crate::i18n::test_catalogs::library_english(), &row);
+        let card = flea::ui_logic_file_ops::jobs::block(&crate::i18n::test_catalogs::library_english(), &row);
         assert!((card.bar.unwrap() - expected as f64 / 15.).abs() < 1e-9);
         assert_eq!(card.head, "Extracting 2 of 2");
         assert!(card.file.starts_with("large"));

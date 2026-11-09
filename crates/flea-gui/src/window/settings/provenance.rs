@@ -1,5 +1,5 @@
 use crate::state::Shell;
-use flea::ui_logic_st1::{about, update};
+use flea::ui_logic_settings_pages::{about, update};
 use gpui::Context;
 use std::process::Command;
 

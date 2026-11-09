@@ -124,7 +124,7 @@ fn new_file_from_the_background_opens_its_card(cx: &mut gpui::TestAppContext) {
         shell.read(cx).operation_view(0).is_some_and(|view| {
             matches!(
                 view.read(cx).model.dialog,
-                Some(crate::g2::op1::model::Dialog::NewFile { .. })
+                Some(crate::g2::file_ops::model::Dialog::NewFile { .. })
             )
         })
     });
@@ -201,7 +201,7 @@ fn new_file_in_rail_recent_refuses_from_the_menu(cx: &mut gpui::TestAppContext) 
         shell.read(cx).operation_view(0).is_some_and(|view| {
             matches!(
                 view.read(cx).model.dialog,
-                Some(crate::g2::op1::model::Dialog::NewFile { .. })
+                Some(crate::g2::file_ops::model::Dialog::NewFile { .. })
             )
         })
     });

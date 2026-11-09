@@ -35,7 +35,7 @@ pub fn svg(name: &str) -> Option<(SharedString, &'static [u8])> {
         ),
         "file-text" => return Some(crate::row::marks::Mark::FileText.svg()),
         "music" => return Some(crate::row::marks::Mark::Music.svg()),
-        _ => return crate::g2::st2::glyphs::glyph(name),
+        _ => return crate::g2::plugin_settings::glyphs::glyph(name),
     };
     Some((SharedString::new_static(key), data.as_bytes()))
 }

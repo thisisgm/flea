@@ -204,7 +204,7 @@ impl Crawl {
     }
     /// The spiral's dash at the current phase, as logical bounds and pixel coverage, without allocating.
     pub(crate) fn spiral_rects(&self, scale: f32, mut emit: impl FnMut(Bounds<Pixels>, f32)) {
-        use crate::g2::fb1::brand::{dashed, GRID};
+        use crate::g2::status_feedback::brand::{dashed, GRID};
         let slot = self.slot.get();
         let side = px(self.spiral_side.get()).min(slot.size.width.min(slot.size.height));
         let unit = f32::from(side) * scale / GRID;

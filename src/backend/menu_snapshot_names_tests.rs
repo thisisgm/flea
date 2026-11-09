@@ -25,7 +25,7 @@ fn plugin_runtime_snapshot_names_are_selected_basenames_in_kind_order() {
         reply.get("kinds").and_then(Json::as_array).unwrap().len(),
         names.len()
     );
-    assert!(!flea::ui_logic_st2::wire::compact(&reply).contains("unselected-secret"));
+    assert!(!flea::ui_logic_plugin_settings::wire::compact(&reply).contains("unselected-secret"));
     assert!(names
         .iter()
         .all(|name| !name.as_str().unwrap().contains('/')));

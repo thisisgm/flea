@@ -1,7 +1,8 @@
 //! Menu rows reach their handler through Shell::dispatch on the production Shell, by keys and a right click.
 use super::test_shell::{land, open_root as open, status};
 use crate::{
-    backend::Event as BackendEvent, g2::mn1::join::Chosen, state::Shell, window::u07_tests::read,
+    backend::Event as BackendEvent, g2::context_menus::join::Chosen, state::Shell,
+    window::u07_tests::read,
 };
 use flea::{
     jsondoc::{self, Json},
@@ -96,7 +97,7 @@ pub(super) fn tags_answer(shell: &Entity<Shell>, cx: &mut VisualTestContext, kin
                     .map(|facts| facts.tags.clone().unwrap_or_default())
             })
             .collect::<Option<Vec<_>>>()?;
-        use flea::ui_logic_pl4::tags::{self, State};
+        use flea::ui_logic_rail_places::tags::{self, State};
         let states = tags::states_for(&files);
         let names = |state| {
             tags::NAMES

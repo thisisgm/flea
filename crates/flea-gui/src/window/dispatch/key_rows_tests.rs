@@ -142,7 +142,7 @@ fn p_with_paths_on_the_clipboard_opens_paste_as(cx: &mut TestAppContext) {
 fn p_in_recent_refuses_before_any_menu(cx: &mut TestAppContext) {
     let (shell, cx) = launched(cx, "list");
     copied(&shell, cx);
-    let recent = flea::ui_logic_pk1::RECENT;
+    let recent = flea::ui_logic_picker_portal::RECENT;
     let done = cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.step(0, Step::Open(recent.into()), window, cx)

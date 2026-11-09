@@ -172,7 +172,7 @@ pub struct Model {
     pub player: Option<super::media::Player>,
     pub pdf: Option<super::pdf::Pdf>,
     pub model3d: super::model3d::State,
-    pub model3d_palette: flea::ui_logic_pv4::color::Palette,
+    pub model3d_palette: flea::ui_logic_model_preview::color::Palette,
     pub preview_scroll: usize,
     pub image_file: Option<PathBuf>,
     // The cursor row's probed width, height and length in ms, once its meta answer lands.

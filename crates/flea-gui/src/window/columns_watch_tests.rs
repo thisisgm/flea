@@ -221,7 +221,7 @@ fn u09_live_columns_empty_denied_and_stale_order_replies_use_real_producers() {
         assert_eq!(
             (facts.kind, facts.sentence.to_string()),
             (
-                crate::g2::fb1::state::Kind::Locked,
+                crate::g2::status_feedback::state::Kind::Locked,
                 shell.locale.catalog.tr("pane.locked")
             ),
             "a denied neighbour is the Locked tile, never the stopped-responding error"

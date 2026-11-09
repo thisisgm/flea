@@ -12,14 +12,15 @@ fn menu_status_and_settings_ink_constructors_take_the_error_roles() {
         assert_ne!(palette.error, palette.accent, "{name}");
         assert_ne!(palette.error, palette.foreground, "{name}");
         assert_ne!(palette.error_on_surface, palette.accent, "{name}");
-        let menu = crate::g2::mn1::element::MenuInk::from_palette(&palette);
+        let menu = crate::g2::context_menus::element::MenuInk::from_palette(&palette);
         assert_eq!(menu.error, palette.error, "{name}: Move to Trash ink");
-        let footer = crate::g2::fb1::Ink::on_surface(&palette);
+        let footer = crate::g2::status_feedback::Ink::on_surface(&palette);
         assert_eq!(
             footer.error, palette.error_on_surface,
             "{name}: status bar error ink"
         );
-        let settings = crate::g2::st1::seams::Ink::inherited(&TextStyle::default(), theme);
+        let settings =
+            crate::g2::settings_pages::seams::Ink::inherited(&TextStyle::default(), theme);
         assert_eq!(
             settings.error, palette.error_on_surface,
             "{name}: Settings Delete Permanently ink"

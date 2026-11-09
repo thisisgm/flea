@@ -4,7 +4,7 @@ use crate::{backend::Backend, ipc::server, state::tests::shell_with};
 use flea::{
     ipc::wire,
     jsondoc,
-    ui_logic_pl4::{
+    ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
     },
@@ -261,7 +261,11 @@ fn u08_trash_count_handoff_changes_the_live_draw_and_respects_the_setting(cx: &m
             cx,
         )
     });
-    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    rows(
+        &shell,
+        vec![flea::ui_logic_rail_places::order::trash_entry()],
+        cx,
+    );
     shell.update(cx, |shell, cx| shell.rail_trash_count(12, cx));
     frame(cx);
     let detail = jsondoc::parse(&ipc(&shell, "railDetails", &[], cx).stdout).unwrap();
@@ -411,7 +415,7 @@ fn review_u08_r1_recent_completion_keeps_origin_pane(cx: &mut TestAppContext) {
         let producer = shell.rail.as_ref().unwrap().places.clone();
         producer.update(cx, |producer, cx| {
             producer.read_recent(
-                concat!(env!("CARGO_MANIFEST_DIR"), "/src/g2/pl4/recent-fixture.xbel").into(),
+                concat!(env!("CARGO_MANIFEST_DIR"), "/src/g2/rail_places/recent-fixture.xbel").into(),
                 cx,
             )
         });

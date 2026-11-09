@@ -37,7 +37,7 @@ fn main() {
     // Consume the one-window request before any service starts child processes or threads.
     std::env::remove_var("FLEA_UNLOCK");
     let words: Vec<String> = std::env::args().skip(1).collect();
-    if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
+    if let Some(status) = flea_gui::g2::media_preview::dispatch(&words) {
         std::process::exit(status);
     }
     if let Err(error) = backend_log::install() {
@@ -60,7 +60,9 @@ fn main() {
         } else {
             ""
         };
-        std::process::exit(flea_gui::g2::pk1::launch::main(reply, service, locale));
+        std::process::exit(flea_gui::g2::picker_portal::launch::main(
+            reply, service, locale,
+        ));
     }
     let mut args = Arguments::parse(argv.into_iter()).unwrap_or_else(|error| {
         eprintln!(
@@ -73,7 +75,7 @@ fn main() {
         .name("flea-startup".into())
         .spawn(move || {
             let started = std::time::Instant::now();
-            let devices = flea_gui::g2::pl1::source::seed::start();
+            let devices = flea_gui::g2::device_rail::source::seed::start();
             let settings =
                 startup::load_settings().map_err(|error| ("window.settings_failed", error))?;
             let cwd = std::env::current_dir()
@@ -88,7 +90,7 @@ fn main() {
                 .map_err(|error| ("ipc.start_failed", error.to_string()))?;
             let mut launch = Launch::resolve(settings, args, &home);
             launch.unlock = unlock_device;
-            flea_gui::g2::pl1::source::seed::finish(devices, started);
+            flea_gui::g2::device_rail::source::seed::finish(devices, started);
             Ok::<_, (&str, String)>((launch, server, presentation::Service::start()))
         })
         .unwrap_or_else(|error| {
@@ -130,5 +132,5 @@ fn main() {
         cx.activate(true);
     });
     window::glass_tag::stop();
-    flea_gui::g2::pv2::reap();
+    flea_gui::g2::doc_preview::reap();
 }

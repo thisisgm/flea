@@ -85,8 +85,12 @@ pub(super) fn prepare(
             .next()
             .unwrap_or(&facts.name)
             .to_owned();
-        let location =
-            crate::g2::sr1::run::location(&facts.name, "", "", flea::ui_logic_sr1::Scope::Folder);
+        let location = crate::g2::file_search::run::location(
+            &facts.name,
+            "",
+            "",
+            flea::ui_logic_file_search::Scope::Folder,
+        );
         let location = row::right_elide(&location, shaping.name_cells / 2).into_owned();
         if !location.is_empty() {
             let reserved = location.chars().map(row::cells_of).sum::<usize>();
@@ -155,7 +159,8 @@ pub(super) fn prepare(
 
 /// The cursor row's name with its match run in bold, the board's cursor treatment for a marked name.
 pub(super) fn bold_name(prepared: &Prepared, shaping: &Shaping, window: &Window) -> GlyphRun {
-    let runs = crate::g2::sr1::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
+    let runs =
+        crate::g2::file_search::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
     GlyphRun::new(
         window
             .text_system()

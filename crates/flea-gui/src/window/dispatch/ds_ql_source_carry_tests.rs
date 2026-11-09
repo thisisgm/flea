@@ -38,7 +38,7 @@ fn assert_markdown(shell: &Entity<Shell>, cx: &mut VisualTestContext, name: &str
 
 #[gpui::test]
 fn ds_ql_source_carry_follows_the_next_markdown(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_markdown_threads(|| {
+    crate::g2::doc_preview::render::without_markdown_threads(|| {
         let (shell, cx, _requests) = fixture(cx);
         press(cx, "r");
         assert_markdown(&shell, cx, "a.md", "source");
@@ -54,7 +54,7 @@ fn ds_ql_source_carry_follows_the_next_markdown(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn ds_ql_source_carry_survives_other_file_kinds(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_markdown_threads(|| {
+    crate::g2::doc_preview::render::without_markdown_threads(|| {
         let (shell, cx, _requests) = fixture(cx);
         press(cx, "r");
         for (cursor, kind) in [("1", "text"), ("2", "text"), ("3", "unsupported")] {
@@ -70,7 +70,7 @@ fn ds_ql_source_carry_survives_other_file_kinds(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn ds_ql_source_carry_close_then_reopen_starts_rendered(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_markdown_threads(|| {
+    crate::g2::doc_preview::render::without_markdown_threads(|| {
         let (shell, cx, _requests) = fixture(cx);
         for key in ["escape", "space"] {
             press(cx, "r");

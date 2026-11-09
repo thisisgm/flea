@@ -34,10 +34,10 @@ impl Sources {
         gio: &str,
         marks: &str,
         info: &str,
-    ) -> Vec<flea::ui_logic_pl1::RailEntry> {
-        let mut rows = flea::ui_logic_pl2::rail::rebuild(
+    ) -> Vec<flea::ui_logic_device_rail::RailEntry> {
+        let mut rows = flea::ui_logic_network_shares::rail::rebuild(
             gio,
-            &flea::ui_logic_pl1::mounts::non_file_bookmarks(marks),
+            &flea::ui_logic_device_rail::mounts::non_file_bookmarks(marks),
             info,
         );
         let dropbox = if self.home.as_os_str().is_empty() {
@@ -50,10 +50,14 @@ impl Sources {
                     file.take(65_537).read_to_string(&mut text).ok()?;
                     (text.len() <= 65_536).then_some(text)
                 })
-                .map(|text| flea::ui_logic_sd1::dropbox::account(&text, "").path)
+                .map(|text| flea::ui_logic_send_share::dropbox::account(&text, "").path)
                 .unwrap_or_default()
         };
-        let local = flea::ui_logic_pl2::cloud::rows(info, &self.home.to_string_lossy(), &dropbox);
+        let local = flea::ui_logic_network_shares::cloud::rows(
+            info,
+            &self.home.to_string_lossy(),
+            &dropbox,
+        );
         let at = rows
             .iter()
             .position(|row| !row.path.is_empty())

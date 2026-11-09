@@ -1,7 +1,7 @@
 //! A phone mount lands on its DEVICES row at the info exit, as v0.3.12 NetworkMounts.qml infoProcess.onExited re-polls.
 use super::*;
-use crate::g2::dg2::join::rail_drop::rail_kind;
-use flea::ui_logic_dg2::{rail_destination, RailKind};
+use crate::g2::drag_drop::join::rail_drop::rail_kind;
+use flea::ui_logic_drag_drop::{rail_destination, RailKind};
 
 const UNMOUNTED: &str = "Volume(0): Pixel 8\n  Type: GProxyVolume (GProxyVolumeMonitorMTP)\n  activation_root=mtp://pixel/\n  can_mount=1\n";
 
@@ -118,7 +118,7 @@ fn fixlogic2_failed_info_exit_still_relists_the_rail(cx: &mut TestAppContext) {
     );
 }
 
-// Ruling 48: gvfs-afc's iPhone volume in `gio mount -li`, the AFC leg of the iOS 26.6.2 capture in src/ui_logic_pl1/phones_tests.rs iphone().
+// Ruling 48: gvfs-afc's iPhone volume in `gio mount -li`, the AFC leg of the iOS 26.6.2 capture in src/ui_logic_device_rail/phones_tests.rs iphone().
 const AFC: &str = "Volume(0): Documents on GM’s iPhone\n  Type: GProxyVolume (GProxyVolumeMonitorAfc)\n  ids:\n   uuid: '00008130-001641411883401C'\n  uuid=00008130-001641411883401C\n  activation_root=afc://00008130-001641411883401C:3/\n  can_mount=1\n  can_eject=0\n  should_automount=1\n";
 
 fn devices_tail(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> RailEntry {

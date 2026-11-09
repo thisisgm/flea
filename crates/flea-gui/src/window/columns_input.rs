@@ -84,7 +84,7 @@ impl Shell {
             && event.button == MouseButton::Left
             && !blocked
             && !cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
                 .is_some_and(|carrying| carrying.carry.active())
         {
             return;
@@ -120,7 +120,7 @@ impl Shell {
         }
         if event.button == MouseButton::Left {
             if let Some(carrying) = cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
                 .filter(|carrying| carrying.carry.active())
             {
                 host.input.press = None;
@@ -129,7 +129,7 @@ impl Shell {
                 }
                 let dest = if view.slot == Slot::Active {
                     let carried = carrying.source_rows(window, side, host);
-                    crate::g2::dg2::join::row_spot(host, row.as_ref().map(|_| index), carried)
+                    crate::g2::drag_drop::join::row_spot(host, row.as_ref().map(|_| index), carried)
                 } else {
                     match row.as_ref() {
                         Some((name, true)) => crate::navigation::history::join(&view.path, name),
@@ -162,7 +162,7 @@ impl Shell {
                 };
                 self.columns_neighbour_menu(
                     side,
-                    crate::g2::mn1::target::PathMenu {
+                    crate::g2::context_menus::target::PathMenu {
                         base: view.path.clone(),
                         row: facts,
                     },

@@ -2,9 +2,9 @@
 //! together off the UI thread, the old samples kept through a theme change, and a refused font drawing one sentence.
 use super::parts::{catalog, draw, mark, scale, with, Calls};
 use super::{png, root};
-use flea::ui_logic_pv2::font::{physical, Ask, Reply, SAMPLE_SIZES, SAMPLE_TEXT};
-use flea::ui_logic_pv2::refusal::Refusal;
-use flea_gui::g2::pv2::font::{FontHost, FontView, Metrics, Theme};
+use flea::ui_logic_doc_preview::font::{physical, Ask, Reply, SAMPLE_SIZES, SAMPLE_TEXT};
+use flea::ui_logic_doc_preview::refusal::Refusal;
+use flea_gui::g2::doc_preview::font::{FontHost, FontView, Metrics, Theme};
 use gpui::AppContext as _;
 use gpui::{px, TestAppContext, WindowHandle};
 

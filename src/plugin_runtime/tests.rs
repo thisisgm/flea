@@ -1,7 +1,7 @@
 use super::{protocol, Config, Runtime};
 use crate::backend::testdir::TestDir;
 use crate::jsondoc::{self, Json};
-use crate::ui_logic_st2::{manifest, wire};
+use crate::ui_logic_plugin_settings::{manifest, wire};
 use std::time::{Duration, Instant};
 
 fn json(text: &str) -> Json {
@@ -259,9 +259,10 @@ fn plugin_runtime_idle_stop_is_clean_and_next_request_restarts() {
 fn plugin_runtime_declared_action_input_is_validated_before_delivery() {
     let raw = r#"{"schemaVersion":1,"id":"example.verify","name":"Verify","version":"1","author":"Example","description":"Verify a checksum.","kinds":["menu-action"],"entryPoints":{"run":"run"},"menuActions":[{"id":"verify","label":"Verify Checksum…","input":{"key":"checksum","title":"Verify Checksum","label":"Checksum","submit":"Verify","maxChars":128}}]}"#;
     let manifest = manifest::parse(raw, false).unwrap();
-    let descriptor = crate::ui_logic_st2::contributions::action_input(&manifest, "verify")
-        .unwrap()
-        .unwrap();
+    let descriptor =
+        crate::ui_logic_plugin_settings::contributions::action_input(&manifest, "verify")
+            .unwrap()
+            .unwrap();
     assert_eq!(descriptor.key, "checksum");
     assert_eq!(descriptor.max_chars, 128);
     assert!(protocol::operation(

@@ -1,12 +1,12 @@
 use super::{frames, mounted, painted, update};
 use crate::{
-    g2::{mn1, pl3, pl4},
+    g2::{context_menus, rail_places, trash_browser},
     list::{Palette, Typeface},
     path,
 };
 use flea::{
-    ui_logic_mn1::{fit::Rect, Entry, Text},
-    ui_logic_pl4::{
+    ui_logic_context_menus::{fit::Rect, Entry, Text},
+    ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
     },
@@ -22,7 +22,7 @@ impl Render for Menu {
         let layer = if self.1 {
             self.0.update(cx, |shell, cx| shell.trash_menu_layer(cx))
         } else {
-            mn1::host_input::layer(&self.0, window, cx).map(IntoElement::into_any_element)
+            context_menus::host_input::layer(&self.0, window, cx).map(IntoElement::into_any_element)
         };
         div().size_full().children(layer)
     }
@@ -31,8 +31,9 @@ impl Render for Menu {
 // A menu opens on Reveal.qml's fade from clear (EY-555), so its frames are judged once the fade rests.
 fn settle_open_fade(vcx: &mut VisualTestContext) {
     painted(vcx);
-    vcx.executor()
-        .advance_clock(Duration::from_millis(flea::ui_logic_fb1::OPEN_MS));
+    vcx.executor().advance_clock(Duration::from_millis(
+        flea::ui_logic_status_feedback::OPEN_MS,
+    ));
 }
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
@@ -98,7 +99,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.mount_rail(cx);
         let view = cx.new(|cx| {
-            pl4::producer::Producer::from_sections(
+            rail_places::producer::Producer::from_sections(
                 Arc::default(),
                 sections,
                 "/missing/flea".into(),
@@ -118,7 +119,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         let menu = shell.menu.menu.clone();
         let catalog = crate::test_catalogs::english();
         let typeface = Typeface::omarchy_default();
-        let env = mn1::lines::Env {
+        let env = context_menus::lines::Env {
             catalog: &catalog,
             preset: "default",
             key_hints: false,
@@ -126,7 +127,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             inset: 4.,
         };
         menu.borrow_mut().open(
-            mn1::menu::Face::File,
+            context_menus::menu::Face::File,
             vec![Entry {
                 submenu: Some(vec![Entry::leaf("copy", Text::Data("Copy".into()))]),
                 ..Entry::row("copyAs", Text::Data("Copy As".into()), "file")
@@ -167,8 +168,8 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             pane.monitor_start = None;
             pane.host.view.opened = true;
             pane.outside.menu(
-                vec![flea::ui_logic_pl3::host::Item::Entry(
-                    flea::ui_logic_pl3::host::Entry {
+                vec![flea::ui_logic_trash_browser::host::Item::Entry(
+                    flea::ui_logic_trash_browser::host::Entry {
                         id: "restore",
                         action: "restore",
                         label_key: "trash.action.restore",
@@ -177,7 +178,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
                         danger: false,
                     },
                 )],
-                pl3::seams::At { x: 100., y: 100. },
+                trash_browser::seams::At { x: 100., y: 100. },
             );
             cx.notify();
         });

@@ -1,6 +1,6 @@
 //! A single application-wide plugin owner, without listing or thumbnail machinery.
 use flea::plugin_runtime::protocol::{self, MAX_MESSAGE};
-use flea::ui_logic_st2::manifest::Invalid;
+use flea::ui_logic_plugin_settings::manifest::Invalid;
 use std::io::{BufRead, Write};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},

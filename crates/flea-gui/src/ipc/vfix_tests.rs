@@ -1,6 +1,6 @@
 //! VF-READERS regressions use the production window dispatch and mounted card owners.
 use super::readers3_tests::{json, open, read, update};
-use crate::g2::op3::permissions::{host::View, Permissions};
+use crate::g2::open_with_properties::permissions::{host::View, Permissions};
 use flea::jsondoc::Json;
 use gpui::{AppContext, TestAppContext, VisualTestContext};
 
@@ -76,7 +76,7 @@ fn vf_readers_permissions_mounted_card_is_observable(cx: &mut TestAppContext) {
 fn vf_readers_properties_reports_its_mounted_card(cx: &mut TestAppContext) {
     let handle = open(cx);
     update(cx, handle, |shell, window, cx| {
-        let capture = crate::g2::mn1::join::Captured {
+        let capture = crate::g2::context_menus::join::Captured {
             side: 0,
             listing: 1,
             rows: vec![0],
@@ -191,7 +191,7 @@ fn vf_readers_preview_table_closed_contract_is_json(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn vf_readers_html_reports_the_mounted_rendered_and_source_model(cx: &mut TestAppContext) {
-    use crate::g2::pv1::doc::View;
+    use crate::g2::quick_look_overlay::doc::View;
     let handle = open(cx);
     let doc = super::reader_port_b_tests::document(cx, handle, "index.html", "text-html");
     let View::Html(view) = doc.view else {
@@ -201,7 +201,7 @@ fn vf_readers_html_reports_the_mounted_rendered_and_source_model(cx: &mut TestAp
         view.doc.total = 61;
         view.doc.image_file = "/private/rendered.png".into();
         view.doc.has_drawn = true;
-        view.doc.picture = flea::ui_logic_pv2::html::Picture::Ready;
+        view.doc.picture = flea::ui_logic_doc_preview::html::Picture::Ready;
     });
     let reply = read(cx, handle, "htmlState", &["false"]);
     assert_eq!(reply.code, 0, "{reply:?}");
@@ -210,7 +210,7 @@ fn vf_readers_html_reports_the_mounted_rendered_and_source_model(cx: &mut TestAp
     assert_eq!(state.get("lines").and_then(Json::as_f64), Some(61.));
     assert_eq!(state.get("ready").and_then(Json::as_bool), Some(true));
     view.update(cx, |view, cx| {
-        view.set_view(flea::ui_logic_pv2::html::View::Source, cx)
+        view.set_view(flea::ui_logic_doc_preview::html::View::Source, cx)
     });
     let reply = read(cx, handle, "htmlState", &["false"]);
     assert_eq!(reply.code, 0, "{reply:?}");
@@ -297,19 +297,19 @@ fn vf_readers_network_menu_reads_the_menu_opened_by_the_network_route(cx: &mut T
             .as_mut()
             .unwrap()
             .rows
-            .push(flea::ui_logic_pl1::RailEntry {
+            .push(flea::ui_logic_device_rail::RailEntry {
                 label: "NAS".into(),
                 path: "/fixture/nas".into(),
-                group: flea::ui_logic_pl1::Group::Network,
-                kind: flea::ui_logic_pl1::Kind::Share,
+                group: flea::ui_logic_device_rail::Group::Network,
+                kind: flea::ui_logic_device_rail::Kind::Share,
                 mounted: true,
                 uri: "smb://nas/share".into(),
                 ..Default::default()
             });
         shell.network_menu(
             0,
-            &flea::ui_logic_pl4::rail::RailEntry {
-                group: flea::ui_logic_pl4::rail::Group::Network,
+            &flea::ui_logic_rail_places::rail::RailEntry {
+                group: flea::ui_logic_rail_places::rail::Group::Network,
                 path: "/fixture/nas".into(),
                 uri: "smb://nas/share".into(),
                 ..Default::default()

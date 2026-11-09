@@ -1,6 +1,6 @@
 //! The backend's captured filenames let MIME rules cover selected rows outside the held viewport.
 use crate::state::Shell;
-use flea::{jsondoc::Json, ui_logic_mn1::build, ui_logic_mn2::plugins::Item};
+use flea::{jsondoc::Json, ui_logic_context_menus::build, ui_logic_custom_actions::plugins::Item};
 
 pub(super) struct Selection {
     side: usize,

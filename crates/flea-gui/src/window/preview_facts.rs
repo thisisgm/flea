@@ -1,6 +1,6 @@
 //! Facts use the listing, the meta reply and the mounted view's counts, as Facts.js reads them.
 use super::selection_preview::*;
-use flea::ui_logic_pv1::{facts, kinds::State};
+use flea::ui_logic_preview_core::{facts, kinds::State};
 
 #[cfg(test)]
 #[path = "muted_ink_tests.rs"]
@@ -51,7 +51,7 @@ impl SelectionPreview {
     pub(crate) fn fact_grid(&self, kind: Kind) -> (f32, f32, f32) {
         let caption = f32::from(self.face.caption);
         let label = if kind == Kind::Model {
-            crate::g2::pv4::parts::LABEL_COLUMN
+            crate::g2::model_preview::parts::LABEL_COLUMN
         } else {
             FACT_LABEL
         };
@@ -72,7 +72,7 @@ impl SelectionPreview {
     ) -> f32 {
         let measure = |text: &str| {
             let font = self.face.font.clone();
-            crate::g2::fb1::caption::measure(
+            crate::g2::status_feedback::caption::measure(
                 text.to_owned().into(),
                 font,
                 self.face.caption,
@@ -187,11 +187,13 @@ impl SelectionPreview {
             } else {
                 &row.kind
             };
-            let groups = model.read(cx).facts(flea::ui_logic_pv4::facts::FileFacts {
-                kind,
-                size: &size,
-                modified: &modified,
-            });
+            let groups = model
+                .read(cx)
+                .facts(flea::ui_logic_model_preview::facts::FileFacts {
+                    kind,
+                    size: &size,
+                    modified: &modified,
+                });
             if !groups.is_empty() {
                 return groups.into_iter().flatten().collect();
             }
@@ -226,7 +228,7 @@ impl SelectionPreview {
         }
         let (kind, tail) = self.compact(frame, cx);
         let measure = |text: String| {
-            crate::g2::fb1::caption::measure(
+            crate::g2::status_feedback::caption::measure(
                 text.into(),
                 self.face.font.clone(),
                 self.face.caption,
@@ -257,11 +259,11 @@ impl SelectionPreview {
         if !count.is_empty() {
             parts.push(count);
         }
-        let tail = parts.join(flea::ui_logic_pv1::FACT_SEP);
+        let tail = parts.join(flea::ui_logic_preview_core::FACT_SEP);
         let tail = if kind.is_empty() {
             tail
         } else {
-            format!("{}{tail}", flea::ui_logic_pv1::FACT_SEP)
+            format!("{}{tail}", flea::ui_logic_preview_core::FACT_SEP)
         };
         (kind, if rtl { format!("\u{200f}{tail}") } else { tail })
     }

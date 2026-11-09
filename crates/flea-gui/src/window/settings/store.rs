@@ -1,6 +1,6 @@
 //! Settings writes use the core CLI's locked merge; polling and child processes stay off the UI thread.
-use crate::g2::st1::seams::Store;
-use flea::{jsondoc::Json, ui_logic_st1::Text};
+use crate::g2::settings_pages::seams::Store;
+use flea::{jsondoc::Json, ui_logic_settings_pages::Text};
 use std::{
     cell::RefCell, io::Read, path::PathBuf, process::Command, rc::Rc, sync::mpsc, time::Duration,
 };

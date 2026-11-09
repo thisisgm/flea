@@ -1,6 +1,6 @@
 //! Live source controls for bounded listings, optical state and identity-safe activation.
 use super::*;
-use crate::g2::pl1::{devices::Effect, source::Event};
+use crate::g2::device_rail::{devices::Effect, source::Event};
 
 #[gpui::test]
 fn rail_devices_listing_timeout_keeps_last_complete_rows(cx: &mut TestAppContext) {

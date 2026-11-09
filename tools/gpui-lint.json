@@ -12,7 +12,7 @@
   "blocking_helpers": [],
   "blocking_exceptions": [
     {
-      "caller": "flea_gui::g2::pl3::pane::TrashPane::pump",
+      "caller": "flea_gui::g2::trash_browser::pane::TrashPane::pump",
       "symbol": "status",
       "reason": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call"
     },

@@ -1,6 +1,6 @@
 use super::*;
-use crate::g2::mn1;
-use flea::ui_logic_op1::{
+use crate::g2::context_menus;
+use flea::ui_logic_file_ops::{
     confirm::Source,
     trash::{Review, Scope},
 };
@@ -104,28 +104,28 @@ pub(super) fn check() -> Vec<String> {
                 shell.open_overlay_copy_to(false, "/files", window, cx);
                 shell.overlay.as_ref().unwrap().update(cx, |view, cx| {
                     view.model.dialog = Some(if fat {
-                        crate::g2::op1::model::Dialog::Fat {
+                        crate::g2::file_ops::model::Dialog::Fat {
                             title: "Rename incompatible names".into(),
-                            renames: vec![flea::ui_logic_op1::Rename {
+                            renames: vec![flea::ui_logic_file_ops::Rename {
                                 old: "bad:name.txt".into(),
                                 new: "bad_name.txt".into(),
                                 dir: false,
                                 icon: "file".into(),
                             }],
                             note: "Font gate FAT names".into(),
-                            focus: flea::ui_logic_op1::collide::Fat::Rename,
+                            focus: flea::ui_logic_file_ops::collide::Fat::Rename,
                         }
                     } else {
-                        crate::g2::op1::model::Dialog::Collide {
+                        crate::g2::file_ops::model::Dialog::Collide {
                             title: "Replace existing files".into(),
-                            names: vec![flea::ui_logic_op1::Collision {
+                            names: vec![flea::ui_logic_file_ops::Collision {
                                 name: "existing.txt".into(),
                                 dir: false,
                                 icon: "file".into(),
                             }],
                             more: String::new(),
                             merge: false,
-                            focus: flea::ui_logic_op1::collide::Choice::Replace,
+                            focus: flea::ui_logic_file_ops::collide::Choice::Replace,
                         }
                     });
                     cx.notify();
@@ -135,7 +135,7 @@ pub(super) fn check() -> Vec<String> {
     }
     surfaces::case("compress-password", &mut failed, |shell, _, _| {
         shell.operations.archive.compress = Some(
-            crate::g2::op2::compress::Compress::open(
+            crate::g2::archive_flash::compress::Compress::open(
                 vec!["/files/file-0.txt".into()],
                 "/files",
                 "files",
@@ -170,24 +170,25 @@ pub(super) fn check() -> Vec<String> {
         assert!(shell.open_with.as_ref().unwrap().card.ready());
     });
     surfaces::case("permissions", &mut failed, |shell, _, cx| {
-        let model = crate::g2::op3::tests::permissions();
+        let model = crate::g2::open_with_properties::tests::permissions();
         let catalog = shell.locale.catalog.clone();
-        shell.permissions.view =
-            Some(cx.new(|cx| crate::g2::op3::permissions::host::View::new(model, catalog, 0., cx)));
+        shell.permissions.view = Some(cx.new(|cx| {
+            crate::g2::open_with_properties::permissions::host::View::new(model, catalog, 0., cx)
+        }));
     });
     for action in [
-        crate::g2::op4::model::Action::Print,
-        crate::g2::op4::model::Action::Convert,
-        crate::g2::op4::model::Action::Combine,
+        crate::g2::print_convert::model::Action::Print,
+        crate::g2::print_convert::model::Action::Convert,
+        crate::g2::print_convert::model::Action::Combine,
     ] {
         surfaces::case(
             &format!("output-{action:?}"),
             &mut failed,
             |shell, window, cx| {
                 let files = ["image-a.png", "image-b.png"]
-                    .map(|name| flea::ui_logic_op4::selection::Source {
+                    .map(|name| flea::ui_logic_print_convert::selection::Source {
                         path: format!("/files/{name}"),
-                        kind: flea::ui_logic_op4::output::Kind::Image,
+                        kind: flea::ui_logic_print_convert::output::Kind::Image,
                     })
                     .into();
                 assert!(shell.open_output(0, action, 1, files, window, cx));
@@ -211,22 +212,22 @@ pub(super) fn check() -> Vec<String> {
                 .typeface
                 .clone();
             let env = shell.menu_env(&face);
-            let entries = vec![flea::ui_logic_mn1::Entry {
-                submenu: Some(vec![flea::ui_logic_mn1::Entry::leaf(
+            let entries = vec![flea::ui_logic_context_menus::Entry {
+                submenu: Some(vec![flea::ui_logic_context_menus::Entry::leaf(
                     "copy",
-                    flea::ui_logic_mn1::Text::Data("Font submenu".into()),
+                    flea::ui_logic_context_menus::Text::Data("Font submenu".into()),
                 )]),
-                ..flea::ui_logic_mn1::Entry::row(
+                ..flea::ui_logic_context_menus::Entry::row(
                     "copyAs",
-                    flea::ui_logic_mn1::Text::Data("Font menu".into()),
+                    flea::ui_logic_context_menus::Text::Data("Font menu".into()),
                     "file",
                 )
             }];
             shell.menu.menu.borrow_mut().open(
-                mn1::menu::Face::File,
+                context_menus::menu::Face::File,
                 entries,
                 (100., 100.),
-                flea::ui_logic_mn1::fit::Rect {
+                flea::ui_logic_context_menus::fit::Rect {
                     x: 0.,
                     y: 0.,
                     w: 1100.,
@@ -262,7 +263,7 @@ pub(super) fn check() -> Vec<String> {
             None,
             |search, host| {
                 for ch in "Font gate query".chars() {
-                    search.key(crate::g2::sr1::StripKey::Text(ch.to_string()), host);
+                    search.key(crate::g2::file_search::StripKey::Text(ch.to_string()), host);
                 }
             },
             window,

@@ -1,6 +1,6 @@
 //! The approved no-match mark and headline, search's and the filter's, using the current pane's typeface and palette.
 use crate::{
-    g2::fb1::caption::{tracking_for, Tracked},
+    g2::status_feedback::caption::{tracking_for, Tracked},
     list::{Palette, Typeface},
     state::Shell,
 };
@@ -25,7 +25,7 @@ impl Shell {
                 && !session.leaving
                 && host.pane.held.total == 0)
                 .then(|| {
-                    flea::ui_logic_sr1::nothing_matches(
+                    flea::ui_logic_file_search::nothing_matches(
                         &self.locale.catalog,
                         &host.pane.state.query,
                     )
@@ -34,7 +34,7 @@ impl Shell {
         if host.search.owner.active() || host.pane.state.kind != crate::pane::states::Kind::Ready {
             return None;
         }
-        crate::g2::sr2::present::no_match(
+        crate::g2::listing_filter::present::no_match(
             &host.filter.owner,
             host.pane.held.listing,
             &self.locale.catalog,
@@ -84,7 +84,7 @@ impl Shell {
         .h(px(mark));
         let tracking = px(tracking_for(self.locale.catalog.language()) * scale);
         let headline = SharedString::from(headline);
-        let width = crate::g2::fb1::caption::measure(
+        let width = crate::g2::status_feedback::caption::measure(
             headline.clone(),
             face.font.clone().bold(),
             face.caption,

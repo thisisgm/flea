@@ -10,7 +10,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{mpsc, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-#[path = "../../src/g2/mn1/makeexec_foldhash.rs"]
+#[path = "../../src/g2/context_menus/makeexec_foldhash.rs"]
 mod foldhash;
 
 extern "C" {

@@ -3014,7 +3014,7 @@ plugin's own SVG when it has one. `shelf` is `null` on every plugin but the Shel
 `{"t":"pluginop","id":2,"op":"add","plugin":"mtorvik.checksums","ok":true,"code":"","detail":"","version":"0.2.0"}`
 
 One change's outcome. A refusal has `ok` false and a `code` with one `detail` argument; the codes are the ones
-`src/ui_logic_st2.rs` and `src/ui_logic_st2/wire.rs` list, each selecting a `plugins.error.*` or
+`src/ui_logic_plugin_settings.rs` and `src/ui_logic_plugin_settings/wire.rs` list, each selecting a `plugins.error.*` or
 `plugins.invalid.*` catalog sentence. `version` is the plugin's version after an `add` or `update`.
 
 ### pluginprogress
@@ -3365,7 +3365,7 @@ while this snapshot is held. Backend row and explicit-path requests for either
 ambiguous identity are refused with `where:"contentsidentity"` before resolution.
 An adapter must refuse external open, reveal, clipboard, drag and operation
 dispatch for these rows; it must never construct an operation path from display
-text. The shared `ui_logic_sr1` parser validates metadata for both front ends.
+text. The shared `ui_logic_file_search` parser validates metadata for both front ends.
 This producer does not enable either adapter's contents capability.
 
 `searchcancel` and `searchclose` stop and reap the running jail, including startup.

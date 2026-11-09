@@ -4,7 +4,7 @@ use crate::{
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_st1::{edit, pages, textsize},
+    ui_logic_settings_pages::{edit, pages, textsize},
 };
 use gpui::{Context, Window};
 
@@ -85,7 +85,8 @@ impl Shell {
             self.settings_update(true, window, cx);
         } else if matches!(
             id,
-            flea::ui_logic_st1::about::ISSUES_URL | flea::ui_logic_st1::about::SPONSORS_URL
+            flea::ui_logic_settings_pages::about::ISSUES_URL
+                | flea::ui_logic_settings_pages::about::SPONSORS_URL
         ) {
             self.launch_settings_program("xdg-open", vec![id.into()], window, cx);
         } else if id == "makeDefault" {
@@ -107,7 +108,7 @@ impl Shell {
             // Places.js openEntry: a bad record says why in the status line, and nothing opens.
             if let Some(error) = row
                 .as_ref()
-                .and_then(flea::ui_logic_pl4::places::record_error)
+                .and_then(flea::ui_logic_rail_places::places::record_error)
             {
                 let catalog = self.locale.catalog.clone();
                 let label = row
@@ -121,7 +122,13 @@ impl Shell {
                     &[&label, &catalog.tr(error.key())],
                 );
                 self.status_messages(cx, |messages, now| {
-                    messages.say(&text, true, "", flea::ui_logic_fb1::status::Hint::None, now)
+                    messages.say(
+                        &text,
+                        true,
+                        "",
+                        flea::ui_logic_status_feedback::status::Hint::None,
+                        now,
+                    )
                 });
                 cx.notify();
                 return;

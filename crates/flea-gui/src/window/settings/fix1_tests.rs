@@ -100,7 +100,7 @@ fn u11_fix1_a_queued_retry_never_restores_an_older_choice(cx: &mut TestAppContex
 
 #[gpui::test]
 fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppContext) {
-    use flea::ui_logic_st1::{rows::Row, Text};
+    use flea::ui_logic_settings_pages::{rows::Row, Text};
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell(backend, cx);
@@ -144,11 +144,11 @@ fn u11_fix1_claim_note_stays_one_line_while_regular_hints_wrap(cx: &mut TestAppC
         );
         assert_eq!(panel.heights()[at], 24.);
         assert_eq!(
-            crate::g2::st1::geometry::row_height(
+            crate::g2::settings_pages::geometry::row_height(
                 &panel.rows[at],
                 false,
                 80,
-                crate::g2::st1::geometry::Scale::default(),
+                crate::g2::settings_pages::geometry::Scale::default(),
             ),
             24.
         );
@@ -330,9 +330,9 @@ fn u11_fix1_newer_success_supersedes_only_its_written_fields(cx: &mut TestAppCon
                 document: flea::uistate::from_file(r#"{"density":"comfortable","display":{"textSize":{"mode":14}}}"#), through: 2, saved: true,
             }, window, cx);
             assert_eq!(shell.launch.settings.data.get("density").and_then(Json::as_str), Some("comfortable"));
-            let size = flea::ui_logic_st1::pages::at(&shell.launch.settings.data, &["display", "textSize"]).unwrap();
+            let size = flea::ui_logic_settings_pages::pages::at(&shell.launch.settings.data, &["display", "textSize"]).unwrap();
             assert_eq!(size.get("mode").and_then(Json::as_f64), Some(14.));
-            assert_eq!(flea::ui_logic_st1::pages::at(&shell.launch.settings.data, &["display", "hyprlandIcons"]).and_then(Json::as_bool), Some(true));
+            assert_eq!(flea::ui_logic_settings_pages::pages::at(&shell.launch.settings.data, &["display", "hyprlandIcons"]).and_then(Json::as_bool), Some(true));
             assert_eq!(shell.settings.failed[0].1, patch(r#"{"display":{"hyprlandIcons":true}}"#));
             shell.change_settings(patch(r#"{"hidden":true}"#), window, cx);
             assert_eq!(shell.launch.settings.data.get("density").and_then(Json::as_str), Some("comfortable"));
@@ -383,8 +383,11 @@ fn u11_fix1_settings_view_writes_global_and_pane_choices_keep_folder_memory(
             Some("grid")
         );
         assert_eq!(
-            flea::ui_logic_st1::pages::at(&shell.launch.settings.data, &["folderViews", "/files"])
-                .and_then(Json::as_str),
+            flea::ui_logic_settings_pages::pages::at(
+                &shell.launch.settings.data,
+                &["folderViews", "/files"]
+            )
+            .and_then(Json::as_str),
             Some("columns")
         );
         shell.apply_settings(

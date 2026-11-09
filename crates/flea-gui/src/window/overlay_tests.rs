@@ -1,8 +1,8 @@
 //! The operations overlay draws over the window under its scrim once opened, and never builds at startup.
 use crate::{
     backend::Backend,
-    g2::op1::model::Dialog,
-    g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
+    g2::file_ops::model::Dialog,
+    g2::settings_pages::seams::COMPOSITOR_CORNER_DEFAULT,
     state::{tests::shell_with, Shell},
     visual::contract::Spec,
     window::{
@@ -161,7 +161,7 @@ fn copy_to_paints_its_scrim_and_card_over_the_window(cx: &mut TestAppContext) {
         (
             theme
                 .background
-                .opacity(flea::ui_logic_op1::card::scrim_alpha(0)),
+                .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)),
             window.scale_factor(),
         )
     });

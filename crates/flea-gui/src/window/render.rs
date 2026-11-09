@@ -1,7 +1,7 @@
 use super::{composition, glass::producers::BodyGround, startup::View};
 use crate::{
     feedback::spinner,
-    g2::dg2::join::{flock, Seed},
+    g2::drag_drop::join::{flock, Seed},
     grid::pane_view::PaneInputs,
     list::{ListElement, Palette},
     palette::Theme,

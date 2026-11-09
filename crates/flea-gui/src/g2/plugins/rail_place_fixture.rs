@@ -7,7 +7,7 @@ use crate::{
 use flea::{
     jsondoc::{self, Json},
     plugin_runtime::{Config, Runtime},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{self, Plugin, Source},
     },

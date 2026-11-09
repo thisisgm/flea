@@ -97,7 +97,7 @@ fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut 
     assert_eq!(read(cx, handle, "lastMessage"), notice);
     cx.run_until_parked();
     cx.executor().advance_clock(Duration::from_millis(
-        flea::ui_logic_fb1::messages::MESSAGE_MS - 1,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS - 1,
     ));
     cx.run_until_parked();
     assert_eq!(read(cx, handle, "lastMessage"), notice);
@@ -262,7 +262,7 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
 
 #[gpui::test]
 fn u05_a_committed_folder_change_reports_the_lost_arm_once(cx: &mut TestAppContext) {
-    use crate::g2::fb1::line::ArmLost;
+    use crate::g2::status_feedback::line::ArmLost;
     use std::{cell::RefCell, rc::Rc};
     let handle = open(cx);
     frame(cx, handle);
@@ -351,7 +351,7 @@ fn u05_filter_and_search_escape_reaches_its_owner_without_acknowledging_an_error
 
 #[gpui::test]
 fn u05_long_errors_reserve_the_entire_dismiss_hint_in_a_narrow_lane(cx: &mut TestAppContext) {
-    use flea::ui_logic_fb1::status::Hint;
+    use flea::ui_logic_status_feedback::status::Hint;
     let handle = open(cx);
     cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(600.), gpui::px(400.)));
     frame(cx, handle);

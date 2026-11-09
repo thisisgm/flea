@@ -2,7 +2,7 @@
 use super::host::{advance, call, change, context, frame, open, peek, settle};
 use crate::{
     columns::{geometry::Slot, TrackRows, TrackState},
-    g2::fb1::state::Kind,
+    g2::status_feedback::state::Kind,
     window::startup::View,
 };
 use gpui::{px, size, VisualTestContext};

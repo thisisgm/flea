@@ -1,10 +1,10 @@
 //! Picture recipes and the error refusal are board exceptions to the outer-frame rule; the calm unsupported card keeps its frame.
 use super::{mounted, painted, update};
 use crate::{
-    g2::pv1::{Body, QuickLook, Subject},
+    g2::quick_look_overlay::{Body, QuickLook, Subject},
     presentation::{fixture::Fixture, frame_gate},
 };
-use flea::ui_logic_pv1::{kinds::State, rect::Shape};
+use flea::ui_logic_preview_core::{kinds::State, rect::Shape};
 use gpui::{px, size, AppContext, TestAppContext};
 
 const BARE: &[(&str, &str)] = &[

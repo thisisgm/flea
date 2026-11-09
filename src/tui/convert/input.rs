@@ -115,7 +115,9 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 f.pages.clear();
                 f.edit_fresh = false;
             }
-            if f.pages.len() + key.text.len() <= flea::ui_logic_op4::pages::MAX_RANGE_BYTES {
+            if f.pages.len() + key.text.len()
+                <= flea::ui_logic_print_convert::pages::MAX_RANGE_BYTES
+            {
                 f.pages.push_str(&key.text);
             }
         }

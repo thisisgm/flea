@@ -1,5 +1,5 @@
-use crate::g2::{pv1::doc::View, pv2::markdown::MarkdownView};
-use flea::ui_logic_pv2::markdown::{
+use crate::g2::{doc_preview::markdown::MarkdownView, quick_look_overlay::doc::View};
+use flea::ui_logic_doc_preview::markdown::{
     markdown_flow::{Atom, Face, Ink, Laid, Measure},
     markdown_layout::Item,
     FigureKind,
@@ -115,11 +115,11 @@ fn mdlook_ey155_headings_use_the_bright_theme_ink(cx: &mut TestAppContext) {
     );
     view.read_with(cx, |view, _| {
         assert_eq!(
-            crate::g2::pv2::markdown::style::hex(view.palette.ink(&Ink::Bright)),
+            crate::g2::doc_preview::markdown::style::hex(view.palette.ink(&Ink::Bright)),
             "#f7e8b2"
         );
         assert_eq!(
-            crate::g2::pv2::markdown::style::hex(view.palette.foreground),
+            crate::g2::doc_preview::markdown::style::hex(view.palette.foreground),
             "#c1c497"
         );
     });
@@ -170,12 +170,13 @@ fn mdlook_ey158_figures_use_the_muted_ink_and_unfilled_ground(cx: &mut TestAppCo
     let (theme, ground, accent) = view.update(cx, |view, _| {
         (
             view.figure_theme(FigureKind::Mermaid),
-            crate::g2::pv2::markdown::style::hex(view.palette.background),
-            crate::g2::pv2::markdown::style::hex(view.palette.accent_frame),
+            crate::g2::doc_preview::markdown::style::hex(view.palette.background),
+            crate::g2::doc_preview::markdown::style::hex(view.palette.accent_frame),
         )
     });
-    let muted =
-        crate::g2::pv2::markdown::style::hex(crate::palette::Theme::from_text(COLORS).muted);
+    let muted = crate::g2::doc_preview::markdown::style::hex(
+        crate::palette::Theme::from_text(COLORS).muted,
+    );
     eprintln!("figure muted request={} ground={ground}", theme.muted);
     assert_eq!(theme.muted, muted, "diagram border follows the muted paint");
     assert_ne!(ground, "none");
@@ -321,13 +322,13 @@ fn mdlook_ey332_source_sets_lines_on_the_code_views_row(cx: &mut TestAppContext)
     let (shell, cx, view) = markdown(cx, &root.0, "# Release notes\n\nA line.\n");
     cx.update(|_, cx| {
         view.update(cx, |view, cx| {
-            view.set_view(crate::g2::pv2::markdown::View::Source, cx)
+            view.set_view(crate::g2::doc_preview::markdown::View::Source, cx)
         })
     });
     draw(cx);
     assert_eq!(
         view.read_with(cx, |view, _| view.source.frame.line),
-        crate::g2::pv1::look::TEXT_LINE,
+        crate::g2::quick_look_overlay::look::TEXT_LINE,
         "ql-markdown-source and ql-code both set lines 20 apart"
     );
     close(&shell, cx);

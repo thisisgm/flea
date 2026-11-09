@@ -1,6 +1,6 @@
 //! The real card paints only its visible applications through the existing shared icon service.
 use super::openwith_controls_tests::prepared;
-use crate::g2::mn1::app_icons;
+use crate::g2::context_menus::app_icons;
 use gpui::TestAppContext;
 use std::collections::BTreeSet;
 

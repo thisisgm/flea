@@ -25,15 +25,15 @@ fn plugin_menu_runtime_action_is_mounted_and_the_real_executable_receives_only_t
         .position(|r| r.action == "example.checksums:sha256")
         .expect("the real mounted card has the declared action");
     assert_eq!(entries[at].glyph, Some("hash"));
-    let (key, svg) = crate::g2::mn1::glyphs::mark("hash");
+    let (key, svg) = crate::g2::context_menus::glyphs::mark("hash");
     assert!(
-        crate::g2::mn1::glyphs::known("hash")
+        crate::g2::context_menus::glyphs::known("hash")
             && key == "flea-menu:hash"
             && std::str::from_utf8(svg).unwrap().contains("M4 9h16"),
         "the row draws mn2's hash cut, not a blank lead"
     );
     assert!(
-        crate::g2::st2::glyphs::glyph("hash").is_some(),
+        crate::g2::plugin_settings::glyphs::glyph("hash").is_some(),
         "the plugin's Settings row draws the same mark"
     );
     assert!(entries[..at].iter().any(|row| row.id == "compress"));

@@ -218,7 +218,7 @@ fn gh336_space_raster_pictures_decode_at_the_fit_times_scale_bounded_by_the_sour
             let path = root.0.join(name);
             let image = wait(cx, "the picture decodes", |cx| decoded(cx, &shell, &path));
             let rect = picture_rect(cx);
-            let want = flea::ui_logic_pv1::pixels::decode_size(
+            let want = flea::ui_logic_preview_core::pixels::decode_size(
                 f64::from(f32::from(rect.size.width)),
                 f64::from(f32::from(rect.size.height)),
                 scale.into(),
@@ -276,7 +276,7 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
         cx.simulate_event(zoom_in.clone());
         draw(cx);
         let zoom = 1. + step as f64 * 0.25;
-        let want = flea::ui_logic_pv1::pixels::decode_size(
+        let want = flea::ui_logic_preview_core::pixels::decode_size(
             f64::from(f32::from(rect.size.width)) * zoom,
             f64::from(f32::from(rect.size.height)) * zoom,
             2.,

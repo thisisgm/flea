@@ -2,7 +2,7 @@
 use super::boards::rect;
 use super::scenes::ql_svg;
 use super::*;
-use flea::ui_logic_pv1::pixels::MAX_SVG_BYTES;
+use flea::ui_logic_preview_core::pixels::MAX_SVG_BYTES;
 use gpui::{
     px, size, DevicePixels, Entity, ImgResourceLoader, RenderImage, Resource, SvgSize,
     TestAppContext, VisualTestContext, Window,
@@ -183,8 +183,9 @@ fn a_replaced_svg_raster_frees_its_atlas_tile(cx: &mut TestAppContext) {
     assert_eq!(held(cx, &seen), 1, "expand: one tile held");
     prev = full;
     look.update(cx, |look, cx| look.close(cx));
-    cx.executor()
-        .advance_clock(Duration::from_millis(flea::ui_logic_fb1::CLOSE_MS));
+    cx.executor().advance_clock(Duration::from_millis(
+        flea::ui_logic_status_feedback::CLOSE_MS,
+    ));
     cx.run_until_parked();
     assert_eq!(held(cx, &seen), 0, "close frees the held raster");
     look.update(cx, |look, cx| look.open(ql_svg(), true, cx));

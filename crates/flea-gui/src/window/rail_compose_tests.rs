@@ -4,7 +4,7 @@ use crate::window::{
     locale::Snapshot,
     startup::{Arguments, Launch, Settings, View},
 };
-use flea::ui_logic_pl4::rail::Kind;
+use flea::ui_logic_rail_places::rail::Kind;
 use gpui::{TestAppContext, VisualTestContext};
 
 fn open<'a>(
@@ -142,7 +142,7 @@ fn accepted_settings_and_typeface_reach_the_mounted_producer(cx: &mut TestAppCon
             );
             cx.set_global(fonts);
             let mut data = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut data,
                 &flea::jsondoc::parse(r#"{"places":{"showHome":false,"showTrash":true}}"#).unwrap(),
             );

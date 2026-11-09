@@ -118,7 +118,7 @@ impl Shell {
                 for section in &mut tail {
                     section
                         .rows
-                        .retain(|row| row.kind != flea::ui_logic_pl4::rail::Kind::Dropbox);
+                        .retain(|row| row.kind != flea::ui_logic_rail_places::rail::Kind::Dropbox);
                 }
                 tail.retain(|section| !section.rows.is_empty());
             }

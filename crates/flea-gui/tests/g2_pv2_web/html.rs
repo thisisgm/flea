@@ -3,14 +3,14 @@
 //! built once on demand, and every refusal drawing its fixed sentence.
 use super::parts::{catalog, draw, look, mark, palette, scale, typeface, with, Calls, METRICS};
 use super::{png, root};
-use flea::ui_logic_pv2::code_view::{
+use flea::ui_logic_doc_preview::code_view::{
     Answer, Ask, Reply as CodeReply, Source, BYTE_GATE, REMOTE_GATE,
 };
-use flea::ui_logic_pv2::html::{Picture, Reply, View, SETTLE_MS};
-use flea::ui_logic_pv2::refusal::Refusal;
-use flea_gui::g2::pv2::code::{shape, CodeHost};
-use flea_gui::g2::pv2::html::{HtmlHost, HtmlView, Metrics, SourceParts};
-use flea_gui::g2::pv2::Palette;
+use flea::ui_logic_doc_preview::html::{Picture, Reply, View, SETTLE_MS};
+use flea::ui_logic_doc_preview::refusal::Refusal;
+use flea_gui::g2::doc_preview::code::{shape, CodeHost};
+use flea_gui::g2::doc_preview::html::{HtmlHost, HtmlView, Metrics, SourceParts};
+use flea_gui::g2::doc_preview::Palette;
 use gpui::{TestAppContext, WindowHandle};
 use std::time::Duration;
 

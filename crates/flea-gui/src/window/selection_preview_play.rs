@@ -1,11 +1,11 @@
 //! The column's media player: the decoder seam and the play toggle the strip and the keymap share.
 use super::*;
-use crate::g2::pv3::{self, strip::StripInput};
+use crate::g2::media_preview::{self, strip::StripInput};
 use gpui::{AppContext, Window};
 
 impl SelectionPreview {
     /// A host may provide the decoder seam while this owner keeps playback lifetime.
-    pub fn set_media_backend(&mut self, backend: Rc<dyn pv3::engine::Backend>) {
+    pub fn set_media_backend(&mut self, backend: Rc<dyn media_preview::engine::Backend>) {
         self.media_backend = Some(backend);
     }
 
@@ -26,13 +26,13 @@ impl SelectionPreview {
         };
         if player.is_none() && input == StripInput::Toggle {
             let backend = self.media_backend.clone().or_else(|| {
-                pv3::sandbox::Sandbox::current()
+                media_preview::sandbox::Sandbox::current()
                     .ok()
-                    .map(|b| Rc::new(b) as Rc<dyn pv3::engine::Backend>)
+                    .map(|b| Rc::new(b) as Rc<dyn media_preview::engine::Backend>)
             });
             let Some(backend) = backend else { return };
             let entity = cx.new(|cx| MediaPlayer::new(backend, None, cx));
-            let subject = pv3::player::Subject {
+            let subject = media_preview::player::Subject {
                 path: frame.subject.path().into(),
                 video: frame.kind == Kind::Video,
                 box_w: (self.width * window.scale_factor()).ceil().max(1.) as u32,

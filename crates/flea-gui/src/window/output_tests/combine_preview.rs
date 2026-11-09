@@ -1,7 +1,7 @@
 //! Combine borrows the listing's decoded images through the production Shell join.
 use super::*;
-use crate::g2::op4::model::Action;
-use flea::ui_logic_op4::{output::Kind, selection::Source};
+use crate::g2::print_convert::model::Action;
+use flea::ui_logic_print_convert::{output::Kind, selection::Source};
 use std::time::Duration;
 
 #[gpui::test]

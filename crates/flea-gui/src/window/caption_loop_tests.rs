@@ -1,12 +1,12 @@
 //! Caption timers follow the pane the renderer draws, through the shipped root overlay.
 use crate::{
     backend::Backend,
-    g2::fb1::hero::EmptyHero,
+    g2::status_feedback::hero::EmptyHero,
     pane::states::Kind,
     state::{tests::shell_with, Shell},
     window::{root::Root, startup::View},
 };
-use flea::ui_logic_fb1::empty::{PHRASES, ROTATE_MS};
+use flea::ui_logic_status_feedback::empty::{PHRASES, ROTATE_MS};
 use gpui::{AppContext, Context, Entity, TestAppContext, Window, WindowHandle};
 use std::time::Duration;
 

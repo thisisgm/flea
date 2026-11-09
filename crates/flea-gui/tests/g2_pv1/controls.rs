@@ -2,7 +2,7 @@
 use super::boards::rect;
 use super::scenes::*;
 use super::*;
-use flea_gui::g2::pv1::Hit;
+use flea_gui::g2::quick_look_overlay::Hit;
 
 fn english() -> flea::i18n::I18n {
     crate::test_catalogs::english()

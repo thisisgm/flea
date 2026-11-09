@@ -1,6 +1,6 @@
 //! Decode dimensions from the mounted production image, for native quality gates.
 use super::*;
-use crate::{g2::pv1::Body, window::selection_preview::Mounted};
+use crate::{g2::quick_look_overlay::Body, window::selection_preview::Mounted};
 use gpui::RenderImage;
 use std::sync::Arc;
 

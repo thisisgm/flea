@@ -5,15 +5,18 @@ use gpui::{px, size, AnyView, AppContext, Entity, TestAppContext, VisualTestCont
 use std::rc::Rc;
 
 struct Quiet;
-impl crate::g2::pl1::process::Runner for Quiet {
-    fn start(&self, _: crate::g2::pl1::process::Job) -> crate::g2::pl1::process::Handle {
-        crate::g2::pl1::process::Handle::detached().0
+impl crate::g2::device_rail::process::Runner for Quiet {
+    fn start(
+        &self,
+        _: crate::g2::device_rail::process::Job,
+    ) -> crate::g2::device_rail::process::Handle {
+        crate::g2::device_rail::process::Handle::detached().0
     }
 }
 
 pub(super) fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     cx.update(|cx| {
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner: Rc::new(Quiet),
             hostname: "fixture".into(),
         })

@@ -17,7 +17,7 @@ impl Shell {
         &mut self,
         side: usize,
         mark_drawn: bool,
-        held_contents: Option<Rc<crate::g2::sr1::contents::Held>>,
+        held_contents: Option<Rc<crate::g2::file_search::contents::Held>>,
         mut rows: crate::list::RowStates,
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
@@ -354,7 +354,7 @@ fn sync_tile(
     if view.state == TrackState::Empty {
         let hero = columns.heroes[at].get_or_insert_with(|| {
             cx.new(|cx| {
-                let mut hero = crate::g2::fb1::hero::EmptyHero::new(catalog, cx);
+                let mut hero = crate::g2::status_feedback::hero::EmptyHero::new(catalog, cx);
                 hero.set_overlaid();
                 hero
             })
@@ -364,11 +364,12 @@ fn sync_tile(
             hero.show(columns.area.hero_settled.as_deref() != Some(&view.path), cx);
         });
     } else if let TrackState::Locked(mode) = view.state {
-        let notice = columns.notices[at]
-            .get_or_insert_with(|| cx.new(|_| crate::g2::fb1::state::StateMessage::new()));
+        let notice = columns.notices[at].get_or_insert_with(|| {
+            cx.new(|_| crate::g2::status_feedback::state::StateMessage::new())
+        });
         notice.update(cx, |notice, cx| {
             notice.set(
-                Some(crate::g2::fb1::state::Facts::failed(
+                Some(crate::g2::status_feedback::state::Facts::failed(
                     "scan",
                     "Permission denied",
                     mode,

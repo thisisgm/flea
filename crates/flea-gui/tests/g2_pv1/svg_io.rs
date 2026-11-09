@@ -348,8 +348,9 @@ fn a_closed_svg_frees_its_tile_with_a_host_that_unmounts_the_card(cx: &mut TestA
     let first = wait_for_raster(cx, &look, None);
     assert!(in_atlas(cx, &first), "the raster draws");
     look.update(cx, |look, cx| look.close(cx));
-    cx.executor()
-        .advance_clock(Duration::from_millis(flea::ui_logic_fb1::CLOSE_MS));
+    cx.executor().advance_clock(Duration::from_millis(
+        flea::ui_logic_status_feedback::CLOSE_MS,
+    ));
     cx.run_until_parked();
     assert!(
         !in_atlas(cx, &first),

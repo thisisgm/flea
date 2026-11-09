@@ -69,7 +69,7 @@ pub(super) fn paint_mark(
             window.paint_quad(fill(box_, colour));
         }
         RowMark::Square(square) => {
-            use flea::ui_logic_pl4::rail::Square;
+            use flea::ui_logic_rail_places::rail::Square;
             let colour = match square {
                 Square::On => palette.executable,
                 Square::Off => palette.muted_frame,
@@ -190,7 +190,7 @@ pub(super) const ACCENT_EDGE: f32 = 3.;
 /// Buttons.js DISABLED_OPACITY over every ink a rail row draws.
 pub(super) fn ghost(palette: Palette) -> Palette {
     let fade = |mut ink: gpui::Hsla| {
-        ink.a *= crate::g2::pv1::look::DISABLED;
+        ink.a *= crate::g2::quick_look_overlay::look::DISABLED;
         ink
     };
     Palette {

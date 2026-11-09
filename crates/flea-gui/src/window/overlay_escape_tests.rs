@@ -1,7 +1,7 @@
 //! Escape through the window's key path closes the open card through op1; a cardless entity drops while the stroke still reaches the window.
 use crate::{
     backend::Backend,
-    g2::op1::press::Press,
+    g2::file_ops::press::Press,
     state::{tests::shell_with, Shell},
     window::root::Root,
 };
@@ -129,7 +129,7 @@ fn escape_after_a_mouse_cancel_leaves_no_overlay(cx: &mut TestAppContext) {
                     "Copied 1 item",
                     false,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 )
             })
@@ -209,7 +209,7 @@ fn escape_queues_the_cards_menu_close(cx: &mut TestAppContext) {
 
 // Exercise the actual menu producer, which obtains its pane-bound operation session.
 fn chosen_copy_to(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usize, id: u64) {
-    use crate::g2::mn1::join::{Captured, Chosen};
+    use crate::g2::context_menus::join::{Captured, Chosen};
     shell(cx, handle, |shell, _, cx| {
         shell.focus_pane(side, cx);
         let host = shell.panes[side].as_ref().unwrap();
@@ -241,7 +241,7 @@ fn chosen_copy_to(cx: &mut TestAppContext, handle: WindowHandle<Root>, side: usi
 fn g70_menu_copy_keeps_its_owner_after_other_backend_retires(cx: &mut TestAppContext) {
     use crate::{
         backend::{Event, Failure},
-        g2::op1::model::Dialog,
+        g2::file_ops::model::Dialog,
         window::{pane::PaneHost, startup::View},
     };
     for dead in [0, 1] {

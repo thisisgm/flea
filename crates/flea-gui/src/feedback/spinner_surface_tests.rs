@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     feedback::spinner::Mode,
-    g2::op1::{host::Overlay, ipc::OmiAdapter, palette::CardPalette},
+    g2::file_ops::{host::Overlay, ipc::OmiAdapter, palette::CardPalette},
     ipc::Adapter,
 };
 use std::sync::Arc;
@@ -118,7 +118,7 @@ fn job_ipc_reports_modes_from_backend_kinds_and_failed_jobs_have_no_omi(cx: &mut
 
 #[test]
 fn accessible_names_use_upstream_mode_labels_and_stable_distinct_ids() {
-    use crate::g2::op1::glyph::{Glyph, Paint};
+    use crate::g2::file_ops::glyph::{Glyph, Paint};
     use gpui::Element;
     let first = super::super::spinner::Slot(Rc::new(Crawl::default()));
     let second = super::super::spinner::Slot(Rc::new(Crawl::default()));

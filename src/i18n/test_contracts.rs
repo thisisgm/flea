@@ -17,7 +17,7 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "Live TUI language switching draws each shipped catalog's frame words",
         ),
         (
-            "crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs",
+            "crates/flea-gui/src/g2/settings_pages/sheet_keycap_tests.rs",
             "I50-24 checks key sheet labels against each shipped catalog's keycap words",
         ),
         (
@@ -103,7 +103,7 @@ fn no_test_resolves_the_host_language() {
         ("src/tui/words.rs", 1, "Text's Display implementation resolves the user's catalog only outside tests"),
         ("crates/flea-gui/src/main.rs", 1, "the GUI launch loads the real catalogs"),
         ("crates/flea-gui/src/ipc/server.rs", 1, "the IPC server answers in the user's language"),
-        ("crates/flea-gui/src/g2/pv3/kit/window.rs", 1, "the bench-seam media kit loads catalogs as the shipped app does"),
+        ("crates/flea-gui/src/g2/media_preview/kit/window.rs", 1, "the bench-seam media kit loads catalogs as the shipped app does"),
     ];
     // Split so this file never matches itself; every spelling that names the host-resolving Default directly.
     let calls = [

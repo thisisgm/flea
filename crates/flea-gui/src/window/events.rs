@@ -93,15 +93,15 @@ impl Shell {
                 return;
             }
             let menu_taken = self.menu_reply(side, line, window, cx);
-            if let Some(parsed) = flea::ui_logic_op1::parse(line) {
+            if let Some(parsed) = flea::ui_logic_file_ops::parse(line) {
                 self.operation_line(side, line, window, cx);
-                if let flea::ui_logic_op1::Event::TransferDone(done) = parsed {
+                if let flea::ui_logic_file_ops::Event::TransferDone(done) = parsed {
                     self.transfer_refresh(side, window, cx);
                     self.retry_failed(side, &done.retry_paths, window, cx);
                 }
             }
             if !menu_taken {
-                cx.emit(crate::g2::mn1::join::ProducerReply {
+                cx.emit(crate::g2::context_menus::join::ProducerReply {
                     side,
                     line: line.clone(),
                 });
@@ -251,7 +251,7 @@ impl Shell {
                 let this_folder = path == host.path
                     || (operation == "scan"
                         && listed
-                        && flea::ui_logic_fb1::errors::denied(&operation, &message));
+                        && flea::ui_logic_status_feedback::errors::denied(&operation, &message));
                 let named = if this_folder {
                     ""
                 } else {

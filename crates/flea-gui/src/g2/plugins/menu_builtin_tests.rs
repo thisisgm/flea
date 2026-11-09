@@ -1,6 +1,6 @@
 use super::*;
-use crate::g2::sd1::seams::Wire;
-use flea::ui_logic_sd1::providers::{Facts, Role};
+use crate::g2::send_share::seams::Wire;
+use flea::ui_logic_send_share::providers::{Facts, Role};
 
 struct Pipe;
 impl Wire for Pipe {
@@ -180,7 +180,7 @@ fn plugin_menu_runtime_builtin_unavailable_rows_have_no_state_word_and_keep_the_
         for (row, line) in brands {
             assert!(row.disabled, "{} remains unavailable", row.id);
             assert!(line.word.is_none(), "{} has no state word", row.id);
-            assert_eq!(line.ink, crate::g2::mn1::lines::Ink::Errored);
+            assert_eq!(line.ink, crate::g2::context_menus::lines::Ink::Errored);
             assert_eq!(
                 line.wanted,
                 widths.iter().find(|(id, _)| id == &row.id).unwrap().1

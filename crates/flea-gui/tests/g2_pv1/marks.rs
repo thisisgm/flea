@@ -1,12 +1,12 @@
 //! The bar's mark: models wear the cube, code its enabled language logo, and other files their kind mark.
-use flea::ui_logic_pv1::{kinds::State, rect::Shape};
-use flea_gui::g2::pv1::{Body, Subject};
+use flea::ui_logic_preview_core::{kinds::State, rect::Shape};
+use flea_gui::g2::quick_look_overlay::{Body, Subject};
 use flea_gui::g2::{
-    pv1::doc::{Doc, View},
-    pv4::{
+    model_preview::{
         seam::{NoReader, Wire},
         view::Model3dView,
     },
+    quick_look_overlay::doc::{Doc, View},
 };
 use gpui::{AppContext, TestAppContext};
 use std::{rc::Rc, sync::Arc};
@@ -73,7 +73,7 @@ impl Wire for NoWire {
 fn model_bar(cx: &mut TestAppContext, name: &str, icon: &str) {
     let view = cx.new(|cx| {
         Model3dView::new(
-            flea::ui_logic_pv4::control::Surface::QuickLook,
+            flea::ui_logic_model_preview::control::Surface::QuickLook,
             Rc::new(NoWire),
             Arc::new(NoReader),
             Arc::new(crate::test_catalogs::english()),
@@ -147,17 +147,17 @@ fn a_model_filename_without_a_model_view_keeps_its_kind_mark() {
 #[gpui::test]
 fn a_model_name_in_another_doc_view_keeps_its_kind_mark(cx: &mut TestAppContext) {
     let view = cx.new(|_| {
-        let theme = flea_gui::g2::pv2::font::Theme {
+        let theme = flea_gui::g2::doc_preview::font::Theme {
             foreground: "#c0caf5".into(),
             surface: "#1a1b26".into(),
             muted: flea_gui::palette::Theme::default().muted,
             size_ratio: 1.,
         };
-        let metrics = flea_gui::g2::pv2::font::Metrics {
+        let metrics = flea_gui::g2::doc_preview::font::Metrics {
             font: gpui::font("sans-serif"),
             caption: gpui::px(12.),
         };
-        flea_gui::g2::pv2::font::FontView::new(theme, metrics, ("font".into(), &[]))
+        flea_gui::g2::doc_preview::font::FontView::new(theme, metrics, ("font".into(), &[]))
     });
     let mut subject = file("model.stl", "image-x-generic");
     subject.body = Body::Doc(Doc {

@@ -1,10 +1,10 @@
 use crate::{
     g2::{
-        st1::Request,
-        st2::{
+        plugin_settings::{
             seam::{Effect, PluginsWire, Tokens},
             view::PluginsPane,
         },
+        settings_pages::Request,
     },
     state::Shell,
 };
@@ -93,7 +93,7 @@ impl Shell {
             if let (Some(panel), Some(plugin)) = (&self.settings.panel, &self.settings.plugins.pane)
             {
                 let panel = panel.read(cx);
-                let owns = showing && panel.panel.side == crate::g2::st1::Side::Pane;
+                let owns = showing && panel.panel.side == crate::g2::settings_pages::Side::Pane;
                 let parent = panel.focus.clone();
                 let focus = plugin.read(cx).focus_handle().clone();
                 if owns {

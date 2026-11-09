@@ -1,6 +1,6 @@
 use crate::backend::{Backend, Event};
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::wire::{self, Plugin, Reply, Source};
+use flea::ui_logic_plugin_settings::wire::{self, Plugin, Reply, Source};
 use gpui::{App, AppContext, Context, Entity, EventEmitter, Global, Subscription, Task};
 use std::collections::{HashMap, HashSet};
 

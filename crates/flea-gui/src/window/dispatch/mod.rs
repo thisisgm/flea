@@ -40,7 +40,7 @@ mod tags;
 mod window;
 
 use super::input::ActionEvent;
-use crate::{g2::mn1::join::Chosen, state::Shell};
+use crate::{g2::context_menus::join::Chosen, state::Shell};
 use gpui::{Context, Window};
 
 pub(crate) use fileops::Held as FileOps;

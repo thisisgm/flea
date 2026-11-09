@@ -171,7 +171,7 @@ fn pv2_fix1_sniff_never_waits_on_a_fifo(cx: &mut TestAppContext) {
     );
     assert_eq!(
         state(cx, view),
-        State::Failed(flea::ui_logic_pv2::office::Reason::TimedOut(60))
+        State::Failed(flea::ui_logic_doc_preview::office::Reason::TimedOut(60))
     );
 }
 
@@ -218,7 +218,7 @@ fn pv2_fix1_ready_subject_that_cannot_draw_says_why(cx: &mut TestAppContext) {
         failure, sentence,
         "a PDF that does not open says the plan's sentence"
     );
-    assert_eq!(diagnostic, flea::ui_logic_pv2::office::PDF_UNOPENED);
+    assert_eq!(diagnostic, flea::ui_logic_doc_preview::office::PDF_UNOPENED);
 
     open(cx, view, "/d/big.xlsx");
     reply(
@@ -254,7 +254,10 @@ fn pv2_fix1_ready_subject_that_cannot_draw_says_why(cx: &mut TestAppContext) {
         failure, sentence,
         "a refused sheet says the plan's sentence"
     );
-    assert_eq!(diagnostic, flea::ui_logic_pv2::office::SHEET_REFUSED);
+    assert_eq!(
+        diagnostic,
+        flea::ui_logic_doc_preview::office::SHEET_REFUSED
+    );
 }
 
 // The backend replaced the request with another client's: the view asks once more and stays converting.

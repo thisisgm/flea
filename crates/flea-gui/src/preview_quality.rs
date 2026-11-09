@@ -53,7 +53,7 @@ impl Asset for Loader {
         let renderer = cx.svg_renderer();
         let wake = request.wake.clone();
         // A request queued behind a decode of the same file keeps that decode for its own size.
-        let source = crate::g2::pv1::photo_source::hold(&request.path);
+        let source = crate::g2::quick_look_overlay::photo_source::hold(&request.path);
         let pool = PERMITS.with(Clone::clone);
         async move {
             let _source = source;
@@ -249,7 +249,7 @@ impl Drop for Refinement {
 }
 
 pub(crate) fn physical(width: f64, height: f64, scale: f64) -> (u32, u32) {
-    flea::ui_logic_pv1::pixels::decode_size(width, height, scale, 0., 0., true)
+    flea::ui_logic_preview_core::pixels::decode_size(width, height, scale, 0., 0., true)
 }
 
 /// Logical dimensions whose raster covers an integer number of device pixels.

@@ -69,7 +69,7 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
             assert!(!host.pane.busy(), "the chord runs on the answered listing");
             shell.key(&event("+", Some("+"), true), window, cx);
             assert_eq!(
-                flea::ui_logic_st1::pages::at(
+                flea::ui_logic_settings_pages::pages::at(
                     &shell.launch.settings.data,
                     &["display", "textSize", "mode"]
                 )
@@ -78,7 +78,7 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
             );
             shell.key(&event("_", None, true), window, cx);
             assert_eq!(
-                flea::ui_logic_st1::pages::at(
+                flea::ui_logic_settings_pages::pages::at(
                     &shell.launch.settings.data,
                     &["display", "textSize", "mode"]
                 )

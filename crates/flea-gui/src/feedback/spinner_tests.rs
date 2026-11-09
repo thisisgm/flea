@@ -365,7 +365,7 @@ fn ey354_spiral_crawl_matches_spinner_qml() {
     assert!(spiral_phase(2.6).abs() < 1e-3 || (spiral_phase(2.6) - 57.).abs() < 1e-3);
     for phase in [0., 20., 40., 56.] {
         let mut area = 0.;
-        crate::g2::fb1::brand::dashed(phase, 1., |[x0, y0, x1, y1], coverage| {
+        crate::g2::status_feedback::brand::dashed(phase, 1., |[x0, y0, x1, y1], coverage| {
             area += (x1 - x0) * (y1 - y0) * coverage;
         });
         // A 2 unit stroke 60 units long, plus square caps, give or take the corners it turns.

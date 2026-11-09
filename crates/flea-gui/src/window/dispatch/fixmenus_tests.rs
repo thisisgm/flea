@@ -6,7 +6,7 @@ use super::{
     test_shell::{land, open_root, sent},
 };
 use crate::{state::Shell, window::u07_tests::read};
-use flea::{protocol::RowFacts, ui_logic_pl4::rail::Kind};
+use flea::{protocol::RowFacts, ui_logic_rail_places::rail::Kind};
 use gpui::{px, Entity, TestAppContext, VisualTestContext};
 
 const FILE: u32 = 0o100644;
@@ -221,7 +221,7 @@ fn fixmenus_ey541_m_on_the_tabbed_rail_home_row_answers_or_opens_its_place_menu(
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let mut state = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut state,
                 &flea::jsondoc::parse(r#"{"menu":{"hidden":[]}}"#).unwrap(),
             );

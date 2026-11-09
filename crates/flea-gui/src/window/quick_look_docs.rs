@@ -4,11 +4,7 @@ use super::{
     wire::{Wire, COPY_SLOT, SLOT},
 };
 use crate::g2::{
-    pv1::{
-        doc::{Doc, Media, View},
-        look as card,
-    },
-    pv2::{
+    doc_preview::{
         self,
         code::{CodeView, Mark},
         csv::{CsvView, TableFace, TablePalette},
@@ -18,10 +14,14 @@ use crate::g2::{
         office::OfficeView,
         PdfView,
     },
-    pv3::{self, player::MediaPlayer, surface::Facts},
-    pv4::{seam::CacheReader, view::Model3dView},
+    media_preview::{self, player::MediaPlayer, surface::Facts},
+    model_preview::{seam::CacheReader, view::Model3dView},
+    quick_look_overlay::{
+        doc::{Doc, Media, View},
+        look as card,
+    },
 };
-use flea::{i18n::I18n, protocol::RowFacts, ui_logic_pv4::control::Surface};
+use flea::{i18n::I18n, protocol::RowFacts, ui_logic_model_preview::control::Surface};
 use gpui::{px, AppContext, Context, Window};
 use std::{rc::Rc, sync::Arc};
 
@@ -71,7 +71,7 @@ impl Look {
             source_line: Some(card::TEXT_LINE),
             column: false,
         };
-        let palette = pv2::markdown::Palette {
+        let palette = doc_preview::markdown::Palette {
             background: t.background,
             code: t.background,
             surface: t.surface,
@@ -104,12 +104,12 @@ impl Look {
         let t = &self.theme;
         let mut view = CodeView::new(
             SLOT,
-            pv2::code::Typeface {
+            doc_preview::code::Typeface {
                 font: self.face.font.clone(),
                 body: px(card::BODY),
                 caption: px(card::CAPTION),
             },
-            pv2::code::Palette {
+            doc_preview::code::Palette {
                 foreground: t.foreground,
                 muted: self.muted,
                 muted_frame: t.muted_frame,
@@ -119,7 +119,7 @@ impl Look {
                     [t.foreground, i[0], i[1], i[2], i[3], i[4], i[5]]
                 },
             },
-            pv2::code::Metrics {
+            doc_preview::code::Metrics {
                 // Both text columns start inside the one-pixel card frame.
                 inset: if numbered {
                     card::PAD + 1.
@@ -143,7 +143,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: px(card::CAPTION),
-                line: pv2::table_line_pitch(card::CAPTION),
+                line: doc_preview::table_line_pitch(card::CAPTION),
                 row_padding_x: card::PAD,
                 hairline: 1.,
             },
@@ -155,12 +155,12 @@ impl Look {
         )
     }
 
-    fn pdf(&self) -> (pv2::Palette, pv2::Metrics) {
+    fn pdf(&self) -> (doc_preview::Palette, doc_preview::Metrics) {
         (
-            pv2::Palette {
+            doc_preview::Palette {
                 background: self.theme.background,
             },
-            pv2::Metrics {
+            doc_preview::Metrics {
                 gap: card::GAP,
                 margin: 2. * card::PAD,
                 row_height: card::BAR,
@@ -175,7 +175,7 @@ pub(crate) struct Mounting<'a> {
     pub look: &'a Look,
     pub wire: &'a Wire,
     pub catalog: &'a Arc<I18n>,
-    pub backend: Option<Rc<dyn pv3::engine::Backend>>,
+    pub backend: Option<Rc<dyn media_preview::engine::Backend>>,
 }
 
 impl Mounting<'_> {
@@ -210,12 +210,12 @@ impl Mounting<'_> {
             Mount::Html => View::Html(cx.new(|cx| {
                 let (palette, _) = look.pdf();
                 let code = look.code(true);
-                let parts = pv2::html::SourceParts {
+                let parts = doc_preview::html::SourceParts {
                     typeface: code.typeface.clone(),
                     palette: code.palette,
                     metrics: code.metrics,
                 };
-                let metrics = pv2::html::Metrics {
+                let metrics = doc_preview::html::Metrics {
                     row_height: card::TEXT_LINE,
                     radius: 0.,
                     round_top: false,
@@ -225,7 +225,7 @@ impl Mounting<'_> {
                 view.set_hosts(
                     Some(Box::new(wire.clone())),
                     Some(Box::new(move || {
-                        Box::new(source.clone()) as Box<dyn pv2::code::CodeHost>
+                        Box::new(source.clone()) as Box<dyn doc_preview::code::CodeHost>
                     })),
                 );
                 view.set_catalog(catalog.clone(), cx);
@@ -260,13 +260,13 @@ impl Mounting<'_> {
                         f64::from(f32::from(look.face.base)) / f64::from(fonts.base)
                     });
                 let ground = card::Look::of_text(&window.text_style(), look.theme).surface;
-                let theme = pv2::font::Theme {
+                let theme = doc_preview::font::Theme {
                     foreground: hex(look.theme.foreground),
                     surface: hex(ground),
                     muted: look.muted,
                     size_ratio,
                 };
-                let metrics = pv2::font::Metrics {
+                let metrics = doc_preview::font::Metrics {
                     font: look.face.font.clone(),
                     caption: px(card::CAPTION),
                 };
@@ -293,14 +293,14 @@ impl Mounting<'_> {
             })),
             Mount::Video | Mount::Audio => {
                 let backend = self.backend.clone().or_else(|| {
-                    pv3::sandbox::Sandbox::current()
+                    media_preview::sandbox::Sandbox::current()
                         .ok()
-                        .map(|b| Rc::new(b) as Rc<dyn pv3::engine::Backend>)
+                        .map(|b| Rc::new(b) as Rc<dyn media_preview::engine::Backend>)
                 })?;
                 let video = kind == Mount::Video;
                 let scale = window.scale_factor();
                 let viewport = window.viewport_size();
-                let subject = pv3::player::Subject {
+                let subject = media_preview::player::Subject {
                     path: path.into(),
                     video,
                     box_w: (f32::from(viewport.width) * scale).ceil().max(1.) as u32,

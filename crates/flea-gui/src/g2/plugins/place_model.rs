@@ -1,5 +1,5 @@
 //! Validated plugin-relative listings projected into Flea's normal viewport protocol.
-use flea::{jsondoc::Json, protocol::RowFacts, ui_logic_mn1::build};
+use flea::{jsondoc::Json, protocol::RowFacts, ui_logic_context_menus::build};
 use std::collections::{HashMap, HashSet};
 
 pub(super) fn text<'a>(doc: &'a Json, key: &str) -> &'a str {
@@ -75,7 +75,7 @@ impl Model {
             let mtime = match entry.get("mtime") {
                 None => 0,
                 Some(Json::Num(n)) => n.parse::<i64>().map_err(|_| "invalid plugin entry mtime")?,
-                Some(Json::Str(s)) => flea::ui_logic_pl4::recent::stamp_seconds(s)
+                Some(Json::Str(s)) => flea::ui_logic_rail_places::recent::stamp_seconds(s)
                     .ok_or("invalid plugin entry mtime")?,
                 _ => return Err("invalid plugin entry mtime".into()),
             };

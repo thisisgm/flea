@@ -2,7 +2,7 @@
 use super::Drawn;
 use flea::{
     protocol::RowFacts,
-    ui_logic_pl4::tags::{swatches_that_fit, SWATCH_GAP, SWATCH_SIZE},
+    ui_logic_rail_places::tags::{swatches_that_fit, SWATCH_GAP, SWATCH_SIZE},
 };
 use gpui::{point, px, App, Pixels, Point, Window};
 

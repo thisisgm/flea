@@ -160,7 +160,7 @@ impl Shell {
                     &notice,
                     false,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 )
             });

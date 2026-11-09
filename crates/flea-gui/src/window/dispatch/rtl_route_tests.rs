@@ -1,6 +1,6 @@
 use super::arabic;
 use crate::{
-    g2::{op2, op3},
+    g2::{archive_flash, open_with_properties},
     window::dispatch::rename_tests::ready_root,
 };
 use gpui::{KeyDownEvent, Keystroke, Modifiers, TestAppContext};
@@ -44,7 +44,7 @@ fn i50_rtl_the_production_archive_handler_walks_formats_in_reading_order(cx: &mu
     let (shell, cx, _lines) = ready_root(cx, "default");
     arabic(&shell, cx);
     shell.update(cx, |shell, _| {
-        let (mut card, _) = op2::compress::Compress::open(
+        let (mut card, _) = archive_flash::compress::Compress::open(
             vec!["/files/notes.txt".into()],
             "/files",
             "files",
@@ -52,7 +52,7 @@ fn i50_rtl_the_production_archive_handler_walks_formats_in_reading_order(cx: &mu
             &["zip", "7z"],
         );
         card.pick_format(0);
-        card.focus(op2::compress::Stop::Format);
+        card.focus(archive_flash::compress::Stop::Format);
         shell.operations.archive.compress = Some(card);
     });
     for (physical, expected) in [("left", 1), ("right", 0)] {
@@ -67,7 +67,7 @@ fn i50_rtl_the_production_archive_handler_walks_formats_in_reading_order(cx: &mu
                     .unwrap()
                     .card(&shell.locale.catalog);
                 let selected = card.body.iter().find_map(|block| match block {
-                    op2::cards::Block::Chips(chips) => {
+                    archive_flash::cards::Block::Chips(chips) => {
                         assert!(chips.options.len() >= 2);
                         Some(chips.current)
                     }
@@ -81,7 +81,7 @@ fn i50_rtl_the_production_archive_handler_walks_formats_in_reading_order(cx: &mu
 
 #[gpui::test]
 fn i50_rtl_the_production_run_card_handler_walks_three_buttons(cx: &mut TestAppContext) {
-    use flea::ui_logic_op3::runfile::Button;
+    use flea::ui_logic_open_with_properties::runfile::Button;
     let (shell, cx, _lines) = ready_root(cx, "default");
     arabic(&shell, cx);
     shell.update(cx, |shell, cx| {
@@ -107,12 +107,12 @@ fn i50_rtl_the_production_run_card_handler_walks_three_buttons(cx: &mut TestAppC
 #[gpui::test]
 fn i50_rtl_the_production_permissions_handler_walks_its_real_grid(cx: &mut TestAppContext) {
     use flea::jsondoc::parse;
-    use op3::permissions::{host::View, Permissions, Stop};
-    let catalog = std::sync::Arc::new(op3::tests::english());
+    use open_with_properties::permissions::{host::View, Permissions, Stop};
+    let catalog = std::sync::Arc::new(open_with_properties::tests::english());
     let (mut model, asks) =
         Permissions::open(7, vec!["/files/a".into(), "/files/b".into()], "items");
     for ask in asks {
-        let op3::Effect::Send(ask) = ask else {
+        let open_with_properties::Effect::Send(ask) = ask else {
             panic!("inspect request")
         };
         let ask = parse(&ask).unwrap();
@@ -140,7 +140,7 @@ fn i50_rtl_the_production_permissions_handler_walks_its_real_grid(cx: &mut TestA
 
 #[gpui::test]
 fn i50_rtl_the_production_rail_adapter_enters_and_leaves_the_eject_mark(cx: &mut TestAppContext) {
-    use flea::ui_logic_pl4::{
+    use flea::ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
     };

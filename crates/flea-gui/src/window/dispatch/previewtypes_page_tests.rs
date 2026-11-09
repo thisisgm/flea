@@ -2,11 +2,11 @@
 use super::previewtypes_kinds_tests::Root;
 use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
 use crate::{
-    g2::pv2::{code::CodeView, html::HtmlView, markdown::MarkdownView},
+    g2::doc_preview::{code::CodeView, html::HtmlView, markdown::MarkdownView},
     state::Shell,
     window::selection_preview::{docs::Doc, Mounted},
 };
-use flea::ui_logic_pv2::html::View;
+use flea::ui_logic_doc_preview::html::View;
 use gpui::{
     point, px, size, Entity, ScrollDelta, ScrollWheelEvent, TestAppContext, VisualTestContext,
 };
@@ -93,7 +93,7 @@ fn page_code_after_wheel(cx: &mut TestAppContext, wrap: bool) {
         })
     };
     // One screen less a line: 505 px of 20 px rows pages by 24 rows, so the last line stays on top as context.
-    let step = flea::ui_logic_pv2::code_view::page_step(505., 20.);
+    let step = flea::ui_logic_doc_preview::code_view::page_step(505., 20.);
     assert_eq!(step, 480.);
     for (before, key, after) in [
         (19., "shift-f->F", step),
@@ -310,7 +310,7 @@ fn f_and_b_page_html_source_by_its_viewport_height(cx: &mut TestAppContext) {
     let (paged, _, _, offset) = moved(cx);
     assert_eq!(
         paged,
-        flea::ui_logic_pv2::code_view::page_step(height, row),
+        flea::ui_logic_doc_preview::code_view::page_step(height, row),
         "F pages Source by whole lines, so the first line draws whole"
     );
     assert_eq!(

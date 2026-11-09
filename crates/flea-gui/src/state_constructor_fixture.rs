@@ -3,7 +3,7 @@ use super::*;
 
 pub(crate) struct Services {
     pub backend: fn(&crate::navigation::Listing, &mut Context<Shell>) -> std::io::Result<Backend>,
-    pub monitor: Option<fn() -> crate::g2::pl3::monitor::Started>,
+    pub monitor: Option<fn() -> crate::g2::trash_browser::monitor::Started>,
 }
 impl gpui::Global for Services {}
 
@@ -22,7 +22,7 @@ pub(super) fn start_backend(
 }
 
 pub(super) fn configure_monitor(
-    pane: &gpui::Entity<crate::g2::pl3::pane::TrashPane>,
+    pane: &gpui::Entity<crate::g2::trash_browser::pane::TrashPane>,
     cx: &mut Context<Shell>,
 ) {
     if let Some(start) = cx.try_global::<Services>().map(|services| services.monitor) {

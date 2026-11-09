@@ -1,6 +1,6 @@
 use super::{protocol, session::Config};
 use crate::jsondoc::Json;
-use crate::ui_logic_st2::wire::compact;
+use crate::ui_logic_plugin_settings::wire::compact;
 use std::io::{Read, Write};
 use std::os::fd::{AsRawFd, RawFd};
 use std::os::unix::process::CommandExt;

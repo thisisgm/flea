@@ -4,7 +4,7 @@ use super::{
     wire::Wire,
     *,
 };
-use crate::g2::pv2::code::CodeView;
+use crate::g2::doc_preview::code::CodeView;
 use gpui::AppContext;
 use std::io::Read as _;
 
@@ -89,7 +89,7 @@ pub(super) fn read_document(
                 cx.spawn(async move |this, cx| {
                     let result = read.await;
                     let _ = this.update(cx, |view, cx| {
-                        use flea::ui_logic_pv2::csv_feed::Answer;
+                        use flea::ui_logic_doc_preview::csv_feed::Answer;
                         match result {
                             Read::Text(text) => view.set_text(&path, &text, cx),
                             Read::Large => view.feed.answer = Answer::Large,

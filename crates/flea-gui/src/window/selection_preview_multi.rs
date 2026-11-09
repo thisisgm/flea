@@ -1,7 +1,7 @@
 //! Multi-selection facts and the three kind marks drawn by the preview column.
 use super::{fact_row, Subject};
-use crate::g2::pv1::glyph::Glyph;
-use flea::ui_logic_pv1::facts;
+use crate::g2::quick_look_overlay::glyph::Glyph;
+use flea::ui_logic_preview_core::facts;
 use gpui::{canvas, div, point, prelude::*, px, size, Bounds, Hsla, IntoElement};
 
 pub(crate) fn rows(subject: &Subject) -> Vec<Option<facts::Row>> {

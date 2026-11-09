@@ -1,5 +1,5 @@
 //! A created neighbour item may take focus only while its request's pane state remains current.
-use crate::{g2::mn1::join::identity, state::Shell, window::navigate::Step};
+use crate::{g2::context_menus::join::identity, state::Shell, window::navigate::Step};
 use gpui::{Context, Window};
 use std::collections::VecDeque;
 

@@ -1,6 +1,6 @@
 //! The production pane owns Filter040: its query line, the backend's `filtered` answer, the strip slot and the rows List and Grid draw.
 use crate::{
-    g2::sr2::{
+    g2::listing_filter::{
         filter::{Asked, Drawn, Filter, LineKey, PaneSeam},
         keys::{self, Classified},
         present,
@@ -235,7 +235,7 @@ impl Shell {
         }
         if let Some(generation) = entry.session() {
             if host.filter.input_generation != Some(generation) {
-                let input = crate::g2::sr2::input::FilterInput::new(
+                let input = crate::g2::listing_filter::input::FilterInput::new(
                     cx.weak_entity(),
                     side,
                     generation,

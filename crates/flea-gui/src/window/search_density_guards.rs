@@ -25,7 +25,7 @@ pub(super) fn start_search(cx: &mut TestAppContext, handle: Handle, side: usize,
         assert!(!host.search.owner.active());
         assert_eq!(
             host.search.owner.session.mode,
-            flea::ui_logic_sr1::Mode::Off
+            flea::ui_logic_file_search::Mode::Off
         );
         assert!(shell.search_action("search", window, cx));
         let host = shell.panes[side].as_ref().unwrap();
@@ -36,7 +36,7 @@ pub(super) fn start_search(cx: &mut TestAppContext, handle: Handle, side: usize,
         assert!(host.search.owner.typing());
         assert_eq!(
             host.search.owner.session.mode,
-            flea::ui_logic_sr1::Mode::Typing
+            flea::ui_logic_file_search::Mode::Typing
         );
         assert_eq!(host.search.owner.session.scope, Scope::Home);
         assert!(host.search.owner.session.query.is_empty());
@@ -80,7 +80,7 @@ pub(super) fn type_query(
         let host = shell.panes[side].as_ref().unwrap();
         let session = &host.search.owner.session;
         assert!(host.search.owner.active());
-        assert_eq!(session.mode, flea::ui_logic_sr1::Mode::Typing);
+        assert_eq!(session.mode, flea::ui_logic_file_search::Mode::Typing);
         assert_eq!(session.scope, scope);
         assert_eq!(
             session.query, "x",
@@ -100,7 +100,7 @@ pub(super) fn query_identity(
     cx: &mut TestAppContext,
     handle: Handle,
     side: usize,
-) -> (u64, flea::ui_logic_sr1::Mode, Scope) {
+) -> (u64, flea::ui_logic_file_search::Mode, Scope) {
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[side].as_ref().unwrap();
         assert!(host.search.owner.active());

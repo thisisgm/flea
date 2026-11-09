@@ -1,6 +1,6 @@
 //! The CLI request through the production constructor, card, input and mount handoff.
 use super::*;
-use crate::g2::pl1::process::{Event, Handle, Job, Outcome, Runner};
+use crate::g2::device_rail::process::{Event, Handle, Job, Outcome, Runner};
 use crate::window::startup::{Arguments, Launch, Settings};
 use gpui::{TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
@@ -52,7 +52,7 @@ fn open<'a>(
             },
             monitor: Some(|| Err(std::io::Error::other("no external monitor in this fixture"))),
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner: devices.clone(),
             hostname: "fixture".into(),
         });

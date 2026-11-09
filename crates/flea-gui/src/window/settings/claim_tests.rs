@@ -1,5 +1,5 @@
 use super::*;
-use crate::g2::st1::claim::DESKTOP;
+use crate::g2::settings_pages::claim::DESKTOP;
 use std::{
     fs,
     os::unix::fs::PermissionsExt,

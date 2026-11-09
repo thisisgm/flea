@@ -26,7 +26,7 @@ mod wire;
 
 use crate::pane::Kind;
 use flea::i18n::I18n;
-use flea::ui_logic_pl2::networkaddress;
+use flea::ui_logic_network_shares::networkaddress;
 pub use wire::{answer, is_jump_line, jump_line, peek_line, Answer, Jumped, Peeked};
 
 // The one place a path is made canonical: "." and ".." resolve here, so the bar draws the path the backend lists.

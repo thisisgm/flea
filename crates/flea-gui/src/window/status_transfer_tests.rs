@@ -151,7 +151,7 @@ fn ey477_held_completion_keeps_cancel_and_undo_tracks_the_journal(cx: &mut TestA
         .unwrap()
         .contains("z undoes"));
     cx.executor().advance_clock(Duration::from_millis(
-        flea::ui_logic_fb1::messages::MESSAGE_MS + crate::pane::swap::HOLD_MS,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS + crate::pane::swap::HOLD_MS,
     ));
     cx.run_until_parked();
     draw(cx, handle);
@@ -168,7 +168,7 @@ fn ey477_held_completion_keeps_cancel_and_undo_tracks_the_journal(cx: &mut TestA
                         "Copied 3 items",
                         false,
                         "",
-                        flea::ui_logic_fb1::status::Hint::Paste,
+                        flea::ui_logic_status_feedback::status::Hint::Paste,
                         now,
                     )
                 });
@@ -189,7 +189,7 @@ fn ey477_held_completion_keeps_cancel_and_undo_tracks_the_journal(cx: &mut TestA
                         "Previous transfer failed",
                         true,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     );
                 });

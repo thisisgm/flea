@@ -1,5 +1,5 @@
-use flea::ui_logic_pv3::frame::{Command, Event};
-use flea_gui::g2::pv3::{
+use flea::ui_logic_media_preview::frame::{Command, Event};
+use flea_gui::g2::media_preview::{
     engine::{Backend, Incoming, Request},
     sandbox::Sandbox,
 };

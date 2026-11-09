@@ -1,6 +1,6 @@
 //! The joined menu consumes actual painted view geometry and the complete backend wire.
 use super::*;
-use crate::g2::mn1::join::ProducerReply;
+use crate::g2::context_menus::join::ProducerReply;
 use gpui::{point, px, Modifiers, MouseButton, VisualTestContext};
 use std::{cell::RefCell, rc::Rc};
 #[path = "gcomp_menu_u13_fixture.rs"]

@@ -2,10 +2,10 @@
 use super::previewtypes_kinds_tests::Root;
 use super::previewtypes_tests::{file, local, meta, open, thumbed};
 use crate::{
-    g2::pv3::engine::{self, FeedSender, Playback, Request},
+    g2::media_preview::engine::{self, FeedSender, Playback, Request},
     window::u07_tests::read,
 };
-use flea::ui_logic_pv3::frame::{Command, Event};
+use flea::ui_logic_media_preview::frame::{Command, Event};
 use gpui::{TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 

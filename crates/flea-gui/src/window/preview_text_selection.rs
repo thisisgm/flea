@@ -1,5 +1,5 @@
 //! Preview Copy and Escape keep the listing's focus; without a range every key keeps its table's meaning.
-use crate::{g2::pv2::selection, state::Shell};
+use crate::{g2::doc_preview::selection, state::Shell};
 use flea::keys::Context as Keys;
 use gpui::{Context, KeyDownEvent, MouseButton, MouseDownEvent, Window};
 

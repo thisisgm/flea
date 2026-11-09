@@ -1,5 +1,5 @@
 use super::*;
-use flea::ui_logic_st1::{
+use flea::ui_logic_settings_pages::{
     about,
     rows::{Kind, Row},
     update, Text,

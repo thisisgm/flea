@@ -1,6 +1,6 @@
 //! The Combine card borrows the captured selection's held pictures, including late viewport answers.
 use crate::{
-    g2::op4::{model::Card, seam::Thumbnail},
+    g2::print_convert::{model::Card, seam::Thumbnail},
     state::Shell,
 };
 use gpui::Context;

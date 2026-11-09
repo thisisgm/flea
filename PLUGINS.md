@@ -880,9 +880,9 @@ manifest, shelf aside, matches its example under `examples/plugins`, runs each e
 executable and the protocol checks, and adds, enables and runs each example through Flea's plugin runtime. `plugins_keys_doc` checks the
 `keys.toml` example.
 
-Relevant implementation: `src/ui_logic_st2/{manifest,contributions,schema,pages,wire,store}.rs`,
+Relevant implementation: `src/ui_logic_plugin_settings/{manifest,contributions,schema,pages,wire,store}.rs`,
 `src/plugin_runtime/`, `src/backend/{plugins,pluginfs,pluginadd,pluginops,plugingit,pluginruntime,pluginpreview}.rs`,
-`src/plugincli.rs`, `crates/flea-gui/src/g2/plugins/` and `crates/flea-gui/src/g2/st2/`.
+`src/plugincli.rs`, `crates/flea-gui/src/g2/plugins/` and `crates/flea-gui/src/g2/plugin_settings/`.
 
 ## 9. Checklist for coding agents
 

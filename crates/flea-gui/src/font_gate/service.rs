@@ -69,7 +69,7 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
             None,
             |search, host| {
                 for ch in "Late probe search".chars() {
-                    search.key(crate::g2::sr1::StripKey::Text(ch.to_string()), host);
+                    search.key(crate::g2::file_search::StripKey::Text(ch.to_string()), host);
                 }
             },
             window,

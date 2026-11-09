@@ -12,8 +12,8 @@ impl PaneHost {
         let list = self.list.borrow();
         if list.view.contents {
             (
-                crate::g2::sr1::contents::BLOCK_H,
-                crate::g2::sr1::contents::ROW_H,
+                crate::g2::file_search::contents::BLOCK_H,
+                crate::g2::file_search::contents::ROW_H,
             )
         } else {
             (list.columns_row(), list.columns_row())

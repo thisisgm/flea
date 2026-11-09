@@ -1,7 +1,7 @@
 //! Review round 2 probes for g2-sd2, kept as tests: the FIX1 delta against the int4 producer's real line order at af7111f09.
 use flea::i18n::{I18n, Paths};
-use flea_gui::g2::sd2::seams::Wire;
-use flea_gui::g2::sd2::RcloneSend;
+use flea_gui::g2::rclone_send::seams::Wire;
+use flea_gui::g2::rclone_send::RcloneSend;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::process::Command;

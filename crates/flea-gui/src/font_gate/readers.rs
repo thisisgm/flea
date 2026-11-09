@@ -1,21 +1,21 @@
 use super::*;
-use crate::g2::pv1::{doc::View as Reader, Body};
-use crate::g2::pv3::engine::{Backend, Feed, FeedSender, Playback, Request};
+use crate::g2::media_preview::engine::{Backend, Feed, FeedSender, Playback, Request};
+use crate::g2::quick_look_overlay::{doc::View as Reader, Body};
 
 struct Decoder;
 struct Playing {
     _feed: FeedSender,
 }
 impl Playback for Playing {
-    fn send(&mut self, _: flea::ui_logic_pv3::frame::Command) {}
+    fn send(&mut self, _: flea::ui_logic_media_preview::frame::Command) {}
     fn pids(&self) -> Vec<u32> {
         Vec::new()
     }
 }
 impl Backend for Decoder {
     fn start(&self, request: &Request) -> Result<(Box<dyn Playback>, Feed), String> {
-        let (sender, feed) = crate::g2::pv3::engine::feed();
-        sender.event(flea::ui_logic_pv3::frame::Event::Loaded {
+        let (sender, feed) = crate::g2::media_preview::engine::feed();
+        sender.event(flea::ui_logic_media_preview::frame::Event::Loaded {
             video: !request.audio,
             duration_ms: 20_000,
         });
@@ -111,7 +111,7 @@ pub(super) fn check() -> Vec<String> {
                                 encoder.write_header().unwrap().write_image_data(&[0; 256]).unwrap();
                             }
                             root.write(&path, bytes);
-                            font.answered(flea::ui_logic_pv2::font::Reply {
+                            font.answered(flea::ui_logic_doc_preview::font::Reply {
                                 id: font.page.pending, family: "Font Gate Specimen".into(), style: "Regular".into(), glyphs: 42,
                                 files: vec![path.to_string_lossy().into_owned(); 3], ..Default::default()
                             }, cx);
@@ -120,7 +120,7 @@ pub(super) fn check() -> Vec<String> {
                             let path = archive.path.clone();
                             assert!(archive.answered(
                                 &path,
-                                flea::ui_logic_pv2::archive::Meta {
+                                flea::ui_logic_doc_preview::archive::Meta {
                                     entries: 2,
                                     unpacked: 64,
                                     failed: false,

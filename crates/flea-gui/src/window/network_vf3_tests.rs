@@ -38,7 +38,7 @@ fn vf3_typed_host_service_paints_browser_and_activates_the_picked_share(cx: &mut
     // A pane state surface is withheld while the browser covers its pane, as v0.3.12 hides it.
     shell.update(cx, |shell, cx| {
         shell.slots.states[0] = Some(
-            cx.new(|_| crate::g2::fb1::state::StateMessage::new())
+            cx.new(|_| crate::g2::status_feedback::state::StateMessage::new())
                 .into(),
         );
         assert!(shell.pane_state_view(0, cx).is_some());

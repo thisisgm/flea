@@ -5,7 +5,7 @@ use crate::{
     pane::swap::Options,
     state::Shell,
 };
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     recent::{self, Visit},
     recentmode::RecentMode,
 };
@@ -105,10 +105,9 @@ impl Shell {
         key: &str,
         cx: &mut Context<Self>,
     ) -> bool {
-        if !self.panes[side]
-            .as_ref()
-            .is_some_and(|host| host.recent.on || flea::ui_logic_pk1::is_recent(host.pane.place()))
-        {
+        if !self.panes[side].as_ref().is_some_and(|host| {
+            host.recent.on || flea::ui_logic_picker_portal::is_recent(host.pane.place())
+        }) {
             return false;
         }
         let text = self.locale.catalog.tr(key);

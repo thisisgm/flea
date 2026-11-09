@@ -2,7 +2,7 @@
 use super::menudeliver_tests::{open, select, wire, REG};
 use super::menus_tests::{choose, deliver, home, reply, settle, validated};
 use super::test_shell::land;
-use crate::{g2::op3::keys::Key, window::u07_tests::read};
+use crate::{g2::open_with_properties::keys::Key, window::u07_tests::read};
 use flea::jsondoc::{self, Json};
 
 fn app(id: &str, label: &str, default: bool) -> String {
@@ -63,7 +63,10 @@ fn the_tail_row_opens_the_card_and_its_state_reports_the_boards_painted_layout(
     validated(
         &shell,
         cx,
-        &format!("openWith:{}", flea::ui_logic_mn1::rows::OPEN_WITH_OTHER),
+        &format!(
+            "openWith:{}",
+            flea::ui_logic_context_menus::rows::OPEN_WITH_OTHER
+        ),
         &["/files/notes.txt"],
     );
     let card = shell.read_with(cx, |shell, _| shell.open_with.as_ref().map(|open| open.id));

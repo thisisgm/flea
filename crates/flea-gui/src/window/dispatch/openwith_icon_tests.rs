@@ -2,8 +2,8 @@
 use super::menudeliver_tests::{open, select, wire, REG};
 use super::menus_tests::{choose, deliver, home, reply, settle};
 use super::test_shell::land;
-use crate::{g2::mn1::app_icons, state::Shell};
-use flea::ui_logic_mn1::fit;
+use crate::{g2::context_menus::app_icons, state::Shell};
+use flea::ui_logic_context_menus::fit;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::collections::BTreeSet;
 
@@ -85,7 +85,7 @@ fn the_flyout_holds_each_applications_own_icon_at_the_mark_size(cx: &mut TestApp
         (
             app_icons::held(ICON, window, cx),
             app_icons::held(UNPLACED, window, cx),
-            (flea::ui_logic_mn1::fit::SLOT * window.scale_factor()).round() as i32,
+            (flea::ui_logic_context_menus::fit::SLOT * window.scale_factor()).round() as i32,
         )
     });
     let own = own.expect("the application's own icon is rasterized for its row");

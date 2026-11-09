@@ -1,12 +1,14 @@
 //! One retained selection preview per pane; completed frames survive replacement work.
 use crate::{
     columns::preview_host::{PreviewProducer, ThirdSwap},
-    g2::{pv2::PdfView, pv3::player::MediaPlayer, pv4::view::Model3dView},
+    g2::{
+        doc_preview::PdfView, media_preview::player::MediaPlayer, model_preview::view::Model3dView,
+    },
 };
 use flea::{
     jsondoc::Json,
     protocol::RowFacts,
-    ui_logic_pv1::{facts, kinds, kinds::State, meta::Meta},
+    ui_logic_preview_core::{facts, kinds, kinds::State, meta::Meta},
 };
 use gpui::{Context, Entity, RenderImage, Subscription, Task};
 use std::{
@@ -153,7 +155,7 @@ impl Kind {
         ) {
             return Self::Model;
         }
-        if flea::ui_logic_pv2::office::Group::of(&name).is_some() {
+        if flea::ui_logic_doc_preview::office::Group::of(&name).is_some() {
             return Self::Office;
         }
         match state {
@@ -272,7 +274,9 @@ impl Frame {
             && self.facts.as_ref().is_some_and(|meta| {
                 // Every frame decodes whole up front, so the moving layer keeps to the raster budget.
                 let pixels = u64::from(meta.w) * u64::from(meta.h) * u64::from(meta.frames);
-                meta.frames > 1 && pixels > 0 && pixels <= crate::g2::pv2::poppler::MAX_PIXELS
+                meta.frames > 1
+                    && pixels > 0
+                    && pixels <= crate::g2::doc_preview::poppler::MAX_PIXELS
             })
             && self.image.is_some()
     }
@@ -379,8 +383,8 @@ pub struct SelectionPreview {
     pub(crate) corner: f32,
     pub(crate) full_facts: bool,
     pub(crate) automatic: bool,
-    pub(crate) media_backend: Option<Rc<dyn crate::g2::pv3::engine::Backend>>,
-    pub(crate) caches: crate::g2::pv3::surface::Caches,
+    pub(crate) media_backend: Option<Rc<dyn crate::g2::media_preview::engine::Backend>>,
+    pub(crate) caches: crate::g2::media_preview::surface::Caches,
     pub(crate) loading_mark: Rc<crate::feedback::spinner::Crawl>,
     pub(crate) epoch: Instant,
     pub(crate) timer: Option<(u64, Task<()>)>,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{backend::Backend, g2::pl2::dialog, state::tests::shell_with};
+use crate::{backend::Backend, g2::network_shares::dialog, state::tests::shell_with};
 use gpui::TestAppContext;
 
 #[gpui::test]
@@ -8,7 +8,7 @@ fn uish_misc_favourite_committed_response_never_replays_the_write(cx: &mut TestA
     use std::time::{Duration, Instant};
     let document = r#"{"places":{"favourites":[{"label":"Personal","path":"smb://host/share/"}]}}"#;
     for response in ["not-json", "{}", "[]", r#"{"places":{"favourites":17}}"#] {
-        let root = crate::g2::pl1::bfx_net_tests::Root::new();
+        let root = crate::g2::device_rail::bfx_net_tests::Root::new();
         let program = root.script(
             "writer",
             &format!("#!/bin/sh\nwriter_root=$(dirname \"$0\")\nprintf 'committed\\n' >> \"$writer_root/commits\"\nprintf '%s\\n' '{document}' > \"$writer_root/ui.json\"\nprintf '%s\\n' '{response}'\n"),
@@ -104,7 +104,7 @@ fn uish_misc_favourite_committed_response_never_replays_the_write(cx: &mut TestA
 fn uish_misc_native8_network_save_keeps_the_real_writer_refusal(cx: &mut TestAppContext) {
     use super::super::store::{Update, Worker};
     use std::time::{Duration, Instant};
-    let root = crate::g2::pl1::bfx_net_tests::Root::new();
+    let root = crate::g2::device_rail::bfx_net_tests::Root::new();
     let program = root.script(
         "writer",
         "#!/bin/sh\nprintf '%s\\n' 'flea: fixture/ui.json could not be read, so no settings were written' 'second diagnostic' >&2\nexit 2\n",
@@ -175,7 +175,7 @@ fn uish_misc_native8_network_save_keeps_the_real_writer_refusal(cx: &mut TestApp
 fn uish_misc_settings_writer_reports_each_queued_revision_in_order() {
     use super::super::store::{Update, Worker};
     use std::time::{Duration, Instant};
-    let root = crate::g2::pl1::bfx_net_tests::Root::new();
+    let root = crate::g2::device_rail::bfx_net_tests::Root::new();
     let program = root.script(
         "writer",
         "#!/bin/sh\nprintf '%s\\n' '{\"places\":{\"favourites\":[]}}'\n",

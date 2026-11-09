@@ -131,7 +131,7 @@ fn u05_backend_failure_stays_in_footer_after_notice_deadline(cx: &mut TestAppCon
         frame(cx, window);
     }
     assert_eq!(read(cx, window, "statusError"), Reply::value("true"));
-    let error = crate::g2::st1::Ink::inherited(
+    let error = crate::g2::settings_pages::Ink::inherited(
         &gpui::TextStyle::default(),
         crate::palette::Theme::default(),
     )
@@ -163,7 +163,7 @@ fn u05_backend_failure_stays_in_footer_after_notice_deadline(cx: &mut TestAppCon
 
 #[gpui::test]
 fn u05_notices_wait_behind_errors_and_escape_acknowledges_one_at_a_time(cx: &mut TestAppContext) {
-    use flea::ui_logic_fb1::status::Hint;
+    use flea::ui_logic_status_feedback::status::Hint;
     let handle = open(cx);
     frame(cx, handle);
     handle

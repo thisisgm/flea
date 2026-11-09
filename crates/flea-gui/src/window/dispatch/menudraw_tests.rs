@@ -3,10 +3,10 @@ use super::{
     menus_tests::{right_click, settle},
     test_shell::{land, open_root_with, row},
 };
-use crate::{g2::mn1::element::PAINTED, state::Shell, window::u07_tests::read};
+use crate::{g2::context_menus::element::PAINTED, state::Shell, window::u07_tests::read};
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_pl4::{
+    ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
     },

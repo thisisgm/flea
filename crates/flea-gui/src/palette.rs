@@ -124,9 +124,9 @@ mod defaults;
 
 /// The requested output-image background, independent of the window theme.
 pub(crate) fn output_background(
-    background: flea::ui_logic_op4::composition::Background,
+    background: flea::ui_logic_print_convert::composition::Background,
 ) -> Option<Hsla> {
-    use flea::ui_logic_op4::composition::Background;
+    use flea::ui_logic_print_convert::composition::Background;
     match background {
         Background::Transparent => None,
         Background::White => Some(Hsla::white()),
@@ -170,7 +170,7 @@ impl Theme {
             .rfind(|(key, _)| *key == "red" || *key == "color1")
             .map_or(0xa55555, |(_, value)| *value);
         // ui/Theme.qml:342 lifts the accent to 3:1 on that surface for every theme, an empty file included.
-        let raised = flea::ui_logic_pl4::tagtheme::ensure_ratio(
+        let raised = flea::ui_logic_rail_places::tagtheme::ensure_ratio(
             &format!("#{accent:06x}"),
             &format!("#{surface:06x}"),
             3.,
@@ -185,7 +185,7 @@ impl Theme {
             .iter()
             .map(|(name, value)| (*name, hex(*value)))
             .collect();
-        let lifted = flea::ui_logic_pv2::code::inks(
+        let lifted = flea::ui_logic_doc_preview::code::inks(
             |key| {
                 named
                     .iter()
@@ -210,10 +210,10 @@ impl Theme {
             (metadata.g * 255.).round() as u8,
             (metadata.b * 255.).round() as u8
         );
-        let gutter = ink(&flea::ui_logic_pv2::code::gutter_ink(
+        let gutter = ink(&flea::ui_logic_doc_preview::code::gutter_ink(
             &muted, &ground, &plane,
         ));
-        let tags = flea::ui_logic_pl4::tagtheme::tag_theme(
+        let tags = flea::ui_logic_rail_places::tagtheme::tag_theme(
             |key| {
                 named
                     .iter()
@@ -303,10 +303,11 @@ mod tests {
                 .1;
             assert_eq!(crate::ipc::rows::colour(theme.accent), raw);
             let rgb = |color| {
-                flea::ui_logic_pl4::tagtheme::parse(&crate::ipc::rows::colour(color)).unwrap()
+                flea::ui_logic_rail_places::tagtheme::parse(&crate::ipc::rows::colour(color))
+                    .unwrap()
             };
             assert!(
-                flea::ui_logic_pl4::tagtheme::ratio_of(
+                flea::ui_logic_rail_places::tagtheme::ratio_of(
                     rgb(theme.accent_frame),
                     rgb(theme.background)
                 ) >= 3.

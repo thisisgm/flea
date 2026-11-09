@@ -28,9 +28,9 @@ pub(crate) struct Warm {
     prepare_timer: Option<Task<()>>,
     prepared_watch: Option<Subscription>,
     storage: Option<(String, String)>,
-    pub(crate) prepared: Option<crate::g2::pv1::doc::Doc>,
+    pub(crate) prepared: Option<crate::g2::quick_look_overlay::doc::Doc>,
     /// The Markdown view the open card shows, taken back on close in place of a second read.
-    lent: Option<(crate::g2::pv1::doc::Doc, Key)>,
+    lent: Option<(crate::g2::quick_look_overlay::doc::Doc, Key)>,
 }
 
 impl Warm {

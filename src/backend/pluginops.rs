@@ -2,8 +2,8 @@
 use super::pluginfs;
 use super::plugins::{check_start, find, read_manifest, record_start, write, Env};
 use flea::jsondoc::Json;
-use flea::ui_logic_st2::manifest::{self, Invalid};
-use flea::ui_logic_st2::{builtin, schema, shelf, store};
+use flea::ui_logic_plugin_settings::manifest::{self, Invalid};
+use flea::ui_logic_plugin_settings::{builtin, schema, shelf, store};
 use std::path::Path;
 
 pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, String), Invalid> {

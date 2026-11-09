@@ -1,14 +1,14 @@
-//! The rail's Trash row opens the shared menu without taking a listing selection; Places rows open theirs in g2/mn1/place_host.rs.
+//! The rail's Trash row opens the shared menu without taking a listing selection; Places rows open theirs in g2/context_menus/place_host.rs.
 use super::Order;
 use crate::{
-    g2::mn1::{
+    g2::context_menus::{
         join::Captured,
         menu::{Face, Outcome},
     },
     state::Shell,
 };
-use flea::ui_logic_mn1::{build, Entry};
-use flea::ui_logic_pl4::rail::Kind;
+use flea::ui_logic_context_menus::{build, Entry};
+use flea::ui_logic_rail_places::rail::Kind;
 use gpui::{Context, Window};
 
 pub(crate) struct Target {
@@ -31,7 +31,7 @@ pub(super) fn run(
     let Order::Place(request) = order else {
         return false;
     };
-    let crate::g2::pl4::producer::Event::Menu(entry) = &request.event else {
+    let crate::g2::rail_places::producer::Event::Menu(entry) = &request.event else {
         return false;
     };
     if entry.kind != Kind::Trash {
@@ -86,7 +86,7 @@ impl Shell {
             Face::Rail,
             rows,
             at,
-            flea::ui_logic_mn1::fit::Rect {
+            flea::ui_logic_context_menus::fit::Rect {
                 x: 0.,
                 y: 0.,
                 w: size.width.into(),

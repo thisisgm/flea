@@ -3,11 +3,15 @@ use crate::{
     state::Shell,
     visual::{number, object},
 };
-use flea::{jsondoc::Json, ui_logic_op1::jobs::Action};
+use flea::{jsondoc::Json, ui_logic_file_ops::jobs::Action};
 use gpui::App;
 
 // Ipc.qml controlState names the control as v0.3.12 does, whatever the painted label reads.
-fn control(name: &str, text: Option<crate::g2::fb1::observe::Text>, enabled: bool) -> Json {
+fn control(
+    name: &str,
+    text: Option<crate::g2::status_feedback::observe::Text>,
+    enabled: bool,
+) -> Json {
     let centre = text
         .as_ref()
         .map(|t| {
@@ -38,7 +42,11 @@ fn control(name: &str, text: Option<crate::g2::fb1::observe::Text>, enabled: boo
     Json::Obj(state)
 }
 
-pub(super) fn read(shell: &Shell, cx: &App, line: &crate::g2::fb1::line::MessageLine) -> Json {
+pub(super) fn read(
+    shell: &Shell,
+    cx: &App,
+    line: &crate::g2::status_feedback::line::MessageLine,
+) -> Json {
     let overlay = shell.overlay.as_ref().map(|overlay| overlay.read(cx));
     let frame = overlay.and_then(|overlay| overlay.feedback_paint.get("frame"));
     let visible = frame.is_some()
