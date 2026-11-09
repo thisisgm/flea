@@ -66,7 +66,7 @@ fn print_review_multipage_tiff_preserves_every_page() {
         assert!(pixel.contains(color), "page {}: {pixel}", n + 1);
         d.assert_contains(staged);
         d.assert_contains(dest);
-        printtool::publish(staged, dest).unwrap();
+        printtool::publish(staged, dest, &std::sync::atomic::AtomicBool::new(false)).unwrap();
     }
     assert_eq!(image_pages(&d, &source), 2, "source keeps both pages");
     println!("TIFF retains 2 pages; PDF uses frame zero; PNG publishes both pages in red/blue order; source retains 2 pages");

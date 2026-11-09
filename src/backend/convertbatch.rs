@@ -186,7 +186,9 @@ pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize
         Pages::parse(&ask.pages)?;
         let parent = ask.paths[0].parent().ok_or("the source has no parent folder")?;
         if ask.paths.iter().any(|p| p.parent() != Some(parent)) { return Err("The selected files must be in one folder.".into()); }
-        let mut work = Work::new(parent, "convert").map_err(|e| e.msg)?;
+        let leaf = ask.paths[0].file_name().unwrap_or_default().to_string_lossy().into_owned();
+        // The inputs are copied into the stage beside the outputs, so it holds them twice over.
+        let mut work = super::archivework::workhome::work_for(parent, "convert", "convert", &leaf, || super::archivework::workhome::files_bytes(&ask.paths).saturating_mul(2)).map_err(|e| e.msg)?;
         let staged = match kinds[0] {
             Kind::Image => convert_images(&ask, &mut work, &cancel, id, tx)?,
             Kind::Pdf => convert_pdf(&ask, &mut work, &cancel, id, tx)?,
@@ -204,7 +206,7 @@ pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize
         progress(tx, "convert", id, ask.request_id, CONVERSION_PROGRESS, PROGRESS_TOTAL, &ask.paths[0]);
         for (source, dest) in staged {
             if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
-            printtool::publish(&source, &dest)?;
+            printtool::publish(&source, &dest, &cancel)?;
             published.push(dest);
             let done = CONVERSION_PROGRESS + published.len() * (PROGRESS_TOTAL - CONVERSION_PROGRESS) / count;
             progress(tx, "convert", id, ask.request_id, done, PROGRESS_TOTAL, published.last().unwrap());

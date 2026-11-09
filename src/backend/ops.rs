@@ -2,7 +2,7 @@
 use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::renamecompat;
 use crate::backend::undo::{self, ItemIdentity, Step};
-use crate::error::{from_io, FleaError};
+use crate::error::FleaError;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
@@ -12,11 +12,6 @@ const NAME_TRIES: usize = 999;
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub use super::opsname::{name_refusal, name_refusal_sentence};
 pub fn valid_name(name: &str) -> bool { name_refusal(name).is_none() }
-
-// Rename that refuses to overwrite. std::fs::rename alone can replace a target on Unix.
-pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
-    renamecompat::rename_noreplace(from, to).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
-}
 
 // Sample output: "permission denied; the record of this copy could not be saved: no space left".
 pub(crate) fn manifest_failed(msg: &str, detail: &str) -> String {
