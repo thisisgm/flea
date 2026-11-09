@@ -1882,6 +1882,7 @@
   "send.providers.airdrop_accept": "Accepter",
   "send.providers.airdrop_decline": "Afvis",
   "send.providers.airdrop_someone": "En enhed i nærheden",
+  "send.providers.airdrop_received": "Modtog %1 med AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Annullerer",
   "send.rclone.checked_checksum": "kontrolleret med kontrolsum",

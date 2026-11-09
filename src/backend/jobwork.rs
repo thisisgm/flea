@@ -46,6 +46,8 @@ pub(crate) enum Work {
     // A LocalSend send, or an AirDrop one through owly when airdrop is set.
     Send {
         peer: String,
+        // The name the job card heads with; empty for LocalSend, whose peer already is its alias.
+        name: String,
         paths: Vec<String>,
         request: usize,
         selection: Option<Vec<Selected>>,
@@ -298,6 +300,7 @@ impl Work {
                 request,
                 selection,
                 airdrop: true,
+                ..
             } => {
                 let send = airdropsend::Send {
                     peer: peer.clone(),
@@ -313,6 +316,7 @@ impl Work {
                 request,
                 selection,
                 airdrop: false,
+                ..
             } => {
                 let (peer, paths, request, selection) =
                     (peer.clone(), paths.clone(), *request, selection.clone());

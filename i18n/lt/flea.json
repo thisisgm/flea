@@ -1963,6 +1963,7 @@
   "send.providers.airdrop_accept": "Priimti",
   "send.providers.airdrop_decline": "Atmesti",
   "send.providers.airdrop_someone": "Netoliese esantis įrenginys",
+  "send.providers.airdrop_received": "Gauta per AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Atšaukiama",
   "send.rclone.checked_checksum": "patikrinta pagal kontrolinę sumą",

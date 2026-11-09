@@ -1419,6 +1419,7 @@
   "send.providers.airdrop_accept": "接受",
   "send.providers.airdrop_decline": "拒绝",
   "send.providers.airdrop_someone": "附近的设备",
+  "send.providers.airdrop_received": "已通过 AirDrop 收到 %1",
   "send.rclone.row": "通过 rclone 发送",
   "send.rclone.title": {
     "other": "将 %1 个项目发送到 %2"

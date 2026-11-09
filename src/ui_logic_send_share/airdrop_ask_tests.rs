@@ -29,10 +29,15 @@ const TWO_REQUESTS: &str = concat!(
 fn every_prompt_is_answered_from_its_own_request_and_nothing_is_accepted_unasked() {
     let mut asked = Vec::new();
     let mut replies = Vec::new();
-    serve(TWO_REQUESTS.as_bytes(), &mut replies, |request| {
-        asked.push(request.clone());
-        asked.len() == 1
-    });
+    serve(
+        TWO_REQUESTS.as_bytes(),
+        &mut replies,
+        |request| {
+            asked.push(request.clone());
+            asked.len() == 1
+        },
+        |_| {},
+    );
     assert_eq!(
         asked,
         [
@@ -59,10 +64,15 @@ fn a_sender_or_file_named_like_the_prompt_is_not_answered_and_answers_stay_one_p
     );
     let mut asked = Vec::new();
     let mut replies = Vec::new();
-    serve(stream.as_bytes(), &mut replies, |request| {
-        asked.push(request.clone());
-        false
-    });
+    serve(
+        stream.as_bytes(),
+        &mut replies,
+        |request| {
+            asked.push(request.clone());
+            false
+        },
+        |_| {},
+    );
     assert_eq!(
         asked,
         [Request {
@@ -80,15 +90,82 @@ fn a_stream_without_a_prompt_writes_no_answer() {
         "Some(\"Mac\") (None) wants to send:\n  \"x\" public.data 1 bytes\n".as_bytes(),
         &mut replies,
         |_| true,
+        |_| {},
     );
     assert!(replies.is_empty());
 }
 
 #[test]
-fn only_owlys_own_error_lines_come_back_for_the_window_to_say() {
-    let stream = "not announcing as the radio asks: no lease\nowly: awdl0: no such device\n";
-    let said = serve(stream.as_bytes(), &mut Vec::new(), |_| true);
-    assert_eq!(said, "owly: awdl0: no such device\n");
+fn owlys_error_lines_and_what_stopped_an_accepted_transfer_come_back_as_they_are_read() {
+    let stream = concat!(
+        "not announcing as the radio asks: no lease\n",
+        "owly: awdl0: no such device\n",
+        "Some(\"Mac\") (None) wants to send:\n",
+        "  \"a.txt\" public.plain-text 3 bytes\n",
+        "accept? [y/N] y\n",
+        "transfer failed: connection reset\n",
+        "the request was withdrawn\n",
+        "seen by fe80::1%awdl0\n",
+    );
+    let mut heard = Vec::new();
+    serve(
+        stream.as_bytes(),
+        &mut Vec::new(),
+        |_| true,
+        |line| heard.push(line),
+    );
+    assert_eq!(
+        heard,
+        [
+            "owly: awdl0: no such device",
+            "transfer failed: connection reset",
+            "the request was withdrawn"
+        ]
+    );
+}
+
+#[test]
+fn a_saved_file_a_link_and_a_failure_each_read_as_what_the_footer_says() {
+    let i18n = english();
+    assert_eq!(
+        heard("/home/u/Downloads/IMG 0001.HEIC"),
+        Some(Heard::File("IMG 0001.HEIC".into()))
+    );
+    assert_eq!(
+        heard(r#""https://example.com/a?b=\"c\"""#),
+        Some(Heard::Link(r#"https://example.com/a?b="c""#.into()))
+    );
+    assert_eq!(
+        heard("transfer failed: reset"),
+        Some(Heard::Failed("reset".into()))
+    );
+    assert_eq!(heard("the request was withdrawn"), Some(Heard::Withdrawn));
+    assert_eq!(heard("seen by fe80::1%awdl0"), None);
+    assert_eq!(heard("/"), None);
+    let said = |h: &Heard, n| heard_said(&i18n, h, n);
+    assert_eq!(
+        said(&Heard::File("a.txt".into()), 1),
+        ("Received a.txt with AirDrop".to_string(), false)
+    );
+    assert_eq!(
+        said(&Heard::File("b.txt".into()), 3),
+        ("Received 3 items with AirDrop".to_string(), false)
+    );
+    assert_eq!(
+        said(&Heard::Link("https://example.com/".into()), 1),
+        (
+            "Received https://example.com/ with AirDrop".to_string(),
+            false
+        )
+    );
+    assert_eq!(
+        said(&Heard::Failed("reset".into()), 1),
+        ("AirDrop · reset".to_string(), true)
+    );
+    assert_eq!(
+        said(&Heard::Withdrawn, 1),
+        ("AirDrop could not finish the transfer.".to_string(), true)
+    );
 }
 
 #[test]

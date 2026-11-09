@@ -1,13 +1,12 @@
-//! The window's AirDrop runs: owly's doctor, radio, receiver and browse as host processes, and the menu and page they feed.
-use super::airdrop::{Act, Proc};
+//! The window's AirDrop: each Act carried out, and the menu and page owly's runs (airdrop_run.rs) feed.
+use super::airdrop::Act;
 use super::join::now_ms;
 use super::seams::Action;
 use crate::state::Shell;
 use flea::ui_logic_context_menus::build::Context as MenuContext;
 use flea::ui_logic_plugin_settings::{airdrop::saved_folder, builtin::AIRDROP};
-use flea::ui_logic_send_share::{airdrop_ask, providers::Role};
+use flea::ui_logic_send_share::providers::Role;
 use gpui::{Context, Window};
-use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
 
 // The name Apple devices see, owly's default: this computer's host name.
@@ -106,143 +105,7 @@ impl Shell {
                 }
             }
         }
-    }
-
-    fn airdrop_doctor(
-        &mut self,
-        side: usize,
-        generation: u64,
-        argv: Vec<String>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let program = argv[0].clone();
-        cx.spawn_in(window, async move |this, cx| {
-            let output = cx
-                .background_executor()
-                .spawn(async move {
-                    Command::new(&argv[0])
-                        .args(&argv[1..])
-                        .stdin(Stdio::null())
-                        .stderr(Stdio::null())
-                        .output()
-                })
-                .await;
-            let (code, stdout) = match &output {
-                Ok(out) => (
-                    out.status.code().unwrap_or(-1),
-                    String::from_utf8_lossy(&out.stdout).into_owned(),
-                ),
-                Err(error) => {
-                    eprintln!("flea: AirDrop could not run {program} doctor: {error}");
-                    (-1, String::new())
-                }
-            };
-            let _ = this.update_in(cx, |shell, window, cx| {
-                let acts =
-                    shell
-                        .menu
-                        .providers
-                        .airdrop
-                        .doctor_done(generation, code, &stdout, now_ms());
-                shell.airdrop_acts(side, acts, window, cx);
-            });
-        })
-        .detach();
-    }
-
-    // A long run: the radio speaks on stderr, a browse on stdout, the receiver's prompts are answered from a notification.
-    fn airdrop_start(
-        &mut self,
-        side: usize,
-        proc: Proc,
-        generation: u64,
-        argv: Vec<String>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let mut command = Command::new(&argv[0]);
-        command
-            .args(&argv[1..])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-        match proc {
-            Proc::Radio => command.stderr(Stdio::piped()),
-            Proc::Browse => command.stdout(Stdio::piped()),
-            Proc::Receive => command.stdin(Stdio::piped()).stderr(Stdio::piped()),
-        };
-        // Ok carries one line of the run's output and Err its exit code, -1 when it never started or died on a signal.
-        let (lines, heard) = async_channel::unbounded::<Result<String, i32>>();
-        let run = self.menu.providers.airdrop_pids.claim(proc, generation);
-        let catalog = self.locale.catalog.clone();
-        // The spawn and every read and wait run on this thread, never the window's.
-        std::thread::spawn(move || {
-            let mut child = match command.spawn() {
-                Ok(child) => child,
-                Err(error) => {
-                    // Said like owly's own error line, so a radio or receiver that cannot start names the program and why.
-                    let said = format!("owly: {}: {error}", argv[0]);
-                    eprintln!("flea: AirDrop {said}");
-                    let _ = lines.send_blocking(Ok(said));
-                    let _ = lines.send_blocking(Err(-1));
-                    return;
-                }
-            };
-            super::airdrop_pids::started(&run, child.id());
-            let stream: Option<Box<dyn Read + Send>> = match proc {
-                Proc::Radio => child
-                    .stderr
-                    .take()
-                    .map(|s| Box::new(s) as Box<dyn Read + Send>),
-                Proc::Browse => child
-                    .stdout
-                    .take()
-                    .map(|s| Box::new(s) as Box<dyn Read + Send>),
-                Proc::Receive => None,
-            };
-            let asks = matches!(proc, Proc::Receive)
-                .then(|| child.stderr.take().zip(child.stdin.take()))
-                .flatten();
-            if let Some((stderr, stdin)) = asks {
-                let said = airdrop_ask::serve(stderr, stdin, |ask| airdrop_ask::ask(&catalog, ask));
-                for line in said.lines() {
-                    let _ = lines.send_blocking(Ok(line.to_string()));
-                }
-            }
-            for line in stream
-                .into_iter()
-                .flat_map(|s| BufReader::new(s).lines().map_while(Result::ok))
-            {
-                let _ = lines.send_blocking(Ok(line));
-            }
-            let code = child.wait().ok().and_then(|status| status.code());
-            let _ = lines.send_blocking(Err(code.unwrap_or(-1)));
-        });
-        cx.spawn_in(window, async move |this, cx| {
-            while let Ok(message) = heard.recv().await {
-                let done = message.is_err();
-                let _ = this.update_in(cx, |shell, window, cx| {
-                    let catalog = shell.locale.catalog.clone();
-                    let acts = match &message {
-                        Ok(line) => shell.menu.providers.airdrop.line(proc, generation, line),
-                        Err(code) => {
-                            shell.menu.providers.airdrop_pids.ended(proc, generation);
-                            shell
-                                .menu
-                                .providers
-                                .airdrop
-                                .ended(proc, generation, *code, &catalog)
-                        }
-                    };
-                    shell.airdrop_acts(side, acts, window, cx);
-                });
-                if done {
-                    break;
-                }
-            }
-        })
-        .detach();
+        self.airdrop_watch(window, cx);
     }
 
     // The row shows only while owly is there, the plugin on and the Wi-Fi able, as board 0401-airdrop-menu draws it.
@@ -251,10 +114,9 @@ impl Shell {
         let declared = self
             .declared_menu_plugins("send-target")
             .any(|p| p.manifest.id == AIRDROP);
-        context.airdrop_installed = declared
-            && self.menu.providers.sides[side].row_on(Role::AirDrop)
-            && air.adapter.ready();
-        context.airdrop_on = air.radio != super::airdrop::Radio::Off;
+        context.airdrop_installed =
+            declared && self.menu.providers.sides[side].row_on(Role::AirDrop) && air.ready();
+        context.airdrop_on = air.on();
         context.airdrop_devices = air.devices();
     }
 
@@ -324,8 +186,10 @@ impl Shell {
         // The page can open before any file menu brought the backend's facts, so it finds owly itself.
         let path = std::env::var_os("PATH").unwrap_or_default();
         let owly = flea::ui_logic_send_share::airdrop::find(&path).unwrap_or_default();
-        self.menu.providers.airdrop.facts(&owly);
-        let acts = self.menu.providers.airdrop.ask_doctor(now_ms());
+        let air = &mut self.menu.providers.airdrop;
+        air.facts(&owly);
+        let mut acts = air.look();
+        acts.extend(air.ask_doctor(now_ms()));
         let side = self.focus_side;
         self.airdrop_acts(side, acts, window, cx);
         self.airdrop_page(cx);

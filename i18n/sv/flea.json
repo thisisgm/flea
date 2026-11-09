@@ -1921,6 +1921,7 @@
   "send.providers.airdrop_accept": "Acceptera",
   "send.providers.airdrop_decline": "Avböj",
   "send.providers.airdrop_someone": "En enhet i närheten",
+  "send.providers.airdrop_received": "Tog emot %1 med AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Avbryter",
   "send.rclone.checked_checksum": "kontrollerat med kontrollsumma",

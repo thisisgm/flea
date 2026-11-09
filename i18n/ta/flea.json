@@ -1921,6 +1921,7 @@
   "send.providers.airdrop_accept": "ஏற்கவும்",
   "send.providers.airdrop_decline": "நிராகரிக்கவும்",
   "send.providers.airdrop_someone": "அருகிலுள்ள சாதனம்",
+  "send.providers.airdrop_received": "AirDrop மூலம் %1 பெறப்பட்டது",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "ரத்து செய்கிறது",
   "send.rclone.checked_checksum": "சரிபார்ப்புத் தொகையால் சரிபார்க்கப்பட்டது",

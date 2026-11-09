@@ -1963,6 +1963,7 @@
   "send.providers.airdrop_accept": "קבלה",
   "send.providers.airdrop_decline": "דחייה",
   "send.providers.airdrop_someone": "מכשיר סמוך",
+  "send.providers.airdrop_received": "התקבל עם ⁨AirDrop⁩: ⁨%1⁩",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "מבטל",
   "send.rclone.checked_checksum": "נבדק לפי סכום ביקורת",

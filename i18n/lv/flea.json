@@ -1963,6 +1963,7 @@
   "send.providers.airdrop_accept": "Pieņemt",
   "send.providers.airdrop_decline": "Noraidīt",
   "send.providers.airdrop_someone": "Tuvumā esoša ierīce",
+  "send.providers.airdrop_received": "Saņemts ar AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Atceļ",
   "send.rclone.checked_checksum": "pārbaudīts pēc kontrolsummas",

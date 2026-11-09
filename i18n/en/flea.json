@@ -1517,6 +1517,7 @@
   "send.providers.airdrop_accept": "Accept",
   "send.providers.airdrop_decline": "Decline",
   "send.providers.airdrop_someone": "A nearby device",
+  "send.providers.airdrop_received": "Received %1 with AirDrop",
   "send.rclone.row": "Send with rclone",
   "send.rclone.title": {
     "one": "Send %1 Item to %2",

@@ -1921,6 +1921,7 @@
   "send.providers.airdrop_accept": "قبول کریں",
   "send.providers.airdrop_decline": "مسترد کریں",
   "send.providers.airdrop_someone": "قریبی ڈیوائس",
+  "send.providers.airdrop_received": "⁦AirDrop⁩ سے موصول: ⁨%1⁩",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "منسوخ ہو رہا ہے",
   "send.rclone.checked_checksum": "چیک سم سے جانچا گیا",

@@ -272,15 +272,16 @@ pub fn radio_failed(i18n: &I18n, stderr: &str) -> String {
     }
 }
 
-// Sample output: {"c":"airdrop","op":"send","id":3,"peer":"3a9f0c2be41d","paths":["/a/b.png"]}, a send to one service ID the backend runs as a job.
-pub fn send_line(id: u64, peer: &str, paths: &[String]) -> String {
+// Sample output: {"c":"airdrop","op":"send","id":3,"peer":"3a9f0c2be41d","name":"Jane's iPhone","paths":["/a/b.png"]}, sent by service ID.
+pub fn send_line(id: u64, peer: &str, name: &str, paths: &[String]) -> String {
     let files: Vec<String> = paths
         .iter()
         .map(|p| format!("\"{}\"", crate::json::escape(p)))
         .collect();
     format!(
-        r#"{{"c":"airdrop","op":"send","id":{id},"peer":"{}","paths":[{}]}}"#,
+        r#"{{"c":"airdrop","op":"send","id":{id},"peer":"{}","name":"{}","paths":[{}]}}"#,
         crate::json::escape(peer),
+        crate::json::escape(name),
         files.join(",")
     )
 }

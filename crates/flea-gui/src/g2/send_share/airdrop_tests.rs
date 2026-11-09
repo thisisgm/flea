@@ -53,6 +53,8 @@ fn on_with_menu() -> (AirDrop, u64) {
         Proc::Radio,
         radio,
         "awdl0 is up: fe80::1%awdl0 (02:00:00:00:00:01). Ctrl-C takes it down.",
+        0,
+        &english(),
     );
     assert_eq!(air.radio, Radio::On);
     let (_, receive) = started(&acts, Proc::Receive).expect("the receiver starts once awdl0 is up");
@@ -147,7 +149,9 @@ fn browse_lists_devices_as_each_answers_and_a_shut_menu_stops_it() {
         air.line(
             Proc::Browse,
             browse,
-            r#"3a9f   "Jane's iPhone" ([fe80::1%7]:8770)"#
+            r#"3a9f   "Jane's iPhone" ([fe80::1%7]:8770)"#,
+            0,
+            &english()
         ),
         [Act::Refresh]
     );
@@ -155,7 +159,9 @@ fn browse_lists_devices_as_each_answers_and_a_shut_menu_stops_it() {
         air.line(
             Proc::Browse,
             browse,
-            r#"3a9f   "Jane's iPhone" ([fe80::1%7]:8770)"#
+            r#"3a9f   "Jane's iPhone" ([fe80::1%7]:8770)"#,
+            0,
+            &english()
         )
         .is_empty(),
         "no duplicate"
@@ -164,10 +170,18 @@ fn browse_lists_devices_as_each_answers_and_a_shut_menu_stops_it() {
         Proc::Browse,
         browse,
         r#"0f1e   "MacBook Air" ([fe80::2%7]:8770)"#,
+        0,
+        &english(),
     );
     assert!(
-        air.line(Proc::Browse, browse - 1, r#"aa   "Old" ([fe80::3%7]:8770)"#)
-            .is_empty(),
+        air.line(
+            Proc::Browse,
+            browse - 1,
+            r#"aa   "Old" ([fe80::3%7]:8770)"#,
+            0,
+            &english()
+        )
+        .is_empty(),
         "a replaced browse is ignored"
     );
     let names: Vec<_> = air
@@ -184,7 +198,13 @@ fn browse_lists_devices_as_each_answers_and_a_shut_menu_stops_it() {
     );
     // The browse's thirty seconds ran out under an open menu: it listens again.
     assert!(started(
-        &air.ended(Proc::Browse, browse, 0, &english()),
+        &air.ended(
+            Proc::Browse,
+            browse,
+            0,
+            owly::BROWSE_SECS * 1_000,
+            &english()
+        ),
         Proc::Browse
     )
     .is_some());
@@ -205,6 +225,8 @@ fn a_send_goes_to_the_backend_as_a_job_and_its_answer_is_said_once() {
         Proc::Browse,
         browse,
         r#"3a9f   "Jane's iPhone" ([fe80::1%7]:8770)"#,
+        0,
+        &english(),
     );
     let wire = Lines::default();
     let paths = vec!["/a/b.png".to_string()];
@@ -217,7 +239,7 @@ fn a_send_goes_to_the_backend_as_a_job_and_its_answer_is_said_once() {
     );
     assert_eq!(
         wire.0.borrow()[0],
-        r#"{"c":"airdrop","op":"send","id":1,"peer":"3a9f","paths":["/a/b.png"]}"#
+        r#"{"c":"airdrop","op":"send","id":1,"peer":"3a9f","name":"Jane's iPhone","paths":["/a/b.png"]}"#
     );
     let declined = r#"{"t":"airdropsent","id":1,"ok":false,"code":"declined","reason":""}"#;
     assert_eq!(
@@ -263,11 +285,15 @@ fn two_devices_with_one_name_are_both_listed_and_each_is_sent_to_by_its_service_
         Proc::Browse,
         browse,
         r#"3a9f   "iPhone" ([fe80::1%7]:8770)"#,
+        0,
+        &english(),
     );
     air.line(
         Proc::Browse,
         browse,
         r#"0f1e   "iPhone" ([fe80::2%7]:8770)"#,
+        0,
+        &english(),
     );
     let ids: Vec<_> = air.devices().into_iter().map(|(p, _)| p.id).collect();
     assert_eq!(ids, ["3a9f", "0f1e"]);
@@ -291,7 +317,13 @@ fn turning_off_stops_every_run_and_late_lines_change_nothing() {
     );
     assert_eq!(air.radio, Radio::Off);
     assert!(air
-        .line(Proc::Browse, browse, r#"aa   "Late" ([fe80::3%7]:8770)"#)
+        .line(
+            Proc::Browse,
+            browse,
+            r#"aa   "Late" ([fe80::3%7]:8770)"#,
+            0,
+            &english()
+        )
         .is_empty());
     assert!(air.turn_off().is_empty());
     assert!(!air.page("/d", "h").receiving);
@@ -306,9 +338,11 @@ fn the_ten_minutes_ending_turns_off_quietly_and_a_radio_that_never_came_up_says_
         Proc::Radio,
         radio,
         "awdl0 is up: fe80::1%awdl0 (m). Ctrl-C takes it down.",
+        0,
+        &english(),
     );
-    air.line(Proc::Radio, radio, owly::RADIO_EXPIRED);
-    let acts = air.ended(Proc::Radio, radio, 1, &i18n);
+    air.line(Proc::Radio, radio, owly::RADIO_EXPIRED, 0, &english());
+    let acts = air.ended(Proc::Radio, radio, 1, 0, &i18n);
     assert!(!acts.iter().any(|a| matches!(a, Act::Say(..))), "{acts:?}");
     assert!(acts.contains(&Act::Stop(Proc::Receive)) && !acts.contains(&Act::Stop(Proc::Radio)));
     assert_eq!(air.radio, Radio::Off);
@@ -317,13 +351,21 @@ fn the_ten_minutes_ending_turns_off_quietly_and_a_radio_that_never_came_up_says_
         air.page("/d", "h").receiving,
         "Everyone for 10 Minutes shows while the radio starts"
     );
-    air.line(Proc::Radio, radio, "bringing the radio up...");
+    air.line(
+        Proc::Radio,
+        radio,
+        "bringing the radio up...",
+        0,
+        &english(),
+    );
     air.line(
         Proc::Radio,
         radio,
         "owly: the radio is in use by another program",
+        0,
+        &english(),
     );
-    let acts = air.ended(Proc::Radio, radio, 2, &i18n);
+    let acts = air.ended(Proc::Radio, radio, 2, 0, &i18n);
     assert_eq!(
         acts[0],
         Act::Say(
@@ -334,65 +376,5 @@ fn the_ten_minutes_ending_turns_off_quietly_and_a_radio_that_never_came_up_says_
     assert_eq!(air.radio, Radio::Off);
 }
 
-#[test]
-fn a_radio_that_goes_down_before_its_ten_minutes_end_says_why() {
-    let i18n = english();
-    let (mut air, _) = on_with_menu();
-    let radio = air.gens[slot(Proc::Radio)];
-    air.line(Proc::Radio, radio, "owly: the radio went down: link lost");
-    let acts = air.ended(Proc::Radio, radio, 1, &i18n);
-    assert_eq!(
-        acts[0],
-        Act::Say("AirDrop · the radio went down: link lost".into(), true)
-    );
-    assert_eq!(air.radio, Radio::Off);
-}
-
-#[test]
-fn a_receiver_that_exits_takes_the_radio_down_and_only_a_failure_says_why() {
-    let i18n = english();
-    let (mut air, _) = on_with_menu();
-    let receive = air.gens[slot(Proc::Receive)];
-    let acts = air.ended(Proc::Receive, receive, owly::TIMEOUT_EXPIRED, &i18n);
-    assert_eq!(
-        acts,
-        [
-            Act::Stop(Proc::Radio),
-            Act::Stop(Proc::Browse),
-            Act::Refresh
-        ],
-        "its ten minutes ran out"
-    );
-    assert_eq!(air.radio, Radio::Off);
-    let (mut air, _) = on_with_menu();
-    let receive = air.gens[slot(Proc::Receive)];
-    air.line(Proc::Receive, receive, "owly: awdl0: no such device");
-    let acts = air.ended(Proc::Receive, receive, 2, &i18n);
-    assert_eq!(
-        acts[0],
-        Act::Say("AirDrop · awdl0: no such device".into(), true)
-    );
-    assert!(acts.contains(&Act::Stop(Proc::Radio)) && !acts.contains(&Act::Stop(Proc::Receive)));
-    assert!(!air.page("/d", "h").receiving);
-}
-
-#[test]
-fn a_failed_browse_is_not_started_again_until_the_menu_opens_again() {
-    let (mut air, browse) = on_with_menu();
-    assert!(air.ended(Proc::Browse, browse, 2, &english()).is_empty());
-    air.menu_closed();
-    assert!(started(&air.menu_opened(2), Proc::Browse).is_some());
-}
-
-#[test]
-fn a_doctor_still_running_when_owly_goes_away_never_lands() {
-    let mut air = AirDrop::default();
-    air.facts("/usr/bin/owly");
-    let acts: [Act; 1] = air.ask_doctor(0).try_into().unwrap();
-    let [Act::Doctor(generation, _)] = acts else {
-        panic!()
-    };
-    air.facts("");
-    assert!(air.doctor_done(generation, 0, READY, 1).is_empty());
-    assert_eq!(air.adapter.readiness, Readiness::Missing);
-}
+#[path = "airdrop_exit_tests.rs"]
+mod exit;

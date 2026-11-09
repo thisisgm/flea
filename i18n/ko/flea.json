@@ -1529,6 +1529,7 @@
   "send.providers.airdrop_accept": "수락",
   "send.providers.airdrop_decline": "거절",
   "send.providers.airdrop_someone": "근처 기기",
+  "send.providers.airdrop_received": "AirDrop으로 %1을(를) 받았습니다",
   "dialogs.file.permissions.unknown": "알 수 없음",
   "dialogs.file.properties.unknown": "알 수 없음",
   "trash.reading": "휴지통 읽는 중…",

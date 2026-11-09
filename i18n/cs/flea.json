@@ -1963,6 +1963,7 @@
   "send.providers.airdrop_accept": "Přijmout",
   "send.providers.airdrop_decline": "Odmítnout",
   "send.providers.airdrop_someone": "Zařízení poblíž",
+  "send.providers.airdrop_received": "Přijato přes AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Rušení",
   "send.rclone.checked_checksum": "ověřeno kontrolním součtem",

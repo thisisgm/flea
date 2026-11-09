@@ -1547,6 +1547,7 @@
   "send.providers.airdrop_accept": "Terima",
   "send.providers.airdrop_decline": "Tolak",
   "send.providers.airdrop_someone": "Perangkat di sekitar",
+  "send.providers.airdrop_received": "Diterima dengan AirDrop: %1",
   "dialogs.file.permissions.unknown": "Tidak diketahui",
   "dialogs.file.properties.unknown": "Tidak diketahui",
   "trash.reading": "Membaca Sampah…",

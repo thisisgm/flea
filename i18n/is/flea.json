@@ -1882,6 +1882,7 @@
   "send.providers.airdrop_accept": "Samþykkja",
   "send.providers.airdrop_decline": "Hafna",
   "send.providers.airdrop_someone": "Tæki í nágrenninu",
+  "send.providers.airdrop_received": "Móttekið með AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Hætti við",
   "send.rclone.checked_checksum": "athugað með gátsummu",

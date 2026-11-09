@@ -1921,6 +1921,7 @@
   "send.providers.airdrop_accept": "Kubali",
   "send.providers.airdrop_decline": "Kataa",
   "send.providers.airdrop_someone": "Kifaa kilicho karibu",
+  "send.providers.airdrop_received": "Umepokea %1 kwa AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Inaghairi",
   "send.rclone.checked_checksum": "imekaguliwa kwa jumla ya ukaguzi",

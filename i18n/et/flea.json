@@ -1492,6 +1492,7 @@
   "send.providers.airdrop_accept": "Nõustu",
   "send.providers.airdrop_decline": "Keeldu",
   "send.providers.airdrop_someone": "Lähedal olev seade",
+  "send.providers.airdrop_received": "AirDropiga vastu võetud: %1",
   "send.rclone.row": "Saada rclone'iga",
   "send.rclone.title": {
     "one": "Saada %1 üksus sihtkohta %2",

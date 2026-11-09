@@ -2085,6 +2085,7 @@
   "send.providers.airdrop_accept": "Sprejmi",
   "send.providers.airdrop_decline": "Zavrni",
   "send.providers.airdrop_someone": "Bližnja naprava",
+  "send.providers.airdrop_received": "Prejeto z AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Preklicevanje",
   "send.rclone.checked_checksum": "preverjeno s kontrolno vsoto",

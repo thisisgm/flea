@@ -9,6 +9,11 @@ pub const PROMPT: &str = "accept? [y/N] ";
 // owly declines by itself 15 s after its prompt; Flea answers inside that, so no late answer lands on the next request.
 pub const ASK_SECS: u64 = 12;
 const READ_CHUNK: usize = 4096;
+// owly receive's stderr when a transfer it accepted stops, and when the sender takes a request back.
+const FAILED: &str = "transfer failed: ";
+const WITHDRAWN: &str = "the request was withdrawn";
+// The footer's catalog key for a saved file or link.
+const RECEIVED: &str = "send.providers.airdrop_received";
 
 // One request as owly printed it: the sender's own name, empty when it gave none, and each offered file or link.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -38,14 +43,14 @@ pub fn offer_line(line: &str) -> Option<String> {
         .map(|(name, _)| name)
 }
 
-// Reads owly's stderr to its end, answers every prompt with y or n as `answer` decides, and gives back owly's error lines.
+// Reads owly's stderr to its end, answers each prompt as `answer` decides, and hands every line the window says to `heard`.
 pub fn serve(
     mut stderr: impl Read,
     mut stdin: impl Write,
     mut answer: impl FnMut(&Request) -> bool,
-) -> String {
+    mut heard: impl FnMut(String),
+) {
     let (mut line, mut request, mut buf) = (Vec::new(), Request::default(), [0u8; READ_CHUNK]);
-    let mut said = String::new();
     while let Ok(n) = stderr.read(&mut buf) {
         if n == 0 {
             break;
@@ -57,9 +62,11 @@ pub fn serve(
                     request = next;
                 } else if let Some(file) = offer_line(&text) {
                     request.files.push(file);
-                } else if text.starts_with("owly: ") {
-                    said.push_str(&text);
-                    said.push('\n');
+                } else if text.starts_with("owly: ")
+                    || text.starts_with(FAILED)
+                    || text == WITHDRAWN
+                {
+                    heard(text);
                 }
                 line.clear();
                 continue;
@@ -73,7 +80,47 @@ pub fn serve(
             }
         }
     }
-    said
+}
+
+// What the receiver said after an Accept: a saved file by its name, a link's text, or why the transfer stopped.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Heard {
+    File(String),
+    Link(String),
+    Failed(String),
+    Withdrawn,
+}
+
+// Sample input: `/home/u/Downloads/IMG_0001.HEIC` or `"https://example.com/"` on stdout, `transfer failed: reset` on stderr.
+pub fn heard(line: &str) -> Option<Heard> {
+    if let Some(reason) = line.strip_prefix(FAILED) {
+        return Some(Heard::Failed(reason.trim().to_string()));
+    }
+    if line == WITHDRAWN {
+        return Some(Heard::Withdrawn);
+    }
+    if line.starts_with('"') {
+        return quoted(line).map(|(link, _)| Heard::Link(link));
+    }
+    let name = line.strip_prefix('/')?.rsplit('/').next()?;
+    (!name.is_empty()).then(|| Heard::File(name.to_string()))
+}
+
+// The footer's sentence and whether it is an error; `count` files of one transfer are counted after the first.
+pub fn heard_said(i18n: &I18n, heard: &Heard, count: usize) -> (String, bool) {
+    match heard {
+        Heard::File(name) if count == 1 => (i18n.tr_args(RECEIVED, &[name]), false),
+        Heard::File(_) => {
+            let what = i18n.trn("items.count", count as i64);
+            (i18n.tr_args(RECEIVED, &[&what]), false)
+        }
+        Heard::Link(link) => (i18n.tr_args(RECEIVED, &[link]), false),
+        Heard::Failed(reason) if !reason.is_empty() => (
+            i18n.tr_args("send.providers.airdrop_reason", &[reason]),
+            true,
+        ),
+        Heard::Failed(_) | Heard::Withdrawn => (i18n.tr("send.providers.airdrop_unfinished"), true),
+    }
 }
 
 // The body is notification markup, so the sender's and the files' own text is escaped.

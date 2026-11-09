@@ -3293,9 +3293,9 @@ Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain A
 
 ## AirDrop sends (0.4.1)
 
-`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","paths":["/home/u/a.png"]}` sends the files to one
-AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name, as a
-`send` job: the backend runs
+`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","name":"Jane's iPhone","paths":["/home/u/a.png"]}` sends the
+files to one AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name,
+as a `send` job headed by `name` (the service ID when `name` is absent or empty): the backend runs
 `owly send --to=<peer> -- <paths>`, turns its `<sent> / <total> bytes` progress into job progress, and kills it on
 `{"c":"jobs","op":"cancel","id":<job>}`. It answers one line when the job ends:
 
@@ -3304,10 +3304,20 @@ AirDrop device by the service ID `owly browse` printed before its name, since tw
 `code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
 (owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
 `owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
-backend's `providers` facts name `owly`'s path. When the receiver or the radio exits, the window takes both down and
-says owly's reason unless the ten minutes ran out. The receiver asks `accept? [y/N]` for each incoming request; the window
-answers it from a notification with Accept and Decline buttons, and anything but Accept within 12 s declines; the
-window then closes that notification by its id. [owly](https://github.com/t4t5/owly) is MIT, by Tristan (t4t5).
+backend's `providers` facts name `owly`'s path. The machine has one radio: the window that turns it on holds an
+exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that
+directory) and writes `airdrop.state` beside it, three lines: its token, `starting` or `on`, and the card. Every other
+window reads that state, browses and sends over it, and asks the owner to stop by writing the owner's token to
+`airdrop.stop`, which the owner checks once a second. The owner removes the state at once, but the lock stays held
+until the stopped radio has exited, and a Receiving On asked meanwhile starts once it has. When the receiver or the
+radio exits, the window takes both down and says owly's reason unless the ten minutes ran out. A window that closes, a
+quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run started) send
+SIGTERM to every owly run and wait up to 5 s for them to exit, which gives Wi-Fi back. The receiver asks
+`accept? [y/N]` for each incoming request; the window answers it from a notification with Accept and Decline buttons,
+and anything but Accept within 12 s declines; the window then closes that notification by its id. The footer names
+each file the receiver saved (several within 2 s as one count) and each link it was sent (shown, never opened), and
+says when a transfer failed or the sender withdrew its request. [owly](https://github.com/t4t5/owly) is MIT, by
+Tristan (t4t5).
 
 ## Checked rclone sends (0.4.0)
 

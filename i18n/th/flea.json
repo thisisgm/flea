@@ -1839,6 +1839,7 @@
   "send.providers.airdrop_accept": "ยอมรับ",
   "send.providers.airdrop_decline": "ปฏิเสธ",
   "send.providers.airdrop_someone": "อุปกรณ์ใกล้เคียง",
+  "send.providers.airdrop_received": "ได้รับ %1 ด้วย AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "กำลังยกเลิก",
   "send.rclone.checked_checksum": "ตรวจสอบด้วยเช็กซัมแล้ว",

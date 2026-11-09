@@ -1921,6 +1921,7 @@
   "send.providers.airdrop_accept": "Kabul et",
   "send.providers.airdrop_decline": "Reddet",
   "send.providers.airdrop_someone": "Yakındaki bir cihaz",
+  "send.providers.airdrop_received": "AirDrop ile alındı: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "İptal ediliyor",
   "send.rclone.checked_checksum": "sağlama toplamıyla kontrol edildi",

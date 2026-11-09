@@ -1882,6 +1882,7 @@
   "send.providers.airdrop_accept": "Hyväksy",
   "send.providers.airdrop_decline": "Hylkää",
   "send.providers.airdrop_someone": "Lähellä oleva laite",
+  "send.providers.airdrop_received": "Vastaanotettu AirDropilla: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Peruutetaan",
   "send.rclone.checked_checksum": "tarkistettu tarkistussummalla",

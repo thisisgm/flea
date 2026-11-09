@@ -2044,6 +2044,7 @@
   "send.providers.airdrop_accept": "Akceptuj",
   "send.providers.airdrop_decline": "Odrzuć",
   "send.providers.airdrop_someone": "Urządzenie w pobliżu",
+  "send.providers.airdrop_received": "Odebrano przez AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Anulowanie",
   "send.rclone.checked_checksum": "sprawdzono sumę kontrolną",

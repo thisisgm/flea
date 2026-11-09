@@ -1882,6 +1882,7 @@
   "send.providers.airdrop_accept": "Αποδοχή",
   "send.providers.airdrop_decline": "Απόρριψη",
   "send.providers.airdrop_someone": "Μια κοντινή συσκευή",
+  "send.providers.airdrop_received": "Λήψη με AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Ακύρωση",
   "send.rclone.checked_checksum": "ελέγχθηκε βάσει αθροίσματος ελέγχου",

@@ -1963,6 +1963,7 @@
   "send.providers.airdrop_accept": "Aceptar",
   "send.providers.airdrop_decline": "Rechazar",
   "send.providers.airdrop_someone": "Un dispositivo cercano",
+  "send.providers.airdrop_received": "Recibido con AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Cancelando",
   "send.rclone.checked_checksum": "verificado por suma de comprobación",
