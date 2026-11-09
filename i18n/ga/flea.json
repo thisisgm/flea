@@ -2775,6 +2775,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Teastaíonn ainm comhaid ón aschur",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "Glacann --tui-keymap le default, vim, mac, windows nó yazi",
   "tui.cwd.twice": "Tugadh %1 faoi dhó",
+  "tui.cwd.folder_missing": "Níl an fillteán do %1 ann: %2",
   "tui.cwd.write_error": "Níorbh fhéidir %1 a scríobh: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Cuir ainm comhaid isteach roimh an iarmhír.",
   "tui.editor.invalid_name": "Cuir isteach ainm nach bhfuil folamh, nach . ná .. é, agus nach bhfuil / ná carachtar nialasach ann.",
@@ -2807,6 +2808,7 @@
   "tui.launch.could_not_finish": "Níorbh fhéidir le %1 críochnú (%2)",
   "tui.launch.could_not_observe": "Níorbh fhéidir monatóireacht a dhéanamh ar %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Ní fillteán é sin, mar sin níor osclaíodh críochfort",
+  "tui.launch.program_not_found": "Níorbh fhéidir an clár %1 a aimsiú",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Méadaigh an fhuinneog go 12 cholún ar leithead agus 5 ró ar airde ar a laghad.",
   "tui.model.bulk_done": {
     "one": "Athainmníodh %1 mhír · Aisiompaíonn Cealaigh athainmniú amháin",

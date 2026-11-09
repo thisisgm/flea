@@ -2674,6 +2674,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Для вывода нужно имя файла",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap принимает default, vim, mac, windows или yazi",
   "tui.cwd.twice": "%1 указан дважды",
+  "tui.cwd.folder_missing": "Папка для %1 не существует: %2",
   "tui.cwd.write_error": "Не удалось записать %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Введите имя файла перед расширением.",
   "tui.editor.invalid_name": "Введите непустое имя, отличное от . и .., без / и нулевого символа.",
@@ -2704,6 +2705,7 @@
   "tui.launch.could_not_finish": "%1: работа завершилась с ошибкой (%2)",
   "tui.launch.could_not_observe": "Не удалось отследить %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Это не папка, поэтому терминал не открыт",
+  "tui.launch.program_not_found": "Программа %1 не найдена",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Увеличьте окно минимум до 12 столбцов в ширину и 5 строк в высоту.",
   "tui.model.bulk_done": {
     "one": "Переименован %1 элемент · Отмена откатывает одно переименование",

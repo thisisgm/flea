@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "A saída exige um nome de ficheiro",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap aceita default, vim, mac, windows ou yazi",
   "tui.cwd.twice": "%1 foi indicado duas vezes",
+  "tui.cwd.folder_missing": "A pasta de %1 não existe: %2",
   "tui.cwd.write_error": "Não foi possível escrever %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Introduz um nome de ficheiro antes da extensão.",
   "tui.editor.invalid_name": "Introduz um nome não vazio, diferente de . e .., que não contenha / nem um caráter nulo.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 não conseguiu terminar (%2)",
   "tui.launch.could_not_observe": "Não foi possível monitorizar %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Isto não é uma pasta, pelo que não foi aberto nenhum terminal",
+  "tui.launch.program_not_found": "Não foi possível encontrar o programa %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Aumenta a janela para pelo menos 12 colunas de largura e 5 linhas de altura.",
   "tui.model.bulk_done": {
     "one": "Nome de %1 item alterado · Anular reverte uma mudança de nome",

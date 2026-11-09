@@ -2371,6 +2371,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Đầu ra cần một tên tệp",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap chấp nhận default, vim, mac, windows hoặc yazi",
   "tui.cwd.twice": "%1 được chỉ định hai lần",
+  "tui.cwd.folder_missing": "Thư mục cho %1 không tồn tại: %2",
   "tui.cwd.write_error": "Không thể ghi %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Nhập tên tệp trước phần mở rộng.",
   "tui.editor.invalid_name": "Nhập tên không rỗng, không phải . hay .. và không chứa / hoặc ký tự null.",
@@ -2395,6 +2396,7 @@
   "tui.launch.could_not_finish": "%1 không thể hoàn tất (%2)",
   "tui.launch.could_not_observe": "Không thể theo dõi %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Đó không phải thư mục nên không mở thiết bị đầu cuối",
+  "tui.launch.program_not_found": "Không tìm thấy chương trình %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Đặt kích thước cửa sổ tối thiểu là 12 cột rộng và 5 hàng cao.",
   "tui.model.bulk_done": {
     "other": "Đã đổi tên %1 mục · Hoàn tác khôi phục một lần đổi tên"

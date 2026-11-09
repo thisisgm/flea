@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Изходът изисква име на файл",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap приема default, vim, mac, windows или yazi",
   "tui.cwd.twice": "%1 е подаден два пъти",
+  "tui.cwd.folder_missing": "Папката за %1 не съществува: %2",
   "tui.cwd.write_error": "%1 не можа да се запише: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Въведи име на файл преди разширението.",
   "tui.editor.invalid_name": "Въведи непразно име, различно от . и .., без / и без нулев знак.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 не можа да завърши (%2)",
   "tui.launch.could_not_observe": "%1 не можа да се наблюдава: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Това не е папка, затова не беше отворен терминал",
+  "tui.launch.program_not_found": "Програмата %1 не беше намерена",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Увеличи прозореца поне до 12 колони ширина и 5 реда височина.",
   "tui.model.bulk_done": {
     "one": "Преименуван е %1 елемент · Отмяна връща едно преименуване",

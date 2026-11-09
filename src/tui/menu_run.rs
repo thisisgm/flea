@@ -95,6 +95,11 @@ pub fn key(m: &mut Model, key: &Key, map: &Map, w: &mut Wire) -> io::Result<()> 
             m.menu_top = place(m, &rows).top;
         }
         "open" | "preview" | "menuRight" => return activate(m, map, w, action == "menuRight"),
+        // The window's Copy As letters copy the menu's targets here too, after a registry request still answering.
+        "copyPath" | "copyRelative" | "copyName" | "copyStem" | "copydirpath" | "copyUri" | "copyQuoted" => {
+            if m.menu_action == "menuApps" { m.menu_view.queued = Some(action); return Ok(()); }
+            return run(m, &action, w);
+        }
         _ if !action.is_empty() => m.fail_text(crate::tui::parity::refusal_text(&action)),
         _ => {}
     }

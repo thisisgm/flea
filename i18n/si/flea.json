@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "ප්‍රතිදානය සඳහා ගොනු නමක් අවශ්‍යයි",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap සඳහා default, vim, mac, windows හෝ yazi පිළිගනී",
   "tui.cwd.twice": "%1 දෙවරක් ලබා දී ඇත",
+  "tui.cwd.folder_missing": "%1 සඳහා ෆෝල්ඩරය නොපවතී: %2",
   "tui.cwd.write_error": "%1 ලිවිය නොහැකි විය: %2",
   "tui.editor.enter_a_filename_before_the_extension": "දිගුවට පෙර ගොනු නමක් ඇතුළත් කරන්න.",
   "tui.editor.invalid_name": "හිස් නොවන, . හෝ .. නොවන, / හෝ ශූන්‍ය අක්ෂරයක් අඩංගු නොවන නමක් ඇතුළත් කරන්න.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 අවසන් කළ නොහැකි විය (%2)",
   "tui.launch.could_not_observe": "%1 නිරීක්ෂණය කළ නොහැකි විය: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "එය ෆෝල්ඩරයක් නොවන නිසා ටර්මිනලයක් විවෘත නොකෙරිණි",
+  "tui.launch.program_not_found": "%1 වැඩසටහන හමු නොවීය",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "කවුළුව අවම වශයෙන් තීරු 12 ක් පළලටත් පේළි 5 ක් උසටත් සකසන්න.",
   "tui.model.bulk_done": {
     "one": "අයිතම %1 ක් නැවත නම් කරන ලදි · අහෝසි කිරීමෙන් එක් නැවත නම් කිරීමක් ආපසු හරවයි",

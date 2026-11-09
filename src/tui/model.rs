@@ -22,6 +22,10 @@ pub struct Row {
     pub icon: String,
 }
 impl Row {
+    // A symlink the backend resolved to a folder carries d false but browses in like one, as the window's rows do.
+    pub fn folder(&self) -> bool {
+        flea::ui_logic_picker_portal::directory(self.directory, self.mode as u32, &self.icon)
+    }
     pub fn is_pdf(&self) -> bool {
         !self.directory && self.link.is_empty()
             && std::path::Path::new(&self.name).extension()

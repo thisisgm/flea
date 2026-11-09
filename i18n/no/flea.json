@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Utdata krever et filnavn",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap godtar default, vim, mac, windows eller yazi",
   "tui.cwd.twice": "%1 ble angitt to ganger",
+  "tui.cwd.folder_missing": "Mappen for %1 finnes ikke: %2",
   "tui.cwd.write_error": "Kunne ikke skrive %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Skriv inn et filnavn før filendelsen.",
   "tui.editor.invalid_name": "Skriv inn et navn som ikke er tomt, . eller .., og som verken inneholder / eller nulltegn.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 kunne ikke fullføres (%2)",
   "tui.launch.could_not_observe": "Kunne ikke overvåke %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Dette er ikke en mappe, så ingen terminal ble åpnet",
+  "tui.launch.program_not_found": "Fant ikke programmet %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Gjør vinduet minst 12 kolonner bredt og 5 rader høyt.",
   "tui.model.bulk_done": {
     "one": "Ga nytt navn til %1 element · Angre tilbakestiller én navneendring",

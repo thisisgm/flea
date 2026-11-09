@@ -249,3 +249,39 @@ fn sequence_checker_rejects_inert_navigation() {
         assert!(result.is_err(), "the sequence check accepted {action} instead of first-row navigation");
     }
 }
+
+// A symlink the backend resolved to a folder (d false, lstat mode a link, the folder icon) browses in like a folder.
+#[test]
+fn enter_right_and_l_on_a_link_to_a_folder_browse_into_it() {
+    let link = r#"{"t":"rows","start":0,"rows":[{"n":"todir","d":false,"p":41471,"i":"folder","l":"../one"},{"n":"tofile","d":false,"p":41471,"i":"text-x-generic","l":"note.txt"}]}"#;
+    for (preset, key) in [("default", Key::named("Return", "")), ("default", Key::named("Right", "")), ("vim", Key::character('l', "")), ("yazi", Key::character('l', ""))] {
+        let (mut wire, reader) = wire::echo_wire();
+        let mut m = listing(&mut wire, preset);
+        m.receive(jsondoc::parse(link).unwrap(), &mut wire).unwrap();
+        drain(&mut wire);
+        m.cursor = 0;
+        assert!(m.rows[&0].folder() && !m.rows[&1].folder(), "only the link to a folder is one");
+        actions::key(&mut m, &key, &Map::load(), &mut wire).unwrap();
+        assert_eq!(m.pending.as_deref(), Some(std::path::Path::new("/listing/todir")), "{preset} {}: the link path is listed", key.name);
+        assert_eq!(requests(&drain(&mut wire), "list").len(), 1);
+        assert!(m.error.is_empty(), "{preset}: {}", m.error);
+        wire::finish(wire, reader);
+    }
+    // Its preview is a folder's: the children peek, never a file read that fails.
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = listing(&mut wire, "default");
+    m.receive(jsondoc::parse(link).unwrap(), &mut wire).unwrap();
+    drain(&mut wire);
+    m.cursor = 0;
+    m.preview_visible = true;
+    super::preview::load(&mut m, true);
+    super::preview::request(&mut m, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    assert_eq!(requests(&sent, "peek").len(), 1, "the link's preview peeks its folder");
+    assert!(requests(&sent, "meta").is_empty());
+    assert_eq!(super::pane_state::kind(&m.rows[&0]), super::pane_state::Kind::Folder);
+    // Its facts say Folder and link, as the window's size column does, never the link's own bytes.
+    let facts = super::pane::preview(&m, 1, 60, 20, &super::theme::Theme::with_depth("", super::theme::Depth::Mono));
+    assert!(facts.contains("Folder · link") && !facts.contains(" B"), "{facts:?}");
+    wire::finish(wire, reader);
+}

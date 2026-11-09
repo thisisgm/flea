@@ -101,7 +101,7 @@ pub(super) fn pointer_key(
         if pointer.button == 0 && !pointer.motion {
             if let Some(row) = m.parents.get(pointer.y - super::super::render::BODY_ROW) {
                 let path = m.path.parent().unwrap_or(&m.path).join(&row.name);
-                if row.directory {
+                if row.folder() {
                     navigate(m, path, w)?;
                 }
             }

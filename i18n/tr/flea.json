@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Çıktı bir dosya adı gerektirir",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap default, vim, mac, windows veya yazi kabul eder",
   "tui.cwd.twice": "%1 iki kez verildi",
+  "tui.cwd.folder_missing": "%1 için klasör yok: %2",
   "tui.cwd.write_error": "%1 yazılamadı: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Uzantıdan önce bir dosya adı girin.",
   "tui.editor.invalid_name": "Boş olmayan, . veya .. olmayan, / veya NUL karakteri içermeyen bir ad girin.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 tamamlanamadı (%2)",
   "tui.launch.could_not_observe": "%1 izlenemedi: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Bu bir klasör olmadığı için terminal açılmadı",
+  "tui.launch.program_not_found": "%1 programı bulunamadı",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Pencereyi en az 12 sütun genişliğinde ve 5 satır yüksekliğinde yapın.",
   "tui.model.bulk_done": {
     "one": "%1 öge yeniden adlandırıldı · Geri al tek bir yeniden adlandırmayı geri çevirir",

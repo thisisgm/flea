@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Izvadei nepieciešams faila nosaukums",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap pieņem default, vim, mac, windows vai yazi",
   "tui.cwd.twice": "%1 norādīts divreiz",
+  "tui.cwd.folder_missing": "%1 mape neeksistē: %2",
   "tui.cwd.write_error": "Neizdevās ierakstīt %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Pirms paplašinājuma ievadiet faila nosaukumu.",
   "tui.editor.invalid_name": "Ievadiet netukšu nosaukumu, kas nav . vai .. un nesatur / vai nulles rakstzīmi.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 nevarēja pabeigt darbu (%2)",
   "tui.launch.could_not_observe": "Neizdevās novērot %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Tā nav mape, tāpēc terminālis netika atvērts",
+  "tui.launch.program_not_found": "Programma %1 netika atrasta",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Palieliniet logu vismaz līdz 12 kolonnu platumam un 5 rindu augstumam.",
   "tui.model.bulk_done": {
     "zero": "Pārdēvēts %1 vienumu · Atsaukt atceļ vienu pārdēvējumu",

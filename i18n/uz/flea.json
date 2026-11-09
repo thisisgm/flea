@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Chiqish uchun fayl nomi kerak",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap default, vim, mac, windows yoki yazi qiymatlarini qabul qiladi",
   "tui.cwd.twice": "%1 ikki marta berildi",
+  "tui.cwd.folder_missing": "%1 uchun jild mavjud emas: %2",
   "tui.cwd.write_error": "%1 yozilmadi: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Kengaytmadan oldin fayl nomini kiriting.",
   "tui.editor.invalid_name": "Boʻsh boʻlmagan, . yoki .. boʻlmagan, / yoki nol belgisi qatnashmagan nom kiriting.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 tugay olmadi (%2)",
   "tui.launch.could_not_observe": "%1 ni kuzatib boʻlmadi: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Bu jild emas, shuning uchun terminal ochilmadi",
+  "tui.launch.program_not_found": "%1 dasturi topilmadi",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Oynani kamida 12 ustun keng va 5 qator baland qiling.",
   "tui.model.bulk_done": {
     "one": "%1 ta obyekt qayta nomlandi · Amalni bekor qilish bitta qayta nomlashni qaytaradi",

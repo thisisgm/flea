@@ -2674,6 +2674,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Wyjście wymaga nazwy pliku",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap akceptuje default, vim, mac, windows lub yazi",
   "tui.cwd.twice": "%1 podano dwukrotnie",
+  "tui.cwd.folder_missing": "Folder dla %1 nie istnieje: %2",
   "tui.cwd.write_error": "Nie udało się zapisać %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Wpisz nazwę pliku przed rozszerzeniem.",
   "tui.editor.invalid_name": "Wpisz niepustą nazwę, inną niż . i .., która nie zawiera / ani znaku null.",
@@ -2704,6 +2705,7 @@
   "tui.launch.could_not_finish": "%1: zakończono z błędem (%2)",
   "tui.launch.could_not_observe": "Nie udało się obserwować %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "To nie jest folder, więc nie otwarto terminalu",
+  "tui.launch.program_not_found": "Nie znaleziono programu %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Powiększ okno do co najmniej 12 kolumn szerokości i 5 wierszy wysokości.",
   "tui.model.bulk_done": {
     "one": "Zmieniono nazwę %1 elementu · Cofnij odwraca jedną zmianę nazwy",

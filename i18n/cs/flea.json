@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Výstup vyžaduje název souboru",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap přijímá default, vim, mac, windows nebo yazi",
   "tui.cwd.twice": "%1 byl zadán dvakrát",
+  "tui.cwd.folder_missing": "Složka pro %1 neexistuje: %2",
   "tui.cwd.write_error": "Nelze zapsat %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Před příponu zadejte název souboru.",
   "tui.editor.invalid_name": "Zadejte neprázdný název odlišný od . a .., který neobsahuje / ani nulový znak.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 se nepodařilo dokončit (%2)",
   "tui.launch.could_not_observe": "Nelze sledovat %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Toto není složka, terminál tedy nebyl otevřen",
+  "tui.launch.program_not_found": "Program %1 nebyl nalezen",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Zvětšete okno alespoň na 12 sloupců a 5 řádků.",
   "tui.model.bulk_done": {
     "one": "Přejmenována %1 položka · Zpět vrátí jedno přejmenování",

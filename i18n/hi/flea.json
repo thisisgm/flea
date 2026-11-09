@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "आउटपुट के लिए फ़ाइल का नाम चाहिए",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap में default, vim, mac, windows या yazi स्वीकार हैं",
   "tui.cwd.twice": "%1 दो बार दिया गया",
+  "tui.cwd.folder_missing": "%1 का फ़ोल्डर मौजूद नहीं है: %2",
   "tui.cwd.write_error": "%1 लिखा नहीं जा सका: %2",
   "tui.editor.enter_a_filename_before_the_extension": "एक्सटेंशन से पहले फ़ाइल का नाम दर्ज करें।",
   "tui.editor.invalid_name": "ऐसा नाम दर्ज करें जो खाली, . या .. न हो और जिसमें / या नल वर्ण न हो।",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 पूरा नहीं कर सका (%2)",
   "tui.launch.could_not_observe": "%1 की निगरानी नहीं हो सकी: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "यह फ़ोल्डर नहीं है, इसलिए टर्मिनल नहीं खोला गया",
+  "tui.launch.program_not_found": "प्रोग्राम %1 नहीं मिला",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "विंडो की चौड़ाई कम से कम 12 कॉलम और ऊँचाई कम से कम 5 पंक्तियाँ रखें।",
   "tui.model.bulk_done": {
     "one": "%1 आइटम का नाम बदला गया · पूर्ववत करने पर एक नाम परिवर्तन वापस लिया जाता है",

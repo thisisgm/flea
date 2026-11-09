@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Kailangan ng output ng pangalan ng file",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "Tumatanggap ang --tui-keymap ng default, vim, mac, windows o yazi",
   "tui.cwd.twice": "Dalawang beses ibinigay ang %1",
+  "tui.cwd.folder_missing": "Walang folder para sa %1: %2",
   "tui.cwd.write_error": "Hindi maisulat ang %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Maglagay ng pangalan ng file bago ang extension.",
   "tui.editor.invalid_name": "Maglagay ng pangalang hindi walang laman, hindi . o .., at walang / o null character.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "Hindi natapos ang %1 (%2)",
   "tui.launch.could_not_observe": "Hindi masubaybayan ang %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Hindi iyon folder, kaya walang binuksang terminal",
+  "tui.launch.program_not_found": "Hindi makita ang program na %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Gawing hindi bababa sa 12 column ang lapad at 5 row ang taas ng window.",
   "tui.model.bulk_done": {
     "one": "Napalitan ang pangalan ng %1 item · Isang pagpapalit ng pangalan lang ang binabawi ng Ibalik",

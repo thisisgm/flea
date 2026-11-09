@@ -1,8 +1,4 @@
-use super::{
-    input::Key,
-    render,
-    theme::{Depth, Theme},
-};
+use super::{input::Key, render, theme::Theme};
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
@@ -299,7 +295,7 @@ impl Editor {
             if wanted != ink {
                 ink = wanted;
                 out.push_str(&match ink {
-                    "stem" if theme.depth == Depth::Sixteen => {
+                    "stem" if theme.depth.reverses() => {
                         format!("\x1b[0m{}{}\x1b[7m", theme.field, theme.foreground)
                     }
                     "stem" => format!("\x1b[0m{}{}", theme.stem, theme.foreground),

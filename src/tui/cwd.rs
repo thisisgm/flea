@@ -35,6 +35,12 @@ impl Options {
         if (self.cwd_file.is_some() || self.chooser_file.is_some() || self.keymap.is_some()) && (!tui || print_target) {
             return Err(super::words::Text::Key("tui.cwd.cwd_file_chooser_file_and_tui_keymap_require_tui").to_string());
         }
+        // An output whose folder is missing is refused here, before the session, rather than failing at quit.
+        for (flag, output) in [("--cwd-file", &self.cwd_file), ("--chooser-file", &self.chooser_file)] {
+            if let Some(folder) = output.as_deref().and_then(Path::parent).filter(|folder| !folder.is_dir()) {
+                return Err(super::words::args("tui.cwd.folder_missing", vec![flag.into(), folder.display().to_string().into()]).to_string());
+            }
+        }
         let cwd = self.cwd_file.as_deref().and_then(output_identity);
         let chooser = self.chooser_file.as_deref().and_then(output_identity);
         if self.cwd_file.is_some() && (self.cwd_file == self.chooser_file || cwd.is_some() && cwd == chooser) {

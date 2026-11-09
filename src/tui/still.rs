@@ -186,7 +186,7 @@ pub fn colors(depth: Depth) -> Option<ColorMode> {
     match depth {
         Depth::Truecolor => Some(ColorMode::Truecolor),
         Depth::Indexed => Some(ColorMode::Indexed),
-        Depth::Sixteen => None,
+        Depth::Sixteen | Depth::Mono => None,
     }
 }
 

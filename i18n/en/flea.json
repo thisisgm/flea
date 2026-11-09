@@ -2298,10 +2298,12 @@
   "tui.parity.add_network_places_in_the_flea_window": "Add network places in the Flea window",
   "tui.taildrop.too_large": "Taildrop status was too large to read",
   "tui.cwd.twice": "%1 was given twice",
+  "tui.cwd.folder_missing": "The folder for %1 does not exist: %2",
   "tui.model.deleted_failed": "%1 failed · %2",
   "tui.actions.properties_requires_one_selected_item": "Properties requires one selected item",
   "tui.actions.new_flea_window": "New Flea window",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "That is not a folder, so no terminal was opened",
+  "tui.launch.program_not_found": "Could not find the program %1",
   "tui.taildrop.busy": "Taildrop is already busy",
   "tui.terminal.the_terminal_could_not_be_restored_after_the_editor": "The terminal could not be restored after the editor",
   "tui.model.bulk_done": {

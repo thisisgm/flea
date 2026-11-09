@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Η έξοδος χρειάζεται όνομα αρχείου",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "Το --tui-keymap δέχεται default, vim, mac, windows ή yazi",
   "tui.cwd.twice": "Το %1 δόθηκε δύο φορές",
+  "tui.cwd.folder_missing": "Ο φάκελος για το %1 δεν υπάρχει: %2",
   "tui.cwd.write_error": "Αδυναμία εγγραφής του %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Πληκτρολόγησε όνομα αρχείου πριν από την επέκταση.",
   "tui.editor.invalid_name": "Πληκτρολόγησε μη κενό όνομα, διαφορετικό από . και .., χωρίς / ή μηδενικό χαρακτήρα.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1: δεν ολοκληρώθηκε (%2)",
   "tui.launch.could_not_observe": "%1: αδυναμία παρακολούθησης: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Αυτό δεν είναι φάκελος, οπότε δεν ανοίχτηκε τερματικό",
+  "tui.launch.program_not_found": "Το πρόγραμμα %1 δεν βρέθηκε",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Κάνε το παράθυρο τουλάχιστον 12 στήλες σε πλάτος και 5 γραμμές σε ύψος.",
   "tui.model.bulk_done": {
     "one": "Μετονομάστηκε %1 στοιχείο · Η Αναίρεση επαναφέρει μία μετονομασία",

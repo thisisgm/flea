@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "வெளியீட்டுக்கு கோப்புப் பெயர் தேவை",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap default, vim, mac, windows அல்லது yazi ஐ ஏற்கும்",
   "tui.cwd.twice": "%1 இருமுறை கொடுக்கப்பட்டது",
+  "tui.cwd.folder_missing": "%1 க்கான கோப்புறை இல்லை: %2",
   "tui.cwd.write_error": "%1 ஐ எழுத முடியவில்லை: %2",
   "tui.editor.enter_a_filename_before_the_extension": "நீட்டிப்புக்கு முன் கோப்புப் பெயரை உள்ளிடவும்.",
   "tui.editor.invalid_name": "காலியாகவோ . அல்லது .. ஆகவோ இல்லாத, / அல்லது பூஜ்ய எழுத்து இல்லாத பெயரை உள்ளிடவும்.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 வெற்றிகரமாக முடிவடையவில்லை (%2)",
   "tui.launch.could_not_observe": "%1 ஐக் கண்காணிக்க முடியவில்லை: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "அது கோப்புறை அல்ல; எனவே முனையம் திறக்கப்படவில்லை",
+  "tui.launch.program_not_found": "%1 நிரல் கிடைக்கவில்லை",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "சாளரத்தை குறைந்தது 12 நெடுவரிசை அகலமும் 5 வரி உயரமும் கொண்டதாக மாற்றவும்.",
   "tui.model.bulk_done": {
     "one": "%1 உருப்படி பெயர்மாற்றப்பட்டது · செயல்தவிர் ஒரு பெயர்மாற்றத்தை மீட்டமைக்கும்",

@@ -193,3 +193,28 @@ fn compress_lands_beside_the_folder_the_menu_opened_on() {
     assert_eq!(text(sent(&values, "archive", "compress")[0], "dest"), "/fx/v/work/notes.zip");
     wire::finish(w, reader);
 }
+
+// The window's Copy As letters copy the menu's targets; Copy Relative reads them from the listed folder.
+#[test]
+fn copy_as_letters_copy_the_targets_and_relative_reads_from_the_listed_folder() {
+    let (mut w, reader) = wire::echo_wire();
+    for (letter, copied) in [('r', "notes.txt\n../other/x.txt"), ('p', "/fx/v/work/notes.txt\n/fx/v/other/x.txt"), ('s', "'/fx/v/work/notes.txt'\n'/fx/v/other/x.txt'")] {
+        let mut m = opened(&mut w, false);
+        drain(&mut w);
+        press(&mut m, Key::character(letter, ""), &mut w);
+        assert!(!m.menu && m.error.is_empty(), "{letter}: the letter copies and closes the menu, not {:?}", m.error);
+        let values = drain(&mut w);
+        let ask = sent(&values, "paths", "");
+        assert_eq!(ask.len(), 1, "{letter}: one paths request");
+        let line = format!(r#"{{"t":"paths","id":{},"paths":["/fx/v/work/notes.txt","/fx/v/other/x.txt"]}}"#, count(ask[0], "id"));
+        m.receive(crate::jsondoc::parse(&line).unwrap(), &mut w).unwrap();
+        let values = drain(&mut w);
+        let clip = sent(&values, "clipSet", "text");
+        assert_eq!(clip[0].get("paths").and_then(Json::as_array).unwrap()[0].as_str(), Some(copied), "{letter}");
+    }
+    let mut m = opened(&mut w, true);
+    drain(&mut w);
+    press(&mut m, Key::character('r', ""), &mut w);
+    assert!(sent(&drain(&mut w), "paths", "").is_empty() && m.menu_view.queued.as_deref() == Some("copyRelative"), "Copy Relative waits for the registry answer");
+    wire::finish(w, reader);
+}

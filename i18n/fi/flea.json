@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Tulostus vaatii tiedostonimen",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap hyväksyy arvot default, vim, mac, windows tai yazi",
   "tui.cwd.twice": "%1 annettiin kahdesti",
+  "tui.cwd.folder_missing": "Valitsimen %1 kansiota ei ole: %2",
   "tui.cwd.write_error": "Kohteen %1 kirjoittaminen epäonnistui: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Anna tiedostonimi ennen päätettä.",
   "tui.editor.invalid_name": "Anna nimi, joka ei ole tyhjä, . tai .. eikä sisällä merkkiä / tai nollamerkkiä.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 ei valmistunut (%2)",
   "tui.launch.could_not_observe": "Kohteen %1 seuranta epäonnistui: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Kohde ei ole kansio, joten päätettä ei avattu",
+  "tui.launch.program_not_found": "Ohjelmaa %1 ei löytynyt",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Suurenna ikkuna vähintään 12 sarakkeen levyiseksi ja 5 rivin korkuiseksi.",
   "tui.model.bulk_done": {
     "one": "%1 kohde nimetty uudelleen · Kumoa palauttaa yhden nimen",

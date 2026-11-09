@@ -19,7 +19,8 @@ pub struct State {
 pub fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<bool> {
     match action {
         "suspend" => m.parity17.suspend = true,
-        "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem" => {
+        "copyPath" | "copyRelative" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName"
+        | "copyStem" | "copyQuoted" => {
             if m.pending_clipboard || m.parity17.copy_text.is_some() {
                 return Ok(true);
             }
@@ -27,6 +28,8 @@ pub fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<bool> {
             m.parity17.copy_listing = w.listing;
             m.parity17.copy_text = Some(match action {
                 "copyPath" => "path",
+                "copyRelative" => "relative",
+                "copyQuoted" => "quoted",
                 "copyUri" => "url",
                 "copydirpath" => "dirpath",
                 "copyDirUri" => "dirurl",
@@ -210,6 +213,7 @@ fn stale(m: &Model, value: &Json, w: &Wire) -> bool {
         || asked.is_some_and(|listing| listing != count(value, "listing"))
 }
 pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String {
+    use flea::ui_logic_context_menus::copyas;
     let mut paths: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
     if paths.is_empty() && matches!(form, "dirpath" | "dirurl") {
         paths.push(cwd.join("placeholder"));
@@ -233,6 +237,9 @@ pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String 
                     .unwrap_or_default()
                     .to_string_lossy()
                     .into_owned(),
+                // The window's Copy As forms: from the listed folder, and one shell word.
+                "relative" => copyas::relative(&chosen.to_string_lossy(), &cwd.to_string_lossy()),
+                "quoted" => copyas::one(&chosen.to_string_lossy(), copyas::Format::Quoted, ""),
                 _ => chosen.to_string_lossy().into_owned(),
             }
         })

@@ -2674,6 +2674,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Для виведення потрібна назва файлу",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap приймає default, vim, mac, windows або yazi",
   "tui.cwd.twice": "%1 вказано двічі",
+  "tui.cwd.folder_missing": "Теки для %1 не існує: %2",
   "tui.cwd.write_error": "Не вдалося записати %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Введіть назву файлу перед розширенням.",
   "tui.editor.invalid_name": "Введіть непорожню назву, відмінну від . і .., без / і нульового символу.",
@@ -2704,6 +2705,7 @@
   "tui.launch.could_not_finish": "%1: завершено з помилкою (%2)",
   "tui.launch.could_not_observe": "Не вдалося відстежити %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Це не тека, тому термінал не відкрито",
+  "tui.launch.program_not_found": "Програму %1 не знайдено",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Збільште вікно щонайменше до 12 стовпців завширшки та 5 рядків заввишки.",
   "tui.model.bulk_done": {
     "one": "Перейменовано %1 об’єкт · Скасування повертає одне перейменування",

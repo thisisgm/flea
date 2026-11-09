@@ -534,10 +534,10 @@ fn tui_parity_contexts_do_not_hijack_listing() {
                     ),
                     cards
                 );
-                assert!(
-                    drain(&mut w).iter().all(|v| text(v, "c") == "filter"),
-                    "{preset} {context} {key}"
-                );
+                // The menu's own Copy As letter p asks for its targets, as the window's does; nothing else is sent.
+                let ok = |c: &str| c == "filter" || (context, key, c) == ("menu", "p", "paths");
+                let quiet = drain(&mut w).iter().all(|v| ok(text(v, "c")));
+                assert!(quiet, "{preset} {context} {key}");
                 wire::finish(w, reader);
             }
         }

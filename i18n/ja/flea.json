@@ -2363,6 +2363,7 @@
   "tui.cwd.the_output_needs_a_file_name": "出力先にはファイル名が必要です",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap には default、vim、mac、windows、yazi を指定できます",
   "tui.cwd.twice": "%1 が 2 回指定されました",
+  "tui.cwd.folder_missing": "%1 のフォルダーが存在しません: %2",
   "tui.cwd.write_error": "%1 に書き込めませんでした: %2",
   "tui.editor.enter_a_filename_before_the_extension": "拡張子の前にファイル名を入力してください。",
   "tui.editor.invalid_name": "空でなく、.や..ではなく、/やヌル文字を含まない名前を入力してください。",
@@ -2387,6 +2388,7 @@
   "tui.launch.could_not_finish": "%1 が正常に終了しませんでした (%2)",
   "tui.launch.could_not_observe": "%1 を監視できませんでした: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "フォルダーではないため、ターミナルを開きませんでした",
+  "tui.launch.program_not_found": "プログラム %1 が見つかりませんでした",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "ウィンドウを幅 12 列以上、高さ 5 行以上にしてください。",
   "tui.model.bulk_done": {
     "other": "%1 個の名前を変更しました · 元に戻す操作は 1 件ずつです"

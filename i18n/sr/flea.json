@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "За излаз је потребно име датотеке",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap прихвата default, vim, mac, windows или yazi",
   "tui.cwd.twice": "%1 је наведено два пута",
+  "tui.cwd.folder_missing": "Фасцикла за %1 не постоји: %2",
   "tui.cwd.write_error": "Није могуће записати %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Унесите име датотеке пре наставка.",
   "tui.editor.invalid_name": "Унесите непразно име које није . или .. и не садржи / ни нулти знак.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 није могло да се заврши (%2)",
   "tui.launch.could_not_observe": "Није могуће пратити %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "То није фасцикла, па терминал није отворен",
+  "tui.launch.program_not_found": "Програм %1 није пронађен",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Повећајте прозор на најмање 12 колона ширине и 5 редова висине.",
   "tui.model.bulk_done": {
     "one": "Преименована је %1 ставка · Опозив враћа једно преименовање",

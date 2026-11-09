@@ -2363,6 +2363,7 @@
   "tui.cwd.the_output_needs_a_file_name": "输出需要文件名",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap 接受 default、vim、mac、windows 或 yazi",
   "tui.cwd.twice": "%1 被指定了两次",
+  "tui.cwd.folder_missing": "%1 的文件夹不存在：%2",
   "tui.cwd.write_error": "无法写入 %1：%2",
   "tui.editor.enter_a_filename_before_the_extension": "请在扩展名前输入文件名。",
   "tui.editor.invalid_name": "请输入非空名称，不能为 . 或 ..，且不能包含 / 或空字符。",
@@ -2387,6 +2388,7 @@
   "tui.launch.could_not_finish": "%1 无法完成（%2）",
   "tui.launch.could_not_observe": "无法监测 %1：%2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "这不是文件夹，因此未打开终端",
+  "tui.launch.program_not_found": "找不到程序 %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "请将窗口调整为至少 12 列宽、5 行高。",
   "tui.model.bulk_done": {
     "other": "已重命名 %1 个项目 · 撤销将还原一次重命名"

@@ -2371,6 +2371,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Output memerlukan nama fail",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap menerima default, vim, mac, windows atau yazi",
   "tui.cwd.twice": "%1 diberikan dua kali",
+  "tui.cwd.folder_missing": "Folder untuk %1 tidak wujud: %2",
   "tui.cwd.write_error": "Tidak dapat menulis %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Masukkan nama fail sebelum sambungan.",
   "tui.editor.invalid_name": "Masukkan nama yang tidak kosong, bukan . atau .., serta tidak mengandungi / atau aksara nol.",
@@ -2395,6 +2396,7 @@
   "tui.launch.could_not_finish": "%1 tidak dapat selesai (%2)",
   "tui.launch.could_not_observe": "Tidak dapat memantau %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Itu bukan folder, maka terminal tidak dibuka",
+  "tui.launch.program_not_found": "Program %1 tidak ditemui",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Besarkan tetingkap kepada sekurang-kurangnya 12 lajur dan 5 baris.",
   "tui.model.bulk_done": {
     "other": "%1 item dinamakan semula · Buat asal membatalkan satu penamaan semula"
