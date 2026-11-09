@@ -44,7 +44,7 @@ pub(super) fn count(item: &Selected, cancel: &Cancellation, deadline: Duration, 
     if mounts.is_empty() {
         count_local(item, cancel, report)
     } else if super::walkmounts::stuck_among(&mounts).is_some() {
-        report(Ok(Counted { tally: Tally { bytes: 0, items: 0, partial: true }, done: true, cancelled: false }))
+        report(Ok(Counted { tally: Tally { bytes: 0, items: 0, partial: true, linked: false }, done: true, cancelled: false }))
     } else {
         serve_remote(item, cancel, deadline, &body, report)
     }
@@ -98,7 +98,7 @@ struct RemoteShared {
 // A remote walk runs beside the menu worker under the bulk deadline; past it the menu answers the floor and a watcher decides any mark.
 fn serve_remote(item: &Selected, cancel: &Cancellation, deadline: Duration, body: &str, report: Report<'_>) -> bool {
     let at = Mutex::new(item.path.clone());
-    let shared = Arc::new(RemoteShared { stop: AtomicBool::new(false), floor: Mutex::new(Tally { bytes: 0, items: 0, partial: true }), at });
+    let shared = Arc::new(RemoteShared { stop: AtomicBool::new(false), floor: Mutex::new(Tally { bytes: 0, items: 0, partial: true, linked: false }), at });
     let (done_tx, done_rx) = std::sync::mpsc::channel();
     let worker_item = item.clone();
     let worker_cancel = cancel.clone();

@@ -149,8 +149,13 @@ pub fn walk_watched(
     }
     let arm = |dir: &Path| watch.arm(&mut pins.borrow_mut(), dir);
     let stop = || cancelled() || Instant::now() >= deadline;
-    let size = walk_display_armed(path, &stop, &super::iomount::mount_body(), Some(&arm));
-    (size, pins.into_inner())
+    let (size, linked) = walk_display_armed(path, &stop, &super::iomount::mount_body(), Some(&arm));
+    let mut pins = pins.into_inner();
+    // A write fires only the folder of the name it went through, so a file named outside the tree keeps nothing; see "Deliberate corners".
+    if linked {
+        pins.whole = false;
+    }
+    (size, pins)
 }
 
 // The pump owns the descriptor and holds only a weak handle, so it ends at its first wake after the last handle goes.

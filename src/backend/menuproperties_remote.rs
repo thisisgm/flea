@@ -202,6 +202,7 @@ pub(super) fn count(
             bytes: meta.len(),
             items: 0,
             partial: false,
+            linked: false,
         },
         done: false,
         cancelled: false,

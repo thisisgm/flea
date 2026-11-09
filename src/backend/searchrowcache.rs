@@ -274,12 +274,12 @@ impl Cache {
             { self.misses += 1; self.counts.misses.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
             let (mut fresh, _) = super::meta::stat_range(base, listing, row, 1);
             let meta = fresh.remove(0);
-            let device_remote = *devices.entry(meta.dev).or_insert_with(|| super::mountinfo::fstype_for_dev(meta.dev, body)
-                .is_some_and(|kind| super::netfs::can_wedge(&kind)));
+            let device_blind = *devices.entry(meta.dev).or_insert_with(|| super::mountinfo::fstype_for_dev(meta.dev, body)
+                .is_some_and(|kind| super::netfs::inotify_blind(&kind)));
             let bytes = path.as_os_str().len() + meta.target.len() + std::mem::size_of::<Entry>();
             // Symlink targets and vanished rows have dependencies outside the directory watch, so each is a miss.
             if let Some(stamp) = stamp.filter(|_| self.fd.is_some() && self.inodes.covered(&path) && self.requested.contains(&path) && meta.mode != 0 && meta.mode & S_IFMT != S_IFLNK
-                && !device_remote && self.bytes + bytes <= BYTE_CAP) {
+                && !device_blind && self.bytes + bytes <= BYTE_CAP) {
                 self.bytes += bytes;
                 self.entries.insert(path, Entry { meta: meta.clone(), stamp, directory, rendered: None });
             }
