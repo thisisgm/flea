@@ -56,6 +56,8 @@ mod view_head;
 #[cfg(test)]
 mod view_tests;
 pub(crate) mod wheel;
+#[cfg(test)]
+mod word_click_tests;
 mod wrap;
 
 pub use panel::{Panel, Press, Side};

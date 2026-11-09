@@ -21,6 +21,7 @@ mod fixcards2;
 mod flash;
 mod flash_look;
 mod reader;
+mod word_click;
 
 type Handle = WindowHandle<Root>;
 

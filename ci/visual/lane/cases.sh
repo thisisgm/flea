@@ -195,3 +195,25 @@ case_ql_markdown_bom() (
     sleep 0.5
     snap
 )
+
+# S7B-1 (0.4.2): Columns asks thumbnails at Row density's pitch, so the rows at the end of a long picture folder draw theirs.
+CASES+=("cols-density-pictures-end $S view:columns")
+
+case_cols_density_pictures_end() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local root=$C/pictures last=119 decode_limit=100 poll_seconds=0.1 i attempt
+    mkdir -p "$root" || return 1
+    : > "$root/.flea-test-sandbox" || return 1
+    for i in $(seq -f %03g 0 "$last"); do cp "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
+    LAUNCH_STATE=',"density":"comfortable","display":{"textSize":{"mode":14}}' launch columns "$root" || return 1
+    wait_ipc bodyPx 14 || return 1
+    key G
+    wait_ipc cursor "$last" || return 1
+    # Status 1 is a decoded picture; the end row is where an ask at the fixed ROW_HEIGHT falls furthest short.
+    for attempt in $(seq 1 "$decode_limit"); do
+        [ "$(ipc rowIconStatus "$last")" = 1 ] && break
+        sleep "$poll_seconds"
+    done
+    [ "$(ipc rowIconStatus "$last")" = 1 ] || { state_failure "Columns row $last drew no picture"; return 1; }
+    snap
+)

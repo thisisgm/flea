@@ -164,6 +164,7 @@ impl QueryLine {
                         gpui::ElementInputHandler::new(laid.query, input.clone()),
                         cx,
                     );
+                    crate::strips::query_input::on_press(input.clone(), laid.query, window);
                 }
             }
         }

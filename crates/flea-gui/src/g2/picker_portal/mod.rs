@@ -99,6 +99,8 @@ mod rail_tests;
 mod save_click_space_tests;
 #[cfg(test)]
 mod save_enabled_tests;
+#[cfg(test)]
+mod word_click_tests;
 
 #[cfg(test)]
 mod board_parity_tests;

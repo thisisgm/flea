@@ -196,9 +196,11 @@ impl FieldView for OutputView {
         let at =
             crate::path::field::ime_index(&drawn.line, &self.editor.entry, event.position.x - left);
         let at = self.editor.entry.offset_from_utf16(at);
-        drop(drawn);
-        if event.click_count > 1 {
+        let x = event.position.x - left + drawn.line.scroll;
+        if event.click_count > 2 {
             self.editor.entry.select_all();
+        } else if event.click_count == 2 {
+            self.editor.entry.select_word_under(&drawn.line, x);
         } else if event.modifiers.shift {
             self.editor.entry.select_to(at);
         } else {
