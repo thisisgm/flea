@@ -25,7 +25,8 @@ struct Wire {
 impl Wire {
     fn parked(d: &TestDir) -> Self {
         d.dir("docs");
-        d.file("bench.txt", "");
+        // A sibling fork holding this write open would land its IN_CLOSE_WRITE in the session armed below, after the landing.
+        external_file(d, "bench.txt", "");
         let root = d.path().to_str().expect("utf-8 sandbox path");
         let (events, receiver) = crate::backend::events::channel();
         let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));

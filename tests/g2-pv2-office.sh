@@ -12,7 +12,8 @@ setsid -w env -i PATH="$PATH" HOME="$unit_root/home" \
     CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}" RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}" \
     CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$PWD/target}" \
     CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only \
-    sh -c 'cargo test --locked -p flea-gui --test g2_pv2_office && cargo test --locked -p flea -- ui_logic_doc_preview::' < /dev/null
+    sh -c 'cargo test --locked -p flea-gui --test g2_pv2_office &&
+        env -u CARGO_PROFILE_TEST_DEBUG -u CARGO_PROFILE_DEV_DEBUG cargo test --locked -p flea -- ui_logic_doc_preview::' < /dev/null
 clippy_root=$(mktemp -d "$PWD/.superpowers/g2-pv2-office/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"
 tools/flea-clippy tools/clippy-baseline.txt "$clippy_root"

@@ -56,7 +56,9 @@ gate() {
     [ "$rc" -eq 0 ] || failed=$((failed + 1))
 }
 gate clippy tools/flea-clippy tools/clippy-baseline.txt "$root"
-gate workspace cargo build --locked --workspace
+# Its own target dir: the workspace's unified features would rebuild the shared target's debug flea mid-run.
+gate workspace cargo build --locked --workspace --target-dir "$root/workspace-target"
+if [ -f "$root/.flea-test-sandbox" ]; then rm -rf -- "$root/workspace-target"; fi
 if grep -E '^warning(\[|:)' "$root/workspace.log"; then
     printf 'FAIL workspace emitted a warning\n'
     failed=$((failed + 1))

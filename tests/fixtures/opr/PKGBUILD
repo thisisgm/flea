@@ -1,8 +1,8 @@
 # Maintainer: GM <gianmarcomorales@icloud.com>
 
 pkgname=flea
-pkgver=0.3.12
-pkgrel=2
+pkgver=0.4.1
+pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
@@ -54,7 +54,7 @@ depends=(
 # git fetches the pinned GPUI fork in prepare(), and pkgconf locates its system libraries.
 makedepends=('cargo' 'git' 'pkgconf')
 # qml6 runs tests/js.sh; the same package also serves the runtime HTML helper.
-checkdepends=('qt6-declarative' 'ripgrep' '7zip' 'imagemagick')
+checkdepends=('qt6-declarative' 'ripgrep' '7zip' 'imagemagick' 'ttf-dejavu' 'noto-fonts' 'noto-fonts-cjk')
 optdepends=(
   '7zip: 7z archive support'
   'dropbox-cli: Dropbox browsing and share links'
@@ -77,7 +77,7 @@ source=(
   "$url/releases/download/v$pkgver/$pkgname-v$pkgver.tar.gz"
 )
 # The OPR sync writes each release tarball's hash; between releases the root recipe holds zeros, which fail verification.
-sha256sums=('f16cae10ca0ec9cc1e44881929fc153cf923651d386b74cf633177b4a62dc41d')
+sha256sums=('d56db506184968cd279ecd06566510ab8b6ee6c5fdadff9baf2ee1bb505c58e9')
 
 prepare() {
   cd "$pkgname-$pkgver"
@@ -152,7 +152,11 @@ check() {
   # copy and finds none when both live on /dev/shm. merge's unverified-
   # manifest undo test opens one the same way, through test_unverified.
   local -a filesystem_tests=(
+    backend::dirsize::gh368_tests::gh368_size_sort_of_home_skips_only_the_remote_row
     backend::copymanifest::tests::a_garbage_stream_falls_back_with_the_tree_untouched
+    # tmpfs takes O_TMPFILE, so the copystage pair pins the unnamed branch here wherever the builder's /tmp refuses it.
+    backend::copystage_tests::a_copy_is_unnamed_until_its_bytes_are_whole
+    backend::copystage_tests::a_filesystem_that_refuses_unnamed_files_is_probed_once
     backend::menu_actions::tests::
     backend::menudelete::tests::
     backend::merge::tests::fixes::merge_undo_with_an_unverified_manifest_refuses_rather_than_removing_the_destination
@@ -213,6 +217,16 @@ check() {
     )
   fi
 
+  # GH368 invents remote device 0:42, so its local fixture must use another device.
+  python - <<'PYDEVICE' || return 1
+import os
+fake_remote_device = (0, 42)
+device = os.stat('/dev/shm').st_dev
+actual = (os.major(device), os.minor(device))
+print(f"GH368_LOCAL_FIXTURE_DEVICE /dev/shm {actual[0]}:{actual[1]}")
+if actual == fake_remote_device:
+    raise SystemExit("GH368 local fixture collides with its fake remote device")
+PYDEVICE
   local test_tmp test_status=0 suite
   test_tmp=$(mktemp -d /dev/shm/flea-tests.XXXXXXXX) || return 1
   TMPDIR="$test_tmp" cargo test --frozen --release -p flea -- \
@@ -223,8 +237,55 @@ check() {
     test_args+=(--skip "$suite")
   done
   cargo test --frozen --release -p flea -- --test-threads=1 "${test_args[@]}"
-  # GPUI's test selectors are present only in debug builds.
-  cargo test --frozen -p flea-gui -- --test-threads=1 "${test_args[@]}"
+  # Keep GPUI test selectors and line tables without full debug or incremental caches.
+  export CARGO_PROFILE_DEV_DEBUG=line-tables-only
+  export CARGO_PROFILE_TEST_DEBUG=line-tables-only
+  export CARGO_INCREMENTAL=0
+  export XDG_DATA_HOME="$srcdir/flea-check-data"
+  ./packaging/flea-ci-tools fonts "$XDG_DATA_HOME/fonts"
+  cargo build --frozen -p flea --bin flea
+  cargo test --frozen -p flea-gui --no-run
+  local -a gui_test_args=("${test_args[@]}")
+  local proof_floor_bytes=$((40 * 1024 * 1024 * 1024)) available_bytes
+  available_bytes=$(python -c 'import os; s = os.statvfs("/"); print(s.f_bavail * s.f_frsize)') || return 1
+  [[ "$available_bytes" =~ ^[0-9]+$ ]] || return 1
+  if (( available_bytes < proof_floor_bytes )); then
+    printf 'Skipping five column capacity proofs: %s bytes free, below their 40 GiB floor\n' "$available_bytes"
+    gui_test_args+=(
+      --skip window::columns::review_r2::controls::entry_cap_preserves_file_and_absent_child_slots
+      --skip window::columns::review_r2::controls::entry_retargets_without_restarting_its_original_cap
+      --skip window::columns::review_r2::controls::minimum_release_rebuilds_for_both_dispatch_orders_without_another_reply
+      --skip window::columns::review_r2::review_r3_entry_cap_follows_the_current_requested_child
+      --skip window::columns::review_r2::review_r3_render_expiry_does_not_cancel_the_only_release
+    )
+  fi
+  if pkg-config --atleast-version=2.44 gdk-pixbuf-2.0 && pacman -Q glycin >/dev/null 2>&1; then
+    printf 'Skipping two image assertions: gdk-pixbuf 2.44 or later loads through glycin here\n'
+    pacman -Q gdk-pixbuf2 glycin
+    gui_test_args+=(
+      --skip g2::pv1::photo_tests::gh336_fallback_scaling_preserves_transparent_edge_colour
+      --skip g2::pv1::photo_tests::gh336_physical_fit_avoids_full_photo_allocation_in_fresh_processes
+    )
+  fi
+  # Each SVG watchdog must end with its own test process, not kill a later case.
+  local -a svg_watchdog_tests=(
+    svg::a_fifo_named_svg_never_reaches_the_rasterizer
+    svg::io::an_unfed_fifo_named_svg_is_refused_without_blocking
+    svg::io::the_parse_reads_no_file_past_the_byte_bound
+    svg::io::an_svgz_inflates_and_draws_its_picture
+    svg::io::an_oversize_svgz_shows_the_too_large_card_and_loads_no_file
+    svg::io::a_svgz_bomb_is_refused_without_inflating_it_whole
+  )
+  for suite in "${svg_watchdog_tests[@]}"; do
+    printf 'Running isolated SVG watchdog test: %s\n' "$suite"
+    cargo test --frozen -p flea-gui --test g2_pv1 -- --exact "$suite" \
+      --test-threads=1 "${gui_test_args[@]}" 2>&1 | tee "$srcdir/svg-watchdog.log"
+    (( PIPESTATUS[0] == 0 )) || return 1
+    # Sample: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.21s
+    grep -q '^test result: ok\. 1 passed;' "$srcdir/svg-watchdog.log" || { printf 'SVG watchdog selector matched no test: %s\n' "$suite"; return 1; }
+    gui_test_args+=(--skip "$suite")
+  done
+  cargo test --frozen -p flea-gui --no-fail-fast -- --test-threads=1 "${gui_test_args[@]}"
   # Stock-theme inventories stay in flea-ci; the package tests Flea on every OPR mirror.
   # Sample registry in tests/js/harness.qml: "var suites = [", rows of ["clipboard", ClipboardSuite], then a lone "]".
   local js_suites
