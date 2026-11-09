@@ -285,3 +285,42 @@ fn i50_openwith_replaced_card_refuses_the_old_sessions_callback(cx: &mut TestApp
     );
     quit(&shell, cx);
 }
+
+fn always(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> bool {
+    shell.read_with(cx, |s, _| {
+        s.open_with.as_ref().expect("an open card").card.always
+    })
+}
+
+// S2-8: Space ticks Always from an empty search line and from the list, and types a space after a query.
+#[gpui::test]
+fn space_ticks_always_from_an_empty_search_and_the_list_and_types_after_a_query(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx, _) = ready(cx);
+    cx.simulate_keystrokes("space");
+    assert!(
+        always(&shell, cx),
+        "Space on the empty search line ticks Always"
+    );
+    assert_eq!(
+        listed(&shell, cx).0,
+        "",
+        "the space never reached the search line"
+    );
+    cx.simulate_keystrokes("space");
+    assert!(!always(&shell, cx));
+    cx.simulate_input("n");
+    cx.simulate_keystrokes("space");
+    assert_eq!(listed(&shell, cx).0, "n ", "after a query Space types");
+    assert!(!always(&shell, cx));
+    cx.simulate_keystrokes("backspace backspace tab");
+    assert_eq!(
+        shell.read_with(cx, |s, _| s.open_with.as_ref().unwrap().card.focus),
+        Stop::List
+    );
+    cx.simulate_keystrokes("space");
+    assert!(always(&shell, cx), "Space on the list ticks Always");
+    assert!(sent().is_empty(), "no Space launched or closed the card");
+    quit(&shell, cx);
+}

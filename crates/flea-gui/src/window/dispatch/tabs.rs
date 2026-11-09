@@ -11,14 +11,10 @@ pub(super) fn run(
     cx: &mut Context<Shell>,
 ) -> bool {
     match order {
-        // keys.toml: the rail binds only the strip's new, close, next and previous keys.
+        // Focus.js windowAction: the strip's own keys (tab1..tab9, moves, new, close, next, previous) answer from the rail too.
         Order::Action(event)
             if event.context == Keys::Listing
-                || (event.context == Keys::Rail
-                    && matches!(
-                        event.action,
-                        "tabNew" | "tabClose" | "tabNext" | "tabPrevious"
-                    )) =>
+                || (event.context == Keys::Rail && event.action.starts_with("tab")) =>
         {
             // A middle click names its own row and pane and leaves the cursor where it was (Tap.js).
             if event.action == "openTab" && event.context == Keys::Listing {

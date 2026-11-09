@@ -258,3 +258,26 @@ case_rail_empty_trash() (
     sleep 0.5
     snap
 )
+
+# FX-KEYS (0.4.2, soak S2-6): board 0402-columns-menu-target, the cols-cursorfull state with beta.md right clicked.
+CASES+=("cols-menu-target 1100x700 view:columns menu:row")
+
+case_cols_menu_target() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local total i target=
+    launch columns "$W/A" || return 1
+    key j
+    wait_ipc cursor 1 || return 1
+    wait_parent_column || return 1
+    total=$(ipc total) && [[ $total =~ ^[0-9]+$ ]] || { state_failure "ipc total answered '$total'"; return 1; }
+    for i in $(seq 0 $((total - 1))); do
+        [[ "$(ipc visibleRowName "$i")" == beta.md ]] && { target=$i; break; }
+    done
+    [ -n "$target" ] || { state_failure "no beta.md row in $W/A"; return 1; }
+    # Sample input: "412.5 118", the row's window-relative centre.
+    click_at "$(ipc rowCentre "$target")" right || return 1
+    wait_ipc contextMenuVisible true || return 1
+    # The cursor stays on full: Finder rule 5 moves nothing on a right click.
+    wait_ipc cursor 1 || return 1
+    snap
+)

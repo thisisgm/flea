@@ -56,6 +56,32 @@ pub fn glided(glide: Option<Glide>, at: f32) -> f32 {
     })
 }
 
+/// Half a pixel: a row edge within it of the viewport edge counts as drawn whole, so float drift never cuts a row.
+const WHOLE_SLACK: f32 = 0.5;
+
+/// The first and last row lines wholly inside the viewport at `scroll`; the floor rows when no line fits whole.
+fn whole_lines(frame: Frame, scroll: f32) -> (usize, usize) {
+    let (grow, row) = (frame.grow, frame.row);
+    // Grid lines start below the grid's top gap; list lines start at the content top.
+    let scroll = scroll - frame.cell_origin.1;
+    let lines = frame.total.div_ceil(frame.columns.max(1));
+    let end = scroll + frame.viewport();
+    let floor = grow.position_at(scroll, row).min(lines - 1);
+    let visible = ((frame.viewport() / row).ceil() as usize).max(1);
+    let mut top = floor;
+    if grow.top(top, row) < scroll - WHOLE_SLACK {
+        top += 1;
+    }
+    let mut bottom = grow.position_at(end, row).min(lines - 1);
+    while bottom > top && grow.top(bottom, row) + grow.height(bottom, row) > end + WHOLE_SLACK {
+        bottom -= 1;
+    }
+    if top > bottom || grow.top(bottom, row) + grow.height(bottom, row) > end + WHOLE_SLACK {
+        return (floor, (floor + visible - 1).min(lines - 1));
+    }
+    (top, bottom)
+}
+
 #[derive(Default)]
 pub struct PaneInput {
     pub selection: Selection,
@@ -214,14 +240,21 @@ impl PaneInput {
     }
     /// List.qml:213-231 and Filter.js:241-251: after a scroll outside a band the cursor stays in the viewport rows.
     pub fn scrolled(&mut self, scroll: f32, cursor: &mut usize) {
-        let Some(mut frame) = self.frame.filter(|frame| frame.total > 0) else {
+        let views = |frame: Frame| {
+            self.shown
+                .as_ref()
+                .map_or(frame.total, |s| s.len().min(frame.total))
+        };
+        let Some(mut frame) = self.frame.filter(|&frame| views(frame) > 0) else {
             return;
         };
+        // Under a filter the clamp moves over the shown rows only, never onto a hidden one.
+        frame.total = views(frame);
         frame.scroll = scroll;
         let columns = frame.columns.max(1);
-        let first = frame.grow.position_at(scroll, frame.row) * columns;
-        let visible = ((frame.viewport() / frame.row).ceil() as usize).max(1);
-        let last = ((first / columns + visible) * columns - 1).min(frame.total - 1);
+        let (top, bottom) = whole_lines(frame, scroll);
+        let first = top * columns;
+        let last = ((bottom + 1) * columns - 1).min(frame.total - 1);
         let first = first.min(last);
         let was = self.view_index(*cursor);
         let to = was.clamp(first, last);
@@ -359,3 +392,5 @@ impl PaneInput {
 
 #[cfg(test)]
 mod band_delta_tests;
+#[cfg(test)]
+mod whole_rows_tests;

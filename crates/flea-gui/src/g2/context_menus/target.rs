@@ -275,7 +275,15 @@ impl Shell {
             .as_ref()
             .filter(|capture| capture.side == side)
             .and_then(|capture| {
-                let target = capture.target.as_ref()?;
+                // Finder rule 5: a right click on an active row the cursor is not on rings that row and moves nothing.
+                let Some(target) = capture.target.as_ref() else {
+                    let host = self.panes[side].as_ref()?;
+                    return (!capture.background
+                        && capture.listing == host.pane.held.listing
+                        && capture.rows == [capture.cursor]
+                        && capture.cursor != host.pane.cursor)
+                        .then_some((crate::columns::geometry::Slot::Active, capture.cursor));
+                };
                 let tracks = self.panes[side].as_ref()?.columns.as_ref()?.area.tracks();
                 let track = tracks
                     .iter()

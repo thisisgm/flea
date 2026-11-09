@@ -93,6 +93,13 @@ impl Shell {
                     && host.input.band.is_none()
                     && !cx.has_active_drag()
                     && !self.input_blocked(cx)
+                    // PaneRail.qml: a revealed overlay rail holds the pointer, so the rows left of its edge light nothing.
+                    && !self.rail.as_ref().is_some_and(|join| {
+                        join.host
+                            .read(cx)
+                            .cover()
+                            .is_some_and(|cover| window.mouse_position().x < cover.right())
+                    })
             }),
             renaming: self.renaming_row(side),
             grow: self.grows[side],

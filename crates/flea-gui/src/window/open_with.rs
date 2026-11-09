@@ -214,15 +214,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if self.open_with.is_none() {
+        let Some(open) = &self.open_with else {
             return false;
-        }
-        if self
-            .open_with
-            .as_ref()
-            .is_some_and(|open| open.initial.published())
-            && self.dialog_key(event, cx)
-        {
+        };
+        // OpenWithDialog.qml: Space on an empty search line ticks Always, so the shared editor never types it.
+        let ticks = open.card.space_ticks(event) && self.rename.ime.entry.marked.is_none();
+        let published = open.initial.published();
+        if !ticks && published && self.dialog_key(event, cx) {
             return true;
         }
         cx.stop_propagation();
