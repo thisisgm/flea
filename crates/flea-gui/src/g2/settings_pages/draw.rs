@@ -108,12 +108,22 @@ impl Rows<'_> {
         px(self.s().of(board))
     }
 
-    /// The row's label; a wrapped one keeps its typed run in one styled text, so the run never stops the wrap.
+    /// The row's label in the room its row leaves, never under one letter and the ellipsis; one line elides, and a wrapped one keeps its typed run in one styled text, so the run never stops the wrap.
     fn label(&self, line: &Line<'_>, ink: Hsla, wrapped: bool) -> Div {
+        let id = line.row.id.clone();
+        self.label_text(line, ink, wrapped)
+            .debug_selector(move || format!("settings-label-{id}"))
+            .flex_1()
+            .min_w(self.view.typeface.body * g::LABEL_FLOOR)
+            .overflow_hidden()
+    }
+
+    fn label_text(&self, line: &Line<'_>, ink: Hsla, wrapped: bool) -> Div {
         let run = line.run.map(|run| (run.start, run.length));
         let text = self.text(line.row);
         if !wrapped {
-            return washed(&text, run, line.lifted, self.ink.wash14, 0.).text_color(ink);
+            let label = washed(&text, run, line.lifted, self.ink.wash14, 0.);
+            return label.text_color(ink).whitespace_nowrap().text_ellipsis();
         }
         let at = |chars: usize| {
             text.char_indices()
@@ -135,9 +145,7 @@ impl Rows<'_> {
             .map(|(start, length)| (at(start)..at(start + length), style))
             .into_iter()
             .collect();
-        let id = line.row.id.clone();
         div()
-            .debug_selector(move || format!("settings-label-{id}"))
             .line_height(px(self.s().line(g::WRAP_LINE)))
             .text_color(ink)
             .child(StyledText::new(text).with_highlights(runs))
@@ -397,12 +405,7 @@ impl Rows<'_> {
                         if error { ink.error } else { ink.muted_frame },
                     )),
             )
-            .child(
-                self.label(line, if error { ink.error } else { ink.foreground }, false)
-                    .flex_1()
-                    .min_w_0()
-                    .overflow_hidden(),
-            )
+            .child(self.label(line, if error { ink.error } else { ink.foreground }, false))
             .child(
                 div()
                     .max_w(px(width * 0.46))
@@ -516,12 +519,7 @@ impl Rows<'_> {
             .gap(self.px(GAP))
             .px(self.px(PAD_X))
             .child(self.slot(row))
-            .child(
-                self.label(line, label_ink, wrapped)
-                    .flex_1()
-                    .min_w_0()
-                    .overflow_hidden(),
-            )
+            .child(self.label(line, label_ink, wrapped))
             .when(shows_value, |line| line.child(value))
             .when(!row.caption.is_empty(), |line| {
                 line.child(

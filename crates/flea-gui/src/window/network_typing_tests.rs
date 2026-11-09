@@ -214,33 +214,6 @@ fn fix_nettype_typed_text_lands_in_host_share_and_username(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn fix_nettype_mounts_as_line_reads_the_typed_share(cx: &mut TestAppContext) {
-    let (card, cx) = opened(cx);
-    cx.simulate_input("nas");
-    cx.simulate_keystrokes("tab tab");
-    cx.simulate_input("media");
-    cx.simulate_keystrokes("tab tab");
-    cx.simulate_input("gm");
-    frame(cx);
-    cx.update(|_, cx| {
-        let view = card.read(cx);
-        assert_eq!(view.model.form.uri().as_deref(), Some("smb://gm@nas/media"));
-        let drawn = view.drawn.borrow();
-        let line: Vec<_> = drawn
-            .text
-            .iter()
-            .filter(|text| text.field.is_none() && text.rect.x == 17. && text.rect.y == 523.)
-            .map(|text| text.source.to_string())
-            .collect();
-        assert_eq!(
-            line,
-            ["Mounts as smb://gm@nas/media"],
-            "the Mounts as line under the fields carries the typed share"
-        );
-    });
-}
-
-#[gpui::test]
 fn fix_nettype_space_lands_in_a_text_field(cx: &mut TestAppContext) {
     let (card, cx) = opened(cx);
     cx.simulate_keystrokes("tab tab");
@@ -383,3 +356,6 @@ fn fix_nettype_space_on_a_button_presses_it(cx: &mut TestAppContext) {
         "space on Cancel closes the card"
     );
 }
+
+#[path = "network_uri_ink_tests.rs"]
+mod uri_ink;

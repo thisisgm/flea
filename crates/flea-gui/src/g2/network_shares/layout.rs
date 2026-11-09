@@ -308,6 +308,10 @@ impl Drawn {
                 false,
                 window,
             );
+            // The board draws the address in the foreground after the muted words.
+            if let Some(at) = w.mounts_as.find("%1") {
+                out.ink_piece(at..at + uri.len(), p.foreground);
+            }
         }
         Self::status(&mut out, view, window);
         out.fit_body(body_start, view.scroll, card_w, body_h);

@@ -31,7 +31,7 @@ use flea::protocol::RowFacts;
 use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;
 
-pub use elide::elide_around;
+pub use elide::{elide_around, letters_drawn};
 
 const S_IFMT: u32 = 0o170000;
 const S_IFLNK: u32 = 0o120000;

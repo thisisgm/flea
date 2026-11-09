@@ -389,18 +389,21 @@ impl Render for SettingsView {
         let viewport = window.viewport_size();
         let s = Scale::at(&self.typeface);
         self.panel.set_scale(s);
-        let (card_w, card_h) = g::card_size(
-            f32::from(viewport.width),
-            f32::from(viewport.height),
-            self.panel.view_height,
-            s,
-        );
+        let (window_w, window_h) = (f32::from(viewport.width), f32::from(viewport.height));
+        let width = g::pane_size(g::card_size(window_w, window_h, 0., s).0, 0., s).0;
+        let lines = self.measure(self.panel.rows.iter().map(|row| (row, None)), width, window);
+        // The card is as tall as View drawn at this width, so a wrapped hint never leaves View scrolling.
+        let view = (self.panel.section != "view").then(|| self.panel.section_rows("view"));
+        let (rows, view_lines) = match &view {
+            Some(rows) => (
+                rows,
+                self.measure(rows.iter().map(|row| (row, None)), width, window),
+            ),
+            None => (&self.panel.rows, lines.clone()),
+        };
+        self.panel.view_height = g::heights(rows, &view_lines, s).iter().sum();
+        let (card_w, card_h) = g::card_size(window_w, window_h, self.panel.view_height, s);
         let pane = g::pane_size(card_w, card_h, s);
-        let lines = self.measure(
-            self.panel.rows.iter().map(|row| (row, None)),
-            pane.0,
-            window,
-        );
         self.panel.laid_out(pane, lines);
         let corner = self.panel.facts.corner;
         let left = ((f32::from(viewport.width) - card_w) / 2.).round();

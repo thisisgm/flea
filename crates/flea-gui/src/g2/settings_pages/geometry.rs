@@ -36,6 +36,10 @@ pub const FADE: f32 = 26.;
 const CUT_SHARE: f32 = 0.5;
 // LANGUAGES-SPEC: a colliding label wraps inside the row's 8px padding, and two of these line boxes make the row 51.
 pub const WRAP_LINE: f32 = 17.5;
+// A label never narrows past one letter and its ellipsis, in body sizes.
+pub const LABEL_FLOOR: f32 = 1.2;
+// LANGUAGES-SPEC wraps a label into two line boxes at most; a longer wrap elides on one line instead.
+pub const LABEL_LINES: usize = 2;
 // A control row's value and caption stop at these shares of the pane.
 pub const VALUE_SHARE: f32 = 0.56;
 pub const CAPTION_SHARE: f32 = 0.5;

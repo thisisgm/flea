@@ -27,6 +27,8 @@ mod keys;
 pub mod lines;
 pub mod menu;
 #[cfg(test)]
+mod menu_settle_tests;
+#[cfg(test)]
 mod menured_tests;
 mod notice;
 mod owners;

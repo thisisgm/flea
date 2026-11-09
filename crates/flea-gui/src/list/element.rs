@@ -1,7 +1,7 @@
 //! The List Element: one custom Element for the whole pane, fixed-height rows painted as quads, marks and pre-shaped lines.
 pub use super::painted_row::{DropLine, Shown};
-pub use super::row_text::drawn_name;
 use super::row_text::{bold_name, prepare};
+pub use super::row_text::{drawn_letters, drawn_name};
 use super::{
     columns::{Column, Layout},
     pane::Held,
@@ -442,11 +442,10 @@ impl Element for ListElement {
                         ));
                         continue;
                     };
-                    // At rest a match run sits on the accent wash; the cursor row draws it bold instead.
-                    let (Some((start, end)), true) = (prepared.run, s.washes_run(view.searching))
-                    else {
+                    // At rest each matched stretch sits on the accent wash; the cursor row draws it bold instead.
+                    if prepared.letters.is_empty() || !s.washes_run(view.searching) {
                         continue;
-                    };
+                    }
                     let line = prepared.name.line();
                     let step = self
                         .held
@@ -456,17 +455,19 @@ impl Element for ListElement {
                     let limit = left + px(layout.name.x + layout.name.width);
                     let height = line.ascent + line.descent;
                     let y = top + (px(row) - height) / 2.;
-                    let Some((run_start, run_end)) =
-                        crate::g2::file_search::run::wash_span(line, Some((start, end)), false)
-                    else {
-                        continue;
-                    };
-                    let from = (x + run_start).min(limit);
-                    let to = (x + run_end).min(limit);
-                    window.paint_quad(fill(
-                        Bounds::from_corners(point(from, y), point(to, y + height)),
-                        palette.accent.opacity(MATCH_WASH),
-                    ));
+                    for &letters in &prepared.letters {
+                        let Some((run_start, run_end)) =
+                            crate::g2::file_search::run::wash_span(line, Some(letters), false)
+                        else {
+                            continue;
+                        };
+                        let from = (x + run_start).min(limit);
+                        let to = (x + run_end).min(limit);
+                        window.paint_quad(fill(
+                            Bounds::from_corners(point(from, y), point(to, y + height)),
+                            palette.accent.opacity(MATCH_WASH),
+                        ));
+                    }
                 }
                 // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
                 let (

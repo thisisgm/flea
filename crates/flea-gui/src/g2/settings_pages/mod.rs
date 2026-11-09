@@ -5,6 +5,8 @@ mod about_logo_gap64_tests;
 mod board_strings;
 #[cfg(test)]
 mod board_tests;
+#[cfg(test)]
+mod card_height_tests;
 pub mod claim;
 mod draw;
 pub mod geometry;
@@ -51,6 +53,8 @@ mod sheet_tests;
 mod sheet_view;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tiny_window_tests;
 pub mod view;
 mod view_head;
 #[cfg(test)]

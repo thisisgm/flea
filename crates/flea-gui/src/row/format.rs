@@ -97,10 +97,16 @@ pub fn permissions(mode: u32) -> String {
         .collect()
 }
 
-/// Match.run(): where a case-insensitive needle starts in a name, as a byte range safe to slice.
+/// Match.run(): where a case-insensitive needle starts in a name, as a byte range safe to slice; a close match spans its first to its last matched letter.
 pub fn match_run(hay: &str, needle: &str) -> Option<(usize, usize)> {
+    let letters = match_letters(hay, needle);
+    Some((letters.first()?.0, letters.last()?.1))
+}
+
+/// The matched letters of a name as byte ranges: one for a case-insensitive substring, each stretch the close matcher kept otherwise.
+pub fn match_letters(hay: &str, needle: &str) -> Vec<(usize, usize)> {
     if needle.is_empty() {
-        return None;
+        return Vec::new();
     }
     let lower = needle.to_lowercase();
     let mut folded = String::with_capacity(hay.len());
@@ -112,25 +118,32 @@ pub fn match_run(hay: &str, needle: &str) -> Option<(usize, usize)> {
         }
     }
     let Some(at) = folded.find(&lower) else {
-        let close = flea::ui_logic_listing_filter::matcher::Matcher::new(needle)?.close(hay)?;
-        let start = close.runs.first()?.start;
-        let last = close.runs.last()?;
-        let end = last.start + last.len;
+        let Some(close) = flea::ui_logic_listing_filter::matcher::Matcher::new(needle)
+            .and_then(|mut matcher| matcher.close(hay))
+        else {
+            return Vec::new();
+        };
         let byte = |at| {
             hay.char_indices()
                 .nth(at)
                 .map_or(hay.len(), |(byte, _)| byte)
         };
-        return Some((byte(start), byte(end)));
+        return close
+            .runs
+            .iter()
+            .map(|run| (byte(run.start), byte(run.start + run.len)))
+            .collect();
     };
     let chars_before = folded[..at].chars().count();
     let chars_in = lower.chars().count();
-    let start = *starts.get(chars_before)?;
+    let Some(&start) = starts.get(chars_before) else {
+        return Vec::new();
+    };
     let end = starts
         .get(chars_before + chars_in)
         .copied()
         .unwrap_or(hay.len());
-    Some((start, end.max(start)))
+    vec![(start, end.max(start))]
 }
 
 // glibc's struct tm, which localtime_r fills whole and mktime reads back; Rust itself reads only mday.
@@ -200,6 +213,29 @@ mod tests {
         assert_eq!(super::match_run("notes.txt", "zzzzz"), None);
         let (start, end) = super::match_run("\u{e9}notes.txt", "\u{e9}ntoes").unwrap();
         assert_eq!(&"\u{e9}notes.txt"[start..end], "\u{e9}notes");
+    }
+
+    /// S10V-10: a close match washes its matched letters only, never the letters between them (filter-close, CHANGES line 372).
+    #[test]
+    fn s10v10_a_close_match_washes_only_its_matched_letters() {
+        let name = "a-very-long-file-name-that-goes-on-past-the-name-column.txt";
+        let letters = super::match_letters(name, "note");
+        let washed: String = letters.iter().map(|&(a, b)| &name[a..b]).collect();
+        assert_eq!(washed, "note", "{letters:?}");
+        let (start, end) = super::match_run(name, "note").unwrap();
+        assert_eq!((letters[0].0, letters.last().unwrap().1), (start, end));
+        assert!(
+            end - start > 4,
+            "the span still reaches from the first to the last letter, for elision"
+        );
+        assert_eq!(super::match_letters("todo.md", "DO"), vec![(2, 4)]);
+        assert_eq!(super::match_letters("a.txt", "zz"), Vec::new());
+        let letters = super::match_letters("\u{e9}notes.txt", "\u{e9}nts");
+        let washed: String = letters
+            .iter()
+            .map(|&(a, b)| &"\u{e9}notes.txt"[a..b])
+            .collect();
+        assert_eq!(washed, "\u{e9}nts");
     }
 
     use super::*;

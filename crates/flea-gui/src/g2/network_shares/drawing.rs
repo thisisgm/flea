@@ -127,6 +127,51 @@ impl Drawn {
             clip: None,
         });
     }
+    /// Draws the bytes `piece` of the last label in `ink`, cut from the same shaped line, so the line keeps its shape.
+    pub(super) fn ink_piece(&mut self, piece: std::ops::Range<usize>, ink: Hsla) {
+        let Some(last) = self.text.last_mut() else {
+            return;
+        };
+        let line = last.run.line().clone();
+        let part = |inside: bool| {
+            std::sync::Arc::new(gpui::LineLayout {
+                font_size: line.font_size,
+                width: line.width,
+                ascent: line.ascent,
+                descent: line.descent,
+                runs: line
+                    .runs
+                    .iter()
+                    .map(|run| gpui::ShapedRun {
+                        font_id: run.font_id,
+                        glyphs: run
+                            .glyphs
+                            .iter()
+                            .filter(|glyph| piece.contains(&glyph.index) == inside)
+                            .cloned()
+                            .collect(),
+                    })
+                    .collect(),
+                len: line.len,
+            })
+        };
+        last.run = GlyphRun::new(part(false));
+        let text = Text {
+            field: last.field,
+            rect: last.rect,
+            #[cfg(test)]
+            source: last
+                .source
+                .get(piece.clone())
+                .unwrap_or_default()
+                .to_owned()
+                .into(),
+            run: GlyphRun::new(part(true)),
+            ink,
+            clip: last.clip,
+        };
+        self.text.push(text);
+    }
     pub(super) fn control(&mut self, focus: Focus, rect: Rect, selected: bool, view: &NetworkView) {
         let p = view.palette;
         let current = view.model.focus == focus;

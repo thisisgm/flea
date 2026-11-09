@@ -74,6 +74,8 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     // AirDrop's devices, board 0401-airdrop-menu's phone and laptop cut to the Omarchy edge; appended so FILE keeps its index.
     ("smartphone", "flea-menu:smartphone", cut!("M5 2h14v20H5z M12 18L12.01 18")),
     ("laptop", "flea-menu:laptop", cut!("M4 5h16v11H4z M2 20h20")),
+    // Copy As > Relative Path, board 0401-copyas-relative's corner-down-right cut to the Omarchy edge; appended so FILE keeps its index.
+    ("corner-down-right", "flea-menu:corner-down-right", cut!("M15 10l5 5-5 5 M4 4v11h16")),
 ];
 
 // The cuts mn2 hands the join as data (Verify Checksum's hash), drawn with the same stroke as CUT.

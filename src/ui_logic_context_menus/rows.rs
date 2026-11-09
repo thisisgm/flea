@@ -151,7 +151,7 @@ pub fn copy_as_entries() -> Vec<Entry> {
             .with_glyph("file-text")
             .with_key_hint("p"),
         Entry::leaf("copyRelative", Text::Key("menu.copy_as.relative"))
-            .with_glyph("file")
+            .with_glyph("corner-down-right")
             .with_key_hint("r"),
         Entry::leaf("copyName", Text::Key("menu.copy_as.name"))
             .with_glyph("type")
