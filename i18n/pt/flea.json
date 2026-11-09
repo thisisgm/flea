@@ -1549,6 +1549,7 @@
   "send.providers.airdrop_accept": "Aceitar",
   "send.providers.airdrop_decline": "Recusar",
   "send.providers.airdrop_someone": "Um dispositivo próximo",
+  "send.providers.airdrop_received": "Recebido com o AirDrop: %1",
   "send.rclone.row": "Enviar com o rclone",
   "send.rclone.title": {
     "one": "Enviar %1 item para %2",

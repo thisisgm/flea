@@ -2006,6 +2006,7 @@
   "send.providers.airdrop_accept": "Прихвати",
   "send.providers.airdrop_decline": "Одбиј",
   "send.providers.airdrop_someone": "Уређај у близини",
+  "send.providers.airdrop_received": "Примљено преко AirDrop-а: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Отказивање",
   "send.rclone.checked_checksum": "проверено контролном сумом",

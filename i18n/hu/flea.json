@@ -1495,6 +1495,7 @@
   "send.providers.airdrop_accept": "Elfogadás",
   "send.providers.airdrop_decline": "Elutasítás",
   "send.providers.airdrop_someone": "Egy közeli eszköz",
+  "send.providers.airdrop_received": "AirDroppal fogadva: %1",
   "send.rclone.row": "Küldés rclone-nal",
   "send.rclone.title": {
     "one": "%1 elem küldése ide: %2",

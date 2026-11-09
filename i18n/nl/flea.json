@@ -483,6 +483,7 @@
   "send.providers.airdrop_accept": "Accepteren",
   "send.providers.airdrop_decline": "Weigeren",
   "send.providers.airdrop_someone": "Een apparaat in de buurt",
+  "send.providers.airdrop_received": "Ontvangen met AirDrop: %1",
   "trash.unknown": "Onbekend",
   "dialogs.file.permissions.will_change": "Wordt gewijzigd",
   "dialogs.file.permissions.write": "Schrijven",

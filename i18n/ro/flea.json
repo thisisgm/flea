@@ -1966,6 +1966,7 @@
   "send.providers.airdrop_accept": "Acceptă",
   "send.providers.airdrop_decline": "Refuză",
   "send.providers.airdrop_someone": "Un dispozitiv din apropiere",
+  "send.providers.airdrop_received": "Primit cu AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Se anulează",
   "send.rclone.checked_checksum": "verificat prin sumă de control",

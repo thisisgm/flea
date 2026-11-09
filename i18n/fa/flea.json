@@ -1885,6 +1885,7 @@
   "send.providers.airdrop_accept": "پذیرفتن",
   "send.providers.airdrop_decline": "رد کردن",
   "send.providers.airdrop_someone": "یک دستگاه نزدیک",
+  "send.providers.airdrop_received": "⁨%1⁩ با AirDrop دریافت شد",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "در حال لغو",
   "send.rclone.checked_checksum": "با جمع کنترلی بررسی شد",

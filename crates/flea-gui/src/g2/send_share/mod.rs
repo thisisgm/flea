@@ -2,7 +2,11 @@
 mod activation;
 pub(crate) mod airdrop;
 pub(crate) mod airdrop_join;
-pub(crate) mod airdrop_pids;
+pub mod airdrop_pids;
+mod airdrop_run;
+pub(crate) mod airdrop_shared;
+#[cfg(test)]
+mod airdrop_standin_tests;
 mod dropbox_status;
 pub mod ipc;
 pub(crate) mod join;

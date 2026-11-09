@@ -1441,6 +1441,7 @@
   "send.providers.airdrop_accept": "Terima",
   "send.providers.airdrop_decline": "Tolak",
   "send.providers.airdrop_someone": "Peranti berdekatan",
+  "send.providers.airdrop_received": "Diterima dengan AirDrop: %1",
   "send.rclone.row": "Hantar dengan rclone",
   "send.rclone.title": {
     "other": "Hantar %1 item ke %2"

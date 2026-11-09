@@ -134,8 +134,8 @@ pub enum Request {
     MenuAction { line: String, rows: Vec<usize> },
     // Directive 71: op is "peers" for the flyout's own list and "send" for the transfer it chooses.
     LocalSend { op: String, peer: String, paths: Vec<String>, id: usize },
-    // One AirDrop send to the device named; see docs/protocol.md "airdrop".
-    AirDrop { peer: String, paths: Vec<String>, id: usize },
+    // One AirDrop send to the device named, by service ID, headed by its name; see docs/protocol.md "airdrop".
+    AirDrop { peer: String, name: String, paths: Vec<String>, id: usize },
     Nearby { op: String, id: usize },
     Plugins { line: String },
     NetworkAddress { address: String, id: usize },

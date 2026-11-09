@@ -1885,6 +1885,7 @@
   "send.providers.airdrop_accept": "Godta",
   "send.providers.airdrop_decline": "Avslå",
   "send.providers.airdrop_someone": "En enhet i nærheten",
+  "send.providers.airdrop_received": "Mottok %1 med AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Avbryter",
   "send.rclone.checked_checksum": "kontrollert med sjekksum",

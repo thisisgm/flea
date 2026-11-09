@@ -190,10 +190,10 @@ fn every_run_is_bounded_and_files_follow_the_double_dash() {
 
 #[test]
 fn the_send_request_and_its_answer_round_trip_and_each_answer_has_its_sentence() {
-    let line = send_line(3, "Jane's \"iPhone\"", &["/a/b c.png".to_string()]);
+    let line = send_line(3, "3a9f", "Jane's \"iPhone\"", &["/a/b c.png".to_string()]);
     assert_eq!(
         line,
-        r#"{"c":"airdrop","op":"send","id":3,"peer":"Jane's \"iPhone\"","paths":["/a/b c.png"]}"#
+        r#"{"c":"airdrop","op":"send","id":3,"peer":"3a9f","name":"Jane's \"iPhone\"","paths":["/a/b c.png"]}"#
     );
     let answer = r#"{"t":"airdropsent","id":3,"ok":false,"code":"failed","reason":"timed out"}"#;
     assert_eq!(

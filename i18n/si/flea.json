@@ -1924,6 +1924,7 @@
   "send.providers.airdrop_accept": "පිළිගන්න",
   "send.providers.airdrop_decline": "ප්‍රතික්ෂේප කරන්න",
   "send.providers.airdrop_someone": "අසල ඇති උපාංගයක්",
+  "send.providers.airdrop_received": "AirDrop සමඟ %1 ලැබුණා",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "අවලංගු කරමින්",
   "send.rclone.checked_checksum": "පිරික්සුම් එකතුවෙන් පරීක්ෂා කළා",

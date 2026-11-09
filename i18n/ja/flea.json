@@ -1773,6 +1773,7 @@
   "send.providers.airdrop_accept": "受け入れる",
   "send.providers.airdrop_decline": "拒否",
   "send.providers.airdrop_someone": "近くのデバイス",
+  "send.providers.airdrop_received": "AirDrop で %1 を受信しました",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "キャンセル中",
   "send.rclone.checked_checksum": "チェックサムで確認済み",

@@ -1842,6 +1842,7 @@
   "send.providers.airdrop_accept": "Chấp nhận",
   "send.providers.airdrop_decline": "Từ chối",
   "send.providers.airdrop_someone": "Một thiết bị ở gần",
+  "send.providers.airdrop_received": "Đã nhận %1 bằng AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Đang hủy",
   "send.rclone.checked_checksum": "đã kiểm tra bằng tổng kiểm",

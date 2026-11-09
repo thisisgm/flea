@@ -2006,6 +2006,7 @@
   "send.providers.airdrop_accept": "Prijať",
   "send.providers.airdrop_decline": "Odmietnuť",
   "send.providers.airdrop_someone": "Zariadenie nablízku",
+  "send.providers.airdrop_received": "Prijaté cez AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Ruší sa",
   "send.rclone.checked_checksum": "overené kontrolným súčtom",

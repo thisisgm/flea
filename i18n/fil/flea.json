@@ -1885,6 +1885,7 @@
   "send.providers.airdrop_accept": "Tanggapin",
   "send.providers.airdrop_decline": "Tanggihan",
   "send.providers.airdrop_someone": "Isang device sa malapit",
+  "send.providers.airdrop_received": "Natanggap ang %1 gamit ang AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Kinakansela",
   "send.rclone.checked_checksum": "nasuri ayon sa checksum",

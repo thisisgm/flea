@@ -1885,6 +1885,7 @@
   "send.providers.airdrop_accept": "स्वीकार करें",
   "send.providers.airdrop_decline": "अस्वीकार करें",
   "send.providers.airdrop_someone": "पास का एक डिवाइस",
+  "send.providers.airdrop_received": "AirDrop से प्राप्त: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "रद्द कर रहे हैं",
   "send.rclone.checked_checksum": "चेकसम से जाँचा गया",

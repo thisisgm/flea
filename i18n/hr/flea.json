@@ -1966,6 +1966,7 @@
   "send.providers.airdrop_accept": "Prihvati",
   "send.providers.airdrop_decline": "Odbij",
   "send.providers.airdrop_someone": "Uređaj u blizini",
+  "send.providers.airdrop_received": "Primljeno putem AirDropa: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Otkazivanje",
   "send.rclone.checked_checksum": "provjereno kontrolnim zbrojem",

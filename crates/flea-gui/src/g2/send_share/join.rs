@@ -29,8 +29,9 @@ pub(crate) struct Senders {
     pub(super) account: [dropbox::Account; 2],
     pub(super) destination: [Option<bool>; 2],
     pub(super) activation: Option<super::activation::Activation>,
-    pub(crate) airdrop: super::airdrop::AirDrop,
+    // Dropped first: a closing window waits for owly's teardown before it lets go of the machine's radio.
     pub(crate) airdrop_pids: super::airdrop_pids::Pids,
+    pub(crate) airdrop: super::airdrop::AirDrop,
     // The host name the AirDrop page shows, read each time Settings shows the page.
     pub(crate) airdrop_host: String,
     chosen: Option<Subscription>,

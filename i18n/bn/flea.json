@@ -1924,6 +1924,7 @@
   "send.providers.airdrop_accept": "গ্রহণ করুন",
   "send.providers.airdrop_decline": "প্রত্যাখ্যান করুন",
   "send.providers.airdrop_someone": "কাছাকাছি একটি ডিভাইস",
+  "send.providers.airdrop_received": "AirDrop দিয়ে %1 পাওয়া গেছে",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "বাতিল হচ্ছে",
   "send.rclone.checked_checksum": "চেকসাম দিয়ে যাচাই হয়েছে",

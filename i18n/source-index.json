@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "84eb2275032e1d5ced6f8f37465c7c01ac6812a7244f41294c123d010e2e7ca8",
-  "catalog_sha256": "512a392563cd3c240dc08beec05d5be491bdf6ae4b88ef9f992ca37ab1b30d9d",
+  "catalog_file_sha256": "a391c214805113b68357ff8fd311a1550524a8c3961925c14ed9470c7274b50b",
+  "catalog_sha256": "229d154b8160db3879858c769aa7d1d75d09ee2b20f45327e82aab1cf04ac08b",
   "counts": {
     "direct_references": 0,
-    "keys": 2279,
+    "keys": 2280,
     "plurals": 106
   },
   "direct_references": {},
@@ -3603,6 +3603,36 @@
       "expression": "key",
       "line": 134,
       "path": "src/ui_logic_send_share/airdrop.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "RECEIVED",
+      "line": 112,
+      "path": "src/ui_logic_send_share/airdrop_ask.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "RECEIVED",
+      "line": 115,
+      "path": "src/ui_logic_send_share/airdrop_ask.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "RECEIVED",
+      "line": 117,
+      "path": "src/ui_logic_send_share/airdrop_ask.rs",
       "pattern": null,
       "possible_keys": [],
       "surface": "core/backend"
@@ -61526,8 +61556,15 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "let what = i18n.trn(\"items.count\", count as i64);",
+          "line": 114,
+          "path": "src/ui_logic_send_share/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "files => i18n.trn(\"items.count\", files.len() as i64),",
-          "line": 94,
+          "line": 141,
           "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -86926,7 +86963,7 @@
         },
         {
           "excerpt": "&[&i18n.tr(\"plugins.airdrop.adapter.missing\")],",
-          "line": 314,
+          "line": 315,
           "path": "src/ui_logic_send_share/airdrop.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -87135,7 +87172,7 @@
       "call_sites": [
         {
           "excerpt": "self.locale.catalog.tr(\"plugins.airdrop.folder\"),",
-          "line": 365,
+          "line": 229,
           "path": "crates/flea-gui/src/g2/send_share/airdrop_join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -93912,7 +93949,7 @@
       "call_sites": [
         {
           "excerpt": "&i18n.tr(\"send.providers.airdrop_accept\"),",
-          "line": 144,
+          "line": 191,
           "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -93934,7 +93971,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"send.providers.airdrop_asks\", &[&who, &what])",
-          "line": 96,
+          "line": 143,
           "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -93959,7 +93996,7 @@
       "call_sites": [
         {
           "excerpt": "&i18n.tr(\"send.providers.airdrop_decline\"),",
-          "line": 145,
+          "line": 192,
           "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -94063,8 +94100,15 @@
         },
         {
           "excerpt": "\"send.providers.airdrop_reason\",",
-          "line": 313,
+          "line": 314,
           "path": "src/ui_logic_send_share/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "i18n.tr_args(\"send.providers.airdrop_reason\", &[reason]),",
+          "line": 119,
+          "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         }
@@ -94082,6 +94126,30 @@
       "resolved_sha256": "93e5aca71691fa0ce7a27f0ae5700fffb3f389c0c39ed876ebf98bc5119a5ed4",
       "resolved_source_hash": "e2c8b8d1f97b",
       "source_hash": "e2c8b8d1f97b"
+    },
+    "send.providers.airdrop_received": {
+      "call_sites": [
+        {
+          "excerpt": "const RECEIVED: &str = \"send.providers.airdrop_received\";",
+          "line": 16,
+          "path": "src/ui_logic_send_share/airdrop_ask.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "send.providers.airdrop_received: src/ui_logic_send_share/airdrop_ask.rs:16",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Received %1 with AirDrop",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Received %1 with AirDrop",
+      "resolved_sha256": "0aae857483e981d489ccf332d2e40b0acffa497470ac0165c2404d8dcefd0840",
+      "resolved_source_hash": "8a4dbdd09a1d",
+      "source_hash": "8a4dbdd09a1d"
     },
     "send.providers.airdrop_sending": {
       "call_sites": [
@@ -94112,7 +94180,7 @@
       "call_sites": [
         {
           "excerpt": "\"\" => i18n.tr(\"send.providers.airdrop_someone\"),",
-          "line": 89,
+          "line": 136,
           "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -94136,6 +94204,13 @@
           "excerpt": "i18n.tr(\"send.providers.airdrop_unfinished\")",
           "line": 261,
           "path": "src/ui_logic_send_share/airdrop.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "Heard::Failed(_) | Heard::Withdrawn => (i18n.tr(\"send.providers.airdrop_unfinished\"), true),",
+          "line": 122,
+          "path": "src/ui_logic_send_share/airdrop_ask.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         }
@@ -94244,21 +94319,21 @@
       "call_sites": [
         {
           "excerpt": "Act::Say(i18n.tr(\"send.providers.menu_stale\"), true),",
-          "line": 156,
+          "line": 193,
           "path": "crates/flea-gui/src/g2/send_share/airdrop.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let stale = vec![Act::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 259,
+          "line": 329,
           "path": "crates/flea-gui/src/g2/send_share/airdrop.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "vec![Action::Say(catalog.tr(\"send.providers.menu_stale\"), true)]",
-          "line": 369,
+          "line": 370,
           "path": "crates/flea-gui/src/g2/send_share/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -94300,7 +94375,7 @@
         },
         {
           "excerpt": "\"stale\" => i18n.tr(\"send.providers.menu_stale\"),",
-          "line": 311,
+          "line": 312,
           "path": "src/ui_logic_send_share/airdrop.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -117868,20 +117943,65 @@
       "surface": "gui"
     },
     {
-      "excerpt": "eprintln!(\"flea: AirDrop could not run {program} doctor: {error}\");",
-      "line": 137,
-      "literal": "flea: AirDrop could not run {program} doctor: {error}",
+      "excerpt": "eprintln!(\"flea: the folder chooser {binary:?} did not start: {error}\")",
+      "line": 241,
+      "literal": "flea: the folder chooser {binary:?} did not start: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_join.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
-      "excerpt": "eprintln!(\"flea: the folder chooser {binary:?} did not start: {error}\")",
-      "line": 377,
-      "literal": "flea: the folder chooser {binary:?} did not start: {error}",
+      "excerpt": "eprintln!(\"flea: AirDrop holds owly's process {pid} by its pid alone: {error}\");",
+      "line": 92,
+      "literal": "flea: AirDrop holds owly's process {pid} by its pid alone: {error}",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/send_share/airdrop_join.rs",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_pids.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea: AirDrop could not run {program} doctor: {error}\");",
+      "line": 41,
+      "literal": "flea: AirDrop could not run {program} doctor: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_run.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "Radio::On => \"on\",",
+      "line": 52,
+      "literal": "on",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".inspect_err(|error| eprintln!(\"flea: AirDrop keeps to this window: {error}\"))",
+      "line": 89,
+      "literal": "flea: AirDrop keeps to this window: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "Some(\"on\") => Radio::On,",
+      "line": 123,
+      "literal": "on",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "eprintln!(\"flea: AirDrop could not share its state: {error}\");",
+      "line": 177,
+      "literal": "flea: AirDrop could not share its state: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -141719,7 +141839,7 @@
     },
     {
       "excerpt": "reason: \"checking target\".into(),",
-      "line": 65,
+      "line": 66,
       "literal": "checking target",
       "owner": "controller",
       "path": "src/backend/jobstart.rs",
@@ -141845,7 +141965,7 @@
     },
     {
       "excerpt": "return Err(\"A failed item changed; it was not retried.\".into());",
-      "line": 114,
+      "line": 116,
       "literal": "A failed item changed; it was not retried.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141854,7 +141974,7 @@
     },
     {
       "excerpt": "return Err(\"No unchanged failed items can be retried.\".into());",
-      "line": 119,
+      "line": 121,
       "literal": "No unchanged failed items can be retried.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141863,7 +141983,7 @@
     },
     {
       "excerpt": "return Err(\"The archive must be retried as one operation.\".into());",
-      "line": 152,
+      "line": 154,
       "literal": "The archive must be retried as one operation.",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141872,7 +141992,7 @@
     },
     {
       "excerpt": "\"operation cancelled\"",
-      "line": 184,
+      "line": 186,
       "literal": "operation cancelled",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141881,7 +142001,7 @@
     },
     {
       "excerpt": "\"cancelled\"",
-      "line": 186,
+      "line": 188,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141890,7 +142010,7 @@
     },
     {
       "excerpt": "Self::Send { request, airdrop: true, .. } => airdropsend::sent_line(*request, \"cancelled\", \"\"),",
-      "line": 189,
+      "line": 191,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -141899,7 +142019,7 @@
     },
     {
       "excerpt": "r#\"{{\"t\":\"localsendsent\",\"id\":{},\"ok\":false,\"reason\":\"Send cancelled.\"}}\"#,",
-      "line": 191,
+      "line": 193,
       "literal": "{{\"t\":\"localsendsent\",\"id\":{},\"ok\":false,\"reason\":\"Send cancelled.\"}}",
       "owner": "controller",
       "path": "src/backend/jobwork.rs",
@@ -158441,7 +158561,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 453,
+      "line": 454,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158450,7 +158570,7 @@
     },
     {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 835,
+      "line": 836,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158459,7 +158579,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 841,
+      "line": 842,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158468,7 +158588,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1105,
+      "line": 1106,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158477,7 +158597,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1106,
+      "line": 1107,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158486,7 +158606,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1108,
+      "line": 1109,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158495,7 +158615,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1109,
+      "line": 1110,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158504,7 +158624,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1110,
+      "line": 1111,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158513,7 +158633,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1117,
+      "line": 1118,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158522,7 +158642,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1118,
+      "line": 1119,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158531,7 +158651,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1120,
+      "line": 1121,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158540,7 +158660,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1122,
+      "line": 1123,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158549,7 +158669,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1123,
+      "line": 1124,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158558,7 +158678,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1124,
+      "line": 1125,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158567,7 +158687,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1125,
+      "line": 1126,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158576,7 +158696,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1125,
+      "line": 1126,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158585,7 +158705,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1126,
+      "line": 1127,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158594,7 +158714,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1164,
+      "line": 1165,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158603,7 +158723,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1165,
+      "line": 1166,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158612,7 +158732,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1168,
+      "line": 1169,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158621,7 +158741,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1169,
+      "line": 1170,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158630,7 +158750,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1173,
+      "line": 1174,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158639,7 +158759,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1176,
+      "line": 1177,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158648,7 +158768,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1177,
+      "line": 1178,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158657,7 +158777,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1181,
+      "line": 1182,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158666,7 +158786,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1182,
+      "line": 1183,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158675,7 +158795,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1183,
+      "line": 1184,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158684,7 +158804,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1184,
+      "line": 1185,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158693,7 +158813,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1185,
+      "line": 1186,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158702,7 +158822,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1186,
+      "line": 1187,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158711,7 +158831,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1187,
+      "line": 1188,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158720,7 +158840,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1202,
+      "line": 1203,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158729,7 +158849,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1203,
+      "line": 1204,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158738,7 +158858,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1204,
+      "line": 1205,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158747,7 +158867,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1212,
+      "line": 1213,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158756,7 +158876,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1213,
+      "line": 1214,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158765,7 +158885,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1214,
+      "line": 1215,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158774,7 +158894,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1215,
+      "line": 1216,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -185675,7 +185795,7 @@
     },
     {
       "excerpt": "\"cancelled\" => return None,",
-      "line": 310,
+      "line": 311,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_send_share/airdrop.rs",
@@ -185684,7 +185804,7 @@
     },
     {
       "excerpt": "\"missing\" => i18n.tr_args(",
-      "line": 312,
+      "line": 313,
       "literal": "missing",
       "owner": "controller",
       "path": "src/ui_logic_send_share/airdrop.rs",
@@ -185692,8 +185812,26 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "const FAILED: &str = \"transfer failed: \";",
+      "line": 13,
+      "literal": "transfer failed: ",
+      "owner": "controller",
+      "path": "src/ui_logic_send_share/airdrop_ask.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "const WITHDRAWN: &str = \"the request was withdrawn\";",
+      "line": 14,
+      "literal": "the request was withdrawn",
+      "owner": "controller",
+      "path": "src/ui_logic_send_share/airdrop_ask.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let head = line.trim_end().strip_suffix(\" wants to send:\")?;",
-      "line": 22,
+      "line": 27,
       "literal": " wants to send:",
       "owner": "controller",
       "path": "src/ui_logic_send_share/airdrop_ask.rs",
@@ -185702,7 +185840,7 @@
     },
     {
       "excerpt": "\"AirDrop\".into(),",
-      "line": 111,
+      "line": 158,
       "literal": "AirDrop",
       "owner": "controller",
       "path": "src/ui_logic_send_share/airdrop_ask.rs",
@@ -251136,14 +251274,17 @@
     "crates/flea-gui/src/g2/rclone_send/seams.rs": "c73fcd8e41f136e07286ea6ee26a5cc6d3fca819c0c759eb40d42fefd58442e8",
     "crates/flea-gui/src/g2/rclone_send/sweep.rs": "5571f45759e3227efc363a61b60a0c7ec8079cace7626b6b54ff8314b1f8fcdb",
     "crates/flea-gui/src/g2/send_share/activation.rs": "752793714fabbadeb2473a18cb082481e3ef1e690267e4fa1c524f4ed903cd2d",
-    "crates/flea-gui/src/g2/send_share/airdrop.rs": "3b1bb891264cdbb6391842f862970c67347ac520b691648589e6735d86911f67",
-    "crates/flea-gui/src/g2/send_share/airdrop_join.rs": "75ba88089bbc3f1bd3496bdd8aca8bc435936a21c43e2edd065d0ed28c43b5b4",
-    "crates/flea-gui/src/g2/send_share/airdrop_pids.rs": "bac0bb3f7d402710bcc9bfd0addb0a8ebf8cb473eed657c20f8f335bc1eaa96a",
+    "crates/flea-gui/src/g2/send_share/airdrop.rs": "6f65e7642a7acc2f44def62568acc73097bc05064385d6c01e4feeae5d7c01dc",
+    "crates/flea-gui/src/g2/send_share/airdrop_join.rs": "3264705e8bd9073270a553086e055471f294c83fb15937341c16b443278e82f1",
+    "crates/flea-gui/src/g2/send_share/airdrop_machine.rs": "d8172edc5c6538fe2698b83a21f8528a108c1204f837e4959e81cc9e7408f367",
+    "crates/flea-gui/src/g2/send_share/airdrop_pids.rs": "c8ba72f4ac90650d83706f2c708df49f7484a27433916e9c8fd17077a832dbe9",
+    "crates/flea-gui/src/g2/send_share/airdrop_run.rs": "ed1965263837254b2bc98db5a15bacdfe73c9dbc6278c999ff2439d7e6fb13d1",
+    "crates/flea-gui/src/g2/send_share/airdrop_shared.rs": "80569039ee99f77fe6eb552980cd14364d947118cb9f032ab820cf0b56d827b2",
     "crates/flea-gui/src/g2/send_share/dropbox_status.rs": "0ec2b8a3e9bd14d2eaf2e706f40a175a50b7cf67128e3430162e462349c4be36",
     "crates/flea-gui/src/g2/send_share/ipc.rs": "998b0efe47af0b80837dbb260ec6697db421af9e4d5adc59b1f212e5ecc5c1b6",
-    "crates/flea-gui/src/g2/send_share/join.rs": "e7d04bf346d990f87b65da6be7f2db30353db33630dfdc4ee8e33f1212cc4cea",
+    "crates/flea-gui/src/g2/send_share/join.rs": "2b51c35db7d44dd775f640e88d822935d8a4ea656e6975e68270240ac01e7b50",
     "crates/flea-gui/src/g2/send_share/join_process.rs": "f170c1af9145ceb392be524758b6025223ba7da11a0a9aa0d562b440ef8bb070",
-    "crates/flea-gui/src/g2/send_share/mod.rs": "c76d085181357915b80b67307b4d8d8c8ab5909f20367ebb8314308eec5bf1f8",
+    "crates/flea-gui/src/g2/send_share/mod.rs": "6d4b611e91fdf6b98589b681c29b16a49bf09e27be62e831f78f095cfaf2605c",
     "crates/flea-gui/src/g2/send_share/picker.rs": "e817cf142cafbd846b53b0e8b95e14e70f4b816bc856d714b9d723a57031a0d4",
     "crates/flea-gui/src/g2/send_share/reader.rs": "e62ad58814451d02e9eb0fc33e6b5b067886f0d60f36e7e33d9586860d9bdb8a",
     "crates/flea-gui/src/g2/send_share/seams.rs": "5b862e299def3fe411b5a33afc037390d8738d169c74e6170006a617a32fd28f",
@@ -251355,7 +251496,7 @@
     "crates/flea-gui/src/list/text_revision.rs": "ffe2f422d576e7885af853480351c919a30ce02842bb86eb33451620c31e7cd8",
     "crates/flea-gui/src/list/typeface.rs": "def068a8d01ca204637ad4e07c72f010c22fff820ddbc26eeaee11d2d8f16afc",
     "crates/flea-gui/src/locale_geometry.rs": "fc3f1bc91397b097a8307f5cb05fab0f3575204604652f4e8b7addc167abd521",
-    "crates/flea-gui/src/main.rs": "517a313114d366ab940093515b61f5242e07b83e44c47cdf0ba1226edbe484b2",
+    "crates/flea-gui/src/main.rs": "fe3f39d8ce4308605718ab879f3701e6886df5ef08efd63bdf4c8c18befd6f34",
     "crates/flea-gui/src/navigation/anchor.rs": "06bc831536cc3aceb11e347a81150732ad897b48c70f0e218b98d5b19956ff59",
     "crates/flea-gui/src/navigation/folder_state.rs": "4409d4d2757c86f5c7647fdd3b3619132f0a36bf62dc4593d55d5ea1e7bffbe1",
     "crates/flea-gui/src/navigation/folder_state/writer.rs": "6b7a4ee78922b601a2aa83256cbe6cfc7b2b7fe6a4b81d018b90c5dfa0ea7cfa",
@@ -251838,9 +251979,9 @@
     "src/backend/jobdrive.rs": "bdc2280af9f2d7f17dd6dbb1571182a8bf5416e91e00915549306a8d86e68cf5",
     "src/backend/jobevents.rs": "1c47a925b1d93ba34cf56767c0da0bdf34b8910b3dc2dba02edb6bb5f6496b10",
     "src/backend/jobs.rs": "d084cfbf3d490456efe54b4adbb023b4210d37403e0ef4ef3f39da5f02dd0c2a",
-    "src/backend/jobstart.rs": "6f7220386f3fb0616b52ed1b16c957ecdc79f0acb3ae51eb006ea1eec104ce63",
+    "src/backend/jobstart.rs": "2078816622dded99ce3904e24c10c030bbb61a2e529838e184f6e131493f9785",
     "src/backend/jobview.rs": "b6d3bd70b2f6bcef1f345858e48b68e802fc70c4d89da569a9d9f8bb4d33bf27",
-    "src/backend/jobwork.rs": "32a19f1a6f3b376b207a03cc5b7842f8ac8f2b372d3b8b12f820ff0a9e6b56b3",
+    "src/backend/jobwork.rs": "247c2ed5a865f118b2904e1a442e5f23f46dde6365ad6b463e3c73b044ffcf0f",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "baa36b5f1736cb4ba132be7ec864eb9c248cbecad5e66620a1d25d24d45d6320",
     "src/backend/kind.rs": "29cc369380abd40ae283efe5221ce3c7d6cbddc06779bb1d7dbccecb770b1322",
@@ -251967,8 +252108,8 @@
     "src/backend/printreq.rs": "4b0e7b3959343347428ec30ebf36ba8a4148863e8f0310ac6bac1610c4e05c6d",
     "src/backend/printtool.rs": "ab7e4ad96d4dd590c3eeca873337028acc809fbbc8dce376840b3ef049b3f9e2",
     "src/backend/procwatch.rs": "02e48f8c21955f84b80ab07314f7d2fd33102cfbcf4f9b615ef20569eef01b20",
-    "src/backend/proto.rs": "1a577def8ec0918c1838ec3ad1a2a2eeca4031174a52d9ec5e71f1eb1762bc00",
-    "src/backend/protoparse.rs": "9979642bcf328bb77fb38af5fcea4e1ec749500e68134cbca3482323fe967650",
+    "src/backend/proto.rs": "ebbc374d161ce4af439a99477eccdb1f8eae85f202fe16ebee7f42d21b143260",
+    "src/backend/protoparse.rs": "1c34319a0695291f1be391647f1ee602447ef30e88a770cdf88e9b4ab61d0409",
     "src/backend/protoreply.rs": "870d85417fe7313323c4f40050bcde855bb2831595b9dd05909a3380ef009db4",
     "src/backend/providers.rs": "acdd54a6422efca9ec769858b3a49c99207889d45b64c638afe27881583e6fe1",
     "src/backend/quietpanic.rs": "edb0b36a2d1902dcfcd8f7edf18f84539f9167032e232938bc392389cedd374a",
@@ -251995,7 +252136,7 @@
     "src/backend/replacedefer.rs": "e4b6c761ebe9c6049930b23565ecf8df73ff3c35f1c15d87be76285de73c7891",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
     "src/backend/rows.rs": "80cc0ea5dadb4a14e49853dfe6bf6fff4e04544a8b3e016e2ac1afb743a77324",
-    "src/backend/run.rs": "d2edd7cf129b283dabf210755d3168f90b517979fed3e5d721d482ae71f5788b",
+    "src/backend/run.rs": "b0cfe91da7c1761057f0e33eb5c9dad8d86e7c5f9e4e85585b452ba489907999",
     "src/backend/run_rows.rs": "658281a171360ea26e46db5adf61c854f21e001ed2150ba9fe43293fb3dac696",
     "src/backend/sandbox.rs": "dff395b4721cece105d87e7ea69e5811c4a7f33d467d1fbf50763720b6a16d3d",
     "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
@@ -252596,8 +252737,8 @@
     "src/ui_logic_rclone_send/send.rs": "248846f43bb6f580a091ad5e9d9b984092a16151ec872d9ec5166f1c92d0b858",
     "src/ui_logic_rclone_send/wire.rs": "af6273f38f8308c43fde0b3910089cb853a3281d69b71f2e66bf6f6ccf4f0126",
     "src/ui_logic_send_share.rs": "6b88e42aea2b3860511108c2995d92d27a6561d279ed601b052dc500701b7383",
-    "src/ui_logic_send_share/airdrop.rs": "80a621927e2b9d130bab4beb05a2ef8751c239447454047b7dc297615000845a",
-    "src/ui_logic_send_share/airdrop_ask.rs": "2c5f058fcf84de4472c161c6a343d4e84edb88734c2db51cbdf612865a27861a",
+    "src/ui_logic_send_share/airdrop.rs": "0d5634a038a1a3124461f61d0ce827e935adaf67b8b4b8fd0513e768b6cab6aa",
+    "src/ui_logic_send_share/airdrop_ask.rs": "32092bdbc0234fd8fba149f957bfac4655c4614d67b953ac6de866f3bd6d5a7c",
     "src/ui_logic_send_share/dropbox.rs": "3c490ae288b6ad1f9b2fcb1b62097a8a8837623a2279e268c5524c56d5123759",
     "src/ui_logic_send_share/localsend.rs": "07c4e6ef659e9f21856b6b84267b7bfa34b46986bc0d2cad313660b19fca5a4a",
     "src/ui_logic_send_share/providers.rs": "9172b13a63be660f968fbe106e41a6417dddc201350879ed71a235fd4b2d9836",
@@ -253231,12 +253372,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7b7aa6e9db60f795f47090ede7e2098e9592a9d7",
-  "source_sha": "7b7aa6e9db60f795f47090ede7e2098e9592a9d7",
+  "source_ref_sha": "7d9486b65d0ba8200afc2c140db256e89e5aef95",
+  "source_sha": "7d9486b65d0ba8200afc2c140db256e89e5aef95",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1337,
-      "missing_literal_candidates": 5746,
+      "keys_with_occurrences": 1338,
+      "missing_literal_candidates": 5748,
       "source_files": 852
     },
     "generated/tooling": {
@@ -253246,8 +253387,8 @@
     },
     "gui": {
       "keys_with_occurrences": 553,
-      "missing_literal_candidates": 2212,
-      "source_files": 1164
+      "missing_literal_candidates": 2217,
+      "source_files": 1167
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

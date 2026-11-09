@@ -1924,6 +1924,7 @@
   "send.providers.airdrop_accept": "Приемане",
   "send.providers.airdrop_decline": "Отказ",
   "send.providers.airdrop_someone": "Устройство наблизо",
+  "send.providers.airdrop_received": "Получено с AirDrop: %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Отмяна",
   "send.rclone.checked_checksum": "проверено по контролна сума",

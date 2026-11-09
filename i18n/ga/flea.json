@@ -1657,6 +1657,7 @@
   "send.providers.airdrop_accept": "Glac leis",
   "send.providers.airdrop_decline": "Diúltaigh",
   "send.providers.airdrop_someone": "Gléas in aice láimhe",
+  "send.providers.airdrop_received": "Fuarthas %1 le AirDrop",
   "send.rclone.row": "Seol le rclone",
   "send.rclone.title": {
     "one": "Seol %1 mhír chuig %2",

@@ -1,4 +1,5 @@
 //! One window's AirDrop over owly (MIT, by t4t5): doctor, the radio's ten minutes, found devices and sends; airdrop_join.rs runs each Act.
+use super::airdrop_shared::Shared;
 use super::seams::Wire;
 use flea::i18n::I18n;
 use flea::ui_logic_context_menus::build::Peer;
@@ -7,6 +8,10 @@ use flea::ui_logic_send_share::airdrop::{self as owly, Adapter, Readiness};
 
 // A doctor answer is good this long; the card and owlyd rarely change under an open window.
 const DOCTOR_FRESH_MS: u64 = 30_000;
+// After a browse that failed, a menu opened sooner than this does not start another.
+const BROWSE_GAP_MS: u64 = 1_000;
+// Files saved this close together are one transfer, said as a count.
+const RECEIVED_GROUP_MS: u64 = 2_000;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Radio {
@@ -48,13 +53,25 @@ pub struct AirDrop {
     doctor_gen: u64,
     doctoring: bool,
     doctor_at_ms: Option<u64>,
+    // This window's own radio; another window's is `elsewhere`, read from `shared`.
     pub radio: Radio,
+    elsewhere: Radio,
+    pub(crate) shared: Shared,
+    watching: bool,
+    // The radio run sent SIGTERM and not yet exited: the machine's lock stays held until it has.
+    stopping: Option<u64>,
+    // Receiving On asked while the machine's radio was still going down: the folder it starts with once free.
+    again: Option<String>,
     // One generation per process kind, so a line or exit from a run already replaced changes nothing.
     gens: [u64; Proc::ALL.len()],
     // owly's own error lines from the radio and the receiver, for the sentence said when either fails.
     said: String,
     browsing: bool,
+    browse_at_ms: u64,
+    browse_failed_ms: Option<u64>,
     menu_open: bool,
+    // When the last file was saved, and how many its transfer has saved so far.
+    received: Option<(u64, usize)>,
     folder: String,
     devices: Vec<owly::Peer>,
     next: u64,
@@ -92,7 +109,7 @@ impl AirDrop {
         let fresh = self
             .doctor_at_ms
             .is_some_and(|at| now_ms.saturating_sub(at) < DOCTOR_FRESH_MS);
-        if self.owly.is_empty() || self.doctoring || fresh || self.radio != Radio::Off {
+        if self.owly.is_empty() || self.doctoring || fresh || self.on() {
             return Vec::new();
         }
         self.doctor_gen += 1;
@@ -116,11 +133,13 @@ impl AirDrop {
         vec![Act::Refresh]
     }
 
-    fn browse(&mut self) -> Vec<Act> {
-        if self.browsing || !self.menu_open || self.radio != Radio::On {
+    // Any window browses while the machine's radio is up, its own or another window's.
+    fn browse(&mut self, now_ms: u64) -> Vec<Act> {
+        if self.browsing || !self.menu_open || self.machine() != Radio::On {
             return Vec::new();
         }
         self.browsing = true;
+        self.browse_at_ms = now_ms;
         let generation = self.next_gen(Proc::Browse);
         vec![Act::Start(
             Proc::Browse,
@@ -131,8 +150,15 @@ impl AirDrop {
 
     pub fn menu_opened(&mut self, now_ms: u64) -> Vec<Act> {
         self.menu_open = true;
-        let mut acts = self.ask_doctor(now_ms);
-        acts.extend(self.browse());
+        let mut acts = self.look();
+        acts.extend(self.ask_doctor(now_ms));
+        let failed_late = self
+            .browse_failed_ms
+            .is_some_and(|at| now_ms.saturating_sub(at) < BROWSE_GAP_MS);
+        if !failed_late {
+            self.browse_failed_ms = None;
+            acts.extend(self.browse(now_ms));
+        }
         acts
     }
 
@@ -151,28 +177,47 @@ impl AirDrop {
         if self.radio != Radio::Off {
             return Vec::new();
         }
+        // owly is still giving Wi-Fi back, and the radio is free once that run exits.
+        if self.stopping.is_some() {
+            return self.retry_later(folder);
+        }
+        // The machine has one radio: an Off asked of its owner is withdrawn, and one another window holds shows on here.
+        self.shared.keep();
+        let mut acts = self.look();
+        if self.elsewhere != Radio::Off {
+            acts.push(Act::Refresh);
+            return acts;
+        }
         if self.owly.is_empty() || !self.adapter.ready() {
-            return vec![
+            acts.extend([
                 Act::Say(i18n.tr("send.providers.menu_stale"), true),
                 Act::Refresh,
-            ];
+            ]);
+            return acts;
+        }
+        if !self.shared.claim(&self.adapter.card) {
+            acts.extend(self.retry_later(folder));
+            return acts;
         }
         self.radio = Radio::Starting;
         self.folder = folder.to_string();
         self.said.clear();
         let generation = self.next_gen(Proc::Radio);
-        vec![
+        acts.extend([
             Act::Start(Proc::Radio, generation, owly::radio_argv(&self.owly)),
             Act::Refresh,
-        ]
+        ]);
+        acts
     }
 
-    // Receiving set to Off, the plugin switched off or the window closing: every run stops and Wi-Fi comes back.
+    // Receiving set to Off, the plugin switched off or a run that exited: every run stops and Wi-Fi comes back.
     pub fn turn_off(&mut self) -> Vec<Act> {
+        self.again = None;
         if self.radio == Radio::Off {
-            return Vec::new();
+            return self.stop_elsewhere();
         }
         self.radio = Radio::Off;
+        self.hold_until_exit();
         self.browsing = false;
         self.devices.clear();
         for proc in Proc::ALL {
@@ -186,7 +231,14 @@ impl AirDrop {
         ]
     }
 
-    pub fn line(&mut self, proc: Proc, generation: u64, text: &str) -> Vec<Act> {
+    pub fn line(
+        &mut self,
+        proc: Proc,
+        generation: u64,
+        text: &str,
+        now_ms: u64,
+        i18n: &I18n,
+    ) -> Vec<Act> {
         if generation != self.gens[slot(proc)] {
             return Vec::new();
         }
@@ -198,16 +250,18 @@ impl AirDrop {
             }
             Proc::Radio if self.radio == Radio::Starting && owly::radio_is_up(text) => {
                 self.radio = Radio::On;
+                self.shared.publish(Radio::On, &self.adapter.card);
                 let generation = self.next_gen(Proc::Receive);
                 let mut acts = vec![Act::Start(
                     Proc::Receive,
                     generation,
                     owly::receive_argv(&self.owly, &self.folder),
                 )];
-                acts.extend(self.browse());
+                acts.extend(self.browse(now_ms));
                 acts.push(Act::Refresh);
                 acts
             }
+            Proc::Receive => self.received(text, now_ms, i18n),
             Proc::Browse => match owly::browse_line(text) {
                 Some(peer) if !self.devices.iter().any(|d| d.id == peer.id) => {
                     self.devices.push(peer);
@@ -219,7 +273,17 @@ impl AirDrop {
         }
     }
 
-    pub fn ended(&mut self, proc: Proc, generation: u64, exit_code: i32, i18n: &I18n) -> Vec<Act> {
+    pub fn ended(
+        &mut self,
+        proc: Proc,
+        generation: u64,
+        exit_code: i32,
+        now_ms: u64,
+        i18n: &I18n,
+    ) -> Vec<Act> {
+        if proc == Proc::Radio && self.stopping == Some(generation) {
+            return self.let_go(i18n);
+        }
         if generation != self.gens[slot(proc)] {
             return Vec::new();
         }
@@ -232,12 +296,14 @@ impl AirDrop {
             }
             // Nothing receives once the receiver exits, so the radio goes down too; only a failure says a sentence.
             Proc::Receive => self.stopped(proc, exit_code != owly::TIMEOUT_EXPIRED, i18n),
-            // A browse exits 0 after its seconds and an open menu listens again; a failed one waits for the next open.
+            // A browse that ran its seconds listens again; one that failed or ended early waits for a later menu open.
             Proc::Browse => {
                 self.browsing = false;
-                if exit_code == 0 {
-                    self.browse()
+                let whole = now_ms.saturating_sub(self.browse_at_ms) >= owly::BROWSE_SECS * 1_000;
+                if exit_code == 0 && whole {
+                    self.browse(now_ms)
                 } else {
+                    self.browse_failed_ms = Some(now_ms);
                     Vec::new()
                 }
             }
@@ -248,6 +314,10 @@ impl AirDrop {
     fn stopped(&mut self, exited: Proc, failed: bool, i18n: &I18n) -> Vec<Act> {
         let mut acts = self.turn_off();
         acts.retain(|act| *act != Act::Stop(exited));
+        // The radio's own exit leaves nothing to wait for.
+        if exited == Proc::Radio {
+            acts.extend(self.let_go(i18n));
+        }
         if failed {
             acts.insert(0, Act::Say(owly::radio_failed(i18n, &self.said), true));
         }
@@ -265,12 +335,12 @@ impl AirDrop {
         else {
             return stale;
         };
-        if self.radio != Radio::On || paths.is_empty() {
+        if self.machine() != Radio::On || paths.is_empty() {
             return stale;
         }
         self.next += 1;
         // A pane whose backend is gone cannot run the job, so its menu is out of date.
-        if !wire.send(owly::send_line(self.next, peer, paths)) {
+        if !wire.send(owly::send_line(self.next, peer, &name, paths)) {
             return stale;
         }
         let said = owly::sending(i18n, &name, paths);
@@ -309,7 +379,7 @@ impl AirDrop {
 
     pub fn page(&self, folder: &str, shown_as: &str) -> Page {
         Page {
-            receiving: self.radio != Radio::Off,
+            receiving: self.on() || self.again.is_some(),
             folder: folder.into(),
             shown_as: shown_as.into(),
             adapter: self.adapter.clone(),
@@ -317,6 +387,13 @@ impl AirDrop {
     }
 }
 
+#[path = "airdrop_machine.rs"]
+mod machine;
+
 #[cfg(test)]
 #[path = "airdrop_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "airdrop_machine_tests.rs"]
+mod machine_tests;

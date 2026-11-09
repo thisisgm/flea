@@ -1842,6 +1842,7 @@
   "send.providers.airdrop_accept": "接受",
   "send.providers.airdrop_decline": "拒絕",
   "send.providers.airdrop_someone": "附近的裝置",
+  "send.providers.airdrop_received": "已使用 AirDrop 收到 %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "正在取消",
   "send.rclone.checked_checksum": "已透過總和檢查碼驗證",
