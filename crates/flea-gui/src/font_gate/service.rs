@@ -2,8 +2,10 @@ use super::*;
 use std::time::{Duration, Instant};
 
 const RETRY_WINDOW: Duration = Duration::from_millis(1200);
-// Longer than the service's 250 ms launch probe deadline, so the first frame still draws the fallback.
-const LATE_PROBE_SECONDS: &str = "0.35";
+// The late probe answers only once this file exists beside bin/, so the launch probe always draws the fallback first.
+const LATE_PROBE_OPEN: &str = "late-probe-open";
+// 30 s of 20 ms polls, so a stub left behind by a failed test still exits.
+const LATE_PROBE_POLLS: u32 = 1500;
 
 fn mounted() -> (
     TestAppContext,
@@ -26,7 +28,8 @@ fn mounted() -> (
 }
 
 fn wait(cx: &mut TestAppContext, handle: Handle, family: &str) {
-    let until = Instant::now() + Duration::from_secs(6);
+    // A probe that misses its 250 ms deadline is answered by the worker's patient retry, so wait out that whole window.
+    let until = Instant::now() + crate::presentation::RETRY_PUBLISH + Duration::from_secs(5);
     while edit(cx, handle, |shell, _, _| {
         shell.active_typeface().font.family != family
     }) {
@@ -42,7 +45,9 @@ fn wait(cx: &mut TestAppContext, handle: Handle, family: &str) {
 fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
     if isolation::enter(
         "font_gate::service::font_gate_late_probe_restyles_already_shaped_filter_and_find",
-        &format!("#!/bin/sh\nsleep {LATE_PROBE_SECONDS}\nprintf '%s' '{FAMILY}'\n"),
+        &format!(
+            "#!/bin/sh\ni=0\nuntil [ -e \"${{0%/bin/fc-match}}/{LATE_PROBE_OPEN}\" ]; do\n[ \"$i\" -lt {LATE_PROBE_POLLS} ] || exit 1\ni=$((i + 1))\nsleep 0.02\ndone\nprintf '%s' '{FAMILY}'\n"
+        ),
     ) {
         return;
     }
@@ -55,7 +60,12 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
             .to_string()),
         FALLBACK
     );
+    let root = crate::presentation::fixture::Fixture::open(
+        std::env::var_os("FONT_GATE_ROOT").unwrap().into(),
+    )
+    .unwrap();
     recorder.begin();
+    root.write(&root.path().join(LATE_PROBE_OPEN), "");
     wait(&mut cx, handle, FAMILY);
     assert!(assert_runs(
         "late-probe-filter",
@@ -77,10 +87,6 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
         );
     });
     draw(&mut cx, handle);
-    let root = crate::presentation::fixture::Fixture::open(
-        std::env::var_os("FONT_GATE_ROOT").unwrap().into(),
-    )
-    .unwrap();
     let helper = root.path().join("bin/fc-match");
     root.write(&helper, format!("#!/bin/sh\nprintf '%s' '{SECOND}'\n"));
     root.executable(&helper);

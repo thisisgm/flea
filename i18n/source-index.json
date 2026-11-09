@@ -110849,7 +110849,7 @@
     },
     {
       "excerpt": "assert!(Instant::now() < until, \"service never published {family}\");",
-      "line": 33,
+      "line": 36,
       "literal": "service never published {family}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -110858,7 +110858,7 @@
     },
     {
       "excerpt": "&[\"file-0.txt\", \"esc clears\"]",
-      "line": 63,
+      "line": 73,
       "literal": "esc clears",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -110867,7 +110867,7 @@
     },
     {
       "excerpt": "for ch in \"Late probe search\".chars() {",
-      "line": 71,
+      "line": 81,
       "literal": "Late probe search",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -110876,7 +110876,7 @@
     },
     {
       "excerpt": "\"changed font input\",",
-      "line": 90,
+      "line": 96,
       "literal": "changed font input",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -110885,7 +110885,7 @@
     },
     {
       "excerpt": "&[\"file-0.txt\", \"Late probe search\"],",
-      "line": 96,
+      "line": 102,
       "literal": "Late probe search",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -110894,7 +110894,7 @@
     },
     {
       "excerpt": "\"a failed probe must not publish a later family\"",
-      "line": 132,
+      "line": 138,
       "literal": "a failed probe must not publish a later family",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -126131,7 +126131,7 @@
     },
     {
       "excerpt": "pub(super) const FALLBACK_FAMILY: &str = \"JetBrainsMono Nerd Font\";",
-      "line": 55,
+      "line": 63,
       "literal": "JetBrainsMono Nerd Font",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126140,7 +126140,7 @@
     },
     {
       "excerpt": "log(\"font probe\", error);",
-      "line": 105,
+      "line": 119,
       "literal": "font probe",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126149,7 +126149,7 @@
     },
     {
       "excerpt": ".expect(\"presentation subscribers\")",
-      "line": 158,
+      "line": 173,
       "literal": "presentation subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126158,7 +126158,7 @@
     },
     {
       "excerpt": "log(\"font probe\", error);",
-      "line": 170,
+      "line": 185,
       "literal": "font probe",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126167,7 +126167,7 @@
     },
     {
       "excerpt": "let mut state = worker.lock().expect(\"presentation subscribers\");",
-      "line": 178,
+      "line": 193,
       "literal": "presentation subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126176,7 +126176,7 @@
     },
     {
       "excerpt": ".expect(\"presentation subscribers\")",
-      "line": 217,
+      "line": 233,
       "literal": "presentation subscribers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126185,7 +126185,7 @@
     },
     {
       "excerpt": ".expect(\"the reader got no first snapshot\");",
-      "line": 280,
+      "line": 299,
       "literal": "the reader got no first snapshot",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126194,7 +126194,7 @@
     },
     {
       "excerpt": ".expect(\"a theme folder swap published nothing without a stat tick\"),",
-      "line": 296,
+      "line": 315,
       "literal": "a theme folder swap published nothing without a stat tick",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126203,7 +126203,7 @@
     },
     {
       "excerpt": "\"swap {round} published something other than {background}\"",
-      "line": 298,
+      "line": 317,
       "literal": "swap {round} published something other than {background}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126212,7 +126212,7 @@
     },
     {
       "excerpt": "Service::start_with(sources, super::TICK, || panic!(\"the watcher dies\"));",
-      "line": 313,
+      "line": 332,
       "literal": "the watcher dies",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126221,7 +126221,7 @@
     },
     {
       "excerpt": ".expect(\"the reader blocked on a dead presentation worker\");",
-      "line": 322,
+      "line": 341,
       "literal": "the reader blocked on a dead presentation worker",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126230,7 +126230,7 @@
     },
     {
       "excerpt": "\"the buffered snapshot was lost\"",
-      "line": 325,
+      "line": 344,
       "literal": "the buffered snapshot was lost",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126239,7 +126239,7 @@
     },
     {
       "excerpt": "assert!(closed, \"the reader stayed open after the worker died\");",
-      "line": 327,
+      "line": 346,
       "literal": "the reader stayed open after the worker died",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
@@ -126248,8 +126248,44 @@
     },
     {
       "excerpt": "\"a late subscribe lost the current snapshot\"",
-      "line": 331,
+      "line": 350,
       "literal": "a late subscribe lost the current snapshot",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/service.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "panic!(\"the watcher dies\")",
+      "line": 364,
+      "literal": "the watcher dies",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/service.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".expect(\"a reader that subscribed after the worker died waited forever\");",
+      "line": 382,
+      "literal": "a reader that subscribed after the worker died waited forever",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/service.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the late reader lost the current snapshot\"",
+      "line": 385,
+      "literal": "the late reader lost the current snapshot",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/service.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "assert!(closed, \"the late reader stayed open after the worker died\");",
+      "line": 387,
+      "literal": "the late reader stayed open after the worker died",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/service.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -251073,7 +251109,7 @@
     "crates/flea-gui/src/font_gate/picker.rs": "25c98930457c2d02b168563a119ff5632bd9a41bcfec21ea528b5cf5be36a0eb",
     "crates/flea-gui/src/font_gate/readers.rs": "e9019463a1e2e03c794f692cd5f15c44309ecf82822e397b1550f76a3f19d554",
     "crates/flea-gui/src/font_gate/receipt.rs": "c1bd793f85c42b7957da5a94dee5b6875b2144c4bdd313424a05d9f9f7d0bb74",
-    "crates/flea-gui/src/font_gate/service.rs": "24be9640fb774281bba33ac02113080f9914a0bcde3bd0b4e45f65be7353de4a",
+    "crates/flea-gui/src/font_gate/service.rs": "c0fb38d1e75f2722a16c55f572cd14b1d1483df1c01e129800907440b76b86ea",
     "crates/flea-gui/src/font_gate/settings.rs": "03663f1f99569b92eb1039fe614d1876bdd388907bb2ae68eac14588104902fc",
     "crates/flea-gui/src/font_gate/surfaces.rs": "fb83864e7a7789df59e6cfff3737dc450264e829cf2173d14dd81fd4a0f8f3d8",
     "crates/flea-gui/src/g2/archive_flash/cards.rs": "7ccc58b1d57b15912257b3f22186e00ee98a397b0bc9558ad081ae3a676b0be4",
@@ -251763,7 +251799,7 @@
     "crates/flea-gui/src/ipc/recent.rs": "16d61f15d9ccad14be09d26f768fbd98c8264cb9cc82f58df05b7ea265faa74f",
     "crates/flea-gui/src/ipc/rows.rs": "cd40717eda5e7b52b1b061b96ae7f3aeeb4ccbcb4359c331c13df36671525410",
     "crates/flea-gui/src/ipc/rows_format.rs": "be2d1142672d03da21873dc8938002b534fb5c81e243380e779f0e40a081516a",
-    "crates/flea-gui/src/ipc/server.rs": "a5f4697d1c86c0ab69c58f280515413b547beb7b602f1a7d7803ea2a5d069c60",
+    "crates/flea-gui/src/ipc/server.rs": "d17bbc2b379d62cd121451c282b410d04803c86207a3cb90f1d0b7225d4d04cb",
     "crates/flea-gui/src/ipc/settings.rs": "36cf2a24cfba617f03a2edf27985dca4abdb61aeeeefddd56064b5fb9e4ba72e",
     "crates/flea-gui/src/ipc/settings_cohesion.rs": "adca2b7010829974fe23bc37b54b9bef96dfe47346e67719670611beae4e773b",
     "crates/flea-gui/src/ipc/settings_plugins.rs": "434c72e0354e1eaf42bdb624b494d8ba19775f54ab32ff458c8289316aeb698b",
@@ -251880,8 +251916,8 @@
     "crates/flea-gui/src/presentation/frame_census.rs": "21d5e3b21374b0118504f1d752908f9eee4f483834098517bed7f70d498c7759",
     "crates/flea-gui/src/presentation/frame_gate.rs": "4298b5315f6f714d19a060cad63fe1c2371f3181139a09e433488168e607869d",
     "crates/flea-gui/src/presentation/frames.rs": "37c6de597334cdc09af86026b79c2301f40ee5cbc14a24697a1596347dfa2547",
-    "crates/flea-gui/src/presentation/mod.rs": "304a683fa6ac49c9762c17076170ebe7552e2cfc570778f0201377b6ce6f42cc",
-    "crates/flea-gui/src/presentation/service.rs": "72459553237f92a1c3e2069018c056661724e1d381e1a635f0f82ff36223d0be",
+    "crates/flea-gui/src/presentation/mod.rs": "6f40eae74def0dbaeb9edd3a6534dbe3d0eada4676a2641717241274aa7a90a7",
+    "crates/flea-gui/src/presentation/service.rs": "056903098b86fea6aebf3f8a5adb6da585d3af28f7ce363c7f7dacbe667d448f",
     "crates/flea-gui/src/presentation/source.rs": "3f4f3062dce2f8873bb183183b844038594d77b01e830199a35ff09e641746f5",
     "crates/flea-gui/src/presentation/wake.rs": "a52a67a8b6c81fa3634c32a086a3955bec3e96d1f424dcf5980fa9abfda6cc60",
     "crates/flea-gui/src/preview_quality.rs": "d951ba481d762db1c4960463ae4d3ee4313d58541c3d482990df939e2aadfa4e",
@@ -252226,7 +252262,7 @@
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
-    "src/backend/copystage.rs": "47ec253d9f92060c4a7e88ae69e11a31f8ec4188ad55bf3aae363f3578f6313f",
+    "src/backend/copystage.rs": "733c84efd3a0817a8cc6b9df9564e4246f5c222f8d9404fe158d0dee227c7deb",
     "src/backend/copysweep.rs": "9118749bb84c9f16ef137d92c4dcb9202831fa43c06256abf7adbcc5d3ab5599",
     "src/backend/created_request.rs": "c1e3983bef2bff19fab1d0a646b8e29c7d5dd1dd74e2bca898630aae9705ef41",
     "src/backend/csvrange.rs": "1b00338fd1b22d9407e2b11cc5cc497bf7b411d072a7c556297d879eb4fb566c",
@@ -253698,8 +253734,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "304f7df22bce79843a2ced0f0efebcfda4fa0883",
-  "source_sha": "304f7df22bce79843a2ced0f0efebcfda4fa0883",
+  "source_ref_sha": "01fcd86bbdb2ce26e3633cbd40c5874f83ebacf7",
+  "source_sha": "01fcd86bbdb2ce26e3633cbd40c5874f83ebacf7",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1339,
@@ -253713,7 +253749,7 @@
     },
     "gui": {
       "keys_with_occurrences": 554,
-      "missing_literal_candidates": 2220,
+      "missing_literal_candidates": 2224,
       "source_files": 1168
     },
     "qml-reference": {

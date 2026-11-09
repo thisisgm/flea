@@ -20,6 +20,15 @@ struct State {
     #[cfg(test)]
     published: u64,
     subscribers: Vec<Subscriber>,
+    // False once no worker will publish again, so a later subscribe gets the current snapshot and a closed channel.
+    open: bool,
+}
+
+impl State {
+    fn close(&mut self) {
+        self.open = false;
+        self.subscribers.clear();
+    }
 }
 
 // Clears the subscribers when the worker ends, so every reader's channel closes instead of waiting on a dead worker.
@@ -31,8 +40,7 @@ impl Drop for Closing {
         self.0
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .subscribers
-            .clear();
+            .close();
     }
 }
 
@@ -58,6 +66,12 @@ pub(super) const TICK: Duration = Duration::from_millis(500);
 
 // How long inputs must hold still before they are read; Omarchy's swap and an editor's save each land well inside it.
 const SETTLE: Duration = Duration::from_millis(20);
+
+/// The longest a timed-out probe's patient retry may take to publish: one tick, the settle and the retry's own deadline.
+#[cfg(test)]
+pub(crate) const RETRY_PUBLISH: Duration = TICK
+    .saturating_add(SETTLE)
+    .saturating_add(super::face::PATIENT);
 
 fn log(what: &str, error: impl std::fmt::Display) {
     eprintln!("flea-gui: presentation {what}: {error}");
@@ -109,6 +123,7 @@ impl Service {
             #[cfg(test)]
             published: 0,
             subscribers: Vec::new(),
+            open: true,
         }));
         let worker = state.clone();
         let (stop, stopping) = mpsc::channel();
@@ -200,6 +215,7 @@ impl Service {
             });
         if let Err(error) = spawned {
             log("watcher", error);
+            state.lock().unwrap_or_else(PoisonError::into_inner).close();
         }
         (
             Self {
@@ -222,6 +238,9 @@ impl Service {
         let (sender, receiver) = async_channel::bounded(1);
         let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
         let _ = sender.try_send(state.current.clone());
+        if !state.open {
+            return receiver;
+        }
         state
             .subscribers
             .retain(|subscriber| subscriber.sender.receiver_count() > 1);
@@ -330,5 +349,41 @@ mod tests {
             late.try_recv().ok() == Some(initial),
             "a late subscribe lost the current snapshot"
         );
+    }
+
+    // A reader that subscribes after the worker died gets the current snapshot and a closed channel, never a wait.
+    #[test]
+    fn m9_integ_g05_a_subscribe_after_the_worker_exit_still_closes() {
+        let sources = Sources::at(
+            std::array::from_fn(|_| PathBuf::from("/proc/self/flea-m9-absent-input")),
+            PathBuf::from("/proc/self/flea-m9-no-cache/entry"),
+        );
+        let (die, dying) = mpsc::channel::<()>();
+        let (service, initial) = Service::start_with(sources, super::TICK, move || {
+            let _ = dying.recv();
+            panic!("the watcher dies")
+        });
+        let closes = |reader: async_channel::Receiver<super::Snapshot>| {
+            let (report, outcome) = mpsc::channel();
+            std::thread::spawn(move || {
+                let first = reader.recv_blocking().ok();
+                let _ = report.send((first, reader.recv_blocking().is_err()));
+            });
+            outcome.recv_timeout(Duration::from_secs(10))
+        };
+        let before = service.subscribe();
+        die.send(()).unwrap();
+        // The earlier reader closing proves the worker's exit ran before the next subscribe.
+        assert_eq!(
+            closes(before).map(|(first, closed)| (first == Some(initial.clone()), closed)),
+            Ok((true, true))
+        );
+        let (first, closed) = closes(service.subscribe())
+            .expect("a reader that subscribed after the worker died waited forever");
+        assert!(
+            first == Some(initial),
+            "the late reader lost the current snapshot"
+        );
+        assert!(closed, "the late reader stayed open after the worker died");
     }
 }

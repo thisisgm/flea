@@ -58,10 +58,20 @@ def until(read, predicate, description):
     raise AssertionError(f"{description}: observed {value!r}")
 
 
+def pane_state(window):
+    replies = {name: window.call(name) for name in ("listInFlight", "listRequests", "keyDeliveryState")}
+    return " ".join(f"{name}={reply.stdout.decode().strip() or reply.stderr.decode().strip()}"
+                    for name, reply in replies.items())
+
+
 def cursor_moves(window, deliver):
-    before = int(window.value("cursor"))
+    before, requests = int(window.value("cursor")), window.value("listRequests")
     deliver()
-    check(int(window.value("cursor")) == before + 1, "Window event did not move the IPC cursor")
+    after = int(window.value("cursor"))
+    moved = after == before + 1
+    # A key that meets a same-folder re-read is queued until it lands, so a miss names the pane's state.
+    check(moved, "" if moved else f"Window event did not move the IPC cursor: before={before} after={after} "
+          f"listRequests before={requests} {pane_state(window)}")
 
 
 def real_window(driver):

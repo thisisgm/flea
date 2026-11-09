@@ -288,18 +288,31 @@ fn pid_routes_two_window_processes_and_missing_pid_never_falls_back() {
 
 #[test]
 fn headless_cli_and_harness_contract() {
-    let target = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_owned();
+    let exe = std::env::current_exe().unwrap();
+    let target = exe.parent().unwrap().parent().unwrap().to_owned();
+    let exe = exe.to_str().unwrap();
+    assert!(!exe.contains('\''), "the fixture script cannot quote {exe}");
+    let fixture = root().join("ipc-fixture");
+    let script = format!(
+        "#!/bin/sh\nFLEA_GUI_IPC_FIXTURE_PATH=$1\nexport FLEA_GUI_IPC_FIXTURE_PATH\nexec '{exe}' --exact ipc::server::fixture_child::ipc_fixture_child --nocapture --test-threads=1\n"
+    );
+    // Written by a child, so no sibling test's fork holds it open for write when the harness runs it.
+    let written = Command::new("/bin/sh")
+        .args([
+            "-c",
+            "printf '%s' \"$2\" > \"$1\" && chmod 700 \"$1\"",
+            "sh",
+        ])
+        .arg(&fixture)
+        .arg(script)
+        .status()
+        .unwrap();
+    assert!(written.success(), "the fixture script was not written");
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let result = Command::new("bash")
         .arg(repo.join("tests/gui-ipc.sh"))
         .env("FLEA_BIN", target.join("flea"))
-        .env("FLEA_GUI_IPC_FIXTURE", target.join("examples/ipc-fixture"))
+        .env("FLEA_GUI_IPC_FIXTURE", &fixture)
         .output()
         .unwrap();
     assert!(
