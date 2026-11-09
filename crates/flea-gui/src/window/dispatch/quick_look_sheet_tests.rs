@@ -9,6 +9,9 @@ use crate::{
 use flea::{jsondoc::Json, keys::Context, protocol::RowFacts};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+#[path = "quick_look_sheet_mark_tests.rs"]
+mod mark;
+
 fn rows() -> Vec<RowFacts> {
     vec![
         row("alpha", true),

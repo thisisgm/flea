@@ -2170,8 +2170,7 @@ label = "playPause"
 frontend = "all"
 context = "media"
 
-# MediaMute rule 4: m mutes while a media preview is open, and keeps its listing meaning everywhere
-# else, which the media context is what makes possible.
+# MediaMute rule 4: m mutes only in the window's media context; the terminal draws no mute state.
 [[preset]]
 name = "all"
 mods = "text"
@@ -2179,7 +2178,7 @@ key = "m"
 keys = "m"
 action = "mute"
 label = "Mute"
-frontend = "all"
+frontend = "gui"
 context = "media"
 
 [[preset]]

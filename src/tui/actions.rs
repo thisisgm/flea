@@ -146,7 +146,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         } else if let Some(player) = &mut model.player {
             match action.as_str() {
                 "focusNext" | "focusPrevious" => player.control = 1 - player.control,
-                "preview" => player.toggle()?,
+                "preview" | "playPause" => player.toggle()?,
                 "open" => {
                     if player.control == 0 {
                         player.toggle()?;

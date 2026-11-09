@@ -80,6 +80,8 @@ mod jobstatus;
 mod keycaps;
 mod keymap;
 mod media;
+#[cfg(test)]
+mod media_key_tests;
 mod model;
 mod footer_errors;
 mod office;
