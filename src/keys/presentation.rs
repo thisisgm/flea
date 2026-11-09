@@ -14,11 +14,16 @@ pub struct SheetRow {
     pub group: &'static str,
 }
 
+// The menu boards draw a Ctrl chord beside these rows alone; every other row shows a bare key or nothing.
+const CHORD_HINTS: &[&str] = &["print"];
+
 pub fn hint_for(name: &str, action: &str) -> &'static str {
     let name = preset(name);
     binding_rows(name, Frontend::Gui)
         .filter(|row| {
-            action_group(row.action) == action && matches!(row.mods, "text" | "none" | "shift")
+            action_group(row.action) == action
+                && (matches!(row.mods, "text" | "none" | "shift")
+                    || (row.mods == "ctrl" && CHORD_HINTS.contains(&action)))
         })
         .min_by_key(|row| {
             (if row.preset == name { 0 } else { 2 })
@@ -209,3 +214,7 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
 #[cfg(test)]
 #[path = "presentation_keycap_tests.rs"]
 pub(crate) mod keycap_tests;
+
+#[cfg(test)]
+#[path = "presentation_chord_tests.rs"]
+mod chord_tests;

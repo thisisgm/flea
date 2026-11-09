@@ -446,7 +446,7 @@ fn mounted_empty_answer_keeps_query_case_and_does_not_stamp_a_result(cx: &mut Te
         let host = shell.panes[0].as_ref().unwrap();
         assert_eq!(host.search.owner.session.query, "MiXeD");
         assert_eq!(host.search.owner.session.stamps.first_rows_at, 0);
-        assert!(shell.search_empty(0, window, cx).is_some());
+        assert!(shell.search_empty(0, 1100., window, cx).is_some());
     });
 }
 

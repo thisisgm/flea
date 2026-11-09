@@ -28,7 +28,14 @@ impl Shell {
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let no_match = self.no_match_hero(side, window, cx);
+        // A headline wider than the span from the active column to the edge elides to fit it, as hero_span places it there.
+        let room = self.panes[side]
+            .as_ref()
+            .and_then(|host| host.columns.as_ref())
+            .map_or(0., |columns| {
+                columns.area.layout.width - columns.area.layout.active_x()
+            });
+        let no_match = self.no_match_hero(side, room, window, cx);
         let blocked = self.input_blocked(cx) || cx.has_active_drag(); // No hover under a held drag, as List.
         let renaming = self.renaming_row(side);
         let grow = self.grows[side];

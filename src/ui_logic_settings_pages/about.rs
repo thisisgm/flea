@@ -8,11 +8,15 @@ pub const SPONSORS_URL: &str = "https://github.com/sponsors/thisisgm";
 
 // The signed repository package, src/update.rs's OPR_PACKAGE.
 pub const OPR_PACKAGE: &str = "flea";
+// The prebuilt release package, src/update.rs's RELEASE_PACKAGE.
+pub const RELEASE_PACKAGE: &str = "flea-bin";
 
 // Each kind word src/update.rs prints, with the key of the sentence About shows for it.
-pub const SOURCES: [(&str, &str); 3] = [
+pub const SOURCES: [(&str, &str); 4] = [
     ("opr", "settings.about.source_opr"),
     ("local", "settings.about.source_local"),
+    // flea-bin, a prebuilt release a package helper installed, so it too is a local package.
+    ("release", "settings.about.source_local"),
     ("unowned", "settings.about.source_unowned"),
 ];
 
@@ -118,6 +122,8 @@ pub fn install_kind(owner: &str, signed: bool) -> &'static str {
         "unowned"
     } else if owner == OPR_PACKAGE && signed {
         "opr"
+    } else if owner == RELEASE_PACKAGE {
+        "release"
     } else {
         "local"
     }

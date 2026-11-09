@@ -27,6 +27,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "ctrlshift", "4", "ctrl-shift-4", "viewDual", "listing", "all", 3, 1, "keys.action.viewDual", true),
     Binding::new("all", "ctrl", "Right", "ctrl-right", "openInPlace", "listing", "gui", 1, 1, "keys.action.openInPlace", true),
     Binding::new("all", "ctrl", "Left", "ctrl-left", "closeInPlace", "listing", "gui", 1, 1, "keys.action.closeInPlace", true),
+    Binding::new("all", "ctrl", "P", "ctrl-p", "print", "listing", "gui", 1, 1, "keys.label.07c371255954", false),
     Binding::new("all", "text", ">", ">", "openInPlace", "listing", "gui", 0, 1, "keys.action.openInPlace", false),
     Binding::new("all", "text", "<", "<", "closeInPlace", "listing", "gui", 0, 1, "keys.action.closeInPlace", false),
     Binding::new("default", "ctrl", "N", "ctrl-n", "windowNew", "listing,rail", "gui", 1, 3, "keys.action.windowNew", true),
@@ -312,7 +313,7 @@ pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
     SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
-    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
+    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags", "print"] },
 ];
 
 #[rustfmt::skip]

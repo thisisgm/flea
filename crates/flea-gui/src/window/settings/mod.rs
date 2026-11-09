@@ -9,6 +9,8 @@ mod codeicons_tests;
 #[cfg(test)]
 mod corner_tests;
 #[cfg(test)]
+mod dual_view_tests;
+#[cfg(test)]
 mod fix1_tests;
 #[cfg(test)]
 pub(crate) mod ink_tests;
@@ -39,6 +41,7 @@ mod today_tests;
 mod update;
 #[cfg(test)]
 mod update_poll_tests;
+mod view_choice;
 pub(crate) use store::SessionStore;
 
 use crate::{

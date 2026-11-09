@@ -150,7 +150,7 @@ impl Render for Shell {
             cx,
         );
         for side in 0..2 {
-            let search_empty = self.search_empty(side, window, cx);
+            let search_empty = self.search_empty(side, pane_width(side), window, cx);
             let contents = self.contents_blocks(side).map(Rc::new);
             let state_view = self.pane_state_view(side, cx);
             let Some(host) = self.panes[side].as_mut() else {
